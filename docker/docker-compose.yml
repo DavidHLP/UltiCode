@@ -1,0 +1,129 @@
+services:
+  # Nacos 服务（使用 Derby 数据库的单机模式）
+  nacos:
+    image: nacos/nacos-server:latest
+    container_name: nacos
+    restart: unless-stopped
+    ports:
+      - "8848:8848" # 暴露 Nacos 控制台和 API 端口
+      - "9848:9848" # 暴露 gRPC 端口
+      - "9849:9849" # 暴露 gRPC 端口（用于集群）
+    environment:
+      - MODE=standalone
+      - NACOS_AUTH_TOKEN=VGhpc0lzTXlTZWNyZXRLZXlGb3JOYWNvc0F1dGhTeXN0ZW0xMjMK # 需替换为实际密钥
+      - NACOS_AUTH_IDENTITY_KEY=VGhpc0lzTXlTZWNyZXRLZXlGb3JOYWNvc0F1dGhTeXN0ZW0xMjMK  # 需替换为实际身份键
+      - NACOS_AUTH_IDENTITY_VALUE=VGhpc0lzTXlTZWNyZXRLZXlGb3JOYWNvc0F1dGhTeXN0ZW0xMjMK  # 需替换为实际身份值
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.11  # 为 Nacos 分配固定IP
+
+  # Zipkin 服务
+  zipkin:
+    image: openzipkin/zipkin
+    container_name: zipkin
+    restart: unless-stopped
+    ports:
+      - "9411:9411" # 暴露 Zipkin UI 端口
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.10  # Zipkin 固定IP
+
+  # Sentinel 服务
+  sentinel:
+    image: sentinel-dashboard:1.8.8
+    container_name: sentinel
+    restart: unless-stopped
+    ports:
+      - "8080:8080" # 暴露 Sentinel 控制台端口
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.12
+
+  # Kafka 服务
+  kafka:
+    image: apache/kafka:latest
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - "9092:9092" # 暴露 Kafka 客户端连接端口
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://10.25.0.13:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@10.25.0.13:9093
+      # 修改这些值为1，因为是单节点部署
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.13
+    restart: always
+
+  # Kafka UI 服务
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - "8081:8080" # 暴露 Kafka UI 端口，使用宿主机 8081 端口以避免与 Sentinel 冲突
+    environment:
+      DYNAMIC_CONFIG_ENABLED: true
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.14
+    restart: always
+
+  # MySQL 服务
+  mysql:
+    image: mysql:8
+    container_name: mysql
+    hostname: mysql
+    restart: always
+    ports:
+      - "3306:3306" # 暴露 MySQL 数据库端口
+    environment:
+      MYSQL_ROOT_PASSWORD: Alone117
+      MYSQL_BINLOG_FORMAT: row
+      MYSQL_SERVER-ID: 1
+      MYSQL_MASTER_RECOVERY: true
+      MYSQL_LOG_BIN: mysql-bin
+    volumes:
+      - ./data/mysql/data:/var/lib/mysql
+      - ./data/mysql/conf.d:/etc/mysql/conf.d
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.15
+
+  # Redis 服务
+  redis:
+    image: redis/redis-stack:latest
+    container_name: redis
+    ports:
+      - "6379:6379" # 暴露 Redis 数据库端口
+      - "8001:8001" # 暴露 RedisInsight UI 端口
+    environment:
+      - REDIS_ARGS=--requirepass Alone117 # 设置 Redis 密码
+    restart: always # 容器崩溃时自动重启
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.16
+
+  openjdk-17-alpine:
+    image: openjdk:17-alpine
+    container_name: openjdk-17-alpine
+
+networks:
+  spring-cloud-networks:
+    name: spring-cloud-networks
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 10.25.0.0/24  # 子网定义，支持静态IP分配

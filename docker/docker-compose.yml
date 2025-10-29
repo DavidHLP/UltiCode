@@ -1,51 +1,58 @@
-services:
-  # Nacos 服务（使用 Derby 数据库的单机模式）
+services: # Nacos 服务（单机）
   nacos:
     image: nacos/nacos-server:latest
     container_name: nacos
     restart: unless-stopped
     ports:
-      - "8848:8848" # 暴露 Nacos 控制台和 API 端口
-      - "9848:9848" # 暴露 gRPC 端口
-      - "9849:9849" # 暴露 gRPC 端口（用于集群）
+      - "8848:8848"
+      - "9848:9848"
+      - "9849:9849"
     environment:
-      - MODE=standalone
-      - NACOS_AUTH_TOKEN=VGhpc0lzTXlTZWNyZXRLZXlGb3JOYWNvc0F1dGhTeXN0ZW0xMjMK # 需替换为实际密钥
-      - NACOS_AUTH_IDENTITY_KEY=VGhpc0lzTXlTZWNyZXRLZXlGb3JOYWNvc0F1dGhTeXN0ZW0xMjMK  # 需替换为实际身份键
-      - NACOS_AUTH_IDENTITY_VALUE=VGhpc0lzTXlTZWNyZXRLZXlGb3JOYWNvc0F1dGhTeXN0ZW0xMjMK  # 需替换为实际身份值
+      MODE: standalone
+      NACOS_AUTH_ENABLE: "${NACOS_AUTH_ENABLE:-true}"
+      NACOS_AUTH_TOKEN: "${NACOS_AUTH_TOKEN}"
+      NACOS_AUTH_IDENTITY_KEY: "${NACOS_AUTH_IDENTITY_KEY:-serverIdentity}"
+      NACOS_AUTH_IDENTITY_VALUE: "${NACOS_AUTH_IDENTITY_VALUE:-serverIdentityValue}"
     networks:
       spring-cloud-networks:
-        ipv4_address: 10.25.0.11  # 为 Nacos 分配固定IP
+        ipv4_address: 10.25.0.11
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -fsS http://127.0.0.1:8848/nacos/actuator/health | grep '\"status\":\"UP\"' >/dev/null" ]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 15s
 
-  # Zipkin 服务
+
+  # Zipkin
   zipkin:
     image: openzipkin/zipkin
     container_name: zipkin
     restart: unless-stopped
     ports:
-      - "9411:9411" # 暴露 Zipkin UI 端口
+      - "9411:9411"
     networks:
       spring-cloud-networks:
-        ipv4_address: 10.25.0.10  # Zipkin 固定IP
+        ipv4_address: 10.25.0.10
 
-  # Sentinel 服务
+  # Sentinel
   sentinel:
     image: sentinel-dashboard:1.8.8
     container_name: sentinel
     restart: unless-stopped
     ports:
-      - "8080:8080" # 暴露 Sentinel 控制台端口
+      - "8080:8080"
     networks:
       spring-cloud-networks:
         ipv4_address: 10.25.0.12
 
-  # Kafka 服务
+  # Kafka（KRaft 单节点）
   kafka:
     image: apache/kafka:latest
     container_name: kafka
     hostname: kafka
     ports:
-      - "9092:9092" # 暴露 Kafka 客户端连接端口
+      - "9092:9092"
     environment:
       KAFKA_NODE_ID: 1
       KAFKA_PROCESS_ROLES: broker,controller
@@ -54,70 +61,127 @@ services:
       KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@10.25.0.13:9093
-      # 修改这些值为1，因为是单节点部署
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: true
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
     networks:
       spring-cloud-networks:
         ipv4_address: 10.25.0.13
     restart: always
+    healthcheck:
+      test: [ "CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1" ]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
 
-  # Kafka UI 服务
+  # Kafka UI
   kafka-ui:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
     ports:
-      - "8081:8080" # 暴露 Kafka UI 端口，使用宿主机 8081 端口以避免与 Sentinel 冲突
+      - "8081:8080"
     environment:
-      DYNAMIC_CONFIG_ENABLED: true
+      DYNAMIC_CONFIG_ENABLED: "true"
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
     networks:
       spring-cloud-networks:
         ipv4_address: 10.25.0.14
     restart: always
+    depends_on:
+      kafka:
+        condition: service_healthy
 
-  # MySQL 服务
+  # MySQL（★ 初始化：./sql/init.sql）
   mysql:
     image: mysql:8
     container_name: mysql
     hostname: mysql
     restart: always
     ports:
-      - "3306:3306" # 暴露 MySQL 数据库端口
+      - "3306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: Alone117
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Alone117}
       MYSQL_BINLOG_FORMAT: row
       MYSQL_SERVER-ID: 1
-      MYSQL_MASTER_RECOVERY: true
+      MYSQL_MASTER_RECOVERY: "true"
       MYSQL_LOG_BIN: mysql-bin
     volumes:
       - ./data/mysql/data:/var/lib/mysql
       - ./data/mysql/conf.d:/etc/mysql/conf.d
+      # ★ 首次创建数据卷时自动执行
+      - ./sql/init.sql:/docker-entrypoint-initdb.d/001-init.sql:ro
       - /etc/localtime:/etc/localtime:ro
       - /etc/timezone:/etc/timezone:ro
     networks:
       spring-cloud-networks:
         ipv4_address: 10.25.0.15
+    healthcheck:
+      test: [ "CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -p$${MYSQL_ROOT_PASSWORD} --silent" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
-  # Redis 服务
+  # Redis
   redis:
     image: redis/redis-stack:latest
     container_name: redis
     ports:
-      - "6379:6379" # 暴露 Redis 数据库端口
-      - "8001:8001" # 暴露 RedisInsight UI 端口
+      - "6379:6379"
+      - "8001:8001"
     environment:
-      - REDIS_ARGS=--requirepass Alone117 # 设置 Redis 密码
-    restart: always # 容器崩溃时自动重启
+      - REDIS_ARGS=--requirepass ${REDIS_PASSWORD:-Alone117}
+    restart: always
     networks:
       spring-cloud-networks:
         ipv4_address: 10.25.0.16
+    healthcheck:
+      test: [ "CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-Alone117}", "PING" ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
 
+  # 仅供需要时使用的 openjdk 容器
   openjdk-17-alpine:
     image: openjdk:17-alpine
     container_name: openjdk-17-alpine
+
+  # ========= 一次性：Nacos 配置导入（用 sh 执行，避免 chmod 只读错误） =========
+  nacos-init:
+    image: curlimages/curl:8.11.1
+    container_name: nacos-init
+    depends_on:
+      nacos:
+        condition: service_healthy
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.21
+    volumes:
+      - ./init/nacos:/init/nacos:ro
+    entrypoint: [ "sh", "-c", "sh /init/nacos/bootstrap.sh" ]
+    environment:
+      NACOS_ADDR: "http://nacos:8848"
+      NACOS_USERNAME: "${NACOS_USERNAME:-nacos}"
+      NACOS_PASSWORD: "${NACOS_PASSWORD:-nacos}"
+
+  # ========= 一次性：Kafka 主题创建（用 sh 执行，避免 chmod 只读错误） =========
+  kafka-init:
+    image: apache/kafka:latest
+    container_name: kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      spring-cloud-networks:
+        ipv4_address: 10.25.0.22
+    volumes:
+      - ./init/kafka:/init/kafka:ro
+    entrypoint: [ "sh", "-c", "sh /init/kafka/init-topics.sh" ]
+    environment:
+      BOOTSTRAP: "kafka:9092"
 
 networks:
   spring-cloud-networks:
@@ -126,4 +190,4 @@ networks:
     ipam:
       driver: default
       config:
-        - subnet: 10.25.0.0/24  # 子网定义，支持静态IP分配
+        - subnet: 10.25.0.0/24

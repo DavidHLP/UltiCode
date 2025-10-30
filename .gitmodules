@@ -1,3 +1,8 @@
 [submodule "UltiCode-Admin-API"]
 	path = UltiCode-Admin-API
 	url = git@github.com:DavidHLP/UltiCode-Admin-API.git
+	branch = main
+[submodule "UltiCode-Admin-Web"]
+	path = UltiCode-Admin-Web
+	url = git@github.com:DavidHLP/UltiCode-Admin-Web.git
+	branch = main

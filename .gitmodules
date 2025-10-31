@@ -10,3 +10,7 @@
 	path = UltiCode-Public-API
 	url = git@github.com:DavidHLP/UltiCode-Public-API.git
 	branch = main
+[submodule "UltiCode-Public-Web"]
+	path = UltiCode-Public-Web
+	url = git@github.com:DavidHLP/UltiCode-Public-Web.git
+	branch = main

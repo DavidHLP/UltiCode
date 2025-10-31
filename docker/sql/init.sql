@@ -750,6 +750,49 @@ VALUES (208, 1, 'zh-CN', '1. 两数之和',
         '给定整数数组 **nums** 与整数 **target**，请返回使得 `nums[i] + nums[j] = target` 的两个下标（i ≠ j）。',
         '- 2 ≤ |nums| ≤ 10^5\n- -10^9 ≤ nums[i], target ≤ 10^9\n- 题目保证恰好存在一个解。',
         '**示例**\n输入：nums = [2,7,11,15], target = 9\n输出：[0,1]', '2025-10-17 18:06:54', '2025-10-17 18:06:54');
+INSERT INTO `problem_statements`
+VALUES (209, 3, 'en', '3. Longest Substring Without Repeating Characters',
+        'Given a string s, find the length of the longest substring without repeating characters.',
+        '- 1 ≤ |s| ≤ 5 * 10^4', '**Example**\nInput: s = \"abcabcbb\"\nOutput: 3', '2025-10-17 18:20:00',
+        '2025-10-17 18:20:00');
+INSERT INTO `problem_statements`
+VALUES (210, 3, 'zh-CN', '3. 无重复字符的最长子串',
+        '给定字符串 s，请找出不包含重复字符的最长子串的长度。',
+        '- 1 ≤ |s| ≤ 5 * 10^4', '**示例**\n输入：s = \"abcabcbb\"\n输出：3', '2025-10-17 18:20:00',
+        '2025-10-17 18:20:00');
+INSERT INTO `problem_statements`
+VALUES (211, 4, 'en', '200. Number of Islands',
+        'Given an m x n 2D binary grid grid which represents a map of \'1\'s (land) and \'0\'s (water), return the number of islands.',
+        '- 1 ≤ m, n ≤ 300',
+        '**Example**\nInput: grid = [[\"1\",\"1\",\"0\"],[\"0\",\"1\",\"0\"],[\"1\",\"0\",\"1\"]]\nOutput: 3',
+        '2025-10-17 18:22:00', '2025-10-17 18:22:00');
+INSERT INTO `problem_statements`
+VALUES (212, 4, 'zh-CN', '200. 岛屿数量',
+        '给定由 \'1\'（陆地）和 \'0\'（水）组成的 m x n 二维网格，计算岛屿的数量。',
+        '- 1 ≤ m, n ≤ 300',
+        '**示例**\n输入：grid = [[\"1\",\"1\",\"0\"],[\"0\",\"1\",\"0\"],[\"1\",\"0\",\"1\"]]\n输出：3',
+        '2025-10-17 18:22:00', '2025-10-17 18:22:00');
+INSERT INTO `problem_statements`
+VALUES (213, 5, 'en', '146. LRU Cache',
+        'Design a data structure that follows the constraints of a Least Recently Used (LRU) cache.',
+        '- 1 ≤ capacity ≤ 3 * 10^4',
+        '**Example**\nInput: [\"LRUCache\",\"put\",\"put\",\"get\",\"put\",\"get\",\"put\",\"get\",\"get\",\"get\"],[ [2],[1,1],[2,2],[1],[3,3],[2],[4,4],[1],[3],[4] ]\nOutput: [null,null,null,1,null,-1,null,-1,3,4]',
+        '2025-10-17 18:25:00', '2025-10-17 18:25:00');
+INSERT INTO `problem_statements`
+VALUES (214, 5, 'zh-CN', '146. LRU 缓存机制',
+        '请设计并实现支持最近最少使用策略 (LRU) 的缓存结构。',
+        '- 1 ≤ capacity ≤ 3 * 10^4', '**示例**\n输入与输出同英文描述', '2025-10-17 18:25:00', '2025-10-17 18:25:00');
+INSERT INTO `problem_statements`
+VALUES (215, 6, 'en', '704. Binary Search',
+        'Given an array of integers nums which is sorted in ascending order, and an integer target, return the index if the target is found.',
+        '- 1 ≤ |nums| ≤ 10^4', '**Example**\nInput: nums = [-1,0,3,5,9,12], target = 9\nOutput: 4',
+        '2025-10-17 18:28:00',
+        '2025-10-17 18:28:00');
+INSERT INTO `problem_statements`
+VALUES (216, 6, 'zh-CN', '704. 二分查找',
+        '给定按升序排序的整数数组 nums 和目标值 target，若找到 target 则返回其索引，否则返回 -1。',
+        '- 1 ≤ |nums| ≤ 10^4', '**示例**\n输入：nums = [-1,0,3,5,9,12], target = 9\n输出：4', '2025-10-17 18:28:00',
+        '2025-10-17 18:28:00');
 
 -- ----------------------------
 -- Table structure for problem_tags
@@ -777,6 +820,22 @@ INSERT INTO `problem_tags`
 VALUES (1, 10);
 INSERT INTO `problem_tags`
 VALUES (1, 11);
+INSERT INTO `problem_tags`
+VALUES (3, 12);
+INSERT INTO `problem_tags`
+VALUES (3, 11);
+INSERT INTO `problem_tags`
+VALUES (4, 13);
+INSERT INTO `problem_tags`
+VALUES (4, 14);
+INSERT INTO `problem_tags`
+VALUES (5, 17);
+INSERT INTO `problem_tags`
+VALUES (5, 15);
+INSERT INTO `problem_tags`
+VALUES (6, 16);
+INSERT INTO `problem_tags`
+VALUES (6, 10);
 
 -- ----------------------------
 -- Table structure for problems
@@ -926,6 +985,203 @@ VALUES (2,
         '2025-10-17 16:53:25',
         '2025-10-17 16:53:25',
         2);
+INSERT INTO `problems` (`id`,
+                        `slug`,
+                        `problem_type`,
+                        `difficulty_id`,
+                        `category_id`,
+                        `creator_id`,
+                        `solution_entry`,
+                        `time_limit_ms`,
+                        `memory_limit_kb`,
+                        `is_public`,
+                        `lifecycle_status`,
+                        `review_status`,
+                        `reviewed_by`,
+                        `reviewed_at`,
+                        `review_notes`,
+                        `submitted_for_review_at`,
+                        `meta_json`,
+                        `created_at`,
+                        `updated_at`,
+                        `active_dataset_id`)
+VALUES (3,
+        '3-longest-substring',
+        'coding',
+        2,
+        1,
+        1,
+        'lengthOfLongestSubstring',
+        2000,
+        262144,
+        1,
+        'published',
+        'approved',
+        1,
+        '2025-10-17 18:20:00',
+        '示例题目审核通过并发布',
+        '2025-10-17 18:15:00',
+        '{
+          \"companies\": [
+            \"Google\",
+            \"ByteDance\"
+          ],
+          \"frequency\": 0.47,
+          \"paid_only\": false,
+          \"frontend_id\": 3,
+          \"leetcode_style\": true
+        }',
+        '2025-10-17 18:15:00',
+        '2025-10-17 18:20:00',
+        NULL);
+INSERT INTO `problems` (`id`,
+                        `slug`,
+                        `problem_type`,
+                        `difficulty_id`,
+                        `category_id`,
+                        `creator_id`,
+                        `solution_entry`,
+                        `time_limit_ms`,
+                        `memory_limit_kb`,
+                        `is_public`,
+                        `lifecycle_status`,
+                        `review_status`,
+                        `reviewed_by`,
+                        `reviewed_at`,
+                        `review_notes`,
+                        `submitted_for_review_at`,
+                        `meta_json`,
+                        `created_at`,
+                        `updated_at`,
+                        `active_dataset_id`)
+VALUES (4,
+        '200-number-of-islands',
+        'coding',
+        2,
+        1,
+        1,
+        'numIslands',
+        3000,
+        262144,
+        1,
+        'published',
+        'approved',
+        1,
+        '2025-10-17 18:22:00',
+        '示例题目审核通过并发布',
+        '2025-10-17 18:18:00',
+        '{
+          \"companies\": [
+            \"Amazon\",
+            \"Microsoft\"
+          ],
+          \"frequency\": 0.39,
+          \"paid_only\": false,
+          \"frontend_id\": 200,
+          \"leetcode_style\": true
+        }',
+        '2025-10-17 18:18:00',
+        '2025-10-17 18:22:00',
+        NULL);
+INSERT INTO `problems` (`id`,
+                        `slug`,
+                        `problem_type`,
+                        `difficulty_id`,
+                        `category_id`,
+                        `creator_id`,
+                        `solution_entry`,
+                        `time_limit_ms`,
+                        `memory_limit_kb`,
+                        `is_public`,
+                        `lifecycle_status`,
+                        `review_status`,
+                        `reviewed_by`,
+                        `reviewed_at`,
+                        `review_notes`,
+                        `submitted_for_review_at`,
+                        `meta_json`,
+                        `created_at`,
+                        `updated_at`,
+                        `active_dataset_id`)
+VALUES (5,
+        '146-lru-cache',
+        'coding',
+        3,
+        1,
+        1,
+        'LRUCache',
+        2000,
+        262144,
+        1,
+        'published',
+        'approved',
+        1,
+        '2025-10-17 18:25:00',
+        '示例题目审核通过并发布',
+        '2025-10-17 18:23:00',
+        '{
+          \"companies\": [
+            \"Uber\",
+            \"Bloomberg\",
+            \"Amazon\"
+          ],
+          \"frequency\": 0.31,
+          \"paid_only\": false,
+          \"frontend_id\": 146,
+          \"leetcode_style\": true
+        }',
+        '2025-10-17 18:23:00',
+        '2025-10-17 18:25:00',
+        NULL);
+INSERT INTO `problems` (`id`,
+                        `slug`,
+                        `problem_type`,
+                        `difficulty_id`,
+                        `category_id`,
+                        `creator_id`,
+                        `solution_entry`,
+                        `time_limit_ms`,
+                        `memory_limit_kb`,
+                        `is_public`,
+                        `lifecycle_status`,
+                        `review_status`,
+                        `reviewed_by`,
+                        `reviewed_at`,
+                        `review_notes`,
+                        `submitted_for_review_at`,
+                        `meta_json`,
+                        `created_at`,
+                        `updated_at`,
+                        `active_dataset_id`)
+VALUES (6,
+        '704-binary-search',
+        'coding',
+        1,
+        1,
+        1,
+        'search',
+        1000,
+        262144,
+        1,
+        'published',
+        'approved',
+        1,
+        '2025-10-17 18:28:00',
+        '示例题目审核通过并发布',
+        '2025-10-17 18:26:00',
+        '{
+          \"companies\": [
+            \"Apple\",
+            \"Google\"
+          ],
+          \"frequency\": 0.24,
+          \"paid_only\": false,
+          \"frontend_id\": 704,
+          \"leetcode_style\": true
+        }',
+        '2025-10-17 18:26:00',
+        '2025-10-17 18:28:00',
+        NULL);
 
 -- ----------------------------
 -- Table structure for reactions
@@ -1312,6 +1568,18 @@ INSERT INTO `tags`
 VALUES (10, 'array', 'Array', '2025-10-17 16:53:25', '2025-10-17 16:53:25');
 INSERT INTO `tags`
 VALUES (11, 'hash-table', 'Hash Table', '2025-10-17 16:53:25', '2025-10-17 16:53:25');
+INSERT INTO `tags`
+VALUES (12, 'two-pointers', 'Two Pointers', '2025-10-17 16:53:25', '2025-10-17 16:53:25');
+INSERT INTO `tags`
+VALUES (13, 'graph', 'Graph', '2025-10-17 16:53:25', '2025-10-17 16:53:25');
+INSERT INTO `tags`
+VALUES (14, 'depth-first-search', 'Depth-First Search', '2025-10-17 16:53:25', '2025-10-17 16:53:25');
+INSERT INTO `tags`
+VALUES (15, 'dynamic-programming', 'Dynamic Programming', '2025-10-17 16:53:25', '2025-10-17 16:53:25');
+INSERT INTO `tags`
+VALUES (16, 'binary-search', 'Binary Search', '2025-10-17 16:53:25', '2025-10-17 16:53:25');
+INSERT INTO `tags`
+VALUES (17, 'design', 'Design', '2025-10-17 16:53:25', '2025-10-17 16:53:25');
 
 -- ----------------------------
 -- Table structure for testcase_groups

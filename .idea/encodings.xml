@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="Encoding">
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/admin-contest/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/admin-interaction/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/admin-judge/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/admin-problem/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/admin/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/auth/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/email/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/exception/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/forward/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/http/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/mybatis/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/password/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/security/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/specifications/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/core/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/service-starter/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/commons/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Admin-API/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/auth/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/email/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/exception/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/forward/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/http/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/mybatis/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/password/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/security/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/specifications/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/core/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/service-starter/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/commons/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/gateway/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/UltiCode-Public-API/src/main/resources" charset="UTF-8" />
+  </component>
+</project>

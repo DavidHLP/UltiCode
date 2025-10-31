@@ -1,0 +1,437 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="1d110836-f218-4184-8ec1-ba48c8ac364d" name="更改" comment="feat(public): 初始化公开题目模块并实现基础数据展示功能&#10;&#10;- 新增 public-problem 微服务模块，用于提供公开题目的查询接口&#10;- 在网关层配置 public-problem服务的路由规则，路径为 /api/public/problems/**&#10;- 数据库中新增 4 道公开题目的初始数据（包括中英文描述、标签、元信息等）&#10;- 新增多个标签分类，如 Two Pointers、Graph、Binary Search 等，丰富题目分类体系- 前端页面实现公开题目卡片列表展示功能，包含难度、时间/内存限制及企业频率信息&#10;- 实现题目列表接口的数据封装与分页逻辑，支持多语言切换&#10;- 提供前端请求工具函数 requestPublicData，跳过敏感验证以访问公开资源&#10;- 完成 Java 后端实体类和 MyBatis 映射配置，确保数据库查询结构正确映射至 DTO- 添加完整的 Spring Boot 应用配置文件，集成 Nacos 注册中心与 Sentinel 流控组件">
+      <change afterPath="$PROJECT_DIR$/UltiCode-Admin-Web/src/api/main/problems.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/.gitattributes" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/controller/ProblemPublicController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/dto/ProblemCardView.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/dto/ProblemListResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/entity/Difficulty.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/entity/Problem.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/entity/ProblemStatement.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/entity/ProblemTag.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/entity/Tag.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/mapper/DifficultyMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/mapper/ProblemMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/mapper/ProblemStatementMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/mapper/ProblemTagMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/mapper/TagMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/service/ProblemQueryService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/resources/application-datasource.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/resources/application.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/application-datasource.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/application.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/PublicProblemApplication.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/controller/ProblemPublicController.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/dto/ProblemCardView$DifficultyInfo.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/dto/ProblemCardView$ProblemMetadata.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/dto/ProblemCardView$ProblemStats.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/dto/ProblemCardView$TagInfo.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/dto/ProblemCardView.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/dto/ProblemListResponse.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/entity/Difficulty.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/entity/Problem.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/entity/ProblemStatement.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/entity/ProblemTag.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/entity/Tag.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/mapper/DifficultyMapper.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/mapper/ProblemMapper.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/mapper/ProblemStatementMapper.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/mapper/ProblemTagMapper$TagRelationRow.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/mapper/ProblemTagMapper.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/mapper/TagMapper.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/classes/com/david/open/problem/service/ProblemQueryService.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/maven-archiver/pom.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/public-problem-0.0.1-SNAPSHOT.jar" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/target/public-problem-0.0.1-SNAPSHOT.jar.original" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/UltiCode-Public-Web/src/api/problem/problems.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Admin-API" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Admin-API" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Admin-API/gateway" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Admin-API/gateway" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Admin-API/gateway/src/main/resources/application.yml" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Admin-API/gateway/src/main/resources/application.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Admin-Web" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Admin-Web" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Admin-Web/src/utils/request.ts" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Admin-Web/src/utils/request.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Public-API" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Public-API" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/PublicProblemApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/java/com/david/open/problem/PublicProblemApplication.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Public-Web" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Public-Web" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/UltiCode-Public-Web/src/pages/main/index.vue" beforeDir="false" afterPath="$PROJECT_DIR$/UltiCode-Public-Web/src/pages/main/index.vue" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/docker/sql/init.sql" beforeDir="false" afterPath="$PROJECT_DIR$/docker/sql/init.sql" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
+    <option name="SIGN_OFF_COMMIT" value="true" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;DavidHLP&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:DavidHLP/UltiCode-Admin-API.git&quot;,
+    &quot;accountId&quot;: &quot;f92b16b7-b015-42ad-b0a5-fbb4053f3bf5&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 0
+}</component>
+  <component name="ProjectId" id="34lm9ptjL9pJtB8NXNjEayhRxxm" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showExcludedFiles" value="false" />
+    <option name="showLibraryContents" value="true" />
+    <option name="showScratchesAndConsoles" value="false" />
+    <option name="sortKey" value="BY_TIME_DESCENDING" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "Docker.docker: Compose 部署.executor": "Run",
+    "Maven.UltiCode [clean].executor": "Run",
+    "Maven.UltiCode [install].executor": "Run",
+    "Maven.UltiCode-Admin [clean].executor": "Run",
+    "Maven.UltiCode-Admin [install].executor": "Run",
+    "Maven.UltiCode-Public [clean].executor": "Run",
+    "Maven.UltiCode-Public [install].executor": "Run",
+    "Maven.auth [clean].executor": "Run",
+    "Maven.auth [install].executor": "Run",
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
+    "SHELLCHECK.PATH": "/home/david/.local/share/JetBrains/IntelliJIdea2025.2/Shell Script/shellcheck",
+    "Spring Boot.AdminApplication.executor": "Run",
+    "Spring Boot.AdminContestApplication.executor": "Run",
+    "Spring Boot.AdminInteractionApplication.executor": "Run",
+    "Spring Boot.AdminJudgeApplication.executor": "Run",
+    "Spring Boot.AdminProblemApplication.executor": "Run",
+    "Spring Boot.AuthApplication.executor": "Run",
+    "Spring Boot.ContestApplication.executor": "Run",
+    "Spring Boot.GatewayApplication.executor": "Run",
+    "Spring Boot.InteractionApplication.executor": "Run",
+    "Spring Boot.JudgeApplication.executor": "Run",
+    "Spring Boot.ProblemApplication.executor": "Run",
+    "Spring Boot.PublicProblemApplication.executor": "Run",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "/home/david/Project/UltiCode",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "onboarding.tips.debug.path": "/home/david/Project/UltiCode/UltiCode-Public-API/public-problem/src/main/java/com/david/Main.java",
+    "project.structure.last.edited": "模块",
+    "project.structure.proportion": "0.15",
+    "project.structure.side.proportion": "0.35517243",
+    "run.configurations.included.in.services": "true",
+    "settings.editor.selected.configurable": "google-java-format.settings",
+    "ts.external.directory.path": "/home/david/Project/UltiCode/UltiCode-Admin-Web/node_modules/typescript/lib",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RecentsManager">
+    <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
+      <recent name="$PROJECT_DIR$/UltiCode-Public-API/public-problem/src/main/resources" />
+      <recent name="$PROJECT_DIR$/UltiCode-Public-Web/src/pages/register" />
+      <recent name="$PROJECT_DIR$/UltiCode-Public-Web/src" />
+      <recent name="$PROJECT_DIR$/UltiCode-Public-Web/src/router" />
+    </key>
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/UltiCode-Public-API" />
+    </key>
+  </component>
+  <component name="RunDashboard">
+    <option name="configurationTypes">
+      <set>
+        <option value="SpringBootApplicationConfigurationType" />
+      </set>
+    </option>
+    <option name="configurationStatuses">
+      <map>
+        <entry key="SpringBootApplicationConfigurationType">
+          <value>
+            <map>
+              <entry key="AdminApplication" value="STOPPED" />
+              <entry key="AdminContestApplication" value="STOPPED" />
+              <entry key="AdminInteractionApplication" value="STOPPED" />
+              <entry key="AdminJudgeApplication" value="STOPPED" />
+              <entry key="AdminProblemApplication" value="STOPPED" />
+              <entry key="AuthApplication" value="STOPPED" />
+              <entry key="GatewayApplication" value="STOPPED" />
+              <entry key="PublicProblemApplication" value="STOPPED" />
+            </map>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="RunManager" selected="Spring Boot.PublicProblemApplication">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="UltiCode-Admin" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="UltiCode-Admin" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+    <configuration name="AdminApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="admin" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.david.admin.AdminApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="AdminContestApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="admin-contest" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.david.contest.AdminContestApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="AdminInteractionApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="admin-interaction" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.david.interaction.AdminInteractionApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="AdminJudgeApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="admin-judge" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.david.judge.AdminJudgeApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="AdminProblemApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="admin-problem" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.david.problem.AdminProblemApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="AuthApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="auth" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.david.auth.AuthApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="GatewayApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <module name="gateway" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.david.GatewayApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration name="PublicProblemApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" temporary="true" nameIsGenerated="true">
+      <module name="public-problem" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.david.open.problem.PublicProblemApplication" />
+      <extension name="coverage">
+        <pattern>
+          <option name="PATTERN" value="com.david.open.problem.*" />
+          <option name="ENABLED" value="true" />
+        </pattern>
+      </extension>
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="docker-deploy" factoryName="docker-compose.yml" temporary="true">
+      <deployment type="docker-compose.yml">
+        <settings />
+      </deployment>
+      <method v="2" />
+    </configuration>
+    <configuration name="docker: Compose 部署" type="docker-deploy" factoryName="docker-compose.yml" temporary="true" server-name="Docker">
+      <deployment type="docker-compose.yml">
+        <settings>
+          <option name="sourceFilePath" value="docker/docker-compose.yml" />
+        </settings>
+      </deployment>
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Spring Boot.PublicProblemApplication" />
+        <item itemvalue="Docker.docker: Compose 部署" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-bf35d07a577b-intellij.indexing.shared.core-IU-252.23892.409" />
+        <option value="bundled-js-predefined-d6986cc7102b-e03c56caf84a-JavaScript-IU-252.23892.409" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="默认任务">
+      <changelist id="1d110836-f218-4184-8ec1-ba48c8ac364d" name="更改" comment="" />
+      <created>1761796383174</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1761796383174</updated>
+      <workItem from="1761796384223" duration="94000" />
+      <workItem from="1761815028640" duration="1017000" />
+      <workItem from="1761816086867" duration="1291000" />
+      <workItem from="1761817383696" duration="2942000" />
+      <workItem from="1761822188275" duration="49000" />
+      <workItem from="1761822244513" duration="3994000" />
+      <workItem from="1761903428050" duration="8325000" />
+    </task>
+    <task id="LOCAL-00001" summary="chore(deps): 更新项目依赖版本管理- 移除了 commons.core.http 模块中的硬编码版本号&#10;- 将 commons.core.specifications 模块的版本号替换为 ${project.version} 占位符- 统一使用项目版本号进行依赖管理，提高版本一致性">
+      <option name="closed" value="true" />
+      <created>1761816704958</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1761816704958</updated>
+    </task>
+    <task id="LOCAL-00002" summary="feat(submodule): 添加并配置新的子模块及同步脚本- 添加 UltiCode-Admin-Web 子模块及其分支配置&#10;- 在主仓库及 UltiCode-Admin-API 中添加 branch = main 配置- 新增 sync-all-submodules.sh 脚本用于递归同步所有子模块&#10;- 实现对多层嵌套子模块的统一更新、提交与推送流程- 自动化子模块同步操作，提升开发环境一致性&#10;- 添加执行权限确保脚本可直接运行">
+      <option name="closed" value="true" />
+      <created>1761816971784</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1761816971784</updated>
+    </task>
+    <task id="LOCAL-00003" summary="refactor(project): 更新项目结构以支持管理后台API- 将所有模块的父项目ID从UltiCode更改为UltiCode-Admin&#10;- 更新根项目的名称和描述信息&#10;- 在.gitmodules中添加UltiCode-Public-API子模块配置&#10;- 统一调整各子模块的artifactId引用为UltiCode-Admin">
+      <option name="closed" value="true" />
+      <created>1761820734828</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1761820734828</updated>
+    </task>
+    <task id="LOCAL-00004" summary="add">
+      <option name="closed" value="true" />
+      <created>1761820847165</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1761820847165</updated>
+    </task>
+    <task id="LOCAL-00005" summary="refactor(pom): 更新项目父模块名称并调整子模块配置&#10;&#10;- 将 UltiCode-Admin 父模块名称统一为 UltiCode&#10;- 修改各子模块的父模块引用从 UltiCode-Admin 为 UltiCode&#10;- 在 UltiCode-Public-API 中重命名 artifactId为 UltiCode-Public&#10;- 注释掉 UltiCode-Public-API 中的本地模块依赖配置&#10;- 添加 .gitmodules 文件以支持子模块管理">
+      <option name="closed" value="true" />
+      <created>1761821973665</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1761821973665</updated>
+    </task>
+    <task id="LOCAL-00006" summary="add">
+      <option name="closed" value="true" />
+      <created>1761821981734</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1761821981734</updated>
+    </task>
+    <task id="LOCAL-00007" summary="feat(auth): 实现完整的用户认证与权限管理功能- 添加用户登录、注册、刷新令牌等核心认证接口- 实现基于 Pinia 的认证状态管理，支持持久化存储&#10;- 集成双因素认证（2FA）启用与禁用功能&#10;- 添加敏感操作验证机制，确保高风险操作安全&#10;- 实现单点登录（SSO）会话初始化功能&#10;- 完善请求拦截器，自动处理认证令牌刷新与失效跳转&#10;- 添加面包屑导航类型定义和路由元信息扩展&#10;- 集成 Axios 请求封装，统一处理 API 响应格式&#10;- 移除默认示例页面内容，为实际业务开发做准备&#10;- 更新项目依赖，新增 axios 和相关工具类库&#10;-优化 .gitignore 配置，排除构建产物和编辑器缓存文件- 调整模块结构，精简公共组件引用路径- 修改项目名称及包标识符，明确区分管理端与公众端&#10;- 删除无用的计数器示例 store，清理冗余代码">
+      <option name="closed" value="true" />
+      <created>1761826677784</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1761826677784</updated>
+    </task>
+    <task id="LOCAL-00008" summary="refactor(contest):重构竞赛模块包结构和应用名称&#10;&#10;- 将 contest 模块重命名为 admin-contest&#10;- 更新应用主类名称为 AdminContestApplication- 修改模块标识符为 admin-contest&#10;- 调整父级 pom 中的模块引用名称">
+      <option name="closed" value="true" />
+      <created>1761904993833</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1761904993833</updated>
+    </task>
+    <task id="LOCAL-00009" summary="refactor(admin):重命名模块以符合管理后台命名规范&#10;&#10;- 将 interaction 模块重命名为 admin-interaction&#10;- 将 judge 模块重命名为 admin-judge- 将 problem 模块重命名为 admin-problem&#10;- 更新主类名称以匹配新模块名称- 修改 pom.xml 中的 artifactId 配置&#10;- 调整根 pom.xml 中的模块引用顺序">
+      <option name="closed" value="true" />
+      <created>1761905145368</created>
+      <option name="number" value="00009" />
+      <option name="presentableId" value="LOCAL-00009" />
+      <option name="project" value="LOCAL" />
+      <updated>1761905145368</updated>
+    </task>
+    <task id="LOCAL-00010" summary="feat-problem): 初始化(public公共问题模块&#10;&#10;- 创建 public-problem Maven 模块- 配置 JDK 17 编译环境- 添加模块到父项目 pom.xml&#10;-生成基础 Main 类用于启动测试">
+      <option name="closed" value="true" />
+      <created>1761905389890</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1761905389890</updated>
+    </task>
+    <task id="LOCAL-00011" summary="feat(auth): 实现用户注册与登录功能&#10;&#10;-支持 添加注册页面，邮箱验证和密码确认&#10;-重构登录页面，优化用户体验和错误提示&#10;- 配置路由守卫，实现权限控制和页面跳转逻辑- 更新应用名称和服务配置，统一命名规范&#10;- 引入相关依赖，完善公共问题服务模块- 删除无用的主函数文件，清理项目结构">
+      <option name="closed" value="true" />
+      <created>1761911121779</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1761911121779</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+  <component name="UpdateCopyrightCheckinHandler">
+    <option name="UPDATE_COPYRIGHT" value="true" />
+  </component>
+  <component name="Vcs.Log.Tabs.Properties">
+    <option name="TAB_STATES">
+      <map>
+        <entry key="MAIN">
+          <value>
+            <State />
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="refactor(core):重构安全模块类路径和依赖引用&#10;&#10;- 调整 ForwardedUserContextFilter 类在编译文件中的位置&#10;- 更新多个安全相关类在编译状态文件中的顺序- 统一项目内各模块源码路径前缀为 /home/david/Project/&#10;- 修改 exception 模块对 http 模块的依赖 artifactId 为全限定名&#10;- 优化 security 模块内部类加载顺序以提升初始化性能" />
+    <MESSAGE value="chore(deps): 更新项目依赖版本管理- 移除了 commons.core.http 模块中的硬编码版本号&#10;- 将 commons.core.specifications 模块的版本号替换为 ${project.version} 占位符- 统一使用项目版本号进行依赖管理，提高版本一致性" />
+    <MESSAGE value="feat(submodule): 添加并配置新的子模块及同步脚本- 添加 UltiCode-Admin-Web 子模块及其分支配置&#10;- 在主仓库及 UltiCode-Admin-API 中添加 branch = main 配置- 新增 sync-all-submodules.sh 脚本用于递归同步所有子模块&#10;- 实现对多层嵌套子模块的统一更新、提交与推送流程- 自动化子模块同步操作，提升开发环境一致性&#10;- 添加执行权限确保脚本可直接运行" />
+    <MESSAGE value="refactor(project): 更新项目结构以支持管理后台API- 将所有模块的父项目ID从UltiCode更改为UltiCode-Admin&#10;- 更新根项目的名称和描述信息&#10;- 在.gitmodules中添加UltiCode-Public-API子模块配置&#10;- 统一调整各子模块的artifactId引用为UltiCode-Admin" />
+    <MESSAGE value="feat(project): 初始化公共API项目结构- 添加.gitmodules文件引入认证、通用和网关子模块&#10;- 修改pom.xml将项目ID从UltiCode改为UltiCode-Public&#10;- 在pom.xml中添加commons、gateway和auth模块依赖- 更新项目名称为UltiCode-Public&#10;- 配置子模块路径和远程仓库地址" />
+    <MESSAGE value="refactor(pom): 更新项目父模块名称并调整子模块配置&#10;&#10;- 将 UltiCode-Admin 父模块名称统一为 UltiCode&#10;- 修改各子模块的父模块引用从 UltiCode-Admin 为 UltiCode&#10;- 在 UltiCode-Public-API 中重命名 artifactId为 UltiCode-Public&#10;- 注释掉 UltiCode-Public-API 中的本地模块依赖配置&#10;- 添加 .gitmodules 文件以支持子模块管理" />
+    <MESSAGE value="add" />
+    <MESSAGE value="feat(auth): 实现完整的用户认证与权限管理功能- 添加用户登录、注册、刷新令牌等核心认证接口- 实现基于 Pinia 的认证状态管理，支持持久化存储&#10;- 集成双因素认证（2FA）启用与禁用功能&#10;- 添加敏感操作验证机制，确保高风险操作安全&#10;- 实现单点登录（SSO）会话初始化功能&#10;- 完善请求拦截器，自动处理认证令牌刷新与失效跳转&#10;- 添加面包屑导航类型定义和路由元信息扩展&#10;- 集成 Axios 请求封装，统一处理 API 响应格式&#10;- 移除默认示例页面内容，为实际业务开发做准备&#10;- 更新项目依赖，新增 axios 和相关工具类库&#10;-优化 .gitignore 配置，排除构建产物和编辑器缓存文件- 调整模块结构，精简公共组件引用路径- 修改项目名称及包标识符，明确区分管理端与公众端&#10;- 删除无用的计数器示例 store，清理冗余代码" />
+    <MESSAGE value="refactor(gateway):优化JWT认证过滤器代码结构- 重新组织import语句，将Java标准库引用移至第三方库之前&#10;- 调整类内部代码缩进，提升代码可读性- 保持所有业务逻辑和功能不变，仅改善代码格式&#10;- 统一代码块缩进风格，使用2个空格代替4个空格- 优化代码换行和对齐，使结构 保留更清晰&#10;-所有注释和文档字符串，未做内容修改" />
+    <MESSAGE value="refactor(contest):重构竞赛模块包结构和应用名称&#10;&#10;- 将 contest 模块重命名为 admin-contest&#10;- 更新应用主类名称为 AdminContestApplication- 修改模块标识符为 admin-contest&#10;- 调整父级 pom 中的模块引用名称" />
+    <MESSAGE value="refactor(admin):重命名模块以符合管理后台命名规范&#10;&#10;- 将 interaction 模块重命名为 admin-interaction&#10;- 将 judge 模块重命名为 admin-judge- 将 problem 模块重命名为 admin-problem&#10;- 更新主类名称以匹配新模块名称- 修改 pom.xml 中的 artifactId 配置&#10;- 调整根 pom.xml 中的模块引用顺序" />
+    <MESSAGE value="feat-problem): 初始化(public公共问题模块&#10;&#10;- 创建 public-problem Maven 模块- 配置 JDK 17 编译环境- 添加模块到父项目 pom.xml&#10;-生成基础 Main 类用于启动测试" />
+    <MESSAGE value="feat(auth): 实现用户注册与登录功能&#10;&#10;-支持 添加注册页面，邮箱验证和密码确认&#10;-重构登录页面，优化用户体验和错误提示&#10;- 配置路由守卫，实现权限控制和页面跳转逻辑- 更新应用名称和服务配置，统一命名规范&#10;- 引入相关依赖，完善公共问题服务模块- 删除无用的主函数文件，清理项目结构" />
+    <MESSAGE value="feat(public): 初始化公开题目模块并实现基础数据展示功能&#10;&#10;- 新增 public-problem 微服务模块，用于提供公开题目的查询接口&#10;- 在网关层配置 public-problem服务的路由规则，路径为 /api/public/problems/**&#10;- 数据库中新增 4 道公开题目的初始数据（包括中英文描述、标签、元信息等）&#10;- 新增多个标签分类，如 Two Pointers、Graph、Binary Search 等，丰富题目分类体系- 前端页面实现公开题目卡片列表展示功能，包含难度、时间/内存限制及企业频率信息&#10;- 实现题目列表接口的数据封装与分页逻辑，支持多语言切换&#10;- 提供前端请求工具函数 requestPublicData，跳过敏感验证以访问公开资源&#10;- 完成 Java 后端实体类和 MyBatis 映射配置，确保数据库查询结构正确映射至 DTO- 添加完整的 Spring Boot 应用配置文件，集成 Nacos 注册中心与 Sentinel 流控组件" />
+    <MESSAGE value="feat(auth): 实现用户注册与登录功能&#10;&#10;-支持 添加注册页面，邮箱验证和密码确认&#10;-重构登录页面，优化用户体验和错误提示&#10;- 配置路由守卫，实现权限控制和页面跳转逻辑- 更新应用名称和服务配置，统一命名规范&#10;- 引入相关依赖，完善公共问题服务模块- 删除无用的主函数文件，清理项目结构&#10;&#10;Signed-off-by: DavidHLP &lt;lysf15520112973@163.com&gt;&#10;feat(auth): 实现完整的用户认证与权限管理功能- 添加用户登录、注册、刷新令牌等核心认证接口- 实现基于 Pinia 的认证状态管理，支持持久化存储&#10;- 集成双因素认证（2FA）启用与禁用功能&#10;- 添加敏感操作验证机制，确保高风险操作安全&#10;- 实现单点登录（SSO）会话初始化功能&#10;- 完善请求拦截器，自动处理认证令牌刷新与失效跳转&#10;- 添加面包屑导航类型定义和路由元信息扩展&#10;- 集成 Axios 请求封装，统一处理 API 响应格式&#10;- 移除默认示例页面内容，为实际业务开发做准备&#10;- 更新项目依赖，新增 axios 和相关工具类库&#10;-优化 .gitignore 配置，排除构建产物和编辑器缓存文件- 调整模块结构，精简公共组件引用路径- 修改项目名称及包标识符，明确区分管理端与公众端&#10;- 删除无用的计数器示例 store，清理冗余代码" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat(auth): 实现用户注册与登录功能&#10;&#10;-支持 添加注册页面，邮箱验证和密码确认&#10;-重构登录页面，优化用户体验和错误提示&#10;- 配置路由守卫，实现权限控制和页面跳转逻辑- 更新应用名称和服务配置，统一命名规范&#10;- 引入相关依赖，完善公共问题服务模块- 删除无用的主函数文件，清理项目结构&#10;&#10;Signed-off-by: DavidHLP &lt;lysf15520112973@163.com&gt;&#10;feat(auth): 实现完整的用户认证与权限管理功能- 添加用户登录、注册、刷新令牌等核心认证接口- 实现基于 Pinia 的认证状态管理，支持持久化存储&#10;- 集成双因素认证（2FA）启用与禁用功能&#10;- 添加敏感操作验证机制，确保高风险操作安全&#10;- 实现单点登录（SSO）会话初始化功能&#10;- 完善请求拦截器，自动处理认证令牌刷新与失效跳转&#10;- 添加面包屑导航类型定义和路由元信息扩展&#10;- 集成 Axios 请求封装，统一处理 API 响应格式&#10;- 移除默认示例页面内容，为实际业务开发做准备&#10;- 更新项目依赖，新增 axios 和相关工具类库&#10;-优化 .gitignore 配置，排除构建产物和编辑器缓存文件- 调整模块结构，精简公共组件引用路径- 修改项目名称及包标识符，明确区分管理端与公众端&#10;- 删除无用的计数器示例 store，清理冗余代码" />
+    <option name="OPTIMIZE_IMPORTS_BEFORE_PROJECT_COMMIT" value="true" />
+    <option name="REFORMAT_BEFORE_PROJECT_COMMIT" value="true" />
+    <option name="REARRANGE_BEFORE_PROJECT_COMMIT" value="true" />
+  </component>
+  <component name="XSLT-Support.FileAssociations.UIState">
+    <expand />
+    <select />
+  </component>
+</project>

@@ -1,0 +1,48 @@
+export interface SolutionFeedItem {
+  id: string;
+  title: string;
+  summary: string;
+  highlight?: string;
+  flair?: string;
+  badges?: string[];
+  authorId: string;
+  author: {
+    id: string;
+    username: string;
+    name: string;
+    role: string;
+    avatarColor?: string;
+    avatar?: string;
+  };
+  stats: {
+    views: number;
+    comments: number;
+    likes: number;
+  };
+  score: number;
+  is_pinned?: boolean;
+  is_locked?: boolean;
+  created_at: string;
+  publishedAt: string;
+  language: string;
+  languageFilter?: string;
+  topic?: {
+    id: string;
+    name: string;
+    translatedName?: string;
+  };
+  topicName?: string;
+  topicTranslated?: string;
+  content: string;
+  tags: string[];
+  votes: number;
+  views: number;
+  likes: number;
+  comments: number;
+}
+
+export interface SolutionFeedResponse {
+  items: SolutionFeedItem[];
+  total: number;
+  sortOptions?: { label: string; value: string }[];
+}

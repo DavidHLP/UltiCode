@@ -20,6 +20,10 @@ model User {
   email    String? @db.VarChar(255)
   avatar   String? @db.VarChar(255)
 
+  solutions        Solution[]
+  solutionComments SolutionComment[]
+  solutionVotes    SolutionVote[]
+
   @@map("users")
 }
 
@@ -54,6 +58,7 @@ model Problem {
   languages    ProblemLanguage[]
   examples     ProblemExample[]
   contestProblems ContestProblem[]
+  solutions    Solution[]
 
   @@map("problems")
 }
@@ -287,4 +292,60 @@ model ProblemList {
   group ProblemListGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
 
   @@map("problem_lists")
+}
+
+// ============================================================================
+// SOLUTION MODULE
+// ============================================================================
+model Solution {
+  id         String   @id @db.VarChar(40)
+  problem_id BigInt
+  user_id    String   @db.VarChar(40)
+  title      String   @db.VarChar(255)
+  content    String   @db.Text
+  summary    String?  @db.Text
+  language   String   @db.VarChar(50)
+  tags       Json?
+  views      Int      @default(0)
+  likes      Int      @default(0)
+  dislikes   Int      @default(0)
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  problem  Problem           @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  author   User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  comments SolutionComment[]
+  votes    SolutionVote[]
+
+  @@map("solutions")
+}
+
+model SolutionComment {
+  id          String   @id @db.VarChar(40)
+  solution_id String   @db.VarChar(40)
+  parent_id   String?  @db.VarChar(40)
+  user_id     String   @db.VarChar(40)
+  content     String   @db.Text
+  likes       Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  solution Solution          @relation(fields: [solution_id], references: [id], onDelete: Cascade)
+  author   User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  parent   SolutionComment?  @relation("SolutionCommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies  SolutionComment[] @relation("SolutionCommentReplies")
+
+  @@map("solution_comments")
+}
+
+model SolutionVote {
+  solution_id String @db.VarChar(40)
+  user_id     String @db.VarChar(40)
+  vote_type   Int // 1: upvote, -1: downvote
+
+  solution Solution @relation(fields: [solution_id], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([solution_id, user_id])
+  @@map("solution_votes")
 }

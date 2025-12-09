@@ -1,31 +1,81 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { SolutionMeta } from './solution-meta.entity';
+import { PrismaService } from '../prisma.service';
+import type { SolutionFeedResponse } from './dto/solution-feed.dto';
 
 @Injectable()
 export class SolutionService {
-  constructor(
-    @InjectRepository(SolutionMeta)
-    private solutionsRepository: Repository<SolutionMeta>,
-  ) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-  async findAll(): Promise<SolutionMeta[]> {
-    return this.solutionsRepository.find({
-      relations: ['author', 'badges'],
+  async findByProblemId(problemId: string): Promise<SolutionFeedResponse> {
+    const solutions = await this.prisma.solution.findMany({
+      where: {
+        problem_id: BigInt(problemId),
+      },
+      include: {
+        author: true,
+        comments: true,
+        votes: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
     });
-  }
 
-  async findOne(id: string): Promise<SolutionMeta | null> {
-    return this.solutionsRepository.findOne({
-      where: { id },
-      relations: ['author', 'badges'],
+    const items = solutions.map((solution) => {
+      const upvotes = solution.votes.filter((v) => v.vote_type === 1).length;
+      const downvotes = solution.votes.filter((v) => v.vote_type === -1).length;
+
+      return {
+        id: solution.id,
+        title: solution.title,
+        summary: solution.summary || '',
+        highlight: solution.title,
+        flair: '',
+        badges: [],
+        authorId: solution.user_id,
+        author: {
+          id: solution.author.id,
+          username: solution.author.username,
+          name: solution.author.name || solution.author.username,
+          role: 'User',
+          avatarColor: '#94a3b8',
+          avatar: solution.author.avatar || undefined,
+        },
+        stats: {
+          views: solution.views,
+          comments: solution.comments.length,
+          likes: upvotes,
+        },
+        score: upvotes - downvotes,
+        is_pinned: false,
+        is_locked: false,
+        created_at: solution.created_at.toISOString(),
+        publishedAt: solution.created_at.toISOString(),
+        language: solution.language,
+        languageFilter: solution.language.toLowerCase(),
+        topic: {
+          id: 'general',
+          name: 'General',
+        },
+        topicName: 'General',
+        content: solution.content,
+        tags: (Array.isArray(solution.tags) ? solution.tags : []) as string[],
+        votes: upvotes,
+        views: solution.views,
+        likes: upvotes,
+        comments: solution.comments.length,
+      };
     });
-  }
 
-  findByProblemId(_problemId: string): Promise<SolutionMeta[]> {
-    // TODO: Filter by problemId when relation is established
-    // currently returning empty list as per plan
-    return Promise.resolve([]);
+    return {
+      items,
+      total: items.length,
+      sortOptions: [
+        { label: 'Most liked', value: 'likes' },
+        { label: 'Most recent', value: 'newest' },
+        { label: 'Oldest', value: 'oldest' },
+        { label: 'Hot', value: 'heat' },
+      ],
+    };
   }
 }

@@ -1,22 +1,10 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { SolutionService } from './solution.service';
 import { SolutionController } from './solution.controller';
-import { SolutionMeta } from './solution-meta.entity';
-import { SolutionAuthor } from './solution-author.entity';
-import { SolutionBadge } from './solution-badge.entity';
-import { SolutionTopic } from './solution-topic.entity';
+import { PrismaService } from '../prisma.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      SolutionMeta,
-      SolutionAuthor,
-      SolutionBadge,
-      SolutionTopic,
-    ]),
-  ],
-  providers: [SolutionService],
+  providers: [SolutionService, PrismaService],
   controllers: [SolutionController],
   exports: [SolutionService],
 })

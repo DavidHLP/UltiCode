@@ -1,4 +1,4 @@
-import type { PrismaClient, Difficulty, ProblemStatus } from '@prisma/client';
+import { PrismaClient, Difficulty, ProblemStatus, Prisma } from '@prisma/client';
 import problemsData from './data/problems.data';
 import problemDetailsData from './data/problem-details.data';
 
@@ -74,7 +74,7 @@ export async function seedProblems(prisma: PrismaClient): Promise<SeedProblemsRe
         problem_id: BigInt(pd.problem_id),
         slug: pd.slug,
         summary: pd.summary,
-        companies: companies,
+        companies: companies ?? Prisma.DbNull,
         likes: pd.id === 'pd-two-sum' ? 54300 : 0,
         dislikes: pd.id === 'pd-two-sum' ? 1800 : 0,
         difficulty_rating: pd.difficulty_rating,
@@ -85,7 +85,7 @@ export async function seedProblems(prisma: PrismaClient): Promise<SeedProblemsRe
           'A brute force approach is simple. Loop through each element x and find if there is another value that equals to target – x.',
           'So, if we fix one of the numbers, say x, we have to scan the entire array to find the next number y which is value - x where value is the input parameter. Can we change our array somehow so that this search becomes faster?',
           'The second train of thought is, without changing the array, can we use additional space to somehow make the search faster? This is where a hash map comes in handy.',
-        ] : null,
+        ] : Prisma.DbNull,
       },
     });
   }
@@ -125,7 +125,7 @@ export async function seedProblems(prisma: PrismaClient): Promise<SeedProblemsRe
         input_text: ex.input_text,
         output_text: ex.output_text,
         explanation: ex.explanation ?? null,
-        inputs: inputs.length ? inputs : null,
+        inputs: inputs.length ? inputs : Prisma.DbNull,
       },
     });
   }

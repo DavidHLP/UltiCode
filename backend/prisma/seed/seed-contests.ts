@@ -1,5 +1,5 @@
 import type { PrismaClient, ContestType, ContestStatus } from '@prisma/client';
-import contestsData from '../../src/seed-data/contest';
+import contestsData from './data/contests.data';
 import type { SeedProblemsResult } from './seed-problems';
 
 export async function clearContests(prisma: PrismaClient): Promise<void> {

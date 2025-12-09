@@ -1,5 +1,5 @@
 import type { PrismaClient, User } from '@prisma/client';
-import userData from '../../src/seed-data/user';
+import usersData from './data/users.data';
 
 export async function clearUsers(prisma: PrismaClient): Promise<void> {
   await prisma.user.deleteMany();
@@ -8,7 +8,7 @@ export async function clearUsers(prisma: PrismaClient): Promise<void> {
 export async function seedUsers(prisma: PrismaClient): Promise<User[]> {
   const users: User[] = [];
 
-  for (const u of userData.users) {
+  for (const u of usersData.users) {
     const user = await prisma.user.create({
       data: {
         id: u.id,

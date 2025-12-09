@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@prisma/client';
-import problemListsData from '../../src/seed-data/problem-lists';
+import problemListsData from './data/problem-lists.data';
 
 export async function clearProblemLists(prisma: PrismaClient): Promise<void> {
   await prisma.problemList.deleteMany();

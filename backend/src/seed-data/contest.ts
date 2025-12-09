@@ -13,7 +13,8 @@ const data = {
       participant_count: 0,
       is_rated: true,
       description: 'Join this weekly contest to test your skills.',
-      cover_image: 'https://assets.leetcode.cn/aliyun-lc-upload/contest-config/contest/wc_card_img.png',
+      cover_image:
+        'https://assets.leetcode.cn/aliyun-lc-upload/contest-config/contest/wc_card_img.png',
     },
     {
       id: 'contest-biweekly-170',
@@ -27,7 +28,8 @@ const data = {
       participant_count: 2654,
       is_rated: true,
       description: 'Biweekly contest with increasing difficulty.',
-      cover_image: 'https://assets.leetcode.cn/aliyun-lc-upload/contest-config/contest/bc_card_img.png',
+      cover_image:
+        'https://assets.leetcode.cn/aliyun-lc-upload/contest-config/contest/bc_card_img.png',
     },
   ],
 

@@ -8,14 +8,22 @@ const data = {
       slug: 'two-sum',
       summary:
         'Given an array of integers `nums` and an integer `target`, return _indices of the two numbers such that they add up to `target`_.\n\nYou may assume that each input would have **exactly one solution**, and you may not use the *same* element twice.\n\nYou can return the answer in any order.',
-      companies: ['Amazon', 'Google', 'Apple', 'Adobe', 'Microsoft', 'Bloomberg'],
+      companies: [
+        'Amazon',
+        'Google',
+        'Apple',
+        'Adobe',
+        'Microsoft',
+        'Bloomberg',
+      ],
       interactions: {
         counts: { likes: 54300, dislikes: 1800, favorites: 22000 },
         viewer: { reaction: 'like', isFavorite: true },
       },
       difficulty_rating: 1050,
       updated_at: now,
-      follow_up: 'Can you come up with an algorithm that is less than $O(n^2)$ time complexity?',
+      follow_up:
+        'Can you come up with an algorithm that is less than $O(n^2)$ time complexity?',
       constraints_json: [
         '$2 \\leq nums.length \\leq 10^4$',
         '$-10^9 \\leq nums[i] \\leq 10^9$',
@@ -47,7 +55,8 @@ const data = {
       example_order: 2,
       input_text: 'nums = [3,3], target = 6',
       output_text: '[0,1]',
-      explanation: 'The same element cannot be used twice, but two different elements with value 3 can be used.',
+      explanation:
+        'The same element cannot be used twice, but two different elements with value 3 can be used.',
     },
   ],
   problem_approaches: [
@@ -56,7 +65,7 @@ const data = {
       problem_id: 1,
       title: 'One-pass Hash Table',
       summary:
-        'It turns out we can do it in one-pass. While we iterate and inserting elements into the table, we also look back to check if current element\'s complement already exists in the table. If it exists, we have found a solution and return immediately.',
+        "It turns out we can do it in one-pass. While we iterate and inserting elements into the table, we also look back to check if current element's complement already exists in the table. If it exists, we have found a solution and return immediately.",
       time_complexity: 'O(n)',
       space_complexity: 'O(n)',
       code_snippet:
@@ -71,35 +80,40 @@ const data = {
       problem_id: 1,
       label: 'TypeScript',
       value: 'typescript',
-      starterCode: 'function twoSum(nums: number[], target: number): number[] {\n    \n};',
+      starterCode:
+        'function twoSum(nums: number[], target: number): number[] {\n    \n};',
     },
     {
       id: 'lang-js',
       problem_id: 1,
       label: 'JavaScript',
       value: 'javascript',
-      starterCode: '/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function(nums, target) {\n    \n};',
+      starterCode:
+        '/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function(nums, target) {\n    \n};',
     },
     {
       id: 'lang-py',
       problem_id: 1,
       label: 'Python',
       value: 'python',
-      starterCode: 'class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        ',
+      starterCode:
+        'class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        ',
     },
     {
       id: 'lang-java',
       problem_id: 1,
       label: 'Java',
       value: 'java',
-      starterCode: 'class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        \n    }\n}',
+      starterCode:
+        'class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        \n    }\n}',
     },
     {
       id: 'lang-cpp',
       problem_id: 1,
       label: 'C++',
       value: 'cpp',
-      starterCode: 'class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        \n    }\n};',
+      starterCode:
+        'class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        \n    }\n};',
     },
   ],
 } as const;

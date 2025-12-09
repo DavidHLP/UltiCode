@@ -1,0 +1,90 @@
+import type { PrismaClient, FlairType, VoteState } from '@prisma/client';
+import forumData from '../../src/seed-data/forum';
+
+export async function clearForum(prisma: PrismaClient): Promise<void> {
+  await prisma.forumComment.deleteMany();
+  await prisma.forumPost.deleteMany();
+  await prisma.forumUser.deleteMany();
+  await prisma.forumCommunity.deleteMany();
+}
+
+export interface SeedForumResult {
+  postsCount: number;
+  commentsCount: number;
+}
+
+export async function seedForum(prisma: PrismaClient): Promise<SeedForumResult> {
+  // Seed communities
+  for (const community of forumData.forum_communities) {
+    await prisma.forumCommunity.create({
+      data: {
+        id: community.id,
+        name: community.name,
+        slug: community.slug,
+        description: community.description,
+        members: community.members,
+        online: community.online,
+      },
+    });
+  }
+
+  // Seed forum users
+  for (const user of forumData.forum_users) {
+    await prisma.forumUser.create({
+      data: {
+        username: user.username,
+        avatar: null,
+        karma: user.karma,
+      },
+    });
+  }
+
+  // Seed posts
+  for (const post of forumData.forum_posts) {
+    await prisma.forumPost.create({
+      data: {
+        id: post.id,
+        community_id: post.community_id,
+        user_id: post.user_id,
+        permalink: null,
+        title: post.title,
+        flair_type: post.flair_type as FlairType,
+        flair_label: null,
+        tags: post.tags,
+        excerpt: post.body,
+        media: null,
+        recommendation: null,
+        vote_state: post.vote_state as VoteState,
+        is_saved: post.is_saved,
+        impressions: post.impressions,
+        is_pinned: post.is_pinned,
+        is_locked: post.is_locked,
+        created_at: new Date(post.created_at),
+      },
+    });
+  }
+
+  // Seed comments
+  for (const comment of forumData.forum_comments) {
+    await prisma.forumComment.create({
+      data: {
+        id: comment.id,
+        post_id: comment.post_id,
+        parent_id: comment.parent_id,
+        author_id: comment.author_id,
+        body: comment.body,
+        markdown: null,
+        upvotes: comment.upvotes,
+        created_at: new Date(comment.created_at),
+        edited_at: null,
+        is_pinned: false,
+        is_locked: false,
+      },
+    });
+  }
+
+  return {
+    postsCount: forumData.forum_posts.length,
+    commentsCount: forumData.forum_comments.length,
+  };
+}

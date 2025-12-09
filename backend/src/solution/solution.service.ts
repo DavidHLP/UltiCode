@@ -23,9 +23,9 @@ export class SolutionService {
     });
   }
 
-  async findByProblemId(problemId: string): Promise<SolutionMeta[]> {
+  findByProblemId(_problemId: string): Promise<SolutionMeta[]> {
     // TODO: Filter by problemId when relation is established
     // currently returning empty list as per plan
-    return [];
+    return Promise.resolve([]);
   }
 }

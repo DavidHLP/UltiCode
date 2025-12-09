@@ -1,5 +1,5 @@
 import type { PrismaClient, FlairType, VoteState } from '@prisma/client';
-import forumData from '../../src/seed-data/forum';
+import forumData from './data/forum.data';
 
 export async function clearForum(prisma: PrismaClient): Promise<void> {
   await prisma.forumComment.deleteMany();

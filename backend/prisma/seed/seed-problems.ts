@@ -1,6 +1,6 @@
 import type { PrismaClient, Difficulty, ProblemStatus } from '@prisma/client';
-import problemsData from '../../src/seed-data/problems';
-import problemDetailsData from '../../src/seed-data/problem-detail';
+import problemsData from './data/problems.data';
+import problemDetailsData from './data/problem-details.data';
 
 type ProblemCompanySeed = string | { id: string; name: string; logo?: string };
 type ProblemCompanyNormalized = { id: string; name: string; logo?: string };

@@ -1,4 +1,4 @@
-import type { PrismaClient, FlairType, VoteState } from '@prisma/client';
+import { PrismaClient, FlairType, VoteState, Prisma } from '@prisma/client';
 import forumData from './data/forum.data';
 
 export async function clearForum(prisma: PrismaClient): Promise<void> {
@@ -52,8 +52,8 @@ export async function seedForum(prisma: PrismaClient): Promise<SeedForumResult> 
         flair_label: null,
         tags: post.tags,
         excerpt: post.body,
-        media: null,
-        recommendation: null,
+        media: Prisma.DbNull,
+        recommendation: Prisma.DbNull,
         vote_state: post.vote_state as VoteState,
         is_saved: post.is_saved,
         impressions: post.impressions,

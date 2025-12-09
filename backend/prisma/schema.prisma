@@ -1,0 +1,290 @@
+// Prisma Schema - Generated from TypeORM entities
+// Run: npx prisma migrate dev to apply changes
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// USER MODULE
+// ============================================================================
+model User {
+  id       String  @id @db.VarChar(40)
+  username String  @unique @db.VarChar(120)
+  name     String? @db.VarChar(120)
+  email    String? @db.VarChar(255)
+  avatar   String? @db.VarChar(255)
+
+  @@map("users")
+}
+
+// ============================================================================
+// PROBLEM MODULE
+// ============================================================================
+enum Difficulty {
+  Easy
+  Medium
+  Hard
+}
+
+enum ProblemStatus {
+  solved
+  attempted
+  todo
+}
+
+model Problem {
+  id              BigInt        @id
+  slug            String        @db.VarChar(120)
+  title           String        @db.VarChar(255)
+  difficulty      Difficulty
+  acceptance_rate Decimal       @default(0) @db.Decimal(5, 2)
+  status          ProblemStatus @default(todo)
+  is_premium      Boolean       @default(false)
+  has_solution    Boolean       @default(false)
+  completed_time  DateTime?     @db.Date
+
+  detail       ProblemDetail?
+  tagRelations ProblemTagRelation[]
+  languages    ProblemLanguage[]
+  examples     ProblemExample[]
+  contestProblems ContestProblem[]
+
+  @@map("problems")
+}
+
+model ProblemDetail {
+  id                String   @id @db.VarChar(40)
+  problem_id        BigInt   @unique
+  slug              String   @db.VarChar(120)
+  summary           String   @db.Text
+  companies         Json?
+  likes             Int      @default(0)
+  dislikes          Int      @default(0)
+  difficulty_rating Decimal  @default(1500) @db.Decimal(5, 1)
+  updated_at        DateTime
+  follow_up         String?  @db.Text
+  constraints_json  Json
+  hints             Json?
+
+  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@map("problem_details")
+}
+
+model ProblemTag {
+  id    String @id @db.VarChar(40)
+  label String @db.VarChar(120)
+
+  problemRelations ProblemTagRelation[]
+
+  @@map("problem_tags")
+}
+
+model ProblemTagRelation {
+  problem_id BigInt
+  tag_id     String @db.VarChar(40)
+
+  problem Problem    @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  tag     ProblemTag @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([problem_id, tag_id])
+  @@map("problem_tag_relations")
+}
+
+model ProblemLanguage {
+  id           String @id @db.VarChar(40)
+  problem_id   BigInt
+  label        String @db.VarChar(50)
+  value        String @db.VarChar(50)
+  starter_code String @db.Text
+
+  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@map("problem_languages")
+}
+
+model ProblemExample {
+  id            String  @id @db.VarChar(40)
+  problem_id    BigInt
+  example_order Int     @default(0)
+  input_text    String  @db.Text
+  output_text   String  @db.Text
+  explanation   String? @db.Text
+  inputs        Json?
+
+  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@map("problem_examples")
+}
+
+// ============================================================================
+// CONTEST MODULE
+// ============================================================================
+enum ContestType {
+  weekly
+  biweekly
+  special
+}
+
+enum ContestStatus {
+  upcoming
+  running
+  finished
+}
+
+model Contest {
+  id                String        @id @db.VarChar(40)
+  title             String        @db.VarChar(120)
+  slug              String        @db.VarChar(120)
+  contest_type      ContestType
+  start_time        DateTime
+  duration_minutes  Int
+  status            ContestStatus
+  registered_count  Int           @default(0)
+  participant_count Int           @default(0)
+  is_rated          Boolean       @default(true)
+  description       String?       @db.Text
+  cover_image       String?       @db.VarChar(255)
+
+  problems ContestProblem[]
+
+  @@map("contests")
+}
+
+model ContestProblem {
+  id               String @id @db.VarChar(40)
+  contest_id       String @db.VarChar(40)
+  problem_id       BigInt
+  problem_index    String @db.VarChar(10)
+  score            Int    @default(0)
+  solved_count     Int    @default(0)
+  submission_count Int    @default(0)
+
+  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@map("contest_problems")
+}
+
+// ============================================================================
+// FORUM MODULE
+// ============================================================================
+model ForumCommunity {
+  id          String @id @db.VarChar(40)
+  name        String @db.VarChar(120)
+  slug        String @db.VarChar(60)
+  description String @db.Text
+  members     Int    @default(0)
+  online      Int    @default(0)
+
+  posts ForumPost[]
+
+  @@map("forum_communities")
+}
+
+model ForumUser {
+  username String  @id @db.VarChar(60)
+  avatar   String? @db.VarChar(255)
+  karma    Int     @default(0)
+
+  posts    ForumPost[]
+  comments ForumComment[]
+
+  @@map("forum_users")
+}
+
+enum FlairType {
+  announcement
+  discussion
+  showcase
+  question
+  hiring
+}
+
+enum VoteState {
+  upvoted
+  downvoted
+  neutral
+}
+
+model ForumPost {
+  id             String    @id @db.VarChar(40)
+  community_id   String    @db.VarChar(40)
+  user_id        String    @db.VarChar(60)
+  permalink      String?   @db.VarChar(255)
+  title          String    @db.VarChar(255)
+  flair_type     FlairType?
+  flair_label    String?   @db.VarChar(60)
+  tags           Json
+  excerpt        String?   @db.Text
+  media          Json?
+  recommendation Json?
+  vote_state     VoteState @default(neutral)
+  is_saved       Boolean   @default(false)
+  impressions    Int       @default(0)
+  is_pinned      Boolean   @default(false)
+  is_locked      Boolean   @default(false)
+  created_at     DateTime
+
+  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+  author    ForumUser      @relation(fields: [user_id], references: [username], onDelete: Cascade)
+  comments  ForumComment[]
+
+  @@map("forum_posts")
+}
+
+model ForumComment {
+  id         String    @id @db.VarChar(40)
+  post_id    String    @db.VarChar(40)
+  parent_id  String?   @db.VarChar(40)
+  author_id  String    @db.VarChar(60)
+  body       String    @db.Text
+  markdown   String?   @db.Text
+  upvotes    Int       @default(0)
+  created_at DateTime
+  edited_at  DateTime?
+  is_pinned  Boolean   @default(false)
+  is_locked  Boolean   @default(false)
+
+  post   ForumPost     @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  parent ForumComment? @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  author ForumUser     @relation(fields: [author_id], references: [username], onDelete: Cascade)
+
+  replies ForumComment[] @relation("CommentReplies")
+
+  @@map("forum_comments")
+}
+
+// ============================================================================
+// PROBLEM LIST MODULE
+// ============================================================================
+model ProblemListGroup {
+  id         String @id @db.VarChar(40)
+  name       String @db.VarChar(120)
+  sort_order Int    @default(0)
+
+  lists ProblemList[]
+
+  @@map("problem_list_groups")
+}
+
+model ProblemList {
+  id          String   @id @db.VarChar(40)
+  group_id    String   @db.VarChar(40)
+  name        String   @db.VarChar(120)
+  description String?  @db.Text
+  author_id   String   @db.VarChar(40)
+  is_public   Boolean  @default(true)
+  created_at  DateTime
+  updated_at  DateTime
+
+  group ProblemListGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
+
+  @@map("problem_lists")
+}

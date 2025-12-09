@@ -15,9 +15,7 @@ const data = {
       updated_at: '2024-02-02T00:00:00.000Z',
     },
   ],
-  problem_list_relations: [
-    { list_id: 'list-essentials', problem_id: 1 },
-  ],
+  problem_list_relations: [{ list_id: 'list-essentials', problem_id: 1 }],
   problem_list_saved_relations: [
     { user_id: 'u-001', list_id: 'list-essentials' },
   ],

@@ -1,4 +1,6 @@
 // prisma/seed/data/contests.data.ts
+import { USER_IDS, USER_USERNAMES } from './users.data';
+
 const data = {
   // Competitions
   contests: [
@@ -58,7 +60,21 @@ const data = {
 
   contest_participants: [],
   contest_rankings: [],
-  global_rankings: [],
+
+  // Global Rankings - linked to actual users
+  global_rankings: [
+    { id: 'gr-1', user_id: USER_IDS.TOURIST, username: USER_USERNAMES.TOURIST, global_rank: 1, rating: 3979, max_rating: 4010, contests_attended: 156, country: 'BY', badge: 'Legendary Grandmaster' },
+    { id: 'gr-2', user_id: USER_IDS.JIANGLY, username: USER_USERNAMES.JIANGLY, global_rank: 2, rating: 3812, max_rating: 3856, contests_attended: 89, country: 'CN', badge: 'Legendary Grandmaster' },
+    { id: 'gr-3', user_id: USER_IDS.BENQ, username: USER_USERNAMES.BENQ, global_rank: 3, rating: 3654, max_rating: 3712, contests_attended: 124, country: 'US', badge: 'International Grandmaster' },
+    { id: 'gr-4', user_id: USER_IDS.ECNERWALA, username: USER_USERNAMES.ECNERWALA, global_rank: 4, rating: 3589, max_rating: 3645, contests_attended: 98, country: 'US', badge: 'International Grandmaster' },
+    { id: 'gr-5', user_id: USER_IDS.UM_NIK, username: USER_USERNAMES.UM_NIK, global_rank: 5, rating: 3521, max_rating: 3598, contests_attended: 112, country: 'UA', badge: 'International Grandmaster' },
+    { id: 'gr-6', user_id: USER_IDS.PETR, username: USER_USERNAMES.PETR, global_rank: 6, rating: 3456, max_rating: 3534, contests_attended: 187, country: 'RU', badge: 'Grandmaster' },
+    { id: 'gr-7', user_id: USER_IDS.SCOTT, username: USER_USERNAMES.SCOTT, global_rank: 7, rating: 3389, max_rating: 3412, contests_attended: 76, country: 'US', badge: 'Grandmaster' },
+    { id: 'gr-8', user_id: USER_IDS.YUKI, username: USER_USERNAMES.YUKI, global_rank: 8, rating: 2856, max_rating: 2912, contests_attended: 45, country: 'JP', badge: 'Master' },
+    { id: 'gr-9', user_id: USER_IDS.ALEX, username: USER_USERNAMES.ALEX, global_rank: 9, rating: 2734, max_rating: 2801, contests_attended: 52, country: 'UK', badge: 'Master' },
+    { id: 'gr-10', user_id: USER_IDS.CHEN, username: USER_USERNAMES.CHEN, global_rank: 10, rating: 2689, max_rating: 2756, contests_attended: 67, country: 'CN', badge: 'Master' },
+  ],
 } as const;
 
 export default data;
+

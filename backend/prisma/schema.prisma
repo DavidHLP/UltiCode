@@ -177,6 +177,21 @@ model ContestProblem {
   @@map("contest_problems")
 }
 
+model GlobalRanking {
+  id               String  @id @db.VarChar(40)
+  user_id          String  @unique @db.VarChar(40)
+  username         String  @db.VarChar(120)
+  global_rank      Int
+  rating           Int     @default(1500)
+  max_rating       Int     @default(1500)
+  contests_attended Int    @default(0)
+  avatar           String? @db.VarChar(255)
+  country          String  @default("CN") @db.VarChar(10)
+  badge            String? @db.VarChar(50)
+
+  @@map("global_rankings")
+}
+
 // ============================================================================
 // FORUM MODULE
 // ============================================================================

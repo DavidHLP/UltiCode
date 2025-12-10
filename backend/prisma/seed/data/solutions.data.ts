@@ -1,10 +1,13 @@
 // prisma/seed/data/solutions.data.ts
+// prisma/seed/data/solutions.data.ts
+import { USER_IDS } from './users.data';
+
 const data = {
   solutions: [
     {
       id: 'sol-001',
       problem_id: 1,
-      user_id: 'user-yuki',
+      user_id: USER_IDS.YUKI,
       title: 'Hash Map Approach - O(n) Time Complexity',
       content: `# Hash Map Solution
 
@@ -49,7 +52,7 @@ By storing each number as we iterate, we can check for complements in constant t
     {
       id: 'sol-002',
       problem_id: 1,
-      user_id: 'user-alex',
+      user_id: USER_IDS.ALEX,
       title: 'Brute Force Solution - Easy to Understand',
       content: `# Brute Force Approach
 
@@ -89,7 +92,7 @@ Not optimal but easy to understand!`,
     {
       id: 'sol-003',
       problem_id: 1,
-      user_id: 'user-chen',
+      user_id: USER_IDS.CHEN,
       title: 'C++ STL unordered_map Solution',
       content: `# C++ Solution with STL
 
@@ -123,7 +126,7 @@ Fast and memory efficient with C++ STL!`,
     {
       id: 'sol-004',
       problem_id: 1,
-      user_id: 'user-tourist',
+      user_id: USER_IDS.TOURIST,
       title: 'Java HashMap Implementation',
       content: `# Java Solution
 
@@ -153,7 +156,7 @@ public int[] twoSum(int[] nums, int target) {
       id: 'comment-001',
       solution_id: 'sol-001',
       parent_id: null,
-      user_id: 'user-max',
+      user_id: USER_IDS.MAX,
       content: 'Great explanation! This helped me understand hash maps better.',
       likes: 25,
     },
@@ -161,7 +164,7 @@ public int[] twoSum(int[] nums, int target) {
       id: 'comment-002',
       solution_id: 'sol-001',
       parent_id: 'comment-001',
-      user_id: 'user-yuki',
+      user_id: USER_IDS.YUKI,
       content: 'Thanks! Glad it was helpful 😊',
       likes: 8,
     },
@@ -169,7 +172,7 @@ public int[] twoSum(int[] nums, int target) {
       id: 'comment-003',
       solution_id: 'sol-001',
       parent_id: null,
-      user_id: 'user-sara',
+      user_id: USER_IDS.SARA,
       content: 'What if there are duplicate numbers in the array?',
       likes: 15,
     },
@@ -177,7 +180,7 @@ public int[] twoSum(int[] nums, int target) {
       id: 'comment-004',
       solution_id: 'sol-001',
       parent_id: 'comment-003',
-      user_id: 'user-yuki',
+      user_id: USER_IDS.YUKI,
       content:
         "Good question! The hash map will overwrite the previous index, but that's fine since we only need to find one valid pair.",
       likes: 20,
@@ -186,7 +189,7 @@ public int[] twoSum(int[] nums, int target) {
       id: 'comment-005',
       solution_id: 'sol-002',
       parent_id: null,
-      user_id: 'user-lily',
+      user_id: USER_IDS.LILY,
       content: 'This is a good starting point for beginners!',
       likes: 12,
     },
@@ -194,36 +197,33 @@ public int[] twoSum(int[] nums, int target) {
       id: 'comment-006',
       solution_id: 'sol-003',
       parent_id: null,
-      user_id: 'user-david',
+      user_id: USER_IDS.DAVID,
       content: 'Love the C++ STL approach, very clean!',
       likes: 7,
     },
   ],
   votes: [
     // Votes for sol-001 (340 upvotes, 12 downvotes)
-    { solution_id: 'sol-001', user_id: 'user-max', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-sara', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-tom', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-lily', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-david', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-emma', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-kevin', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-tourist', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-jiangly', vote_type: 1 },
-    { solution_id: 'sol-001', user_id: 'user-benq', vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.MAX, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.SARA, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.TOM, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.LILY, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.DAVID, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.EMMA, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.KEVIN, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.TOURIST, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.JIANGLY, vote_type: 1 },
+    { solution_id: 'sol-001', user_id: USER_IDS.BENQ, vote_type: 1 },
 
     // Votes for sol-002 (125 upvotes, 35 downvotes)
-    { solution_id: 'sol-002', user_id: 'user-lily', vote_type: 1 },
-    { solution_id: 'sol-002', user_id: 'user-emma', vote_type: 1 },
-    { solution_id: 'sol-002', user_id: 'user-yuki', vote_type: -1 },
-
-    // Votes for sol-003 (89 upvotes, 5 downvotes)
-    { solution_id: 'sol-003', user_id: 'user-david', vote_type: 1 },
-    { solution_id: 'sol-003', user_id: 'user-kevin', vote_type: 1 },
+    { solution_id: 'sol-002', user_id: USER_IDS.LILY, vote_type: 1 },
+    { solution_id: 'sol-002', user_id: USER_IDS.EMMA, vote_type: 1 },
+    { solution_id: 'sol-002', user_id: USER_IDS.YUKI, vote_type: -1 },
+    { solution_id: 'sol-003', user_id: USER_IDS.KEVIN, vote_type: 1 },
 
     // Votes for sol-004 (67 upvotes, 3 downvotes)
-    { solution_id: 'sol-004', user_id: 'user-sara', vote_type: 1 },
-    { solution_id: 'sol-004', user_id: 'user-tom', vote_type: 1 },
+    { solution_id: 'sol-004', user_id: USER_IDS.SARA, vote_type: 1 },
+    { solution_id: 'sol-004', user_id: USER_IDS.TOM, vote_type: 1 },
   ],
 } as const;
 

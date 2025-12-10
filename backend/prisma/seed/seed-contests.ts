@@ -3,12 +3,14 @@ import contestsData from './data/contests.data';
 import type { SeedProblemsResult } from './seed-problems';
 
 export async function clearContests(prisma: PrismaClient): Promise<void> {
+  await prisma.globalRanking.deleteMany();
   await prisma.contestProblem.deleteMany();
   await prisma.contest.deleteMany();
 }
 
 export interface SeedContestsResult {
   count: number;
+  rankingsCount: number;
 }
 
 export async function seedContests(
@@ -53,7 +55,26 @@ export async function seedContests(
     }
   }
 
+  // Seed global rankings
+  for (const gr of contestsData.global_rankings) {
+    await prisma.globalRanking.create({
+      data: {
+        id: gr.id,
+        user_id: gr.user_id,
+        username: gr.username,
+        global_rank: gr.global_rank,
+        rating: gr.rating,
+        max_rating: gr.max_rating,
+        contests_attended: gr.contests_attended,
+        avatar: null,
+        country: gr.country,
+        badge: gr.badge,
+      },
+    });
+  }
+
   return {
     count: contestsData.contests.length,
+    rankingsCount: contestsData.global_rankings.length,
   };
 }

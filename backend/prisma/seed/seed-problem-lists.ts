@@ -10,7 +10,9 @@ export interface SeedProblemListsResult {
   count: number;
 }
 
-export async function seedProblemLists(prisma: PrismaClient): Promise<SeedProblemListsResult> {
+export async function seedProblemLists(
+  prisma: PrismaClient,
+): Promise<SeedProblemListsResult> {
   // Seed groups
   for (const group of problemListsData.problem_list_groups) {
     await prisma.problemListGroup.create({

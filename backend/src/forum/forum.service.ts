@@ -53,12 +53,4 @@ export class ForumService {
   async findAllCommunities(): Promise<ForumCommunity[]> {
     return this.communitiesRepository.find();
   }
-
-  async getTrendingPosts(): Promise<ForumPost[]> {
-    return this.postsRepository.find({
-      relations: ['author', 'community'],
-      order: { impressions: 'DESC' },
-      take: 5,
-    });
-  }
 }

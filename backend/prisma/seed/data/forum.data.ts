@@ -99,13 +99,13 @@ Standard segment trees are great for point updates and range queries. But what i
 
 **Key insight**: Lazy propagation is about "procrastinating" updates. Instead of updating every node immediately, we store pending updates and only apply them when we actually need to access that node.
 
-![Lazy Propagation Visualization](https://cp-algorithms.com/img/segment-tree-lazy.png)
+![Lazy Propagation Visualization](https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=1000)
 
 ### How it works
 
 1. **Lazy Tag**: Each node stores a \`lazy\` value indicating a pending update for its subtree.
 2. **Push Down**: Before accessing children, we "push" the lazy tag down to them.
-3. **Update**: modifying a range becomes $O(\log N)$ again.
+3. **Update**: modifying a range becomes $O(\\log N)$ again.
 
 ### Code Template
 
@@ -145,7 +145,8 @@ Happy to answer questions if anyone is confused!`,
       is_pinned: false,
       is_locked: false,
       created_at: '2024-11-20T09:45:00.000Z',
-      cover_image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=3270&ixlib=rb-4.0.3',
+      cover_image:
+        'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=3270&ixlib=rb-4.0.3',
     },
     {
       id: 'post-binary-search-bugs',

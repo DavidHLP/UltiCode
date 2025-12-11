@@ -89,9 +89,50 @@ Bottom-up seems more space-efficient in some cases, but top-down with memoizatio
       community_id: communityId,
       user_id: USER_USERNAMES.BENQ,
       title: 'Lazy propagation explained with examples',
-      body: `After struggling with lazy propagation for weeks, I finally understood it! Here's my explanation:
+      body: `After struggling with lazy propagation for weeks, I finally understood it! Here's my detailed explanation:
+
+## The Problem
+
+Standard segment trees are great for point updates and range queries. But what if we need to update a range $[L, R]$? Updating every leaf node would take $O(N)$ time, which is too slow.
+
+## The Solution: Laziness
 
 **Key insight**: Lazy propagation is about "procrastinating" updates. Instead of updating every node immediately, we store pending updates and only apply them when we actually need to access that node.
+
+![Lazy Propagation Visualization](https://cp-algorithms.com/img/segment-tree-lazy.png)
+
+### How it works
+
+1. **Lazy Tag**: Each node stores a \`lazy\` value indicating a pending update for its subtree.
+2. **Push Down**: Before accessing children, we "push" the lazy tag down to them.
+3. **Update**: modifying a range becomes $O(\log N)$ again.
+
+### Code Template
+
+\`\`\`cpp
+void push(int v) {
+    t[2*v] += lazy[v];
+    lazy[2*v] += lazy[v];
+    t[2*v+1] += lazy[v];
+    lazy[2*v+1] += lazy[v];
+    lazy[v] = 0;
+}
+
+void update(int v, int tl, int tr, int l, int r, int add) {
+    if (l > r)
+        return;
+    if (l == tl && r == tr) {
+        t[v] += add;
+        lazy[v] += add;
+    } else {
+        push(v);
+        int tm = (tl + tr) / 2;
+        update(2*v, tl, tm, l, min(r, tm), add);
+        update(2*v+1, tm+1, tr, max(l, tm+1), r, add);
+        t[v] = max(t[2*v], t[2*v+1]);
+    }
+}
+\`\`\`
 
 **When to use it**: Range updates + Range queries. If you only have point updates, basic segment tree is enough.
 
@@ -104,6 +145,7 @@ Happy to answer questions if anyone is confused!`,
       is_pinned: false,
       is_locked: false,
       created_at: '2024-11-20T09:45:00.000Z',
+      cover_image: 'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=3270&ixlib=rb-4.0.3',
     },
     {
       id: 'post-binary-search-bugs',

@@ -19,7 +19,7 @@ export class ForumService {
   async findAllPosts(): Promise<ForumPost[]> {
     return this.postsRepository.find({
       relations: ['author', 'community'],
-      order: { created_at: 'DESC' },
+      order: { createdAt: 'DESC' },
     });
   }
 
@@ -39,9 +39,9 @@ export class ForumService {
     });
     if (post) {
       const comments = await this.commentsRepository.find({
-        where: { post_id: id },
+        where: { postId: id },
         relations: ['author'],
-        order: { created_at: 'ASC' },
+        order: { createdAt: 'ASC' },
       });
       return { ...post, comments };
     }

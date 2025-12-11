@@ -44,6 +44,12 @@ export async function seedForum(prisma: PrismaClient): Promise<SeedForumResult> 
     seededUsernames.add(user.username);
   }
 
+  // Create stats map
+  const statsMap = new Map();
+  for (const stat of forumData.forum_post_stats) {
+    statsMap.set(stat.post_id, stat);
+  }
+
   // Seed posts
   for (const post of forumData.forum_posts) {
     // Skip if user doesn't exist
@@ -51,6 +57,28 @@ export async function seedForum(prisma: PrismaClient): Promise<SeedForumResult> 
       console.warn(`Skipping post ${post.id}: user ${post.user_id} not found`);
       continue;
     }
+
+    const stat = statsMap.get(post.id);
+    const statsJson = stat
+      ? {
+          score: stat.score,
+          comments: stat.comments,
+          saves: stat.saves,
+          shares: stat.shares,
+          awards: stat.awards,
+          views: post.impressions, // Map impressions to views
+          upvote_ratio: 0.95, // Default/random
+          likes: Math.round(stat.score * 0.8), // Approx
+        }
+      : {
+          score: 0,
+          comments: 0,
+          saves: 0,
+          shares: 0,
+          awards: 0,
+          views: post.impressions,
+        };
+
     await prisma.forumPost.create({
       data: {
         id: post.id,
@@ -70,6 +98,7 @@ export async function seedForum(prisma: PrismaClient): Promise<SeedForumResult> 
         is_pinned: post.is_pinned,
         is_locked: post.is_locked,
         created_at: new Date(post.created_at),
+        stats: statsJson,
       },
     });
   }

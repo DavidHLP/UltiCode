@@ -7,22 +7,22 @@ export class ForumComment {
   @PrimaryColumn({ length: 40 })
   id: string;
 
-  @Column({ length: 40 })
-  post_id: string;
+  @Column({ name: 'post_id', length: 40 })
+  postId: string;
 
   @ManyToOne(() => ForumPost)
   @JoinColumn({ name: 'post_id' })
   post: ForumPost;
 
-  @Column({ length: 40, nullable: true })
-  parent_id: string | null;
+  @Column({ name: 'parent_id', length: 40, nullable: true })
+  parentId: string | null;
 
   @ManyToOne(() => ForumComment)
   @JoinColumn({ name: 'parent_id' })
   parent: ForumComment | null;
 
-  @Column({ length: 60 })
-  author_id: string;
+  @Column({ name: 'author_id', length: 60 })
+  authorId: string;
 
   @ManyToOne(() => ForumUser)
   @JoinColumn({ name: 'author_id' })
@@ -37,15 +37,15 @@ export class ForumComment {
   @Column({ default: 0 })
   upvotes: number;
 
-  @Column()
-  created_at: Date;
+  @Column({ name: 'created_at' })
+  createdAt: Date;
 
-  @Column({ nullable: true })
-  edited_at: Date;
+  @Column({ name: 'edited_at', nullable: true })
+  editedAt: Date;
 
-  @Column({ default: false })
-  is_pinned: boolean;
+  @Column({ name: 'is_pinned', default: false })
+  isPinned: boolean;
 
-  @Column({ default: false })
-  is_locked: boolean;
+  @Column({ name: 'is_locked', default: false })
+  isLocked: boolean;
 }

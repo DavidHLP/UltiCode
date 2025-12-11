@@ -251,6 +251,7 @@ model ForumPost {
   is_pinned      Boolean   @default(false)
   is_locked      Boolean   @default(false)
   created_at     DateTime
+  stats          Json?
 
   community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
   author    ForumUser      @relation(fields: [user_id], references: [username], onDelete: Cascade)

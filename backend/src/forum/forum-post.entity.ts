@@ -7,15 +7,15 @@ export class ForumPost {
   @PrimaryColumn({ length: 40 })
   id: string;
 
-  @Column({ length: 40 })
-  community_id: string;
+  @Column({ name: 'community_id', length: 40 })
+  communityId: string;
 
   @ManyToOne(() => ForumCommunity)
   @JoinColumn({ name: 'community_id' })
   community: ForumCommunity;
 
-  @Column({ length: 60 })
-  user_id: string;
+  @Column({ name: 'user_id', length: 60 })
+  userId: string;
 
   @ManyToOne(() => ForumUser)
   @JoinColumn({ name: 'user_id' })
@@ -28,14 +28,15 @@ export class ForumPost {
   title: string;
 
   @Column({
+    name: 'flair_type',
     type: 'enum',
     enum: ['announcement', 'discussion', 'showcase', 'question', 'hiring'],
     nullable: true,
   })
-  flair_type: string | null;
+  flairType: string | null;
 
-  @Column({ type: 'varchar', length: 60, nullable: true })
-  flair_label: string | null;
+  @Column({ name: 'flair_label', type: 'varchar', length: 60, nullable: true })
+  flairLabel: string | null;
 
   @Column({ type: 'json' })
   tags: string[];
@@ -50,24 +51,37 @@ export class ForumPost {
   recommendation: { label?: string } | null;
 
   @Column({
+    name: 'vote_state',
     type: 'enum',
     enum: ['upvoted', 'downvoted', 'neutral'],
     default: 'neutral',
   })
-  vote_state: string;
+  voteState: string;
 
-  @Column({ default: false })
-  is_saved: boolean;
+  @Column({ name: 'is_saved', default: false })
+  isSaved: boolean;
 
   @Column({ default: 0 })
   impressions: number;
 
-  @Column({ default: false })
-  is_pinned: boolean;
+  @Column({ name: 'is_pinned', default: false })
+  isPinned: boolean;
 
-  @Column({ default: false })
-  is_locked: boolean;
+  @Column({ name: 'is_locked', default: false })
+  isLocked: boolean;
 
-  @Column()
-  created_at: Date;
+  @Column({ name: 'created_at' })
+  createdAt: Date;
+
+  @Column({ type: 'json', nullable: true })
+  stats: {
+    views?: number;
+    likes?: number;
+    comments?: number;
+    score?: number;
+    saves?: number;
+    shares?: number;
+    upvote_ratio?: number;
+    awards?: number;
+  } | null;
 }

@@ -16,7 +16,9 @@ export interface SeedForumResult {
   usersCount: number;
 }
 
-export async function seedForum(prisma: PrismaClient): Promise<SeedForumResult> {
+export async function seedForum(
+  prisma: PrismaClient,
+): Promise<SeedForumResult> {
   // Seed communities
   for (const community of forumData.forum_communities) {
     await prisma.forumCommunity.create({
@@ -45,7 +47,8 @@ export async function seedForum(prisma: PrismaClient): Promise<SeedForumResult> 
   }
 
   // Create stats map
-  const statsMap = new Map();
+  type ForumPostStat = (typeof forumData.forum_post_stats)[number];
+  const statsMap = new Map<string, ForumPostStat>();
   for (const stat of forumData.forum_post_stats) {
     statsMap.set(stat.post_id, stat);
   }
@@ -108,12 +111,18 @@ export async function seedForum(prisma: PrismaClient): Promise<SeedForumResult> 
   for (const comment of forumData.forum_comments) {
     // Skip if author doesn't exist
     if (!seededUsernames.has(comment.author_id)) {
-      console.warn(`Skipping comment ${comment.id}: author ${comment.author_id} not found`);
+      console.warn(
+        `Skipping comment ${comment.id}: author ${comment.author_id} not found`,
+      );
       continue;
     }
     // Skip if parent doesn't exist yet (shouldn't happen with proper ordering)
     if (comment.parent_id && !commentIds.has(comment.parent_id)) {
-      console.warn(`Skipping comment ${comment.id}: parent ${comment.parent_id} not found`);
+      console.warn(
+        `
+      Skipping comment ${comment.id}: parent ${comment.parent_id} not found
+      `,
+      );
       continue;
     }
     await prisma.forumComment.create({

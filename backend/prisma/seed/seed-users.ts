@@ -5,7 +5,9 @@ export async function clearUsers(prisma: PrismaClient): Promise<void> {
   await prisma.user.deleteMany();
 }
 
-export async function seedUsers(prisma: PrismaClient): Promise<User[]> {
+export async function seedUsers(
+  prisma: PrismaClient,
+): Promise<User[]> {
   const users: User[] = [];
 
   for (const u of usersData.users) {

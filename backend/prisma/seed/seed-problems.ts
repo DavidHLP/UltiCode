@@ -1,4 +1,9 @@
-import { PrismaClient, Difficulty, ProblemStatus, Prisma } from '@prisma/client';
+import {
+  PrismaClient,
+  Difficulty,
+  ProblemStatus,
+  Prisma,
+} from '@prisma/client';
 import problemsData from './data/problems.data';
 import problemDetailsData from './data/problem-details.data';
 
@@ -20,7 +25,9 @@ export interface SeedProblemsResult {
   problemIds: number[];
 }
 
-export async function seedProblems(prisma: PrismaClient): Promise<SeedProblemsResult> {
+export async function seedProblems(
+  prisma: PrismaClient,
+): Promise<SeedProblemsResult> {
   // Seed problems
   for (const p of problemsData.problems) {
     await prisma.problem.create({
@@ -61,10 +68,14 @@ export async function seedProblems(prisma: PrismaClient): Promise<SeedProblemsRe
   // Seed problem details
   for (const pd of problemDetailsData.problem_details) {
     const companies = Array.isArray(pd.companies)
-      ? (pd.companies as ProblemCompanySeed[]).map<ProblemCompanyNormalized>((company) =>
-          typeof company === 'string'
-            ? { id: company.toLowerCase().replace(/\s+/g, '-'), name: company }
-            : { ...company }
+      ? (pd.companies as ProblemCompanySeed[]).map<ProblemCompanyNormalized>(
+          (company) =>
+            typeof company === 'string'
+              ? {
+                  id: company.toLowerCase().replace(/\s+/g, '-'),
+                  name: company,
+                }
+              : { ...company },
         )
       : null;
 
@@ -81,11 +92,14 @@ export async function seedProblems(prisma: PrismaClient): Promise<SeedProblemsRe
         updated_at: new Date(pd.updated_at),
         follow_up: pd.follow_up ?? null,
         constraints_json: pd.constraints_json,
-        hints: pd.id === 'pd-two-sum' ? [
-          'A brute force approach is simple. Loop through each element x and find if there is another value that equals to target – x.',
-          'So, if we fix one of the numbers, say x, we have to scan the entire array to find the next number y which is value - x where value is the input parameter. Can we change our array somehow so that this search becomes faster?',
-          'The second train of thought is, without changing the array, can we use additional space to somehow make the search faster? This is where a hash map comes in handy.',
-        ] : Prisma.DbNull,
+        hints:
+          pd.id === 'pd-two-sum'
+            ? [
+                'A brute force approach is simple. Loop through each element x and find if there is another value that equals to target – x.',
+                'So, if we fix one of the numbers, say x, we have to scan the entire array to find the next number y which is value - x where value is the input parameter. Can we change our array somehow so that this search becomes faster?',
+                'The second train of thought is, without changing the array, can we use additional space to somehow make the search faster? This is where a hash map comes in handy.',
+              ]
+            : Prisma.DbNull,
       },
     });
   }

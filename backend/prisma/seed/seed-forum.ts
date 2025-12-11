@@ -82,6 +82,17 @@ export async function seedForum(
           views: post.impressions,
         };
 
+    const media = (post as any).cover_image
+      ? [
+          {
+            type: 'image',
+            kind: 'image',
+            src: (post as any).cover_image,
+            ratio: 16 / 9,
+          },
+        ]
+      : Prisma.DbNull;
+
     await prisma.forumPost.create({
       data: {
         id: post.id,
@@ -93,7 +104,7 @@ export async function seedForum(
         flair_label: null,
         tags: post.tags,
         excerpt: post.body,
-        media: Prisma.DbNull,
+        media: media,
         recommendation: Prisma.DbNull,
         vote_state: post.vote_state as VoteState,
         is_saved: post.is_saved,

@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  ParseIntPipe,
-  ParseUUIDPipe,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query, ParseIntPipe } from '@nestjs/common';
 import { SubmissionService } from './submission.service';
 
 @Controller('submissions')
@@ -13,7 +6,7 @@ export class SubmissionController {
   constructor(private readonly submissionService: SubmissionService) {}
 
   @Get(':id')
-  async findOne(@Param('id', ParseUUIDPipe) id: string) {
+  async findOne(@Param('id') id: string) {
     return this.submissionService.findOne(id);
   }
 }

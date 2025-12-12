@@ -15,6 +15,15 @@ export class SubmissionService {
       where: {
         problem_id: problemId,
       },
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+          },
+        },
+      },
       orderBy: {
         created_at: 'desc',
       },

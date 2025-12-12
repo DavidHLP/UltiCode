@@ -7,6 +7,7 @@ import { ContestProblem } from './contest-problem.entity';
 import { ContestParticipant } from './contest-participant.entity';
 import { ContestRanking } from './contest-ranking.entity';
 import { GlobalRanking } from './global-ranking.entity';
+import { User } from '../user/user.entity';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { GlobalRanking } from './global-ranking.entity';
       ContestParticipant,
       ContestRanking,
       GlobalRanking,
+      User,
     ]),
   ],
   providers: [ContestService],

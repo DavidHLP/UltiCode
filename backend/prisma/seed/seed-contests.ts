@@ -1,5 +1,6 @@
 import type { PrismaClient, ContestType, ContestStatus } from '@prisma/client';
 import contestsData from './data/contests.data';
+import usersData from './data/users.data';
 import type { SeedProblemsResult } from './seed-problems';
 
 export async function clearContests(prisma: PrismaClient): Promise<void> {
@@ -57,6 +58,7 @@ export async function seedContests(
 
   // Seed global rankings
   for (const gr of contestsData.global_rankings) {
+    const user = usersData.users.find((u) => u.id === gr.user_id);
     await prisma.globalRanking.create({
       data: {
         id: gr.id,
@@ -66,7 +68,7 @@ export async function seedContests(
         rating: gr.rating,
         max_rating: gr.max_rating,
         contests_attended: gr.contests_attended,
-        avatar: null,
+        avatar: user?.avatar || null,
         country: gr.country,
         badge: gr.badge,
       },

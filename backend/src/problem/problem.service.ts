@@ -32,7 +32,13 @@ export class ProblemService {
     }
     return this.problemsRepository.findOne({
       where: { slug: idOrSlug },
-      relations: ['detail', 'tagRelations', 'tagRelations.tag'],
+      relations: [
+        'detail',
+        'tagRelations',
+        'tagRelations.tag',
+        'languages',
+        'examples',
+      ],
     });
   }
 }

@@ -22,7 +22,7 @@ This solution uses a hash map to solve the Two Sum problem in O(n) time.
 
 ## Code
 
-\`\`\`python
+\`\`\`python {group="sol-001"}
 def twoSum(nums, target):
     seen = {}
     for i, num in enumerate(nums):
@@ -32,7 +32,7 @@ def twoSum(nums, target):
         seen[num] = i
     return []
 \`\`\`
-\`\`\`java
+\`\`\`java {group="sol-001"}
 class Solution {
     public int[] twoSum(int[] nums, int target) {
         Map<Integer, Integer> map = new HashMap<>();
@@ -47,7 +47,7 @@ class Solution {
     }
 }
 \`\`\`
-\`\`\`cpp
+\`\`\`cpp {group="sol-001"}
 class Solution {
 public:
     vector<int> twoSum(vector<int>& nums, int target) {
@@ -93,7 +93,7 @@ A straightforward solution checking all pairs.
 
 Check every possible pair of numbers to see if they sum to the target.
 
-\`\`\`javascript
+\`\`\`javascript {group="sol-002"}
 function twoSum(nums, target) {
     for (let i = 0; i < nums.length; i++) {
         for (let j = i + 1; j < nums.length; j++) {
@@ -105,7 +105,7 @@ function twoSum(nums, target) {
     return [];
 }
 \`\`\`
-\`\`\`python
+\`\`\`python {group="sol-002"}
 def twoSum(nums, target):
     for i in range(len(nums)):
         for j in range(i + 1, len(nums)):
@@ -113,7 +113,7 @@ def twoSum(nums, target):
                 return [i, j]
     return []
 \`\`\`
-\`\`\`java
+\`\`\`java {group="sol-002"}
 class Solution {
     public int[] twoSum(int[] nums, int target) {
         for (int i = 0; i < nums.length; i++) {
@@ -151,7 +151,7 @@ Not optimal but easy to understand!`,
 
 Using C++ STL for a clean and efficient solution.
 
-\`\`\`cpp
+\`\`\`cpp {group="sol-003"}
 class Solution {
 public:
     vector<int> twoSum(vector<int>& nums, int target) {
@@ -167,7 +167,7 @@ public:
     }
 };
 \`\`\`
-\`\`\`python
+\`\`\`python {group="sol-003"}
 def twoSum(nums, target):
     seen = {}
     for i, num in enumerate(nums):
@@ -177,7 +177,7 @@ def twoSum(nums, target):
         seen[num] = i
     return []
 \`\`\`
-\`\`\`java
+\`\`\`java {group="sol-003"}
 class Solution {
     public int[] twoSum(int[] nums, int target) {
         Map<Integer, Integer> map = new HashMap<>();
@@ -208,7 +208,7 @@ Fast and memory efficient with C++ STL!`,
       title: 'Java HashMap Implementation',
       content: `# Java Solution
 
-\`\`\`java
+\`\`\`java {group="sol-004"}
 public int[] twoSum(int[] nums, int target) {
     Map<Integer, Integer> map = new HashMap<>();
     for (int i = 0; i < nums.length; i++) {
@@ -221,7 +221,7 @@ public int[] twoSum(int[] nums, int target) {
     throw new IllegalArgumentException("No solution");
 }
 \`\`\`
-\`\`\`python
+\`\`\`python {group="sol-004"}
 def twoSum(nums, target):
     seen = {}
     for i, num in enumerate(nums):
@@ -231,7 +231,7 @@ def twoSum(nums, target):
         seen[num] = i
     return []
 \`\`\`
-\`\`\`cpp
+\`\`\`cpp {group="sol-004"}
 class Solution {
 public:
     vector<int> twoSum(vector<int>& nums, int target) {

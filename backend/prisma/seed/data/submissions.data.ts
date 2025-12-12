@@ -105,4 +105,53 @@ public:
     ],
     created_at: new Date(Date.now() - 1000 * 60 * 30), // 30 mins ago
   },
+  // Add submission for Alex (matching sol-002 JavaScript)
+  {
+    id: 'sub-004',
+    problem: { connect: { id: 1n } },
+    user: { connect: { id: USER_IDS.ALEX } },
+    language: 'JavaScript',
+    code: `function twoSum(nums, target) {
+    for (let i = 0; i < nums.length; i++) {
+        for (let j = i + 1; j < nums.length; j++) {
+            if (nums[i] + nums[j] === target) {
+                return [i, j];
+            }
+        }
+    }
+    return [];
+}`,
+    status: 'Accepted',
+    runtime: 120,
+    memory: 34.5,
+    runtime_percentile: 15.5,
+    memory_percentile: 90.2,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 24 * 2), // 2 days ago
+  },
+  // Add submission for Tourist (matching sol-004 Java)
+  {
+    id: 'sub-005',
+    problem: { connect: { id: 1n } },
+    user: { connect: { id: USER_IDS.TOURIST } },
+    language: 'Java',
+    code: `class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        Map<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int complement = target - nums[i];
+            if (map.containsKey(complement)) {
+                return new int[] { map.get(complement), i };
+            }
+            map.put(nums[i], i);
+        }
+        throw new IllegalArgumentException("No solution");
+    }
+}`,
+    status: 'Accepted',
+    runtime: 2,
+    memory: 42.1,
+    runtime_percentile: 95.8,
+    memory_percentile: 45.2,
+    created_at: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
+  },
 ];

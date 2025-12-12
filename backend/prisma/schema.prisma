@@ -388,7 +388,9 @@ model Submission {
   memory_percentile  Float? // e.g. 40.2 (beats 40.2%)
 
   // Detailed results
-  test_details Json?
+  test_details      Json?
+  runtimeDistBinsMs Json?
+  memoryDistBinsMb  Json?
 
   problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
   user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)

@@ -8,6 +8,7 @@ import { SolutionModule } from './solution/solution.module';
 import { ContestModule } from './contest/contest.module';
 import { ForumModule } from './forum/forum.module';
 import { ProblemListModule } from './problem-list/problem-list.module';
+import { SubmissionModule } from './submission/submission.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { ProblemListModule } from './problem-list/problem-list.module';
     ContestModule,
     ForumModule,
     ProblemListModule,
+    SubmissionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

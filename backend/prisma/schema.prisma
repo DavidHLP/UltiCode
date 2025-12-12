@@ -23,6 +23,7 @@ model User {
   solutions        Solution[]
   solutionComments SolutionComment[]
   solutionVotes    SolutionVote[]
+  submissions      Submission[]
 
   @@map("users")
 }
@@ -59,6 +60,7 @@ model Problem {
   examples     ProblemExample[]
   contestProblems ContestProblem[]
   solutions    Solution[]
+  submissions  Submission[]
 
   @@map("problems")
 }
@@ -364,4 +366,33 @@ model SolutionVote {
 
   @@id([solution_id, user_id])
   @@map("solution_votes")
+}
+
+// ============================================================================
+// SUBMISSION MODULE
+// ============================================================================
+model Submission {
+  id                String   @id @db.VarChar(40)
+  problem_id        BigInt
+  user_id           String   @db.VarChar(40)
+  language          String   @db.VarChar(50)
+  code              String   @db.Text
+  status            String   @db.VarChar(20) // Accepted, Wrong Answer, TLE, RE, etc.
+  runtime           Int // milliseconds
+  memory            Float // megabytes
+  notes             String?  @db.Text
+  created_at        DateTime @default(now())
+
+  // Performance stats
+  runtime_percentile Float? // e.g. 85.5 (beats 85.5%)
+  memory_percentile  Float? // e.g. 40.2 (beats 40.2%)
+
+  // Detailed results
+  test_details Json?
+
+  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([problem_id, user_id])
+  @@map("submissions")
 }

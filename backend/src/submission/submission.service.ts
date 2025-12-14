@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { Submission } from '@prisma/client';
+import { Submission, Prisma } from '@prisma/client';
 
 @Injectable()
 export class SubmissionService {
@@ -8,13 +8,20 @@ export class SubmissionService {
 
   async findAll(
     problemId: number,
+    userId?: string,
     skip: number = 0,
     take: number = 10,
   ): Promise<Submission[]> {
+    const whereCondition: Prisma.SubmissionWhereInput = {
+      problem_id: problemId,
+    };
+
+    if (userId) {
+      whereCondition.user_id = userId;
+    }
+
     const submissions = await this.prisma.submission.findMany({
-      where: {
-        problem_id: problemId,
-      },
+      where: whereCondition,
       include: {
         user: {
           select: {
@@ -31,6 +38,32 @@ export class SubmissionService {
       take,
     });
     return submissions;
+  }
+
+  async findBest(
+    problemId: number,
+    userId: string,
+  ): Promise<Submission | null> {
+    const submission = await this.prisma.submission.findFirst({
+      where: {
+        problem_id: problemId,
+        user_id: userId,
+        status: 'Accepted',
+      },
+      orderBy: [{ runtime: 'asc' }, { memory: 'asc' }, { created_at: 'desc' }],
+      include: {
+        user: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+          },
+        },
+      },
+      take: 1,
+    });
+
+    return submission;
   }
 
   async findOne(id: string): Promise<Submission> {

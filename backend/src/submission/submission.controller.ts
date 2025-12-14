@@ -9,6 +9,20 @@ export class SubmissionController {
   async findOne(@Param('id') id: string) {
     return this.submissionService.findOne(id);
   }
+
+  @Get()
+  async findAllByUser(
+    @Query('userId') userId: string,
+    @Query('skip') skip?: string,
+    @Query('take') take?: string,
+  ) {
+    return this.submissionService.findAll(
+      null, // problemId is null for global user search
+      userId,
+      skip ? parseInt(skip) : 0,
+      take ? parseInt(take) : 10,
+    );
+  }
 }
 
 @Controller('problems/:problemId/submissions')

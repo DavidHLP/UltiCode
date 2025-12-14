@@ -7,14 +7,16 @@ export class SubmissionService {
   constructor(private prisma: PrismaService) {}
 
   async findAll(
-    problemId: number,
+    problemId?: number | null,
     userId?: string,
     skip: number = 0,
     take: number = 10,
   ): Promise<Submission[]> {
-    const whereCondition: Prisma.SubmissionWhereInput = {
-      problem_id: problemId,
-    };
+    const whereCondition: Prisma.SubmissionWhereInput = {};
+
+    if (problemId) {
+      whereCondition.problem_id = problemId;
+    }
 
     if (userId) {
       whereCondition.user_id = userId;
@@ -28,6 +30,13 @@ export class SubmissionService {
             id: true,
             username: true,
             avatar: true,
+          },
+        },
+        problem: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
           },
         },
       },

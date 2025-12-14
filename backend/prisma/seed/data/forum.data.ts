@@ -10,9 +10,9 @@ const data = {
       name: 'UltiCode Forum',
       slug: 'ulticode',
       description:
-        'A community for competitive programmers to discuss algorithms, share solutions, and learn from each other.',
-      members: 4280,
-      online: 186,
+        'A community for competitive programmers to discuss contests, algorithms, and practice routines.',
+      members: 4820,
+      online: 205,
     },
   ],
   forum_community_rules: [
@@ -51,292 +51,152 @@ const data = {
   ],
   forum_posts: [
     {
-      id: 'post-two-sum',
+      id: 'post-contest-retro',
       community_id: communityId,
       user_id: USER_USERNAMES.TOURIST,
-      title: 'Does the Two Sum hashmap need two passes?',
-      body: `I've seen some solutions that first populate the entire hashmap, then do a second pass to find complements. But isn't a single pass sufficient? 
-
-Here's my reasoning: if we check for the complement BEFORE inserting the current number, we avoid counting the same element twice. Am I missing any edge case where two passes would be necessary?`,
-      tags: ['two-sum', 'hashmap', 'algorithms'],
+      title: 'Contest retro: how to recover after a bad Q2?',
+      body: `I lost 8 minutes on Q2 today because of an off-by-one. Curious how people reset and refocus mid-round without tilting.`,
+      tags: ['contests', 'mindset', 'mistakes'],
       flair_type: 'discussion',
       vote_state: 'upvoted',
       is_saved: false,
-      impressions: 1520,
-      is_pinned: true,
-      is_locked: false,
-      created_at: '2024-11-15T08:30:00.000Z',
-    },
-    {
-      id: 'post-dp-vs-recursion',
-      community_id: communityId,
-      user_id: USER_USERNAMES.JIANGLY,
-      title: 'When to use bottom-up DP vs memoized recursion?',
-      body: `I understand both approaches lead to the same time complexity, but I'm struggling to decide which to use in contests. 
-
-Bottom-up seems more space-efficient in some cases, but top-down with memoization feels more intuitive to implement. What's your decision framework?`,
-      tags: ['dynamic-programming', 'recursion', 'optimization'],
-      flair_type: 'question',
-      vote_state: 'neutral',
-      is_saved: true,
-      impressions: 2340,
+      impressions: 4820,
       is_pinned: false,
       is_locked: false,
-      created_at: '2024-11-18T14:15:00.000Z',
+      created_at: '2024-11-27T07:40:00.000Z',
     },
     {
-      id: 'post-segment-tree',
-      community_id: communityId,
-      user_id: USER_USERNAMES.BENQ,
-      title: 'Lazy propagation explained with examples',
-      body: `After struggling with lazy propagation for weeks, I finally understood it! Here's my detailed explanation:
-
-## The Problem
-
-Standard segment trees are great for point updates and range queries. But what if we need to update a range $[L, R]$? Updating every leaf node would take $O(N)$ time, which is too slow.
-
-## The Solution: Laziness
-
-**Key insight**: Lazy propagation is about "procrastinating" updates. Instead of updating every node immediately, we store pending updates and only apply them when we actually need to access that node.
-
-![Lazy Propagation Visualization](https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&q=80&w=1000)
-
-### How it works
-
-1. **Lazy Tag**: Each node stores a \`lazy\` value indicating a pending update for its subtree.
-2. **Push Down**: Before accessing children, we "push" the lazy tag down to them.
-3. **Update**: modifying a range becomes $O(\\log N)$ again.
-
-### Code Template
-
-\`\`\`cpp
-void push(int v) {
-    t[2*v] += lazy[v];
-    lazy[2*v] += lazy[v];
-    t[2*v+1] += lazy[v];
-    lazy[2*v+1] += lazy[v];
-    lazy[v] = 0;
-}
-
-void update(int v, int tl, int tr, int l, int r, int add) {
-    if (l > r)
-        return;
-    if (l == tl && r == tr) {
-        t[v] += add;
-        lazy[v] += add;
-    } else {
-        push(v);
-        int tm = (tl + tr) / 2;
-        update(2*v, tl, tm, l, min(r, tm), add);
-        update(2*v+1, tm+1, tr, max(l, tm+1), r, add);
-        t[v] = max(t[2*v], t[2*v+1]);
-    }
-}
-\`\`\`
-
-**When to use it**: Range updates + Range queries. If you only have point updates, basic segment tree is enough.
-
-Happy to answer questions if anyone is confused!`,
-      tags: ['segment-tree', 'data-structures', 'tutorial'],
-      flair_type: 'showcase',
-      vote_state: 'upvoted',
-      is_saved: true,
-      impressions: 3890,
-      is_pinned: false,
-      is_locked: false,
-      created_at: '2024-11-20T09:45:00.000Z',
-      cover_image:
-        'https://images.unsplash.com/photo-1635070041078-e363dbe005cb?auto=format&fit=crop&q=80&w=3270&ixlib=rb-4.0.3',
-    },
-    {
-      id: 'post-binary-search-bugs',
-      community_id: communityId,
-      user_id: USER_USERNAMES.ECNERWALA,
-      title: 'The most common binary search bugs and how to avoid them',
-      body: `I've reviewed hundreds of contest submissions and here are the top binary search bugs:
-
-1. **Off-by-one errors**: Use \`lo <= hi\` vs \`lo < hi\` consistently
-2. **Integer overflow**: \`mid = lo + (hi - lo) / 2\` instead of \`(lo + hi) / 2\`
-3. **Infinite loops**: Make sure \`lo\` or \`hi\` always changes in each iteration
-4. **Wrong boundary updates**: \`lo = mid + 1\` vs \`lo = mid\` depends on your condition
-
-What bugs have bitten you?`,
-      tags: ['binary-search', 'debugging', 'tips'],
-      flair_type: 'discussion',
-      vote_state: 'upvoted',
-      is_saved: false,
-      impressions: 4120,
-      is_pinned: false,
-      is_locked: false,
-      created_at: '2024-11-21T11:20:00.000Z',
-    },
-    {
-      id: 'post-graph-representation',
-      community_id: communityId,
-      user_id: USER_USERNAMES.PETR,
-      title: 'Adjacency list vs adjacency matrix: when to use which?',
-      body: `Quick reference for graph representation:
-
-**Adjacency List**: 
-- Sparse graphs (E << V²)
-- Most competitive programming problems
-- O(V + E) space
-
-**Adjacency Matrix**:
-- Dense graphs (E ≈ V²)
-- Need O(1) edge lookup
-- Floyd-Warshall, transitive closure
-- O(V²) space
-
-What's your default choice?`,
-      tags: ['graphs', 'data-structures', 'optimization'],
-      flair_type: 'question',
-      vote_state: 'neutral',
-      is_saved: false,
-      impressions: 1890,
-      is_pinned: false,
-      is_locked: false,
-      created_at: '2024-11-22T16:00:00.000Z',
-    },
-    {
-      id: 'post-contest-strategy',
-      community_id: communityId,
-      user_id: USER_USERNAMES.SCOTT,
-      title: 'How I improved from 1600 to 2100 rating in 6 months',
-      body: `Sharing my journey and what worked for me:
-
-1. **Upsolving**: Solved every problem I couldn't finish during contest
-2. **Topic focus**: Spent 2 weeks on each weak topic (DP, graphs, etc.)
-3. **Reading editorials**: Even for problems I solved, to learn optimal approaches
-4. **Virtual contests**: Did 2-3 per week on past rounds
-5. **Implementation practice**: Speed matters, practiced typing clean code fast
-
-The biggest change was mindset - stopped guessing and started thinking systematically.`,
-      tags: ['rating', 'improvement', 'motivation'],
-      flair_type: 'showcase',
-      vote_state: 'upvoted',
-      is_saved: true,
-      impressions: 5670,
-      is_pinned: false,
-      is_locked: false,
-      created_at: '2024-11-23T20:30:00.000Z',
-    },
-    {
-      id: 'post-string-algorithms',
-      community_id: communityId,
-      user_id: USER_USERNAMES.UM_NIK,
-      title: 'KMP vs Z-algorithm vs Rolling Hash: which to learn first?',
-      body: `I'm trying to learn string algorithms but there are so many options. For substring matching:
-
-- **KMP**: Classic, O(n+m), but the failure function is confusing
-- **Z-algorithm**: Allegedly simpler, same complexity
-- **Rolling Hash**: Easy to implement, but collision risk
-
-For competitive programming, which should I master first? I only have time to deeply learn one right now.`,
-      tags: ['strings', 'algorithms', 'learning'],
-      flair_type: 'question',
-      vote_state: 'neutral',
-      is_saved: false,
-      impressions: 2180,
-      is_pinned: false,
-      is_locked: false,
-      created_at: '2024-11-24T13:45:00.000Z',
-    },
-    {
-      id: 'post-weekly-contest-395',
+      id: 'post-editorial-workflow',
       community_id: communityId,
       user_id: USER_USERNAMES.SHADCN,
-      title: '[Discussion] Weekly Contest 395 - Problem Analysis',
-      body: `Let's discuss this week's contest!
-
-**Q1**: Straightforward simulation
-**Q2**: Nice prefix sum problem, watch out for edge cases
-**Q3**: DP with bitmask - the key insight was...
-**Q4**: Hard graph problem, still working on understanding the solution
-
-How did everyone do? Share your approaches!`,
-      tags: ['weekly-contest', 'discussion', 'contest-395'],
+      title: 'How I write editorials fast without losing clarity',
+      body: `Sharing a checklist I've been using: keep one-liner intuition first, then constraints, then pitfalls. Also add a runnable template for each language when possible.`,
+      tags: ['editorial', 'writing', 'process'],
       flair_type: 'announcement',
       vote_state: 'neutral',
-      is_saved: false,
-      impressions: 3240,
+      is_saved: true,
+      impressions: 3120,
       is_pinned: true,
       is_locked: false,
-      created_at: '2024-11-24T16:00:00.000Z',
+      created_at: '2024-11-26T15:20:00.000Z',
+      cover_image:
+        'https://images.unsplash.com/photo-1497633762265-9d179a990aa6?auto=format&fit=crop&q=80&w=1600',
+    },
+    {
+      id: 'post-rust-cp',
+      community_id: communityId,
+      user_id: USER_USERNAMES.STACK_UNWIND,
+      title: 'Anyone using Rust in contests? Pitfalls?',
+      body: `Thinking of switching to Rust for safer code. Concerned about IO speed and writing segment trees without fighting the borrow checker. Any real-world tips?`,
+      tags: ['rust', 'languages', 'performance'],
+      flair_type: 'question',
+      vote_state: 'neutral',
+      is_saved: true,
+      impressions: 1960,
+      is_pinned: false,
+      is_locked: false,
+      created_at: '2024-11-26T10:05:00.000Z',
+    },
+    {
+      id: 'post-fenwick-vs-segtree',
+      community_id: communityId,
+      user_id: USER_USERNAMES.BENQ,
+      title: 'Fenwick vs Segment Tree: when is BIT enough?',
+      body: `I default to BIT for prefix sums but keep seeing segment trees in editorials.\n\nRules of thumb I'm using:\n- point updates + prefix/range sum -> BIT\n- range updates + point queries -> BIT with diff\n- range updates + range queries -> lazy segtree\n\nAny traps where BIT quietly fails?`,
+      tags: ['fenwick-tree', 'segment-tree', 'data-structures'],
+      flair_type: 'discussion',
+      vote_state: 'upvoted',
+      is_saved: false,
+      impressions: 2550,
+      is_pinned: false,
+      is_locked: false,
+      created_at: '2024-11-25T08:40:00.000Z',
+    },
+    {
+      id: 'post-fp-precision',
+      community_id: communityId,
+      user_id: USER_USERNAMES.ALEX,
+      title: 'Floating point precision traps in geometry problems',
+      body: `Got bit by precision twice this week.\n\nMy checklist now:\n1) Use long double / f64 everywhere\n2) Normalize angles with eps\n3) Compare with tolerance, never ==\n4) Prefer cross/dot over acos/atan when possible\n\nOther tricks?`,
+      tags: ['floating-point', 'geometry', 'debugging'],
+      flair_type: 'discussion',
+      vote_state: 'upvoted',
+      is_saved: false,
+      impressions: 1880,
+      is_pinned: false,
+      is_locked: false,
+      created_at: '2024-11-27T12:20:00.000Z',
+    },
+    {
+      id: 'post-pre-contest-checklist',
+      community_id: communityId,
+      user_id: USER_USERNAMES.SARA,
+      title: 'What is your pre-contest checklist?',
+      body: `Mine:\n- Restart laptop, close background apps\n- Confirm template compiles\n- Prepare snacks/water\n- 5 min breathing + stretch\n\nAnything else that boosts your focus?`,
+      tags: ['routine', 'productivity', 'contest-prep'],
+      flair_type: 'question',
+      vote_state: 'neutral',
+      is_saved: true,
+      impressions: 2050,
+      is_pinned: false,
+      is_locked: false,
+      created_at: '2024-11-27T18:10:00.000Z',
     },
   ],
   forum_post_stats: [
     {
-      id: 'stats-two-sum',
-      post_id: 'post-two-sum',
-      score: 156,
-      comments: 8,
-      awards: 2,
-      saves: 45,
-      shares: 12,
-    },
-    {
-      id: 'stats-dp-vs-recursion',
-      post_id: 'post-dp-vs-recursion',
-      score: 234,
-      comments: 15,
+      id: 'stats-contest-retro',
+      post_id: 'post-contest-retro',
+      score: 421,
+      comments: 4,
       awards: 3,
-      saves: 89,
-      shares: 23,
+      saves: 186,
+      shares: 52,
     },
     {
-      id: 'stats-segment-tree',
-      post_id: 'post-segment-tree',
-      score: 412,
-      comments: 22,
-      awards: 5,
-      saves: 156,
-      shares: 45,
-    },
-    {
-      id: 'stats-binary-search',
-      post_id: 'post-binary-search-bugs',
-      score: 389,
-      comments: 31,
-      awards: 4,
-      saves: 203,
-      shares: 67,
-    },
-    {
-      id: 'stats-graph-rep',
-      post_id: 'post-graph-representation',
-      score: 178,
-      comments: 12,
+      id: 'stats-editorial-workflow',
+      post_id: 'post-editorial-workflow',
+      score: 182,
+      comments: 3,
       awards: 1,
-      saves: 67,
-      shares: 18,
+      saves: 95,
+      shares: 22,
     },
     {
-      id: 'stats-contest-strategy',
-      post_id: 'post-contest-strategy',
-      score: 567,
-      comments: 45,
-      awards: 8,
-      saves: 312,
-      shares: 89,
-    },
-    {
-      id: 'stats-string-algo',
-      post_id: 'post-string-algorithms',
-      score: 145,
-      comments: 18,
+      id: 'stats-rust-cp',
+      post_id: 'post-rust-cp',
+      score: 174,
+      comments: 3,
       awards: 1,
-      saves: 52,
-      shares: 14,
+      saves: 120,
+      shares: 30,
     },
     {
-      id: 'stats-weekly-395',
-      post_id: 'post-weekly-contest-395',
-      score: 89,
-      comments: 34,
-      awards: 0,
-      saves: 23,
-      shares: 8,
+      id: 'stats-fenwick',
+      post_id: 'post-fenwick-vs-segtree',
+      score: 200,
+      comments: 3,
+      awards: 2,
+      saves: 102,
+      shares: 25,
+    },
+    {
+      id: 'stats-fp',
+      post_id: 'post-fp-precision',
+      score: 190,
+      comments: 3,
+      awards: 2,
+      saves: 88,
+      shares: 21,
+    },
+    {
+      id: 'stats-checklist',
+      post_id: 'post-pre-contest-checklist',
+      score: 150,
+      comments: 3,
+      awards: 1,
+      saves: 132,
+      shares: 19,
     },
   ],
   forum_awards: [
@@ -345,186 +205,191 @@ How did everyone do? Share your approaches!`,
     { id: 'award-gold', label: 'Gold' },
   ],
   forum_post_awards: [
-    { post_id: 'post-two-sum', award_id: 'award-insightful', count: 2 },
-    { post_id: 'post-dp-vs-recursion', award_id: 'award-helpful', count: 3 },
-    { post_id: 'post-segment-tree', award_id: 'award-gold', count: 2 },
-    { post_id: 'post-segment-tree', award_id: 'award-insightful', count: 3 },
-    { post_id: 'post-binary-search-bugs', award_id: 'award-helpful', count: 4 },
-    { post_id: 'post-contest-strategy', award_id: 'award-gold', count: 5 },
-    {
-      post_id: 'post-contest-strategy',
-      award_id: 'award-insightful',
-      count: 3,
-    },
+    { post_id: 'post-contest-retro', award_id: 'award-gold', count: 1 },
+    { post_id: 'post-contest-retro', award_id: 'award-insightful', count: 2 },
+    { post_id: 'post-editorial-workflow', award_id: 'award-insightful', count: 1 },
+    { post_id: 'post-rust-cp', award_id: 'award-helpful', count: 1 },
+    { post_id: 'post-fenwick-vs-segtree', award_id: 'award-helpful', count: 2 },
+    { post_id: 'post-fp-precision', award_id: 'award-helpful', count: 1 },
+    { post_id: 'post-fp-precision', award_id: 'award-gold', count: 1 },
+    { post_id: 'post-pre-contest-checklist', award_id: 'award-insightful', count: 1 },
   ],
   forum_comments: [
-    // Comments on Two Sum post
     {
-      id: 'comment-ts-1',
-      post_id: 'post-two-sum',
+      id: 'comment-contest-1',
+      post_id: 'post-contest-retro',
       parent_id: null,
       author_id: USER_USERNAMES.JIANGLY,
-      body: 'Single pass is indeed sufficient. The two-pass version is just more intuitive for some people because it separates "build hashmap" from "query hashmap".',
-      upvotes: 45,
-      created_at: '2024-11-15T09:00:00.000Z',
+      body: 'I take 30 seconds to rewrite invariants on paper before touching code again. It resets my brain.',
+      upvotes: 96,
+      created_at: '2024-11-27T08:00:00.000Z',
     },
     {
-      id: 'comment-ts-2',
-      post_id: 'post-two-sum',
-      parent_id: 'comment-ts-1',
+      id: 'comment-contest-2',
+      post_id: 'post-contest-retro',
+      parent_id: 'comment-contest-1',
       author_id: USER_USERNAMES.TOURIST,
-      body: 'Thanks! That makes sense. I was worried I was missing something subtle.',
-      upvotes: 12,
-      created_at: '2024-11-15T09:15:00.000Z',
+      body: 'Good call. I also lower my pace for one problem to avoid cascading mistakes.',
+      upvotes: 58,
+      created_at: '2024-11-27T08:10:00.000Z',
     },
     {
-      id: 'comment-ts-3',
-      post_id: 'post-two-sum',
+      id: 'comment-contest-3',
+      post_id: 'post-contest-retro',
       parent_id: null,
       author_id: USER_USERNAMES.BENQ,
-      body: "The only edge case to watch is when target = 2 * nums[i]. Make sure you check for complement BEFORE inserting, or you'll match the same element with itself.",
-      upvotes: 78,
-      created_at: '2024-11-15T10:30:00.000Z',
+      body: 'I set a hard cap: if debug > 7 minutes, I park it and move on.',
+      upvotes: 72,
+      created_at: '2024-11-27T08:20:00.000Z',
     },
-    // Comments on DP vs Recursion post
     {
-      id: 'comment-dp-1',
-      post_id: 'post-dp-vs-recursion',
+      id: 'comment-contest-4',
+      post_id: 'post-contest-retro',
+      parent_id: 'comment-contest-3',
+      author_id: USER_USERNAMES.SCOTT,
+      body: 'Same. A 5-minute revisit at the end often finds the bug instantly.',
+      upvotes: 45,
+      created_at: '2024-11-27T08:32:00.000Z',
+    },
+
+    {
+      id: 'comment-editorial-1',
+      post_id: 'post-editorial-workflow',
+      parent_id: null,
+      author_id: USER_USERNAMES.LILY,
+      body: 'Do you keep separate sections for brute force vs optimal? I get asked for both.',
+      upvotes: 41,
+      created_at: '2024-11-26T15:45:00.000Z',
+    },
+    {
+      id: 'comment-editorial-2',
+      post_id: 'post-editorial-workflow',
+      parent_id: 'comment-editorial-1',
+      author_id: USER_USERNAMES.SHADCN,
+      body: 'Yes—short naive section first to anchor intuition, then optimal with proof sketch.',
+      upvotes: 53,
+      created_at: '2024-11-26T16:00:00.000Z',
+    },
+    {
+      id: 'comment-editorial-3',
+      post_id: 'post-editorial-workflow',
+      parent_id: null,
+      author_id: USER_USERNAMES.DAVID,
+      body: 'I like the runnable template tip—keeps readers from copy/paste errors.',
+      upvotes: 37,
+      created_at: '2024-11-26T16:20:00.000Z',
+    },
+
+    {
+      id: 'comment-rust-1',
+      post_id: 'post-rust-cp',
       parent_id: null,
       author_id: USER_USERNAMES.TOURIST,
-      body: 'My rule of thumb: start with memoized recursion for correctness, convert to bottom-up if you need to optimize space or if the recursion depth would cause stack overflow.',
-      upvotes: 89,
-      created_at: '2024-11-18T15:00:00.000Z',
+      body: 'Rust is fine but write DSU and segtree templates early; borrow checker bites on mutable slices.',
+      upvotes: 83,
+      created_at: '2024-11-26T10:30:00.000Z',
     },
     {
-      id: 'comment-dp-2',
-      post_id: 'post-dp-vs-recursion',
-      parent_id: 'comment-dp-1',
-      author_id: USER_USERNAMES.JIANGLY,
-      body: "Agreed. During contests I almost always use top-down because it's faster to implement and debug.",
-      upvotes: 56,
-      created_at: '2024-11-18T15:30:00.000Z',
+      id: 'comment-rust-2',
+      post_id: 'post-rust-cp',
+      parent_id: 'comment-rust-1',
+      author_id: USER_USERNAMES.STACK_UNWIND,
+      body: 'Thanks—will prep templates and macro-ize IO.',
+      upvotes: 22,
+      created_at: '2024-11-26T10:45:00.000Z',
     },
     {
-      id: 'comment-dp-3',
-      post_id: 'post-dp-vs-recursion',
+      id: 'comment-rust-3',
+      post_id: 'post-rust-cp',
       parent_id: null,
-      author_id: USER_USERNAMES.ECNERWALA,
-      body: 'Bottom-up is necessary when you want to apply space optimization (like only keeping the previous row for 2D DP). Also useful when the recurrence has a natural iterative structure.',
-      upvotes: 67,
-      created_at: '2024-11-18T16:45:00.000Z',
+      author_id: USER_USERNAMES.YUKI,
+      body: 'Use `proconio` or a custom fast scanner. Also preallocate Vecs to avoid reallocation.',
+      upvotes: 47,
+      created_at: '2024-11-26T11:00:00.000Z',
     },
-    // Comments on Segment Tree post
+
     {
-      id: 'comment-st-1',
-      post_id: 'post-segment-tree',
+      id: 'comment-fenwick-1',
+      post_id: 'post-fenwick-vs-segtree',
       parent_id: null,
       author_id: USER_USERNAMES.PETR,
-      body: "Great explanation! One thing I'd add: the hardest part of lazy propagation is getting the push_down function right. Make sure you handle the ordering of operations correctly.",
-      upvotes: 34,
-      created_at: '2024-11-20T10:30:00.000Z',
+      body: 'BIT fails for range min/max; segment tree is safer if you need anything non-additive.',
+      upvotes: 67,
+      created_at: '2024-11-25T09:10:00.000Z',
     },
     {
-      id: 'comment-st-2',
-      post_id: 'post-segment-tree',
-      parent_id: null,
-      author_id: USER_USERNAMES.SCOTT,
-      body: 'Can you share your template code? I keep getting bugs in my implementation.',
-      upvotes: 23,
-      created_at: '2024-11-20T11:00:00.000Z',
-    },
-    {
-      id: 'comment-st-3',
-      post_id: 'post-segment-tree',
-      parent_id: 'comment-st-2',
+      id: 'comment-fenwick-2',
+      post_id: 'post-fenwick-vs-segtree',
+      parent_id: 'comment-fenwick-1',
       author_id: USER_USERNAMES.BENQ,
-      body: "I'll post a follow-up with my template! The key is to always push_down before accessing children.",
-      upvotes: 45,
-      created_at: '2024-11-20T11:30:00.000Z',
+      body: 'Exactly. I only stick with BIT when it keeps code size tiny.',
+      upvotes: 35,
+      created_at: '2024-11-25T09:30:00.000Z',
     },
-    // Comments on Binary Search post
     {
-      id: 'comment-bs-1',
-      post_id: 'post-binary-search-bugs',
+      id: 'comment-fenwick-3',
+      post_id: 'post-fenwick-vs-segtree',
       parent_id: null,
-      author_id: USER_USERNAMES.UM_NIK,
-      body: "The hardest bug for me was choosing between `hi = mid` vs `hi = mid - 1`. I now always think about what invariant I'm maintaining.",
-      upvotes: 56,
-      created_at: '2024-11-21T12:00:00.000Z',
+      author_id: USER_USERNAMES.MAX,
+      body: 'If you need offline coordinate compression anyway, segtree overhead is minimal.',
+      upvotes: 29,
+      created_at: '2024-11-25T09:45:00.000Z',
+    },
+
+    {
+      id: 'comment-fp-1',
+      post_id: 'post-fp-precision',
+      parent_id: null,
+      author_id: USER_USERNAMES.ECNERWALA,
+      body: 'Avoid acos/asin; compare using cross/dot with eps instead.',
+      upvotes: 76,
+      created_at: '2024-11-27T12:40:00.000Z',
     },
     {
-      id: 'comment-bs-2',
-      post_id: 'post-binary-search-bugs',
+      id: 'comment-fp-2',
+      post_id: 'post-fp-precision',
+      parent_id: 'comment-fp-1',
+      author_id: USER_USERNAMES.ALEX,
+      body: 'Nice. Also consistent eps matters—mixing 1e-6 and 1e-9 burned me.',
+      upvotes: 44,
+      created_at: '2024-11-27T13:00:00.000Z',
+    },
+    {
+      id: 'comment-fp-3',
+      post_id: 'post-fp-precision',
+      parent_id: null,
+      author_id: USER_USERNAMES.LILY,
+      body: 'For hull problems I clamp cosine values into [-1,1] before acos to avoid NaNs.',
+      upvotes: 33,
+      created_at: '2024-11-27T13:20:00.000Z',
+    },
+
+    {
+      id: 'comment-checklist-1',
+      post_id: 'post-pre-contest-checklist',
       parent_id: null,
       author_id: USER_USERNAMES.SHADCN,
-      body: 'I use the "boundary" approach: find the first element that satisfies some condition. Makes it easier to reason about.',
-      upvotes: 78,
-      created_at: '2024-11-21T13:15:00.000Z',
+      body: 'Add a 3-minute snippet drill (power mod, DSU, sieve) right before start to warm up.',
+      upvotes: 58,
+      created_at: '2024-11-27T18:30:00.000Z',
     },
-    // Comments on Contest Strategy post
     {
-      id: 'comment-cs-1',
-      post_id: 'post-contest-strategy',
+      id: 'comment-checklist-2',
+      post_id: 'post-pre-contest-checklist',
+      parent_id: 'comment-checklist-1',
+      author_id: USER_USERNAMES.SARA,
+      body: 'Love that—will add to my routine.',
+      upvotes: 22,
+      created_at: '2024-11-27T18:45:00.000Z',
+    },
+    {
+      id: 'comment-checklist-3',
+      post_id: 'post-pre-contest-checklist',
       parent_id: null,
-      author_id: USER_USERNAMES.STACK_UNWIND,
-      body: "This is super motivating! I'm currently at 1400 and feel stuck. Going to try your upsolving approach.",
-      upvotes: 34,
-      created_at: '2024-11-23T21:00:00.000Z',
-    },
-    {
-      id: 'comment-cs-2',
-      post_id: 'post-contest-strategy',
-      parent_id: 'comment-cs-1',
-      author_id: USER_USERNAMES.SCOTT,
-      body: "You've got this! The 1400-1600 range was hardest for me too. Keep grinding!",
-      upvotes: 45,
-      created_at: '2024-11-23T21:30:00.000Z',
-    },
-    {
-      id: 'comment-cs-3',
-      post_id: 'post-contest-strategy',
-      parent_id: null,
-      author_id: USER_USERNAMES.ALEX,
-      body: 'How many hours per day did you practice? I can only manage 1-2 hours on weekdays.',
-      upvotes: 23,
-      created_at: '2024-11-23T22:00:00.000Z',
-    },
-    {
-      id: 'comment-cs-4',
-      post_id: 'post-contest-strategy',
-      parent_id: 'comment-cs-3',
-      author_id: USER_USERNAMES.SCOTT,
-      body: 'About 2-3 hours on weekdays, more on weekends. Quality matters more than quantity though - focused practice on weak areas.',
-      upvotes: 67,
-      created_at: '2024-11-23T22:30:00.000Z',
-    },
-    // Comments on String Algorithms post
-    {
-      id: 'comment-sa-1',
-      post_id: 'post-string-algorithms',
-      parent_id: null,
-      author_id: USER_USERNAMES.BENQ,
-      body: "Learn Z-algorithm first. It's simpler to understand and implement correctly. KMP's failure function is notoriously tricky.",
-      upvotes: 89,
-      created_at: '2024-11-24T14:00:00.000Z',
-    },
-    {
-      id: 'comment-sa-2',
-      post_id: 'post-string-algorithms',
-      parent_id: 'comment-sa-1',
-      author_id: USER_USERNAMES.TOURIST,
-      body: "I'd actually recommend rolling hash for contests. Yes there's collision risk, but using multiple bases makes it negligible. Plus it's way more versatile.",
-      upvotes: 67,
-      created_at: '2024-11-24T14:30:00.000Z',
-    },
-    {
-      id: 'comment-sa-3',
-      post_id: 'post-string-algorithms',
-      parent_id: 'comment-sa-2',
-      author_id: USER_USERNAMES.UM_NIK,
-      body: "Thanks both! I'll start with Z-algorithm since it seems like a good foundation, then learn rolling hash for the versatility.",
-      upvotes: 12,
-      created_at: '2024-11-24T15:00:00.000Z',
+      author_id: USER_USERNAMES.DAVID,
+      body: 'I keep a printed shortcuts sheet; reduced silly slowdowns.',
+      upvotes: 27,
+      created_at: '2024-11-27T19:00:00.000Z',
     },
   ],
   forum_quick_filters: [

@@ -254,6 +254,172 @@ public:
       likes: 67,
       dislikes: 3,
     },
+    {
+      id: 'sol-005',
+      problem_id: 2,
+      user_id: USER_IDS.SARA,
+      title: 'Sliding Window with Last-Seen Map',
+      content: `# Sliding Window
+
+Use left and right pointers with a hashmap of last seen indices to maintain a valid window.
+
+\`\`\`typescript {group="sol-005"}
+function lengthOfLongestSubstring(s: string): number {
+    const seen = new Map<string, number>();
+    let left = 0;
+    let best = 0;
+    for (let right = 0; right < s.length; right++) {
+        const ch = s[right];
+        if (seen.has(ch) && seen.get(ch)! >= left) {
+            left = seen.get(ch)! + 1;
+        }
+        seen.set(ch, right);
+        best = Math.max(best, right - left + 1);
+    }
+    return best;
+}
+\`\`\`
+
+Runs in O(n) time and O(k) space where k is the alphabet size.`,
+      summary:
+        'Classic sliding window that bumps the left pointer past duplicates.',
+      language: 'TypeScript',
+      tags: ['Sliding Window', 'Hash Table', 'String'],
+      views: 1020,
+      likes: 210,
+      dislikes: 9,
+    },
+    {
+      id: 'sol-006',
+      problem_id: 3,
+      user_id: USER_IDS.MAX,
+      title: 'Sort and Sweep Merge',
+      content: `# Sort then sweep
+
+1. Sort intervals by start.
+2. Grow the current interval while there is overlap.
+3. Push merged results.
+
+\`\`\`javascript {group="sol-006"}
+var merge = function(intervals) {
+    intervals.sort((a, b) => a[0] - b[0]);
+    const res = [];
+    for (const [start, end] of intervals) {
+        if (!res.length || start > res[res.length - 1][1]) {
+            res.push([start, end]);
+        } else {
+            res[res.length - 1][1] = Math.max(res[res.length - 1][1], end);
+        }
+    }
+    return res;
+};
+\`\`\`
+
+Sorting dominates the time complexity.`,
+      summary: 'Greedy sweep after sorting intervals by start; merge in one pass',
+      language: 'JavaScript',
+      tags: ['Sorting', 'Intervals', 'Greedy'],
+      views: 740,
+      likes: 132,
+      dislikes: 6,
+    },
+    {
+      id: 'sol-007',
+      problem_id: 4,
+      user_id: USER_IDS.PETR,
+      title: 'Binary Search on Partitions',
+      content: `# Binary Search on Partitions
+
+We binary search the cut on the shorter array so that left parts contain half the elements and all left values are <= all right values.
+
+\`\`\`python {group="sol-007"}
+from typing import List
+
+class Solution:
+    def findMedianSortedArrays(self, nums1: List[int], nums2: List[int]) -> float:
+        if len(nums1) > len(nums2):
+            nums1, nums2 = nums2, nums1
+        m, n = len(nums1), len(nums2)
+        total = m + n
+        half = total // 2
+        lo, hi = 0, m
+        while lo <= hi:
+            i = (lo + hi) // 2
+            j = half - i
+            left1 = nums1[i - 1] if i > 0 else float('-inf')
+            right1 = nums1[i] if i < m else float('inf')
+            left2 = nums2[j - 1] if j > 0 else float('-inf')
+            right2 = nums2[j] if j < n else float('inf')
+            if left1 <= right2 and left2 <= right1:
+                if total % 2:
+                    return min(right1, right2)
+                return (max(left1, left2) + min(right1, right2)) / 2
+            if left1 > right2:
+                hi = i - 1
+            else:
+                lo = i + 1
+        return 0.0
+\`\`\`
+
+Binary search over the smaller array keeps complexity O(log(min(m, n))).`,
+      summary: 'Binary search the cut on the shorter array to balance partitions',
+      language: 'Python',
+      tags: ['Binary Search', 'Divide and Conquer'],
+      views: 980,
+      likes: 180,
+      dislikes: 21,
+    },
+    {
+      id: 'sol-008',
+      problem_id: 5,
+      user_id: USER_IDS.CHEN,
+      title: 'Iterative DFS Flood Fill',
+      content: `# DFS Flood Fill
+
+Mark visited land cells and explore four directions using an explicit stack to avoid recursion depth issues.
+
+\`\`\`java {group="sol-008"}
+class Solution {
+    public int numIslands(char[][] grid) {
+        int m = grid.length, n = grid[0].length;
+        boolean[][] seen = new boolean[m][n];
+        int[][] dirs = {{1,0},{-1,0},{0,1},{0,-1}};
+        int count = 0;
+        for (int r = 0; r < m; r++) {
+            for (int c = 0; c < n; c++) {
+                if (grid[r][c] == '1' && !seen[r][c]) {
+                    count++;
+                    Deque<int[]> stack = new ArrayDeque<>();
+                    stack.push(new int[]{r, c});
+                    seen[r][c] = true;
+                    while (!stack.isEmpty()) {
+                        int[] cur = stack.pop();
+                        for (int[] d : dirs) {
+                            int nr = cur[0] + d[0];
+                            int nc = cur[1] + d[1];
+                            if (nr >= 0 && nr < m && nc >= 0 && nc < n && grid[nr][nc] == '1' && !seen[nr][nc]) {
+                                seen[nr][nc] = true;
+                                stack.push(new int[]{nr, nc});
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return count;
+    }
+}
+\`\`\`
+
+Space can be reduced by marking the grid in place instead of using a visited matrix.`,
+      summary:
+        'Iterative DFS flood fill to mark connected land and count components',
+      language: 'Java',
+      tags: ['DFS', 'Matrix', 'Graph'],
+      views: 560,
+      likes: 140,
+      dislikes: 4,
+    },
   ],
   comments: [
     {
@@ -305,6 +471,41 @@ public:
       content: 'Love the C++ STL approach, very clean!',
       likes: 7,
     },
+    {
+      id: 'comment-007',
+      solution_id: 'sol-005',
+      parent_id: null,
+      user_id: USER_IDS.TOM,
+      content:
+        'Nice explanation of how to move the left pointer; fixed my own off-by-one.',
+      likes: 11,
+    },
+    {
+      id: 'comment-008',
+      solution_id: 'sol-006',
+      parent_id: null,
+      user_id: USER_IDS.LILY,
+      content:
+        'Sorting first is underrated here; this is faster than my interval tree attempt.',
+      likes: 9,
+    },
+    {
+      id: 'comment-009',
+      solution_id: 'sol-007',
+      parent_id: null,
+      user_id: USER_IDS.SCOTT,
+      content: 'Binary search proof sketch was useful, thanks!',
+      likes: 14,
+    },
+    {
+      id: 'comment-010',
+      solution_id: 'sol-008',
+      parent_id: null,
+      user_id: USER_IDS.EMMA,
+      content:
+        'Stack-based DFS kept my recursion stack from blowing up. Good tip.',
+      likes: 6,
+    },
   ],
   votes: [
     // Votes for sol-001 (340 upvotes, 12 downvotes)
@@ -328,6 +529,27 @@ public:
     // Votes for sol-004 (67 upvotes, 3 downvotes)
     { solution_id: 'sol-004', user_id: USER_IDS.SARA, vote_type: 1 },
     { solution_id: 'sol-004', user_id: USER_IDS.TOM, vote_type: 1 },
+    // Votes for sol-005 (210 upvotes, 9 downvotes)
+    { solution_id: 'sol-005', user_id: USER_IDS.SHADCN, vote_type: 1 },
+    { solution_id: 'sol-005', user_id: USER_IDS.CHEN, vote_type: 1 },
+    { solution_id: 'sol-005', user_id: USER_IDS.SCOTT, vote_type: 1 },
+    { solution_id: 'sol-005', user_id: USER_IDS.PETR, vote_type: 1 },
+    { solution_id: 'sol-005', user_id: USER_IDS.UM_NIK, vote_type: -1 },
+
+    // Votes for sol-006 (132 upvotes, 6 downvotes)
+    { solution_id: 'sol-006', user_id: USER_IDS.STACK_UNWIND, vote_type: 1 },
+    { solution_id: 'sol-006', user_id: USER_IDS.ALEX, vote_type: 1 },
+    { solution_id: 'sol-006', user_id: USER_IDS.KEVIN, vote_type: 1 },
+
+    // Votes for sol-007 (180 upvotes, 21 downvotes)
+    { solution_id: 'sol-007', user_id: USER_IDS.ECNERWALA, vote_type: 1 },
+    { solution_id: 'sol-007', user_id: USER_IDS.TOURIST, vote_type: 1 },
+    { solution_id: 'sol-007', user_id: USER_IDS.JIANGLY, vote_type: 1 },
+
+    // Votes for sol-008 (140 upvotes, 4 downvotes)
+    { solution_id: 'sol-008', user_id: USER_IDS.DAVID, vote_type: 1 },
+    { solution_id: 'sol-008', user_id: USER_IDS.YUKI, vote_type: 1 },
+    { solution_id: 'sol-008', user_id: USER_IDS.LILY, vote_type: 1 },
   ],
 } as const;
 

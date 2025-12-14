@@ -18,13 +18,28 @@ export class ProblemSubmissionController {
   @Get()
   async findAll(
     @Param('problemId', ParseIntPipe) problemId: number,
+    @Query('userId') userId?: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
   ) {
+    // Default to 'u-001' if no user ID is provided, simulating "current user"
+    const uid = userId || 'u-001';
     return this.submissionService.findAll(
       problemId,
+      uid,
       skip ? parseInt(skip) : 0,
       take ? parseInt(take) : 10,
     );
+  }
+
+  @Get('best')
+  async findBest(
+    @Param('problemId', ParseIntPipe) problemId: number,
+    @Query('userId') userId?: string,
+  ) {
+    // TODO: In a real app, userId should come from the request user (guard)
+    // For now we allow passing it or default to a test user
+    const uid = userId || 'user-1';
+    return this.submissionService.findBest(problemId, uid);
   }
 }

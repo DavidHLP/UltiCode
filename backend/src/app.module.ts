@@ -9,6 +9,7 @@ import { ContestModule } from './contest/contest.module';
 import { ForumModule } from './forum/forum.module';
 import { ProblemListModule } from './problem-list/problem-list.module';
 import { SubmissionModule } from './submission/submission.module';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
   imports: [
@@ -28,7 +29,9 @@ import { SubmissionModule } from './submission/submission.module';
     ContestModule,
     ForumModule,
     ProblemListModule,
+    ProblemListModule,
     SubmissionModule,
+    AuthModule,
   ],
   controllers: [AppController],
   providers: [AppService],

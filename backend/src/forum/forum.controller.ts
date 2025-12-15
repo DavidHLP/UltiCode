@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body } from '@nestjs/common';
 import { ForumService } from './forum.service';
 import { ForumPost } from './forum-post.entity';
 import { ForumCommunity } from './forum-community.entity';
@@ -34,5 +34,13 @@ export class ForumController {
   @Get('quick-filters')
   getQuickFilters() {
     return forumData.forum_quick_filters;
+  }
+
+  @Post('posts/:id/comments')
+  createComment(
+    @Param('id') postId: string,
+    @Body() body: { body: string; parentId: string | null },
+  ) {
+    return this.forumService.createComment(postId, body.body, body.parentId);
   }
 }

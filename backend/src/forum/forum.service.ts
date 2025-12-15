@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { ForumPost } from './forum-post.entity';
@@ -52,5 +53,23 @@ export class ForumService {
 
   async findAllCommunities(): Promise<ForumCommunity[]> {
     return this.communitiesRepository.find();
+  }
+
+  async createComment(
+    postId: string,
+    body: string,
+    parentId: string | null,
+  ): Promise<ForumComment> {
+    const comment = this.commentsRepository.create({
+      id: randomUUID(),
+      postId,
+      body,
+      parentId,
+      authorId: 'shadcn', // Default to Shadcn username
+      createdAt: new Date(),
+      upvotes: 0,
+    });
+
+    return this.commentsRepository.save(comment);
   }
 }

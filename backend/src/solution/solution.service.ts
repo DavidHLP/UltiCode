@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';

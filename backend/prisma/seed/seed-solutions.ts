@@ -15,9 +15,7 @@ export async function clearSolutions(prisma: PrismaClient): Promise<void> {
 /**
  * Seed solutions, comments, and votes
  */
-export async function seedSolutions(
-  prisma: PrismaClient,
-): Promise<{
+export async function seedSolutions(prisma: PrismaClient): Promise<{
   solutionsCount: number;
   commentsCount: number;
   votesCount: number;

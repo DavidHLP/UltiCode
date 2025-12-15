@@ -24,6 +24,8 @@ model User {
   solutionComments SolutionComment[]
   solutionVotes    SolutionVote[]
   submissions      Submission[]
+  contestRankings ContestRanking[]
+  contestParticipants ContestParticipant[]
 
   @@map("users")
 }
@@ -160,6 +162,8 @@ model Contest {
   cover_image       String?       @db.VarChar(255)
 
   problems ContestProblem[]
+  rankings ContestRanking[]
+  participants ContestParticipant[]
 
   @@map("contests")
 }
@@ -193,6 +197,50 @@ model GlobalRanking {
 
   @@map("global_rankings")
 }
+
+model ContestRanking {
+  id                  String @id @db.VarChar(40)
+  contest_id          String @db.VarChar(40)
+  user_id             String @db.VarChar(40)
+  username            String @db.VarChar(120)
+  rank                Int
+  score               Int
+  finish_time_seconds Int
+  q1_time_seconds     Int?
+  q2_time_seconds     Int?
+  q3_time_seconds     Int?
+  q4_time_seconds     Int?
+  rating_before       Int
+  rating_after        Int
+  rating_change       Int
+  country             String @default("CN") @db.VarChar(10)
+
+  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("contest_rankings")
+}
+
+model ContestParticipant {
+  id                  String    @id @db.VarChar(40)
+  contest_id          String    @db.VarChar(40)
+  user_id             String    @db.VarChar(40)
+  username            String    @db.VarChar(120)
+  status              String    @db.VarChar(20) // registered, participated, virtual
+  registered_at       DateTime
+  started_at          DateTime?
+  finished_at         DateTime?
+  rank                Int?
+  score               Int       @default(0)
+  finish_time_seconds Int?
+  is_virtual          Boolean   @default(false)
+
+  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("contest_participants")
+}
+
 
 // ============================================================================
 // FORUM MODULE

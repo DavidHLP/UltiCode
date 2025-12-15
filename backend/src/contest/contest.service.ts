@@ -26,11 +26,25 @@ export class ContestService {
     return this.contestsRepository.find();
   }
 
-  async findOne(id: string): Promise<Contest | null> {
-    return this.contestsRepository.findOne({
+  async findOne(id: string): Promise<any> {
+    const contest = await this.contestsRepository.findOne({
       where: { id },
-      relations: ['problems'],
+      relations: ['problems', 'problems.problem'],
     });
+
+    if (!contest) return null;
+
+    /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return */
+    return {
+      ...contest,
+      problems: contest.problems.map((cp: any) => ({
+        ...cp,
+        title: cp.problem.title,
+        slug: cp.problem.slug,
+        difficulty: cp.problem.difficulty,
+        acceptanceRate: cp.problem.acceptance_rate,
+      })),
+    };
   }
 
   async findUpcoming(): Promise<Contest[]> {

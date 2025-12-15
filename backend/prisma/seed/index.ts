@@ -7,7 +7,6 @@ import { clearProblemLists, seedProblemLists } from './seed-problem-lists';
 import { clearSolutions, seedSolutions } from './seed-solutions';
 import { clearSubmissions, seedSubmissions } from './seed-submissions';
 
-
 const prisma = new PrismaClient();
 
 /**

@@ -1,5 +1,6 @@
 import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
 import { Contest } from './contest.entity';
+import { Problem } from '../problem/problem.entity';
 
 @Entity('contest_problems')
 export class ContestProblem {
@@ -27,4 +28,8 @@ export class ContestProblem {
 
   @Column({ default: 0 })
   submission_count: number;
+
+  @ManyToOne(() => Problem)
+  @JoinColumn({ name: 'problem_id' })
+  problem: Problem;
 }

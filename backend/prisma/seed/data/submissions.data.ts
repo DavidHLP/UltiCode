@@ -1,10 +1,24 @@
 import { Prisma } from '@prisma/client';
 import { USER_IDS } from './users.data';
+import { PROBLEM_IDS } from './problems.data';
+
+export const SUBMISSIONS_IDS = {
+  TWO_SUM_PYTHON_ACC: 'sub-001',
+  TWO_SUM_PYTHON_TLE: 'sub-002',
+  TWO_SUM_CPP_ACC: 'sub-003',
+  TWO_SUM_JS_ACC: 'sub-004',
+  TWO_SUM_JAVA_ACC: 'sub-005',
+  LONGEST_SUBSTR_TS_ACC: 'sub-006',
+  LONGEST_SUBSTR_PYTHON_WA: 'sub-007',
+  MERGE_INT_JS_ACC: 'sub-008',
+  MEDIAN_PYTHON_ACC: 'sub-009',
+  ISLANDS_JAVA_ACC: 'sub-010',
+} as const;
 
 export const SUBMISSIONS: Prisma.SubmissionCreateInput[] = [
   {
-    id: 'sub-001',
-    problem: { connect: { id: 1n } },
+    id: SUBMISSIONS_IDS.TWO_SUM_PYTHON_ACC,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.TWO_SUM) } },
     user: { connect: { id: USER_IDS.YUKI } },
     language: 'Python',
     code: `def twoSum(nums, target):
@@ -51,8 +65,8 @@ export const SUBMISSIONS: Prisma.SubmissionCreateInput[] = [
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
   },
   {
-    id: 'sub-002',
-    problem: { connect: { id: 1n } },
+    id: SUBMISSIONS_IDS.TWO_SUM_PYTHON_TLE,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.TWO_SUM) } },
     user: { connect: { id: USER_IDS.YUKI } },
     language: 'Python',
     code: `def twoSum(nums, target):
@@ -67,8 +81,8 @@ export const SUBMISSIONS: Prisma.SubmissionCreateInput[] = [
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
   },
   {
-    id: 'sub-003',
-    problem: { connect: { id: 1n } },
+    id: SUBMISSIONS_IDS.TWO_SUM_CPP_ACC,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.TWO_SUM) } },
     user: { connect: { id: USER_IDS.DAVID } },
     language: 'C++',
     code: `class Solution {
@@ -107,8 +121,8 @@ public:
   },
   // Add submission for Alex (matching sol-002 JavaScript)
   {
-    id: 'sub-004',
-    problem: { connect: { id: 1n } },
+    id: SUBMISSIONS_IDS.TWO_SUM_JS_ACC,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.TWO_SUM) } },
     user: { connect: { id: USER_IDS.ALEX } },
     language: 'JavaScript',
     code: `function twoSum(nums, target) {
@@ -130,8 +144,8 @@ public:
   },
   // Add submission for Tourist (matching sol-004 Java)
   {
-    id: 'sub-005',
-    problem: { connect: { id: 1n } },
+    id: SUBMISSIONS_IDS.TWO_SUM_JAVA_ACC,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.TWO_SUM) } },
     user: { connect: { id: USER_IDS.TOURIST } },
     language: 'Java',
     code: `class Solution {
@@ -155,8 +169,8 @@ public:
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 5), // 5 hours ago
   },
   {
-    id: 'sub-006',
-    problem: { connect: { id: 2n } },
+    id: SUBMISSIONS_IDS.LONGEST_SUBSTR_TS_ACC,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.LONGEST_SUBSTRING) } },
     user: { connect: { id: USER_IDS.SARA } },
     language: 'TypeScript',
     code: `function lengthOfLongestSubstring(s: string): number {
@@ -180,8 +194,8 @@ public:
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 6), // 6 hours ago
   },
   {
-    id: 'sub-007',
-    problem: { connect: { id: 2n } },
+    id: SUBMISSIONS_IDS.LONGEST_SUBSTR_PYTHON_WA,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.LONGEST_SUBSTRING) } },
     user: { connect: { id: USER_IDS.LILY } },
     language: 'Python',
     code: `class Solution:
@@ -202,8 +216,8 @@ public:
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 30), // 30 hours ago
   },
   {
-    id: 'sub-008',
-    problem: { connect: { id: 3n } },
+    id: SUBMISSIONS_IDS.MERGE_INT_JS_ACC,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.MERGE_INTERVALS) } },
     user: { connect: { id: USER_IDS.MAX } },
     language: 'JavaScript',
     code: `var merge = function(intervals) {
@@ -226,8 +240,10 @@ public:
     created_at: new Date(Date.now() - 1000 * 60 * 90), // 1.5 hours ago
   },
   {
-    id: 'sub-009',
-    problem: { connect: { id: 4n } },
+    id: SUBMISSIONS_IDS.MEDIAN_PYTHON_ACC,
+    problem: {
+      connect: { id: BigInt(PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS) },
+    },
     user: { connect: { id: USER_IDS.PETR } },
     language: 'Python',
     code: `class Solution:
@@ -261,8 +277,8 @@ public:
     created_at: new Date(Date.now() - 1000 * 60 * 60 * 12), // 12 hours ago
   },
   {
-    id: 'sub-010',
-    problem: { connect: { id: 5n } },
+    id: SUBMISSIONS_IDS.ISLANDS_JAVA_ACC,
+    problem: { connect: { id: BigInt(PROBLEM_IDS.NUMBER_OF_ISLANDS) } },
     user: { connect: { id: USER_IDS.CHEN } },
     language: 'Java',
     code: `class Solution {

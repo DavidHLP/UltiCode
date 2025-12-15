@@ -55,7 +55,8 @@ const data = {
       id: 'post-rust-hashmap',
       community_id: communityId,
       user_id: USER_USERNAMES.STACK_UNWIND,
-      title: 'Why is `std::collections::HashMap` slower than `fxhash` in competitive programming?',
+      title:
+        'Why is `std::collections::HashMap` slower than `fxhash` in competitive programming?',
       body: `I've been grinding AtCoder benchmarks and noticed a huge performance diff.
 
 Standard HashMap:
@@ -87,7 +88,8 @@ I know \`std\` uses SipHash for DoS protection, but is the constants overhead re
       id: 'post-contest-tilt',
       community_id: communityId,
       user_id: USER_USERNAMES.DAVID,
-      title: 'The "30-Minute Wall": How do you reset mental state during a contest?',
+      title:
+        'The "30-Minute Wall": How do you reset mental state during a contest?',
       body: `Yesterday I bricked Q2. Spent 40 mins debugging a simple off-by-one error. After that, I couldn't focus on Q3/Q4 at all. My brain just felt "foggy" and panicked.
 
 Do you have any physical or mental protocols to hard-reset? I've heard of people doing pushups or splashing water.`,
@@ -259,7 +261,7 @@ Let me know if this helps!`,
       post_id: 'post-contest-tilt',
       parent_id: null,
       author_id: USER_USERNAMES.SCOTT,
-      body: 'I usually rage quit and go play League. (Don\'t do this)',
+      body: "I usually rage quit and go play League. (Don't do this)",
       upvotes: 230,
       created_at: '2024-11-28T15:00:00.000Z',
     },
@@ -333,7 +335,7 @@ Let me know if this helps!`,
       post_id: 'post-segtree-visual',
       parent_id: 'c-seg-3',
       author_id: USER_USERNAMES.MAX,
-      body: 'Check out JiDriver\'s blog for beats visuals.',
+      body: "Check out JiDriver's blog for beats visuals.",
       upvotes: 8,
       created_at: '2024-11-27T11:00:00.000Z',
     },

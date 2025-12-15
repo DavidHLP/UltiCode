@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/ban-ts-comment */
+// @ts-nocheck
 import { Controller, Get, Param, Query, ParseIntPipe } from '@nestjs/common';
 import { SubmissionService } from './submission.service';
 

@@ -1,10 +1,12 @@
+import { PROBLEM_IDS } from './problems.data';
+
 const now = '2024-11-01T00:00:00.000Z';
 
 const data = {
   problem_details: [
     {
       id: 'pd-two-sum',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       slug: 'two-sum',
       summary:
         'Given an array of integers `nums` and an integer `target`, return _indices of the two numbers such that they add up to `target`_.\n\nYou may assume that each input would have **exactly one solution**, and you may not use the *same* element twice.\n\nYou can return the answer in any order.',
@@ -33,15 +35,14 @@ const data = {
     },
     {
       id: 'pd-longest-substring',
-      problem_id: 2,
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       slug: 'longest-substring-without-repeating-characters',
       summary:
         'Given a string s, find the length of the longest substring without repeating characters.',
       companies: ['Google', 'Meta', 'Amazon'],
       difficulty_rating: 1420,
       updated_at: now,
-      follow_up:
-        'Can you return the substring itself while keeping O(n) time?',
+      follow_up: 'Can you return the substring itself while keeping O(n) time?',
       constraints_json: [
         '$0 \\leq s.length \\leq 5 \\times 10^4$',
         's consists of English letters, digits, symbols, and spaces.',
@@ -49,7 +50,7 @@ const data = {
     },
     {
       id: 'pd-merge-intervals',
-      problem_id: 3,
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       slug: 'merge-intervals',
       summary:
         'Given an array of intervals where intervals[i] = [start_i, end_i], merge all overlapping intervals, and return an array of the non-overlapping intervals that cover all the intervals in the input.',
@@ -66,7 +67,7 @@ const data = {
     },
     {
       id: 'pd-median-two-sorted-arrays',
-      problem_id: 4,
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       slug: 'median-of-two-sorted-arrays',
       summary:
         'Given two sorted arrays nums1 and nums2 of size m and n respectively, return the median of the two sorted arrays. The overall run time complexity should be O(log (m+n)).',
@@ -83,7 +84,7 @@ const data = {
     },
     {
       id: 'pd-number-of-islands',
-      problem_id: 5,
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       slug: 'number-of-islands',
       summary:
         'Given an m x n 2D binary grid that represents a map of "1"s (land) and "0"s (water), return the number of islands. An island is surrounded by water and is formed by connecting adjacent lands horizontally or vertically.',
@@ -101,7 +102,7 @@ const data = {
   problem_examples: [
     {
       id: 'ex-two-sum-1',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       example_order: 0,
       input_text: 'nums = [2,7,11,15], target = 9',
       output_text: '[0,1]',
@@ -109,7 +110,7 @@ const data = {
     },
     {
       id: 'ex-two-sum-2',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       example_order: 1,
       input_text: 'nums = [3,2,4], target = 6',
       output_text: '[1,2]',
@@ -117,7 +118,7 @@ const data = {
     },
     {
       id: 'ex-two-sum-3',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       example_order: 2,
       input_text: 'nums = [3,3], target = 6',
       output_text: '[0,1]',
@@ -126,7 +127,7 @@ const data = {
     },
     {
       id: 'ex-longest-sub-1',
-      problem_id: 2,
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       example_order: 0,
       input_text: 's = "abcabcbb"',
       output_text: '3',
@@ -134,7 +135,7 @@ const data = {
     },
     {
       id: 'ex-longest-sub-2',
-      problem_id: 2,
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       example_order: 1,
       input_text: 's = "bbbbb"',
       output_text: '1',
@@ -142,7 +143,7 @@ const data = {
     },
     {
       id: 'ex-longest-sub-3',
-      problem_id: 2,
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       example_order: 2,
       input_text: 's = "pwwkew"',
       output_text: '3',
@@ -151,16 +152,15 @@ const data = {
     },
     {
       id: 'ex-merge-1',
-      problem_id: 3,
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       example_order: 0,
       input_text: 'intervals = [[1,3],[2,6],[8,10],[15,18]]',
       output_text: '[[1,6],[8,10],[15,18]]',
-      explanation:
-        'Intervals [1,3] and [2,6] overlap, merge into [1,6].',
+      explanation: 'Intervals [1,3] and [2,6] overlap, merge into [1,6].',
     },
     {
       id: 'ex-merge-2',
-      problem_id: 3,
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       example_order: 1,
       input_text: 'intervals = [[1,4],[4,5]]',
       output_text: '[[1,5]]',
@@ -168,7 +168,7 @@ const data = {
     },
     {
       id: 'ex-merge-3',
-      problem_id: 3,
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       example_order: 2,
       input_text: 'intervals = [[1,4],[2,3]]',
       output_text: '[[1,4]]',
@@ -176,7 +176,7 @@ const data = {
     },
     {
       id: 'ex-median-1',
-      problem_id: 4,
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       example_order: 0,
       input_text: 'nums1 = [1,3], nums2 = [2]',
       output_text: '2.00000',
@@ -184,16 +184,15 @@ const data = {
     },
     {
       id: 'ex-median-2',
-      problem_id: 4,
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       example_order: 1,
       input_text: 'nums1 = [1,2], nums2 = [3,4]',
       output_text: '2.50000',
-      explanation:
-        'Merged array is [1,2,3,4] and median is (2 + 3) / 2 = 2.5.',
+      explanation: 'Merged array is [1,2,3,4] and median is (2 + 3) / 2 = 2.5.',
     },
     {
       id: 'ex-median-3',
-      problem_id: 4,
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       example_order: 2,
       input_text: 'nums1 = [], nums2 = [1]',
       output_text: '1.00000',
@@ -201,7 +200,7 @@ const data = {
     },
     {
       id: 'ex-islands-1',
-      problem_id: 5,
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       example_order: 0,
       input_text:
         'grid = [["1","1","1","1","0"],["1","1","0","1","0"],["1","1","0","0","0"],["0","0","0","0","0"]]',
@@ -210,7 +209,7 @@ const data = {
     },
     {
       id: 'ex-islands-2',
-      problem_id: 5,
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       example_order: 1,
       input_text:
         'grid = [["1","1","0","0","0"],["1","1","0","0","0"],["0","0","1","0","0"],["0","0","0","1","1"]]',
@@ -220,7 +219,7 @@ const data = {
     },
     {
       id: 'ex-islands-3',
-      problem_id: 5,
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       example_order: 2,
       input_text: 'grid = [["0","0","0"],["0","0","0"],["0","0","0"]]',
       output_text: '0',
@@ -230,7 +229,7 @@ const data = {
   problem_approaches: [
     {
       id: 'ap-two-sum-hashmap',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       title: 'One-pass Hash Table',
       summary:
         "It turns out we can do it in one-pass. While we iterate and inserting elements into the table, we also look back to check if current element's complement already exists in the table. If it exists, we have found a solution and return immediately.",
@@ -245,7 +244,7 @@ const data = {
   problem_languages: [
     {
       id: 'lang-ts',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       label: 'TypeScript',
       value: 'typescript',
       starterCode:
@@ -253,7 +252,7 @@ const data = {
     },
     {
       id: 'lang-js',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       label: 'JavaScript',
       value: 'javascript',
       starterCode:
@@ -261,7 +260,7 @@ const data = {
     },
     {
       id: 'lang-py',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       label: 'Python',
       value: 'python',
       starterCode:
@@ -269,7 +268,7 @@ const data = {
     },
     {
       id: 'lang-java',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       label: 'Java',
       value: 'java',
       starterCode:
@@ -277,7 +276,7 @@ const data = {
     },
     {
       id: 'lang-cpp',
-      problem_id: 1,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       label: 'C++',
       value: 'cpp',
       starterCode:
@@ -285,7 +284,7 @@ const data = {
     },
     {
       id: 'lang-ts-2',
-      problem_id: 2,
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       label: 'TypeScript',
       value: 'typescript',
       starterCode:
@@ -293,7 +292,7 @@ const data = {
     },
     {
       id: 'lang-py-2',
-      problem_id: 2,
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       label: 'Python',
       value: 'python',
       starterCode:
@@ -301,7 +300,7 @@ const data = {
     },
     {
       id: 'lang-java-2',
-      problem_id: 2,
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       label: 'Java',
       value: 'java',
       starterCode:
@@ -309,7 +308,7 @@ const data = {
     },
     {
       id: 'lang-ts-3',
-      problem_id: 3,
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       label: 'TypeScript',
       value: 'typescript',
       starterCode:
@@ -317,7 +316,7 @@ const data = {
     },
     {
       id: 'lang-py-3',
-      problem_id: 3,
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       label: 'Python',
       value: 'python',
       starterCode:
@@ -325,7 +324,7 @@ const data = {
     },
     {
       id: 'lang-java-3',
-      problem_id: 3,
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       label: 'Java',
       value: 'java',
       starterCode:
@@ -333,7 +332,7 @@ const data = {
     },
     {
       id: 'lang-ts-4',
-      problem_id: 4,
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       label: 'TypeScript',
       value: 'typescript',
       starterCode:
@@ -341,7 +340,7 @@ const data = {
     },
     {
       id: 'lang-py-4',
-      problem_id: 4,
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       label: 'Python',
       value: 'python',
       starterCode:
@@ -349,7 +348,7 @@ const data = {
     },
     {
       id: 'lang-java-4',
-      problem_id: 4,
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       label: 'Java',
       value: 'java',
       starterCode:
@@ -357,15 +356,14 @@ const data = {
     },
     {
       id: 'lang-ts-5',
-      problem_id: 5,
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       label: 'TypeScript',
       value: 'typescript',
-      starterCode:
-        'function numIslands(grid: string[][]): number {\n    \n};',
+      starterCode: 'function numIslands(grid: string[][]): number {\n    \n};',
     },
     {
       id: 'lang-py-5',
-      problem_id: 5,
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       label: 'Python',
       value: 'python',
       starterCode:
@@ -373,7 +371,7 @@ const data = {
     },
     {
       id: 'lang-java-5',
-      problem_id: 5,
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       label: 'Java',
       value: 'java',
       starterCode:

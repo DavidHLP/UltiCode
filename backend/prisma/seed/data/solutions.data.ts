@@ -1,12 +1,37 @@
 // prisma/seed/data/solutions.data.ts
 // prisma/seed/data/solutions.data.ts
 import { USER_IDS } from './users.data';
+import { PROBLEM_IDS } from './problems.data';
+
+export const SOLUTION_IDS = {
+  TWO_SUM_OPTIMAL: 'sol-001',
+  TWO_SUM_BRUTE: 'sol-002',
+  TWO_SUM_CPP: 'sol-003',
+  TWO_SUM_JAVA: 'sol-004',
+  LONGEST_SUBSTR_SLIDING: 'sol-005',
+  MERGE_INTERVALS_SORT: 'sol-006',
+  MEDIAN_ARRAYS_BS: 'sol-007',
+  ISLANDS_DFS: 'sol-008',
+} as const;
+
+export const COMMENT_IDS = {
+  TWO_SUM_OPT_1: 'comment-001',
+  TWO_SUM_OPT_2: 'comment-002',
+  TWO_SUM_OPT_3: 'comment-003',
+  TWO_SUM_OPT_4: 'comment-004',
+  TWO_SUM_BRUTE_1: 'comment-005',
+  TWO_SUM_CPP_1: 'comment-006',
+  LONGEST_SUBSTR_1: 'comment-007',
+  MERGE_INT_1: 'comment-008',
+  MEDIAN_BS_1: 'comment-009',
+  ISLANDS_DFS_1: 'comment-010',
+} as const;
 
 const data = {
   solutions: [
     {
-      id: 'sol-001',
-      problem_id: 1,
+      id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       user_id: USER_IDS.YUKI,
       title: 'Hash Map Approach - O(n) Time Complexity',
       content: `# Hash Map Solution
@@ -81,8 +106,8 @@ By storing each number as we iterate, we can check for complements in constant t
       dislikes: 12,
     },
     {
-      id: 'sol-002',
-      problem_id: 1,
+      id: SOLUTION_IDS.TWO_SUM_BRUTE,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       user_id: USER_IDS.ALEX,
       title: 'Brute Force Solution - Easy to Understand',
       content: `# Brute Force Approach
@@ -143,8 +168,8 @@ Not optimal but easy to understand!`,
       dislikes: 35,
     },
     {
-      id: 'sol-003',
-      problem_id: 1,
+      id: SOLUTION_IDS.TWO_SUM_CPP,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       user_id: USER_IDS.CHEN,
       title: 'C++ STL unordered_map Solution',
       content: `# C++ Solution with STL
@@ -202,8 +227,8 @@ Fast and memory efficient with C++ STL!`,
       dislikes: 5,
     },
     {
-      id: 'sol-004',
-      problem_id: 1,
+      id: SOLUTION_IDS.TWO_SUM_JAVA,
+      problem_id: PROBLEM_IDS.TWO_SUM,
       user_id: USER_IDS.TOURIST,
       title: 'Java HashMap Implementation',
       content: `# Java Solution
@@ -255,8 +280,8 @@ public:
       dislikes: 3,
     },
     {
-      id: 'sol-005',
-      problem_id: 2,
+      id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       user_id: USER_IDS.SARA,
       title: 'Sliding Window with Last-Seen Map',
       content: `# Sliding Window
@@ -290,8 +315,8 @@ Runs in O(n) time and O(k) space where k is the alphabet size.`,
       dislikes: 9,
     },
     {
-      id: 'sol-006',
-      problem_id: 3,
+      id: SOLUTION_IDS.MERGE_INTERVALS_SORT,
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       user_id: USER_IDS.MAX,
       title: 'Sort and Sweep Merge',
       content: `# Sort then sweep
@@ -316,7 +341,8 @@ var merge = function(intervals) {
 \`\`\`
 
 Sorting dominates the time complexity.`,
-      summary: 'Greedy sweep after sorting intervals by start; merge in one pass',
+      summary:
+        'Greedy sweep after sorting intervals by start; merge in one pass',
       language: 'JavaScript',
       tags: ['Sorting', 'Intervals', 'Greedy'],
       views: 740,
@@ -324,8 +350,8 @@ Sorting dominates the time complexity.`,
       dislikes: 6,
     },
     {
-      id: 'sol-007',
-      problem_id: 4,
+      id: SOLUTION_IDS.MEDIAN_ARRAYS_BS,
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       user_id: USER_IDS.PETR,
       title: 'Binary Search on Partitions',
       content: `# Binary Search on Partitions
@@ -362,7 +388,8 @@ class Solution:
 \`\`\`
 
 Binary search over the smaller array keeps complexity O(log(min(m, n))).`,
-      summary: 'Binary search the cut on the shorter array to balance partitions',
+      summary:
+        'Binary search the cut on the shorter array to balance partitions',
       language: 'Python',
       tags: ['Binary Search', 'Divide and Conquer'],
       views: 980,
@@ -370,8 +397,8 @@ Binary search over the smaller array keeps complexity O(log(min(m, n))).`,
       dislikes: 21,
     },
     {
-      id: 'sol-008',
-      problem_id: 5,
+      id: SOLUTION_IDS.ISLANDS_DFS,
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       user_id: USER_IDS.CHEN,
       title: 'Iterative DFS Flood Fill',
       content: `# DFS Flood Fill
@@ -423,57 +450,57 @@ Space can be reduced by marking the grid in place instead of using a visited mat
   ],
   comments: [
     {
-      id: 'comment-001',
-      solution_id: 'sol-001',
+      id: COMMENT_IDS.TWO_SUM_OPT_1,
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
       parent_id: null,
       user_id: USER_IDS.MAX,
       content: 'Great explanation! This helped me understand hash maps better.',
       likes: 25,
     },
     {
-      id: 'comment-002',
-      solution_id: 'sol-001',
-      parent_id: 'comment-001',
+      id: COMMENT_IDS.TWO_SUM_OPT_2,
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      parent_id: COMMENT_IDS.TWO_SUM_OPT_1,
       user_id: USER_IDS.YUKI,
       content: 'Thanks! Glad it was helpful 😊',
       likes: 8,
     },
     {
-      id: 'comment-003',
-      solution_id: 'sol-001',
+      id: COMMENT_IDS.TWO_SUM_OPT_3,
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
       parent_id: null,
       user_id: USER_IDS.SARA,
       content: 'What if there are duplicate numbers in the array?',
       likes: 15,
     },
     {
-      id: 'comment-004',
-      solution_id: 'sol-001',
-      parent_id: 'comment-003',
+      id: COMMENT_IDS.TWO_SUM_OPT_4,
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      parent_id: COMMENT_IDS.TWO_SUM_OPT_3,
       user_id: USER_IDS.YUKI,
       content:
         "Good question! The hash map will overwrite the previous index, but that's fine since we only need to find one valid pair.",
       likes: 20,
     },
     {
-      id: 'comment-005',
-      solution_id: 'sol-002',
+      id: COMMENT_IDS.TWO_SUM_BRUTE_1,
+      solution_id: SOLUTION_IDS.TWO_SUM_BRUTE,
       parent_id: null,
       user_id: USER_IDS.LILY,
       content: 'This is a good starting point for beginners!',
       likes: 12,
     },
     {
-      id: 'comment-006',
-      solution_id: 'sol-003',
+      id: COMMENT_IDS.TWO_SUM_CPP_1,
+      solution_id: SOLUTION_IDS.TWO_SUM_CPP,
       parent_id: null,
       user_id: USER_IDS.DAVID,
       content: 'Love the C++ STL approach, very clean!',
       likes: 7,
     },
     {
-      id: 'comment-007',
-      solution_id: 'sol-005',
+      id: COMMENT_IDS.LONGEST_SUBSTR_1,
+      solution_id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
       parent_id: null,
       user_id: USER_IDS.TOM,
       content:
@@ -481,8 +508,8 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       likes: 11,
     },
     {
-      id: 'comment-008',
-      solution_id: 'sol-006',
+      id: COMMENT_IDS.MERGE_INT_1,
+      solution_id: SOLUTION_IDS.MERGE_INTERVALS_SORT,
       parent_id: null,
       user_id: USER_IDS.LILY,
       content:
@@ -490,16 +517,16 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       likes: 9,
     },
     {
-      id: 'comment-009',
-      solution_id: 'sol-007',
+      id: COMMENT_IDS.MEDIAN_BS_1,
+      solution_id: SOLUTION_IDS.MEDIAN_ARRAYS_BS,
       parent_id: null,
       user_id: USER_IDS.SCOTT,
       content: 'Binary search proof sketch was useful, thanks!',
       likes: 14,
     },
     {
-      id: 'comment-010',
-      solution_id: 'sol-008',
+      id: COMMENT_IDS.ISLANDS_DFS_1,
+      solution_id: SOLUTION_IDS.ISLANDS_DFS,
       parent_id: null,
       user_id: USER_IDS.EMMA,
       content:
@@ -509,47 +536,167 @@ Space can be reduced by marking the grid in place instead of using a visited mat
   ],
   votes: [
     // Votes for sol-001 (340 upvotes, 12 downvotes)
-    { solution_id: 'sol-001', user_id: USER_IDS.MAX, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.SARA, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.TOM, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.LILY, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.DAVID, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.EMMA, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.KEVIN, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.TOURIST, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.JIANGLY, vote_type: 1 },
-    { solution_id: 'sol-001', user_id: USER_IDS.BENQ, vote_type: 1 },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.MAX,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.SARA,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.TOM,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.LILY,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.DAVID,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.EMMA,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.KEVIN,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.TOURIST,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.JIANGLY,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_OPTIMAL,
+      user_id: USER_IDS.BENQ,
+      vote_type: 1,
+    },
 
     // Votes for sol-002 (125 upvotes, 35 downvotes)
-    { solution_id: 'sol-002', user_id: USER_IDS.LILY, vote_type: 1 },
-    { solution_id: 'sol-002', user_id: USER_IDS.EMMA, vote_type: 1 },
-    { solution_id: 'sol-002', user_id: USER_IDS.YUKI, vote_type: -1 },
-    { solution_id: 'sol-003', user_id: USER_IDS.KEVIN, vote_type: 1 },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_BRUTE,
+      user_id: USER_IDS.LILY,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_BRUTE,
+      user_id: USER_IDS.EMMA,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_BRUTE,
+      user_id: USER_IDS.YUKI,
+      vote_type: -1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_CPP,
+      user_id: USER_IDS.KEVIN,
+      vote_type: 1,
+    },
 
     // Votes for sol-004 (67 upvotes, 3 downvotes)
-    { solution_id: 'sol-004', user_id: USER_IDS.SARA, vote_type: 1 },
-    { solution_id: 'sol-004', user_id: USER_IDS.TOM, vote_type: 1 },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_JAVA,
+      user_id: USER_IDS.SARA,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.TWO_SUM_JAVA,
+      user_id: USER_IDS.TOM,
+      vote_type: 1,
+    },
     // Votes for sol-005 (210 upvotes, 9 downvotes)
-    { solution_id: 'sol-005', user_id: USER_IDS.SHADCN, vote_type: 1 },
-    { solution_id: 'sol-005', user_id: USER_IDS.CHEN, vote_type: 1 },
-    { solution_id: 'sol-005', user_id: USER_IDS.SCOTT, vote_type: 1 },
-    { solution_id: 'sol-005', user_id: USER_IDS.PETR, vote_type: 1 },
-    { solution_id: 'sol-005', user_id: USER_IDS.UM_NIK, vote_type: -1 },
+    {
+      solution_id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
+      user_id: USER_IDS.SHADCN,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
+      user_id: USER_IDS.CHEN,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
+      user_id: USER_IDS.SCOTT,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
+      user_id: USER_IDS.PETR,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
+      user_id: USER_IDS.UM_NIK,
+      vote_type: -1,
+    },
 
     // Votes for sol-006 (132 upvotes, 6 downvotes)
-    { solution_id: 'sol-006', user_id: USER_IDS.STACK_UNWIND, vote_type: 1 },
-    { solution_id: 'sol-006', user_id: USER_IDS.ALEX, vote_type: 1 },
-    { solution_id: 'sol-006', user_id: USER_IDS.KEVIN, vote_type: 1 },
+    {
+      solution_id: SOLUTION_IDS.MERGE_INTERVALS_SORT,
+      user_id: USER_IDS.STACK_UNWIND,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.MERGE_INTERVALS_SORT,
+      user_id: USER_IDS.ALEX,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.MERGE_INTERVALS_SORT,
+      user_id: USER_IDS.KEVIN,
+      vote_type: 1,
+    },
 
     // Votes for sol-007 (180 upvotes, 21 downvotes)
-    { solution_id: 'sol-007', user_id: USER_IDS.ECNERWALA, vote_type: 1 },
-    { solution_id: 'sol-007', user_id: USER_IDS.TOURIST, vote_type: 1 },
-    { solution_id: 'sol-007', user_id: USER_IDS.JIANGLY, vote_type: 1 },
+    {
+      solution_id: SOLUTION_IDS.MEDIAN_ARRAYS_BS,
+      user_id: USER_IDS.ECNERWALA,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.MEDIAN_ARRAYS_BS,
+      user_id: USER_IDS.TOURIST,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.MEDIAN_ARRAYS_BS,
+      user_id: USER_IDS.JIANGLY,
+      vote_type: 1,
+    },
 
     // Votes for sol-008 (140 upvotes, 4 downvotes)
-    { solution_id: 'sol-008', user_id: USER_IDS.DAVID, vote_type: 1 },
-    { solution_id: 'sol-008', user_id: USER_IDS.YUKI, vote_type: 1 },
-    { solution_id: 'sol-008', user_id: USER_IDS.LILY, vote_type: 1 },
+    {
+      solution_id: SOLUTION_IDS.ISLANDS_DFS,
+      user_id: USER_IDS.DAVID,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.ISLANDS_DFS,
+      user_id: USER_IDS.YUKI,
+      vote_type: 1,
+    },
+    {
+      solution_id: SOLUTION_IDS.ISLANDS_DFS,
+      user_id: USER_IDS.LILY,
+      vote_type: 1,
+    },
   ],
 } as const;
 

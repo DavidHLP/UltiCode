@@ -1,8 +1,16 @@
 // prisma/seed/data/problems.data.ts
+export const PROBLEM_IDS = {
+  TWO_SUM: 1,
+  LONGEST_SUBSTRING: 2,
+  MERGE_INTERVALS: 3,
+  MEDIAN_OF_TWO_SORTED_ARRAYS: 4,
+  NUMBER_OF_ISLANDS: 5,
+} as const;
+
 const data = {
   problems: [
     {
-      id: 1,
+      id: PROBLEM_IDS.TWO_SUM,
       slug: 'two-sum',
       title: 'Two Sum',
       difficulty: 'Easy',
@@ -13,7 +21,7 @@ const data = {
       completed_time: null,
     },
     {
-      id: 2,
+      id: PROBLEM_IDS.LONGEST_SUBSTRING,
       slug: 'longest-substring-without-repeating-characters',
       title: 'Longest Substring Without Repeating Characters',
       difficulty: 'Medium',
@@ -24,7 +32,7 @@ const data = {
       completed_time: null,
     },
     {
-      id: 3,
+      id: PROBLEM_IDS.MERGE_INTERVALS,
       slug: 'merge-intervals',
       title: 'Merge Intervals',
       difficulty: 'Medium',
@@ -35,7 +43,7 @@ const data = {
       completed_time: null,
     },
     {
-      id: 4,
+      id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       slug: 'median-of-two-sorted-arrays',
       title: 'Median of Two Sorted Arrays',
       difficulty: 'Hard',
@@ -46,7 +54,7 @@ const data = {
       completed_time: '2024-10-12T00:00:00.000Z',
     },
     {
-      id: 5,
+      id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       slug: 'number-of-islands',
       title: 'Number of Islands',
       difficulty: 'Medium',
@@ -71,20 +79,26 @@ const data = {
     { id: 'matrix', label: 'Matrix' },
   ],
   problem_tag_relations: [
-    { problem_id: 1, tag_id: 'array' },
-    { problem_id: 1, tag_id: 'hash-table' },
-    { problem_id: 2, tag_id: 'string' },
-    { problem_id: 2, tag_id: 'sliding-window' },
-    { problem_id: 2, tag_id: 'hash-table' },
-    { problem_id: 3, tag_id: 'array' },
-    { problem_id: 3, tag_id: 'sorting' },
-    { problem_id: 3, tag_id: 'intervals' },
-    { problem_id: 4, tag_id: 'array' },
-    { problem_id: 4, tag_id: 'binary-search' },
-    { problem_id: 4, tag_id: 'divide-and-conquer' },
-    { problem_id: 5, tag_id: 'dfs' },
-    { problem_id: 5, tag_id: 'bfs' },
-    { problem_id: 5, tag_id: 'matrix' },
+    { problem_id: PROBLEM_IDS.TWO_SUM, tag_id: 'array' },
+    { problem_id: PROBLEM_IDS.TWO_SUM, tag_id: 'hash-table' },
+    { problem_id: PROBLEM_IDS.LONGEST_SUBSTRING, tag_id: 'string' },
+    { problem_id: PROBLEM_IDS.LONGEST_SUBSTRING, tag_id: 'sliding-window' },
+    { problem_id: PROBLEM_IDS.LONGEST_SUBSTRING, tag_id: 'hash-table' },
+    { problem_id: PROBLEM_IDS.MERGE_INTERVALS, tag_id: 'array' },
+    { problem_id: PROBLEM_IDS.MERGE_INTERVALS, tag_id: 'sorting' },
+    { problem_id: PROBLEM_IDS.MERGE_INTERVALS, tag_id: 'intervals' },
+    { problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS, tag_id: 'array' },
+    {
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
+      tag_id: 'binary-search',
+    },
+    {
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
+      tag_id: 'divide-and-conquer',
+    },
+    { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'dfs' },
+    { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'bfs' },
+    { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'matrix' },
   ],
 } as const;
 

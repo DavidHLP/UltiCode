@@ -20,7 +20,8 @@ const data = {
       id: 'list-sliding-window',
       group_id: 'group-featured',
       name: 'Sliding Window Classics',
-      description: 'Strings and arrays that force you to manage window boundaries correctly.',
+      description:
+        'Strings and arrays that force you to manage window boundaries correctly.',
       author_id: 'user-sara',
       is_public: true,
       created_at: '2024-03-10T00:00:00.000Z',
@@ -30,7 +31,8 @@ const data = {
       id: 'list-intervals',
       group_id: 'group-featured',
       name: 'Intervals & Sorting',
-      description: 'Sweep line, merging, and ordering exercises seen in contests.',
+      description:
+        'Sweep line, merging, and ordering exercises seen in contests.',
       author_id: 'user-chen',
       is_public: true,
       created_at: '2024-05-08T00:00:00.000Z',
@@ -40,7 +42,8 @@ const data = {
       id: 'list-graph-dfs',
       group_id: 'group-practice',
       name: 'Graph DFS/BFS Warm-up',
-      description: 'Quick traversal problems to drill grid and graph intuition.',
+      description:
+        'Quick traversal problems to drill grid and graph intuition.',
       author_id: 'user-david',
       is_public: true,
       created_at: '2024-06-12T00:00:00.000Z',
@@ -50,7 +53,8 @@ const data = {
       id: 'list-hard-bench',
       group_id: 'group-practice',
       name: 'Hard Benchmarks',
-      description: 'Curated hard problems for interview prep and contest training.',
+      description:
+        'Curated hard problems for interview prep and contest training.',
       author_id: 'user-petr',
       is_public: false,
       created_at: '2024-07-01T00:00:00.000Z',

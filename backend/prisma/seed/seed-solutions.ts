@@ -7,7 +7,8 @@ import solutionsData from './data/solutions.data';
  */
 export async function clearSolutions(prisma: PrismaClient): Promise<void> {
   // Delete in order of dependencies (child tables first)
-  await prisma.solutionVote.deleteMany();
+  // Delete in order of dependencies (child tables first)
+  await prisma.vote.deleteMany({ where: { target_type: 'SOLUTION' } });
   await prisma.solutionComment.deleteMany();
   await prisma.solution.deleteMany();
 }
@@ -50,9 +51,11 @@ export async function seedSolutions(prisma: PrismaClient): Promise<{
   });
 
   // 3. Seed Votes
-  const votes = await prisma.solutionVote.createMany({
+  // 3. Seed Votes (Generic)
+  const votes = await prisma.vote.createMany({
     data: solutionsData.votes.map((vote) => ({
-      solution_id: vote.solution_id,
+      target_id: vote.solution_id,
+      target_type: 'SOLUTION',
       user_id: vote.user_id,
       vote_type: vote.vote_type,
     })),

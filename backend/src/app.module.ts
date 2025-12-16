@@ -10,6 +10,7 @@ import { ForumModule } from './forum/forum.module';
 import { ProblemListModule } from './problem-list/problem-list.module';
 import { SubmissionModule } from './submission/submission.module';
 import { AuthModule } from './auth/auth.module';
+import { VoteModule } from './vote/vote.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AuthModule } from './auth/auth.module';
     UserModule,
     ProblemModule,
     SolutionModule,
+    VoteModule,
     ContestModule,
     ForumModule,
     ProblemListModule,

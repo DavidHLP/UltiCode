@@ -22,8 +22,7 @@ model User {
 
   solutions        Solution[]
   solutionComments SolutionComment[]
-  solutionVotes    SolutionVote[]
-  solutionCommentVotes SolutionCommentVote[]
+  votes            Vote[]
   submissions      Submission[]
   contestRankings ContestRanking[]
   contestParticipants ContestParticipant[]
@@ -303,6 +302,8 @@ model ForumPost {
   is_locked      Boolean   @default(false)
   created_at     DateTime
   stats          Json?
+  likes          Int       @default(0)
+  dislikes       Int       @default(0)
 
   community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
   author    ForumUser      @relation(fields: [user_id], references: [username], onDelete: Cascade)
@@ -318,7 +319,8 @@ model ForumComment {
   author_id  String    @db.VarChar(60)
   body       String    @db.Text
   markdown   String?   @db.Text
-  upvotes    Int       @default(0)
+  likes      Int       @default(0)
+  dislikes   Int       @default(0)
   created_at DateTime
   edited_at  DateTime?
   is_pinned  Boolean   @default(false)
@@ -382,7 +384,7 @@ model Solution {
   problem  Problem           @relation(fields: [problem_id], references: [id], onDelete: Cascade)
   author   User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   comments SolutionComment[]
-  votes    SolutionVote[]
+
 
   @@map("solutions")
 }
@@ -402,33 +404,29 @@ model SolutionComment {
   author   User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   parent   SolutionComment?  @relation("SolutionCommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
   replies  SolutionComment[] @relation("SolutionCommentReplies")
-  votes    SolutionCommentVote[]
 
   @@map("solution_comments")
 }
 
-model SolutionCommentVote {
-  comment_id String @db.VarChar(40)
-  user_id    String @db.VarChar(40)
-  vote_type  Int // 1: upvote, -1: downvote
-
-  comment SolutionComment @relation(fields: [comment_id], references: [id], onDelete: Cascade)
-  user    User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@id([comment_id, user_id])
-  @@map("solution_comment_votes")
-}
-
-model SolutionVote {
-  solution_id String @db.VarChar(40)
-  user_id     String @db.VarChar(40)
+model Vote {
+  id          String         @id @default(uuid()) @db.VarChar(40)
+  target_id   String         @db.VarChar(40)
+  target_type VoteTargetType
+  user_id     String         @db.VarChar(40)
   vote_type   Int // 1: upvote, -1: downvote
 
-  solution Solution @relation(fields: [solution_id], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@id([solution_id, user_id])
-  @@map("solution_votes")
+  @@unique([user_id, target_type, target_id])
+  @@index([target_type, target_id])
+  @@map("votes")
+}
+
+enum VoteTargetType {
+  SOLUTION
+  SOLUTION_COMMENT
+  FORUM_POST
+  FORUM_COMMENT
 }
 
 // ============================================================================

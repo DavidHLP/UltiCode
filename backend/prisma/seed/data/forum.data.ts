@@ -134,7 +134,7 @@ Let me know if this helps!`,
     {
       id: 'stats-rust-hashmap',
       post_id: 'post-rust-hashmap',
-      score: 156,
+
       comments: 6,
       awards: 1,
       saves: 84,
@@ -143,7 +143,7 @@ Let me know if this helps!`,
     {
       id: 'stats-contest-tilt',
       post_id: 'post-contest-tilt',
-      score: 342,
+
       comments: 7,
       awards: 4,
       saves: 120,
@@ -152,7 +152,7 @@ Let me know if this helps!`,
     {
       id: 'stats-segtree-visual',
       post_id: 'post-segtree-visual',
-      score: 890,
+
       comments: 5,
       awards: 12,
       saves: 450,
@@ -179,7 +179,7 @@ Let me know if this helps!`,
       parent_id: null,
       author_id: USER_USERNAMES.BENQ,
       body: 'SipHash is cryptographically strong but slow. For CP, you never need DOS protection unless it is a specific "hack" round on Codeforces.',
-      upvotes: 45,
+
       created_at: '2024-11-28T09:20:00.000Z',
     },
     {
@@ -188,7 +188,7 @@ Let me know if this helps!`,
       parent_id: 'c-rust-1',
       author_id: USER_USERNAMES.STACK_UNWIND,
       body: 'Ah makes sense. I thought standard library would optimize for general speed. `FxHash` it is then.',
-      upvotes: 12,
+
       created_at: '2024-11-28T09:35:00.000Z',
     },
     {
@@ -197,7 +197,7 @@ Let me know if this helps!`,
       parent_id: 'c-rust-2',
       author_id: USER_USERNAMES.PETR,
       body: 'Be careful! FxHash is vulnerable to collisions. If someone generates anti-hash tests, you will TLE. `RandomState` with a fixed seed + simple hash is safer.',
-      upvotes: 89,
+
       created_at: '2024-11-28T10:00:00.000Z',
     },
     {
@@ -206,7 +206,7 @@ Let me know if this helps!`,
       parent_id: 'c-rust-3',
       author_id: USER_USERNAMES.YUKI,
       body: 'Wait, does AtCoder allow anti-hash tests? I thought test cases were static.',
-      upvotes: 5,
+
       created_at: '2024-11-28T10:15:00.000Z',
     },
     {
@@ -215,7 +215,7 @@ Let me know if this helps!`,
       parent_id: 'c-rust-4',
       author_id: USER_USERNAMES.PETR,
       body: 'They are static but setter might predict simple hashes. Randomized hashing is always strictly superior.',
-      upvotes: 34,
+
       created_at: '2024-11-28T10:30:00.000Z',
     },
     {
@@ -224,7 +224,7 @@ Let me know if this helps!`,
       parent_id: null,
       author_id: USER_USERNAMES.ALEX,
       body: 'In C++ `std::unordered_map` is even worse because of cache locality (linked list buckets). `gp_hash_table` is the way.',
-      upvotes: 22,
+
       created_at: '2024-11-28T11:00:00.000Z',
     },
 
@@ -235,7 +235,7 @@ Let me know if this helps!`,
       parent_id: null,
       author_id: USER_USERNAMES.SHADCN,
       body: 'Breathing protocol: 4 sec in, 4 hold, 4 out. Do it 3 times. It forces heart rate down mechanically.',
-      upvotes: 120,
+
       created_at: '2024-11-28T14:40:00.000Z',
     },
     {
@@ -244,7 +244,7 @@ Let me know if this helps!`,
       parent_id: 'c-tilt-1',
       author_id: USER_USERNAMES.DAVID,
       body: 'Will try this next mock. I usually just stare at the screen hyperventilating lol.',
-      upvotes: 45,
+
       created_at: '2024-11-28T14:45:00.000Z',
     },
     {
@@ -253,7 +253,7 @@ Let me know if this helps!`,
       parent_id: 'c-tilt-2',
       author_id: USER_USERNAMES.LILY,
       body: 'Also, stand up. Physically changing your posture resets the "tunnel vision".',
-      upvotes: 67,
+
       created_at: '2024-11-28T14:50:00.000Z',
     },
     {
@@ -262,7 +262,7 @@ Let me know if this helps!`,
       parent_id: null,
       author_id: USER_USERNAMES.SCOTT,
       body: "I usually rage quit and go play League. (Don't do this)",
-      upvotes: 230,
+
       created_at: '2024-11-28T15:00:00.000Z',
     },
     {
@@ -271,7 +271,7 @@ Let me know if this helps!`,
       parent_id: 'c-tilt-4',
       author_id: USER_USERNAMES.TOM,
       body: 'Lol literally me last Codeforces round.',
-      upvotes: 12,
+
       created_at: '2024-11-28T15:10:00.000Z',
     },
     {
@@ -280,7 +280,7 @@ Let me know if this helps!`,
       parent_id: null,
       author_id: USER_USERNAMES.SARA,
       body: 'I drink cold water. The temperature shock wakes up the prefrontal cortex.',
-      upvotes: 34,
+
       created_at: '2024-11-28T15:30:00.000Z',
     },
     {
@@ -289,7 +289,7 @@ Let me know if this helps!`,
       parent_id: 'c-tilt-6',
       author_id: USER_USERNAMES.EMMA,
       body: 'Science!',
-      upvotes: 5,
+
       created_at: '2024-11-28T15:45:00.000Z',
     },
 
@@ -300,7 +300,7 @@ Let me know if this helps!`,
       parent_id: null,
       author_id: USER_USERNAMES.JIANGLY,
       body: 'Great visual. Small typo on slide 3: "propogate" -> "propagate".',
-      upvotes: 56,
+
       created_at: '2024-11-27T10:10:00.000Z',
     },
     {
@@ -309,7 +309,7 @@ Let me know if this helps!`,
       parent_id: 'c-seg-1',
       author_id: USER_USERNAMES.TOURIST,
       body: 'Fixed! Thanks. 🙏',
-      upvotes: 28,
+
       created_at: '2024-11-27T10:15:00.000Z',
     },
     {
@@ -318,7 +318,7 @@ Let me know if this helps!`,
       parent_id: null,
       author_id: USER_USERNAMES.KEVIN,
       body: 'Does this handle beatbeats? (Segment tree beats)',
-      upvotes: 12,
+
       created_at: '2024-11-27T10:30:00.000Z',
     },
     {
@@ -327,7 +327,7 @@ Let me know if this helps!`,
       parent_id: 'c-seg-3',
       author_id: USER_USERNAMES.TOURIST,
       body: 'Not yet. Beats requires tracking min/max/second_max which is harder to visualize cleanly.',
-      upvotes: 45,
+
       created_at: '2024-11-27T10:45:00.000Z',
     },
     {
@@ -336,7 +336,7 @@ Let me know if this helps!`,
       parent_id: 'c-seg-3',
       author_id: USER_USERNAMES.MAX,
       body: "Check out JiDriver's blog for beats visuals.",
-      upvotes: 8,
+
       created_at: '2024-11-27T11:00:00.000Z',
     },
   ],

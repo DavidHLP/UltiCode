@@ -54,69 +54,60 @@ export class VoteService {
         finalVoteType = voteType;
       }
 
-      // 2. Aggregate Update
-      // Recalculate totals for this target
-      const aggregates = await tx.vote.groupBy({
-        by: ['vote_type'],
-        where: {
-          target_type: targetType,
-          target_id: targetId,
-        },
-        _count: true,
-      });
-
-      let likes = 0;
-      let dislikes = 0;
-
-      aggregates.forEach((agg) => {
-        if (agg.vote_type === 1) likes = agg._count;
-        if (agg.vote_type === -1) dislikes = agg._count;
-      });
-
-      // 3. Update Target Entity
-      // Dispatch based on targetType to update the specific table
-      await this.updateEntityStats(tx, targetType, targetId, likes, dislikes);
-
-      return { likes, dislikes, userVote: finalVoteType };
+      // 2. Return current state
+      // We no longer update the entity directly. The client or service querying the entity
+      // must request the vote counts dynamically.
+      const counts = await this.getVoteCounts(targetType, targetId);
+      return { ...counts, userVote: finalVoteType };
     });
   }
 
-  private async updateEntityStats(
-    tx: Tx,
-    targetType: VoteTargetType,
-    targetId: string,
-    likes: number,
-    dislikes: number,
-  ) {
-    switch (targetType) {
-      case VoteTargetType.SOLUTION:
-        await tx.solution.update({
-          where: { id: targetId },
-          data: { likes, dislikes },
-        });
-        break;
-      case VoteTargetType.SOLUTION_COMMENT:
-        await tx.solutionComment.update({
-          where: { id: targetId },
-          data: { likes, dislikes },
-        });
-        break;
-      case VoteTargetType.FORUM_POST:
-        await tx.forumPost.update({
-          where: { id: targetId },
-          data: { likes, dislikes },
-        });
-        break;
-      case VoteTargetType.FORUM_COMMENT:
-        await tx.forumComment.update({
-          where: { id: targetId },
-          data: { likes, dislikes },
-        });
-        break;
-      default:
-        console.warn(
-          `No entity stats update logic for targetType: ${targetType as any}`,
-        );
-    }
+  async getVoteCounts(targetType: VoteTargetType, targetId: string) {
+    const aggregates = await this.prisma.vote.groupBy({
+      by: ['vote_type'],
+      where: {
+        target_type: targetType,
+        target_id: targetId,
+      },
+      _count: true,
+    });
+
+    let likes = 0;
+    let dislikes = 0;
+
+    aggregates.forEach((agg) => {
+      if (agg.vote_type === 1) likes = agg._count;
+      if (agg.vote_type === -1) dislikes = agg._count;
+    });
+
+    return { likes, dislikes };
+  }
+
+  async getVoteCountsBatch(targetType: VoteTargetType, targetIds: string[]) {
+    const aggregates = await this.prisma.vote.groupBy({
+      by: ['target_id', 'vote_type'],
+      where: {
+        target_type: targetType,
+        target_id: { in: targetIds },
+      },
+      _count: true,
+    });
+
+    const result = new Map<string, { likes: number; dislikes: number }>();
+
+    // Initialize all to 0
+    targetIds.forEach((id) => {
+      result.set(id, { likes: 0, dislikes: 0 });
+    });
+
+    aggregates.forEach((agg) => {
+      const stats = result.get(agg.target_id);
+      if (stats) {
+        if (agg.vote_type === 1) stats.likes = agg._count;
+        if (agg.vote_type === -1) stats.dislikes = agg._count;
+      }
+    });
+
+    return result;
   }
 }

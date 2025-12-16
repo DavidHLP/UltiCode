@@ -76,17 +76,11 @@ export class ForumPost {
   @Column({ type: 'json', nullable: true })
   stats: {
     views?: number;
-    likes?: number;
+
     comments?: number;
-    score?: number;
     saves?: number;
     shares?: number;
     upvote_ratio?: number;
     awards?: number;
   } | null;
-  @Column({ default: 0 })
-  likes: number;
-
-  @Column({ default: 0 })
-  dislikes: number;
 }

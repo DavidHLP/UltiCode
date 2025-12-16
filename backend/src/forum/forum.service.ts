@@ -5,6 +5,8 @@ import { Repository } from 'typeorm';
 import { ForumPost } from './entities/post.entity';
 import { ForumCommunity } from './entities/community.entity';
 import { ForumComment } from './entities/comment.entity';
+import { VoteService } from '../vote/vote.service';
+import { VoteTargetType } from '@prisma/client';
 
 @Injectable()
 export class ForumService {
@@ -15,20 +17,54 @@ export class ForumService {
     private communitiesRepository: Repository<ForumCommunity>,
     @InjectRepository(ForumComment)
     private commentsRepository: Repository<ForumComment>,
+    private readonly voteService: VoteService,
   ) {}
 
   async findAllPosts(): Promise<ForumPost[]> {
-    return this.postsRepository.find({
+    const posts = await this.postsRepository.find({
       relations: ['author', 'community'],
       order: { createdAt: 'DESC' },
+    });
+
+    const postIds = posts.map((p) => p.id);
+    const voteMap = await this.voteService.getVoteCountsBatch(
+      VoteTargetType.FORUM_POST,
+      postIds,
+    );
+
+    return posts.map((post) => {
+      const stats: { likes: number; dislikes: number } = voteMap.get(
+        post.id,
+      ) || { likes: 0, dislikes: 0 };
+      // Inject vote counts into the post object (need to cast or extend type)
+      return {
+        ...post,
+        likes: stats.likes,
+        dislikes: stats.dislikes,
+        score: stats.likes - stats.dislikes,
+      } as unknown as ForumPost;
     });
   }
 
   async findOnePost(id: string): Promise<ForumPost | null> {
-    return this.postsRepository.findOne({
+    const post = await this.postsRepository.findOne({
       where: { id },
       relations: ['author', 'community'],
     });
+
+    if (!post) {
+      return null;
+    }
+
+    const stats: { likes: number; dislikes: number } =
+      await this.voteService.getVoteCounts(VoteTargetType.FORUM_POST, id);
+
+    return {
+      ...post,
+      likes: stats.likes,
+      dislikes: stats.dislikes,
+      score: stats.likes - stats.dislikes,
+    } as unknown as ForumPost;
   }
 
   async getThread(
@@ -67,8 +103,6 @@ export class ForumService {
       parentId,
       authorId: 'shadcn', // Default to Shadcn username
       createdAt: new Date(),
-      likes: 0,
-      dislikes: 0,
     });
 
     return this.commentsRepository.save(comment);

@@ -32,8 +32,7 @@ export async function seedSolutions(prisma: PrismaClient): Promise<{
       language: sol.language,
       tags: sol.tags,
       views: sol.views,
-      likes: sol.likes,
-      dislikes: sol.dislikes,
+
     })),
   });
 
@@ -45,7 +44,7 @@ export async function seedSolutions(prisma: PrismaClient): Promise<{
       parent_id: comment.parent_id,
       user_id: comment.user_id,
       content: comment.content,
-      likes: comment.likes,
+
     })),
   });
 

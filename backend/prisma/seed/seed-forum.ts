@@ -64,17 +64,14 @@ export async function seedForum(
     const stat = statsMap.get(post.id);
     const statsJson = stat
       ? {
-          score: stat.score,
           comments: stat.comments,
           saves: stat.saves,
           shares: stat.shares,
           awards: stat.awards,
           views: post.impressions, // Map impressions to views
-          upvote_ratio: 0.95, // Default/random
-          likes: Math.round(stat.score * 0.8), // Approx
+          upvote_ratio: 1.0, // Default/random
         }
       : {
-          score: 0,
           comments: 0,
           saves: 0,
           shares: 0,
@@ -144,8 +141,7 @@ export async function seedForum(
         author_id: comment.author_id,
         body: comment.body,
         markdown: null,
-        likes: comment.upvotes, // Use upvotes as initial likes
-        dislikes: 0,
+
         created_at: new Date(comment.created_at),
         edited_at: null,
         is_pinned: false,

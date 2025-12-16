@@ -4,8 +4,10 @@ import { SolutionController } from './solution.controller';
 import { SolutionTopicController } from './solution-topic.controller';
 import { GlobalSolutionController } from './global-solution.controller';
 import { PrismaService } from '../prisma.service';
+import { VoteModule } from '../vote/vote.module';
 
 @Module({
+  imports: [VoteModule],
   providers: [SolutionService, PrismaService],
   controllers: [
     SolutionController,

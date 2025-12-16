@@ -4,17 +4,13 @@ import { ForumService } from './forum.service';
 import { ForumController } from './forum.controller';
 import { ForumPost } from './entities/post.entity';
 import { ForumCommunity } from './entities/community.entity';
-import { ForumUser } from './entities/user.entity';
 import { ForumComment } from './entities/comment.entity';
+import { VoteModule } from '../vote/vote.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([
-      ForumPost,
-      ForumCommunity,
-      ForumUser,
-      ForumComment,
-    ]),
+    TypeOrmModule.forFeature([ForumPost, ForumCommunity, ForumComment]),
+    VoteModule,
   ],
   providers: [ForumService],
   controllers: [ForumController],

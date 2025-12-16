@@ -102,8 +102,7 @@ By storing each number as we iterate, we can check for complements in constant t
       language: 'Python',
       tags: ['Hash Table', 'Array', 'Two Pointers'],
       views: 1250,
-      likes: 340,
-      dislikes: 12,
+
     },
     {
       id: SOLUTION_IDS.TWO_SUM_BRUTE,
@@ -164,8 +163,7 @@ Not optimal but easy to understand!`,
       language: 'JavaScript',
       tags: ['Array', 'Brute Force'],
       views: 850,
-      likes: 125,
-      dislikes: 35,
+
     },
     {
       id: SOLUTION_IDS.TWO_SUM_CPP,
@@ -223,8 +221,7 @@ Fast and memory efficient with C++ STL!`,
       language: 'C++',
       tags: ['Hash Table', 'C++', 'STL'],
       views: 620,
-      likes: 89,
-      dislikes: 5,
+
     },
     {
       id: SOLUTION_IDS.TWO_SUM_JAVA,
@@ -276,8 +273,7 @@ public:
       language: 'Java',
       tags: ['Hash Table', 'Java'],
       views: 480,
-      likes: 67,
-      dislikes: 3,
+
     },
     {
       id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
@@ -311,8 +307,7 @@ Runs in O(n) time and O(k) space where k is the alphabet size.`,
       language: 'TypeScript',
       tags: ['Sliding Window', 'Hash Table', 'String'],
       views: 1020,
-      likes: 210,
-      dislikes: 9,
+
     },
     {
       id: SOLUTION_IDS.MERGE_INTERVALS_SORT,
@@ -346,8 +341,7 @@ Sorting dominates the time complexity.`,
       language: 'JavaScript',
       tags: ['Sorting', 'Intervals', 'Greedy'],
       views: 740,
-      likes: 132,
-      dislikes: 6,
+
     },
     {
       id: SOLUTION_IDS.MEDIAN_ARRAYS_BS,
@@ -393,8 +387,7 @@ Binary search over the smaller array keeps complexity O(log(min(m, n))).`,
       language: 'Python',
       tags: ['Binary Search', 'Divide and Conquer'],
       views: 980,
-      likes: 180,
-      dislikes: 21,
+
     },
     {
       id: SOLUTION_IDS.ISLANDS_DFS,
@@ -444,8 +437,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       language: 'Java',
       tags: ['DFS', 'Matrix', 'Graph'],
       views: 560,
-      likes: 140,
-      dislikes: 4,
+
     },
   ],
   comments: [
@@ -455,7 +447,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       parent_id: null,
       user_id: USER_IDS.MAX,
       content: 'Great explanation! This helped me understand hash maps better.',
-      likes: 25,
+
     },
     {
       id: COMMENT_IDS.TWO_SUM_OPT_2,
@@ -463,7 +455,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       parent_id: COMMENT_IDS.TWO_SUM_OPT_1,
       user_id: USER_IDS.YUKI,
       content: 'Thanks! Glad it was helpful 😊',
-      likes: 8,
+
     },
     {
       id: COMMENT_IDS.TWO_SUM_OPT_3,
@@ -471,7 +463,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       parent_id: null,
       user_id: USER_IDS.SARA,
       content: 'What if there are duplicate numbers in the array?',
-      likes: 15,
+
     },
     {
       id: COMMENT_IDS.TWO_SUM_OPT_4,
@@ -480,7 +472,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       user_id: USER_IDS.YUKI,
       content:
         "Good question! The hash map will overwrite the previous index, but that's fine since we only need to find one valid pair.",
-      likes: 20,
+
     },
     {
       id: COMMENT_IDS.TWO_SUM_BRUTE_1,
@@ -488,7 +480,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       parent_id: null,
       user_id: USER_IDS.LILY,
       content: 'This is a good starting point for beginners!',
-      likes: 12,
+
     },
     {
       id: COMMENT_IDS.TWO_SUM_CPP_1,
@@ -496,7 +488,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       parent_id: null,
       user_id: USER_IDS.DAVID,
       content: 'Love the C++ STL approach, very clean!',
-      likes: 7,
+
     },
     {
       id: COMMENT_IDS.LONGEST_SUBSTR_1,
@@ -505,7 +497,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       user_id: USER_IDS.TOM,
       content:
         'Nice explanation of how to move the left pointer; fixed my own off-by-one.',
-      likes: 11,
+
     },
     {
       id: COMMENT_IDS.MERGE_INT_1,
@@ -514,7 +506,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       user_id: USER_IDS.LILY,
       content:
         'Sorting first is underrated here; this is faster than my interval tree attempt.',
-      likes: 9,
+
     },
     {
       id: COMMENT_IDS.MEDIAN_BS_1,
@@ -522,7 +514,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       parent_id: null,
       user_id: USER_IDS.SCOTT,
       content: 'Binary search proof sketch was useful, thanks!',
-      likes: 14,
+
     },
     {
       id: COMMENT_IDS.ISLANDS_DFS_1,
@@ -531,7 +523,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       user_id: USER_IDS.EMMA,
       content:
         'Stack-based DFS kept my recursion stack from blowing up. Good tip.',
-      likes: 6,
+
     },
   ],
 } as const;

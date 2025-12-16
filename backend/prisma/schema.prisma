@@ -302,8 +302,7 @@ model ForumPost {
   is_locked      Boolean   @default(false)
   created_at     DateTime
   stats          Json?
-  likes          Int       @default(0)
-  dislikes       Int       @default(0)
+
 
   community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
   author    ForumUser      @relation(fields: [user_id], references: [username], onDelete: Cascade)
@@ -319,8 +318,7 @@ model ForumComment {
   author_id  String    @db.VarChar(60)
   body       String    @db.Text
   markdown   String?   @db.Text
-  likes      Int       @default(0)
-  dislikes   Int       @default(0)
+
   created_at DateTime
   edited_at  DateTime?
   is_pinned  Boolean   @default(false)
@@ -376,8 +374,7 @@ model Solution {
   language   String   @db.VarChar(50)
   tags       Json?
   views      Int      @default(0)
-  likes      Int      @default(0)
-  dislikes   Int      @default(0)
+
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -395,8 +392,7 @@ model SolutionComment {
   parent_id   String?  @db.VarChar(40)
   user_id     String   @db.VarChar(40)
   content     String   @db.Text
-  likes       Int      @default(0)
-  dislikes    Int      @default(0)
+
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 

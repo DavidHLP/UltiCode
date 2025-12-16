@@ -2,6 +2,8 @@
 // @ts-nocheck
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { VoteService } from '../vote/vote.service';
+import { VoteTargetType } from '@prisma/client';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
 import type { CreateSolutionCommentDto } from './dto/create-solution-comment.dto';
 
@@ -9,7 +11,10 @@ import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class SolutionService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly voteService: VoteService,
+  ) {}
 
   async findByProblemId(problemId: string): Promise<SolutionFeedResponse> {
     const solutions = await this.prisma.solution.findMany({
@@ -25,10 +30,17 @@ export class SolutionService {
       },
     });
 
+    // Batch fetch votes
+    const solutionIds = solutions.map((s) => s.id);
+    const voteMap = await this.voteService.getVoteCountsBatch(
+      VoteTargetType.SOLUTION,
+      solutionIds,
+    );
+
     const items = solutions.map((solution) => {
-      // Use pre-aggregated stats
-      const upvotes = solution.likes || 0;
-      const downvotes = solution.dislikes || 0;
+      const votes = voteMap.get(solution.id) || { likes: 0, dislikes: 0 };
+      const upvotes = votes.likes;
+      const downvotes = votes.dislikes;
 
       return {
         id: solution.id,
@@ -97,9 +109,17 @@ export class SolutionService {
       },
     });
 
+    // Batch fetch votes
+    const solutionIds = solutions.map((s) => s.id);
+    const voteMap = await this.voteService.getVoteCountsBatch(
+      VoteTargetType.SOLUTION,
+      solutionIds,
+    );
+
     const items = solutions.map((solution) => {
-      const upvotes = solution.likes || 0;
-      const downvotes = solution.dislikes || 0;
+      const votes = voteMap.get(solution.id) || { likes: 0, dislikes: 0 };
+      const upvotes = votes.likes;
+      const downvotes = votes.dislikes;
 
       return {
         id: solution.id,
@@ -168,18 +188,28 @@ export class SolutionService {
       },
     });
 
+    // Batch fetch votes for comments
+    const commentIds = comments.map((c) => c.id);
+    const voteMap = await this.voteService.getVoteCountsBatch(
+      VoteTargetType.SOLUTION_COMMENT,
+      commentIds,
+    );
+
     // Map to frontend expected format (similar to forum comments)
-    return comments.map((comment) => ({
-      id: comment.id,
-      parentId: comment.parent_id,
-      body: comment.content,
-      upvotes: comment.likes,
-      createdAt: comment.created_at,
-      author: {
-        username: comment.author.username,
-        avatar: comment.author.avatar,
-      },
-    }));
+    return comments.map((comment) => {
+      const votes = voteMap.get(comment.id) || { likes: 0, dislikes: 0 };
+      return {
+        id: comment.id,
+        parentId: comment.parent_id,
+        body: comment.content,
+        upvotes: votes.likes,
+        createdAt: comment.created_at,
+        author: {
+          username: comment.author.username,
+          avatar: comment.author.avatar,
+        },
+      };
+    });
   }
 
   async createComment(solutionId: string, dto: CreateSolutionCommentDto) {

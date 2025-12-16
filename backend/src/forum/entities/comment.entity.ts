@@ -34,12 +34,6 @@ export class ForumComment {
   @Column({ type: 'text', nullable: true })
   markdown: string;
 
-  @Column({ default: 0 })
-  likes: number;
-
-  @Column({ default: 0 })
-  dislikes: number;
-
   @Column({ name: 'created_at' })
   createdAt: Date;
 

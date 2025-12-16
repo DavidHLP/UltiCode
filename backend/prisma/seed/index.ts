@@ -6,6 +6,7 @@ import { clearForum, seedForum } from './seed-forum';
 import { clearProblemLists, seedProblemLists } from './seed-problem-lists';
 import { clearSolutions, seedSolutions } from './seed-solutions';
 import { clearSubmissions, seedSubmissions } from './seed-submissions';
+import { clearVotes, seedVotes } from './seed-vote';
 
 const prisma = new PrismaClient();
 
@@ -16,6 +17,7 @@ async function clearAll(): Promise<void> {
   console.log('🗑️  Clearing all data...');
 
   // 最内层/子表先清
+  await clearVotes(prisma);
   await clearSubmissions(prisma);
   await clearSolutions(prisma);
   await clearProblemLists(prisma);
@@ -55,8 +57,11 @@ async function seedAll(): Promise<void> {
 
   const solutions = await seedSolutions(prisma);
   console.log(
-    `  ✓ Solutions: ${solutions.solutionsCount} solutions, ${solutions.commentsCount} comments, ${solutions.votesCount} votes`,
+    `  ✓ Solutions: ${solutions.solutionsCount} solutions, ${solutions.commentsCount} comments`,
   );
+
+  const votes = await seedVotes(prisma);
+  console.log(`  ✓ Votes: ${votes.votesCount} records`);
 
   const submissions = await seedSubmissions(prisma);
   console.log(`  ✓ Submissions: ${submissions.count} records`);

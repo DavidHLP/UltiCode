@@ -19,7 +19,6 @@ export async function clearSolutions(prisma: PrismaClient): Promise<void> {
 export async function seedSolutions(prisma: PrismaClient): Promise<{
   solutionsCount: number;
   commentsCount: number;
-  votesCount: number;
 }> {
   // 1. Seed Solutions
   const solutions = await prisma.solution.createMany({
@@ -50,20 +49,8 @@ export async function seedSolutions(prisma: PrismaClient): Promise<{
     })),
   });
 
-  // 3. Seed Votes
-  // 3. Seed Votes (Generic)
-  const votes = await prisma.vote.createMany({
-    data: solutionsData.votes.map((vote) => ({
-      target_id: vote.solution_id,
-      target_type: 'SOLUTION',
-      user_id: vote.user_id,
-      vote_type: vote.vote_type,
-    })),
-  });
-
   return {
     solutionsCount: solutions.count,
     commentsCount: comments.count,
-    votesCount: votes.count,
   };
 }

@@ -3,6 +3,8 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
+import type { CreateSolutionCommentDto } from './dto/create-solution-comment.dto';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class SolutionService {
@@ -151,5 +153,47 @@ export class SolutionService {
         { label: 'Hot', value: 'heat' },
       ],
     };
+  }
+
+  async findComments(solutionId: string) {
+    const comments = await this.prisma.solutionComment.findMany({
+      where: {
+        solution_id: solutionId,
+      },
+      include: {
+        author: true,
+      },
+      orderBy: {
+        created_at: 'asc',
+      },
+    });
+
+    // Map to frontend expected format (similar to forum comments)
+    return comments.map((comment) => ({
+      id: comment.id,
+      parentId: comment.parent_id,
+      body: comment.content,
+      upvotes: comment.likes,
+      createdAt: comment.created_at,
+      author: {
+        username: comment.author.username,
+        avatar: comment.author.avatar,
+      },
+    }));
+  }
+
+  async createComment(solutionId: string, dto: CreateSolutionCommentDto) {
+    return this.prisma.solutionComment.create({
+      data: {
+        id: uuidv4(),
+        solution_id: solutionId,
+        content: dto.content,
+        parent_id: dto.parentId,
+        user_id: dto.userId,
+      },
+      include: {
+        author: true,
+      },
+    });
   }
 }

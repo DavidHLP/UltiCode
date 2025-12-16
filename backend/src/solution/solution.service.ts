@@ -16,7 +16,10 @@ export class SolutionService {
     private readonly voteService: VoteService,
   ) {}
 
-  async findByProblemId(problemId: string): Promise<SolutionFeedResponse> {
+  async findByProblemId(
+    problemId: string,
+    userId?: string,
+  ): Promise<SolutionFeedResponse> {
     const solutions = await this.prisma.solution.findMany({
       where: {
         problem_id: BigInt(problemId),
@@ -37,10 +40,21 @@ export class SolutionService {
       solutionIds,
     );
 
+    // Batch fetch user votes if userId is provided
+    let userVoteMap = new Map<string, number>();
+    if (userId) {
+      userVoteMap = await this.voteService.getUserVotesBatch(
+        userId,
+        VoteTargetType.SOLUTION,
+        solutionIds,
+      );
+    }
+
     const items = solutions.map((solution) => {
       const votes = voteMap.get(solution.id) || { likes: 0, dislikes: 0 };
       const upvotes = votes.likes;
       const downvotes = votes.dislikes;
+      const userVote = userVoteMap.get(solution.id) || 0;
 
       return {
         id: solution.id,
@@ -62,7 +76,9 @@ export class SolutionService {
           views: solution.views,
           comments: solution.comments.length,
           likes: upvotes,
+          dislikes: downvotes,
         },
+        userVote: userVote as 0 | 1 | -1,
         score: upvotes - downvotes,
         is_pinned: false,
         is_locked: false,
@@ -80,6 +96,7 @@ export class SolutionService {
         votes: upvotes,
         views: solution.views,
         likes: upvotes,
+        dislikes: downvotes,
         comments: solution.comments.length,
       };
     });

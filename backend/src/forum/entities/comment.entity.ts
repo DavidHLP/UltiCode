@@ -35,7 +35,10 @@ export class ForumComment {
   markdown: string;
 
   @Column({ default: 0 })
-  upvotes: number;
+  likes: number;
+
+  @Column({ default: 0 })
+  dislikes: number;
 
   @Column({ name: 'created_at' })
   createdAt: Date;

@@ -84,4 +84,9 @@ export class ForumPost {
     upvote_ratio?: number;
     awards?: number;
   } | null;
+  @Column({ default: 0 })
+  likes: number;
+
+  @Column({ default: 0 })
+  dislikes: number;
 }

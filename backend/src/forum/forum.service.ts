@@ -67,7 +67,8 @@ export class ForumService {
       parentId,
       authorId: 'shadcn', // Default to Shadcn username
       createdAt: new Date(),
-      upvotes: 0,
+      likes: 0,
+      dislikes: 0,
     });
 
     return this.commentsRepository.save(comment);

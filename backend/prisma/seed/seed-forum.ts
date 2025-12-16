@@ -144,7 +144,8 @@ export async function seedForum(
         author_id: comment.author_id,
         body: comment.body,
         markdown: null,
-        upvotes: comment.upvotes,
+        likes: comment.upvotes, // Use upvotes as initial likes
+        dislikes: 0,
         created_at: new Date(comment.created_at),
         edited_at: null,
         is_pinned: false,

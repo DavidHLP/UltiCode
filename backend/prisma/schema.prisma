@@ -23,6 +23,7 @@ model User {
   solutions        Solution[]
   solutionComments SolutionComment[]
   solutionVotes    SolutionVote[]
+  solutionCommentVotes SolutionCommentVote[]
   submissions      Submission[]
   contestRankings ContestRanking[]
   contestParticipants ContestParticipant[]
@@ -393,6 +394,7 @@ model SolutionComment {
   user_id     String   @db.VarChar(40)
   content     String   @db.Text
   likes       Int      @default(0)
+  dislikes    Int      @default(0)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
@@ -400,8 +402,21 @@ model SolutionComment {
   author   User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
   parent   SolutionComment?  @relation("SolutionCommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
   replies  SolutionComment[] @relation("SolutionCommentReplies")
+  votes    SolutionCommentVote[]
 
   @@map("solution_comments")
+}
+
+model SolutionCommentVote {
+  comment_id String @db.VarChar(40)
+  user_id    String @db.VarChar(40)
+  vote_type  Int // 1: upvote, -1: downvote
+
+  comment SolutionComment @relation(fields: [comment_id], references: [id], onDelete: Cascade)
+  user    User            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@id([comment_id, user_id])
+  @@map("solution_comment_votes")
 }
 
 model SolutionVote {

@@ -1,5 +1,6 @@
 import { Controller, Get, Query, Post, Body, Param } from '@nestjs/common';
 import { CreateSolutionCommentDto } from './dto/create-solution-comment.dto';
+import { VoteSolutionDto } from './dto/vote-solution.dto';
 import { SolutionService } from './solution.service';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
 
@@ -25,5 +26,15 @@ export class GlobalSolutionController {
     @Body() dto: CreateSolutionCommentDto,
   ) {
     return this.solutionService.createComment(id, dto);
+  }
+
+  @Post(':id/vote')
+  voteSolution(@Param('id') id: string, @Body() dto: VoteSolutionDto) {
+    return this.solutionService.voteSolution(id, dto);
+  }
+
+  @Post('comments/:id/vote')
+  voteComment(@Param('id') id: string, @Body() dto: VoteSolutionDto) {
+    return this.solutionService.voteComment(id, dto);
   }
 }

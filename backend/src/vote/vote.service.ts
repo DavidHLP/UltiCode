@@ -57,13 +57,17 @@ export class VoteService {
       // 2. Return current state
       // We no longer update the entity directly. The client or service querying the entity
       // must request the vote counts dynamically.
-      const counts = await this.getVoteCounts(targetType, targetId);
+      const counts = await this.getVoteCounts(targetType, targetId, tx);
       return { ...counts, userVote: finalVoteType };
     });
   }
 
-  async getVoteCounts(targetType: VoteTargetType, targetId: string) {
-    const aggregates = await this.prisma.vote.groupBy({
+  async getVoteCounts(
+    targetType: VoteTargetType,
+    targetId: string,
+    tx: Tx = this.prisma,
+  ) {
+    const aggregates = await tx.vote.groupBy({
       by: ['vote_type'],
       where: {
         target_type: targetType,
@@ -108,6 +112,30 @@ export class VoteService {
       }
     });
 
+    return result;
+  }
+
+  async getUserVotesBatch(
+    userId: string,
+    targetType: VoteTargetType,
+    targetIds: string[],
+  ): Promise<Map<string, number>> {
+    const votes = await this.prisma.vote.findMany({
+      where: {
+        user_id: userId,
+        target_type: targetType,
+        target_id: { in: targetIds },
+      },
+      select: {
+        target_id: true,
+        vote_type: true,
+      },
+    });
+
+    const result = new Map<string, number>();
+    votes.forEach((v) => {
+      result.set(v.target_id, v.vote_type);
+    });
     return result;
   }
 }

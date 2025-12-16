@@ -69,18 +69,82 @@ export class ForumService {
 
   async getThread(
     id: string,
+    userId?: string,
   ): Promise<(ForumPost & { comments: ForumComment[] }) | null> {
     const post = await this.postsRepository.findOne({
       where: { id },
       relations: ['author', 'community'],
     });
+
     if (post) {
       const comments = await this.commentsRepository.find({
         where: { postId: id },
         relations: ['author'],
         order: { createdAt: 'ASC' },
       });
-      return { ...post, comments };
+
+      // 1. Fetch Post Stats
+      const postStats = await this.voteService.getVoteCounts(
+        VoteTargetType.FORUM_POST,
+        id,
+      );
+
+      // 2. Fetch Post User Vote
+      let postUserVote = 0;
+      if (userId) {
+        const votes = await this.voteService.getUserVotesBatch(
+          userId,
+          VoteTargetType.FORUM_POST,
+          [id],
+        );
+        postUserVote = votes.get(id) || 0;
+      }
+
+      // 3. Fetch Comment Stats (Batch)
+      const commentIds = comments.map((c) => c.id);
+      const commentVoteMap = await this.voteService.getVoteCountsBatch(
+        VoteTargetType.FORUM_COMMENT,
+        commentIds,
+      );
+
+      // 4. Fetch Comment User Votes (Batch)
+      let commentUserVoteMap = new Map<string, number>();
+      if (userId) {
+        commentUserVoteMap = await this.voteService.getUserVotesBatch(
+          userId,
+          VoteTargetType.FORUM_COMMENT,
+          commentIds,
+        );
+      }
+
+      // 5. Map everything to comments
+      const uniqueComments = comments.map((comment) => {
+        const stats = commentVoteMap.get(comment.id) || {
+          likes: 0,
+          dislikes: 0,
+        };
+        return {
+          ...comment,
+          likes: stats.likes,
+          dislikes: stats.dislikes,
+          userVote: commentUserVoteMap.get(comment.id) || 0,
+        };
+      });
+
+      return {
+        ...post,
+        likes: postStats.likes,
+        dislikes: postStats.dislikes,
+        score: postStats.likes - postStats.dislikes,
+        userVote: postUserVote as 0 | 1 | -1,
+        voteState:
+          postUserVote === 1
+            ? 'upvoted'
+            : postUserVote === -1
+              ? 'downvoted'
+              : 'neutral',
+        comments: uniqueComments as unknown as ForumComment[],
+      } as unknown as ForumPost & { comments: ForumComment[] };
     }
 
     // Fallback to seed data if database is empty

@@ -1,5 +1,5 @@
 // prisma/seed/seed-forum.ts
-import { PrismaClient, FlairType, VoteState, Prisma } from '@prisma/client';
+import { PrismaClient, FlairType, Prisma } from '@prisma/client';
 import forumData from './data/forum.data';
 import usersData from './data/users.data';
 
@@ -40,18 +40,14 @@ export async function seedForum(
       data: {
         username: user.username,
         avatar: user.avatar || null,
-        karma: Math.floor(Math.random() * 2000) + 100, // Random karma 100-2100
+        karma: 0,
       },
     });
     seededUsernames.add(user.username);
   }
 
   // Create stats map
-  type ForumPostStat = (typeof forumData.forum_post_stats)[number];
-  const statsMap = new Map<string, ForumPostStat>();
-  for (const stat of forumData.forum_post_stats) {
-    statsMap.set(stat.post_id, stat);
-  }
+
 
   // Seed posts
   for (const post of forumData.forum_posts) {
@@ -61,23 +57,16 @@ export async function seedForum(
       continue;
     }
 
-    const stat = statsMap.get(post.id);
-    const statsJson = stat
-      ? {
-          comments: stat.comments,
-          saves: stat.saves,
-          shares: stat.shares,
-          awards: stat.awards,
-          views: post.impressions, // Map impressions to views
-          upvote_ratio: 1.0, // Default/random
-        }
-      : {
-          comments: 0,
-          saves: 0,
-          shares: 0,
-          awards: 0,
-          views: post.impressions,
-        };
+    const commentCount = forumData.forum_comments.filter(
+      (c) => c.post_id === post.id,
+    ).length;
+    const statsJson = {
+      comments: commentCount,
+      saves: 0,
+      shares: 0,
+      awards: 0,
+      views: post.impressions,
+    };
 
     const media = (post as any).cover_image
       ? [
@@ -103,7 +92,7 @@ export async function seedForum(
         excerpt: post.body,
         media: media,
         recommendation: Prisma.DbNull,
-        vote_state: post.vote_state as VoteState,
+
         is_saved: post.is_saved,
         impressions: post.impressions,
         is_pinned: post.is_pinned,

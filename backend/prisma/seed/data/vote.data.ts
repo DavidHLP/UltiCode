@@ -14,8 +14,7 @@ export interface VoteSeedData {
 
 // Helper to get all user IDs as an array
 const ALL_USERS = Object.values(USER_IDS);
-// Helper to get all usernames as an array (for forum which uses username as ID)
-const ALL_USERNAMES = Object.values(USER_USERNAMES);
+
 
 const data = {
   votes: [
@@ -96,58 +95,6 @@ const data = {
     ...ALL_USERS.slice(5, 14).map(userId => ({
       target_id: SOLUTION_IDS.ISLANDS_DFS,
       target_type: 'SOLUTION',
-      user_id: userId,
-      vote_type: 1
-    })),
-
-    // ========================================================================
-    // FORUM POST VOTES (Using User IDs because Vote model links to User.id)
-    // Note: ForumPost uses user_id as username normally, but Vote always links to User.id
-    // Wait, let's double check schema.
-    // Vote model: user User @relation(...) -> references User.id
-    // So for votes, we MUST use the User ID (u-001), not the username (shadcn).
-    // ========================================================================
-    
-    // post-rust-hashmap (Technical: 10 upvotes)
-    ...ALL_USERS.slice(2, 12).map(userId => ({
-      target_id: 'post-rust-hashmap',
-      target_type: 'FORUM_POST',
-      user_id: userId,
-      vote_type: 1
-    })),
-
-    // post-contest-tilt (Relatable: 18 upvotes)
-    ...ALL_USERS.slice(0, 18).map(userId => ({
-      target_id: 'post-contest-tilt',
-      target_type: 'FORUM_POST',
-      user_id: userId,
-      vote_type: 1
-    })),
-
-    // post-segtree-visual (High Value: 16 upvotes)
-    ...ALL_USERS.slice(1, 17).map(userId => ({
-      target_id: 'post-segtree-visual',
-      target_type: 'FORUM_POST',
-      user_id: userId,
-      vote_type: 1
-    })),
-
-    // ========================================================================
-    // FORUM COMMENT VOTES
-    // ========================================================================
-    
-    // c-rust-1 (Insightful: 8 upvotes)
-    ...ALL_USERS.slice(5, 13).map(userId => ({
-      target_id: 'c-rust-1',
-      target_type: 'FORUM_COMMENT',
-      user_id: userId,
-      vote_type: 1
-    })),
-
-    // c-tilt-1 (Helpful: 12 upvotes)
-    ...ALL_USERS.slice(0, 12).map(userId => ({
-      target_id: 'c-tilt-1',
-      target_type: 'FORUM_COMMENT',
       user_id: userId,
       vote_type: 1
     })),

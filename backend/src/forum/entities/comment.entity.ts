@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { ForumPost } from './forum-post.entity';
-import { ForumUser } from './forum-user.entity';
+import { ForumPost } from './post.entity';
+import { ForumUser } from './user.entity';
 
 @Entity('forum_comments')
 export class ForumComment {

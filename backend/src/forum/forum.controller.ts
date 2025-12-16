@@ -1,8 +1,8 @@
 import { Controller, Get, Param, Post, Body } from '@nestjs/common';
 import { ForumService } from './forum.service';
-import { ForumPost } from './forum-post.entity';
-import { ForumCommunity } from './forum-community.entity';
-import { ForumComment } from './forum-comment.entity';
+import { ForumPost } from './entities/post.entity';
+import { ForumCommunity } from './entities/community.entity';
+import { ForumComment } from './entities/comment.entity';
 import forumData from '../../prisma/seed/data/forum.data';
 
 @Controller('forum')

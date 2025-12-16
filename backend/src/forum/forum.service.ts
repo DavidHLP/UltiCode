@@ -2,9 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ForumPost } from './forum-post.entity';
-import { ForumCommunity } from './forum-community.entity';
-import { ForumComment } from './forum-comment.entity';
+import { ForumPost } from './entities/post.entity';
+import { ForumCommunity } from './entities/community.entity';
+import { ForumComment } from './entities/comment.entity';
 
 @Injectable()
 export class ForumService {

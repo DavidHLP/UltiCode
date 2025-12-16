@@ -76,7 +76,7 @@ let mut map = FxHashMap::default();
 I know \`std\` uses SipHash for DoS protection, but is the constants overhead really that massive? Or is it the collision rate?`,
       tags: ['rust', 'performance', 'hashing'],
       flair_type: 'question',
-      vote_state: 'upvoted',
+
       is_saved: true,
       impressions: 3400,
       is_pinned: false,
@@ -95,7 +95,7 @@ I know \`std\` uses SipHash for DoS protection, but is the constants overhead re
 Do you have any physical or mental protocols to hard-reset? I've heard of people doing pushups or splashing water.`,
       tags: ['mindset', 'psychology', 'strategy'],
       flair_type: 'discussion',
-      vote_state: 'neutral',
+
       is_saved: false,
       impressions: 5120,
       is_pinned: true,
@@ -120,7 +120,7 @@ Most bugs come from:
 Let me know if this helps!`,
       tags: ['tutorial', 'segment-tree', 'visualization'],
       flair_type: 'showcase',
-      vote_state: 'upvoted',
+
       is_saved: true,
       impressions: 8900,
       is_pinned: false,
@@ -130,35 +130,7 @@ Let me know if this helps!`,
         'https://images.unsplash.com/photo-1509228468518-180dd4864904?auto=format&fit=crop&w=1200&q=80',
     },
   ],
-  forum_post_stats: [
-    {
-      id: 'stats-rust-hashmap',
-      post_id: 'post-rust-hashmap',
 
-      comments: 6,
-      awards: 1,
-      saves: 84,
-      shares: 12,
-    },
-    {
-      id: 'stats-contest-tilt',
-      post_id: 'post-contest-tilt',
-
-      comments: 7,
-      awards: 4,
-      saves: 120,
-      shares: 45,
-    },
-    {
-      id: 'stats-segtree-visual',
-      post_id: 'post-segtree-visual',
-
-      comments: 5,
-      awards: 12,
-      saves: 450,
-      shares: 128,
-    },
-  ],
   forum_awards: [
     { id: 'award-insightful', label: 'Insightful' },
     { id: 'award-helpful', label: 'Helpful' },

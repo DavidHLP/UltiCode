@@ -1,4 +1,4 @@
-import { Controller, Get, Param, Post, Body } from '@nestjs/common';
+import { Controller, Get, Param, Post, Body, Query } from '@nestjs/common';
 import { ForumService } from './forum.service';
 import { ForumPost } from './entities/post.entity';
 import { ForumCommunity } from './entities/community.entity';
@@ -22,8 +22,9 @@ export class ForumController {
   @Get('posts/:id/thread')
   findThread(
     @Param('id') id: string,
+    @Query('userId') userId?: string,
   ): Promise<(ForumPost & { comments: ForumComment[] }) | null> {
-    return this.forumService.getThread(id);
+    return this.forumService.getThread(id, userId);
   }
 
   @Get('communities')

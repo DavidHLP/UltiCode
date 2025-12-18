@@ -41,4 +41,17 @@ export class ProblemService {
       ],
     });
   }
+
+  async getRandom(): Promise<Problem | null> {
+    const count = await this.problemsRepository.count();
+    if (count === 0) {
+      return null;
+    }
+    const randomIndex = Math.floor(Math.random() * count);
+    const problems = await this.problemsRepository.find({
+      skip: randomIndex,
+      take: 1,
+    });
+    return problems[0] || null;
+  }
 }

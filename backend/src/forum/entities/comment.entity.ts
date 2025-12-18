@@ -21,7 +21,7 @@ export class ForumComment {
   @JoinColumn({ name: 'parent_id' })
   parent: ForumComment | null;
 
-  @Column({ name: 'author_id', length: 60 })
+  @Column({ name: 'author_id', length: 40 })
   authorId: string;
 
   @ManyToOne(() => ForumUser)

@@ -14,7 +14,7 @@ export class ForumPost {
   @JoinColumn({ name: 'community_id' })
   community: ForumCommunity;
 
-  @Column({ name: 'user_id', length: 60 })
+  @Column({ name: 'user_id', length: 40 })
   userId: string;
 
   @ManyToOne(() => ForumUser)

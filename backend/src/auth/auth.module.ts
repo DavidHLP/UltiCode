@@ -10,8 +10,8 @@ import { AuthGuard } from './auth.guard';
     UserModule,
     JwtModule.register({
       global: true,
-      secret: 'secret', // TODO: use env
-      signOptions: { expiresIn: '60s' },
+      secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
+      signOptions: { expiresIn: '7d' }, // Token 有效期 7 天
     }),
   ],
   providers: [AuthService, AuthGuard],

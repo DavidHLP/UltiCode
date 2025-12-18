@@ -16,6 +16,7 @@ export async function seedUsers(prisma: PrismaClient): Promise<User[]> {
         name: u.name ?? null,
         email: u.email ?? null,
         avatar: u.avatar ?? null,
+        password: u.password ?? null,
       },
     });
     users.push(user);

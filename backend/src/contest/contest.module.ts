@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ContestService } from './contest.service';
 import { ContestController } from './contest.controller';
+import { ContestRestController } from './contest-rest.controller';
 import { Contest } from './contest.entity';
 import { ContestProblem } from './contest-problem.entity';
 import { ContestParticipant } from './contest-participant.entity';
@@ -21,7 +22,7 @@ import { User } from '../user/user.entity';
     ]),
   ],
   providers: [ContestService],
-  controllers: [ContestController],
+  controllers: [ContestController, ContestRestController],
   exports: [ContestService],
 })
 export class ContestModule {}

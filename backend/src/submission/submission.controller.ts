@@ -15,11 +15,17 @@ export class SubmissionController {
   @Get()
   async findAllByUser(
     @Query('userId') userId: string,
+    @Query('problemId') problemId?: string,
+    @Query('best') best?: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
   ) {
+    if (best === 'true' && problemId) {
+      const uid = userId || 'user-1';
+      return this.submissionService.findBest(parseInt(problemId), uid);
+    }
     return this.submissionService.findAll(
-      null, // problemId is null for global user search
+      problemId ? parseInt(problemId) : null,
       userId,
       skip ? parseInt(skip) : 0,
       take ? parseInt(take) : 10,

@@ -15,4 +15,9 @@ export class ProblemController {
   findOne(@Param('id') id: string): Promise<Problem | null> {
     return this.problemService.findOne(id);
   }
+
+  @Get(':id/results')
+  getProblemResults(@Param('id') _id: string) {
+    return null;
+  }
 }

@@ -54,4 +54,20 @@ export class ProblemListService {
     // fallback to first from seed data if table empty
     return null as unknown as ProblemList;
   }
+
+  async getStats(): Promise<ProblemListStats[]> {
+    const lists = await this.listsRepository.find();
+    return lists.map((list) => ({
+      listId: list.id,
+      totalCount: 0,
+      solvedCount: 0,
+      attemptedCount: 0,
+      todoCount: 0,
+      progress: 0,
+    }));
+  }
+
+  getProblemsByListId(_listId: string): Promise<ProblemListProblem[]> {
+    return Promise.resolve([]);
+  }
 }

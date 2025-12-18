@@ -3,10 +3,15 @@ import { CreateSolutionCommentDto } from './dto/create-solution-comment.dto';
 
 import { SolutionService } from './solution.service';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
+import { VoteService } from '../vote/vote.service';
+import { VoteTargetType } from '@prisma/client';
 
 @Controller('solutions')
 export class GlobalSolutionController {
-  constructor(private readonly solutionService: SolutionService) {}
+  constructor(
+    private readonly solutionService: SolutionService,
+    private readonly voteService: VoteService,
+  ) {}
 
   @Get()
   findAllByUser(
@@ -26,5 +31,33 @@ export class GlobalSolutionController {
     @Body() dto: CreateSolutionCommentDto,
   ) {
     return this.solutionService.createComment(id, dto);
+  }
+
+  @Post(':id/vote')
+  voteSolution(
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+    @Body('voteType') voteType: number,
+  ) {
+    const effectiveUserId = userId || 'u-001';
+    return this.voteService.vote(effectiveUserId, {
+      targetType: VoteTargetType.SOLUTION,
+      targetId: id,
+      voteType,
+    });
+  }
+
+  @Post('comments/:id/vote')
+  voteSolutionComment(
+    @Param('id') id: string,
+    @Body('userId') userId: string,
+    @Body('voteType') voteType: number,
+  ) {
+    const effectiveUserId = userId || 'u-001';
+    return this.voteService.vote(effectiveUserId, {
+      targetType: VoteTargetType.SOLUTION_COMMENT,
+      targetId: id,
+      voteType,
+    });
   }
 }

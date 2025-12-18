@@ -6,6 +6,16 @@ import { ViewTargetType } from '@prisma/client';
 export class ViewController {
   constructor(private readonly viewService: ViewService) {}
 
+  @Post()
+  async recordView(
+    @Body('targetType') targetType: ViewTargetType,
+    @Body('targetId') targetId: string,
+    @Body('userId') bodyUserId?: string,
+    @Ip() ip?: string,
+  ) {
+    return this.viewService.recordView(targetType, targetId, bodyUserId, ip);
+  }
+
   @Post('solution/:id')
   async recordSolutionView(
     @Param('id') id: string,

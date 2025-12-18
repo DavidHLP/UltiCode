@@ -34,16 +34,17 @@ export async function seedForum(
   }
 
   // Seed forum users from main users data (sync username + avatar)
-  const seededUsernames = new Set<string>();
+  const seededUserIds = new Set<string>();
   for (const user of usersData.users) {
     await prisma.forumUser.create({
       data: {
+        id: user.id,
         username: user.username,
         avatar: user.avatar || null,
         karma: 0,
       },
     });
-    seededUsernames.add(user.username);
+    seededUserIds.add(user.id);
   }
 
   // Create stats map
@@ -52,7 +53,7 @@ export async function seedForum(
   // Seed posts
   for (const post of forumData.forum_posts) {
     // Skip if user doesn't exist
-    if (!seededUsernames.has(post.user_id)) {
+    if (!seededUserIds.has(post.user_id)) {
       console.warn(`Skipping post ${post.id}: user ${post.user_id} not found`);
       continue;
     }
@@ -107,7 +108,7 @@ export async function seedForum(
   const commentIds = new Set<string>();
   for (const comment of forumData.forum_comments) {
     // Skip if author doesn't exist
-    if (!seededUsernames.has(comment.author_id)) {
+    if (!seededUserIds.has(comment.author_id)) {
       console.warn(
         `Skipping comment ${comment.id}: author ${comment.author_id} not found`,
       );
@@ -143,6 +144,6 @@ export async function seedForum(
   return {
     postsCount: forumData.forum_posts.length,
     commentsCount: forumData.forum_comments.length,
-    usersCount: seededUsernames.size,
+    usersCount: seededUserIds.size,
   };
 }

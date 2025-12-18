@@ -15,6 +15,11 @@ export class ProblemController {
     return this.problemService.findAll();
   }
 
+  @Get('random')
+  getRandom(): Promise<Problem | null> {
+    return this.problemService.getRandom();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string): Promise<Problem | null> {
     return this.problemService.findOne(id);

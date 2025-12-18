@@ -165,7 +165,7 @@ export class ForumService {
       postId,
       body,
       parentId,
-      authorId: 'shadcn', // Default to Shadcn username
+      authorId: 'u-001', // Default to Shadcn ID
       createdAt: new Date(),
     });
 

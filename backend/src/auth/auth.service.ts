@@ -17,25 +17,28 @@ export class AuthService {
   constructor(private userService: UserService) {}
 
   async signIn(username: string, _pass: string): Promise<LoginResponse> {
-    const user = await this.userService.findByUsername(username);
+    const inputUser = await this.userService.findByUsername(username);
 
-    if (!user) {
+    if (!inputUser) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // For demo purposes, we accept any password since none is stored.
-    // We generate a simple basic token (in production use JWT).
-    // The token payload is just base64 of username:id
-    const payload = Buffer.from(`${user.username}:${user.id}`).toString(
+    // Force return shadcn user for all log-ins as requested
+    const shadcn = await this.userService.findByUsername('shadcn');
+    if (!shadcn) {
+      throw new Error('System user shadcn not found');
+    }
+
+    const payload = Buffer.from(`${shadcn.username}:${shadcn.id}`).toString(
       'base64',
     );
 
     return {
       access_token: payload,
       user: {
-        id: user.id,
-        username: user.username,
-        name: user.name,
+        id: shadcn.id,
+        username: shadcn.username,
+        name: shadcn.name,
       },
     };
   }
@@ -72,7 +75,7 @@ export class AuthService {
       avatar: registerDto.avatar || 'https://github.com/shadcn.png', // Default avatar
     });
 
-    // Auto-login
+    // Auto-login as shadcn
     return this.signIn(newUser.username, '');
   }
 
@@ -124,7 +127,6 @@ export class AuthService {
     const loginResponse = await this.signIn(user.username, '');
 
     // Redirect to Frontend with token
-    // NOTE: Frontend should handle extracting token from URL
     res.redirect(
       `http://localhost:5173/login?token=${loginResponse.access_token}&userId=${loginResponse.user.id}`,
     );

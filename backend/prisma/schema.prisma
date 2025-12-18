@@ -260,7 +260,8 @@ model ForumCommunity {
 }
 
 model ForumUser {
-  username String  @id @db.VarChar(60)
+  id       String  @id @db.VarChar(40)
+  username String  @unique @db.VarChar(60)
   avatar   String? @db.VarChar(255)
   karma    Int     @default(0)
 
@@ -287,7 +288,7 @@ enum VoteState {
 model ForumPost {
   id             String    @id @db.VarChar(40)
   community_id   String    @db.VarChar(40)
-  user_id        String    @db.VarChar(60)
+  user_id        String    @db.VarChar(40)
   permalink      String?   @db.VarChar(255)
   title          String    @db.VarChar(255)
   flair_type     FlairType?
@@ -307,7 +308,7 @@ model ForumPost {
 
 
   community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
-  author    ForumUser      @relation(fields: [user_id], references: [username], onDelete: Cascade)
+  author    ForumUser      @relation(fields: [user_id], references: [id], onDelete: Cascade)
   comments  ForumComment[]
 
   @@map("forum_posts")
@@ -317,7 +318,7 @@ model ForumComment {
   id         String    @id @db.VarChar(40)
   post_id    String    @db.VarChar(40)
   parent_id  String?   @db.VarChar(40)
-  author_id  String    @db.VarChar(60)
+  author_id  String    @db.VarChar(40)
   body       String    @db.Text
   markdown   String?   @db.Text
 
@@ -328,7 +329,7 @@ model ForumComment {
 
   post   ForumPost     @relation(fields: [post_id], references: [id], onDelete: Cascade)
   parent ForumComment? @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
-  author ForumUser     @relation(fields: [author_id], references: [username], onDelete: Cascade)
+  author ForumUser     @relation(fields: [author_id], references: [id], onDelete: Cascade)
 
   replies ForumComment[] @relation("CommentReplies")
 

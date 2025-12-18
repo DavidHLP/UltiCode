@@ -26,6 +26,7 @@ model User {
   submissions      Submission[]
   contestRankings ContestRanking[]
   contestParticipants ContestParticipant[]
+  views View[]
 
   @@map("users")
 }
@@ -298,6 +299,7 @@ model ForumPost {
   vote_state     VoteState @default(neutral)
   is_saved       Boolean   @default(false)
   impressions    Int       @default(0)
+  views          Int       @default(0)
   is_pinned      Boolean   @default(false)
   is_locked      Boolean   @default(false)
   created_at     DateTime
@@ -454,4 +456,27 @@ model Submission {
 
   @@index([problem_id, user_id])
   @@map("submissions")
+}
+
+// ============================================================================
+// VIEW TRACKING MODULE
+// ============================================================================
+
+model View {
+  id          String         @id @default(uuid()) @db.VarChar(40)
+  target_id   String         @db.VarChar(40)
+  target_type ViewTargetType
+  user_id     String?        @db.VarChar(40) // Optional (for guests)
+  ip          String?        @db.VarChar(45) // IPv6 support
+  viewed_at   DateTime       @default(now())
+
+  user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([target_type, target_id, user_id, ip]) // For fast existence checks
+  @@map("views")
+}
+
+enum ViewTargetType {
+  SOLUTION
+  FORUM_POST
 }

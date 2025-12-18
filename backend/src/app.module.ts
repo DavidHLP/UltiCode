@@ -12,6 +12,8 @@ import { SubmissionModule } from './submission/submission.module';
 import { AuthModule } from './auth/auth.module';
 import { VoteModule } from './vote/vote.module';
 
+import { ViewModule } from './view/view.module';
+
 @Module({
   imports: [
     TypeOrmModule.forRoot({
@@ -28,9 +30,9 @@ import { VoteModule } from './vote/vote.module';
     ProblemModule,
     SolutionModule,
     VoteModule,
+    ViewModule,
     ContestModule,
     ForumModule,
-    ProblemListModule,
     ProblemListModule,
     SubmissionModule,
     AuthModule,

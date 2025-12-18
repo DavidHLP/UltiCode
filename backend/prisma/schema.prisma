@@ -19,6 +19,7 @@ model User {
   name     String? @db.VarChar(120)
   email    String? @db.VarChar(255)
   avatar   String? @db.VarChar(255)
+  password String? @db.VarChar(255)
 
   solutions        Solution[]
   solutionComments SolutionComment[]

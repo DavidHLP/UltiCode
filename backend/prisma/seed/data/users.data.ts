@@ -1,4 +1,14 @@
 // prisma/seed/data/users.data.ts
+import * as crypto from 'crypto';
+
+// 密码哈希函数（与 AuthService 中的实现保持一致）
+function hashPassword(password: string): string {
+  return crypto.createHash('sha256').update(password).digest('hex');
+}
+
+// 默认测试密码
+const DEFAULT_PASSWORD = hashPassword('password123');
+
 export const USER_IDS = {
   SHADCN: 'u-001',
   STACK_UNWIND: 'u-002',
@@ -52,6 +62,7 @@ const data = {
       name: 'Shad',
       email: 'm@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=shadcn',
+      password: DEFAULT_PASSWORD, // 默认密码: password123
     },
     {
       id: USER_IDS.STACK_UNWIND,
@@ -59,6 +70,7 @@ const data = {
       name: 'Stack Unwind',
       email: 'su@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=stack_unwind',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.YUKI,
@@ -66,6 +78,7 @@ const data = {
       name: 'Yuki',
       email: 'yuki@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=yuki',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.ALEX,
@@ -73,6 +86,7 @@ const data = {
       name: 'Alex',
       email: 'alex@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=alex',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.CHEN,
@@ -80,6 +94,7 @@ const data = {
       name: 'Chen',
       email: 'chen@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=chen',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.MAX,
@@ -87,6 +102,7 @@ const data = {
       name: 'Max',
       email: 'max@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=max',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.SARA,
@@ -94,6 +110,7 @@ const data = {
       name: 'Sara',
       email: 'sara@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=sara',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.TOM,
@@ -101,6 +118,7 @@ const data = {
       name: 'Tom',
       email: 'tom@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=tom',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.LILY,
@@ -108,6 +126,7 @@ const data = {
       name: 'Lily',
       email: 'lily@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=lily',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.DAVID,
@@ -115,6 +134,7 @@ const data = {
       name: 'David',
       email: 'david@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=david',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.EMMA,
@@ -122,6 +142,7 @@ const data = {
       name: 'Emma',
       email: 'emma@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=emma',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.KEVIN,
@@ -129,6 +150,7 @@ const data = {
       name: 'Kevin',
       email: 'kevin@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=kevin',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.TOURIST,
@@ -136,6 +158,7 @@ const data = {
       name: 'Gennady',
       email: 'tourist@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=tourist',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.JIANGLY,
@@ -143,6 +166,7 @@ const data = {
       name: 'Jiang',
       email: 'jiangly@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=jiangly',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.BENQ,
@@ -150,6 +174,7 @@ const data = {
       name: 'Ben',
       email: 'ben@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=benq',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.ECNERWALA,
@@ -157,6 +182,7 @@ const data = {
       name: 'Andrew',
       email: 'ecnerwala@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=ecnerwala',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.UM_NIK,
@@ -164,6 +190,7 @@ const data = {
       name: 'Nikolai',
       email: 'umnik@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=um_nik',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.SCOTT,
@@ -171,6 +198,7 @@ const data = {
       name: 'Scott',
       email: 'scott@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=scott',
+      password: DEFAULT_PASSWORD,
     },
     {
       id: USER_IDS.PETR,
@@ -178,6 +206,7 @@ const data = {
       name: 'Petr',
       email: 'petr@example.com',
       avatar: 'https://api.dicebear.com/7.x/notionists/svg?seed=petr',
+      password: DEFAULT_PASSWORD,
     },
   ],
 } as const;

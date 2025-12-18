@@ -25,6 +25,52 @@
 
 [Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
+## 认证系统说明
+
+### 登录凭证
+
+所有测试用户的默认密码为：`password123`
+
+可用的测试用户名：
+- `shadcn`
+- `stack_unwind`
+- `yuki_codes`
+- `alex_algorithm`
+- 等等（查看 `prisma/seed/data/users.data.ts` 获取完整列表）
+
+### API 端点
+
+#### 登录
+```bash
+POST /auth/login
+Content-Type: application/json
+
+{
+  "username": "shadcn",
+  "password": "password123"
+}
+```
+
+#### 注册
+```bash
+POST /auth/register
+Content-Type: application/json
+
+{
+  "username": "newuser",
+  "email": "newuser@example.com",
+  "password": "yourpassword"
+}
+```
+
+### 安全特性
+
+- ✅ 密码使用 SHA-256 哈希加密存储
+- ✅ JWT Token 认证（有效期 7 天）
+- ✅ 密码必填且至少 6 位字符
+- ✅ 用户名和邮箱唯一性验证
+- ✅ 错误信息不泄露用户存在性
+
 ## Project setup
 
 ```bash

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Submission, Prisma } from '@prisma/client';
@@ -96,5 +94,74 @@ export class SubmissionService {
     }
 
     return submission;
+  }
+
+  async getLatestRunResult(problemId: number, userId?: string) {
+    const submission = await this.prisma.submission.findFirst({
+      where: {
+        problem_id: problemId,
+        ...(userId ? { user_id: userId } : {}),
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    if (!submission) {
+      return null;
+    }
+
+    interface TestDetail {
+      status?: string;
+      time?: number;
+      memory?: number;
+      detail?: string;
+      output?: string;
+      expectedOutput?: string;
+      inputs?: string;
+    }
+
+    const testDetails = (Array.isArray(submission.test_details)
+      ? submission.test_details
+      : []) as unknown as TestDetail[];
+
+    const cases = testDetails.map((detail, index) => ({
+      id: `case-${index + 1}`,
+      runId: `run-${submission.id}`,
+      submissionTestId: `${submission.id}-${index + 1}`,
+      testCaseId: `${problemId}-${index + 1}`,
+      caseLabel: `Case ${index + 1}`,
+      status: detail.status ?? submission.status,
+      runtime:
+        detail.time !== undefined
+          ? `${detail.time} ms`
+          : `${submission.runtime} ms`,
+      memory:
+        detail.memory !== undefined
+          ? `${detail.memory} MB`
+          : `${submission.memory} MB`,
+      detail: detail.detail,
+      output: detail.output,
+      expectedOutput: detail.expectedOutput,
+      inputs: detail.inputs,
+    }));
+
+    const passedCases = cases.filter(
+      (item) => item.status === 'Accepted',
+    ).length;
+
+    return {
+      id: `run-${submission.id}`,
+      submissionId: submission.id,
+      problemId,
+      userId: submission.user_id,
+      verdict: submission.status,
+      runtime: `${submission.runtime} ms`,
+      memory: `${submission.memory} MB`,
+      cases,
+      passed_cases: passedCases,
+      total_cases: cases.length,
+      error_message: null,
+    };
   }
 }

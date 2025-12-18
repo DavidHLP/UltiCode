@@ -1,11 +1,23 @@
-import { Controller, Post, Param, Ip, Body } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Ip,
+  Param,
+  Post,
+  UseFilters,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ViewService } from './view.service';
 import { ViewTargetType } from '@prisma/client';
+import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
+import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 
 @Controller('views')
 export class ViewController {
   constructor(private readonly viewService: ViewService) {}
 
+  @UseInterceptors(ResponseInterceptor)
+  @UseFilters(GlobalExceptionFilter)
   @Post()
   async recordView(
     @Body('targetType') targetType: ViewTargetType,

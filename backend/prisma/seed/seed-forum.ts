@@ -65,7 +65,7 @@ export async function seedForum(
       saves: 0,
       shares: 0,
       awards: 0,
-      views: post.impressions,
+      views: 0,
     };
 
     const media = (post as any).cover_image

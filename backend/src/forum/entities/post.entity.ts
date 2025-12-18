@@ -64,6 +64,9 @@ export class ForumPost {
   @Column({ default: 0 })
   impressions: number;
 
+  @Column({ default: 0 })
+  views: number;
+
   @Column({ name: 'is_pinned', default: false })
   isPinned: boolean;
 

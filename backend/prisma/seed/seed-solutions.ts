@@ -31,7 +31,6 @@ export async function seedSolutions(prisma: PrismaClient): Promise<{
       summary: sol.summary,
       language: sol.language,
       tags: sol.tags,
-      views: sol.views,
 
     })),
   });

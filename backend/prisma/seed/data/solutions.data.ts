@@ -101,7 +101,6 @@ By storing each number as we iterate, we can check for complements in constant t
         'Efficient O(n) solution using hash map to find two numbers that add up to target',
       language: 'Python',
       tags: ['Hash Table', 'Array', 'Two Pointers'],
-      views: 1250,
 
     },
     {
@@ -162,8 +161,6 @@ Not optimal but easy to understand!`,
         'Simple brute force approach checking all pairs - good for beginners',
       language: 'JavaScript',
       tags: ['Array', 'Brute Force'],
-      views: 850,
-
     },
     {
       id: SOLUTION_IDS.TWO_SUM_CPP,
@@ -220,8 +217,6 @@ Fast and memory efficient with C++ STL!`,
       summary: 'C++ implementation using unordered_map for O(n) solution',
       language: 'C++',
       tags: ['Hash Table', 'C++', 'STL'],
-      views: 620,
-
     },
     {
       id: SOLUTION_IDS.TWO_SUM_JAVA,
@@ -272,8 +267,6 @@ public:
       summary: 'Clean Java implementation with HashMap',
       language: 'Java',
       tags: ['Hash Table', 'Java'],
-      views: 480,
-
     },
     {
       id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
@@ -306,8 +299,6 @@ Runs in O(n) time and O(k) space where k is the alphabet size.`,
         'Classic sliding window that bumps the left pointer past duplicates.',
       language: 'TypeScript',
       tags: ['Sliding Window', 'Hash Table', 'String'],
-      views: 1020,
-
     },
     {
       id: SOLUTION_IDS.MERGE_INTERVALS_SORT,
@@ -340,8 +331,6 @@ Sorting dominates the time complexity.`,
         'Greedy sweep after sorting intervals by start; merge in one pass',
       language: 'JavaScript',
       tags: ['Sorting', 'Intervals', 'Greedy'],
-      views: 740,
-
     },
     {
       id: SOLUTION_IDS.MEDIAN_ARRAYS_BS,
@@ -386,8 +375,6 @@ Binary search over the smaller array keeps complexity O(log(min(m, n))).`,
         'Binary search the cut on the shorter array to balance partitions',
       language: 'Python',
       tags: ['Binary Search', 'Divide and Conquer'],
-      views: 980,
-
     },
     {
       id: SOLUTION_IDS.ISLANDS_DFS,
@@ -436,8 +423,6 @@ Space can be reduced by marking the grid in place instead of using a visited mat
         'Iterative DFS flood fill to mark connected land and count components',
       language: 'Java',
       tags: ['DFS', 'Matrix', 'Graph'],
-      views: 560,
-
     },
   ],
   comments: [

@@ -8,6 +8,7 @@ import { ProblemTag } from './problem-tag.entity';
 import { ProblemTagRelation } from './problem-tag-relation.entity';
 import { ProblemLanguage } from './problem-language.entity';
 import { ProblemExample } from './problem-example.entity';
+import { SubmissionModule } from '../submission/submission.module';
 
 @Module({
   imports: [
@@ -19,6 +20,7 @@ import { ProblemExample } from './problem-example.entity';
       ProblemLanguage,
       ProblemExample,
     ]),
+    SubmissionModule,
   ],
   providers: [ProblemService],
   controllers: [ProblemController],

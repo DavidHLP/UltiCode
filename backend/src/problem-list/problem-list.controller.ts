@@ -27,7 +27,11 @@ export class ProblemListController {
   }
 
   @Get(':id')
-  getList(): Promise<ProblemList> {
+  async getList(@Param('id') id: string): Promise<ProblemList> {
+    const list = await this.problemListService.getListById(id);
+    if (list) {
+      return list;
+    }
     return this.problemListService.getDefaultList();
   }
 }

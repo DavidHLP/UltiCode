@@ -1,10 +1,14 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ProblemService } from './problem.service';
 import { Problem } from './problem.entity';
+import { SubmissionService } from '../submission/submission.service';
 
 @Controller('problems')
 export class ProblemController {
-  constructor(private readonly problemService: ProblemService) {}
+  constructor(
+    private readonly problemService: ProblemService,
+    private readonly submissionService: SubmissionService,
+  ) {}
 
   @Get()
   findAll(): Promise<Problem[]> {
@@ -17,7 +21,11 @@ export class ProblemController {
   }
 
   @Get(':id/results')
-  getProblemResults(@Param('id') _id: string) {
-    return null;
+  getProblemResults(@Param('id') id: string, @Query('userId') userId?: string) {
+    const numericId = Number(id);
+    if (Number.isNaN(numericId)) {
+      return null;
+    }
+    return this.submissionService.getLatestRunResult(numericId, userId);
   }
 }

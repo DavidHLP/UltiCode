@@ -16,7 +16,6 @@ export class GlobalSolutionController {
   }
 
   @Get(':id/comments')
-  @Get(':id/comments')
   findComments(@Param('id') id: string, @Query('userId') userId?: string) {
     return this.solutionService.findComments(id, userId);
   }

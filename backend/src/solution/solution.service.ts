@@ -192,7 +192,7 @@ export class SolutionService {
     };
   }
 
-  async findComments(solutionId: string) {
+  async findComments(solutionId: string, userId?: string) {
     const comments = await this.prisma.solutionComment.findMany({
       where: {
         solution_id: solutionId,
@@ -212,14 +212,28 @@ export class SolutionService {
       commentIds,
     );
 
+    // Batch fetch user votes if userId is provided
+    let userVoteMap = new Map<string, number>();
+    if (userId) {
+      userVoteMap = await this.voteService.getUserVotesBatch(
+        userId,
+        VoteTargetType.SOLUTION_COMMENT,
+        commentIds,
+      );
+    }
+
     // Map to frontend expected format (similar to forum comments)
     return comments.map((comment) => {
       const votes = voteMap.get(comment.id) || { likes: 0, dislikes: 0 };
+      const userVote = userVoteMap.get(comment.id) || 0;
       return {
         id: comment.id,
         parentId: comment.parent_id,
         body: comment.content,
         upvotes: votes.likes,
+        likes: votes.likes,
+        dislikes: votes.dislikes,
+        userVote: userVote as 0 | 1 | -1,
         createdAt: comment.created_at,
         author: {
           username: comment.author.username,

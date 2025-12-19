@@ -1,7 +1,20 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
-import { Controller, Get, Param, Query, ParseIntPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Query,
+  Req,
+} from '@nestjs/common';
+import type { Request } from 'express';
 import { SubmissionService } from './submission.service';
+
+interface AuthenticatedRequest extends Request {
+  user?: { id: string };
+}
 
 @Controller('submissions')
 export class SubmissionController {
@@ -19,14 +32,21 @@ export class SubmissionController {
     @Query('best') best?: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
+    @Req() req?: AuthenticatedRequest,
   ) {
+    const effectiveUserId = userId || req?.user?.id;
     if (best === 'true' && problemId) {
-      const uid = userId || 'user-1';
-      return this.submissionService.findBest(parseInt(problemId), uid);
+      if (!effectiveUserId) {
+        throw new BadRequestException('userId is required for best submission');
+      }
+      return this.submissionService.findBest(
+        parseInt(problemId),
+        effectiveUserId,
+      );
     }
     return this.submissionService.findAll(
       problemId ? parseInt(problemId) : null,
-      userId,
+      effectiveUserId,
       skip ? parseInt(skip) : 0,
       take ? parseInt(take) : 10,
     );
@@ -43,9 +63,9 @@ export class ProblemSubmissionController {
     @Query('userId') userId?: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
+    @Req() req?: AuthenticatedRequest,
   ) {
-    // Default to 'u-001' if no user ID is provided, simulating "current user"
-    const uid = userId || 'u-001';
+    const uid = userId || req?.user?.id;
     return this.submissionService.findAll(
       problemId,
       uid,
@@ -58,10 +78,12 @@ export class ProblemSubmissionController {
   async findBest(
     @Param('problemId', ParseIntPipe) problemId: number,
     @Query('userId') userId?: string,
+    @Req() req?: AuthenticatedRequest,
   ) {
-    // TODO: In a real app, userId should come from the request user (guard)
-    // For now we allow passing it or default to a test user
-    const uid = userId || 'user-1';
+    const uid = userId || req?.user?.id;
+    if (!uid) {
+      throw new BadRequestException('userId is required for best submission');
+    }
     return this.submissionService.findBest(problemId, uid);
   }
 }

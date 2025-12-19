@@ -33,23 +33,19 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException();
     }
     try {
-      // For demo, we are decoding base64 manually or verifying logic
-      // In real jwt: await this.jwtService.verifyAsync(token, { secret: ... })
-
-      const decoded = Buffer.from(token, 'base64').toString('ascii');
-      const [username, id] = decoded.split(':');
-
-      if (!username || !id) {
+      const payload = await this.jwtService.verifyAsync<{
+        sub: string;
+        username: string;
+      }>(token);
+      if (!payload?.sub) {
         throw new UnauthorizedException();
       }
 
-      // Check if user exists
-      const user = await this.userService.findByUsername(username);
+      const user = await this.userService.findOne(payload.sub);
       if (!user) {
         throw new UnauthorizedException();
       }
 
-      // Assignment to request object
       request['user'] = user;
     } catch {
       throw new UnauthorizedException();

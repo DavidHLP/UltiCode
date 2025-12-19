@@ -243,14 +243,18 @@ export class SolutionService {
     });
   }
 
-  async createComment(solutionId: string, dto: CreateSolutionCommentDto) {
+  async createComment(
+    solutionId: string,
+    dto: CreateSolutionCommentDto,
+    userId: string,
+  ) {
     return this.prisma.solutionComment.create({
       data: {
         id: uuidv4(),
         solution_id: solutionId,
         content: dto.content,
         parent_id: dto.parentId,
-        user_id: dto.userId,
+        user_id: userId,
       },
       include: {
         author: true,

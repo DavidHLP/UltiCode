@@ -100,12 +100,15 @@ export class AuthService {
     const hashedPassword = this.hashPassword(registerDto.password);
 
     // 创建用户
+    const fallbackAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
+      registerDto.username,
+    )}`;
     const newUser = await this.userService.create({
       id,
       username: registerDto.username,
       email: registerDto.email,
       name: registerDto.username,
-      avatar: registerDto.avatar || 'https://github.com/shadcn.png',
+      avatar: registerDto.avatar || fallbackAvatar,
       password: hashedPassword,
     });
 
@@ -158,7 +161,7 @@ export class AuthService {
     const githubUser = {
       username: 'github_user',
       email: 'github@example.com',
-      avatar: 'https://github.com/shadcn.png',
+      avatar: 'https://avatars.githubusercontent.com/github_user?v=4',
     };
 
     let user = await this.userService.findByEmail(githubUser.email);

@@ -159,13 +159,14 @@ export class ForumService {
     postId: string,
     body: string,
     parentId: string | null,
+    authorId: string,
   ): Promise<ForumComment> {
     const comment = this.commentsRepository.create({
       id: randomUUID(),
       postId,
       body,
       parentId,
-      authorId: 'u-001', // Default to Shadcn ID
+      authorId,
       createdAt: new Date(),
     });
 

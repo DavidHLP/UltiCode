@@ -1,10 +1,9 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-// @ts-nocheck
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { VoteService } from '../vote/vote.service';
 import { VoteTargetType } from '@prisma/client';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
+import type { CreateSolutionDto } from './dto/create-solution.dto';
 import type { CreateSolutionCommentDto } from './dto/create-solution-comment.dto';
 
 import { v4 as uuidv4 } from 'uuid';
@@ -15,6 +14,34 @@ export class SolutionService {
     private readonly prisma: PrismaService,
     private readonly voteService: VoteService,
   ) {}
+
+  async create(problemId: string, userId: string, dto: CreateSolutionDto) {
+    const submission = await this.prisma.submission.findFirst({
+      where: {
+        problem_id: BigInt(problemId),
+        user_id: userId,
+        status: 'Accepted',
+      },
+    });
+
+    if (!submission) {
+      throw new BadRequestException(
+        'You must have an accepted submission to create a solution',
+      );
+    }
+
+    return this.prisma.solution.create({
+      data: {
+        id: uuidv4(),
+        problem_id: BigInt(problemId),
+        user_id: userId,
+        title: dto.title,
+        content: dto.content,
+        language: dto.language,
+        tags: dto.tags ?? [],
+      },
+    });
+  }
 
   async findByProblemId(
     problemId: string,

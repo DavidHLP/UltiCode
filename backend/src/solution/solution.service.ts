@@ -8,6 +8,16 @@ import type { CreateSolutionCommentDto } from './dto/create-solution-comment.dto
 
 import { v4 as uuidv4 } from 'uuid';
 
+const TOPIC_MAP: Record<string, string> = {
+  algorithms: 'Algorithms',
+  database: 'Database',
+  shell: 'Shell',
+  concurrency: 'Concurrency',
+  'system-design': 'System Design',
+  javascript: 'JavaScript',
+  python: 'Python',
+};
+
 @Injectable()
 export class SolutionService {
   constructor(
@@ -118,10 +128,23 @@ export class SolutionService {
         language: solution.language,
         languageFilter: solution.language.toLowerCase(),
         topic: {
-          id: 'general',
-          name: 'General',
+          id:
+            Array.isArray(solution.tags) && typeof solution.tags[0] === 'string'
+              ? solution.tags[0]
+              : 'general',
+          name:
+            Array.isArray(solution.tags) &&
+            typeof solution.tags[0] === 'string' &&
+            TOPIC_MAP[solution.tags[0]]
+              ? TOPIC_MAP[solution.tags[0]]
+              : 'General',
         },
-        topicName: 'General',
+        topicName:
+          Array.isArray(solution.tags) &&
+          typeof solution.tags[0] === 'string' &&
+          TOPIC_MAP[solution.tags[0]]
+            ? TOPIC_MAP[solution.tags[0]]
+            : 'General',
         content: solution.content,
         tags: (Array.isArray(solution.tags) ? solution.tags : []) as string[],
         votes: upvotes,
@@ -198,10 +221,23 @@ export class SolutionService {
         language: solution.language,
         languageFilter: solution.language.toLowerCase(),
         topic: {
-          id: 'general',
-          name: 'General',
+          id:
+            Array.isArray(solution.tags) && typeof solution.tags[0] === 'string'
+              ? solution.tags[0]
+              : 'general',
+          name:
+            Array.isArray(solution.tags) &&
+            typeof solution.tags[0] === 'string' &&
+            TOPIC_MAP[solution.tags[0]]
+              ? TOPIC_MAP[solution.tags[0]]
+              : 'General',
         },
-        topicName: 'General',
+        topicName:
+          Array.isArray(solution.tags) &&
+          typeof solution.tags[0] === 'string' &&
+          TOPIC_MAP[solution.tags[0]]
+            ? TOPIC_MAP[solution.tags[0]]
+            : 'General',
         content: solution.content,
         tags: (Array.isArray(solution.tags) ? solution.tags : []) as string[],
         votes: upvotes,

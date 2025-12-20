@@ -1,5 +1,6 @@
 export interface SolutionFeedItem {
   id: string;
+  problem_id: string;
   title: string;
   summary: string;
   highlight?: string;

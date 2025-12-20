@@ -1,13 +1,28 @@
-import { Controller, Get, Param, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  UseGuards,
+  Patch,
+  Body,
+  Req,
+  BadRequestException,
+} from '@nestjs/common';
+import { Request } from 'express';
 import { UserService } from './user.service';
 import { User } from './user.entity';
 import { AuthGuard } from '../auth/auth.guard';
+
+interface AuthenticatedRequest extends Request {
+  user: {
+    id: string;
+  };
+}
 
 @Controller('users')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @UseGuards(AuthGuard)
   @Get()
   findAll(): Promise<User[]> {
     return this.userService.findAll();
@@ -16,5 +31,24 @@ export class UserController {
   @Get(':id')
   findOne(@Param('id') id: string): Promise<User | null> {
     return this.userService.findOne(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch(':id')
+  async updateProfile(
+    @Param('id') id: string,
+    @Body() userData: Partial<User>,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    // Ensure the user is updating their own profile
+    if (req.user.id !== id) {
+      throw new BadRequestException('You can only update your own profile');
+    }
+    return this.userService.update(id, userData);
+  }
+
+  @Get(':id/stats')
+  getUserStats(@Param('id') id: string) {
+    return this.userService.getUserStats(id);
   }
 }

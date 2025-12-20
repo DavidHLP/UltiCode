@@ -68,6 +68,13 @@ export class SubmissionService {
             avatar: true,
           },
         },
+        problem: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
       },
       take: 1,
     });

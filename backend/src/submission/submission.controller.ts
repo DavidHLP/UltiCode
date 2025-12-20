@@ -8,9 +8,11 @@ import {
   ParseIntPipe,
   Query,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { SubmissionService } from './submission.service';
+import { AuthGuard } from '../auth/auth.guard';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
@@ -75,6 +77,7 @@ export class ProblemSubmissionController {
   }
 
   @Get('best')
+  @UseGuards(AuthGuard)
   async findBest(
     @Param('problemId', ParseIntPipe) problemId: number,
     @Query('userId') userId?: string,

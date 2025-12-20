@@ -5,9 +5,10 @@ import { SolutionTopicController } from './solution-topic.controller';
 import { GlobalSolutionController } from './global-solution.controller';
 import { PrismaService } from '../prisma.service';
 import { VoteModule } from '../vote/vote.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
-  imports: [VoteModule],
+  imports: [VoteModule, AuthModule],
   providers: [SolutionService, PrismaService],
   controllers: [
     SolutionController,

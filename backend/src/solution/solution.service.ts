@@ -16,6 +16,9 @@ export class SolutionService {
   ) {}
 
   async create(problemId: string, userId: string, dto: CreateSolutionDto) {
+    console.log(
+      `[CreateSolution] Checking submission for problem: ${problemId}, user: ${userId}`,
+    );
     const submission = await this.prisma.submission.findFirst({
       where: {
         problem_id: BigInt(problemId),
@@ -23,6 +26,7 @@ export class SolutionService {
         status: 'Accepted',
       },
     });
+    console.log('[CreateSolution] Submission found:', submission);
 
     if (!submission) {
       throw new BadRequestException(

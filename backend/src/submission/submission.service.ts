@@ -171,4 +171,45 @@ export class SubmissionService {
       error_message: null,
     };
   }
+
+  async create(
+    userId: string,
+    problemId: number,
+    data: { language: string; code: string },
+  ) {
+    const isMockAccepted = Math.random() > 0.2;
+    const runtime = Math.floor(Math.random() * 100) + 20;
+    const memory = parseFloat((Math.random() * 20 + 10).toFixed(1));
+
+    return this.prisma.submission.create({
+      data: {
+        id: `sub-${Date.now()}`,
+        user_id: userId,
+        problem_id: problemId,
+        language: data.language,
+        code: data.code,
+        status: isMockAccepted ? 'Accepted' : 'Wrong Answer',
+        runtime,
+        memory,
+        runtime_percentile: isMockAccepted ? Math.random() * 100 : 0,
+        memory_percentile: isMockAccepted ? Math.random() * 100 : 0,
+        test_details: [
+          {
+            status: isMockAccepted ? 'Accepted' : 'Wrong Answer',
+            time: runtime,
+            memory,
+          },
+        ],
+      },
+      include: {
+        problem: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+          },
+        },
+      },
+    });
+  }
 }

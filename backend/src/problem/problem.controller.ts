@@ -33,4 +33,9 @@ export class ProblemController {
     }
     return this.submissionService.getLatestRunResult(numericId, userId);
   }
+
+  @Get(':id/adjacent')
+  getAdjacent(@Param('id') id: string) {
+    return this.problemService.findAdjacent(Number(id));
+  }
 }

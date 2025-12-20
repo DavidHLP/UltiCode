@@ -54,4 +54,21 @@ export class ProblemService {
     });
     return problems[0] || null;
   }
+  async findAdjacent(
+    id: number,
+  ): Promise<{ prev: string | null; next: string | null }> {
+    const prev = await this.problemsRepository.findOne({
+      where: { id: id - 1 },
+      select: ['slug'],
+    });
+    const next = await this.problemsRepository.findOne({
+      where: { id: id + 1 },
+      select: ['slug'],
+    });
+
+    return {
+      prev: prev?.slug || null,
+      next: next?.slug || null,
+    };
+  }
 }

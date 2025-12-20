@@ -37,6 +37,8 @@ model User {
   contestRankings ContestRanking[]
   contestParticipants ContestParticipant[]
   views View[]
+  favorites Favorite[]
+  problemNotes ProblemNote[]
 
   @@map("users")
 }
@@ -74,6 +76,7 @@ model Problem {
   contestProblems ContestProblem[]
   solutions    Solution[]
   submissions  Submission[]
+  problemNotes ProblemNote[]
 
   @@map("problems")
 }
@@ -436,6 +439,41 @@ enum VoteTargetType {
   SOLUTION_COMMENT
   FORUM_POST
   FORUM_COMMENT
+  PROBLEM
+}
+
+model Favorite {
+  id          String           @id @default(uuid()) @db.VarChar(40)
+  target_id   String           @db.VarChar(40)
+  target_type FavoriteTargetType
+  user_id     String           @db.VarChar(40)
+  created_at  DateTime         @default(now())
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, target_type, target_id])
+  @@index([target_type, target_id])
+  @@map("favorites")
+}
+
+enum FavoriteTargetType {
+  SOLUTION
+  FORUM_POST
+  PROBLEM
+}
+
+model ProblemNote {
+  id         String   @id @default(uuid()) @db.VarChar(40)
+  problem_id BigInt
+  user_id    String   @db.VarChar(40)
+  content    String   @db.Text
+  updated_at DateTime @updatedAt
+
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, problem_id])
+  @@map("problem_notes")
 }
 
 // ============================================================================

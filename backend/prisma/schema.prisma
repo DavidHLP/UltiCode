@@ -21,6 +21,15 @@ model User {
   avatar   String? @db.VarChar(255)
   password String? @db.VarChar(255)
 
+  // Profile fields
+  bio       String?  @db.Text
+  website   String?  @db.VarChar(255)
+  github    String?  @db.VarChar(255)
+  twitter   String?  @db.VarChar(255)
+  location  String?  @db.VarChar(255)
+  company   String?  @db.VarChar(255)
+  joined_at DateTime @default(now())
+
   solutions        Solution[]
   solutionComments SolutionComment[]
   votes            Vote[]

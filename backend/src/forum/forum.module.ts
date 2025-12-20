@@ -6,11 +6,13 @@ import { ForumPost } from './entities/post.entity';
 import { ForumCommunity } from './entities/community.entity';
 import { ForumComment } from './entities/comment.entity';
 import { VoteModule } from '../vote/vote.module';
+import { AuthModule } from '../auth/auth.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([ForumPost, ForumCommunity, ForumComment]),
     VoteModule,
+    AuthModule,
   ],
   providers: [ForumService],
   controllers: [ForumController],

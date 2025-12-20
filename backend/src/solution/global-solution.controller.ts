@@ -8,8 +8,11 @@ import {
   Query,
   Req,
   UseGuards,
+  Delete,
+  Patch,
 } from '@nestjs/common';
 import { CreateSolutionCommentDto } from './dto/create-solution-comment.dto';
+import { CreateSolutionDto } from './dto/create-solution.dto';
 
 import { SolutionService } from './solution.service';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
@@ -39,6 +42,38 @@ export class GlobalSolutionController {
       throw new BadRequestException('userId is required');
     }
     return this.solutionService.findAllByUser(effectiveUserId);
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string): Promise<any> {
+    return this.solutionService.findOne(id);
+  }
+
+  @Delete(':id')
+  @UseGuards(AuthGuard)
+  delete(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<any> {
+    const user = req.user;
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return this.solutionService.delete(id, user.id);
+  }
+
+  @Patch(':id')
+  @UseGuards(AuthGuard)
+  update(
+    @Param('id') id: string,
+    @Body() dto: CreateSolutionDto,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<any> {
+    const user = req.user;
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return this.solutionService.update(id, user.id, dto);
   }
 
   @Get(':id/comments')

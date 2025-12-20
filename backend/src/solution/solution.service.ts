@@ -1,7 +1,17 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { VoteService } from '../vote/vote.service';
-import { VoteTargetType } from '@prisma/client';
+import {
+  Solution,
+  User,
+  SolutionComment,
+  VoteTargetType,
+} from '@prisma/client';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
 import type { CreateSolutionDto } from './dto/create-solution.dto';
 import type { CreateSolutionCommentDto } from './dto/create-solution-comment.dto';
@@ -93,66 +103,8 @@ export class SolutionService {
 
     const items = solutions.map((solution) => {
       const votes = voteMap.get(solution.id) || { likes: 0, dislikes: 0 };
-      const upvotes = votes.likes;
-      const downvotes = votes.dislikes;
       const userVote = userVoteMap.get(solution.id) || 0;
-
-      return {
-        id: solution.id,
-        title: solution.title,
-        summary: solution.summary || '',
-        highlight: solution.title,
-        flair: '',
-        badges: [],
-        authorId: solution.user_id,
-        author: {
-          id: solution.author.id,
-          username: solution.author.username,
-          name: solution.author.name || solution.author.username,
-          role: 'User',
-          avatarColor: '#94a3b8',
-          avatar: solution.author.avatar || undefined,
-        },
-        stats: {
-          views: solution.views,
-          comments: solution.comments.length,
-          likes: upvotes,
-          dislikes: downvotes,
-        },
-        userVote: userVote as 0 | 1 | -1,
-        score: upvotes - downvotes,
-        is_pinned: false,
-        is_locked: false,
-        created_at: solution.created_at.toISOString(),
-        publishedAt: solution.created_at.toISOString(),
-        language: solution.language,
-        languageFilter: solution.language.toLowerCase(),
-        topic: {
-          id:
-            Array.isArray(solution.tags) && typeof solution.tags[0] === 'string'
-              ? solution.tags[0]
-              : 'general',
-          name:
-            Array.isArray(solution.tags) &&
-            typeof solution.tags[0] === 'string' &&
-            TOPIC_MAP[solution.tags[0]]
-              ? TOPIC_MAP[solution.tags[0]]
-              : 'General',
-        },
-        topicName:
-          Array.isArray(solution.tags) &&
-          typeof solution.tags[0] === 'string' &&
-          TOPIC_MAP[solution.tags[0]]
-            ? TOPIC_MAP[solution.tags[0]]
-            : 'General',
-        content: solution.content,
-        tags: (Array.isArray(solution.tags) ? solution.tags : []) as string[],
-        votes: upvotes,
-        views: solution.views,
-        likes: upvotes,
-        dislikes: downvotes,
-        comments: solution.comments.length,
-      };
+      return this.mapToFeedItem(solution, votes, userVote);
     });
 
     return {
@@ -189,62 +141,7 @@ export class SolutionService {
 
     const items = solutions.map((solution) => {
       const votes = voteMap.get(solution.id) || { likes: 0, dislikes: 0 };
-      const upvotes = votes.likes;
-      const downvotes = votes.dislikes;
-
-      return {
-        id: solution.id,
-        title: solution.title,
-        summary: solution.summary || '',
-        highlight: solution.title,
-        flair: '',
-        badges: [],
-        authorId: solution.user_id,
-        author: {
-          id: solution.author.id,
-          username: solution.author.username,
-          name: solution.author.name || solution.author.username,
-          role: 'User',
-          avatarColor: '#94a3b8',
-          avatar: solution.author.avatar || undefined,
-        },
-        stats: {
-          views: solution.views,
-          comments: solution.comments.length,
-          likes: upvotes,
-        },
-        score: upvotes - downvotes,
-        is_pinned: false,
-        is_locked: false,
-        created_at: solution.created_at.toISOString(),
-        publishedAt: solution.created_at.toISOString(),
-        language: solution.language,
-        languageFilter: solution.language.toLowerCase(),
-        topic: {
-          id:
-            Array.isArray(solution.tags) && typeof solution.tags[0] === 'string'
-              ? solution.tags[0]
-              : 'general',
-          name:
-            Array.isArray(solution.tags) &&
-            typeof solution.tags[0] === 'string' &&
-            TOPIC_MAP[solution.tags[0]]
-              ? TOPIC_MAP[solution.tags[0]]
-              : 'General',
-        },
-        topicName:
-          Array.isArray(solution.tags) &&
-          typeof solution.tags[0] === 'string' &&
-          TOPIC_MAP[solution.tags[0]]
-            ? TOPIC_MAP[solution.tags[0]]
-            : 'General',
-        content: solution.content,
-        tags: (Array.isArray(solution.tags) ? solution.tags : []) as string[],
-        votes: upvotes,
-        views: solution.views,
-        likes: upvotes,
-        comments: solution.comments.length,
-      };
+      return this.mapToFeedItem(solution, votes);
     });
 
     return {
@@ -325,6 +222,138 @@ export class SolutionService {
       },
       include: {
         author: true,
+      },
+    });
+  }
+
+  async findOne(id: string) {
+    const solution = await this.prisma.solution.findUnique({
+      where: { id },
+      include: {
+        author: true,
+        comments: true,
+      },
+    });
+
+    if (!solution) {
+      return null;
+    }
+
+    const votes = await this.voteService.getVoteCountsBatch(
+      VoteTargetType.SOLUTION,
+      [id],
+    );
+    return this.mapToFeedItem(
+      solution,
+      votes.get(id) || { likes: 0, dislikes: 0 },
+    );
+  }
+
+  private mapToFeedItem(
+    solution: Solution & { author: User; comments: SolutionComment[] },
+    votes: { likes: number; dislikes: number },
+    userVote: number = 0,
+  ) {
+    const upvotes = votes.likes;
+    const downvotes = votes.dislikes;
+
+    return {
+      id: solution.id,
+      problem_id: solution.problem_id.toString(),
+      title: solution.title,
+      summary: solution.summary || '',
+      highlight: solution.title,
+      flair: '',
+      badges: [],
+      authorId: solution.user_id,
+      author: {
+        id: solution.author.id,
+        username: solution.author.username,
+        name: solution.author.name || solution.author.username,
+        role: 'User',
+        avatarColor: '#94a3b8',
+        avatar: solution.author.avatar || undefined,
+      },
+      stats: {
+        views: solution.views,
+        comments: solution.comments.length,
+        likes: upvotes,
+        dislikes: downvotes,
+      },
+      userVote: userVote as 0 | 1 | -1,
+      score: upvotes - downvotes,
+      is_pinned: false,
+      is_locked: false,
+      created_at: solution.created_at.toISOString(),
+      publishedAt: solution.created_at.toISOString(),
+      language: solution.language,
+      languageFilter: solution.language.toLowerCase(),
+      topic: {
+        id:
+          Array.isArray(solution.tags) && typeof solution.tags[0] === 'string'
+            ? solution.tags[0]
+            : 'general',
+        name:
+          Array.isArray(solution.tags) &&
+          typeof solution.tags[0] === 'string' &&
+          TOPIC_MAP[solution.tags[0]]
+            ? TOPIC_MAP[solution.tags[0]]
+            : 'General',
+      },
+      topicName:
+        Array.isArray(solution.tags) &&
+        typeof solution.tags[0] === 'string' &&
+        TOPIC_MAP[solution.tags[0]]
+          ? TOPIC_MAP[solution.tags[0]]
+          : 'General',
+      content: solution.content,
+      tags: (Array.isArray(solution.tags) ? solution.tags : []) as string[],
+      votes: upvotes,
+      views: solution.views,
+      likes: upvotes,
+      dislikes: downvotes,
+      comments: solution.comments.length,
+    };
+  }
+
+  async delete(id: string, userId: string) {
+    const solution = await this.prisma.solution.findUnique({
+      where: { id },
+    });
+
+    if (!solution) {
+      throw new NotFoundException('Solution not found');
+    }
+
+    if (solution.user_id !== userId) {
+      throw new ForbiddenException('You can only delete your own solutions');
+    }
+
+    return this.prisma.solution.delete({
+      where: { id },
+    });
+  }
+
+  async update(id: string, userId: string, dto: CreateSolutionDto) {
+    const solution = await this.prisma.solution.findUnique({
+      where: { id },
+    });
+
+    if (!solution) {
+      throw new NotFoundException('Solution not found');
+    }
+
+    if (solution.user_id !== userId) {
+      throw new ForbiddenException('You can only update your own solutions');
+    }
+
+    return this.prisma.solution.update({
+      where: { id },
+      data: {
+        title: dto.title,
+        content: dto.content,
+        language: dto.language,
+        tags: dto.tags ?? [],
       },
     });
   }

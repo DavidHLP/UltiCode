@@ -45,6 +45,7 @@ export interface ProblemListProblem {
   isPremium: boolean;
   hasSolution: boolean;
   completedTime?: Date | null;
+  tags: string[];
 }
 
 @Injectable()
@@ -211,7 +212,10 @@ export class ProblemListService {
       return [];
     }
 
-    const problems = await this.problemsRepository.findBy({ id: In(ids) });
+    const problems = await this.problemsRepository.find({
+      where: { id: In(ids) },
+      relations: ['tagRelations', 'tagRelations.tag'],
+    });
     const problemMap = new Map<number, Problem>();
     problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
     const validIds = ids.filter((id) => problemMap.has(id));
@@ -236,6 +240,7 @@ export class ProblemListService {
         completedTime: statusMap
           ? (statusMap.get(Number(problem.id))?.completed_time ?? null)
           : (problem.completed_time ?? null),
+        tags: problem.tagRelations?.map((rel) => rel.tag.label) ?? [],
       }));
   }
 }

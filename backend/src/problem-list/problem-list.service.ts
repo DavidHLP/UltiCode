@@ -5,6 +5,7 @@ import { ProblemListGroup } from './problem-list-group.entity';
 import { ProblemList } from './problem-list.entity';
 import { Problem } from '../problem/problem.entity';
 import problemListData from '../../prisma/seed/data/problem-lists.data';
+import { SubmissionService } from '../submission/submission.service';
 
 export interface ProblemListStats {
   listId: string;
@@ -36,6 +37,7 @@ export class ProblemListService {
     private listsRepository: Repository<ProblemList>,
     @InjectRepository(Problem)
     private problemsRepository: Repository<Problem>,
+    private submissionService: SubmissionService,
   ) {}
 
   async findAll(): Promise<ProblemListGroup[]> {
@@ -80,7 +82,7 @@ export class ProblemListService {
     return list ?? null;
   }
 
-  async getStats(): Promise<ProblemListStats[]> {
+  async getStats(userId?: string): Promise<ProblemListStats[]> {
     const lists = await this.listsRepository.find();
     const relations = problemListData.problem_list_relations ?? [];
     const listIds = new Set(lists.map((list) => list.id));
@@ -95,6 +97,10 @@ export class ProblemListService {
         : [];
     const problemMap = new Map<number, Problem>();
     problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
+    const statusMap =
+      userId && problemIds.length > 0
+        ? await this.submissionService.getProblemStatusMap(userId, problemIds)
+        : null;
 
     const grouped = new Map<string, number[]>();
     scopedRelations.forEach((rel) => {
@@ -112,8 +118,11 @@ export class ProblemListService {
       ids.forEach((id) => {
         const problem = problemMap.get(id);
         if (!problem) return;
-        if (problem.status === 'solved') solvedCount += 1;
-        else if (problem.status === 'attempted') attemptedCount += 1;
+        const status = statusMap
+          ? (statusMap.get(id)?.status ?? 'todo')
+          : problem.status;
+        if (status === 'solved') solvedCount += 1;
+        else if (status === 'attempted') attemptedCount += 1;
         else todoCount += 1;
       });
 
@@ -132,7 +141,10 @@ export class ProblemListService {
     });
   }
 
-  async getProblemsByListId(listId: string): Promise<ProblemListProblem[]> {
+  async getProblemsByListId(
+    listId: string,
+    userId?: string,
+  ): Promise<ProblemListProblem[]> {
     const relations = problemListData.problem_list_relations ?? [];
     const listRelations = relations.filter((rel) => rel.list_id === listId);
     const ids = listRelations.map((rel) => rel.problem_id);
@@ -143,6 +155,9 @@ export class ProblemListService {
     const problems = await this.problemsRepository.findBy({ id: In(ids) });
     const problemMap = new Map<number, Problem>();
     problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
+    const statusMap = userId
+      ? await this.submissionService.getProblemStatusMap(userId, ids)
+      : null;
 
     return ids
       .map((id) => problemMap.get(id))
@@ -153,10 +168,14 @@ export class ProblemListService {
         title: problem.title,
         difficulty: problem.difficulty,
         acceptance_rate: Number(problem.acceptance_rate),
-        status: problem.status,
+        status: statusMap
+          ? (statusMap.get(Number(problem.id))?.status ?? 'todo')
+          : problem.status,
         is_premium: problem.is_premium,
         has_solution: problem.has_solution,
-        completed_time: problem.completed_time ?? null,
+        completed_time: statusMap
+          ? (statusMap.get(Number(problem.id))?.completed_time ?? null)
+          : (problem.completed_time ?? null),
       }));
   }
 }

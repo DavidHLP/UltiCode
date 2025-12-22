@@ -25,6 +25,21 @@ interface AuthenticatedRequest extends Request {
 export class SubmissionController {
   constructor(private readonly submissionService: SubmissionService) {}
 
+  @Get('status/map')
+  async getStatusMap(
+    @Query('userId') userId: string,
+    @Req() req?: AuthenticatedRequest,
+  ) {
+    const effectiveUserId = userId || req?.user?.id;
+    if (!effectiveUserId) {
+      throw new BadRequestException('userId is required');
+    }
+    const map =
+      await this.submissionService.getProblemStatusMap(effectiveUserId);
+    // Convert Map to object for JSON response
+    return Object.fromEntries(map);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.submissionService.findOne(id);

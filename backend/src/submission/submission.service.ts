@@ -89,17 +89,18 @@ export class SubmissionService {
 
   async getProblemStatusMap(
     userId: string,
-    problemIds: number[],
+    problemIds?: number[],
   ): Promise<Map<number, ProblemStatusSummary>> {
-    if (!problemIds.length) {
-      return new Map();
+    const whereCondition: Prisma.SubmissionWhereInput = {
+      user_id: userId,
+    };
+
+    if (problemIds && problemIds.length > 0) {
+      whereCondition.problem_id = { in: problemIds };
     }
 
     const submissions = await this.prisma.submission.findMany({
-      where: {
-        user_id: userId,
-        problem_id: { in: problemIds },
-      },
+      where: whereCondition,
       select: {
         problem_id: true,
         status: true,

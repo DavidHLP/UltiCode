@@ -1,4 +1,4 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ProblemListService } from './problem-list.service';
 import { ProblemListGroup } from './problem-list-group.entity';
 import { ProblemList } from './problem-list.entity';
@@ -17,13 +17,16 @@ export class ProblemListController {
   }
 
   @Get('stats')
-  getStats(): Promise<ProblemListStats[]> {
-    return this.problemListService.getStats();
+  getStats(@Query('userId') userId?: string): Promise<ProblemListStats[]> {
+    return this.problemListService.getStats(userId);
   }
 
   @Get(':id/problems')
-  getProblems(@Param('id') id: string): Promise<ProblemListProblem[]> {
-    return this.problemListService.getProblemsByListId(id);
+  getProblems(
+    @Param('id') id: string,
+    @Query('userId') userId?: string,
+  ): Promise<ProblemListProblem[]> {
+    return this.problemListService.getProblemsByListId(id, userId);
   }
 
   @Get(':id')

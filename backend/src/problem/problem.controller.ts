@@ -18,14 +18,24 @@ export class ProblemController {
   @Get()
   async findAll(
     @Query('userId') userId?: string,
+    @Query('category') category?: string,
+    @Query('difficulty') difficulty?: string,
+    @Query('search') search?: string,
     @Req() req?: AuthenticatedRequest,
   ): Promise<Problem[]> {
-    const problems = await this.problemService.findAll();
+    const problems = await this.problemService.findAll({
+      category,
+      difficulty,
+      search,
+    });
     const effectiveUserId = userId || req?.user?.id;
     if (!effectiveUserId) {
       return problems;
     }
     const problemIds = problems.map((problem) => Number(problem.id));
+    if (problemIds.length === 0) {
+      return [];
+    }
     const statusMap = await this.submissionService.getProblemStatusMap(
       effectiveUserId,
       problemIds,

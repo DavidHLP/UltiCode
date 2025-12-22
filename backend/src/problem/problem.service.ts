@@ -13,8 +13,56 @@ export class ProblemService {
     private problemDetailsRepository: Repository<ProblemDetail>,
   ) {}
 
-  async findAll(): Promise<Problem[]> {
-    return this.problemsRepository.find();
+  async findAll(
+    filters: {
+      category?: string;
+      difficulty?: string;
+      search?: string;
+    } = {},
+  ): Promise<Problem[]> {
+    const query = this.problemsRepository
+      .createQueryBuilder('problem')
+      .leftJoinAndSelect('problem.tagRelations', 'tagRelations')
+      .leftJoinAndSelect('tagRelations.tag', 'tag');
+
+    if (filters.difficulty) {
+      query.andWhere('problem.difficulty = :difficulty', {
+        difficulty: filters.difficulty,
+      });
+    }
+
+    if (filters.search) {
+      query.andWhere(
+        '(LOWER(problem.title) LIKE LOWER(:search) OR problem.id::text LIKE :search)',
+        { search: `%${filters.search}%` },
+      );
+    }
+
+    if (filters.category && filters.category !== 'all') {
+      // Map frontend category to tag labels
+      const categoryMap: Record<string, string> = {
+        algorithms: 'Algorithms',
+        database: 'Database',
+        shell: 'Shell',
+        concurrency: 'Concurrency',
+      };
+      const tagLabel = categoryMap[filters.category];
+      if (tagLabel) {
+        query.andWhere((qb) => {
+          const subQuery = qb
+            .subQuery()
+            .select('relation.problem_id')
+            .from('problem_tag_relations', 'relation')
+            .leftJoin('relation.tag', 't')
+            .where('t.label = :tagLabel')
+            .getQuery();
+          return `problem.id IN ${subQuery}`;
+        });
+        query.setParameter('tagLabel', tagLabel);
+      }
+    }
+
+    return query.getMany();
   }
 
   async findOne(idOrSlug: string | number): Promise<Problem | null> {

@@ -5,6 +5,9 @@ export const PROBLEM_IDS = {
   MERGE_INTERVALS: 3,
   MEDIAN_OF_TWO_SORTED_ARRAYS: 4,
   NUMBER_OF_ISLANDS: 5,
+  COMBINE_TWO_TABLES: 6,
+  TENTH_LINE: 7,
+  PRINT_FOOBAR_ALTERNATELY: 8,
 } as const;
 
 const data = {
@@ -54,6 +57,33 @@ const data = {
       is_premium: false,
       has_solution: true,
     },
+    {
+      id: PROBLEM_IDS.COMBINE_TWO_TABLES,
+      slug: 'combine-two-tables',
+      title: 'Combine Two Tables',
+      difficulty: 'Easy',
+      acceptance_rate: 75.1,
+      is_premium: false,
+      has_solution: true,
+    },
+    {
+      id: PROBLEM_IDS.TENTH_LINE,
+      slug: 'tenth-line',
+      title: 'Tenth Line',
+      difficulty: 'Easy',
+      acceptance_rate: 33.2,
+      is_premium: false,
+      has_solution: true,
+    },
+    {
+      id: PROBLEM_IDS.PRINT_FOOBAR_ALTERNATELY,
+      slug: 'print-foobar-alternately',
+      title: 'Print FooBar Alternately',
+      difficulty: 'Medium',
+      acceptance_rate: 61.5,
+      is_premium: false,
+      has_solution: true,
+    },
   ],
   problem_tags: [
     { id: 'array', label: 'Array' },
@@ -67,6 +97,9 @@ const data = {
     { id: 'dfs', label: 'Depth-First Search' },
     { id: 'bfs', label: 'Breadth-First Search' },
     { id: 'matrix', label: 'Matrix' },
+    { id: 'database', label: 'Database' },
+    { id: 'shell', label: 'Shell' },
+    { id: 'concurrency', label: 'Concurrency' },
   ],
   problem_tag_relations: [
     { problem_id: PROBLEM_IDS.TWO_SUM, tag_id: 'array' },
@@ -89,6 +122,9 @@ const data = {
     { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'dfs' },
     { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'bfs' },
     { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'matrix' },
+    { problem_id: PROBLEM_IDS.COMBINE_TWO_TABLES, tag_id: 'database' },
+    { problem_id: PROBLEM_IDS.TENTH_LINE, tag_id: 'shell' },
+    { problem_id: PROBLEM_IDS.PRINT_FOOBAR_ALTERNATELY, tag_id: 'concurrency' },
   ],
 } as const;
 

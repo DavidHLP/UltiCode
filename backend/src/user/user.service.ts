@@ -16,6 +16,22 @@ export class UserService {
     return this.usersRepository.find();
   }
 
+  async getProfileWithRank(
+    id: string,
+  ): Promise<(User & { rank: number | null }) | null> {
+    const user = await this.usersRepository.findOneBy({ id });
+    if (!user) return null;
+
+    const rankRecord = await this.prisma.globalRanking.findUnique({
+      where: { user_id: id },
+    });
+
+    return {
+      ...user,
+      rank: rankRecord?.global_rank ?? null,
+    };
+  }
+
   findOne(id: string): Promise<User | null> {
     return this.usersRepository.findOneBy({ id });
   }

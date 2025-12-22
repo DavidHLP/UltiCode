@@ -29,8 +29,10 @@ export class UserController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<User | null> {
-    return this.userService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+  ): Promise<(User & { rank: number | null }) | null> {
+    return this.userService.getProfileWithRank(id);
   }
 
   @UseGuards(AuthGuard)

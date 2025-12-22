@@ -98,6 +98,41 @@ const data = {
         'grid[i][j] is "0" or "1".',
       ],
     },
+    {
+      id: 'pd-combine-two-tables',
+      problem_id: PROBLEM_IDS.COMBINE_TWO_TABLES,
+      slug: 'combine-two-tables',
+      summary:
+        'Write a SQL query to report the first name, last name, city, and state of each person in the Person table. If the address of a personId is not present in the Address table, report null instead.',
+      companies: ['Amazon', 'Apple', 'Google'],
+      difficulty_rating: 1100,
+      updated_at: now,
+      follow_up: null,
+      constraints_json: ['The tables Person and Address exist.'],
+    },
+    {
+      id: 'pd-tenth-line',
+      problem_id: PROBLEM_IDS.TENTH_LINE,
+      slug: 'tenth-line',
+      summary: 'Given a text file `file.txt`, print just the 10th line of the file.',
+      companies: ['Google', 'Amazon', 'Facebook'],
+      difficulty_rating: 1200,
+      updated_at: now,
+      follow_up: null,
+      constraints_json: ['file.txt exists.'],
+    },
+    {
+      id: 'pd-print-foobar',
+      problem_id: PROBLEM_IDS.PRINT_FOOBAR_ALTERNATELY,
+      slug: 'print-foobar-alternately',
+      summary:
+        'Suppose you are given the following code... The same instance of FooBar will be passed to two different threads. Thread A will call foo() and thread B will call bar(). Modify the program to output "foobar" n times.',
+      companies: ['Google', 'Amazon', 'Microsoft'],
+      difficulty_rating: 1500,
+      updated_at: now,
+      follow_up: null,
+      constraints_json: ['n is an integer.'],
+    },
   ],
   problem_examples: [
     {

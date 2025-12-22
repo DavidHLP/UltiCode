@@ -35,7 +35,7 @@ export class ProblemController {
       return {
         ...problem,
         status: entry?.status ?? 'todo',
-        completed_time: entry?.completed_time ?? problem.completed_time ?? null,
+        completed_time: entry ? entry.completed_time : null,
       };
     });
   }
@@ -64,7 +64,7 @@ export class ProblemController {
     return {
       ...problem,
       status: entry?.status ?? 'todo',
-      completed_time: entry?.completed_time ?? problem.completed_time ?? null,
+      completed_time: entry ? entry.completed_time : null,
     };
   }
 

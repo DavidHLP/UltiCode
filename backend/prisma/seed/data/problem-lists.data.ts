@@ -66,6 +66,16 @@ const data = {
   ],
   problem_list_relations: [
     { list_id: 'list-essentials', problem_id: PROBLEM_IDS.TWO_SUM },
+    { list_id: 'list-essentials', problem_id: PROBLEM_IDS.COMBINE_TWO_TABLES },
+    { list_id: 'list-essentials', problem_id: PROBLEM_IDS.TENTH_LINE },
+    {
+      list_id: 'list-essentials',
+      problem_id: PROBLEM_IDS.PRINT_FOOBAR_ALTERNATELY,
+    },
+    {
+      list_id: 'list-essentials',
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
+    },
     { list_id: 'list-sliding-window', problem_id: PROBLEM_IDS.TWO_SUM },
     {
       list_id: 'list-sliding-window',

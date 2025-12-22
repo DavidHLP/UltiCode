@@ -1,8 +1,8 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 import { ProblemListService } from './problem-list.service';
-import { ProblemListGroup } from './problem-list-group.entity';
-import { ProblemList } from './problem-list.entity';
 import type {
+  ProblemListGroupSummary,
+  ProblemListSummary,
   ProblemListStats,
   ProblemListProblem,
 } from './problem-list.service';
@@ -12,7 +12,7 @@ export class ProblemListController {
   constructor(private readonly problemListService: ProblemListService) {}
 
   @Get()
-  findAll(): Promise<ProblemListGroup[]> {
+  findAll(): Promise<ProblemListGroupSummary[]> {
     return this.problemListService.findAll();
   }
 
@@ -30,7 +30,7 @@ export class ProblemListController {
   }
 
   @Get(':id')
-  async getList(@Param('id') id: string): Promise<ProblemList> {
+  async getList(@Param('id') id: string): Promise<ProblemListSummary | null> {
     const list = await this.problemListService.getListById(id);
     if (list) {
       return list;

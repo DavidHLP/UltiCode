@@ -7,6 +7,25 @@ import { Problem } from '../problem/problem.entity';
 import problemListData from '../../prisma/seed/data/problem-lists.data';
 import { SubmissionService } from '../submission/submission.service';
 
+export interface ProblemListSummary {
+  id: string;
+  groupId: string;
+  name: string;
+  description?: string;
+  authorId: string;
+  isPublic: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  problemCount: number;
+}
+
+export interface ProblemListGroupSummary {
+  id: string;
+  name: string;
+  sortOrder: number;
+  lists: ProblemListSummary[];
+}
+
 export interface ProblemListStats {
   listId: string;
   totalCount: number;
@@ -21,11 +40,11 @@ export interface ProblemListProblem {
   slug: string;
   title: string;
   difficulty: string;
-  acceptance_rate: number;
+  acceptanceRate: number;
   status: string;
-  is_premium: boolean;
-  has_solution: boolean;
-  completed_time?: Date | null;
+  isPremium: boolean;
+  hasSolution: boolean;
+  completedTime?: Date | null;
 }
 
 @Injectable()
@@ -40,46 +59,84 @@ export class ProblemListService {
     private submissionService: SubmissionService,
   ) {}
 
-  async findAll(): Promise<ProblemListGroup[]> {
+  private async buildProblemCountMap(): Promise<Map<string, number>> {
+    const relations = problemListData.problem_list_relations ?? [];
+    const problemIds = Array.from(
+      new Set(relations.map((rel) => rel.problem_id)),
+    );
+    const problems =
+      problemIds.length > 0
+        ? await this.problemsRepository.findBy({ id: In(problemIds) })
+        : [];
+    const validProblemIds = new Set(
+      problems.map((problem) => Number(problem.id)),
+    );
+    const countMap = new Map<string, number>();
+    relations.forEach((rel) => {
+      if (!validProblemIds.has(rel.problem_id)) return;
+      countMap.set(rel.list_id, (countMap.get(rel.list_id) ?? 0) + 1);
+    });
+    return countMap;
+  }
+
+  private mapList(list: ProblemList, problemCount: number): ProblemListSummary {
+    return {
+      id: list.id,
+      groupId: list.group_id,
+      name: list.name,
+      description: list.description ?? undefined,
+      authorId: list.author_id,
+      isPublic: list.is_public,
+      createdAt: list.created_at,
+      updatedAt: list.updated_at,
+      problemCount,
+    };
+  }
+
+  private mapGroup(
+    group: ProblemListGroup,
+    countMap: Map<string, number>,
+  ): ProblemListGroupSummary {
+    return {
+      id: group.id,
+      name: group.name,
+      sortOrder: group.sort_order,
+      lists: (group.lists ?? []).map((list) =>
+        this.mapList(list, countMap.get(list.id) ?? 0),
+      ),
+    };
+  }
+
+  async findAll(): Promise<ProblemListGroupSummary[]> {
     const groups = await this.groupsRepository.find({
       relations: ['lists'],
       order: { sort_order: 'ASC' },
     });
-    const relations = problemListData.problem_list_relations ?? [];
-    const countMap = new Map<string, number>();
-    relations.forEach((rel) => {
-      countMap.set(rel.list_id, (countMap.get(rel.list_id) ?? 0) + 1);
-    });
-
-    return groups.map((group) => ({
-      ...group,
-      lists: (group.lists ?? []).map((list) => ({
-        ...list,
-        problem_count: countMap.get(list.id) ?? 0,
-      })),
-    }));
+    const countMap = await this.buildProblemCountMap();
+    return groups.map((group) => this.mapGroup(group, countMap));
   }
 
-  async getDefaultList(): Promise<ProblemList> {
-    // Return the first list as a simple mock
+  async getDefaultList(): Promise<ProblemListSummary | null> {
     const list = await this.listsRepository.findOne({
       relations: ['group'],
       where: {},
       order: { created_at: 'ASC' },
     });
     if (list) {
-      return list;
+      const countMap = await this.buildProblemCountMap();
+      return this.mapList(list, countMap.get(list.id) ?? 0);
     }
-    // fallback to first from seed data if table empty
-    return null as unknown as ProblemList;
+    return null;
   }
 
-  async getListById(listId: string): Promise<ProblemList | null> {
+  async getListById(listId: string): Promise<ProblemListSummary | null> {
     const list = await this.listsRepository.findOne({
       where: { id: listId },
       relations: ['group'],
     });
-    return list ?? null;
+    if (!list) return null;
+    const countMap = await this.buildProblemCountMap();
+    return this.mapList(list, countMap.get(list.id) ?? 0);
   }
 
   async getStats(userId?: string): Promise<ProblemListStats[]> {
@@ -97,6 +154,7 @@ export class ProblemListService {
         : [];
     const problemMap = new Map<number, Problem>();
     problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
+    const validProblemIds = new Set(problemMap.keys());
     const statusMap =
       userId && problemIds.length > 0
         ? await this.submissionService.getProblemStatusMap(userId, problemIds)
@@ -104,6 +162,7 @@ export class ProblemListService {
 
     const grouped = new Map<string, number[]>();
     scopedRelations.forEach((rel) => {
+      if (!validProblemIds.has(rel.problem_id)) return;
       const list = grouped.get(rel.list_id) ?? [];
       list.push(rel.problem_id);
       grouped.set(rel.list_id, list);
@@ -155,11 +214,12 @@ export class ProblemListService {
     const problems = await this.problemsRepository.findBy({ id: In(ids) });
     const problemMap = new Map<number, Problem>();
     problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
+    const validIds = ids.filter((id) => problemMap.has(id));
     const statusMap = userId
-      ? await this.submissionService.getProblemStatusMap(userId, ids)
+      ? await this.submissionService.getProblemStatusMap(userId, validIds)
       : null;
 
-    return ids
+    return validIds
       .map((id) => problemMap.get(id))
       .filter((problem): problem is Problem => Boolean(problem))
       .map((problem) => ({
@@ -167,13 +227,13 @@ export class ProblemListService {
         slug: problem.slug,
         title: problem.title,
         difficulty: problem.difficulty,
-        acceptance_rate: Number(problem.acceptance_rate),
+        acceptanceRate: Number(problem.acceptance_rate),
         status: statusMap
           ? (statusMap.get(Number(problem.id))?.status ?? 'todo')
           : problem.status,
-        is_premium: problem.is_premium,
-        has_solution: problem.has_solution,
-        completed_time: statusMap
+        isPremium: problem.is_premium,
+        hasSolution: problem.has_solution,
+        completedTime: statusMap
           ? (statusMap.get(Number(problem.id))?.completed_time ?? null)
           : (problem.completed_time ?? null),
       }));

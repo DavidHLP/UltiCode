@@ -1,7 +1,12 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { ProblemService } from './problem.service';
 import { Problem } from './problem.entity';
 import { SubmissionService } from '../submission/submission.service';
+
+interface AuthenticatedRequest extends Request {
+  user?: { id: string };
+}
 
 @Controller('problems')
 export class ProblemController {
@@ -11,8 +16,28 @@ export class ProblemController {
   ) {}
 
   @Get()
-  findAll(): Promise<Problem[]> {
-    return this.problemService.findAll();
+  async findAll(
+    @Query('userId') userId?: string,
+    @Req() req?: AuthenticatedRequest,
+  ): Promise<Problem[]> {
+    const problems = await this.problemService.findAll();
+    const effectiveUserId = userId || req?.user?.id;
+    if (!effectiveUserId) {
+      return problems;
+    }
+    const problemIds = problems.map((problem) => Number(problem.id));
+    const statusMap = await this.submissionService.getProblemStatusMap(
+      effectiveUserId,
+      problemIds,
+    );
+    return problems.map((problem) => {
+      const entry = statusMap.get(Number(problem.id));
+      return {
+        ...problem,
+        status: entry?.status ?? 'todo',
+        completed_time: entry?.completed_time ?? problem.completed_time ?? null,
+      };
+    });
   }
 
   @Get('random')
@@ -21,8 +46,26 @@ export class ProblemController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Problem | null> {
-    return this.problemService.findOne(id);
+  async findOne(
+    @Param('id') id: string,
+    @Query('userId') userId?: string,
+    @Req() req?: AuthenticatedRequest,
+  ): Promise<Problem | null> {
+    const problem = await this.problemService.findOne(id);
+    const effectiveUserId = userId || req?.user?.id;
+    if (!problem || !effectiveUserId) {
+      return problem;
+    }
+    const statusMap = await this.submissionService.getProblemStatusMap(
+      effectiveUserId,
+      [Number(problem.id)],
+    );
+    const entry = statusMap.get(Number(problem.id));
+    return {
+      ...problem,
+      status: entry?.status ?? 'todo',
+      completed_time: entry?.completed_time ?? problem.completed_time ?? null,
+    };
   }
 
   @Get(':id/results')

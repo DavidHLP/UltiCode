@@ -35,7 +35,7 @@ export class Problem {
   has_solution: boolean;
 
   @Column({ type: 'date', nullable: true })
-  completed_time: Date;
+  completed_time: Date | null;
 
   @OneToOne(() => ProblemDetail, (detail) => detail.problem)
   detail: ProblemDetail;

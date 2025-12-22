@@ -1,4 +1,5 @@
 import { USER_IDS } from './users.data';
+import { PROBLEM_IDS } from './problems.data';
 
 const data = {
   problem_list_groups: [
@@ -64,14 +65,20 @@ const data = {
     },
   ],
   problem_list_relations: [
-    { list_id: 'list-essentials', problem_id: 1 },
-    { list_id: 'list-sliding-window', problem_id: 1 },
-    { list_id: 'list-sliding-window', problem_id: 2 },
-    { list_id: 'list-intervals', problem_id: 3 },
-    { list_id: 'list-intervals', problem_id: 1 },
-    { list_id: 'list-graph-dfs', problem_id: 5 },
-    { list_id: 'list-hard-bench', problem_id: 4 },
-    { list_id: 'list-hard-bench', problem_id: 3 },
+    { list_id: 'list-essentials', problem_id: PROBLEM_IDS.TWO_SUM },
+    { list_id: 'list-sliding-window', problem_id: PROBLEM_IDS.TWO_SUM },
+    {
+      list_id: 'list-sliding-window',
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
+    },
+    { list_id: 'list-intervals', problem_id: PROBLEM_IDS.MERGE_INTERVALS },
+    { list_id: 'list-intervals', problem_id: PROBLEM_IDS.TWO_SUM },
+    { list_id: 'list-graph-dfs', problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS },
+    {
+      list_id: 'list-hard-bench',
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
+    },
+    { list_id: 'list-hard-bench', problem_id: PROBLEM_IDS.MERGE_INTERVALS },
   ],
   problem_list_saved_relations: [
     { user_id: USER_IDS.SHADCN, list_id: 'list-essentials' },

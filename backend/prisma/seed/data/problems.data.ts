@@ -86,6 +86,7 @@ const data = {
     },
   ],
   problem_tags: [
+    { id: 'algorithms', label: 'Algorithms' },
     { id: 'array', label: 'Array' },
     { id: 'hash-table', label: 'Hash Table' },
     { id: 'string', label: 'String' },
@@ -100,16 +101,41 @@ const data = {
     { id: 'database', label: 'Database' },
     { id: 'shell', label: 'Shell' },
     { id: 'concurrency', label: 'Concurrency' },
+    { id: 'math', label: 'Math' },
+    { id: 'dynamic-programming', label: 'Dynamic Programming' },
+    { id: 'greedy', label: 'Greedy' },
+    { id: 'two-pointers', label: 'Two Pointers' },
+    { id: 'stack', label: 'Stack' },
+    { id: 'queue', label: 'Queue' },
+    { id: 'heap', label: 'Heap (Priority Queue)' },
+    { id: 'graph', label: 'Graph' },
+    { id: 'tree', label: 'Tree' },
+    { id: 'design', label: 'Design' },
+    { id: 'bit-manipulation', label: 'Bit Manipulation' },
+    { id: 'union-find', label: 'Union Find' },
+    { id: 'linked-list', label: 'Linked List' },
+    { id: 'recursion', label: 'Recursion' },
+    { id: 'backtracking', label: 'Backtracking' },
   ],
   problem_tag_relations: [
+    { problem_id: PROBLEM_IDS.TWO_SUM, tag_id: 'algorithms' },
     { problem_id: PROBLEM_IDS.TWO_SUM, tag_id: 'array' },
     { problem_id: PROBLEM_IDS.TWO_SUM, tag_id: 'hash-table' },
+
+    { problem_id: PROBLEM_IDS.LONGEST_SUBSTRING, tag_id: 'algorithms' },
     { problem_id: PROBLEM_IDS.LONGEST_SUBSTRING, tag_id: 'string' },
     { problem_id: PROBLEM_IDS.LONGEST_SUBSTRING, tag_id: 'sliding-window' },
     { problem_id: PROBLEM_IDS.LONGEST_SUBSTRING, tag_id: 'hash-table' },
+
+    { problem_id: PROBLEM_IDS.MERGE_INTERVALS, tag_id: 'algorithms' },
     { problem_id: PROBLEM_IDS.MERGE_INTERVALS, tag_id: 'array' },
     { problem_id: PROBLEM_IDS.MERGE_INTERVALS, tag_id: 'sorting' },
     { problem_id: PROBLEM_IDS.MERGE_INTERVALS, tag_id: 'intervals' },
+
+    {
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
+      tag_id: 'algorithms',
+    },
     { problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS, tag_id: 'array' },
     {
       problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
@@ -119,11 +145,17 @@ const data = {
       problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       tag_id: 'divide-and-conquer',
     },
+
+    { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'algorithms' },
     { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'dfs' },
     { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'bfs' },
+    { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'union-find' },
     { problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS, tag_id: 'matrix' },
+
     { problem_id: PROBLEM_IDS.COMBINE_TWO_TABLES, tag_id: 'database' },
+
     { problem_id: PROBLEM_IDS.TENTH_LINE, tag_id: 'shell' },
+
     { problem_id: PROBLEM_IDS.PRINT_FOOBAR_ALTERNATELY, tag_id: 'concurrency' },
   ],
 } as const;

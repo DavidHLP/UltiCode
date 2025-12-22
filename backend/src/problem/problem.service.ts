@@ -3,6 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Problem } from './problem.entity';
 import { ProblemDetail } from './problem-detail.entity';
+import { CATEGORY_TAG_MAP } from './constants';
 
 @Injectable()
 export class ProblemService {
@@ -40,13 +41,7 @@ export class ProblemService {
 
     if (filters.category && filters.category !== 'all') {
       // Map frontend category to tag labels
-      const categoryMap: Record<string, string> = {
-        algorithms: 'Algorithms',
-        database: 'Database',
-        shell: 'Shell',
-        concurrency: 'Concurrency',
-      };
-      const tagLabel = categoryMap[filters.category];
+      const tagLabel = CATEGORY_TAG_MAP[filters.category];
       if (tagLabel) {
         query.andWhere((qb) => {
           const subQuery = qb

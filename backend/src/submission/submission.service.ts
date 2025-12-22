@@ -2,6 +2,11 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Submission, Prisma } from '@prisma/client';
 
+type ProblemStatusSummary = {
+  status: 'solved' | 'attempted' | 'todo';
+  completed_time: Date | null;
+};
+
 @Injectable()
 export class SubmissionService {
   constructor(private prisma: PrismaService) {}
@@ -80,6 +85,54 @@ export class SubmissionService {
     });
 
     return submission;
+  }
+
+  async getProblemStatusMap(
+    userId: string,
+    problemIds: number[],
+  ): Promise<Map<number, ProblemStatusSummary>> {
+    if (!problemIds.length) {
+      return new Map();
+    }
+
+    const submissions = await this.prisma.submission.findMany({
+      where: {
+        user_id: userId,
+        problem_id: { in: problemIds },
+      },
+      select: {
+        problem_id: true,
+        status: true,
+        created_at: true,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+    });
+
+    const statusMap = new Map<number, ProblemStatusSummary>();
+
+    for (const submission of submissions) {
+      const problemId = Number(submission.problem_id);
+      const existing = statusMap.get(problemId);
+      const isAccepted = submission.status === 'Accepted';
+
+      if (isAccepted) {
+        if (!existing || existing.status !== 'solved') {
+          statusMap.set(problemId, {
+            status: 'solved',
+            completed_time: submission.created_at,
+          });
+        }
+        continue;
+      }
+
+      if (!existing) {
+        statusMap.set(problemId, { status: 'attempted', completed_time: null });
+      }
+    }
+
+    return statusMap;
   }
 
   async findOne(id: string): Promise<Submission> {

@@ -1,9 +1,4 @@
-import {
-  PrismaClient,
-  Difficulty,
-  ProblemStatus,
-  Prisma,
-} from '@prisma/client';
+import { PrismaClient, Difficulty, Prisma } from '@prisma/client';
 import problemsData from './data/problems.data';
 import problemDetailsData from './data/problem-details.data';
 
@@ -37,10 +32,8 @@ export async function seedProblems(
         title: p.title,
         difficulty: p.difficulty as Difficulty,
         acceptance_rate: p.acceptance_rate,
-        status: p.status as ProblemStatus,
         is_premium: p.is_premium,
         has_solution: p.has_solution,
-        completed_time: p.completed_time ? new Date(p.completed_time) : null,
       },
     });
   }

@@ -32,7 +32,7 @@ model User {
 
   solutions        Solution[]
   solutionComments SolutionComment[]
-  votes            Vote[]
+  edgeOperations   EdgeOperation[]
   submissions      Submission[]
   contestRankings ContestRanking[]
   contestParticipants ContestParticipant[]
@@ -435,21 +435,29 @@ model SolutionComment {
   @@map("solution_comments")
 }
 
-model Vote {
-  id          String         @id @default(uuid()) @db.VarChar(40)
-  target_id   String         @db.VarChar(40)
-  target_type VoteTargetType
-  user_id     String         @db.VarChar(40)
-  vote_type   Int // 1: upvote, -1: downvote
+model EdgeOperation {
+  id             String                 @id @default(uuid()) @db.VarChar(40)
+  target_id      String                 @db.VarChar(40)
+  target_type    EdgeOperationTargetType
+  operator_id    String                 @db.VarChar(40)
+  operation_type EdgeOperationType
 
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  operator User @relation(fields: [operator_id], references: [id], onDelete: Cascade)
 
-  @@unique([user_id, target_type, target_id])
-  @@index([target_type, target_id])
-  @@map("votes")
+  @@unique([operator_id, operation_type, target_type, target_id], map: "edge_ops_unique")
+  @@index([target_type, target_id], map: "edge_ops_target")
+  @@index([operation_type, target_type, target_id], map: "edge_ops_operation_target")
+  @@map("edge_operations")
 }
 
-enum VoteTargetType {
+enum EdgeOperationType {
+  VOTE_UP
+  VOTE_DOWN
+  CHARGE
+  ANALYZE
+}
+
+enum EdgeOperationTargetType {
   SOLUTION
   SOLUTION_COMMENT
   FORUM_POST

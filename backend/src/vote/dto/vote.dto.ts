@@ -1,10 +1,10 @@
 import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { VoteTargetType } from '@prisma/client';
+import { EdgeOperationTargetType } from '@prisma/client';
 
 export class VoteDto {
-  @IsEnum(VoteTargetType)
+  @IsEnum(EdgeOperationTargetType)
   @IsNotEmpty()
-  targetType: VoteTargetType;
+  targetType: EdgeOperationTargetType;
 
   @IsString()
   @IsNotEmpty()

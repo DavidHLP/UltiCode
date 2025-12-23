@@ -9,7 +9,7 @@
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\"",
     "start": "nest start",
-    "start:dev": "npm run lint && npm run type-check && npm run format && npm run db:reset && nest start --watch",
+    "start:dev": "npm run lint && npm run type-check && npm run format && npm run prisma:generate && npm run db:reset && nest start --watch",
     "start:dev:reset": "npm run db:reset && nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/main",

@@ -453,6 +453,7 @@ model EdgeOperation {
 enum EdgeOperationType {
   VOTE_UP
   VOTE_DOWN
+  FAVORITE
   CHARGE
   ANALYZE
 }

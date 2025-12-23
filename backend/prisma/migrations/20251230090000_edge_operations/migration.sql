@@ -13,7 +13,7 @@ CREATE TABLE `edge_operations` (
     `target_id` VARCHAR(40) NOT NULL,
     `target_type` ENUM('SOLUTION', 'SOLUTION_COMMENT', 'FORUM_POST', 'FORUM_COMMENT', 'PROBLEM') NOT NULL,
     `operator_id` VARCHAR(40) NOT NULL,
-    `operation_type` ENUM('VOTE_UP', 'VOTE_DOWN', 'CHARGE', 'ANALYZE') NOT NULL,
+    `operation_type` ENUM('VOTE_UP', 'VOTE_DOWN', 'FAVORITE', 'CHARGE', 'ANALYZE') NOT NULL,
 
     INDEX `edge_ops_target`(`target_type`, `target_id`),
     INDEX `edge_ops_operation_target`(`operation_type`, `target_type`, `target_id`),

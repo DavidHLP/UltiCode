@@ -40,6 +40,23 @@ export async function seedProblemLists(
     });
   }
 
+  // Seed problem list relations
+  for (const relation of problemListsData.problem_list_relations) {
+    const sort_order =
+      problemListsData.problem_list_relations.findIndex(
+        (r) =>
+          r.list_id === relation.list_id && r.problem_id === relation.problem_id,
+      ) + 1;
+
+    await prisma.problemListProblemRelation.create({
+      data: {
+        list_id: relation.list_id,
+        problem_id: relation.problem_id,
+        sort_order: sort_order,
+      },
+    });
+  }
+
   return {
     count: problemListsData.problem_lists.length,
   };

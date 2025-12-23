@@ -1,11 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, Repository, DataSource } from 'typeorm';
 import { ProblemListGroup } from './problem-list-group.entity';
 import { ProblemList } from './problem-list.entity';
 import { Problem } from '../problem/problem.entity';
-import problemListData from '../../prisma/seed/data/problem-lists.data';
 import { SubmissionService } from '../submission/submission.service';
+import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
+import { v4 as uuidv4 } from 'uuid';
 
 export interface ProblemListSummary {
   id: string;
@@ -57,25 +62,23 @@ export class ProblemListService {
     private listsRepository: Repository<ProblemList>,
     @InjectRepository(Problem)
     private problemsRepository: Repository<Problem>,
+    @InjectRepository(ProblemListProblemRelation)
+    private relationsRepository: Repository<ProblemListProblemRelation>,
     private submissionService: SubmissionService,
+    private dataSource: DataSource,
   ) {}
 
   private async buildProblemCountMap(): Promise<Map<string, number>> {
-    const relations = problemListData.problem_list_relations ?? [];
-    const problemIds = Array.from(
-      new Set(relations.map((rel) => rel.problem_id)),
-    );
-    const problems =
-      problemIds.length > 0
-        ? await this.problemsRepository.findBy({ id: In(problemIds) })
-        : [];
-    const validProblemIds = new Set(
-      problems.map((problem) => Number(problem.id)),
-    );
+    const counts = await this.relationsRepository
+      .createQueryBuilder('relation')
+      .select('relation.list_id', 'listId')
+      .addSelect('COUNT(relation.problem_id)', 'count')
+      .groupBy('relation.list_id')
+      .getRawMany<{ listId: string; count: string }>();
+
     const countMap = new Map<string, number>();
-    relations.forEach((rel) => {
-      if (!validProblemIds.has(rel.problem_id)) return;
-      countMap.set(rel.list_id, (countMap.get(rel.list_id) ?? 0) + 1);
+    counts.forEach((item) => {
+      countMap.set(item.listId, Number(item.count));
     });
     return countMap;
   }
@@ -136,17 +139,20 @@ export class ProblemListService {
       relations: ['group'],
     });
     if (!list) return null;
-    const countMap = await this.buildProblemCountMap();
-    return this.mapList(list, countMap.get(list.id) ?? 0);
+    const count = await this.relationsRepository.count({
+      where: { list_id: listId },
+    });
+    return this.mapList(list, count);
   }
 
   async getStats(userId?: string): Promise<ProblemListStats[]> {
     const lists = await this.listsRepository.find();
-    const relations = problemListData.problem_list_relations ?? [];
-    const listIds = new Set(lists.map((list) => list.id));
-    const scopedRelations = relations.filter((rel) => listIds.has(rel.list_id));
+
+    // Fetch all relations
+    const relations = await this.relationsRepository.find();
+
     const problemIds = Array.from(
-      new Set(scopedRelations.map((rel) => rel.problem_id)),
+      new Set(relations.map((rel) => Number(rel.problem_id))),
     );
 
     const problems =
@@ -155,17 +161,18 @@ export class ProblemListService {
         : [];
     const problemMap = new Map<number, Problem>();
     problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
-    const validProblemIds = new Set(problemMap.keys());
+
     const statusMap =
       userId && problemIds.length > 0
         ? await this.submissionService.getProblemStatusMap(userId, problemIds)
         : null;
 
     const grouped = new Map<string, number[]>();
-    scopedRelations.forEach((rel) => {
-      if (!validProblemIds.has(rel.problem_id)) return;
+    relations.forEach((rel) => {
+      const pid = Number(rel.problem_id);
+      if (!problemMap.has(pid)) return;
       const list = grouped.get(rel.list_id) ?? [];
-      list.push(rel.problem_id);
+      list.push(pid);
       grouped.set(rel.list_id, list);
     });
 
@@ -205,26 +212,29 @@ export class ProblemListService {
     listId: string,
     userId?: string,
   ): Promise<ProblemListProblem[]> {
-    const relations = problemListData.problem_list_relations ?? [];
-    const listRelations = relations.filter((rel) => rel.list_id === listId);
-    const ids = listRelations.map((rel) => rel.problem_id);
-    if (ids.length === 0) {
+    const relations = await this.relationsRepository.find({
+      where: { list_id: listId },
+      order: { sort_order: 'ASC', added_at: 'ASC' },
+      relations: [
+        'problem',
+        'problem.tagRelations',
+        'problem.tagRelations.tag',
+      ],
+    });
+
+    if (relations.length === 0) {
       return [];
     }
 
-    const problems = await this.problemsRepository.find({
-      where: { id: In(ids) },
-      relations: ['tagRelations', 'tagRelations.tag'],
-    });
-    const problemMap = new Map<number, Problem>();
-    problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
-    const validIds = ids.filter((id) => problemMap.has(id));
+    // Extract unique problem IDs
+    const ids = relations.map((r) => Number(r.problem_id));
+
     const statusMap = userId
-      ? await this.submissionService.getProblemStatusMap(userId, validIds)
+      ? await this.submissionService.getProblemStatusMap(userId, ids)
       : null;
 
-    return validIds
-      .map((id) => problemMap.get(id))
+    return relations
+      .map((rel) => rel.problem)
       .filter((problem): problem is Problem => Boolean(problem))
       .map((problem) => ({
         id: Number(problem.id),
@@ -242,5 +252,150 @@ export class ProblemListService {
           : (problem.completed_time ?? null),
         tags: problem.tagRelations?.map((rel) => rel.tag.label) ?? [],
       }));
+  }
+
+  // --- New Methods ---
+
+  async forkList(listId: string, userId: string): Promise<string> {
+    const originalList = await this.listsRepository.findOne({
+      where: { id: listId },
+    });
+    if (!originalList) {
+      throw new NotFoundException('List not found');
+    }
+
+    const relations = await this.relationsRepository.find({
+      where: { list_id: listId },
+    });
+
+    const newListId = uuidv4();
+    const newList = this.listsRepository.create({
+      id: newListId,
+      group_id: 'group-created', // Default group for created lists
+      name: `${originalList.name} (Copy)`,
+      description: originalList.description,
+      author_id: userId,
+      is_public: false, // Private by default
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    await this.dataSource.transaction(async (manager) => {
+      await manager.save(newList);
+      const newRelations = relations.map((r) =>
+        this.relationsRepository.create({
+          list_id: newListId,
+          problem_id: r.problem_id,
+          sort_order: r.sort_order,
+        }),
+      );
+      await manager.save(newRelations);
+    });
+
+    return newListId;
+  }
+
+  async deleteList(listId: string, userId: string): Promise<void> {
+    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    if (!list) {
+      throw new NotFoundException('List not found');
+    }
+    if (list.author_id !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to delete this list',
+      );
+    }
+
+    // Relations will be deleted by CASCADE
+    await this.listsRepository.remove(list);
+  }
+
+  async updateList(
+    listId: string,
+    userId: string,
+    data: { name?: string; description?: string; isPublic?: boolean },
+  ): Promise<ProblemListSummary> {
+    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    if (!list) {
+      throw new NotFoundException('List not found');
+    }
+    if (list.author_id !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to edit this list',
+      );
+    }
+
+    if (data.name !== undefined) list.name = data.name;
+    if (data.description !== undefined)
+      list.description = data.description ?? '';
+    if (data.isPublic !== undefined) list.is_public = data.isPublic;
+    list.updated_at = new Date();
+
+    await this.listsRepository.save(list);
+
+    const count = await this.relationsRepository.count({
+      where: { list_id: listId },
+    });
+    return this.mapList(list, count);
+  }
+
+  async addProblem(
+    listId: string,
+    userId: string,
+    problemId: number,
+  ): Promise<void> {
+    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    if (!list) {
+      throw new NotFoundException('List not found');
+    }
+    if (list.author_id !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to edit this list',
+      );
+    }
+
+    const problem = await this.problemsRepository.findOne({
+      where: { id: problemId },
+    });
+    if (!problem) {
+      throw new NotFoundException('Problem not found');
+    }
+
+    const exists = await this.relationsRepository.findOne({
+      where: { list_id: listId, problem_id: problemId },
+    });
+    if (exists) return; // Already added
+
+    const count = await this.relationsRepository.count({
+      where: { list_id: listId },
+    });
+
+    const relation = this.relationsRepository.create({
+      list_id: listId,
+      problem_id: problemId,
+      sort_order: count, // Append to end
+    });
+    await this.relationsRepository.save(relation);
+  }
+
+  async removeProblem(
+    listId: string,
+    userId: string,
+    problemId: number,
+  ): Promise<void> {
+    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    if (!list) {
+      throw new NotFoundException('List not found');
+    }
+    if (list.author_id !== userId) {
+      throw new ForbiddenException(
+        'You do not have permission to edit this list',
+      );
+    }
+
+    await this.relationsRepository.delete({
+      list_id: listId,
+      problem_id: problemId,
+    });
   }
 }

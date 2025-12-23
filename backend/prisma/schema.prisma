@@ -77,6 +77,7 @@ model Problem {
   solutions    Solution[]
   submissions  Submission[]
   problemNotes ProblemNote[]
+  problemListRelations ProblemListProblemRelation[]
 
   @@map("problems")
 }
@@ -373,8 +374,22 @@ model ProblemList {
   updated_at  DateTime
 
   group ProblemListGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
+  problemRelations ProblemListProblemRelation[]
 
   @@map("problem_lists")
+}
+
+model ProblemListProblemRelation {
+  list_id    String   @db.VarChar(40)
+  problem_id BigInt
+  sort_order Int      @default(0)
+  added_at   DateTime @default(now())
+
+  list    ProblemList @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  problem Problem     @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@id([list_id, problem_id])
+  @@map("problem_list_problem_relations")
 }
 
 // ============================================================================

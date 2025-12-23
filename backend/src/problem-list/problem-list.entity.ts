@@ -1,5 +1,13 @@
-import { Entity, Column, PrimaryColumn, ManyToOne, JoinColumn } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryColumn,
+  ManyToOne,
+  JoinColumn,
+  OneToMany,
+} from 'typeorm';
 import { ProblemListGroup } from './problem-list-group.entity';
+import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
 
 @Entity('problem_lists')
 export class ProblemList {
@@ -27,6 +35,9 @@ export class ProblemList {
 
   @Column()
   created_at: Date;
+
+  @OneToMany(() => ProblemListProblemRelation, (relation) => relation.list)
+  problemRelations: ProblemListProblemRelation[];
 
   @Column()
   updated_at: Date;

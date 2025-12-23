@@ -6,10 +6,16 @@ import { ProblemList } from './problem-list.entity';
 import { ProblemListGroup } from './problem-list-group.entity';
 import { Problem } from '../problem/problem.entity';
 import { SubmissionModule } from '../submission/submission.module';
+import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([ProblemList, ProblemListGroup, Problem]),
+    TypeOrmModule.forFeature([
+      ProblemList,
+      ProblemListGroup,
+      Problem,
+      ProblemListProblemRelation,
+    ]),
     SubmissionModule,
   ],
   providers: [ProblemListService],

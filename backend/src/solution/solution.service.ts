@@ -10,7 +10,7 @@ import {
   Solution,
   User,
   SolutionComment,
-  VoteTargetType,
+  EdgeOperationTargetType,
 } from '@prisma/client';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
 import type { CreateSolutionDto } from './dto/create-solution.dto';
@@ -87,7 +87,7 @@ export class SolutionService {
     // Batch fetch votes
     const solutionIds = solutions.map((s) => s.id);
     const voteMap = await this.voteService.getVoteCountsBatch(
-      VoteTargetType.SOLUTION,
+      EdgeOperationTargetType.SOLUTION,
       solutionIds,
     );
 
@@ -96,7 +96,7 @@ export class SolutionService {
     if (userId) {
       userVoteMap = await this.voteService.getUserVotesBatch(
         userId,
-        VoteTargetType.SOLUTION,
+        EdgeOperationTargetType.SOLUTION,
         solutionIds,
       );
     }
@@ -135,7 +135,7 @@ export class SolutionService {
     // Batch fetch votes
     const solutionIds = solutions.map((s) => s.id);
     const voteMap = await this.voteService.getVoteCountsBatch(
-      VoteTargetType.SOLUTION,
+      EdgeOperationTargetType.SOLUTION,
       solutionIds,
     );
 
@@ -172,7 +172,7 @@ export class SolutionService {
     // Batch fetch votes for comments
     const commentIds = comments.map((c) => c.id);
     const voteMap = await this.voteService.getVoteCountsBatch(
-      VoteTargetType.SOLUTION_COMMENT,
+      EdgeOperationTargetType.SOLUTION_COMMENT,
       commentIds,
     );
 
@@ -181,7 +181,7 @@ export class SolutionService {
     if (userId) {
       userVoteMap = await this.voteService.getUserVotesBatch(
         userId,
-        VoteTargetType.SOLUTION_COMMENT,
+        EdgeOperationTargetType.SOLUTION_COMMENT,
         commentIds,
       );
     }
@@ -240,7 +240,7 @@ export class SolutionService {
     }
 
     const votes = await this.voteService.getVoteCountsBatch(
-      VoteTargetType.SOLUTION,
+      EdgeOperationTargetType.SOLUTION,
       [id],
     );
     return this.mapToFeedItem(

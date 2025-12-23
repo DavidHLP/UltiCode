@@ -1,5 +1,5 @@
 // prisma/seed/seed-solutions.ts
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, EdgeOperationType } from '@prisma/client';
 import solutionsData from './data/solutions.data';
 
 /**
@@ -8,7 +8,12 @@ import solutionsData from './data/solutions.data';
 export async function clearSolutions(prisma: PrismaClient): Promise<void> {
   // Delete in order of dependencies (child tables first)
   // Delete in order of dependencies (child tables first)
-  await prisma.vote.deleteMany({ where: { target_type: 'SOLUTION' } });
+  await prisma.edgeOperation.deleteMany({
+    where: {
+      target_type: 'SOLUTION',
+      operation_type: { in: [EdgeOperationType.VOTE_UP, EdgeOperationType.VOTE_DOWN] },
+    },
+  });
   await prisma.solutionComment.deleteMany();
   await prisma.solution.deleteMany();
 }

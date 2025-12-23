@@ -17,7 +17,7 @@ import { CreateSolutionDto } from './dto/create-solution.dto';
 import { SolutionService } from './solution.service';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
 import { VoteService } from '../vote/vote.service';
-import { VoteTargetType } from '@prisma/client';
+import { EdgeOperationTargetType } from '@prisma/client';
 import { AuthGuard } from '../auth/auth.guard';
 import type { Request } from 'express';
 
@@ -107,7 +107,7 @@ export class GlobalSolutionController {
       throw new BadRequestException('user not found');
     }
     return this.voteService.vote(user.id, {
-      targetType: VoteTargetType.SOLUTION,
+      targetType: EdgeOperationTargetType.SOLUTION,
       targetId: id,
       voteType,
     });
@@ -125,7 +125,7 @@ export class GlobalSolutionController {
       throw new BadRequestException('user not found');
     }
     return this.voteService.vote(user.id, {
-      targetType: VoteTargetType.SOLUTION_COMMENT,
+      targetType: EdgeOperationTargetType.SOLUTION_COMMENT,
       targetId: id,
       voteType,
     });

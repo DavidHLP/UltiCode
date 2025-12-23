@@ -1,7 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { VoteDto } from './dto/vote.dto';
-import { VoteTargetType, Prisma } from '@prisma/client';
+import {
+  EdgeOperationTargetType,
+  EdgeOperationType,
+  Prisma,
+} from '@prisma/client';
 
 type Tx = Prisma.TransactionClient;
 
@@ -11,17 +15,20 @@ export class VoteService {
 
   async vote(userId: string, dto: VoteDto) {
     const { targetType, targetId, voteType } = dto;
+    const operationType =
+      voteType === 1 ? EdgeOperationType.VOTE_UP : EdgeOperationType.VOTE_DOWN;
 
     // 1. Transaction: Handle vote logic + generic vote table update
     // We do this in a transaction to ensure data integrity
     return await this.prisma.$transaction(async (tx: Tx) => {
-      // Find existing vote
-      const existingVote = await tx.vote.findUnique({
+      // Find existing vote operations (up/down)
+      const existingVote = await tx.edgeOperation.findFirst({
         where: {
-          user_id_target_type_target_id: {
-            user_id: userId,
-            target_type: targetType,
-            target_id: targetId,
+          operator_id: userId,
+          target_type: targetType,
+          target_id: targetId,
+          operation_type: {
+            in: [EdgeOperationType.VOTE_UP, EdgeOperationType.VOTE_DOWN],
           },
         },
       });
@@ -29,26 +36,26 @@ export class VoteService {
       let finalVoteType = 0; // 0 means no vote (neutral)
 
       if (existingVote) {
-        if (existingVote.vote_type === voteType) {
+        if (existingVote.operation_type === operationType) {
           // Toggle off: remove vote
-          await tx.vote.delete({ where: { id: existingVote.id } });
+          await tx.edgeOperation.delete({ where: { id: existingVote.id } });
           finalVoteType = 0;
         } else {
           // Change vote
-          await tx.vote.update({
+          await tx.edgeOperation.update({
             where: { id: existingVote.id },
-            data: { vote_type: voteType },
+            data: { operation_type: operationType },
           });
           finalVoteType = voteType;
         }
       } else {
         // Create new vote
-        await tx.vote.create({
+        await tx.edgeOperation.create({
           data: {
-            user_id: userId,
+            operator_id: userId,
             target_type: targetType,
             target_id: targetId,
-            vote_type: voteType,
+            operation_type: operationType,
           },
         });
         finalVoteType = voteType;
@@ -63,15 +70,18 @@ export class VoteService {
   }
 
   async getVoteCounts(
-    targetType: VoteTargetType,
+    targetType: EdgeOperationTargetType,
     targetId: string,
     tx: Tx = this.prisma,
   ) {
-    const aggregates = await tx.vote.groupBy({
-      by: ['vote_type'],
+    const aggregates = await tx.edgeOperation.groupBy({
+      by: ['operation_type'],
       where: {
         target_type: targetType,
         target_id: targetId,
+        operation_type: {
+          in: [EdgeOperationType.VOTE_UP, EdgeOperationType.VOTE_DOWN],
+        },
       },
       _count: true,
     });
@@ -80,19 +90,26 @@ export class VoteService {
     let dislikes = 0;
 
     aggregates.forEach((agg) => {
-      if (agg.vote_type === 1) likes = agg._count;
-      if (agg.vote_type === -1) dislikes = agg._count;
+      if (agg.operation_type === EdgeOperationType.VOTE_UP) likes = agg._count;
+      if (agg.operation_type === EdgeOperationType.VOTE_DOWN)
+        dislikes = agg._count;
     });
 
     return { likes, dislikes };
   }
 
-  async getVoteCountsBatch(targetType: VoteTargetType, targetIds: string[]) {
-    const aggregates = await this.prisma.vote.groupBy({
-      by: ['target_id', 'vote_type'],
+  async getVoteCountsBatch(
+    targetType: EdgeOperationTargetType,
+    targetIds: string[],
+  ) {
+    const aggregates = await this.prisma.edgeOperation.groupBy({
+      by: ['target_id', 'operation_type'],
       where: {
         target_type: targetType,
         target_id: { in: targetIds },
+        operation_type: {
+          in: [EdgeOperationType.VOTE_UP, EdgeOperationType.VOTE_DOWN],
+        },
       },
       _count: true,
     });
@@ -107,8 +124,10 @@ export class VoteService {
     aggregates.forEach((agg) => {
       const stats = result.get(agg.target_id);
       if (stats) {
-        if (agg.vote_type === 1) stats.likes = agg._count;
-        if (agg.vote_type === -1) stats.dislikes = agg._count;
+        if (agg.operation_type === EdgeOperationType.VOTE_UP)
+          stats.likes = agg._count;
+        if (agg.operation_type === EdgeOperationType.VOTE_DOWN)
+          stats.dislikes = agg._count;
       }
     });
 
@@ -117,24 +136,30 @@ export class VoteService {
 
   async getUserVotesBatch(
     userId: string,
-    targetType: VoteTargetType,
+    targetType: EdgeOperationTargetType,
     targetIds: string[],
   ): Promise<Map<string, number>> {
-    const votes = await this.prisma.vote.findMany({
+    const votes = await this.prisma.edgeOperation.findMany({
       where: {
-        user_id: userId,
+        operator_id: userId,
         target_type: targetType,
         target_id: { in: targetIds },
+        operation_type: {
+          in: [EdgeOperationType.VOTE_UP, EdgeOperationType.VOTE_DOWN],
+        },
       },
       select: {
         target_id: true,
-        vote_type: true,
+        operation_type: true,
       },
     });
 
     const result = new Map<string, number>();
     votes.forEach((v) => {
-      result.set(v.target_id, v.vote_type);
+      result.set(
+        v.target_id,
+        v.operation_type === EdgeOperationType.VOTE_UP ? 1 : -1,
+      );
     });
     return result;
   }

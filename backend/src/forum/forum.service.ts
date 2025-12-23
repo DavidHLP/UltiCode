@@ -6,7 +6,7 @@ import { ForumPost } from './entities/post.entity';
 import { ForumCommunity } from './entities/community.entity';
 import { ForumComment } from './entities/comment.entity';
 import { VoteService } from '../vote/vote.service';
-import { VoteTargetType } from '@prisma/client';
+import { EdgeOperationTargetType } from '@prisma/client';
 
 @Injectable()
 export class ForumService {
@@ -28,7 +28,7 @@ export class ForumService {
 
     const postIds = posts.map((p) => p.id);
     const voteMap = await this.voteService.getVoteCountsBatch(
-      VoteTargetType.FORUM_POST,
+      EdgeOperationTargetType.FORUM_POST,
       postIds,
     );
 
@@ -57,7 +57,10 @@ export class ForumService {
     }
 
     const stats: { likes: number; dislikes: number } =
-      await this.voteService.getVoteCounts(VoteTargetType.FORUM_POST, id);
+      await this.voteService.getVoteCounts(
+        EdgeOperationTargetType.FORUM_POST,
+        id,
+      );
 
     return {
       ...post,
@@ -85,7 +88,7 @@ export class ForumService {
 
       // 1. Fetch Post Stats
       const postStats = await this.voteService.getVoteCounts(
-        VoteTargetType.FORUM_POST,
+        EdgeOperationTargetType.FORUM_POST,
         id,
       );
 
@@ -94,7 +97,7 @@ export class ForumService {
       if (userId) {
         const votes = await this.voteService.getUserVotesBatch(
           userId,
-          VoteTargetType.FORUM_POST,
+          EdgeOperationTargetType.FORUM_POST,
           [id],
         );
         postUserVote = votes.get(id) || 0;
@@ -103,7 +106,7 @@ export class ForumService {
       // 3. Fetch Comment Stats (Batch)
       const commentIds = comments.map((c) => c.id);
       const commentVoteMap = await this.voteService.getVoteCountsBatch(
-        VoteTargetType.FORUM_COMMENT,
+        EdgeOperationTargetType.FORUM_COMMENT,
         commentIds,
       );
 
@@ -112,7 +115,7 @@ export class ForumService {
       if (userId) {
         commentUserVoteMap = await this.voteService.getUserVotesBatch(
           userId,
-          VoteTargetType.FORUM_COMMENT,
+          EdgeOperationTargetType.FORUM_COMMENT,
           commentIds,
         );
       }

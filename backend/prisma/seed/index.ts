@@ -6,10 +6,7 @@ import { clearForum, seedForum } from './seed-forum';
 import { clearProblemLists, seedProblemLists } from './seed-problem-lists';
 import { clearSolutions, seedSolutions } from './seed-solutions';
 import { clearSubmissions, seedSubmissions } from './seed-submissions';
-import {
-  clearEdgeOperations,
-  seedEdgeOperations,
-} from './seed-edge-operations';
+import { clearEdgeOperations } from './seed-edge-operations';
 
 const prisma = new PrismaClient();
 
@@ -65,8 +62,6 @@ async function seedAll(): Promise<void> {
 
   const submissions = await seedSubmissions(prisma);
   console.log(`  ✓ Submissions: ${submissions.count} records`);
-
-  await seedEdgeOperations(prisma);
 
   console.log('✅ All data seeded');
 }

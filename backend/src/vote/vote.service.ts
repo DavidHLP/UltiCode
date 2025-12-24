@@ -163,4 +163,27 @@ export class VoteService {
     });
     return result;
   }
+
+  async getUserVote(
+    userId: string,
+    targetType: EdgeOperationTargetType,
+    targetId: string,
+  ): Promise<number> {
+    const vote = await this.prisma.edgeOperation.findFirst({
+      where: {
+        operator_id: userId,
+        target_type: targetType,
+        target_id: targetId,
+        operation_type: {
+          in: [EdgeOperationType.VOTE_UP, EdgeOperationType.VOTE_DOWN],
+        },
+      },
+      select: {
+        operation_type: true,
+      },
+    });
+
+    if (!vote) return 0;
+    return vote.operation_type === EdgeOperationType.VOTE_UP ? 1 : -1;
+  }
 }

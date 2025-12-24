@@ -25,6 +25,13 @@ export class ProblemListController {
     return this.problemListService.findAll();
   }
 
+  @Get('user/:userId')
+  getListsByUser(
+    @Param('userId') userId: string,
+  ): Promise<ProblemListSummary[]> {
+    return this.problemListService.getListsByUserId(userId);
+  }
+
   @Get('stats')
   getStats(@Query('userId') userId?: string): Promise<ProblemListStats[]> {
     return this.problemListService.getStats(userId);
@@ -89,5 +96,13 @@ export class ProblemListController {
     @Query('userId') userId: string,
   ): Promise<void> {
     return this.problemListService.removeProblem(id, userId, problemId);
+  }
+
+  @Post()
+  async createList(
+    @Query('userId') userId: string,
+    @Body() body: { name: string; description?: string; isPublic?: boolean },
+  ): Promise<ProblemListSummary> {
+    return this.problemListService.createList(userId, body);
   }
 }

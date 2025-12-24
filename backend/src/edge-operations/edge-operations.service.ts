@@ -136,4 +136,56 @@ export class EdgeOperationsService {
       },
     });
   }
+
+  async getInteractions(
+    targetType: EdgeOperationTargetType,
+    targetId: string,
+    userId?: string,
+  ): Promise<EdgeOperationResponse> {
+    const voteCounts = await this.voteService.getVoteCounts(
+      targetType,
+      targetId,
+    );
+    const favorites = await this.getOperationCount(
+      targetType,
+      targetId,
+      EdgeOperationType.FAVORITE,
+    );
+
+    let userOperation: EdgeOperationType | null = null;
+
+    if (userId) {
+      const userVote = await this.voteService.getUserVote(
+        userId,
+        targetType,
+        targetId,
+      );
+      if (userVote === 1) {
+        userOperation = EdgeOperationType.VOTE_UP;
+      } else if (userVote === -1) {
+        userOperation = EdgeOperationType.VOTE_DOWN;
+      } else {
+        const userFavorite = await this.prisma.edgeOperation.findUnique({
+          where: {
+            operator_id_operation_type_target_type_target_id: {
+              operator_id: userId,
+              operation_type: EdgeOperationType.FAVORITE,
+              target_type: targetType,
+              target_id: targetId,
+            },
+          },
+        });
+        if (userFavorite) {
+          userOperation = EdgeOperationType.FAVORITE;
+        }
+      }
+    }
+
+    return {
+      likes: voteCounts.likes,
+      dislikes: voteCounts.dislikes,
+      favorites,
+      userOperation,
+    };
+  }
 }

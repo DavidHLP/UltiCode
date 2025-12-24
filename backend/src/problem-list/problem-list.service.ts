@@ -398,4 +398,33 @@ export class ProblemListService {
       problem_id: problemId,
     });
   }
+
+  async createList(
+    userId: string,
+    data: { name: string; description?: string; isPublic?: boolean },
+  ): Promise<ProblemListSummary> {
+    const newListId = uuidv4();
+    const newList = this.listsRepository.create({
+      id: newListId,
+      group_id: 'group-created',
+      name: data.name,
+      description: data.description ?? '',
+      author_id: userId,
+      is_public: data.isPublic ?? false,
+      created_at: new Date(),
+      updated_at: new Date(),
+    });
+
+    await this.listsRepository.save(newList);
+    return this.mapList(newList, 0);
+  }
+
+  async getListsByUserId(userId: string): Promise<ProblemListSummary[]> {
+    const lists = await this.listsRepository.find({
+      where: { author_id: userId },
+      order: { updated_at: 'DESC' },
+    });
+    const countMap = await this.buildProblemCountMap();
+    return lists.map((list) => this.mapList(list, countMap.get(list.id) ?? 0));
+  }
 }

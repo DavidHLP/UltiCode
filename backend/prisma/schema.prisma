@@ -353,34 +353,27 @@ model ForumComment {
 // ============================================================================
 // PROBLEM LIST MODULE
 // ============================================================================
-model ProblemListGroup {
-  id         String @id @db.VarChar(40)
-  name       String @db.VarChar(120)
-  sort_order Int    @default(0)
 
-  lists ProblemList[]
-
-  @@map("problem_list_groups")
-}
-
+// 题单表：每个题单有作者，可以是公开或私有的
 model ProblemList {
-  id          String   @id @db.VarChar(40)
-  group_id    String   @db.VarChar(40)
+  id          String   @id @db.VarChar(50)
   name        String   @db.VarChar(120)
   description String?  @db.Text
   author_id   String   @db.VarChar(40)
   is_public   Boolean  @default(true)
+  is_featured Boolean  @default(false) // 是否为系统推荐题单
   created_at  DateTime
   updated_at  DateTime
 
-  group ProblemListGroup @relation(fields: [group_id], references: [id], onDelete: Cascade)
   problemRelations ProblemListProblemRelation[]
+  savedByUsers     UserProblemListSave[]
 
   @@map("problem_lists")
 }
 
+// 题单与问题的关联
 model ProblemListProblemRelation {
-  list_id    String   @db.VarChar(40)
+  list_id    String   @db.VarChar(50)
   problem_id BigInt
   sort_order Int      @default(0)
   added_at   DateTime @default(now())
@@ -390,6 +383,37 @@ model ProblemListProblemRelation {
 
   @@id([list_id, problem_id])
   @@map("problem_list_problem_relations")
+}
+
+// 用户保存题单的关系
+model UserProblemListSave {
+  id          String   @id @default(uuid()) @db.VarChar(40)
+  user_id     String   @db.VarChar(40)
+  list_id     String   @db.VarChar(50)
+  category_id String?  @db.VarChar(40) // 可选的自定义分类
+  saved_at    DateTime @default(now())
+
+  list     ProblemList              @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  category UserProblemListCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
+
+  @@unique([user_id, list_id])
+  @@index([user_id])
+  @@map("user_problem_list_saves")
+}
+
+// 用户自定义分类（用于组织保存的题单）
+model UserProblemListCategory {
+  id         String   @id @default(uuid()) @db.VarChar(40)
+  user_id    String   @db.VarChar(40)
+  name       String   @db.VarChar(120)
+  sort_order Int      @default(0)
+  created_at DateTime @default(now())
+
+  savedLists UserProblemListSave[]
+
+  @@unique([user_id, name])
+  @@index([user_id])
+  @@map("user_problem_list_categories")
 }
 
 // ============================================================================

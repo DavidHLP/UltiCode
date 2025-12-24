@@ -11,7 +11,7 @@ import { Problem } from '../problem/problem.entity';
 
 @Entity('problem_list_problem_relations')
 export class ProblemListProblemRelation {
-  @PrimaryColumn({ length: 40 })
+  @PrimaryColumn({ length: 50 })
   list_id: string;
 
   @PrimaryColumn({ type: 'bigint' })

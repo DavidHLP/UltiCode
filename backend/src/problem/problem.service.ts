@@ -34,7 +34,7 @@ export class ProblemService {
 
     if (filters.search) {
       query.andWhere(
-        '(LOWER(problem.title) LIKE LOWER(:search) OR problem.id::text LIKE :search)',
+        '(LOWER(problem.title) LIKE LOWER(:search) OR CAST(problem.id AS CHAR) LIKE :search)',
         { search: `%${filters.search}%` },
       );
     }

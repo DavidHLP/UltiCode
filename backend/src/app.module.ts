@@ -11,7 +11,6 @@ import { ProblemListModule } from './problem-list/problem-list.module';
 import { SubmissionModule } from './submission/submission.module';
 import { AuthModule } from './auth/auth.module';
 import { VoteModule } from './vote/vote.module';
-import { FavoriteModule } from './favorite/favorite.module';
 import { EdgeOperationsModule } from './edge-operations/edge-operations.module';
 import { ProblemNoteModule } from './problem/note/note.module';
 
@@ -33,7 +32,6 @@ import { ViewModule } from './view/view.module';
     ProblemModule,
     SolutionModule,
     VoteModule,
-    FavoriteModule,
     EdgeOperationsModule,
     ProblemNoteModule,
     ViewModule,

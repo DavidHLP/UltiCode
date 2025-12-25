@@ -84,8 +84,8 @@ const data = {
     },
     { list_id: 'list-hard-bench', problem_id: PROBLEM_IDS.MERGE_INTERVALS },
   ],
-  // User saves: which users have saved which lists
-  user_problem_list_saves: [
+  // User favorites: which users have favorited which lists
+  user_problem_list_favorites: [
     { user_id: USER_IDS.SHADCN, list_id: 'list-sliding-window' },
     { user_id: USER_IDS.YUKI, list_id: 'list-essentials' },
     { user_id: USER_IDS.YUKI, list_id: 'list-intervals' },
@@ -105,6 +105,19 @@ const data = {
       user_id: USER_IDS.YUKI,
       name: 'Interview Prep',
       sort_order: 1,
+    },
+  ],
+  // User category items: map favorited lists into categories
+  user_problem_list_category_items: [
+    {
+      user_id: USER_IDS.YUKI,
+      list_id: 'list-essentials',
+      category_id: 'cat-yuki-weekly',
+    },
+    {
+      user_id: USER_IDS.YUKI,
+      list_id: 'list-intervals',
+      category_id: 'cat-yuki-interview',
     },
   ],
 } as const;

@@ -9,9 +9,10 @@ import {
 import { ProblemList } from './problem-list.entity';
 import { UserProblemListCategory } from './user-problem-list-category.entity';
 
-@Entity('user_problem_list_saves')
+@Entity('user_problem_list_category_items')
 @Index(['user_id'])
-export class UserProblemListSave {
+@Index(['user_id', 'category_id'])
+export class UserProblemListCategoryItem {
   @PrimaryGeneratedColumn('uuid', { name: 'id' })
   id: string;
 
@@ -21,22 +22,21 @@ export class UserProblemListSave {
   @Column({ length: 50 })
   list_id: string;
 
-  @Column({ length: 40, nullable: true })
-  category_id: string | null;
+  @Column({ length: 40 })
+  category_id: string;
 
   @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
-  saved_at: Date;
+  created_at: Date;
 
-  @ManyToOne(() => ProblemList, (list) => list.savedByUsers, {
+  @ManyToOne(() => ProblemList, (list) => list.categoryItems, {
     onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'list_id' })
   list: ProblemList;
 
-  @ManyToOne(() => UserProblemListCategory, (category) => category.savedLists, {
-    onDelete: 'SET NULL',
-    nullable: true,
+  @ManyToOne(() => UserProblemListCategory, (category) => category.items, {
+    onDelete: 'CASCADE',
   })
   @JoinColumn({ name: 'category_id' })
-  category: UserProblemListCategory | null;
+  category: UserProblemListCategory;
 }

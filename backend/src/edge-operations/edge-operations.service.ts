@@ -10,11 +10,16 @@ import { EdgeOperationDto } from './dto/edge-operation.dto';
 
 type Tx = Prisma.TransactionClient;
 
+export interface EdgeOperationViewerState {
+  vote: 1 | 0 | -1;
+  isFavorite: boolean;
+}
+
 export interface EdgeOperationResponse {
   likes: number;
   dislikes: number;
   favorites: number;
-  userOperation: EdgeOperationType | null;
+  viewer: EdgeOperationViewerState;
 }
 
 @Injectable()
@@ -46,28 +51,58 @@ export class EdgeOperationsService {
         targetId,
         EdgeOperationType.FAVORITE,
       );
-
-      const userOperation =
-        voteResult.userVote === 1
-          ? EdgeOperationType.VOTE_UP
-          : voteResult.userVote === -1
-            ? EdgeOperationType.VOTE_DOWN
-            : null;
+      const isFavorite = await this.getUserFavorite(
+        userId,
+        targetType,
+        targetId,
+      );
 
       return {
         likes: voteResult.likes,
         dislikes: voteResult.dislikes,
         favorites,
-        userOperation,
+        viewer: {
+          vote: voteResult.userVote,
+          isFavorite,
+        },
       };
     }
 
-    const userOperation = await this.toggleOperation(
-      userId,
-      targetType,
-      targetId,
-      operationType,
-    );
+    if (operationType === EdgeOperationType.FAVORITE) {
+      const isFavorite = await this.toggleOperation(
+        userId,
+        targetType,
+        targetId,
+        operationType,
+      );
+
+      const voteCounts = await this.voteService.getVoteCounts(
+        targetType,
+        targetId,
+      );
+      const favorites = await this.getOperationCount(
+        targetType,
+        targetId,
+        EdgeOperationType.FAVORITE,
+      );
+      const userVote = await this.voteService.getUserVote(
+        userId,
+        targetType,
+        targetId,
+      );
+
+      return {
+        likes: voteCounts.likes,
+        dislikes: voteCounts.dislikes,
+        favorites,
+        viewer: {
+          vote: userVote,
+          isFavorite,
+        },
+      };
+    }
+
+    await this.toggleOperation(userId, targetType, targetId, operationType);
 
     const voteCounts = await this.voteService.getVoteCounts(
       targetType,
@@ -78,12 +113,21 @@ export class EdgeOperationsService {
       targetId,
       EdgeOperationType.FAVORITE,
     );
+    const userVote = await this.voteService.getUserVote(
+      userId,
+      targetType,
+      targetId,
+    );
+    const isFavorite = await this.getUserFavorite(userId, targetType, targetId);
 
     return {
       likes: voteCounts.likes,
       dislikes: voteCounts.dislikes,
       favorites,
-      userOperation,
+      viewer: {
+        vote: userVote,
+        isFavorite,
+      },
     };
   }
 
@@ -92,7 +136,7 @@ export class EdgeOperationsService {
     targetType: EdgeOperationTargetType,
     targetId: string,
     operationType: EdgeOperationType,
-  ): Promise<EdgeOperationType | null> {
+  ): Promise<boolean> {
     return await this.prisma.$transaction(async (tx: Tx) => {
       const existing = await tx.edgeOperation.findUnique({
         where: {
@@ -107,7 +151,7 @@ export class EdgeOperationsService {
 
       if (existing) {
         await tx.edgeOperation.delete({ where: { id: existing.id } });
-        return null;
+        return false;
       }
 
       await tx.edgeOperation.create({
@@ -119,8 +163,26 @@ export class EdgeOperationsService {
         },
       });
 
-      return operationType;
+      return true;
     });
+  }
+
+  private async getUserFavorite(
+    userId: string,
+    targetType: EdgeOperationTargetType,
+    targetId: string,
+  ): Promise<boolean> {
+    const favorite = await this.prisma.edgeOperation.findUnique({
+      where: {
+        operator_id_operation_type_target_type_target_id: {
+          operator_id: userId,
+          operation_type: EdgeOperationType.FAVORITE,
+          target_type: targetType,
+          target_id: targetId,
+        },
+      },
+    });
+    return !!favorite;
   }
 
   private async getOperationCount(
@@ -152,40 +214,25 @@ export class EdgeOperationsService {
       EdgeOperationType.FAVORITE,
     );
 
-    let userOperation: EdgeOperationType | null = null;
-
+    let viewerVote: 1 | 0 | -1 = 0;
+    let isFavorite = false;
     if (userId) {
-      const userVote = await this.voteService.getUserVote(
+      viewerVote = await this.voteService.getUserVote(
         userId,
         targetType,
         targetId,
       );
-      if (userVote === 1) {
-        userOperation = EdgeOperationType.VOTE_UP;
-      } else if (userVote === -1) {
-        userOperation = EdgeOperationType.VOTE_DOWN;
-      } else {
-        const userFavorite = await this.prisma.edgeOperation.findUnique({
-          where: {
-            operator_id_operation_type_target_type_target_id: {
-              operator_id: userId,
-              operation_type: EdgeOperationType.FAVORITE,
-              target_type: targetType,
-              target_id: targetId,
-            },
-          },
-        });
-        if (userFavorite) {
-          userOperation = EdgeOperationType.FAVORITE;
-        }
-      }
+      isFavorite = await this.getUserFavorite(userId, targetType, targetId);
     }
 
     return {
       likes: voteCounts.likes,
       dislikes: voteCounts.dislikes,
       favorites,
-      userOperation,
+      viewer: {
+        vote: viewerVote,
+        isFavorite,
+      },
     };
   }
 }

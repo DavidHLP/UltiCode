@@ -5,7 +5,7 @@ import {
   OneToMany,
   Index,
 } from 'typeorm';
-import { UserProblemListSave } from './user-problem-list-save.entity';
+import { UserProblemListCategoryItem } from './user-problem-list-category-item.entity';
 
 @Entity('user_problem_list_categories')
 @Index(['user_id'])
@@ -25,6 +25,6 @@ export class UserProblemListCategory {
   @Column({ type: 'datetime', default: () => 'CURRENT_TIMESTAMP' })
   created_at: Date;
 
-  @OneToMany(() => UserProblemListSave, (save) => save.category)
-  savedLists: UserProblemListSave[];
+  @OneToMany(() => UserProblemListCategoryItem, (item) => item.category)
+  items: UserProblemListCategoryItem[];
 }

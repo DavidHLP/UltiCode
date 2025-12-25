@@ -5,13 +5,17 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository, DataSource } from 'typeorm';
+import { EdgeOperationTargetType, EdgeOperationType } from '@prisma/client';
 import { ProblemList } from './problem-list.entity';
 import { Problem } from '../problem/problem.entity';
 import { SubmissionService } from '../submission/submission.service';
 import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
-import { UserProblemListSave } from './user-problem-list-save.entity';
+import { UserProblemListCategoryItem } from './user-problem-list-category-item.entity';
 import { UserProblemListCategory } from './user-problem-list-category.entity';
 import { v4 as uuidv4 } from 'uuid';
+import { PrismaService } from '../prisma.service';
+
+const problemListTargetType = 'PROBLEM_LIST' as EdgeOperationTargetType;
 
 // ============================================================================
 // Types
@@ -27,6 +31,7 @@ export interface ProblemListSummary {
   createdAt: Date;
   updatedAt: Date;
   problemCount: number;
+  favoritesCount: number;
   isSaved?: boolean; // Whether current user saved this list
   categoryId?: string; // User's category for this list
 }
@@ -43,6 +48,21 @@ export interface UserProblemListsResponse {
   savedLists: ProblemListSummary[]; // Lists saved by user (from others)
   featured: ProblemListSummary[]; // Featured lists
   categories: CategorySummary[]; // User's custom categories
+}
+
+export interface ProblemListDetailResponse {
+  list: ProblemListSummary | null;
+  problems: ProblemListProblem[];
+  stats: ProblemListStats | null;
+  viewer?: {
+    isSaved: boolean;
+    categoryId: string | null;
+  };
+  categories?: Array<{
+    id: string;
+    name: string;
+    sortOrder: number;
+  }>;
 }
 
 export interface ProblemListStats {
@@ -76,12 +96,13 @@ export class ProblemListService {
     private problemsRepository: Repository<Problem>,
     @InjectRepository(ProblemListProblemRelation)
     private relationsRepository: Repository<ProblemListProblemRelation>,
-    @InjectRepository(UserProblemListSave)
-    private savesRepository: Repository<UserProblemListSave>,
+    @InjectRepository(UserProblemListCategoryItem)
+    private categoryItemsRepository: Repository<UserProblemListCategoryItem>,
     @InjectRepository(UserProblemListCategory)
     private categoriesRepository: Repository<UserProblemListCategory>,
     private submissionService: SubmissionService,
     private dataSource: DataSource,
+    private prisma: PrismaService,
   ) {}
 
   // ============================================================================
@@ -103,9 +124,36 @@ export class ProblemListService {
     return countMap;
   }
 
+  private async buildFavoritesCountMap(
+    listIds?: string[],
+  ): Promise<Map<string, number>> {
+    if (listIds && listIds.length === 0) {
+      return new Map();
+    }
+
+    const where = {
+      target_type: problemListTargetType,
+      operation_type: EdgeOperationType.FAVORITE,
+      ...(listIds ? { target_id: { in: listIds } } : {}),
+    };
+
+    const counts = await this.prisma.edgeOperation.groupBy({
+      by: ['target_id'],
+      where,
+      _count: true,
+    });
+
+    const countMap = new Map<string, number>();
+    counts.forEach((item) => {
+      countMap.set(item.target_id, item._count);
+    });
+    return countMap;
+  }
+
   private mapList(
     list: ProblemList,
     problemCount: number,
+    favoritesCount: number,
     options?: { isSaved?: boolean; categoryId?: string },
   ): ProblemListSummary {
     return {
@@ -118,8 +166,37 @@ export class ProblemListService {
       createdAt: list.created_at,
       updatedAt: list.updated_at,
       problemCount,
+      favoritesCount,
       isSaved: options?.isSaved,
       categoryId: options?.categoryId,
+    };
+  }
+
+  private buildStatsFromProblems(
+    listId: string,
+    problems: ProblemListProblem[],
+  ): ProblemListStats {
+    let solvedCount = 0;
+    let attemptedCount = 0;
+    let todoCount = 0;
+
+    problems.forEach((problem) => {
+      if (problem.status === 'solved') solvedCount += 1;
+      else if (problem.status === 'attempted') attemptedCount += 1;
+      else todoCount += 1;
+    });
+
+    const totalCount = problems.length;
+    const progress =
+      totalCount === 0 ? 0 : Math.round((solvedCount / totalCount) * 100);
+
+    return {
+      listId,
+      totalCount,
+      solvedCount,
+      attemptedCount,
+      todoCount,
+      progress,
     };
   }
 
@@ -130,6 +207,18 @@ export class ProblemListService {
   async getUserProblemLists(userId: string): Promise<UserProblemListsResponse> {
     const countMap = await this.buildProblemCountMap();
 
+    const favorites = await this.prisma.edgeOperation.findMany({
+      where: {
+        operator_id: userId,
+        target_type: problemListTargetType,
+        operation_type: EdgeOperationType.FAVORITE,
+      },
+      select: { target_id: true },
+    });
+
+    const savedListIds = new Set(favorites.map((fav) => fav.target_id));
+    const savedListIdArray = Array.from(savedListIds);
+
     // 1. Get lists created by user
     const myLists = await this.listsRepository.find({
       where: { author_id: userId },
@@ -137,14 +226,16 @@ export class ProblemListService {
     });
 
     // 2. Get user's saved lists (from other authors)
-    const saves = await this.savesRepository.find({
-      where: { user_id: userId },
-      relations: ['list', 'category'],
-    });
+    const savedLists =
+      savedListIdArray.length > 0
+        ? await this.listsRepository.find({
+            where: { id: In(savedListIdArray) },
+            order: { updated_at: 'DESC' },
+          })
+        : [];
 
-    // Filter saves: only include lists from other authors
-    const savedFromOthers = saves.filter(
-      (save) => save.list && save.list.author_id !== userId,
+    const savedFromOthers = savedLists.filter(
+      (list) => list.author_id !== userId,
     );
 
     // 3. Get featured lists
@@ -156,39 +247,73 @@ export class ProblemListService {
     // 4. Get user's categories with their lists
     const categories = await this.categoriesRepository.find({
       where: { user_id: userId },
-      relations: ['savedLists', 'savedLists.list'],
+      relations: ['items', 'items.list'],
       order: { sort_order: 'ASC' },
     });
 
-    // Build saved list IDs set for quick lookup
-    const savedListIds = new Set(saves.map((s) => s.list_id));
+    const categoryMap = new Map<string, string>();
+    categories.forEach((cat) => {
+      (cat.items ?? []).forEach((item) => {
+        if (item.list_id) {
+          categoryMap.set(item.list_id, item.category_id);
+        }
+      });
+    });
+
+    const favoriteCountIds = Array.from(
+      new Set([
+        ...myLists.map((list) => list.id),
+        ...savedLists.map((list) => list.id),
+        ...featuredLists.map((list) => list.id),
+      ]),
+    );
+    const favoritesCountMap =
+      await this.buildFavoritesCountMap(favoriteCountIds);
 
     return {
       myLists: myLists.map((list) =>
-        this.mapList(list, countMap.get(list.id) ?? 0),
+        this.mapList(
+          list,
+          countMap.get(list.id) ?? 0,
+          favoritesCountMap.get(list.id) ?? 0,
+          { isSaved: savedListIds.has(list.id) },
+        ),
       ),
-      savedLists: savedFromOthers.map((save) =>
-        this.mapList(save.list, countMap.get(save.list.id) ?? 0, {
-          isSaved: true,
-          categoryId: save.category_id ?? undefined,
-        }),
+      savedLists: savedFromOthers.map((list) =>
+        this.mapList(
+          list,
+          countMap.get(list.id) ?? 0,
+          favoritesCountMap.get(list.id) ?? 0,
+          {
+            isSaved: true,
+            categoryId: categoryMap.get(list.id) ?? undefined,
+          },
+        ),
       ),
       featured: featuredLists.map((list) =>
-        this.mapList(list, countMap.get(list.id) ?? 0, {
-          isSaved: savedListIds.has(list.id),
-        }),
+        this.mapList(
+          list,
+          countMap.get(list.id) ?? 0,
+          favoritesCountMap.get(list.id) ?? 0,
+          {
+            isSaved: savedListIds.has(list.id),
+            categoryId: categoryMap.get(list.id) ?? undefined,
+          },
+        ),
       ),
       categories: categories.map((cat) => ({
         id: cat.id,
         name: cat.name,
         sortOrder: cat.sort_order,
-        lists: (cat.savedLists ?? [])
-          .filter((save) => save.list)
-          .map((save) =>
-            this.mapList(save.list, countMap.get(save.list.id) ?? 0, {
-              isSaved: true,
-              categoryId: cat.id,
-            }),
+        lists: (cat.items ?? [])
+          .filter((item) => item.list)
+          .map((item) =>
+            this.mapList(
+              item.list,
+              countMap.get(item.list.id) ?? 0,
+              favoritesCountMap.get(item.list.id) ?? 0,
+              { isSaved: true, categoryId: cat.id },
+            ),
           ),
       })),
     };
@@ -211,7 +336,16 @@ export class ProblemListService {
       where: { is_featured: true, is_public: true },
       order: { updated_at: 'DESC' },
     });
-    return lists.map((list) => this.mapList(list, countMap.get(list.id) ?? 0));
+    const favoritesCountMap = await this.buildFavoritesCountMap(
+      lists.map((list) => list.id),
+    );
+    return lists.map((list) =>
+      this.mapList(
+        list,
+        countMap.get(list.id) ?? 0,
+        favoritesCountMap.get(list.id) ?? 0,
+      ),
+    );
   }
 
   async getDefaultList(): Promise<ProblemListSummary | null> {
@@ -221,7 +355,12 @@ export class ProblemListService {
     });
     if (list) {
       const countMap = await this.buildProblemCountMap();
-      return this.mapList(list, countMap.get(list.id) ?? 0);
+      const favoritesCountMap = await this.buildFavoritesCountMap([list.id]);
+      return this.mapList(
+        list,
+        countMap.get(list.id) ?? 0,
+        favoritesCountMap.get(list.id) ?? 0,
+      );
     }
     return null;
   }
@@ -234,7 +373,8 @@ export class ProblemListService {
     const count = await this.relationsRepository.count({
       where: { list_id: listId },
     });
-    return this.mapList(list, count);
+    const favoritesCountMap = await this.buildFavoritesCountMap([list.id]);
+    return this.mapList(list, count, favoritesCountMap.get(list.id) ?? 0);
   }
 
   // ============================================================================
@@ -351,6 +491,74 @@ export class ProblemListService {
   }
 
   // ============================================================================
+  // List Overview (Aggregated)
+  // ============================================================================
+
+  async getListOverview(
+    listId: string,
+    userId?: string,
+  ): Promise<ProblemListDetailResponse> {
+    let listSummary = await this.getListById(listId);
+    if (!listSummary) {
+      listSummary = await this.getDefaultList();
+    }
+
+    if (!listSummary) {
+      return { list: null, problems: [], stats: null };
+    }
+
+    const problems = await this.getProblemsByListId(
+      listSummary.id,
+      userId ?? undefined,
+    );
+    const stats = this.buildStatsFromProblems(listSummary.id, problems);
+
+    let viewer: ProblemListDetailResponse['viewer'] | undefined;
+    let categories: ProblemListDetailResponse['categories'] | undefined;
+
+    if (userId) {
+      const favorite = await this.prisma.edgeOperation.findUnique({
+        where: {
+          operator_id_operation_type_target_type_target_id: {
+            operator_id: userId,
+            operation_type: EdgeOperationType.FAVORITE,
+            target_type: problemListTargetType,
+            target_id: listSummary.id,
+          },
+        },
+      });
+
+      const categoryItem = await this.categoryItemsRepository.findOne({
+        where: { user_id: userId, list_id: listSummary.id },
+      });
+
+      viewer = {
+        isSaved: !!favorite,
+        categoryId: categoryItem?.category_id ?? null,
+      };
+
+      const categoryRows = await this.categoriesRepository.find({
+        where: { user_id: userId },
+        order: { sort_order: 'ASC' },
+      });
+
+      categories = categoryRows.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        sortOrder: cat.sort_order,
+      }));
+    }
+
+    return {
+      list: listSummary,
+      problems,
+      stats,
+      viewer,
+      categories,
+    };
+  }
+
+  // ============================================================================
   // List CRUD
   // ============================================================================
 
@@ -371,7 +579,7 @@ export class ProblemListService {
     });
 
     await this.listsRepository.save(newList);
-    return this.mapList(newList, 0);
+    return this.mapList(newList, 0, 0);
   }
 
   async updateList(
@@ -400,7 +608,8 @@ export class ProblemListService {
     const count = await this.relationsRepository.count({
       where: { list_id: listId },
     });
-    return this.mapList(list, count);
+    const favoritesCountMap = await this.buildFavoritesCountMap([list.id]);
+    return this.mapList(list, count, favoritesCountMap.get(list.id) ?? 0);
   }
 
   async deleteList(listId: string, userId: string): Promise<void> {
@@ -462,7 +671,16 @@ export class ProblemListService {
       order: { updated_at: 'DESC' },
     });
     const countMap = await this.buildProblemCountMap();
-    return lists.map((list) => this.mapList(list, countMap.get(list.id) ?? 0));
+    const favoritesCountMap = await this.buildFavoritesCountMap(
+      lists.map((list) => list.id),
+    );
+    return lists.map((list) =>
+      this.mapList(
+        list,
+        countMap.get(list.id) ?? 0,
+        favoritesCountMap.get(list.id) ?? 0,
+      ),
+    );
   }
 
   // ============================================================================
@@ -546,39 +764,87 @@ export class ProblemListService {
       throw new ForbiddenException('This list is private');
     }
 
-    // Check if already saved
-    const existing = await this.savesRepository.findOne({
-      where: { user_id: userId, list_id: listId },
+    const existingFavorite = await this.prisma.edgeOperation.findUnique({
+      where: {
+        operator_id_operation_type_target_type_target_id: {
+          operator_id: userId,
+          operation_type: EdgeOperationType.FAVORITE,
+          target_type: problemListTargetType,
+          target_id: listId,
+        },
+      },
     });
-    if (existing) {
-      // Update category if provided
-      if (categoryId !== undefined) {
-        existing.category_id = categoryId;
-        await this.savesRepository.save(existing);
-      }
-      return;
+
+    if (!existingFavorite) {
+      await this.prisma.edgeOperation.create({
+        data: {
+          operator_id: userId,
+          target_type: problemListTargetType,
+          target_id: listId,
+          operation_type: EdgeOperationType.FAVORITE,
+        },
+      });
     }
 
-    const save = this.savesRepository.create({
-      user_id: userId,
-      list_id: listId,
-      category_id: categoryId ?? null,
-    });
-    await this.savesRepository.save(save);
+    if (categoryId !== undefined) {
+      if (categoryId) {
+        const category = await this.categoriesRepository.findOne({
+          where: { id: categoryId, user_id: userId },
+        });
+        if (!category) {
+          throw new NotFoundException('Category not found');
+        }
+      }
+
+      const existingItem = await this.categoryItemsRepository.findOne({
+        where: { user_id: userId, list_id: listId },
+      });
+
+      if (categoryId) {
+        if (existingItem) {
+          existingItem.category_id = categoryId;
+          await this.categoryItemsRepository.save(existingItem);
+        } else {
+          const newItem = this.categoryItemsRepository.create({
+            user_id: userId,
+            list_id: listId,
+            category_id: categoryId,
+          });
+          await this.categoryItemsRepository.save(newItem);
+        }
+      } else if (existingItem) {
+        await this.categoryItemsRepository.remove(existingItem);
+      }
+    }
   }
 
   async unsaveList(userId: string, listId: string): Promise<void> {
-    await this.savesRepository.delete({
+    await this.prisma.edgeOperation.deleteMany({
+      where: {
+        operator_id: userId,
+        target_type: problemListTargetType,
+        target_id: listId,
+        operation_type: EdgeOperationType.FAVORITE,
+      },
+    });
+    await this.categoryItemsRepository.delete({
       user_id: userId,
       list_id: listId,
     });
   }
 
   async isListSaved(userId: string, listId: string): Promise<boolean> {
-    const save = await this.savesRepository.findOne({
-      where: { user_id: userId, list_id: listId },
+    const favorite = await this.prisma.edgeOperation.findUnique({
+      where: {
+        operator_id_operation_type_target_type_target_id: {
+          operator_id: userId,
+          operation_type: EdgeOperationType.FAVORITE,
+          target_type: problemListTargetType,
+          target_id: listId,
+        },
+      },
     });
-    return !!save;
+    return !!favorite;
   }
 
   // ============================================================================
@@ -589,21 +855,31 @@ export class ProblemListService {
     const countMap = await this.buildProblemCountMap();
     const categories = await this.categoriesRepository.find({
       where: { user_id: userId },
-      relations: ['savedLists', 'savedLists.list'],
+      relations: ['items', 'items.list'],
       order: { sort_order: 'ASC' },
     });
+
+    const listIds = categories.flatMap((cat) =>
+      (cat.items ?? []).map((item) => item.list_id),
+    );
+    const favoritesCountMap = await this.buildFavoritesCountMap(listIds);
 
     return categories.map((cat) => ({
       id: cat.id,
       name: cat.name,
       sortOrder: cat.sort_order,
-      lists: (cat.savedLists ?? [])
-        .filter((save) => save.list)
-        .map((save) =>
-          this.mapList(save.list, countMap.get(save.list.id) ?? 0, {
-            isSaved: true,
-            categoryId: cat.id,
-          }),
+      lists: (cat.items ?? [])
+        .filter((item) => item.list)
+        .map((item) =>
+          this.mapList(
+            item.list,
+            countMap.get(item.list.id) ?? 0,
+            favoritesCountMap.get(item.list.id) ?? 0,
+            {
+              isSaved: true,
+              categoryId: cat.id,
+            },
+          ),
         ),
     }));
   }
@@ -645,7 +921,7 @@ export class ProblemListService {
   ): Promise<CategorySummary> {
     const category = await this.categoriesRepository.findOne({
       where: { id: categoryId, user_id: userId },
-      relations: ['savedLists', 'savedLists.list'],
+      relations: ['items', 'items.list'],
     });
     if (!category) {
       throw new NotFoundException('Category not found');
@@ -656,18 +932,25 @@ export class ProblemListService {
 
     await this.categoriesRepository.save(category);
     const countMap = await this.buildProblemCountMap();
+    const listIds = (category.items ?? []).map((item) => item.list_id);
+    const favoritesCountMap = await this.buildFavoritesCountMap(listIds);
 
     return {
       id: category.id,
       name: category.name,
       sortOrder: category.sort_order,
-      lists: (category.savedLists ?? [])
-        .filter((save) => save.list)
-        .map((save) =>
-          this.mapList(save.list, countMap.get(save.list.id) ?? 0, {
-            isSaved: true,
-            categoryId: category.id,
-          }),
+      lists: (category.items ?? [])
+        .filter((item) => item.list)
+        .map((item) =>
+          this.mapList(
+            item.list,
+            countMap.get(item.list.id) ?? 0,
+            favoritesCountMap.get(item.list.id) ?? 0,
+            {
+              isSaved: true,
+              categoryId: category.id,
+            },
+          ),
         ),
     };
   }
@@ -689,10 +972,17 @@ export class ProblemListService {
     listId: string,
     categoryId: string | null,
   ): Promise<void> {
-    const save = await this.savesRepository.findOne({
-      where: { user_id: userId, list_id: listId },
+    const favorite = await this.prisma.edgeOperation.findUnique({
+      where: {
+        operator_id_operation_type_target_type_target_id: {
+          operator_id: userId,
+          operation_type: EdgeOperationType.FAVORITE,
+          target_type: problemListTargetType,
+          target_id: listId,
+        },
+      },
     });
-    if (!save) {
+    if (!favorite) {
       throw new NotFoundException('List is not saved');
     }
 
@@ -705,7 +995,27 @@ export class ProblemListService {
       }
     }
 
-    save.category_id = categoryId;
-    await this.savesRepository.save(save);
+    const existingItem = await this.categoryItemsRepository.findOne({
+      where: { user_id: userId, list_id: listId },
+    });
+
+    if (categoryId) {
+      if (existingItem) {
+        existingItem.category_id = categoryId;
+        await this.categoryItemsRepository.save(existingItem);
+      } else {
+        const item = this.categoryItemsRepository.create({
+          user_id: userId,
+          list_id: listId,
+          category_id: categoryId,
+        });
+        await this.categoryItemsRepository.save(item);
+      }
+      return;
+    }
+
+    if (existingItem) {
+      await this.categoryItemsRepository.remove(existingItem);
+    }
   }
 }

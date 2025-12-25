@@ -1,11 +1,18 @@
-import type { PrismaClient } from '@prisma/client';
+import {
+  EdgeOperationTargetType,
+  EdgeOperationType,
+  type PrismaClient,
+} from '@prisma/client';
 import problemListsData from './data/problem-lists.data';
 
 export async function clearProblemLists(prisma: PrismaClient): Promise<void> {
-  await prisma.userProblemListSave.deleteMany();
+  await prisma.userProblemListCategoryItem.deleteMany();
   await prisma.userProblemListCategory.deleteMany();
   await prisma.problemListProblemRelation.deleteMany();
   await prisma.problemList.deleteMany();
+  await prisma.edgeOperation.deleteMany({
+    where: { target_type: EdgeOperationTargetType.PROBLEM_LIST },
+  });
 }
 
 export interface SeedProblemListsResult {
@@ -60,13 +67,25 @@ export async function seedProblemLists(
     });
   }
 
-  // Seed user saves
-  for (const save of problemListsData.user_problem_list_saves) {
-    await prisma.userProblemListSave.create({
+  // Seed user favorites (edge operations)
+  for (const favorite of problemListsData.user_problem_list_favorites) {
+    await prisma.edgeOperation.create({
       data: {
-        user_id: save.user_id,
-        list_id: save.list_id,
-        category_id: null,
+        operator_id: favorite.user_id,
+        target_type: EdgeOperationTargetType.PROBLEM_LIST,
+        target_id: favorite.list_id,
+        operation_type: EdgeOperationType.FAVORITE,
+      },
+    });
+  }
+
+  // Seed category items
+  for (const item of problemListsData.user_problem_list_category_items) {
+    await prisma.userProblemListCategoryItem.create({
+      data: {
+        user_id: item.user_id,
+        list_id: item.list_id,
+        category_id: item.category_id,
       },
     });
   }

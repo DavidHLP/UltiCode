@@ -6,21 +6,22 @@ import { ProblemList } from './problem-list.entity';
 import { Problem } from '../problem/problem.entity';
 import { SubmissionModule } from '../submission/submission.module';
 import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
-import { UserProblemListSave } from './user-problem-list-save.entity';
+import { UserProblemListCategoryItem } from './user-problem-list-category-item.entity';
 import { UserProblemListCategory } from './user-problem-list-category.entity';
+import { PrismaService } from '../prisma.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       ProblemList,
       ProblemListProblemRelation,
-      UserProblemListSave,
+      UserProblemListCategoryItem,
       UserProblemListCategory,
       Problem,
     ]),
     SubmissionModule,
   ],
-  providers: [ProblemListService],
+  providers: [ProblemListService, PrismaService],
   controllers: [ProblemListController],
   exports: [ProblemListService],
 })

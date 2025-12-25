@@ -37,7 +37,6 @@ model User {
   contestRankings ContestRanking[]
   contestParticipants ContestParticipant[]
   views View[]
-  favorites Favorite[]
   problemNotes ProblemNote[]
 
   @@map("users")
@@ -366,7 +365,7 @@ model ProblemList {
   updated_at  DateTime
 
   problemRelations ProblemListProblemRelation[]
-  savedByUsers     UserProblemListSave[]
+  categoryItems    UserProblemListCategoryItem[]
 
   @@map("problem_lists")
 }
@@ -386,21 +385,6 @@ model ProblemListProblemRelation {
 }
 
 // 用户保存题单的关系
-model UserProblemListSave {
-  id          String   @id @default(uuid()) @db.VarChar(40)
-  user_id     String   @db.VarChar(40)
-  list_id     String   @db.VarChar(50)
-  category_id String?  @db.VarChar(40) // 可选的自定义分类
-  saved_at    DateTime @default(now())
-
-  list     ProblemList              @relation(fields: [list_id], references: [id], onDelete: Cascade)
-  category UserProblemListCategory? @relation(fields: [category_id], references: [id], onDelete: SetNull)
-
-  @@unique([user_id, list_id])
-  @@index([user_id])
-  @@map("user_problem_list_saves")
-}
-
 // 用户自定义分类（用于组织保存的题单）
 model UserProblemListCategory {
   id         String   @id @default(uuid()) @db.VarChar(40)
@@ -409,11 +393,27 @@ model UserProblemListCategory {
   sort_order Int      @default(0)
   created_at DateTime @default(now())
 
-  savedLists UserProblemListSave[]
+  items UserProblemListCategoryItem[]
 
   @@unique([user_id, name])
   @@index([user_id])
   @@map("user_problem_list_categories")
+}
+
+// 用户在分类中的题单
+model UserProblemListCategoryItem {
+  id          String   @id @default(uuid()) @db.VarChar(40)
+  user_id     String   @db.VarChar(40)
+  list_id     String   @db.VarChar(50)
+  category_id String   @db.VarChar(40)
+  created_at  DateTime @default(now())
+
+  list     ProblemList             @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  category UserProblemListCategory @relation(fields: [category_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, list_id])
+  @@index([user_id, category_id])
+  @@map("user_problem_list_category_items")
 }
 
 // ============================================================================
@@ -488,26 +488,7 @@ enum EdgeOperationTargetType {
   FORUM_POST
   FORUM_COMMENT
   PROBLEM
-}
-
-model Favorite {
-  id          String           @id @default(uuid()) @db.VarChar(40)
-  target_id   String           @db.VarChar(40)
-  target_type FavoriteTargetType
-  user_id     String           @db.VarChar(40)
-  created_at  DateTime         @default(now())
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, target_type, target_id])
-  @@index([target_type, target_id])
-  @@map("favorites")
-}
-
-enum FavoriteTargetType {
-  SOLUTION
-  FORUM_POST
-  PROBLEM
+  PROBLEM_LIST
 }
 
 model ProblemNote {

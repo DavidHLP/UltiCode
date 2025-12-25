@@ -12,8 +12,7 @@ import { ProblemListService } from './problem-list.service';
 import type {
   UserProblemListsResponse,
   ProblemListSummary,
-  ProblemListStats,
-  ProblemListProblem,
+  ProblemListDetailResponse,
   CategorySummary,
 } from './problem-list.service';
 
@@ -22,11 +21,11 @@ export class ProblemListController {
   constructor(private readonly problemListService: ProblemListService) {}
 
   // ============================================================================
-  // Main API: Get User's Problem Lists (with all sections)
+  // Main API: Aggregated Overview
   // ============================================================================
 
-  @Get()
-  async findAll(
+  @Get('overview')
+  async getOverview(
     @Query('userId') userId?: string,
   ): Promise<UserProblemListsResponse> {
     if (userId) {
@@ -35,42 +34,16 @@ export class ProblemListController {
     return this.problemListService.findAll();
   }
 
-  @Get('featured')
-  getFeaturedLists(): Promise<ProblemListSummary[]> {
-    return this.problemListService.getFeaturedLists();
-  }
-
-  @Get('user/:userId')
-  getListsByUser(
-    @Param('userId') userId: string,
-  ): Promise<ProblemListSummary[]> {
-    return this.problemListService.getListsByUserId(userId);
-  }
-
-  @Get('stats')
-  getStats(@Query('userId') userId?: string): Promise<ProblemListStats[]> {
-    return this.problemListService.getStats(userId);
-  }
-
   // ============================================================================
-  // Single List Operations
+  // List Overview
   // ============================================================================
 
-  @Get(':id/problems')
-  getProblems(
+  @Get(':id/overview')
+  async getListOverview(
     @Param('id') id: string,
     @Query('userId') userId?: string,
-  ): Promise<ProblemListProblem[]> {
-    return this.problemListService.getProblemsByListId(id, userId);
-  }
-
-  @Get(':id')
-  async getList(@Param('id') id: string): Promise<ProblemListSummary | null> {
-    const list = await this.problemListService.getListById(id);
-    if (list) {
-      return list;
-    }
-    return this.problemListService.getDefaultList();
+  ): Promise<ProblemListDetailResponse> {
+    return this.problemListService.getListOverview(id, userId);
   }
 
   @Post()
@@ -150,15 +123,6 @@ export class ProblemListController {
     return this.problemListService.unsaveList(userId, id);
   }
 
-  @Get(':id/saved')
-  async isListSaved(
-    @Param('id') id: string,
-    @Query('userId') userId: string,
-  ): Promise<{ saved: boolean }> {
-    const saved = await this.problemListService.isListSaved(userId, id);
-    return { saved };
-  }
-
   @Patch(':id/category')
   async moveListToCategory(
     @Param('id') id: string,
@@ -175,11 +139,6 @@ export class ProblemListController {
   // ============================================================================
   // Category Management
   // ============================================================================
-
-  @Get('categories/user/:userId')
-  getCategories(@Param('userId') userId: string): Promise<CategorySummary[]> {
-    return this.problemListService.getCategories(userId);
-  }
 
   @Post('categories')
   createCategory(

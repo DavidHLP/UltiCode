@@ -102,6 +102,40 @@ export class ProblemListController {
     return this.problemListService.removeProblem(id, userId, problemId);
   }
 
+  @Post('problems/:problemId/batch-add')
+  async batchAddProblemToLists(
+    @Param('problemId') problemId: number,
+    @Query('userId') userId: string,
+    @Body() body: { listIds: string[] },
+  ): Promise<void> {
+    return this.problemListService.batchAddProblemToLists(
+      userId,
+      problemId,
+      body.listIds,
+    );
+  }
+
+  @Post('problems/:problemId/batch-remove')
+  async batchRemoveProblemFromLists(
+    @Param('problemId') problemId: number,
+    @Query('userId') userId: string,
+    @Body() body: { listIds: string[] },
+  ): Promise<void> {
+    return this.problemListService.batchRemoveProblemFromLists(
+      userId,
+      problemId,
+      body.listIds,
+    );
+  }
+
+  @Get('problems/:problemId/user-lists')
+  async getUserListsForProblem(
+    @Param('problemId') problemId: number,
+    @Query('userId') userId: string,
+  ) {
+    return this.problemListService.getUserListsForProblem(userId, problemId);
+  }
+
   // ============================================================================
   // Save/Unsave List
   // ============================================================================

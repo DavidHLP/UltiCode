@@ -754,6 +754,137 @@ export class ProblemListService {
     });
   }
 
+  async batchAddProblemToLists(
+    userId: string,
+    problemId: number,
+    listIds: string[],
+  ): Promise<void> {
+    // Verify problem exists
+    const problem = await this.problemsRepository.findOne({
+      where: { id: problemId },
+    });
+    if (!problem) {
+      throw new NotFoundException('Problem not found');
+    }
+
+    // Verify all lists exist and user has permission to edit them
+    const lists = await this.listsRepository.find({
+      where: { id: In(listIds) },
+    });
+
+    if (lists.length !== listIds.length) {
+      throw new NotFoundException('One or more lists not found');
+    }
+
+    for (const list of lists) {
+      if (list.author_id !== userId) {
+        throw new ForbiddenException(
+          `You do not have permission to edit list: ${list.name}`,
+        );
+      }
+    }
+
+    // Add problem to all lists
+    await this.dataSource.transaction(async (manager) => {
+      for (const listId of listIds) {
+        // Check if already exists
+        const exists = await manager.findOne(ProblemListProblemRelation, {
+          where: { list_id: listId, problem_id: problemId },
+        });
+        if (exists) continue;
+
+        // Get current max sort order
+        const count = await manager.count(ProblemListProblemRelation, {
+          where: { list_id: listId },
+        });
+
+        const relation = manager.create(ProblemListProblemRelation, {
+          list_id: listId,
+          problem_id: problemId,
+          sort_order: count,
+        });
+        await manager.save(relation);
+      }
+    });
+  }
+
+  async batchRemoveProblemFromLists(
+    userId: string,
+    problemId: number,
+    listIds: string[],
+  ): Promise<void> {
+    // Verify lists exist and user has permission
+    const lists = await this.listsRepository.find({
+      where: { id: In(listIds) },
+    });
+
+    for (const list of lists) {
+      if (list.author_id !== userId) {
+        throw new ForbiddenException(
+          `You do not have permission to edit list: ${list.name}`,
+        );
+      }
+    }
+
+    // Remove from all lists
+    await this.relationsRepository.delete({
+      list_id: In(listIds),
+      problem_id: problemId,
+    });
+  }
+
+  async getUserListsForProblem(
+    userId: string,
+    problemId: number,
+  ): Promise<
+    Array<
+      ProblemListSummary & {
+        containsProblem: boolean;
+        canEdit: boolean;
+      }
+    >
+  > {
+    // Get all lists user created
+    const myLists = await this.listsRepository.find({
+      where: { author_id: userId },
+      order: { updated_at: 'DESC' },
+    });
+
+    // Get problem count map
+    const countMap = await this.buildProblemCountMap();
+    const favoritesCountMap = await this.buildFavoritesCountMap(
+      myLists.map((l) => l.id),
+    );
+
+    // Check which lists contain this problem
+    const relations = await this.relationsRepository.find({
+      where: {
+        list_id: In(myLists.map((l) => l.id)),
+        problem_id: problemId,
+      },
+    });
+
+    const listsWithProblem = new Set(relations.map((r) => r.list_id));
+
+    return myLists.map((list) => ({
+      ...this.mapList(
+        list,
+        countMap.get(list.id) ?? 0,
+        favoritesCountMap.get(list.id) ?? 0,
+      ),
+      containsProblem: listsWithProblem.has(list.id),
+      canEdit: true, // User is the author
+    }));
+  }
+
+  async getProblemListIds(problemId: number): Promise<string[]> {
+    const relations = await this.relationsRepository.find({
+      where: { problem_id: problemId },
+      select: ['list_id'],
+    });
+    return relations.map((r) => r.list_id);
+  }
+
   // ============================================================================
   // Save/Unsave List
   // ============================================================================

@@ -5,16 +5,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository, DataSource } from 'typeorm';
-import { CollectionTargetType } from '@prisma/client';
+import { BookmarkType } from '@prisma/client';
 import { ProblemList } from './problem-list.entity';
 import { Problem } from '../problem/problem.entity';
 import { SubmissionService } from '../submission/submission.service';
 import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
-import { CollectionService } from '../collection/collection.service';
+import { BookmarkService } from '../bookmark/bookmark.service';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma.service';
 
-const problemListTargetType = CollectionTargetType.PROBLEM_LIST;
+const problemListTargetType = BookmarkType.PROBLEM_LIST;
 
 // ============================================================================
 // Types
@@ -102,7 +102,7 @@ export class ProblemListService {
     private submissionService: SubmissionService,
     private dataSource: DataSource,
     private prisma: PrismaService,
-    private collectionService: CollectionService,
+    private bookmarkService: BookmarkService,
   ) {}
 
   // ============================================================================
@@ -133,11 +133,11 @@ export class ProblemListService {
 
     const where = {
       target_type: problemListTargetType,
-      collection: { is_default: true },
+      folder: { is_default: true },
       ...(listIds ? { target_id: { in: listIds } } : {}),
     };
 
-    const counts = await this.prisma.collectionItem.groupBy({
+    const counts = await this.prisma.bookmark.groupBy({
       by: ['target_id'],
       where,
       _count: true,
@@ -211,24 +211,24 @@ export class ProblemListService {
   async getUserProblemLists(userId: string): Promise<UserProblemListsResponse> {
     const countMap = await this.buildProblemCountMap();
 
-    // Get all collection items for this user that are PROBLEM_LIST type
-    const collectionItems = await this.prisma.collectionItem.findMany({
+    // Get all bookmarks for this user that are PROBLEM_LIST type
+    const bookmarkItems = await this.prisma.bookmark.findMany({
       where: {
         target_type: problemListTargetType,
-        collection: { user_id: userId },
+        folder: { user_id: userId },
       },
-      include: { collection: true },
+      include: { folder: true },
     });
 
-    const savedListIds = new Set(collectionItems.map((item) => item.target_id));
+    const savedListIds = new Set(bookmarkItems.map((item) => item.target_id));
     const savedListIdArray = Array.from(savedListIds);
 
-    // Map listId -> collectionId for category display
-    const collectionMap = new Map<string, string>();
-    collectionItems.forEach((item) => {
-      // Prefer non-default collection for categoryId display
-      if (!collectionMap.has(item.target_id) || !item.collection.is_default) {
-        collectionMap.set(item.target_id, item.collection_id);
+    // Map listId -> folderId for category display
+    const folderMap = new Map<string, string>();
+    bookmarkItems.forEach((item) => {
+      // Prefer non-default folder for categoryId display
+      if (!folderMap.has(item.target_id) || !item.folder.is_default) {
+        folderMap.set(item.target_id, item.folder_id);
       }
     });
 
@@ -257,15 +257,15 @@ export class ProblemListService {
       order: { banner_order: 'ASC', updated_at: 'DESC' },
     });
 
-    // 4. Get user's collections (replaces old categories)
-    const collections = await this.collectionService.getUserCollections(userId);
+    // 4. Get user's bookmark folders (replaces old categories)
+    const folders = await this.bookmarkService.getUserFolders(userId);
 
-    // Build collection items map by collection
-    const collectionItemsMap = new Map<string, string[]>();
-    collectionItems.forEach((item) => {
-      const list = collectionItemsMap.get(item.collection_id) ?? [];
+    // Build bookmark items map by folder
+    const folderItemsMap = new Map<string, string[]>();
+    bookmarkItems.forEach((item) => {
+      const list = folderItemsMap.get(item.folder_id) ?? [];
       list.push(item.target_id);
-      collectionItemsMap.set(item.collection_id, list);
+      folderItemsMap.set(item.folder_id, list);
     });
 
     const favoriteCountIds = Array.from(
@@ -278,24 +278,24 @@ export class ProblemListService {
     const favoritesCountMap =
       await this.buildFavoritesCountMap(favoriteCountIds);
 
-    // Build category response from collections
+    // Build category response from folders
     const categoryResponses: CategorySummary[] = await Promise.all(
-      collections.map(async (col) => {
-        const listIds = collectionItemsMap.get(col.id) ?? [];
+      folders.map(async (folder) => {
+        const listIds = folderItemsMap.get(folder.id) ?? [];
         const lists =
           listIds.length > 0
             ? await this.listsRepository.find({ where: { id: In(listIds) } })
             : [];
         return {
-          id: col.id,
-          name: col.name,
-          sortOrder: col.sortOrder,
+          id: folder.id,
+          name: folder.name,
+          sortOrder: folder.sortOrder,
           lists: lists.map((list) =>
             this.mapList(
               list,
               countMap.get(list.id) ?? 0,
               favoritesCountMap.get(list.id) ?? 0,
-              { isSaved: true, categoryId: col.id },
+              { isSaved: true, categoryId: folder.id },
             ),
           ),
         };
@@ -318,7 +318,7 @@ export class ProblemListService {
           favoritesCountMap.get(list.id) ?? 0,
           {
             isSaved: true,
-            categoryId: collectionMap.get(list.id) ?? undefined,
+            categoryId: folderMap.get(list.id) ?? undefined,
           },
         ),
       ),
@@ -329,7 +329,7 @@ export class ProblemListService {
           favoritesCountMap.get(list.id) ?? 0,
           {
             isSaved: savedListIds.has(list.id),
-            categoryId: collectionMap.get(list.id) ?? undefined,
+            categoryId: folderMap.get(list.id) ?? undefined,
           },
         ),
       ),
@@ -535,32 +535,30 @@ export class ProblemListService {
     let categories: ProblemListDetailResponse['categories'] | undefined;
 
     if (userId) {
-      // Check if this list is in any of user's collections
-      const collectionIds = await this.collectionService.getItemCollections(
+      // Check if this list is in any of user's bookmark folders
+      const folderIds = await this.bookmarkService.getBookmarkFolders(
         userId,
         problemListTargetType,
         listSummary.id,
       );
 
-      const isSaved = collectionIds.length > 0;
-      // Get the first non-default collection as categoryId
-      const collections =
-        await this.collectionService.getUserCollections(userId);
-      const nonDefaultCollectionId = collectionIds.find((id) => {
-        const col = collections.find((c) => c.id === id);
-        return col && !col.isDefault;
+      const isSaved = folderIds.length > 0;
+      // Get the first non-default folder as categoryId
+      const folders = await this.bookmarkService.getUserFolders(userId);
+      const nonDefaultFolderId = folderIds.find((id) => {
+        const folder = folders.find((f) => f.id === id);
+        return folder && !folder.isDefault;
       });
 
       viewer = {
         isSaved,
-        categoryId:
-          nonDefaultCollectionId ?? (isSaved ? collectionIds[0] : null),
+        categoryId: nonDefaultFolderId ?? (isSaved ? folderIds[0] : null),
       };
 
-      categories = collections.map((col) => ({
-        id: col.id,
-        name: col.name,
-        sortOrder: col.sortOrder,
+      categories = folders.map((folder) => ({
+        id: folder.id,
+        name: folder.name,
+        sortOrder: folder.sortOrder,
       }));
     }
 
@@ -910,18 +908,18 @@ export class ProblemListService {
       throw new ForbiddenException('This list is private');
     }
 
-    // If collectionId is provided, add to that collection
-    // Otherwise, add to default collection (favorites)
+    // If folderId is provided, add to that folder
+    // Otherwise, add to default folder (favorites)
     if (collectionId) {
-      await this.collectionService.addItem(userId, collectionId, {
+      await this.bookmarkService.addBookmark(userId, collectionId, {
         targetId: listId,
         targetType: problemListTargetType,
       });
     } else {
-      // Add to default collection
-      const defaultCollection =
-        await this.collectionService.ensureDefaultCollection(userId);
-      await this.collectionService.addItem(userId, defaultCollection.id, {
+      // Add to default folder
+      const defaultFolder =
+        await this.bookmarkService.ensureDefaultFolder(userId);
+      await this.bookmarkService.addBookmark(userId, defaultFolder.id, {
         targetId: listId,
         targetType: problemListTargetType,
       });
@@ -929,72 +927,72 @@ export class ProblemListService {
   }
 
   async unsaveList(userId: string, listId: string): Promise<void> {
-    // Remove from all user's collections
-    await this.prisma.collectionItem.deleteMany({
+    // Remove from all user's bookmark folders
+    await this.prisma.bookmark.deleteMany({
       where: {
         target_type: problemListTargetType,
         target_id: listId,
-        collection: { user_id: userId },
+        folder: { user_id: userId },
       },
     });
   }
 
   async isListSaved(userId: string, listId: string): Promise<boolean> {
-    const count = await this.prisma.collectionItem.count({
+    const count = await this.prisma.bookmark.count({
       where: {
         target_type: problemListTargetType,
         target_id: listId,
-        collection: { user_id: userId },
+        folder: { user_id: userId },
       },
     });
     return count > 0;
   }
 
   // ============================================================================
-  // Category Management (now delegates to CollectionService)
+  // Category Management (now delegates to BookmarkService)
   // ============================================================================
 
   async getCategories(userId: string): Promise<CategorySummary[]> {
     const countMap = await this.buildProblemCountMap();
-    const collections = await this.collectionService.getUserCollections(userId);
+    const folders = await this.bookmarkService.getUserFolders(userId);
 
-    // Get all collection items of type PROBLEM_LIST for this user
-    const collectionItems = await this.prisma.collectionItem.findMany({
+    // Get all bookmarks of type PROBLEM_LIST for this user
+    const bookmarkItems = await this.prisma.bookmark.findMany({
       where: {
         target_type: problemListTargetType,
-        collection: { user_id: userId },
+        folder: { user_id: userId },
       },
     });
 
-    // Build map of collectionId -> listIds
-    const collectionItemsMap = new Map<string, string[]>();
-    collectionItems.forEach((item) => {
-      const list = collectionItemsMap.get(item.collection_id) ?? [];
+    // Build map of folderId -> listIds
+    const folderItemsMap = new Map<string, string[]>();
+    bookmarkItems.forEach((item) => {
+      const list = folderItemsMap.get(item.folder_id) ?? [];
       list.push(item.target_id);
-      collectionItemsMap.set(item.collection_id, list);
+      folderItemsMap.set(item.folder_id, list);
     });
 
-    const allListIds = collectionItems.map((item) => item.target_id);
+    const allListIds = bookmarkItems.map((item) => item.target_id);
     const favoritesCountMap = await this.buildFavoritesCountMap(allListIds);
 
     const result: CategorySummary[] = [];
-    for (const col of collections) {
-      const listIds = collectionItemsMap.get(col.id) ?? [];
+    for (const folder of folders) {
+      const listIds = folderItemsMap.get(folder.id) ?? [];
       const lists =
         listIds.length > 0
           ? await this.listsRepository.find({ where: { id: In(listIds) } })
           : [];
 
       result.push({
-        id: col.id,
-        name: col.name,
-        sortOrder: col.sortOrder,
+        id: folder.id,
+        name: folder.name,
+        sortOrder: folder.sortOrder,
         lists: lists.map((list) =>
           this.mapList(
             list,
             countMap.get(list.id) ?? 0,
             favoritesCountMap.get(list.id) ?? 0,
-            { isSaved: true, categoryId: col.id },
+            { isSaved: true, categoryId: folder.id },
           ),
         ),
       });
@@ -1007,14 +1005,14 @@ export class ProblemListService {
     userId: string,
     data: { name: string; sortOrder?: number },
   ): Promise<CategorySummary> {
-    const collection = await this.collectionService.createCollection(userId, {
+    const folder = await this.bookmarkService.createFolder(userId, {
       name: data.name,
     });
 
     return {
-      id: collection.id,
-      name: collection.name,
-      sortOrder: collection.sortOrder,
+      id: folder.id,
+      name: folder.name,
+      sortOrder: folder.sortOrder,
       lists: [],
     };
   }
@@ -1024,25 +1022,21 @@ export class ProblemListService {
     userId: string,
     data: { name?: string; sortOrder?: number },
   ): Promise<CategorySummary> {
-    const collection = await this.collectionService.updateCollection(
-      userId,
-      categoryId,
-      {
-        name: data.name,
-        sortOrder: data.sortOrder,
-      },
-    );
+    const folder = await this.bookmarkService.updateFolder(userId, categoryId, {
+      name: data.name,
+      sortOrder: data.sortOrder,
+    });
 
-    // Get lists in this collection
+    // Get lists in this folder
     const countMap = await this.buildProblemCountMap();
-    const collectionItems = await this.prisma.collectionItem.findMany({
+    const bookmarkItems = await this.prisma.bookmark.findMany({
       where: {
-        collection_id: categoryId,
+        folder_id: categoryId,
         target_type: problemListTargetType,
       },
     });
 
-    const listIds = collectionItems.map((item) => item.target_id);
+    const listIds = bookmarkItems.map((item) => item.target_id);
     const lists =
       listIds.length > 0
         ? await this.listsRepository.find({ where: { id: In(listIds) } })
@@ -1050,50 +1044,49 @@ export class ProblemListService {
     const favoritesCountMap = await this.buildFavoritesCountMap(listIds);
 
     return {
-      id: collection.id,
-      name: collection.name,
-      sortOrder: collection.sortOrder,
+      id: folder.id,
+      name: folder.name,
+      sortOrder: folder.sortOrder,
       lists: lists.map((list) =>
         this.mapList(
           list,
           countMap.get(list.id) ?? 0,
           favoritesCountMap.get(list.id) ?? 0,
-          { isSaved: true, categoryId: collection.id },
+          { isSaved: true, categoryId: folder.id },
         ),
       ),
     };
   }
 
   async deleteCategory(categoryId: string, userId: string): Promise<void> {
-    await this.collectionService.deleteCollection(userId, categoryId);
+    await this.bookmarkService.deleteFolder(userId, categoryId);
   }
 
   async moveListToCategory(
     userId: string,
     listId: string,
-    collectionId: string | null,
+    folderId: string | null,
   ): Promise<void> {
-    // Check if list is saved in any collection
+    // Check if list is saved in any folder
     const isSaved = await this.isListSaved(userId, listId);
     if (!isSaved) {
       throw new NotFoundException('List is not saved');
     }
 
-    if (collectionId) {
-      // Add to the specified collection
-      await this.collectionService.addItem(userId, collectionId, {
+    if (folderId) {
+      // Add to the specified folder
+      await this.bookmarkService.addBookmark(userId, folderId, {
         targetId: listId,
         targetType: problemListTargetType,
       });
     } else {
-      // Remove from all non-default collections, keep in default
-      const collections =
-        await this.collectionService.getUserCollections(userId);
-      for (const col of collections) {
-        if (!col.isDefault) {
-          await this.collectionService.removeItemByTarget(
+      // Remove from all non-default folders, keep in default
+      const folders = await this.bookmarkService.getUserFolders(userId);
+      for (const folder of folders) {
+        if (!folder.isDefault) {
+          await this.bookmarkService.removeBookmarkByTarget(
             userId,
-            col.id,
+            folder.id,
             problemListTargetType,
             listId,
           );

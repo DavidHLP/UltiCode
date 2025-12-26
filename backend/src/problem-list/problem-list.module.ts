@@ -7,7 +7,7 @@ import { Problem } from '../problem/problem.entity';
 import { SubmissionModule } from '../submission/submission.module';
 import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
 import { PrismaService } from '../prisma.service';
-import { CollectionModule } from '../collection/collection.module';
+import { BookmarkModule } from '../bookmark/bookmark.module';
 
 @Module({
   imports: [
@@ -17,7 +17,7 @@ import { CollectionModule } from '../collection/collection.module';
       Problem,
     ]),
     SubmissionModule,
-    CollectionModule,
+    BookmarkModule,
   ],
   providers: [ProblemListService, PrismaService],
   controllers: [ProblemListController],

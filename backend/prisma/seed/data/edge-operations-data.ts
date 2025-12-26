@@ -4,10 +4,9 @@ export const EDGE_OPERATION_TYPES = Object.values(EdgeOperationType);
 export const EDGE_OPERATION_TARGET_TYPES = Object.values(EdgeOperationTargetType);
 
 export const OPERATION_WEIGHTS: Record<EdgeOperationType, number> = {
-  [EdgeOperationType.VOTE_UP]: 70,    // 70% chance
-  [EdgeOperationType.VOTE_DOWN]: 10,  // 10% chance
-  [EdgeOperationType.FAVORITE]: 12,   // 12% chance
-  [EdgeOperationType.ANALYZE]: 8,     // 8% chance
+  [EdgeOperationType.VOTE_UP]: 75,    // 75% chance
+  [EdgeOperationType.VOTE_DOWN]: 15,  // 15% chance
+  [EdgeOperationType.ANALYZE]: 10,    // 10% chance
 };
 
 // Probability of a user performing an operation on a target they see

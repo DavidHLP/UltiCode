@@ -13,7 +13,7 @@ import { AuthModule } from './auth/auth.module';
 import { VoteModule } from './vote/vote.module';
 import { EdgeOperationsModule } from './edge-operations/edge-operations.module';
 import { ProblemNoteModule } from './problem/note/note.module';
-
+import { CollectionModule } from './collection/collection.module';
 import { ViewModule } from './view/view.module';
 
 @Module({
@@ -40,6 +40,7 @@ import { ViewModule } from './view/view.module';
     ProblemListModule,
     SubmissionModule,
     AuthModule,
+    CollectionModule,
   ],
   controllers: [AppController],
   providers: [AppService],

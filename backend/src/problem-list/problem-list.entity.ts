@@ -1,6 +1,5 @@
 import { Entity, Column, PrimaryColumn, OneToMany } from 'typeorm';
 import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
-import { UserProblemListCategoryItem } from './user-problem-list-category-item.entity';
 
 @Entity('problem_lists')
 export class ProblemList {
@@ -30,7 +29,4 @@ export class ProblemList {
 
   @OneToMany(() => ProblemListProblemRelation, (relation) => relation.list)
   problemRelations: ProblemListProblemRelation[];
-
-  @OneToMany(() => UserProblemListCategoryItem, (item) => item.list)
-  categoryItems: UserProblemListCategoryItem[];
 }

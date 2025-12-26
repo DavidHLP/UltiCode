@@ -1,18 +1,15 @@
 import {
-  EdgeOperationTargetType,
-  EdgeOperationType,
+  CollectionTargetType,
   type PrismaClient,
 } from '@prisma/client';
 import problemListsData from './data/problem-lists.data';
 
 export async function clearProblemLists(prisma: PrismaClient): Promise<void> {
-  await prisma.userProblemListCategoryItem.deleteMany();
-  await prisma.userProblemListCategory.deleteMany();
+  await prisma.collectionItem.deleteMany({
+    where: { target_type: CollectionTargetType.PROBLEM_LIST },
+  });
   await prisma.problemListProblemRelation.deleteMany();
   await prisma.problemList.deleteMany();
-  await prisma.edgeOperation.deleteMany({
-    where: { target_type: EdgeOperationTargetType.PROBLEM_LIST },
-  });
 }
 
 export interface SeedProblemListsResult {
@@ -55,37 +52,58 @@ export async function seedProblemLists(
     });
   }
 
-  // Seed user categories
+  // Seed user collections (replacing old categories)
   for (const category of problemListsData.user_problem_list_categories) {
-    await prisma.userProblemListCategory.create({
+    await prisma.collection.create({
       data: {
         id: category.id,
         user_id: category.user_id,
         name: category.name,
         sort_order: category.sort_order,
+        is_default: false,
       },
     });
   }
 
-  // Seed user favorites (edge operations)
+  // Seed collection items (replacing old category items and favorites)
+  // First, ensure default collections exist for users with favorites
+  const usersWithFavorites = new Set(
+    problemListsData.user_problem_list_favorites.map((f) => f.user_id),
+  );
+  const defaultCollections: Record<string, string> = {};
+
+  for (const userId of usersWithFavorites) {
+    const defaultCollection = await prisma.collection.create({
+      data: {
+        user_id: userId,
+        name: 'Favorites',
+        is_default: true,
+      },
+    });
+    defaultCollections[userId] = defaultCollection.id;
+  }
+
+  // Add favorites to default collections
   for (const favorite of problemListsData.user_problem_list_favorites) {
-    await prisma.edgeOperation.create({
-      data: {
-        operator_id: favorite.user_id,
-        target_type: EdgeOperationTargetType.PROBLEM_LIST,
-        target_id: favorite.list_id,
-        operation_type: EdgeOperationType.FAVORITE,
-      },
-    });
+    const collectionId = defaultCollections[favorite.user_id];
+    if (collectionId) {
+      await prisma.collectionItem.create({
+        data: {
+          collection_id: collectionId,
+          target_type: CollectionTargetType.PROBLEM_LIST,
+          target_id: favorite.list_id,
+        },
+      });
+    }
   }
 
-  // Seed category items
+  // Add category items to collections
   for (const item of problemListsData.user_problem_list_category_items) {
-    await prisma.userProblemListCategoryItem.create({
+    await prisma.collectionItem.create({
       data: {
-        user_id: item.user_id,
-        list_id: item.list_id,
-        category_id: item.category_id,
+        collection_id: item.category_id,
+        target_type: CollectionTargetType.PROBLEM_LIST,
+        target_id: item.list_id,
       },
     });
   }

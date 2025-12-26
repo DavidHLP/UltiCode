@@ -5,17 +5,16 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository, DataSource } from 'typeorm';
-import { EdgeOperationTargetType, EdgeOperationType } from '@prisma/client';
+import { CollectionTargetType } from '@prisma/client';
 import { ProblemList } from './problem-list.entity';
 import { Problem } from '../problem/problem.entity';
 import { SubmissionService } from '../submission/submission.service';
 import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
-import { UserProblemListCategoryItem } from './user-problem-list-category-item.entity';
-import { UserProblemListCategory } from './user-problem-list-category.entity';
+import { CollectionService } from '../collection/collection.service';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma.service';
 
-const problemListTargetType = 'PROBLEM_LIST' as EdgeOperationTargetType;
+const problemListTargetType = CollectionTargetType.PROBLEM_LIST;
 
 // ============================================================================
 // Types
@@ -96,13 +95,10 @@ export class ProblemListService {
     private problemsRepository: Repository<Problem>,
     @InjectRepository(ProblemListProblemRelation)
     private relationsRepository: Repository<ProblemListProblemRelation>,
-    @InjectRepository(UserProblemListCategoryItem)
-    private categoryItemsRepository: Repository<UserProblemListCategoryItem>,
-    @InjectRepository(UserProblemListCategory)
-    private categoriesRepository: Repository<UserProblemListCategory>,
     private submissionService: SubmissionService,
     private dataSource: DataSource,
     private prisma: PrismaService,
+    private collectionService: CollectionService,
   ) {}
 
   // ============================================================================
@@ -133,11 +129,11 @@ export class ProblemListService {
 
     const where = {
       target_type: problemListTargetType,
-      operation_type: EdgeOperationType.FAVORITE,
+      collection: { is_default: true },
       ...(listIds ? { target_id: { in: listIds } } : {}),
     };
 
-    const counts = await this.prisma.edgeOperation.groupBy({
+    const counts = await this.prisma.collectionItem.groupBy({
       by: ['target_id'],
       where,
       _count: true,
@@ -207,17 +203,26 @@ export class ProblemListService {
   async getUserProblemLists(userId: string): Promise<UserProblemListsResponse> {
     const countMap = await this.buildProblemCountMap();
 
-    const favorites = await this.prisma.edgeOperation.findMany({
+    // Get all collection items for this user that are PROBLEM_LIST type
+    const collectionItems = await this.prisma.collectionItem.findMany({
       where: {
-        operator_id: userId,
         target_type: problemListTargetType,
-        operation_type: EdgeOperationType.FAVORITE,
+        collection: { user_id: userId },
       },
-      select: { target_id: true },
+      include: { collection: true },
     });
 
-    const savedListIds = new Set(favorites.map((fav) => fav.target_id));
+    const savedListIds = new Set(collectionItems.map((item) => item.target_id));
     const savedListIdArray = Array.from(savedListIds);
+
+    // Map listId -> collectionId for category display
+    const collectionMap = new Map<string, string>();
+    collectionItems.forEach((item) => {
+      // Prefer non-default collection for categoryId display
+      if (!collectionMap.has(item.target_id) || !item.collection.is_default) {
+        collectionMap.set(item.target_id, item.collection_id);
+      }
+    });
 
     // 1. Get lists created by user
     const myLists = await this.listsRepository.find({
@@ -244,20 +249,15 @@ export class ProblemListService {
       order: { updated_at: 'DESC' },
     });
 
-    // 4. Get user's categories with their lists
-    const categories = await this.categoriesRepository.find({
-      where: { user_id: userId },
-      relations: ['items', 'items.list'],
-      order: { sort_order: 'ASC' },
-    });
+    // 4. Get user's collections (replaces old categories)
+    const collections = await this.collectionService.getUserCollections(userId);
 
-    const categoryMap = new Map<string, string>();
-    categories.forEach((cat) => {
-      (cat.items ?? []).forEach((item) => {
-        if (item.list_id) {
-          categoryMap.set(item.list_id, item.category_id);
-        }
-      });
+    // Build collection items map by collection
+    const collectionItemsMap = new Map<string, string[]>();
+    collectionItems.forEach((item) => {
+      const list = collectionItemsMap.get(item.collection_id) ?? [];
+      list.push(item.target_id);
+      collectionItemsMap.set(item.collection_id, list);
     });
 
     const favoriteCountIds = Array.from(
@@ -269,6 +269,30 @@ export class ProblemListService {
     );
     const favoritesCountMap =
       await this.buildFavoritesCountMap(favoriteCountIds);
+
+    // Build category response from collections
+    const categoryResponses: CategorySummary[] = await Promise.all(
+      collections.map(async (col) => {
+        const listIds = collectionItemsMap.get(col.id) ?? [];
+        const lists =
+          listIds.length > 0
+            ? await this.listsRepository.find({ where: { id: In(listIds) } })
+            : [];
+        return {
+          id: col.id,
+          name: col.name,
+          sortOrder: col.sortOrder,
+          lists: lists.map((list) =>
+            this.mapList(
+              list,
+              countMap.get(list.id) ?? 0,
+              favoritesCountMap.get(list.id) ?? 0,
+              { isSaved: true, categoryId: col.id },
+            ),
+          ),
+        };
+      }),
+    );
 
     return {
       myLists: myLists.map((list) =>
@@ -286,7 +310,7 @@ export class ProblemListService {
           favoritesCountMap.get(list.id) ?? 0,
           {
             isSaved: true,
-            categoryId: categoryMap.get(list.id) ?? undefined,
+            categoryId: collectionMap.get(list.id) ?? undefined,
           },
         ),
       ),
@@ -297,25 +321,11 @@ export class ProblemListService {
           favoritesCountMap.get(list.id) ?? 0,
           {
             isSaved: savedListIds.has(list.id),
-            categoryId: categoryMap.get(list.id) ?? undefined,
+            categoryId: collectionMap.get(list.id) ?? undefined,
           },
         ),
       ),
-      categories: categories.map((cat) => ({
-        id: cat.id,
-        name: cat.name,
-        sortOrder: cat.sort_order,
-        lists: (cat.items ?? [])
-          .filter((item) => item.list)
-          .map((item) =>
-            this.mapList(
-              item.list,
-              countMap.get(item.list.id) ?? 0,
-              favoritesCountMap.get(item.list.id) ?? 0,
-              { isSaved: true, categoryId: cat.id },
-            ),
-          ),
-      })),
+      categories: categoryResponses,
     };
   }
 
@@ -517,35 +527,32 @@ export class ProblemListService {
     let categories: ProblemListDetailResponse['categories'] | undefined;
 
     if (userId) {
-      const favorite = await this.prisma.edgeOperation.findUnique({
-        where: {
-          operator_id_operation_type_target_type_target_id: {
-            operator_id: userId,
-            operation_type: EdgeOperationType.FAVORITE,
-            target_type: problemListTargetType,
-            target_id: listSummary.id,
-          },
-        },
-      });
+      // Check if this list is in any of user's collections
+      const collectionIds = await this.collectionService.getItemCollections(
+        userId,
+        problemListTargetType,
+        listSummary.id,
+      );
 
-      const categoryItem = await this.categoryItemsRepository.findOne({
-        where: { user_id: userId, list_id: listSummary.id },
+      const isSaved = collectionIds.length > 0;
+      // Get the first non-default collection as categoryId
+      const collections =
+        await this.collectionService.getUserCollections(userId);
+      const nonDefaultCollectionId = collectionIds.find((id) => {
+        const col = collections.find((c) => c.id === id);
+        return col && !col.isDefault;
       });
 
       viewer = {
-        isSaved: !!favorite,
-        categoryId: categoryItem?.category_id ?? null,
+        isSaved,
+        categoryId:
+          nonDefaultCollectionId ?? (isSaved ? collectionIds[0] : null),
       };
 
-      const categoryRows = await this.categoriesRepository.find({
-        where: { user_id: userId },
-        order: { sort_order: 'ASC' },
-      });
-
-      categories = categoryRows.map((cat) => ({
-        id: cat.id,
-        name: cat.name,
-        sortOrder: cat.sort_order,
+      categories = collections.map((col) => ({
+        id: col.id,
+        name: col.name,
+        sortOrder: col.sortOrder,
       }));
     }
 
@@ -754,7 +761,7 @@ export class ProblemListService {
   async saveList(
     userId: string,
     listId: string,
-    categoryId?: string,
+    collectionId?: string,
   ): Promise<void> {
     const list = await this.listsRepository.findOne({ where: { id: listId } });
     if (!list) {
@@ -764,152 +771,111 @@ export class ProblemListService {
       throw new ForbiddenException('This list is private');
     }
 
-    const existingFavorite = await this.prisma.edgeOperation.findUnique({
-      where: {
-        operator_id_operation_type_target_type_target_id: {
-          operator_id: userId,
-          operation_type: EdgeOperationType.FAVORITE,
-          target_type: problemListTargetType,
-          target_id: listId,
-        },
-      },
-    });
-
-    if (!existingFavorite) {
-      await this.prisma.edgeOperation.create({
-        data: {
-          operator_id: userId,
-          target_type: problemListTargetType,
-          target_id: listId,
-          operation_type: EdgeOperationType.FAVORITE,
-        },
+    // If collectionId is provided, add to that collection
+    // Otherwise, add to default collection (favorites)
+    if (collectionId) {
+      await this.collectionService.addItem(userId, collectionId, {
+        targetId: listId,
+        targetType: problemListTargetType,
       });
-    }
-
-    if (categoryId !== undefined) {
-      if (categoryId) {
-        const category = await this.categoriesRepository.findOne({
-          where: { id: categoryId, user_id: userId },
-        });
-        if (!category) {
-          throw new NotFoundException('Category not found');
-        }
-      }
-
-      const existingItem = await this.categoryItemsRepository.findOne({
-        where: { user_id: userId, list_id: listId },
+    } else {
+      // Add to default collection
+      const defaultCollection =
+        await this.collectionService.ensureDefaultCollection(userId);
+      await this.collectionService.addItem(userId, defaultCollection.id, {
+        targetId: listId,
+        targetType: problemListTargetType,
       });
-
-      if (categoryId) {
-        if (existingItem) {
-          existingItem.category_id = categoryId;
-          await this.categoryItemsRepository.save(existingItem);
-        } else {
-          const newItem = this.categoryItemsRepository.create({
-            user_id: userId,
-            list_id: listId,
-            category_id: categoryId,
-          });
-          await this.categoryItemsRepository.save(newItem);
-        }
-      } else if (existingItem) {
-        await this.categoryItemsRepository.remove(existingItem);
-      }
     }
   }
 
   async unsaveList(userId: string, listId: string): Promise<void> {
-    await this.prisma.edgeOperation.deleteMany({
+    // Remove from all user's collections
+    await this.prisma.collectionItem.deleteMany({
       where: {
-        operator_id: userId,
         target_type: problemListTargetType,
         target_id: listId,
-        operation_type: EdgeOperationType.FAVORITE,
+        collection: { user_id: userId },
       },
-    });
-    await this.categoryItemsRepository.delete({
-      user_id: userId,
-      list_id: listId,
     });
   }
 
   async isListSaved(userId: string, listId: string): Promise<boolean> {
-    const favorite = await this.prisma.edgeOperation.findUnique({
+    const count = await this.prisma.collectionItem.count({
       where: {
-        operator_id_operation_type_target_type_target_id: {
-          operator_id: userId,
-          operation_type: EdgeOperationType.FAVORITE,
-          target_type: problemListTargetType,
-          target_id: listId,
-        },
+        target_type: problemListTargetType,
+        target_id: listId,
+        collection: { user_id: userId },
       },
     });
-    return !!favorite;
+    return count > 0;
   }
 
   // ============================================================================
-  // Category Management
+  // Category Management (now delegates to CollectionService)
   // ============================================================================
 
   async getCategories(userId: string): Promise<CategorySummary[]> {
     const countMap = await this.buildProblemCountMap();
-    const categories = await this.categoriesRepository.find({
-      where: { user_id: userId },
-      relations: ['items', 'items.list'],
-      order: { sort_order: 'ASC' },
+    const collections = await this.collectionService.getUserCollections(userId);
+
+    // Get all collection items of type PROBLEM_LIST for this user
+    const collectionItems = await this.prisma.collectionItem.findMany({
+      where: {
+        target_type: problemListTargetType,
+        collection: { user_id: userId },
+      },
     });
 
-    const listIds = categories.flatMap((cat) =>
-      (cat.items ?? []).map((item) => item.list_id),
-    );
-    const favoritesCountMap = await this.buildFavoritesCountMap(listIds);
+    // Build map of collectionId -> listIds
+    const collectionItemsMap = new Map<string, string[]>();
+    collectionItems.forEach((item) => {
+      const list = collectionItemsMap.get(item.collection_id) ?? [];
+      list.push(item.target_id);
+      collectionItemsMap.set(item.collection_id, list);
+    });
 
-    return categories.map((cat) => ({
-      id: cat.id,
-      name: cat.name,
-      sortOrder: cat.sort_order,
-      lists: (cat.items ?? [])
-        .filter((item) => item.list)
-        .map((item) =>
+    const allListIds = collectionItems.map((item) => item.target_id);
+    const favoritesCountMap = await this.buildFavoritesCountMap(allListIds);
+
+    const result: CategorySummary[] = [];
+    for (const col of collections) {
+      const listIds = collectionItemsMap.get(col.id) ?? [];
+      const lists =
+        listIds.length > 0
+          ? await this.listsRepository.find({ where: { id: In(listIds) } })
+          : [];
+
+      result.push({
+        id: col.id,
+        name: col.name,
+        sortOrder: col.sortOrder,
+        lists: lists.map((list) =>
           this.mapList(
-            item.list,
-            countMap.get(item.list.id) ?? 0,
-            favoritesCountMap.get(item.list.id) ?? 0,
-            {
-              isSaved: true,
-              categoryId: cat.id,
-            },
+            list,
+            countMap.get(list.id) ?? 0,
+            favoritesCountMap.get(list.id) ?? 0,
+            { isSaved: true, categoryId: col.id },
           ),
         ),
-    }));
+      });
+    }
+
+    return result;
   }
 
   async createCategory(
     userId: string,
     data: { name: string; sortOrder?: number },
   ): Promise<CategorySummary> {
-    // Get max sort_order if not provided
-    let sortOrder = data.sortOrder;
-    if (sortOrder === undefined) {
-      const maxResult = await this.categoriesRepository
-        .createQueryBuilder('cat')
-        .select('MAX(cat.sort_order)', 'maxOrder')
-        .where('cat.user_id = :userId', { userId })
-        .getRawOne<{ maxOrder: number | null }>();
-      sortOrder = (maxResult?.maxOrder ?? -1) + 1;
-    }
-
-    const category = this.categoriesRepository.create({
-      user_id: userId,
+    const collection = await this.collectionService.createCollection(userId, {
       name: data.name,
-      sort_order: sortOrder,
     });
-    await this.categoriesRepository.save(category);
 
     return {
-      id: category.id,
-      name: category.name,
-      sortOrder: category.sort_order,
+      id: collection.id,
+      name: collection.name,
+      sortOrder: collection.sortOrder,
       lists: [],
     };
   }
@@ -919,103 +885,81 @@ export class ProblemListService {
     userId: string,
     data: { name?: string; sortOrder?: number },
   ): Promise<CategorySummary> {
-    const category = await this.categoriesRepository.findOne({
-      where: { id: categoryId, user_id: userId },
-      relations: ['items', 'items.list'],
-    });
-    if (!category) {
-      throw new NotFoundException('Category not found');
-    }
+    const collection = await this.collectionService.updateCollection(
+      userId,
+      categoryId,
+      {
+        name: data.name,
+        sortOrder: data.sortOrder,
+      },
+    );
 
-    if (data.name !== undefined) category.name = data.name;
-    if (data.sortOrder !== undefined) category.sort_order = data.sortOrder;
-
-    await this.categoriesRepository.save(category);
+    // Get lists in this collection
     const countMap = await this.buildProblemCountMap();
-    const listIds = (category.items ?? []).map((item) => item.list_id);
+    const collectionItems = await this.prisma.collectionItem.findMany({
+      where: {
+        collection_id: categoryId,
+        target_type: problemListTargetType,
+      },
+    });
+
+    const listIds = collectionItems.map((item) => item.target_id);
+    const lists =
+      listIds.length > 0
+        ? await this.listsRepository.find({ where: { id: In(listIds) } })
+        : [];
     const favoritesCountMap = await this.buildFavoritesCountMap(listIds);
 
     return {
-      id: category.id,
-      name: category.name,
-      sortOrder: category.sort_order,
-      lists: (category.items ?? [])
-        .filter((item) => item.list)
-        .map((item) =>
-          this.mapList(
-            item.list,
-            countMap.get(item.list.id) ?? 0,
-            favoritesCountMap.get(item.list.id) ?? 0,
-            {
-              isSaved: true,
-              categoryId: category.id,
-            },
-          ),
+      id: collection.id,
+      name: collection.name,
+      sortOrder: collection.sortOrder,
+      lists: lists.map((list) =>
+        this.mapList(
+          list,
+          countMap.get(list.id) ?? 0,
+          favoritesCountMap.get(list.id) ?? 0,
+          { isSaved: true, categoryId: collection.id },
         ),
+      ),
     };
   }
 
   async deleteCategory(categoryId: string, userId: string): Promise<void> {
-    const category = await this.categoriesRepository.findOne({
-      where: { id: categoryId, user_id: userId },
-    });
-    if (!category) {
-      throw new NotFoundException('Category not found');
-    }
-
-    // Saved lists in this category will have category_id set to NULL (via onDelete: SET NULL)
-    await this.categoriesRepository.remove(category);
+    await this.collectionService.deleteCollection(userId, categoryId);
   }
 
   async moveListToCategory(
     userId: string,
     listId: string,
-    categoryId: string | null,
+    collectionId: string | null,
   ): Promise<void> {
-    const favorite = await this.prisma.edgeOperation.findUnique({
-      where: {
-        operator_id_operation_type_target_type_target_id: {
-          operator_id: userId,
-          operation_type: EdgeOperationType.FAVORITE,
-          target_type: problemListTargetType,
-          target_id: listId,
-        },
-      },
-    });
-    if (!favorite) {
+    // Check if list is saved in any collection
+    const isSaved = await this.isListSaved(userId, listId);
+    if (!isSaved) {
       throw new NotFoundException('List is not saved');
     }
 
-    if (categoryId) {
-      const category = await this.categoriesRepository.findOne({
-        where: { id: categoryId, user_id: userId },
+    if (collectionId) {
+      // Add to the specified collection
+      await this.collectionService.addItem(userId, collectionId, {
+        targetId: listId,
+        targetType: problemListTargetType,
       });
-      if (!category) {
-        throw new NotFoundException('Category not found');
+    } else {
+      // Remove from all non-default collections, keep in default
+      const collections =
+        await this.collectionService.getUserCollections(userId);
+      for (const col of collections) {
+        if (!col.isDefault) {
+          await this.collectionService.removeItemByTarget(
+            userId,
+            col.id,
+            problemListTargetType,
+            listId,
+          );
+        }
       }
-    }
-
-    const existingItem = await this.categoryItemsRepository.findOne({
-      where: { user_id: userId, list_id: listId },
-    });
-
-    if (categoryId) {
-      if (existingItem) {
-        existingItem.category_id = categoryId;
-        await this.categoryItemsRepository.save(existingItem);
-      } else {
-        const item = this.categoryItemsRepository.create({
-          user_id: userId,
-          list_id: listId,
-          category_id: categoryId,
-        });
-        await this.categoryItemsRepository.save(item);
-      }
-      return;
-    }
-
-    if (existingItem) {
-      await this.categoryItemsRepository.remove(existingItem);
     }
   }
 }

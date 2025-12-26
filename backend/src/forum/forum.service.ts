@@ -5,6 +5,10 @@ import { Repository } from 'typeorm';
 import { ForumPost } from './entities/post.entity';
 import { ForumCommunity } from './entities/community.entity';
 import { ForumComment } from './entities/comment.entity';
+import { ForumTag } from './entities/tag.entity';
+import { ForumCommunityRule } from './entities/community-rule.entity';
+import { ForumCommunityLink } from './entities/community-link.entity';
+import { ForumCommunityMember } from './entities/community-member.entity';
 import { VoteService } from '../vote/vote.service';
 import { EdgeOperationTargetType } from '@prisma/client';
 
@@ -17,6 +21,14 @@ export class ForumService {
     private communitiesRepository: Repository<ForumCommunity>,
     @InjectRepository(ForumComment)
     private commentsRepository: Repository<ForumComment>,
+    @InjectRepository(ForumTag)
+    private tagsRepository: Repository<ForumTag>,
+    @InjectRepository(ForumCommunityRule)
+    private rulesRepository: Repository<ForumCommunityRule>,
+    @InjectRepository(ForumCommunityLink)
+    private linksRepository: Repository<ForumCommunityLink>,
+    @InjectRepository(ForumCommunityMember)
+    private membersRepository: Repository<ForumCommunityMember>,
     private readonly voteService: VoteService,
   ) {}
 
@@ -154,8 +166,156 @@ export class ForumService {
     return null;
   }
 
-  async findAllCommunities(): Promise<ForumCommunity[]> {
-    return this.communitiesRepository.find();
+  // Enhanced community fetching with filtering
+  async findAllCommunities(options?: {
+    includePrivate?: boolean;
+    featuredOnly?: boolean;
+  }): Promise<ForumCommunity[]> {
+    const query = this.communitiesRepository.createQueryBuilder('community');
+
+    if (!options?.includePrivate) {
+      query.andWhere('community.visibility != :private', {
+        private: 'PRIVATE',
+      });
+    }
+
+    if (options?.featuredOnly) {
+      query.andWhere('community.isFeatured = :featured', { featured: true });
+    }
+
+    query
+      .orderBy('community.sortOrder', 'ASC')
+      .addOrderBy('community.createdAt', 'DESC');
+
+    return query.getMany();
+  }
+
+  // Find community by slug or ID with rules and links
+  async findOneCommunity(slugOrId: string): Promise<{
+    community: ForumCommunity | null;
+    rules: ForumCommunityRule[];
+    links: ForumCommunityLink[];
+  }> {
+    const community = await this.communitiesRepository.findOne({
+      where: [{ id: slugOrId }, { slug: slugOrId }],
+    });
+
+    if (!community) {
+      return { community: null, rules: [], links: [] };
+    }
+
+    const [rules, links] = await Promise.all([
+      this.rulesRepository.find({
+        where: { communityId: community.id },
+        order: { sortOrder: 'ASC' },
+      }),
+      this.linksRepository.find({
+        where: { communityId: community.id },
+        order: { sortOrder: 'ASC' },
+      }),
+    ]);
+
+    return { community, rules, links };
+  }
+
+  // Get posts by community slug
+  async findPostsByCommunity(
+    communitySlug: string,
+    _options?: { sortBy?: 'hot' | 'new' | 'top' },
+  ): Promise<ForumPost[]> {
+    const community = await this.communitiesRepository.findOne({
+      where: { slug: communitySlug },
+    });
+
+    if (!community) {
+      return [];
+    }
+
+    const posts = await this.postsRepository.find({
+      where: { communityId: community.id },
+      relations: ['author', 'community'],
+      order: { createdAt: 'DESC' },
+    });
+
+    // Get vote counts for all posts
+    const postIds = posts.map((p) => p.id);
+    const voteMap = await this.voteService.getVoteCountsBatch(
+      EdgeOperationTargetType.FORUM_POST,
+      postIds,
+    );
+
+    return posts.map((post) => {
+      const stats = voteMap.get(post.id) || { likes: 0, dislikes: 0 };
+      return {
+        ...post,
+        likes: stats.likes,
+        dislikes: stats.dislikes,
+        score: stats.likes - stats.dislikes,
+      } as unknown as ForumPost;
+    });
+  }
+
+  // Tag management
+  async findAllTags(): Promise<ForumTag[]> {
+    return this.tagsRepository.find({
+      order: { usageCount: 'DESC' },
+    });
+  }
+
+  // Membership operations
+  async joinCommunity(
+    userId: string,
+    communityId: string,
+  ): Promise<ForumCommunityMember> {
+    // Check if already a member
+    const existing = await this.membersRepository.findOne({
+      where: { userId, communityId },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    const member = this.membersRepository.create({
+      id: randomUUID(),
+      userId,
+      communityId,
+      role: 'MEMBER',
+      joinedAt: new Date(),
+    });
+
+    await this.membersRepository.save(member);
+
+    // Increment member count
+    await this.communitiesRepository.increment(
+      { id: communityId },
+      'members',
+      1,
+    );
+
+    return member;
+  }
+
+  async leaveCommunity(userId: string, communityId: string): Promise<void> {
+    const member = await this.membersRepository.findOne({
+      where: { userId, communityId },
+    });
+
+    if (member) {
+      await this.membersRepository.delete({ id: member.id });
+      await this.communitiesRepository.decrement(
+        { id: communityId },
+        'members',
+        1,
+      );
+    }
+  }
+
+  async checkMembership(userId: string, communityId: string): Promise<boolean> {
+    const count = await this.membersRepository.count({
+      where: { userId, communityId },
+    });
+    return count > 0;
   }
 
   async createComment(

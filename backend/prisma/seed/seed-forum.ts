@@ -6,6 +6,12 @@ import usersData from './data/users.data';
 export async function clearForum(prisma: PrismaClient): Promise<void> {
   await prisma.forumComment.deleteMany();
   await prisma.forumPost.deleteMany();
+  await prisma.forumPostTagRelation.deleteMany();
+  await prisma.forumCommunityMember.deleteMany();
+  await prisma.forumCommunityLink.deleteMany();
+  await prisma.forumCommunityRule.deleteMany();
+  await prisma.forumCommunityTag.deleteMany();
+  await prisma.forumTag.deleteMany();
   await prisma.forumUser.deleteMany();
   await prisma.forumCommunity.deleteMany();
 }
@@ -27,9 +33,41 @@ export async function seedForum(
         name: community.name,
         slug: community.slug,
         description: community.description,
+        icon: community.icon,
+        color: community.color,
+        banner: community.banner,
         members: community.members,
         online: community.online,
+        posts_count: community.posts_count,
+        posts_today: community.posts_today,
+        posts_week: community.posts_week,
+        is_official: community.is_official,
+        is_featured: community.is_featured,
+        sort_order: community.sort_order,
+        visibility: community.visibility as any,
+        created_at: community.created_at,
       },
+    });
+  }
+
+  // Seed tags
+  for (const tag of forumData.forum_tags) {
+    await prisma.forumTag.create({
+      data: tag,
+    });
+  }
+
+  // Seed community rules
+  for (const rule of forumData.forum_community_rules) {
+    await prisma.forumCommunityRule.create({
+      data: rule,
+    });
+  }
+
+  // Seed community links
+  for (const link of forumData.forum_community_links) {
+    await prisma.forumCommunityLink.create({
+      data: link,
     });
   }
 

@@ -261,16 +261,49 @@ model ContestParticipant {
 // FORUM MODULE
 // ============================================================================
 model ForumCommunity {
-  id          String @id @db.VarChar(40)
-  name        String @db.VarChar(120)
-  slug        String @db.VarChar(60)
-  description String @db.Text
-  members     Int    @default(0)
-  online      Int    @default(0)
+  id          String   @id @db.VarChar(40)
+  name        String   @db.VarChar(120)
+  slug        String   @unique @db.VarChar(60)
+  description String   @db.Text
 
-  posts ForumPost[]
+  // Visual Customization
+  icon        String?  @db.VarChar(255)
+  color       String?  @db.VarChar(20)
+  banner      String?  @db.VarChar(255)
 
+  // Stats (cached for performance)
+  members      Int      @default(0)
+  online       Int      @default(0)
+  posts_count  Int      @default(0)
+  posts_today  Int      @default(0)
+  posts_week   Int      @default(0)
+
+  // Metadata
+  is_official  Boolean  @default(false)
+  is_featured  Boolean  @default(false)
+  sort_order   Int      @default(0)
+  created_at   DateTime @default(now())
+
+  // Access Control
+  visibility   CommunityVisibility @default(PUBLIC)
+
+  // Relations
+  posts       ForumPost[]
+  rules       ForumCommunityRule[]
+  links       ForumCommunityLink[]
+  members_rel ForumCommunityMember[]
+  permissions ForumCommunityPermission[]
+  tags        ForumCommunityTag[]
+
+  @@index([slug])
+  @@index([visibility, is_featured])
   @@map("forum_communities")
+}
+
+enum CommunityVisibility {
+  PUBLIC
+  RESTRICTED
+  PRIVATE
 }
 
 model ForumUser {
@@ -321,9 +354,10 @@ model ForumPost {
   stats          Json?
 
 
-  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
-  author    ForumUser      @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  comments  ForumComment[]
+  community     ForumCommunity         @relation(fields: [community_id], references: [id], onDelete: Cascade)
+  author        ForumUser              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  comments      ForumComment[]
+  tag_relations ForumPostTagRelation[]
 
   @@map("forum_posts")
 }
@@ -348,6 +382,117 @@ model ForumComment {
   replies ForumComment[] @relation("CommentReplies")
 
   @@map("forum_comments")
+}
+
+// Normalized tag system
+model ForumTag {
+  id          String   @id @db.VarChar(40)
+  name        String   @unique @db.VarChar(60)
+  slug        String   @unique @db.VarChar(60)
+  description String?  @db.Text
+  color       String?  @db.VarChar(20)
+  usage_count Int      @default(0)
+  created_at  DateTime @default(now())
+
+  post_relations      ForumPostTagRelation[]
+  community_relations ForumCommunityTag[]
+
+  @@index([slug])
+  @@index([usage_count])
+  @@map("forum_tags")
+}
+
+// M:N relation between posts and tags
+model ForumPostTagRelation {
+  post_id String @db.VarChar(40)
+  tag_id  String @db.VarChar(40)
+
+  post ForumPost @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  tag  ForumTag  @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([post_id, tag_id])
+  @@index([tag_id])
+  @@map("forum_post_tag_relations")
+}
+
+// M:N relation between communities and allowed tags
+model ForumCommunityTag {
+  community_id String  @db.VarChar(40)
+  tag_id       String  @db.VarChar(40)
+  is_featured  Boolean @default(false)
+
+  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+  tag       ForumTag       @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([community_id, tag_id])
+  @@map("forum_community_tags")
+}
+
+// Community posting rules
+model ForumCommunityRule {
+  id           String         @id @db.VarChar(40)
+  community_id String         @db.VarChar(40)
+  title        String         @db.VarChar(120)
+  body         String         @db.Text
+  sort_order   Int            @default(0)
+  created_at   DateTime       @default(now())
+
+  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@index([community_id, sort_order])
+  @@map("forum_community_rules")
+}
+
+// Community useful links
+model ForumCommunityLink {
+  id           String         @id @db.VarChar(40)
+  community_id String         @db.VarChar(40)
+  label        String         @db.VarChar(120)
+  url          String         @db.VarChar(255)
+  description  String?        @db.Text
+  sort_order   Int            @default(0)
+
+  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@index([community_id, sort_order])
+  @@map("forum_community_links")
+}
+
+// Community membership tracking
+model ForumCommunityMember {
+  id           String     @id @db.VarChar(40)
+  community_id String     @db.VarChar(40)
+  user_id      String     @db.VarChar(40)
+  role         MemberRole @default(MEMBER)
+  joined_at    DateTime   @default(now())
+
+  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@unique([community_id, user_id])
+  @@index([user_id])
+  @@map("forum_community_members")
+}
+
+enum MemberRole {
+  OWNER
+  MODERATOR
+  MEMBER
+}
+
+// Role-based permissions per community
+model ForumCommunityPermission {
+  id           String     @id @db.VarChar(40)
+  community_id String     @db.VarChar(40)
+  role         MemberRole
+  can_post     Boolean    @default(true)
+  can_comment  Boolean    @default(true)
+  can_moderate Boolean    @default(false)
+  can_manage   Boolean    @default(false)
+
+  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@unique([community_id, role])
+  @@map("forum_community_permissions")
 }
 
 // ============================================================================

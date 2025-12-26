@@ -42,9 +42,46 @@ export class ForumController {
     return this.forumService.getThread(id, userId);
   }
 
+  // Community endpoints
   @Get('communities')
-  findAllCommunities(): Promise<ForumCommunity[]> {
-    return this.forumService.findAllCommunities();
+  findAllCommunities(
+    @Query('featured') featured?: string,
+  ): Promise<ForumCommunity[]> {
+    return this.forumService.findAllCommunities({
+      featuredOnly: featured === 'true',
+    });
+  }
+
+  @Get('communities/:slugOrId')
+  async findOneCommunity(@Param('slugOrId') slugOrId: string) {
+    return this.forumService.findOneCommunity(slugOrId);
+  }
+
+  @Get('communities/:slug/posts')
+  findPostsByCommunity(
+    @Param('slug') slug: string,
+    @Query('sortBy') sortBy?: 'hot' | 'new' | 'top',
+  ) {
+    return this.forumService.findPostsByCommunity(slug, { sortBy });
+  }
+
+  // Tag endpoints
+  @Get('tags')
+  findAllTags() {
+    return this.forumService.findAllTags();
+  }
+
+  // Membership endpoints
+  @UseGuards(AuthGuard)
+  @Post('communities/:id/join')
+  joinCommunity(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.forumService.joinCommunity(req.user.id, id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('communities/:id/leave')
+  leaveCommunity(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.forumService.leaveCommunity(req.user.id, id);
   }
 
   @Get('quick-filters')

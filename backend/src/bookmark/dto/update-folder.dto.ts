@@ -1,10 +1,10 @@
-import { IsString, IsNotEmpty, IsOptional, MaxLength } from 'class-validator';
+import { IsString, IsOptional, MaxLength, IsInt, Min } from 'class-validator';
 
-export class CreateCollectionDto {
+export class UpdateFolderDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(120)
-  name: string;
+  name?: string;
 
   @IsOptional()
   @IsString()
@@ -19,4 +19,9 @@ export class CreateCollectionDto {
   @IsString()
   @MaxLength(20)
   color?: string;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  sortOrder?: number;
 }

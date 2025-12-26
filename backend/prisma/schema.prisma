@@ -38,7 +38,7 @@ model User {
   contestParticipants ContestParticipant[]
   views View[]
   problemNotes ProblemNote[]
-  collections Collection[]
+  bookmarkFolders BookmarkFolder[]
 
   @@map("users")
 }
@@ -534,11 +534,11 @@ model ProblemListProblemRelation {
 }
 
 // ============================================================================
-// COLLECTION MODULE (通用收藏夹系统)
+// BOOKMARK MODULE (通用书签/收藏夹系统)
 // ============================================================================
 
-// 用户收藏夹
-model Collection {
+// 用户书签文件夹
+model BookmarkFolder {
   id          String   @id @default(uuid()) @db.VarChar(40)
   user_id     String   @db.VarChar(40)
   name        String   @db.VarChar(120)
@@ -550,8 +550,8 @@ model Collection {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  user  User             @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  items CollectionItem[]
+  user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  bookmarks Bookmark[]
 
   @@unique([user_id, name])
   @@index([user_id])
@@ -559,28 +559,30 @@ model Collection {
   @@map("collections")
 }
 
-// 收藏夹项目（支持多种内容类型）
-model CollectionItem {
-  id            String               @id @default(uuid()) @db.VarChar(40)
-  collection_id String               @db.VarChar(40)
-  target_id     String               @db.VarChar(40)
-  target_type   CollectionTargetType
-  sort_order    Int                  @default(0)
-  note          String?              @db.Text
-  created_at    DateTime             @default(now())
+// 书签项目（支持多种内容类型）
+model Bookmark {
+  id          String       @id @default(uuid()) @db.VarChar(40)
+  folder_id   String       @map("collection_id") @db.VarChar(40)
+  target_id   String       @db.VarChar(50)
+  target_type BookmarkType @map("target_type")
+  sort_order  Int          @default(0)
+  note        String?      @db.Text
+  created_at  DateTime     @default(now())
 
-  collection Collection @relation(fields: [collection_id], references: [id], onDelete: Cascade)
+  folder BookmarkFolder @relation(fields: [folder_id], references: [id], onDelete: Cascade)
 
-  @@unique([collection_id, target_type, target_id])
+  @@unique([folder_id, target_type, target_id], map: "collection_items_collection_id_target_type_target_id_key")
   @@index([target_type, target_id])
   @@map("collection_items")
 }
 
-enum CollectionTargetType {
+enum BookmarkType {
   PROBLEM
   SOLUTION
   FORUM_POST
   PROBLEM_LIST
+  SOLUTION_COMMENT
+  FORUM_COMMENT
 }
 
 // ============================================================================
@@ -645,7 +647,6 @@ model EdgeOperation {
 enum EdgeOperationType {
   VOTE_UP
   VOTE_DOWN
-  FAVORITE
   ANALYZE
 }
 

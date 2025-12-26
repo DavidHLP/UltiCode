@@ -9,22 +9,22 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CollectionTargetType } from '@prisma/client';
+import { BookmarkType } from '@prisma/client';
 
-export class AddItemDto {
+export class AddBookmarkDto {
   @IsString()
   @IsNotEmpty()
   targetId: string;
 
-  @IsEnum(CollectionTargetType)
-  targetType: CollectionTargetType;
+  @IsEnum(BookmarkType)
+  targetType: BookmarkType;
 
   @IsOptional()
   @IsString()
   note?: string;
 }
 
-export class UpdateItemDto {
+export class UpdateBookmarkDto {
   @IsOptional()
   @IsString()
   note?: string;
@@ -35,15 +35,15 @@ export class UpdateItemDto {
   sortOrder?: number;
 }
 
-export class BatchAddItemsDto {
+export class BatchAddBookmarksDto {
   @IsArray()
   @ValidateNested({ each: true })
-  @Type(() => AddItemDto)
-  items: AddItemDto[];
+  @Type(() => AddBookmarkDto)
+  items: AddBookmarkDto[];
 }
 
-export class ReorderCollectionsDto {
+export class ReorderFoldersDto {
   @IsArray()
   @IsString({ each: true })
-  collectionIds: string[];
+  folderIds: string[];
 }

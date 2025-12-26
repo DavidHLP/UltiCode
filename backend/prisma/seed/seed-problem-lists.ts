@@ -1,12 +1,12 @@
 import {
-  CollectionTargetType,
+  BookmarkType,
   type PrismaClient,
 } from '@prisma/client';
 import problemListsData from './data/problem-lists.data';
 
 export async function clearProblemLists(prisma: PrismaClient): Promise<void> {
-  await prisma.collectionItem.deleteMany({
-    where: { target_type: CollectionTargetType.PROBLEM_LIST },
+  await prisma.bookmark.deleteMany({
+    where: { target_type: BookmarkType.PROBLEM_LIST },
   });
   await prisma.problemListProblemRelation.deleteMany();
   await prisma.problemList.deleteMany();
@@ -56,9 +56,9 @@ export async function seedProblemLists(
     });
   }
 
-  // Seed user collections (replacing old categories)
+  // Seed bookmark folders (replacing old categories)
   for (const category of problemListsData.user_problem_list_categories) {
-    await prisma.collection.create({
+    await prisma.bookmarkFolder.create({
       data: {
         id: category.id,
         user_id: category.user_id,
@@ -69,44 +69,44 @@ export async function seedProblemLists(
     });
   }
 
-  // Seed collection items (replacing old category items and favorites)
-  // First, ensure default collections exist for users with favorites
+  // Seed bookmarks (replacing old category items and favorites)
+  // First, ensure default folders exist for users with favorites
   const usersWithFavorites = new Set(
     problemListsData.user_problem_list_favorites.map((f) => f.user_id),
   );
-  const defaultCollections: Record<string, string> = {};
+  const defaultFolders: Record<string, string> = {};
 
   for (const userId of usersWithFavorites) {
-    const defaultCollection = await prisma.collection.create({
+    const defaultFolder = await prisma.bookmarkFolder.create({
       data: {
         user_id: userId,
         name: 'Favorites',
         is_default: true,
       },
     });
-    defaultCollections[userId] = defaultCollection.id;
+    defaultFolders[userId] = defaultFolder.id;
   }
 
-  // Add favorites to default collections
+  // Add favorites to default folders
   for (const favorite of problemListsData.user_problem_list_favorites) {
-    const collectionId = defaultCollections[favorite.user_id];
-    if (collectionId) {
-      await prisma.collectionItem.create({
+    const folderId = defaultFolders[favorite.user_id];
+    if (folderId) {
+      await prisma.bookmark.create({
         data: {
-          collection_id: collectionId,
-          target_type: CollectionTargetType.PROBLEM_LIST,
+          folder_id: folderId,
+          target_type: BookmarkType.PROBLEM_LIST,
           target_id: favorite.list_id,
         },
       });
     }
   }
 
-  // Add category items to collections
+  // Add category items to bookmark folders
   for (const item of problemListsData.user_problem_list_category_items) {
-    await prisma.collectionItem.create({
+    await prisma.bookmark.create({
       data: {
-        collection_id: item.category_id,
-        target_type: CollectionTargetType.PROBLEM_LIST,
+        folder_id: item.category_id,
+        target_type: BookmarkType.PROBLEM_LIST,
         target_id: item.list_id,
       },
     });

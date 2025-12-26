@@ -21,6 +21,18 @@ export class ProblemList {
   @Column({ default: false })
   is_featured: boolean;
 
+  @Column({ length: 30, nullable: true })
+  banner_tag: string;
+
+  @Column({ length: 50, nullable: true })
+  banner_icon: string;
+
+  @Column({ length: 30, nullable: true })
+  banner_theme: string;
+
+  @Column({ default: 0 })
+  banner_order: number;
+
   @Column()
   created_at: Date;
 

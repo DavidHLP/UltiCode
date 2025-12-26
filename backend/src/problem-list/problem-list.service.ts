@@ -27,6 +27,10 @@ export interface ProblemListSummary {
   authorId: string;
   isPublic: boolean;
   isFeatured: boolean;
+  bannerTag?: string;
+  bannerIcon?: string;
+  bannerTheme?: string;
+  bannerOrder?: number;
   createdAt: Date;
   updatedAt: Date;
   problemCount: number;
@@ -159,6 +163,10 @@ export class ProblemListService {
       authorId: list.author_id,
       isPublic: list.is_public,
       isFeatured: list.is_featured,
+      bannerTag: list.banner_tag ?? undefined,
+      bannerIcon: list.banner_icon ?? undefined,
+      bannerTheme: list.banner_theme ?? undefined,
+      bannerOrder: list.banner_order ?? undefined,
       createdAt: list.created_at,
       updatedAt: list.updated_at,
       problemCount,
@@ -246,7 +254,7 @@ export class ProblemListService {
     // 3. Get featured lists
     const featuredLists = await this.listsRepository.find({
       where: { is_featured: true, is_public: true },
-      order: { updated_at: 'DESC' },
+      order: { banner_order: 'ASC', updated_at: 'DESC' },
     });
 
     // 4. Get user's collections (replaces old categories)
@@ -344,7 +352,7 @@ export class ProblemListService {
     const countMap = await this.buildProblemCountMap();
     const lists = await this.listsRepository.find({
       where: { is_featured: true, is_public: true },
-      order: { updated_at: 'DESC' },
+      order: { banner_order: 'ASC', updated_at: 'DESC' },
     });
     const favoritesCountMap = await this.buildFavoritesCountMap(
       lists.map((list) => list.id),

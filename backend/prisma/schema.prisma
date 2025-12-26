@@ -507,6 +507,10 @@ model ProblemList {
   author_id   String   @db.VarChar(40)
   is_public   Boolean  @default(true)
   is_featured Boolean  @default(false) // 是否为系统推荐题单
+  banner_tag   String? @db.VarChar(30)
+  banner_icon  String? @db.VarChar(50)
+  banner_theme String? @db.VarChar(30)
+  banner_order Int     @default(0)
   created_at  DateTime
   updated_at  DateTime
 

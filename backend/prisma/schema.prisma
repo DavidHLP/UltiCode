@@ -30,15 +30,18 @@ model User {
   company   String?  @db.VarChar(255)
   joined_at DateTime @default(now())
 
-  solutions        Solution[]
-  solutionComments SolutionComment[]
-  edgeOperations   EdgeOperation[]
-  submissions      Submission[]
-  contestRankings ContestRanking[]
-  contestParticipants ContestParticipant[]
-  views View[]
-  problemNotes ProblemNote[]
-  bookmarkFolders BookmarkFolder[]
+  solutions              Solution[]
+  solutionComments       SolutionComment[]
+  edgeOperations         EdgeOperation[]
+  submissions            Submission[]
+  contestRankings        ContestRanking[]
+  contestParticipants    ContestParticipant[]
+  views                  View[]
+  problemNotes           ProblemNote[]
+  bookmarkFolders        BookmarkFolder[]
+  globalRanking          GlobalRanking?
+  contestProblemResults  ContestProblemResult[]
+  virtualSessions        VirtualContestSession[]
 
   @@map("users")
 }
@@ -162,6 +165,35 @@ enum ContestStatus {
   finished
 }
 
+// Contest participant status (replaces String type)
+enum ContestParticipantStatus {
+  REGISTERED
+  STARTED
+  FINISHED
+  DISQUALIFIED
+}
+
+// Codeforces-style rating titles
+enum RatingTitle {
+  NEWBIE              // < 1200
+  PUPIL               // 1200-1399
+  SPECIALIST          // 1400-1599
+  EXPERT              // 1600-1899
+  CANDIDATE_MASTER    // 1900-2099
+  MASTER              // 2100-2299
+  INTERNATIONAL_MASTER // 2300-2399
+  GRANDMASTER         // 2400-2599
+  INTERNATIONAL_GRANDMASTER // 2600-2899
+  LEGENDARY_GRANDMASTER // >= 2900
+}
+
+// Virtual contest session status
+enum VirtualContestStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
 model Contest {
   id                String        @id @db.VarChar(40)
   title             String        @db.VarChar(120)
@@ -175,11 +207,22 @@ model Contest {
   is_rated          Boolean       @default(true)
   description       String?       @db.Text
   cover_image       String?       @db.VarChar(255)
+  rules             String?       @db.Text
+  is_visible        Boolean       @default(true)
+  created_by        String?       @db.VarChar(40)
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
 
-  problems ContestProblem[]
-  rankings ContestRanking[]
-  participants ContestParticipant[]
+  problems         ContestProblem[]
+  rankings         ContestRanking[]
+  participants     ContestParticipant[]
+  problemResults   ContestProblemResult[]
+  virtualSessions  VirtualContestSession[]
+  contestSubmissions ContestSubmission[]
 
+  @@index([status, start_time])
+  @@index([contest_type])
+  @@index([slug])
   @@map("contests")
 }
 
@@ -192,70 +235,158 @@ model ContestProblem {
   solved_count     Int    @default(0)
   submission_count Int    @default(0)
 
-  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
-  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  contest            Contest                @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  problem            Problem                @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  problemResults     ContestProblemResult[]
+  contestSubmissions ContestSubmission[]
 
+  @@index([contest_id])
   @@map("contest_problems")
 }
 
 model GlobalRanking {
-  id               String  @id @db.VarChar(40)
-  user_id          String  @unique @db.VarChar(40)
-  username         String  @db.VarChar(120)
-  global_rank      Int
-  rating           Int     @default(1500)
-  max_rating       Int     @default(1500)
-  contests_attended Int    @default(0)
-  avatar           String? @db.VarChar(255)
-  country          String  @default("CN") @db.VarChar(10)
-  badge            String? @db.VarChar(50)
+  id                String      @id @db.VarChar(40)
+  user_id           String      @unique @db.VarChar(40)
+  username          String      @db.VarChar(120)
+  global_rank       Int
+  rating            Int         @default(1500)
+  max_rating        Int         @default(1500)
+  rating_title      RatingTitle @default(NEWBIE)
+  max_rating_title  RatingTitle @default(NEWBIE)
+  contests_attended Int         @default(0)
+  contests_rated    Int         @default(0)
+  avatar            String?     @db.VarChar(255)
+  country           String?     @db.VarChar(10)
+  badge             String?     @db.VarChar(50)
+  last_contest_id   String?     @db.VarChar(40)
+  updated_at        DateTime    @updatedAt
 
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([global_rank])
+  @@index([rating])
   @@map("global_rankings")
 }
 
 model ContestRanking {
-  id                  String @id @db.VarChar(40)
-  contest_id          String @db.VarChar(40)
-  user_id             String @db.VarChar(40)
-  username            String @db.VarChar(120)
-  rank                Int
-  score               Int
-  finish_time_seconds Int
-  q1_time_seconds     Int?
-  q2_time_seconds     Int?
-  q3_time_seconds     Int?
-  q4_time_seconds     Int?
-  rating_before       Int
-  rating_after        Int
-  rating_change       Int
-  country             String @default("CN") @db.VarChar(10)
+  id            String  @id @db.VarChar(40)
+  contest_id    String  @db.VarChar(40)
+  user_id       String  @db.VarChar(40)
+  rank          Int
+  total_score   Int     @default(0)
+  total_penalty Int     @default(0)
+  solved_count  Int     @default(0)
+  rating_before Int     @default(1500)
+  rating_after  Int     @default(1500)
+  rating_change Int     @default(0)
+  is_virtual    Boolean @default(false)
 
-  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  contest        Contest                @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  user           User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  problemResults ContestProblemResult[]
 
+  @@unique([contest_id, user_id])
+  @@index([contest_id, rank])
+  @@index([user_id])
   @@map("contest_rankings")
 }
 
 model ContestParticipant {
-  id                  String    @id @db.VarChar(40)
-  contest_id          String    @db.VarChar(40)
-  user_id             String    @db.VarChar(40)
-  username            String    @db.VarChar(120)
-  status              String    @db.VarChar(20) // registered, participated, virtual
-  registered_at       DateTime
-  started_at          DateTime?
-  finished_at         DateTime?
-  rank                Int?
-  score               Int       @default(0)
-  finish_time_seconds Int?
-  is_virtual          Boolean   @default(false)
+  id                 String                   @id @db.VarChar(40)
+  contest_id         String                   @db.VarChar(40)
+  user_id            String                   @db.VarChar(40)
+  status             ContestParticipantStatus @default(REGISTERED)
+  registered_at      DateTime                 @default(now())
+  started_at         DateTime?
+  finished_at        DateTime?
+  total_score        Int                      @default(0)
+  total_penalty      Int                      @default(0)
+  final_rank         Int?
+  is_virtual         Boolean                  @default(false)
+  virtual_session_id String?                  @db.VarChar(40)
 
-  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  contest        Contest                @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  user           User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  virtualSession VirtualContestSession? @relation(fields: [virtual_session_id], references: [id])
+  problemResults ContestProblemResult[]
+  contestSubmissions ContestSubmission[]
 
+  @@unique([contest_id, user_id, virtual_session_id])
+  @@index([user_id])
+  @@index([contest_id, final_rank])
   @@map("contest_participants")
 }
 
+// Per-problem results (flexible - supports any number of problems)
+model ContestProblemResult {
+  id                 String  @id @default(uuid()) @db.VarChar(40)
+  contest_id         String  @db.VarChar(40)
+  contest_problem_id String  @db.VarChar(40)
+  user_id            String  @db.VarChar(40)
+  participant_id     String  @db.VarChar(40)
+  ranking_id         String? @db.VarChar(40)
+
+  is_solved          Boolean @default(false)
+  score              Int     @default(0)
+  attempts           Int     @default(0)
+  first_solve_time   Int?    // Seconds from contest/virtual start
+  penalty_time       Int     @default(0)
+  best_submission_id String? @db.VarChar(40)
+
+  contest        Contest            @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  contestProblem ContestProblem     @relation(fields: [contest_problem_id], references: [id], onDelete: Cascade)
+  user           User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  participant    ContestParticipant @relation(fields: [participant_id], references: [id], onDelete: Cascade)
+  ranking        ContestRanking?    @relation(fields: [ranking_id], references: [id], onDelete: SetNull)
+
+  @@unique([participant_id, contest_problem_id])
+  @@index([contest_id, user_id])
+  @@index([contest_problem_id])
+  @@map("contest_problem_results")
+}
+
+// Virtual contest session tracking
+model VirtualContestSession {
+  id            String               @id @default(uuid()) @db.VarChar(40)
+  contest_id    String               @db.VarChar(40)
+  user_id       String               @db.VarChar(40)
+  status        VirtualContestStatus @default(NOT_STARTED)
+  started_at    DateTime?
+  ends_at       DateTime?
+  finished_at   DateTime?
+  total_score   Int                  @default(0)
+  total_penalty Int                  @default(0)
+
+  contest      Contest              @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  user         User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  participants ContestParticipant[]
+
+  @@unique([contest_id, user_id])
+  @@index([user_id, status])
+  @@map("virtual_contest_sessions")
+}
+
+// Link submissions to contests
+model ContestSubmission {
+  id                 String   @id @default(uuid()) @db.VarChar(40)
+  submission_id      String   @db.VarChar(40)
+  contest_id         String   @db.VarChar(40)
+  contest_problem_id String   @db.VarChar(40)
+  participant_id     String   @db.VarChar(40)
+  virtual_session_id String?  @db.VarChar(40)
+  submitted_at       DateTime @default(now())
+  time_from_start    Int      // Seconds from contest/virtual start
+  is_accepted        Boolean  @default(false)
+
+  submission     Submission         @relation(fields: [submission_id], references: [id], onDelete: Cascade)
+  contest        Contest            @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  contestProblem ContestProblem     @relation(fields: [contest_problem_id], references: [id], onDelete: Cascade)
+  participant    ContestParticipant @relation(fields: [participant_id], references: [id], onDelete: Cascade)
+
+  @@index([contest_id, participant_id])
+  @@index([contest_problem_id])
+  @@map("contest_submissions")
+}
 
 // ============================================================================
 // FORUM MODULE
@@ -697,8 +828,9 @@ model Submission {
   runtimeDistBinsMs Json?
   memoryDistBinsMb  Json?
 
-  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  problem            Problem             @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  contestSubmissions ContestSubmission[]
 
   @@index([problem_id, user_id])
   @@map("submissions")

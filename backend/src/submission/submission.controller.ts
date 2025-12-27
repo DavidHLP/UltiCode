@@ -16,6 +16,7 @@ import type { Request } from 'express';
 import { SubmissionService } from './submission.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
+import { RunSubmissionDto } from './dto/run-submission.dto';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
@@ -106,6 +107,15 @@ export class ProblemSubmissionController {
       throw new BadRequestException('userId is required for best submission');
     }
     return this.submissionService.findBest(problemId, uid);
+  }
+
+  @Post('run')
+  async run(
+    @Param('problemId', ParseIntPipe) problemId: number,
+    @Body() dto: RunSubmissionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.submissionService.run(problemId, dto, req?.user?.id);
   }
 
   @Post()

@@ -130,4 +130,28 @@ export class GlobalSolutionController {
       voteType,
     });
   }
+
+  @Patch('comments/:id')
+  @UseGuards(AuthGuard)
+  updateComment(
+    @Param('id') id: string,
+    @Body() dto: CreateSolutionCommentDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const user = req.user;
+    if (!user) {
+      throw new BadRequestException('user not found');
+    }
+    return this.solutionService.updateComment(id, dto.content, user.id);
+  }
+
+  @Delete('comments/:id')
+  @UseGuards(AuthGuard)
+  deleteComment(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    const user = req.user;
+    if (!user) {
+      throw new BadRequestException('user not found');
+    }
+    return this.solutionService.deleteComment(id, user.id);
+  }
 }

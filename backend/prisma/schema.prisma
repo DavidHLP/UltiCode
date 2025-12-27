@@ -1,6 +1,3 @@
-// Prisma Schema - Generated from TypeORM entities
-// Run: npx prisma migrate dev to apply changes
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,77 +7,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ============================================================================
-// USER MODULE
-// ============================================================================
 model User {
-  id       String  @id @db.VarChar(40)
-  username String  @unique @db.VarChar(120)
-  name     String? @db.VarChar(120)
-  email    String? @db.VarChar(255)
-  avatar   String? @db.VarChar(255)
-  password String? @db.VarChar(255)
-
-  // Profile fields
-  bio       String?  @db.Text
-  website   String?  @db.VarChar(255)
-  github    String?  @db.VarChar(255)
-  twitter   String?  @db.VarChar(255)
-  location  String?  @db.VarChar(255)
-  company   String?  @db.VarChar(255)
-  joined_at DateTime @default(now())
-
-  solutions              Solution[]
-  solutionComments       SolutionComment[]
-  edgeOperations         EdgeOperation[]
-  submissions            Submission[]
-  contestRankings        ContestRanking[]
-  contestParticipants    ContestParticipant[]
-  views                  View[]
-  problemNotes           ProblemNote[]
-  bookmarkFolders        BookmarkFolder[]
-  globalRanking          GlobalRanking?
-  contestProblemResults  ContestProblemResult[]
-  virtualSessions        VirtualContestSession[]
+  id                    String                  @id @db.VarChar(40)
+  username              String                  @unique @db.VarChar(120)
+  name                  String?                 @db.VarChar(120)
+  email                 String?                 @db.VarChar(255)
+  avatar                String?                 @db.VarChar(255)
+  password              String?                 @db.VarChar(255)
+  bio                   String?                 @db.Text
+  company               String?                 @db.VarChar(255)
+  github                String?                 @db.VarChar(255)
+  joined_at             DateTime                @default(now())
+  location              String?                 @db.VarChar(255)
+  twitter               String?                 @db.VarChar(255)
+  website               String?                 @db.VarChar(255)
+  bookmarkFolders       BookmarkFolder[]
+  contestParticipants   ContestParticipant[]
+  contestProblemResults ContestProblemResult[]
+  contestRankings       ContestRanking[]
+  edgeOperations        EdgeOperation[]
+  globalRanking         GlobalRanking?
+  problemNotes          ProblemNote[]
+  solutionComments      SolutionComment[]
+  solutions             Solution[]
+  submissions           Submission[]
+  views                 View[]
+  virtualSessions       VirtualContestSession[]
 
   @@map("users")
 }
 
-// ============================================================================
-// PROBLEM MODULE
-// ============================================================================
-enum Difficulty {
-  Easy
-  Medium
-  Hard
-}
-
-enum ProblemStatus {
-  solved
-  attempted
-  todo
-}
-
 model Problem {
-  id              BigInt        @id
-  slug            String        @db.VarChar(120)
-  title           String        @db.VarChar(255)
-  difficulty      Difficulty
-  acceptance_rate Decimal       @default(0) @db.Decimal(5, 2)
-  status          ProblemStatus @default(todo)
-  is_premium      Boolean       @default(false)
-  has_solution    Boolean       @default(false)
-  completed_time  DateTime?     @db.Date
-
-  detail       ProblemDetail?
-  tagRelations ProblemTagRelation[]
-  languages    ProblemLanguage[]
-  examples     ProblemExample[]
-  contestProblems ContestProblem[]
-  solutions    Solution[]
-  submissions  Submission[]
-  problemNotes ProblemNote[]
+  id                   BigInt                       @id
+  slug                 String                       @db.VarChar(120)
+  title                String                       @db.VarChar(255)
+  difficulty           Difficulty
+  acceptance_rate      Decimal                      @default(0.00) @db.Decimal(5, 2)
+  status               ProblemStatus                @default(todo)
+  is_premium           Boolean                      @default(false)
+  has_solution         Boolean                      @default(false)
+  completed_time       DateTime?                    @db.Date
+  contestProblems      ContestProblem[]
+  detail               ProblemDetail?
+  examples             ProblemExample[]
+  languages            ProblemLanguage[]
   problemListRelations ProblemListProblemRelation[]
+  problemNotes         ProblemNote[]
+  tagRelations         ProblemTagRelation[]
+  solutions            Solution[]
+  submissions          Submission[]
 
   @@map("problems")
 }
@@ -93,21 +68,19 @@ model ProblemDetail {
   companies         Json?
   likes             Int      @default(0)
   dislikes          Int      @default(0)
-  difficulty_rating Decimal  @default(1500) @db.Decimal(5, 1)
+  difficulty_rating Decimal  @default(1500.0) @db.Decimal(5, 1)
   updated_at        DateTime
   follow_up         String?  @db.Text
   constraints_json  Json
   hints             Json?
-
-  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  problem           Problem  @relation(fields: [problem_id], references: [id], onDelete: Cascade)
 
   @@map("problem_details")
 }
 
 model ProblemTag {
-  id    String @id @db.VarChar(40)
-  label String @db.VarChar(120)
-
+  id               String               @id @db.VarChar(40)
+  label            String               @db.VarChar(120)
   problemRelations ProblemTagRelation[]
 
   @@map("problem_tags")
@@ -115,24 +88,24 @@ model ProblemTag {
 
 model ProblemTagRelation {
   problem_id BigInt
-  tag_id     String @db.VarChar(40)
-
-  problem Problem    @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-  tag     ProblemTag @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+  tag_id     String     @db.VarChar(40)
+  problem    Problem    @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  tag        ProblemTag @relation(fields: [tag_id], references: [id], onDelete: Cascade)
 
   @@id([problem_id, tag_id])
+  @@index([tag_id], map: "problem_tag_relations_tag_id_fkey")
   @@map("problem_tag_relations")
 }
 
 model ProblemLanguage {
-  id           String @id @db.VarChar(40)
+  id           String  @id @db.VarChar(40)
   problem_id   BigInt
-  label        String @db.VarChar(50)
-  value        String @db.VarChar(50)
-  starter_code String @db.Text
+  label        String  @db.VarChar(50)
+  value        String  @db.VarChar(50)
+  starter_code String  @db.Text
+  problem      Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
 
-  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-
+  @@index([problem_id], map: "problem_languages_problem_id_fkey")
   @@map("problem_languages")
 }
 
@@ -144,81 +117,36 @@ model ProblemExample {
   output_text   String  @db.Text
   explanation   String? @db.Text
   inputs        Json?
+  problem       Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
 
-  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-
+  @@index([problem_id], map: "problem_examples_problem_id_fkey")
   @@map("problem_examples")
 }
 
-// ============================================================================
-// CONTEST MODULE
-// ============================================================================
-enum ContestType {
-  weekly
-  biweekly
-  special
-}
-
-enum ContestStatus {
-  upcoming
-  running
-  finished
-}
-
-// Contest participant status (replaces String type)
-enum ContestParticipantStatus {
-  REGISTERED
-  STARTED
-  FINISHED
-  DISQUALIFIED
-}
-
-// Codeforces-style rating titles
-enum RatingTitle {
-  NEWBIE              // < 1200
-  PUPIL               // 1200-1399
-  SPECIALIST          // 1400-1599
-  EXPERT              // 1600-1899
-  CANDIDATE_MASTER    // 1900-2099
-  MASTER              // 2100-2299
-  INTERNATIONAL_MASTER // 2300-2399
-  GRANDMASTER         // 2400-2599
-  INTERNATIONAL_GRANDMASTER // 2600-2899
-  LEGENDARY_GRANDMASTER // >= 2900
-}
-
-// Virtual contest session status
-enum VirtualContestStatus {
-  NOT_STARTED
-  IN_PROGRESS
-  COMPLETED
-}
-
 model Contest {
-  id                String        @id @db.VarChar(40)
-  title             String        @db.VarChar(120)
-  slug              String        @db.VarChar(120)
-  contest_type      ContestType
-  start_time        DateTime
-  duration_minutes  Int
-  status            ContestStatus
-  registered_count  Int           @default(0)
-  participant_count Int           @default(0)
-  is_rated          Boolean       @default(true)
-  description       String?       @db.Text
-  cover_image       String?       @db.VarChar(255)
-  rules             String?       @db.Text
-  is_visible        Boolean       @default(true)
-  created_by        String?       @db.VarChar(40)
-  created_at        DateTime      @default(now())
-  updated_at        DateTime      @updatedAt
-
-  problems         ContestProblem[]
-  rankings         ContestRanking[]
-  participants     ContestParticipant[]
-  problemResults   ContestProblemResult[]
-  virtualSessions  VirtualContestSession[]
+  id                 String                 @id @db.VarChar(40)
+  title              String                 @db.VarChar(120)
+  slug               String                 @db.VarChar(120)
+  contest_type       ContestType
+  start_time         DateTime
+  duration_minutes   Int
+  status             ContestStatus
+  registered_count   Int                    @default(0)
+  participant_count  Int                    @default(0)
+  is_rated           Boolean                @default(true)
+  description        String?                @db.Text
+  cover_image        String?                @db.VarChar(255)
+  created_at         DateTime               @default(now())
+  created_by         String?                @db.VarChar(40)
+  is_visible         Boolean                @default(true)
+  rules              String?                @db.Text
+  updated_at         DateTime               @updatedAt
+  participants       ContestParticipant[]
+  problemResults     ContestProblemResult[]
+  problems           ContestProblem[]
+  rankings           ContestRanking[]
   contestSubmissions ContestSubmission[]
+  virtualSessions    VirtualContestSession[]
 
   @@index([status, start_time])
   @@index([contest_type])
@@ -227,20 +155,20 @@ model Contest {
 }
 
 model ContestProblem {
-  id               String @id @db.VarChar(40)
-  contest_id       String @db.VarChar(40)
-  problem_id       BigInt
-  problem_index    String @db.VarChar(10)
-  score            Int    @default(0)
-  solved_count     Int    @default(0)
-  submission_count Int    @default(0)
-
+  id                 String                 @id @db.VarChar(40)
+  contest_id         String                 @db.VarChar(40)
+  problem_id         BigInt
+  problem_index      String                 @db.VarChar(10)
+  score              Int                    @default(0)
+  solved_count       Int                    @default(0)
+  submission_count   Int                    @default(0)
+  problemResults     ContestProblemResult[]
   contest            Contest                @relation(fields: [contest_id], references: [id], onDelete: Cascade)
   problem            Problem                @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-  problemResults     ContestProblemResult[]
   contestSubmissions ContestSubmission[]
 
   @@index([contest_id])
+  @@index([problem_id], map: "contest_problems_problem_id_fkey")
   @@map("contest_problems")
 }
 
@@ -251,17 +179,16 @@ model GlobalRanking {
   global_rank       Int
   rating            Int         @default(1500)
   max_rating        Int         @default(1500)
-  rating_title      RatingTitle @default(NEWBIE)
-  max_rating_title  RatingTitle @default(NEWBIE)
   contests_attended Int         @default(0)
-  contests_rated    Int         @default(0)
   avatar            String?     @db.VarChar(255)
   country           String?     @db.VarChar(10)
   badge             String?     @db.VarChar(50)
+  contests_rated    Int         @default(0)
   last_contest_id   String?     @db.VarChar(40)
+  max_rating_title  RatingTitle @default(NEWBIE)
+  rating_title      RatingTitle @default(NEWBIE)
   updated_at        DateTime    @updatedAt
-
-  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  user              User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([global_rank])
   @@index([rating])
@@ -269,21 +196,20 @@ model GlobalRanking {
 }
 
 model ContestRanking {
-  id            String  @id @db.VarChar(40)
-  contest_id    String  @db.VarChar(40)
-  user_id       String  @db.VarChar(40)
-  rank          Int
-  total_score   Int     @default(0)
-  total_penalty Int     @default(0)
-  solved_count  Int     @default(0)
-  rating_before Int     @default(1500)
-  rating_after  Int     @default(1500)
-  rating_change Int     @default(0)
-  is_virtual    Boolean @default(false)
-
+  id             String                 @id @db.VarChar(40)
+  contest_id     String                 @db.VarChar(40)
+  user_id        String                 @db.VarChar(40)
+  rank           Int
+  rating_before  Int                    @default(1500)
+  rating_after   Int                    @default(1500)
+  rating_change  Int                    @default(0)
+  is_virtual     Boolean                @default(false)
+  solved_count   Int                    @default(0)
+  total_penalty  Int                    @default(0)
+  total_score    Int                    @default(0)
+  problemResults ContestProblemResult[]
   contest        Contest                @relation(fields: [contest_id], references: [id], onDelete: Cascade)
   user           User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  problemResults ContestProblemResult[]
 
   @@unique([contest_id, user_id])
   @@index([contest_id, rank])
@@ -299,53 +225,51 @@ model ContestParticipant {
   registered_at      DateTime                 @default(now())
   started_at         DateTime?
   finished_at        DateTime?
-  total_score        Int                      @default(0)
-  total_penalty      Int                      @default(0)
-  final_rank         Int?
   is_virtual         Boolean                  @default(false)
+  final_rank         Int?
+  total_penalty      Int                      @default(0)
+  total_score        Int                      @default(0)
   virtual_session_id String?                  @db.VarChar(40)
-
-  contest        Contest                @relation(fields: [contest_id], references: [id], onDelete: Cascade)
-  user           User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  virtualSession VirtualContestSession? @relation(fields: [virtual_session_id], references: [id])
-  problemResults ContestProblemResult[]
+  contest            Contest                  @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  user               User                     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  virtualSession     VirtualContestSession?   @relation(fields: [virtual_session_id], references: [id])
+  problemResults     ContestProblemResult[]
   contestSubmissions ContestSubmission[]
 
   @@unique([contest_id, user_id, virtual_session_id])
   @@index([user_id])
   @@index([contest_id, final_rank])
+  @@index([virtual_session_id], map: "contest_participants_virtual_session_id_fkey")
   @@map("contest_participants")
 }
 
-// Per-problem results (flexible - supports any number of problems)
 model ContestProblemResult {
-  id                 String  @id @default(uuid()) @db.VarChar(40)
-  contest_id         String  @db.VarChar(40)
-  contest_problem_id String  @db.VarChar(40)
-  user_id            String  @db.VarChar(40)
-  participant_id     String  @db.VarChar(40)
-  ranking_id         String? @db.VarChar(40)
-
-  is_solved          Boolean @default(false)
-  score              Int     @default(0)
-  attempts           Int     @default(0)
-  first_solve_time   Int?    // Seconds from contest/virtual start
-  penalty_time       Int     @default(0)
-  best_submission_id String? @db.VarChar(40)
-
-  contest        Contest            @relation(fields: [contest_id], references: [id], onDelete: Cascade)
-  contestProblem ContestProblem     @relation(fields: [contest_problem_id], references: [id], onDelete: Cascade)
-  user           User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  participant    ContestParticipant @relation(fields: [participant_id], references: [id], onDelete: Cascade)
-  ranking        ContestRanking?    @relation(fields: [ranking_id], references: [id], onDelete: SetNull)
+  id                 String             @id @default(uuid()) @db.VarChar(40)
+  contest_id         String             @db.VarChar(40)
+  contest_problem_id String             @db.VarChar(40)
+  user_id            String             @db.VarChar(40)
+  participant_id     String             @db.VarChar(40)
+  ranking_id         String?            @db.VarChar(40)
+  is_solved          Boolean            @default(false)
+  score              Int                @default(0)
+  attempts           Int                @default(0)
+  first_solve_time   Int?
+  penalty_time       Int                @default(0)
+  best_submission_id String?            @db.VarChar(40)
+  contest            Contest            @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  contestProblem     ContestProblem     @relation(fields: [contest_problem_id], references: [id], onDelete: Cascade)
+  participant        ContestParticipant @relation(fields: [participant_id], references: [id], onDelete: Cascade)
+  ranking            ContestRanking?    @relation(fields: [ranking_id], references: [id])
+  user               User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([participant_id, contest_problem_id])
   @@index([contest_id, user_id])
   @@index([contest_problem_id])
+  @@index([ranking_id], map: "contest_problem_results_ranking_id_fkey")
+  @@index([user_id], map: "contest_problem_results_user_id_fkey")
   @@map("contest_problem_results")
 }
 
-// Virtual contest session tracking
 model VirtualContestSession {
   id            String               @id @default(uuid()) @db.VarChar(40)
   contest_id    String               @db.VarChar(40)
@@ -356,97 +280,450 @@ model VirtualContestSession {
   finished_at   DateTime?
   total_score   Int                  @default(0)
   total_penalty Int                  @default(0)
+  participants  ContestParticipant[]
+  user          User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  contest       Contest              @relation(fields: [contest_id], references: [id], onDelete: Cascade)
 
-  contest      Contest              @relation(fields: [contest_id], references: [id], onDelete: Cascade)
-  user         User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  participants ContestParticipant[]
-
-  @@unique([contest_id, user_id])
+  @@index([contest_id, user_id])
   @@index([user_id, status])
   @@map("virtual_contest_sessions")
 }
 
-// Link submissions to contests
 model ContestSubmission {
-  id                 String   @id @default(uuid()) @db.VarChar(40)
-  submission_id      String   @db.VarChar(40)
-  contest_id         String   @db.VarChar(40)
-  contest_problem_id String   @db.VarChar(40)
-  participant_id     String   @db.VarChar(40)
-  virtual_session_id String?  @db.VarChar(40)
-  submitted_at       DateTime @default(now())
-  time_from_start    Int      // Seconds from contest/virtual start
-  is_accepted        Boolean  @default(false)
-
-  submission     Submission         @relation(fields: [submission_id], references: [id], onDelete: Cascade)
-  contest        Contest            @relation(fields: [contest_id], references: [id], onDelete: Cascade)
-  contestProblem ContestProblem     @relation(fields: [contest_problem_id], references: [id], onDelete: Cascade)
-  participant    ContestParticipant @relation(fields: [participant_id], references: [id], onDelete: Cascade)
+  id                 String             @id @default(uuid()) @db.VarChar(40)
+  submission_id      String             @db.VarChar(40)
+  contest_id         String             @db.VarChar(40)
+  contest_problem_id String             @db.VarChar(40)
+  participant_id     String             @db.VarChar(40)
+  virtual_session_id String?            @db.VarChar(40)
+  submitted_at       DateTime           @default(now())
+  time_from_start    Int
+  is_accepted        Boolean            @default(false)
+  contest            Contest            @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  contestProblem     ContestProblem     @relation(fields: [contest_problem_id], references: [id], onDelete: Cascade)
+  participant        ContestParticipant @relation(fields: [participant_id], references: [id], onDelete: Cascade)
+  submission         Submission         @relation(fields: [submission_id], references: [id], onDelete: Cascade)
 
   @@index([contest_id, participant_id])
   @@index([contest_problem_id])
+  @@index([participant_id], map: "contest_submissions_participant_id_fkey")
+  @@index([submission_id], map: "contest_submissions_submission_id_fkey")
   @@map("contest_submissions")
 }
 
-// ============================================================================
-// FORUM MODULE
-// ============================================================================
 model ForumCommunity {
-  id          String   @id @db.VarChar(40)
-  name        String   @db.VarChar(120)
-  slug        String   @unique @db.VarChar(60)
-  description String   @db.Text
-
-  // Visual Customization
-  icon        String?  @db.VarChar(255)
-  color       String?  @db.VarChar(20)
-  banner      String?  @db.VarChar(255)
-
-  // Stats (cached for performance)
-  members      Int      @default(0)
-  online       Int      @default(0)
-  posts_count  Int      @default(0)
-  posts_today  Int      @default(0)
-  posts_week   Int      @default(0)
-
-  // Metadata
-  is_official  Boolean  @default(false)
-  is_featured  Boolean  @default(false)
-  sort_order   Int      @default(0)
-  created_at   DateTime @default(now())
-
-  // Access Control
-  visibility   CommunityVisibility @default(PUBLIC)
-
-  // Relations
-  posts       ForumPost[]
-  rules       ForumCommunityRule[]
+  id          String                     @id @db.VarChar(40)
+  name        String                     @db.VarChar(120)
+  slug        String                     @unique @db.VarChar(60)
+  description String                     @db.Text
+  members     Int                        @default(0)
+  online      Int                        @default(0)
+  icon        String?                    @db.VarChar(255)
+  color       String?                    @db.VarChar(20)
+  banner      String?                    @db.VarChar(255)
+  posts_count Int                        @default(0)
+  posts_today Int                        @default(0)
+  posts_week  Int                        @default(0)
+  is_official Boolean                    @default(false)
+  is_featured Boolean                    @default(false)
+  sort_order  Int                        @default(0)
+  created_at  DateTime                   @default(now())
+  visibility  CommunityVisibility        @default(PUBLIC)
   links       ForumCommunityLink[]
   members_rel ForumCommunityMember[]
   permissions ForumCommunityPermission[]
+  rules       ForumCommunityRule[]
   tags        ForumCommunityTag[]
+  posts       ForumPost[]
 
   @@index([slug])
   @@index([visibility, is_featured])
   @@map("forum_communities")
 }
 
+model ForumUser {
+  username String         @unique @db.VarChar(60)
+  avatar   String?        @db.VarChar(255)
+  karma    Int            @default(0)
+  id       String         @id @db.VarChar(40)
+  comments ForumComment[]
+  posts    ForumPost[]
+
+  @@map("forum_users")
+}
+
+model ForumPost {
+  id             String                 @id @db.VarChar(40)
+  community_id   String                 @db.VarChar(40)
+  user_id        String                 @db.VarChar(40)
+  permalink      String?                @db.VarChar(255)
+  title          String                 @db.VarChar(255)
+  flair_type     FlairType?
+  flair_label    String?                @db.VarChar(60)
+  tags           Json
+  excerpt        String?                @db.Text
+  media          Json?
+  recommendation Json?
+  vote_state     VoteState              @default(neutral)
+  is_saved       Boolean                @default(false)
+  impressions    Int                    @default(0)
+  is_pinned      Boolean                @default(false)
+  is_locked      Boolean                @default(false)
+  created_at     DateTime
+  stats          Json?
+  views          Int                    @default(0)
+  comments       ForumComment[]
+  tag_relations  ForumPostTagRelation[]
+  community      ForumCommunity         @relation(fields: [community_id], references: [id], onDelete: Cascade)
+  author         ForumUser              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([community_id], map: "forum_posts_community_id_fkey")
+  @@index([user_id], map: "forum_posts_user_id_fkey")
+  @@map("forum_posts")
+}
+
+model ForumComment {
+  id         String         @id @db.VarChar(40)
+  post_id    String         @db.VarChar(40)
+  parent_id  String?        @db.VarChar(40)
+  author_id  String         @db.VarChar(40)
+  body       String         @db.Text
+  markdown   String?        @db.Text
+  created_at DateTime
+  edited_at  DateTime?
+  is_pinned  Boolean        @default(false)
+  is_locked  Boolean        @default(false)
+  author     ForumUser      @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  parent     ForumComment?  @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies    ForumComment[] @relation("CommentReplies")
+  post       ForumPost      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+
+  @@index([author_id], map: "forum_comments_author_id_fkey")
+  @@index([parent_id], map: "forum_comments_parent_id_fkey")
+  @@index([post_id], map: "forum_comments_post_id_fkey")
+  @@map("forum_comments")
+}
+
+model ForumTag {
+  id                  String                 @id @db.VarChar(40)
+  name                String                 @unique @db.VarChar(60)
+  slug                String                 @unique @db.VarChar(60)
+  description         String?                @db.Text
+  color               String?                @db.VarChar(20)
+  usage_count         Int                    @default(0)
+  created_at          DateTime               @default(now())
+  community_relations ForumCommunityTag[]
+  post_relations      ForumPostTagRelation[]
+
+  @@index([slug])
+  @@index([usage_count])
+  @@map("forum_tags")
+}
+
+model ForumPostTagRelation {
+  post_id String    @db.VarChar(40)
+  tag_id  String    @db.VarChar(40)
+  post    ForumPost @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  tag     ForumTag  @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([post_id, tag_id])
+  @@index([tag_id])
+  @@map("forum_post_tag_relations")
+}
+
+model ForumCommunityTag {
+  community_id String         @db.VarChar(40)
+  tag_id       String         @db.VarChar(40)
+  is_featured  Boolean        @default(false)
+  community    ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+  tag          ForumTag       @relation(fields: [tag_id], references: [id], onDelete: Cascade)
+
+  @@id([community_id, tag_id])
+  @@index([tag_id], map: "forum_community_tags_tag_id_fkey")
+  @@map("forum_community_tags")
+}
+
+model ForumCommunityRule {
+  id           String         @id @db.VarChar(40)
+  community_id String         @db.VarChar(40)
+  title        String         @db.VarChar(120)
+  body         String         @db.Text
+  sort_order   Int            @default(0)
+  created_at   DateTime       @default(now())
+  community    ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@index([community_id, sort_order])
+  @@map("forum_community_rules")
+}
+
+model ForumCommunityLink {
+  id           String         @id @db.VarChar(40)
+  community_id String         @db.VarChar(40)
+  label        String         @db.VarChar(120)
+  url          String         @db.VarChar(255)
+  description  String?        @db.Text
+  sort_order   Int            @default(0)
+  community    ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@index([community_id, sort_order])
+  @@map("forum_community_links")
+}
+
+model ForumCommunityMember {
+  id           String         @id @db.VarChar(40)
+  community_id String         @db.VarChar(40)
+  user_id      String         @db.VarChar(40)
+  role         MemberRole     @default(MEMBER)
+  joined_at    DateTime       @default(now())
+  community    ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@unique([community_id, user_id])
+  @@index([user_id])
+  @@map("forum_community_members")
+}
+
+model ForumCommunityPermission {
+  id           String         @id @db.VarChar(40)
+  community_id String         @db.VarChar(40)
+  role         MemberRole
+  can_post     Boolean        @default(true)
+  can_comment  Boolean        @default(true)
+  can_moderate Boolean        @default(false)
+  can_manage   Boolean        @default(false)
+  community    ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
+
+  @@unique([community_id, role])
+  @@map("forum_community_permissions")
+}
+
+model ProblemList {
+  id               String                       @id @db.VarChar(50)
+  name             String                       @db.VarChar(120)
+  description      String?                      @db.Text
+  author_id        String                       @db.VarChar(40)
+  is_public        Boolean                      @default(true)
+  created_at       DateTime
+  updated_at       DateTime
+  is_featured      Boolean                      @default(false)
+  banner_tag       String?                      @db.VarChar(30)
+  banner_icon      String?                      @db.VarChar(50)
+  banner_theme     String?                      @db.VarChar(30)
+  banner_order     Int                          @default(0)
+  problemRelations ProblemListProblemRelation[]
+
+  @@map("problem_lists")
+}
+
+model ProblemListProblemRelation {
+  list_id    String      @db.VarChar(50)
+  problem_id BigInt
+  sort_order Int         @default(0)
+  added_at   DateTime    @default(now())
+  list       ProblemList @relation(fields: [list_id], references: [id], onDelete: Cascade)
+  problem    Problem     @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@id([list_id, problem_id])
+  @@index([problem_id], map: "problem_list_problem_relations_problem_id_fkey")
+  @@map("problem_list_problem_relations")
+}
+
+model BookmarkFolder {
+  id          String     @id @default(uuid()) @db.VarChar(40)
+  user_id     String     @db.VarChar(40)
+  name        String     @db.VarChar(120)
+  description String?    @db.Text
+  icon        String?    @db.VarChar(50)
+  color       String?    @db.VarChar(20)
+  sort_order  Int        @default(0)
+  is_default  Boolean    @default(false)
+  created_at  DateTime   @default(now())
+  updated_at  DateTime   @updatedAt
+  bookmarks   Bookmark[]
+  user        User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, name])
+  @@index([user_id])
+  @@index([user_id, is_default])
+  @@map("collections")
+}
+
+model Bookmark {
+  id          String         @id @default(uuid()) @db.VarChar(40)
+  folder_id   String         @map("collection_id") @db.VarChar(40)
+  target_id   String         @db.VarChar(50)
+  target_type BookmarkType   @map("target_type")
+  sort_order  Int            @default(0)
+  note        String?        @db.Text
+  created_at  DateTime       @default(now())
+  folder      BookmarkFolder @relation(fields: [folder_id], references: [id], onDelete: Cascade)
+
+  @@unique([folder_id, target_type, target_id])
+  @@index([target_type, target_id])
+  @@map("collection_items")
+}
+
+model Solution {
+  id         String            @id @db.VarChar(40)
+  problem_id BigInt
+  user_id    String            @db.VarChar(40)
+  title      String            @db.VarChar(255)
+  content    String            @db.Text
+  summary    String?           @db.Text
+  language   String            @db.VarChar(50)
+  tags       Json?
+  views      Int               @default(0)
+  created_at DateTime          @default(now())
+  updated_at DateTime          @updatedAt
+  comments   SolutionComment[]
+  problem    Problem           @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  author     User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([problem_id], map: "solutions_problem_id_fkey")
+  @@index([user_id], map: "solutions_user_id_fkey")
+  @@map("solutions")
+}
+
+model SolutionComment {
+  id          String            @id @db.VarChar(40)
+  solution_id String            @db.VarChar(40)
+  parent_id   String?           @db.VarChar(40)
+  user_id     String            @db.VarChar(40)
+  content     String            @db.Text
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @updatedAt
+  parent      SolutionComment?  @relation("SolutionCommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies     SolutionComment[] @relation("SolutionCommentReplies")
+  solution    Solution          @relation(fields: [solution_id], references: [id], onDelete: Cascade)
+  author      User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([parent_id], map: "solution_comments_parent_id_fkey")
+  @@index([solution_id], map: "solution_comments_solution_id_fkey")
+  @@index([user_id], map: "solution_comments_user_id_fkey")
+  @@map("solution_comments")
+}
+
+model EdgeOperation {
+  id             String                  @id @default(uuid()) @db.VarChar(40)
+  target_id      String                  @db.VarChar(40)
+  target_type    EdgeOperationTargetType
+  operator_id    String                  @db.VarChar(40)
+  operation_type EdgeOperationType
+  created_at     DateTime                @default(now())
+  operator       User                    @relation(fields: [operator_id], references: [id], onDelete: Cascade)
+
+  @@unique([operator_id, operation_type, target_type, target_id], map: "edge_ops_unique")
+  @@index([target_type, target_id], map: "edge_ops_target")
+  @@index([operation_type, target_type, target_id], map: "edge_ops_operation_target")
+  @@map("edge_operations")
+}
+
+model ProblemNote {
+  id         String   @id @default(uuid()) @db.VarChar(40)
+  problem_id BigInt
+  user_id    String   @db.VarChar(40)
+  content    String   @db.Text
+  updated_at DateTime @updatedAt
+  problem    Problem  @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, problem_id])
+  @@index([problem_id], map: "problem_notes_problem_id_fkey")
+  @@map("problem_notes")
+}
+
+model Submission {
+  id                 String              @id @db.VarChar(40)
+  problem_id         BigInt
+  user_id            String              @db.VarChar(40)
+  language           String              @db.VarChar(50)
+  code               String              @db.Text
+  status             String              @db.VarChar(20)
+  runtime            Int
+  memory             Float
+  notes              String?             @db.Text
+  created_at         DateTime            @default(now())
+  runtime_percentile Float?
+  memory_percentile  Float?
+  test_details       Json?
+  memoryDistBinsMb   Json?
+  runtimeDistBinsMs  Json?
+  contestSubmissions ContestSubmission[]
+  problem            Problem             @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([problem_id, user_id])
+  @@index([user_id], map: "submissions_user_id_fkey")
+  @@map("submissions")
+}
+
+model View {
+  id          String         @id @default(uuid()) @db.VarChar(40)
+  target_id   String         @db.VarChar(40)
+  target_type ViewTargetType
+  user_id     String?        @db.VarChar(40)
+  ip          String?        @db.VarChar(45)
+  viewed_at   DateTime       @default(now())
+  user        User?          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([target_type, target_id, user_id, ip])
+  @@index([user_id], map: "views_user_id_fkey")
+  @@map("views")
+}
+
+enum Difficulty {
+  Easy
+  Medium
+  Hard
+}
+
+enum ProblemStatus {
+  solved
+  attempted
+  todo
+}
+
+enum ContestType {
+  weekly
+  biweekly
+  special
+}
+
+enum ContestStatus {
+  upcoming
+  running
+  finished
+}
+
+enum ContestParticipantStatus {
+  REGISTERED
+  STARTED
+  FINISHED
+  DISQUALIFIED
+}
+
+enum RatingTitle {
+  NEWBIE
+  PUPIL
+  SPECIALIST
+  EXPERT
+  CANDIDATE_MASTER
+  MASTER
+  INTERNATIONAL_MASTER
+  GRANDMASTER
+  INTERNATIONAL_GRANDMASTER
+  LEGENDARY_GRANDMASTER
+}
+
+enum VirtualContestStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETED
+}
+
 enum CommunityVisibility {
   PUBLIC
   RESTRICTED
   PRIVATE
-}
-
-model ForumUser {
-  id       String  @id @db.VarChar(40)
-  username String  @unique @db.VarChar(60)
-  avatar   String? @db.VarChar(255)
-  karma    Int     @default(0)
-
-  posts    ForumPost[]
-  comments ForumComment[]
-
-  @@map("forum_users")
 }
 
 enum FlairType {
@@ -463,248 +740,10 @@ enum VoteState {
   neutral
 }
 
-model ForumPost {
-  id             String    @id @db.VarChar(40)
-  community_id   String    @db.VarChar(40)
-  user_id        String    @db.VarChar(40)
-  permalink      String?   @db.VarChar(255)
-  title          String    @db.VarChar(255)
-  flair_type     FlairType?
-  flair_label    String?   @db.VarChar(60)
-  tags           Json
-  excerpt        String?   @db.Text
-  media          Json?
-  recommendation Json?
-  vote_state     VoteState @default(neutral)
-  is_saved       Boolean   @default(false)
-  impressions    Int       @default(0)
-  views          Int       @default(0)
-  is_pinned      Boolean   @default(false)
-  is_locked      Boolean   @default(false)
-  created_at     DateTime
-  stats          Json?
-
-
-  community     ForumCommunity         @relation(fields: [community_id], references: [id], onDelete: Cascade)
-  author        ForumUser              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  comments      ForumComment[]
-  tag_relations ForumPostTagRelation[]
-
-  @@map("forum_posts")
-}
-
-model ForumComment {
-  id         String    @id @db.VarChar(40)
-  post_id    String    @db.VarChar(40)
-  parent_id  String?   @db.VarChar(40)
-  author_id  String    @db.VarChar(40)
-  body       String    @db.Text
-  markdown   String?   @db.Text
-
-  created_at DateTime
-  edited_at  DateTime?
-  is_pinned  Boolean   @default(false)
-  is_locked  Boolean   @default(false)
-
-  post   ForumPost     @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  parent ForumComment? @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
-  author ForumUser     @relation(fields: [author_id], references: [id], onDelete: Cascade)
-
-  replies ForumComment[] @relation("CommentReplies")
-
-  @@map("forum_comments")
-}
-
-// Normalized tag system
-model ForumTag {
-  id          String   @id @db.VarChar(40)
-  name        String   @unique @db.VarChar(60)
-  slug        String   @unique @db.VarChar(60)
-  description String?  @db.Text
-  color       String?  @db.VarChar(20)
-  usage_count Int      @default(0)
-  created_at  DateTime @default(now())
-
-  post_relations      ForumPostTagRelation[]
-  community_relations ForumCommunityTag[]
-
-  @@index([slug])
-  @@index([usage_count])
-  @@map("forum_tags")
-}
-
-// M:N relation between posts and tags
-model ForumPostTagRelation {
-  post_id String @db.VarChar(40)
-  tag_id  String @db.VarChar(40)
-
-  post ForumPost @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  tag  ForumTag  @relation(fields: [tag_id], references: [id], onDelete: Cascade)
-
-  @@id([post_id, tag_id])
-  @@index([tag_id])
-  @@map("forum_post_tag_relations")
-}
-
-// M:N relation between communities and allowed tags
-model ForumCommunityTag {
-  community_id String  @db.VarChar(40)
-  tag_id       String  @db.VarChar(40)
-  is_featured  Boolean @default(false)
-
-  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
-  tag       ForumTag       @relation(fields: [tag_id], references: [id], onDelete: Cascade)
-
-  @@id([community_id, tag_id])
-  @@map("forum_community_tags")
-}
-
-// Community posting rules
-model ForumCommunityRule {
-  id           String         @id @db.VarChar(40)
-  community_id String         @db.VarChar(40)
-  title        String         @db.VarChar(120)
-  body         String         @db.Text
-  sort_order   Int            @default(0)
-  created_at   DateTime       @default(now())
-
-  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
-
-  @@index([community_id, sort_order])
-  @@map("forum_community_rules")
-}
-
-// Community useful links
-model ForumCommunityLink {
-  id           String         @id @db.VarChar(40)
-  community_id String         @db.VarChar(40)
-  label        String         @db.VarChar(120)
-  url          String         @db.VarChar(255)
-  description  String?        @db.Text
-  sort_order   Int            @default(0)
-
-  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
-
-  @@index([community_id, sort_order])
-  @@map("forum_community_links")
-}
-
-// Community membership tracking
-model ForumCommunityMember {
-  id           String     @id @db.VarChar(40)
-  community_id String     @db.VarChar(40)
-  user_id      String     @db.VarChar(40)
-  role         MemberRole @default(MEMBER)
-  joined_at    DateTime   @default(now())
-
-  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
-
-  @@unique([community_id, user_id])
-  @@index([user_id])
-  @@map("forum_community_members")
-}
-
 enum MemberRole {
   OWNER
   MODERATOR
   MEMBER
-}
-
-// Role-based permissions per community
-model ForumCommunityPermission {
-  id           String     @id @db.VarChar(40)
-  community_id String     @db.VarChar(40)
-  role         MemberRole
-  can_post     Boolean    @default(true)
-  can_comment  Boolean    @default(true)
-  can_moderate Boolean    @default(false)
-  can_manage   Boolean    @default(false)
-
-  community ForumCommunity @relation(fields: [community_id], references: [id], onDelete: Cascade)
-
-  @@unique([community_id, role])
-  @@map("forum_community_permissions")
-}
-
-// ============================================================================
-// PROBLEM LIST MODULE
-// ============================================================================
-
-// 题单表：每个题单有作者，可以是公开或私有的
-model ProblemList {
-  id          String   @id @db.VarChar(50)
-  name        String   @db.VarChar(120)
-  description String?  @db.Text
-  author_id   String   @db.VarChar(40)
-  is_public   Boolean  @default(true)
-  is_featured Boolean  @default(false) // 是否为系统推荐题单
-  banner_tag   String? @db.VarChar(30)
-  banner_icon  String? @db.VarChar(50)
-  banner_theme String? @db.VarChar(30)
-  banner_order Int     @default(0)
-  created_at  DateTime
-  updated_at  DateTime
-
-  problemRelations ProblemListProblemRelation[]
-
-  @@map("problem_lists")
-}
-
-// 题单与问题的关联
-model ProblemListProblemRelation {
-  list_id    String   @db.VarChar(50)
-  problem_id BigInt
-  sort_order Int      @default(0)
-  added_at   DateTime @default(now())
-
-  list    ProblemList @relation(fields: [list_id], references: [id], onDelete: Cascade)
-  problem Problem     @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-
-  @@id([list_id, problem_id])
-  @@map("problem_list_problem_relations")
-}
-
-// ============================================================================
-// BOOKMARK MODULE (通用书签/收藏夹系统)
-// ============================================================================
-
-// 用户书签文件夹
-model BookmarkFolder {
-  id          String   @id @default(uuid()) @db.VarChar(40)
-  user_id     String   @db.VarChar(40)
-  name        String   @db.VarChar(120)
-  description String?  @db.Text
-  icon        String?  @db.VarChar(50)
-  color       String?  @db.VarChar(20)
-  sort_order  Int      @default(0)
-  is_default  Boolean  @default(false)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  user      User       @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  bookmarks Bookmark[]
-
-  @@unique([user_id, name])
-  @@index([user_id])
-  @@index([user_id, is_default])
-  @@map("collections")
-}
-
-// 书签项目（支持多种内容类型）
-model Bookmark {
-  id          String       @id @default(uuid()) @db.VarChar(40)
-  folder_id   String       @map("collection_id") @db.VarChar(40)
-  target_id   String       @db.VarChar(50)
-  target_type BookmarkType @map("target_type")
-  sort_order  Int          @default(0)
-  note        String?      @db.Text
-  created_at  DateTime     @default(now())
-
-  folder BookmarkFolder @relation(fields: [folder_id], references: [id], onDelete: Cascade)
-
-  @@unique([folder_id, target_type, target_id], map: "collection_items_collection_id_target_type_target_id_key")
-  @@index([target_type, target_id])
-  @@map("collection_items")
 }
 
 enum BookmarkType {
@@ -714,65 +753,6 @@ enum BookmarkType {
   PROBLEM_LIST
   SOLUTION_COMMENT
   FORUM_COMMENT
-}
-
-// ============================================================================
-// SOLUTION MODULE
-// ============================================================================
-model Solution {
-  id         String   @id @db.VarChar(40)
-  problem_id BigInt
-  user_id    String   @db.VarChar(40)
-  title      String   @db.VarChar(255)
-  content    String   @db.Text
-  summary    String?  @db.Text
-  language   String   @db.VarChar(50)
-  tags       Json?
-  views      Int      @default(0)
-
-  created_at DateTime @default(now())
-  updated_at DateTime @updatedAt
-
-  problem  Problem           @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-  author   User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  comments SolutionComment[]
-
-
-  @@map("solutions")
-}
-
-model SolutionComment {
-  id          String   @id @db.VarChar(40)
-  solution_id String   @db.VarChar(40)
-  parent_id   String?  @db.VarChar(40)
-  user_id     String   @db.VarChar(40)
-  content     String   @db.Text
-
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
-
-  solution Solution          @relation(fields: [solution_id], references: [id], onDelete: Cascade)
-  author   User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  parent   SolutionComment?  @relation("SolutionCommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
-  replies  SolutionComment[] @relation("SolutionCommentReplies")
-
-  @@map("solution_comments")
-}
-
-model EdgeOperation {
-  id             String                  @id @default(uuid()) @db.VarChar(40)
-  target_id      String                  @db.VarChar(40)
-  target_type    EdgeOperationTargetType
-  operator_id    String                  @db.VarChar(40)
-  operation_type EdgeOperationType
-  created_at     DateTime                @default(now())
-
-  operator User @relation(fields: [operator_id], references: [id], onDelete: Cascade)
-
-  @@unique([operator_id, operation_type, target_type, target_id], map: "edge_ops_unique")
-  @@index([target_type, target_id], map: "edge_ops_target")
-  @@index([operation_type, target_type, target_id], map: "edge_ops_operation_target")
-  @@map("edge_operations")
 }
 
 enum EdgeOperationType {
@@ -788,70 +768,6 @@ enum EdgeOperationTargetType {
   FORUM_COMMENT
   PROBLEM
   PROBLEM_LIST
-}
-
-model ProblemNote {
-  id         String   @id @default(uuid()) @db.VarChar(40)
-  problem_id BigInt
-  user_id    String   @db.VarChar(40)
-  content    String   @db.Text
-  updated_at DateTime @updatedAt
-
-  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-
-  @@unique([user_id, problem_id])
-  @@map("problem_notes")
-}
-
-// ============================================================================
-// SUBMISSION MODULE
-// ============================================================================
-model Submission {
-  id                String   @id @db.VarChar(40)
-  problem_id        BigInt
-  user_id           String   @db.VarChar(40)
-  language          String   @db.VarChar(50)
-  code              String   @db.Text
-  status            String   @db.VarChar(20) // Accepted, Wrong Answer, TLE, RE, etc.
-  runtime           Int // milliseconds
-  memory            Float // megabytes
-  notes             String?  @db.Text
-  created_at        DateTime @default(now())
-
-  // Performance stats
-  runtime_percentile Float? // e.g. 85.5 (beats 85.5%)
-  memory_percentile  Float? // e.g. 40.2 (beats 40.2%)
-
-  // Detailed results
-  test_details      Json?
-  runtimeDistBinsMs Json?
-  memoryDistBinsMb  Json?
-
-  problem            Problem             @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-  user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  contestSubmissions ContestSubmission[]
-
-  @@index([problem_id, user_id])
-  @@map("submissions")
-}
-
-// ============================================================================
-// VIEW TRACKING MODULE
-// ============================================================================
-
-model View {
-  id          String         @id @default(uuid()) @db.VarChar(40)
-  target_id   String         @db.VarChar(40)
-  target_type ViewTargetType
-  user_id     String?        @db.VarChar(40) // Optional (for guests)
-  ip          String?        @db.VarChar(45) // IPv6 support
-  viewed_at   DateTime       @default(now())
-
-  user User? @relation(fields: [user_id], references: [id], onDelete: Cascade)
-
-  @@index([target_type, target_id, user_id, ip]) // For fast existence checks
-  @@map("views")
 }
 
 enum ViewTargetType {

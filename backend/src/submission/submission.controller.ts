@@ -14,6 +14,7 @@ import {
 } from '@nestjs/common';
 import type { Request } from 'express';
 import { SubmissionService } from './submission.service';
+import { ContestSubmissionService } from './contest-submission.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { RunSubmissionDto } from './dto/run-submission.dto';
@@ -127,5 +128,47 @@ export class ProblemSubmissionController {
   ) {
     const userId = req.user.id;
     return this.submissionService.create(userId, problemId, dto);
+  }
+}
+
+/**
+ * Contest-specific submission endpoints
+ */
+@Controller('contest/:contestId/problems/:problemId/submissions')
+export class ContestSubmissionController {
+  constructor(
+    private readonly contestSubmissionService: ContestSubmissionService,
+  ) {}
+
+  @Get()
+  @UseGuards(AuthGuard)
+  async getContestSubmissions(
+    @Param('contestId') contestId: string,
+    @Param('problemId', ParseIntPipe) problemId: number,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req?.user?.id;
+    return this.contestSubmissionService.getContestSubmissions(
+      contestId,
+      userId,
+      problemId,
+    );
+  }
+
+  @Post()
+  @UseGuards(AuthGuard)
+  async submitInContest(
+    @Param('contestId') contestId: string,
+    @Param('problemId', ParseIntPipe) problemId: number,
+    @Body() dto: CreateSubmissionDto,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const userId = req.user.id;
+    return this.contestSubmissionService.submitInContest(
+      contestId,
+      problemId,
+      userId,
+      dto,
+    );
   }
 }

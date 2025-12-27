@@ -1,28 +1,13 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ContestService } from './contest.service';
-import { ContestController } from './contest.controller';
-import { ContestRestController } from './contest-rest.controller';
-import { Contest } from './contest.entity';
-import { ContestProblem } from './contest-problem.entity';
-import { ContestParticipant } from './contest-participant.entity';
-import { ContestRanking } from './contest-ranking.entity';
-import { GlobalRanking } from './global-ranking.entity';
-import { User } from '../user/user.entity';
+import { RankingService } from './ranking.service';
+import { RatingService } from './rating.service';
+import { ContestController, RankingController } from './contest.controller';
+import { PrismaService } from '../prisma.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Contest,
-      ContestProblem,
-      ContestParticipant,
-      ContestRanking,
-      GlobalRanking,
-      User,
-    ]),
-  ],
-  providers: [ContestService],
-  controllers: [ContestController, ContestRestController],
-  exports: [ContestService],
+  providers: [ContestService, RankingService, RatingService, PrismaService],
+  controllers: [ContestController, RankingController],
+  exports: [ContestService, RankingService, RatingService],
 })
 export class ContestModule {}

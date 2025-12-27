@@ -1,11 +1,21 @@
-import type { PrismaClient, ContestType, ContestStatus } from '@prisma/client';
+import type {
+  PrismaClient,
+  ContestType,
+  ContestStatus,
+  ContestParticipantStatus,
+  RatingTitle,
+} from '@prisma/client';
 import contestsData from './data/contests.data';
 import usersData from './data/users.data';
 import type { SeedProblemsResult } from './seed-problems';
 
 export async function clearContests(prisma: PrismaClient): Promise<void> {
+  // Clear in order of dependencies
+  await prisma.contestSubmission.deleteMany();
+  await prisma.contestProblemResult.deleteMany();
   await prisma.contestRanking.deleteMany();
   await prisma.contestParticipant.deleteMany();
+  await prisma.virtualContestSession.deleteMany();
   await prisma.globalRanking.deleteMany();
   await prisma.contestProblem.deleteMany();
   await prisma.contest.deleteMany();
@@ -66,14 +76,13 @@ export async function seedContests(
         id: p.id,
         contest_id: p.contest_id,
         user_id: p.user_id,
-        username: p.username,
-        status: p.status,
+        status: p.status as ContestParticipantStatus,
         registered_at: new Date(p.registered_at),
         started_at: p.started_at ? new Date(p.started_at) : null,
         finished_at: p.finished_at ? new Date(p.finished_at) : null,
-        rank: p.rank,
-        score: p.score ?? 0,
-        finish_time_seconds: p.finish_time_seconds,
+        final_rank: p.final_rank ?? null,
+        total_score: p.total_score ?? 0,
+        total_penalty: p.total_penalty ?? 0,
         is_virtual: false,
       },
     });
@@ -86,18 +95,14 @@ export async function seedContests(
         id: r.id,
         contest_id: r.contest_id,
         user_id: r.user_id,
-        username: r.username,
         rank: r.rank,
-        score: r.score,
-        finish_time_seconds: r.finish_time_seconds,
-        q1_time_seconds: r.q1_time_seconds,
-        q2_time_seconds: r.q2_time_seconds,
-        q3_time_seconds: r.q3_time_seconds,
-        q4_time_seconds: r.q4_time_seconds,
+        total_score: r.total_score,
+        total_penalty: r.total_penalty,
+        solved_count: r.solved_count,
         rating_before: r.rating_before,
         rating_after: r.rating_after,
         rating_change: r.rating_change,
-        country: r.country,
+        is_virtual: r.is_virtual,
       },
     });
   }
@@ -113,7 +118,10 @@ export async function seedContests(
         global_rank: gr.global_rank,
         rating: gr.rating,
         max_rating: gr.max_rating,
+        rating_title: gr.rating_title as RatingTitle,
+        max_rating_title: gr.max_rating_title as RatingTitle,
         contests_attended: gr.contests_attended,
+        contests_rated: gr.contests_rated,
         avatar: user?.avatar || null,
         country: gr.country,
         badge: gr.badge,

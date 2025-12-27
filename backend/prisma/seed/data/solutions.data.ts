@@ -47,46 +47,18 @@ This solution uses a hash map to solve the Two Sum problem in O(n) time.
 
 ## Code
 
-\`\`\`python {group="sol-001"}
-def twoSum(nums, target):
-    seen = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in seen:
-            return [seen[complement], i]
-        seen[num] = i
-    return []
-\`\`\`
-\`\`\`java {group="sol-001"}
-class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        Map<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            int complement = target - nums[i];
-            if (map.containsKey(complement)) {
-                return new int[] { map.get(complement), i };
-            }
-            map.put(nums[i], i);
+\`\`\`typescript {group="sol-001"}
+function twoSum(nums: number[], target: number): number[] {
+    const seen = new Map<number, number>();
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        if (seen.has(complement)) {
+            return [seen.get(complement)!, i];
         }
-        return new int[0];
+        seen.set(nums[i], i);
     }
+    return [];
 }
-\`\`\`
-\`\`\`cpp {group="sol-001"}
-class Solution {
-public:
-    vector<int> twoSum(vector<int>& nums, int target) {
-        unordered_map<int, int> seen;
-        for (int i = 0; i < nums.size(); ++i) {
-            int complement = target - nums[i];
-            if (seen.count(complement)) {
-                return {seen[complement], i};
-            }
-            seen[nums[i]] = i;
-        }
-        return {};
-    }
-};
 \`\`\`
 
 ## Complexity Analysis
@@ -99,7 +71,7 @@ public:
 By storing each number as we iterate, we can check for complements in constant time, making this solution optimal.`,
       summary:
         'Efficient O(n) solution using hash map to find two numbers that add up to target',
-      language: 'Python',
+      language: 'TypeScript',
       tags: ['Hash Table', 'Array', 'Two Pointers'],
 
     },
@@ -128,28 +100,6 @@ function twoSum(nums, target) {
     return [];
 }
 \`\`\`
-\`\`\`python {group="sol-002"}
-def twoSum(nums, target):
-    for i in range(len(nums)):
-        for j in range(i + 1, len(nums)):
-            if nums[i] + nums[j] == target:
-                return [i, j]
-    return []
-\`\`\`
-\`\`\`java {group="sol-002"}
-class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        for (int i = 0; i < nums.length; i++) {
-            for (int j = i + 1; j < nums.length; j++) {
-                if (nums[i] + nums[j] == target) {
-                    return new int[] { i, j };
-                }
-            }
-        }
-        return new int[0];
-    }
-}
-\`\`\`
 
 ## Complexity
 
@@ -166,107 +116,53 @@ Not optimal but easy to understand!`,
       id: SOLUTION_IDS.TWO_SUM_CPP,
       problem_id: PROBLEM_IDS.TWO_SUM,
       user_id: USER_IDS.CHEN,
-      title: 'C++ STL unordered_map Solution',
-      content: `# C++ Solution with STL
+      title: 'TypeScript Map Solution',
+      content: `# TypeScript Solution
 
-Using C++ STL for a clean and efficient solution.
+Using a Map for a clean and efficient solution.
 
-\`\`\`cpp {group="sol-003"}
-class Solution {
-public:
-    vector<int> twoSum(vector<int>& nums, int target) {
-        unordered_map<int, int> seen;
-        for (int i = 0; i < nums.size(); i++) {
-            int complement = target - nums[i];
-            if (seen.find(complement) != seen.end()) {
-                return {seen[complement], i};
-            }
-            seen[nums[i]] = i;
+\`\`\`typescript {group="sol-003"}
+function twoSum(nums: number[], target: number): number[] {
+    const seen = new Map<number, number>();
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        if (seen.has(complement)) {
+            return [seen.get(complement)!, i];
         }
-        return {};
+        seen.set(nums[i], i);
     }
-};
-\`\`\`
-\`\`\`python {group="sol-003"}
-def twoSum(nums, target):
-    seen = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in seen:
-            return [seen[complement], i]
-        seen[num] = i
-    return []
-\`\`\`
-\`\`\`java {group="sol-003"}
-class Solution {
-    public int[] twoSum(int[] nums, int target) {
-        Map<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            int complement = target - nums[i];
-            if (map.containsKey(complement)) {
-                return new int[] { map.get(complement), i };
-            }
-            map.put(nums[i], i);
-        }
-        return new int[0];
-    }
+    return [];
 }
 \`\`\`
 
-Fast and memory efficient with C++ STL!`,
-      summary: 'C++ implementation using unordered_map for O(n) solution',
-      language: 'C++',
-      tags: ['Hash Table', 'C++', 'STL'],
+Fast and memory efficient with a Map!`,
+      summary: 'TypeScript implementation using Map for O(n) solution',
+      language: 'TypeScript',
+      tags: ['Hash Table', 'TypeScript', 'Array'],
     },
     {
       id: SOLUTION_IDS.TWO_SUM_JAVA,
       problem_id: PROBLEM_IDS.TWO_SUM,
       user_id: USER_IDS.TOURIST,
-      title: 'Java HashMap Implementation',
-      content: `# Java Solution
+      title: 'JavaScript Hash Map Implementation',
+      content: `# JavaScript Solution
 
-\`\`\`java {group="sol-004"}
-public int[] twoSum(int[] nums, int target) {
-    Map<Integer, Integer> map = new HashMap<>();
-    for (int i = 0; i < nums.length; i++) {
-        int complement = target - nums[i];
-        if (map.containsKey(complement)) {
-            return new int[] { map.get(complement), i };
+\`\`\`javascript {group="sol-004"}
+function twoSum(nums, target) {
+    const map = new Map();
+    for (let i = 0; i < nums.length; i++) {
+        const complement = target - nums[i];
+        if (map.has(complement)) {
+            return [map.get(complement), i];
         }
-        map.put(nums[i], i);
+        map.set(nums[i], i);
     }
-    throw new IllegalArgumentException("No solution");
+    throw new Error("No solution");
 }
-\`\`\`
-\`\`\`python {group="sol-004"}
-def twoSum(nums, target):
-    seen = {}
-    for i, num in enumerate(nums):
-        complement = target - num
-        if complement in seen:
-            return [seen[complement], i]
-        seen[num] = i
-    return []
-\`\`\`
-\`\`\`cpp {group="sol-004"}
-class Solution {
-public:
-    vector<int> twoSum(vector<int>& nums, int target) {
-        unordered_map<int, int> seen;
-        for (int i = 0; i < nums.size(); ++i) {
-            int complement = target - nums[i];
-            if (seen.count(complement)) {
-                return {seen[complement], i};
-            }
-            seen[nums[i]] = i;
-        }
-        return {};
-    }
-};
 \`\`\``,
-      summary: 'Clean Java implementation with HashMap',
-      language: 'Java',
-      tags: ['Hash Table', 'Java'],
+      summary: 'Clean JavaScript implementation with Map',
+      language: 'JavaScript',
+      tags: ['Hash Table', 'JavaScript'],
     },
     {
       id: SOLUTION_IDS.LONGEST_SUBSTR_SLIDING,
@@ -341,39 +237,44 @@ Sorting dominates the time complexity.`,
 
 We binary search the cut on the shorter array so that left parts contain half the elements and all left values are <= all right values.
 
-\`\`\`python {group="sol-007"}
-from typing import List
-
-class Solution:
-    def findMedianSortedArrays(self, nums1: List[int], nums2: List[int]) -> float:
-        if len(nums1) > len(nums2):
-            nums1, nums2 = nums2, nums1
-        m, n = len(nums1), len(nums2)
-        total = m + n
-        half = total // 2
-        lo, hi = 0, m
-        while lo <= hi:
-            i = (lo + hi) // 2
-            j = half - i
-            left1 = nums1[i - 1] if i > 0 else float('-inf')
-            right1 = nums1[i] if i < m else float('inf')
-            left2 = nums2[j - 1] if j > 0 else float('-inf')
-            right2 = nums2[j] if j < n else float('inf')
-            if left1 <= right2 and left2 <= right1:
-                if total % 2:
-                    return min(right1, right2)
-                return (max(left1, left2) + min(right1, right2)) / 2
-            if left1 > right2:
-                hi = i - 1
-            else:
-                lo = i + 1
-        return 0.0
+\`\`\`typescript {group="sol-007"}
+function findMedianSortedArrays(nums1: number[], nums2: number[]): number {
+    if (nums1.length > nums2.length) {
+        [nums1, nums2] = [nums2, nums1];
+    }
+    const m = nums1.length;
+    const n = nums2.length;
+    const total = m + n;
+    const half = Math.floor(total / 2);
+    let lo = 0;
+    let hi = m;
+    while (lo <= hi) {
+        const i = Math.floor((lo + hi) / 2);
+        const j = half - i;
+        const left1 = i > 0 ? nums1[i - 1] : -Infinity;
+        const right1 = i < m ? nums1[i] : Infinity;
+        const left2 = j > 0 ? nums2[j - 1] : -Infinity;
+        const right2 = j < n ? nums2[j] : Infinity;
+        if (left1 <= right2 && left2 <= right1) {
+            if (total % 2) {
+                return Math.min(right1, right2);
+            }
+            return (Math.max(left1, left2) + Math.min(right1, right2)) / 2;
+        }
+        if (left1 > right2) {
+            hi = i - 1;
+        } else {
+            lo = i + 1;
+        }
+    }
+    return 0;
+}
 \`\`\`
 
 Binary search over the smaller array keeps complexity O(log(min(m, n))).`,
       summary:
         'Binary search the cut on the shorter array to balance partitions',
-      language: 'Python',
+      language: 'TypeScript',
       tags: ['Binary Search', 'Divide and Conquer'],
     },
     {
@@ -385,43 +286,53 @@ Binary search over the smaller array keeps complexity O(log(min(m, n))).`,
 
 Mark visited land cells and explore four directions using an explicit stack to avoid recursion depth issues.
 
-\`\`\`java {group="sol-008"}
-class Solution {
-    public int numIslands(char[][] grid) {
-        int m = grid.length, n = grid[0].length;
-        boolean[][] seen = new boolean[m][n];
-        int[][] dirs = {{1,0},{-1,0},{0,1},{0,-1}};
-        int count = 0;
-        for (int r = 0; r < m; r++) {
-            for (int c = 0; c < n; c++) {
-                if (grid[r][c] == '1' && !seen[r][c]) {
-                    count++;
-                    Deque<int[]> stack = new ArrayDeque<>();
-                    stack.push(new int[]{r, c});
-                    seen[r][c] = true;
-                    while (!stack.isEmpty()) {
-                        int[] cur = stack.pop();
-                        for (int[] d : dirs) {
-                            int nr = cur[0] + d[0];
-                            int nc = cur[1] + d[1];
-                            if (nr >= 0 && nr < m && nc >= 0 && nc < n && grid[nr][nc] == '1' && !seen[nr][nc]) {
-                                seen[nr][nc] = true;
-                                stack.push(new int[]{nr, nc});
-                            }
+\`\`\`typescript {group="sol-008"}
+function numIslands(grid: string[][]): number {
+    const m = grid.length;
+    const n = m ? grid[0].length : 0;
+    const seen = Array.from({ length: m }, () => Array(n).fill(false));
+    const dirs = [
+        [1, 0],
+        [-1, 0],
+        [0, 1],
+        [0, -1],
+    ];
+    let count = 0;
+    for (let r = 0; r < m; r++) {
+        for (let c = 0; c < n; c++) {
+            if (grid[r][c] === "1" && !seen[r][c]) {
+                count++;
+                const stack: Array<[number, number]> = [[r, c]];
+                seen[r][c] = true;
+                while (stack.length) {
+                    const [cr, cc] = stack.pop()!;
+                    for (const [dr, dc] of dirs) {
+                        const nr = cr + dr;
+                        const nc = cc + dc;
+                        if (
+                            nr >= 0 &&
+                            nr < m &&
+                            nc >= 0 &&
+                            nc < n &&
+                            grid[nr][nc] === "1" &&
+                            !seen[nr][nc]
+                        ) {
+                            seen[nr][nc] = true;
+                            stack.push([nr, nc]);
                         }
                     }
                 }
             }
         }
-        return count;
     }
+    return count;
 }
 \`\`\`
 
 Space can be reduced by marking the grid in place instead of using a visited matrix.`,
       summary:
         'Iterative DFS flood fill to mark connected land and count components',
-      language: 'Java',
+      language: 'TypeScript',
       tags: ['DFS', 'Matrix', 'Graph'],
     },
   ],
@@ -472,7 +383,7 @@ Space can be reduced by marking the grid in place instead of using a visited mat
       solution_id: SOLUTION_IDS.TWO_SUM_CPP,
       parent_id: null,
       user_id: USER_IDS.DAVID,
-      content: 'Love the C++ STL approach, very clean!',
+      content: 'Love the TypeScript Map approach, very clean!',
 
     },
     {

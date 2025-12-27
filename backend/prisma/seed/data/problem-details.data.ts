@@ -294,52 +294,12 @@ const data = {
         '/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function(nums, target) {\n    \n};',
     },
     {
-      id: 'lang-py',
-      problem_id: PROBLEM_IDS.TWO_SUM,
-      label: 'Python',
-      value: 'python',
-      starterCode:
-        'class Solution:\n    def twoSum(self, nums: List[int], target: int) -> List[int]:\n        ',
-    },
-    {
-      id: 'lang-java',
-      problem_id: PROBLEM_IDS.TWO_SUM,
-      label: 'Java',
-      value: 'java',
-      starterCode:
-        'class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        \n    }\n}',
-    },
-    {
-      id: 'lang-cpp',
-      problem_id: PROBLEM_IDS.TWO_SUM,
-      label: 'C++',
-      value: 'cpp',
-      starterCode:
-        'class Solution {\npublic:\n    vector<int> twoSum(vector<int>& nums, int target) {\n        \n    }\n};',
-    },
-    {
       id: 'lang-ts-2',
       problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       label: 'TypeScript',
       value: 'typescript',
       starterCode:
         'function lengthOfLongestSubstring(s: string): number {\n    \n};',
-    },
-    {
-      id: 'lang-py-2',
-      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
-      label: 'Python',
-      value: 'python',
-      starterCode:
-        'class Solution:\n    def lengthOfLongestSubstring(self, s: str) -> int:\n        ',
-    },
-    {
-      id: 'lang-java-2',
-      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
-      label: 'Java',
-      value: 'java',
-      starterCode:
-        'class Solution {\n    public int lengthOfLongestSubstring(String s) {\n        \n    }\n}',
     },
     {
       id: 'lang-ts-3',
@@ -350,22 +310,6 @@ const data = {
         'function merge(intervals: number[][]): number[][] {\n    \n};',
     },
     {
-      id: 'lang-py-3',
-      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
-      label: 'Python',
-      value: 'python',
-      starterCode:
-        'class Solution:\n    def merge(self, intervals: List[List[int]]) -> List[List[int]]:\n        ',
-    },
-    {
-      id: 'lang-java-3',
-      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
-      label: 'Java',
-      value: 'java',
-      starterCode:
-        'class Solution {\n    public int[][] merge(int[][] intervals) {\n        \n    }\n}',
-    },
-    {
       id: 'lang-ts-4',
       problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       label: 'TypeScript',
@@ -374,43 +318,11 @@ const data = {
         'function findMedianSortedArrays(nums1: number[], nums2: number[]): number {\n    \n};',
     },
     {
-      id: 'lang-py-4',
-      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
-      label: 'Python',
-      value: 'python',
-      starterCode:
-        'class Solution:\n    def findMedianSortedArrays(self, nums1: List[int], nums2: List[int]) -> float:\n        ',
-    },
-    {
-      id: 'lang-java-4',
-      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
-      label: 'Java',
-      value: 'java',
-      starterCode:
-        'class Solution {\n    public double findMedianSortedArrays(int[] nums1, int[] nums2) {\n        \n    }\n}',
-    },
-    {
       id: 'lang-ts-5',
       problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       label: 'TypeScript',
       value: 'typescript',
       starterCode: 'function numIslands(grid: string[][]): number {\n    \n};',
-    },
-    {
-      id: 'lang-py-5',
-      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
-      label: 'Python',
-      value: 'python',
-      starterCode:
-        'class Solution:\n    def numIslands(self, grid: List[List[str]]) -> int:\n        ',
-    },
-    {
-      id: 'lang-java-5',
-      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
-      label: 'Java',
-      value: 'java',
-      starterCode:
-        'class Solution {\n    public int numIslands(char[][] grid) {\n        \n    }\n}',
     },
   ],
 } as const;

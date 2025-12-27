@@ -176,7 +176,7 @@ const data = {
     },
   ],
   forum_tags: [
-    { id: 'tag-rust', name: 'rust', slug: 'rust', color: '#CE422B', usage_count: 0, created_at: new Date() },
+    { id: 'tag-typescript', name: 'typescript', slug: 'typescript', color: '#3178C6', usage_count: 0, created_at: new Date() },
     { id: 'tag-performance', name: 'performance', slug: 'performance', color: '#F59E0B', usage_count: 0, created_at: new Date() },
     { id: 'tag-hashing', name: 'hashing', slug: 'hashing', color: '#3B82F6', usage_count: 0, created_at: new Date() },
     { id: 'tag-mindset', name: 'mindset', slug: 'mindset', color: '#8B5CF6', usage_count: 0, created_at: new Date() },
@@ -193,25 +193,23 @@ const data = {
       community_id: communityId,
       user_id: USER_IDS.STACK_UNWIND,
       title:
-        'Why is `std::collections::HashMap` slower than `fxhash` in competitive programming?',
+        'Why does `Map` feel slower than plain objects in JavaScript CP?',
       body: `I've been grinding AtCoder benchmarks and noticed a huge performance diff.
 
-Standard HashMap:
-\`\`\`rust
-use std::collections::HashMap;
-let mut map = HashMap::new();
+Standard Map:
+\`\`\`typescript
+const map = new Map<number, number>();
 // TLE on large test cases (2.5s)
 \`\`\`
 
-FxHash:
-\`\`\`rust
-use rustc_hash::FxHashMap;
-let mut map = FxHashMap::default();
+Plain object:
+\`\`\`typescript
+const map: Record<number, number> = Object.create(null);
 // AC (0.8s)
 \`\`\`
 
-I know \`std\` uses SipHash for DoS protection, but is the constants overhead really that massive? Or is it the collision rate?`,
-      tags: ['rust', 'performance', 'hashing'],
+Is this just overhead from \`Map\`'s hashing, or am I missing a V8 optimization trick?`,
+      tags: ['typescript', 'performance', 'hashing'],
       flair_type: 'question',
 
       is_saved: true,
@@ -281,13 +279,13 @@ Let me know if this helps!`,
     { post_id: 'post-segtree-visual', award_id: 'award-insightful', count: 7 },
   ],
   forum_comments: [
-    // Thread for Rust Hashmap
+    // Thread for JS/TS Hashmap
     {
       id: 'c-rust-1',
       post_id: 'post-rust-hashmap',
       parent_id: null,
       author_id: USER_IDS.BENQ,
-      body: 'SipHash is cryptographically strong but slow. For CP, you never need DOS protection unless it is a specific "hack" round on Codeforces.',
+      body: 'Maps have extra overhead for hashing + boxed keys. For CP, a null-prototype object or array often wins if your keys are small integers.',
 
       created_at: '2024-11-28T09:20:00.000Z',
     },
@@ -296,7 +294,7 @@ Let me know if this helps!`,
       post_id: 'post-rust-hashmap',
       parent_id: 'c-rust-1',
       author_id: USER_IDS.STACK_UNWIND,
-      body: 'Ah makes sense. I thought standard library would optimize for general speed. `FxHash` it is then.',
+      body: 'Ah makes sense. I assumed Map would be fastest by default. I will try a null-prototype object.',
 
       created_at: '2024-11-28T09:35:00.000Z',
     },
@@ -305,7 +303,7 @@ Let me know if this helps!`,
       post_id: 'post-rust-hashmap',
       parent_id: 'c-rust-2',
       author_id: USER_IDS.PETR,
-      body: 'Be careful! FxHash is vulnerable to collisions. If someone generates anti-hash tests, you will TLE. `RandomState` with a fixed seed + simple hash is safer.',
+      body: 'Be careful with objects: stringifying keys or using mixed types can tank performance. Stick to consistent key types.',
 
       created_at: '2024-11-28T10:00:00.000Z',
     },
@@ -314,7 +312,7 @@ Let me know if this helps!`,
       post_id: 'post-rust-hashmap',
       parent_id: 'c-rust-3',
       author_id: USER_IDS.YUKI,
-      body: 'Wait, does AtCoder allow anti-hash tests? I thought test cases were static.',
+      body: 'Do JS judges ever include adversarial key patterns? Or are test cases mostly static?',
 
       created_at: '2024-11-28T10:15:00.000Z',
     },
@@ -323,7 +321,7 @@ Let me know if this helps!`,
       post_id: 'post-rust-hashmap',
       parent_id: 'c-rust-4',
       author_id: USER_IDS.PETR,
-      body: 'They are static but setter might predict simple hashes. Randomized hashing is always strictly superior.',
+      body: 'They are static, but bad key distributions still hurt. If key space is dense, use arrays; otherwise Map is fine.',
 
       created_at: '2024-11-28T10:30:00.000Z',
     },
@@ -332,7 +330,7 @@ Let me know if this helps!`,
       post_id: 'post-rust-hashmap',
       parent_id: null,
       author_id: USER_IDS.ALEX,
-      body: 'In C++ `std::unordered_map` is even worse because of cache locality (linked list buckets). `gp_hash_table` is the way.',
+      body: 'In JS, arrays are usually fastest for dense integer keys; Map is better for sparse keys or non-numeric keys.',
 
       created_at: '2024-11-28T11:00:00.000Z',
     },

@@ -4,6 +4,7 @@ import type {
   ContestStatus,
   ContestParticipantStatus,
   RatingTitle,
+  VirtualContestStatus,
 } from '@prisma/client';
 import contestsData from './data/contests.data';
 import usersData from './data/users.data';
@@ -128,6 +129,48 @@ export async function seedContests(
       },
     });
   }
+
+  // Seed virtual contest sessions
+  /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
+  if ((contestsData as any).virtual_contest_sessions) {
+    for (const vcs of (contestsData as any).virtual_contest_sessions as any[]) {
+      await prisma.virtualContestSession.create({
+        data: {
+          id: vcs.id,
+          contest_id: vcs.contest_id,
+          user_id: vcs.user_id,
+          status: vcs.status as VirtualContestStatus,
+          started_at: vcs.started_at ? new Date(vcs.started_at) : null,
+          ends_at: vcs.ends_at ? new Date(vcs.ends_at) : null,
+          finished_at: vcs.finished_at ? new Date(vcs.finished_at) : null,
+          total_score: vcs.total_score ?? 0,
+          total_penalty: vcs.total_penalty ?? 0,
+        },
+      });
+    }
+  }
+
+  // Seed contest problem results
+  if ((contestsData as any).contest_problem_results) {
+    for (const cpr of (contestsData as any)
+      .contest_problem_results as any[]) {
+      await prisma.contestProblemResult.create({
+        data: {
+          contest_id: cpr.contest_id,
+          contest_problem_id: cpr.contest_problem_id,
+          user_id: cpr.user_id,
+          participant_id: cpr.participant_id,
+          ranking_id: cpr.ranking_id ?? null,
+          is_solved: cpr.is_solved,
+          score: cpr.score,
+          attempts: cpr.attempts,
+          first_solve_time: cpr.first_solve_time ?? null,
+          penalty_time: cpr.penalty_time,
+        },
+      });
+    }
+  }
+  /* eslint-enable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-call */
 
   return {
     count: contestsData.contests.length,

@@ -68,11 +68,6 @@ export class ContestController {
     return this.contestService.getStats();
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.contestService.findOne(id);
-  }
-
   // =========================================================================
   // RANKINGS
   // =========================================================================
@@ -167,6 +162,15 @@ export class ContestController {
   @UseGuards(AuthGuard)
   getRatingHistory(@Req() req: RequestWithUser) {
     return this.ratingService.getUserRatingHistory(req.user.id);
+  }
+
+  // =========================================================================
+  // GENERIC ROUTES (Must be last to avoid route conflicts)
+  // =========================================================================
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.contestService.findOne(id);
   }
 }
 

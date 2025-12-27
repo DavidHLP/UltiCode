@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Submission, Prisma } from '@prisma/client';
+import { JudgeService, JudgeTestCase } from './judge.service';
 
 type ProblemStatusSummary = {
   status: 'solved' | 'attempted' | 'todo';
@@ -9,7 +10,10 @@ type ProblemStatusSummary = {
 
 @Injectable()
 export class SubmissionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private judgeService: JudgeService,
+  ) {}
 
   async findAll(
     problemId?: number | null,
@@ -51,7 +55,7 @@ export class SubmissionService {
       skip,
       take,
     });
-    return submissions;
+    return submissions.map((submission) => this.decorateSubmission(submission));
   }
 
   async findBest(
@@ -84,7 +88,7 @@ export class SubmissionService {
       take: 1,
     });
 
-    return submission;
+    return submission ? this.decorateSubmission(submission) : null;
   }
 
   async getProblemStatusMap(
@@ -154,7 +158,7 @@ export class SubmissionService {
       throw new NotFoundException(`Submission with ID ${id} not found`);
     }
 
-    return submission;
+    return this.decorateSubmission(submission);
   }
 
   async getLatestRunResult(problemId: number, userId?: string) {
@@ -179,7 +183,7 @@ export class SubmissionService {
       detail?: string;
       output?: string;
       expectedOutput?: string;
-      inputs?: string;
+      inputs?: { id?: string; label?: string; name: string; value: string }[];
     }
 
     const testDetails = (Array.isArray(submission.test_details)
@@ -222,7 +226,10 @@ export class SubmissionService {
       cases,
       passed_cases: passedCases,
       total_cases: cases.length,
-      error_message: null,
+      error_message:
+        submission.status === 'Compile Error'
+          ? (testDetails[0]?.detail ?? null)
+          : null,
     };
   }
 
@@ -231,29 +238,53 @@ export class SubmissionService {
     problemId: number,
     data: { language: string; code: string },
   ) {
-    const isMockAccepted = Math.random() > 0.2;
-    const runtime = Math.floor(Math.random() * 100) + 20;
-    const memory = parseFloat((Math.random() * 20 + 10).toFixed(1));
+    const testCases = await this.buildTestCasesFromExamples(problemId);
+    const judgeResult = this.judgeService.judge(
+      data.language,
+      data.code,
+      testCases,
+    );
+    const runtime = judgeResult.runtime;
+    const memory = judgeResult.memory;
+    const compileError = judgeResult.compileError;
 
-    return this.prisma.submission.create({
+    const testDetails =
+      compileError && judgeResult.cases.length === 0
+        ? [
+            {
+              status: 'Compile Error',
+              time: 0,
+              memory: 0,
+              detail: compileError,
+            },
+          ]
+        : judgeResult.cases.map((detail) => ({
+            status: detail.status,
+            time: detail.time,
+            memory: detail.memory,
+            detail: detail.detail,
+            output: detail.output,
+            expectedOutput: detail.expectedOutput,
+            inputs: detail.inputs,
+          }));
+    const testDetailsJson = testDetails as Prisma.InputJsonValue;
+
+    const created = await this.prisma.submission.create({
       data: {
         id: `sub-${Date.now()}`,
         user_id: userId,
         problem_id: problemId,
         language: data.language,
         code: data.code,
-        status: isMockAccepted ? 'Accepted' : 'Wrong Answer',
+        status:
+          compileError && judgeResult.cases.length === 0
+            ? 'Compile Error'
+            : judgeResult.verdict,
         runtime,
         memory,
-        runtime_percentile: isMockAccepted ? Math.random() * 100 : 0,
-        memory_percentile: isMockAccepted ? Math.random() * 100 : 0,
-        test_details: [
-          {
-            status: isMockAccepted ? 'Accepted' : 'Wrong Answer',
-            time: runtime,
-            memory,
-          },
-        ],
+        runtime_percentile: null,
+        memory_percentile: null,
+        test_details: testDetailsJson,
       },
       include: {
         problem: {
@@ -265,5 +296,146 @@ export class SubmissionService {
         },
       },
     });
+    return this.decorateSubmission(created);
+  }
+
+  async run(
+    problemId: number,
+    data: {
+      language: string;
+      code: string;
+      testCases?: JudgeTestCase[];
+    },
+    userId?: string,
+  ) {
+    const testCases =
+      data.testCases && data.testCases.length > 0
+        ? this.normalizeTestCases(data.testCases)
+        : await this.buildTestCasesFromExamples(problemId);
+    const judgeResult = this.judgeService.judge(
+      data.language,
+      data.code,
+      testCases,
+    );
+
+    const runId = `run-${problemId}-${Date.now()}`;
+    const cases = judgeResult.cases.map((detail, index) => ({
+      id: `${runId}-case-${index + 1}`,
+      runId,
+      submissionTestId: `${runId}-test-${index + 1}`,
+      testCaseId: testCases[index]?.id ?? `${problemId}-${index + 1}`,
+      caseLabel: testCases[index]?.label ?? `Case ${index + 1}`,
+      status: detail.status,
+      runtime: `${detail.time} ms`,
+      memory: `${detail.memory} MB`,
+      detail: detail.detail,
+      output: detail.output,
+      expectedOutput: detail.expectedOutput,
+      inputs: detail.inputs ?? [],
+    }));
+
+    return {
+      id: runId,
+      submissionId: runId,
+      problemId,
+      userId: userId ?? 'anonymous',
+      verdict: judgeResult.compileError ? 'Compile Error' : judgeResult.verdict,
+      runtime: `${judgeResult.runtime} ms`,
+      memory: `${judgeResult.memory} MB`,
+      cases,
+      passed_cases: cases.filter((item) => item.status === 'Accepted').length,
+      total_cases: cases.length,
+      error_message: judgeResult.compileError ?? null,
+    };
+  }
+
+  private normalizeTestCases(testCases: JudgeTestCase[]): JudgeTestCase[] {
+    return testCases.map((testCase, index) => {
+      const caseId = testCase.id || `case-${index + 1}`;
+      const inputs = Array.isArray(testCase.inputs) ? testCase.inputs : [];
+      return {
+        id: caseId,
+        label: testCase.label || `Case ${index + 1}`,
+        inputs: inputs.map((input, inputIndex) => ({
+          id: input.id ?? `${caseId}-input-${inputIndex}`,
+          name: input.name,
+          value: input.value,
+          label: input.label ?? input.name,
+        })),
+        output: testCase.output ?? '',
+      };
+    });
+  }
+
+  private async buildTestCasesFromExamples(
+    problemId: number,
+  ): Promise<JudgeTestCase[]> {
+    const examples = await this.prisma.problemExample.findMany({
+      where: { problem_id: problemId },
+      orderBy: { example_order: 'asc' },
+    });
+
+    return examples.map((example, index) => {
+      const inputs = Array.isArray(example.inputs)
+        ? (example.inputs as { name: string; value: string }[])
+        : [];
+      return {
+        id: example.id,
+        label: `Case ${index + 1}`,
+        inputs: inputs.map((input, inputIndex) => ({
+          id: `${example.id}-input-${inputIndex}`,
+          name: input.name,
+          value: input.value,
+          label: input.name,
+        })),
+        output: example.output_text,
+      };
+    });
+  }
+
+  private decorateSubmission<T extends Submission & { test_details?: unknown }>(
+    submission: T,
+  ) {
+    const testDetails = Array.isArray(submission.test_details)
+      ? (submission.test_details as Array<Record<string, unknown>>)
+      : [];
+    const tests = testDetails.map((detail, index) => ({
+      id: `test-${submission.id}-${index + 1}`,
+      status: (detail.status as string) ?? submission.status,
+      runtime:
+        typeof detail.time === 'number' ? detail.time : submission.runtime,
+      memory:
+        typeof detail.memory === 'number' ? detail.memory : submission.memory,
+    }));
+
+    const failureDetail = testDetails.find(
+      (detail) => detail.status && detail.status !== 'Accepted',
+    );
+    const compileError =
+      failureDetail?.status === 'Compile Error'
+        ? (failureDetail.detail as string | undefined)
+        : undefined;
+    const failureInputs = Array.isArray(failureDetail?.inputs)
+      ? (failureDetail?.inputs as Array<{
+          name: string;
+          value: string;
+        }>)
+      : [];
+
+    const formattedInput =
+      failureInputs.length > 0
+        ? failureInputs
+            .map((input) => `${input.name} = ${input.value}`)
+            .join(', ')
+        : undefined;
+
+    return {
+      ...submission,
+      tests,
+      compiler_error: compileError,
+      input: formattedInput,
+      output: failureDetail?.output as string | undefined,
+      expected_output: failureDetail?.expectedOutput as string | undefined,
+    };
   }
 }

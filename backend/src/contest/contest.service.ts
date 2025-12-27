@@ -319,17 +319,18 @@ export class ContestService {
       );
     }
 
-    // Check if already has active virtual session
+    // Check if already has an active virtual session
     const existingSession = await this.prisma.virtualContestSession.findFirst({
       where: {
         contest_id: contestId,
         user_id: userId,
         status: 'IN_PROGRESS',
       },
+      orderBy: { started_at: 'desc' },
     });
 
     if (existingSession) {
-      throw new BadRequestException('Already have an active virtual session');
+      return existingSession;
     }
 
     const now = new Date();

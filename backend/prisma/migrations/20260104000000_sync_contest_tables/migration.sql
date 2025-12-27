@@ -106,7 +106,7 @@ CREATE TABLE `virtual_contest_sessions` (
     `total_penalty` INTEGER NOT NULL DEFAULT 0,
 
     INDEX `virtual_contest_sessions_user_id_status_idx`(`user_id`, `status`),
-    UNIQUE INDEX `virtual_contest_sessions_contest_id_user_id_key`(`contest_id`, `user_id`),
+    INDEX `virtual_contest_sessions_contest_id_user_id_idx`(`contest_id`, `user_id`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 

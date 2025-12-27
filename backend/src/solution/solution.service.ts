@@ -200,6 +200,7 @@ export class SolutionService {
         userVote: userVote as 0 | 1 | -1,
         createdAt: comment.created_at,
         author: {
+          id: comment.author.id,
           username: comment.author.username,
           avatar: comment.author.avatar,
         },
@@ -355,6 +356,42 @@ export class SolutionService {
         language: dto.language,
         tags: dto.tags ?? [],
       },
+    });
+  }
+
+  async updateComment(commentId: string, content: string, userId: string) {
+    const comment = await this.prisma.solutionComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    if (comment.user_id !== userId) {
+      throw new ForbiddenException('You can only update your own comments');
+    }
+
+    return this.prisma.solutionComment.update({
+      where: { id: commentId },
+      data: { content },
+      include: {
+        author: true,
+      },
+    });
+  }
+
+  async deleteComment(commentId: string, userId: string) {
+    const comment = await this.prisma.solutionComment.findUnique({
+      where: { id: commentId },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    if (comment.user_id !== userId) {
+      throw new ForbiddenException('You can only delete your own comments');
+    }
+
+    return this.prisma.solutionComment.delete({
+      where: { id: commentId },
     });
   }
 }

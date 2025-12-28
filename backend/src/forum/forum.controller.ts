@@ -1,8 +1,10 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -32,6 +34,79 @@ export class ForumController {
   @Get('posts/:id')
   findOnePost(@Param('id') id: string): Promise<ForumPost | null> {
     return this.forumService.findOnePost(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('me/posts')
+  findMyPosts(@Req() req: AuthenticatedRequest): Promise<ForumPost[]> {
+    return this.forumService.findPostsByUser(req.user.id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Post('posts')
+  createPost(
+    @Body()
+    body: {
+      title: string;
+      excerpt?: string | null;
+      body?: string | null;
+      communityId: string;
+      tags?: string[];
+      flairType?: string | null;
+      flairLabel?: string | null;
+      media?: Record<string, unknown>[] | null;
+    },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    const user = req.user;
+    return this.forumService.createPost(
+      {
+        title: body.title,
+        excerpt: body.excerpt ?? body.body ?? null,
+        communityId: body.communityId,
+        tags: body.tags,
+        flairType: body.flairType,
+        flairLabel: body.flairLabel,
+        media: body.media,
+      },
+      { id: user.id, username: user.username, avatar: user.avatar },
+    );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('posts/:id')
+  updatePost(
+    @Param('id') postId: string,
+    @Body()
+    body: {
+      title?: string;
+      excerpt?: string | null;
+      body?: string | null;
+      tags?: string[];
+      flairType?: string | null;
+      flairLabel?: string | null;
+      media?: Record<string, unknown>[] | null;
+      isPinned?: boolean;
+      isLocked?: boolean;
+    },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.forumService.updatePost(postId, req.user.id, {
+      title: body.title,
+      excerpt: body.excerpt ?? body.body,
+      tags: body.tags,
+      flairType: body.flairType,
+      flairLabel: body.flairLabel,
+      media: body.media,
+      isPinned: body.isPinned,
+      isLocked: body.isLocked,
+    });
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('posts/:id')
+  deletePost(@Param('id') postId: string, @Req() req: AuthenticatedRequest) {
+    return this.forumService.deletePost(postId, req.user.id);
   }
 
   @Get('posts/:id/thread')
@@ -101,7 +176,26 @@ export class ForumController {
       postId,
       body.body,
       body.parentId,
-      user.id,
+      { id: user.id, username: user.username, avatar: user.avatar },
     );
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('comments/:id')
+  updateComment(
+    @Param('id') commentId: string,
+    @Body() body: { body: string },
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.forumService.updateComment(commentId, body.body, req.user.id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Delete('comments/:id')
+  deleteComment(
+    @Param('id') commentId: string,
+    @Req() req: AuthenticatedRequest,
+  ) {
+    return this.forumService.deleteComment(commentId, req.user.id);
   }
 }

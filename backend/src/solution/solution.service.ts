@@ -11,6 +11,7 @@ import {
   User,
   SolutionComment,
   EdgeOperationTargetType,
+  Problem,
 } from '@prisma/client';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
 import type { CreateSolutionDto } from './dto/create-solution.dto';
@@ -27,6 +28,8 @@ const TOPIC_MAP: Record<string, string> = {
   javascript: 'JavaScript',
   python: 'Python',
 };
+
+const MAX_SUMMARY_LENGTH = 180;
 
 @Injectable()
 export class SolutionService {
@@ -54,16 +57,42 @@ export class SolutionService {
       );
     }
 
-    return this.prisma.solution.create({
-      data: {
-        id: uuidv4(),
+    const existing = await this.prisma.solution.findFirst({
+      where: {
         problem_id: BigInt(problemId),
         user_id: userId,
-        title: dto.title,
-        content: dto.content,
-        language: dto.language,
-        tags: dto.tags ?? [],
       },
+      select: { id: true },
+    });
+
+    if (existing) {
+      throw new BadRequestException(
+        'Solution already exists. Please edit your existing solution.',
+      );
+    }
+
+    const summary = this.buildSummary(dto.content);
+
+    return this.prisma.$transaction(async (tx) => {
+      const solution = await tx.solution.create({
+        data: {
+          id: uuidv4(),
+          problem_id: BigInt(problemId),
+          user_id: userId,
+          title: dto.title,
+          content: dto.content,
+          summary,
+          language: dto.language,
+          tags: dto.tags ?? [],
+        },
+      });
+
+      await tx.problem.update({
+        where: { id: BigInt(problemId) },
+        data: { has_solution: true },
+      });
+
+      return solution;
     });
   }
 
@@ -78,6 +107,7 @@ export class SolutionService {
       include: {
         author: true,
         comments: true,
+        problem: true,
       },
       orderBy: {
         created_at: 'desc',
@@ -104,7 +134,7 @@ export class SolutionService {
     const items = solutions.map((solution) => {
       const votes = voteMap.get(solution.id) || { likes: 0, dislikes: 0 };
       const userVote = userVoteMap.get(solution.id) || 0;
-      return this.mapToFeedItem(solution, votes, userVote);
+      return this.mapToFeedItem(solution, votes, userVote, userId);
     });
 
     return {
@@ -118,14 +148,19 @@ export class SolutionService {
       ],
     };
   }
-  async findAllByUser(userId: string): Promise<SolutionFeedResponse> {
+  async findAllByUser(
+    userId: string,
+    problemId?: string,
+  ): Promise<SolutionFeedResponse> {
     const solutions = await this.prisma.solution.findMany({
       where: {
         user_id: userId,
+        ...(problemId ? { problem_id: BigInt(problemId) } : {}),
       },
       include: {
         author: true,
         comments: true,
+        problem: true,
       },
       orderBy: {
         created_at: 'desc',
@@ -141,7 +176,7 @@ export class SolutionService {
 
     const items = solutions.map((solution) => {
       const votes = voteMap.get(solution.id) || { likes: 0, dislikes: 0 };
-      return this.mapToFeedItem(solution, votes);
+      return this.mapToFeedItem(solution, votes, 0, userId);
     });
 
     return {
@@ -233,6 +268,7 @@ export class SolutionService {
       include: {
         author: true,
         comments: true,
+        problem: true,
       },
     });
 
@@ -251,22 +287,36 @@ export class SolutionService {
   }
 
   private mapToFeedItem(
-    solution: Solution & { author: User; comments: SolutionComment[] },
+    solution: Solution & {
+      author: User;
+      comments: SolutionComment[];
+      problem?: Problem;
+    },
     votes: { likes: number; dislikes: number },
     userVote: number = 0,
+    userId?: string,
   ) {
     const upvotes = votes.likes;
     const downvotes = votes.dislikes;
+    const isOwner = userId ? solution.user_id === userId : false;
 
     return {
       id: solution.id,
       problem_id: solution.problem_id.toString(),
+      problem: solution.problem
+        ? {
+            id: solution.problem.id.toString(),
+            slug: solution.problem.slug,
+            title: solution.problem.title,
+          }
+        : undefined,
       title: solution.title,
       summary: solution.summary || '',
       highlight: solution.title,
       flair: '',
       badges: [],
       authorId: solution.user_id,
+      isOwner,
       author: {
         id: solution.author.id,
         username: solution.author.username,
@@ -330,9 +380,45 @@ export class SolutionService {
       throw new ForbiddenException('You can only delete your own solutions');
     }
 
-    return this.prisma.solution.delete({
-      where: { id },
+    const commentIds = await this.prisma.solutionComment.findMany({
+      where: { solution_id: id },
+      select: { id: true },
     });
+
+    await this.prisma.$transaction(async (tx) => {
+      if (commentIds.length) {
+        await tx.edgeOperation.deleteMany({
+          where: {
+            target_type: EdgeOperationTargetType.SOLUTION_COMMENT,
+            target_id: { in: commentIds.map((comment) => comment.id) },
+          },
+        });
+      }
+
+      await tx.edgeOperation.deleteMany({
+        where: {
+          target_type: EdgeOperationTargetType.SOLUTION,
+          target_id: id,
+        },
+      });
+
+      await tx.solution.delete({
+        where: { id },
+      });
+    });
+
+    const remaining = await this.prisma.solution.count({
+      where: { problem_id: solution.problem_id },
+    });
+
+    if (remaining === 0) {
+      await this.prisma.problem.update({
+        where: { id: solution.problem_id },
+        data: { has_solution: false },
+      });
+    }
+
+    return { success: true };
   }
 
   async update(id: string, userId: string, dto: CreateSolutionDto) {
@@ -348,11 +434,14 @@ export class SolutionService {
       throw new ForbiddenException('You can only update your own solutions');
     }
 
+    const summary = this.buildSummary(dto.content);
+
     return this.prisma.solution.update({
       where: { id },
       data: {
         title: dto.title,
         content: dto.content,
+        summary,
         language: dto.language,
         tags: dto.tags ?? [],
       },
@@ -390,8 +479,40 @@ export class SolutionService {
       throw new ForbiddenException('You can only delete your own comments');
     }
 
-    return this.prisma.solutionComment.delete({
-      where: { id: commentId },
+    await this.prisma.$transaction(async (tx) => {
+      await tx.edgeOperation.deleteMany({
+        where: {
+          target_type: EdgeOperationTargetType.SOLUTION_COMMENT,
+          target_id: commentId,
+        },
+      });
+
+      await tx.solutionComment.delete({
+        where: { id: commentId },
+      });
     });
+
+    return { success: true };
+  }
+
+  private buildSummary(content: string) {
+    const plain = content
+      .replace(/```[\s\S]*?```/g, '')
+      .replace(/`[^`]*`/g, '')
+      .replace(/!\[[^\]]*]\([^)]+\)/g, '')
+      .replace(/\[[^\]]*]\([^)]+\)/g, '')
+      .replace(/[#>*_~`>-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!plain) {
+      return '';
+    }
+
+    if (plain.length <= MAX_SUMMARY_LENGTH) {
+      return plain;
+    }
+
+    return `${plain.slice(0, MAX_SUMMARY_LENGTH).trim()}...`;
   }
 }

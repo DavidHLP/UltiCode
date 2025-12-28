@@ -10,6 +10,7 @@ import { ForumPostTagRelation } from './entities/post-tag-relation.entity';
 import { ForumCommunityRule } from './entities/community-rule.entity';
 import { ForumCommunityLink } from './entities/community-link.entity';
 import { ForumCommunityMember } from './entities/community-member.entity';
+import { ForumUser } from './entities/user.entity';
 import { VoteModule } from '../vote/vote.module';
 import { AuthModule } from '../auth/auth.module';
 
@@ -24,6 +25,7 @@ import { AuthModule } from '../auth/auth.module';
       ForumCommunityRule,
       ForumCommunityLink,
       ForumCommunityMember,
+      ForumUser,
     ]),
     VoteModule,
     AuthModule,

@@ -1,4 +1,8 @@
-import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -61,11 +65,7 @@ export class ForumService {
     return { type: post.flairType, text };
   }
 
-  private normalizeStats(
-    post: ForumPost,
-    commentsCount?: number,
-    votes?: { likes: number; dislikes: number },
-  ) {
+  private normalizeStats(post: ForumPost, commentsCount?: number) {
     return {
       ...(post.stats ?? {}),
       comments: commentsCount ?? post.stats?.comments ?? 0,
@@ -82,7 +82,7 @@ export class ForumService {
     },
   ) {
     const flair = this.resolveFlair(post);
-    const stats = this.normalizeStats(post, options?.commentsCount, options?.votes);
+    const stats = this.normalizeStats(post, options?.commentsCount);
     const voteState =
       options?.userVote === 1
         ? 'upvoted'
@@ -98,7 +98,8 @@ export class ForumService {
       likes: options?.votes?.likes ?? 0,
       dislikes: options?.votes?.dislikes ?? 0,
       score:
-        options?.votes?.likes !== undefined && options?.votes?.dislikes !== undefined
+        options?.votes?.likes !== undefined &&
+        options?.votes?.dislikes !== undefined
           ? options.votes.likes - options.votes.dislikes
           : 0,
       userVote: (options?.userVote ?? 0) as 0 | 1 | -1,
@@ -438,10 +439,7 @@ export class ForumService {
       ...(post.stats ?? {}),
       comments: commentCount,
     };
-    await this.postsRepository.update(
-      { id: postId },
-      { stats: updatedStats },
-    );
+    await this.postsRepository.update({ id: postId }, { stats: updatedStats });
 
     return saved;
   }

@@ -35,13 +35,14 @@ export class GlobalSolutionController {
   @Get()
   findAllByUser(
     @Query('userId') userId: string,
+    @Query('problemId') problemId?: string,
     @Req() req?: AuthenticatedRequest,
   ): Promise<SolutionFeedResponse> {
     const effectiveUserId = userId || req?.user?.id;
     if (!effectiveUserId) {
       throw new BadRequestException('userId is required');
     }
-    return this.solutionService.findAllByUser(effectiveUserId);
+    return this.solutionService.findAllByUser(effectiveUserId, problemId);
   }
 
   @Get(':id')

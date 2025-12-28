@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -9,6 +9,7 @@ import { ForumTag } from './entities/tag.entity';
 import { ForumCommunityRule } from './entities/community-rule.entity';
 import { ForumCommunityLink } from './entities/community-link.entity';
 import { ForumCommunityMember } from './entities/community-member.entity';
+import { ForumUser } from './entities/user.entity';
 import { VoteService } from '../vote/vote.service';
 import { EdgeOperationTargetType } from '@prisma/client';
 
@@ -29,8 +30,106 @@ export class ForumService {
     private linksRepository: Repository<ForumCommunityLink>,
     @InjectRepository(ForumCommunityMember)
     private membersRepository: Repository<ForumCommunityMember>,
+    @InjectRepository(ForumUser)
+    private forumUsersRepository: Repository<ForumUser>,
     private readonly voteService: VoteService,
   ) {}
+
+  private async ensureForumUser(user: {
+    id: string;
+    username: string;
+    avatar?: string | null;
+  }) {
+    const existing = await this.forumUsersRepository.findOne({
+      where: { id: user.id },
+    });
+    if (existing) return existing;
+
+    const forumUser = this.forumUsersRepository.create({
+      id: user.id,
+      username: user.username,
+      avatar: user.avatar ?? null,
+    });
+    return this.forumUsersRepository.save(forumUser);
+  }
+
+  private resolveFlair(post: ForumPost) {
+    if (!post.flairType) return undefined;
+    const text =
+      post.flairLabel ||
+      post.flairType.charAt(0).toUpperCase() + post.flairType.slice(1);
+    return { type: post.flairType, text };
+  }
+
+  private normalizeStats(
+    post: ForumPost,
+    commentsCount?: number,
+    votes?: { likes: number; dislikes: number },
+  ) {
+    return {
+      ...(post.stats ?? {}),
+      comments: commentsCount ?? post.stats?.comments ?? 0,
+      views: post.views ?? post.stats?.views ?? 0,
+    };
+  }
+
+  private normalizePost(
+    post: ForumPost,
+    options?: {
+      commentsCount?: number;
+      votes?: { likes: number; dislikes: number };
+      userVote?: number;
+    },
+  ) {
+    const flair = this.resolveFlair(post);
+    const stats = this.normalizeStats(post, options?.commentsCount, options?.votes);
+    const voteState =
+      options?.userVote === 1
+        ? 'upvoted'
+        : options?.userVote === -1
+          ? 'downvoted'
+          : 'neutral';
+
+    return {
+      ...post,
+      tags: Array.isArray(post.tags) ? post.tags : [],
+      flair,
+      stats,
+      likes: options?.votes?.likes ?? 0,
+      dislikes: options?.votes?.dislikes ?? 0,
+      score:
+        options?.votes?.likes !== undefined && options?.votes?.dislikes !== undefined
+          ? options.votes.likes - options.votes.dislikes
+          : 0,
+      userVote: (options?.userVote ?? 0) as 0 | 1 | -1,
+      voteState,
+    } as unknown as ForumPost;
+  }
+
+  private async getCommentCounts(postIds: string[]) {
+    if (postIds.length === 0) return new Map<string, number>();
+    const rows = await this.commentsRepository
+      .createQueryBuilder('comment')
+      .select('comment.postId', 'postId')
+      .addSelect('COUNT(comment.id)', 'count')
+      .where('comment.postId IN (:...postIds)', { postIds })
+      .groupBy('comment.postId')
+      .getRawMany<{ postId: string; count: string }>();
+
+    const counts = new Map<string, number>();
+    rows.forEach((row) => {
+      counts.set(row.postId, Number(row.count));
+    });
+    return counts;
+  }
+
+  private async canModerateCommunity(userId: string, communityId: string) {
+    const membership = await this.membersRepository.findOne({
+      where: { userId, communityId },
+    });
+    if (!membership) return false;
+    return membership.role === 'OWNER' || membership.role === 'MODERATOR';
+  }
 
   async findAllPosts(): Promise<ForumPost[]> {
     const posts = await this.postsRepository.find({
@@ -43,19 +142,14 @@ export class ForumService {
       EdgeOperationTargetType.FORUM_POST,
       postIds,
     );
+    const commentCounts = await this.getCommentCounts(postIds);
 
-    return posts.map((post) => {
-      const stats: { likes: number; dislikes: number } = voteMap.get(
-        post.id,
-      ) || { likes: 0, dislikes: 0 };
-      // Inject vote counts into the post object (need to cast or extend type)
-      return {
-        ...post,
-        likes: stats.likes,
-        dislikes: stats.dislikes,
-        score: stats.likes - stats.dislikes,
-      } as unknown as ForumPost;
-    });
+    return posts.map((post) =>
+      this.normalizePost(post, {
+        commentsCount: commentCounts.get(post.id) ?? 0,
+        votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
+      }),
+    );
   }
 
   async findOnePost(id: string): Promise<ForumPost | null> {
@@ -73,13 +167,11 @@ export class ForumService {
         EdgeOperationTargetType.FORUM_POST,
         id,
       );
-
-    return {
-      ...post,
-      likes: stats.likes,
-      dislikes: stats.dislikes,
-      score: stats.likes - stats.dislikes,
-    } as unknown as ForumPost;
+    const commentCounts = await this.getCommentCounts([id]);
+    return this.normalizePost(post, {
+      commentsCount: commentCounts.get(id) ?? 0,
+      votes: stats,
+    });
   }
 
   async getThread(
@@ -142,22 +234,19 @@ export class ForumService {
           ...comment,
           likes: stats.likes,
           dislikes: stats.dislikes,
+          upvotes: stats.likes,
           userVote: commentUserVoteMap.get(comment.id) || 0,
         };
       });
 
+      const normalizedPost = this.normalizePost(post, {
+        commentsCount: comments.length,
+        votes: postStats,
+        userVote: postUserVote,
+      });
+
       return {
-        ...post,
-        likes: postStats.likes,
-        dislikes: postStats.dislikes,
-        score: postStats.likes - postStats.dislikes,
-        userVote: postUserVote as 0 | 1 | -1,
-        voteState:
-          postUserVote === 1
-            ? 'upvoted'
-            : postUserVote === -1
-              ? 'downvoted'
-              : 'neutral',
+        ...normalizedPost,
         comments: uniqueComments as unknown as ForumComment[],
       } as unknown as ForumPost & { comments: ForumComment[] };
     }
@@ -243,16 +332,14 @@ export class ForumService {
       EdgeOperationTargetType.FORUM_POST,
       postIds,
     );
+    const commentCounts = await this.getCommentCounts(postIds);
 
-    return posts.map((post) => {
-      const stats = voteMap.get(post.id) || { likes: 0, dislikes: 0 };
-      return {
-        ...post,
-        likes: stats.likes,
-        dislikes: stats.dislikes,
-        score: stats.likes - stats.dislikes,
-      } as unknown as ForumPost;
-    });
+    return posts.map((post) =>
+      this.normalizePost(post, {
+        commentsCount: commentCounts.get(post.id) ?? 0,
+        votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
+      }),
+    );
   }
 
   // Tag management
@@ -322,17 +409,254 @@ export class ForumService {
     postId: string,
     body: string,
     parentId: string | null,
-    authorId: string,
+    author: { id: string; username: string; avatar?: string | null },
   ): Promise<ForumComment> {
+    const post = await this.postsRepository.findOne({
+      where: { id: postId },
+    });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    await this.ensureForumUser(author);
+
     const comment = this.commentsRepository.create({
       id: randomUUID(),
       postId,
       body,
       parentId,
-      authorId,
+      authorId: author.id,
       createdAt: new Date(),
     });
 
+    const saved = await this.commentsRepository.save(comment);
+
+    const commentCount = await this.commentsRepository.count({
+      where: { postId },
+    });
+    const updatedStats = {
+      ...(post.stats ?? {}),
+      comments: commentCount,
+    };
+    await this.postsRepository.update(
+      { id: postId },
+      { stats: updatedStats },
+    );
+
+    return saved;
+  }
+
+  async updateComment(
+    commentId: string,
+    body: string,
+    userId: string,
+  ): Promise<ForumComment> {
+    const comment = await this.commentsRepository.findOne({
+      where: { id: commentId },
+      relations: ['author'],
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    if (comment.authorId !== userId) {
+      throw new ForbiddenException('Not allowed to edit this comment');
+    }
+
+    comment.body = body;
+    comment.editedAt = new Date();
+
     return this.commentsRepository.save(comment);
+  }
+
+  async deleteComment(commentId: string, userId: string): Promise<void> {
+    const comment = await this.commentsRepository.findOne({
+      where: { id: commentId },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+    if (comment.authorId !== userId) {
+      throw new ForbiddenException('Not allowed to delete this comment');
+    }
+
+    await this.commentsRepository.delete({ id: commentId });
+
+    const post = await this.postsRepository.findOne({
+      where: { id: comment.postId },
+    });
+    if (post) {
+      const commentCount = await this.commentsRepository.count({
+        where: { postId: comment.postId },
+      });
+      const updatedStats = {
+        ...(post.stats ?? {}),
+        comments: commentCount,
+      };
+      await this.postsRepository.update(
+        { id: comment.postId },
+        { stats: updatedStats },
+      );
+    }
+  }
+
+  async createPost(
+    input: {
+      title: string;
+      excerpt?: string | null;
+      communityId: string;
+      tags?: string[];
+      flairType?: string | null;
+      flairLabel?: string | null;
+      media?: Record<string, unknown>[] | null;
+    },
+    author: { id: string; username: string; avatar?: string | null },
+  ): Promise<ForumPost> {
+    const community = await this.communitiesRepository.findOne({
+      where: { id: input.communityId },
+    });
+    if (!community) {
+      throw new NotFoundException('Community not found');
+    }
+    if (community.visibility !== 'PUBLIC') {
+      const isMember = await this.checkMembership(author.id, community.id);
+      if (!isMember) {
+        throw new ForbiddenException('Community is restricted');
+      }
+    }
+
+    await this.ensureForumUser(author);
+
+    const post = this.postsRepository.create({
+      id: randomUUID(),
+      communityId: input.communityId,
+      userId: author.id,
+      title: input.title,
+      excerpt: input.excerpt ?? null,
+      tags: input.tags ?? [],
+      flairType: input.flairType ?? null,
+      flairLabel: input.flairLabel ?? null,
+      media: input.media ?? null,
+      createdAt: new Date(),
+      stats: { comments: 0, views: 0 },
+    });
+
+    const saved = await this.postsRepository.save(post);
+
+    await this.communitiesRepository.increment(
+      { id: input.communityId },
+      'postsCount',
+      1,
+    );
+
+    return this.normalizePost(saved, {
+      commentsCount: 0,
+      votes: { likes: 0, dislikes: 0 },
+    });
+  }
+
+  async updatePost(
+    postId: string,
+    userId: string,
+    input: {
+      title?: string;
+      excerpt?: string | null;
+      tags?: string[];
+      flairType?: string | null;
+      flairLabel?: string | null;
+      media?: Record<string, unknown>[] | null;
+      isPinned?: boolean;
+      isLocked?: boolean;
+    },
+  ): Promise<ForumPost> {
+    const post = await this.postsRepository.findOne({
+      where: { id: postId },
+      relations: ['community'],
+    });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const isAuthor = post.userId === userId;
+    const canModerate = await this.canModerateCommunity(
+      userId,
+      post.communityId,
+    );
+
+    if (!isAuthor && !canModerate) {
+      throw new ForbiddenException('Not allowed to edit this post');
+    }
+
+    const wantsModeration =
+      input.isPinned !== undefined || input.isLocked !== undefined;
+
+    if (wantsModeration && !canModerate) {
+      throw new ForbiddenException('Not allowed to manage this post');
+    }
+
+    if (isAuthor) {
+      if (input.title !== undefined) post.title = input.title;
+      if (input.excerpt !== undefined) post.excerpt = input.excerpt;
+      if (input.tags !== undefined) post.tags = input.tags;
+      if (input.flairType !== undefined) post.flairType = input.flairType;
+      if (input.flairLabel !== undefined) post.flairLabel = input.flairLabel;
+      if (input.media !== undefined) post.media = input.media;
+    }
+
+    if (input.isPinned !== undefined) post.isPinned = input.isPinned;
+    if (input.isLocked !== undefined) post.isLocked = input.isLocked;
+
+    const saved = await this.postsRepository.save(post);
+
+    return this.normalizePost(saved, {
+      commentsCount: post.stats?.comments ?? 0,
+      votes: { likes: 0, dislikes: 0 },
+    });
+  }
+
+  async deletePost(postId: string, userId: string): Promise<void> {
+    const post = await this.postsRepository.findOne({
+      where: { id: postId },
+    });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const isAuthor = post.userId === userId;
+    const canModerate = await this.canModerateCommunity(
+      userId,
+      post.communityId,
+    );
+
+    if (!isAuthor && !canModerate) {
+      throw new ForbiddenException('Not allowed to delete this post');
+    }
+
+    await this.postsRepository.delete({ id: postId });
+    await this.communitiesRepository.decrement(
+      { id: post.communityId },
+      'postsCount',
+      1,
+    );
+  }
+
+  async findPostsByUser(userId: string): Promise<ForumPost[]> {
+    const posts = await this.postsRepository.find({
+      where: { userId },
+      relations: ['author', 'community'],
+      order: { createdAt: 'DESC' },
+    });
+    const postIds = posts.map((p) => p.id);
+    const voteMap = await this.voteService.getVoteCountsBatch(
+      EdgeOperationTargetType.FORUM_POST,
+      postIds,
+    );
+    const commentCounts = await this.getCommentCounts(postIds);
+
+    return posts.map((post) =>
+      this.normalizePost(post, {
+        commentsCount: commentCounts.get(post.id) ?? 0,
+        votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
+      }),
+    );
   }
 }

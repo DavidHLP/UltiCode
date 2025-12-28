@@ -42,6 +42,21 @@ export class SubmissionController {
     return Object.fromEntries(map);
   }
 
+  @Get('calendar')
+  @UseGuards(AuthGuard)
+  async getDailyActivity(
+    @Query('userId') userId: string,
+    @Query('year') year: string,
+    @Req() req?: AuthenticatedRequest,
+  ) {
+    const effectiveUserId = userId || req?.user?.id;
+    if (!effectiveUserId) {
+      throw new BadRequestException('userId is required');
+    }
+    const yearInt = year ? parseInt(year) : new Date().getFullYear();
+    return this.submissionService.getDailyActivity(effectiveUserId, yearInt);
+  }
+
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.submissionService.findOne(id);

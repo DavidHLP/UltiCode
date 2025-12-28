@@ -8,7 +8,7 @@ export class ForumUser {
   @Column({ length: 60, unique: true })
   username: string;
 
-  @Column({ length: 255, nullable: true })
+  @Column({ type: 'varchar', length: 255, nullable: true })
   avatar: string | null;
 
   @Column({ default: 0 })

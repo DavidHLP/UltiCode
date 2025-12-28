@@ -19,7 +19,11 @@ import { AuthGuard } from '../auth/auth.guard';
 import type { Request } from 'express';
 
 interface AuthenticatedRequest extends Request {
-  user: { id: string };
+  user: {
+    id: string;
+    username: string;
+    avatar?: string | null;
+  };
 }
 
 @Controller('forum')
@@ -172,12 +176,11 @@ export class ForumController {
     @Req() req: AuthenticatedRequest,
   ) {
     const user = req.user;
-    return this.forumService.createComment(
-      postId,
-      body.body,
-      body.parentId,
-      { id: user.id, username: user.username, avatar: user.avatar },
-    );
+    return this.forumService.createComment(postId, body.body, body.parentId, {
+      id: user.id,
+      username: user.username,
+      avatar: user.avatar,
+    });
   }
 
   @UseGuards(AuthGuard)

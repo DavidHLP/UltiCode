@@ -9,7 +9,7 @@ export class ForumUser {
   username: string;
 
   @Column({ length: 255, nullable: true })
-  avatar: string;
+  avatar: string | null;
 
   @Column({ default: 0 })
   karma: number;

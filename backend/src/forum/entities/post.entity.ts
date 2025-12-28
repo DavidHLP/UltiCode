@@ -42,7 +42,7 @@ export class ForumPost {
   tags: string[];
 
   @Column({ type: 'text', nullable: true })
-  excerpt: string;
+  excerpt: string | null;
 
   @Column({ type: 'json', nullable: true })
   media: Record<string, unknown>[] | null;

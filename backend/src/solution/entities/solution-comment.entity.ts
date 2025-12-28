@@ -21,7 +21,7 @@ export class SolutionComment {
   @JoinColumn({ name: 'solution_id' })
   solution: SolutionMeta;
 
-  @Column({ name: 'parent_id', length: 40, nullable: true })
+  @Column({ name: 'parent_id', type: 'varchar', length: 40, nullable: true })
   parentId: string | null;
 
   @ManyToOne(() => SolutionComment)

@@ -140,6 +140,33 @@ export class SubmissionService {
     return statusMap;
   }
 
+  async getDailyActivity(userId: string, year: number): Promise<string[]> {
+    const startOfYear = new Date(year, 0, 1);
+    const endOfYear = new Date(year + 1, 0, 1);
+
+    const submissions = await this.prisma.submission.findMany({
+      where: {
+        user_id: userId,
+        status: 'Accepted',
+        created_at: {
+          gte: startOfYear,
+          lt: endOfYear,
+        },
+      },
+      select: {
+        created_at: true,
+      },
+    });
+
+    const activeDates = new Set<string>();
+    submissions.forEach((sub) => {
+      const date = sub.created_at.toISOString().split('T')[0];
+      activeDates.add(date);
+    });
+
+    return Array.from(activeDates);
+  }
+
   async findOne(id: string): Promise<Submission> {
     const submission = await this.prisma.submission.findUnique({
       where: { id },

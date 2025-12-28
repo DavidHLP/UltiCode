@@ -17,6 +17,8 @@ import { ForumComment } from './entities/comment.entity';
 import forumData from '../../prisma/seed/data/forum.data';
 import { AuthGuard } from '../auth/auth.guard';
 import type { Request } from 'express';
+import { CreatePostDto } from './dto/create-post.dto';
+import { UpdatePostDto } from './dto/update-post.dto';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -48,20 +50,7 @@ export class ForumController {
 
   @UseGuards(AuthGuard)
   @Post('posts')
-  createPost(
-    @Body()
-    body: {
-      title: string;
-      excerpt?: string | null;
-      body?: string | null;
-      communityId: string;
-      tags?: string[];
-      flairType?: string | null;
-      flairLabel?: string | null;
-      media?: Record<string, unknown>[] | null;
-    },
-    @Req() req: AuthenticatedRequest,
-  ) {
+  createPost(@Body() body: CreatePostDto, @Req() req: AuthenticatedRequest) {
     const user = req.user;
     return this.forumService.createPost(
       {
@@ -81,18 +70,7 @@ export class ForumController {
   @Patch('posts/:id')
   updatePost(
     @Param('id') postId: string,
-    @Body()
-    body: {
-      title?: string;
-      excerpt?: string | null;
-      body?: string | null;
-      tags?: string[];
-      flairType?: string | null;
-      flairLabel?: string | null;
-      media?: Record<string, unknown>[] | null;
-      isPinned?: boolean;
-      isLocked?: boolean;
-    },
+    @Body() body: UpdatePostDto,
     @Req() req: AuthenticatedRequest,
   ) {
     return this.forumService.updatePost(postId, req.user.id, {

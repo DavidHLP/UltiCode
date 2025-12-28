@@ -14,7 +14,7 @@ export class ForumComment {
   @JoinColumn({ name: 'post_id' })
   post: ForumPost;
 
-  @Column({ name: 'parent_id', length: 40, nullable: true })
+  @Column({ name: 'parent_id', type: 'varchar', length: 40, nullable: true })
   parentId: string | null;
 
   @ManyToOne(() => ForumComment)

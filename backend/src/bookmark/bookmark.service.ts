@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { BookmarkType, Prisma } from '@prisma/client';
+import { BookmarkType, Prisma, Difficulty } from '@prisma/client';
 import { CreateFolderDto } from './dto/create-folder.dto';
 import { UpdateFolderDto } from './dto/update-folder.dto';
 import { AddBookmarkDto, UpdateBookmarkDto } from './dto/bookmark-item.dto';
@@ -43,7 +43,46 @@ export interface BookmarkDetail {
   note: string | null;
   createdAt: Date;
   title?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
+}
+
+// Interfaces for fetched data
+interface RawForumPost {
+  id: string;
+  title: string;
+  community: {
+    name: string;
+    slug: string;
+  };
+  author: {
+    username: string;
+    avatar: string | null;
+  };
+}
+
+interface RawProblem {
+  id: bigint;
+  title: string;
+  slug: string;
+  difficulty: Difficulty;
+}
+
+interface RawProblemList {
+  id: string;
+  name: string;
+  description: string | null;
+}
+
+interface RawSolution {
+  id: string;
+  title: string;
+  problem: {
+    title: string;
+    slug: string;
+  };
+  author: {
+    username: string;
+  };
 }
 
 type Tx = Prisma.TransactionClient;
@@ -184,8 +223,17 @@ export class BookmarkService {
     const forumPostIds = folder.bookmarks
       .filter((b) => b.target_type === BookmarkType.FORUM_POST)
       .map((b) => b.target_id);
+    const problemIds = folder.bookmarks
+      .filter((b) => b.target_type === BookmarkType.PROBLEM)
+      .map((b) => b.target_id);
+    const problemListIds = folder.bookmarks
+      .filter((b) => b.target_type === BookmarkType.PROBLEM_LIST)
+      .map((b) => b.target_id);
+    const solutionIds = folder.bookmarks
+      .filter((b) => b.target_type === BookmarkType.SOLUTION)
+      .map((b) => b.target_id);
 
-    let forumPostsMap = new Map<string, any>();
+    let forumPostsMap = new Map<string, RawForumPost>();
     if (forumPostIds.length > 0) {
       const posts = await this.prisma.forumPost.findMany({
         where: { id: { in: forumPostIds } },
@@ -199,9 +247,43 @@ export class BookmarkService {
       forumPostsMap = new Map(posts.map((p) => [p.id, p]));
     }
 
+    let problemsMap = new Map<string, RawProblem>();
+    if (problemIds.length > 0) {
+      // Problem IDs are BigInt, convert string to BigInt for query
+      const problemIdsBigInt = problemIds.map((id) => BigInt(id));
+      const problems = await this.prisma.problem.findMany({
+        where: { id: { in: problemIdsBigInt } },
+        select: { id: true, title: true, slug: true, difficulty: true },
+      });
+      problemsMap = new Map(problems.map((p) => [p.id.toString(), p]));
+    }
+
+    let problemListsMap = new Map<string, RawProblemList>();
+    if (problemListIds.length > 0) {
+      const lists = await this.prisma.problemList.findMany({
+        where: { id: { in: problemListIds } },
+        select: { id: true, name: true, description: true },
+      });
+      problemListsMap = new Map(lists.map((l) => [l.id, l]));
+    }
+
+    let solutionsMap = new Map<string, RawSolution>();
+    if (solutionIds.length > 0) {
+      const solutions = await this.prisma.solution.findMany({
+        where: { id: { in: solutionIds } },
+        select: {
+          id: true,
+          title: true,
+          problem: { select: { title: true, slug: true } },
+          author: { select: { username: true } },
+        },
+      });
+      solutionsMap = new Map(solutions.map((s) => [s.id, s]));
+    }
+
     const items: BookmarkDetail[] = folder.bookmarks.map((item) => {
-      let title = undefined;
-      let metadata = undefined;
+      let title: string | undefined = undefined;
+      let metadata: Record<string, unknown> | undefined = undefined;
 
       if (item.target_type === BookmarkType.FORUM_POST) {
         const post = forumPostsMap.get(item.target_id);
@@ -212,6 +294,33 @@ export class BookmarkService {
             communitySlug: post.community.slug,
             authorName: post.author.username,
             authorAvatar: post.author.avatar,
+          };
+        }
+      } else if (item.target_type === BookmarkType.PROBLEM) {
+        const problem = problemsMap.get(item.target_id);
+        if (problem) {
+          title = problem.title;
+          metadata = {
+            slug: problem.slug,
+            difficulty: problem.difficulty,
+          };
+        }
+      } else if (item.target_type === BookmarkType.PROBLEM_LIST) {
+        const list = problemListsMap.get(item.target_id);
+        if (list) {
+          title = list.name;
+          metadata = {
+            description: list.description,
+          };
+        }
+      } else if (item.target_type === BookmarkType.SOLUTION) {
+        const solution = solutionsMap.get(item.target_id);
+        if (solution) {
+          title = solution.title;
+          metadata = {
+            problemTitle: solution.problem.title,
+            problemSlug: solution.problem.slug,
+            authorName: solution.author.username,
           };
         }
       }

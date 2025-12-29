@@ -16,6 +16,7 @@ import { ForumCommunity } from './entities/community.entity';
 import { ForumComment } from './entities/comment.entity';
 import forumData from '../../prisma/seed/data/forum.data';
 import { AuthGuard } from '../auth/auth.guard';
+import { Public } from '../auth/auth.decorator';
 import type { Request } from 'express';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -32,20 +33,27 @@ interface AuthenticatedRequest extends Request {
 export class ForumController {
   constructor(private readonly forumService: ForumService) {}
 
+  @UseGuards(AuthGuard)
+  @Public()
   @Get('posts')
-  findAllPosts(): Promise<ForumPost[]> {
-    return this.forumService.findAllPosts();
+  findAllPosts(@Req() req: AuthenticatedRequest): Promise<ForumPost[]> {
+    return this.forumService.findAllPosts(req.user?.id);
   }
 
+  @UseGuards(AuthGuard)
+  @Public()
   @Get('posts/:id')
-  findOnePost(@Param('id') id: string): Promise<ForumPost | null> {
-    return this.forumService.findOnePost(id);
+  findOnePost(
+    @Param('id') id: string,
+    @Req() req: AuthenticatedRequest,
+  ): Promise<ForumPost | null> {
+    return this.forumService.findOnePost(id, req.user?.id);
   }
 
   @UseGuards(AuthGuard)
   @Get('me/posts')
   findMyPosts(@Req() req: AuthenticatedRequest): Promise<ForumPost[]> {
-    return this.forumService.findPostsByUser(req.user.id);
+    return this.forumService.findPostsByUser(req.user.id, req.user.id);
   }
 
   @UseGuards(AuthGuard)
@@ -91,12 +99,14 @@ export class ForumController {
     return this.forumService.deletePost(postId, req.user.id);
   }
 
+  @UseGuards(AuthGuard)
+  @Public()
   @Get('posts/:id/thread')
   findThread(
     @Param('id') id: string,
-    @Query('userId') userId?: string,
+    @Req() req: AuthenticatedRequest,
   ): Promise<(ForumPost & { comments: ForumComment[] }) | null> {
-    return this.forumService.getThread(id, userId);
+    return this.forumService.getThread(id, req.user?.id);
   }
 
   // Community endpoints
@@ -114,12 +124,18 @@ export class ForumController {
     return this.forumService.findOneCommunity(slugOrId);
   }
 
+  @UseGuards(AuthGuard)
+  @Public()
   @Get('communities/:slug/posts')
   findPostsByCommunity(
     @Param('slug') slug: string,
-    @Query('sortBy') sortBy?: 'hot' | 'new' | 'top',
+    @Query('sortBy') sortBy: 'hot' | 'new' | 'top' | undefined,
+    @Req() req: AuthenticatedRequest,
   ) {
-    return this.forumService.findPostsByCommunity(slug, { sortBy });
+    return this.forumService.findPostsByCommunity(slug, {
+      sortBy,
+      userId: req.user?.id,
+    });
   }
 
   // Tag endpoints

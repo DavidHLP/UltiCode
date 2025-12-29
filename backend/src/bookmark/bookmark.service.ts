@@ -42,6 +42,8 @@ export interface BookmarkDetail {
   sortOrder: number;
   note: string | null;
   createdAt: Date;
+  title?: string;
+  metadata?: Record<string, any>;
 }
 
 type Tx = Prisma.TransactionClient;
@@ -178,6 +180,54 @@ export class BookmarkService {
       throw new NotFoundException('Folder not found');
     }
 
+    // Hydrate items
+    const forumPostIds = folder.bookmarks
+      .filter((b) => b.target_type === BookmarkType.FORUM_POST)
+      .map((b) => b.target_id);
+
+    let forumPostsMap = new Map<string, any>();
+    if (forumPostIds.length > 0) {
+      const posts = await this.prisma.forumPost.findMany({
+        where: { id: { in: forumPostIds } },
+        select: {
+          id: true,
+          title: true,
+          community: { select: { name: true, slug: true } },
+          author: { select: { username: true, avatar: true } },
+        },
+      });
+      forumPostsMap = new Map(posts.map((p) => [p.id, p]));
+    }
+
+    const items: BookmarkDetail[] = folder.bookmarks.map((item) => {
+      let title = undefined;
+      let metadata = undefined;
+
+      if (item.target_type === BookmarkType.FORUM_POST) {
+        const post = forumPostsMap.get(item.target_id);
+        if (post) {
+          title = post.title;
+          metadata = {
+            communityName: post.community.name,
+            communitySlug: post.community.slug,
+            authorName: post.author.username,
+            authorAvatar: post.author.avatar,
+          };
+        }
+      }
+
+      return {
+        id: item.id,
+        targetId: item.target_id,
+        targetType: item.target_type,
+        sortOrder: item.sort_order,
+        note: item.note,
+        createdAt: item.created_at,
+        title,
+        metadata,
+      };
+    });
+
     return {
       id: folder.id,
       name: folder.name,
@@ -188,14 +238,7 @@ export class BookmarkService {
       sortOrder: folder.sort_order,
       createdAt: folder.created_at,
       updatedAt: folder.updated_at,
-      items: folder.bookmarks.map((item) => ({
-        id: item.id,
-        targetId: item.target_id,
-        targetType: item.target_type,
-        sortOrder: item.sort_order,
-        note: item.note,
-        createdAt: item.created_at,
-      })),
+      items,
     };
   }
 
@@ -443,6 +486,32 @@ export class BookmarkService {
     });
 
     return items.map((i) => i.folder_id);
+  }
+
+  async getBookmarkStatusBatch(
+    userId: string,
+    targetType: BookmarkType,
+    targetIds: string[],
+  ): Promise<Map<string, boolean>> {
+    const defaultFolder = await this.prisma.bookmarkFolder.findFirst({
+      where: { user_id: userId, is_default: true },
+      select: { id: true },
+    });
+
+    if (!defaultFolder) return new Map();
+
+    const items = await this.prisma.bookmark.findMany({
+      where: {
+        folder_id: defaultFolder.id,
+        target_type: targetType,
+        target_id: { in: targetIds },
+      },
+      select: { target_id: true },
+    });
+
+    const result = new Map<string, boolean>();
+    items.forEach((item) => result.set(item.target_id, true));
+    return result;
   }
 
   async reorderFolders(userId: string, folderIds: string[]): Promise<void> {

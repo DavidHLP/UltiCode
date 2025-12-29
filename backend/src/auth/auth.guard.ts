@@ -29,33 +29,32 @@ export class AuthGuard implements CanActivate {
       context.getHandler(),
       context.getClass(),
     ]);
-    if (isPublic) {
-      return true;
-    }
 
     const request = context.switchToHttp().getRequest<Request>();
     const token = this.extractTokenFromHeader(request);
-    if (!token) {
+
+    if (token) {
+      try {
+        const payload = await this.jwtService.verifyAsync<{
+          sub: string;
+          username: string;
+        }>(token);
+        if (payload?.sub) {
+          const user = await this.userService.findOne(payload.sub);
+          if (user) {
+            request['user'] = user;
+          }
+        }
+      } catch {
+        // If token is invalid but route is public, ignore error
+        if (!isPublic) {
+          throw new UnauthorizedException();
+        }
+      }
+    } else if (!isPublic) {
       throw new UnauthorizedException();
     }
-    try {
-      const payload = await this.jwtService.verifyAsync<{
-        sub: string;
-        username: string;
-      }>(token);
-      if (!payload?.sub) {
-        throw new UnauthorizedException();
-      }
 
-      const user = await this.userService.findOne(payload.sub);
-      if (!user) {
-        throw new UnauthorizedException();
-      }
-
-      request['user'] = user;
-    } catch {
-      throw new UnauthorizedException();
-    }
     return true;
   }
 

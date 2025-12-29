@@ -15,7 +15,8 @@ import { ForumCommunityLink } from './entities/community-link.entity';
 import { ForumCommunityMember } from './entities/community-member.entity';
 import { ForumUser } from './entities/user.entity';
 import { VoteService } from '../vote/vote.service';
-import { EdgeOperationTargetType } from '@prisma/client';
+import { BookmarkType, EdgeOperationTargetType } from '@prisma/client';
+import { BookmarkService } from '../bookmark/bookmark.service';
 
 @Injectable()
 export class ForumService {
@@ -37,6 +38,7 @@ export class ForumService {
     @InjectRepository(ForumUser)
     private forumUsersRepository: Repository<ForumUser>,
     private readonly voteService: VoteService,
+    private readonly bookmarkService: BookmarkService,
   ) {}
 
   private async ensureForumUser(user: {
@@ -79,6 +81,7 @@ export class ForumService {
       commentsCount?: number;
       votes?: { likes: number; dislikes: number };
       userVote?: number;
+      isSaved?: boolean;
     },
   ) {
     const flair = this.resolveFlair(post);
@@ -104,6 +107,7 @@ export class ForumService {
           : 0,
       userVote: (options?.userVote ?? 0) as 0 | 1 | -1,
       voteState,
+      isSaved: options?.isSaved ?? false,
     } as unknown as ForumPost;
   }
 
@@ -132,7 +136,7 @@ export class ForumService {
     return membership.role === 'OWNER' || membership.role === 'MODERATOR';
   }
 
-  async findAllPosts(): Promise<ForumPost[]> {
+  async findAllPosts(userId?: string): Promise<ForumPost[]> {
     const posts = await this.postsRepository.find({
       relations: ['author', 'community'],
       order: { createdAt: 'DESC' },
@@ -145,15 +149,25 @@ export class ForumService {
     );
     const commentCounts = await this.getCommentCounts(postIds);
 
+    let bookmarkMap = new Map<string, boolean>();
+    if (userId) {
+      bookmarkMap = await this.bookmarkService.getBookmarkStatusBatch(
+        userId,
+        BookmarkType.FORUM_POST,
+        postIds,
+      );
+    }
+
     return posts.map((post) =>
       this.normalizePost(post, {
         commentsCount: commentCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
+        isSaved: bookmarkMap.get(post.id) ?? false,
       }),
     );
   }
 
-  async findOnePost(id: string): Promise<ForumPost | null> {
+  async findOnePost(id: string, userId?: string): Promise<ForumPost | null> {
     const post = await this.postsRepository.findOne({
       where: { id },
       relations: ['author', 'community'],
@@ -169,9 +183,20 @@ export class ForumService {
         id,
       );
     const commentCounts = await this.getCommentCounts([id]);
+
+    let isSaved = false;
+    if (userId) {
+      isSaved = await this.bookmarkService.isInDefaultFolder(
+        userId,
+        BookmarkType.FORUM_POST,
+        id,
+      );
+    }
+
     return this.normalizePost(post, {
       commentsCount: commentCounts.get(id) ?? 0,
       votes: stats,
+      isSaved,
     });
   }
 
@@ -225,7 +250,17 @@ export class ForumService {
         );
       }
 
-      // 5. Map everything to comments
+      // 5. Check Bookmark Status
+      let isSaved = false;
+      if (userId) {
+        isSaved = await this.bookmarkService.isInDefaultFolder(
+          userId,
+          BookmarkType.FORUM_POST,
+          id,
+        );
+      }
+
+      // 6. Map everything to comments
       const uniqueComments = comments.map((comment) => {
         const stats = commentVoteMap.get(comment.id) || {
           likes: 0,
@@ -244,6 +279,7 @@ export class ForumService {
         commentsCount: comments.length,
         votes: postStats,
         userVote: postUserVote,
+        isSaved,
       });
 
       return {
@@ -311,7 +347,7 @@ export class ForumService {
   // Get posts by community slug
   async findPostsByCommunity(
     communitySlug: string,
-    _options?: { sortBy?: 'hot' | 'new' | 'top' },
+    _options?: { sortBy?: 'hot' | 'new' | 'top'; userId?: string },
   ): Promise<ForumPost[]> {
     const community = await this.communitiesRepository.findOne({
       where: { slug: communitySlug },
@@ -335,10 +371,20 @@ export class ForumService {
     );
     const commentCounts = await this.getCommentCounts(postIds);
 
+    let bookmarkMap = new Map<string, boolean>();
+    if (_options?.userId) {
+      bookmarkMap = await this.bookmarkService.getBookmarkStatusBatch(
+        _options.userId,
+        BookmarkType.FORUM_POST,
+        postIds,
+      );
+    }
+
     return posts.map((post) =>
       this.normalizePost(post, {
         commentsCount: commentCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
+        isSaved: bookmarkMap.get(post.id) ?? false,
       }),
     );
   }
@@ -637,7 +683,10 @@ export class ForumService {
     );
   }
 
-  async findPostsByUser(userId: string): Promise<ForumPost[]> {
+  async findPostsByUser(
+    userId: string,
+    currentUserId?: string,
+  ): Promise<ForumPost[]> {
     const posts = await this.postsRepository.find({
       where: { userId },
       relations: ['author', 'community'],
@@ -650,10 +699,20 @@ export class ForumService {
     );
     const commentCounts = await this.getCommentCounts(postIds);
 
+    let bookmarkMap = new Map<string, boolean>();
+    if (currentUserId) {
+      bookmarkMap = await this.bookmarkService.getBookmarkStatusBatch(
+        currentUserId,
+        BookmarkType.FORUM_POST,
+        postIds,
+      );
+    }
+
     return posts.map((post) =>
       this.normalizePost(post, {
         commentsCount: commentCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
+        isSaved: bookmarkMap.get(post.id) ?? false,
       }),
     );
   }

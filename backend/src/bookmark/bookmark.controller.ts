@@ -30,6 +30,19 @@ interface AuthenticatedRequest extends Request {
 export class BookmarkController {
   constructor(private readonly bookmarkService: BookmarkService) {}
 
+  @Post('quick')
+  async quickFavorite(
+    @Req() req: AuthenticatedRequest,
+    @Body() dto: { targetType: BookmarkType; targetId: string },
+  ) {
+    const isSaved = await this.bookmarkService.quickFavorite(
+      req.user.id,
+      dto.targetType,
+      dto.targetId,
+    );
+    return { isSaved };
+  }
+
   @Get('folders')
   async getUserFolders(@Req() req: AuthenticatedRequest) {
     return this.bookmarkService.getUserFolders(req.user.id);

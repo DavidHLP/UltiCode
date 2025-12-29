@@ -4,6 +4,7 @@ import {
   EdgeOperationTargetType,
   EdgeOperationType,
   Prisma,
+  BookmarkType,
 } from '@prisma/client';
 import { VoteService } from '../vote/vote.service';
 import { EdgeOperationDto } from './dto/edge-operation.dto';
@@ -17,6 +18,7 @@ export interface EdgeOperationViewerState {
 export interface EdgeOperationResponse {
   likes: number;
   dislikes: number;
+  favorites: number;
   viewer: EdgeOperationViewerState;
 }
 
@@ -48,6 +50,7 @@ export class EdgeOperationsService {
       return {
         likes: voteResult.likes,
         dislikes: voteResult.dislikes,
+        favorites: await this.getFavoritesCount(targetType, targetId),
         viewer: {
           vote: voteResult.userVote as 1 | 0 | -1,
         },
@@ -70,6 +73,7 @@ export class EdgeOperationsService {
     return {
       likes: voteCounts.likes,
       dislikes: voteCounts.dislikes,
+      favorites: await this.getFavoritesCount(targetType, targetId),
       viewer: {
         vote: userVote as 1 | 0 | -1,
       },
@@ -112,18 +116,41 @@ export class EdgeOperationsService {
     });
   }
 
-  private async getOperationCount(
+  private async getFavoritesCount(
     targetType: EdgeOperationTargetType,
     targetId: string,
-    operationType: EdgeOperationType,
   ): Promise<number> {
-    return this.prisma.edgeOperation.count({
-      where: {
-        target_type: targetType,
-        target_id: targetId,
-        operation_type: operationType,
-      },
-    });
+    if (targetType === EdgeOperationTargetType.PROBLEM) {
+      const problemIdBigInt = BigInt(targetId);
+
+      const [usersWithBookmarks, usersWithLists] = await Promise.all([
+        this.prisma.bookmarkFolder.findMany({
+          where: {
+            bookmarks: {
+              some: { target_type: BookmarkType.PROBLEM, target_id: targetId },
+            },
+          },
+          select: { user_id: true },
+          distinct: ['user_id'],
+        }),
+        this.prisma.problemList.findMany({
+          where: {
+            problemRelations: { some: { problem_id: problemIdBigInt } },
+          },
+          select: { author_id: true },
+          distinct: ['author_id'],
+        }),
+      ]);
+
+      const uniqueUsers = new Set([
+        ...usersWithBookmarks.map((u) => u.user_id),
+        ...usersWithLists.map((u) => u.author_id),
+      ]);
+
+      return uniqueUsers.size;
+    }
+    // Implement for other types if needed, return 0 for now
+    return 0;
   }
 
   async getInteractions(
@@ -149,6 +176,7 @@ export class EdgeOperationsService {
     return {
       likes: voteCounts.likes,
       dislikes: voteCounts.dislikes,
+      favorites: await this.getFavoritesCount(targetType, targetId),
       viewer: {
         vote: viewerVote,
       },

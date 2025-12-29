@@ -13,6 +13,7 @@ import { ForumCommunityMember } from './entities/community-member.entity';
 import { ForumUser } from './entities/user.entity';
 import { VoteModule } from '../vote/vote.module';
 import { AuthModule } from '../auth/auth.module';
+import { BookmarkModule } from '../bookmark/bookmark.module';
 
 @Module({
   imports: [
@@ -29,6 +30,7 @@ import { AuthModule } from '../auth/auth.module';
     ]),
     VoteModule,
     AuthModule,
+    BookmarkModule,
   ],
   providers: [ForumService],
   controllers: [ForumController],

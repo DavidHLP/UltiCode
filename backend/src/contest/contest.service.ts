@@ -26,6 +26,36 @@ export interface ContestStats {
 export class ContestService {
   constructor(private prisma: PrismaService) {}
 
+  private withTimingFields<
+    T extends {
+      start_time: Date;
+      duration_minutes: number;
+      status: ContestStatus;
+    },
+  >(contest: T) {
+    const endTime = new Date(
+      contest.start_time.getTime() + contest.duration_minutes * 60 * 1000,
+    );
+    const now = Date.now();
+    const startsInSeconds = Math.max(
+      0,
+      Math.floor((contest.start_time.getTime() - now) / 1000),
+    );
+    const endsInSeconds = Math.max(
+      0,
+      Math.floor((endTime.getTime() - now) / 1000),
+    );
+
+    return {
+      ...contest,
+      end_time: endTime,
+      starts_in_seconds: startsInSeconds,
+      ends_in_seconds: endsInSeconds,
+      can_register: contest.status === 'upcoming',
+      can_start: contest.status === 'running',
+    };
+  }
+
   // =========================================================================
   // CONTEST QUERIES
   // =========================================================================
@@ -52,7 +82,12 @@ export class ContestService {
       this.prisma.contest.count({ where }),
     ]);
 
-    return { items: contests, total, page, limit };
+    return {
+      items: contests.map((contest) => this.withTimingFields(contest)),
+      total,
+      page,
+      limit,
+    };
   }
 
   async findOne(id: string) {
@@ -80,7 +115,7 @@ export class ContestService {
       throw new NotFoundException(`Contest ${id} not found`);
     }
 
-    return {
+    return this.withTimingFields({
       ...contest,
       problems: contest.problems.map((cp) => ({
         id: cp.id,
@@ -94,21 +129,23 @@ export class ContestService {
         difficulty: cp.problem.difficulty,
         acceptanceRate: Number(cp.problem.acceptance_rate),
       })),
-    };
+    });
   }
 
   async findUpcoming() {
-    return this.prisma.contest.findMany({
+    const contests = await this.prisma.contest.findMany({
       where: { status: 'upcoming', is_visible: true },
       orderBy: { start_time: 'asc' },
     });
+    return contests.map((contest) => this.withTimingFields(contest));
   }
 
   async findRunning() {
-    return this.prisma.contest.findMany({
+    const contests = await this.prisma.contest.findMany({
       where: { status: 'running', is_visible: true },
       orderBy: { start_time: 'asc' },
     });
+    return contests.map((contest) => this.withTimingFields(contest));
   }
 
   async findPast(page: number = 1, limit: number = 10) {
@@ -126,7 +163,12 @@ export class ContestService {
       }),
     ]);
 
-    return { data, total, page, limit };
+    return {
+      data: data.map((contest) => this.withTimingFields(contest)),
+      total,
+      page,
+      limit,
+    };
   }
 
   async getStats(): Promise<ContestStats> {
@@ -293,7 +335,7 @@ export class ContestService {
     });
 
     return participants.map((p) => ({
-      ...p.contest,
+      ...this.withTimingFields(p.contest),
       participationStatus: p.status,
       score: p.total_score,
       rank: p.final_rank,

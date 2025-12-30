@@ -162,6 +162,18 @@ export class ForumController {
     return forumData.forum_quick_filters;
   }
 
+  @Public()
+  @Post('posts/:id/share')
+  async recordShare(@Param('id') id: string) {
+    return this.forumService.recordShare(id);
+  }
+
+  @Public()
+  @Post('posts/:id/view')
+  async recordView(@Param('id') id: string) {
+    return this.forumService.recordView(id);
+  }
+
   @UseGuards(AuthGuard)
   @Post('posts/:id/comments')
   createComment(

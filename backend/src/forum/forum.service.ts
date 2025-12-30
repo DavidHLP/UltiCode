@@ -67,11 +67,15 @@ export class ForumService {
     return { type: post.flairType, text };
   }
 
-  private normalizeStats(post: ForumPost, commentsCount?: number) {
+  private normalizeStats(
+    post: ForumPost,
+    options?: { commentsCount?: number; savesCount?: number },
+  ) {
     return {
       ...(post.stats ?? {}),
-      comments: commentsCount ?? post.stats?.comments ?? 0,
+      comments: options?.commentsCount ?? post.stats?.comments ?? 0,
       views: post.views ?? post.stats?.views ?? 0,
+      saves: options?.savesCount ?? post.stats?.saves ?? 0,
     };
   }
 
@@ -79,13 +83,17 @@ export class ForumService {
     post: ForumPost,
     options?: {
       commentsCount?: number;
+      savesCount?: number;
       votes?: { likes: number; dislikes: number };
       userVote?: number;
       isSaved?: boolean;
     },
   ) {
     const flair = this.resolveFlair(post);
-    const stats = this.normalizeStats(post, options?.commentsCount);
+    const stats = this.normalizeStats(post, {
+      commentsCount: options?.commentsCount,
+      savesCount: options?.savesCount,
+    });
     const voteState =
       options?.userVote === 1
         ? 'upvoted'
@@ -148,6 +156,10 @@ export class ForumService {
       postIds,
     );
     const commentCounts = await this.getCommentCounts(postIds);
+    const favoriteCounts = await this.bookmarkService.getFavoriteCountsBatch(
+      BookmarkType.FORUM_POST,
+      postIds,
+    );
 
     let bookmarkMap = new Map<string, boolean>();
     if (userId) {
@@ -161,10 +173,38 @@ export class ForumService {
     return posts.map((post) =>
       this.normalizePost(post, {
         commentsCount: commentCounts.get(post.id) ?? 0,
+        savesCount: favoriteCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
         isSaved: bookmarkMap.get(post.id) ?? false,
       }),
     );
+  }
+
+  async recordShare(postId: string): Promise<void> {
+    const post = await this.postsRepository.findOne({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const stats = post.stats || {};
+    stats.shares = (stats.shares || 0) + 1;
+
+    await this.postsRepository.update(postId, { stats });
+  }
+
+  async recordView(postId: string): Promise<void> {
+    const post = await this.postsRepository.findOne({ where: { id: postId } });
+    if (!post) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const stats = post.stats || {};
+    stats.views = (stats.views || 0) + 1;
+
+    await this.postsRepository.update(postId, {
+      views: (post.views || 0) + 1,
+      stats,
+    });
   }
 
   async findOnePost(id: string, userId?: string): Promise<ForumPost | null> {
@@ -183,6 +223,10 @@ export class ForumService {
         id,
       );
     const commentCounts = await this.getCommentCounts([id]);
+    const favoriteCount = await this.bookmarkService.getFavoriteCount(
+      BookmarkType.FORUM_POST,
+      id,
+    );
 
     let isSaved = false;
     if (userId) {
@@ -195,6 +239,7 @@ export class ForumService {
 
     return this.normalizePost(post, {
       commentsCount: commentCounts.get(id) ?? 0,
+      savesCount: favoriteCount,
       votes: stats,
       isSaved,
     });
@@ -232,6 +277,12 @@ export class ForumService {
         );
         postUserVote = votes.get(id) || 0;
       }
+
+      // 2.5 Fetch Save Count
+      const favoriteCount = await this.bookmarkService.getFavoriteCount(
+        BookmarkType.FORUM_POST,
+        id,
+      );
 
       // 3. Fetch Comment Stats (Batch)
       const commentIds = comments.map((c) => c.id);
@@ -277,6 +328,7 @@ export class ForumService {
 
       const normalizedPost = this.normalizePost(post, {
         commentsCount: comments.length,
+        savesCount: favoriteCount,
         votes: postStats,
         userVote: postUserVote,
         isSaved,
@@ -370,6 +422,10 @@ export class ForumService {
       postIds,
     );
     const commentCounts = await this.getCommentCounts(postIds);
+    const favoriteCounts = await this.bookmarkService.getFavoriteCountsBatch(
+      BookmarkType.FORUM_POST,
+      postIds,
+    );
 
     let bookmarkMap = new Map<string, boolean>();
     if (_options?.userId) {
@@ -383,6 +439,7 @@ export class ForumService {
     return posts.map((post) =>
       this.normalizePost(post, {
         commentsCount: commentCounts.get(post.id) ?? 0,
+        savesCount: favoriteCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
         isSaved: bookmarkMap.get(post.id) ?? false,
       }),
@@ -698,6 +755,10 @@ export class ForumService {
       postIds,
     );
     const commentCounts = await this.getCommentCounts(postIds);
+    const favoriteCounts = await this.bookmarkService.getFavoriteCountsBatch(
+      BookmarkType.FORUM_POST,
+      postIds,
+    );
 
     let bookmarkMap = new Map<string, boolean>();
     if (currentUserId) {
@@ -711,6 +772,7 @@ export class ForumService {
     return posts.map((post) =>
       this.normalizePost(post, {
         commentsCount: commentCounts.get(post.id) ?? 0,
+        savesCount: favoriteCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
         isSaved: bookmarkMap.get(post.id) ?? false,
       }),

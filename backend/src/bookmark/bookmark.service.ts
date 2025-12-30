@@ -646,4 +646,27 @@ export class BookmarkService {
       },
     });
   }
+
+  async getFavoriteCountsBatch(
+    targetType: BookmarkType,
+    targetIds: string[],
+  ): Promise<Map<string, number>> {
+    const results = await this.prisma.bookmark.groupBy({
+      by: ['target_id'],
+      where: {
+        target_type: targetType,
+        target_id: { in: targetIds },
+        folder: { is_default: true },
+      },
+      _count: {
+        target_id: true,
+      },
+    });
+
+    const counts = new Map<string, number>();
+    results.forEach((r) => {
+      counts.set(r.target_id, r._count.target_id);
+    });
+    return counts;
+  }
 }

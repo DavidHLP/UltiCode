@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reddit Style Comment Section - Calculated Rail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #0B1416;
+            color: #D7DADC;
+        }
+        
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0B1416; }
+        ::-webkit-scrollbar-thumb { background: #2D3236; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #4A4F54; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useLayoutEffect, useCallback } = React;
+
+        const CONFIG = {
+            avatarSize: 32, 
+            threadWidth: 2, 
+            curveRadius: 12,
+            lineColor: "#343536",
+            lineHoverColor: "#D7DADC",
+            get center() { return this.avatarSize / 2; }
+        };
+
+
+        // --- Icons ---
+        const IconWrapper = ({ children, size = 16, className = "" }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+        const ArrowBigUp = (props) => <IconWrapper {...props}><path d="M9 20v-8H4l8-16 8 16h-5v8H9Z" /></IconWrapper>;
+        const ArrowBigDown = (props) => <IconWrapper {...props}><path d="M15 4v8h5l-8 16-8-16h5V4h6Z" /></IconWrapper>;
+        const MessageSquare = (props) => <IconWrapper {...props}><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" /></IconWrapper>;
+        const Share2 = (props) => <IconWrapper {...props}><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><line x1="8.59" x2="15.42" y1="13.51" y2="17.49" /><line x1="15.41" x2="8.59" y1="6.51" y2="10.49" /></IconWrapper>;
+        const Award = (props) => <IconWrapper {...props}><circle cx="12" cy="8" r="7" /><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88" /></IconWrapper>;
+        const MoreHorizontal = (props) => <IconWrapper {...props}><circle cx="12" cy="12" r="1" /><circle cx="19" cy="12" r="1" /><circle cx="5" cy="12" r="1" /></IconWrapper>;
+        const Maximize2 = (props) => <IconWrapper {...props}><polyline points="15 3 21 3 21 9" /><polyline points="9 21 3 21 3 15" /><line x1="21" x2="14" y1="3" y2="10" /><line x1="3" x2="10" y1="21" y2="14" /></IconWrapper>;
+
+        const Button = ({ children, onClick }) => (
+            <button onClick={onClick} className="flex items-center gap-2 px-2 py-1 rounded hover:bg-[#2D3236] text-[#818384] hover:text-[#D7DADC] transition-colors text-xs font-bold">
+                {children}
+            </button>
+        );
+
+
+
+
+        // --- ChildConnector (The Curve) ---
+        // Draws the curve from the left rail into the avatar.
+        const ChildConnector = ({ depth, isActive }) => {
+            if (depth === 0) return null;
+
+            // Geometry:
+            // SVG is positioned at -24px left, top 0 relative to avatar.
+            // Rail is at X=1. Avatar center is at X=41, Y=16.
+            const railX = 0;
+            const targetX = 41;
+            const targetY = 16;
+            const r = CONFIG.curveRadius;
+            
+            // Start the curve 'r' pixels above the center
+            const startY = targetY - r;
+
+            const path = `
+                M ${railX} ${startY}
+                Q ${railX} ${targetY} ${railX + r} ${targetY}
+                L ${targetX} ${targetY}
+            `;
+
+            return (
+                <svg className="absolute -left-6 top-0 w-[50px] h-[32px] overflow-visible pointer-events-none z-0">
+                    <path 
+                        d={path} 
+                        stroke={isActive ? CONFIG.lineHoverColor : CONFIG.lineColor} 
+                        strokeWidth={CONFIG.threadWidth} 
+                        fill="none" 
+                        strokeLinecap="round"
+                        className="transition-colors duration-200"
+                    />
+                </svg>
+            );
+        };
+
+        // --- ParentRail (The Straight Line) ---
+        // Draws the vertical line for the children.
+        // Calculated to stop exactly at the last child's connector.
+        const ParentRail = ({ height, onClick, onMouseEnter, onMouseLeave, isActive }) => {
+            // Height passed is the Y coordinate (relative to Parent Top) where the rail should END.
+            
+            // Start from bottom of avatar (32px)
+            const yStart = 32; 
+            const x = 16; 
+
+            return (
+                <div 
+                    className="absolute left-0 top-0 w-full z-0 group" 
+                    style={{ height: height + 16 }} 
+                    onClick={onClick}
+                    onMouseEnter={onMouseEnter}
+                    onMouseLeave={onMouseLeave}
+                >
+                    <svg className="w-full h-full overflow-visible">
+                        {/* Hit Area */}
+                        <line x1={x} y1={yStart} x2={x} y2={height} stroke="transparent" strokeWidth="16" className="cursor-pointer" />
+                        {/* Visible Line */}
+                        <line 
+                            x1={x} y1={yStart} 
+                            x2={x} y2={height} 
+                            stroke={isActive ? CONFIG.lineHoverColor : CONFIG.lineColor} 
+                            strokeWidth={CONFIG.threadWidth} 
+                            strokeLinecap="round"
+                            className="transition-colors duration-200"
+                        />
+                    </svg>
+                </div>
+            );
+        };
+        const CommentNode = ({ comment, depth = 0, isParentRailHovered = false }) => {
+            const [isCollapsed, setIsCollapsed] = useState(false);
+            const [isRailHovered, setIsRailHovered] = useState(false);
+            const [score, setScore] = useState(comment.score);
+            const [voteStatus, setVoteStatus] = useState(0); 
+            
+            // State to store the height of the "Rail"
+            const [railHeight, setRailHeight] = useState(0);
+            
+            
+            // Refs to measure layout
+            const containerRef = useRef(null);
+            const childrenContainerRef = useRef(null);
+            const lastChildRef = useRef(null);
+
+            const handleVote = (direction) => {
+                if (voteStatus === direction) { setVoteStatus(0); setScore(comment.score); } 
+                else { setVoteStatus(direction); setScore(comment.score + direction); }
+            };
+
+
+            // Calculate Rail Height
+            const calculateRailHeight = useCallback(() => {
+                 if (!isCollapsed && comment.children && comment.children.length > 0 && containerRef.current && lastChildRef.current) {
+                    const containerTop = containerRef.current.getBoundingClientRect().top;
+                    const lastChildRect = lastChildRef.current.getBoundingClientRect();
+                    
+                    const lastChildCurveStartY = lastChildRect.top + 4;
+                    const distance = lastChildCurveStartY - containerTop;
+                    
+                    setRailHeight(distance);
+                }
+            }, [isCollapsed, comment.children]);
+
+            // Initial calculation
+            useLayoutEffect(() => {
+                calculateRailHeight();
+            }, [calculateRailHeight]);
+
+            // Observe chidren container resizing (for when grandchildren collapse/expand)
+            useEffect(() => {
+                if (!childrenContainerRef.current) return;
+                
+                const observer = new ResizeObserver(() => {
+                    calculateRailHeight();
+                });
+                
+                observer.observe(childrenContainerRef.current);
+                return () => observer.disconnect();
+            }, [calculateRailHeight, isCollapsed]);
+
+            const hasChildren = comment.children && comment.children.length > 0;
+
+            return (
+                <div className="relative flex flex-row">
+                        {/* Left Side: Avatar */}
+                        <div className="flex flex-col items-center mr-2 flex-shrink-0 w-8 relative" ref={containerRef}>
+                            
+                            {/* 1. Curve Connector (Child draws this to connect to parent's rail) */}
+                            <ChildConnector depth={depth} isActive={isParentRailHovered} />
+                            
+                            {/* 2. Parent Rail (I draw this for MY children) */}
+                            {!isCollapsed && hasChildren && (
+                                <ParentRail 
+                                    height={railHeight} 
+                                    onClick={() => setIsCollapsed(true)}
+                                    onMouseEnter={() => setIsRailHovered(true)}
+                                    onMouseLeave={() => setIsRailHovered(false)}
+                                    isActive={isRailHovered}
+                                />
+                            )}
+
+                            {!isCollapsed ? (
+                                <div className="w-8 h-8 rounded-full overflow-hidden z-10 cursor-pointer border border-transparent hover:border-[#D7DADC]/20 transition-all relative bg-[#0B1416]">
+                                    <div className="w-full h-full flex items-center justify-center text-white font-bold text-xs" style={{ backgroundColor: comment.avatarColor }}>
+                                        <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${comment.author}`} alt={comment.author} className="w-full h-full object-cover" />
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="mt-1 cursor-pointer hover:bg-[#2D3236] p-1 rounded z-10" onClick={() => setIsCollapsed(false)}>
+                                    <Maximize2 size={14} className="text-[#818384]" />
+                                </div>
+                            )}
+                        </div>
+
+                        {/* Right Side: Content */}
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1 text-xs h-8">
+                                <span className="font-bold text-[#D7DADC] hover:underline cursor-pointer">{comment.author}</span>
+                                {comment.flair && <span className="bg-[#373C3F] text-white px-1.5 py-0.5 rounded text-[11px] truncate max-w-[140px]">{comment.flair}</span>}
+                                {comment.isTopCommenter && <span className="text-[#D7DADC] bg-[#2D3236] px-1 rounded text-[10px] flex items-center gap-1" title="Top 1%">🏆 Top 1%</span>}
+                                <span className="text-[#818384]">•</span>
+                                <span className="text-[#818384] hover:underline cursor-pointer">{comment.time}</span>
+                                {isCollapsed && <span className="text-[#818384] text-xs italic ml-2 cursor-pointer select-none" onClick={() => setIsCollapsed(false)}>(collapsed)</span>}
+                            </div>
+
+                            {!isCollapsed && (
+                                <>
+                                    <div className="text-sm text-[#D7DADC] leading-snug break-words pr-4">
+                                        {comment.content && comment.content.split('\n').map((str, i) => <p key={i} className={`mb-2 last:mb-0 ${str===""?"h-2":""}`}>{str}</p>)}
+                                        {comment.image && <div className="mt-2 rounded-2xl overflow-hidden border border-[#343536] max-w-sm"><img src={comment.image} className="w-full h-auto block" /></div>}
+                                    </div>
+
+                                    <div className="flex items-center gap-1 mt-2 -ml-2 select-none">
+                                        <div className="flex items-center gap-1 px-2">
+                                            <button onClick={() => handleVote(1)} className={`p-1 rounded hover:bg-[#2D3236] transition-colors ${voteStatus === 1 ? 'text-[#FF4500]' : 'text-[#818384] hover:text-[#FF4500]'}`}><ArrowBigUp size={20} className={voteStatus === 1 ? 'fill-current' : ''} /></button>
+                                            <span className={`text-xs font-bold w-6 text-center ${voteStatus === 1 ? 'text-[#FF4500]' : voteStatus === -1 ? 'text-[#7193FF]' : 'text-[#D7DADC]'}`}>{score > 1000 ? (score/1000).toFixed(1) + 'k' : score}</span>
+                                            <button onClick={() => handleVote(-1)} className={`p-1 rounded hover:bg-[#2D3236] transition-colors ${voteStatus === -1 ? 'text-[#7193FF]' : 'text-[#818384] hover:text-[#7193FF]'}`}><ArrowBigDown size={20} className={voteStatus === -1 ? 'fill-current' : ''} /></button>
+                                        </div>
+                                        <Button><MessageSquare size={18} /> Reply</Button>
+                                        <Button><Share2 size={18} /> Share</Button>
+                                        <Button><Award size={18} /> Award</Button>
+                                        <Button><MoreHorizontal size={18} /></Button>
+                                    </div>
+
+                                    {/* Children Container */}
+                                    {hasChildren && (
+                                        <div className="mt-2" ref={childrenContainerRef}>
+                                            {comment.children.map((child, index) => {
+                                                const isLast = index === comment.children.length - 1;
+                                                return (
+                                                    // Wrap child to capture ref for the last item
+                                                    <div key={child.id} ref={isLast ? lastChildRef : null}>
+                                                        <CommentNode 
+                                                            comment={child} 
+                                                            depth={depth + 1} 
+                                                            isParentRailHovered={isRailHovered}
+                                                        />
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+            );
+        };
+
+        const initialComments = [
+            { id: "t1_nvtj7nn", author: "opz_dev", flair: "Tahoe - 26", score: 95, time: "4d ago", content: "You cannot make a driver for a system as locked down as macOS without its developers doing it.", avatarColor: "#3F9FC6", children: [] },
+            { id: "t1_nvtkpyt", author: "Teobsn", score: 45, time: "4d ago", content: "We barely have a working open source NVIDIA driver on Linux (nouveau).", avatarColor: "#FF4500", children: [
+                { id: "t1_nvts152", author: "UniquelyPeach", score: 20, time: "4d ago", content: "Hackintosh is also dead with 26.", avatarColor: "#FFD635", children: [
+                    { id: "t1_nvxici3", author: "Teobsn", score: 5, time: "4d ago", content: "Yes, (that's what I meant by no one being interested by then).", avatarColor: "#FF4500", children: [] },
+                    { id: "t1_nw19mou", author: "Altruistic_Demand_11", score: 3, time: "3d ago", content: "Realistically speaking: macOS is turning into iPadOS after macos26.", avatarColor: "#0079D3", children: [] }
+                ]},
+                { id: "t1_nvurppw", author: "arjuna93", score: 2, time: "4d ago", content: "Besides, is there any realistic way to support a newer NVIDIA GPU on macOS on powerpc?", avatarColor: "#D4E815", children: [] }
+            ]},
+            { id: "t1_nvtp63u", author: "oloshh", flair: "Sonoma - 14", score: 10, time: "4d ago", isTopCommenter: true, content: "Apple is the sole proprietor of framebuffer integration.", avatarColor: "#94E044", children: [] }
+        ];
+
+        const App = () => (
+            <div className="max-w-4xl mx-auto py-8 px-2 sm:px-4">
+                <div className="bg-[#1A1A1B] rounded-t-md p-2 border-b border-[#343536] mb-4">
+                    <div className="text-[#D7DADC] text-sm font-bold px-2 py-1">Comments <span className="text-[#818384] font-normal text-xs ml-1">(30)</span></div>
+                </div>
+                <div className="bg-[#0B1416] pb-10 space-y-4">
+                    {initialComments.map((comment) => <CommentNode key={comment.id} comment={comment} />)}
+                </div>
+                <div className="text-center text-[#818384] text-xs py-8 border-t border-[#343536] mt-8">End of comments</div>
+            </div>
+        );
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>

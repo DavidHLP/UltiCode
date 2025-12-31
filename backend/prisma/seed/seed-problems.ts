@@ -145,6 +145,7 @@ export async function seedProblems(
         problem_id: BigInt(lang.problem_id),
         label: lang.label,
         value: lang.value,
+        style: lang.style,
         starter_code: lang.starterCode,
       },
     });

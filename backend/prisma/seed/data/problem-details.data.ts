@@ -284,7 +284,7 @@ const data = {
       value: 'typescript',
       style: 'typescript',
       starterCode:
-        'function twoSum(nums: number[], target: number): number[] {\n    \n};',
+        '/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nfunction twoSum(nums: number[], target: number): number[] {\n    // Write your code here\n    return [];\n};',
     },
     {
       id: 'lang-js',
@@ -293,7 +293,7 @@ const data = {
       value: 'javascript',
       style: 'javascript',
       starterCode:
-        '/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function(nums, target) {\n    \n};',
+        '/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function(nums, target) {\n    // Write your code here\n    return [];\n};',
     },
     {
       id: 'lang-ts-2',
@@ -302,7 +302,7 @@ const data = {
       value: 'typescript',
       style: 'typescript',
       starterCode:
-        'function lengthOfLongestSubstring(s: string): number {\n    \n};',
+        '/**\n * @param {string} s\n * @return {number}\n */\nfunction lengthOfLongestSubstring(s: string): number {\n    // Write your code here\n    return 0;\n};',
     },
     {
       id: 'lang-js-2',
@@ -311,7 +311,7 @@ const data = {
       value: 'javascript',
       style: 'javascript',
       starterCode:
-        '/**\n * @param {string} s\n * @return {number}\n */\nvar lengthOfLongestSubstring = function(s) {\n    \n};',
+        '/**\n * @param {string} s\n * @return {number}\n */\nvar lengthOfLongestSubstring = function(s) {\n    // Write your code here\n    return 0;\n};',
     },
     {
       id: 'lang-ts-3',
@@ -320,7 +320,7 @@ const data = {
       value: 'typescript',
       style: 'typescript',
       starterCode:
-        'function merge(intervals: number[][]): number[][] {\n    \n};',
+        '/**\n * @param {number[][]} intervals\n * @return {number[][]}\n */\nfunction merge(intervals: number[][]): number[][] {\n    // Write your code here\n    return [];\n};',
     },
     {
       id: 'lang-js-3',
@@ -329,7 +329,7 @@ const data = {
       value: 'javascript',
       style: 'javascript',
       starterCode:
-        '/**\n * @param {number[][]} intervals\n * @return {number[][]}\n */\nvar merge = function(intervals) {\n    \n};',
+        '/**\n * @param {number[][]} intervals\n * @return {number[][]}\n */\nvar merge = function(intervals) {\n    // Write your code here\n    return [];\n};',
     },
     {
       id: 'lang-ts-4',
@@ -338,7 +338,7 @@ const data = {
       value: 'typescript',
       style: 'typescript',
       starterCode:
-        'function findMedianSortedArrays(nums1: number[], nums2: number[]): number {\n    \n};',
+        '/**\n * @param {number[]} nums1\n * @param {number[]} nums2\n * @return {number}\n */\nfunction findMedianSortedArrays(nums1: number[], nums2: number[]): number {\n    // Write your code here\n    return 0;\n};',
     },
     {
       id: 'lang-js-4',
@@ -347,7 +347,7 @@ const data = {
       value: 'javascript',
       style: 'javascript',
       starterCode:
-        '/**\n * @param {number[]} nums1\n * @param {number[]} nums2\n * @return {number}\n */\nvar findMedianSortedArrays = function(nums1, nums2) {\n    \n};',
+        '/**\n * @param {number[]} nums1\n * @param {number[]} nums2\n * @return {number}\n */\nvar findMedianSortedArrays = function(nums1, nums2) {\n    // Write your code here\n    return 0;\n};',
     },
     {
       id: 'lang-ts-5',
@@ -355,7 +355,8 @@ const data = {
       label: 'TypeScript',
       value: 'typescript',
       style: 'typescript',
-      starterCode: 'function numIslands(grid: string[][]): number {\n    \n};',
+      starterCode:
+        '/**\n * @param {string[][]} grid\n * @return {number}\n */\nfunction numIslands(grid: string[][]): number {\n    // Write your code here\n    return 0;\n};',
     },
     {
       id: 'lang-js-5',
@@ -364,22 +365,23 @@ const data = {
       value: 'javascript',
       style: 'javascript',
       starterCode:
-        '/**\n * @param {character[][]} grid\n * @return {number}\n */\nvar numIslands = function(grid) {\n    \n};',
+        '/**\n * @param {character[][]} grid\n * @return {number}\n */\nvar numIslands = function(grid) {\n    // Write your code here\n    return 0;\n};',
     },
     {
       id: 'lang-mysql-6',
       problem_id: PROBLEM_IDS.COMBINE_TWO_TABLES,
       label: 'MySQL',
       value: 'mysql',
-      starterCode: '# Write your MySQL query statement below\n',
+      style: 'mysql',
+      starterCode: '# Write your MySQL code here\n',
     },
     {
       id: 'lang-bash-7',
       problem_id: PROBLEM_IDS.TENTH_LINE,
       label: 'Bash',
       value: 'shell',
-      starterCode:
-        '# Read from the file file.txt and output the tenth line to stdout.\n',
+      style: 'shell',
+      starterCode: '# Write your Bash code here\n',
     },
     {
       id: 'lang-ts-8',
@@ -388,7 +390,7 @@ const data = {
       value: 'typescript',
       style: 'typescript',
       starterCode:
-        'class FooBar {\n  private n: number;\n  constructor(n: number) {\n    this.n = n;\n  }\n\n  async foo(printFoo: () => void): Promise<void> {\n    for (let i = 0; i < this.n; i++) {\n      printFoo();\n    }\n  }\n\n  async bar(printBar: () => void): Promise<void> {\n    for (let i = 0; i < this.n; i++) {\n      printBar();\n    }\n  }\n}',
+        '/**\n * @param {number} n\n */\nclass FooBar {\n  private n: number;\n  constructor(n: number) {\n    this.n = n;\n  }\n\n  /**\n   * @param {() => void} printFoo\n   * @return {Promise<void>}\n   */\n  async foo(printFoo: () => void): Promise<void> {\n    for (let i = 0; i < this.n; i++) {\n      // printFoo() outputs "foo". Do not change or remove this line.\n      printFoo();\n    }\n  }\n\n  /**\n   * @param {() => void} printBar\n   * @return {Promise<void>}\n   */\n  async bar(printBar: () => void): Promise<void> {\n    for (let i = 0; i < this.n; i++) {\n      // printBar() outputs "bar". Do not change or remove this line.\n      printBar();\n    }\n  }\n}',
     },
     {
       id: 'lang-js-8',
@@ -397,7 +399,7 @@ const data = {
       value: 'javascript',
       style: 'javascript',
       starterCode:
-        '/**\n * @param {number} n\n */\nvar FooBar = function(n) {\n  this.n = n;\n};\n\n/**\n * @param {function} printFoo\n * @return {void}\n */\nFooBar.prototype.foo = function(printFoo) {\n  for (let i = 0; i < this.n; i++) {\n    printFoo();\n  }\n};\n\n/**\n * @param {function} printBar\n * @return {void}\n */\nFooBar.prototype.bar = function(printBar) {\n  for (let i = 0; i < this.n; i++) {\n    printBar();\n  }\n};',
+        '/**\n * @param {number} n\n */\nvar FooBar = function(n) {\n  this.n = n;\n};\n\n/**\n * @param {function} printFoo\n * @return {void}\n */\nFooBar.prototype.foo = function(printFoo) {\n  for (let i = 0; i < this.n; i++) {\n    // printFoo() outputs "foo". Do not change or remove this line.\n    printFoo();\n  }\n};\n\n/**\n * @param {function} printBar\n * @return {void}\n */\nFooBar.prototype.bar = function(printBar) {\n  for (let i = 0; i < this.n; i++) {\n    // printBar() outputs "bar". Do not change or remove this line.\n    printBar();\n  }\n};',
     },
   ],
 } as const;

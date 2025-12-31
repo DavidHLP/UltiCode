@@ -1,7 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { Submission, Prisma } from '@prisma/client';
-import { JudgeService, JudgeTestCase } from './judge.service';
+import { JudgeService, JudgeTestCase, JudgeResult } from './judge.service';
+import { SUBMISSION_STATUS_DEFINITIONS } from './submission-statuses';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { JudgeJobData } from './judge.processor';
+import { v4 as uuid } from 'uuid';
 
 type ProblemStatusSummary = {
   status: 'solved' | 'attempted' | 'todo';
@@ -13,6 +18,7 @@ export class SubmissionService {
   constructor(
     private prisma: PrismaService,
     private judgeService: JudgeService,
+    @InjectQueue('judge_queue') private judgeQueue: Queue<JudgeJobData>,
   ) {}
 
   async findAll(
@@ -167,6 +173,21 @@ export class SubmissionService {
     return Array.from(activeDates);
   }
 
+  async getStatusDefinitions() {
+    try {
+      const statuses = await this.prisma.submissionStatus.findMany({
+        orderBy: { sort_order: 'asc' },
+      });
+      return statuses.length > 0 ? statuses : SUBMISSION_STATUS_DEFINITIONS;
+    } catch (error) {
+      const err = error as { code?: string; message?: string };
+      if (err?.code === 'P2021') {
+        return SUBMISSION_STATUS_DEFINITIONS;
+      }
+      throw error;
+    }
+  }
+
   async findOne(id: string): Promise<Submission> {
     const submission = await this.prisma.submission.findUnique({
       where: { id },
@@ -264,53 +285,43 @@ export class SubmissionService {
     userId: string,
     problemId: number,
     data: { language: string; code: string },
-  ) {
-    const testCases = await this.buildTestCasesFromExamples(problemId);
-    const judgeResult = this.judgeService.judge(
-      data.language,
-      data.code,
-      testCases,
-    );
-    const runtime = judgeResult.runtime;
-    const memory = judgeResult.memory;
-    const compileError = judgeResult.compileError;
-
-    const testDetails =
-      compileError && judgeResult.cases.length === 0
-        ? [
-            {
-              status: 'Compile Error',
-              time: 0,
-              memory: 0,
-              detail: compileError,
-            },
-          ]
-        : judgeResult.cases.map((detail) => ({
-            status: detail.status,
-            time: detail.time,
-            memory: detail.memory,
-            detail: detail.detail,
-            output: detail.output,
-            expectedOutput: detail.expectedOutput,
-            inputs: detail.inputs,
-          }));
-    const testDetailsJson = testDetails as Prisma.InputJsonValue;
-
+  ): Promise<Submission> {
+    const newSubmissionId = uuid();
     const created = await this.prisma.submission.create({
       data: {
-        id: `sub-${Date.now()}`,
+        id: newSubmissionId,
         user_id: userId,
         problem_id: problemId,
         language: data.language,
         code: data.code,
-        status:
-          compileError && judgeResult.cases.length === 0
-            ? 'Compile Error'
-            : judgeResult.verdict,
-        runtime,
-        memory,
+        status: 'Pending', // Initial status
+        runtime: 0,
+        memory: 0,
         runtime_percentile: null,
         memory_percentile: null,
+        test_details: Prisma.DbNull,
+      },
+    });
+
+    // Add job to the queue for judging
+    await this.judgeQueue.add('judge', { submissionId: newSubmissionId });
+
+    return this.decorateSubmission(created);
+  }
+
+  async updateSubmissionAfterJudging(
+    submissionId: string,
+    judgeResult: JudgeResult,
+  ): Promise<Submission> {
+    const testDetailsJson =
+      judgeResult.cases as unknown as Prisma.InputJsonValue;
+
+    const updated = await this.prisma.submission.update({
+      where: { id: submissionId },
+      data: {
+        status: judgeResult.verdict,
+        runtime: judgeResult.runtime,
+        memory: judgeResult.memory,
         test_details: testDetailsJson,
       },
       include: {
@@ -323,7 +334,7 @@ export class SubmissionService {
         },
       },
     });
-    return this.decorateSubmission(created);
+    return this.decorateSubmission(updated);
   }
 
   async run(
@@ -442,6 +453,7 @@ export class SubmissionService {
       failureDetail?.status === 'Compile Error'
         ? (failureDetail.detail as string | undefined)
         : undefined;
+    const errorDetail = failureDetail?.detail as string | undefined;
     const failureInputs = Array.isArray(failureDetail?.inputs)
       ? (failureDetail?.inputs as Array<{
           name: string;
@@ -460,6 +472,7 @@ export class SubmissionService {
       ...submission,
       tests,
       compiler_error: compileError,
+      error_detail: errorDetail,
       input: formattedInput,
       output: failureDetail?.output as string | undefined,
       expected_output: failureDetail?.expectedOutput as string | undefined,

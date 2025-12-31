@@ -8,12 +8,14 @@ import { PrismaService } from '../prisma.service';
 import { SubmissionService } from './submission.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { Submission } from '@prisma/client';
+import { RankingService } from '../contest/ranking.service'; // Import RankingService
 
 @Injectable()
 export class ContestSubmissionService {
   constructor(
     private prisma: PrismaService,
     private submissionService: SubmissionService,
+    private rankingService: RankingService, // Inject RankingService
   ) {}
 
   /**
@@ -32,6 +34,7 @@ export class ContestSubmissionService {
       include: {
         problems: {
           where: { problem_id: problemId },
+          select: { id: true, score: true }, // Select score
         },
       },
     });
@@ -131,7 +134,7 @@ export class ContestSubmissionService {
       });
     }
 
-    // 5. Create regular submission and judge it
+    // 5. Create regular submission and enqueue for judging
     const submission = await this.submissionService.create(
       userId,
       problemId,
@@ -148,163 +151,61 @@ export class ContestSubmissionService {
         virtual_session_id: virtualSessionId,
         submitted_at: now,
         time_from_start: timeFromStart,
-        is_accepted: submission.status === 'Accepted',
+        is_accepted: false, // Initially false, updated after judging
       },
     });
-
-    // 7. Update ContestProblemResult if submission is accepted
-    if (submission.status === 'Accepted') {
-      await this.updateProblemResult(
-        contestId,
-        contestProblem.id,
-        userId,
-        participant.id,
-        timeFromStart,
-        contestProblem.score,
-      );
-    } else {
-      // Increment attempts even if not accepted
-      await this.incrementProblemAttempts(
-        contestId,
-        contestProblem.id,
-        userId,
-        participant.id,
-      );
-    }
 
     return submission;
   }
 
-  /**
-   * Update or create ContestProblemResult when submission is accepted
-   */
-  private async updateProblemResult(
-    contestId: string,
-    contestProblemId: string,
-    userId: string,
-    participantId: string,
-    solveTime: number,
-    score: number,
-  ): Promise<void> {
-    // Find existing result
-    const existingResult = await this.prisma.contestProblemResult.findFirst({
-      where: {
-        contest_id: contestId,
-        contest_problem_id: contestProblemId,
-        participant_id: participantId,
-      },
-    });
+  // New method to process contest submission results after judging
+  async processContestSubmissionResult(params: {
+    submissionId: string;
+    contestId: string;
+    contestProblemId: string;
+    userId: string;
+    participantId: string;
+    isAccepted: boolean;
+    solveTime: number;
+    score: number;
+  }): Promise<void> {
+    const {
+      submissionId,
+      contestProblemId,
+      participantId,
+      isAccepted,
+      solveTime,
+      score,
+    } = params;
 
-    if (existingResult && existingResult.is_solved) {
-      // Already solved, don't update
-      return;
-    }
+    await this.prisma.$transaction(async (tx) => {
+      // Find the ContestSubmission record using findFirst since submission_id is not the @id
+      const contestSubmissionRecord = await tx.contestSubmission.findFirst({
+        where: { submission_id: submissionId },
+      });
 
-    const attempts = existingResult ? existingResult.attempts + 1 : 1;
-    // Penalty: 5 minutes per wrong attempt before acceptance
-    const penaltyFromAttempts = existingResult
-      ? (existingResult.attempts - 1) * 5 * 60
-      : 0;
-    const totalPenalty = solveTime + penaltyFromAttempts;
+      if (!contestSubmissionRecord) {
+        throw new NotFoundException(
+          `ContestSubmission for submission ID ${submissionId} not found.`,
+        );
+      }
 
-    if (existingResult) {
-      // Update existing result
-      await this.prisma.contestProblemResult.update({
-        where: { id: existingResult.id },
+      // Update ContestSubmission record with final status using its actual primary key 'id'
+      await tx.contestSubmission.update({
+        where: { id: contestSubmissionRecord.id },
         data: {
-          is_solved: true,
-          score,
-          attempts,
-          first_solve_time: solveTime,
-          penalty_time: totalPenalty,
+          is_accepted: isAccepted,
         },
       });
-    } else {
-      // Create new result
-      await this.prisma.contestProblemResult.create({
-        data: {
-          contest_id: contestId,
-          contest_problem_id: contestProblemId,
-          user_id: userId,
-          participant_id: participantId,
-          is_solved: true,
-          score,
-          attempts,
-          first_solve_time: solveTime,
-          penalty_time: totalPenalty,
-        },
-      });
-    }
 
-    // Recalculate participant's total score and penalty
-    await this.recalculateParticipantScore(participantId);
-  }
-
-  /**
-   * Increment attempts for a problem result (for wrong submissions)
-   */
-  private async incrementProblemAttempts(
-    contestId: string,
-    contestProblemId: string,
-    userId: string,
-    participantId: string,
-  ): Promise<void> {
-    const existingResult = await this.prisma.contestProblemResult.findFirst({
-      where: {
-        contest_id: contestId,
-        contest_problem_id: contestProblemId,
-        participant_id: participantId,
-      },
-    });
-
-    if (existingResult) {
-      await this.prisma.contestProblemResult.update({
-        where: { id: existingResult.id },
-        data: {
-          attempts: existingResult.attempts + 1,
-        },
-      });
-    } else {
-      await this.prisma.contestProblemResult.create({
-        data: {
-          contest_id: contestId,
-          contest_problem_id: contestProblemId,
-          user_id: userId,
-          participant_id: participantId,
-          is_solved: false,
-          score: 0,
-          attempts: 1,
-          penalty_time: 0,
-        },
-      });
-    }
-  }
-
-  /**
-   * Recalculate participant's total score and penalty from all problem results
-   */
-  private async recalculateParticipantScore(
-    participantId: string,
-  ): Promise<void> {
-    const problemResults = await this.prisma.contestProblemResult.findMany({
-      where: { participant_id: participantId },
-    });
-
-    const totalScore = problemResults.reduce(
-      (sum, result) => sum + result.score,
-      0,
-    );
-    const totalPenalty = problemResults.reduce(
-      (sum, result) => sum + result.penalty_time,
-      0,
-    );
-
-    await this.prisma.contestParticipant.update({
-      where: { id: participantId },
-      data: {
-        total_score: totalScore,
-        total_penalty: totalPenalty,
-      },
+      // Update participant score and problem result
+      await this.rankingService.updateContestProblemResult(
+        participantId,
+        contestProblemId,
+        isAccepted,
+        solveTime,
+        score,
+      );
     });
   }
 

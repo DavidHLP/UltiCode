@@ -282,6 +282,7 @@ const data = {
       problem_id: PROBLEM_IDS.TWO_SUM,
       label: 'TypeScript',
       value: 'typescript',
+      style: 'typescript',
       starterCode:
         'function twoSum(nums: number[], target: number): number[] {\n    \n};',
     },
@@ -290,6 +291,7 @@ const data = {
       problem_id: PROBLEM_IDS.TWO_SUM,
       label: 'JavaScript',
       value: 'javascript',
+      style: 'javascript',
       starterCode:
         '/**\n * @param {number[]} nums\n * @param {number} target\n * @return {number[]}\n */\nvar twoSum = function(nums, target) {\n    \n};',
     },
@@ -298,31 +300,104 @@ const data = {
       problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
       label: 'TypeScript',
       value: 'typescript',
+      style: 'typescript',
       starterCode:
         'function lengthOfLongestSubstring(s: string): number {\n    \n};',
+    },
+    {
+      id: 'lang-js-2',
+      problem_id: PROBLEM_IDS.LONGEST_SUBSTRING,
+      label: 'JavaScript',
+      value: 'javascript',
+      style: 'javascript',
+      starterCode:
+        '/**\n * @param {string} s\n * @return {number}\n */\nvar lengthOfLongestSubstring = function(s) {\n    \n};',
     },
     {
       id: 'lang-ts-3',
       problem_id: PROBLEM_IDS.MERGE_INTERVALS,
       label: 'TypeScript',
       value: 'typescript',
+      style: 'typescript',
       starterCode:
         'function merge(intervals: number[][]): number[][] {\n    \n};',
+    },
+    {
+      id: 'lang-js-3',
+      problem_id: PROBLEM_IDS.MERGE_INTERVALS,
+      label: 'JavaScript',
+      value: 'javascript',
+      style: 'javascript',
+      starterCode:
+        '/**\n * @param {number[][]} intervals\n * @return {number[][]}\n */\nvar merge = function(intervals) {\n    \n};',
     },
     {
       id: 'lang-ts-4',
       problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
       label: 'TypeScript',
       value: 'typescript',
+      style: 'typescript',
       starterCode:
         'function findMedianSortedArrays(nums1: number[], nums2: number[]): number {\n    \n};',
+    },
+    {
+      id: 'lang-js-4',
+      problem_id: PROBLEM_IDS.MEDIAN_OF_TWO_SORTED_ARRAYS,
+      label: 'JavaScript',
+      value: 'javascript',
+      style: 'javascript',
+      starterCode:
+        '/**\n * @param {number[]} nums1\n * @param {number[]} nums2\n * @return {number}\n */\nvar findMedianSortedArrays = function(nums1, nums2) {\n    \n};',
     },
     {
       id: 'lang-ts-5',
       problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
       label: 'TypeScript',
       value: 'typescript',
+      style: 'typescript',
       starterCode: 'function numIslands(grid: string[][]): number {\n    \n};',
+    },
+    {
+      id: 'lang-js-5',
+      problem_id: PROBLEM_IDS.NUMBER_OF_ISLANDS,
+      label: 'JavaScript',
+      value: 'javascript',
+      style: 'javascript',
+      starterCode:
+        '/**\n * @param {character[][]} grid\n * @return {number}\n */\nvar numIslands = function(grid) {\n    \n};',
+    },
+    {
+      id: 'lang-mysql-6',
+      problem_id: PROBLEM_IDS.COMBINE_TWO_TABLES,
+      label: 'MySQL',
+      value: 'mysql',
+      starterCode: '# Write your MySQL query statement below\n',
+    },
+    {
+      id: 'lang-bash-7',
+      problem_id: PROBLEM_IDS.TENTH_LINE,
+      label: 'Bash',
+      value: 'shell',
+      starterCode:
+        '# Read from the file file.txt and output the tenth line to stdout.\n',
+    },
+    {
+      id: 'lang-ts-8',
+      problem_id: PROBLEM_IDS.PRINT_FOOBAR_ALTERNATELY,
+      label: 'TypeScript',
+      value: 'typescript',
+      style: 'typescript',
+      starterCode:
+        'class FooBar {\n  private n: number;\n  constructor(n: number) {\n    this.n = n;\n  }\n\n  async foo(printFoo: () => void): Promise<void> {\n    for (let i = 0; i < this.n; i++) {\n      printFoo();\n    }\n  }\n\n  async bar(printBar: () => void): Promise<void> {\n    for (let i = 0; i < this.n; i++) {\n      printBar();\n    }\n  }\n}',
+    },
+    {
+      id: 'lang-js-8',
+      problem_id: PROBLEM_IDS.PRINT_FOOBAR_ALTERNATELY,
+      label: 'JavaScript',
+      value: 'javascript',
+      style: 'javascript',
+      starterCode:
+        '/**\n * @param {number} n\n */\nvar FooBar = function(n) {\n  this.n = n;\n};\n\n/**\n * @param {function} printFoo\n * @return {void}\n */\nFooBar.prototype.foo = function(printFoo) {\n  for (let i = 0; i < this.n; i++) {\n    printFoo();\n  }\n};\n\n/**\n * @param {function} printBar\n * @return {void}\n */\nFooBar.prototype.bar = function(printBar) {\n  for (let i = 0; i < this.n; i++) {\n    printBar();\n  }\n};',
     },
   ],
 } as const;

@@ -21,6 +21,7 @@ model User {
   location              String?                 @db.VarChar(255)
   twitter               String?                 @db.VarChar(255)
   website               String?                 @db.VarChar(255)
+  preferred_language    String?                 @db.VarChar(50)
   bookmarkFolders       BookmarkFolder[]
   contestParticipants   ContestParticipant[]
   contestProblemResults ContestProblemResult[]
@@ -102,6 +103,7 @@ model ProblemLanguage {
   problem_id   BigInt
   label        String  @db.VarChar(50)
   value        String  @db.VarChar(50)
+  style        String? @db.VarChar(20)
   starter_code String  @db.Text
   problem      Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
 
@@ -637,7 +639,7 @@ model Submission {
   user_id            String              @db.VarChar(40)
   language           String              @db.VarChar(50)
   code               String              @db.Text
-  status             String              @db.VarChar(20)
+  status             String              @db.VarChar(40)
   runtime            Int
   memory             Float
   notes              String?             @db.Text
@@ -654,6 +656,23 @@ model Submission {
   @@index([problem_id, user_id])
   @@index([user_id], map: "submissions_user_id_fkey")
   @@map("submissions")
+}
+
+model SubmissionStatus {
+  key         String   @id @db.VarChar(40)
+  code        String   @db.VarChar(10)
+  label       String   @db.VarChar(60)
+  description String?  @db.Text
+  suggestion  String?  @db.Text
+  category    String   @db.VarChar(20)
+  severity    String   @db.VarChar(20)
+  is_terminal Boolean  @default(true)
+  sort_order  Int      @default(0)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@index([category, severity])
+  @@map("submission_statuses")
 }
 
 model View {

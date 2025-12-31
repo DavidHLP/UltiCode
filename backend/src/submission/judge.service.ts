@@ -7,8 +7,13 @@ type JudgeStatus =
   | 'Accepted'
   | 'Wrong Answer'
   | 'Time Limit Exceeded'
+  | 'Memory Limit Exceeded'
+  | 'Output Limit Exceeded'
   | 'Runtime Error'
   | 'Compile Error'
+  | 'Presentation Error'
+  | 'System Error'
+  | 'Judging'
   | 'Pending';
 
 export interface JudgeInputField {

@@ -147,7 +147,7 @@ export class RankingService {
   /**
    * Update participant score and ranking during live contest
    */
-  async updateParticipantScore(
+  async updateContestProblemResult(
     participantId: string,
     contestProblemId: string,
     isAccepted: boolean,

@@ -42,6 +42,11 @@ export class SubmissionController {
     return Object.fromEntries(map);
   }
 
+  @Get('statuses')
+  async getStatuses() {
+    return this.submissionService.getStatusDefinitions();
+  }
+
   @Get('calendar')
   @UseGuards(AuthGuard)
   async getDailyActivity(

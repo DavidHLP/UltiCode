@@ -38,6 +38,9 @@ export class User {
   @Column({ length: 255, nullable: true })
   company?: string;
 
+  @Column({ length: 50, nullable: true })
+  preferred_language?: string;
+
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   joined_at: Date;
 }

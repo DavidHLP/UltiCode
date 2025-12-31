@@ -19,6 +19,9 @@ export class ProblemLanguage {
   @Column({ length: 50 })
   value: string;
 
+  @Column({ length: 20, nullable: true })
+  style: string;
+
   @Column({ name: 'starter_code', type: 'text' })
   starterCode: string;
 }

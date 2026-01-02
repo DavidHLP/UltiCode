@@ -188,6 +188,31 @@ export class ProblemService {
           TRANSLATABLE_ENTITIES.PROBLEM_DETAIL.fields,
         ),
       };
+
+      // Ensure JSON fields are parsed if they were translated (stringified)
+      if (typeof translatedProblem.detail.constraints_json === 'string') {
+        try {
+          const content = translatedProblem.detail
+            .constraints_json as unknown as string;
+          translatedProblem.detail.constraints_json = JSON.parse(
+            content,
+          ) as string[];
+        } catch (_e) {
+          // Keep as is if parsing fails
+        }
+      }
+
+      if (
+        translatedProblem.detail.hints &&
+        typeof translatedProblem.detail.hints === 'string'
+      ) {
+        try {
+          const content = translatedProblem.detail.hints as unknown as string;
+          translatedProblem.detail.hints = JSON.parse(content) as string[];
+        } catch (_e) {
+          // Keep as is if parsing fails
+        }
+      }
     }
 
     // Apply tag translations (batch)

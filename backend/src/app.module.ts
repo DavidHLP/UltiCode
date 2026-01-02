@@ -18,6 +18,7 @@ import { ProblemNoteModule } from './problem/note/note.module';
 import { BookmarkModule } from './bookmark/bookmark.module';
 import { ViewModule } from './view/view.module';
 import { I18nModule } from './i18n/i18n.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { I18nModule } from './i18n/i18n.module';
     AuthModule,
     BookmarkModule,
     I18nModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

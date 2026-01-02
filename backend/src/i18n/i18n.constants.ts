@@ -30,10 +30,6 @@ export const TRANSLATABLE_ENTITIES = {
     fields: ['explanation'] as const,
     idType: 'string' as const,
   },
-  PROBLEM_LIST: {
-    fields: ['name', 'description', 'banner_tag'] as const,
-    idType: 'string' as const,
-  },
   CONTEST: {
     fields: ['title', 'description', 'rules'] as const,
     idType: 'string' as const,

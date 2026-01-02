@@ -170,6 +170,13 @@ export class ContestService {
       TRANSLATABLE_ENTITIES.CONTEST.fields,
     );
 
+    if (contest.status === 'upcoming') {
+      return this.withTimingFields({
+        ...translatedContest,
+        problems: [],
+      });
+    }
+
     // Apply problem title translations
     const problemIds = contest.problems.map((cp) => cp.problem_id);
     const problemTranslationsMap: Map<
@@ -631,10 +638,24 @@ export class ContestService {
   // =========================================================================
 
   async getGlobalRanking() {
-    return this.prisma.globalRanking.findMany({
+    const rankings = await this.prisma.globalRanking.findMany({
       orderBy: { global_rank: 'asc' },
       take: 10,
     });
+
+    return rankings.map((r) => ({
+      rank: r.global_rank,
+      userId: r.user_id,
+      username: r.username,
+      avatar: r.avatar,
+      country: r.country,
+      rating: r.rating,
+      maxRating: r.max_rating,
+      ratingTitle: r.rating_title,
+      maxRatingTitle: r.max_rating_title,
+      contestsAttended: r.contests_attended,
+      badge: r.badge,
+    }));
   }
 
   async getContestRanking(contestId: string) {

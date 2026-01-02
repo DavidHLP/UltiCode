@@ -13,6 +13,12 @@ import { ProblemListProblemRelation } from './problem-list-problem-relation.enti
 import { BookmarkService } from '../bookmark/bookmark.service';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma.service';
+import { I18nService } from '../i18n/i18n.service';
+import {
+  SupportedLocale,
+  DEFAULT_LOCALE,
+  TRANSLATABLE_ENTITIES,
+} from '../i18n/i18n.constants';
 
 const problemListTargetType = BookmarkType.PROBLEM_LIST;
 
@@ -103,11 +109,36 @@ export class ProblemListService {
     private dataSource: DataSource,
     private prisma: PrismaService,
     private bookmarkService: BookmarkService,
+    private readonly i18nService: I18nService,
   ) {}
 
   // ============================================================================
   // Helper Methods
   // ============================================================================
+
+  private async applyListTranslations(
+    lists: ProblemList[],
+    locale: SupportedLocale,
+  ): Promise<ProblemList[]> {
+    if (lists.length === 0) return lists;
+
+    const ids = lists.map((l) => l.id);
+    const translationsMap = await this.i18nService.getBatchTranslations(
+      'PROBLEM_LIST',
+      ids,
+      locale,
+    );
+
+    return lists.map((list) => {
+      const translations: Map<string, string> =
+        translationsMap.get(list.id) ?? new Map<string, string>();
+      return this.i18nService.applyTranslations(
+        list,
+        translations,
+        TRANSLATABLE_ENTITIES.PROBLEM_LIST.fields,
+      );
+    });
+  }
 
   private async buildProblemCountMap(): Promise<Map<string, number>> {
     const counts = await this.relationsRepository
@@ -208,7 +239,10 @@ export class ProblemListService {
   // Main API: Get User's Problem Lists
   // ============================================================================
 
-  async getUserProblemLists(userId: string): Promise<UserProblemListsResponse> {
+  async getUserProblemLists(
+    userId: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<UserProblemListsResponse> {
     const countMap = await this.buildProblemCountMap();
 
     // Get all bookmarks for this user that are PROBLEM_LIST type
@@ -233,29 +267,32 @@ export class ProblemListService {
     });
 
     // 1. Get lists created by user
-    const myLists = await this.listsRepository.find({
+    let myLists = await this.listsRepository.find({
       where: { author_id: userId },
       order: { updated_at: 'DESC' },
     });
+    myLists = await this.applyListTranslations(myLists, locale);
 
     // 2. Get user's saved lists (from other authors)
-    const savedLists =
+    let savedLists =
       savedListIdArray.length > 0
         ? await this.listsRepository.find({
             where: { id: In(savedListIdArray) },
             order: { updated_at: 'DESC' },
           })
         : [];
+    savedLists = await this.applyListTranslations(savedLists, locale);
 
     const savedFromOthers = savedLists.filter(
       (list) => list.author_id !== userId,
     );
 
     // 3. Get featured lists
-    const featuredLists = await this.listsRepository.find({
+    let featuredLists = await this.listsRepository.find({
       where: { is_featured: true, is_public: true },
       order: { banner_order: 'ASC', updated_at: 'DESC' },
     });
+    featuredLists = await this.applyListTranslations(featuredLists, locale);
 
     // 4. Get user's bookmark folders (replaces old categories)
     const folders = await this.bookmarkService.getUserFolders(userId);
@@ -282,10 +319,11 @@ export class ProblemListService {
     const categoryResponses: CategorySummary[] = await Promise.all(
       folders.map(async (folder) => {
         const listIds = folderItemsMap.get(folder.id) ?? [];
-        const lists =
+        let lists =
           listIds.length > 0
             ? await this.listsRepository.find({ where: { id: In(listIds) } })
             : [];
+        lists = await this.applyListTranslations(lists, locale);
         return {
           id: folder.id,
           name: folder.name,
@@ -338,22 +376,27 @@ export class ProblemListService {
   }
 
   // For backward compatibility - returns all lists grouped
-  async findAll(): Promise<UserProblemListsResponse> {
+  async findAll(
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<UserProblemListsResponse> {
     // Return empty response for anonymous users
     return {
       myLists: [],
       savedLists: [],
-      featured: await this.getFeaturedLists(),
+      featured: await this.getFeaturedLists(locale),
       categories: [],
     };
   }
 
-  async getFeaturedLists(): Promise<ProblemListSummary[]> {
+  async getFeaturedLists(
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<ProblemListSummary[]> {
     const countMap = await this.buildProblemCountMap();
-    const lists = await this.listsRepository.find({
+    let lists = await this.listsRepository.find({
       where: { is_featured: true, is_public: true },
       order: { banner_order: 'ASC', updated_at: 'DESC' },
     });
+    lists = await this.applyListTranslations(lists, locale);
     const favoritesCountMap = await this.buildFavoritesCountMap(
       lists.map((list) => list.id),
     );
@@ -366,12 +409,15 @@ export class ProblemListService {
     );
   }
 
-  async getDefaultList(): Promise<ProblemListSummary | null> {
-    const list = await this.listsRepository.findOne({
+  async getDefaultList(
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<ProblemListSummary | null> {
+    let list = await this.listsRepository.findOne({
       where: { is_public: true },
       order: { created_at: 'ASC' },
     });
     if (list) {
+      list = (await this.applyListTranslations([list], locale))[0];
       const countMap = await this.buildProblemCountMap();
       const favoritesCountMap = await this.buildFavoritesCountMap([list.id]);
       return this.mapList(
@@ -383,11 +429,15 @@ export class ProblemListService {
     return null;
   }
 
-  async getListById(listId: string): Promise<ProblemListSummary | null> {
-    const list = await this.listsRepository.findOne({
+  async getListById(
+    listId: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<ProblemListSummary | null> {
+    let list = await this.listsRepository.findOne({
       where: { id: listId },
     });
     if (!list) return null;
+    list = (await this.applyListTranslations([list], locale))[0];
     const count = await this.relationsRepository.count({
       where: { list_id: listId },
     });
@@ -467,6 +517,7 @@ export class ProblemListService {
   async getProblemsByListId(
     listId: string,
     userId?: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<ProblemListProblem[]> {
     const relations = await this.relationsRepository.find({
       where: { list_id: listId },
@@ -487,25 +538,45 @@ export class ProblemListService {
       ? await this.submissionService.getProblemStatusMap(userId, ids)
       : null;
 
+    // Apply problem translations
+    const problemIds = relations.map((r) => r.problem_id);
+    const problemTranslationsMap = await this.i18nService.getBatchTranslations(
+      'PROBLEM',
+      problemIds,
+      locale,
+    );
+
     return relations
       .map((rel) => rel.problem)
       .filter((problem): problem is Problem => Boolean(problem))
-      .map((problem) => ({
-        id: Number(problem.id),
-        slug: problem.slug,
-        title: problem.title,
-        difficulty: problem.difficulty,
-        acceptanceRate: Number(problem.acceptance_rate),
-        status: statusMap
-          ? (statusMap.get(Number(problem.id))?.status ?? 'todo')
-          : problem.status,
-        isPremium: problem.is_premium,
-        hasSolution: problem.has_solution,
-        completedTime: statusMap
-          ? (statusMap.get(Number(problem.id))?.completed_time ?? null)
-          : (problem.completed_time ?? null),
-        tags: problem.tagRelations?.map((rel) => rel.tag.label) ?? [],
-      }));
+      .map((problem) => {
+        const translations: Map<string, string> =
+          problemTranslationsMap.get(String(problem.id)) ??
+          new Map<string, string>();
+        const translatedProblem = this.i18nService.applyTranslations(
+          problem,
+          translations,
+          TRANSLATABLE_ENTITIES.PROBLEM.fields,
+        );
+
+        return {
+          id: Number(translatedProblem.id),
+          slug: translatedProblem.slug,
+          title: translatedProblem.title,
+          difficulty: translatedProblem.difficulty,
+          acceptanceRate: Number(translatedProblem.acceptance_rate),
+          status: statusMap
+            ? (statusMap.get(Number(translatedProblem.id))?.status ?? 'todo')
+            : translatedProblem.status,
+          isPremium: translatedProblem.is_premium,
+          hasSolution: translatedProblem.has_solution,
+          completedTime: statusMap
+            ? (statusMap.get(Number(translatedProblem.id))?.completed_time ??
+              null)
+            : (translatedProblem.completed_time ?? null),
+          tags: translatedProblem.tagRelations?.map((rel) => rel.tag.label) ?? [],
+        };
+      });
   }
 
   // ============================================================================
@@ -515,10 +586,11 @@ export class ProblemListService {
   async getListOverview(
     listId: string,
     userId?: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<ProblemListDetailResponse> {
-    let listSummary = await this.getListById(listId);
+    let listSummary = await this.getListById(listId, locale);
     if (!listSummary) {
-      listSummary = await this.getDefaultList();
+      listSummary = await this.getDefaultList(locale);
     }
 
     if (!listSummary) {
@@ -528,6 +600,7 @@ export class ProblemListService {
     const problems = await this.getProblemsByListId(
       listSummary.id,
       userId ?? undefined,
+      locale,
     );
     const stats = this.buildStatsFromProblems(listSummary.id, problems);
 
@@ -678,11 +751,15 @@ export class ProblemListService {
     return newListId;
   }
 
-  async getListsByUserId(userId: string): Promise<ProblemListSummary[]> {
-    const lists = await this.listsRepository.find({
+  async getListsByUserId(
+    userId: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<ProblemListSummary[]> {
+    let lists = await this.listsRepository.find({
       where: { author_id: userId },
       order: { updated_at: 'DESC' },
     });
+    lists = await this.applyListTranslations(lists, locale);
     const countMap = await this.buildProblemCountMap();
     const favoritesCountMap = await this.buildFavoritesCountMap(
       lists.map((list) => list.id),
@@ -842,6 +919,7 @@ export class ProblemListService {
   async getUserListsForProblem(
     userId: string,
     problemId: number,
+    locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<
     Array<
       ProblemListSummary & {
@@ -851,10 +929,11 @@ export class ProblemListService {
     >
   > {
     // Get all lists user created
-    const myLists = await this.listsRepository.find({
+    let myLists = await this.listsRepository.find({
       where: { author_id: userId },
       order: { updated_at: 'DESC' },
     });
+    myLists = await this.applyListTranslations(myLists, locale);
 
     // Get problem count map
     const countMap = await this.buildProblemCountMap();
@@ -952,7 +1031,10 @@ export class ProblemListService {
   // Category Management (now delegates to BookmarkService)
   // ============================================================================
 
-  async getCategories(userId: string): Promise<CategorySummary[]> {
+  async getCategories(
+    userId: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<CategorySummary[]> {
     const countMap = await this.buildProblemCountMap();
     const folders = await this.bookmarkService.getUserFolders(userId);
 
@@ -978,10 +1060,11 @@ export class ProblemListService {
     const result: CategorySummary[] = [];
     for (const folder of folders) {
       const listIds = folderItemsMap.get(folder.id) ?? [];
-      const lists =
+      let lists =
         listIds.length > 0
           ? await this.listsRepository.find({ where: { id: In(listIds) } })
           : [];
+      lists = await this.applyListTranslations(lists, locale);
 
       result.push({
         id: folder.id,
@@ -1021,6 +1104,7 @@ export class ProblemListService {
     categoryId: string,
     userId: string,
     data: { name?: string; sortOrder?: number },
+    locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<CategorySummary> {
     const folder = await this.bookmarkService.updateFolder(userId, categoryId, {
       name: data.name,
@@ -1037,10 +1121,11 @@ export class ProblemListService {
     });
 
     const listIds = bookmarkItems.map((item) => item.target_id);
-    const lists =
+    let lists =
       listIds.length > 0
         ? await this.listsRepository.find({ where: { id: In(listIds) } })
         : [];
+    lists = await this.applyListTranslations(lists, locale);
     const favoritesCountMap = await this.buildFavoritesCountMap(listIds);
 
     return {

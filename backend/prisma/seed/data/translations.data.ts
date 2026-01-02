@@ -372,6 +372,187 @@ export const problemDetailTranslations: TranslationSeed[] = [
     content:
       '假设你有以下代码... 同一个 `FooBar` 实例会被传入两个不同的线程。线程 A 将会调用 `foo()` 方法，线程 B 将会调用 `bar()` 方法。请修改程序输出 `n` 次 "foobar"。',
   },
+  // Two Sum - constraints_json
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-two-sum',
+    field_name: 'constraints_json',
+    locale: 'en-US',
+    content: JSON.stringify([
+      '$2 \\leq nums.length \\leq 10^4$',
+      '$-10^9 \\leq nums[i] \\leq 10^9$',
+      '$-10^9 \\leq target \\leq 10^9$',
+      '**Only one valid answer exists.**',
+    ]),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-two-sum',
+    field_name: 'constraints_json',
+    locale: 'zh-CN',
+    content: JSON.stringify([
+      '$2 \\leq nums.length \\leq 10^4$',
+      '$-10^9 \\leq nums[i] \\leq 10^9$',
+      '$-10^9 \\leq target \\leq 10^9$',
+      '**只会存在一个有效答案。**',
+    ]),
+  },
+  // Two Sum - hints
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-two-sum',
+    field_name: 'hints',
+    locale: 'en-US',
+    content: JSON.stringify([
+      'A brute force approach is simple. Loop through each element x and find if there is another value that equals to target – x.',
+      'So, if we fix one of the numbers, say x, we have to scan the entire array to find the next number y which is value - x where value is the input parameter. Can we change our array somehow so that this search becomes faster?',
+      'The second train of thought is, without changing the array, can we use additional space to somehow make the search faster? This is where a hash map comes in handy.',
+    ]),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-two-sum',
+    field_name: 'hints',
+    locale: 'zh-CN',
+    content: JSON.stringify([
+      '暴力解法很简单。遍历每个元素 x，并查找是否存在另一个值等于 target - x。',
+      '因此，如果我们固定一个数字，比如 x，我们必须扫描整个数组以找到下一个数字 y，即 value - x，其中 value 是输入参数。我们可以通过某种方式更改数组以使搜索更快吗？',
+      '第二个思路是，在不更改数组的情况下，我们能否使用额外的空间来以某种方式加快搜索速度？这就是哈希表派上用场的地方。',
+    ]),
+  },
+  // Longest Substring - constraints_json
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-longest-substring',
+    field_name: 'constraints_json',
+    locale: 'en-US',
+    content: JSON.stringify([
+      '$0 \\leq s.length \\leq 5 \\times 10^4$',
+      's consists of English letters, digits, symbols, and spaces.',
+    ]),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-longest-substring',
+    field_name: 'constraints_json',
+    locale: 'zh-CN',
+    content: JSON.stringify([
+      '$0 \\leq s.length \\leq 5 \\times 10^4$',
+      's 由英文字母、数字、符号和空格组成。',
+    ]),
+  },
+  // Merge Intervals - constraints_json
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-merge-intervals',
+    field_name: 'constraints_json',
+    locale: 'en-US',
+    content: JSON.stringify([
+      '$1 \\leq intervals.length \\leq 10^4$',
+      'intervals[i].length = 2',
+      '$0 \\leq start_i \\leq end_i \\leq 10^4$',
+    ]),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-merge-intervals',
+    field_name: 'constraints_json',
+    locale: 'zh-CN',
+    content: JSON.stringify([
+      '$1 \\leq intervals.length \\leq 10^4$',
+      'intervals[i].length = 2',
+      '$0 \\leq start_i \\leq end_i \\leq 10^4$',
+    ]),
+  },
+  // Median of Two Sorted Arrays - constraints_json
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-median-two-sorted-arrays',
+    field_name: 'constraints_json',
+    locale: 'en-US',
+    content: JSON.stringify([
+      '$0 \\leq m, n \\leq 10^6$',
+      '$-10^6 \\leq nums1[i], nums2[i] \\leq 10^6$',
+      'Runs in O(log(m + n)) time.',
+    ]),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-median-two-sorted-arrays',
+    field_name: 'constraints_json',
+    locale: 'zh-CN',
+    content: JSON.stringify([
+      '$0 \\leq m, n \\leq 10^6$',
+      '$-10^6 \\leq nums1[i], nums2[i] \\leq 10^6$',
+      '运行时间为 O(log(m + n))。',
+    ]),
+  },
+  // Number of Islands - constraints_json
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-number-of-islands',
+    field_name: 'constraints_json',
+    locale: 'en-US',
+    content: JSON.stringify([
+      '$1 \\leq m, n \\leq 300$',
+      'grid[i][j] is "0" or "1".',
+    ]),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-number-of-islands',
+    field_name: 'constraints_json',
+    locale: 'zh-CN',
+    content: JSON.stringify([
+      '$1 \\leq m, n \\leq 300$',
+      'grid[i][j] 为 "0" 或 "1"。',
+    ]),
+  },
+  // Combine Two Tables - constraints_json
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-combine-two-tables',
+    field_name: 'constraints_json',
+    locale: 'en-US',
+    content: JSON.stringify(['The tables Person and Address exist.']),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-combine-two-tables',
+    field_name: 'constraints_json',
+    locale: 'zh-CN',
+    content: JSON.stringify(['Person 和 Address 表存在。']),
+  },
+  // Tenth Line - constraints_json
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-tenth-line',
+    field_name: 'constraints_json',
+    locale: 'en-US',
+    content: JSON.stringify(['file.txt exists.']),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-tenth-line',
+    field_name: 'constraints_json',
+    locale: 'zh-CN',
+    content: JSON.stringify(['file.txt 存在。']),
+  },
+  // Print FooBar Alternately - constraints_json
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-print-foobar',
+    field_name: 'constraints_json',
+    locale: 'en-US',
+    content: JSON.stringify(['n is an integer.']),
+  },
+  {
+    entity_type: 'PROBLEM_DETAIL',
+    entity_id: 'pd-print-foobar',
+    field_name: 'constraints_json',
+    locale: 'zh-CN',
+    content: JSON.stringify(['n 是一个整数。']),
+  },
 ];
 
 // ============================================================================

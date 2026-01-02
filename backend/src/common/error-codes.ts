@@ -1,0 +1,178 @@
+import { HttpStatus } from '@nestjs/common';
+
+/**
+ * Application-wide error codes
+ *
+ * Format: MODULE_XXXXX
+ * - AUTH       = 1xxxx  Authentication module
+ * - USER       = 2xxxx  User module
+ * - PROBLEM    = 3xxxx  Problem module
+ * - SUBMISSION = 4xxxx  Submission module
+ * - SOLUTION   = 5xxxx  Solution module
+ * - FORUM      = 6xxxx  Forum module
+ * - CONTEST    = 7xxxx  Contest module
+ * - BOOKMARK   = 8xxxx  Bookmark module
+ * - PROBLEM_LIST = 9xxxx Problem list module
+ */
+export enum ErrorCode {
+  // Generic errors (0xxxx)
+  SUCCESS = 0,
+  UNKNOWN_ERROR = 50000,
+  BAD_REQUEST = 40000,
+  UNAUTHORIZED = 40100,
+  FORBIDDEN = 40300,
+  NOT_FOUND = 40400,
+  CONFLICT = 40900,
+
+  // Auth module (1xxxx)
+  AUTH_INVALID_CREDENTIALS = 10001,
+  AUTH_NO_PASSWORD = 10002,
+  AUTH_USERNAME_TAKEN = 10003,
+  AUTH_EMAIL_TAKEN = 10004,
+  AUTH_USER_NOT_FOUND = 10005,
+  AUTH_TOKEN_EXPIRED = 10006,
+
+  // User module (2xxxx)
+  USER_NOT_FOUND = 20001,
+  USER_CANNOT_EDIT_OTHERS = 20002,
+
+  // Problem module (3xxxx)
+  PROBLEM_NOT_FOUND = 30001,
+  PROBLEM_LOCKED = 30002,
+  PROBLEM_PREMIUM_REQUIRED = 30003,
+
+  // Submission module (4xxxx)
+  SUBMISSION_NOT_FOUND = 40001,
+  SUBMISSION_USER_ID_REQUIRED = 40002,
+  SUBMISSION_RATE_LIMITED = 40003,
+  SUBMISSION_CODE_EMPTY = 40004,
+  SUBMISSION_LANGUAGE_UNSUPPORTED = 40005,
+
+  // Solution module (5xxxx)
+  SOLUTION_NOT_FOUND = 50001,
+  SOLUTION_CANNOT_DELETE_OTHERS = 50002,
+  SOLUTION_CANNOT_UPDATE_OTHERS = 50003,
+  SOLUTION_COMMENT_NOT_FOUND = 50004,
+  SOLUTION_NEED_ACCEPTED_SUBMISSION = 50007,
+  SOLUTION_ALREADY_EXISTS = 50008,
+
+  // Forum module (6xxxx)
+  FORUM_POST_NOT_FOUND = 60001,
+  FORUM_COMMUNITY_NOT_FOUND = 60002,
+  FORUM_COMMUNITY_RESTRICTED = 60003,
+  FORUM_CANNOT_EDIT_POST = 60004,
+  FORUM_CANNOT_DELETE_POST = 60005,
+  FORUM_COMMENT_NOT_FOUND = 60006,
+  FORUM_POST_LOCKED = 60007,
+
+  // Contest module (7xxxx)
+  CONTEST_NOT_FOUND = 70001,
+  CONTEST_ONLY_REGISTER_UPCOMING = 70002,
+  CONTEST_ALREADY_REGISTERED = 70003,
+  CONTEST_NOT_REGISTERED = 70004,
+  CONTEST_REGISTRATION_CLOSED = 70005,
+  CONTEST_FULL = 70006,
+  CONTEST_NO_PERMISSION = 70007,
+  CONTEST_NOT_STARTED = 70008,
+  CONTEST_ENDED = 70009,
+
+  // Bookmark module (8xxxx)
+  BOOKMARK_FOLDER_NOT_FOUND = 80001,
+  BOOKMARK_CANNOT_DELETE_DEFAULT = 80002,
+  BOOKMARK_FOLDER_NAME_EXISTS = 80003,
+
+  // Problem list module (9xxxx)
+  PROBLEM_LIST_NOT_FOUND = 90001,
+  PROBLEM_LIST_CANNOT_EDIT = 90002,
+  PROBLEM_LIST_PRIVATE = 90003,
+}
+
+/**
+ * Map error codes to HTTP status codes
+ */
+export const ERROR_CODE_HTTP_STATUS: Record<ErrorCode, HttpStatus> = {
+  // Generic
+  [ErrorCode.SUCCESS]: HttpStatus.OK,
+  [ErrorCode.UNKNOWN_ERROR]: HttpStatus.INTERNAL_SERVER_ERROR,
+  [ErrorCode.BAD_REQUEST]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.UNAUTHORIZED]: HttpStatus.UNAUTHORIZED,
+  [ErrorCode.FORBIDDEN]: HttpStatus.FORBIDDEN,
+  [ErrorCode.NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.CONFLICT]: HttpStatus.CONFLICT,
+
+  // Auth
+  [ErrorCode.AUTH_INVALID_CREDENTIALS]: HttpStatus.UNAUTHORIZED,
+  [ErrorCode.AUTH_NO_PASSWORD]: HttpStatus.UNAUTHORIZED,
+  [ErrorCode.AUTH_USERNAME_TAKEN]: HttpStatus.CONFLICT,
+  [ErrorCode.AUTH_EMAIL_TAKEN]: HttpStatus.CONFLICT,
+  [ErrorCode.AUTH_USER_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.AUTH_TOKEN_EXPIRED]: HttpStatus.UNAUTHORIZED,
+
+  // User
+  [ErrorCode.USER_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.USER_CANNOT_EDIT_OTHERS]: HttpStatus.FORBIDDEN,
+
+  // Problem
+  [ErrorCode.PROBLEM_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.PROBLEM_LOCKED]: HttpStatus.FORBIDDEN,
+  [ErrorCode.PROBLEM_PREMIUM_REQUIRED]: HttpStatus.FORBIDDEN,
+
+  // Submission
+  [ErrorCode.SUBMISSION_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.SUBMISSION_USER_ID_REQUIRED]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.SUBMISSION_RATE_LIMITED]: HttpStatus.TOO_MANY_REQUESTS,
+  [ErrorCode.SUBMISSION_CODE_EMPTY]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED]: HttpStatus.BAD_REQUEST,
+
+  // Solution
+  [ErrorCode.SOLUTION_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.SOLUTION_CANNOT_DELETE_OTHERS]: HttpStatus.FORBIDDEN,
+  [ErrorCode.SOLUTION_CANNOT_UPDATE_OTHERS]: HttpStatus.FORBIDDEN,
+  [ErrorCode.SOLUTION_COMMENT_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.SOLUTION_NEED_ACCEPTED_SUBMISSION]: HttpStatus.FORBIDDEN,
+  [ErrorCode.SOLUTION_ALREADY_EXISTS]: HttpStatus.CONFLICT,
+
+  // Forum
+  [ErrorCode.FORUM_POST_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.FORUM_COMMUNITY_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.FORUM_COMMUNITY_RESTRICTED]: HttpStatus.FORBIDDEN,
+  [ErrorCode.FORUM_CANNOT_EDIT_POST]: HttpStatus.FORBIDDEN,
+  [ErrorCode.FORUM_CANNOT_DELETE_POST]: HttpStatus.FORBIDDEN,
+  [ErrorCode.FORUM_COMMENT_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.FORUM_POST_LOCKED]: HttpStatus.FORBIDDEN,
+
+  // Contest
+  [ErrorCode.CONTEST_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.CONTEST_ALREADY_REGISTERED]: HttpStatus.CONFLICT,
+  [ErrorCode.CONTEST_NOT_REGISTERED]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.CONTEST_REGISTRATION_CLOSED]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.CONTEST_FULL]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.CONTEST_NO_PERMISSION]: HttpStatus.FORBIDDEN,
+  [ErrorCode.CONTEST_NOT_STARTED]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.CONTEST_ENDED]: HttpStatus.BAD_REQUEST,
+
+  // Bookmark
+  [ErrorCode.BOOKMARK_FOLDER_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.BOOKMARK_CANNOT_DELETE_DEFAULT]: HttpStatus.BAD_REQUEST,
+  [ErrorCode.BOOKMARK_FOLDER_NAME_EXISTS]: HttpStatus.CONFLICT,
+
+  // Problem list
+  [ErrorCode.PROBLEM_LIST_NOT_FOUND]: HttpStatus.NOT_FOUND,
+  [ErrorCode.PROBLEM_LIST_CANNOT_EDIT]: HttpStatus.FORBIDDEN,
+  [ErrorCode.PROBLEM_LIST_PRIVATE]: HttpStatus.FORBIDDEN,
+};
+
+/**
+ * Get error code string from number
+ */
+export function getErrorCodeKey(code: ErrorCode): string {
+  return ErrorCode[code] || `ERROR_${code}`;
+}
+
+/**
+ * Get HTTP status from error code
+ */
+export function getHttpStatus(code: ErrorCode): HttpStatus {
+  return ERROR_CODE_HTTP_STATUS[code] || HttpStatus.INTERNAL_SERVER_ERROR;
+}

@@ -7,6 +7,12 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { JudgeJobData } from './judge.processor';
 import { v4 as uuid } from 'uuid';
+import { I18nService } from '../i18n/i18n.service';
+import {
+  SupportedLocale,
+  DEFAULT_LOCALE,
+  TRANSLATABLE_ENTITIES,
+} from '../i18n/i18n.constants';
 
 type ProblemStatusSummary = {
   status: 'solved' | 'attempted' | 'todo';
@@ -19,6 +25,7 @@ export class SubmissionService {
     private prisma: PrismaService,
     private judgeService: JudgeService,
     @InjectQueue('judge_queue') private judgeQueue: Queue<JudgeJobData>,
+    private readonly i18nService: I18nService,
   ) {}
 
   async findAll(
@@ -173,12 +180,33 @@ export class SubmissionService {
     return Array.from(activeDates);
   }
 
-  async getStatusDefinitions() {
+  async getStatusDefinitions(locale: SupportedLocale = DEFAULT_LOCALE) {
     try {
       const statuses = await this.prisma.submissionStatus.findMany({
         orderBy: { sort_order: 'asc' },
       });
-      return statuses.length > 0 ? statuses : SUBMISSION_STATUS_DEFINITIONS;
+
+      if (statuses.length === 0) {
+        return SUBMISSION_STATUS_DEFINITIONS;
+      }
+
+      // Apply translations to each status
+      const statusIds = statuses.map((s) => s.key);
+      const translationsMap = await this.i18nService.getBatchTranslations(
+        'SUBMISSION_STATUS',
+        statusIds,
+        locale,
+      );
+
+      return statuses.map((status) => {
+        const translations: Map<string, string> =
+          translationsMap.get(status.key) ?? new Map<string, string>();
+        return this.i18nService.applyTranslations(
+          status,
+          translations,
+          TRANSLATABLE_ENTITIES.SUBMISSION_STATUS.fields,
+        );
+      });
     } catch (error) {
       const err = error as { code?: string; message?: string };
       if (err?.code === 'P2021') {

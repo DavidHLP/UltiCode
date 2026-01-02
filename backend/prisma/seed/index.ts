@@ -11,6 +11,10 @@ import {
   clearSubmissionStatuses,
   seedSubmissionStatuses,
 } from './seed-submission-statuses';
+import {
+  clearTranslations,
+  seedTranslations,
+} from './seed-translations';
 
 const prisma = new PrismaClient();
 
@@ -21,6 +25,7 @@ async function clearAll(): Promise<void> {
   console.log('🗑️  Clearing all data...');
 
   // 最内层/子表先清
+  await clearTranslations(prisma);
   await clearEdgeOperations(prisma);
   await clearSubmissions(prisma);
   await clearSubmissionStatuses(prisma);
@@ -70,6 +75,10 @@ async function seedAll(): Promise<void> {
 
   const submissions = await seedSubmissions(prisma);
   console.log(`  ✓ Submissions: ${submissions.count} records`);
+
+  // 4. I18n translations (depends on problems, contests, etc.)
+  const translations = await seedTranslations(prisma);
+  console.log(`  ✓ Translations: ${translations.count} records`);
 
   console.log('✅ All data seeded');
 }

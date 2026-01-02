@@ -793,3 +793,23 @@ enum ViewTargetType {
   SOLUTION
   FORUM_POST
 }
+
+// ============================================================================
+// I18N - Translation Table
+// ============================================================================
+
+model Translation {
+  id          String   @id @default(uuid()) @db.VarChar(40)
+  entity_type String   @db.VarChar(50) // PROBLEM, PROBLEM_DETAIL, CONTEST, etc.
+  entity_id   String   @db.VarChar(50) // Reference to original entity ID
+  field_name  String   @db.VarChar(50) // title, summary, description, etc.
+  locale      String   @db.VarChar(10) // en-US, zh-CN
+  content     String   @db.Text
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  @@unique([entity_type, entity_id, field_name, locale])
+  @@index([entity_type, entity_id, locale])
+  @@index([locale])
+  @@map("translations")
+}

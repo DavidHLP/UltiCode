@@ -18,6 +18,8 @@ import { ContestSubmissionService } from './contest-submission.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { RunSubmissionDto } from './dto/run-submission.dto';
+import { Locale } from '../i18n/i18n.decorator';
+import type { SupportedLocale } from '../i18n/i18n.constants';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
@@ -43,8 +45,10 @@ export class SubmissionController {
   }
 
   @Get('statuses')
-  async getStatuses() {
-    return this.submissionService.getStatusDefinitions();
+  async getStatuses(@Locale() locale?: string) {
+    return this.submissionService.getStatusDefinitions(
+      locale as SupportedLocale,
+    );
   }
 
   @Get('calendar')

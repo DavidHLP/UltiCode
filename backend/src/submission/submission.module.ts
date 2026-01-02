@@ -11,6 +11,7 @@ import { PrismaService } from '../prisma.service';
 import { JudgeService } from './judge.service';
 import { JudgeProcessor } from './judge.processor';
 import { ContestModule } from '../contest/contest.module';
+import { NotificationModule } from '../notification/notification.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { ContestModule } from '../contest/contest.module';
       name: 'judge_queue',
     }),
     ContestModule,
+    NotificationModule,
   ],
   controllers: [
     SubmissionController,

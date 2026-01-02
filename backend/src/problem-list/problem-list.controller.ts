@@ -32,10 +32,7 @@ export class ProblemListController {
     @Locale() locale?: string,
   ): Promise<UserProblemListsResponse> {
     if (userId) {
-      return this.problemListService.getUserProblemLists(
-        userId,
-        locale as SupportedLocale,
-      );
+      return this.problemListService.getUserProblemLists(userId);
     }
     return this.problemListService.findAll(locale as SupportedLocale);
   }
@@ -143,13 +140,8 @@ export class ProblemListController {
   async getUserListsForProblem(
     @Param('problemId') problemId: number,
     @Query('userId') userId: string,
-    @Locale() locale?: string,
   ) {
-    return this.problemListService.getUserListsForProblem(
-      userId,
-      problemId,
-      locale as SupportedLocale,
-    );
+    return this.problemListService.getUserListsForProblem(userId, problemId);
   }
 
   // ============================================================================
@@ -203,14 +195,8 @@ export class ProblemListController {
     @Param('categoryId') categoryId: string,
     @Query('userId') userId: string,
     @Body() body: { name?: string; sortOrder?: number },
-    @Locale() locale?: string,
   ): Promise<CategorySummary> {
-    return this.problemListService.updateCategory(
-      categoryId,
-      userId,
-      body,
-      locale as SupportedLocale,
-    );
+    return this.problemListService.updateCategory(categoryId, userId, body);
   }
 
   @Delete('categories/:categoryId')

@@ -5,6 +5,8 @@ import { PrismaService } from '../prisma.service';
 import { JudgeService } from './judge.service';
 import { ContestSubmissionService } from './contest-submission.service';
 import { SubmissionService } from './submission.service'; // Import SubmissionService
+import { NotificationService } from '../notification/notification.service';
+import { NotificationCategory, NotificationType } from '@prisma/client';
 
 export interface JudgeJobData {
   submissionId: string;
@@ -19,6 +21,7 @@ export class JudgeProcessor extends WorkerHost {
     private judgeService: JudgeService,
     private submissionService: SubmissionService, // Inject SubmissionService
     private contestSubmissionService: ContestSubmissionService,
+    private notificationService: NotificationService,
   ) {
     super();
   }
@@ -130,6 +133,36 @@ export class JudgeProcessor extends WorkerHost {
           solveTime: contestSubmission.time_from_start,
           score: contestSubmission.contestProblem.score,
         });
+      }
+
+      try {
+        const problemTitle = submission.problem?.title || 'your problem';
+        const problemSlug = submission.problem?.slug;
+        const isAccepted = updatedSubmission.status === 'Accepted';
+        const title = isAccepted ? 'Submission Accepted' : 'Submission Result';
+        const body = `Your submission for "${problemTitle}" is ${updatedSubmission.status}.`;
+
+        await this.notificationService.createNotification({
+          userId: updatedSubmission.user_id,
+          type: NotificationType.SUBMISSION,
+          category: NotificationCategory.COMMUNICATION,
+          title,
+          body,
+          link: problemSlug ? `/problems/${problemSlug}` : undefined,
+          metadata: {
+            submissionId: updatedSubmission.id,
+            status: updatedSubmission.status,
+            problemId: submission.problem_id.toString(),
+            problemSlug,
+            language: updatedSubmission.language,
+          },
+        });
+      } catch (error: unknown) {
+        this.logger.warn(
+          `Failed to create notification for submission ${updatedSubmission.id}: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+        );
       }
 
       return { status: updatedSubmission.status };

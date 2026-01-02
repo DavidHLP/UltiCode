@@ -34,6 +34,8 @@ model User {
   submissions           Submission[]
   views                 View[]
   virtualSessions       VirtualContestSession[]
+  notifications         Notification[]
+  notificationPreference NotificationPreference?
 
   @@map("users")
 }
@@ -311,6 +313,40 @@ model ContestSubmission {
   @@index([participant_id], map: "contest_submissions_participant_id_fkey")
   @@index([submission_id], map: "contest_submissions_submission_id_fkey")
   @@map("contest_submissions")
+}
+
+model NotificationPreference {
+  id             String   @id @default(uuid()) @db.VarChar(40)
+  user_id        String   @unique @db.VarChar(40)
+  communication  Boolean  @default(true)
+  marketing      Boolean  @default(false)
+  security       Boolean  @default(true)
+  system         Boolean  @default(true)
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+  user           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+model Notification {
+  id          String               @id @default(uuid()) @db.VarChar(40)
+  user_id     String               @db.VarChar(40)
+  type        NotificationType
+  category    NotificationCategory
+  title       String               @db.VarChar(255)
+  body        String               @db.Text
+  link        String?              @db.VarChar(255)
+  metadata    Json?
+  is_read     Boolean              @default(false)
+  read_at     DateTime?
+  created_at  DateTime             @default(now())
+  updated_at  DateTime             @updatedAt
+  user        User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, is_read, created_at])
+  @@index([user_id, type])
+  @@map("notifications")
 }
 
 model ForumCommunity {
@@ -739,6 +775,24 @@ enum VirtualContestStatus {
   COMPLETED
 }
 
+enum NotificationCategory {
+  COMMUNICATION
+  MARKETING
+  SECURITY
+  SYSTEM
+}
+
+enum NotificationType {
+  COMMENT
+  REPLY
+  MENTION
+  UPVOTE
+  FOLLOW
+  SYSTEM
+  SUBMISSION
+  CONTEST
+}
+
 enum CommunityVisibility {
   PUBLIC
   RESTRICTED
@@ -800,7 +854,7 @@ enum ViewTargetType {
 
 model Translation {
   id          String   @id @default(uuid()) @db.VarChar(40)
-  entity_type String   @db.VarChar(50) // PROBLEM, PROBLEM_DETAIL, CONTEST, etc.
+  entity_type String   @db.VarChar(50) // PROBLEM, PROBLEM_DETAIL, CONTEST, SUBMISSION_STATUS, etc.
   entity_id   String   @db.VarChar(50) // Reference to original entity ID
   field_name  String   @db.VarChar(50) // title, summary, description, etc.
   locale      String   @db.VarChar(10) // en-US, zh-CN

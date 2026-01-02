@@ -20,6 +20,8 @@ import {
   GlobalRankingQueryDto,
 } from './dto';
 import type { ContestStats } from './contest.service';
+import { Locale } from '../i18n/i18n.decorator';
+import type { SupportedLocale } from '../i18n/i18n.constants';
 
 interface RequestWithUser extends Request {
   user: {
@@ -41,26 +43,31 @@ export class ContestController {
   // =========================================================================
 
   @Get('list')
-  findAll(@Query() query: ContestQueryDto) {
-    return this.contestService.findAll(query);
+  findAll(@Query() query: ContestQueryDto, @Locale() locale?: string) {
+    return this.contestService.findAll(query, locale as SupportedLocale);
   }
 
   @Get('upcoming')
-  findUpcoming() {
-    return this.contestService.findUpcoming();
+  findUpcoming(@Locale() locale?: string) {
+    return this.contestService.findUpcoming(locale as SupportedLocale);
   }
 
   @Get('running')
-  findRunning() {
-    return this.contestService.findRunning();
+  findRunning(@Locale() locale?: string) {
+    return this.contestService.findRunning(locale as SupportedLocale);
   }
 
   @Get('past')
   findPast(
     @Query('page') page: number = 1,
     @Query('limit') limit: number = 10,
+    @Locale() locale?: string,
   ) {
-    return this.contestService.findPast(Number(page), Number(limit));
+    return this.contestService.findPast(
+      Number(page),
+      Number(limit),
+      locale as SupportedLocale,
+    );
   }
 
   @Get('stats')
@@ -169,8 +176,8 @@ export class ContestController {
   // =========================================================================
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.contestService.findOne(id);
+  findOne(@Param('id') id: string, @Locale() locale?: string) {
+    return this.contestService.findOne(id, locale as SupportedLocale);
   }
 }
 

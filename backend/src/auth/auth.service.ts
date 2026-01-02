@@ -1,9 +1,11 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import * as crypto from 'crypto';
 import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
+import { BusinessException } from '../common/exceptions/business.exception';
+import { ErrorCode } from '../common/error-codes';
 
 export interface LoginResponse {
   access_token: string;
@@ -48,17 +50,17 @@ export class AuthService {
     const user = await this.userService.findByUsername(username);
 
     if (!user) {
-      throw new UnauthorizedException('用户名或密码错误');
+      throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
     }
 
     // 验证密码
     if (!user.password) {
-      throw new UnauthorizedException('该账户未设置密码，请使用其他登录方式');
+      throw new BusinessException(ErrorCode.AUTH_NO_PASSWORD);
     }
 
     const isPasswordValid = this.verifyPassword(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('用户名或密码错误');
+      throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
     }
 
     // 生成 JWT token
@@ -84,13 +86,13 @@ export class AuthService {
       registerDto.username,
     );
     if (existingUser) {
-      throw new UnauthorizedException('用户名已被使用');
+      throw new BusinessException(ErrorCode.AUTH_USERNAME_TAKEN);
     }
 
     // 检查邮箱是否已存在
     const existingEmail = await this.userService.findByEmail(registerDto.email);
     if (existingEmail) {
-      throw new UnauthorizedException('邮箱已被使用');
+      throw new BusinessException(ErrorCode.AUTH_EMAIL_TAKEN);
     }
 
     // 生成用户 ID
@@ -128,17 +130,17 @@ export class AuthService {
   async forgotPassword(email: string) {
     const user = await this.userService.findByEmail(email);
     if (!user) {
-      // 不泄露用户是否存在
-      return { message: '如果该邮箱存在，重置链接已发送' };
+      // Don't reveal whether user exists - always return same message
+      return { messageKey: 'auth.forgotPassword.successMessage' };
     }
 
-    // TODO: 实际应用中应该：
-    // 1. 生成重置 token
-    // 2. 保存到数据库并设置过期时间
-    // 3. 发送邮件
-    console.log(`[模拟邮件] 密码重置链接已发送到 ${email}`);
+    // TODO: In production:
+    // 1. Generate reset token
+    // 2. Save to database with expiration
+    // 3. Send email
+    console.log(`[Mock Email] Password reset link sent to ${email}`);
 
-    return { message: '如果该邮箱存在，重置链接已发送' };
+    return { messageKey: 'auth.forgotPassword.successMessage' };
   }
 
   githubLogin(res: Response) {

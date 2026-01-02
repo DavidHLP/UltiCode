@@ -4,6 +4,12 @@ import { Repository } from 'typeorm';
 import { Problem } from './problem.entity';
 import { ProblemDetail } from './problem-detail.entity';
 import { CATEGORY_TAG_MAP } from './constants';
+import { I18nService } from '../i18n/i18n.service';
+import {
+  SupportedLocale,
+  DEFAULT_LOCALE,
+  TRANSLATABLE_ENTITIES,
+} from '../i18n/i18n.constants';
 
 @Injectable()
 export class ProblemService {
@@ -12,6 +18,7 @@ export class ProblemService {
     private problemsRepository: Repository<Problem>,
     @InjectRepository(ProblemDetail)
     private problemDetailsRepository: Repository<ProblemDetail>,
+    private readonly i18nService: I18nService,
   ) {}
 
   async findAll(
@@ -20,6 +27,7 @@ export class ProblemService {
       difficulty?: string;
       search?: string;
     } = {},
+    locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<Problem[]> {
     const query = this.problemsRepository
       .createQueryBuilder('problem')
@@ -57,12 +65,78 @@ export class ProblemService {
       }
     }
 
-    return query.getMany();
+    const problems = await query.getMany();
+
+    // Apply i18n translations
+    if (problems.length > 0) {
+      const ids = problems.map((p) => p.id);
+      const problemTranslationsMap =
+        await this.i18nService.getBatchTranslations('PROBLEM', ids, locale);
+
+      // Get all unique tag IDs
+      const tagIds = [
+        ...new Set(
+          problems.flatMap(
+            (p) =>
+              p.tagRelations?.map((tr) => tr.tag?.id).filter(Boolean) || [],
+          ),
+        ),
+      ];
+      const tagTranslationsMap: Map<
+        string,
+        Map<string, string>
+      > = tagIds.length > 0
+        ? await this.i18nService.getBatchTranslations(
+            'PROBLEM_TAG',
+            tagIds,
+            locale,
+          )
+        : new Map<string, Map<string, string>>();
+
+      return problems.map((problem) => {
+        const translations: Map<string, string> =
+          problemTranslationsMap.get(String(problem.id)) ??
+          new Map<string, string>();
+        const translatedProblem = this.i18nService.applyTranslations(
+          problem,
+          translations,
+          TRANSLATABLE_ENTITIES.PROBLEM.fields,
+        );
+
+        // Apply tag translations
+        if (translatedProblem.tagRelations) {
+          translatedProblem.tagRelations = translatedProblem.tagRelations.map(
+            (tr) => {
+              if (!tr.tag) return tr;
+              const tagTranslations: Map<string, string> =
+                tagTranslationsMap.get(tr.tag.id) ?? new Map<string, string>();
+              return {
+                ...tr,
+                tag: this.i18nService.applyTranslations(
+                  tr.tag,
+                  tagTranslations,
+                  TRANSLATABLE_ENTITIES.PROBLEM_TAG.fields,
+                ),
+              };
+            },
+          );
+        }
+
+        return translatedProblem;
+      });
+    }
+
+    return problems;
   }
 
-  async findOne(idOrSlug: string | number): Promise<Problem | null> {
+  async findOne(
+    idOrSlug: string | number,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<Problem | null> {
+    let problem: Problem | null;
+
     if (typeof idOrSlug === 'number' || !isNaN(Number(idOrSlug))) {
-      return this.problemsRepository.findOne({
+      problem = await this.problemsRepository.findOne({
         where: { id: Number(idOrSlug) },
         relations: [
           'detail',
@@ -72,17 +146,102 @@ export class ProblemService {
           'examples',
         ],
       });
+    } else {
+      problem = await this.problemsRepository.findOne({
+        where: { slug: idOrSlug },
+        relations: [
+          'detail',
+          'tagRelations',
+          'tagRelations.tag',
+          'languages',
+          'examples',
+        ],
+      });
     }
-    return this.problemsRepository.findOne({
-      where: { slug: idOrSlug },
-      relations: [
-        'detail',
-        'tagRelations',
-        'tagRelations.tag',
-        'languages',
-        'examples',
-      ],
-    });
+
+    if (!problem) return null;
+
+    // Apply problem title translations
+    const problemTranslations = await this.i18nService.getTranslations(
+      'PROBLEM',
+      problem.id,
+      locale,
+    );
+    let translatedProblem = this.i18nService.applyTranslations(
+      problem,
+      problemTranslations,
+      TRANSLATABLE_ENTITIES.PROBLEM.fields,
+    );
+
+    // Apply detail translations
+    if (translatedProblem.detail) {
+      const detailTranslations = await this.i18nService.getTranslations(
+        'PROBLEM_DETAIL',
+        translatedProblem.detail.id,
+        locale,
+      );
+      translatedProblem = {
+        ...translatedProblem,
+        detail: this.i18nService.applyTranslations(
+          translatedProblem.detail,
+          detailTranslations,
+          TRANSLATABLE_ENTITIES.PROBLEM_DETAIL.fields,
+        ),
+      };
+    }
+
+    // Apply tag translations (batch)
+    if (translatedProblem.tagRelations?.length) {
+      const tagIds = translatedProblem.tagRelations
+        .map((tr) => tr.tag?.id)
+        .filter(Boolean);
+      const tagTranslationsMap = await this.i18nService.getBatchTranslations(
+        'PROBLEM_TAG',
+        tagIds,
+        locale,
+      );
+      translatedProblem = {
+        ...translatedProblem,
+        tagRelations: translatedProblem.tagRelations.map((tr) => {
+          if (!tr.tag) return tr;
+          const tagTrans: Map<string, string> =
+            tagTranslationsMap.get(tr.tag.id) ?? new Map<string, string>();
+          return {
+            ...tr,
+            tag: this.i18nService.applyTranslations(
+              tr.tag,
+              tagTrans,
+              TRANSLATABLE_ENTITIES.PROBLEM_TAG.fields,
+            ),
+          };
+        }),
+      };
+    }
+
+    // Apply example translations (batch)
+    if (translatedProblem.examples?.length) {
+      const exampleIds = translatedProblem.examples.map((e) => e.id);
+      const exampleTranslationsMap =
+        await this.i18nService.getBatchTranslations(
+          'PROBLEM_EXAMPLE',
+          exampleIds,
+          locale,
+        );
+      translatedProblem = {
+        ...translatedProblem,
+        examples: translatedProblem.examples.map((example) => {
+          const exampleTrans: Map<string, string> =
+            exampleTranslationsMap.get(example.id) ?? new Map<string, string>();
+          return this.i18nService.applyTranslations(
+            example,
+            exampleTrans,
+            TRANSLATABLE_ENTITIES.PROBLEM_EXAMPLE.fields,
+          );
+        }),
+      };
+    }
+
+    return translatedProblem;
   }
 
   async getRandom(): Promise<Problem | null> {

@@ -17,6 +17,7 @@ import { EdgeOperationsModule } from './edge-operations/edge-operations.module';
 import { ProblemNoteModule } from './problem/note/note.module';
 import { BookmarkModule } from './bookmark/bookmark.module';
 import { ViewModule } from './view/view.module';
+import { I18nModule } from './i18n/i18n.module';
 
 @Module({
   imports: [
@@ -51,6 +52,7 @@ import { ViewModule } from './view/view.module';
     SubmissionModule,
     AuthModule,
     BookmarkModule,
+    I18nModule,
   ],
   controllers: [AppController],
   providers: [AppService],

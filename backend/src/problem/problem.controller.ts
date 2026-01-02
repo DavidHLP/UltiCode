@@ -3,6 +3,8 @@ import type { Request } from 'express';
 import { ProblemService } from './problem.service';
 import { Problem } from './problem.entity';
 import { SubmissionService } from '../submission/submission.service';
+import { Locale } from '../i18n/i18n.decorator';
+import type { SupportedLocale } from '../i18n/i18n.constants';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
@@ -22,12 +24,16 @@ export class ProblemController {
     @Query('difficulty') difficulty?: string,
     @Query('search') search?: string,
     @Req() req?: AuthenticatedRequest,
+    @Locale() locale?: string,
   ): Promise<Problem[]> {
-    const problems = await this.problemService.findAll({
-      category,
-      difficulty,
-      search,
-    });
+    const problems = await this.problemService.findAll(
+      {
+        category,
+        difficulty,
+        search,
+      },
+      locale as SupportedLocale,
+    );
     const effectiveUserId = userId || req?.user?.id;
     if (!effectiveUserId) {
       return problems;
@@ -60,8 +66,12 @@ export class ProblemController {
     @Param('id') id: string,
     @Query('userId') userId?: string,
     @Req() req?: AuthenticatedRequest,
+    @Locale() locale?: string,
   ): Promise<Problem | null> {
-    const problem = await this.problemService.findOne(id);
+    const problem = await this.problemService.findOne(
+      id,
+      locale as SupportedLocale,
+    );
     const effectiveUserId = userId || req?.user?.id;
     if (!problem || !effectiveUserId) {
       return problem;

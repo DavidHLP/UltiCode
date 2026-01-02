@@ -16,6 +16,12 @@ import {
   UpdateContestDto,
   ParticipationStatus,
 } from './dto';
+import { I18nService } from '../i18n/i18n.service';
+import {
+  SupportedLocale,
+  DEFAULT_LOCALE,
+  TRANSLATABLE_ENTITIES,
+} from '../i18n/i18n.constants';
 
 export interface ContestStats {
   total_participants: number;
@@ -24,7 +30,10 @@ export interface ContestStats {
 
 @Injectable()
 export class ContestService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private readonly i18nService: I18nService,
+  ) {}
 
   private withTimingFields<
     T extends {
@@ -56,11 +65,38 @@ export class ContestService {
     };
   }
 
+  private async applyContestTranslations<T extends { id: string }>(
+    contests: T[],
+    locale: SupportedLocale,
+  ): Promise<T[]> {
+    if (contests.length === 0) return contests;
+
+    const ids = contests.map((c) => c.id);
+    const translationsMap = await this.i18nService.getBatchTranslations(
+      'CONTEST',
+      ids,
+      locale,
+    );
+
+    return contests.map((contest) => {
+      const translations: Map<string, string> =
+        translationsMap.get(contest.id) ?? new Map<string, string>();
+      return this.i18nService.applyTranslations(
+        contest,
+        translations,
+        TRANSLATABLE_ENTITIES.CONTEST.fields,
+      );
+    });
+  }
+
   // =========================================================================
   // CONTEST QUERIES
   // =========================================================================
 
-  async findAll(query?: ContestQueryDto) {
+  async findAll(
+    query?: ContestQueryDto,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ) {
     const page = Number(query?.page || 1);
     const limit = Number(query?.limit || 10);
     const { status, type } = query || {};
@@ -82,15 +118,22 @@ export class ContestService {
       this.prisma.contest.count({ where }),
     ]);
 
+    const translatedContests = await this.applyContestTranslations(
+      contests,
+      locale,
+    );
+
     return {
-      items: contests.map((contest) => this.withTimingFields(contest)),
+      items: translatedContests.map((contest) =>
+        this.withTimingFields(contest),
+      ),
       total,
       page,
       limit,
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, locale: SupportedLocale = DEFAULT_LOCALE) {
     const contest = await this.prisma.contest.findUnique({
       where: { id },
       include: {
@@ -115,40 +158,84 @@ export class ContestService {
       throw new NotFoundException(`Contest ${id} not found`);
     }
 
+    // Apply contest translations
+    const contestTranslations = await this.i18nService.getTranslations(
+      'CONTEST',
+      contest.id,
+      locale,
+    );
+    const translatedContest = this.i18nService.applyTranslations(
+      contest,
+      contestTranslations,
+      TRANSLATABLE_ENTITIES.CONTEST.fields,
+    );
+
+    // Apply problem title translations
+    const problemIds = contest.problems.map((cp) => cp.problem_id);
+    const problemTranslationsMap: Map<
+      string,
+      Map<string, string>
+    > = problemIds.length > 0
+      ? await this.i18nService.getBatchTranslations(
+          'PROBLEM',
+          problemIds,
+          locale,
+        )
+      : new Map<string, Map<string, string>>();
+
     return this.withTimingFields({
-      ...contest,
-      problems: contest.problems.map((cp) => ({
-        id: cp.id,
-        problem_index: cp.problem_index,
-        score: cp.score,
-        solved_count: cp.solved_count,
-        submission_count: cp.submission_count,
-        problem_id: Number(cp.problem_id),
-        title: cp.problem.title,
-        slug: cp.problem.slug,
-        difficulty: cp.problem.difficulty,
-        acceptanceRate: Number(cp.problem.acceptance_rate),
-      })),
+      ...translatedContest,
+      problems: translatedContest.problems.map((cp) => {
+        const problemTranslations: Map<string, string> =
+          problemTranslationsMap.get(String(cp.problem_id)) ??
+          new Map<string, string>();
+        const translatedTitle: string =
+          problemTranslations.get('title') ?? cp.problem.title;
+        return {
+          id: cp.id,
+          problem_index: cp.problem_index,
+          score: cp.score,
+          solved_count: cp.solved_count,
+          submission_count: cp.submission_count,
+          problem_id: Number(cp.problem_id),
+          title: translatedTitle,
+          slug: cp.problem.slug,
+          difficulty: cp.problem.difficulty,
+          acceptanceRate: Number(cp.problem.acceptance_rate),
+        };
+      }),
     });
   }
 
-  async findUpcoming() {
+  async findUpcoming(locale: SupportedLocale = DEFAULT_LOCALE) {
     const contests = await this.prisma.contest.findMany({
       where: { status: 'upcoming', is_visible: true },
       orderBy: { start_time: 'asc' },
     });
-    return contests.map((contest) => this.withTimingFields(contest));
+    const translatedContests = await this.applyContestTranslations(
+      contests,
+      locale,
+    );
+    return translatedContests.map((contest) => this.withTimingFields(contest));
   }
 
-  async findRunning() {
+  async findRunning(locale: SupportedLocale = DEFAULT_LOCALE) {
     const contests = await this.prisma.contest.findMany({
       where: { status: 'running', is_visible: true },
       orderBy: { start_time: 'asc' },
     });
-    return contests.map((contest) => this.withTimingFields(contest));
+    const translatedContests = await this.applyContestTranslations(
+      contests,
+      locale,
+    );
+    return translatedContests.map((contest) => this.withTimingFields(contest));
   }
 
-  async findPast(page: number = 1, limit: number = 10) {
+  async findPast(
+    page: number = 1,
+    limit: number = 10,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ) {
     const skip = (page - 1) * limit;
 
     const [data, total] = await Promise.all([
@@ -163,8 +250,10 @@ export class ContestService {
       }),
     ]);
 
+    const translatedData = await this.applyContestTranslations(data, locale);
+
     return {
-      data: data.map((contest) => this.withTimingFields(contest)),
+      data: translatedData.map((contest) => this.withTimingFields(contest)),
       total,
       page,
       limit,

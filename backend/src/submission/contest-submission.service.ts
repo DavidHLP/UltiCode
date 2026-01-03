@@ -198,6 +198,31 @@ export class ContestSubmissionService {
         },
       });
 
+      const existingProblemResult = await tx.contestProblemResult.findFirst({
+        where: {
+          participant_id: participantId,
+          contest_problem_id: contestProblemId,
+        },
+      });
+
+      await tx.contestProblem.update({
+        where: { id: contestProblemId },
+        data: {
+          submission_count: { increment: 1 },
+          ...(isAccepted &&
+            !existingProblemResult?.is_solved && {
+              solved_count: { increment: 1 },
+            }),
+        },
+      });
+
+      await tx.contestParticipant.update({
+        where: { id: participantId },
+        data: {
+          total_attempts: { increment: 1 },
+        },
+      });
+
       // Update participant score and problem result
       await this.rankingService.updateContestProblemResult(
         participantId,
@@ -205,6 +230,7 @@ export class ContestSubmissionService {
         isAccepted,
         solveTime,
         score,
+        tx,
       );
     });
   }
@@ -262,14 +288,20 @@ export class ContestSubmissionService {
       },
     });
 
-    return submissions.map((cs) => ({
-      ...cs.submission,
-      contest_info: {
-        time_from_start: cs.time_from_start,
-        problem_index: cs.contestProblem.problem_index,
-        score: cs.contestProblem.score,
-        is_accepted: cs.is_accepted,
-      },
-    }));
+    return submissions.map((cs) => {
+      const decoratedSubmission = this.submissionService.decorateSubmission(
+        cs.submission,
+      );
+
+      return {
+        ...decoratedSubmission,
+        contest_info: {
+          time_from_start: cs.time_from_start,
+          problem_index: cs.contestProblem.problem_index,
+          score: cs.is_accepted ? cs.contestProblem.score : 0,
+          is_accepted: cs.is_accepted,
+        },
+      };
+    });
   }
 }

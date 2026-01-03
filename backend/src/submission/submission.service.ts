@@ -459,7 +459,7 @@ export class SubmissionService {
     });
   }
 
-  private decorateSubmission<T extends Submission & { test_details?: unknown }>(
+  decorateSubmission<T extends Submission & { test_details?: unknown }>(
     submission: T,
   ) {
     const testDetails = Array.isArray(submission.test_details)

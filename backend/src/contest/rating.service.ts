@@ -86,23 +86,6 @@ export class RatingService {
   }
 
   /**
-   * Calculate expected rank based on rating (simplified Elo)
-   * Higher rating = lower expected rank
-   */
-  private getExpectedRank(
-    rating: number,
-    participants: { rating: number }[],
-  ): number {
-    let expectedRank = 1;
-    for (const p of participants) {
-      // Probability that p beats the current user
-      const prob = 1 / (1 + Math.pow(10, (rating - p.rating) / 400));
-      expectedRank += prob;
-    }
-    return expectedRank;
-  }
-
-  /**
    * Get K-factor based on rating and contests attended
    * Lower rated and newer players have higher K-factor (bigger swings)
    */
@@ -128,6 +111,7 @@ export class RatingService {
   /**
    * Calculate rating changes for all participants in a contest
    * Uses Codeforces-style Elo rating system
+   * Optimized to O(N) by using probability sums
    */
   async calculateContestRatings(contestId: string): Promise<RatingChange[]> {
     // Get all contest rankings ordered by rank
@@ -158,14 +142,27 @@ export class RatingService {
       contestsAttended: r.user.globalRanking?.contests_attended ?? 0,
     }));
 
+    // Optimization: Group participants by rating to reduce calculations
+    const ratingFreq = new Map<number, number>();
+    for (const p of participants) {
+      ratingFreq.set(p.rating, (ratingFreq.get(p.rating) || 0) + 1);
+    }
+    const uniqueRatings = Array.from(ratingFreq.keys());
+
     const ratingChanges: RatingChange[] = [];
 
-    // Calculate rating change for each participant
     for (const participant of participants) {
-      const expectedRank = this.getExpectedRank(
-        participant.rating,
-        participants.filter((p) => p.userId !== participant.userId),
-      );
+      let expectedRank = 1;
+      for (const rating of uniqueRatings) {
+        const count = ratingFreq.get(rating)!;
+        const compareCount = rating === participant.rating ? count - 1 : count;
+        if (compareCount <= 0) continue;
+
+        // Probability that a user with 'rating' beats the current participant
+        const prob =
+          1 / (1 + Math.pow(10, (participant.rating - rating) / 400));
+        expectedRank += prob * compareCount;
+      }
 
       const kFactor = this.getKFactor(
         participant.rating,
@@ -173,7 +170,6 @@ export class RatingService {
       );
 
       // Performance-based rating calculation
-      // Based on difference between expected and actual rank
       const rankDiff = expectedRank - participant.rank;
       const ratingChange = Math.round(
         (kFactor * rankDiff) / Math.sqrt(participants.length),

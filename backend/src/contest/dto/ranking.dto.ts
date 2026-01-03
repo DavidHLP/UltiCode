@@ -62,6 +62,10 @@ export interface ContestRankingEntry {
   avatar: string | null;
   totalScore: number;
   totalPenalty: number;
+  finishTime: number | null;
+  finish_time?: number | null;
+  totalAttempts: number;
+  total_attempts?: number;
   solvedCount: number;
   ratingBefore: number;
   ratingAfter: number;
@@ -76,6 +80,7 @@ export interface ProblemResultEntry {
   isSolved: boolean;
   score: number;
   attempts: number;
+  wrongAttempts: number;
   solveTime: number | null;
   penaltyTime: number;
 }

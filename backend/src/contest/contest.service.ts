@@ -204,6 +204,7 @@ export class ContestService {
           id: cp.id,
           problem_index: cp.problem_index,
           score: cp.score,
+          penalty_per_wrong: cp.penalty_per_wrong,
           solved_count: cp.solved_count,
           submission_count: cp.submission_count,
           problem_id: Number(cp.problem_id),
@@ -580,6 +581,13 @@ export class ContestService {
         start_time: new Date(dto.start_time),
         duration_minutes: dto.duration_minutes,
         status: 'upcoming',
+        ...(dto.penalty_per_wrong !== undefined && {
+          penalty_per_wrong: dto.penalty_per_wrong,
+        }),
+        ...(dto.scoring_mode !== undefined && {
+          scoring_mode: dto.scoring_mode,
+        }),
+        ...(dto.tie_breaker !== undefined && { tie_breaker: dto.tie_breaker }),
         is_rated: dto.is_rated,
         description: dto.description,
         cover_image: dto.cover_image,
@@ -597,6 +605,9 @@ export class ContestService {
           problem_id: BigInt(p.problem_id),
           problem_index: p.problem_index,
           score: p.score,
+          ...(p.penalty_per_wrong !== undefined && {
+            penalty_per_wrong: p.penalty_per_wrong,
+          }),
         })),
       });
     }
@@ -623,6 +634,13 @@ export class ContestService {
         ...(dto.duration_minutes !== undefined && {
           duration_minutes: dto.duration_minutes,
         }),
+        ...(dto.penalty_per_wrong !== undefined && {
+          penalty_per_wrong: dto.penalty_per_wrong,
+        }),
+        ...(dto.scoring_mode !== undefined && {
+          scoring_mode: dto.scoring_mode,
+        }),
+        ...(dto.tie_breaker !== undefined && { tie_breaker: dto.tie_breaker }),
         ...(dto.is_rated !== undefined && { is_rated: dto.is_rated }),
         ...(dto.description !== undefined && { description: dto.description }),
         ...(dto.cover_image !== undefined && { cover_image: dto.cover_image }),

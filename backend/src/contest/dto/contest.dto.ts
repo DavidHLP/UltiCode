@@ -12,7 +12,11 @@ import {
   MaxLength,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { ContestType } from '@prisma/client';
+import {
+  ContestScoringMode,
+  ContestTieBreaker,
+  ContestType,
+} from '@prisma/client';
 
 export class CreateContestProblemDto {
   @IsInt()
@@ -25,6 +29,11 @@ export class CreateContestProblemDto {
   @IsInt()
   @Min(0)
   score: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  penalty_per_wrong?: number;
 }
 
 export class CreateContestDto {
@@ -46,6 +55,19 @@ export class CreateContestDto {
   @Min(1)
   @Max(600)
   duration_minutes: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  penalty_per_wrong?: number;
+
+  @IsOptional()
+  @IsEnum(ContestScoringMode)
+  scoring_mode?: ContestScoringMode;
+
+  @IsOptional()
+  @IsEnum(ContestTieBreaker)
+  tie_breaker?: ContestTieBreaker;
 
   @IsBoolean()
   is_rated: boolean;
@@ -94,6 +116,19 @@ export class UpdateContestDto {
   @Min(1)
   @Max(600)
   duration_minutes?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  penalty_per_wrong?: number;
+
+  @IsOptional()
+  @IsEnum(ContestScoringMode)
+  scoring_mode?: ContestScoringMode;
+
+  @IsOptional()
+  @IsEnum(ContestTieBreaker)
+  tie_breaker?: ContestTieBreaker;
 
   @IsOptional()
   @IsBoolean()

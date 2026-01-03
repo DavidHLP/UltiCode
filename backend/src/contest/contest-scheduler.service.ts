@@ -1,5 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { PrismaService } from '../prisma.service';
 import { RankingService } from './ranking.service';
 import { RatingService } from './rating.service';
@@ -12,6 +14,7 @@ export class ContestSchedulerService {
     private prisma: PrismaService,
     private rankingService: RankingService,
     private ratingService: RatingService,
+    @InjectQueue('contest') private contestQueue: Queue,
   ) {}
 
   /**
@@ -79,8 +82,10 @@ export class ContestSchedulerService {
             data: { status: 'finished' },
           });
 
-          // Finalize contest rankings and calculate ratings
-          await this.finalizeContest(contest.id);
+          // Queue finalization task
+          await this.contestQueue.add('finalize-contest', {
+            contestId: contest.id,
+          });
         }
       }
 
@@ -88,58 +93,6 @@ export class ContestSchedulerService {
       await this.finalizeExpiredVirtualSessions();
     } catch (error) {
       this.logger.error('Error updating contest statuses:', error);
-    }
-  }
-
-  /**
-   * Finalize a contest when it ends
-   * - Calculate final rankings
-   * - Calculate rating changes
-   * - Update participant statuses
-   */
-  private async finalizeContest(contestId: string): Promise<void> {
-    try {
-      this.logger.log(`Finalizing contest ${contestId}...`);
-
-      // Update all participants who haven't finished yet
-      const participants = await this.prisma.contestParticipant.findMany({
-        where: {
-          contest_id: contestId,
-          status: 'STARTED',
-          is_virtual: false,
-        },
-      });
-
-      for (const participant of participants) {
-        await this.prisma.contestParticipant.update({
-          where: { id: participant.id },
-          data: {
-            status: 'FINISHED',
-            finished_at: new Date(),
-          },
-        });
-      }
-
-      // Finalize rankings
-      await this.rankingService.finalizeContestRanking(contestId);
-
-      // Calculate and apply ratings
-      const contest = await this.prisma.contest.findUnique({
-        where: { id: contestId },
-      });
-
-      if (contest?.is_rated) {
-        this.logger.log(`Calculating ratings for contest ${contestId}...`);
-        const ratingChanges =
-          await this.ratingService.calculateContestRatings(contestId);
-        await this.ratingService.applyContestRatings(contestId, ratingChanges);
-        await this.ratingService.recalculateGlobalRankings();
-        this.logger.log(`Ratings calculated for ${ratingChanges.length} users`);
-      }
-
-      this.logger.log(`Contest ${contestId} finalized successfully`);
-    } catch (error) {
-      this.logger.error(`Error finalizing contest ${contestId}:`, error);
     }
   }
 
@@ -221,6 +174,9 @@ export class ContestSchedulerService {
       data: { status: 'finished' },
     });
 
-    await this.finalizeContest(contestId);
+    // Queue finalization task
+    await this.contestQueue.add('finalize-contest', {
+      contestId: contest.id,
+    });
   }
 }

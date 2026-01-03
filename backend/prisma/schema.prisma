@@ -135,6 +135,9 @@ model Contest {
   start_time         DateTime
   duration_minutes   Int
   status             ContestStatus
+  penalty_per_wrong  Int                    @default(300)
+  scoring_mode       ContestScoringMode     @default(SCORE)
+  tie_breaker        ContestTieBreaker      @default(LAST_SOLVE_TIME)
   registered_count   Int                    @default(0)
   participant_count  Int                    @default(0)
   is_rated           Boolean                @default(true)
@@ -164,6 +167,7 @@ model ContestProblem {
   problem_id         BigInt
   problem_index      String                 @db.VarChar(10)
   score              Int                    @default(0)
+  penalty_per_wrong  Int?
   solved_count       Int                    @default(0)
   submission_count   Int                    @default(0)
   problemResults     ContestProblemResult[]
@@ -200,22 +204,25 @@ model GlobalRanking {
 }
 
 model ContestRanking {
-  id             String                 @id @db.VarChar(40)
-  contest_id     String                 @db.VarChar(40)
-  user_id        String                 @db.VarChar(40)
-  rank           Int
-  rating_before  Int                    @default(1500)
-  rating_after   Int                    @default(1500)
-  rating_change  Int                    @default(0)
-  is_virtual     Boolean                @default(false)
-  solved_count   Int                    @default(0)
-  total_penalty  Int                    @default(0)
-  total_score    Int                    @default(0)
-  problemResults ContestProblemResult[]
-  contest        Contest                @relation(fields: [contest_id], references: [id], onDelete: Cascade)
-  user           User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id                     String                 @id @db.VarChar(40)
+  contest_id             String                 @db.VarChar(40)
+  user_id                String                 @db.VarChar(40)
+  rank                   Int
+  rating_before          Int                    @default(1500)
+  rating_after           Int                    @default(1500)
+  rating_change          Int                    @default(0)
+  is_virtual             Boolean                @default(false)
+  solved_count           Int                    @default(0)
+  total_penalty          Int                    @default(0)
+  total_score            Int                    @default(0)
+  finish_time            Int?
+  total_attempts         Int                    @default(0)
+  problem_stats_snapshot Json?
+  problemResults         ContestProblemResult[]
+  contest                Contest                @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  user                   User                   @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
-  @@unique([contest_id, user_id])
+  @@unique([contest_id, user_id, is_virtual])
   @@index([contest_id, rank])
   @@index([user_id])
   @@map("contest_rankings")
@@ -233,6 +240,8 @@ model ContestParticipant {
   final_rank         Int?
   total_penalty      Int                      @default(0)
   total_score        Int                      @default(0)
+  total_attempts     Int                      @default(0)
+  last_solve_time    Int?
   virtual_session_id String?                  @db.VarChar(40)
   contest            Contest                  @relation(fields: [contest_id], references: [id], onDelete: Cascade)
   user               User                     @relation(fields: [user_id], references: [id], onDelete: Cascade)
@@ -747,6 +756,17 @@ enum ContestStatus {
   upcoming
   running
   finished
+}
+
+enum ContestScoringMode {
+  SCORE
+  ICPC
+}
+
+enum ContestTieBreaker {
+  LAST_SOLVE_TIME
+  TOTAL_ATTEMPTS
+  NONE
 }
 
 enum ContestParticipantStatus {

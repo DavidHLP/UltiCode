@@ -17,6 +17,7 @@ import {
   ParticipationStatus,
 } from './dto';
 import { I18nService } from '../i18n/i18n.service';
+import { RankingService } from './ranking.service';
 import {
   SupportedLocale,
   DEFAULT_LOCALE,
@@ -33,6 +34,7 @@ export class ContestService {
   constructor(
     private prisma: PrismaService,
     private readonly i18nService: I18nService,
+    private readonly rankingService: RankingService,
   ) {}
 
   private withTimingFields<
@@ -546,6 +548,22 @@ export class ContestService {
         },
       });
     });
+
+    // Finalize virtual ranking (outside transaction to avoid deadlocks/long transactions)
+    await this.rankingService.finalizeVirtualRanking(
+      // We need to find the participant ID. Since we know session ID and user ID...
+      // But updateMany doesn't return IDs.
+      // We can fetch it first or use the fact that it's unique per user per contest.
+      // Ideally we should have fetched it.
+      // Let's rely on finding it by session ID in finalizeVirtualRanking?
+      // No, finalizeVirtualRanking takes participantId.
+      // So we need to fetch participant ID.
+      (
+        await this.prisma.contestParticipant.findFirst({
+          where: { virtual_session_id: sessionId },
+        })
+      )?.id as string,
+    );
   }
 
   // =========================================================================

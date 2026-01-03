@@ -232,6 +232,111 @@ export class RankingService {
   }
 
   /**
+   * Calculate and store final ranking for a virtual participant
+   * Rank is calculated against real participants
+   */
+  async finalizeVirtualRanking(participantId: string): Promise<void> {
+    const participant = await this.prisma.contestParticipant.findUnique({
+      where: { id: participantId },
+      include: {
+        problemResults: true,
+        user: {
+          select: {
+            username: true,
+            avatar: true,
+          },
+        },
+      },
+    });
+
+    if (!participant || !participant.is_virtual) return;
+
+    // Calculate rank against real participants
+    // Count how many real participants have better score/penalty
+    const betterParticipantsCount = await this.prisma.contestRanking.count({
+      where: {
+        contest_id: participant.contest_id,
+        is_virtual: false,
+        OR: [
+          { total_score: { gt: participant.total_score } },
+          {
+            AND: [
+              { total_score: participant.total_score },
+              { total_penalty: { lt: participant.total_penalty } },
+            ],
+          },
+        ],
+      },
+    });
+
+    const rank = betterParticipantsCount + 1;
+
+    // Update participant with final rank
+    await this.prisma.contestParticipant.update({
+      where: { id: participant.id },
+      data: { final_rank: rank },
+    });
+
+    // Get current rating (for completeness, though virtual usually doesn't affect rating)
+    const globalRanking = await this.prisma.globalRanking.findUnique({
+      where: { user_id: participant.user_id },
+    });
+    const currentRating = globalRanking?.rating ?? 1500;
+
+    // Create or update contest ranking
+    const existingRanking = await this.prisma.contestRanking.findFirst({
+      where: {
+        contest_id: participant.contest_id,
+        user_id: participant.user_id,
+        is_virtual: true,
+      },
+    });
+
+    if (existingRanking) {
+      await this.prisma.contestRanking.update({
+        where: { id: existingRanking.id },
+        data: {
+          rank,
+          total_score: participant.total_score,
+          total_penalty: participant.total_penalty,
+          solved_count: participant.problemResults.filter((r) => r.is_solved)
+            .length,
+          rating_before: currentRating,
+        },
+      });
+
+      // Link problem results
+      await this.prisma.contestProblemResult.updateMany({
+        where: { participant_id: participant.id },
+        data: { ranking_id: existingRanking.id },
+      });
+    } else {
+      const newRanking = await this.prisma.contestRanking.create({
+        data: {
+          id: `cr-${participant.contest_id}-${participant.user_id}-virtual`,
+          contest_id: participant.contest_id,
+          user_id: participant.user_id,
+          rank,
+          total_score: participant.total_score,
+          total_penalty: participant.total_penalty,
+          solved_count: participant.problemResults.filter((r) => r.is_solved)
+            .length,
+          rating_before: currentRating,
+          rating_after: currentRating,
+          rating_change: 0,
+          is_virtual: true,
+        },
+      });
+
+      // Link problem results
+      await this.prisma.contestProblemResult.updateMany({
+        where: { participant_id: participant.id },
+        data: { ranking_id: newRanking.id },
+      });
+    }
+  }
+
+  /**
    * Calculate and store final rankings for a contest
    */
   async finalizeContestRanking(contestId: string): Promise<void> {

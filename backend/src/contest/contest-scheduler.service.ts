@@ -185,6 +185,8 @@ export class ContestSchedulerService {
               },
             });
           }
+          // Finalize ranking for this participant
+          await this.rankingService.finalizeVirtualRanking(participant.id);
         }
 
         this.logger.log(`Virtual session ${session.id} finalized`);

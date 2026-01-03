@@ -4,188 +4,165 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-UltiCode is a full-stack competitive programming platform inspired by LeetCode. It consists of a Vue 3 frontend and a NestJS backend with MySQL database managed through Prisma ORM.
+UltiCode is a competitive programming platform with problem-solving, contests, rankings, forums, and solution sharing. It's a monorepo with three apps:
+- **backend/**: NestJS API server (TypeScript, Prisma ORM, MySQL)
+- **frontend/**: Public Vue 3 app (Vite, Tailwind CSS, Pinia)
+- **admin-frontend/**: Admin Vue 3 app
 
-## Development Commands
+## Common Commands
 
-### Root Level (Development)
+### Development
 ```bash
-npm run dev                    # Run both frontend and backend concurrently
-npm run dev:frontend           # Run frontend only (Vite dev server)
-npm run dev:backend            # Run backend only (NestJS with watch mode)
-npm run lint                   # Lint both frontend and backend
-npm run format                 # Format both frontend and backend
-npm run type-check             # Type check both frontend and backend
+npm install                    # Install all dependencies (Node 20+)
+npm run dev                    # Start frontend (5173) + backend (3000)
+npm run dev:frontend           # Frontend only
+npm run dev:backend            # Backend only (runs prisma generate, lint, type-check, format, db:reset first)
 ```
 
-### Frontend (from /frontend)
+### Database
 ```bash
-npm run dev                    # Lint, type-check, format, then start Vite dev server
-npm run build                  # Build for production
-npm run preview                # Preview production build
-npm run type-check             # Run Vue type checking
-npm run lint                   # Run ESLint with auto-fix
-npm run format                 # Run Prettier
-npm test                       # Run Vitest tests once
-npm run test:watch             # Run Vitest in watch mode
-npm run test:coverage          # Run tests with coverage
-npm run validate:mocks         # Validate mock data structure
-npm run validate:mocks:verbose # Validate mocks with verbose output
-npm run validate:mocks:strict  # Validate mocks in strict mode
+npm run prisma:migrate --prefix backend   # Create/apply migrations
+npm run prisma:generate --prefix backend  # Regenerate Prisma client
+npm run db:reset --prefix backend         # Reset DB with migrations (force)
+npm run db:seed --prefix backend          # Seed test data
+```
+- Configure `DATABASE_URL` in `backend/.env`
+- Default test user: `shadcn` / `password123`
+
+### Quality
+```bash
+npm run lint                   # Lint both apps (ESLint --fix)
+npm run format                 # Format both apps (Prettier)
+npm run type-check             # Type check both apps
+npm run type-check:backend     # Backend: tsc --noEmit
+npm run type-check:frontend    # Frontend: vue-tsc --build
 ```
 
-### Backend (from /backend)
+### Testing
 ```bash
-npm run start:dev              # Lint, type-check, format, generate Prisma, reset DB, start with watch
-npm run start:dev:reset        # Reset DB and start with watch (skip other checks)
-npm run build                  # Build NestJS application
-npm run start:prod             # Start production server
-npm run lint                   # Run ESLint with auto-fix
-npm run format                 # Run Prettier
-npm run type-check             # Type check without emitting files
-npm test                       # Run Jest tests
-npm run test:watch             # Run Jest in watch mode
-npm run test:cov               # Run tests with coverage
-npm run test:e2e               # Run end-to-end tests
-npm run prisma:generate        # Generate Prisma client
-npm run prisma:migrate         # Create and apply migration
-npm run db:reset               # Reset database and run seed
-npm run db:seed                # Seed database with initial data
+npm run test --prefix backend      # Jest unit tests
+npm run test:cov --prefix backend  # Jest with coverage
+npm run test:e2e --prefix backend  # Jest E2E tests
+npm run test --prefix frontend     # Vitest (run once)
+npm run test:watch --prefix frontend  # Vitest watch mode
+```
+
+### Build
+```bash
+npm run build --prefix backend     # NestJS build → dist/
+npm run build --prefix frontend    # Vite build → dist/
+npm start                          # Run production (both apps)
 ```
 
 ## Architecture
 
-### Backend Architecture (NestJS)
+### Backend Structure (`backend/src/`)
+NestJS modular architecture with standard file naming:
+- `*.module.ts` - Module definitions
+- `*.controller.ts` - HTTP route handlers
+- `*.service.ts` - Business logic
+- `*.dto.ts` - Request/response validation (class-validator decorators)
+- `*.spec.ts` - Jest unit tests
 
-The backend follows NestJS modular architecture with the following key modules:
+Key modules: `auth/`, `problem/`, `contest/`, `submission/`, `solution/`, `forum/`, `user/`, `bookmark/`, `notification/`, `i18n/`
 
-**Module Structure:**
-- `UserModule` - User management and profiles
-- `ProblemModule` - Problem CRUD, details, examples, languages, tags
-- `ProblemListModule` - Problem lists with user-specific categorization
-- `SolutionModule` - User solutions with comments
-- `ContestModule` - Contest management, rankings, participants
-- `ForumModule` - Community posts and comments
-- `SubmissionModule` - Code submission tracking with performance stats
-- `VoteModule` - Vote tracking (upvote/downvote)
-- `EdgeOperationsModule` - Generic interaction system (votes, favorites, charges, analyze)
-- `ViewModule` - View count tracking for solutions and forum posts
-- `AuthModule` - JWT-based authentication
-- `ProblemNoteModule` - User-specific problem notes
+Authentication: JWT tokens (7-day expiry), SHA-256 password hashing
 
-**Database:**
-- Uses MySQL with Prisma ORM
-- TypeORM is configured but Prisma is primary ORM
-- Database connection hardcoded in `app.module.ts` (host: localhost, user: root, password: 123456, db: ulticode)
-- Prisma schema in `backend/prisma/schema.prisma` is the source of truth
-- Seed data located in `backend/prisma/seed/data/`
+### Frontend Structure (`frontend/src/`)
+Vue 3 Composition API with `<script setup lang="ts">`:
+- `views/` - Page components by feature (auth, contest, forum, problems, personal)
+- `components/` - Reusable components (ui/ has shadcn-vue base components)
+- `stores/` - Pinia state management
+- `api/` - Axios API client wrappers
+- `composables/` - Reusable composition functions
+- `i18n/locales/` - Translations (en-US, zh-CN)
 
-**Edge Operations System:**
-The `EdgeOperationsModule` implements a generic interaction system that handles multiple operation types (VOTE_UP, VOTE_DOWN, FAVORITE, CHARGE, ANALYZE) across different target types (SOLUTION, SOLUTION_COMMENT, FORUM_POST, FORUM_COMMENT, PROBLEM, PROBLEM_LIST). This unified approach replaces separate favorite/like systems with a single edge table.
+Path alias: `@/` maps to `frontend/src/`
 
-**Important Backend Patterns:**
-- BigInt serialization is globally patched in `main.ts` to convert BigInt to Number for JSON
-- CORS is enabled for `localhost:5173` and `localhost:5174`
-- All entities use TypeORM decorators even though Prisma is the primary ORM
-- Database resets automatically on `npm run start:dev`
+### Database Schema (`backend/prisma/schema.prisma`)
+Core entities: User, Problem, Contest, Submission, Solution, ForumPost, GlobalRanking, ContestRanking, Notification, ProblemList, Bookmark, VirtualContestSession, Translation
 
-### Frontend Architecture (Vue 3)
+Seeds in `backend/prisma/seed/`
 
-**Tech Stack:**
-- Vue 3 with Composition API
-- Vue Router for routing
-- Pinia for state management
-- TailwindCSS v4 with custom UI components
-- TypeScript for type safety
-- Vite as build tool
-- Axios for HTTP requests
+## Code Style
 
-**Directory Structure:**
-- `/src/components/` - Reusable UI components (heavily uses reka-ui based shadcn-vue components)
-- `/src/views/` - Page-level components organized by feature (problems, forum, contest, personal, auth)
-- `/src/api/` - API service layer (wraps axios with type-safe helpers)
-- `/src/stores/` - Pinia stores
-- `/src/types/` - TypeScript type definitions
-- `/src/utils/` - Utility functions (markdown, date, auth, vote)
-- `/src/router/` - Vue Router configuration
-- `/src/features/` - Feature-specific components (sider layout)
-- `/src/hooks/` - Composable functions
+- ESLint + Prettier enforced (run via lint/format commands)
+- Backend: single quotes, trailing commas
+- Vue components: PascalCase files, `<script setup lang="ts">`
+- NestJS: kebab-case files (auth.service.ts, user.controller.ts)
+- Use DTOs with class-validator for all API inputs
+- Business logic in services, not controllers
 
-**API Layer:**
-- Base URL configured via `VITE_API_BASE_URL` env variable (defaults to `http://localhost:3000`)
-- All requests go through axios instance in `utils/request.ts`
-- JWT token automatically added to requests via interceptor
-- 401/403 responses automatically clear auth token
-- Type-safe API helpers: `apiGet`, `apiPost`, `apiPatch`, `apiDelete`
+## Admin Frontend Design Guide
 
-**Routing:**
-- Route groups for forum, contest, problemset, personal pages
-- Problem detail uses slug-based routing: `/problems/:slug/:tab?`
-- Nested routes use `AppLayout.vue` wrapper for consistent sidebar
-- Default redirect to forum home
+The admin frontend (`admin-frontend/src/template/`) follows a dashboard design pattern with these key elements:
 
-**Important Frontend Patterns:**
-- Monaco Editor integration for code editing
-- Markdown rendering with KaTeX support for math formulas
-- Custom markdown-it plugins for footnotes, task lists, link attributes
-- ECharts integration for data visualization
-- Form validation using vee-validate with Zod schemas
+### Layout Structure
+```
+SidebarProvider (CSS variables: --sidebar-width, --header-height)
+├── AppSidebar (collapsible="offcanvas")
+│   ├── SidebarHeader - Logo/brand
+│   ├── SidebarContent - Navigation sections
+│   └── SidebarFooter - User menu
+└── SidebarInset
+    ├── SiteHeader - Page title, actions
+    └── Main content area
+```
 
-### Problem List System
+### Component Library
+- **UI Components**: shadcn-vue (Button, Card, Badge, Avatar, Select, Table, Tabs, etc.)
+- **Icons**: `@tabler/icons-vue` (IconDashboard, IconChartBar, IconUsers, etc.)
+- **Data Table**: `@tanstack/vue-table` with sorting, filtering, pagination
+- **Charts**: `@unovis/vue` (VisArea, VisLine, VisAxis, VisXYContainer)
+- **Drag & Drop**: `dnd-kit-vue` (useSortable, DragDropProvider)
+- **Validation**: `zod` for schema validation
 
-The problem list system supports both public/featured lists and user-specific organization:
+### Card Component Pattern
+```vue
+<Card class="@container/card">
+  <CardHeader>
+    <CardDescription>Label</CardDescription>
+    <CardTitle class="text-2xl font-semibold tabular-nums">Value</CardTitle>
+    <CardAction>
+      <Badge variant="outline"><IconTrendingUp />+12.5%</Badge>
+    </CardAction>
+  </CardHeader>
+  <CardFooter class="flex-col items-start gap-1.5 text-sm">
+    <div class="line-clamp-1 flex gap-2 font-medium">Trend info</div>
+    <div class="text-muted-foreground">Description</div>
+  </CardFooter>
+</Card>
+```
 
-1. **ProblemList** - The list itself with author, visibility settings
-2. **ProblemListProblemRelation** - Links problems to lists with sort order
-3. **UserProblemListCategory** - User-defined categories for organizing saved lists
-4. **UserProblemListCategoryItem** - Tracks which lists users save and in which categories
+### Responsive Design
+- Container queries: `@container/main`, `@container/card`, `@xl/main`, `@5xl/main`
+- Responsive padding: `px-4 lg:px-6`
+- Grid layouts: `grid-cols-1 @xl/main:grid-cols-2 @5xl/main:grid-cols-4`
+- Mobile detection: `useSidebar().isMobile` for conditional rendering
 
-Users can save any public list and organize them into custom categories.
+### Styling Patterns
+- Gradient cards: `bg-gradient-to-t from-primary/5 to-card`
+- Data attributes: `data-[state=open]:bg-sidebar-accent`, `data-[slot=card]:shadow-xs`
+- Muted text: `text-muted-foreground`
+- Tabular numbers: `tabular-nums` for numeric values
+- Truncation: `truncate`, `line-clamp-1`
 
-### Authentication Flow
+### Navigation Structure
+- **NavMain**: Primary actions with Quick Create button + main menu items
+- **NavDocuments**: Document links with hover actions (Open, Share, Delete)
+- **NavSecondary**: Settings, Help, Search (pushed to bottom with `mt-auto`)
+- **NavUser**: User avatar, dropdown menu with Account, Billing, Notifications, Logout
 
-- JWT-based authentication
-- Token stored in localStorage via `utils/auth.ts`
-- Token included in all API requests via axios interceptor
-- Login/register returns `access_token` and user info
-- Unauthorized responses clear token and could redirect to login
+### Data Table Features
+- Drag-and-drop row reordering with DraggableRow/DragHandle
+- Column visibility toggle dropdown
+- Row selection with checkboxes
+- Pagination with page size selector (10, 20, 30, 40, 50)
+- Status indicators with icons (IconCircleCheckFilled, IconLoader)
+- Action menus per row (Edit, Copy, Favorite, Delete)
 
-## Key Technical Decisions
+## Commit Convention
 
-1. **Database IDs:** Problem IDs use BigInt, most other IDs use String (VARCHAR(40))
-2. **Timestamps:** Uses `DateTime` types, most have `@default(now())` or `@updatedAt`
-3. **Cascading Deletes:** Most relations use `onDelete: Cascade` for referential integrity
-4. **Enum Types:** Difficulty, ProblemStatus, ContestType, ContestStatus, FlairType, VoteState, EdgeOperationType, etc.
-5. **Node Version:** Requires Node.js ^20.19.0 || >=22.12.0 (specified in frontend package.json)
+Conventional Commits: `feat(scope): message`, `fix(scope): message`, `docs:`, `refactor:`, `test:`
 
-## Common Workflows
-
-### Adding a New Feature Module
-
-Backend:
-1. Generate module: `nest generate module feature-name`
-2. Create entity with TypeORM decorators (even if using Prisma)
-3. Update Prisma schema in `backend/prisma/schema.prisma`
-4. Run `npm run prisma:migrate` to create migration
-5. Create service, controller, DTOs
-6. Register module in `app.module.ts`
-7. Add seed data in `backend/prisma/seed/data/`
-
-Frontend:
-1. Create API service in `src/api/feature-name.ts`
-2. Define types in `src/types/feature-name.ts`
-3. Create views in `src/views/feature-name/`
-4. Add routes in `src/router/index.ts`
-5. Create store if needed in `src/stores/`
-
-### Database Changes
-
-1. Modify `backend/prisma/schema.prisma`
-2. Run `npm run prisma:migrate` to generate migration
-3. Migration automatically applied on next `npm run start:dev` (due to db:reset)
-4. Update corresponding TypeORM entities if they exist
-5. Update seed data if schema changes affect it
-
-### Running Tests
-
-Frontend tests use Vitest with jsdom. Backend tests use Jest. Mock data validation available via `validate:mocks` scripts.
+Include Prisma migration files when changing schema.

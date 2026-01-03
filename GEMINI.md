@@ -1,105 +1,179 @@
-# UltiCode - Competitive Programming Platform
+# UltiCode Project Context
 
-**UltiCode** is a full-stack competitive programming platform (similar to LeetCode) built with a Vue 3 frontend and a NestJS backend.
+## Project Overview
+
+**UltiCode** (working directory `UltiCode-Public`) is a comprehensive competitive programming platform. It features a modern problem-solving interface, contest management system (weekly/biweekly/special), global user rankings, community forums, and a solution sharing system.
+
+The project is structured as a monorepo containing:
+*   **`backend`**: A NestJS API server managing logic, database interactions, and authentication.
+*   **`frontend`**: A public-facing Vue 3 application for users to solve problems and participate in contests.
+*   **`admin-frontend`**: A Vue 3 application for platform administration.
+
+## Technology Stack
+
+### Backend (`backend`)
+*   **Framework**: [NestJS](https://nestjs.com/) (Node.js)
+*   **Database**: MySQL (via [Prisma ORM](https://www.prisma.io/))
+*   **Authentication**: JWT-based, with passwords hashed via SHA-256.
+*   **Queues**: BullMQ
+*   **Testing**: Jest (Unit & E2E)
+*   **Validation**: `class-validator`, `class-transformer`
+
+### Frontend (`frontend` & `admin-frontend`)
+*   **Framework**: [Vue 3](https://vuejs.org/) (Composition API, `<script setup>`)
+*   **Build Tool**: [Vite](https://vitejs.dev/)
+*   **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+*   **State Management**: [Pinia](https://pinia.vuejs.org/)
+*   **Routing**: Vue Router
+*   **UI Components**: `shadcn-vue` (implied by components structure), `radix-icons`, `lucide-vue-next`.
+*   **Editor**: Monaco Editor (in `frontend` for code submission)
+*   **Visualization**: ECharts, `@unovis/vue`
+*   **Math**: KaTeX
 
 ## Project Structure
 
-- **Backend** (`/backend`): NestJS framework using Prisma ORM with MySQL.
-- **Frontend** (`/frontend`): Vue 3 application built with Vite, Tailwind CSS v4, and Shadcn Vue.
-- **Root**: Contains orchestration scripts to manage both applications simultaneously.
+```text
+/
+├── backend/                # NestJS API Server
+│   ├── src/                # Source code (Controllers, Modules, Services)
+│   ├── prisma/             # Database schema and seeds
+│   └── test/               # E2E tests
+├── frontend/               # Public Vue 3 App
+│   ├── src/
+│   │   ├── components/     # Reusable UI components
+│   │   ├── views/          # Page views
+│   │   ├── stores/         # Pinia stores
+│   │   └── api/            # API client wrappers
+│   └── vite.config.ts
+├── admin-frontend/         # Admin Vue 3 App
+│   ├── src/
+│   └── vite.config.ts
+└── package.json            # Root scripts for monorepo management
+```
 
-## Getting Started
+## Setup & Development
 
 ### Prerequisites
-- Node.js: `^20.19.0` or `>=22.12.0`
-- MySQL Database (Connection details configured in `backend/src/app.module.ts`)
+*   Node.js (v20+ recommended)
+*   MySQL Database
 
-### Key Commands (Root)
+### Installation
+```bash
+npm install
+```
 
-Run these commands from the project root:
+### Database Setup
+1.  Configure `DATABASE_URL` in `backend/.env`.
+2.  Run migrations and seed data:
+    ```bash
+    npm run prisma:migrate --prefix backend
+    npm run db:seed --prefix backend
+    ```
 
-- **Start Development:** `npm run dev`
-  - Runs both frontend and backend concurrently.
-  - **Note:** The backend `start:dev` script **resets the database** and re-runs migrations/seeds on every startup.
-- **Lint:** `npm run lint` (Frontend & Backend)
-- **Format:** `npm run format` (Frontend & Backend)
-- **Type Check:** `npm run type-check` (Frontend & Backend)
+**Default Test User:**
+*   Username: `shadcn`
+*   Password: `password123`
 
-## Architecture & Conventions
+### Running the Project
+*   **Development (All):**
+    ```bash
+    npm run dev
+    # Starts:
+    # - Backend: http://localhost:3000
+    # - Frontend: http://localhost:5173
+    ```
+*   **Backend Only:** `npm run dev:backend`
+*   **Frontend Only:** `npm run dev:frontend`
 
-### Backend (NestJS)
-- **Database:** Prisma is the source of truth (`backend/prisma/schema.prisma`).
-- **Resets:** The `npm run start:dev` command automatically runs `db:reset`, which wipes the database and applies seeds. Use `start:debug` or run generic nest commands if you wish to preserve data between restarts.
-- **Modules:** Organized by feature (User, Problem, Contest, Forum, etc.).
-- **BigInt:** Global patch applied in `main.ts` to handle BigInt serialization.
+### Testing
+*   **Backend:** `npm run test --prefix backend`
+*   **Frontend:** `npm run test --prefix frontend`
 
-### Frontend (Vue 3)
-- **Components:** Uses Shadcn Vue primitives and Tailwind CSS v4.
-- **Layout:** Sidebar-based layout with `SidebarProvider`.
-- **State:** Pinia for state management.
+## Development Conventions
 
-## Frontend Design System & Layout Guidelines
+*   **Code Style**: Prettier and ESLint are configured. Run `npm run lint` or `npm run format` to ensure consistency.
+*   **Backend Architecture**: Follows standard NestJS modular architecture.
+    *   **DTOs**: Use Data Transfer Objects for all API inputs/outputs, validated with decorators.
+    *   **Services**: Business logic resides here, not in controllers.
+*   **Frontend Architecture**:
+    *   **Components**: Use functional components with `<script setup lang="ts">`.
+    *   **Stores**: Use Pinia for global state (e.g., user session, theme).
+    *   **API**: Abstract API calls into `src/api/` modules using Axios.
+*   **Database**:
+    *   Always use Prisma migrations (`npm run prisma:migrate`) for schema changes.
+    *   Reflect schema changes in the `schema.prisma` file.
 
-### Core Frameworks
-- **Vue 3** (Composition API, `<script setup lang="ts">`)
-- **Tailwind CSS v4** (Utility-first, Container Queries `@container`)
-- **Shadcn Vue** (UI Primitives, Radix Vue)
-- **Tabler Icons** (`@tabler/icons-vue`)
+## Key Database Models
+*   `User`: Core user entity.
+*   `Problem`: Competitive programming problems with details, examples, and test cases.
+*   `Contest`: Timed competitions grouping multiple problems.
+*   `Submission`: User code submissions linked to problems and optionally contests.
+*   `ForumPost` / `ForumCommunity`: Community interaction features.
 
-### Layout Structure
-The application uses a **Sidebar Layout** pattern (`SidebarProvider`, `SidebarInset`).
+## Admin Frontend Design Guide
 
-#### 1. Sidebar (`AppSidebar.vue`)
-- **Structure:** `SidebarHeader` (Logo/Brand), `SidebarContent` (Navigation), `SidebarFooter` (User Profile).
-- **Navigation Groups:**
-  - **Main:** Dashboard, Projects, Analytics.
-  - **Documents:** Library, Reports.
-  - **Secondary:** Settings, Help.
-- **Styling:** Collapsible, standard shadcn sidebar components.
+The admin frontend uses a dashboard template (`admin-frontend/src/template/`) with these design patterns:
 
-#### 2. Header (`SiteHeader.vue`)
-- **Height:** Fixed `h-(--header-height)`.
-- **Content:** Sidebar trigger, Breadcrumbs/Title, Global Actions (GitHub link).
-- **Style:** Border-bottom, flex alignment.
+### Layout Architecture
+```
+SidebarProvider
+├── AppSidebar (collapsible offcanvas)
+│   ├── SidebarHeader (Logo/Brand)
+│   ├── SidebarContent
+│   │   ├── NavMain (Dashboard, Analytics, Projects, Team)
+│   │   ├── NavDocuments (Data Library, Reports)
+│   │   └── NavSecondary (Settings, Help, Search)
+│   └── SidebarFooter (NavUser)
+└── SidebarInset
+    ├── SiteHeader (Page title + actions)
+    └── Content (Cards, Charts, Tables)
+```
 
-#### 3. Dashboard (`dashboard/index.vue`)
-- **Grid Layout:** Responsive grid using **Container Queries** (`@xl`, `@5xl`).
-- **Section Cards:** Stat cards with gradients (`from-primary/5`), icons, and trend indicators.
-- **Charts:** Interactive charts using `unovis` + `ChartContainer`.
-- **Data Table:** Complex table with:
-  - Drag-and-drop rows (`dnd-kit-vue`).
-  - Column visibility & sorting.
-  - Tabs for different data views.
-  - Pagination & Selection.
+### Technology Stack
+*   **UI Components**: `shadcn-vue` (Button, Card, Badge, Avatar, Select, Table, Tabs, DropdownMenu)
+*   **Icons**: `@tabler/icons-vue`
+*   **Data Tables**: `@tanstack/vue-table` with sorting, filtering, pagination
+*   **Charts**: `@unovis/vue` (Area charts, Line charts)
+*   **Drag & Drop**: `dnd-kit-vue`
+*   **Schema Validation**: `zod`
 
-### UI Components & Styling Patterns
+### Component Patterns
 
-#### Cards
-- **Usage:** Statistics, Charts.
-- **Style:** `Card`, `CardHeader`, `CardTitle` (2xl semibold), `CardFooter` (text-sm muted).
-- **Visuals:** Subtle gradients for background `bg-gradient-to-t`.
+#### Metric Cards
+```vue
+<Card class="@container/card">
+  <CardHeader>
+    <CardDescription>Total Revenue</CardDescription>
+    <CardTitle class="text-2xl font-semibold tabular-nums">$1,250.00</CardTitle>
+    <CardAction>
+      <Badge variant="outline"><IconTrendingUp />+12.5%</Badge>
+    </CardAction>
+  </CardHeader>
+  <CardFooter class="flex-col items-start gap-1.5 text-sm">
+    <div class="flex gap-2 font-medium">Trending up <IconTrendingUp /></div>
+    <div class="text-muted-foreground">Last 6 months</div>
+  </CardFooter>
+</Card>
+```
 
-#### Tables
-- **Library:** `@tanstack/vue-table`.
-- **Features:** Draggable rows, custom cell rendering (Badges, Status icons).
-- **Interactions:** Dropdown menus for row actions, Select inputs for inline editing.
+#### Data Tables
+*   Drag-and-drop reordering via `DraggableRow` + `DragHandle`
+*   Column visibility toggle
+*   Row selection with checkboxes
+*   Pagination controls (10/20/30/40/50 rows per page)
+*   Status indicators with icons
+*   Row action menus (Edit, Copy, Delete)
 
-#### Typography & Icons
-- **Text:** `text-muted-foreground` for secondary text.
-- **Icons:** Consistent use of Tabler icons (e.g., `IconTrendingUp`, `IconUsers`).
+### Responsive Design Patterns
+*   Container queries: `@container/main`, `@container/card`
+*   Breakpoints: `@xl/main:grid-cols-2`, `@5xl/main:grid-cols-4`
+*   Responsive padding: `px-4 lg:px-6`
+*   Mobile detection: `useSidebar().isMobile`
 
-### Code Convention
-- **Imports:** path alias `@/` for `src/`.
-- **Types:** TypeScript interfaces for props and data.
-- **Reusability:** Extract sub-components (e.g., `NavMain`, `NavUser`) for sidebar sections.
-
-## Important Context Files
-
-- **`CLAUDE.md`**: Comprehensive developer guide, including detailed architecture notes and module descriptions.
-- **`AGENTS.md`**: Guidelines for coding style, testing, and git conventions.
-- **`backend/prisma/schema.prisma`**: Database schema definition.
-
-## Troubleshooting
-
-- **Database Connection:** If the backend fails to connect, check the hardcoded credentials in `backend/src/app.module.ts` (default: `localhost`, `root`, `123456`, `ulticode`).
-- **File Not Found Errors:** If standard files seem missing, ensure you are running commands from the correct directory (Root vs `/backend` vs `/frontend`).
+### Styling Conventions
+*   Gradient backgrounds: `bg-gradient-to-t from-primary/5 to-card`
+*   Data attribute selectors: `data-[state=open]:bg-sidebar-accent`
+*   Muted foreground: `text-muted-foreground`
+*   Tabular numbers: `tabular-nums`
+*   Text truncation: `truncate`, `line-clamp-1`
+*   Shadow: `shadow-xs` for subtle elevation

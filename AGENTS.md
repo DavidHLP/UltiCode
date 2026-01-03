@@ -1,50 +1,81 @@
 # Repository Guidelines
 
-## Project Structure & Module Organization
-
-- `frontend/`: Vue 3 + Vite app. Source in `frontend/src`, static assets in `frontend/public`, build output in `frontend/dist`.
-- `backend/`: NestJS API. Source in `backend/src`, Prisma schema/seed in `backend/prisma`, build output in `backend/dist`.
-- Shared root scripts live in `package.json`. Each app has its own `package.json` and tooling config.
+## Project Structure
+- `backend/` NestJS API server. Code in `backend/src` (modules, controllers, services, DTOs, entities); database schema and migrations in `backend/prisma`; utility scripts in `backend/scripts`.
+- `frontend/` public Vue 3 app. Pages in `frontend/src/views`, reusable UI in `frontend/src/components`, Pinia stores in `frontend/src/stores`, API clients in `frontend/src/api`, assets in `frontend/public` and `frontend/src/assets`.
+- `admin-frontend/` Vue 3 admin app with a similar `src` layout and its own Vite config.
+- Root `package.json` orchestrates monorepo commands.
 
 ## Build, Test, and Development Commands
-
-Root helpers (run from repo root):
-
-- `npm run dev`: run frontend + backend in parallel.
-- `npm run dev:frontend`: run Vite dev server with lint/type-check/format.
-- `npm run dev:backend`: run Nest dev server (includes lint/type-check/format + db reset).
-- `npm run lint` / `npm run format` / `npm run type-check`: run both apps.
-
-Frontend:
-
-- `npm run build --prefix frontend`: build Vite app.
-- `npm run test --prefix frontend`: run Vitest once.
-
-Backend:
-
-- `npm run build --prefix backend`: compile Nest app.
-- `npm run test --prefix backend`: run Jest (specs in `backend/src/**/*.spec.ts`).
-- `npm run db:reset --prefix backend`: reset DB and run migrations (destructive).
+- `npm install` at repo root; Node 20+ recommended.
+- `npm run dev` runs frontend + backend via `concurrently`. Note: backend `start:dev` runs Prisma generate, lint/type-check/format, and `prisma migrate reset --force`.
+- `npm run dev:frontend` / `npm run dev:backend` for single services.
+- `npm run lint`, `npm run format`, `npm run type-check` run across both apps.
+- Backend: `npm run build --prefix backend`, `npm run test --prefix backend`, `npm run test:cov --prefix backend`.
+- Frontend: `npm run dev --prefix frontend`, `npm run build --prefix frontend`, `npm run test --prefix frontend`.
+- Admin: `npm run dev --prefix admin-frontend`, `npm run build --prefix admin-frontend`.
 
 ## Coding Style & Naming Conventions
-
-- TypeScript across frontend and backend; follow ESLint + Prettier (`npm run lint`, `npm run format`).
-- Vue components use PascalCase filenames (e.g., `ProblemDetailView.vue`).
-- Composables/hooks use `useX` naming (e.g., `useProblemDetail`).
-- Use existing API mappers for snake_case ↔ camelCase conversions.
+- ESLint + Prettier are the source of truth. Backend Prettier uses single quotes and trailing commas; admin frontend uses no semicolons, single quotes, and 100 char lines.
+- Vue components are PascalCase with `<script setup lang="ts">` and live under `src/components` or `src/views`.
+- NestJS files follow `*.module.ts`, `*.controller.ts`, `*.service.ts`, `*.dto.ts`, `*.entity.ts`.
+- Frontend imports can use `@/` (maps to `frontend/src`).
 
 ## Testing Guidelines
-
-- Backend uses Jest; name tests `*.spec.ts` and keep them near the source.
-- Frontend uses Vitest; add tests alongside components or under `frontend/src`.
-- Run relevant tests before PRs; add coverage only when requested.
+- Backend uses Jest; tests live alongside code as `backend/src/**/*.spec.ts`.
+- Frontend uses Vitest (`npm run test --prefix frontend`); follow Vitest defaults (`*.test.ts`/`*.spec.ts`) when adding tests.
+- No explicit coverage thresholds are configured; run coverage on significant logic changes.
 
 ## Commit & Pull Request Guidelines
+- Commit messages follow Conventional Commits (e.g., `feat(scope): ...`, `docs: ...`).
+- PRs should include a concise summary, testing notes, and screenshots for UI changes.
+- Call out Prisma schema/migration changes and include generated migration files.
 
-- Commit messages follow Conventional Commits (e.g., `feat: ...`, `fix: ...`).
-- PRs should include: summary of changes, testing notes (commands run), and screenshots for UI changes.
+## Configuration & Database
+- Backend reads `DATABASE_URL` from `backend/.env`.
+- Use Prisma for schema changes: `npm run prisma:migrate --prefix backend`, then `npm run db:seed --prefix backend` for local data.
 
-## Configuration Tips
+## Admin Frontend Design Guide
 
-- Frontend API base URL via `VITE_API_BASE_URL`.
-- Backend DB setup is managed by Prisma in `backend/prisma`.
+Reference templates in `admin-frontend/src/template/` for consistent dashboard UI:
+
+### Layout Structure
+- `SidebarProvider` wraps layout with CSS variables (`--sidebar-width`, `--header-height`)
+- `AppSidebar` (collapsible offcanvas) contains header, content sections, footer
+- `SidebarInset` holds `SiteHeader` + main content
+
+### Core Components
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| `AppSidebar` | template/ | Collapsible sidebar with nav sections |
+| `SiteHeader` | template/ | Page header with title + actions |
+| `SectionCards` | template/ | Metric cards grid (4 columns responsive) |
+| `ChartAreaInteractive` | template/ | Area chart with time range filter |
+| `DataTable` | template/ | TanStack table with drag-drop, pagination |
+| `NavMain` | template/ | Primary navigation menu |
+| `NavDocuments` | template/ | Document links with action menus |
+| `NavSecondary` | template/ | Settings/Help links (bottom) |
+| `NavUser` | template/ | User avatar + dropdown menu |
+
+### Libraries Used
+- **UI**: `shadcn-vue` components (Card, Button, Badge, Table, Tabs, Select, Avatar, DropdownMenu)
+- **Icons**: `@tabler/icons-vue`
+- **Tables**: `@tanstack/vue-table`
+- **Charts**: `@unovis/vue`
+- **Drag & Drop**: `dnd-kit-vue`
+- **Validation**: `zod`
+
+### Design Patterns
+- Container queries for responsive grids: `@container/main`, `@container/card`
+- Gradient card backgrounds: `from-primary/5 to-card`
+- Data attributes for state: `data-[state=open]:bg-sidebar-accent`
+- Tabular numbers for metrics: `tabular-nums`
+- Status badges with trend icons: `<Badge variant="outline"><IconTrendingUp />+12.5%</Badge>`
+
+### Data Table Features
+- Drag-and-drop rows (`DraggableRow`, `DragHandle`)
+- Column visibility toggle
+- Row selection with checkboxes
+- Pagination with configurable page size
+- Status indicators (done/in-progress icons)
+- Row action dropdown menus

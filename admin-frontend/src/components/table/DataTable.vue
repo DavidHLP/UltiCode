@@ -2,6 +2,7 @@
 import type {
   ColumnDef,
   ColumnFiltersState,
+  PaginationState,
   SortingState,
   VisibilityState,
 } from '@tanstack/vue-table'
@@ -23,7 +24,7 @@ import {
   useVueTable,
 } from '@tanstack/vue-table'
 import { DragDropProvider } from 'dnd-kit-vue'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -55,6 +56,11 @@ import DraggableRow from './DraggableRow.vue'
 const props = defineProps<{
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
+  pagination?: PaginationState
+}>()
+
+const emit = defineEmits<{
+  'update:pagination': [value: PaginationState]
 }>()
 
 const sorting = ref<SortingState>([])
@@ -89,6 +95,13 @@ const table = useVueTable({
     rowSelection.value =
       typeof updaterOrValue === 'function' ? updaterOrValue(rowSelection.value) : updaterOrValue
   },
+  onPaginationChange: (updaterOrValue) => {
+    const pagination =
+      typeof updaterOrValue === 'function'
+        ? updaterOrValue(table.getState().pagination)
+        : updaterOrValue
+    emit('update:pagination', pagination)
+  },
   state: {
     get sorting() {
       return sorting.value
@@ -102,8 +115,22 @@ const table = useVueTable({
     get rowSelection() {
       return rowSelection.value
     },
+    get pagination() {
+      return props.pagination
+    },
   },
 })
+
+// Watch for external pagination changes
+watch(
+  () => props.pagination,
+  (newPagination) => {
+    if (newPagination) {
+      table.setPagination(newPagination)
+    }
+  },
+  { deep: true },
+)
 </script>
 
 <template>

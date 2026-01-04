@@ -1,12 +1,34 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUsersStore } from '@/stores/admin/users'
-import { useAuthStore } from '@/stores/admin/auth'
+import type { ColumnDef } from '@tanstack/vue-table'
+import {
+  IconBan,
+  IconCheck,
+  IconCircleCheckFilled,
+  IconCircleXFilled,
+  IconDotsVertical,
+  IconLoader,
+  IconPlus,
+  IconRefresh,
+  IconShield,
+  IconUser,
+  IconUsers,
+} from '@tabler/icons-vue'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -14,6 +36,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useUsersStore } from '@/stores/admin/users'
+import { useAuthStore } from '@/stores/admin/auth'
+import type { User } from '@/api/admin/users'
+
+import DataTable from '@/components/table/DataTable.vue'
 
 const router = useRouter()
 const usersStore = useUsersStore()
@@ -22,8 +50,7 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const roleFilter = ref<string>('all')
 const statusFilter = ref<string>('all')
-const page = ref(1)
-const pageSize = ref(20)
+const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
 
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
@@ -40,8 +67,8 @@ async function loadUsers() {
         : statusFilter.value === 'inactive'
           ? false
           : undefined,
-    page: page.value,
-    limit: pageSize.value,
+    page: tablePagination.value.pageIndex + 1,
+    limit: tablePagination.value.pageSize,
   })
 }
 
@@ -74,7 +101,7 @@ async function unbanUser(id: string) {
   }
 }
 
-function getRoleBadgeVariant(role: string) {
+function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (role) {
     case 'SUPER_ADMIN':
       return 'destructive'
@@ -86,32 +113,269 @@ function getRoleBadgeVariant(role: string) {
       return 'outline'
   }
 }
+
+function getStatusIcon(user: User) {
+  if (user.is_banned) {
+    return h(IconCircleXFilled, { class: 'h-4 w-4 text-destructive' })
+  }
+  if (user.is_active) {
+    return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-emerald-500' })
+  }
+  return h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' })
+}
+
+function getStatusBadge(user: User) {
+  if (user.is_banned) {
+    return h(Badge, { variant: 'destructive' }, () => 'Banned')
+  }
+  if (user.is_active) {
+    return h(Badge, { variant: 'default' }, () => 'Active')
+  }
+  return h(Badge, { variant: 'secondary' }, () => 'Inactive')
+}
+
+const columns: ColumnDef<User>[] = [
+  {
+    id: 'select',
+    header: ({ table }) =>
+      h(Checkbox, {
+        modelValue:
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && 'indeterminate'),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
+          table.toggleAllPageRowsSelected(!!value),
+        'aria-label': 'Select all',
+      }),
+    cell: ({ row }) =>
+      h(Checkbox, {
+        modelValue: row.getIsSelected(),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+        'aria-label': 'Select row',
+      }),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: 'username',
+    header: 'User',
+    cell: ({ row }) => {
+      const user = row.original
+      const initials =
+        user.name
+          ?.split(' ')
+          .map((n: string) => n[0])
+          .join('')
+          .toUpperCase()
+          .slice(0, 2) || user.username.slice(0, 2).toUpperCase()
+
+      const displayName = user.name || user.username
+      const displayEmail = user.email ?? user.username
+
+      return h('div', { class: 'flex items-center gap-3' }, [
+        h(
+          Avatar,
+          { class: 'h-9 w-9' },
+          {
+            default: () => [
+              h(AvatarImage, { src: user.avatar ?? '' }),
+              h(AvatarFallback, {}, () => initials),
+            ],
+          },
+        ),
+        h('div', { class: 'flex flex-col' }, [
+          h('span', { class: 'font-medium text-sm' }, displayName),
+          h('span', { class: 'text-muted-foreground text-xs' }, displayEmail),
+        ]),
+      ])
+    },
+  },
+  {
+    accessorKey: 'role',
+    header: 'Role',
+    cell: ({ row }) => {
+      const role = row.getValue('role') as string
+      const icon = role === 'USER' ? IconUser : IconShield
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(icon, { class: 'h-4 w-4 text-muted-foreground' }),
+        h(Badge, { variant: getRoleBadgeVariant(role) }, () => role.replace('_', ' ')),
+      ])
+    },
+  },
+  {
+    accessorKey: 'status',
+    header: 'Status',
+    cell: ({ row }) => {
+      const user = row.original
+      return h('div', { class: 'flex items-center gap-2' }, [
+        getStatusIcon(user),
+        getStatusBadge(user),
+      ])
+    },
+  },
+  {
+    accessorKey: 'joined_at',
+    header: 'Joined',
+    cell: ({ row }) => {
+      const date = new Date(row.getValue('joined_at') as string)
+      return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
+    },
+  },
+  {
+    accessorKey: 'last_login_at',
+    header: 'Last Login',
+    cell: ({ row }) => {
+      const lastLogin = row.getValue('last_login_at') as string | undefined
+      if (!lastLogin) {
+        return h('span', { class: 'text-muted-foreground text-sm' }, 'Never')
+      }
+      const date = new Date(lastLogin)
+      return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
+    },
+  },
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row }) => {
+      const user = row.original
+      return h(
+        DropdownMenu,
+        {},
+        {
+          default: () => [
+            h(
+              DropdownMenuTrigger,
+              { asChild: true },
+              {
+                default: () =>
+                  h(
+                    Button,
+                    { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
+                    {
+                      default: () => [
+                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h(IconDotsVertical, { class: 'h-4 w-4' }),
+                      ],
+                    },
+                  ),
+              },
+            ),
+            h(
+              DropdownMenuContent,
+              { align: 'end' },
+              {
+                default: () => [
+                  h(
+                    DropdownMenuItem,
+                    { onClick: () => viewUser(user.id) },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconUser, { class: 'h-4 w-4' }),
+                          'View Details',
+                        ]),
+                    },
+                  ),
+                  h(
+                    DropdownMenuItem,
+                    { onClick: () => editUser(user.id) },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconShield, { class: 'h-4 w-4' }),
+                          'Edit Permissions',
+                        ]),
+                    },
+                  ),
+                  h(DropdownMenuSeparator, {}),
+                  canModerateUser.value
+                    ? user.is_banned
+                      ? h(
+                          DropdownMenuItem,
+                          { onClick: () => unbanUser(user.id) },
+                          {
+                            default: () =>
+                              h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
+                                h(IconCheck, { class: 'h-4 w-4' }),
+                                'Unban User',
+                              ]),
+                          },
+                        )
+                      : h(
+                          DropdownMenuItem,
+                          { onClick: () => banUser(user.id) },
+                          {
+                            default: () =>
+                              h('div', { class: 'flex items-center gap-2 text-destructive' }, [
+                                h(IconBan, { class: 'h-4 w-4' }),
+                                'Ban User',
+                              ]),
+                          },
+                        )
+                    : null,
+                ],
+              },
+            ),
+          ],
+        },
+      )
+    },
+  },
+]
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">Users</h1>
-        <p class="text-muted-foreground">Manage users and their permissions</p>
-      </div>
-      <Button v-if="canCreateUser" @click="router.push({ name: 'user-create' })">
-        Create User
-      </Button>
+  <Tabs default-value="all-users" class="w-full flex-col justify-start gap-6">
+    <div class="flex items-center justify-between px-4 lg:px-6">
+      <Label for="view-selector" class="sr-only">View</Label>
+      <Select default-value="all-users">
+        <SelectTrigger id="view-selector" class="flex w-fit @4xl/main:hidden" size="sm">
+          <SelectValue placeholder="Select a view" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all-users">All Users</SelectItem>
+          <SelectItem value="active">Active</SelectItem>
+          <SelectItem value="inactive">Inactive</SelectItem>
+          <SelectItem value="banned">Banned</SelectItem>
+        </SelectContent>
+      </Select>
+      <TabsList
+        class="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex"
+      >
+        <TabsTrigger value="all-users">
+          All Users <Badge variant="secondary">{{ usersStore.users.length }}</Badge>
+        </TabsTrigger>
+        <TabsTrigger value="active">Active</TabsTrigger>
+        <TabsTrigger value="inactive">Inactive</TabsTrigger>
+        <TabsTrigger value="banned">Banned</TabsTrigger>
+      </TabsList>
     </div>
 
-    <Card>
-      <CardHeader>
-        <div class="flex items-center gap-4">
+    <TabsContent value="all-users" class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+      <DataTable
+        :columns="columns"
+        :data="usersStore.users"
+        @update:pagination="tablePagination = $event"
+      >
+        <template #toolbar-left>
           <Input
             v-model="searchQuery"
             placeholder="Search users..."
-            class="max-w-sm"
+            class="min-w-[200px] w-[260px]"
             @keyup.enter="loadUsers()"
-          />
+          >
+            <template #trailing>
+              <button
+                v-if="searchQuery"
+                @click="searchQuery = ''"
+                class="rounded-sm opacity-70 hover:opacity-100"
+              >
+                <IconCircleXFilled class="h-4 w-4" />
+              </button>
+            </template>
+          </Input>
           <Select v-model="roleFilter" @update:model-value="loadUsers()">
-            <SelectTrigger class="w-[180px]">
-              <SelectValue placeholder="Filter by role" />
+            <SelectTrigger class="w-[160px]">
+              <SelectValue placeholder="All Roles" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Roles</SelectItem>
@@ -122,8 +386,8 @@ function getRoleBadgeVariant(role: string) {
             </SelectContent>
           </Select>
           <Select v-model="statusFilter" @update:model-value="loadUsers()">
-            <SelectTrigger class="w-[180px]">
-              <SelectValue placeholder="Filter by status" />
+            <SelectTrigger class="w-[140px]">
+              <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
@@ -131,100 +395,75 @@ function getRoleBadgeVariant(role: string) {
               <SelectItem value="inactive">Inactive</SelectItem>
             </SelectContent>
           </Select>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div v-if="usersStore.loading" class="text-center py-8">Loading...</div>
+          <Button variant="outline" size="icon" @click="loadUsers()" title="Refresh">
+            <IconRefresh class="h-4 w-4" />
+          </Button>
+        </template>
 
-        <div v-else-if="usersStore.error" class="text-center py-8 text-red-600">
-          {{ usersStore.error }}
-        </div>
-
-        <div v-else class="space-y-4">
+        <template #extra-actions>
           <div
-            v-for="user in usersStore.users"
-            :key="user.id"
-            class="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50"
+            v-if="usersStore.loading"
+            class="flex items-center gap-2 text-sm text-muted-foreground"
           >
-            <div class="flex items-center gap-4">
-              <img
-                v-if="user.avatar"
-                :src="user.avatar"
-                :alt="user.name"
-                class="w-10 h-10 rounded-full"
-              />
-              <div class="flex-1 space-y-1">
-                <p class="text-sm font-medium leading-none">
-                  {{ user.name || user.username }}
-                </p>
-                <p class="text-sm text-muted-foreground">
-                  {{ user.email || user.username }}
-                </p>
-              </div>
-            </div>
-
-            <div class="flex items-center gap-4">
-              <Badge :variant="getRoleBadgeVariant(user.role)">
-                {{ user.role }}
-              </Badge>
-              <Badge v-if="user.is_banned" variant="destructive"> Banned </Badge>
-              <Badge v-else-if="!user.is_active" variant="secondary"> Inactive </Badge>
-              <Badge v-else variant="default"> Active </Badge>
-            </div>
-
-            <div class="flex items-center gap-2">
-              <Button size="sm" variant="ghost" @click="viewUser(user.id)"> View </Button>
-              <Button size="sm" variant="ghost" @click="editUser(user.id)"> Edit </Button>
-              <Button
-                v-if="canModerateUser"
-                size="sm"
-                :variant="user.is_banned ? 'default' : 'destructive'"
-                @click="user.is_banned ? unbanUser(user.id) : banUser(user.id)"
-              >
-                {{ user.is_banned ? 'Unban' : 'Ban' }}
-              </Button>
-            </div>
+            <IconLoader class="h-4 w-4 animate-spin" />
+            Loading...
           </div>
+          <Button
+            v-else-if="canCreateUser"
+            variant="outline"
+            size="sm"
+            @click="router.push({ name: 'user-create' })"
+          >
+            <IconPlus />
+            <span class="hidden lg:inline">Add User</span>
+          </Button>
+        </template>
+      </DataTable>
 
-          <div v-if="usersStore.users.length === 0" class="text-center py-8 text-muted-foreground">
-            No users found
-          </div>
+      <!-- Error state -->
+      <div
+        v-if="usersStore.error"
+        class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+      >
+        <span class="text-destructive">{{ usersStore.error }}</span>
+        <Button variant="outline" size="sm" @click="loadUsers()">Retry</Button>
+      </div>
 
-          <div class="flex items-center justify-between pt-4 border-t">
-            <p class="text-sm text-muted-foreground">
-              Showing {{ usersStore.users.length }} of {{ usersStore.total }} users
-            </p>
-            <div class="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                :disabled="page === 1"
-                @click="
-                  () => {
-                    page--
-                    loadUsers()
-                  }
-                "
-              >
-                Previous
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                :disabled="page * pageSize >= usersStore.total"
-                @click="
-                  () => {
-                    page++
-                    loadUsers()
-                  }
-                "
-              >
-                Next
-              </Button>
-            </div>
-          </div>
+      <!-- Empty state -->
+      <div
+        v-if="!usersStore.loading && usersStore.users.length === 0"
+        class="flex flex-col items-center justify-center py-12 text-center"
+      >
+        <div
+          class="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground"
+        >
+          <IconUsers class="h-8 w-8" />
         </div>
-      </CardContent>
-    </Card>
-  </div>
+        <h3 class="mt-4 text-lg font-semibold">No users found</h3>
+        <p class="text-muted-foreground">
+          {{
+            searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
+              ? 'Try adjusting your filters'
+              : 'Get started by creating a new user'
+          }}
+        </p>
+        <Button v-if="canCreateUser" class="mt-4" @click="router.push({ name: 'user-create' })">
+          <IconPlus class="mr-2 h-4 w-4" />
+          Create User
+        </Button>
+      </div>
+    </TabsContent>
+
+    <TabsContent value="active" class="flex flex-col px-4 lg:px-6">
+      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
+    </TabsContent>
+
+    <TabsContent value="inactive" class="flex flex-col px-4 lg:px-6">
+      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
+    </TabsContent>
+
+    <TabsContent value="banned" class="flex flex-col px-4 lg:px-6">
+      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
+    </TabsContent>
+  </Tabs>
 </template>

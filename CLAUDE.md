@@ -5,6 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Project Overview
 
 UltiCode is a competitive programming platform with problem-solving, contests, rankings, forums, and solution sharing. It's a monorepo with three apps:
+
 - **backend/**: NestJS API server (TypeScript, Prisma ORM, MySQL)
 - **frontend/**: Public Vue 3 app (Vite, Tailwind CSS, Pinia)
 - **admin-frontend/**: Admin Vue 3 app
@@ -12,6 +13,7 @@ UltiCode is a competitive programming platform with problem-solving, contests, r
 ## Common Commands
 
 ### Development
+
 ```bash
 npm install                    # Install all dependencies (Node 20+)
 npm run dev                    # Start frontend (5173) + backend (3000)
@@ -20,16 +22,19 @@ npm run dev:backend            # Backend only (runs prisma generate, lint, type-
 ```
 
 ### Database
+
 ```bash
 npm run prisma:migrate --prefix backend   # Create/apply migrations
 npm run prisma:generate --prefix backend  # Regenerate Prisma client
 npm run db:reset --prefix backend         # Reset DB with migrations (force)
 npm run db:seed --prefix backend          # Seed test data
 ```
+
 - Configure `DATABASE_URL` in `backend/.env`
 - Default test user: `shadcn` / `password123`
 
 ### Quality
+
 ```bash
 npm run lint                   # Lint both apps (ESLint --fix)
 npm run format                 # Format both apps (Prettier)
@@ -39,6 +44,7 @@ npm run type-check:frontend    # Frontend: vue-tsc --build
 ```
 
 ### Testing
+
 ```bash
 npm run test --prefix backend      # Jest unit tests
 npm run test:cov --prefix backend  # Jest with coverage
@@ -48,6 +54,7 @@ npm run test:watch --prefix frontend  # Vitest watch mode
 ```
 
 ### Build
+
 ```bash
 npm run build --prefix backend     # NestJS build → dist/
 npm run build --prefix frontend    # Vite build → dist/
@@ -57,7 +64,9 @@ npm start                          # Run production (both apps)
 ## Architecture
 
 ### Backend Structure (`backend/src/`)
+
 NestJS modular architecture with standard file naming:
+
 - `*.module.ts` - Module definitions
 - `*.controller.ts` - HTTP route handlers
 - `*.service.ts` - Business logic
@@ -69,7 +78,9 @@ Key modules: `auth/`, `problem/`, `contest/`, `submission/`, `solution/`, `forum
 Authentication: JWT tokens (7-day expiry), SHA-256 password hashing
 
 ### Frontend Structure (`frontend/src/`)
+
 Vue 3 Composition API with `<script setup lang="ts">`:
+
 - `views/` - Page components by feature (auth, contest, forum, problems, personal)
 - `components/` - Reusable components (ui/ has shadcn-vue base components)
 - `stores/` - Pinia state management
@@ -80,6 +91,7 @@ Vue 3 Composition API with `<script setup lang="ts">`:
 Path alias: `@/` maps to `frontend/src/`
 
 ### Database Schema (`backend/prisma/schema.prisma`)
+
 Core entities: User, Problem, Contest, Submission, Solution, ForumPost, GlobalRanking, ContestRanking, Notification, ProblemList, Bookmark, VirtualContestSession, Translation
 
 Seeds in `backend/prisma/seed/`
@@ -98,6 +110,7 @@ Seeds in `backend/prisma/seed/`
 The admin frontend (`admin-frontend/src/template/`) follows a dashboard design pattern with these key elements:
 
 ### Layout Structure
+
 ```
 SidebarProvider (CSS variables: --sidebar-width, --header-height)
 ├── AppSidebar (collapsible="offcanvas")
@@ -110,6 +123,7 @@ SidebarProvider (CSS variables: --sidebar-width, --header-height)
 ```
 
 ### Component Library
+
 - **UI Components**: shadcn-vue (Button, Card, Badge, Avatar, Select, Table, Tabs, etc.)
 - **Icons**: `@tabler/icons-vue` (IconDashboard, IconChartBar, IconUsers, etc.)
 - **Data Table**: `@tanstack/vue-table` with sorting, filtering, pagination
@@ -118,6 +132,7 @@ SidebarProvider (CSS variables: --sidebar-width, --header-height)
 - **Validation**: `zod` for schema validation
 
 ### Card Component Pattern
+
 ```vue
 <Card class="@container/card">
   <CardHeader>
@@ -135,12 +150,14 @@ SidebarProvider (CSS variables: --sidebar-width, --header-height)
 ```
 
 ### Responsive Design
+
 - Container queries: `@container/main`, `@container/card`, `@xl/main`, `@5xl/main`
 - Responsive padding: `px-4 lg:px-6`
 - Grid layouts: `grid-cols-1 @xl/main:grid-cols-2 @5xl/main:grid-cols-4`
 - Mobile detection: `useSidebar().isMobile` for conditional rendering
 
 ### Styling Patterns
+
 - Gradient cards: `bg-gradient-to-t from-primary/5 to-card`
 - Data attributes: `data-[state=open]:bg-sidebar-accent`, `data-[slot=card]:shadow-xs`
 - Muted text: `text-muted-foreground`
@@ -148,12 +165,14 @@ SidebarProvider (CSS variables: --sidebar-width, --header-height)
 - Truncation: `truncate`, `line-clamp-1`
 
 ### Navigation Structure
+
 - **NavMain**: Primary actions with Quick Create button + main menu items
 - **NavDocuments**: Document links with hover actions (Open, Share, Delete)
 - **NavSecondary**: Settings, Help, Search (pushed to bottom with `mt-auto`)
 - **NavUser**: User avatar, dropdown menu with Account, Billing, Notifications, Logout
 
 ### Data Table Features
+
 - Drag-and-drop row reordering with DraggableRow/DragHandle
 - Column visibility toggle dropdown
 - Row selection with checkboxes
@@ -166,3 +185,14 @@ SidebarProvider (CSS variables: --sidebar-width, --header-height)
 Conventional Commits: `feat(scope): message`, `fix(scope): message`, `docs:`, `refactor:`, `test:`
 
 Include Prisma migration files when changing schema.
+
+### Quality Workflow
+
+After completing a task, you **MUST** run:
+
+1. `npm run type-check`
+2. `npm run lint`
+3. `npm run format`
+
+Only commit or mark the task as complete if there are no errors.
+- **Commit Scope**: You are only allowed to commit files that you have modified yourself.

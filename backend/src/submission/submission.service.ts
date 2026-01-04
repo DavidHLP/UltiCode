@@ -216,7 +216,7 @@ export class SubmissionService {
     }
   }
 
-  async findOne(id: string): Promise<Submission> {
+  async findOne(id: string, userId?: string): Promise<Submission> {
     const submission = await this.prisma.submission.findUnique({
       where: { id },
       include: {
@@ -231,6 +231,11 @@ export class SubmissionService {
     });
 
     if (!submission) {
+      throw new NotFoundException(`Submission with ID ${id} not found`);
+    }
+
+    // Validate ownership: user can only view their own submissions
+    if (userId && submission.user_id !== userId) {
       throw new NotFoundException(`Submission with ID ${id} not found`);
     }
 

@@ -1,16 +1,25 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
 import {
-  IconDashboard,
-  IconUsers,
-  IconFileText,
-  IconTrophy,
-  IconMessage,
+  IconCamera,
   IconChartBar,
+  IconDashboard,
+  IconDatabase,
+  IconFileAi,
+  IconFileDescription,
+  IconFolder,
+  IconHelp,
+  IconInnerShadowTop,
+  IconListDetails,
+  IconReport,
+  IconSearch,
+  IconSettings,
+  IconUsers,
 } from '@tabler/icons-vue'
-import { useAuthStore } from '@/stores/admin/auth'
-import NavUser from '@/template/dashboard/NavUser.vue'
+
+import NavDocuments from './NavDocuments.vue'
+import NavMain from './NavMain.vue'
+import NavSecondary from './NavSecondary.vue'
+import NavUser from './NavUser.vue'
 import {
   Sidebar,
   SidebarContent,
@@ -21,105 +30,145 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 
-const router = useRouter()
-const authStore = useAuthStore()
-
-// Compute navigation items based on user permissions
-const navItems = computed(() => {
-  const items = [
+const data = {
+  user: {
+    name: 'shadcn',
+    email: 'm@example.com',
+    avatar: '/avatars/shadcn.jpg',
+  },
+  navMain: [
     {
       title: 'Dashboard',
-      url: '/',
+      url: '#',
       icon: IconDashboard,
-      show: true,
     },
-  ]
-
-  if (authStore.hasPermission('READ', 'USER')) {
-    items.push({
-      title: 'Users',
-      url: '/users',
-      icon: IconUsers,
-      show: true,
-    })
-  }
-
-  if (authStore.hasPermission('READ', 'PROBLEM')) {
-    items.push({
-      title: 'Problems',
-      url: '/problems',
-      icon: IconFileText,
-      show: true,
-    })
-  }
-
-  if (authStore.hasPermission('READ', 'CONTEST')) {
-    items.push({
-      title: 'Contests',
-      url: '/contests',
-      icon: IconTrophy,
-      show: true,
-    })
-  }
-
-  if (
-    authStore.hasPermission('MODERATE', 'SOLUTION') ||
-    authStore.hasPermission('MODERATE', 'FORUM_POST')
-  ) {
-    items.push({
-      title: 'Moderation',
-      url: '/moderation',
-      icon: IconMessage,
-      show: true,
-    })
-  }
-
-  if (authStore.hasPermission('READ', 'SYSTEM')) {
-    items.push({
-      title: 'Audit Logs',
-      url: '/audit',
+    {
+      title: 'Lifecycle',
+      url: '#',
+      icon: IconListDetails,
+    },
+    {
+      title: 'Analytics',
+      url: '#',
       icon: IconChartBar,
-      show: true,
-    })
-  }
-
-  return items
-})
-
-function navigate(url: string) {
-  router.push(url)
+    },
+    {
+      title: 'Projects',
+      url: '#',
+      icon: IconFolder,
+    },
+    {
+      title: 'Team',
+      url: '#',
+      icon: IconUsers,
+    },
+  ],
+  navClouds: [
+    {
+      title: 'Capture',
+      icon: IconCamera,
+      isActive: true,
+      url: '#',
+      items: [
+        {
+          title: 'Active Proposals',
+          url: '#',
+        },
+        {
+          title: 'Archived',
+          url: '#',
+        },
+      ],
+    },
+    {
+      title: 'Proposal',
+      icon: IconFileDescription,
+      url: '#',
+      items: [
+        {
+          title: 'Active Proposals',
+          url: '#',
+        },
+        {
+          title: 'Archived',
+          url: '#',
+        },
+      ],
+    },
+    {
+      title: 'Prompts',
+      icon: IconFileAi,
+      url: '#',
+      items: [
+        {
+          title: 'Active Proposals',
+          url: '#',
+        },
+        {
+          title: 'Archived',
+          url: '#',
+        },
+      ],
+    },
+  ],
+  navSecondary: [
+    {
+      title: 'Settings',
+      url: '#',
+      icon: IconSettings,
+    },
+    {
+      title: 'Get Help',
+      url: '#',
+      icon: IconHelp,
+    },
+    {
+      title: 'Search',
+      url: '#',
+      icon: IconSearch,
+    },
+  ],
+  documents: [
+    {
+      name: 'Data Library',
+      url: '#',
+      icon: IconDatabase,
+    },
+    {
+      name: 'Reports',
+      url: '#',
+      icon: IconReport,
+    },
+    {
+      name: 'Word Assistant',
+      url: '#',
+      icon: IconFileDescription,
+    },
+  ],
 }
 </script>
 
 <template>
   <Sidebar collapsible="offcanvas">
     <SidebarHeader>
-      <SidebarMenuButton size="lg" @click="navigate('/')">
-        <div
-          class="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground"
-        >
-          <span class="text-xl font-bold">UC</span>
-        </div>
-        <div class="flex flex-col gap-0.5 leading-none">
-          <h1 class="font-semibold">UltiCode Admin</h1>
-          <p class="text-xs">Management Panel</p>
-        </div>
-      </SidebarMenuButton>
-    </SidebarHeader>
-
-    <SidebarContent>
       <SidebarMenu>
-        <SidebarMenuItem v-for="item in navItems" :key="item.title">
-          <SidebarMenuButton @click="navigate(item.url)">
-            <component :is="item.icon" />
-            <span>{{ item.title }}</span>
+        <SidebarMenuItem>
+          <SidebarMenuButton as-child class="data-[slot=sidebar-menu-button]:!p-1.5">
+            <a href="#">
+              <IconInnerShadowTop class="!size-5" />
+              <span class="text-base font-semibold">Acme Inc.</span>
+            </a>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>
+    </SidebarHeader>
+    <SidebarContent>
+      <NavMain :items="data.navMain" />
+      <NavDocuments :items="data.documents" />
+      <NavSecondary :items="data.navSecondary" class="mt-auto" />
     </SidebarContent>
-
     <SidebarFooter>
-      <NavUser v-if="authStore.user" :user="authStore.user" />
+      <NavUser :user="data.user" />
     </SidebarFooter>
   </Sidebar>
 </template>

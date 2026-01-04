@@ -9,6 +9,7 @@ import {
   IsInt,
   Min,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 import { UserRole } from '../../user/user.entity';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 
@@ -142,11 +143,13 @@ export class UserQueryDto {
   @IsOptional()
   is_banned?: boolean;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @IsOptional()
   page?: number = 1;
 
+  @Type(() => Number)
   @IsInt()
   @Min(1)
   @IsOptional()

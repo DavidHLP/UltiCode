@@ -1,0 +1,89 @@
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+import {
+  auditApi,
+  type AuditLog,
+  type AuditLogQueryParams,
+  type AuditStats,
+} from '@/api/admin/audit'
+
+export const useAuditStore = defineStore('adminAudit', () => {
+  const logs = ref<AuditLog[]>([])
+  const total = ref(0)
+  const stats = ref<AuditStats | null>(null)
+  const loading = ref(false)
+  const error = ref<string | null>(null)
+
+  async function fetchLogs(params: AuditLogQueryParams = {}) {
+    loading.value = true
+    error.value = null
+    try {
+      const response = await auditApi.getAuditLogs(params)
+      logs.value = response.logs
+      total.value = response.total
+      return response
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to fetch audit logs'
+      console.error('Failed to fetch audit logs:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchStats(params?: {
+    startDate?: string
+    endDate?: string
+    performerId?: string
+  }) {
+    loading.value = true
+    error.value = null
+    try {
+      const data = await auditApi.getAuditStats(params)
+      stats.value = data
+      return data
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to fetch audit stats'
+      console.error('Failed to fetch audit stats:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function exportLogs(params: AuditLogQueryParams & { format?: 'csv' | 'json' }) {
+    loading.value = true
+    error.value = null
+    try {
+      await auditApi.exportAuditLogs(params)
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to export audit logs'
+      console.error('Failed to export audit logs:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  function clearError() {
+    error.value = null
+  }
+
+  return {
+    logs,
+    total,
+    stats,
+    loading,
+    error,
+    fetchLogs,
+    fetchStats,
+    exportLogs,
+    clearError,
+  }
+})

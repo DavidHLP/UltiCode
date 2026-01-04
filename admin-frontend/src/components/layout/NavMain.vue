@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Component } from 'vue'
+import { useRouter } from 'vue-router'
 import { IconCirclePlusFilled, IconMail } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
@@ -22,6 +23,12 @@ defineProps<{
   quickCreateLabel?: string
   quickCreateIcon?: Component
 }>()
+
+const router = useRouter()
+
+function navigate(url: string) {
+  router.push(url)
+}
 </script>
 
 <template>
@@ -50,7 +57,7 @@ defineProps<{
       </SidebarMenu>
       <SidebarMenu>
         <SidebarMenuItem v-for="item in items" :key="item.title">
-          <SidebarMenuButton :tooltip="item.title">
+          <SidebarMenuButton :tooltip="item.title" @click="navigate(item.url)">
             <component :is="item.icon" v-if="item.icon" />
             <span>{{ item.title }}</span>
           </SidebarMenuButton>

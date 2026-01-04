@@ -1,12 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { useAuthStore } from '@/stores/admin/auth'
 import {
   IconCamera,
-  IconChartBar,
   IconDashboard,
   IconDatabase,
   IconFileAi,
   IconFileDescription,
-  IconFolder,
   IconHelp,
   IconInnerShadowTop,
   IconListDetails,
@@ -14,6 +14,7 @@ import {
   IconSearch,
   IconSettings,
   IconUsers,
+  IconHistory,
 } from '@tabler/icons-vue'
 
 import NavDocuments from './NavDocuments.vue'
@@ -30,39 +31,50 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 
-const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
-  navMain: [
+const authStore = useAuthStore()
+
+const user = computed(() => ({
+  name: authStore.user?.name || 'Admin',
+  email: authStore.user?.email || 'admin@ulticode.com',
+  avatar: authStore.user?.avatar || '/avatars/default.jpg',
+}))
+
+const navMain = computed(() => {
+  const items = [
     {
       title: 'Dashboard',
-      url: '#',
+      url: '/',
       icon: IconDashboard,
     },
     {
-      title: 'Lifecycle',
-      url: '#',
-      icon: IconListDetails,
-    },
-    {
-      title: 'Analytics',
-      url: '#',
-      icon: IconChartBar,
-    },
-    {
-      title: 'Projects',
-      url: '#',
-      icon: IconFolder,
-    },
-    {
-      title: 'Team',
-      url: '#',
+      title: 'Users',
+      url: '/users',
       icon: IconUsers,
     },
-  ],
+  ]
+
+  // Add Problems if user has permission
+  if (authStore.hasPermission('READ', 'PROBLEM')) {
+    items.push({
+      title: 'Problems',
+      url: '/problems',
+      icon: IconListDetails,
+    })
+  }
+
+  // Add Audit Logs only if user has permission
+  if (authStore.hasPermission('READ', 'SYSTEM')) {
+    items.push({
+      title: 'Audit Logs',
+      url: '/audit',
+      icon: IconHistory,
+    })
+  }
+
+  return items
+})
+
+const data = {
   navClouds: [
     {
       title: 'Capture',
@@ -163,12 +175,12 @@ const data = {
       </SidebarMenu>
     </SidebarHeader>
     <SidebarContent>
-      <NavMain :items="data.navMain" />
+      <NavMain :items="navMain" />
       <NavDocuments :items="data.documents" />
       <NavSecondary :items="data.navSecondary" class="mt-auto" />
     </SidebarContent>
     <SidebarFooter>
-      <NavUser :user="data.user" />
+      <NavUser :user="user" />
     </SidebarFooter>
   </Sidebar>
 </template>

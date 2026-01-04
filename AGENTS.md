@@ -36,6 +36,7 @@
 - PRs should include a concise summary, testing notes, and screenshots for UI changes.
 - **Workflow Requirement**: After completing a task, you **MUST** run `npm run type-check`, `npm run lint`, and `npm run format`. You may only commit or consider the task complete if there are no errors.
 - **Commit Scope**: You are only allowed to commit files that you have modified yourself.
+- **Agent Commit Requirement**: All agents **MUST** create a git commit after completing their assigned tasks. This ensures work is properly saved and versioned before marking tasks as complete.
 - Call out Prisma schema/migration changes and include generated migration files.
 
 ## Configuration & Database

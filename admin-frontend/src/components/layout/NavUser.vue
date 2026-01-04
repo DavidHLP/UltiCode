@@ -7,6 +7,8 @@ import {
   IconUserCircle,
 } from '@tabler/icons-vue'
 
+import { useRouter } from 'vue-router'
+import { useAuthStore } from '@/stores/admin/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -35,6 +37,13 @@ defineProps<{
 }>()
 
 const { isMobile } = useSidebar()
+const router = useRouter()
+const authStore = useAuthStore()
+
+async function handleLogout() {
+  await authStore.logout()
+  await router.push('/login')
+}
 </script>
 
 <template>
@@ -95,7 +104,7 @@ const { isMobile } = useSidebar()
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem>
+          <DropdownMenuItem @click="handleLogout">
             <IconLogout />
             Log out
           </DropdownMenuItem>

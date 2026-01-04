@@ -16,7 +16,7 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
-    "@dnd-kit/abstract": "^0.2.1",
+    "@dnd-kit/abstract": "^0.1.21",
     "@dnd-kit/modifiers": "^9.0.0",
     "@tabler/icons-vue": "^3.36.1",
     "@tailwindcss/vite": "^4.1.18",

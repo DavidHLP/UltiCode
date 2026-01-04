@@ -1,10 +1,6 @@
-<script lang="ts">
-export const description = 'A two column login page with a cover image.'
-</script>
-
 <script setup lang="ts">
 import { GalleryVerticalEnd } from 'lucide-vue-next'
-import LoginForm from '@/template/login/LoginForm.vue'
+import SignupForm from '@/views/auth/components/SignupForm.vue'
 </script>
 
 <template>
@@ -17,12 +13,12 @@ import LoginForm from '@/template/login/LoginForm.vue'
           >
             <GalleryVerticalEnd class="size-4" />
           </div>
-          Acme Inc.
+          UltiCode Admin
         </a>
       </div>
       <div class="flex flex-1 items-center justify-center">
-        <div class="w-full max-w-xs">
-          <LoginForm />
+        <div class="w-full max-w-sm">
+          <SignupForm />
         </div>
       </div>
     </div>

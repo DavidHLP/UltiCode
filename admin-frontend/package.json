@@ -7,7 +7,7 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run lint && npm run type-check && npm run format && vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
@@ -16,6 +16,8 @@
     "format": "prettier --write --experimental-cli src/"
   },
   "dependencies": {
+    "@dnd-kit/abstract": "^0.2.1",
+    "@dnd-kit/modifiers": "^9.0.0",
     "@tabler/icons-vue": "^3.36.1",
     "@tailwindcss/vite": "^4.1.18",
     "@tanstack/vue-table": "^8.21.3",
@@ -23,8 +25,10 @@
     "@unovis/vue": "^1.6.2",
     "@vee-validate/zod": "^4.15.1",
     "@vueuse/core": "^14.1.0",
+    "axios": "^1.13.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dnd-kit-vue": "^0.0.2",
     "embla-carousel-vue": "^8.6.0",
     "lucide-vue-next": "^0.562.0",
     "pinia": "^3.0.4",

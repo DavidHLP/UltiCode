@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ref, computed } from 'vue'
 import type { ChartConfig } from '@/components/ui/chart'
 
 // import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
@@ -19,8 +20,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-
-const description = 'An interactive area chart'
 
 const chartData = [
   { date: new Date('2024-04-01'), desktop: 222, mobile: 150 },

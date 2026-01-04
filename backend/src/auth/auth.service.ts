@@ -13,6 +13,7 @@ export interface LoginResponse {
     id: string;
     username: string;
     name: string;
+    role: string;
   };
 }
 
@@ -40,8 +41,12 @@ export class AuthService {
   /**
    * 生成 JWT Token
    */
-  private generateToken(userId: string, username: string): string {
-    const payload = { sub: userId, username };
+  private generateToken(
+    userId: string,
+    username: string,
+    role: string,
+  ): string {
+    const payload = { sub: userId, username, role };
     return this.jwtService.sign(payload);
   }
 
@@ -64,7 +69,7 @@ export class AuthService {
     }
 
     // 生成 JWT token
-    const token = this.generateToken(user.id, user.username);
+    const token = this.generateToken(user.id, user.username, user.role);
 
     return {
       access_token: token,
@@ -72,6 +77,7 @@ export class AuthService {
         id: user.id,
         username: user.username,
         name: user.name || user.username,
+        role: user.role,
       },
     };
   }
@@ -115,7 +121,11 @@ export class AuthService {
     });
 
     // 自动登录
-    const token = this.generateToken(newUser.id, newUser.username);
+    const token = this.generateToken(
+      newUser.id,
+      newUser.username,
+      newUser.role,
+    );
 
     return {
       access_token: token,
@@ -123,6 +133,7 @@ export class AuthService {
         id: newUser.id,
         username: newUser.username,
         name: newUser.name || newUser.username,
+        role: newUser.role,
       },
     };
   }
@@ -178,7 +189,7 @@ export class AuthService {
       });
     }
 
-    const token = this.generateToken(user.id, user.username);
+    const token = this.generateToken(user.id, user.username, user.role);
 
     // 重定向到前端并携带 token
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';

@@ -177,3 +177,7 @@ SidebarProvider
 *   Tabular numbers: `tabular-nums`
 *   Text truncation: `truncate`, `line-clamp-1`
 *   Shadow: `shadow-xs` for subtle elevation
+
+## Recent Fixes
+- **Backend Build**: Fixed TypeScript linting errors in `admin` module (controllers, guards, decorators, services).
+- **Backend DI**: Fixed `UnknownDependenciesException` for `PermissionService` by adding `PrismaService` to `AdminModule` providers.

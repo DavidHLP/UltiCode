@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { Component } from "vue"
-import { IconCirclePlusFilled, IconMail } from "@tabler/icons-vue"
+import type { Component } from 'vue'
+import { IconCirclePlusFilled, IconMail } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import {

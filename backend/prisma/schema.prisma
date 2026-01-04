@@ -22,6 +22,14 @@ model User {
   twitter               String?                 @db.VarChar(255)
   website               String?                 @db.VarChar(255)
   preferred_language    String?                 @db.VarChar(50)
+  role                  UserRole                @default(USER)
+  is_active             Boolean                 @default(true)
+  is_banned             Boolean                 @default(false)
+  banned_until          DateTime?
+  banned_reason         String?                 @db.Text
+  last_login_at         DateTime?
+  created_by            String?                 @db.VarChar(40)
+  updated_by            String?                 @db.VarChar(40)
   bookmarkFolders       BookmarkFolder[]
   contestParticipants   ContestParticipant[]
   contestProblemResults ContestProblemResult[]
@@ -36,7 +44,12 @@ model User {
   virtualSessions       VirtualContestSession[]
   notifications         Notification[]
   notificationPreference NotificationPreference?
+  permissions           UserPermission[]
+  auditLogs             AuditLog[]              @relation("AuditLogUser")
+  performedAudits       AuditLog[]              @relation("AuditLogPerformer")
 
+  @@index([role])
+  @@index([is_active, is_banned])
   @@map("users")
 }
 
@@ -50,6 +63,12 @@ model Problem {
   is_premium           Boolean                      @default(false)
   has_solution         Boolean                      @default(false)
   completed_time       DateTime?                    @db.Date
+  is_published         Boolean                      @default(true)
+  published_at         DateTime?
+  published_by         String?                      @db.VarChar(40)
+  is_deleted           Boolean                      @default(false)
+  deleted_at           DateTime?
+  deleted_by           String?                      @db.VarChar(40)
   contestProblems      ContestProblem[]
   detail               ProblemDetail?
   examples             ProblemExample[]
@@ -148,6 +167,9 @@ model Contest {
   is_visible         Boolean                @default(true)
   rules              String?                @db.Text
   updated_at         DateTime               @updatedAt
+  is_deleted         Boolean                @default(false)
+  deleted_at         DateTime?
+  deleted_by         String?                @db.VarChar(40)
   participants       ContestParticipant[]
   problemResults     ContestProblemResult[]
   problems           ContestProblem[]
@@ -419,6 +441,12 @@ model ForumPost {
   created_at     DateTime
   stats          Json?
   views          Int                    @default(0)
+  is_flagged     Boolean                @default(false)
+  flagged_reason String?                @db.Text
+  flagged_at     DateTime?
+  is_deleted     Boolean                @default(false)
+  deleted_at     DateTime?
+  deleted_by     String?                @db.VarChar(40)
   comments       ForumComment[]
   tag_relations  ForumPostTagRelation[]
   community      ForumCommunity         @relation(fields: [community_id], references: [id], onDelete: Cascade)
@@ -618,11 +646,20 @@ model Solution {
   summary    String?           @db.Text
   language   String            @db.VarChar(50)
   tags       Json?
-  views      Int               @default(0)
-  created_at DateTime          @default(now())
-  updated_at DateTime          @updatedAt
-  comments   SolutionComment[]
-  problem    Problem           @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  views        Int               @default(0)
+  created_at   DateTime          @default(now())
+  updated_at   DateTime          @updatedAt
+  is_published Boolean           @default(true)
+  published_at DateTime?
+  published_by String?           @db.VarChar(40)
+  is_flagged   Boolean           @default(false)
+  flagged_reason String?         @db.Text
+  flagged_at   DateTime?
+  is_deleted   Boolean           @default(false)
+  deleted_at   DateTime?
+  deleted_by   String?           @db.VarChar(40)
+  comments     SolutionComment[]
+  problem      Problem           @relation(fields: [problem_id], references: [id], onDelete: Cascade)
   author     User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([problem_id], map: "solutions_problem_id_fkey")
@@ -868,6 +905,34 @@ enum ViewTargetType {
   FORUM_POST
 }
 
+enum UserRole {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  MODERATE
+  PUBLISH
+  MANAGE_USERS
+  MANAGE_PERMISSIONS
+}
+
+enum PermissionResource {
+  USER
+  PROBLEM
+  CONTEST
+  SOLUTION
+  FORUM_POST
+  FORUM_COMMENT
+  SYSTEM
+}
+
 // ============================================================================
 // I18N - Translation Table
 // ============================================================================
@@ -886,4 +951,58 @@ model Translation {
   @@index([entity_type, entity_id, locale])
   @@index([locale])
   @@map("translations")
+}
+
+// ============================================================================
+// Admin - Permission & Audit System
+// ============================================================================
+
+model UserPermission {
+  id          String             @id @default(uuid()) @db.VarChar(40)
+  user_id     String             @db.VarChar(40)
+  action      PermissionAction
+  resource    PermissionResource
+  granted_by  String             @db.VarChar(40)
+  granted_at  DateTime           @default(now())
+  expires_at  DateTime?
+  user        User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, action, resource])
+  @@index([user_id])
+  @@map("user_permissions")
+}
+
+model RolePermission {
+  id          String             @id @default(uuid()) @db.VarChar(40)
+  role        UserRole
+  action      PermissionAction
+  resource    PermissionResource
+  created_at  DateTime           @default(now())
+
+  @@unique([role, action, resource])
+  @@index([role])
+  @@map("role_permissions")
+}
+
+model AuditLog {
+  id            String          @id @default(uuid()) @db.VarChar(40)
+  performer_id  String          @db.VarChar(40)
+  user_id       String?         @db.VarChar(40)
+  action        String          @db.VarChar(100)
+  entity_type   String          @db.VarChar(50)
+  entity_id     String          @db.VarChar(50)
+  old_values    Json?
+  new_values    Json?
+  ip_address    String?         @db.VarChar(45)
+  user_agent    String?         @db.VarChar(255)
+  created_at    DateTime        @default(now())
+
+  performer     User            @relation("AuditLogPerformer", fields: [performer_id], references: [id])
+  user          User?           @relation("AuditLogUser", fields: [user_id], references: [id])
+
+  @@index([performer_id])
+  @@index([user_id])
+  @@index([entity_type, entity_id])
+  @@index([created_at])
+  @@map("audit_logs")
 }

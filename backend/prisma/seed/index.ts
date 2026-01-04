@@ -15,6 +15,11 @@ import {
   clearTranslations,
   seedTranslations,
 } from './seed-translations';
+import {
+  clearPermissions,
+  seedRolePermissions,
+  seedAdminUsers,
+} from './seed-permissions';
 
 const prisma = new PrismaClient();
 
@@ -34,6 +39,7 @@ async function clearAll(): Promise<void> {
   await clearForum(prisma);
   await clearContests(prisma);
   await clearProblems(prisma);
+  await clearPermissions(prisma);
   await clearUsers(prisma);
 
   console.log('✅ All data cleared');
@@ -48,6 +54,10 @@ async function seedAll(): Promise<void> {
   // 1. 基础/无依赖表
   const users = await seedUsers(prisma);
   console.log(`  ✓ Users: ${users.length} records`);
+
+  // 1.5. Admin users with roles
+  const adminUsers = await seedAdminUsers(prisma);
+  console.log(`  ✓ Admin Users: ${adminUsers.count} records`);
 
   // 2. 主实体表
   const problems = await seedProblems(prisma);
@@ -79,6 +89,10 @@ async function seedAll(): Promise<void> {
   // 4. I18n translations (depends on problems, contests, etc.)
   const translations = await seedTranslations(prisma);
   console.log(`  ✓ Translations: ${translations.count} records`);
+
+  // 5. Role permissions (last, independent)
+  const permissions = await seedRolePermissions(prisma);
+  console.log(`  ✓ Role Permissions: ${permissions.count} records`);
 
   console.log('✅ All data seeded');
 }

@@ -1,12 +1,7 @@
 <script setup lang="ts">
-import type { Component } from "vue"
+import type { Component } from 'vue'
 
-import {
-  IconDots,
-  IconFolder,
-  IconShare3,
-  IconTrash,
-} from "@tabler/icons-vue"
+import { IconDots, IconFolder, IconShare3, IconTrash } from '@tabler/icons-vue'
 
 import {
   DropdownMenu,
@@ -51,10 +46,7 @@ const { isMobile } = useSidebar()
         </SidebarMenuButton>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <SidebarMenuAction
-              show-on-hover
-              class="data-[state=open]:bg-accent rounded-sm"
-            >
+            <SidebarMenuAction show-on-hover class="data-[state=open]:bg-accent rounded-sm">
               <IconDots />
               <span class="sr-only">More</span>
             </SidebarMenuAction>

@@ -19,6 +19,7 @@ import { BookmarkModule } from './bookmark/bookmark.module';
 import { ViewModule } from './view/view.module';
 import { I18nModule } from './i18n/i18n.module';
 import { NotificationModule } from './notification/notification.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { NotificationModule } from './notification/notification.module';
       entities: [__dirname + '/**/*.entity{.ts,.js}'],
       synchronize: false,
     }),
+    AdminModule,
     UserModule,
     ProblemModule,
     SolutionModule,

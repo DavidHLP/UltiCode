@@ -19,6 +19,8 @@ interface NavItem {
 
 defineProps<{
   items: NavItem[]
+  quickCreateLabel?: string
+  quickCreateIcon?: Component
 }>()
 </script>
 
@@ -28,20 +30,22 @@ defineProps<{
       <SidebarMenu>
         <SidebarMenuItem class="flex items-center gap-2">
           <SidebarMenuButton
-            tooltip="Quick Create"
+            :tooltip="quickCreateLabel || 'Quick Create'"
             class="bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground active:bg-primary/90 active:text-primary-foreground min-w-8 duration-200 ease-linear"
           >
-            <IconCirclePlusFilled />
-            <span>Quick Create</span>
+            <component :is="quickCreateIcon || IconCirclePlusFilled" />
+            <span>{{ quickCreateLabel || 'Quick Create' }}</span>
           </SidebarMenuButton>
-          <Button
-            size="icon"
-            class="size-8 group-data-[collapsible=icon]:opacity-0"
-            variant="outline"
-          >
-            <IconMail />
-            <span class="sr-only">Inbox</span>
-          </Button>
+          <slot name="extra-actions">
+            <Button
+              size="icon"
+              class="size-8 group-data-[collapsible=icon]:opacity-0"
+              variant="outline"
+            >
+              <IconMail />
+              <span class="sr-only">Inbox</span>
+            </Button>
+          </slot>
         </SidebarMenuItem>
       </SidebarMenu>
       <SidebarMenu>

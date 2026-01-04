@@ -1,16 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { useAuthStore } from '@/stores/admin/auth'
-import SectionCards from '@/template/dashboard/SectionCards.vue'
-import ChartAreaInteractive from '@/template/dashboard/ChartAreaInteractive.vue'
+import SectionCards, { type StatItem } from '@/components/dashboard/SectionCards.vue'
+import ChartAreaInteractive from '@/components/dashboard/ChartAreaInteractive.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { ShieldCheck } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const loading = ref(true)
 
 // Mock data for demonstration
-const stats = ref([
+const stats = ref<StatItem[]>([
   {
     title: 'Total Users',
     value: '2,350',
@@ -78,29 +79,35 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <div>
+  <div class="flex flex-col gap-4 py-4 md:gap-8 md:py-8">
+    <!-- Header Section -->
+    <div class="flex flex-col gap-4 px-4 sm:flex-row sm:items-center sm:justify-between lg:px-6">
+      <div class="space-y-1">
         <h1 class="text-3xl font-bold tracking-tight">Dashboard</h1>
-        <p class="text-muted-foreground">Welcome back, {{ authStore.userName }}</p>
+        <p class="text-muted-foreground">
+          Welcome back, <span class="font-medium text-foreground">{{ authStore.userName }}</span>
+        </p>
       </div>
-      <Badge variant="outline" class="text-lg px-3 py-1">
-        {{ authStore.userRole }}
-      </Badge>
+
+      <div class="flex items-center gap-2">
+        <Badge
+          variant="outline"
+          class="gap-1.5 py-1.5 px-3 text-sm font-medium border-primary/20 bg-primary/5 text-primary"
+        >
+          <ShieldCheck class="h-4 w-4" />
+          {{ authStore.userRole }}
+        </Badge>
+      </div>
     </div>
 
     <SectionCards :stats="stats" />
 
-    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-      <Card class="col-span-4">
-        <CardHeader>
-          <CardTitle>User Registration Trend</CardTitle>
-          <CardDescription> Daily user registrations for the past 30 days </CardDescription>
-        </CardHeader>
-        <CardContent class="pl-2">
-          <ChartAreaInteractive />
-        </CardContent>
-      </Card>
+    <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7 px-4 lg:px-6">
+      <ChartAreaInteractive
+        class="col-span-4"
+        title="User Registration Trend"
+        description="Daily user registrations for the past 30 days"
+      />
 
       <Card class="col-span-3">
         <CardHeader>

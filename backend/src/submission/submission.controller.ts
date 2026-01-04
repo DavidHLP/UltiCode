@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 // @ts-nocheck
 import {
-  BadRequestException,
   Controller,
   Get,
   Param,
@@ -22,7 +21,7 @@ import { Locale } from '../i18n/i18n.decorator';
 import type { SupportedLocale } from '../i18n/i18n.constants';
 
 interface AuthenticatedRequest extends Request {
-  user?: { id: string };
+  user: { id: string };
 }
 
 @Controller('submissions')
@@ -30,16 +29,10 @@ export class SubmissionController {
   constructor(private readonly submissionService: SubmissionService) {}
 
   @Get('status/map')
-  async getStatusMap(
-    @Query('userId') userId: string,
-    @Req() req?: AuthenticatedRequest,
-  ) {
-    const effectiveUserId = userId || req?.user?.id;
-    if (!effectiveUserId) {
-      throw new BadRequestException('userId is required');
-    }
-    const map =
-      await this.submissionService.getProblemStatusMap(effectiveUserId);
+  @UseGuards(AuthGuard)
+  async getStatusMap(@Req() req: AuthenticatedRequest) {
+    const userId = req.user.id;
+    const map = await this.submissionService.getProblemStatusMap(userId);
     // Convert Map to object for JSON response
     return Object.fromEntries(map);
   }
@@ -54,45 +47,36 @@ export class SubmissionController {
   @Get('calendar')
   @UseGuards(AuthGuard)
   async getDailyActivity(
-    @Query('userId') userId: string,
     @Query('year') year: string,
-    @Req() req?: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const effectiveUserId = userId || req?.user?.id;
-    if (!effectiveUserId) {
-      throw new BadRequestException('userId is required');
-    }
+    const userId = req.user.id;
     const yearInt = year ? parseInt(year) : new Date().getFullYear();
-    return this.submissionService.getDailyActivity(effectiveUserId, yearInt);
+    return this.submissionService.getDailyActivity(userId, yearInt);
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.submissionService.findOne(id);
+  @UseGuards(AuthGuard)
+  async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
+    return this.submissionService.findOne(id, req.user.id);
   }
 
   @Get()
+  @UseGuards(AuthGuard)
   async findAllByUser(
-    @Query('userId') userId: string,
     @Query('problemId') problemId?: string,
     @Query('best') best?: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
-    @Req() req?: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const effectiveUserId = userId || req?.user?.id;
+    const userId = req.user.id;
     if (best === 'true' && problemId) {
-      if (!effectiveUserId) {
-        throw new BadRequestException('userId is required for best submission');
-      }
-      return this.submissionService.findBest(
-        parseInt(problemId),
-        effectiveUserId,
-      );
+      return this.submissionService.findBest(parseInt(problemId), userId);
     }
     return this.submissionService.findAll(
       problemId ? parseInt(problemId) : null,
-      effectiveUserId,
+      userId,
       skip ? parseInt(skip) : 0,
       take ? parseInt(take) : 10,
     );
@@ -104,17 +88,17 @@ export class ProblemSubmissionController {
   constructor(private readonly submissionService: SubmissionService) {}
 
   @Get()
+  @UseGuards(AuthGuard)
   async findAll(
     @Param('problemId', ParseIntPipe) problemId: number,
-    @Query('userId') userId?: string,
     @Query('skip') skip?: string,
     @Query('take') take?: string,
-    @Req() req?: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const uid = userId || req?.user?.id;
+    const userId = req.user.id;
     return this.submissionService.findAll(
       problemId,
-      uid,
+      userId,
       skip ? parseInt(skip) : 0,
       take ? parseInt(take) : 10,
     );
@@ -124,23 +108,20 @@ export class ProblemSubmissionController {
   @UseGuards(AuthGuard)
   async findBest(
     @Param('problemId', ParseIntPipe) problemId: number,
-    @Query('userId') userId?: string,
-    @Req() req?: AuthenticatedRequest,
+    @Req() req: AuthenticatedRequest,
   ) {
-    const uid = userId || req?.user?.id;
-    if (!uid) {
-      throw new BadRequestException('userId is required for best submission');
-    }
-    return this.submissionService.findBest(problemId, uid);
+    const userId = req.user.id;
+    return this.submissionService.findBest(problemId, userId);
   }
 
   @Post('run')
+  @UseGuards(AuthGuard)
   async run(
     @Param('problemId', ParseIntPipe) problemId: number,
     @Body() dto: RunSubmissionDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.submissionService.run(problemId, dto, req?.user?.id);
+    return this.submissionService.run(problemId, dto, req.user.id);
   }
 
   @Post()
@@ -171,7 +152,7 @@ export class ContestSubmissionController {
     @Param('problemId', ParseIntPipe) problemId: number,
     @Req() req: AuthenticatedRequest,
   ) {
-    const userId = req?.user?.id;
+    const userId = req.user.id;
     return this.contestSubmissionService.getContestSubmissions(
       contestId,
       userId,

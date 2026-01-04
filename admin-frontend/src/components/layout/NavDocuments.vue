@@ -28,6 +28,7 @@ interface Document {
 
 defineProps<{
   items: Document[]
+  groupLabel?: string
 }>()
 
 const { isMobile } = useSidebar()
@@ -35,7 +36,7 @@ const { isMobile } = useSidebar()
 
 <template>
   <SidebarGroup class="group-data-[collapsible=icon]:hidden">
-    <SidebarGroupLabel>Documents</SidebarGroupLabel>
+    <SidebarGroupLabel>{{ groupLabel || 'Documents' }}</SidebarGroupLabel>
     <SidebarMenu>
       <SidebarMenuItem v-for="item in items" :key="item.name">
         <SidebarMenuButton as-child>

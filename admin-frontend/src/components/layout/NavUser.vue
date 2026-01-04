@@ -1,8 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { IconDotsVertical, IconLogout, IconUserCircle } from '@tabler/icons-vue'
-import { useAuthStore } from '@/stores/admin/auth'
+import {
+  IconCreditCard,
+  IconDotsVertical,
+  IconLogout,
+  IconNotification,
+  IconUserCircle,
+} from '@tabler/icons-vue'
+
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -20,30 +24,21 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 
-const router = useRouter()
-const authStore = useAuthStore()
-const { isMobile } = useSidebar()
-
-const user = computed(() => authStore.user)
-
-const userInitials = computed(() => {
-  if (!user.value) return 'U'
-  return user.value.name
-    .split(' ')
-    .map((n: string) => n[0])
-    .join('')
-    .toUpperCase()
-    .substring(0, 2)
-})
-
-async function handleLogout() {
-  await authStore.logout()
-  router.push('/login')
+interface User {
+  name: string
+  email: string
+  avatar?: string
 }
+
+defineProps<{
+  user: User
+}>()
+
+const { isMobile } = useSidebar()
 </script>
 
 <template>
-  <SidebarMenu v-if="user">
+  <SidebarMenu>
     <SidebarMenuItem>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
@@ -51,16 +46,14 @@ async function handleLogout() {
             size="lg"
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
-            <Avatar class="h-8 w-8 rounded-lg">
+            <Avatar class="h-8 w-8 rounded-lg grayscale">
               <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-              <AvatarFallback class="rounded-lg">
-                {{ userInitials }}
-              </AvatarFallback>
+              <AvatarFallback class="rounded-lg"> CN </AvatarFallback>
             </Avatar>
             <div class="grid flex-1 text-left text-sm leading-tight">
-              <span class="truncate font-medium">{{ user.name || user.username }}</span>
+              <span class="truncate font-medium">{{ user.name }}</span>
               <span class="text-muted-foreground truncate text-xs">
-                {{ user.role }}
+                {{ user.email }}
               </span>
             </div>
             <IconDotsVertical class="ml-auto size-4" />
@@ -76,27 +69,33 @@ async function handleLogout() {
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
               <Avatar class="h-8 w-8 rounded-lg">
                 <AvatarImage v-if="user.avatar" :src="user.avatar" :alt="user.name" />
-                <AvatarFallback class="rounded-lg">
-                  {{ userInitials }}
-                </AvatarFallback>
+                <AvatarFallback class="rounded-lg"> CN </AvatarFallback>
               </Avatar>
               <div class="grid flex-1 text-left text-sm leading-tight">
-                <span class="truncate font-medium">{{ user.name || user.username }}</span>
+                <span class="truncate font-medium">{{ user.name }}</span>
                 <span class="text-muted-foreground truncate text-xs">
-                  {{ user.email || 'No email' }}
+                  {{ user.email }}
                 </span>
               </div>
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem @click="router.push('/profile')">
+            <DropdownMenuItem>
               <IconUserCircle />
-              Profile
+              Account
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <IconCreditCard />
+              Billing
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <IconNotification />
+              Notifications
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
-          <DropdownMenuItem @click="handleLogout">
+          <DropdownMenuItem>
             <IconLogout />
             Log out
           </DropdownMenuItem>

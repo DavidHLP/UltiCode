@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { ChartConfig } from '@/components/ui/chart'
-
-// import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { VisArea, VisAxis, VisLine, VisXYContainer } from '@unovis/vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import {
@@ -21,7 +19,28 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const chartData = [
+export interface ChartDataPoint {
+  date: Date
+  [key: string]: string | number | Date
+}
+
+const props = withDefaults(
+  defineProps<{
+    title?: string
+    description?: string
+    data?: ChartDataPoint[]
+    seriesKeys?: string[]
+    config?: ChartConfig
+  }>(),
+  {
+    title: 'Area Chart - Interactive',
+    description: 'Showing total visitors for the last 3 months',
+    seriesKeys: () => ['mobile', 'desktop'],
+  },
+)
+
+// Default chart data if not provided
+const defaultData: ChartDataPoint[] = [
   { date: new Date('2024-04-01'), desktop: 222, mobile: 150 },
   { date: new Date('2024-04-02'), desktop: 97, mobile: 180 },
   { date: new Date('2024-04-03'), desktop: 167, mobile: 120 },
@@ -114,12 +133,10 @@ const chartData = [
   { date: new Date('2024-06-29'), desktop: 103, mobile: 160 },
   { date: new Date('2024-06-30'), desktop: 446, mobile: 400 },
 ]
-type Data = (typeof chartData)[number]
 
-const chartConfig = {
-  // visitors: {
-  //   label: 'Visitors',
-  // },
+const chartData = computed(() => props.data || defaultData)
+
+const defaultConfig: ChartConfig = {
   mobile: {
     label: 'Mobile',
     color: 'var(--primary)',
@@ -128,38 +145,36 @@ const chartConfig = {
     label: 'Desktop',
     color: 'var(--primary)',
   },
-} satisfies ChartConfig
+}
 
-const svgDefs = `
-  <linearGradient id="fillDesktop" x1="0" y1="0" x2="0" y2="1">
-    <stop
-      offset="5%"
-      stop-color="var(--color-desktop)"
-      stop-opacity="0.8"
-    />
-    <stop
-      offset="95%"
-      stop-color="var(--color-desktop)"
-      stop-opacity="0.1"
-    />
-  </linearGradient>
-  <linearGradient id="fillMobile" x1="0" y1="0" x2="0" y2="1">
-    <stop
-      offset="5%"
-      stop-color="var(--color-mobile)"
-      stop-opacity="0.8"
-    />
-    <stop
-      offset="95%"
-      stop-color="var(--color-mobile)"
-      stop-opacity="0.1"
-    />
-  </linearGradient>
-`
+const chartConfig = computed(() => props.config || defaultConfig)
+
+const svgDefs = computed(() => {
+  const keys = props.seriesKeys || ['mobile', 'desktop']
+  const gradients = keys
+    .map(
+      (key) => `
+    <linearGradient id="fill${key.charAt(0).toUpperCase() + key.slice(1)}" x1="0" y1="0" x2="0" y2="1">
+      <stop
+        offset="5%"
+        stop-color="var(--color-${key})"
+        stop-opacity="0.8"
+      />
+      <stop
+        offset="95%"
+        stop-color="var(--color-${key})"
+        stop-opacity="0.1"
+      />
+    </linearGradient>
+  `,
+    )
+    .join('')
+  return gradients
+})
 
 const timeRange = ref('90d')
 const filterRange = computed(() => {
-  return chartData.filter((item) => {
+  return chartData.value.filter((item) => {
     const date = new Date(item.date)
     const referenceDate = new Date('2024-06-30')
     let daysToSubtract = 90
@@ -173,14 +188,33 @@ const filterRange = computed(() => {
     return date >= startDate
   })
 })
+
+const seriesKeys = computed(() => props.seriesKeys || ['mobile', 'desktop'])
+
+type Data = (typeof chartData.value)[number]
+
+const getYValues = (d: Data) => {
+  return seriesKeys.value.map((key) => (d[key] as number) || 0)
+}
+
+const getColors = () => {
+  return seriesKeys.value.map((key) => {
+    const config = chartConfig.value[key as keyof typeof chartConfig.value]
+    return config?.color || 'var(--primary)'
+  })
+}
+
+const getFillColors = () => {
+  return seriesKeys.value.map((key) => `url(#fill${key.charAt(0).toUpperCase() + key.slice(1)})`)
+}
 </script>
 
 <template>
   <Card class="pt-0">
     <CardHeader class="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
       <div class="grid flex-1 gap-1">
-        <CardTitle>Area Chart - Interactive</CardTitle>
-        <CardDescription> Showing total visitors for the last 3 months </CardDescription>
+        <CardTitle>{{ props.title }}</CardTitle>
+        <CardDescription> {{ props.description }} </CardDescription>
       </div>
       <Select v-model="timeRange">
         <SelectTrigger
@@ -206,18 +240,11 @@ const filterRange = computed(() => {
         >
           <VisArea
             :x="(d: Data) => d.date"
-            :y="[(d: Data) => d.mobile, (d: Data) => d.desktop]"
-            :color="(d: Data, i: number) => ['url(#fillMobile)', 'url(#fillDesktop)'][i]"
+            :y="getYValues"
+            :color="() => getFillColors()"
             :opacity="0.6"
           />
-          <VisLine
-            :x="(d: Data) => d.date"
-            :y="[(d: Data) => d.mobile, (d: Data) => d.mobile + d.desktop]"
-            :color="
-              (d: Data, i: number) => [chartConfig.mobile.color, chartConfig.desktop.color][i]
-            "
-            :line-width="1"
-          />
+          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="1" />
           <VisAxis
             type="x"
             :x="(d: Data) => d.date"
@@ -248,9 +275,7 @@ const filterRange = computed(() => {
                 },
               })
             "
-            :color="
-              (d: Data, i: number) => [chartConfig.mobile.color, chartConfig.desktop.color][i % 2]
-            "
+            :color="getColors()[0]"
           />
         </VisXYContainer>
 

@@ -4,12 +4,45 @@ export const description = 'A dashboard with sidebar, data table, and analytics 
 </script>
 
 <script setup lang="ts">
-import AppSidebar from '@/template/dashboard/AppSidebar.vue'
-import ChartAreaInteractive from '@/template/dashboard/ChartAreaInteractive.vue'
-import DataTable from '@/template/dashboard/DataTable.vue'
-import SectionCards from '@/template/dashboard/SectionCards.vue'
-import SiteHeader from '@/template/dashboard/SiteHeader.vue'
+// Import refactored components
+import AppSidebar from '@/components/layout/AppSidebar.vue'
+import SiteHeader from '@/components/layout/SiteHeader.vue'
+import StatCards, { type StatItem } from '@/components/dashboard/StatCards.vue'
+import AreaChart from '@/components/dashboard/AreaChart.vue'
+import DataTable from '@/components/dashboard/DataTable.vue'
+
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+
+const stats: StatItem[] = [
+  {
+    title: 'Total Revenue',
+    value: '$45,231.89',
+    change: '+20.1%',
+    trend: 'up',
+    description: '+20.1% from last month',
+  },
+  {
+    title: 'Subscriptions',
+    value: '+2350',
+    change: '+180.1%',
+    trend: 'up',
+    description: '+180.1% from last month',
+  },
+  {
+    title: 'Sales',
+    value: '+12,234',
+    change: '+19%',
+    trend: 'up',
+    description: '+19% from last month',
+  },
+  {
+    title: 'Active Now',
+    value: '+573',
+    change: '+201',
+    trend: 'up',
+    description: '+201 since last hour',
+  },
+]
 
 const data = [
   {
@@ -298,9 +331,9 @@ const data = [
       <div class="flex flex-1 flex-col">
         <div class="@container/main flex flex-1 flex-col gap-2">
           <div class="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            <SectionCards />
+            <StatCards :stats="stats" />
             <div class="px-4 lg:px-6">
-              <ChartAreaInteractive />
+              <AreaChart />
             </div>
             <DataTable :data="data" />
           </div>

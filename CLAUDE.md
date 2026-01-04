@@ -195,4 +195,6 @@ After completing a task, you **MUST** run:
 3. `npm run format`
 
 Only commit or mark the task as complete if there are no errors.
+
 - **Commit Scope**: You are only allowed to commit files that you have modified yourself.
+- **Agent Commit Requirement**: All agents **MUST** create a git commit after completing their assigned tasks. This ensures work is properly saved and versioned before marking tasks as complete.

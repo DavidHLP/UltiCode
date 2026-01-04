@@ -15,12 +15,7 @@ export const schema = z.object({
 
 <script setup lang="ts">
 import type { ColumnDef } from '@tanstack/vue-table'
-import {
-  IconCircleCheckFilled,
-  IconDotsVertical,
-  IconLoader,
-  IconPlus,
-} from '@tabler/icons-vue'
+import { IconCircleCheckFilled, IconDotsVertical, IconLoader, IconPlus } from '@tabler/icons-vue'
 import { Badge } from '@/components/ui/badge'
 
 import { Button } from '@/components/ui/button'

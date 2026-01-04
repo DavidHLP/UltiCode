@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-vue"
+import { IconTrendingDown, IconTrendingUp } from '@tabler/icons-vue'
 
 import { Badge } from '@/components/ui/badge'
 import {
@@ -13,7 +13,9 @@ import {
 </script>
 
 <template>
-  <div class="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
+  <div
+    class="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4"
+  >
     <Card class="@container/card">
       <CardHeader>
         <CardDescription>Total Revenue</CardDescription>
@@ -31,9 +33,7 @@ import {
         <div class="line-clamp-1 flex gap-2 font-medium">
           Trending up this month <IconTrendingUp class="size-4" />
         </div>
-        <div class="text-muted-foreground">
-          Visitors for the last 6 months
-        </div>
+        <div class="text-muted-foreground">Visitors for the last 6 months</div>
       </CardFooter>
     </Card>
     <Card class="@container/card">
@@ -53,9 +53,7 @@ import {
         <div class="line-clamp-1 flex gap-2 font-medium">
           Down 20% this period <IconTrendingDown class="size-4" />
         </div>
-        <div class="text-muted-foreground">
-          Acquisition needs attention
-        </div>
+        <div class="text-muted-foreground">Acquisition needs attention</div>
       </CardFooter>
     </Card>
     <Card class="@container/card">
@@ -75,9 +73,7 @@ import {
         <div class="line-clamp-1 flex gap-2 font-medium">
           Strong user retention <IconTrendingUp class="size-4" />
         </div>
-        <div class="text-muted-foreground">
-          Engagement exceed targets
-        </div>
+        <div class="text-muted-foreground">Engagement exceed targets</div>
       </CardFooter>
     </Card>
     <Card class="@container/card">
@@ -97,9 +93,7 @@ import {
         <div class="line-clamp-1 flex gap-2 font-medium">
           Steady performance increase <IconTrendingUp class="size-4" />
         </div>
-        <div class="text-muted-foreground">
-          Meets growth projections
-        </div>
+        <div class="text-muted-foreground">Meets growth projections</div>
       </CardFooter>
     </Card>
   </div>

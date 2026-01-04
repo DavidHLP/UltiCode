@@ -1,7 +1,7 @@
 <script lang="ts">
-import { z } from "zod"
-import DraggableRow from "./DraggableRow.vue"
-import DragHandle from "./DragHandle.vue"
+import { z } from 'zod'
+import DraggableRow from './DraggableRow.vue'
+import DragHandle from './DragHandle.vue'
 
 export const schema = z.object({
   id: z.number(),
@@ -20,8 +20,8 @@ import type {
   ColumnFiltersState,
   SortingState,
   VisibilityState,
-} from "@tanstack/vue-table"
-import { RestrictToVerticalAxis } from "@dnd-kit/abstract/modifiers"
+} from '@tanstack/vue-table'
+import { ref, h } from 'vue'
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -33,7 +33,7 @@ import {
   IconLayoutColumns,
   IconLoader,
   IconPlus,
-} from "@tabler/icons-vue"
+} from '@tabler/icons-vue'
 import {
   FlexRender,
   getCoreRowModel,
@@ -41,8 +41,8 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useVueTable,
-} from "@tanstack/vue-table"
-import { DragDropProvider } from "dnd-kit-vue"
+} from '@tanstack/vue-table'
+import { DragDropProvider } from 'dnd-kit-vue'
 import { Badge } from '@/components/ui/badge'
 
 import { Button } from '@/components/ui/button'
@@ -73,12 +73,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 const props = defineProps<{
   data: TableData[]
@@ -101,129 +96,170 @@ const rowSelection = ref({})
 
 const columns: ColumnDef<TableData>[] = [
   {
-    id: "drag",
+    id: 'drag',
     header: () => null,
     cell: ({ row }) => h(DragHandle),
   },
   {
-    id: "select",
-    header: ({ table }) => h(Checkbox, {
-      "modelValue": table.getIsAllPageRowsSelected() || (table.getIsSomePageRowsSelected() && "indeterminate"),
-      "onUpdate:modelValue": value => table.toggleAllPageRowsSelected(!!value),
-      "aria-label": "Select all",
-    }),
-    cell: ({ row }) => h(Checkbox, {
-      "modelValue": row.getIsSelected(),
-      "onUpdate:modelValue": value => row.toggleSelected(!!value),
-      "aria-label": "Select row",
-    }),
+    id: 'select',
+    header: ({ table }) =>
+      h(Checkbox, {
+        modelValue:
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && 'indeterminate'),
+        'onUpdate:modelValue': (value) => table.toggleAllPageRowsSelected(!!value),
+        'aria-label': 'Select all',
+      }),
+    cell: ({ row }) =>
+      h(Checkbox, {
+        modelValue: row.getIsSelected(),
+        'onUpdate:modelValue': (value) => row.toggleSelected(!!value),
+        'aria-label': 'Select row',
+      }),
     enableSorting: false,
     enableHiding: false,
   },
   {
-    accessorKey: "header",
-    header: "Header",
-    cell: ({ row }) => h("div", String(row.getValue("header"))),
+    accessorKey: 'header',
+    header: 'Header',
+    cell: ({ row }) => h('div', String(row.getValue('header'))),
     enableHiding: false,
   },
   {
-    accessorKey: "type",
-    header: "Section Type",
-    cell: ({ row }) => h(Badge, {
-      variant: "outline",
-    }, () => String(row.getValue("type"))),
+    accessorKey: 'type',
+    header: 'Section Type',
+    cell: ({ row }) =>
+      h(
+        Badge,
+        {
+          variant: 'outline',
+        },
+        () => String(row.getValue('type')),
+      ),
   },
   {
-    accessorKey: "status",
-    header: "Status",
+    accessorKey: 'status',
+    header: 'Status',
     cell: ({ row }) => {
-      const status = row.getValue("status") as string
-      return h("div", { class: "flex items-center gap-2" }, [
-        status === "Done"
-          ? h(IconCircleCheckFilled, { class: "h-4 w-4 text-emerald-500" })
-          : h(IconLoader, { class: "h-4 w-4 animate-spin text-muted-foreground" }),
-        h("span", {}, status),
+      const status = row.getValue('status') as string
+      return h('div', { class: 'flex items-center gap-2' }, [
+        status === 'Done'
+          ? h(IconCircleCheckFilled, { class: 'h-4 w-4 text-emerald-500' })
+          : h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' }),
+        h('span', {}, status),
       ])
     },
   },
   {
-    accessorKey: "target",
-    header: () => h("div", { class: "flex items-center gap-1" }, [
-      "Target",
-    ]),
-    cell: ({ row }) => h(Button, {
-      variant: "ghost",
-      size: "sm",
-      class: "h-auto p-1 text-xs font-mono",
-    }, () => [
-      h("span", { class: "ml-1 font-semibold" }, String(row.getValue("target"))),
-    ]),
+    accessorKey: 'target',
+    header: () => h('div', { class: 'flex items-center gap-1' }, ['Target']),
+    cell: ({ row }) =>
+      h(
+        Button,
+        {
+          variant: 'ghost',
+          size: 'sm',
+          class: 'h-auto p-1 text-xs font-mono',
+        },
+        () => [h('span', { class: 'ml-1 font-semibold' }, String(row.getValue('target')))],
+      ),
   },
   {
-    accessorKey: "limit",
-    header: () => h("div", { class: "flex items-center gap-1" }, [
-      "Limit",
-    ]),
-    cell: ({ row }) => h(Button, {
-      variant: "ghost",
-      size: "sm",
-      class: "h-auto p-1 text-xs font-mono",
-    }, () => [
-      h("span", { class: "ml-1 font-semibold" }, String(row.getValue("limit"))),
-    ]),
+    accessorKey: 'limit',
+    header: () => h('div', { class: 'flex items-center gap-1' }, ['Limit']),
+    cell: ({ row }) =>
+      h(
+        Button,
+        {
+          variant: 'ghost',
+          size: 'sm',
+          class: 'h-auto p-1 text-xs font-mono',
+        },
+        () => [h('span', { class: 'ml-1 font-semibold' }, String(row.getValue('limit')))],
+      ),
   },
   {
-    accessorKey: "reviewer",
-    header: "Reviewer",
+    accessorKey: 'reviewer',
+    header: 'Reviewer',
     cell: ({ row }) => {
-      const reviewer = row.getValue("reviewer") as string
-      const isAssigned = reviewer !== "Assign reviewer"
+      const reviewer = row.getValue('reviewer') as string
+      const isAssigned = reviewer !== 'Assign reviewer'
 
       if (isAssigned) {
-        return h("span", {}, reviewer)
+        return h('span', {}, reviewer)
       }
 
-      return h(Select, {}, {
-        default: () => [
-          h(SelectTrigger, { class: "w-full" }, {
-            default: () => h(SelectValue, { placeholder: "Assign reviewer" }),
-          }),
-          h(SelectContent, {}, {
-            default: () => [
-              h(SelectItem, { value: "eddie" }, () => "Eddie Lake"),
-              h(SelectItem, { value: "jamik" }, () => "Jamik Tashpulatov"),
-            ],
-          }),
-        ],
-      })
+      return h(
+        Select,
+        {},
+        {
+          default: () => [
+            h(
+              SelectTrigger,
+              { class: 'w-full' },
+              {
+                default: () => h(SelectValue, { placeholder: 'Assign reviewer' }),
+              },
+            ),
+            h(
+              SelectContent,
+              {},
+              {
+                default: () => [
+                  h(SelectItem, { value: 'eddie' }, () => 'Eddie Lake'),
+                  h(SelectItem, { value: 'jamik' }, () => 'Jamik Tashpulatov'),
+                ],
+              },
+            ),
+          ],
+        },
+      )
     },
   },
   {
-    id: "actions",
-    cell: () => h(DropdownMenu, {}, {
-      default: () => [
-        h(DropdownMenuTrigger, { asChild: true }, {
-          default: () => h(Button, {
-            variant: "ghost",
-            class: "h-8 w-8 p-0",
-          }, {
-            default: () => [
-              h("span", { class: "sr-only" }, "Open menu"),
-              h(IconDotsVertical, { class: "h-4 w-4" }),
-            ],
-          }),
-        }),
-        h(DropdownMenuContent, { align: "end" }, {
+    id: 'actions',
+    cell: () =>
+      h(
+        DropdownMenu,
+        {},
+        {
           default: () => [
-            h(DropdownMenuItem, {}, () => "Edit"),
-            h(DropdownMenuItem, {}, () => "Make a copy"),
-            h(DropdownMenuItem, {}, () => "Favorite"),
-            h(DropdownMenuSeparator, {}),
-            h(DropdownMenuItem, {}, () => "Delete"),
+            h(
+              DropdownMenuTrigger,
+              { asChild: true },
+              {
+                default: () =>
+                  h(
+                    Button,
+                    {
+                      variant: 'ghost',
+                      class: 'h-8 w-8 p-0',
+                    },
+                    {
+                      default: () => [
+                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h(IconDotsVertical, { class: 'h-4 w-4' }),
+                      ],
+                    },
+                  ),
+              },
+            ),
+            h(
+              DropdownMenuContent,
+              { align: 'end' },
+              {
+                default: () => [
+                  h(DropdownMenuItem, {}, () => 'Edit'),
+                  h(DropdownMenuItem, {}, () => 'Make a copy'),
+                  h(DropdownMenuItem, {}, () => 'Favorite'),
+                  h(DropdownMenuSeparator, {}),
+                  h(DropdownMenuItem, {}, () => 'Delete'),
+                ],
+              },
+            ),
           ],
-        }),
-      ],
-    }),
+        },
+      ),
   },
 ]
 
@@ -237,83 +273,64 @@ const table = useVueTable({
   getSortedRowModel: getSortedRowModel(),
   getFilteredRowModel: getFilteredRowModel(),
   onSortingChange: (updaterOrValue) => {
-    sorting.value = typeof updaterOrValue === "function"
-      ? updaterOrValue(sorting.value)
-      : updaterOrValue
+    sorting.value =
+      typeof updaterOrValue === 'function' ? updaterOrValue(sorting.value) : updaterOrValue
   },
   onColumnFiltersChange: (updaterOrValue) => {
-    columnFilters.value = typeof updaterOrValue === "function"
-      ? updaterOrValue(columnFilters.value)
-      : updaterOrValue
+    columnFilters.value =
+      typeof updaterOrValue === 'function' ? updaterOrValue(columnFilters.value) : updaterOrValue
   },
   onColumnVisibilityChange: (updaterOrValue) => {
-    columnVisibility.value = typeof updaterOrValue === "function"
-      ? updaterOrValue(columnVisibility.value)
-      : updaterOrValue
+    columnVisibility.value =
+      typeof updaterOrValue === 'function' ? updaterOrValue(columnVisibility.value) : updaterOrValue
   },
   onRowSelectionChange: (updaterOrValue) => {
-    rowSelection.value = typeof updaterOrValue === "function"
-      ? updaterOrValue(rowSelection.value)
-      : updaterOrValue
+    rowSelection.value =
+      typeof updaterOrValue === 'function' ? updaterOrValue(rowSelection.value) : updaterOrValue
   },
   state: {
-    get sorting() { return sorting.value },
-    get columnFilters() { return columnFilters.value },
-    get columnVisibility() { return columnVisibility.value },
-    get rowSelection() { return rowSelection.value },
+    get sorting() {
+      return sorting.value
+    },
+    get columnFilters() {
+      return columnFilters.value
+    },
+    get columnVisibility() {
+      return columnVisibility.value
+    },
+    get rowSelection() {
+      return rowSelection.value
+    },
   },
 })
 </script>
 
 <template>
-  <Tabs
-    default-value="outline"
-    class="w-full flex-col justify-start gap-6"
-  >
+  <Tabs default-value="outline" class="w-full flex-col justify-start gap-6">
     <div class="flex items-center justify-between px-4 lg:px-6">
-      <Label for="view-selector" class="sr-only">
-        View
-      </Label>
+      <Label for="view-selector" class="sr-only"> View </Label>
       <Select default-value="outline">
-        <SelectTrigger
-          id="view-selector"
-          class="flex w-fit @4xl/main:hidden"
-          size="sm"
-        >
+        <SelectTrigger id="view-selector" class="flex w-fit @4xl/main:hidden" size="sm">
           <SelectValue placeholder="Select a view" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="outline">
-            Outline
-          </SelectItem>
-          <SelectItem value="past-performance">
-            Past Performance
-          </SelectItem>
-          <SelectItem value="key-personnel">
-            Key Personnel
-          </SelectItem>
-          <SelectItem value="focus-documents">
-            Focus Documents
-          </SelectItem>
+          <SelectItem value="outline"> Outline </SelectItem>
+          <SelectItem value="past-performance"> Past Performance </SelectItem>
+          <SelectItem value="key-personnel"> Key Personnel </SelectItem>
+          <SelectItem value="focus-documents"> Focus Documents </SelectItem>
         </SelectContent>
       </Select>
-      <TabsList class="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex">
-        <TabsTrigger value="outline">
-          Outline
-        </TabsTrigger>
+      <TabsList
+        class="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex"
+      >
+        <TabsTrigger value="outline"> Outline </TabsTrigger>
         <TabsTrigger value="past-performance">
-          Past Performance <Badge variant="secondary">
-            3
-          </Badge>
+          Past Performance <Badge variant="secondary"> 3 </Badge>
         </TabsTrigger>
         <TabsTrigger value="key-personnel">
-          Key Personnel <Badge variant="secondary">
-            2
-          </Badge>
+          Key Personnel <Badge variant="secondary"> 2 </Badge>
         </TabsTrigger>
-        <TabsTrigger value="focus-documents">
-          Focus Documents
-        </TabsTrigger>
+        <TabsTrigger value="focus-documents"> Focus Documents </TabsTrigger>
       </TabsList>
       <div class="flex items-center gap-2">
         <DropdownMenu>
@@ -326,14 +343,22 @@ const table = useVueTable({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="w-56">
-            <template v-for="column in table.getAllColumns().filter((column) => typeof column.accessorFn !== 'undefined' && column.getCanHide())" :key="column.id">
+            <template
+              v-for="column in table
+                .getAllColumns()
+                .filter(
+                  (column) => typeof column.accessorFn !== 'undefined' && column.getCanHide(),
+                )"
+              :key="column.id"
+            >
               <DropdownMenuCheckboxItem
                 class="capitalize"
                 :model-value="column.getIsVisible()"
-                @update:model-value="(value) => {
-
-                  column.toggleVisibility(!!value)
-                }"
+                @update:model-value="
+                  (value) => {
+                    column.toggleVisibility(!!value)
+                  }
+                "
               >
                 {{ column.id }}
               </DropdownMenuCheckboxItem>
@@ -346,29 +371,36 @@ const table = useVueTable({
         </Button>
       </div>
     </div>
-    <TabsContent
-      value="outline"
-      class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
-    >
+    <TabsContent value="outline" class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
       <div class="overflow-hidden rounded-lg border">
-        <DragDropProvider :modifiers="[RestrictToVerticalAxis]">
+        <DragDropProvider>
           <Table>
             <TableHeader class="bg-muted sticky top-0 z-10">
               <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
-                <TableHead v-for="header in headerGroup.headers" :key="header.id" :col-span="header.colSpan">
-                  <FlexRender v-if="!header.isPlaceholder" :render="header.column.columnDef.header" :props="header.getContext()" />
+                <TableHead
+                  v-for="header in headerGroup.headers"
+                  :key="header.id"
+                  :col-span="header.colSpan"
+                >
+                  <FlexRender
+                    v-if="!header.isPlaceholder"
+                    :render="header.column.columnDef.header"
+                    :props="header.getContext()"
+                  />
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody class="**:data-[slot=table-cell]:first:w-8">
               <template v-if="table.getRowModel().rows.length">
-                <DraggableRow v-for="row in table.getRowModel().rows" :key="row.id" :row="row" :index="row.index" />
+                <DraggableRow
+                  v-for="row in table.getRowModel().rows"
+                  :key="row.id"
+                  :row="row"
+                  :index="row.index"
+                />
               </template>
               <TableRow v-else>
-                <TableCell
-                  :col-span="columns.length"
-                  class="h-24 text-center"
-                >
+                <TableCell :col-span="columns.length" class="h-24 text-center">
                   No results.
                 </TableCell>
               </TableRow>
@@ -391,20 +423,24 @@ const table = useVueTable({
         </div>
         <div class="flex w-full items-center gap-8 lg:w-fit">
           <div class="hidden items-center gap-2 lg:flex">
-            <Label for="rows-per-page" class="text-sm font-medium">
-              Rows per page
-            </Label>
+            <Label for="rows-per-page" class="text-sm font-medium"> Rows per page </Label>
             <Select
               :model-value="table.getState().pagination.pageSize"
-              @update:model-value="(value) => {
-                table.setPageSize(Number(value))
-              }"
+              @update:model-value="
+                (value) => {
+                  table.setPageSize(Number(value))
+                }
+              "
             >
               <SelectTrigger id="rows-per-page" size="sm" class="w-20">
                 <SelectValue :placeholder="`${table.getState().pagination.pageSize}`" />
               </SelectTrigger>
               <SelectContent side="top">
-                <SelectItem v-for="pageSize in [10, 20, 30, 40, 50]" :key="pageSize" :value="`${pageSize}`">
+                <SelectItem
+                  v-for="pageSize in [10, 20, 30, 40, 50]"
+                  :key="pageSize"
+                  :value="`${pageSize}`"
+                >
                   {{ pageSize }}
                 </SelectItem>
               </SelectContent>
@@ -458,19 +494,13 @@ const table = useVueTable({
         </div>
       </div>
     </TabsContent>
-    <TabsContent
-      value="past-performance"
-      class="flex flex-col px-4 lg:px-6"
-    >
+    <TabsContent value="past-performance" class="flex flex-col px-4 lg:px-6">
       <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
     </TabsContent>
     <TabsContent value="key-personnel" class="flex flex-col px-4 lg:px-6">
       <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
     </TabsContent>
-    <TabsContent
-      value="focus-documents"
-      class="flex flex-col px-4 lg:px-6"
-    >
+    <TabsContent value="focus-documents" class="flex flex-col px-4 lg:px-6">
       <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
     </TabsContent>
   </Tabs>

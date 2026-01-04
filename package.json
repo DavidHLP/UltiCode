@@ -1,24 +1,32 @@
 {
-  "name": "wedding-dress-system",
-  "private": true,
-  "scripts": {
-    "dev:frontend": "npm run dev --prefix frontend",
-    "dev:backend": "npm run start:dev --prefix backend",
-    "dev": "concurrently -k -n FRONTEND,BACKEND -c auto \"npm run dev:frontend\" \"npm run dev:backend\"",
-    "lint:frontend": "npm run lint --prefix frontend",
-    "lint:backend": "npm run lint --prefix backend",
-    "lint": "concurrently -k -n LINT-FRONTEND,LINT-BACKEND -c auto \"npm run lint:frontend\" \"npm run lint:backend\"",
-    "format:frontend": "npm run format --prefix frontend",
-    "format:backend": "npm run format --prefix backend",
-    "format": "concurrently -k -n FMT-FRONTEND,FMT-BACKEND -c auto \"npm run format:frontend\" \"npm run format:backend\"",
-    "type-check:frontend": "npm run type-check --prefix frontend",
-    "type-check:backend": "npm run type-check --prefix backend",
-    "type-check": "concurrently -k -n TC-FRONTEND,TC-BACKEND -c auto \"npm run type-check:frontend\" \"npm run type-check:backend\"",
-    "start:frontend": "npm run preview --prefix frontend",
-    "start:backend": "npm run start:prod --prefix backend",
-    "start": "concurrently -k -n FRONTEND,BACKEND -c auto \"npm run start:frontend\" \"npm run start:backend\""
-  },
-  "devDependencies": {
-    "concurrently": "^9.2.1"
-  }
+    "name": "wedding-dress-system",
+    "private": true,
+    "scripts": {
+        "dev": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"npm run dev:frontend\" \"npm run dev:admin\" \"npm run dev:backend\"",
+        "dev:frontend": "npm run dev --prefix frontend",
+        "dev:admin": "npm run dev --prefix admin-frontend",
+        "dev:backend": "npm run start:dev --prefix backend",
+        "build": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"npm run build:frontend\" \"npm run build:admin\" \"npm run build:backend\"",
+        "build:frontend": "npm run build --prefix frontend",
+        "build:admin": "npm run build --prefix admin-frontend",
+        "build:backend": "npm run build --prefix backend",
+        "lint": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"npm run lint:frontend\" \"npm run lint:admin\" \"npm run lint:backend\"",
+        "lint:frontend": "npm run lint --prefix frontend",
+        "lint:admin": "npm run lint --prefix admin-frontend",
+        "lint:backend": "npm run lint --prefix backend",
+        "format": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"npm run format:frontend\" \"npm run format:admin\" \"npm run format:backend\"",
+        "format:frontend": "npm run format --prefix frontend",
+        "format:admin": "npm run format --prefix admin-frontend",
+        "format:backend": "npm run format --prefix backend",
+        "type-check": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"npm run type-check:frontend\" \"npm run type-check:admin\" \"npm run type-check:backend\"",
+        "type-check:frontend": "npm run type-check --prefix frontend",
+        "type-check:admin": "npm run type-check --prefix admin-frontend",
+        "type-check:backend": "npm run type-check --prefix backend",
+        "start": "concurrently -k -n FRONTEND,BACKEND -c auto \"npm run start:frontend\" \"npm run start:backend\"",
+        "start:frontend": "npm run preview --prefix frontend",
+        "start:backend": "npm run start:prod --prefix backend"
+    },
+    "devDependencies": {
+        "concurrently": "^9.2.1"
+    }
 }

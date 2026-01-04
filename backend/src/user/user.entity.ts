@@ -1,5 +1,12 @@
 import { Entity, Column, PrimaryColumn } from 'typeorm';
 
+export enum UserRole {
+  USER = 'USER',
+  MODERATOR = 'MODERATOR',
+  ADMIN = 'ADMIN',
+  SUPER_ADMIN = 'SUPER_ADMIN',
+}
+
 @Entity('users')
 export class User {
   @PrimaryColumn({ length: 40 })
@@ -43,4 +50,33 @@ export class User {
 
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   joined_at: Date;
+
+  // Admin fields
+  @Column({
+    type: 'enum',
+    enum: UserRole,
+    default: UserRole.USER,
+  })
+  role: UserRole;
+
+  @Column({ type: 'boolean', default: true })
+  is_active: boolean;
+
+  @Column({ type: 'boolean', default: false })
+  is_banned: boolean;
+
+  @Column({ type: 'timestamp', nullable: true })
+  banned_until?: Date;
+
+  @Column({ type: 'text', nullable: true })
+  banned_reason?: string;
+
+  @Column({ type: 'timestamp', nullable: true })
+  last_login_at?: Date;
+
+  @Column({ length: 40, nullable: true })
+  created_by?: string;
+
+  @Column({ length: 40, nullable: true })
+  updated_by?: string;
 }

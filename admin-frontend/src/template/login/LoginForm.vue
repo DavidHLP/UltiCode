@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { HTMLAttributes } from "vue"
+import type { HTMLAttributes } from 'vue'
 import { cn } from '@/lib/utils.ts'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,7 +12,7 @@ import {
 import { Input } from '@/components/ui/input'
 
 const props = defineProps<{
-  class?: HTMLAttributes["class"]
+  class?: HTMLAttributes['class']
 }>()
 </script>
 
@@ -20,37 +20,26 @@ const props = defineProps<{
   <form :class="cn('flex flex-col gap-6', props.class)">
     <FieldGroup>
       <div class="flex flex-col items-center gap-1 text-center">
-        <h1 class="text-2xl font-bold">
-          Login to your account
-        </h1>
+        <h1 class="text-2xl font-bold">Login to your account</h1>
         <p class="text-muted-foreground text-sm text-balance">
           Enter your email below to login to your account
         </p>
       </div>
       <Field>
-        <FieldLabel for="email">
-          Email
-        </FieldLabel>
+        <FieldLabel for="email"> Email </FieldLabel>
         <Input id="email" type="email" placeholder="m@example.com" required />
       </Field>
       <Field>
         <div class="flex items-center">
-          <FieldLabel for="password">
-            Password
-          </FieldLabel>
-          <a
-            href="#"
-            class="ml-auto text-sm underline-offset-4 hover:underline"
-          >
+          <FieldLabel for="password"> Password </FieldLabel>
+          <a href="#" class="ml-auto text-sm underline-offset-4 hover:underline">
             Forgot your password?
           </a>
         </div>
         <Input id="password" type="password" required />
       </Field>
       <Field>
-        <Button type="submit">
-          Login
-        </Button>
+        <Button type="submit"> Login </Button>
       </Field>
       <FieldSeparator>Or continue with</FieldSeparator>
       <Field>

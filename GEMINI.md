@@ -201,3 +201,4 @@ SidebarProvider
 - **Backend DI**: Fixed `UnknownDependenciesException` for `PermissionService` by adding `PrismaService` to `AdminModule` providers.
 
 - **Commit Scope**: You are only allowed to commit files that you have modified yourself.
+- **Agent Commit Requirement**: All agents **MUST** create a git commit after completing their assigned tasks. This ensures work is properly saved and versioned before marking tasks as complete.

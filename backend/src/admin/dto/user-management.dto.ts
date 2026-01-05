@@ -10,7 +10,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 import { UserRole } from '../../user/user.entity';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 
@@ -145,10 +145,20 @@ export class UserQueryDto {
   @IsOptional()
   role?: UserRole;
 
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   is_active?: boolean;
 
+  @Transform(({ value }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   is_banned?: boolean;

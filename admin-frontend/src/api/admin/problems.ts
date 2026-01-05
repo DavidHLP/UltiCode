@@ -53,8 +53,8 @@ export interface Problem {
 
 export interface ProblemExample {
   id: string
-  input: string
-  output: string
+  input_text: string
+  output_text: string
   explanation?: string
   order: number
 }

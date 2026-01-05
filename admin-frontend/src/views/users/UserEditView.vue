@@ -4,8 +4,16 @@ import { useRoute, useRouter } from 'vue-router'
 import { useUsersStore } from '@/stores/admin/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Field,
+  FieldGroup,
+  FieldLabel,
+  FieldSet,
+  FieldLegend,
+  FieldDescription,
+  FieldSeparator
+} from '@/components/ui/field'
 import {
   Select,
   SelectContent,
@@ -79,84 +87,102 @@ async function handleSubmit() {
       <h1 class="text-3xl font-bold tracking-tight">Edit User</h1>
     </div>
 
-    <Card v-if="loading">
-      <CardContent class="pt-6">Loading...</CardContent>
-    </Card>
+    <div v-if="loading" class="flex items-center justify-center p-12">
+      <span class="text-muted-foreground">Loading user details...</span>
+    </div>
 
-    <Card v-else>
-      <CardHeader>
-        <CardTitle>Edit User</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <form @submit.prevent="handleSubmit" class="space-y-6">
-          <div
-            v-if="error"
-            class="p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md"
-          >
-            {{ error }}
-          </div>
+    <div v-else class="w-full max-w-2xl mx-auto border rounded-lg p-6 bg-card text-card-foreground shadow-sm">
+      <form @submit.prevent="handleSubmit">
+        <div
+          v-if="error"
+          class="mb-6 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md"
+        >
+          {{ error }}
+        </div>
 
-          <FieldGroup>
-            <Field>
-              <FieldLabel for="username">Username</FieldLabel>
-              <Input
-                id="username"
-                v-model="form.username"
-                type="text"
-                required
-                :disabled="saving"
-              />
-            </Field>
+        <FieldGroup>
+          <FieldSet>
+            <FieldLegend>General Information</FieldLegend>
+            <FieldDescription>
+              Update the user's personal details.
+            </FieldDescription>
+            <FieldGroup>
+              <Field>
+                <FieldLabel for="name">Full Name</FieldLabel>
+                <Input id="name" v-model="form.name" type="text" required :disabled="saving" />
+              </Field>
 
-            <Field>
-              <FieldLabel for="email">Email</FieldLabel>
-              <Input id="email" v-model="form.email" type="email" :disabled="saving" />
-            </Field>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field>
+                  <FieldLabel for="username">Username</FieldLabel>
+                  <Input
+                    id="username"
+                    v-model="form.username"
+                    type="text"
+                    required
+                    :disabled="saving"
+                  />
+                </Field>
 
-            <Field>
-              <FieldLabel for="name">Full Name</FieldLabel>
-              <Input id="name" v-model="form.name" type="text" required :disabled="saving" />
-            </Field>
+                <Field>
+                  <FieldLabel for="email">Email</FieldLabel>
+                  <Input id="email" v-model="form.email" type="email" :disabled="saving" />
+                </Field>
+              </div>
+            </FieldGroup>
+          </FieldSet>
 
-            <Field>
-              <FieldLabel for="role">Role</FieldLabel>
-              <Select v-model="form.role" :disabled="saving">
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="USER">User</SelectItem>
-                  <SelectItem value="MODERATOR">Moderator</SelectItem>
-                  <SelectItem value="ADMIN">Admin</SelectItem>
-                  <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
+          <FieldSeparator />
 
-            <Field>
-              <div class="flex items-center gap-2">
-                <input
+          <FieldSet>
+            <FieldLegend>Access Control</FieldLegend>
+            <FieldDescription>
+              Manage user role and account status.
+            </FieldDescription>
+            <FieldGroup>
+              <Field>
+                <FieldLabel for="role">Role</FieldLabel>
+                <Select v-model="form.role" :disabled="saving">
+                  <SelectTrigger id="role">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="USER">User</SelectItem>
+                    <SelectItem value="MODERATOR">Moderator</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </Field>
+
+              <Field orientation="horizontal">
+                <Checkbox
                   id="is_active"
-                  v-model="form.is_active"
-                  type="checkbox"
-                  class="h-4 w-4"
+                  v-model:checked="form.is_active"
                   :disabled="saving"
                 />
-                <FieldLabel for="is_active">Active</FieldLabel>
-              </div>
-            </Field>
-          </FieldGroup>
+                <div class="flex flex-col gap-1">
+                  <FieldLabel for="is_active" class="font-normal cursor-pointer">
+                    Active Account
+                  </FieldLabel>
+                  <FieldDescription>
+                    Disable to prevent the user from logging in.
+                  </FieldDescription>
+                </div>
+              </Field>
+            </FieldGroup>
+          </FieldSet>
 
-          <div class="flex gap-2">
-            <Button type="submit" :disabled="saving">
-              {{ saving ? 'Saving...' : 'Save Changes' }}
-            </Button>
+          <div class="flex gap-2 justify-end mt-6">
             <Button type="button" variant="outline" @click="router.back()" :disabled="saving">
               Cancel
             </Button>
+            <Button type="submit" :disabled="saving">
+              {{ saving ? 'Saving...' : 'Save Changes' }}
+            </Button>
           </div>
-        </form>
-      </CardContent>
-    </Card>
+        </FieldGroup>
+      </form>
+    </div>
   </div>
 </template>

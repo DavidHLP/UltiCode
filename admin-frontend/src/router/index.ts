@@ -27,12 +27,6 @@ const router = createRouter({
           meta: { permission: { action: 'READ', resource: 'USER' } },
         },
         {
-          path: 'users/:id',
-          name: 'user-detail',
-          component: () => import('@/views/users/UserDetailView.vue'),
-          meta: { permission: { action: 'READ', resource: 'USER' } },
-        },
-        {
           path: 'audit',
           name: 'audit',
           component: () => import('@/views/audit/AuditLogsView.vue'),

@@ -9,7 +9,7 @@ import {
   Max,
   MaxLength,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export enum Difficulty {
   EASY = 'EASY',
@@ -163,10 +163,20 @@ export class ProblemQueryDto {
   @IsOptional()
   status?: ProblemStatus;
 
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   is_published?: boolean;
 
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   is_deleted?: boolean;

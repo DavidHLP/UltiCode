@@ -5,21 +5,22 @@ import type { TestCaseExample } from '@/components/problem/TestCasesEditor.vue'
 
 interface Example {
   id: string
-  input_text: string
-  output_text: string
+  input: string
+  output: string
   explanation?: string
+  order: number
 }
 
 const props = defineProps<{
   examples: Example[]
 }>()
 
-// Convert backend format to component format
+// Backend now returns transformed format directly
 const testCases = computed<TestCaseExample[]>(() =>
   props.examples.map((ex) => ({
     id: ex.id,
-    input: ex.input_text,
-    output: ex.output_text,
+    input: ex.input,
+    output: ex.output,
     explanation: ex.explanation,
   })),
 )

@@ -198,7 +198,9 @@ export class AdminProblemController {
       where: { id: BigInt(id) },
       include: {
         detail: true,
-        examples: true,
+        examples: {
+          orderBy: { example_order: 'asc' },
+        },
         languages: true,
         tagRelations: {
           include: {
@@ -218,12 +220,47 @@ export class AdminProblemController {
       return null;
     }
 
+    // Transform examples: map example_order to order, input_text to input, output_text to output
+    const transformedExamples = problem.examples.map((ex) => ({
+      id: ex.id,
+      input: ex.input_text,
+      output: ex.output_text,
+      explanation: ex.explanation,
+      order: ex.example_order,
+    }));
+
+    // Transform languages: map label to language and include all fields
+    const transformedLanguages = problem.languages.map((lang) => ({
+      id: lang.id,
+      language: lang.label,
+      value: lang.value,
+      style: lang.style,
+      starter_code: lang.starter_code,
+    }));
+
+    // Transform detail to include content field (using summary as content source)
+    const transformedDetail = problem.detail
+      ? {
+          ...problem.detail,
+          difficulty_rating: problem.detail.difficulty_rating
+            ? Number(problem.detail.difficulty_rating)
+            : null,
+          content: problem.detail.summary, // Map summary to content for frontend
+        }
+      : null;
+
     return {
       ...problem,
       id: problem.id.toString(),
       submission_count: problem._count.submissions,
       solution_count: problem._count.solutions,
       tags: problem.tagRelations.map((tr) => tr.tag),
+      examples: transformedExamples,
+      languages: transformedLanguages,
+      detail: transformedDetail,
+      // Use detail's updated_at as problem's updated_at since Problem model doesn't have it
+      created_at: problem.published_at || new Date(),
+      updated_at: problem.detail?.updated_at || new Date(),
       _count: undefined,
       tagRelations: undefined,
     };

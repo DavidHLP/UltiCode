@@ -34,8 +34,8 @@ async function loadData() {
 function mapExampleToTestCase(example: ProblemExample): TestCaseExample {
   return {
     id: example.id,
-    input: example.input_text,
-    output: example.output_text,
+    input: example.input,
+    output: example.output,
     explanation: example.explanation,
   }
 }
@@ -48,8 +48,8 @@ async function handleSubmit(data: ProblemFormData) {
       status: data.status,
       examples: data.examples.map((ex, idx) => ({
         id: ex.id || crypto.randomUUID(),
-        input_text: ex.input,
-        output_text: ex.output,
+        input: ex.input,
+        output: ex.output,
         explanation: ex.explanation,
         order: idx,
       })),

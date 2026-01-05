@@ -20,8 +20,8 @@ async function handleSubmit(data: ProblemFormData) {
       status: data.status,
       examples: data.examples.map((ex, idx) => ({
         id: ex.id || crypto.randomUUID(),
-        input_text: ex.input,
-        output_text: ex.output,
+        input: ex.input,
+        output: ex.output,
         explanation: ex.explanation,
         order: idx,
       })),

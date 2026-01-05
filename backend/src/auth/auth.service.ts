@@ -2,7 +2,9 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
+import { randomBytes } from 'crypto';
 import { UserService } from '../user/user.service';
+import { PrismaService } from '../prisma.service';
 import { RegisterDto } from './dto/register.dto';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { ErrorCode } from '../common/error-codes';
@@ -22,12 +24,21 @@ export interface LogoutDto {
   token?: string;
 }
 
+export interface ResetPasswordDto {
+  token: string;
+  newPassword: string;
+}
+
 @Injectable()
 export class AuthService {
+  // Password reset token expires in 1 hour
+  private readonly PASSWORD_RESET_EXPIRY = 60 * 60 * 1000; // 1 hour in ms
+
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
     private tokenBlacklistService: TokenBlacklistService,
+    private prisma: PrismaService,
   ) {}
 
   /**
@@ -189,16 +200,87 @@ export class AuthService {
     const user = await this.userService.findByEmail(email);
     if (!user) {
       // Don't reveal whether user exists - always return same message
-      return { messageKey: 'auth.forgotPassword.successMessage' };
+      return {
+        message:
+          'If an account exists with this email, a password reset link will be sent',
+      };
     }
 
-    // TODO: In production:
-    // 1. Generate reset token
-    // 2. Save to database with expiration
-    // 3. Send email
-    console.log(`[Mock Email] Password reset link sent to ${email}`);
+    // Invalidate any existing reset tokens for this user
+    await this.prisma.passwordReset.updateMany({
+      where: { user_id: user.id },
+      data: { used_at: new Date() },
+    });
 
-    return { messageKey: 'auth.forgotPassword.successMessage' };
+    // Generate a secure random token
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + this.PASSWORD_RESET_EXPIRY);
+
+    // Save to database
+    await this.prisma.passwordReset.create({
+      data: {
+        user_id: user.id,
+        token,
+        expires_at: expiresAt,
+      },
+    });
+
+    // In production, send email with reset link
+    // For now, return the token for testing (remove in production!)
+    return {
+      message:
+        'If an account exists with this email, a password reset link will be sent',
+      // DEV_ONLY: Reset token - remove this in production
+      resetToken: process.env.NODE_ENV === 'development' ? token : undefined,
+    };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const { token, newPassword } = resetPasswordDto;
+
+    // Find valid reset token
+    const resetRecord = await this.prisma.passwordReset.findUnique({
+      where: { token },
+    });
+
+    if (!resetRecord) {
+      throw new BusinessException(ErrorCode.AUTH_INVALID_RESET_TOKEN);
+    }
+
+    // Check if token has been used
+    if (resetRecord.used_at) {
+      throw new BusinessException(ErrorCode.AUTH_RESET_TOKEN_ALREADY_USED);
+    }
+
+    // Check if token has expired
+    if (new Date() > resetRecord.expires_at) {
+      throw new BusinessException(ErrorCode.AUTH_RESET_TOKEN_EXPIRED);
+    }
+
+    // Hash new password
+    const hashedPassword = await this.hashPassword(newPassword);
+
+    // Update user password
+    await this.userService.update(resetRecord.user_id, {
+      password: hashedPassword,
+    });
+
+    // Mark token as used
+    await this.prisma.passwordReset.update({
+      where: { id: resetRecord.id },
+      data: { used_at: new Date() },
+    });
+
+    // Invalidate all other reset tokens for this user
+    await this.prisma.passwordReset.updateMany({
+      where: {
+        user_id: resetRecord.user_id,
+        id: { not: resetRecord.id },
+      },
+      data: { used_at: new Date() },
+    });
+
+    return { message: 'Password has been reset successfully' };
   }
 
   githubLogin(res: Response) {

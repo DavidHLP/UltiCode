@@ -145,7 +145,7 @@ export class UserQueryDto {
   @IsOptional()
   role?: UserRole;
 
-  @Transform(({ value }) => {
+  @Transform(({ value }: { value: unknown }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
     return value;
@@ -154,7 +154,7 @@ export class UserQueryDto {
   @IsOptional()
   is_active?: boolean;
 
-  @Transform(({ value }) => {
+  @Transform(({ value }: { value: unknown }) => {
     if (value === 'true') return true;
     if (value === 'false') return false;
     return value;

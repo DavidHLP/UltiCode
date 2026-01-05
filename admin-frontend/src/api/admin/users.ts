@@ -9,6 +9,8 @@ export interface User {
   role: string
   is_active: boolean
   is_banned: boolean
+  ban_reason?: string
+  banned_at?: string
   joined_at: string
   last_login_at?: string
   permissions?: UserPermission[]

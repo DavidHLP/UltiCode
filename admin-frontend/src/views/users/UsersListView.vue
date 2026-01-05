@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
@@ -44,8 +43,8 @@ import type { User } from '@/api/admin/users'
 import DataTable from '@/components/table/DataTable.vue'
 import UserEditDialog from './UserEditDialog.vue'
 import UserCreateDialog from './UserCreateDialog.vue'
+import UserDetailDrawer from './UserDetailDrawer.vue'
 
-const router = useRouter()
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
 
@@ -57,6 +56,7 @@ const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
 const selectedUserId = ref<string | null>(null)
 const editDialogOpen = ref(false)
 const createDialogOpen = ref(false)
+const detailDrawerOpen = ref(false)
 
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
@@ -108,7 +108,8 @@ watch(
 )
 
 function viewUser(id: string) {
-  router.push({ name: 'user-detail', params: { id } })
+  selectedUserId.value = id
+  detailDrawerOpen.value = true
 }
 
 function editUser(id: string) {
@@ -458,5 +459,10 @@ const columns: ColumnDef<User>[] = [
 
     <UserEditDialog v-model:open="editDialogOpen" :user-id="selectedUserId" @success="loadUsers" />
     <UserCreateDialog v-model:open="createDialogOpen" @success="loadUsers" />
+    <UserDetailDrawer
+      v-model:open="detailDrawerOpen"
+      :user-id="selectedUserId"
+      @success="loadUsers"
+    />
   </Tabs>
 </template>

@@ -24,7 +24,7 @@ import {
   useVueTable,
 } from '@tanstack/vue-table'
 import { DragDropProvider } from 'dnd-kit-vue'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -70,10 +70,12 @@ const props = defineProps<{
   emptyTitle?: string
   emptyDescription?: string
   loading?: boolean
+  selectedRows?: TData[]
 }>()
 
 const emit = defineEmits<{
   'update:pagination': [value: PaginationState]
+  'update:selectedRows': [value: TData[]]
 }>()
 
 const sorting = ref<SortingState>([])
@@ -110,6 +112,10 @@ const table = useVueTable({
   onRowSelectionChange: (updaterOrValue) => {
     rowSelection.value =
       typeof updaterOrValue === 'function' ? updaterOrValue(rowSelection.value) : updaterOrValue
+
+    // Emit selected data objects
+    const selectedData = table.getSelectedRowModel().flatRows.map((row) => row.original as TData)
+    emit('update:selectedRows', selectedData)
   },
   onPaginationChange: (updaterOrValue) => {
     const pagination =
@@ -136,6 +142,18 @@ const table = useVueTable({
     },
   },
 })
+
+// Watch for external clearing of selected rows
+watch(
+  () => props.selectedRows,
+  (newVal) => {
+    if (!newVal || newVal.length === 0) {
+      if (Object.keys(rowSelection.value).length > 0) {
+        table.resetRowSelection()
+      }
+    }
+  },
+)
 </script>
 
 <template>

@@ -21,6 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -72,8 +73,12 @@ const banDialogOpen = ref(false)
 const banReason = ref('')
 const userToBanId = ref<string | null>(null)
 
+const bulkActionLoading = ref(false)
+const selectedRows = ref<User[]>([])
+
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
+const canDeleteUser = computed(() => authStore.hasPermission('DELETE', 'USER'))
 
 onMounted(() => loadUsers())
 
@@ -157,6 +162,61 @@ async function unbanUser(id: string) {
     await loadUsers()
   } catch {
     toast.error('Failed to unban user')
+  }
+}
+
+async function handleBulkBan() {
+  if (selectedRows.value.length === 0) return
+  const ids = selectedRows.value.map((r) => r.id)
+  const reason = prompt('Enter reason for bulk ban:')
+  if (reason === null) return
+
+  bulkActionLoading.value = true
+  try {
+    await usersStore.bulkBan(ids, reason)
+    toast.success(`Successfully banned ${ids.length} users`)
+    await loadUsers()
+    selectedRows.value = []
+  } catch {
+    toast.error('Failed to bulk ban users')
+  } finally {
+    bulkActionLoading.value = false
+  }
+}
+
+async function handleBulkUnban() {
+  if (selectedRows.value.length === 0) return
+  const ids = selectedRows.value.map((r) => r.id)
+
+  bulkActionLoading.value = true
+  try {
+    await usersStore.bulkUnban(ids)
+    toast.success(`Successfully unbanned ${ids.length} users`)
+    await loadUsers()
+    selectedRows.value = []
+  } catch {
+    toast.error('Failed to bulk unban users')
+  } finally {
+    bulkActionLoading.value = false
+  }
+}
+
+async function handleBulkDelete() {
+  if (selectedRows.value.length === 0) return
+  const ids = selectedRows.value.map((r) => r.id)
+  if (!confirm(`Are you sure you want to delete ${ids.length} users? This action is IRREVERSIBLE.`))
+    return
+
+  bulkActionLoading.value = true
+  try {
+    await usersStore.bulkDelete(ids)
+    toast.success(`Successfully deleted ${ids.length} users`)
+    await loadUsers()
+    selectedRows.value = []
+  } catch {
+    toast.error('Failed to bulk delete users')
+  } finally {
+    bulkActionLoading.value = false
   }
 }
 
@@ -341,7 +401,7 @@ const columns: ColumnDef<User>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconShield, { class: 'h-4 w-4' }),
-                          'Edit Permissions',
+                          'Edit Profile',
                         ]),
                     },
                   ),
@@ -410,12 +470,59 @@ const columns: ColumnDef<User>[] = [
     </div>
 
     <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+      <div
+        v-if="selectedRows.length > 0"
+        class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
+      >
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-medium">{{ selectedRows.length }} users selected</span>
+          <Separator orientation="vertical" class="h-4" />
+          <div class="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-8 text-xs"
+              @click="handleBulkBan"
+              :disabled="bulkActionLoading"
+            >
+              <IconBan class="h-3.5 w-3.5 mr-1" />
+              Bulk Ban
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              class="h-8 text-xs"
+              @click="handleBulkUnban"
+              :disabled="bulkActionLoading"
+            >
+              <IconCheck class="h-3.5 w-3.5 mr-1" />
+              Bulk Unban
+            </Button>
+            <Button
+              v-if="canDeleteUser"
+              variant="destructive"
+              size="sm"
+              class="h-8 text-xs"
+              @click="handleBulkDelete"
+              :disabled="bulkActionLoading"
+            >
+              <IconCircleXFilled class="h-3.5 w-3.5 mr-1" />
+              Bulk Delete
+            </Button>
+          </div>
+        </div>
+        <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
+          Clear Selection
+        </Button>
+      </div>
+
       <DataTable
         :columns="columns"
         :data="usersStore.users"
         :pagination="tablePagination"
         :row-count="usersStore.total"
         :loading="usersStore.loading"
+        v-model:selected-rows="selectedRows"
         @update:pagination="tablePagination = $event"
       >
         <template #toolbar-left>

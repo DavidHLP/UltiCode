@@ -14,6 +14,18 @@ export interface User {
   joined_at: string
   last_login_at?: string
   permissions?: UserPermission[]
+  stats?: UserStats
+}
+
+export interface UserStats {
+  stats: {
+    Easy: { count: number; total: number }
+    Medium: { count: number; total: number }
+    Hard: { count: number; total: number }
+  }
+  streak: number
+  totalSolved: number
+  heatmap: { date: string; level: number }[]
 }
 
 export interface UserPermission {
@@ -78,6 +90,12 @@ export interface GrantPermissionDto {
   expires_at?: string
 }
 
+export interface BulkActionDto {
+  ids: string[]
+  reason?: string
+  role?: string
+}
+
 export const usersApi = {
   async getUsers(params: UserQueryParams): Promise<UsersResponse> {
     const response = await apiClient.get<UsersResponse>('/admin/users', { params })
@@ -121,5 +139,31 @@ export const usersApi = {
     await apiClient.delete(`/admin/users/${id}/permissions`, {
       data: { action, resource },
     })
+  },
+
+  async bulkBan(
+    ids: string[],
+    reason?: string,
+  ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
+    const response = await apiClient.post('/admin/users/bulk-ban', { ids, reason })
+    return response.data
+  },
+
+  async bulkUnban(
+    ids: string[],
+  ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
+    const response = await apiClient.post('/admin/users/bulk-unban', { ids })
+    return response.data
+  },
+
+  async bulkDelete(
+    ids: string[],
+  ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
+    const response = await apiClient.delete('/admin/users/bulk-delete', { data: { ids } })
+    return response.data
+  },
+
+  async resetPassword(id: string, password: string): Promise<void> {
+    await apiClient.post(`/admin/users/${id}/reset-password`, { password })
   },
 }

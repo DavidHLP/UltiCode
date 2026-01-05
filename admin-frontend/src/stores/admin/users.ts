@@ -131,6 +131,70 @@ export const useUsersStore = defineStore('adminUsers', () => {
     }
   }
 
+  async function bulkBan(ids: string[], reason?: string) {
+    loading.value = true
+    error.value = null
+    try {
+      await usersApi.bulkBan(ids, reason)
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to bulk ban users'
+      console.error('Failed to bulk ban users:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function bulkUnban(ids: string[]) {
+    loading.value = true
+    error.value = null
+    try {
+      await usersApi.bulkUnban(ids)
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to bulk unban users'
+      console.error('Failed to bulk unban users:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function bulkDelete(ids: string[]) {
+    loading.value = true
+    error.value = null
+    try {
+      await usersApi.bulkDelete(ids)
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to bulk delete users'
+      console.error('Failed to bulk delete users:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function resetPassword(id: string, password: string) {
+    loading.value = true
+    error.value = null
+    try {
+      await usersApi.resetPassword(id, password)
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to reset password'
+      console.error('Failed to reset password:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   function clearError() {
     error.value = null
   }
@@ -147,6 +211,10 @@ export const useUsersStore = defineStore('adminUsers', () => {
     updateUser,
     banUser,
     unbanUser,
+    bulkBan,
+    bulkUnban,
+    bulkDelete,
+    resetPassword,
     clearError,
   }
 })

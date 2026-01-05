@@ -12,7 +12,30 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { IconMail, IconCalendar, IconUser, IconShield, IconBan, IconClock } from '@tabler/icons-vue'
+import {
+  IconMail,
+  IconCalendar,
+  IconUser,
+  IconShield,
+  IconBan,
+  IconClock,
+  IconTrophy,
+  IconFlame,
+  IconLock,
+} from '@tabler/icons-vue'
+import { Progress } from '@/components/ui/progress'
+import { toast } from 'vue-sonner'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 const props = defineProps<{
   open: boolean
@@ -25,6 +48,9 @@ const emit = defineEmits<{
 
 const usersStore = useUsersStore()
 const loading = ref(false)
+const resetPasswordDialogOpen = ref(false)
+const newPassword = ref('')
+const resettingPassword = ref(false)
 
 async function loadUser() {
   if (!props.userId) return
@@ -44,6 +70,21 @@ watch(
     }
   },
 )
+
+async function handleResetPassword() {
+  if (!props.userId || !newPassword.value) return
+  resettingPassword.value = true
+  try {
+    await usersStore.resetPassword(props.userId, newPassword.value)
+    toast.success('Password has been reset successfully')
+    resetPasswordDialogOpen.value = false
+    newPassword.value = ''
+  } catch {
+    toast.error('Failed to reset password')
+  } finally {
+    resettingPassword.value = false
+  }
+}
 
 function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (role) {
@@ -83,38 +124,104 @@ function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructi
       <ScrollArea v-else-if="usersStore.currentUser" class="flex-1">
         <div class="flex flex-col gap-6 p-6">
           <!-- Profile Header -->
-          <div class="flex items-center gap-4">
-            <Avatar class="h-20 w-20 border-2 border-background shadow-sm">
-              <AvatarImage
-                :src="usersStore.currentUser.avatar ?? ''"
-                :alt="usersStore.currentUser.username"
-              />
-              <AvatarFallback class="text-xl">
-                {{ usersStore.currentUser.name?.[0] || usersStore.currentUser.username[0] }}
-              </AvatarFallback>
-            </Avatar>
-            <div class="flex flex-col gap-1">
-              <h3 class="text-xl font-semibold leading-none">
-                {{ usersStore.currentUser.name || usersStore.currentUser.username }}
-              </h3>
-              <p class="text-sm text-muted-foreground flex items-center gap-1">
-                <IconMail class="h-3.5 w-3.5" />
-                {{ usersStore.currentUser.email || 'No email provided' }}
-              </p>
-              <div class="flex flex-wrap gap-2 mt-1">
-                <Badge :variant="getRoleBadgeVariant(usersStore.currentUser.role)">
-                  {{ usersStore.currentUser.role.replace('_', ' ') }}
-                </Badge>
-                <Badge v-if="usersStore.currentUser.is_banned" variant="destructive">Banned</Badge>
-                <Badge v-else-if="!usersStore.currentUser.is_active" variant="secondary"
-                  >Inactive</Badge
-                >
-                <Badge v-else variant="default">Active</Badge>
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+              <Avatar class="h-20 w-20 border-2 border-background shadow-sm">
+                <AvatarImage
+                  :src="usersStore.currentUser.avatar ?? ''"
+                  :alt="usersStore.currentUser.username"
+                />
+                <AvatarFallback class="text-xl">
+                  {{ usersStore.currentUser.name?.[0] || usersStore.currentUser.username[0] }}
+                </AvatarFallback>
+              </Avatar>
+              <div class="flex flex-col gap-1">
+                <h3 class="text-xl font-semibold leading-none">
+                  {{ usersStore.currentUser.name || usersStore.currentUser.username }}
+                </h3>
+                <p class="text-sm text-muted-foreground flex items-center gap-1">
+                  <IconMail class="h-3.5 w-3.5" />
+                  {{ usersStore.currentUser.email || 'No email provided' }}
+                </p>
+                <div class="flex flex-wrap gap-2 mt-1">
+                  <Badge :variant="getRoleBadgeVariant(usersStore.currentUser.role)">
+                    {{ usersStore.currentUser.role.replace('_', ' ') }}
+                  </Badge>
+                  <Badge v-if="usersStore.currentUser.is_banned" variant="destructive"
+                    >Banned</Badge
+                  >
+                  <Badge v-else-if="!usersStore.currentUser.is_active" variant="secondary"
+                    >Inactive</Badge
+                  >
+                  <Badge v-else variant="default">Active</Badge>
+                </div>
               </div>
+            </div>
+            <div class="flex flex-col gap-2">
+              <Button variant="outline" size="sm" @click="resetPasswordDialogOpen = true">
+                <IconLock class="h-4 w-4 mr-2" />
+                Reset Pass
+              </Button>
             </div>
           </div>
 
           <Separator />
+
+          <!-- User Statistics -->
+          <div v-if="usersStore.currentUser.stats" class="space-y-4">
+            <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+              Performance Overview
+            </h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div
+                class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
+              >
+                <IconTrophy class="h-8 w-8 text-yellow-500 mb-2" />
+                <span class="text-2xl font-bold">{{
+                  usersStore.currentUser.stats.totalSolved
+                }}</span>
+                <span class="text-xs text-muted-foreground uppercase">Problems Solved</span>
+              </div>
+              <div
+                class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
+              >
+                <IconFlame class="h-8 w-8 text-orange-500 mb-2" />
+                <span class="text-2xl font-bold">{{ usersStore.currentUser.stats.streak }}</span>
+                <span class="text-xs text-muted-foreground uppercase">Day Streak</span>
+              </div>
+            </div>
+
+            <div class="space-y-3 mt-4">
+              <div
+                v-for="(data, diff) in usersStore.currentUser.stats.stats"
+                :key="diff"
+                class="space-y-1.5"
+              >
+                <div class="flex items-center justify-between text-xs">
+                  <span class="font-medium">{{ diff }}</span>
+                  <span class="text-muted-foreground">{{ data.count }}/{{ data.total }}</span>
+                </div>
+                <Progress
+                  :value="data.total > 0 ? (data.count / data.total) * 100 : 0"
+                  class="h-1.5"
+                  :class="{
+                    'bg-emerald-100': diff === 'Easy',
+                    'bg-amber-100': diff === 'Medium',
+                    'bg-rose-100': diff === 'Hard',
+                  }"
+                  :indicator-class="
+                    diff === 'Easy'
+                      ? 'bg-emerald-500'
+                      : diff === 'Medium'
+                        ? 'bg-amber-500'
+                        : 'bg-rose-500'
+                  "
+                />
+              </div>
+            </div>
+          </div>
+
+          <Separator v-if="usersStore.currentUser.stats" />
 
           <!-- Details Grid -->
           <div class="grid gap-6">
@@ -196,6 +303,35 @@ function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructi
       <div v-else class="flex h-full items-center justify-center p-8">
         <p class="text-muted-foreground">User not found</p>
       </div>
+
+      <Dialog v-model:open="resetPasswordDialogOpen">
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Reset Password</DialogTitle>
+            <DialogDescription>
+              Set a new password for <strong>{{ usersStore.currentUser?.username }}</strong
+              >.
+            </DialogDescription>
+          </DialogHeader>
+          <div class="grid gap-4 py-4">
+            <div class="grid gap-2">
+              <Label for="new-password">New Password</Label>
+              <Input
+                id="new-password"
+                v-model="newPassword"
+                type="password"
+                placeholder="Enter new password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" @click="resetPasswordDialogOpen = false">Cancel</Button>
+            <Button @click="handleResetPassword" :disabled="!newPassword || resettingPassword">
+              {{ resettingPassword ? 'Resetting...' : 'Reset Password' }}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DrawerContent>
   </Drawer>
 </template>

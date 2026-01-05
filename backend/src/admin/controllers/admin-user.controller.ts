@@ -49,32 +49,34 @@ export class AdminUserController {
     const { role, is_active, is_banned, page = 1, limit = 20 } = query;
 
     // Build query conditions using proper TypeORM syntax
-    const where: FindOptionsWhere<User> = {};
+    const baseWhere: FindOptionsWhere<User> = {};
 
     if (role) {
-      where.role = role;
+      baseWhere.role = role;
     }
 
     if (is_active !== undefined) {
-      where.is_active = is_active;
+      baseWhere.is_active = is_active;
     }
 
     if (is_banned !== undefined) {
-      where.is_banned = is_banned;
+      baseWhere.is_banned = is_banned;
     }
+
+    let where: FindOptionsWhere<User> | FindOptionsWhere<User>[] = baseWhere;
 
     // Search in username, email, or name with sanitized input
     // Using TypeORM's Like operator which uses parameterized queries
     const sanitizedSearch = query.getSanitizedSearch();
     if (sanitizedSearch) {
       const searchPattern = `%${sanitizedSearch}%`;
-      // TypeORM doesn't support OR at the top level with FindOptionsWhere
-      // We'll use the raw array syntax which TypeORM supports
-      Object.assign(where, [
-        { username: Like(searchPattern) },
-        { email: Like(searchPattern) },
-        { name: Like(searchPattern) },
-      ]);
+      // TypeORM supports OR conditions via an array of objects.
+      // We must distribute the base AND conditions into each OR branch.
+      where = [
+        { ...baseWhere, username: Like(searchPattern) },
+        { ...baseWhere, email: Like(searchPattern) },
+        { ...baseWhere, name: Like(searchPattern) },
+      ];
     }
 
     const [users, total] = await Promise.all([

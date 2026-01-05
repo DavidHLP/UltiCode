@@ -9,6 +9,7 @@ import {
   IconDotsVertical,
   IconEye,
   IconEyeOff,
+  IconFile,
   IconLoader,
   IconPencil,
   IconPlus,

@@ -36,7 +36,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useUsersStore } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/admin/auth'
 import type { User } from '@/api/admin/users'
@@ -52,6 +52,7 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const roleFilter = ref<string>('all')
 const statusFilter = ref<string>('all')
+const currentTab = ref('all-users')
 const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
 const selectedUserId = ref<string | null>(null)
 const editDialogOpen = ref(false)
@@ -67,11 +68,16 @@ async function loadUsers() {
     search: searchQuery.value || undefined,
     role: roleFilter.value === 'all' ? undefined : roleFilter.value,
     is_active:
-      statusFilter.value === 'active'
+      currentTab.value === 'active'
         ? true
-        : statusFilter.value === 'inactive'
+        : currentTab.value === 'inactive'
           ? false
-          : undefined,
+          : statusFilter.value === 'active'
+            ? true
+            : statusFilter.value === 'inactive'
+              ? false
+              : undefined,
+    is_banned: currentTab.value === 'banned' ? true : undefined,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
   })
@@ -87,7 +93,7 @@ watchDebounced(
   { debounce: 500 },
 )
 
-watch([roleFilter, statusFilter], () => {
+watch([roleFilter, statusFilter, currentTab], () => {
   tablePagination.value.pageIndex = 0
   loadUsers()
 })
@@ -351,10 +357,10 @@ const columns: ColumnDef<User>[] = [
 </script>
 
 <template>
-  <Tabs default-value="all-users" class="w-full flex-col justify-start gap-6">
+  <Tabs v-model="currentTab" class="w-full flex-col justify-start gap-6">
     <div class="flex items-center justify-between px-4 lg:px-6">
       <Label for="view-selector" class="sr-only">View</Label>
-      <Select default-value="all-users">
+      <Select v-model="currentTab">
         <SelectTrigger id="view-selector" class="flex w-fit @4xl/main:hidden" size="sm">
           <SelectValue placeholder="Select a view" />
         </SelectTrigger>
@@ -369,7 +375,7 @@ const columns: ColumnDef<User>[] = [
         class="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex"
       >
         <TabsTrigger value="all-users">
-          All Users <Badge variant="secondary">{{ usersStore.users.length }}</Badge>
+          All Users <Badge variant="secondary">{{ usersStore.total }}</Badge>
         </TabsTrigger>
         <TabsTrigger value="active">Active</TabsTrigger>
         <TabsTrigger value="inactive">Inactive</TabsTrigger>
@@ -377,7 +383,7 @@ const columns: ColumnDef<User>[] = [
       </TabsList>
     </div>
 
-    <TabsContent value="all-users" class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+    <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
       <DataTable
         :columns="columns"
         :data="usersStore.users"
@@ -413,7 +419,7 @@ const columns: ColumnDef<User>[] = [
               <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
             </SelectContent>
           </Select>
-          <Select v-model="statusFilter">
+          <Select v-model="statusFilter" v-if="currentTab === 'all-users'">
             <SelectTrigger class="w-[140px]">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
@@ -444,19 +450,7 @@ const columns: ColumnDef<User>[] = [
         <span class="text-destructive">{{ usersStore.error }}</span>
         <Button variant="outline" size="sm" @click="loadUsers()">Retry</Button>
       </div>
-    </TabsContent>
-
-    <TabsContent value="active" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
-
-    <TabsContent value="inactive" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
-
-    <TabsContent value="banned" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
+    </div>
 
     <UserEditDialog v-model:open="editDialogOpen" :user-id="selectedUserId" @success="loadUsers" />
     <UserCreateDialog v-model:open="createDialogOpen" @success="loadUsers" />

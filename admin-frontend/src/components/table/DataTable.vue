@@ -20,7 +20,6 @@ import {
   FlexRender,
   getCoreRowModel,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useVueTable,
 } from '@tanstack/vue-table'
@@ -67,6 +66,7 @@ const props = defineProps<{
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
   pagination?: PaginationState
+  rowCount?: number
   emptyTitle?: string
   emptyDescription?: string
   loading?: boolean
@@ -88,10 +88,13 @@ const table = useVueTable({
   get columns() {
     return props.columns
   },
+  get rowCount() {
+    return props.rowCount
+  },
   getCoreRowModel: getCoreRowModel(),
-  getPaginationRowModel: getPaginationRowModel(),
   getSortedRowModel: getSortedRowModel(),
   getFilteredRowModel: getFilteredRowModel(),
+  manualPagination: true,
   onSortingChange: (updaterOrValue) => {
     sorting.value =
       typeof updaterOrValue === 'function' ? updaterOrValue(sorting.value) : updaterOrValue

@@ -94,8 +94,11 @@ watchDebounced(
 )
 
 watch([roleFilter, statusFilter, currentTab], () => {
-  tablePagination.value.pageIndex = 0
-  loadUsers()
+  if (tablePagination.value.pageIndex === 0) {
+    loadUsers()
+  } else {
+    tablePagination.value.pageIndex = 0
+  }
 })
 
 watch(
@@ -388,6 +391,7 @@ const columns: ColumnDef<User>[] = [
         :columns="columns"
         :data="usersStore.users"
         :pagination="tablePagination"
+        :row-count="usersStore.total"
         :loading="usersStore.loading"
         @update:pagination="tablePagination = $event"
       >

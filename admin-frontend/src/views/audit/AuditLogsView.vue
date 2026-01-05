@@ -103,8 +103,11 @@ watchDebounced(
 )
 
 watch([actionFilter, entityTypeFilter], () => {
-  tablePagination.value.pageIndex = 0
-  loadLogs()
+  if (tablePagination.value.pageIndex === 0) {
+    loadLogs()
+  } else {
+    tablePagination.value.pageIndex = 0
+  }
 })
 
 watch(
@@ -411,6 +414,7 @@ const columns: ColumnDef<AuditLog>[] = [
         :columns="columns"
         :data="auditStore.logs"
         :pagination="tablePagination"
+        :row-count="auditStore.total"
         :loading="auditStore.loading"
         @update:pagination="tablePagination = $event"
       >

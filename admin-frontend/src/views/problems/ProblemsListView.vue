@@ -88,8 +88,11 @@ watchDebounced(
 )
 
 watch([difficultyFilter, statusFilter, publishedFilter], () => {
-  tablePagination.value.pageIndex = 0
-  loadProblems()
+  if (tablePagination.value.pageIndex === 0) {
+    loadProblems()
+  } else {
+    tablePagination.value.pageIndex = 0
+  }
 })
 
 watch(
@@ -440,6 +443,7 @@ const columns: ColumnDef<Problem>[] = [
         :columns="columns"
         :data="problemsStore.problems"
         :pagination="tablePagination"
+        :row-count="problemsStore.total"
         :loading="problemsStore.loading"
         @update:pagination="tablePagination = $event"
       >

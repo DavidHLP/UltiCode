@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h } from 'vue'
+import { ref, onMounted, h } from 'vue'
 import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import DataTable from '@/components/table/DataTable.vue'
 import { CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-vue-next'
 import { problemsApi } from '@/api/admin/problems'
@@ -41,7 +40,7 @@ const getStatusVariant = (status: string) => {
     case 'RUNNING':
       return 'secondary'
     default:
-      return 'destructive'
+      return 'outline'
   }
 }
 
@@ -67,7 +66,7 @@ const getStatusColor = (status: string) => {
     case 'RUNNING':
       return 'text-blue-600 dark:text-blue-400'
     default:
-      return 'text-destructive'
+      return 'text-muted-foreground'
   }
 }
 
@@ -91,7 +90,7 @@ const columns: ColumnDef<Submission>[] = [
           'div',
           {
             class:
-              'w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-medium text-primary',
+              'w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center text-xs text-primary',
           },
           displayName.charAt(0).toUpperCase(),
         ),
@@ -122,7 +121,7 @@ const columns: ColumnDef<Submission>[] = [
     header: 'Language',
     cell: (info) => {
       const lang = info.getValue() as string
-      return h('span', { class: 'text-xs font-mono px-2 py-0.5 rounded bg-muted' }, lang)
+      return h('span', { class: 'text-xs font-mono px-1.5 py-0.5 rounded bg-muted' }, lang)
     },
   },
   {
@@ -159,8 +158,6 @@ const columns: ColumnDef<Submission>[] = [
   },
 ]
 
-const isEmpty = computed(() => submissions.value.length === 0 && !loading.value)
-
 async function fetchSubmissions() {
   loading.value = true
   try {
@@ -188,35 +185,25 @@ function updatePagination(newPagination: typeof pagination.value) {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- Empty State -->
-    <div
-      v-if="isEmpty"
-      class="flex flex-col items-center justify-center py-16 text-center border border-dashed rounded-lg"
-    >
-      <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-        <CheckCircle2 :size="24" class="text-muted-foreground" />
-      </div>
-      <p class="text-muted-foreground">No submissions found</p>
-      <p class="text-sm text-muted-foreground mt-1">
-        This problem hasn't received any submissions yet.
-      </p>
+  <div
+    v-if="submissions.length === 0 && !loading"
+    class="flex flex-col items-center justify-center py-16 text-center border border-dashed rounded-lg"
+  >
+    <div class="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+      <CheckCircle2 :size="20" class="text-muted-foreground" />
     </div>
-
-    <!-- Data Table -->
-    <Card v-else class="border-muted/50">
-      <CardContent class="p-0">
-        <DataTable
-          :columns="columns"
-          :data="submissions"
-          :pagination="pagination"
-          :row-count="total"
-          :loading="loading"
-          empty-title="No submissions found"
-          empty-description="This problem hasn't received any submissions yet."
-          @update:pagination="updatePagination"
-        />
-      </CardContent>
-    </Card>
+    <p class="text-sm text-muted-foreground">No submissions found</p>
   </div>
+
+  <DataTable
+    v-else
+    :columns="columns"
+    :data="submissions"
+    :pagination="pagination"
+    :row-count="total"
+    :loading="loading"
+    empty-title="No submissions found"
+    empty-description="This problem hasn't received any submissions yet."
+    @update:pagination="updatePagination"
+  />
 </template>

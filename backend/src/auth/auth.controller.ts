@@ -56,7 +56,7 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   @UseGuards(AuthGuard)
-  logout() {
-    return this.authService.logout();
+  async logout(@Body() body: { token?: string }) {
+    return this.authService.logout({ token: body.token || '' });
   }
 }

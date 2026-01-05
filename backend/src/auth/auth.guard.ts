@@ -9,10 +9,12 @@ import { IS_PUBLIC_KEY } from './auth.decorator';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { UserService } from '../user/user.service';
+import { TokenBlacklistService } from './token-blacklist.service';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
   private userService: UserService;
+  private tokenBlacklistService: TokenBlacklistService;
 
   constructor(
     private reflector: Reflector,
@@ -21,8 +23,14 @@ export class AuthGuard implements CanActivate {
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Lazy load services to avoid circular dependency
     if (!this.userService) {
       this.userService = this.moduleRef.get(UserService, { strict: false });
+    }
+    if (!this.tokenBlacklistService) {
+      this.tokenBlacklistService = this.moduleRef.get(TokenBlacklistService, {
+        strict: false,
+      });
     }
 
     const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
@@ -35,6 +43,13 @@ export class AuthGuard implements CanActivate {
 
     if (token) {
       try {
+        // Check if token is blacklisted (revoked)
+        const isBlacklisted =
+          await this.tokenBlacklistService.isBlacklisted(token);
+        if (isBlacklisted) {
+          throw new UnauthorizedException('Token has been revoked');
+        }
+
         const payload = await this.jwtService.verifyAsync<{
           sub: string;
           username: string;

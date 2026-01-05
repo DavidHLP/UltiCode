@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { toast } from 'vue-sonner'
 import { useProblemsStore } from '@/stores/admin/problems'
@@ -73,13 +73,13 @@ async function loadData() {
 async function submit() {
   loading.value = true
   try {
-    await problemsStore.updateProblem(id, formData)
+    await problemsStore.updateProblem(problemId.value, formData.value)
     toast.success('Problem updated successfully')
     router.push({ name: 'problems' })
   } catch {
     toast.error('Failed to update problem')
   } finally {
-    saving.value = false
+    loading.value = false
   }
 }
 

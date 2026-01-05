@@ -60,7 +60,8 @@ async function handleReset() {
       <DialogHeader>
         <DialogTitle>Reset Password</DialogTitle>
         <DialogDescription>
-          Set a new password for <strong>{{ username || 'this user' }}</strong>.
+          Set a new password for <strong>{{ username || 'this user' }}</strong
+          >.
         </DialogDescription>
       </DialogHeader>
       <div class="grid gap-4 py-4">

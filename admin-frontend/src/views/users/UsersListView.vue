@@ -491,11 +491,7 @@ const columns: ColumnDef<User>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input
-          v-model="searchQuery"
-          placeholder="Search users..."
-          class="min-w-[200px] w-[260px]"
-        >
+        <Input v-model="searchQuery" placeholder="Search users..." class="min-w-[200px] w-[260px]">
           <template #trailing>
             <button
               v-if="searchQuery"

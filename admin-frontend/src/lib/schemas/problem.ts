@@ -7,8 +7,8 @@ export const ProblemStatusEnum = z.nativeEnum(ProblemStatus)
 
 export const exampleSchema = z.object({
   id: z.string().optional(),
-  input: z.string().min(1, 'Input is required'),
-  output: z.string().min(1, 'Output is required'),
+  input: z.string(),
+  output: z.string(),
   explanation: z.string().optional(),
 })
 

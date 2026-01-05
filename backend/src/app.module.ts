@@ -35,7 +35,7 @@ import { AdminModule } from './admin/admin.module';
       {
         name: 'global',
         ttl: 60000, // 60 seconds
-        limit: 100, // 100 requests per minute
+        limit: 1000, // 1000 requests per minute (~16 req/sec) - suitable for SPA with parallel requests
       },
       {
         name: 'strict',

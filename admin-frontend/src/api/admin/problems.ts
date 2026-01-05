@@ -15,7 +15,6 @@ export enum ProblemStatus {
 export interface ProblemTag {
   id: string
   label: string
-  category: string
 }
 
 export interface ProblemDetail {

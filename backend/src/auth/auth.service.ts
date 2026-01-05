@@ -6,6 +6,7 @@ import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { ErrorCode } from '../common/error-codes';
+import { TokenBlacklistService } from './token-blacklist.service';
 
 export interface LoginResponse {
   access_token: string;
@@ -17,11 +18,16 @@ export interface LoginResponse {
   };
 }
 
+export interface LogoutDto {
+  token?: string;
+}
+
 @Injectable()
 export class AuthService {
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
+    private tokenBlacklistService: TokenBlacklistService,
   ) {}
 
   /**
@@ -93,7 +99,37 @@ export class AuthService {
     };
   }
 
-  logout() {
+  async logout(logoutDto: LogoutDto): Promise<{ message: string }> {
+    // If a token is provided, add it to the blacklist
+    if (logoutDto.token) {
+      // Decode the token to get its remaining time
+      try {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+        const decoded = this.jwtService.decode(logoutDto.token);
+
+        if (decoded && typeof decoded === 'object' && 'exp' in decoded) {
+          // Calculate TTL until token expiration
+          const now = Math.floor(Date.now() / 1000);
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+          const ttl = decoded.exp - now;
+
+          // Only blacklist if token hasn't expired yet
+          if (ttl > 0) {
+            await this.tokenBlacklistService.addToBlacklist(
+              logoutDto.token,
+              ttl,
+            );
+          }
+        } else {
+          // If we can't decode the token, use default TTL
+          await this.tokenBlacklistService.addToBlacklist(logoutDto.token);
+        }
+      } catch {
+        // If token is invalid, still try to blacklist it with default TTL
+        await this.tokenBlacklistService.addToBlacklist(logoutDto.token);
+      }
+    }
+
     return { message: 'Logged out successfully' };
   }
 

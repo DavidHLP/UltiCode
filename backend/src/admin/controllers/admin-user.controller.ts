@@ -124,8 +124,12 @@ export class AdminUserController {
     @Body() createUserDto: CreateUserDto,
     @CurrentAdmin() admin: User,
   ) {
+    // Generate a unique ID manually as the database doesn't have a default for it
+    const id = `u-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+
     const user = await this.userService.create({
       ...createUserDto,
+      id,
       role: createUserDto.role || UserRole.USER,
       is_active: createUserDto.is_active ?? true,
       is_banned: false,

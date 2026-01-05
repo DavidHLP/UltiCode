@@ -31,7 +31,6 @@ import type { ProblemFormData } from '@/lib/schemas/problem'
 import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 
 // Define a strict local interface for the incoming problem prop
-// This must match what ProblemEditView passes in computed propery
 interface ProblemData {
   slug: string
   title: string
@@ -237,13 +236,13 @@ defineExpose({
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
               <Label>Title</Label>
-              <Input v-model="formData.title" placeholder="Two Sum" />
+              <Input v-model="formData.title" placeholder="e.g. Two Sum" />
               <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
             </div>
 
             <div class="space-y-2">
               <Label>Slug</Label>
-              <Input v-model="formData.slug" placeholder="two-sum" class="font-mono" />
+              <Input v-model="formData.slug" placeholder="e.g. two-sum" class="font-mono" />
               <p v-if="errors.slug" class="text-sm text-destructive">{{ errors.slug }}</p>
             </div>
           </div>
@@ -252,8 +251,8 @@ defineExpose({
             <Label>Summary</Label>
             <Textarea
               v-model="formData.summary"
-              rows="3"
-              placeholder="Brief summary of the problem..."
+              rows="2"
+              placeholder="Brief summary displayed in lists..."
               class="resize-none"
             />
           </div>
@@ -281,7 +280,6 @@ defineExpose({
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
-          <!-- Force re-render if needed, but TestCasesEditor handles updates via watch -->
           <TestCasesEditor v-model="formData.examples as TestCaseExample[]" />
           <p v-if="errors.examples" class="text-sm text-destructive">{{ errors.examples }}</p>
         </CardContent>
@@ -307,37 +305,31 @@ defineExpose({
             <div class="flex gap-2">
               <Input
                 v-model="newConstraint"
-                placeholder="e.g., 1 <= nums.length <= 10^4"
+                placeholder="e.g. 1 <= nums.length <= 10^4"
                 @keyup.enter="addConstraint"
                 class="font-mono text-sm"
               />
               <Button type="button" variant="secondary" @click="addConstraint">Add</Button>
             </div>
 
-            <div class="bg-muted/30 rounded-lg p-4 min-h-[60px] flex flex-col justify-center">
-              <div
-                v-if="formData.constraints!.length === 0"
-                class="text-sm text-muted-foreground text-center"
+            <ul v-if="formData.constraints!.length > 0" class="space-y-2">
+              <li
+                v-for="(constraint, idx) in formData.constraints"
+                :key="idx"
+                class="flex items-center justify-between p-2 rounded-md bg-muted/50 border group text-sm font-mono"
               >
-                No constraints added.
-              </div>
-              <div v-else class="flex flex-wrap gap-2">
-                <Badge
-                  v-for="(constraint, idx) in formData.constraints"
-                  :key="idx"
-                  variant="secondary"
-                  class="gap-1 font-mono text-xs px-2 py-1"
+                <span>{{ constraint }}</span>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                  @click="removeConstraint(idx)"
                 >
-                  {{ constraint }}
-                  <button
-                    class="hover:text-destructive transition-colors ml-1"
-                    @click="removeConstraint(idx)"
-                  >
-                    <IconX class="h-3 w-3" />
-                  </button>
-                </Badge>
-              </div>
-            </div>
+                  <IconX class="h-3 w-3" />
+                </Button>
+              </li>
+            </ul>
+            <p v-else class="text-sm text-muted-foreground italic">No constraints added.</p>
           </div>
 
           <Separator />
@@ -354,32 +346,27 @@ defineExpose({
               <Button type="button" variant="secondary" @click="addHint">Add</Button>
             </div>
 
-            <div class="bg-muted/30 rounded-lg p-4 min-h-[60px] flex flex-col justify-center">
-              <div
-                v-if="formData.hints!.length === 0"
-                class="text-sm text-muted-foreground text-center"
+            <ul v-if="formData.hints!.length > 0" class="space-y-2">
+              <li
+                v-for="(hint, idx) in formData.hints"
+                :key="idx"
+                class="flex items-start justify-between p-2 rounded-md bg-muted/50 border group text-sm"
               >
-                No hints added yet.
-              </div>
-              <div v-else class="space-y-2">
-                <div
-                  v-for="(hint, idx) in formData.hints"
-                  :key="idx"
-                  class="group flex items-start gap-3 text-sm"
-                >
-                  <span class="flex-none font-mono text-muted-foreground text-xs mt-0.5"
-                    >{{ idx + 1 }}.</span
-                  >
-                  <span class="flex-1 leading-relaxed">{{ hint }}</span>
-                  <button
-                    class="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
-                    @click="removeHint(idx)"
-                  >
-                    <IconX class="h-4 w-4" />
-                  </button>
+                <div class="flex gap-2">
+                  <span class="text-muted-foreground font-mono text-xs mt-0.5">{{ idx + 1 }}.</span>
+                  <span>{{ hint }}</span>
                 </div>
-              </div>
-            </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                  @click="removeHint(idx)"
+                >
+                  <IconX class="h-3 w-3" />
+                </Button>
+              </li>
+            </ul>
+            <p v-else class="text-sm text-muted-foreground italic">No hints added.</p>
           </div>
         </CardContent>
       </Card>
@@ -429,20 +416,20 @@ defineExpose({
 
           <div class="space-y-3">
             <div
-              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors"
+              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+              @click="formData.is_premium = !formData.is_premium"
             >
-              <label for="premium" class="text-sm font-medium cursor-pointer"
-                >Premium Problem</label
-              >
-              <Checkbox v-model:checked="formData.is_premium" id="premium" />
+              <Label class="cursor-pointer">Premium Problem</Label>
+              <Checkbox v-model:checked="formData.is_premium" />
             </div>
             <div
-              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors"
+              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+              @click="formData.is_published = !formData.is_published"
             >
-              <label for="published" class="text-sm font-medium cursor-pointer">
+              <Label class="cursor-pointer">
                 {{ isEdit ? 'Published' : 'Publish immediately' }}
-              </label>
-              <Checkbox v-model:checked="formData.is_published" id="published" />
+              </Label>
+              <Checkbox v-model:checked="formData.is_published" />
             </div>
           </div>
 

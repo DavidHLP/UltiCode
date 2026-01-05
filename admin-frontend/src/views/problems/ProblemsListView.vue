@@ -446,67 +446,81 @@ const columns: ColumnDef<Problem>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input
-          v-model="searchQuery"
-          placeholder="Search problems..."
-          class="min-w-[200px] w-[260px]"
-        >
-          <template #trailing>
-            <button
-              v-if="searchQuery"
-              @click="searchQuery = ''"
-              class="rounded-sm opacity-70 hover:opacity-100"
+        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+          <Input
+            v-model="searchQuery"
+            placeholder="Search problems..."
+            class="h-8 min-w-[150px] w-full lg:w-[250px]"
+          >
+            <template #trailing>
+              <button
+                v-if="searchQuery"
+                @click="searchQuery = ''"
+                class="rounded-sm opacity-70 hover:opacity-100"
+              >
+                <IconX class="h-3 w-3" />
+              </button>
+            </template>
+          </Input>
+
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+            <Select v-model="difficultyFilter">
+              <SelectTrigger class="h-8 w-[130px]">
+                <SelectValue placeholder="Difficulty" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Levels</SelectItem>
+                <SelectItem value="EASY">Easy</SelectItem>
+                <SelectItem value="MEDIUM">Medium</SelectItem>
+                <SelectItem value="HARD">Hard</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select v-model="statusFilter">
+              <SelectTrigger class="h-8 w-[120px]">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="todo">Todo</SelectItem>
+                <SelectItem value="attempted">Attempted</SelectItem>
+                <SelectItem value="solved">Solved</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select v-model="publishedFilter">
+              <SelectTrigger class="h-8 w-[120px]">
+                <SelectValue placeholder="Visibility" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Any</SelectItem>
+                <SelectItem value="published">Published</SelectItem>
+                <SelectItem value="unpublished">Draft</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-8 w-8"
+              @click="loadProblems()"
+              title="Refresh"
             >
-              <IconX class="h-4 w-4" />
-            </button>
-          </template>
-        </Input>
-        <Select v-model="difficultyFilter">
-          <SelectTrigger class="w-[160px]">
-            <SelectValue placeholder="All Difficulties" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Difficulties</SelectItem>
-            <SelectItem value="EASY">Easy</SelectItem>
-            <SelectItem value="MEDIUM">Medium</SelectItem>
-            <SelectItem value="HARD">Hard</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select v-model="statusFilter">
-          <SelectTrigger class="w-[140px]">
-            <SelectValue placeholder="All Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="todo">Todo</SelectItem>
-            <SelectItem value="attempted">Attempted</SelectItem>
-            <SelectItem value="solved">Solved</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select v-model="publishedFilter">
-          <SelectTrigger class="w-[140px]">
-            <SelectValue placeholder="All" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="published">Published</SelectItem>
-            <SelectItem value="unpublished">Draft</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="icon" @click="loadProblems()" title="Refresh">
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': problemsStore.loading }" />
-        </Button>
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': problemsStore.loading }" />
+            </Button>
+          </div>
+        </div>
       </template>
 
       <template #extra-actions>
         <Button
           v-if="canCreateProblem"
-          variant="outline"
           size="sm"
+          class="h-8"
           @click="router.push({ name: 'problem-create' })"
         >
-          <IconPlus />
-          <span class="hidden lg:inline">Add Problem</span>
+          <IconPlus class="mr-2 h-4 w-4" />
+          <span>Add Problem</span>
         </Button>
       </template>
     </DataTable>

@@ -10,6 +10,7 @@ import {
   IconCircleXFilled,
   IconDotsVertical,
   IconLoader,
+  IconLock,
   IconPlus,
   IconRefresh,
   IconShield,
@@ -29,7 +30,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -37,15 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Textarea } from '@/components/ui/textarea'
 import { useUsersStore } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/admin/auth'
 import type { User } from '@/api/admin/users'
@@ -54,6 +45,8 @@ import DataTable from '@/components/table/DataTable.vue'
 import UserEditDialog from './UserEditDialog.vue'
 import UserCreateDialog from './UserCreateDialog.vue'
 import UserDetailDrawer from './UserDetailDrawer.vue'
+import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
+import UserBanDialog from './UserBanDialog.vue'
 
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
@@ -63,13 +56,13 @@ const roleFilter = ref<string>('all')
 const statusFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 const selectedUserId = ref<string | null>(null)
+const selectedUsername = ref<string | null>(null)
+
 const editDialogOpen = ref(false)
 const createDialogOpen = ref(false)
 const detailDrawerOpen = ref(false)
-
+const resetPasswordDialogOpen = ref(false)
 const banDialogOpen = ref(false)
-const banReason = ref('')
-const userToBanId = ref<string | null>(null)
 
 const bulkActionLoading = ref(false)
 const selectedRows = ref<User[]>([])
@@ -120,33 +113,26 @@ watch(
   { deep: true },
 )
 
-function viewUser(id: string) {
-  selectedUserId.value = id
+function viewUser(user: User) {
+  selectedUserId.value = user.id
   detailDrawerOpen.value = true
 }
 
-function editUser(id: string) {
-  selectedUserId.value = id
+function editUser(user: User) {
+  selectedUserId.value = user.id
   editDialogOpen.value = true
 }
 
-function startBanUser(id: string) {
-  userToBanId.value = id
-  banReason.value = ''
-  banDialogOpen.value = true
+function resetPassword(user: User) {
+  selectedUserId.value = user.id
+  selectedUsername.value = user.username
+  resetPasswordDialogOpen.value = true
 }
 
-async function confirmBan() {
-  if (!userToBanId.value || !banReason.value) return
-
-  try {
-    await usersStore.banUser(userToBanId.value, banReason.value)
-    toast.success('User has been banned')
-    banDialogOpen.value = false
-    await loadUsers()
-  } catch {
-    toast.error('Failed to ban user')
-  }
+function startBanUser(user: User) {
+  selectedUserId.value = user.id
+  selectedUsername.value = user.username
+  banDialogOpen.value = true
 }
 
 async function unbanUser(id: string) {
@@ -379,7 +365,7 @@ const columns: ColumnDef<User>[] = [
                 default: () => [
                   h(
                     DropdownMenuItem,
-                    { onClick: () => viewUser(user.id) },
+                    { onClick: () => viewUser(user) },
                     {
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
@@ -390,12 +376,23 @@ const columns: ColumnDef<User>[] = [
                   ),
                   h(
                     DropdownMenuItem,
-                    { onClick: () => editUser(user.id) },
+                    { onClick: () => editUser(user) },
                     {
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconShield, { class: 'h-4 w-4' }),
                           'Edit Profile',
+                        ]),
+                    },
+                  ),
+                  h(
+                    DropdownMenuItem,
+                    { onClick: () => resetPassword(user) },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconLock, { class: 'h-4 w-4' }),
+                          'Reset Password',
                         ]),
                     },
                   ),
@@ -415,7 +412,7 @@ const columns: ColumnDef<User>[] = [
                         )
                       : h(
                           DropdownMenuItem,
-                          { onClick: () => startBanUser(user.id) },
+                          { onClick: () => startBanUser(user) },
                           {
                             default: () =>
                               h('div', { class: 'flex items-center gap-2 text-destructive' }, [
@@ -562,25 +559,15 @@ const columns: ColumnDef<User>[] = [
     :user-id="selectedUserId"
     @success="loadUsers"
   />
-
-  <Dialog v-model:open="banDialogOpen">
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Ban User</DialogTitle>
-        <DialogDescription> Please provide a reason for banning this user. </DialogDescription>
-      </DialogHeader>
-      <div class="grid gap-4 py-4">
-        <div class="grid gap-2">
-          <Label for="reason">Reason</Label>
-          <Textarea id="reason" v-model="banReason" placeholder="Violation of terms..." />
-        </div>
-      </div>
-      <DialogFooter>
-        <Button variant="outline" @click="banDialogOpen = false">Cancel</Button>
-        <Button variant="destructive" @click="confirmBan" :disabled="!banReason">
-          Confirm Ban
-        </Button>
-      </DialogFooter>
-    </DialogContent>
-  </Dialog>
+  <UserResetPasswordDialog
+    v-model:open="resetPasswordDialogOpen"
+    :user-id="selectedUserId"
+    :username="selectedUsername"
+  />
+  <UserBanDialog
+    v-model:open="banDialogOpen"
+    :user-id="selectedUserId"
+    :username="selectedUsername"
+    @success="loadUsers"
+  />
 </template>

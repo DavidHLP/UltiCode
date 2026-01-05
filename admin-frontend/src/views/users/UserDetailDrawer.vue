@@ -21,21 +21,8 @@ import {
   IconClock,
   IconTrophy,
   IconFlame,
-  IconLock,
 } from '@tabler/icons-vue'
 import { Progress } from '@/components/ui/progress'
-import { toast } from 'vue-sonner'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 
 const props = defineProps<{
   open: boolean
@@ -48,9 +35,6 @@ const emit = defineEmits<{
 
 const usersStore = useUsersStore()
 const loading = ref(false)
-const resetPasswordDialogOpen = ref(false)
-const newPassword = ref('')
-const resettingPassword = ref(false)
 
 async function loadUser() {
   if (!props.userId) return
@@ -70,21 +54,6 @@ watch(
     }
   },
 )
-
-async function handleResetPassword() {
-  if (!props.userId || !newPassword.value) return
-  resettingPassword.value = true
-  try {
-    await usersStore.resetPassword(props.userId, newPassword.value)
-    toast.success('Password has been reset successfully')
-    resetPasswordDialogOpen.value = false
-    newPassword.value = ''
-  } catch {
-    toast.error('Failed to reset password')
-  } finally {
-    resettingPassword.value = false
-  }
-}
 
 function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (role) {
@@ -156,12 +125,6 @@ function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructi
                   <Badge v-else variant="default">Active</Badge>
                 </div>
               </div>
-            </div>
-            <div class="flex flex-col gap-2">
-              <Button variant="outline" size="sm" @click="resetPasswordDialogOpen = true">
-                <IconLock class="h-4 w-4 mr-2" />
-                Reset Pass
-              </Button>
             </div>
           </div>
 
@@ -303,35 +266,6 @@ function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructi
       <div v-else class="flex h-full items-center justify-center p-8">
         <p class="text-muted-foreground">User not found</p>
       </div>
-
-      <Dialog v-model:open="resetPasswordDialogOpen">
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reset Password</DialogTitle>
-            <DialogDescription>
-              Set a new password for <strong>{{ usersStore.currentUser?.username }}</strong
-              >.
-            </DialogDescription>
-          </DialogHeader>
-          <div class="grid gap-4 py-4">
-            <div class="grid gap-2">
-              <Label for="new-password">New Password</Label>
-              <Input
-                id="new-password"
-                v-model="newPassword"
-                type="password"
-                placeholder="Enter new password"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" @click="resetPasswordDialogOpen = false">Cancel</Button>
-            <Button @click="handleResetPassword" :disabled="!newPassword || resettingPassword">
-              {{ resettingPassword ? 'Resetting...' : 'Reset Password' }}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </DrawerContent>
   </Drawer>
 </template>

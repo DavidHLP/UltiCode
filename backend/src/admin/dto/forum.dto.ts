@@ -6,7 +6,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
-import { Type } from 'class-transformer';
+import { Type, Transform } from 'class-transformer';
 
 export class ForumPostQueryDto {
   @IsString()
@@ -21,14 +21,29 @@ export class ForumPostQueryDto {
   @IsOptional()
   authorId?: string;
 
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   is_flagged?: boolean;
 
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   is_pinned?: boolean;
 
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   is_locked?: boolean;
@@ -68,6 +83,11 @@ export class ForumCommentQueryDto {
   @IsOptional()
   authorId?: string;
 
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
   @IsBoolean()
   @IsOptional()
   is_flagged?: boolean;

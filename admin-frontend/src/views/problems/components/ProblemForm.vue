@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -18,6 +17,7 @@ import MarkdownEditor from '@/components/problem/MarkdownEditor.vue'
 import TestCasesEditor from '@/components/problem/TestCasesEditor.vue'
 import type { TestCaseExample } from '@/components/problem/TestCasesEditor.vue'
 import type { ProblemFormData } from '@/lib/schemas/problem'
+import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 
 interface Problem {
   id?: string
@@ -54,8 +54,8 @@ const emit = defineEmits<{
 const formData = ref<ProblemFormData>({
   slug: props.problem?.slug || '',
   title: props.problem?.title || '',
-  difficulty: (props.problem?.difficulty || Difficulty.MEDIUM) as Difficulty,
-  status: (props.problem?.status || ProblemStatus.TODO) as ProblemStatus,
+  difficulty: (props.problem?.difficulty || 'MEDIUM') as Difficulty,
+  status: (props.problem?.status || 'todo') as ProblemStatus,
   is_premium: props.problem?.is_premium || false,
   is_published: props.problem?.is_published || false,
   summary: props.problem?.summary || '',

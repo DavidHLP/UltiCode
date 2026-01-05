@@ -6,7 +6,6 @@ import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
 import ProblemForm from './components/ProblemForm.vue'
 import type { ProblemFormData } from '@/lib/schemas/problem'
-import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 
 const router = useRouter()
 const problemsStore = useProblemsStore()
@@ -17,8 +16,8 @@ async function handleSubmit(data: ProblemFormData) {
   try {
     const problem = await problemsStore.createProblem({
       ...data,
-      difficulty: data.difficulty as Difficulty,
-      status: data.status as ProblemStatus,
+      difficulty: data.difficulty,
+      status: data.status,
       examples: data.examples.map((ex, idx) => ({
         id: ex.id || crypto.randomUUID(),
         input_text: ex.input,

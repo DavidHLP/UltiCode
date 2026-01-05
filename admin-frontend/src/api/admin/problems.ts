@@ -21,6 +21,7 @@ export interface ProblemTag {
 export interface ProblemDetail {
   id: string
   summary: string
+  content?: string
   difficulty_rating: number
   likes: number
   dislikes: number

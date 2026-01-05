@@ -43,6 +43,7 @@ import type { User } from '@/api/admin/users'
 
 import DataTable from '@/components/table/DataTable.vue'
 import UserEditDialog from './UserEditDialog.vue'
+import UserCreateDialog from './UserCreateDialog.vue'
 
 const router = useRouter()
 const usersStore = useUsersStore()
@@ -54,6 +55,7 @@ const statusFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
 const selectedUserId = ref<string | null>(null)
 const editDialogOpen = ref(false)
+const createDialogOpen = ref(false)
 
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
@@ -416,7 +418,7 @@ const columns: ColumnDef<User>[] = [
             v-else-if="canCreateUser"
             variant="outline"
             size="sm"
-            @click="router.push({ name: 'user-create' })"
+            @click="createDialogOpen = true"
           >
             <IconPlus />
             <span class="hidden lg:inline">Add User</span>
@@ -451,7 +453,7 @@ const columns: ColumnDef<User>[] = [
               : 'Get started by creating a new user'
           }}
         </p>
-        <Button v-if="canCreateUser" class="mt-4" @click="router.push({ name: 'user-create' })">
+        <Button v-if="canCreateUser" class="mt-4" @click="createDialogOpen = true">
           <IconPlus class="mr-2 h-4 w-4" />
           Create User
         </Button>
@@ -473,6 +475,10 @@ const columns: ColumnDef<User>[] = [
     <UserEditDialog
       v-model:open="editDialogOpen"
       :user-id="selectedUserId"
+      @success="loadUsers"
+    />
+    <UserCreateDialog
+      v-model:open="createDialogOpen"
       @success="loadUsers"
     />
   </Tabs>

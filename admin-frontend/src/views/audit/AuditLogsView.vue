@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
-import { watchDebounced } from '@vueuse/core'
+import { ref, onMounted, h, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconCircleCheckFilled,
+  IconChevronDown,
+  IconChevronUp,
   IconDatabase,
   IconDownload,
-  IconDotsVertical,
+  IconEye,
   IconFileText,
+  IconFilter,
   IconInfoCircle,
   IconRefresh,
+  IconSearch,
   IconShield,
   IconTrash,
   IconUser,
@@ -34,6 +37,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuditStore } from '@/stores/admin/audit'
 import { useAuthStore } from '@/stores/admin/auth'
 import type { AuditLog } from '@/api/admin/audit'
@@ -47,6 +58,9 @@ const searchQuery = ref('')
 const actionFilter = ref<string>('all')
 const entityTypeFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 50 })
+
+const selectedLog = ref<AuditLog | null>(null)
+const detailsDialogOpen = ref(false)
 
 const canExportLogs = computed(() => authStore.hasPermission('READ', 'SYSTEM'))
 
@@ -123,8 +137,9 @@ async function exportLogs(format: 'csv' | 'json') {
       entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
       format,
     })
+    toast.success(`Logs exported as ${format.toUpperCase()}`)
   } catch {
-    alert(`Failed to export logs as ${format.toUpperCase()}`)
+    toast.error(`Failed to export logs as ${format.toUpperCase()}`)
   }
 }
 
@@ -210,21 +225,8 @@ function formatJson(value: unknown): string {
 }
 
 function showDetails(log: AuditLog) {
-  const details = `
-Action: ${log.action}
-Entity: ${log.entity_type || 'N/A'} (${log.entity_id || 'N/A'})
-Performer: ${log.performer?.username || 'System'} (${log.performer?.role || 'N/A'})
-Target User: ${log.user?.username || 'N/A'}
-Date: ${new Date(log.created_at).toLocaleString()}
-IP: ${log.ip_address || 'N/A'}
-
-Old Values:
-${formatJson(log.old_values)}
-
-New Values:
-${formatJson(log.new_values)}
-  `
-  alert(details)
+  selectedLog.value = log
+  detailsDialogOpen.value = true
 }
 
 const columns: ColumnDef<AuditLog>[] = [
@@ -473,6 +475,61 @@ const columns: ColumnDef<AuditLog>[] = [
         <Button variant="outline" size="sm" @click="loadLogs()">Retry</Button>
       </div>
     </TabsContent>
+
+    <Dialog v-model:open="detailsDialogOpen">
+      <DialogContent class="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>Audit Log Details</DialogTitle>
+          <DialogDescription>
+            Detailed information for the selected audit log entry.
+          </DialogDescription>
+        </DialogHeader>
+        <ScrollArea class="max-h-[60vh] pr-4">
+          <div v-if="selectedLog" class="space-y-4 py-4">
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <span class="text-xs font-medium text-muted-foreground uppercase">Action</span>
+                <p class="text-sm font-semibold">{{ selectedLog.action }}</p>
+              </div>
+              <div class="space-y-1">
+                <span class="text-xs font-medium text-muted-foreground uppercase">Date</span>
+                <p class="text-sm font-semibold">
+                  {{ new Date(selectedLog.created_at).toLocaleString() }}
+                </p>
+              </div>
+              <div class="space-y-1">
+                <span class="text-xs font-medium text-muted-foreground uppercase">Entity</span>
+                <p class="text-sm font-semibold">
+                  {{ selectedLog.entity_type || 'N/A' }} ({{ selectedLog.entity_id || 'N/A' }})
+                </p>
+              </div>
+              <div class="space-y-1">
+                <span class="text-xs font-medium text-muted-foreground uppercase">Performer</span>
+                <p class="text-sm font-semibold">
+                  {{ selectedLog.performer?.username || 'System' }} ({{
+                    selectedLog.performer?.role || 'N/A'
+                  }})
+                </p>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <span class="text-xs font-medium text-muted-foreground uppercase">Old Values</span>
+              <pre class="p-2 rounded-md bg-muted text-xs overflow-auto">{{
+                formatJson(selectedLog.old_values)
+              }}</pre>
+            </div>
+
+            <div class="space-y-2">
+              <span class="text-xs font-medium text-muted-foreground uppercase">New Values</span>
+              <pre class="p-2 rounded-md bg-muted text-xs overflow-auto">{{
+                formatJson(selectedLog.new_values)
+              }}</pre>
+            </div>
+          </div>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
 
     <TabsContent value="user-actions" class="flex flex-col px-4 lg:px-6">
       <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />

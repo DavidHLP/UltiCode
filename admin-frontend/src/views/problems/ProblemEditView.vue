@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 import { Button } from '@/components/ui/button'
@@ -72,12 +73,13 @@ async function loadData() {
 async function submit() {
   loading.value = true
   try {
-    await problemsStore.updateProblem(problemId.value, formData.value)
-    router.push({ name: 'problem-detail', params: { id: problemId.value } })
+    await problemsStore.updateProblem(id, formData)
+    toast.success('Problem updated successfully')
+    router.push({ name: 'problems' })
   } catch {
-    alert('Failed to update problem')
+    toast.error('Failed to update problem')
   } finally {
-    loading.value = false
+    saving.value = false
   }
 }
 

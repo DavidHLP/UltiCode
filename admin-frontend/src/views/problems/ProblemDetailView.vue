@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { onMounted, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { useAuthStore } from '@/stores/admin/auth'
 import { Button } from '@/components/ui/button'
@@ -46,18 +47,20 @@ function editProblem() {
 async function publishProblem() {
   try {
     await problemsStore.publishProblem(problemId.value)
+    toast.success('Problem published successfully')
     await loadProblem()
   } catch {
-    alert('Failed to publish problem')
+    toast.error('Failed to publish problem')
   }
 }
 
 async function unpublishProblem() {
   try {
     await problemsStore.unpublishProblem(problemId.value)
+    toast.success('Problem unpublished successfully')
     await loadProblem()
   } catch {
-    alert('Failed to unpublish problem')
+    toast.error('Failed to unpublish problem')
   }
 }
 
@@ -66,9 +69,10 @@ async function deleteProblem() {
 
   try {
     await problemsStore.deleteProblem(problemId.value)
+    toast.success('Problem deleted successfully')
     router.push({ name: 'problems' })
   } catch {
-    alert('Failed to delete problem')
+    toast.error('Failed to delete problem')
   }
 }
 

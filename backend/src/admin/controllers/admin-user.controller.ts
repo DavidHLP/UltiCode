@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { Like, FindOptionsWhere } from 'typeorm';
 import { AuthGuard } from '../../auth/auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
@@ -45,10 +46,10 @@ export class AdminUserController {
     resource: PermissionResource.USER,
   })
   async findAll(@Query() query: UserQueryDto) {
-    const { search, role, is_active, is_banned, page = 1, limit = 20 } = query;
+    const { role, is_active, is_banned, page = 1, limit = 20 } = query;
 
-    // Build query conditions
-    const where: Record<string, unknown> = {};
+    // Build query conditions using proper TypeORM syntax
+    const where: FindOptionsWhere<User> = {};
 
     if (role) {
       where.role = role;
@@ -62,20 +63,23 @@ export class AdminUserController {
       where.is_banned = is_banned;
     }
 
-    // Search in username, email, or name
-    if (search) {
-      where.$or = [
-        { username: { $like: `%${search}%` } },
-        { email: { $like: `%${search}%` } },
-        { name: { $like: `%${search}%` } },
-      ];
+    // Search in username, email, or name with sanitized input
+    // Using TypeORM's Like operator which uses parameterized queries
+    const sanitizedSearch = query.getSanitizedSearch();
+    if (sanitizedSearch) {
+      const searchPattern = `%${sanitizedSearch}%`;
+      // TypeORM doesn't support OR at the top level with FindOptionsWhere
+      // We'll use the raw array syntax which TypeORM supports
+      Object.assign(where, [
+        { username: Like(searchPattern) },
+        { email: Like(searchPattern) },
+        { name: Like(searchPattern) },
+      ]);
     }
 
-    // Note: This is using TypeORM's find methods
-    // For production, consider using Prisma directly for better type safety
     const [users, total] = await Promise.all([
-      this.userService.findAll(),
-      Promise.resolve(0), // TODO: Implement count with proper filtering
+      this.userService.findAll(where, { page, limit }),
+      this.userService.count(where),
     ]);
 
     return {

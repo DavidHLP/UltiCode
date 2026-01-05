@@ -1,8 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, FindOptionsWhere, FindManyOptions } from 'typeorm';
 import { User } from './user.entity';
 import { PrismaService } from '../prisma.service';
+
+interface PaginationOptions {
+  page?: number;
+  limit?: number;
+}
 
 @Injectable()
 export class UserService {
@@ -12,8 +17,31 @@ export class UserService {
     private prisma: PrismaService,
   ) {}
 
-  findAll(): Promise<User[]> {
-    return this.usersRepository.find();
+  findAll(
+    where?: FindOptionsWhere<User> | FindOptionsWhere<User>[],
+    options?: PaginationOptions,
+  ): Promise<User[]> {
+    const findOptions: FindManyOptions<User> = {};
+
+    if (where) {
+      findOptions.where = where;
+    }
+
+    if (options?.page && options?.limit) {
+      const skip = (options.page - 1) * options.limit;
+      findOptions.skip = skip;
+      findOptions.take = options.limit;
+      // Order by joined_at desc by default for consistent pagination
+      findOptions.order = { joined_at: 'DESC' };
+    }
+
+    return this.usersRepository.find(findOptions);
+  }
+
+  async count(
+    where?: FindOptionsWhere<User> | FindOptionsWhere<User>[],
+  ): Promise<number> {
+    return this.usersRepository.count({ where });
   }
 
   async getProfileWithRank(

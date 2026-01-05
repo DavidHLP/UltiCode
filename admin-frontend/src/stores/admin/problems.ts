@@ -78,6 +78,10 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       if (index !== -1) {
         problems.value[index] = problem
       }
+      // Also update currentProblem if it matches
+      if (currentProblem.value?.id === id) {
+        currentProblem.value = problem
+      }
       return problem
     } catch (err: unknown) {
       error.value =
@@ -99,6 +103,11 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       const index = problems.value.findIndex((p) => p.id === id)
       if (index !== -1) {
         problems.value.splice(index, 1)
+        total.value--
+      }
+      // Clear currentProblem if it matches
+      if (currentProblem.value?.id === id) {
+        currentProblem.value = null
       }
     } catch (err: unknown) {
       error.value =
@@ -116,9 +125,14 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
     try {
       const problem = await problemsApi.publishProblem(id)
+      // Update local list if present
       const index = problems.value.findIndex((p) => p.id === id)
       if (index !== -1) {
         problems.value[index] = problem
+      }
+      // Also update currentProblem if it matches
+      if (currentProblem.value?.id === id) {
+        currentProblem.value = problem
       }
       return problem
     } catch (err: unknown) {
@@ -137,9 +151,14 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
     try {
       const problem = await problemsApi.unpublishProblem(id)
+      // Update local list if present
       const index = problems.value.findIndex((p) => p.id === id)
       if (index !== -1) {
         problems.value[index] = problem
+      }
+      // Also update currentProblem if it matches
+      if (currentProblem.value?.id === id) {
+        currentProblem.value = problem
       }
       return problem
     } catch (err: unknown) {
@@ -175,6 +194,18 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
   }
 
+  function clearCurrentProblem() {
+    currentProblem.value = null
+  }
+
+  function reset() {
+    problems.value = []
+    total.value = 0
+    loading.value = false
+    error.value = null
+    currentProblem.value = null
+  }
+
   return {
     problems,
     total,
@@ -190,5 +221,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     unpublishProblem,
     bulkAction,
     clearError,
+    clearCurrentProblem,
+    reset,
   }
 })

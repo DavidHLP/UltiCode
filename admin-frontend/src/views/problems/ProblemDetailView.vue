@@ -46,8 +46,7 @@ async function togglePublish() {
       await problemsStore.publishProblem(problemId.value)
       toast.success('Problem published')
     }
-    // Reload to get updated data
-    await problemsStore.fetchProblem(problemId.value)
+    // Store now automatically updates currentProblem with complete data from backend
   } catch (error) {
     console.error('Failed to toggle publish:', error)
     toast.error('Failed to update publish status')

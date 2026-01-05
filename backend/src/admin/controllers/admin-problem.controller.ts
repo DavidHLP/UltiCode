@@ -32,6 +32,36 @@ import {
   Difficulty,
 } from '../dto/problem.dto';
 
+// Map Prisma difficulty to frontend UPPERCASE format
+function mapDifficultyToFrontend(
+  prismaDifficulty: PrismaDifficulty,
+): Difficulty {
+  switch (prismaDifficulty) {
+    case PrismaDifficulty.Easy:
+      return Difficulty.EASY;
+    case PrismaDifficulty.Medium:
+      return Difficulty.MEDIUM;
+    case PrismaDifficulty.Hard:
+      return Difficulty.HARD;
+    default:
+      return Difficulty.EASY;
+  }
+}
+
+// Map frontend difficulty to Prisma format
+function mapDifficultyToPrisma(difficulty: Difficulty): PrismaDifficulty {
+  switch (difficulty) {
+    case Difficulty.EASY:
+      return PrismaDifficulty.Easy;
+    case Difficulty.MEDIUM:
+      return PrismaDifficulty.Medium;
+    case Difficulty.HARD:
+      return PrismaDifficulty.Hard;
+    default:
+      return PrismaDifficulty.Easy;
+  }
+}
+
 @Controller('admin/problems')
 @UseGuards(AuthGuard, PermissionsGuard, RolesGuard)
 export class AdminProblemController {
@@ -39,6 +69,100 @@ export class AdminProblemController {
     private prisma: PrismaService,
     private auditService: AuditService,
   ) {}
+
+  // Helper to fetch complete problem data with all relations
+  private async getCompleteProblem(id: bigint) {
+    return this.prisma.problem.findUnique({
+      where: { id },
+      include: {
+        detail: true,
+        examples: {
+          orderBy: { example_order: 'asc' },
+        },
+        languages: true,
+        tagRelations: {
+          include: {
+            tag: true,
+          },
+        },
+        _count: {
+          select: {
+            submissions: true,
+            solutions: true,
+          },
+        },
+      },
+    });
+  }
+
+  // Helper to transform problem data for frontend
+  private transformProblemForFrontend(
+    problem: Awaited<ReturnType<typeof this.getCompleteProblem>>,
+  ) {
+    if (!problem) return null;
+
+    // Transform examples
+    const transformedExamples = problem.examples.map((ex) => ({
+      id: ex.id,
+      input: ex.input_text,
+      output: ex.output_text,
+      explanation: ex.explanation,
+      order: ex.example_order,
+    }));
+
+    // Transform languages
+    const transformedLanguages = problem.languages.map((lang) => ({
+      id: lang.id,
+      language: lang.label,
+      value: lang.value,
+      style: lang.style,
+      starter_code: lang.starter_code,
+    }));
+
+    // Transform detail
+    const transformedDetail = problem.detail
+      ? {
+          id: problem.detail.id,
+          summary: problem.detail.summary,
+          content: problem.detail.summary,
+          difficulty_rating: problem.detail.difficulty_rating
+            ? Number(problem.detail.difficulty_rating)
+            : 0,
+          likes: problem.detail.likes,
+          dislikes: problem.detail.dislikes,
+          constraints_json: problem.detail.constraints_json as
+            | string[]
+            | undefined,
+          hints: problem.detail.hints as string[] | undefined,
+        }
+      : null;
+
+    return {
+      id: problem.id.toString(),
+      slug: problem.slug,
+      title: problem.title,
+      difficulty: mapDifficultyToFrontend(problem.difficulty),
+      status: problem.status,
+      is_premium: problem.is_premium,
+      has_solution: problem.has_solution,
+      is_published: problem.is_published,
+      published_at: problem.published_at,
+      published_by: problem.published_by,
+      is_deleted: problem.is_deleted,
+      deleted_at: problem.deleted_at,
+      created_at: problem.published_at || new Date(),
+      updated_at: problem.detail?.updated_at || new Date(),
+      detail: transformedDetail,
+      tags: problem.tagRelations.map((tr) => ({
+        id: tr.tag.id,
+        label: tr.tag.label,
+      })),
+      examples: transformedExamples,
+      languages: transformedLanguages,
+      submission_count: problem._count.submissions,
+      solution_count: problem._count.solutions,
+    };
+  }
 
   @Get()
   @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
@@ -73,14 +197,7 @@ export class AdminProblemController {
     }
 
     if (difficulty) {
-      let prismaDifficulty: PrismaDifficulty = PrismaDifficulty.Easy;
-      if (difficulty === Difficulty.EASY)
-        prismaDifficulty = PrismaDifficulty.Easy;
-      else if (difficulty === Difficulty.MEDIUM)
-        prismaDifficulty = PrismaDifficulty.Medium;
-      else if (difficulty === Difficulty.HARD)
-        prismaDifficulty = PrismaDifficulty.Hard;
-      where.difficulty = prismaDifficulty;
+      where.difficulty = mapDifficultyToPrisma(difficulty);
     }
 
     if (status) {
@@ -118,6 +235,7 @@ export class AdminProblemController {
             difficulty_rating: true,
             likes: true,
             dislikes: true,
+            updated_at: true,
           },
         },
         tagRelations: {
@@ -140,45 +258,36 @@ export class AdminProblemController {
     });
     const total = await this.prisma.problem.count({ where });
 
-    type ProblemWithIncludes = Prisma.ProblemGetPayload<{
-      include: {
-        detail: {
-          select: {
-            id: true;
-            summary: true;
-            difficulty_rating: true;
-            likes: true;
-            dislikes: true;
-          };
-        };
-        tagRelations: {
-          include: {
-            tag: {
-              select: {
-                id: true;
-                label: true;
-              };
-            };
-          };
-        };
-        _count: {
-          select: {
-            submissions: true;
-            solutions: true;
-          };
-        };
-      };
-    }>;
-
     return {
-      data: (problems as ProblemWithIncludes[]).map((p) => ({
-        ...p,
+      data: problems.map((p) => ({
         id: p.id.toString(),
+        slug: p.slug,
+        title: p.title,
+        difficulty: mapDifficultyToFrontend(p.difficulty),
+        status: p.status,
+        is_premium: p.is_premium,
+        has_solution: p.has_solution,
+        is_published: p.is_published,
+        published_at: p.published_at,
+        published_by: p.published_by,
+        is_deleted: p.is_deleted,
+        deleted_at: p.deleted_at,
+        created_at: p.published_at || new Date(),
+        updated_at: p.detail?.updated_at || new Date(),
+        detail: p.detail
+          ? {
+              id: p.detail.id,
+              summary: p.detail.summary,
+              difficulty_rating: p.detail.difficulty_rating
+                ? Number(p.detail.difficulty_rating)
+                : 0,
+              likes: p.detail.likes,
+              dislikes: p.detail.dislikes,
+            }
+          : null,
+        tags: p.tagRelations.map((tr) => tr.tag),
         submission_count: p._count.submissions,
         solution_count: p._count.solutions,
-        tags: p.tagRelations.map((tr) => tr.tag),
-        _count: undefined,
-        tagRelations: undefined,
       })),
       total,
       page,
@@ -194,76 +303,8 @@ export class AdminProblemController {
     resource: PermissionResource.PROBLEM,
   })
   async findOne(@Param('id') id: string) {
-    const problem = await this.prisma.problem.findUnique({
-      where: { id: BigInt(id) },
-      include: {
-        detail: true,
-        examples: {
-          orderBy: { example_order: 'asc' },
-        },
-        languages: true,
-        tagRelations: {
-          include: {
-            tag: true,
-          },
-        },
-        _count: {
-          select: {
-            submissions: true,
-            solutions: true,
-          },
-        },
-      },
-    });
-
-    if (!problem) {
-      return null;
-    }
-
-    // Transform examples: map example_order to order, input_text to input, output_text to output
-    const transformedExamples = problem.examples.map((ex) => ({
-      id: ex.id,
-      input: ex.input_text,
-      output: ex.output_text,
-      explanation: ex.explanation,
-      order: ex.example_order,
-    }));
-
-    // Transform languages: map label to language and include all fields
-    const transformedLanguages = problem.languages.map((lang) => ({
-      id: lang.id,
-      language: lang.label,
-      value: lang.value,
-      style: lang.style,
-      starter_code: lang.starter_code,
-    }));
-
-    // Transform detail to include content field (using summary as content source)
-    const transformedDetail = problem.detail
-      ? {
-          ...problem.detail,
-          difficulty_rating: problem.detail.difficulty_rating
-            ? Number(problem.detail.difficulty_rating)
-            : null,
-          content: problem.detail.summary, // Map summary to content for frontend
-        }
-      : null;
-
-    return {
-      ...problem,
-      id: problem.id.toString(),
-      submission_count: problem._count.submissions,
-      solution_count: problem._count.solutions,
-      tags: problem.tagRelations.map((tr) => tr.tag),
-      examples: transformedExamples,
-      languages: transformedLanguages,
-      detail: transformedDetail,
-      // Use detail's updated_at as problem's updated_at since Problem model doesn't have it
-      created_at: problem.published_at || new Date(),
-      updated_at: problem.detail?.updated_at || new Date(),
-      _count: undefined,
-      tagRelations: undefined,
-    };
+    const problem = await this.getCompleteProblem(BigInt(id));
+    return this.transformProblemForFrontend(problem);
   }
 
   @Post()
@@ -294,16 +335,9 @@ export class AdminProblemController {
     // Generate a unique ID for the problem
     const id = BigInt(Date.now());
 
-    // Map Difficulty DTO (UPPERCASE) to Prisma (TitleCase)
-    let prismaDifficulty: PrismaDifficulty = PrismaDifficulty.Easy;
-    if (difficulty === Difficulty.EASY)
-      prismaDifficulty = PrismaDifficulty.Easy;
-    else if (difficulty === Difficulty.MEDIUM)
-      prismaDifficulty = PrismaDifficulty.Medium;
-    else if (difficulty === Difficulty.HARD)
-      prismaDifficulty = PrismaDifficulty.Hard;
+    const prismaDifficulty = mapDifficultyToPrisma(difficulty);
 
-    const problem = await this.prisma.problem.create({
+    await this.prisma.problem.create({
       data: {
         id,
         slug,
@@ -322,7 +356,7 @@ export class AdminProblemController {
                 summary,
                 constraints_json: constraints || [],
                 hints,
-                updated_at: new Date(), // Required by schema
+                updated_at: new Date(),
               },
             }
           : undefined,
@@ -331,10 +365,10 @@ export class AdminProblemController {
               create: examples.map((ex, idx) => ({
                 id: crypto.randomUUID(),
                 problem_id: id,
-                input_text: ex.input, // Map input -> input_text
-                output_text: ex.output, // Map output -> output_text
+                input_text: ex.input,
+                output_text: ex.output,
                 explanation: ex.explanation,
-                example_order: idx, // Map order -> example_order
+                example_order: idx,
               })),
             }
           : undefined,
@@ -343,9 +377,9 @@ export class AdminProblemController {
               create: languages.map((lang) => ({
                 id: crypto.randomUUID(),
                 problem_id: id,
-                label: lang, // Using lang string as label
-                value: lang.toLowerCase(), // Using lang string as value
-                starter_code: '// Write your code here', // Default starter code
+                label: lang,
+                value: lang.toLowerCase(),
+                starter_code: '// Write your code here',
               })),
             }
           : undefined,
@@ -354,10 +388,8 @@ export class AdminProblemController {
 
     // Add tags if provided
     if (tags && tags.length > 0) {
-      // Find or create tags
       for (const tagLabel of tags) {
         let tag = await this.prisma.problemTag.findFirst({
-          // findFirst for label lookup as it might not be @unique in schema? Schema says NO unique on label!
           where: { label: tagLabel },
         });
 
@@ -366,7 +398,6 @@ export class AdminProblemController {
             data: {
               id: crypto.randomUUID(),
               label: tagLabel,
-              // category removed - not in schema
             },
           });
         }
@@ -384,14 +415,13 @@ export class AdminProblemController {
       performerId: admin.id,
       action: 'CREATE_PROBLEM',
       entityType: 'PROBLEM',
-      entityId: problem.id.toString(),
+      entityId: id.toString(),
       newValues: { slug, title, difficulty },
     });
 
-    return {
-      ...problem,
-      id: problem.id.toString(),
-    };
+    // Return complete problem data
+    const completeProblem = await this.getCompleteProblem(id);
+    return this.transformProblemForFrontend(completeProblem);
   }
 
   @Patch(':id')
@@ -405,8 +435,9 @@ export class AdminProblemController {
     @Body() updateProblemDto: UpdateProblemDto,
     @CurrentAdmin() admin: User,
   ) {
+    const problemId = BigInt(id);
     const oldProblem = await this.prisma.problem.findUnique({
-      where: { id: BigInt(id) },
+      where: { id: problemId },
     });
 
     if (!oldProblem) {
@@ -431,14 +462,7 @@ export class AdminProblemController {
     if (slug !== undefined) updateData.slug = slug;
     if (title !== undefined) updateData.title = title;
     if (difficulty !== undefined) {
-      let prismaDifficulty: PrismaDifficulty = PrismaDifficulty.Easy;
-      if (difficulty === Difficulty.EASY)
-        prismaDifficulty = PrismaDifficulty.Easy;
-      else if (difficulty === Difficulty.MEDIUM)
-        prismaDifficulty = PrismaDifficulty.Medium;
-      else if (difficulty === Difficulty.HARD)
-        prismaDifficulty = PrismaDifficulty.Hard;
-      updateData.difficulty = prismaDifficulty;
+      updateData.difficulty = mapDifficultyToPrisma(difficulty);
     }
     if (status !== undefined) updateData.status = status;
     if (is_premium !== undefined) updateData.is_premium = is_premium;
@@ -453,8 +477,8 @@ export class AdminProblemController {
       detailUpdate.updated_at = new Date();
     }
 
-    const problem = await this.prisma.problem.update({
-      where: { id: BigInt(id) },
+    await this.prisma.problem.update({
+      where: { id: problemId },
       data: {
         ...updateData,
         detail:
@@ -479,10 +503,9 @@ export class AdminProblemController {
       newValues: updateProblemDto,
     });
 
-    return {
-      ...problem,
-      id: problem.id.toString(),
-    };
+    // Return complete problem data
+    const completeProblem = await this.getCompleteProblem(problemId);
+    return this.transformProblemForFrontend(completeProblem);
   }
 
   @Delete(':id')
@@ -527,8 +550,10 @@ export class AdminProblemController {
     resource: PermissionResource.PROBLEM,
   })
   async publish(@Param('id') id: string, @CurrentAdmin() admin: User) {
-    const problem = await this.prisma.problem.update({
-      where: { id: BigInt(id) },
+    const problemId = BigInt(id);
+
+    await this.prisma.problem.update({
+      where: { id: problemId },
       data: {
         is_published: true,
         published_at: new Date(),
@@ -544,10 +569,9 @@ export class AdminProblemController {
       newValues: { is_published: true },
     });
 
-    return {
-      ...problem,
-      id: problem.id.toString(),
-    };
+    // Return complete problem data
+    const completeProblem = await this.getCompleteProblem(problemId);
+    return this.transformProblemForFrontend(completeProblem);
   }
 
   @Post(':id/unpublish')
@@ -557,8 +581,10 @@ export class AdminProblemController {
     resource: PermissionResource.PROBLEM,
   })
   async unpublish(@Param('id') id: string, @CurrentAdmin() admin: User) {
-    const problem = await this.prisma.problem.update({
-      where: { id: BigInt(id) },
+    const problemId = BigInt(id);
+
+    await this.prisma.problem.update({
+      where: { id: problemId },
       data: {
         is_published: false,
       },
@@ -573,10 +599,9 @@ export class AdminProblemController {
       newValues: { is_published: false },
     });
 
-    return {
-      ...problem,
-      id: problem.id.toString(),
-    };
+    // Return complete problem data
+    const completeProblem = await this.getCompleteProblem(problemId);
+    return this.transformProblemForFrontend(completeProblem);
   }
 
   @Get(':id/submissions')

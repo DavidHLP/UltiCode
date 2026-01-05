@@ -411,6 +411,7 @@ const columns: ColumnDef<AuditLog>[] = [
         :columns="columns"
         :data="auditStore.logs"
         :pagination="tablePagination"
+        :loading="auditStore.loading"
         @update:pagination="tablePagination = $event"
       >
         <template #toolbar-left>
@@ -466,26 +467,6 @@ const columns: ColumnDef<AuditLog>[] = [
       >
         <span class="text-destructive">{{ auditStore.error }}</span>
         <Button variant="outline" size="sm" @click="loadLogs()">Retry</Button>
-      </div>
-
-      <!-- Empty state -->
-      <div
-        v-if="!auditStore.loading && auditStore.logs.length === 0"
-        class="flex flex-col items-center justify-center py-12 text-center"
-      >
-        <div
-          class="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground"
-        >
-          <IconFileText class="h-8 w-8" />
-        </div>
-        <h3 class="mt-4 text-lg font-semibold">No audit logs found</h3>
-        <p class="text-muted-foreground">
-          {{
-            searchQuery || actionFilter !== 'all' || entityTypeFilter !== 'all'
-              ? 'Try adjusting your filters'
-              : 'Audit logs will appear here when admin actions are performed'
-          }}
-        </p>
       </div>
     </TabsContent>
 

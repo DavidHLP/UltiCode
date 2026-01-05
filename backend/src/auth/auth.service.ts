@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { createHash, randomBytes } from 'crypto';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma.service';
 import { RegisterDto } from './dto/register.dto';
@@ -42,28 +42,34 @@ export class AuthService {
   ) {}
 
   /**
-   * 密码哈希函数 - 使用 bcrypt 进行安全哈希
+   * 密码哈希函数 - 使用 SHA-256 与种子数据保持一致
    * @param password 明文密码
-   * @returns bcrypt 哈希后的密码 (包含盐值和工作因子)
+   * @returns SHA-256 哈希后的密码
    */
-  private async hashPassword(password: string): Promise<string> {
-    // 使用 bcrypt 进行密码哈希，盐轮数为 10 (推荐范围: 10-12)
-    // bcrypt 自动处理盐值生成和存储，每次哈希结果都不同但验证相同
-    const saltRounds = 10;
-    return bcrypt.hash(password, saltRounds);
+  private hashPassword(password: string): string {
+    return createHash('sha256').update(password).digest('hex');
   }
 
   /**
-   * 验证密码 - 使用 bcrypt 的 compare 方法
+   * 验证密码 - 兼容 SHA-256 与历史 bcrypt
    * @param password 明文密码
-   * @param hashedPassword bcrypt 哈希后的密码
+   * @param hashedPassword 已存储的密码哈希
    * @returns 密码是否匹配
    */
   private async verifyPassword(
     password: string,
     hashedPassword: string,
   ): Promise<boolean> {
-    return bcrypt.compare(password, hashedPassword);
+    if (
+      hashedPassword.startsWith('$2a$') ||
+      hashedPassword.startsWith('$2b$') ||
+      hashedPassword.startsWith('$2y$')
+    ) {
+      return bcrypt.compare(password, hashedPassword);
+    }
+
+    const sha256Password = createHash('sha256').update(password).digest('hex');
+    return sha256Password === hashedPassword;
   }
 
   /**
@@ -163,7 +169,7 @@ export class AuthService {
     const id = `u-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
     // 哈希密码
-    const hashedPassword = await this.hashPassword(registerDto.password);
+    const hashedPassword = this.hashPassword(registerDto.password);
 
     // 创建用户
     const fallbackAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
@@ -258,7 +264,7 @@ export class AuthService {
     }
 
     // Hash new password
-    const hashedPassword = await this.hashPassword(newPassword);
+    const hashedPassword = this.hashPassword(newPassword);
 
     // Update user password
     await this.userService.update(resetRecord.user_id, {

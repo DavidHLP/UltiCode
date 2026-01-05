@@ -9,12 +9,10 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { IconMail, IconCalendar, IconUser, IconShield, IconBan, IconClock } from '@tabler/icons-vue'
-import UserEditDialog from './UserEditDialog.vue'
 
 const props = defineProps<{
   open: boolean
@@ -23,12 +21,10 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  success: []
 }>()
 
 const usersStore = useUsersStore()
 const loading = ref(false)
-const editDialogOpen = ref(false)
 
 async function loadUser() {
   if (!props.userId) return
@@ -61,11 +57,6 @@ function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructi
       return 'outline'
   }
 }
-
-function handleEditSuccess() {
-  loadUser()
-  emit('success')
-}
 </script>
 
 <template>
@@ -77,14 +68,6 @@ function handleEditSuccess() {
             <DrawerTitle>User Details</DrawerTitle>
             <DrawerDescription>View comprehensive information about the user.</DrawerDescription>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            @click="editDialogOpen = true"
-            :disabled="!usersStore.currentUser"
-          >
-            Edit User
-          </Button>
         </div>
       </DrawerHeader>
 
@@ -214,12 +197,5 @@ function handleEditSuccess() {
         <p class="text-muted-foreground">User not found</p>
       </div>
     </DrawerContent>
-
-    <UserEditDialog
-      v-if="usersStore.currentUser"
-      v-model:open="editDialogOpen"
-      :user-id="usersStore.currentUser.id"
-      @success="handleEditSuccess"
-    />
   </Drawer>
 </template>

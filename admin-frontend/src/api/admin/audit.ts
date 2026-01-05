@@ -26,6 +26,7 @@ export interface AuditLog {
 }
 
 export interface AuditLogQueryParams {
+  search?: string
   performerId?: string
   userId?: string
   entityType?: string

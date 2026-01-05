@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h } from 'vue'
+import { ref, onMounted, computed, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconCheck,
@@ -75,6 +76,27 @@ async function loadProblems() {
     limit: tablePagination.value.pageSize,
   })
 }
+
+// Watchers
+watchDebounced(
+  searchQuery,
+  () => {
+    tablePagination.value.pageIndex = 0
+    loadProblems()
+  },
+  { debounce: 500 },
+)
+
+watch([difficultyFilter, statusFilter, publishedFilter], () => {
+  tablePagination.value.pageIndex = 0
+  loadProblems()
+})
+
+watch(
+  () => tablePagination.value,
+  () => loadProblems(),
+  { deep: true },
+)
 
 function viewProblem(id: string) {
   router.push({ name: 'problem-detail', params: { id } })
@@ -424,7 +446,6 @@ const columns: ColumnDef<Problem>[] = [
             v-model="searchQuery"
             placeholder="Search problems..."
             class="min-w-[200px] w-[260px]"
-            @keyup.enter="loadProblems()"
           >
             <template #trailing>
               <button
@@ -436,7 +457,7 @@ const columns: ColumnDef<Problem>[] = [
               </button>
             </template>
           </Input>
-          <Select v-model="difficultyFilter" @update:model-value="loadProblems()">
+          <Select v-model="difficultyFilter">
             <SelectTrigger class="w-[160px]">
               <SelectValue placeholder="All Difficulties" />
             </SelectTrigger>
@@ -447,7 +468,7 @@ const columns: ColumnDef<Problem>[] = [
               <SelectItem value="HARD">Hard</SelectItem>
             </SelectContent>
           </Select>
-          <Select v-model="statusFilter" @update:model-value="loadProblems()">
+          <Select v-model="statusFilter">
             <SelectTrigger class="w-[140px]">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
@@ -458,7 +479,7 @@ const columns: ColumnDef<Problem>[] = [
               <SelectItem value="solved">Solved</SelectItem>
             </SelectContent>
           </Select>
-          <Select v-model="publishedFilter" @update:model-value="loadProblems()">
+          <Select v-model="publishedFilter">
             <SelectTrigger class="w-[140px]">
               <SelectValue placeholder="All" />
             </SelectTrigger>

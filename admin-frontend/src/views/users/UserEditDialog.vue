@@ -75,7 +75,7 @@ watch(
         loading.value = false
       }
     }
-  }
+  },
 )
 
 async function handleSubmit() {
@@ -134,13 +134,7 @@ async function handleSubmit() {
             <FieldGroup>
               <Field>
                 <FieldLabel for="edit-name">Full Name</FieldLabel>
-                <Input
-                  id="edit-name"
-                  v-model="form.name"
-                  type="text"
-                  required
-                  :disabled="saving"
-                />
+                <Input id="edit-name" v-model="form.name" type="text" required :disabled="saving" />
               </Field>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -157,12 +151,7 @@ async function handleSubmit() {
 
                 <Field>
                   <FieldLabel for="edit-email">Email</FieldLabel>
-                  <Input
-                    id="edit-email"
-                    v-model="form.email"
-                    type="email"
-                    :disabled="saving"
-                  />
+                  <Input id="edit-email" v-model="form.email" type="email" :disabled="saving" />
                 </Field>
               </div>
             </FieldGroup>
@@ -190,11 +179,7 @@ async function handleSubmit() {
               </Field>
 
               <Field orientation="horizontal">
-                <Checkbox
-                  id="edit-is_active"
-                  v-model:checked="form.is_active"
-                  :disabled="saving"
-                />
+                <Checkbox id="edit-is_active" v-model:checked="form.is_active" :disabled="saving" />
                 <div class="flex flex-col gap-1">
                   <FieldLabel for="edit-is_active" class="font-normal cursor-pointer">
                     Active Account

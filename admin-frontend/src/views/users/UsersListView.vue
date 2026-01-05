@@ -493,14 +493,7 @@ const columns: ColumnDef<User>[] = [
       <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
     </TabsContent>
 
-    <UserEditDialog
-      v-model:open="editDialogOpen"
-      :user-id="selectedUserId"
-      @success="loadUsers"
-    />
-    <UserCreateDialog
-      v-model:open="createDialogOpen"
-      @success="loadUsers"
-    />
+    <UserEditDialog v-model:open="editDialogOpen" :user-id="selectedUserId" @success="loadUsers" />
+    <UserCreateDialog v-model:open="createDialogOpen" @success="loadUsers" />
   </Tabs>
 </template>

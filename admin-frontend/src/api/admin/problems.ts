@@ -24,6 +24,8 @@ export interface ProblemDetail {
   difficulty_rating: number
   likes: number
   dislikes: number
+  constraints_json?: string[]
+  hints?: string[]
 }
 
 export interface Problem {

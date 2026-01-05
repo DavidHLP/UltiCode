@@ -42,6 +42,7 @@ import { useAuthStore } from '@/stores/admin/auth'
 import type { User } from '@/api/admin/users'
 
 import DataTable from '@/components/table/DataTable.vue'
+import UserEditDialog from './UserEditDialog.vue'
 
 const router = useRouter()
 const usersStore = useUsersStore()
@@ -51,6 +52,8 @@ const searchQuery = ref('')
 const roleFilter = ref<string>('all')
 const statusFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
+const selectedUserId = ref<string | null>(null)
+const editDialogOpen = ref(false)
 
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
@@ -77,7 +80,8 @@ function viewUser(id: string) {
 }
 
 function editUser(id: string) {
-  router.push({ name: 'user-edit', params: { id } })
+  selectedUserId.value = id
+  editDialogOpen.value = true
 }
 
 async function banUser(id: string) {
@@ -465,5 +469,11 @@ const columns: ColumnDef<User>[] = [
     <TabsContent value="banned" class="flex flex-col px-4 lg:px-6">
       <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
     </TabsContent>
+
+    <UserEditDialog
+      v-model:open="editDialogOpen"
+      :user-id="selectedUserId"
+      @success="loadUsers"
+    />
   </Tabs>
 </template>

@@ -39,12 +39,6 @@ const router = createRouter({
           meta: { permission: { action: 'CREATE', resource: 'USER' } },
         },
         {
-          path: 'users/:id/edit',
-          name: 'user-edit',
-          component: () => import('@/views/users/UserEditView.vue'),
-          meta: { permission: { action: 'UPDATE', resource: 'USER' } },
-        },
-        {
           path: 'audit',
           name: 'audit',
           component: () => import('@/views/audit/AuditLogsView.vue'),

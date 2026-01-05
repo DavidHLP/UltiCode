@@ -5,17 +5,23 @@ import { useUsersStore } from '@/stores/admin/users'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import UserEditDialog from './UserEditDialog.vue'
 
 const route = useRoute()
 const router = useRouter()
 const usersStore = useUsersStore()
 
 const loading = ref(true)
+const editDialogOpen = ref(false)
 
-onMounted(async () => {
+async function loadUser() {
   const id = route.params.id as string
   await usersStore.fetchUser(id)
   loading.value = false
+}
+
+onMounted(() => {
+  loadUser()
 })
 
 function getRoleBadgeVariant(role: string) {
@@ -62,11 +68,7 @@ function getRoleBadgeVariant(role: string) {
               </p>
             </div>
           </div>
-          <Button
-            @click="router.push({ name: 'user-edit', params: { id: usersStore.currentUser.id } })"
-          >
-            Edit User
-          </Button>
+          <Button @click="editDialogOpen = true"> Edit User </Button>
         </div>
       </CardHeader>
       <CardContent>
@@ -106,5 +108,12 @@ function getRoleBadgeVariant(role: string) {
     <Card v-else>
       <CardContent class="pt-6">User not found</CardContent>
     </Card>
+
+    <UserEditDialog
+      v-if="usersStore.currentUser"
+      v-model:open="editDialogOpen"
+      :user-id="usersStore.currentUser.id"
+      @success="loadUser"
+    />
   </div>
 </template>

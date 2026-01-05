@@ -9,6 +9,7 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
@@ -21,18 +22,21 @@ export class AuthController {
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
+  @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 login attempts per minute
   async signIn(@Body() signInDto: SignInDto) {
     return this.authService.signIn(signInDto.username, signInDto.password);
   }
 
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
+  @Throttle({ default: { limit: 3, ttl: 300000 } }) // 3 registrations per 5 minutes
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
   }
 
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
+  @Throttle({ default: { limit: 3, ttl: 300000 } }) // 3 password reset requests per 5 minutes
   async forgotPassword(@Body('email') email: string) {
     return this.authService.forgotPassword(email);
   }

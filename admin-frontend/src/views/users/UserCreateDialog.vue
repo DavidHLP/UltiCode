@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, watch } from 'vue'
 import { useUsersStore } from '@/stores/admin/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   Field,
   FieldGroup,
@@ -12,7 +19,7 @@ import {
   FieldSet,
   FieldLegend,
   FieldDescription,
-  FieldSeparator
+  FieldSeparator,
 } from '@/components/ui/field'
 import {
   Select,
@@ -22,20 +29,40 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 
-const router = useRouter()
-const usersStore = useUsersStore()
+const props = defineProps<{
+  open: boolean
+}>()
 
-const form = ref({
+const emit = defineEmits<{
+  (e: 'update:open', value: boolean): void
+  (e: 'success'): void
+}>()
+
+const usersStore = useUsersStore()
+const loading = ref(false)
+const error = ref('')
+
+const defaultForm = {
   username: '',
   email: '',
   name: '',
   password: '',
   role: 'USER',
   is_active: true,
-})
+}
 
-const error = ref('')
-const loading = ref(false)
+const form = ref({ ...defaultForm })
+
+// Reset form when dialog opens
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) {
+      form.value = { ...defaultForm }
+      error.value = ''
+    }
+  }
+)
 
 async function handleSubmit() {
   error.value = ''
@@ -51,7 +78,8 @@ async function handleSubmit() {
       is_active: form.value.is_active,
     })
 
-    router.push({ name: 'users' })
+    emit('success')
+    emit('update:open', false)
   } catch (err: unknown) {
     error.value =
       (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
@@ -63,38 +91,45 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center gap-4">
-      <Button variant="ghost" @click="router.back()"> ← Back </Button>
-      <h1 class="text-3xl font-bold tracking-tight">Create User</h1>
-    </div>
+  <Dialog :open="open" @update:open="emit('update:open', $event)">
+    <DialogContent class="sm:max-w-[600px]">
+      <DialogHeader>
+        <DialogTitle>Create User</DialogTitle>
+        <DialogDescription>
+          Add a new user to the system. Click create when you're done.
+        </DialogDescription>
+      </DialogHeader>
 
-    <div class="w-full max-w-2xl mx-auto border rounded-lg p-6 bg-card text-card-foreground shadow-sm">
       <form @submit.prevent="handleSubmit">
         <div
           v-if="error"
-          class="mb-6 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md"
+          class="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md"
         >
           {{ error }}
         </div>
 
-        <FieldGroup>
+        <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
           <FieldSet>
             <FieldLegend>General Information</FieldLegend>
-            <FieldDescription>
-              Basic personal details for the new user.
-            </FieldDescription>
+            <FieldDescription>Basic personal details for the new user.</FieldDescription>
             <FieldGroup>
               <Field>
-                <FieldLabel for="name">Full Name</FieldLabel>
-                <Input id="name" v-model="form.name" type="text" required :disabled="loading" placeholder="John Doe" />
+                <FieldLabel for="create-name">Full Name</FieldLabel>
+                <Input
+                  id="create-name"
+                  v-model="form.name"
+                  type="text"
+                  required
+                  :disabled="loading"
+                  placeholder="John Doe"
+                />
               </Field>
-              
+
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field>
-                  <FieldLabel for="username">Username</FieldLabel>
+                  <FieldLabel for="create-username">Username</FieldLabel>
                   <Input
-                    id="username"
+                    id="create-username"
                     v-model="form.username"
                     type="text"
                     required
@@ -104,8 +139,15 @@ async function handleSubmit() {
                 </Field>
 
                 <Field>
-                  <FieldLabel for="email">Email</FieldLabel>
-                  <Input id="email" v-model="form.email" type="email" required :disabled="loading" placeholder="john@example.com" />
+                  <FieldLabel for="create-email">Email</FieldLabel>
+                  <Input
+                    id="create-email"
+                    v-model="form.email"
+                    type="email"
+                    required
+                    :disabled="loading"
+                    placeholder="john@example.com"
+                  />
                 </Field>
               </div>
             </FieldGroup>
@@ -121,9 +163,9 @@ async function handleSubmit() {
             <FieldGroup>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field>
-                  <FieldLabel for="password">Password</FieldLabel>
+                  <FieldLabel for="create-password">Password</FieldLabel>
                   <Input
-                    id="password"
+                    id="create-password"
                     v-model="form.password"
                     type="password"
                     required
@@ -132,9 +174,9 @@ async function handleSubmit() {
                 </Field>
 
                 <Field>
-                  <FieldLabel for="role">Role</FieldLabel>
+                  <FieldLabel for="create-role">Role</FieldLabel>
                   <Select v-model="form.role" :disabled="loading">
-                    <SelectTrigger id="role">
+                    <SelectTrigger id="create-role">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -149,12 +191,12 @@ async function handleSubmit() {
 
               <Field orientation="horizontal">
                 <Checkbox
-                  id="is_active"
+                  id="create-is_active"
                   v-model:checked="form.is_active"
                   :disabled="loading"
                 />
                 <div class="flex flex-col gap-1">
-                  <FieldLabel for="is_active" class="font-normal cursor-pointer">
+                  <FieldLabel for="create-is_active" class="font-normal cursor-pointer">
                     Active Account
                   </FieldLabel>
                   <FieldDescription>
@@ -164,17 +206,17 @@ async function handleSubmit() {
               </Field>
             </FieldGroup>
           </FieldSet>
-
-          <div class="flex gap-2 justify-end mt-6">
-            <Button type="button" variant="outline" @click="router.back()" :disabled="loading">
-              Cancel
-            </Button>
-            <Button type="submit" :disabled="loading">
-              {{ loading ? 'Creating...' : 'Create User' }}
-            </Button>
-          </div>
         </FieldGroup>
+
+        <DialogFooter class="mt-6">
+          <Button type="button" variant="outline" @click="emit('update:open', false)">
+            Cancel
+          </Button>
+          <Button type="submit" :disabled="loading">
+            {{ loading ? 'Creating...' : 'Create User' }}
+          </Button>
+        </DialogFooter>
       </form>
-    </div>
-  </div>
+    </DialogContent>
+  </Dialog>
 </template>

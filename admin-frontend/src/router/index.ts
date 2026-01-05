@@ -33,12 +33,6 @@ const router = createRouter({
           meta: { permission: { action: 'READ', resource: 'USER' } },
         },
         {
-          path: 'users/create',
-          name: 'user-create',
-          component: () => import('@/views/users/UserCreateView.vue'),
-          meta: { permission: { action: 'CREATE', resource: 'USER' } },
-        },
-        {
           path: 'audit',
           name: 'audit',
           component: () => import('@/views/audit/AuditLogsView.vue'),

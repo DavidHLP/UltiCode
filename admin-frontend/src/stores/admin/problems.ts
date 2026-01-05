@@ -33,18 +33,28 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     }
   }
 
-  async function fetchProblem(id: string) {
+  async function fetchProblem(id: string): Promise<Problem | null> {
     loading.value = true
     error.value = null
+    currentProblem.value = null // Clear previous problem
     try {
+      console.log('[ProblemsStore] Fetching problem with id:', id)
       const problem = await problemsApi.getProblem(id)
+      console.log('[ProblemsStore] Received problem data:', problem)
       currentProblem.value = problem
       return problem
     } catch (err: unknown) {
-      error.value =
+      const errorMessage =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Failed to fetch problem'
-      console.error('Failed to fetch problem:', err)
+      error.value = errorMessage
+      console.error('[ProblemsStore] Failed to fetch problem:', err)
+      console.error('[ProblemsStore] Error details:', {
+        id,
+        error: err,
+        responseData: (err as { response?: { data?: unknown } })?.response?.data,
+        status: (err as { response?: { status?: number } })?.response?.status,
+      })
       return null
     } finally {
       loading.value = false

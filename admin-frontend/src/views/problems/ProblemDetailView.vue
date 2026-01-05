@@ -190,8 +190,29 @@ const tabItems = computed(() => [
 
     <!-- Main Content -->
     <main class="p-4 lg:p-6">
+      <!-- Error State -->
+      <div
+        v-if="problemsStore.error"
+        class="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto"
+      >
+        <div class="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+          <FileText :size="32" class="text-destructive" />
+        </div>
+        <h2 class="text-lg font-semibold mb-2">Error Loading Problem</h2>
+        <p class="text-sm text-muted-foreground mb-4">{{ problemsStore.error }}</p>
+        <div class="flex gap-2">
+          <Button variant="outline" size="sm" @click="router.push({ name: 'problems' })">
+            <ArrowLeft :size="16" class="mr-2" />
+            Back to Problems
+          </Button>
+          <Button variant="default" size="sm" @click="problemsStore.fetchProblem(problemId)">
+            Retry
+          </Button>
+        </div>
+      </div>
+
       <!-- Loading State -->
-      <div v-if="isInitialLoad || problemsStore.loading" class="space-y-6 max-w-6xl mx-auto">
+      <div v-else-if="isInitialLoad || problemsStore.loading" class="space-y-6 max-w-6xl mx-auto">
         <!-- Skeleton header -->
         <div class="flex items-start justify-between gap-4">
           <div class="space-y-3 flex-1">

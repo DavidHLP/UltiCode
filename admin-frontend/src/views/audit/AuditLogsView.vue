@@ -3,16 +3,11 @@ import { ref, onMounted, h, watch } from 'vue'
 import { toast } from 'vue-sonner'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
-  IconChevronDown,
-  IconChevronUp,
   IconDatabase,
   IconDownload,
-  IconEye,
   IconFileText,
-  IconFilter,
   IconInfoCircle,
   IconRefresh,
-  IconSearch,
   IconShield,
   IconTrash,
   IconUser,

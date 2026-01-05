@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,19 @@ const publishing = ref(false)
 
 const problemId = computed(() => route.params.id as string)
 const problem = computed(() => problemsStore.currentProblem)
+
+// Fetch problem data on mount and when id changes
+onMounted(() => {
+  if (problemId.value) {
+    problemsStore.fetchProblem(problemId.value)
+  }
+})
+
+watch(problemId, (newId) => {
+  if (newId) {
+    problemsStore.fetchProblem(newId)
+  }
+})
 
 async function togglePublish() {
   if (!problem.value) return

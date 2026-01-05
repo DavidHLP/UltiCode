@@ -8,10 +8,19 @@ import {
   MaxLength,
   IsInt,
   Min,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { UserRole } from '../../user/user.entity';
 import { PermissionAction, PermissionResource } from '@prisma/client';
+
+/**
+ * Escape SQL LIKE wildcards to prevent wildcard injection
+ * Users should not be able to inject % or _ to manipulate search results
+ */
+function escapeLikeWildcard(value: string): string {
+  return value.replace(/[%_\\]/g, '\\$&');
+}
 
 export class CreateUserDto {
   @IsString()
@@ -128,6 +137,7 @@ export class GrantPermissionDto {
 
 export class UserQueryDto {
   @IsString()
+  @MaxLength(100)
   @IsOptional()
   search?: string;
 
@@ -152,6 +162,7 @@ export class UserQueryDto {
   @Type(() => Number)
   @IsInt()
   @Min(1)
+  @Max(100)
   @IsOptional()
   limit?: number = 20;
 
@@ -162,4 +173,12 @@ export class UserQueryDto {
   @IsString()
   @IsOptional()
   sortOrder?: 'asc' | 'desc' = 'desc';
+
+  /**
+   * Get sanitized search term with wildcards escaped
+   * Safe to use in SQL LIKE queries
+   */
+  getSanitizedSearch(): string | undefined {
+    return this.search ? escapeLikeWildcard(this.search) : undefined;
+  }
 }

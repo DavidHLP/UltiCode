@@ -3,7 +3,16 @@ import { computed } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
-import { IconBrackets, IconBulb, IconThumbUp, IconThumbDown } from '@tabler/icons-vue'
+import {
+  IconBrackets,
+  IconBulb,
+  IconThumbUp,
+  IconThumbDown,
+  IconTag,
+  IconCode,
+  IconCalendar,
+  IconHash,
+} from '@tabler/icons-vue'
 import { renderMarkdown } from '@/utils/markdown'
 
 interface ProblemDetail {
@@ -36,192 +45,246 @@ const props = defineProps<{
   problem: ProblemDetail
 }>()
 
-const acceptanceRate = computed(() => {
-  if (!props.problem.submission_count || !props.problem.solution_count) return null
-  return ((props.problem.solution_count / props.problem.submission_count) * 100).toFixed(1) + '%'
-})
-
 const renderedSummary = computed(() => {
   return props.problem.detail?.summary ? renderMarkdown(props.problem.detail.summary) : ''
 })
+
+const getDifficultyColor = (difficulty: string) => {
+  switch (difficulty) {
+    case 'EASY':
+      return 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20'
+    case 'MEDIUM':
+      return 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border-amber-500/20'
+    case 'HARD':
+      return 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20'
+    default:
+      return 'text-muted-foreground bg-muted'
+  }
+}
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Main Column (Left) -->
-    <div class="lg:col-span-2 space-y-6">
-      <!-- Summary Section -->
-      <div v-if="problem.detail?.summary" class="space-y-3">
-        <h3 class="text-lg font-semibold tracking-tight">Summary</h3>
-        <Card class="border-none shadow-none bg-muted/30">
-          <CardContent class="pt-6">
-            <div class="prose prose-sm dark:prose-invert max-w-none" v-html="renderedSummary" />
+  <div class="space-y-5">
+    <!-- Summary Section -->
+    <div v-if="problem.detail?.summary" class="space-y-3">
+      <div class="flex items-center gap-2">
+        <div class="h-px bg-border flex-1" />
+        <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wide px-2">
+          Summary
+        </h3>
+        <div class="h-px bg-border flex-1" />
+      </div>
+      <Card class="border-none shadow-sm bg-muted/20">
+        <CardContent class="pt-5">
+          <div
+            class="prose prose-sm dark:prose-invert max-w-none prose-headings:font-semibold prose-p:text-muted-foreground prose-p:leading-relaxed"
+            v-html="renderedSummary"
+          />
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- Two Column Layout -->
+    <div class="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      <!-- Left Column: Constraints & Hints -->
+      <div class="xl:col-span-2 space-y-5">
+        <!-- Constraints -->
+        <Card>
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm flex items-center gap-2">
+              <IconBrackets class="w-4 h-4 text-muted-foreground" />
+              Constraints
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ul
+              v-if="problem.detail?.constraints_json?.length"
+              class="grid sm:grid-cols-2 gap-x-4 gap-y-2 text-sm"
+            >
+              <li
+                v-for="(c, i) in problem.detail.constraints_json"
+                :key="i"
+                class="flex items-start gap-2 text-muted-foreground"
+              >
+                <span class="text-primary mt-0.5">•</span>
+                <span>{{ c }}</span>
+              </li>
+            </ul>
+            <p v-else class="text-sm text-muted-foreground italic py-1">No constraints provided.</p>
+          </CardContent>
+        </Card>
+
+        <!-- Hints -->
+        <Card v-if="problem.detail?.hints?.length" class="border-amber-500/20 bg-amber-500/5">
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm flex items-center gap-2 text-amber-700 dark:text-amber-400">
+              <IconBulb class="w-4 h-4" />
+              Hints
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div class="space-y-2">
+              <div
+                v-for="(hint, i) in problem.detail.hints"
+                :key="i"
+                class="text-sm p-3 rounded-lg bg-background/60 border border-amber-500/10 flex gap-3"
+              >
+                <span
+                  class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-xs font-mono font-semibold rounded bg-amber-500/10 text-amber-700 dark:text-amber-400"
+                >
+                  {{ i + 1 }}
+                </span>
+                <span class="text-muted-foreground">{{ hint }}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
-      <!-- Constraints & Hints -->
-      <div class="space-y-4">
-        <h3 class="text-lg font-semibold tracking-tight">Technical Details</h3>
-
-        <div class="grid gap-4">
-          <!-- Constraints -->
-          <Card>
-            <CardHeader class="pb-3">
-              <CardTitle class="text-base flex items-center gap-2">
-                <IconBrackets class="w-4 h-4 text-muted-foreground" />
-                Constraints
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ul
-                v-if="problem.detail?.constraints_json?.length"
-                class="list-disc pl-4 text-sm space-y-1 text-muted-foreground"
-              >
-                <li v-for="(c, i) in problem.detail.constraints_json" :key="i">{{ c }}</li>
-              </ul>
-              <p v-else class="text-sm text-muted-foreground italic">No constraints provided.</p>
-            </CardContent>
-          </Card>
-
-          <!-- Hints -->
-          <Card v-if="problem.detail?.hints?.length">
-            <CardHeader class="pb-3">
-              <CardTitle class="text-base flex items-center gap-2">
-                <IconBulb class="w-4 h-4 text-muted-foreground" />
-                Hints
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="space-y-2">
-                <div
-                  v-for="(h, i) in problem.detail.hints"
-                  :key="i"
-                  class="text-sm p-3 rounded-md bg-muted/50 border flex gap-3"
-                >
-                  <span class="font-mono text-xs text-muted-foreground mt-0.5 select-none">
-                    {{ i + 1 }}
-                  </span>
-                  <span>{{ h }}</span>
-                </div>
+      <!-- Right Column: Meta Info -->
+      <div class="space-y-5">
+        <!-- Engagement Card -->
+        <Card>
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm">Engagement</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                <IconThumbUp class="w-4 h-4" />
+                <span>Likes</span>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+              <span class="font-semibold tabular-nums">{{ problem.detail?.likes || 0 }}</span>
+            </div>
+            <Separator />
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                <IconThumbDown class="w-4 h-4" />
+                <span>Dislikes</span>
+              </div>
+              <span class="font-semibold tabular-nums">{{ problem.detail?.dislikes || 0 }}</span>
+            </div>
+            <Separator />
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2 text-sm text-muted-foreground">
+                <IconHash class="w-4 h-4" />
+                <span>Rating</span>
+              </div>
+              <span class="font-semibold tabular-nums">{{
+                problem.detail?.difficulty_rating || '-'
+              }}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Taxonomy Card -->
+        <Card>
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm">Taxonomy</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-4">
+            <!-- Tags -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <IconTag class="w-3.5 h-3.5" />
+                <span class="uppercase tracking-wide font-medium">Tags</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <Badge
+                  v-for="tag in problem.tags"
+                  :key="tag.id"
+                  variant="secondary"
+                  class="rounded-md font-normal text-xs px-2 py-0.5"
+                >
+                  {{ tag.label }}
+                </Badge>
+                <span v-if="!problem.tags.length" class="text-xs text-muted-foreground italic">
+                  No tags
+                </span>
+              </div>
+            </div>
+
+            <Separator />
+
+            <!-- Languages -->
+            <div class="space-y-2">
+              <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <IconCode class="w-3.5 h-3.5" />
+                <span class="uppercase tracking-wide font-medium">Languages</span>
+              </div>
+              <div class="flex flex-wrap gap-1.5">
+                <Badge
+                  v-for="lang in problem.languages"
+                  :key="lang.id"
+                  variant="outline"
+                  class="rounded-md font-normal text-xs px-2 py-0.5 font-mono"
+                >
+                  {{ lang.language }}
+                </Badge>
+                <span
+                  v-if="!problem.languages?.length"
+                  class="text-xs text-muted-foreground italic"
+                >
+                  All languages
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <!-- Metadata Card -->
+        <Card>
+          <CardHeader class="pb-3">
+            <CardTitle class="text-sm">Metadata</CardTitle>
+          </CardHeader>
+          <CardContent class="space-y-3">
+            <div class="grid grid-cols-2 gap-3 text-xs">
+              <div class="space-y-0.5">
+                <p class="text-muted-foreground">ID</p>
+                <p class="font-mono bg-muted px-1.5 py-0.5 rounded inline-block">
+                  {{ problem.id.slice(0, 8) }}
+                </p>
+              </div>
+              <div class="space-y-0.5">
+                <p class="text-muted-foreground">Difficulty</p>
+                <Badge :class="['text-[10px]', getDifficultyColor(problem.difficulty)]">
+                  {{ problem.difficulty }}
+                </Badge>
+              </div>
+            </div>
+            <Separator />
+            <div class="space-y-2 text-xs">
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted-foreground flex items-center gap-1">
+                  <IconCalendar class="w-3 h-3" />
+                  Created
+                </span>
+                <span class="font-medium">{{
+                  new Date(problem.created_at).toLocaleDateString()
+                }}</span>
+              </div>
+              <div class="flex items-center justify-between gap-2">
+                <span class="text-muted-foreground flex items-center gap-1">
+                  <IconCalendar class="w-3 h-3" />
+                  Updated
+                </span>
+                <span class="font-medium">{{
+                  new Date(problem.updated_at).toLocaleDateString()
+                }}</span>
+              </div>
+              <div v-if="problem.published_at" class="flex items-center justify-between gap-2">
+                <span class="text-muted-foreground flex items-center gap-1">
+                  <IconCalendar class="w-3 h-3" />
+                  Published
+                </span>
+                <span class="font-medium">{{
+                  new Date(problem.published_at).toLocaleDateString()
+                }}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
-    </div>
-
-    <!-- Sidebar Column (Right) -->
-    <div class="space-y-6">
-      <!-- Statistics Card -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="text-base">Statistics</CardTitle>
-        </CardHeader>
-        <CardContent class="grid grid-cols-2 gap-4 pb-4">
-          <div class="flex flex-col gap-1">
-            <span class="text-xs text-muted-foreground uppercase tracking-wider">Submissions</span>
-            <span class="text-2xl font-bold tabular-nums">{{ problem.submission_count || 0 }}</span>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-xs text-muted-foreground uppercase tracking-wider">Solutions</span>
-            <span class="text-2xl font-bold tabular-nums">{{ problem.solution_count || 0 }}</span>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-xs text-muted-foreground uppercase tracking-wider">Acceptance</span>
-            <span class="text-2xl font-bold tabular-nums">{{ acceptanceRate || 'N/A' }}</span>
-          </div>
-          <div class="flex flex-col gap-1">
-            <span class="text-xs text-muted-foreground uppercase tracking-wider">Rating</span>
-            <span class="text-2xl font-bold tabular-nums">{{
-              problem.detail?.difficulty_rating || '-'
-            }}</span>
-          </div>
-        </CardContent>
-        <Separator />
-        <div class="p-6 flex items-center justify-between text-sm">
-          <div class="flex items-center gap-2 text-emerald-600 dark:text-emerald-500">
-            <IconThumbUp class="w-4 h-4" />
-            <span class="font-medium">{{ problem.detail?.likes || 0 }}</span>
-          </div>
-          <div class="flex items-center gap-2 text-red-600 dark:text-red-500">
-            <IconThumbDown class="w-4 h-4" />
-            <span class="font-medium">{{ problem.detail?.dislikes || 0 }}</span>
-          </div>
-        </div>
-      </Card>
-
-      <!-- Taxonomy Card -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="text-base">Taxonomy</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-5">
-          <div class="space-y-2">
-            <span class="text-xs text-muted-foreground uppercase font-medium tracking-wider"
-              >Tags</span
-            >
-            <div class="flex flex-wrap gap-1.5">
-              <Badge
-                v-for="tag in problem.tags"
-                :key="tag.id"
-                variant="secondary"
-                class="rounded-md font-normal"
-              >
-                {{ tag.label }}
-              </Badge>
-              <span v-if="!problem.tags.length" class="text-sm text-muted-foreground italic"
-                >No tags</span
-              >
-            </div>
-          </div>
-          <div class="space-y-2">
-            <span class="text-xs text-muted-foreground uppercase font-medium tracking-wider"
-              >Languages</span
-            >
-            <div class="flex flex-wrap gap-1.5">
-              <Badge
-                v-for="lang in problem.languages"
-                :key="lang.id"
-                variant="outline"
-                class="rounded-md font-normal"
-              >
-                {{ lang.language }}
-              </Badge>
-              <span v-if="!problem.languages?.length" class="text-sm text-muted-foreground italic"
-                >All languages</span
-              >
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <!-- Metadata Card -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="text-base">Metadata</CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-3 text-sm">
-          <div class="flex justify-between items-center">
-            <span class="text-muted-foreground">ID</span>
-            <span class="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{{
-              problem.id.slice(0, 8)
-            }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-muted-foreground">Created</span>
-            <span>{{ new Date(problem.created_at).toLocaleDateString() }}</span>
-          </div>
-          <div class="flex justify-between items-center">
-            <span class="text-muted-foreground">Updated</span>
-            <span>{{ new Date(problem.updated_at).toLocaleDateString() }}</span>
-          </div>
-          <div v-if="problem.published_at" class="flex justify-between items-center">
-            <span class="text-muted-foreground">Published</span>
-            <span>{{ new Date(problem.published_at).toLocaleDateString() }}</span>
-          </div>
-        </CardContent>
-      </Card>
     </div>
   </div>
 </template>

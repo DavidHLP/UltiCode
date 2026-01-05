@@ -5,7 +5,21 @@ import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { ArrowLeft, Edit, Eye, EyeOff } from 'lucide-vue-next'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
+import {
+  ArrowLeft,
+  Edit,
+  Eye,
+  EyeOff,
+  FileText,
+  Code,
+  ListChecks,
+  Lightbulb,
+  Trophy,
+  Clock,
+  BarChart3,
+} from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import OverviewTab from './tabs/OverviewTab.vue'
 import TestCasesTab from './tabs/TestCasesTab.vue'
@@ -18,20 +32,24 @@ const problemsStore = useProblemsStore()
 
 const activeTab = ref('overview')
 const publishing = ref(false)
+const isInitialLoad = ref(true)
 
 const problemId = computed(() => route.params.id as string)
 const problem = computed(() => problemsStore.currentProblem)
 
 // Fetch problem data on mount and when id changes
-onMounted(() => {
+onMounted(async () => {
   if (problemId.value) {
-    problemsStore.fetchProblem(problemId.value)
+    await problemsStore.fetchProblem(problemId.value)
+    isInitialLoad.value = false
   }
 })
 
-watch(problemId, (newId) => {
+watch(problemId, async (newId) => {
   if (newId) {
-    problemsStore.fetchProblem(newId)
+    isInitialLoad.value = true
+    await problemsStore.fetchProblem(newId)
+    isInitialLoad.value = false
   }
 })
 
@@ -46,7 +64,6 @@ async function togglePublish() {
       await problemsStore.publishProblem(problemId.value)
       toast.success('Problem published')
     }
-    // Store now automatically updates currentProblem with complete data from backend
   } catch (error) {
     console.error('Failed to toggle publish:', error)
     toast.error('Failed to update publish status')
@@ -59,161 +76,256 @@ function editProblem() {
   router.push({ name: 'problem-edit', params: { id: problemId.value } })
 }
 
-function getDifficultyBadgeVariant(difficulty: string) {
+function getDifficultyVariant(difficulty: string) {
   switch (difficulty) {
     case 'EASY':
-      return 'default'
+      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
     case 'MEDIUM':
-      return 'secondary'
+      return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
     case 'HARD':
-      return 'destructive'
+      return 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20'
     default:
-      return 'outline'
+      return 'bg-muted text-muted-foreground'
   }
 }
+
+const tabItems = computed(() => [
+  { value: 'overview', label: 'Overview', icon: FileText, count: null },
+  { value: 'testcases', label: 'Examples', icon: Code, count: problem.value?.examples?.length },
+  {
+    value: 'submissions',
+    label: 'Submissions',
+    icon: ListChecks,
+    count: problem.value?.submission_count,
+  },
+  { value: 'solutions', label: 'Solutions', icon: Lightbulb, count: problem.value?.solution_count },
+])
 </script>
 
 <template>
-  <div class="flex flex-col gap-6">
-    <!-- Header -->
-    <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <div class="flex items-start gap-4">
+  <div class="min-h-[calc(100vh-4rem)] bg-background">
+    <!-- Header with breadcrumbs and actions -->
+    <header
+      class="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b"
+    >
+      <div class="flex h-14 items-center gap-2 px-4 lg:px-6">
         <Button
           variant="ghost"
-          size="icon"
-          class="-ml-2 mt-1"
+          size="sm"
+          class="gap-1.5 -ml-2 text-muted-foreground hover:text-foreground"
           @click="router.push({ name: 'problems' })"
         >
-          <ArrowLeft :size="20" />
+          <ArrowLeft :size="16" />
+          <span class="hidden sm:inline">Back</span>
         </Button>
-        <div v-if="problem" class="space-y-1">
-          <div class="flex flex-wrap items-center gap-3">
-            <h1 class="text-2xl font-bold tracking-tight">{{ problem.title }}</h1>
-            <Badge :variant="getDifficultyBadgeVariant(problem.difficulty)">
-              {{ problem.difficulty }}
-            </Badge>
-            <Badge
-              v-if="problem.is_premium"
-              variant="secondary"
-              class="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 hover:bg-amber-100 dark:hover:bg-amber-900 border-amber-200 dark:border-amber-800"
-              >Premium</Badge
+
+        <Separator orientation="vertical" class="h-4" />
+
+        <!-- Problem Info -->
+        <div v-if="problem" class="flex items-center gap-3 min-w-0 flex-1">
+          <div class="flex items-center gap-2 min-w-0">
+            <span
+              class="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground truncate"
             >
+              {{ problem.slug }}
+            </span>
+            <h1 class="text-sm font-semibold truncate">{{ problem.title }}</h1>
           </div>
-          <div class="flex items-center gap-3 text-muted-foreground">
-            <code class="text-sm bg-muted px-1.5 py-0.5 rounded">{{ problem.slug }}</code>
-            <div class="flex items-center gap-1.5 text-sm">
-              <component :is="problem.is_published ? Eye : EyeOff" :size="14" />
-              <span>{{ problem.is_published ? 'Published' : 'Draft' }}</span>
+          <Badge
+            :class="['text-[10px] px-1.5 py-0 border', getDifficultyVariant(problem.difficulty)]"
+          >
+            {{ problem.difficulty }}
+          </Badge>
+          <Badge
+            v-if="problem.is_premium"
+            variant="secondary"
+            class="text-[10px] px-1.5 py-0 bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20"
+          >
+            Premium
+          </Badge>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <Button
+            v-if="problem"
+            variant="ghost"
+            size="sm"
+            :class="[
+              'gap-1.5 text-xs',
+              problem.is_published
+                ? 'text-emerald-600 dark:text-emerald-400'
+                : 'text-muted-foreground',
+            ]"
+          >
+            <component :is="problem.is_published ? Eye : EyeOff" :size="14" />
+            <span class="hidden md:inline">{{ problem.is_published ? 'Published' : 'Draft' }}</span>
+          </Button>
+          <Button
+            v-if="problem"
+            variant="outline"
+            size="sm"
+            class="gap-1.5 h-8"
+            @click="editProblem"
+          >
+            <Edit :size="14" />
+            <span class="hidden sm:inline">Edit</span>
+          </Button>
+          <Button
+            v-if="problem"
+            :variant="problem.is_published ? 'secondary' : 'default'"
+            size="sm"
+            class="gap-1.5 h-8"
+            :disabled="publishing"
+            @click="togglePublish"
+          >
+            <Eye v-if="!problem.is_published" :size="14" />
+            <EyeOff v-else :size="14" />
+            <span class="hidden sm:inline">{{
+              problem.is_published ? 'Unpublish' : 'Publish'
+            }}</span>
+          </Button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="p-4 lg:p-6">
+      <!-- Loading State -->
+      <div v-if="isInitialLoad || problemsStore.loading" class="space-y-6 max-w-6xl mx-auto">
+        <!-- Skeleton header -->
+        <div class="flex items-start justify-between gap-4">
+          <div class="space-y-3 flex-1">
+            <Skeleton class="h-8 w-48" />
+            <Skeleton class="h-4 w-32" />
+          </div>
+          <div class="flex gap-2">
+            <Skeleton class="h-9 w-20" />
+            <Skeleton class="h-9 w-24" />
+          </div>
+        </div>
+        <!-- Skeleton tabs -->
+        <div class="space-y-4">
+          <div class="flex gap-2">
+            <Skeleton v-for="i in 4" :key="i" class="h-9 w-20" />
+          </div>
+          <Skeleton class="h-64 w-full" />
+        </div>
+      </div>
+
+      <!-- Not Found State -->
+      <div
+        v-else-if="!problem"
+        class="flex flex-col items-center justify-center py-20 text-center max-w-md mx-auto"
+      >
+        <div class="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          <FileText :size="32" class="text-muted-foreground" />
+        </div>
+        <h2 class="text-lg font-semibold mb-2">Problem Not Found</h2>
+        <p class="text-sm text-muted-foreground mb-6">
+          The problem you're looking for doesn't exist or you don't have permission to view it.
+        </p>
+        <Button variant="outline" @click="router.push({ name: 'problems' })">
+          <ArrowLeft :size="16" class="mr-2" />
+          Back to Problems
+        </Button>
+      </div>
+
+      <!-- Problem Content -->
+      <div v-else class="max-w-6xl mx-auto space-y-6">
+        <!-- Quick Stats Bar -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border">
+            <ListChecks :size="16" class="text-muted-foreground" />
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wider text-muted-foreground">Submissions</p>
+              <p class="text-sm font-semibold tabular-nums">{{ problem.submission_count ?? 0 }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border">
+            <Trophy :size="16" class="text-muted-foreground" />
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wider text-muted-foreground">Solutions</p>
+              <p class="text-sm font-semibold tabular-nums">{{ problem.solution_count ?? 0 }}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border">
+            <BarChart3 :size="16" class="text-muted-foreground" />
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wider text-muted-foreground">Acceptance</p>
+              <p class="text-sm font-semibold tabular-nums">
+                {{
+                  problem.submission_count && problem.solution_count
+                    ? ((problem.solution_count / problem.submission_count) * 100).toFixed(1) + '%'
+                    : 'N/A'
+                }}
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 p-3 rounded-lg bg-muted/30 border">
+            <Clock :size="16" class="text-muted-foreground" />
+            <div class="min-w-0">
+              <p class="text-[10px] uppercase tracking-wider text-muted-foreground">Updated</p>
+              <p class="text-sm font-semibold tabular-nums">
+                {{ new Date(problem.updated_at).toLocaleDateString() }}
+              </p>
             </div>
           </div>
         </div>
-      </div>
 
-      <div v-if="problem" class="flex items-center gap-2 pl-12 lg:pl-0">
-        <Button variant="outline" size="sm" @click="editProblem">
-          <Edit :size="14" class="mr-2" />
-          Edit Problem
-        </Button>
-        <Button
-          :variant="problem.is_published ? 'secondary' : 'default'"
-          size="sm"
-          :disabled="publishing"
-          @click="togglePublish"
-        >
-          <Eye v-if="!problem.is_published" :size="14" class="mr-2" />
-          <EyeOff v-else :size="14" class="mr-2" />
-          {{ problem.is_published ? 'Unpublish' : 'Publish' }}
-        </Button>
-      </div>
-    </div>
+        <!-- Tabs Navigation -->
+        <Tabs v-model="activeTab" class="w-full">
+          <div class="flex items-center justify-between border-b rounded-t-lg bg-muted/20 px-1">
+            <TabsList class="bg-transparent h-auto p-0 gap-1 border-none shadow-none">
+              <TabsTrigger
+                v-for="tab in tabItems"
+                :key="tab.value"
+                :value="tab.value"
+                class="gap-1.5 rounded-md px-3 py-2 data-[state=active]:bg-background data-[state=active]:shadow-sm data-[state=active]:border data-[state=active]:border-border/50"
+              >
+                <component :is="tab.icon" :size="15" />
+                <span class="hidden sm:inline">{{ tab.label }}</span>
+                <Badge
+                  v-if="tab.count"
+                  variant="secondary"
+                  class="h-5 px-1 text-[10px] font-medium"
+                >
+                  {{ tab.count }}
+                </Badge>
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-    <!-- Loading State -->
-    <div v-if="problemsStore.loading" class="flex flex-col items-center justify-center py-12">
-      <div
-        class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
-      ></div>
-      <p class="mt-4 text-muted-foreground animate-pulse">Loading problem details...</p>
-    </div>
-
-    <!-- Tabs Content -->
-    <div v-else-if="problem" class="w-full">
-      <Tabs v-model="activeTab" class="w-full">
-        <div class="border-b pb-0">
-          <TabsList class="w-full justify-start bg-transparent p-0 h-auto gap-2 -mb-px">
-            <TabsTrigger
+          <div class="bg-background rounded-b-lg border-x border-b p-4 lg:p-6">
+            <TabsContent
               value="overview"
-              class="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              class="mt-0 focus-visible:outline-none focus-visible:ring-0"
             >
-              Overview
-            </TabsTrigger>
-            <TabsTrigger
+              <OverviewTab :problem="problem" />
+            </TabsContent>
+
+            <TabsContent
               value="testcases"
-              class="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              class="mt-0 focus-visible:outline-none focus-visible:ring-0"
             >
-              Test Cases
-              <Badge
-                v-if="problem.examples?.length"
-                variant="secondary"
-                class="ml-2 h-5 px-1.5 text-xs"
-              >
-                {{ problem.examples.length }}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger
+              <TestCasesTab :examples="problem.examples || []" />
+            </TabsContent>
+
+            <TabsContent
               value="submissions"
-              class="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              class="mt-0 focus-visible:outline-none focus-visible:ring-0"
             >
-              Submissions
-              <Badge
-                v-if="problem.submission_count"
-                variant="secondary"
-                class="ml-2 h-5 px-1.5 text-xs"
-              >
-                {{ problem.submission_count }}
-              </Badge>
-            </TabsTrigger>
-            <TabsTrigger
+              <SubmissionsTab :problem-id="problem.id" />
+            </TabsContent>
+
+            <TabsContent
               value="solutions"
-              class="rounded-none border-b-2 border-transparent px-4 py-2 data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+              class="mt-0 focus-visible:outline-none focus-visible:ring-0"
             >
-              Solutions
-              <Badge
-                v-if="problem.solution_count"
-                variant="secondary"
-                class="ml-2 h-5 px-1.5 text-xs"
-              >
-                {{ problem.solution_count }}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="overview" class="mt-6 focus-visible:outline-none focus-visible:ring-0">
-          <OverviewTab :problem="problem" />
-        </TabsContent>
-
-        <TabsContent value="testcases" class="mt-6 focus-visible:outline-none focus-visible:ring-0">
-          <TestCasesTab :examples="problem.examples || []" />
-        </TabsContent>
-
-        <TabsContent
-          value="submissions"
-          class="mt-6 focus-visible:outline-none focus-visible:ring-0"
-        >
-          <SubmissionsTab :problem-id="problem.id" />
-        </TabsContent>
-
-        <TabsContent value="solutions" class="mt-6 focus-visible:outline-none focus-visible:ring-0">
-          <SolutionsTab :problem-id="problem.id" />
-        </TabsContent>
-      </Tabs>
-    </div>
-
-    <!-- Not Found State -->
-    <div v-else class="flex h-96 items-center justify-center flex-col gap-2">
-      <div class="text-4xl">😕</div>
-      <p class="text-muted-foreground text-lg">Problem not found</p>
-      <Button variant="link" @click="router.push({ name: 'problems' })">Back to Problems</Button>
-    </div>
+              <SolutionsTab :problem-id="problem.id" />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+    </main>
   </div>
 </template>

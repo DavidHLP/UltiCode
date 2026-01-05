@@ -31,7 +31,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -39,7 +38,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { useAuthStore } from '@/stores/admin/auth'
 import { Difficulty, type Problem } from '@/api/admin/problems'
@@ -412,130 +410,88 @@ const columns: ColumnDef<Problem>[] = [
 </script>
 
 <template>
-  <Tabs default-value="all-problems" class="w-full flex-col justify-start gap-6">
-    <div class="flex items-center justify-between px-4 lg:px-6">
-      <Label for="view-selector" class="sr-only">View</Label>
-      <Select default-value="all-problems">
-        <SelectTrigger id="view-selector" class="flex w-fit @4xl/main:hidden" size="sm">
-          <SelectValue placeholder="Select a view" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all-problems">All Problems</SelectItem>
-          <SelectItem value="published">Published</SelectItem>
-          <SelectItem value="draft">Draft</SelectItem>
-          <SelectItem value="archived">Archived</SelectItem>
-        </SelectContent>
-      </Select>
-      <TabsList
-        class="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex"
-      >
-        <TabsTrigger value="all-problems">
-          All Problems <Badge variant="secondary">{{ problemsStore.problems.length }}</Badge>
-        </TabsTrigger>
-        <TabsTrigger value="published">Published</TabsTrigger>
-        <TabsTrigger value="draft">Draft</TabsTrigger>
-        <TabsTrigger value="archived">Archived</TabsTrigger>
-      </TabsList>
-    </div>
-
-    <TabsContent
-      value="all-problems"
-      class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6"
+  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+    <DataTable
+      :columns="columns"
+      :data="problemsStore.problems"
+      :pagination="tablePagination"
+      :row-count="problemsStore.total"
+      :loading="problemsStore.loading"
+      @update:pagination="tablePagination = $event"
     >
-      <DataTable
-        :columns="columns"
-        :data="problemsStore.problems"
-        :pagination="tablePagination"
-        :row-count="problemsStore.total"
-        :loading="problemsStore.loading"
-        @update:pagination="tablePagination = $event"
-      >
-        <template #toolbar-left>
-          <Input
-            v-model="searchQuery"
-            placeholder="Search problems..."
-            class="min-w-[200px] w-[260px]"
-          >
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconX class="h-4 w-4" />
-              </button>
-            </template>
-          </Input>
-          <Select v-model="difficultyFilter">
-            <SelectTrigger class="w-[160px]">
-              <SelectValue placeholder="All Difficulties" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Difficulties</SelectItem>
-              <SelectItem value="EASY">Easy</SelectItem>
-              <SelectItem value="MEDIUM">Medium</SelectItem>
-              <SelectItem value="HARD">Hard</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select v-model="statusFilter">
-            <SelectTrigger class="w-[140px]">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="todo">Todo</SelectItem>
-              <SelectItem value="attempted">Attempted</SelectItem>
-              <SelectItem value="solved">Solved</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select v-model="publishedFilter">
-            <SelectTrigger class="w-[140px]">
-              <SelectValue placeholder="All" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All</SelectItem>
-              <SelectItem value="published">Published</SelectItem>
-              <SelectItem value="unpublished">Draft</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="icon" @click="loadProblems()" title="Refresh">
-            <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': problemsStore.loading }" />
-          </Button>
-        </template>
+      <template #toolbar-left>
+        <Input
+          v-model="searchQuery"
+          placeholder="Search problems..."
+          class="min-w-[200px] w-[260px]"
+        >
+          <template #trailing>
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="rounded-sm opacity-70 hover:opacity-100"
+            >
+              <IconX class="h-4 w-4" />
+            </button>
+          </template>
+        </Input>
+        <Select v-model="difficultyFilter">
+          <SelectTrigger class="w-[160px]">
+            <SelectValue placeholder="All Difficulties" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Difficulties</SelectItem>
+            <SelectItem value="EASY">Easy</SelectItem>
+            <SelectItem value="MEDIUM">Medium</SelectItem>
+            <SelectItem value="HARD">Hard</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select v-model="statusFilter">
+          <SelectTrigger class="w-[140px]">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="todo">Todo</SelectItem>
+            <SelectItem value="attempted">Attempted</SelectItem>
+            <SelectItem value="solved">Solved</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select v-model="publishedFilter">
+          <SelectTrigger class="w-[140px]">
+            <SelectValue placeholder="All" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All</SelectItem>
+            <SelectItem value="published">Published</SelectItem>
+            <SelectItem value="unpublished">Draft</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="icon" @click="loadProblems()" title="Refresh">
+          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': problemsStore.loading }" />
+        </Button>
+      </template>
 
-        <template #extra-actions>
-          <Button
-            v-if="canCreateProblem"
-            variant="outline"
-            size="sm"
-            @click="router.push({ name: 'problem-create' })"
-          >
-            <IconPlus />
-            <span class="hidden lg:inline">Add Problem</span>
-          </Button>
-        </template>
-      </DataTable>
+      <template #extra-actions>
+        <Button
+          v-if="canCreateProblem"
+          variant="outline"
+          size="sm"
+          @click="router.push({ name: 'problem-create' })"
+        >
+          <IconPlus />
+          <span class="hidden lg:inline">Add Problem</span>
+        </Button>
+      </template>
+    </DataTable>
 
-      <!-- Error state -->
-      <div
-        v-if="problemsStore.error"
-        class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-      >
-        <span class="text-destructive">{{ problemsStore.error }}</span>
-        <Button variant="outline" size="sm" @click="loadProblems()">Retry</Button>
-      </div>
-    </TabsContent>
-
-    <TabsContent value="published" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
-
-    <TabsContent value="draft" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
-
-    <TabsContent value="archived" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
-  </Tabs>
+    <!-- Error state -->
+    <div
+      v-if="problemsStore.error"
+      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+    >
+      <span class="text-destructive">{{ problemsStore.error }}</span>
+      <Button variant="outline" size="sm" @click="loadProblems()">Retry</Button>
+    </div>
+  </div>
 </template>

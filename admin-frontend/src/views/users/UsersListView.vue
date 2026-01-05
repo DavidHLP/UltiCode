@@ -37,7 +37,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -62,7 +61,6 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const roleFilter = ref<string>('all')
 const statusFilter = ref<string>('all')
-const currentTab = ref('all-users')
 const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 const selectedUserId = ref<string | null>(null)
 const editDialogOpen = ref(false)
@@ -87,16 +85,12 @@ async function loadUsers() {
     search: searchQuery.value || undefined,
     role: roleFilter.value === 'all' ? undefined : roleFilter.value,
     is_active:
-      currentTab.value === 'active'
+      statusFilter.value === 'active'
         ? true
-        : currentTab.value === 'inactive'
+        : statusFilter.value === 'inactive'
           ? false
-          : statusFilter.value === 'active'
-            ? true
-            : statusFilter.value === 'inactive'
-              ? false
-              : undefined,
-    is_banned: currentTab.value === 'banned' ? true : undefined,
+          : undefined,
+    is_banned: statusFilter.value === 'banned' ? true : undefined,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
   })
@@ -112,7 +106,7 @@ watchDebounced(
   { debounce: 500 },
 )
 
-watch([roleFilter, statusFilter, currentTab], () => {
+watch([roleFilter, statusFilter], () => {
   if (tablePagination.value.pageIndex === 0) {
     loadUsers()
   } else {
@@ -443,176 +437,150 @@ const columns: ColumnDef<User>[] = [
 </script>
 
 <template>
-  <Tabs v-model="currentTab" class="w-full flex-col justify-start gap-6">
-    <div class="flex items-center justify-between px-4 lg:px-6">
-      <Label for="view-selector" class="sr-only">View</Label>
-      <Select v-model="currentTab">
-        <SelectTrigger id="view-selector" class="flex w-fit @4xl/main:hidden" size="sm">
-          <SelectValue placeholder="Select a view" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all-users">All Users</SelectItem>
-          <SelectItem value="active">Active</SelectItem>
-          <SelectItem value="inactive">Inactive</SelectItem>
-          <SelectItem value="banned">Banned</SelectItem>
-        </SelectContent>
-      </Select>
-      <TabsList
-        class="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex"
-      >
-        <TabsTrigger value="all-users">
-          All Users <Badge variant="secondary">{{ usersStore.total }}</Badge>
-        </TabsTrigger>
-        <TabsTrigger value="active">Active</TabsTrigger>
-        <TabsTrigger value="inactive">Inactive</TabsTrigger>
-        <TabsTrigger value="banned">Banned</TabsTrigger>
-      </TabsList>
-    </div>
-
-    <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-      <div
-        v-if="selectedRows.length > 0"
-        class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
-      >
-        <div class="flex items-center gap-3">
-          <span class="text-sm font-medium">{{ selectedRows.length }} users selected</span>
-          <Separator orientation="vertical" class="h-4" />
-          <div class="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              class="h-8 text-xs"
-              @click="handleBulkBan"
-              :disabled="bulkActionLoading"
-            >
-              <IconBan class="h-3.5 w-3.5 mr-1" />
-              Bulk Ban
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              class="h-8 text-xs"
-              @click="handleBulkUnban"
-              :disabled="bulkActionLoading"
-            >
-              <IconCheck class="h-3.5 w-3.5 mr-1" />
-              Bulk Unban
-            </Button>
-            <Button
-              v-if="canDeleteUser"
-              variant="destructive"
-              size="sm"
-              class="h-8 text-xs"
-              @click="handleBulkDelete"
-              :disabled="bulkActionLoading"
-            >
-              <IconCircleXFilled class="h-3.5 w-3.5 mr-1" />
-              Bulk Delete
-            </Button>
-          </div>
-        </div>
-        <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
-          Clear Selection
-        </Button>
-      </div>
-
-      <DataTable
-        :columns="columns"
-        :data="usersStore.users"
-        :pagination="tablePagination"
-        :row-count="usersStore.total"
-        :loading="usersStore.loading"
-        v-model:selected-rows="selectedRows"
-        @update:pagination="tablePagination = $event"
-      >
-        <template #toolbar-left>
-          <Input
-            v-model="searchQuery"
-            placeholder="Search users..."
-            class="min-w-[200px] w-[260px]"
+  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+    <div
+      v-if="selectedRows.length > 0"
+      class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
+    >
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium">{{ selectedRows.length }} users selected</span>
+        <Separator orientation="vertical" class="h-4" />
+        <div class="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-8 text-xs"
+            @click="handleBulkBan"
+            :disabled="bulkActionLoading"
           >
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconCircleXFilled class="h-4 w-4" />
-              </button>
-            </template>
-          </Input>
-          <Select v-model="roleFilter">
-            <SelectTrigger class="w-[160px]">
-              <SelectValue placeholder="All Roles" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Roles</SelectItem>
-              <SelectItem value="USER">User</SelectItem>
-              <SelectItem value="MODERATOR">Moderator</SelectItem>
-              <SelectItem value="ADMIN">Admin</SelectItem>
-              <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select v-model="statusFilter" v-if="currentTab === 'all-users'">
-            <SelectTrigger class="w-[140px]">
-              <SelectValue placeholder="All Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="active">Active</SelectItem>
-              <SelectItem value="inactive">Inactive</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="icon" @click="loadUsers()" title="Refresh">
-            <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': usersStore.loading }" />
+            <IconBan class="h-3.5 w-3.5 mr-1" />
+            Bulk Ban
           </Button>
-        </template>
-
-        <template #extra-actions>
-          <Button v-if="canCreateUser" variant="outline" size="sm" @click="createDialogOpen = true">
-            <IconPlus />
-            <span class="hidden lg:inline">Add User</span>
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-8 text-xs"
+            @click="handleBulkUnban"
+            :disabled="bulkActionLoading"
+          >
+            <IconCheck class="h-3.5 w-3.5 mr-1" />
+            Bulk Unban
           </Button>
-        </template>
-      </DataTable>
-
-      <!-- Error state -->
-      <div
-        v-if="usersStore.error"
-        class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-      >
-        <span class="text-destructive">{{ usersStore.error }}</span>
-        <Button variant="outline" size="sm" @click="loadUsers()">Retry</Button>
+          <Button
+            v-if="canDeleteUser"
+            variant="destructive"
+            size="sm"
+            class="h-8 text-xs"
+            @click="handleBulkDelete"
+            :disabled="bulkActionLoading"
+          >
+            <IconCircleXFilled class="h-3.5 w-3.5 mr-1" />
+            Bulk Delete
+          </Button>
+        </div>
       </div>
+      <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
+        Clear Selection
+      </Button>
     </div>
 
-    <UserEditDialog v-model:open="editDialogOpen" :user-id="selectedUserId" @success="loadUsers" />
-    <UserCreateDialog v-model:open="createDialogOpen" @success="loadUsers" />
-    <UserDetailDrawer
-      v-model:open="detailDrawerOpen"
-      :user-id="selectedUserId"
-      @success="loadUsers"
-    />
+    <DataTable
+      :columns="columns"
+      :data="usersStore.users"
+      :pagination="tablePagination"
+      :row-count="usersStore.total"
+      :loading="usersStore.loading"
+      v-model:selected-rows="selectedRows"
+      @update:pagination="tablePagination = $event"
+    >
+      <template #toolbar-left>
+        <Input
+          v-model="searchQuery"
+          placeholder="Search users..."
+          class="min-w-[200px] w-[260px]"
+        >
+          <template #trailing>
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="rounded-sm opacity-70 hover:opacity-100"
+            >
+              <IconCircleXFilled class="h-4 w-4" />
+            </button>
+          </template>
+        </Input>
+        <Select v-model="roleFilter">
+          <SelectTrigger class="w-[160px]">
+            <SelectValue placeholder="All Roles" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Roles</SelectItem>
+            <SelectItem value="USER">User</SelectItem>
+            <SelectItem value="MODERATOR">Moderator</SelectItem>
+            <SelectItem value="ADMIN">Admin</SelectItem>
+            <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select v-model="statusFilter">
+          <SelectTrigger class="w-[140px]">
+            <SelectValue placeholder="All Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="active">Active</SelectItem>
+            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="banned">Banned</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="icon" @click="loadUsers()" title="Refresh">
+          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': usersStore.loading }" />
+        </Button>
+      </template>
 
-    <Dialog v-model:open="banDialogOpen">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Ban User</DialogTitle>
-          <DialogDescription> Please provide a reason for banning this user. </DialogDescription>
-        </DialogHeader>
-        <div class="grid gap-4 py-4">
-          <div class="grid gap-2">
-            <Label for="reason">Reason</Label>
-            <Textarea id="reason" v-model="banReason" placeholder="Violation of terms..." />
-          </div>
+      <template #extra-actions>
+        <Button v-if="canCreateUser" variant="outline" size="sm" @click="createDialogOpen = true">
+          <IconPlus />
+          <span class="hidden lg:inline">Add User</span>
+        </Button>
+      </template>
+    </DataTable>
+
+    <!-- Error state -->
+    <div
+      v-if="usersStore.error"
+      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+    >
+      <span class="text-destructive">{{ usersStore.error }}</span>
+      <Button variant="outline" size="sm" @click="loadUsers()">Retry</Button>
+    </div>
+  </div>
+
+  <UserEditDialog v-model:open="editDialogOpen" :user-id="selectedUserId" @success="loadUsers" />
+  <UserCreateDialog v-model:open="createDialogOpen" @success="loadUsers" />
+  <UserDetailDrawer
+    v-model:open="detailDrawerOpen"
+    :user-id="selectedUserId"
+    @success="loadUsers"
+  />
+
+  <Dialog v-model:open="banDialogOpen">
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>Ban User</DialogTitle>
+        <DialogDescription> Please provide a reason for banning this user. </DialogDescription>
+      </DialogHeader>
+      <div class="grid gap-4 py-4">
+        <div class="grid gap-2">
+          <Label for="reason">Reason</Label>
+          <Textarea id="reason" v-model="banReason" placeholder="Violation of terms..." />
         </div>
-        <DialogFooter>
-          <Button variant="outline" @click="banDialogOpen = false">Cancel</Button>
-          <Button variant="destructive" @click="confirmBan" :disabled="!banReason">
-            Confirm Ban
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  </Tabs>
+      </div>
+      <DialogFooter>
+        <Button variant="outline" @click="banDialogOpen = false">Cancel</Button>
+        <Button variant="destructive" @click="confirmBan" :disabled="!banReason">
+          Confirm Ban
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>

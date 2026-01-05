@@ -1,13 +1,11 @@
 <script setup lang="ts">
-import { ref, onMounted, h, watch, computed } from 'vue'
+import { ref, onMounted, h, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
-import { toast } from 'vue-sonner'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconCircleCheckFilled,
   IconDatabase,
   IconDotsVertical,
-  IconDownload,
   IconFileText,
   IconInfoCircle,
   IconRefresh,
@@ -26,7 +24,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Label } from '@/components/ui/label'
 import {
   Select,
   SelectContent,
@@ -34,7 +31,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Dialog,
   DialogContent,
@@ -44,13 +40,11 @@ import {
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuditStore } from '@/stores/admin/audit'
-import { useAuthStore } from '@/stores/admin/auth'
 import type { AuditLog } from '@/api/admin/audit'
 
 import DataTable from '@/components/table/DataTable.vue'
 
 const auditStore = useAuditStore()
-const authStore = useAuthStore()
 
 const searchQuery = ref('')
 const actionFilter = ref<string>('all')
@@ -60,43 +54,10 @@ const tablePagination = ref({ pageIndex: 0, pageSize: 50 })
 const selectedLog = ref<AuditLog | null>(null)
 const detailsDialogOpen = ref(false)
 
-const canExportLogs = computed(() => authStore.hasPermission('READ', 'SYSTEM'))
-
 onMounted(() => loadLogs())
 
 async function loadLogs() {
   await auditStore.fetchLogs({
-    search: searchQuery.value || undefined, // Although fetchLogs interface might need update if it supports search, assuming it handles extra params or ignoring if not supported, but UsersView has search.
-    // Wait, let's check if fetchLogs supports search. The original code didn't pass search.
-    // The original code:
-    // await auditStore.fetchLogs({
-    //   action: actionFilter.value === 'all' ? undefined : actionFilter.value,
-    //   entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
-    //   page: tablePagination.value.pageIndex + 1,
-    //   limit: tablePagination.value.pageSize,
-    // })
-    // The Input v-model="searchQuery" was present in the original template but only had @keyup.enter="loadLogs()".
-    // I should probably include it in the params if the backend/store supports it, or at least keep the structure consistent.
-    // If the store doesn't support it yet, passing it might be ignored or cause issues if strict.
-    // However, the prompt says "Use users design", which implies full reactivity.
-    // I will assume for now I should pass it if I can, or just keep it as is but reactive.
-    // Actually, looking at original code: `v-model="searchQuery"` was used.
-    // I will add `search: searchQuery.value || undefined` to be safe, assuming the store/API can handle it or I might need to check the store definition.
-    // But since I cannot check store definition easily without reading another file, I'll stick to what was likely intended or safe.
-    // Wait, the original loadLogs did NOT use searchQuery.
-    // `const searchQuery = ref('')` was defined but not used in `loadLogs`.
-    // It seems the search input was there but maybe not fully hooked up or I missed it.
-    // Ah, `loadLogs` in original:
-    // await auditStore.fetchLogs({
-    //   action: actionFilter.value === 'all' ? undefined : actionFilter.value,
-    //   entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
-    //   page: tablePagination.value.pageIndex + 1,
-    //   limit: tablePagination.value.pageSize,
-    // })
-    // It seems `searchQuery` was NOT passed. I should probably check if I should pass it.
-    // But the user asked to "unify logic using users design". Users design uses search.
-    // I will pass it. If it breaks, I might need to fix the store.
-    // Actually, looking at the template, there is an input for search.
     action: actionFilter.value === 'all' ? undefined : actionFilter.value,
     entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
     page: tablePagination.value.pageIndex + 1,
@@ -127,19 +88,6 @@ watch(
   () => loadLogs(),
   { deep: true },
 )
-
-async function exportLogs(format: 'csv' | 'json') {
-  try {
-    await auditStore.exportLogs({
-      action: actionFilter.value === 'all' ? undefined : actionFilter.value,
-      entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
-      format,
-    })
-    toast.success(`Logs exported as ${format.toUpperCase()}`)
-  } catch {
-    toast.error(`Failed to export logs as ${format.toUpperCase()}`)
-  }
-}
 
 function getActionBadgeVariant(
   action: string,
@@ -367,112 +315,69 @@ const columns: ColumnDef<AuditLog>[] = [
 </script>
 
 <template>
-  <Tabs default-value="all-logs" class="w-full flex-col justify-start gap-6">
-    <div class="flex items-center justify-between px-4 lg:px-6">
-      <Label for="view-selector" class="sr-only">View</Label>
-      <Select default-value="all-logs">
-        <SelectTrigger id="view-selector" class="flex w-fit @4xl/main:hidden" size="sm">
-          <SelectValue placeholder="Select a view" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all-logs">All Logs</SelectItem>
-          <SelectItem value="user-actions">User Actions</SelectItem>
-          <SelectItem value="system-events">System Events</SelectItem>
-          <SelectItem value="security">Security</SelectItem>
-        </SelectContent>
-      </Select>
-      <div class="flex items-center gap-4">
-        <TabsList
-          class="**:data-[slot=badge]:bg-muted-foreground/30 hidden **:data-[slot=badge]:size-5 **:data-[slot=badge]:rounded-full **:data-[slot=badge]:px-1 @4xl/main:flex"
-        >
-          <TabsTrigger value="all-logs">
-            All Logs <Badge variant="secondary">{{ auditStore.logs.length }}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="user-actions">User Actions</TabsTrigger>
-          <TabsTrigger value="system-events">System Events</TabsTrigger>
-          <TabsTrigger value="security">Security</TabsTrigger>
-        </TabsList>
-        <div v-if="canExportLogs" class="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-              <Button variant="outline" size="sm">
-                <IconDownload class="mr-2 h-4 w-4" />
-                Export
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem @click="exportLogs('csv')"> Export as CSV </DropdownMenuItem>
-              <DropdownMenuItem @click="exportLogs('json')"> Export as JSON </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </div>
+  <div class="flex flex-col gap-4 px-4 lg:px-6">
+    <DataTable
+      :columns="columns"
+      :data="auditStore.logs"
+      :pagination="tablePagination"
+      :row-count="auditStore.total"
+      :loading="auditStore.loading"
+      @update:pagination="tablePagination = $event"
+    >
+      <template #toolbar-left>
+        <Input v-model="searchQuery" placeholder="Search logs..." class="min-w-[200px] w-[260px]">
+          <template #trailing>
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="rounded-sm opacity-70 hover:opacity-100"
+            >
+              <IconX class="h-4 w-4" />
+            </button>
+          </template>
+        </Input>
+        <Select v-model="actionFilter">
+          <SelectTrigger class="w-[180px]">
+            <SelectValue placeholder="All Actions" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Actions</SelectItem>
+            <SelectItem value="CREATE_USER">Create User</SelectItem>
+            <SelectItem value="UPDATE_USER">Update User</SelectItem>
+            <SelectItem value="DELETE_USER">Delete User</SelectItem>
+            <SelectItem value="BAN_USER">Ban User</SelectItem>
+            <SelectItem value="UNBAN_USER">Unban User</SelectItem>
+            <SelectItem value="GRANT_PERMISSION">Grant Permission</SelectItem>
+            <SelectItem value="REVOKE_PERMISSION">Revoke Permission</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select v-model="entityTypeFilter">
+          <SelectTrigger class="w-[160px]">
+            <SelectValue placeholder="All Entities" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Entities</SelectItem>
+            <SelectItem value="USER">User</SelectItem>
+            <SelectItem value="PROBLEM">Problem</SelectItem>
+            <SelectItem value="CONTEST">Contest</SelectItem>
+            <SelectItem value="SOLUTION">Solution</SelectItem>
+            <SelectItem value="FORUM_POST">Forum Post</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="icon" @click="loadLogs()" title="Refresh">
+          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': auditStore.loading }" />
+        </Button>
+      </template>
+    </DataTable>
+
+    <!-- Error state -->
+    <div
+      v-if="auditStore.error"
+      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+    >
+      <span class="text-destructive">{{ auditStore.error }}</span>
+      <Button variant="outline" size="sm" @click="loadLogs()">Retry</Button>
     </div>
-
-    <TabsContent value="all-logs" class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-      <DataTable
-        :columns="columns"
-        :data="auditStore.logs"
-        :pagination="tablePagination"
-        :row-count="auditStore.total"
-        :loading="auditStore.loading"
-        @update:pagination="tablePagination = $event"
-      >
-        <template #toolbar-left>
-          <Input v-model="searchQuery" placeholder="Search logs..." class="min-w-[200px] w-[260px]">
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconX class="h-4 w-4" />
-              </button>
-            </template>
-          </Input>
-          <Select v-model="actionFilter">
-            <SelectTrigger class="w-[180px]">
-              <SelectValue placeholder="All Actions" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Actions</SelectItem>
-              <SelectItem value="CREATE_USER">Create User</SelectItem>
-              <SelectItem value="UPDATE_USER">Update User</SelectItem>
-              <SelectItem value="DELETE_USER">Delete User</SelectItem>
-              <SelectItem value="BAN_USER">Ban User</SelectItem>
-              <SelectItem value="UNBAN_USER">Unban User</SelectItem>
-              <SelectItem value="GRANT_PERMISSION">Grant Permission</SelectItem>
-              <SelectItem value="REVOKE_PERMISSION">Revoke Permission</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select v-model="entityTypeFilter">
-            <SelectTrigger class="w-[160px]">
-              <SelectValue placeholder="All Entities" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Entities</SelectItem>
-              <SelectItem value="USER">User</SelectItem>
-              <SelectItem value="PROBLEM">Problem</SelectItem>
-              <SelectItem value="CONTEST">Contest</SelectItem>
-              <SelectItem value="SOLUTION">Solution</SelectItem>
-              <SelectItem value="FORUM_POST">Forum Post</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="outline" size="icon" @click="loadLogs()" title="Refresh">
-            <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': auditStore.loading }" />
-          </Button>
-        </template>
-      </DataTable>
-
-      <!-- Error state -->
-      <div
-        v-if="auditStore.error"
-        class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-      >
-        <span class="text-destructive">{{ auditStore.error }}</span>
-        <Button variant="outline" size="sm" @click="loadLogs()">Retry</Button>
-      </div>
-    </TabsContent>
 
     <Dialog v-model:open="detailsDialogOpen">
       <DialogContent class="max-w-2xl">
@@ -511,14 +416,14 @@ const columns: ColumnDef<AuditLog>[] = [
               </div>
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-1">
               <span class="text-xs font-medium text-muted-foreground uppercase">Old Values</span>
               <pre class="p-2 rounded-md bg-muted text-xs overflow-auto">{{
                 formatJson(selectedLog.old_values)
               }}</pre>
             </div>
 
-            <div class="space-y-2">
+            <div class="space-y-1">
               <span class="text-xs font-medium text-muted-foreground uppercase">New Values</span>
               <pre class="p-2 rounded-md bg-muted text-xs overflow-auto">{{
                 formatJson(selectedLog.new_values)
@@ -528,17 +433,5 @@ const columns: ColumnDef<AuditLog>[] = [
         </ScrollArea>
       </DialogContent>
     </Dialog>
-
-    <TabsContent value="user-actions" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
-
-    <TabsContent value="system-events" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
-
-    <TabsContent value="security" class="flex flex-col px-4 lg:px-6">
-      <div class="aspect-video w-full flex-1 rounded-lg border border-dashed" />
-    </TabsContent>
-  </Tabs>
+  </div>
 </template>

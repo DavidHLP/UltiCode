@@ -1,12 +1,13 @@
 // prisma/seed/data/users.data.ts
-import * as crypto from 'crypto';
+import * as bcrypt from 'bcrypt';
 
 // 密码哈希函数（与 AuthService 中的实现保持一致）
 function hashPassword(password: string): string {
-  return crypto.createHash('sha256').update(password).digest('hex');
+  const saltRounds = 10;
+  return bcrypt.hashSync(password, saltRounds);
 }
 
-// 默认测试密码
+// 默认测试密码（seed 时统一使用相同哈希）
 const DEFAULT_PASSWORD = hashPassword('password123');
 
 export const USER_IDS = {

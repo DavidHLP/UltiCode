@@ -1,4 +1,10 @@
-import { PrismaClient, UserRole, PermissionAction, PermissionResource } from '@prisma/client';
+import {
+  PrismaClient,
+  UserRole,
+  PermissionAction,
+  PermissionResource,
+} from '@prisma/client';
+import * as bcrypt from 'bcrypt';
 
 /**
  * Clear all permissions
@@ -11,7 +17,9 @@ export async function clearPermissions(prisma: PrismaClient): Promise<void> {
 /**
  * Seed default role permissions
  */
-export async function seedRolePermissions(prisma: PrismaClient): Promise<{ count: number }> {
+export async function seedRolePermissions(
+  prisma: PrismaClient,
+): Promise<{ count: number }> {
   const permissions: Array<{
     role: UserRole;
     action: PermissionAction;
@@ -124,14 +132,11 @@ export async function seedRolePermissions(prisma: PrismaClient): Promise<{ count
 /**
  * Seed a default super admin user
  */
-export async function seedAdminUsers(prisma: PrismaClient): Promise<{ count: number }> {
-  const crypto = await import('crypto');
-
+export async function seedAdminUsers(
+  prisma: PrismaClient,
+): Promise<{ count: number }> {
   // Hash password: "admin123"
-  const hashedPassword = crypto
-    .createHash('sha256')
-    .update('admin123')
-    .digest('hex');
+  const hashedPassword = await bcrypt.hash('admin123', 10);
 
   await prisma.user.upsert({
     where: { username: 'admin' },
@@ -155,7 +160,7 @@ export async function seedAdminUsers(prisma: PrismaClient): Promise<{ count: num
   });
 
   // Create a moderator user: "moderator" / "mod123"
-  const modPassword = crypto.createHash('sha256').update('mod123').digest('hex');
+  const modPassword = await bcrypt.hash('mod123', 10);
 
   await prisma.user.upsert({
     where: { username: 'moderator' },

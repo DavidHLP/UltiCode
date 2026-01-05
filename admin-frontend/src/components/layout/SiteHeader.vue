@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
@@ -16,20 +15,6 @@ const props = defineProps<{
       <SidebarTrigger class="-ml-1" />
       <Separator orientation="vertical" class="mx-2 data-[orientation=vertical]:h-4" />
       <h1 class="text-base font-medium">{{ props.title || 'Documents' }}</h1>
-      <div class="ml-auto flex items-center gap-2">
-        <slot name="actions">
-          <Button variant="ghost" as-child size="sm" class="hidden sm:flex">
-            <a
-              href="https://github.com/shadcn-ui/ui/tree/main/apps/v4/app/(examples)/dashboard"
-              rel="noopener noreferrer"
-              target="_blank"
-              class="dark:text-foreground"
-            >
-              GitHub
-            </a>
-          </Button>
-        </slot>
-      </div>
     </div>
   </header>
 </template>

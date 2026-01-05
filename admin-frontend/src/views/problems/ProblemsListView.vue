@@ -16,6 +16,7 @@ import {
   IconPlus,
   IconRefresh,
   IconSparkles,
+  IconTrash,
   IconTrophy,
   IconX,
 } from '@tabler/icons-vue'
@@ -43,6 +44,7 @@ import { useAuthStore } from '@/stores/admin/auth'
 import { Difficulty, type Problem } from '@/api/admin/problems'
 
 import DataTable from '@/components/table/DataTable.vue'
+import ProblemDeleteDialog from './ProblemDeleteDialog.vue'
 
 const router = useRouter()
 const problemsStore = useProblemsStore()
@@ -54,8 +56,13 @@ const statusFilter = ref<string>('all')
 const publishedFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
 
+const selectedProblemId = ref<string | null>(null)
+const selectedProblemTitle = ref<string | null>(null)
+const deleteDialogOpen = ref(false)
+
 const canCreateProblem = computed(() => authStore.hasPermission('CREATE', 'PROBLEM'))
 const canUpdateProblem = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM'))
+const canDeleteProblem = computed(() => authStore.hasPermission('DELETE', 'PROBLEM'))
 
 onMounted(() => loadProblems())
 
@@ -106,6 +113,12 @@ function viewProblem(id: string) {
 
 function editProblem(id: string) {
   router.push({ name: 'problem-edit', params: { id } })
+}
+
+function confirmDelete(problem: Problem) {
+  selectedProblemId.value = problem.id
+  selectedProblemTitle.value = problem.title
+  deleteDialogOpen.value = true
 }
 
 async function publishProblem(id: string) {
@@ -398,6 +411,19 @@ const columns: ColumnDef<Problem>[] = [
                           },
                         )
                     : null,
+                  canDeleteProblem.value
+                    ? h(
+                        DropdownMenuItem,
+                        { onClick: () => confirmDelete(problem) },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2 text-destructive' }, [
+                              h(IconTrash, { class: 'h-4 w-4' }),
+                              'Delete',
+                            ]),
+                        },
+                      )
+                    : null,
                 ],
               },
             ),
@@ -494,4 +520,11 @@ const columns: ColumnDef<Problem>[] = [
       <Button variant="outline" size="sm" @click="loadProblems()">Retry</Button>
     </div>
   </div>
+
+  <ProblemDeleteDialog
+    v-model:open="deleteDialogOpen"
+    :problem-id="selectedProblemId"
+    :problem-title="selectedProblemTitle"
+    @success="loadProblems"
+  />
 </template>

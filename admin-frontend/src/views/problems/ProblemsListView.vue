@@ -9,7 +9,6 @@ import {
   IconDotsVertical,
   IconEye,
   IconEyeOff,
-  IconFile,
   IconLoader,
   IconPencil,
   IconPlus,
@@ -440,6 +439,7 @@ const columns: ColumnDef<Problem>[] = [
         :columns="columns"
         :data="problemsStore.problems"
         :pagination="tablePagination"
+        :loading="problemsStore.loading"
         @update:pagination="tablePagination = $event"
       >
         <template #toolbar-left>
@@ -515,37 +515,6 @@ const columns: ColumnDef<Problem>[] = [
       >
         <span class="text-destructive">{{ problemsStore.error }}</span>
         <Button variant="outline" size="sm" @click="loadProblems()">Retry</Button>
-      </div>
-
-      <!-- Empty state -->
-      <div
-        v-if="!problemsStore.loading && problemsStore.problems.length === 0"
-        class="flex flex-col items-center justify-center py-12 text-center"
-      >
-        <div
-          class="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground"
-        >
-          <IconFile class="h-8 w-8" />
-        </div>
-        <h3 class="mt-4 text-lg font-semibold">No problems found</h3>
-        <p class="text-muted-foreground">
-          {{
-            searchQuery ||
-            difficultyFilter !== 'all' ||
-            statusFilter !== 'all' ||
-            publishedFilter !== 'all'
-              ? 'Try adjusting your filters'
-              : 'Get started by creating a new problem'
-          }}
-        </p>
-        <Button
-          v-if="canCreateProblem"
-          class="mt-4"
-          @click="router.push({ name: 'problem-create' })"
-        >
-          <IconPlus class="mr-2 h-4 w-4" />
-          Create Problem
-        </Button>
       </div>
     </TabsContent>
 

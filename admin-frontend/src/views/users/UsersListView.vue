@@ -14,7 +14,6 @@ import {
   IconRefresh,
   IconShield,
   IconUser,
-  IconUsers,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
@@ -383,6 +382,7 @@ const columns: ColumnDef<User>[] = [
         :columns="columns"
         :data="usersStore.users"
         :pagination="tablePagination"
+        :loading="usersStore.loading"
         @update:pagination="tablePagination = $event"
       >
         <template #toolbar-left>
@@ -429,12 +429,7 @@ const columns: ColumnDef<User>[] = [
         </template>
 
         <template #extra-actions>
-          <Button
-            v-if="canCreateUser"
-            variant="outline"
-            size="sm"
-            @click="createDialogOpen = true"
-          >
+          <Button v-if="canCreateUser" variant="outline" size="sm" @click="createDialogOpen = true">
             <IconPlus />
             <span class="hidden lg:inline">Add User</span>
           </Button>
@@ -448,30 +443,6 @@ const columns: ColumnDef<User>[] = [
       >
         <span class="text-destructive">{{ usersStore.error }}</span>
         <Button variant="outline" size="sm" @click="loadUsers()">Retry</Button>
-      </div>
-
-      <!-- Empty state -->
-      <div
-        v-if="!usersStore.loading && usersStore.users.length === 0"
-        class="flex flex-col items-center justify-center py-12 text-center"
-      >
-        <div
-          class="flex size-16 items-center justify-center rounded-full bg-muted text-muted-foreground"
-        >
-          <IconUsers class="h-8 w-8" />
-        </div>
-        <h3 class="mt-4 text-lg font-semibold">No users found</h3>
-        <p class="text-muted-foreground">
-          {{
-            searchQuery || roleFilter !== 'all' || statusFilter !== 'all'
-              ? 'Try adjusting your filters'
-              : 'Get started by creating a new user'
-          }}
-        </p>
-        <Button v-if="canCreateUser" class="mt-4" @click="createDialogOpen = true">
-          <IconPlus class="mr-2 h-4 w-4" />
-          Create User
-        </Button>
       </div>
     </TabsContent>
 

@@ -43,7 +43,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table'
 
 import {
   Empty,
@@ -52,6 +59,7 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '@/components/ui/empty'
+import { Skeleton } from '@/components/ui/skeleton'
 
 import DraggableRow from './DraggableRow.vue'
 
@@ -61,6 +69,7 @@ const props = defineProps<{
   pagination?: PaginationState
   emptyTitle?: string
   emptyDescription?: string
+  loading?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -172,7 +181,10 @@ const table = useVueTable({
       </div>
     </div>
 
-    <div v-if="table.getRowModel().rows.length" class="overflow-hidden rounded-lg border">
+    <div
+      v-if="loading || table.getRowModel().rows.length"
+      class="overflow-hidden rounded-lg border"
+    >
       <DragDropProvider :modifiers="[RestrictToVerticalAxis]">
         <Table>
           <TableHeader class="bg-muted sticky top-0 z-10">
@@ -191,17 +203,26 @@ const table = useVueTable({
             </TableRow>
           </TableHeader>
           <TableBody class="**:data-[slot=table-cell]:first:w-8">
-            <DraggableRow
-              v-for="row in table.getRowModel().rows"
-              :key="row.id"
-              :row="row"
-              :index="row.index"
-            />
+            <template v-if="loading">
+              <TableRow v-for="i in 5" :key="i">
+                <TableCell v-for="cell in table.getVisibleFlatColumns().length" :key="cell">
+                  <Skeleton class="h-4 w-full" />
+                </TableCell>
+              </TableRow>
+            </template>
+            <template v-else>
+              <DraggableRow
+                v-for="row in table.getRowModel().rows"
+                :key="row.id"
+                :row="row"
+                :index="row.index"
+              />
+            </template>
           </TableBody>
         </Table>
       </DragDropProvider>
     </div>
-    <div v-else class="flex h-96 items-center justify-center rounded-lg border">
+    <div v-else-if="!loading" class="flex h-96 items-center justify-center rounded-lg border">
       <slot name="empty">
         <Empty class="border-none">
           <EmptyMedia variant="icon">
@@ -219,7 +240,10 @@ const table = useVueTable({
         </Empty>
       </slot>
     </div>
-    <div v-if="table.getRowModel().rows.length" class="flex items-center justify-between px-2">
+    <div
+      v-if="loading || table.getRowModel().rows.length"
+      class="flex items-center justify-between px-2"
+    >
       <div class="text-muted-foreground hidden flex-1 text-sm lg:flex">
         {{ table.getFilteredSelectedRowModel().rows.length }} of
         {{ table.getFilteredRowModel().rows.length }} row(s) selected.
@@ -228,6 +252,7 @@ const table = useVueTable({
         <div class="hidden items-center gap-2 lg:flex">
           <Label for="rows-per-page" class="text-sm font-medium"> Rows per page </Label>
           <Select
+            :disabled="loading"
             :model-value="`${table.getState().pagination.pageSize}`"
             @update:model-value="
               (value) => {
@@ -257,7 +282,7 @@ const table = useVueTable({
           <Button
             variant="outline"
             class="hidden h-8 w-8 p-0 lg:flex"
-            :disabled="!table.getCanPreviousPage()"
+            :disabled="loading || !table.getCanPreviousPage()"
             @click="table.setPageIndex(0)"
           >
             <span class="sr-only">Go to first page</span>
@@ -267,7 +292,7 @@ const table = useVueTable({
             variant="outline"
             class="size-8"
             size="icon"
-            :disabled="!table.getCanPreviousPage()"
+            :disabled="loading || !table.getCanPreviousPage()"
             @click="table.previousPage()"
           >
             <span class="sr-only">Go to previous page</span>
@@ -277,7 +302,7 @@ const table = useVueTable({
             variant="outline"
             class="size-8"
             size="icon"
-            :disabled="!table.getCanNextPage()"
+            :disabled="loading || !table.getCanNextPage()"
             @click="table.nextPage()"
           >
             <span class="sr-only">Go to next page</span>
@@ -287,7 +312,7 @@ const table = useVueTable({
             variant="outline"
             class="hidden size-8 lg:flex"
             size="icon"
-            :disabled="!table.getCanNextPage()"
+            :disabled="loading || !table.getCanNextPage()"
             @click="table.setPageIndex(table.getPageCount() - 1)"
           >
             <span class="sr-only">Go to last page</span>

@@ -6,6 +6,7 @@ import { UserModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthGuard } from './auth.guard';
 import { TokenBlacklistService } from './token-blacklist.service';
+import { PrismaService } from '../prisma.service';
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { TokenBlacklistService } from './token-blacklist.service';
       },
     }),
   ],
-  providers: [AuthService, AuthGuard, TokenBlacklistService],
+  providers: [AuthService, AuthGuard, TokenBlacklistService, PrismaService],
   controllers: [AuthController],
   exports: [AuthService, AuthGuard, TokenBlacklistService],
 })

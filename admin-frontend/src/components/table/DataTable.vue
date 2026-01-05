@@ -46,7 +46,6 @@ import {
 import {
   Table,
   TableBody,
-  TableCell,
   TableHead,
   TableHeader,
   TableRow,
@@ -190,7 +189,10 @@ watch(
       </div>
     </div>
 
-    <div class="overflow-hidden rounded-lg border">
+    <div
+      v-if="table.getRowModel().rows.length"
+      class="overflow-hidden rounded-lg border"
+    >
       <DragDropProvider :modifiers="[RestrictToVerticalAxis]">
         <Table>
           <TableHeader class="bg-muted sticky top-0 z-10">
@@ -209,39 +211,38 @@ watch(
             </TableRow>
           </TableHeader>
           <TableBody class="**:data-[slot=table-cell]:first:w-8">
-            <template v-if="table.getRowModel().rows.length">
-              <DraggableRow
-                v-for="row in table.getRowModel().rows"
-                :key="row.id"
-                :row="row"
-                :index="row.index"
-              />
-            </template>
-            <TableRow v-else>
-              <TableCell :col-span="columns.length" class="h-96 text-center">
-                <slot name="empty">
-                  <Empty class="border-none">
-                    <EmptyMedia variant="icon">
-                      <IconSearchOff />
-                    </EmptyMedia>
-                    <EmptyContent>
-                      <EmptyTitle>{{ emptyTitle || 'No results found' }}</EmptyTitle>
-                      <EmptyDescription>
-                        {{
-                          emptyDescription ||
-                          "We couldn't find what you're looking for. Try adjusting your filters or search query."
-                        }}
-                      </EmptyDescription>
-                    </EmptyContent>
-                  </Empty>
-                </slot>
-              </TableCell>
-            </TableRow>
+            <DraggableRow
+              v-for="row in table.getRowModel().rows"
+              :key="row.id"
+              :row="row"
+              :index="row.index"
+            />
           </TableBody>
         </Table>
       </DragDropProvider>
     </div>
-    <div class="flex items-center justify-between px-2">
+    <div v-else>
+      <slot name="empty">
+        <Empty>
+          <EmptyMedia variant="icon">
+            <IconSearchOff />
+          </EmptyMedia>
+          <EmptyContent>
+            <EmptyTitle>{{ emptyTitle || 'No results found' }}</EmptyTitle>
+            <EmptyDescription>
+              {{
+                emptyDescription ||
+                "We couldn't find what you're looking for. Try adjusting your filters or search query."
+              }}
+            </EmptyDescription>
+          </EmptyContent>
+        </Empty>
+      </slot>
+    </div>
+    <div
+      v-if="table.getRowModel().rows.length"
+      class="flex items-center justify-between px-2"
+    >
       <div class="text-muted-foreground hidden flex-1 text-sm lg:flex">
         {{ table.getFilteredSelectedRowModel().rows.length }} of
         {{ table.getFilteredRowModel().rows.length }} row(s) selected.

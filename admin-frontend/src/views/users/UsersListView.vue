@@ -424,20 +424,13 @@ const columns: ColumnDef<User>[] = [
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" @click="loadUsers()" title="Refresh">
-            <IconRefresh class="h-4 w-4" />
+            <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': usersStore.loading }" />
           </Button>
         </template>
 
         <template #extra-actions>
-          <div
-            v-if="usersStore.loading"
-            class="flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <IconLoader class="h-4 w-4 animate-spin" />
-            Loading...
-          </div>
           <Button
-            v-else-if="canCreateUser"
+            v-if="canCreateUser"
             variant="outline"
             size="sm"
             @click="createDialogOpen = true"

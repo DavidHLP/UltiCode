@@ -1,0 +1,54 @@
+import { z } from 'zod'
+
+export const DifficultyEnum = z.enum(['EASY', 'MEDIUM', 'HARD'])
+export type Difficulty = z.infer<typeof DifficultyEnum>
+
+export const ProblemStatusEnum = z.enum(['todo', 'attempted', 'solved'])
+export type ProblemStatus = z.infer<typeof ProblemStatusEnum>
+
+export const exampleSchema = z.object({
+  id: z.string().optional(),
+  input: z.string().min(1, 'Input is required'),
+  output: z.string().min(1, 'Output is required'),
+  explanation: z.string().optional(),
+})
+
+export type Example = z.infer<typeof exampleSchema>
+
+export const problemFormSchema = z.object({
+  slug: z
+    .string()
+    .min(1, 'Slug is required')
+    .max(120, 'Slug must be at most 120 characters')
+    .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
+  title: z.string().min(1, 'Title is required').max(255, 'Title must be at most 255 characters'),
+  difficulty: DifficultyEnum,
+  status: ProblemStatusEnum.default('todo'),
+  is_premium: z.boolean().default(false),
+  is_published: z.boolean().default(false),
+  summary: z.string().optional(),
+  content: z.string().optional(),
+  examples: z.array(exampleSchema).min(1, 'At least one example is required').default([]),
+  constraints: z.array(z.string()).default([]),
+  hints: z.array(z.string()).default([]),
+  languages: z.array(z.string()).default([]),
+  tags: z.array(z.string()).default([]),
+})
+
+export type ProblemFormData = z.infer<typeof problemFormSchema>
+
+// Schema for filtering problems in the list view
+export const problemFilterSchema = z.object({
+  search: z.string().optional(),
+  difficulty: DifficultyEnum.optional(),
+  status: ProblemStatusEnum.optional(),
+  is_published: z.boolean().optional(),
+  is_deleted: z.boolean().optional(),
+  tag: z.string().optional(),
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(20),
+  sortBy: z.string().default('id'),
+  sortOrder: z.enum(['asc', 'desc']).default('desc'),
+})
+
+export type ProblemFilter = z.infer<typeof problemFilterSchema>

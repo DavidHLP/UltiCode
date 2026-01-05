@@ -54,8 +54,8 @@ export interface Problem {
 
 export interface ProblemExample {
   id: string
-  input_text: string
-  output_text: string
+  input: string
+  output: string
   explanation?: string
   order: number
 }
@@ -63,6 +63,9 @@ export interface ProblemExample {
 export interface ProblemLanguage {
   id: string
   language: string
+  value: string
+  style?: string
+  starter_code: string
 }
 
 export interface ProblemQueryParams {

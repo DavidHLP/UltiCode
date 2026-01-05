@@ -9,7 +9,6 @@ import {
   IconDotsVertical,
   IconFileText,
   IconInfoCircle,
-  IconLoader,
   IconRefresh,
   IconShield,
   IconTrash,
@@ -455,15 +454,8 @@ const columns: ColumnDef<AuditLog>[] = [
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" @click="loadLogs()" title="Refresh">
-            <IconRefresh class="h-4 w-4" />
+            <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': auditStore.loading }" />
           </Button>
-        </template>
-
-        <template v-if="auditStore.loading" #extra-actions>
-          <div class="flex items-center gap-2 text-sm text-muted-foreground">
-            <IconLoader class="h-4 w-4 animate-spin" />
-            Loading...
-          </div>
         </template>
       </DataTable>
 

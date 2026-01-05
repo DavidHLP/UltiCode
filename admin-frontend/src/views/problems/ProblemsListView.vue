@@ -491,20 +491,13 @@ const columns: ColumnDef<Problem>[] = [
             </SelectContent>
           </Select>
           <Button variant="outline" size="icon" @click="loadProblems()" title="Refresh">
-            <IconRefresh class="h-4 w-4" />
+            <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': problemsStore.loading }" />
           </Button>
         </template>
 
         <template #extra-actions>
-          <div
-            v-if="problemsStore.loading"
-            class="flex items-center gap-2 text-sm text-muted-foreground"
-          >
-            <IconLoader class="h-4 w-4 animate-spin" />
-            Loading...
-          </div>
           <Button
-            v-else-if="canCreateProblem"
+            v-if="canCreateProblem"
             variant="outline"
             size="sm"
             @click="router.push({ name: 'problem-create' })"

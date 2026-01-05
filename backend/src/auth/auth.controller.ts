@@ -14,6 +14,7 @@ import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
 import { RegisterDto } from './dto/register.dto';
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthGuard } from './auth.guard';
 
 @Controller('auth')
@@ -37,8 +38,15 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('forgot-password')
   @Throttle({ default: { limit: 3, ttl: 300000 } }) // 3 password reset requests per 5 minutes
-  async forgotPassword(@Body('email') email: string) {
-    return this.authService.forgotPassword(email);
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto.email);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('reset-password')
+  @Throttle({ default: { limit: 10, ttl: 300000 } }) // 10 resets per 5 minutes
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
   @HttpCode(HttpStatus.OK)

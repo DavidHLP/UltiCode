@@ -1,10 +1,9 @@
 import { z } from 'zod'
+import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 
-export const DifficultyEnum = z.enum(['EASY', 'MEDIUM', 'HARD'])
-export type Difficulty = z.infer<typeof DifficultyEnum>
-
-export const ProblemStatusEnum = z.enum(['todo', 'attempted', 'solved'])
-export type ProblemStatus = z.infer<typeof ProblemStatusEnum>
+// Zod schemas using API enum values
+export const DifficultyEnum = z.nativeEnum(Difficulty)
+export const ProblemStatusEnum = z.nativeEnum(ProblemStatus)
 
 export const exampleSchema = z.object({
   id: z.string().optional(),
@@ -23,7 +22,7 @@ export const problemFormSchema = z.object({
     .regex(/^[a-z0-9-]+$/, 'Slug must contain only lowercase letters, numbers, and hyphens'),
   title: z.string().min(1, 'Title is required').max(255, 'Title must be at most 255 characters'),
   difficulty: DifficultyEnum,
-  status: ProblemStatusEnum.default('todo'),
+  status: ProblemStatusEnum.default(ProblemStatus.TODO),
   is_premium: z.boolean().default(false),
   is_published: z.boolean().default(false),
   summary: z.string().optional(),

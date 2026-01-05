@@ -6,7 +6,8 @@ import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
 import ProblemForm from './components/ProblemForm.vue'
 import type { ProblemFormData } from '@/lib/schemas/problem'
-import { Difficulty, ProblemStatus } from '@/api/admin/problems'
+import type { TestCaseExample } from '@/components/problem/TestCasesEditor.vue'
+import type { Problem, ProblemExample } from '@/api/admin/problems'
 
 const router = useRouter()
 const route = useRoute()
@@ -14,8 +15,7 @@ const problemsStore = useProblemsStore()
 
 const formRef = ref<InstanceType<typeof ProblemForm>>()
 const loadingData = ref(true)
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const problemData = ref<any>(null)
+const problemData = ref<Problem | null>(null)
 
 const problemId = computed(() => route.params.id as string)
 
@@ -31,12 +31,21 @@ async function loadData() {
   loadingData.value = false
 }
 
+function mapExampleToTestCase(example: ProblemExample): TestCaseExample {
+  return {
+    id: example.id,
+    input: example.input_text,
+    output: example.output_text,
+    explanation: example.explanation,
+  }
+}
+
 async function handleSubmit(data: ProblemFormData) {
   try {
     await problemsStore.updateProblem(problemId.value, {
       ...data,
-      difficulty: data.difficulty as Difficulty,
-      status: data.status as ProblemStatus,
+      difficulty: data.difficulty,
+      status: data.status,
       examples: data.examples.map((ex, idx) => ({
         id: ex.id || crypto.randomUUID(),
         input_text: ex.input,
@@ -66,19 +75,13 @@ const formattedProblem = computed(() => {
     is_published: problemData.value.is_published,
     summary: problemData.value.detail?.summary || '',
     content: problemData.value.detail?.content || '',
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    examples: problemData.value.examples?.map((ex: any) => ({
-      id: ex.id,
-      input: ex.input_text,
-      output: ex.output_text,
-      explanation: ex.explanation,
-    })) || [{ id: 'example-1', input: '', output: '', explanation: '' }],
+    examples: problemData.value.examples?.map(mapExampleToTestCase) || [
+      { id: 'example-1', input: '', output: '', explanation: '' },
+    ],
     constraints: problemData.value.detail?.constraints_json || [],
     hints: problemData.value.detail?.hints || [],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    languages: problemData.value.languages?.map((l: any) => l.language) || [],
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tags: problemData.value.tags?.map((t: any) => t.label) || [],
+    languages: problemData.value.languages?.map((l) => l.language) || [],
+    tags: problemData.value.tags?.map((t) => t.label) || [],
   }
 })
 </script>

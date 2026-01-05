@@ -1,5 +1,4 @@
 import MarkdownIt from 'markdown-it'
-// @ts-expect-error - markdown-it-katex doesn't have types
 import markdownItKatex from 'markdown-it-katex'
 import hljs from 'highlight.js'
 
@@ -17,8 +16,6 @@ const md = new MarkdownIt({
   },
 })
 
-// eslint-disable-next-line @typescript-eslint/ban-ts-comment
-// @ts-ignore - markdown-it-katex doesn't have types
 md.use(markdownItKatex)
 
 // Custom plugin to group consecutive fence tokens

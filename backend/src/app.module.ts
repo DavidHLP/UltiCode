@@ -3,6 +3,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
@@ -28,6 +31,23 @@ import { AdminModule } from './admin/admin.module';
       isGlobal: true,
       envFilePath: '.env',
     }),
+    ThrottlerModule.forRoot([
+      {
+        name: 'global',
+        ttl: 60000, // 60 seconds
+        limit: 100, // 100 requests per minute
+      },
+      {
+        name: 'strict',
+        ttl: 60000, // 60 seconds
+        limit: 10, // 10 requests per minute for sensitive endpoints
+      },
+      {
+        name: 'very-strict',
+        ttl: 300000, // 5 minutes
+        limit: 5, // 5 requests per 5 minutes for auth endpoints
+      },
+    ]),
     ScheduleModule.forRoot(),
     BullModule.forRoot({
       connection: {
@@ -64,6 +84,12 @@ import { AdminModule } from './admin/admin.module';
     NotificationModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
+  ],
 })
 export class AppModule {}

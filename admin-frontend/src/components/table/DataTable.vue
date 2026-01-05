@@ -221,9 +221,12 @@ watch(
         </Table>
       </DragDropProvider>
     </div>
-    <div v-else>
+    <div
+      v-else
+      class="flex h-96 items-center justify-center rounded-lg border"
+    >
       <slot name="empty">
-        <Empty>
+        <Empty class="border-none">
           <EmptyMedia variant="icon">
             <IconSearchOff />
           </EmptyMedia>

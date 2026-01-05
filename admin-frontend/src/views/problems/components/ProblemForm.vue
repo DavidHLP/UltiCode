@@ -4,7 +4,18 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Label } from '@/components/ui/label'
+import {
+  IconPlus,
+  IconX,
+  IconFileDescription,
+  IconFlask,
+  IconInfoCircle,
+  IconBrackets,
+  IconBulb,
+} from '@tabler/icons-vue'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import {
   Select,
   SelectContent,
@@ -19,26 +30,27 @@ import type { TestCaseExample } from '@/components/problem/TestCasesEditor.vue'
 import type { ProblemFormData } from '@/lib/schemas/problem'
 import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 
-interface Problem {
-  id?: string
+// Define a strict local interface for the incoming problem prop
+// This must match what ProblemEditView passes in computed propery
+interface ProblemData {
   slug: string
   title: string
   difficulty: string
   status: string
   is_premium: boolean
   is_published: boolean
-  summary?: string
-  content?: string
-  examples?: TestCaseExample[]
-  constraints?: string[]
-  hints?: string[]
-  languages?: string[]
-  tags?: string[]
+  summary: string
+  content: string
+  examples: TestCaseExample[]
+  constraints: string[]
+  hints: string[]
+  languages: string[]
+  tags: string[]
 }
 
 const props = withDefaults(
   defineProps<{
-    problem?: Problem
+    problem?: ProblemData
     isEdit?: boolean
   }>(),
   {
@@ -50,50 +62,66 @@ const emit = defineEmits<{
   submit: [data: ProblemFormData]
 }>()
 
-// Initialize form data from props or defaults
+// Validates and ensures examples array has at least one valid entry
+function ensureExamples(examples?: TestCaseExample[]): TestCaseExample[] {
+  if (examples && examples.length > 0) {
+    return examples.map((ex) => ({
+      id: ex.id || crypto.randomUUID(),
+      input: ex.input || '',
+      output: ex.output || '',
+      explanation: ex.explanation || '',
+    }))
+  }
+  return [{ id: crypto.randomUUID(), input: '', output: '', explanation: '' }]
+}
+
+// Initialize form data with safe defaults
 const formData = ref<ProblemFormData>({
-  slug: props.problem?.slug || '',
-  title: props.problem?.title || '',
-  difficulty: (props.problem?.difficulty || 'MEDIUM') as Difficulty,
-  status: (props.problem?.status || 'todo') as ProblemStatus,
-  is_premium: props.problem?.is_premium || false,
-  is_published: props.problem?.is_published || false,
-  summary: props.problem?.summary || '',
-  content: props.problem?.content || '',
-  examples: props.problem?.examples || [
-    { id: 'example-1', input: '', output: '', explanation: '' },
-  ],
-  constraints: props.problem?.constraints || [],
-  hints: props.problem?.hints || [],
-  languages: props.problem?.languages || [],
-  tags: props.problem?.tags || [],
+  slug: '',
+  title: '',
+  difficulty: Difficulty.MEDIUM,
+  status: ProblemStatus.TODO,
+  is_premium: false,
+  is_published: false,
+  summary: '',
+  content: '',
+  examples: ensureExamples(),
+  constraints: [],
+  hints: [],
+  languages: [],
+  tags: [],
 })
 
-// Update form when problem prop changes (for edit mode)
+// Function to reset/update form data safely
+function updateForm(data?: ProblemData) {
+  if (!data) return
+
+  formData.value = {
+    slug: data.slug || '',
+    title: data.title || '',
+    difficulty: (data.difficulty as Difficulty) || Difficulty.MEDIUM,
+    status: (data.status as ProblemStatus) || ProblemStatus.TODO,
+    is_premium: !!data.is_premium,
+    is_published: !!data.is_published,
+    summary: data.summary || '',
+    content: data.content || '',
+    examples: ensureExamples(data.examples),
+    constraints: [...(data.constraints || [])],
+    hints: [...(data.hints || [])],
+    languages: [...(data.languages || [])],
+    tags: [...(data.tags || [])],
+  }
+}
+
+// Watch for prop changes to update form
 watch(
   () => props.problem,
-  (newProblem) => {
-    if (newProblem) {
-      formData.value = {
-        slug: newProblem.slug || '',
-        title: newProblem.title || '',
-        difficulty: newProblem.difficulty as Difficulty,
-        status: newProblem.status as ProblemStatus,
-        is_premium: newProblem.is_premium || false,
-        is_published: newProblem.is_published || false,
-        summary: newProblem.summary || '',
-        content: newProblem.content || '',
-        examples: newProblem.examples?.length
-          ? newProblem.examples
-          : [{ id: 'example-1', input: '', output: '', explanation: '' }],
-        constraints: newProblem.constraints || [],
-        hints: newProblem.hints || [],
-        languages: newProblem.languages || [],
-        tags: newProblem.tags || [],
-      }
+  (newVal) => {
+    if (newVal) {
+      updateForm(newVal)
     }
   },
-  { deep: true },
+  { deep: true, immediate: true },
 )
 
 const newConstraint = ref('')
@@ -193,231 +221,329 @@ defineExpose({
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <!-- Basic Information Card -->
-    <Card class="max-w-3xl">
-      <CardHeader>
-        <CardTitle>Basic Information</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="space-y-2">
-          <label class="text-sm font-medium">Slug</label>
-          <Input v-model="formData.slug" placeholder="two-sum" />
-          <p v-if="errors.slug" class="text-sm text-destructive">{{ errors.slug }}</p>
-        </div>
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Left Column: Main Content -->
+    <div class="lg:col-span-2 space-y-6">
+      <!-- General Information -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconFileDescription class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>Problem Details</CardTitle>
+          </div>
+          <CardDescription> Basic information and content of the problem. </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="space-y-2">
+              <Label>Title</Label>
+              <Input v-model="formData.title" placeholder="Two Sum" />
+              <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
+            </div>
 
-        <div class="space-y-2">
-          <label class="text-sm font-medium">Title</label>
-          <Input v-model="formData.title" placeholder="Two Sum" />
-          <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-          <div class="space-y-2">
-            <label class="text-sm font-medium">Difficulty</label>
-            <Select v-model="formData.difficulty">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem :value="Difficulty.EASY">Easy</SelectItem>
-                <SelectItem :value="Difficulty.MEDIUM">Medium</SelectItem>
-                <SelectItem :value="Difficulty.HARD">Hard</SelectItem>
-              </SelectContent>
-            </Select>
+            <div class="space-y-2">
+              <Label>Slug</Label>
+              <Input v-model="formData.slug" placeholder="two-sum" class="font-mono" />
+              <p v-if="errors.slug" class="text-sm text-destructive">{{ errors.slug }}</p>
+            </div>
           </div>
 
           <div class="space-y-2">
-            <label class="text-sm font-medium">Status</label>
-            <Select v-model="formData.status">
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem :value="ProblemStatus.TODO">Todo</SelectItem>
-                <SelectItem :value="ProblemStatus.ATTEMPTED">Attempted</SelectItem>
-                <SelectItem :value="ProblemStatus.SOLVED">Solved</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-
-        <div class="flex gap-4">
-          <div class="flex items-center space-x-2">
-            <Checkbox v-model:checked="formData.is_premium" id="premium" />
-            <label for="premium" class="text-sm">Premium</label>
+            <Label>Summary</Label>
+            <Textarea
+              v-model="formData.summary"
+              rows="3"
+              placeholder="Brief summary of the problem..."
+              class="resize-none"
+            />
           </div>
 
-          <div class="flex items-center space-x-2">
-            <Checkbox v-model:checked="formData.is_published" id="published" />
-            <label for="published" class="text-sm">
-              {{ isEdit ? 'Published' : 'Publish immediately' }}
-            </label>
+          <div class="space-y-2">
+            <Label>Full Content</Label>
+            <MarkdownEditor
+              :model-value="formData.content ?? ''"
+              @update:model-value="(v) => (formData.content = v)"
+              placeholder="Write the full problem description in markdown..."
+            />
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
 
-    <!-- Problem Content Card -->
-    <Card class="max-w-4xl">
-      <CardHeader>
-        <CardTitle>Problem Content</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="space-y-2">
-          <label class="text-sm font-medium">Summary</label>
-          <p class="text-xs text-muted-foreground">A brief description shown in problem listings</p>
-          <Textarea
-            v-model="formData.summary"
-            rows="3"
-            placeholder="Brief summary of the problem..."
-          />
-        </div>
-
-        <div class="space-y-2">
-          <label class="text-sm font-medium">Full Content</label>
-          <p class="text-xs text-muted-foreground">
-            Detailed problem description with markdown support
-          </p>
-          <MarkdownEditor
-            :model-value="formData.content ?? ''"
-            @update:model-value="(v) => (formData.content = v)"
-            placeholder="Write the full problem description in markdown..."
-          />
-        </div>
-      </CardContent>
-    </Card>
-
-    <!-- Test Cases Card -->
-    <Card class="max-w-4xl">
-      <CardHeader>
-        <CardTitle>Test Case Examples</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <p class="text-xs text-muted-foreground">
-          Add at least one example to help users understand the problem input/output format.
-        </p>
-        <TestCasesEditor v-model="formData.examples as TestCaseExample[]" />
-        <p v-if="errors.examples" class="text-sm text-destructive">{{ errors.examples }}</p>
-      </CardContent>
-    </Card>
-
-    <!-- Constraints Card -->
-    <Card class="max-w-3xl">
-      <CardHeader>
-        <CardTitle>Constraints</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="flex gap-2">
-          <Input
-            v-model="newConstraint"
-            placeholder="e.g., 1 <= nums.length <= 10^4"
-            @keyup.enter="addConstraint"
-          />
-          <Button type="button" @click="addConstraint">Add</Button>
-        </div>
-        <div v-if="formData.constraints!.length === 0" class="text-sm text-muted-foreground italic">
-          No constraints added yet.
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <Badge v-for="(constraint, idx) in formData.constraints" :key="idx" variant="secondary">
-            {{ constraint }}
-            <button class="ml-2 hover:text-destructive" @click="removeConstraint(idx)">×</button>
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
-
-    <!-- Hints Card -->
-    <Card class="max-w-3xl">
-      <CardHeader>
-        <CardTitle>Hints</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="flex gap-2">
-          <Input v-model="newHint" placeholder="Add a hint..." @keyup.enter="addHint" />
-          <Button type="button" @click="addHint">Add</Button>
-        </div>
-        <div v-if="formData.hints!.length === 0" class="text-sm text-muted-foreground italic">
-          No hints added yet.
-        </div>
-        <div class="space-y-2">
-          <div
-            v-for="(hint, idx) in formData.hints"
-            :key="idx"
-            class="flex items-center gap-2 p-2 rounded border bg-amber-50/10 dark:bg-amber-950/20"
-          >
-            <span class="text-sm flex-1">{{ hint }}</span>
-            <button class="text-muted-foreground hover:text-destructive" @click="removeHint(idx)">
-              ×
-            </button>
+      <!-- Test Cases -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconFlask class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>Test Cases</CardTitle>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+          <CardDescription>
+            Add examples to help users understand input/output format.
+          </CardDescription>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <!-- Force re-render if needed, but TestCasesEditor handles updates via watch -->
+          <TestCasesEditor v-model="formData.examples as TestCaseExample[]" />
+          <p v-if="errors.examples" class="text-sm text-destructive">{{ errors.examples }}</p>
+        </CardContent>
+      </Card>
 
-    <!-- Languages Card -->
-    <Card class="max-w-3xl">
-      <CardHeader>
-        <CardTitle>Supported Languages</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <p class="text-xs text-muted-foreground">
-          Leave empty to allow all languages. Add specific languages to restrict the problem to
-          those only.
-        </p>
-        <div class="flex gap-2">
-          <Input
-            v-model="newLanguage"
-            placeholder="e.g., Python, JavaScript, C++"
-            @keyup.enter="addLanguage"
-          />
-          <Button type="button" @click="addLanguage">Add</Button>
-        </div>
-        <div v-if="formData.languages!.length === 0" class="text-sm text-muted-foreground italic">
-          All languages supported (no restrictions)
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <Badge v-for="(lang, idx) in formData.languages" :key="idx" variant="secondary">
-            {{ lang }}
-            <button class="ml-2 hover:text-destructive" @click="removeLanguage(idx)">×</button>
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
+      <!-- Additional Info: Constraints & Hints -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconInfoCircle class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>Additional Information</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-8">
+          <!-- Constraints -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <Label class="text-base flex items-center gap-2">
+                <IconBrackets class="h-4 w-4" /> Constraints
+              </Label>
+            </div>
 
-    <!-- Tags Card -->
-    <Card class="max-w-3xl">
-      <CardHeader>
-        <CardTitle>Tags</CardTitle>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <div class="flex gap-2">
-          <Input
-            v-model="newTag"
-            placeholder="e.g., Array, Hash Table, Dynamic Programming"
-            @keyup.enter="addTag"
-          />
-          <Button type="button" @click="addTag">Add</Button>
-        </div>
-        <div v-if="formData.tags!.length === 0" class="text-sm text-muted-foreground italic">
-          No tags added yet.
-        </div>
-        <div class="flex flex-wrap gap-2">
-          <Badge v-for="(tag, idx) in formData.tags" :key="idx" variant="secondary">
-            {{ tag }}
-            <button class="ml-2 hover:text-destructive" @click="removeTag(idx)">×</button>
-          </Badge>
-        </div>
-      </CardContent>
-    </Card>
+            <div class="flex gap-2">
+              <Input
+                v-model="newConstraint"
+                placeholder="e.g., 1 <= nums.length <= 10^4"
+                @keyup.enter="addConstraint"
+                class="font-mono text-sm"
+              />
+              <Button type="button" variant="secondary" @click="addConstraint">Add</Button>
+            </div>
 
-    <!-- Submit Actions -->
-    <div class="flex gap-2">
-      <Button :disabled="loading" @click="submit">
-        {{ loading ? 'Saving...' : isEdit ? 'Update Problem' : 'Create Problem' }}
-      </Button>
-      <slot name="cancel" />
+            <div class="bg-muted/30 rounded-lg p-4 min-h-[60px] flex flex-col justify-center">
+              <div
+                v-if="formData.constraints!.length === 0"
+                class="text-sm text-muted-foreground text-center"
+              >
+                No constraints added.
+              </div>
+              <div v-else class="flex flex-wrap gap-2">
+                <Badge
+                  v-for="(constraint, idx) in formData.constraints"
+                  :key="idx"
+                  variant="secondary"
+                  class="gap-1 font-mono text-xs px-2 py-1"
+                >
+                  {{ constraint }}
+                  <button
+                    class="hover:text-destructive transition-colors ml-1"
+                    @click="removeConstraint(idx)"
+                  >
+                    <IconX class="h-3 w-3" />
+                  </button>
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          <Separator />
+
+          <!-- Hints -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <Label class="text-base flex items-center gap-2">
+                <IconBulb class="h-4 w-4" /> Hints
+              </Label>
+            </div>
+            <div class="flex gap-2">
+              <Input v-model="newHint" placeholder="Add a hint..." @keyup.enter="addHint" />
+              <Button type="button" variant="secondary" @click="addHint">Add</Button>
+            </div>
+
+            <div class="bg-muted/30 rounded-lg p-4 min-h-[60px] flex flex-col justify-center">
+              <div
+                v-if="formData.hints!.length === 0"
+                class="text-sm text-muted-foreground text-center"
+              >
+                No hints added yet.
+              </div>
+              <div v-else class="space-y-2">
+                <div
+                  v-for="(hint, idx) in formData.hints"
+                  :key="idx"
+                  class="group flex items-start gap-3 text-sm"
+                >
+                  <span class="flex-none font-mono text-muted-foreground text-xs mt-0.5"
+                    >{{ idx + 1 }}.</span
+                  >
+                  <span class="flex-1 leading-relaxed">{{ hint }}</span>
+                  <button
+                    class="opacity-0 group-hover:opacity-100 text-muted-foreground hover:text-destructive transition-all"
+                    @click="removeHint(idx)"
+                  >
+                    <IconX class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- Right Column: Sidebar -->
+    <div class="space-y-6 lg:sticky lg:top-6 h-fit">
+      <!-- Actions Card -->
+      <Card class="border-primary/10 shadow-sm">
+        <CardHeader class="pb-3">
+          <CardTitle>Publishing</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label class="text-xs text-muted-foreground uppercase tracking-wider">Status</Label>
+              <Select v-model="formData.status">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="ProblemStatus.TODO">Todo</SelectItem>
+                  <SelectItem :value="ProblemStatus.ATTEMPTED">Attempted</SelectItem>
+                  <SelectItem :value="ProblemStatus.SOLVED">Solved</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div class="space-y-2">
+              <Label class="text-xs text-muted-foreground uppercase tracking-wider"
+                >Difficulty</Label
+              >
+              <Select v-model="formData.difficulty">
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="Difficulty.EASY">Easy</SelectItem>
+                  <SelectItem :value="Difficulty.MEDIUM">Medium</SelectItem>
+                  <SelectItem :value="Difficulty.HARD">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <Separator />
+
+          <div class="space-y-3">
+            <div
+              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors"
+            >
+              <label for="premium" class="text-sm font-medium cursor-pointer"
+                >Premium Problem</label
+              >
+              <Checkbox v-model:checked="formData.is_premium" id="premium" />
+            </div>
+            <div
+              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors"
+            >
+              <label for="published" class="text-sm font-medium cursor-pointer">
+                {{ isEdit ? 'Published' : 'Publish immediately' }}
+              </label>
+              <Checkbox v-model:checked="formData.is_published" id="published" />
+            </div>
+          </div>
+
+          <Separator />
+
+          <div class="flex flex-col gap-3">
+            <Button class="w-full" :disabled="loading" @click="submit">
+              {{ loading ? 'Saving...' : isEdit ? 'Update Problem' : 'Create Problem' }}
+            </Button>
+            <slot name="cancel" />
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Taxonomy Card -->
+      <Card>
+        <CardHeader class="pb-3">
+          <CardTitle>Taxonomy</CardTitle>
+        </CardHeader>
+        <CardContent class="space-y-6">
+          <!-- Languages -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <Label class="text-sm">Languages</Label>
+              <span v-if="!formData.languages?.length" class="text-xs text-muted-foreground"
+                >All</span
+              >
+            </div>
+
+            <div class="relative">
+              <Input
+                v-model="newLanguage"
+                placeholder="Add language..."
+                @keyup.enter="addLanguage"
+                class="pr-8"
+              />
+              <button
+                v-if="newLanguage"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
+                @click="addLanguage"
+              >
+                <IconPlus class="h-4 w-4" />
+              </button>
+            </div>
+
+            <div v-if="formData.languages?.length" class="flex flex-wrap gap-1.5">
+              <Badge
+                v-for="(lang, idx) in formData.languages"
+                :key="idx"
+                variant="outline"
+                class="gap-1 pr-1.5"
+              >
+                {{ lang }}
+                <button
+                  class="hover:text-destructive text-muted-foreground hover:bg-destructive/10 rounded-full p-0.5 transition-colors"
+                  @click="removeLanguage(idx)"
+                >
+                  <IconX class="h-3 w-3" />
+                </button>
+              </Badge>
+            </div>
+          </div>
+
+          <Separator />
+
+          <!-- Tags -->
+          <div class="space-y-3">
+            <div class="flex items-center justify-between">
+              <Label class="text-sm">Tags</Label>
+            </div>
+
+            <div class="relative">
+              <Input v-model="newTag" placeholder="Add tag..." @keyup.enter="addTag" class="pr-8" />
+              <button
+                v-if="newTag"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"
+                @click="addTag"
+              >
+                <IconPlus class="h-4 w-4" />
+              </button>
+            </div>
+
+            <div v-if="formData.tags?.length" class="flex flex-wrap gap-1.5">
+              <Badge
+                v-for="(tag, idx) in formData.tags"
+                :key="idx"
+                variant="outline"
+                class="gap-1 pr-1.5"
+              >
+                {{ tag }}
+                <button
+                  class="hover:text-destructive text-muted-foreground hover:bg-destructive/10 rounded-full p-0.5 transition-colors"
+                  @click="removeTag(idx)"
+                >
+                  <IconX class="h-3 w-3" />
+                </button>
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   </div>
 </template>

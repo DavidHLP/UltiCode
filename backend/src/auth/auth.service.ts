@@ -108,18 +108,29 @@ export class AuthService {
     };
   }
 
+  /**
+   * Decode JWT token with proper type safety
+   * @param token JWT token string
+   * @returns Decoded token payload or null/string if invalid
+   */
+  private decodeToken(
+    token: string,
+  ): { exp: number; [key: string]: unknown } | null | string {
+    const result = this.jwtService.decode(token);
+    // The JWT library returns `any`, but we know the structure includes `exp`
+    return result as { exp: number; [key: string]: unknown } | null | string;
+  }
+
   async logout(logoutDto: LogoutDto): Promise<{ message: string }> {
     // If a token is provided, add it to the blacklist
     if (logoutDto.token) {
       // Decode the token to get its remaining time
       try {
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-        const decoded = this.jwtService.decode(logoutDto.token);
+        const decoded = this.decodeToken(logoutDto.token);
 
         if (decoded && typeof decoded === 'object' && 'exp' in decoded) {
           // Calculate TTL until token expiration
           const now = Math.floor(Date.now() / 1000);
-          // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
           const ttl = decoded.exp - now;
 
           // Only blacklist if token hasn't expired yet

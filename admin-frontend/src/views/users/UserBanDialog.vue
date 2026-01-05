@@ -60,7 +60,8 @@ async function handleBan() {
       <DialogHeader>
         <DialogTitle>Ban User</DialogTitle>
         <DialogDescription>
-          Please provide a reason for banning <strong>{{ username || 'this user' }}</strong>.
+          Please provide a reason for banning <strong>{{ username || 'this user' }}</strong
+          >.
         </DialogDescription>
       </DialogHeader>
       <div class="grid gap-4 py-4">

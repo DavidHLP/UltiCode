@@ -3,8 +3,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 // Fix BigInt serialization
-// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-(BigInt.prototype as any).toJSON = function () {
+declare global {
+  interface BigInt {
+    toJSON(): number;
+  }
+}
+BigInt.prototype.toJSON = function () {
   return Number(this);
 };
 

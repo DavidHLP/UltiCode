@@ -61,7 +61,7 @@ watch(
       form.value = { ...defaultForm }
       error.value = ''
     }
-  }
+  },
 )
 
 async function handleSubmit() {
@@ -199,9 +199,7 @@ async function handleSubmit() {
                   <FieldLabel for="create-is_active" class="font-normal cursor-pointer">
                     Active Account
                   </FieldLabel>
-                  <FieldDescription>
-                    Inactive users cannot log in to the system.
-                  </FieldDescription>
+                  <FieldDescription> Inactive users cannot log in to the system. </FieldDescription>
                 </div>
               </Field>
             </FieldGroup>

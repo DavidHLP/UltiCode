@@ -25,7 +25,7 @@ import {
   useVueTable,
 } from '@tanstack/vue-table'
 import { DragDropProvider } from 'dnd-kit-vue'
-import { ref, watch } from 'vue'
+import { ref } from 'vue'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -43,13 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table'
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 
 import {
   Empty,
@@ -130,17 +124,6 @@ const table = useVueTable({
     },
   },
 })
-
-// Watch for external pagination changes
-watch(
-  () => props.pagination,
-  (newPagination) => {
-    if (newPagination) {
-      table.setPagination(newPagination)
-    }
-  },
-  { deep: true },
-)
 </script>
 
 <template>
@@ -189,10 +172,7 @@ watch(
       </div>
     </div>
 
-    <div
-      v-if="table.getRowModel().rows.length"
-      class="overflow-hidden rounded-lg border"
-    >
+    <div v-if="table.getRowModel().rows.length" class="overflow-hidden rounded-lg border">
       <DragDropProvider :modifiers="[RestrictToVerticalAxis]">
         <Table>
           <TableHeader class="bg-muted sticky top-0 z-10">
@@ -221,10 +201,7 @@ watch(
         </Table>
       </DragDropProvider>
     </div>
-    <div
-      v-else
-      class="flex h-96 items-center justify-center rounded-lg border"
-    >
+    <div v-else class="flex h-96 items-center justify-center rounded-lg border">
       <slot name="empty">
         <Empty class="border-none">
           <EmptyMedia variant="icon">
@@ -242,10 +219,7 @@ watch(
         </Empty>
       </slot>
     </div>
-    <div
-      v-if="table.getRowModel().rows.length"
-      class="flex items-center justify-between px-2"
-    >
+    <div v-if="table.getRowModel().rows.length" class="flex items-center justify-between px-2">
       <div class="text-muted-foreground hidden flex-1 text-sm lg:flex">
         {{ table.getFilteredSelectedRowModel().rows.length }} of
         {{ table.getFilteredRowModel().rows.length }} row(s) selected.

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h } from 'vue'
+import { ref, onMounted, computed, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconBan,
@@ -76,6 +77,27 @@ async function loadUsers() {
     limit: tablePagination.value.pageSize,
   })
 }
+
+// Watchers for automatic queries
+watchDebounced(
+  searchQuery,
+  () => {
+    tablePagination.value.pageIndex = 0
+    loadUsers()
+  },
+  { debounce: 500 },
+)
+
+watch([roleFilter, statusFilter], () => {
+  tablePagination.value.pageIndex = 0
+  loadUsers()
+})
+
+watch(
+  () => tablePagination.value,
+  () => loadUsers(),
+  { deep: true },
+)
 
 function viewUser(id: string) {
   router.push({ name: 'user-detail', params: { id } })
@@ -367,7 +389,6 @@ const columns: ColumnDef<User>[] = [
             v-model="searchQuery"
             placeholder="Search users..."
             class="min-w-[200px] w-[260px]"
-            @keyup.enter="loadUsers()"
           >
             <template #trailing>
               <button
@@ -379,7 +400,7 @@ const columns: ColumnDef<User>[] = [
               </button>
             </template>
           </Input>
-          <Select v-model="roleFilter" @update:model-value="loadUsers()">
+          <Select v-model="roleFilter">
             <SelectTrigger class="w-[160px]">
               <SelectValue placeholder="All Roles" />
             </SelectTrigger>
@@ -391,7 +412,7 @@ const columns: ColumnDef<User>[] = [
               <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
             </SelectContent>
           </Select>
-          <Select v-model="statusFilter" @update:model-value="loadUsers()">
+          <Select v-model="statusFilter">
             <SelectTrigger class="w-[140px]">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>

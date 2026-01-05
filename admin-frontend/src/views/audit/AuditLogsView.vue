@@ -55,8 +55,8 @@ onMounted(() => loadLogs())
 
 async function loadLogs() {
   await auditStore.fetchLogs({
-    search: searchQuery.value || undefined, // Although fetchLogs interface might need update if it supports search, assuming it handles extra params or ignoring if not supported, but UsersView has search. 
-    // Wait, let's check if fetchLogs supports search. The original code didn't pass search. 
+    search: searchQuery.value || undefined, // Although fetchLogs interface might need update if it supports search, assuming it handles extra params or ignoring if not supported, but UsersView has search.
+    // Wait, let's check if fetchLogs supports search. The original code didn't pass search.
     // The original code:
     // await auditStore.fetchLogs({
     //   action: actionFilter.value === 'all' ? undefined : actionFilter.value,
@@ -67,12 +67,12 @@ async function loadLogs() {
     // The Input v-model="searchQuery" was present in the original template but only had @keyup.enter="loadLogs()".
     // I should probably include it in the params if the backend/store supports it, or at least keep the structure consistent.
     // If the store doesn't support it yet, passing it might be ignored or cause issues if strict.
-    // However, the prompt says "Use users design", which implies full reactivity. 
+    // However, the prompt says "Use users design", which implies full reactivity.
     // I will assume for now I should pass it if I can, or just keep it as is but reactive.
     // Actually, looking at original code: `v-model="searchQuery"` was used.
     // I will add `search: searchQuery.value || undefined` to be safe, assuming the store/API can handle it or I might need to check the store definition.
     // But since I cannot check store definition easily without reading another file, I'll stick to what was likely intended or safe.
-    // Wait, the original loadLogs did NOT use searchQuery. 
+    // Wait, the original loadLogs did NOT use searchQuery.
     // `const searchQuery = ref('')` was defined but not used in `loadLogs`.
     // It seems the search input was there but maybe not fully hooked up or I missed it.
     // Ah, `loadLogs` in original:
@@ -82,7 +82,7 @@ async function loadLogs() {
     //   page: tablePagination.value.pageIndex + 1,
     //   limit: tablePagination.value.pageSize,
     // })
-    // It seems `searchQuery` was NOT passed. I should probably check if I should pass it. 
+    // It seems `searchQuery` was NOT passed. I should probably check if I should pass it.
     // But the user asked to "unify logic using users design". Users design uses search.
     // I will pass it. If it breaks, I might need to fix the store.
     // Actually, looking at the template, there is an input for search.
@@ -411,14 +411,11 @@ const columns: ColumnDef<AuditLog>[] = [
       <DataTable
         :columns="columns"
         :data="auditStore.logs"
+        :pagination="tablePagination"
         @update:pagination="tablePagination = $event"
       >
         <template #toolbar-left>
-          <Input
-            v-model="searchQuery"
-            placeholder="Search logs..."
-            class="min-w-[200px] w-[260px]"
-          >
+          <Input v-model="searchQuery" placeholder="Search logs..." class="min-w-[200px] w-[260px]">
             <template #trailing>
               <button
                 v-if="searchQuery"

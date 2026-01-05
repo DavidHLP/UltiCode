@@ -382,6 +382,7 @@ const columns: ColumnDef<User>[] = [
       <DataTable
         :columns="columns"
         :data="usersStore.users"
+        :pagination="tablePagination"
         @update:pagination="tablePagination = $event"
       >
         <template #toolbar-left>

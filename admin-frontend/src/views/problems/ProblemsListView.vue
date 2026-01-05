@@ -3,6 +3,7 @@ import { ref, onMounted, computed, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
+import { toast } from 'vue-sonner'
 import {
   IconCheck,
   IconCircleCheckFilled,
@@ -112,18 +113,20 @@ function editProblem(id: string) {
 async function publishProblem(id: string) {
   try {
     await problemsStore.publishProblem(id)
+    toast.success('Problem published successfully')
     await loadProblems()
   } catch {
-    alert('Failed to publish problem')
+    toast.error('Failed to publish problem')
   }
 }
 
 async function unpublishProblem(id: string) {
   try {
     await problemsStore.unpublishProblem(id)
+    toast.success('Problem unpublished successfully')
     await loadProblems()
   } catch {
-    alert('Failed to unpublish problem')
+    toast.error('Failed to unpublish problem')
   }
 }
 

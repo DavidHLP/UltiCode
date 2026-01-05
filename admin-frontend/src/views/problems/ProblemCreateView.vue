@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import { toast } from 'vue-sonner'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 import { Button } from '@/components/ui/button'
@@ -49,9 +50,10 @@ async function submit() {
       ...formData.value,
       examples: [],
     })
+    toast.success('Problem created successfully')
     router.push({ name: 'problem-detail', params: { id: problem.id } })
   } catch {
-    alert('Failed to create problem')
+    toast.error('Failed to create problem')
   } finally {
     loading.value = false
   }

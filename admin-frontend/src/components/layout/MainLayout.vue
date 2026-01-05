@@ -4,6 +4,7 @@ import { computed } from 'vue'
 import AppSidebar from './AppSidebar.vue'
 import SiteHeader from './SiteHeader.vue'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
+import { Toaster } from '@/components/ui/sonner'
 
 const route = useRoute()
 
@@ -22,5 +23,6 @@ const pageTitle = computed(() => {
         <RouterView />
       </main>
     </SidebarInset>
+    <Toaster />
   </SidebarProvider>
 </template>

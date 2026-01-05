@@ -2,6 +2,7 @@
 import { ref, onMounted, computed, h, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
+import { toast } from 'vue-sonner'
 import {
   IconBan,
   IconCheck,
@@ -36,6 +37,15 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
+import { Textarea } from '@/components/ui/textarea'
 import { useUsersStore } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/admin/auth'
 import type { User } from '@/api/admin/users'
@@ -57,6 +67,10 @@ const selectedUserId = ref<string | null>(null)
 const editDialogOpen = ref(false)
 const createDialogOpen = ref(false)
 const detailDrawerOpen = ref(false)
+
+const banDialogOpen = ref(false)
+const banReason = ref('')
+const userToBanId = ref<string | null>(null)
 
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
@@ -117,24 +131,32 @@ function editUser(id: string) {
   editDialogOpen.value = true
 }
 
-async function banUser(id: string) {
-  const reason = prompt('Enter ban reason:')
-  if (!reason) return
+function startBanUser(id: string) {
+  userToBanId.value = id
+  banReason.value = ''
+  banDialogOpen.value = true
+}
+
+async function confirmBan() {
+  if (!userToBanId.value || !banReason.value) return
 
   try {
-    await usersStore.banUser(id, reason)
+    await usersStore.banUser(userToBanId.value, banReason.value)
+    toast.success('User has been banned')
+    banDialogOpen.value = false
     await loadUsers()
   } catch {
-    alert('Failed to ban user')
+    toast.error('Failed to ban user')
   }
 }
 
 async function unbanUser(id: string) {
   try {
     await usersStore.unbanUser(id)
+    toast.success('User has been unbanned')
     await loadUsers()
   } catch {
-    alert('Failed to unban user')
+    toast.error('Failed to unban user')
   }
 }
 
@@ -339,7 +361,7 @@ const columns: ColumnDef<User>[] = [
                         )
                       : h(
                           DropdownMenuItem,
-                          { onClick: () => banUser(user.id) },
+                          { onClick: () => startBanUser(user.id) },
                           {
                             default: () =>
                               h('div', { class: 'flex items-center gap-2 text-destructive' }, [
@@ -464,5 +486,26 @@ const columns: ColumnDef<User>[] = [
       :user-id="selectedUserId"
       @success="loadUsers"
     />
+
+    <Dialog v-model:open="banDialogOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Ban User</DialogTitle>
+          <DialogDescription> Please provide a reason for banning this user. </DialogDescription>
+        </DialogHeader>
+        <div class="grid gap-4 py-4">
+          <div class="grid gap-2">
+            <Label for="reason">Reason</Label>
+            <Textarea id="reason" v-model="banReason" placeholder="Violation of terms..." />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="banDialogOpen = false">Cancel</Button>
+          <Button variant="destructive" @click="confirmBan" :disabled="!banReason">
+            Confirm Ban
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </Tabs>
 </template>

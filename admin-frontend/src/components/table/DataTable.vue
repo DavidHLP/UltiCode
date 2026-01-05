@@ -43,6 +43,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty'
 import {
   Table,
   TableBody,
@@ -213,22 +214,20 @@ watch(
               <TableCell :col-span="columns.length" class="h-[400px] text-center">
                 <slot name="empty">
                   <div class="flex flex-col items-center justify-center gap-3">
-                    <div
-                      class="bg-muted/50 flex h-20 w-20 items-center justify-center rounded-full"
-                    >
-                      <IconSearchOff class="text-muted-foreground size-10" />
-                    </div>
-                    <div class="max-w-[300px] space-y-1">
-                      <p class="text-lg font-semibold tracking-tight">
-                        {{ emptyTitle || 'No results found' }}
-                      </p>
-                      <p class="text-muted-foreground text-sm">
-                        {{
-                          emptyDescription ||
-                          "We couldn't find what you're looking for. Try adjusting your filters or search query."
-                        }}
-                      </p>
-                    </div>
+                    <Empty>
+                      <EmptyMedia variant="icon" class="mx-auto">
+                        <IconSearchOff />
+                      </EmptyMedia>
+                      <EmptyHeader>
+                        <EmptyTitle>{{ emptyTitle || 'No results found' }}</EmptyTitle>
+                        <EmptyDescription>
+                          {{
+                            emptyDescription ||
+                            "We couldn't find what you're looking for. Try adjusting your filters or search query."
+                          }}
+                        </EmptyDescription>
+                      </EmptyHeader>
+                    </Empty>
                   </div>
                 </slot>
               </TableCell>

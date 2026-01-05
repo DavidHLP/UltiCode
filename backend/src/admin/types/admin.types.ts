@@ -9,7 +9,7 @@ export interface AuditLogData {
   performerId: string;
   action: string;
   entityType: string;
-  entityId: string;
+  entityId?: string;
   oldValues?: unknown;
   newValues?: unknown;
   userId?: string;

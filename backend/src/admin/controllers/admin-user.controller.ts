@@ -27,8 +27,11 @@ import {
   BanUserDto,
   GrantPermissionDto,
   UserQueryDto,
+  BulkActionDto,
+  ResetPasswordDto,
 } from '../dto/user-management.dto';
 import { User } from '../../user/user.entity';
+import * as bcrypt from 'bcrypt';
 
 @Controller('admin/users')
 @UseGuards(AuthGuard, PermissionsGuard, RolesGuard)
@@ -108,9 +111,13 @@ export class AdminUserController {
     // Get user permissions
     const permissions = await this.permissionService.getUserPermissions(id);
 
+    // Get user stats
+    const stats = await this.userService.getUserStats(id);
+
     return {
       ...user,
       permissions,
+      stats,
     };
   }
 
@@ -312,5 +319,121 @@ export class AdminUserController {
     });
 
     return { message: 'Permission revoked successfully' };
+  }
+
+  @Post('bulk-ban')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.USER,
+  })
+  async bulkBan(@Body() bulkDto: BulkActionDto, @CurrentAdmin() admin: User) {
+    const results = await Promise.all(
+      bulkDto.ids.map(async (id) => {
+        try {
+          await this.userService.update(id, {
+            is_banned: true,
+            banned_reason: bulkDto.reason,
+          });
+          return { id, success: true };
+        } catch (error) {
+          return { id, success: false, error: (error as Error).message };
+        }
+      }),
+    );
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'BULK_BAN_USERS',
+      entityType: 'USER',
+      newValues: { ids: bulkDto.ids, reason: bulkDto.reason },
+    });
+
+    return { results };
+  }
+
+  @Post('bulk-unban')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.USER,
+  })
+  async bulkUnban(@Body('ids') ids: string[], @CurrentAdmin() admin: User) {
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          await this.userService.update(id, {
+            is_banned: false,
+            banned_until: undefined,
+            banned_reason: undefined,
+          });
+          return { id, success: true };
+        } catch (error) {
+          return { id, success: false, error: (error as Error).message };
+        }
+      }),
+    );
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'BULK_UNBAN_USERS',
+      entityType: 'USER',
+      newValues: { ids },
+    });
+
+    return { results };
+  }
+
+  @Delete('bulk-delete')
+  @RequireRoles(UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.DELETE,
+    resource: PermissionResource.USER,
+  })
+  async bulkDelete(@Body('ids') ids: string[], @CurrentAdmin() admin: User) {
+    const results = await Promise.all(
+      ids.map(async (id) => {
+        try {
+          await this.userService.remove(id);
+          return { id, success: true };
+        } catch (error) {
+          return { id, success: false, error: (error as Error).message };
+        }
+      }),
+    );
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'BULK_DELETE_USERS',
+      entityType: 'USER',
+      newValues: { ids },
+    });
+
+    return { results };
+  }
+
+  @Post(':id/reset-password')
+  @RequireRoles(UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.USER,
+  })
+  async resetPassword(
+    @Param('id') id: string,
+    @Body() resetDto: ResetPasswordDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    const hashedPassword = await bcrypt.hash(resetDto.password, 10);
+    await this.userService.update(id, { password: hashedPassword });
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'RESET_USER_PASSWORD',
+      entityType: 'USER',
+      entityId: id,
+      userId: id,
+    });
+
+    return { message: 'Password reset successfully' };
   }
 }

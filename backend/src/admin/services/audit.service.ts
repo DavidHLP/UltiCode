@@ -17,7 +17,7 @@ export class AuditService {
         user_id: data.userId,
         action: data.action,
         entity_type: data.entityType,
-        entity_id: data.entityId,
+        entity_id: data.entityId || 'N/A',
         old_values: data.oldValues ?? Prisma.JsonNull,
         new_values: data.newValues ?? Prisma.JsonNull,
         ip_address: data.ipAddress,

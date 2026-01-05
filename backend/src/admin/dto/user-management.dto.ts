@@ -135,6 +135,25 @@ export class GrantPermissionDto {
   expires_at?: string;
 }
 
+export class BulkActionDto {
+  @IsString({ each: true })
+  ids: string[];
+
+  @IsString()
+  @IsOptional()
+  reason?: string;
+
+  @IsEnum(UserRole)
+  @IsOptional()
+  role?: UserRole;
+}
+
+export class ResetPasswordDto {
+  @IsString()
+  @MaxLength(255)
+  password: string;
+}
+
 export class UserQueryDto {
   @IsString()
   @MaxLength(100)

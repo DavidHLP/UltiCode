@@ -16,6 +16,7 @@ import {
   IconUsers,
   IconHistory,
   IconMessageCircle,
+  IconTrophy,
 } from '@tabler/icons-vue'
 
 import NavDocuments from './NavDocuments.vue'
@@ -69,6 +70,15 @@ const navMain = computed(() => {
       title: 'Solutions',
       url: '/solutions',
       icon: IconFileDescription,
+    })
+  }
+
+  // Add Contests if user has permission
+  if (authStore.hasPermission('READ', 'CONTEST')) {
+    items.push({
+      title: 'Contests',
+      url: '/contests',
+      icon: IconTrophy,
     })
   }
 

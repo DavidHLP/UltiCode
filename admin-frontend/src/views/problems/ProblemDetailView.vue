@@ -200,39 +200,6 @@ const acceptanceRate = computed(() => {
 
       <!-- Problem Content -->
       <template v-else>
-        <!-- Stats Bar -->
-        <div class="grid grid-cols-3 gap-3 mb-6">
-          <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-muted/20">
-            <ListChecks :size="16" class="text-muted-foreground shrink-0" />
-            <div class="min-w-0">
-              <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Submissions</p>
-              <p class="text-sm font-semibold tabular-nums">
-                {{ problem.submission_count?.toLocaleString() ?? 0 }}
-              </p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-muted/20">
-            <Trophy :size="16" class="text-muted-foreground shrink-0" />
-            <div class="min-w-0">
-              <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Solutions</p>
-              <p class="text-sm font-semibold tabular-nums">
-                {{ problem.solution_count?.toLocaleString() ?? 0 }}
-              </p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-muted/20">
-            <BarChart3 :size="16" class="text-muted-foreground shrink-0" />
-            <div class="min-w-0">
-              <p class="text-[10px] text-muted-foreground uppercase tracking-wide">
-                Acceptance Rate
-              </p>
-              <p class="text-sm font-semibold tabular-nums">{{ acceptanceRate }}%</p>
-            </div>
-          </div>
-        </div>
-
-        <Separator class="mb-6" />
-
         <!-- Content based on current view -->
         <DescriptionDisplay v-if="currentView === 'description'" :problem="problem" />
         <CodeDisplay v-else-if="currentView === 'code'" :languages="problem.languages" />

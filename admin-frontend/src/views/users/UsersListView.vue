@@ -135,11 +135,12 @@ function startBanUser(user: User) {
   banDialogOpen.value = true
 }
 
-  async function unbanUser(id: string) {
-    try {
-      await usersStore.unbanUser(id)
-      await loadUsers()
-    } catch {    toast.error('Failed to unban user')
+async function unbanUser(id: string) {
+  try {
+    await usersStore.unbanUser(id)
+    await loadUsers()
+  } catch {
+    toast.error('Failed to unban user')
   }
 }
 

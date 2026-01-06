@@ -38,12 +38,30 @@ const router = createRouter({
           component: () => import('@/views/problems/ProblemsListView.vue'),
           meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
         },
+        // Problem detail views (with tabs)
         {
           path: 'problems/:id',
-          name: 'problem-detail',
+          redirect: (to) => ({ name: 'problem-view-description', params: { id: to.params.id } }),
+        },
+        {
+          path: 'problems/:id/description',
+          name: 'problem-view-description',
           component: () => import('@/views/problems/ProblemDetailView.vue'),
           meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
         },
+        {
+          path: 'problems/:id/code',
+          name: 'problem-view-code',
+          component: () => import('@/views/problems/ProblemDetailView.vue'),
+          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+        },
+        {
+          path: 'problems/:id/cases',
+          name: 'problem-view-cases',
+          component: () => import('@/views/problems/ProblemDetailView.vue'),
+          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+        },
+        // Problem edit views (split into 3 views)
         {
           path: 'problems/create',
           name: 'problem-create',
@@ -52,9 +70,31 @@ const router = createRouter({
         },
         {
           path: 'problems/:id/edit',
-          name: 'problem-edit',
-          component: () => import('@/views/problems/ProblemEditView.vue'),
+          redirect: (to) => ({ name: 'problem-edit-description', params: { id: to.params.id } }),
+        },
+        {
+          path: 'problems/:id/edit/description',
+          name: 'problem-edit-description',
+          component: () => import('@/views/problems/edit/EditDescriptionView.vue'),
           meta: { permission: { action: 'UPDATE', resource: 'PROBLEM' } },
+        },
+        {
+          path: 'problems/:id/edit/code',
+          name: 'problem-edit-code',
+          component: () => import('@/views/problems/edit/EditCodeView.vue'),
+          meta: { permission: { action: 'UPDATE', resource: 'PROBLEM' } },
+        },
+        {
+          path: 'problems/:id/edit/cases',
+          name: 'problem-edit-cases',
+          component: () => import('@/views/problems/edit/EditCasesView.vue'),
+          meta: { permission: { action: 'UPDATE', resource: 'PROBLEM' } },
+        },
+        // Legacy route name for backward compatibility (aliases to redirect)
+        {
+          path: 'problems/:id/edit/legacy',
+          name: 'problem-edit',
+          redirect: (to) => ({ name: 'problem-edit-description', params: { id: to.params.id } }),
         },
       ],
     },

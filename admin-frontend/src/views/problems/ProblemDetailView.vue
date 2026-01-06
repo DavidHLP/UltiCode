@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   ArrowLeft,
   Edit,
@@ -15,16 +16,13 @@ import {
   ListChecks,
   Trophy,
   BarChart3,
-  MoreVertical,
+  Brackets,
+  Beaker,
 } from 'lucide-vue-next'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import { toast } from 'vue-sonner'
-import OverviewTab from './tabs/OverviewTab.vue'
+import DescriptionDisplay from './components/DescriptionDisplay.vue'
+import CodeDisplay from './components/CodeDisplay.vue'
+import CasesDisplay from './components/CasesDisplay.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -35,6 +33,14 @@ const isInitialLoad = ref(true)
 
 const problemId = computed(() => route.params.id as string)
 const problem = computed(() => problemsStore.currentProblem)
+
+// Determine active tab from route or default to description
+const activeTab = computed(() => {
+  const path = route.path
+  if (path.endsWith('/code')) return 'code'
+  if (path.endsWith('/cases')) return 'cases'
+  return 'description'
+})
 
 onMounted(async () => {
   if (problemId.value) {
@@ -63,13 +69,24 @@ async function togglePublish() {
 }
 
 function editProblem() {
-  router.push({ name: 'problem-edit', params: { id: problemId.value } })
+  // Navigate to the edit view for the current tab
+  router.push({ name: 'problem-edit-description', params: { id: problemId.value } })
 }
 
 const acceptanceRate = computed(() => {
   if (!problem.value?.submission_count || !problem.value?.solution_count) return '0.0'
   return ((problem.value.solution_count / problem.value.submission_count) * 100).toFixed(1)
 })
+
+function setTab(tab: string | number) {
+  const tabStr = String(tab)
+  const routes: Record<string, string> = {
+    description: 'problem-view-description',
+    code: 'problem-view-code',
+    cases: 'problem-view-cases',
+  }
+  router.push({ name: routes[tabStr] || routes.description, params: { id: problemId.value } })
+}
 </script>
 
 <template>
@@ -209,8 +226,38 @@ const acceptanceRate = computed(() => {
 
         <Separator class="mb-6" />
 
-        <!-- Overview -->
-        <OverviewTab :problem="problem" />
+        <!-- Tabs -->
+        <Tabs :model-value="activeTab" @update:model-value="setTab">
+          <TabsList class="w-full sm:w-auto sm:inline-flex">
+            <TabsTrigger value="description" class="gap-1.5">
+              <FileText :size="14" />
+              Description
+            </TabsTrigger>
+            <TabsTrigger value="code" class="gap-1.5">
+              <Brackets :size="14" />
+              Code
+            </TabsTrigger>
+            <TabsTrigger value="cases" class="gap-1.5">
+              <Beaker :size="14" />
+              Test Cases
+            </TabsTrigger>
+          </TabsList>
+
+          <!-- Description Tab -->
+          <TabsContent value="description" class="mt-6">
+            <DescriptionDisplay :problem="problem" />
+          </TabsContent>
+
+          <!-- Code Tab -->
+          <TabsContent value="code" class="mt-6">
+            <CodeDisplay :languages="problem.languages" />
+          </TabsContent>
+
+          <!-- Test Cases Tab -->
+          <TabsContent value="cases" class="mt-6">
+            <CasesDisplay :problem="problem" />
+          </TabsContent>
+        </Tabs>
       </template>
     </main>
   </div>

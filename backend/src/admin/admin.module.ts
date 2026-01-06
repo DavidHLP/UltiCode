@@ -11,10 +11,12 @@ import { AdminProblemController } from './controllers/admin-problem.controller';
 import { AdminSolutionController } from './controllers/admin-solution.controller';
 import { AdminContestController } from './controllers/admin-contest.controller';
 import { AdminForumController } from './controllers/admin-forum.controller';
+import { AdminCommentController } from './controllers/admin-comment.controller';
 import { AdminSettingsController } from './controllers/admin-settings.controller';
 import { AdminBulkController } from './controllers/admin-bulk.controller';
 import { PrismaService } from '../prisma.service';
 import { UserModule } from '../user/user.module';
+import { AdminCommentService } from './services/admin-comment.service';
 
 @Global()
 @Module({
@@ -27,6 +29,7 @@ import { UserModule } from '../user/user.module';
     AdminSolutionController,
     AdminContestController,
     AdminForumController,
+    AdminCommentController,
     AdminSettingsController,
     AdminBulkController,
   ],
@@ -34,6 +37,7 @@ import { UserModule } from '../user/user.module';
     PermissionService,
     AuditService,
     AdminDashboardService,
+    AdminCommentService,
     PermissionsGuard,
     RolesGuard,
     PrismaService,

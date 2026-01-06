@@ -15,6 +15,7 @@ import {
   IconSettings,
   IconUsers,
   IconHistory,
+  IconMessageCircle,
 } from '@tabler/icons-vue'
 
 import NavDocuments from './NavDocuments.vue'
@@ -68,6 +69,18 @@ const navMain = computed(() => {
       title: 'Solutions',
       url: '/solutions',
       icon: IconFileDescription,
+    })
+  }
+
+  // Add Comments if user has permission
+  if (
+    authStore.hasPermission('MODERATE', 'FORUM_COMMENT') ||
+    authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT')
+  ) {
+    items.push({
+      title: 'Comments',
+      url: '/comments',
+      icon: IconMessageCircle,
     })
   }
 

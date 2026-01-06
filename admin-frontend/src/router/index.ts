@@ -119,6 +119,18 @@ const router = createRouter({
           component: () => import('@/views/solutions/SolutionDetailView.vue'),
           meta: { permission: { action: 'READ', resource: 'SOLUTION' } },
         },
+        // Comments
+        {
+          path: 'comments',
+          name: 'comments',
+          component: () => import('@/views/comments/CommentsListView.vue'),
+          meta: {
+            permission: [
+              { action: 'MODERATE', resource: 'FORUM_COMMENT' },
+              { action: 'MODERATE', resource: 'SOLUTION_COMMENT' },
+            ],
+          },
+        },
       ],
     },
   ],
@@ -145,8 +157,16 @@ router.beforeEach(async (to, from, next) => {
 
   // Check permissions if route requires them
   if (to.meta.permission && authStore.isAuthenticated) {
-    const { action, resource } = to.meta.permission as { action: string; resource: string }
-    if (!authStore.hasPermission(action, resource)) {
+    const permissions = Array.isArray(to.meta.permission)
+      ? to.meta.permission
+      : [to.meta.permission]
+
+    // Check if user has ANY of the required permissions
+    const hasAnyPermission = permissions.some((p: { action: string; resource: string }) =>
+      authStore.hasPermission(p.action, p.resource)
+    )
+
+    if (!hasAnyPermission) {
       // Redirect to dashboard if insufficient permissions
       return next({ name: 'dashboard' })
     }

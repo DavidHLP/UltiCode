@@ -1,20 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
-import { useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
   IconCheck,
   IconDotsVertical,
-  IconEyeOff,
-  IconFile,
   IconFlag,
   IconRefresh,
   IconTrash,
   IconX,
   IconUser,
-  IconCode,
+  IconMessage,
+  IconFileText,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
@@ -35,43 +33,37 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { useSolutionsStore } from '@/stores/admin/solutions'
+import { useCommentsStore } from '@/stores/admin/comments'
 import { useAuthStore } from '@/stores/admin/auth'
-import type { Solution } from '@/api/admin/solutions'
+import type { Comment, CommentType } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'
-import SolutionDeleteDialog from './SolutionDeleteDialog.vue'
-import SolutionFlagDialog from './SolutionFlagDialog.vue'
+import CommentDeleteDialog from './CommentDeleteDialog.vue'
+import CommentFlagDialog from './CommentFlagDialog.vue'
 
-const router = useRouter()
-const solutionsStore = useSolutionsStore()
+const commentsStore = useCommentsStore()
 const authStore = useAuthStore()
 
 const searchQuery = ref('')
+const typeFilter = ref<CommentType | 'all'>('all')
 const flaggedFilter = ref<string>('all')
-const publishedFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
 
-const selectedSolutionId = ref<string | null>(null)
-const selectedSolutionTitle = ref<string | null>(null)
+const selectedCommentId = ref<string | null>(null)
+const selectedCommentType = ref<CommentType | null>(null)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
 
-const canUpdateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION'))
-const canDeleteSolution = computed(() => authStore.hasPermission('DELETE', 'SOLUTION'))
+const canModerateForum = computed(() => authStore.hasPermission('MODERATE', 'FORUM_COMMENT'))
+const canModerateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT'))
 
-onMounted(() => loadSolutions())
+onMounted(() => loadComments())
 
-async function loadSolutions() {
-  await solutionsStore.fetchSolutions({
+async function loadComments() {
+  await commentsStore.fetchComments({
     search: searchQuery.value || undefined,
+    type: typeFilter.value === 'all' ? undefined : typeFilter.value,
     is_flagged: flaggedFilter.value === 'all' ? undefined : flaggedFilter.value === 'flagged',
-    is_published:
-      publishedFilter.value === 'all'
-        ? undefined
-        : publishedFilter.value === 'published'
-          ? true
-          : false,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
   })
@@ -82,49 +74,50 @@ watchDebounced(
   searchQuery,
   () => {
     tablePagination.value.pageIndex = 0
-    loadSolutions()
+    loadComments()
   },
   { debounce: 500 },
 )
 
-watch([flaggedFilter, publishedFilter], () => {
+watch([typeFilter, flaggedFilter], () => {
   tablePagination.value.pageIndex = 0
-  loadSolutions()
+  loadComments()
 })
 
 watch(
   () => tablePagination.value,
-  () => loadSolutions(),
+  () => loadComments(),
   { deep: true },
 )
 
-function viewSolution(id: string) {
-  router.push({ name: 'solution-view-description', params: { id } })
-}
-
-function confirmDelete(solution: Solution) {
-  selectedSolutionId.value = solution.id
-  selectedSolutionTitle.value = solution.title
+function confirmDelete(comment: Comment) {
+  selectedCommentId.value = comment.id
+  selectedCommentType.value = comment.type
   deleteDialogOpen.value = true
 }
 
-function openFlagDialog(solution: Solution) {
-  selectedSolutionId.value = solution.id
-  selectedSolutionTitle.value = solution.title
+function openFlagDialog(comment: Comment) {
+  selectedCommentId.value = comment.id
+  selectedCommentType.value = comment.type
   flagDialogOpen.value = true
 }
 
-async function unflagSolution(id: string) {
+async function unflagComment(comment: Comment) {
   try {
-    await solutionsStore.unflagSolution(id)
-    toast.success('Solution unflagged successfully')
-    // We update local state in store, so no need to reload unless desired
+    await commentsStore.unflagComment(comment.id, comment.type)
+    toast.success('Comment unflagged successfully')
   } catch {
-    toast.error('Failed to unflag solution')
+    toast.error('Failed to unflag comment')
   }
 }
 
-const columns: ColumnDef<Solution>[] = [
+function canModerate(comment: Comment) {
+  if (comment.type === 'forum') return canModerateForum.value
+  if (comment.type === 'solution') return canModerateSolution.value
+  return false
+}
+
+const columns: ColumnDef<Comment>[] = [
   {
     id: 'select',
     header: ({ table }) =>
@@ -146,23 +139,21 @@ const columns: ColumnDef<Solution>[] = [
     enableHiding: false,
   },
   {
-    accessorKey: 'id',
-    header: 'ID',
+    accessorKey: 'content',
+    header: 'Comment',
     cell: ({ row }) => {
-      const id = row.getValue('id') as string
-      return h('span', { class: 'text-muted-foreground text-xs font-mono' }, id.slice(0, 8))
-    },
-  },
-  {
-    accessorKey: 'title',
-    header: 'Solution',
-    cell: ({ row }) => {
-      const solution = row.original
-      return h('div', { class: 'flex flex-col' }, [
-        h('span', { class: 'font-medium text-sm' }, solution.title),
+      const comment = row.original
+      const truncated = comment.content.length > 100
+        ? comment.content.slice(0, 100) + '...'
+        : comment.content
+
+      return h('div', { class: 'flex flex-col gap-1' }, [
+        h('span', { class: 'font-medium text-sm' }, truncated),
         h('div', { class: 'flex items-center gap-1 text-xs text-muted-foreground' }, [
-          h(IconCode, { class: 'h-3 w-3' }),
-          h('span', {}, solution.problem?.title || 'Unknown Problem'),
+          comment.type === 'forum'
+            ? h(IconMessage, { class: 'h-3 w-3' })
+            : h(IconFileText, { class: 'h-3 w-3' }),
+          h('span', {}, comment.parentTitle || 'Unknown Parent'),
         ]),
       ])
     },
@@ -179,11 +170,20 @@ const columns: ColumnDef<Solution>[] = [
     },
   },
   {
+    accessorKey: 'type',
+    header: 'Type',
+    cell: ({ row }) => {
+      const type = row.getValue('type') as CommentType
+      return h(Badge, { variant: 'outline' }, () =>
+        type === 'forum' ? 'Forum' : 'Solution'
+      )
+    },
+  },
+  {
     accessorKey: 'is_flagged',
     header: 'Status',
     cell: ({ row }) => {
       const isFlagged = row.getValue('is_flagged') as boolean
-      const isPublished = row.original.is_published
       const isDeleted = row.original.is_deleted
 
       if (isDeleted) {
@@ -200,31 +200,14 @@ const columns: ColumnDef<Solution>[] = [
         ])
       }
 
-      return h(Badge, { variant: isPublished ? 'default' : 'secondary' }, () => [
-        isPublished
-          ? h(IconCheck, { class: 'mr-1 h-3 w-3' })
-          : h(IconEyeOff, { class: 'mr-1 h-3 w-3' }),
-        isPublished ? 'Published' : 'Unpublished',
-      ])
-    },
-  },
-  {
-    accessorKey: 'views',
-    header: 'Views',
-    cell: ({ row }) => {
-      const views = row.getValue('views') as number
-      return h(
-        'span',
-        { class: 'text-muted-foreground text-sm tabular-nums' },
-        views.toLocaleString(),
-      )
+      return h(Badge, { variant: 'secondary' }, () => 'Active')
     },
   },
   {
     accessorKey: 'created_at',
     header: 'Created',
     cell: ({ row }) => {
-      const date = new Date(row.getValue('created_at') as Date)
+      const date = new Date(row.getValue('created_at') as string)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
     },
   },
@@ -232,7 +215,9 @@ const columns: ColumnDef<Solution>[] = [
     id: 'actions',
     header: 'Actions',
     cell: ({ row }) => {
-      const solution = row.original
+      const comment = row.original
+      if (!canModerate(comment)) return null
+
       return h(
         DropdownMenu,
         {},
@@ -260,56 +245,41 @@ const columns: ColumnDef<Solution>[] = [
               { align: 'end' },
               {
                 default: () => [
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => viewSolution(solution.id) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconFile, { class: 'h-4 w-4' }),
-                          'View Details',
-                        ]),
-                    },
-                  ),
-                  canUpdateSolution.value
-                    ? solution.is_flagged
-                      ? h(
-                          DropdownMenuItem,
-                          { onClick: () => unflagSolution(solution.id) },
-                          {
-                            default: () =>
-                              h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
-                                h(IconCheck, { class: 'h-4 w-4' }),
-                                'Unflag',
-                              ]),
-                          },
-                        )
-                      : h(
-                          DropdownMenuItem,
-                          { onClick: () => openFlagDialog(solution) },
-                          {
-                            default: () =>
-                              h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
-                                h(IconFlag, { class: 'h-4 w-4' }),
-                                'Flag',
-                              ]),
-                          },
-                        )
-                    : null,
-                  h(DropdownMenuSeparator, {}),
-                  canDeleteSolution.value
+                  comment.is_flagged
                     ? h(
                         DropdownMenuItem,
-                        { onClick: () => confirmDelete(solution) },
+                        { onClick: () => unflagComment(comment) },
                         {
                           default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                              h(IconTrash, { class: 'h-4 w-4' }),
-                              'Delete',
+                            h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
+                              h(IconCheck, { class: 'h-4 w-4' }),
+                              'Unflag',
                             ]),
                         },
                       )
-                    : null,
+                    : h(
+                        DropdownMenuItem,
+                        { onClick: () => openFlagDialog(comment) },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
+                              h(IconFlag, { class: 'h-4 w-4' }),
+                              'Flag',
+                            ]),
+                        },
+                      ),
+                  h(DropdownMenuSeparator, {}),
+                  h(
+                    DropdownMenuItem,
+                    { onClick: () => confirmDelete(comment) },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2 text-destructive' }, [
+                          h(IconTrash, { class: 'h-4 w-4' }),
+                          'Delete',
+                        ]),
+                    },
+                  ),
                 ],
               },
             ),
@@ -325,17 +295,17 @@ const columns: ColumnDef<Solution>[] = [
   <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
     <DataTable
       :columns="columns"
-      :data="solutionsStore.solutions"
+      :data="commentsStore.comments"
       :pagination="tablePagination"
-      :row-count="solutionsStore.total"
-      :loading="solutionsStore.loading"
+      :row-count="commentsStore.total"
+      :loading="commentsStore.loading"
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Input
             v-model="searchQuery"
-            placeholder="Search solutions..."
+            placeholder="Search comments..."
             class="h-8 min-w-[150px] w-full lg:w-[250px]"
           >
             <template #trailing>
@@ -350,6 +320,17 @@ const columns: ColumnDef<Solution>[] = [
           </Input>
 
           <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+            <Select v-model="typeFilter">
+              <SelectTrigger class="h-8 w-[130px]">
+                <SelectValue placeholder="Type" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                <SelectItem value="forum">Forum</SelectItem>
+                <SelectItem value="solution">Solution</SelectItem>
+              </SelectContent>
+            </Select>
+
             <Select v-model="flaggedFilter">
               <SelectTrigger class="h-8 w-[130px]">
                 <SelectValue placeholder="Flag Status" />
@@ -361,27 +342,16 @@ const columns: ColumnDef<Solution>[] = [
               </SelectContent>
             </Select>
 
-            <Select v-model="publishedFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Visibility" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="unpublished">Unpublished</SelectItem>
-              </SelectContent>
-            </Select>
-
             <Button
               variant="ghost"
               size="icon"
               class="h-8 w-8"
-              @click="loadSolutions()"
+              @click="loadComments()"
               title="Refresh"
             >
               <IconRefresh
                 class="h-3.5 w-3.5"
-                :class="{ 'animate-spin': solutionsStore.loading }"
+                :class="{ 'animate-spin': commentsStore.loading }"
               />
             </Button>
           </div>
@@ -391,25 +361,25 @@ const columns: ColumnDef<Solution>[] = [
 
     <!-- Error state -->
     <div
-      v-if="solutionsStore.error"
+      v-if="commentsStore.error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ solutionsStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadSolutions()">Retry</Button>
+      <span class="text-destructive">{{ commentsStore.error }}</span>
+      <Button variant="outline" size="sm" @click="loadComments()">Retry</Button>
     </div>
   </div>
 
-  <SolutionDeleteDialog
+  <CommentDeleteDialog
     v-model:open="deleteDialogOpen"
-    :solution-id="selectedSolutionId"
-    :solution-title="selectedSolutionTitle"
-    @success="loadSolutions"
+    :comment-id="selectedCommentId"
+    :comment-type="selectedCommentType"
+    @success="loadComments"
   />
 
-  <SolutionFlagDialog
+  <CommentFlagDialog
     v-model:open="flagDialogOpen"
-    :solution-id="selectedSolutionId"
-    :solution-title="selectedSolutionTitle"
-    @success="loadSolutions"
+    :comment-id="selectedCommentId"
+    :comment-type="selectedCommentType"
+    @success="loadComments"
   />
 </template>

@@ -85,7 +85,7 @@ const solutionContent = computed(() => ({
         </div>
         <div class="p-4 space-y-4">
           <div class="space-y-4">
-             <div class="space-y-1">
+            <div class="space-y-1">
               <span class="text-xs text-muted-foreground flex items-center gap-1">
                 <IconUser class="h-3 w-3" /> Author
               </span>
@@ -99,29 +99,32 @@ const solutionContent = computed(() => ({
               <span class="text-xs text-muted-foreground flex items-center gap-1">
                 <IconHash class="h-3 w-3" /> Problem Difficulty
               </span>
-              <Badge variant="outline" :class="['capitalize px-2 py-0.5 border w-fit', difficultyClass]">
+              <Badge
+                variant="outline"
+                :class="['capitalize px-2 py-0.5 border w-fit', difficultyClass]"
+              >
                 {{ solution.problem?.difficulty.toLowerCase() }}
               </Badge>
             </div>
 
-             <div class="grid grid-cols-2 gap-4">
-                <div class="space-y-1">
-                  <span class="text-xs text-muted-foreground flex items-center gap-1">
-                    <IconEye class="h-3 w-3" /> Views
-                  </span>
-                  <p class="text-sm font-medium tabular-nums">
-                    {{ solution.views.toLocaleString() }}
-                  </p>
-                </div>
-                 <div class="space-y-1">
-                  <span class="text-xs text-muted-foreground flex items-center gap-1">
-                    <IconTag class="h-3 w-3" /> Language
-                  </span>
-                  <p class="text-sm font-medium">
-                    {{ solution.language }}
-                  </p>
-                </div>
-             </div>
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <span class="text-xs text-muted-foreground flex items-center gap-1">
+                  <IconEye class="h-3 w-3" /> Views
+                </span>
+                <p class="text-sm font-medium tabular-nums">
+                  {{ solution.views.toLocaleString() }}
+                </p>
+              </div>
+              <div class="space-y-1">
+                <span class="text-xs text-muted-foreground flex items-center gap-1">
+                  <IconTag class="h-3 w-3" /> Language
+                </span>
+                <p class="text-sm font-medium">
+                  {{ solution.language }}
+                </p>
+              </div>
+            </div>
 
             <Separator />
 
@@ -144,21 +147,27 @@ const solutionContent = computed(() => ({
               </div>
             </div>
 
-            <div v-if="solution.is_flagged" class="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-600 space-y-1">
-                <span class="text-xs font-semibold flex items-center gap-1">
-                  <IconFlag class="h-3 w-3" /> Flagged Reason
-                </span>
-                <p class="text-xs italic">"{{ solution.flagged_reason }}"</p>
-                <p class="text-[10px] opacity-70" v-if="solution.flagged_at">
-                  at {{ new Date(solution.flagged_at).toLocaleString() }}
-                </p>
+            <div
+              v-if="solution.is_flagged"
+              class="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-600 space-y-1"
+            >
+              <span class="text-xs font-semibold flex items-center gap-1">
+                <IconFlag class="h-3 w-3" /> Flagged Reason
+              </span>
+              <p class="text-xs italic">"{{ solution.flagged_reason }}"</p>
+              <p class="text-[10px] opacity-70" v-if="solution.flagged_at">
+                at {{ new Date(solution.flagged_at).toLocaleString() }}
+              </p>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Tags Card -->
-      <div v-if="solution.tags && solution.tags.length" class="rounded-xl border bg-card overflow-hidden shadow-sm">
+      <div
+        v-if="solution.tags && solution.tags.length"
+        class="rounded-xl border bg-card overflow-hidden shadow-sm"
+      >
         <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
           <IconTag class="h-4 w-4 text-muted-foreground" />
           <h3 class="font-semibold text-sm">Tags</h3>

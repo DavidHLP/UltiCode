@@ -13,6 +13,7 @@ import {
   IconInfoCircle,
   IconBrackets,
   IconBulb,
+  IconCheck,
 } from '@tabler/icons-vue'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
@@ -100,8 +101,8 @@ function updateForm(data?: ProblemData) {
     title: data.title || '',
     difficulty: (data.difficulty as Difficulty) || Difficulty.MEDIUM,
     status: (data.status as ProblemStatus) || ProblemStatus.TODO,
-    is_premium: !!data.is_premium,
-    is_published: !!data.is_published,
+    is_premium: data.is_premium,
+    is_published: data.is_published,
     summary: data.summary || '',
     content: data.content || '',
     examples: ensureExamples(data.examples),
@@ -220,9 +221,9 @@ defineExpose({
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
     <!-- Left Column: Main Content -->
-    <div class="lg:col-span-2 space-y-6">
+    <div class="lg:col-span-8 space-y-6">
       <!-- General Information -->
       <Card>
         <CardHeader>
@@ -373,13 +374,13 @@ defineExpose({
     </div>
 
     <!-- Right Column: Sidebar -->
-    <div class="space-y-6 lg:sticky lg:top-6 h-fit">
+    <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-6 h-fit">
       <!-- Actions Card -->
       <Card class="border-primary/10 shadow-sm">
-        <CardHeader class="pb-3">
-          <CardTitle>Publishing</CardTitle>
+        <CardHeader class="pb-3 border-b bg-muted/20">
+          <CardTitle class="text-base">Publishing</CardTitle>
         </CardHeader>
-        <CardContent class="space-y-6">
+        <CardContent class="pt-6 space-y-6">
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
               <Label class="text-xs text-muted-foreground uppercase tracking-wider">Status</Label>
@@ -412,31 +413,33 @@ defineExpose({
             </div>
           </div>
 
-          <Separator />
-
-          <div class="space-y-3">
-            <div
-              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+          <div class="space-y-4 pt-2">
+             <div
+              class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.is_premium = !formData.is_premium"
             >
-              <Label class="cursor-pointer">Premium Problem</Label>
+              <div class="space-y-0.5">
+                <Label class="text-base cursor-pointer">Premium</Label>
+                <p class="text-xs text-muted-foreground">Only for premium users</p>
+              </div>
               <Checkbox v-model:checked="formData.is_premium" />
             </div>
+            
             <div
-              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+              class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.is_published = !formData.is_published"
             >
-              <Label class="cursor-pointer">
-                {{ isEdit ? 'Published' : 'Publish immediately' }}
-              </Label>
+              <div class="space-y-0.5">
+                <Label class="text-base cursor-pointer">Published</Label>
+                <p class="text-xs text-muted-foreground">Visible to all users</p>
+              </div>
               <Checkbox v-model:checked="formData.is_published" />
             </div>
           </div>
 
-          <Separator />
-
-          <div class="flex flex-col gap-3">
+          <div class="flex flex-col gap-3 pt-2">
             <Button class="w-full" :disabled="loading" @click="submit">
+              <IconCheck v-if="!loading" class="h-4 w-4 mr-2" />
               {{ loading ? 'Saving...' : isEdit ? 'Update Problem' : 'Create Problem' }}
             </Button>
             <slot name="cancel" />
@@ -446,10 +449,10 @@ defineExpose({
 
       <!-- Taxonomy Card -->
       <Card>
-        <CardHeader class="pb-3">
-          <CardTitle>Taxonomy</CardTitle>
+        <CardHeader class="pb-3 border-b bg-muted/20">
+          <CardTitle class="text-base">Taxonomy</CardTitle>
         </CardHeader>
-        <CardContent class="space-y-6">
+        <CardContent class="pt-6 space-y-6">
           <!-- Languages -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">

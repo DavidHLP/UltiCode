@@ -27,7 +27,7 @@ async function handleSubmit(data: ProblemFormData) {
       })),
     })
     toast.success('Problem created successfully')
-    router.push({ name: 'problem-detail', params: { id: problem.id } })
+    router.push({ name: 'problem-view-description', params: { id: problem.id } })
   } catch (error) {
     console.error('Failed to create problem:', error)
     toast.error('Failed to create problem')

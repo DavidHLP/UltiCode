@@ -53,7 +53,7 @@ async function handleSubmit(data: DescriptionFormData) {
     }
 
     toast.success('Description updated successfully')
-    router.push({ name: 'problem-detail', params: { id: problemId.value } })
+    router.push({ name: 'problem-view-description', params: { id: problemId.value } })
   } catch (error) {
     console.error('Failed to update problem description:', error)
     toast.error('Failed to update description')
@@ -77,7 +77,7 @@ const formattedProblem = computed(() => {
 })
 
 function handleCancel() {
-  router.push({ name: 'problem-detail', params: { id: problemId.value } })
+  router.push({ name: 'problem-view-description', params: { id: problemId.value } })
 }
 </script>
 
@@ -90,7 +90,7 @@ function handleCancel() {
       </router-link>
       <span>/</span>
       <router-link
-        :to="{ name: 'problem-detail', params: { id: problemId } }"
+        :to="{ name: 'problem-view-description', params: { id: problemId } }"
         class="hover:text-foreground transition-colors"
       >
         {{ problemData?.title || 'Loading...' }}

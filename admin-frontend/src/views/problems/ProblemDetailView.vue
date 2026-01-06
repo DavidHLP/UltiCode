@@ -23,16 +23,11 @@ const problemId = computed(() => route.params.id as string)
 const problem = computed(() => problemsStore.currentProblem)
 
 // Determine current view from route
-const currentView = computed({
-  get: () => {
-    const path = route.path
-    if (path.endsWith('/code')) return 'code'
-    if (path.endsWith('/cases')) return 'cases'
-    return 'description'
-  },
-  set: (val) => {
-    // Navigation handled by handleTabChange
-  }
+const currentView = computed(() => {
+  const path = route.path
+  if (path.endsWith('/code')) return 'code'
+  if (path.endsWith('/cases')) return 'cases'
+  return 'description'
 })
 
 function handleTabChange(value: string | number) {

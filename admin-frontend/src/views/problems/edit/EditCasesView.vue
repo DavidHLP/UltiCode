@@ -53,7 +53,7 @@ async function handleSubmit(data: CasesFormData) {
       tags: data.tags,
     })
     toast.success('Test cases updated successfully')
-    router.push({ name: 'problem-detail', params: { id: problemId.value } })
+    router.push({ name: 'problem-view-cases', params: { id: problemId.value } })
   } catch (error) {
     console.error('Failed to update problem test cases:', error)
     toast.error('Failed to update test cases')
@@ -73,7 +73,7 @@ const formattedProblem = computed(() => {
 })
 
 function handleCancel() {
-  router.push({ name: 'problem-detail', params: { id: problemId.value } })
+  router.push({ name: 'problem-view-cases', params: { id: problemId.value } })
 }
 </script>
 
@@ -86,7 +86,7 @@ function handleCancel() {
       </router-link>
       <span>/</span>
       <router-link
-        :to="{ name: 'problem-detail', params: { id: problemId } }"
+        :to="{ name: 'problem-view-cases', params: { id: problemId } }"
         class="hover:text-foreground transition-colors"
       >
         {{ problemData?.title || 'Loading...' }}

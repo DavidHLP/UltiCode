@@ -64,7 +64,9 @@ export const commentsApi = {
   },
 
   async flagComment(id: string, type: CommentType, reason: string): Promise<Comment> {
-    const response = await apiClient.patch<Comment>(`/admin/comments/${type}/${id}/flag`, { reason })
+    const response = await apiClient.patch<Comment>(`/admin/comments/${type}/${id}/flag`, {
+      reason,
+    })
     return response.data
   },
 
@@ -79,5 +81,5 @@ export const commentsApi = {
 
   async bulkAction(data: BulkCommentActionDto): Promise<void> {
     await apiClient.post('/admin/comments/bulk', data)
-  }
+  },
 }

@@ -63,7 +63,8 @@ async function handleFlag() {
           Flag Comment
         </DialogTitle>
         <DialogDescription>
-          Flagging this comment will mark it for review and may hide it from public view depending on settings.
+          Flagging this comment will mark it for review and may hide it from public view depending
+          on settings.
         </DialogDescription>
       </DialogHeader>
 

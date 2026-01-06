@@ -5,6 +5,7 @@ import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
+import { Separator } from '@/components/ui/separator'
 import {
   ArrowLeft,
   Edit,
@@ -14,8 +15,14 @@ import {
   ListChecks,
   Trophy,
   BarChart3,
-  Clock,
+  MoreVertical,
 } from 'lucide-vue-next'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { toast } from 'vue-sonner'
 import OverviewTab from './tabs/OverviewTab.vue'
 
@@ -59,22 +66,9 @@ function editProblem() {
   router.push({ name: 'problem-edit', params: { id: problemId.value } })
 }
 
-function getDifficultyVariant(difficulty: string) {
-  switch (difficulty) {
-    case 'EASY':
-      return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20'
-    case 'MEDIUM':
-      return 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20'
-    case 'HARD':
-      return 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-500/20'
-    default:
-      return 'bg-muted text-muted-foreground'
-  }
-}
-
 const acceptanceRate = computed(() => {
-  if (!problem.value?.submission_count || !problem.value?.solution_count) return '-'
-  return ((problem.value.solution_count / problem.value.submission_count) * 100).toFixed(1) + '%'
+  if (!problem.value?.submission_count || !problem.value?.solution_count) return '0.0'
+  return ((problem.value.solution_count / problem.value.submission_count) * 100).toFixed(1)
 })
 </script>
 
@@ -82,31 +76,39 @@ const acceptanceRate = computed(() => {
   <div class="min-h-[calc(100vh-4rem)] bg-background">
     <!-- Header -->
     <header class="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
-      <div class="flex items-center gap-3 h-14 px-4 lg:px-6">
-        <Button
-          variant="ghost"
-          size="sm"
-          class="gap-1.5 text-muted-foreground px-2"
-          @click="router.push({ name: 'problems' })"
-        >
-          <ArrowLeft :size="16" />
-        </Button>
+      <div class="flex items-center justify-between h-14 px-4 lg:px-6">
+        <!-- Left: Back & Title -->
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            class="gap-1.5 text-muted-foreground px-2 shrink-0"
+            @click="router.push({ name: 'problems' })"
+          >
+            <ArrowLeft :size="16" />
+          </Button>
 
-        <!-- Problem Info -->
-        <div v-if="problem" class="flex items-center gap-3 min-w-0 flex-1">
-          <h1 class="text-sm font-semibold truncate">{{ problem.title }}</h1>
-          <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
-            {{ problem.slug }}
-          </span>
-          <Badge :class="['text-[10px] px-1.5 py-0', getDifficultyVariant(problem.difficulty)]">
-            {{ problem.difficulty }}
-          </Badge>
-          <Badge v-if="problem.is_premium" variant="secondary" class="text-[10px] px-1.5 py-0">
-            Premium
-          </Badge>
+          <div v-if="problem" class="flex items-center gap-2 min-w-0">
+            <h1 class="text-sm font-semibold truncate">{{ problem.title }}</h1>
+            <Badge
+              v-if="!problem.is_published"
+              variant="secondary"
+              class="text-[10px] px-1.5 py-0 shrink-0"
+            >
+              Draft
+            </Badge>
+            <Badge
+              v-if="problem.is_premium"
+              variant="outline"
+              class="text-[10px] px-1.5 py-0 shrink-0"
+            >
+              Premium
+            </Badge>
+          </div>
+          <Skeleton v-else class="h-5 w-32" />
         </div>
 
-        <!-- Actions -->
+        <!-- Right: Actions -->
         <div v-if="problem" class="flex items-center gap-1.5">
           <Button variant="ghost" size="sm" class="gap-1.5 h-8 text-xs" @click="editProblem">
             <Edit :size="14" />
@@ -151,10 +153,10 @@ const acceptanceRate = computed(() => {
 
       <!-- Loading State -->
       <div v-else-if="isInitialLoad || problemsStore.loading" class="space-y-4">
-        <div class="flex gap-6">
-          <Skeleton v-for="i in 4" :key="i" class="h-12 flex-1" />
+        <Skeleton class="h-7 w-48 mb-6" />
+        <div class="grid grid-cols-4 gap-3 mb-6">
+          <Skeleton v-for="i in 4" :key="i" class="h-16" />
         </div>
-        <Skeleton class="h-9 w-full" />
         <Skeleton class="h-64 w-full" />
       </div>
 
@@ -175,38 +177,37 @@ const acceptanceRate = computed(() => {
       <!-- Problem Content -->
       <template v-else>
         <!-- Stats Bar -->
-        <div class="grid grid-cols-4 gap-3 mb-6">
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/20">
-            <ListChecks :size="14" class="text-muted-foreground" />
+        <div class="grid grid-cols-3 gap-3 mb-6">
+          <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-muted/20">
+            <ListChecks :size="16" class="text-muted-foreground shrink-0" />
             <div class="min-w-0">
               <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Submissions</p>
-              <p class="text-sm font-medium tabular-nums">{{ problem.submission_count ?? 0 }}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/20">
-            <Trophy :size="14" class="text-muted-foreground" />
-            <div class="min-w-0">
-              <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Solutions</p>
-              <p class="text-sm font-medium tabular-nums">{{ problem.solution_count ?? 0 }}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/20">
-            <BarChart3 :size="14" class="text-muted-foreground" />
-            <div class="min-w-0">
-              <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Acceptance</p>
-              <p class="text-sm font-medium tabular-nums">{{ acceptanceRate }}</p>
-            </div>
-          </div>
-          <div class="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/20">
-            <Clock :size="14" class="text-muted-foreground" />
-            <div class="min-w-0">
-              <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Updated</p>
-              <p class="text-sm font-medium tabular-nums">
-                {{ new Date(problem.updated_at).toLocaleDateString() }}
+              <p class="text-sm font-semibold tabular-nums">
+                {{ problem.submission_count?.toLocaleString() ?? 0 }}
               </p>
             </div>
           </div>
+          <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-muted/20">
+            <Trophy :size="16" class="text-muted-foreground shrink-0" />
+            <div class="min-w-0">
+              <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Solutions</p>
+              <p class="text-sm font-semibold tabular-nums">
+                {{ problem.solution_count?.toLocaleString() ?? 0 }}
+              </p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 px-3 py-2.5 rounded-lg border bg-muted/20">
+            <BarChart3 :size="16" class="text-muted-foreground shrink-0" />
+            <div class="min-w-0">
+              <p class="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Acceptance Rate
+              </p>
+              <p class="text-sm font-semibold tabular-nums">{{ acceptanceRate }}%</p>
+            </div>
+          </div>
         </div>
+
+        <Separator class="mb-6" />
 
         <!-- Overview -->
         <OverviewTab :problem="problem" />

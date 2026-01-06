@@ -17,6 +17,7 @@ import { AdminBulkController } from './controllers/admin-bulk.controller';
 import { PrismaService } from '../prisma.service';
 import { UserModule } from '../user/user.module';
 import { AdminCommentService } from './services/admin-comment.service';
+import { AdminSettingsService } from './services/settings.service';
 
 @Global()
 @Module({
@@ -38,6 +39,7 @@ import { AdminCommentService } from './services/admin-comment.service';
     AuditService,
     AdminDashboardService,
     AdminCommentService,
+    AdminSettingsService,
     PermissionsGuard,
     RolesGuard,
     PrismaService,

@@ -6,7 +6,7 @@ import { RequirePermissions } from '../decorators/permissions.decorator';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { AuditService } from '../services/audit.service';
-import { PrismaService } from '../../prisma.service';
+import { AdminSettingsService } from '../services/settings.service';
 import { UserRole, User } from '../../user/user.entity';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import { SystemSettingsDto, MaintenanceModeDto } from '../dto/settings.dto';
@@ -15,7 +15,7 @@ import { SystemSettingsDto, MaintenanceModeDto } from '../dto/settings.dto';
 @UseGuards(AuthGuard, PermissionsGuard, RolesGuard)
 export class AdminSettingsController {
   constructor(
-    private prisma: PrismaService,
+    private settingsService: AdminSettingsService,
     private auditService: AuditService,
   ) {}
 
@@ -25,18 +25,8 @@ export class AdminSettingsController {
     action: PermissionAction.UPDATE,
     resource: PermissionResource.SYSTEM,
   })
-  getSettings() {
-    // In a real implementation, settings would be stored in a dedicated table
-    // For now, return default settings
-    return {
-      maintenance_mode: false,
-      maintenance_message:
-        'Site is under maintenance. Please check back later.',
-      enable_registrations: true,
-      site_name: 'UltiCode',
-      site_description: 'Competitive Programming Platform',
-      require_email_verification: false,
-    };
+  async getSettings() {
+    return this.settingsService.getSettings();
   }
 
   @Patch()
@@ -49,19 +39,22 @@ export class AdminSettingsController {
     @Body() settingsDto: SystemSettingsDto,
     @CurrentAdmin() admin: User,
   ) {
-    // In a real implementation, update settings in database
+    const oldSettings = await this.settingsService.getSettings();
+    const updatedSettings =
+      await this.settingsService.updateSettings(settingsDto);
+
     await this.auditService.log({
       performerId: admin.id,
       action: 'UPDATE_SETTINGS',
       entityType: 'SYSTEM',
       entityId: 'system',
-      oldValues: {},
+      oldValues: oldSettings,
       newValues: settingsDto,
     });
 
     return {
       message: 'Settings updated successfully',
-      settings: settingsDto,
+      settings: updatedSettings,
     };
   }
 
@@ -75,6 +68,15 @@ export class AdminSettingsController {
     @Body() maintenanceDto: MaintenanceModeDto,
     @CurrentAdmin() admin: User,
   ) {
+    const updateDto = new SystemSettingsDto();
+    updateDto.maintenance_mode = maintenanceDto.enabled;
+    if (maintenanceDto.message) {
+      updateDto.maintenance_message = maintenanceDto.message;
+    }
+
+    const updatedSettings =
+      await this.settingsService.updateSettings(updateDto);
+
     await this.auditService.log({
       performerId: admin.id,
       action: maintenanceDto.enabled
@@ -89,7 +91,7 @@ export class AdminSettingsController {
       message: maintenanceDto.enabled
         ? 'Maintenance mode enabled'
         : 'Maintenance mode disabled',
-      maintenance_mode: maintenanceDto.enabled,
+      maintenance_mode: updatedSettings.maintenance_mode,
     };
   }
 
@@ -100,7 +102,6 @@ export class AdminSettingsController {
     resource: PermissionResource.SYSTEM,
   })
   async clearCache(@CurrentAdmin() admin: User) {
-    // In a real implementation, clear Redis cache, etc.
     await this.auditService.log({
       performerId: admin.id,
       action: 'CLEAR_CACHE',

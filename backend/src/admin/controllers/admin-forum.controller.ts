@@ -152,7 +152,7 @@ export class AdminForumController {
       page: 1,
       limit: 20,
       totalPages: 0,
-      message: 'This endpoint is deprecated. Use /admin/comments instead.'
+      message: 'This endpoint is deprecated. Use /admin/comments instead.',
     };
   }
 
@@ -394,7 +394,9 @@ export class AdminForumController {
   })
   async deleteComment(@Param('id') id: string, @CurrentAdmin() admin: User) {
     // Deprecated: Use AdminCommentController instead
-    return { message: 'This endpoint is deprecated. Use /admin/comments/:id instead.' };
+    return {
+      message: 'This endpoint is deprecated. Use /admin/comments/:id instead.',
+    };
   }
 
   @Post('bulk')

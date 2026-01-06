@@ -96,6 +96,29 @@ const router = createRouter({
           name: 'problem-edit',
           redirect: (to) => ({ name: 'problem-edit-description', params: { id: to.params.id } }),
         },
+        // Solutions
+        {
+          path: 'solutions',
+          name: 'solutions',
+          component: () => import('@/views/solutions/SolutionsListView.vue'),
+          meta: { permission: { action: 'READ', resource: 'SOLUTION' } },
+        },
+        {
+          path: 'solutions/:id',
+          redirect: (to) => ({ name: 'solution-view-description', params: { id: to.params.id } }),
+        },
+        {
+          path: 'solutions/:id/description',
+          name: 'solution-view-description',
+          component: () => import('@/views/solutions/SolutionDetailView.vue'),
+          meta: { permission: { action: 'READ', resource: 'SOLUTION' } },
+        },
+        {
+          path: 'solutions/:id/code',
+          name: 'solution-view-code',
+          component: () => import('@/views/solutions/SolutionDetailView.vue'),
+          meta: { permission: { action: 'READ', resource: 'SOLUTION' } },
+        },
       ],
     },
   ],

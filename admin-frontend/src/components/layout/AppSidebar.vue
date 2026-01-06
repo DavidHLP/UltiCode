@@ -62,6 +62,15 @@ const navMain = computed(() => {
     })
   }
 
+  // Add Solutions if user has permission
+  if (authStore.hasPermission('READ', 'SOLUTION')) {
+    items.push({
+      title: 'Solutions',
+      url: '/solutions',
+      icon: IconFileDescription,
+    })
+  }
+
   // Add Audit Logs only if user has permission
   if (authStore.hasPermission('READ', 'SYSTEM')) {
     items.push({

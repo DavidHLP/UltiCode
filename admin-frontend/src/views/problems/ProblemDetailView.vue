@@ -5,17 +5,7 @@ import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Separator } from '@/components/ui/separator'
-import {
-  ArrowLeft,
-  Edit,
-  Eye,
-  EyeOff,
-  FileText,
-  ListChecks,
-  Trophy,
-  BarChart3,
-} from 'lucide-vue-next'
+import { ArrowLeft, Edit, Eye, EyeOff, FileText } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DescriptionDisplay from './components/DescriptionDisplay.vue'
 import CodeDisplay from './components/CodeDisplay.vue'
@@ -86,11 +76,6 @@ function editProblem() {
   }
   router.push({ name: editRoutes[currentView.value], params: { id: problemId.value } })
 }
-
-const acceptanceRate = computed(() => {
-  if (!problem.value?.submission_count || !problem.value?.solution_count) return '0.0'
-  return ((problem.value.solution_count / problem.value.submission_count) * 100).toFixed(1)
-})
 </script>
 
 <template>

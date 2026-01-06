@@ -2,18 +2,7 @@
 import { ref, onMounted, h, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
-import {
-  IconCircleCheckFilled,
-  IconDatabase,
-  IconDotsVertical,
-  IconFileText,
-  IconInfoCircle,
-  IconRefresh,
-  IconShield,
-  IconTrash,
-  IconUser,
-  IconX,
-} from '@tabler/icons-vue'
+import { IconDotsVertical, IconInfoCircle, IconRefresh, IconX } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -31,18 +20,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { ScrollArea } from '@/components/ui/scroll-area'
 import { useAuditStore } from '@/stores/admin/audit'
 import type { AuditLog } from '@/api/admin/audit'
 
 import DataTable from '@/components/table/DataTable.vue'
+import AuditLogDetailDrawer from './AuditLogDetailDrawer.vue'
+import {
+  getActionBadgeVariant,
+  getActionIcon,
+  getActionIconColor,
+  getEntityTypeIcon,
+} from './utils'
 
 const auditStore = useAuditStore()
 
@@ -52,7 +40,7 @@ const entityTypeFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 50 })
 
 const selectedLog = ref<AuditLog | null>(null)
-const detailsDialogOpen = ref(false)
+const detailsDrawerOpen = ref(false)
 
 onMounted(() => loadLogs())
 
@@ -89,90 +77,9 @@ watch(
   { deep: true },
 )
 
-function getActionBadgeVariant(
-  action: string,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-  const actionUpper = action.toUpperCase()
-  if (
-    actionUpper.includes('CREATE') ||
-    actionUpper.includes('GRANT') ||
-    actionUpper.includes('PUBLISH')
-  ) {
-    return 'default'
-  }
-  if (actionUpper.includes('UPDATE') || actionUpper.includes('UNBAN')) {
-    return 'secondary'
-  }
-  if (
-    actionUpper.includes('DELETE') ||
-    actionUpper.includes('BAN') ||
-    actionUpper.includes('REVOKE')
-  ) {
-    return 'destructive'
-  }
-  return 'outline'
-}
-
-function getActionIcon(action: string) {
-  const actionUpper = action.toUpperCase()
-  if (actionUpper.includes('CREATE') || actionUpper.includes('GRANT')) {
-    return IconCircleCheckFilled
-  }
-  if (actionUpper.includes('UPDATE') || actionUpper.includes('PUBLISH')) {
-    return IconFileText
-  }
-  if (actionUpper.includes('DELETE') || actionUpper.includes('REVOKE')) {
-    return IconTrash
-  }
-  if (actionUpper.includes('BAN')) {
-    return IconX
-  }
-  if (actionUpper.includes('UNBAN')) {
-    return IconShield
-  }
-  return IconInfoCircle
-}
-
-function getActionIconColor(action: string) {
-  const actionUpper = action.toUpperCase()
-  if (
-    actionUpper.includes('CREATE') ||
-    actionUpper.includes('GRANT') ||
-    actionUpper.includes('PUBLISH')
-  ) {
-    return 'text-emerald-500'
-  }
-  if (actionUpper.includes('UPDATE')) {
-    return 'text-blue-500'
-  }
-  if (
-    actionUpper.includes('DELETE') ||
-    actionUpper.includes('BAN') ||
-    actionUpper.includes('REVOKE')
-  ) {
-    return 'text-red-500'
-  }
-  return 'text-muted-foreground'
-}
-
-function getEntityTypeIcon(entityType: string | undefined) {
-  if (!entityType) return IconInfoCircle
-  const upper = entityType.toUpperCase()
-  if (upper.includes('USER')) return IconUser
-  if (upper.includes('PROBLEM')) return IconFileText
-  if (upper.includes('CONTEST')) return IconDatabase
-  return IconInfoCircle
-}
-
-function formatJson(value: unknown): string {
-  if (!value) return 'N/A'
-  if (typeof value === 'string') return value
-  return JSON.stringify(value, null, 2)
-}
-
 function showDetails(log: AuditLog) {
   selectedLog.value = log
-  detailsDialogOpen.value = true
+  detailsDrawerOpen.value = true
 }
 
 const columns: ColumnDef<AuditLog>[] = [
@@ -234,7 +141,9 @@ const columns: ColumnDef<AuditLog>[] = [
       }
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'text-sm font-medium' }, performer.username),
-        h(Badge, { variant: 'outline', class: 'w-fit text-xs' }, () => performer.role),
+        h(Badge, { variant: 'outline', class: 'w-fit text-xs scale-90 origin-left' }, () =>
+          performer.role.replace('_', ' '),
+        ),
       ])
     },
   },
@@ -246,18 +155,22 @@ const columns: ColumnDef<AuditLog>[] = [
       if (!user) {
         return h('span', { class: 'text-muted-foreground text-sm' }, '—')
       }
-      return h('span', { class: 'text-sm' }, user.username)
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h('span', { class: 'text-sm' }, user.username),
+      ])
     },
   },
   {
     accessorKey: 'ip_address',
-    header: 'IP Address',
+    header: 'IP / Agent',
     cell: ({ row }) => {
       const ip = row.original.ip_address
       if (!ip) {
         return h('span', { class: 'text-muted-foreground text-sm' }, '—')
       }
-      return h('span', { class: 'text-muted-foreground text-sm font-mono' }, ip)
+      return h('div', { class: 'flex flex-col max-w-[150px]' }, [
+        h('span', { class: 'text-sm font-mono truncate' }, ip),
+      ])
     },
   },
   {
@@ -315,7 +228,7 @@ const columns: ColumnDef<AuditLog>[] = [
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 px-4 lg:px-6">
+  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
     <DataTable
       :columns="columns"
       :data="auditStore.logs"
@@ -325,48 +238,59 @@ const columns: ColumnDef<AuditLog>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input v-model="searchQuery" placeholder="Search logs..." class="min-w-[200px] w-[260px]">
-          <template #trailing>
-            <button
-              v-if="searchQuery"
-              @click="searchQuery = ''"
-              class="rounded-sm opacity-70 hover:opacity-100"
-            >
-              <IconX class="h-4 w-4" />
-            </button>
-          </template>
-        </Input>
-        <Select v-model="actionFilter">
-          <SelectTrigger class="w-[180px]">
-            <SelectValue placeholder="All Actions" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Actions</SelectItem>
-            <SelectItem value="CREATE_USER">Create User</SelectItem>
-            <SelectItem value="UPDATE_USER">Update User</SelectItem>
-            <SelectItem value="DELETE_USER">Delete User</SelectItem>
-            <SelectItem value="BAN_USER">Ban User</SelectItem>
-            <SelectItem value="UNBAN_USER">Unban User</SelectItem>
-            <SelectItem value="GRANT_PERMISSION">Grant Permission</SelectItem>
-            <SelectItem value="REVOKE_PERMISSION">Revoke Permission</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select v-model="entityTypeFilter">
-          <SelectTrigger class="w-[160px]">
-            <SelectValue placeholder="All Entities" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Entities</SelectItem>
-            <SelectItem value="USER">User</SelectItem>
-            <SelectItem value="PROBLEM">Problem</SelectItem>
-            <SelectItem value="CONTEST">Contest</SelectItem>
-            <SelectItem value="SOLUTION">Solution</SelectItem>
-            <SelectItem value="FORUM_POST">Forum Post</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="icon" @click="loadLogs()" title="Refresh">
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': auditStore.loading }" />
-        </Button>
+        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+          <Input
+            v-model="searchQuery"
+            placeholder="Search logs..."
+            class="h-8 min-w-[150px] w-full lg:w-[250px]"
+          >
+            <template #trailing>
+              <button
+                v-if="searchQuery"
+                @click="searchQuery = ''"
+                class="rounded-sm opacity-70 hover:opacity-100"
+              >
+                <IconX class="h-3 w-3" />
+              </button>
+            </template>
+          </Input>
+
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+            <Select v-model="actionFilter">
+              <SelectTrigger class="h-8 w-[150px]">
+                <SelectValue placeholder="All Actions" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Actions</SelectItem>
+                <SelectItem value="CREATE_USER">Create User</SelectItem>
+                <SelectItem value="UPDATE_USER">Update User</SelectItem>
+                <SelectItem value="DELETE_USER">Delete User</SelectItem>
+                <SelectItem value="BAN_USER">Ban User</SelectItem>
+                <SelectItem value="UNBAN_USER">Unban User</SelectItem>
+                <SelectItem value="GRANT_PERMISSION">Grant Permission</SelectItem>
+                <SelectItem value="REVOKE_PERMISSION">Revoke Permission</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select v-model="entityTypeFilter">
+              <SelectTrigger class="h-8 w-[140px]">
+                <SelectValue placeholder="All Entities" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Entities</SelectItem>
+                <SelectItem value="USER">User</SelectItem>
+                <SelectItem value="PROBLEM">Problem</SelectItem>
+                <SelectItem value="CONTEST">Contest</SelectItem>
+                <SelectItem value="SOLUTION">Solution</SelectItem>
+                <SelectItem value="FORUM_POST">Forum Post</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button variant="ghost" size="icon" class="h-8 w-8" @click="loadLogs()" title="Refresh">
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': auditStore.loading }" />
+            </Button>
+          </div>
+        </div>
       </template>
     </DataTable>
 
@@ -379,59 +303,6 @@ const columns: ColumnDef<AuditLog>[] = [
       <Button variant="outline" size="sm" @click="loadLogs()">Retry</Button>
     </div>
 
-    <Dialog v-model:open="detailsDialogOpen">
-      <DialogContent class="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Audit Log Details</DialogTitle>
-          <DialogDescription>
-            Detailed information for the selected audit log entry.
-          </DialogDescription>
-        </DialogHeader>
-        <ScrollArea class="max-h-[60vh] pr-4">
-          <div v-if="selectedLog" class="space-y-4 py-4">
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-1">
-                <span class="text-xs font-medium text-muted-foreground uppercase">Action</span>
-                <p class="text-sm font-semibold">{{ selectedLog.action }}</p>
-              </div>
-              <div class="space-y-1">
-                <span class="text-xs font-medium text-muted-foreground uppercase">Date</span>
-                <p class="text-sm font-semibold">
-                  {{ new Date(selectedLog.created_at).toLocaleString() }}
-                </p>
-              </div>
-              <div class="space-y-1">
-                <span class="text-xs font-medium text-muted-foreground uppercase">Entity</span>
-                <p class="text-sm font-semibold">
-                  {{ selectedLog.entity_type || 'N/A' }} ({{ selectedLog.entity_id || 'N/A' }})
-                </p>
-              </div>
-              <div class="space-y-1">
-                <span class="text-xs font-medium text-muted-foreground uppercase">Performer</span>
-                <p class="text-sm font-semibold">
-                  {{ selectedLog.performer?.username || 'System' }} ({{
-                    selectedLog.performer?.role || 'N/A'
-                  }})
-                </p>
-              </div>
-            </div>
-
-            <div class="space-y-1">
-              <span class="text-xs font-medium text-muted-foreground uppercase">Old Values</span>
-              <pre class="p-2 rounded-md bg-muted text-xs overflow-auto">{{
-                formatJson(selectedLog.old_values)
-              }}</pre>
-            </div>
-
-            <div class="space-y-1">
-              <span class="text-xs font-medium text-muted-foreground uppercase">New Values</span>
-              <pre class="p-2 rounded-md bg-muted text-xs overflow-auto">{{
-                formatJson(selectedLog.new_values)
-              }}</pre>
-            </div>
-          </div>
-        </ScrollArea>
-      </DialogContent>
-    </Dialog>
+    <AuditLogDetailDrawer v-model:open="detailsDrawerOpen" :log="selectedLog" />
   </div>
 </template>

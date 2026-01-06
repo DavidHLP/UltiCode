@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Badge } from '@/components/ui/badge'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import { IconFlask, IconBrackets, IconBulb, IconTag, IconCode } from '@tabler/icons-vue'
+import { IconFlask, IconCode } from '@tabler/icons-vue'
 
 interface ProblemExample {
   id: string
@@ -125,81 +119,5 @@ const hasAnyContent = computed(
         </div>
       </div>
     </section>
-
-    <!-- Sidebar: Constraints, Hints, Tags -->
-    <aside class="lg:col-span-5 space-y-4">
-      <!-- Constraints & Hints Accordion -->
-      <div v-if="hasConstraints || hasHints" class="rounded-xl border bg-card overflow-hidden">
-        <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
-          <IconBrackets class="h-4 w-4 text-muted-foreground" />
-          <h3 class="font-semibold text-sm">Constraints & Hints</h3>
-        </div>
-
-        <Accordion type="multiple" :default-value="['constraints', 'hints']" class="border-0">
-          <!-- Constraints -->
-          <AccordionItem v-if="hasConstraints" value="constraints" class="border-0">
-            <AccordionTrigger class="px-4 py-3 hover:no-underline text-sm">
-              <div class="flex items-center gap-2">
-                <IconBrackets class="h-4 w-4" />
-                <span>Constraints</span>
-                <Badge variant="secondary" class="text-xs">{{ constraints.length }}</Badge>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent class="px-4 pb-4">
-              <ul class="space-y-1.5">
-                <li
-                  v-for="(constraint, index) in constraints"
-                  :key="index"
-                  class="text-sm font-mono p-2 rounded-lg bg-muted/30 flex items-start gap-2"
-                >
-                  <span class="text-muted-foreground/70 shrink-0">{{ index + 1 }}.</span>
-                  <span>{{ constraint }}</span>
-                </li>
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-
-          <!-- Hints -->
-          <AccordionItem v-if="hasHints" value="hints" class="border-0">
-            <AccordionTrigger class="px-4 py-3 hover:no-underline text-sm">
-              <div class="flex items-center gap-2">
-                <IconBulb class="h-4 w-4" />
-                <span>Hints</span>
-                <Badge variant="secondary" class="text-xs">{{ hints.length }}</Badge>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent class="px-4 pb-4">
-              <ul class="space-y-2">
-                <li
-                  v-for="(hint, index) in hints"
-                  :key="index"
-                  class="text-sm text-muted-foreground p-2 rounded-lg bg-muted/30 flex items-start gap-2"
-                >
-                  <span class="font-mono text-xs text-muted-foreground/70 shrink-0"
-                    >{{ index + 1 }}.</span
-                  >
-                  <span>{{ hint }}</span>
-                </li>
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
-      </div>
-
-      <!-- Tags -->
-      <div v-if="hasTags" class="rounded-xl border bg-card">
-        <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
-          <IconTag class="h-4 w-4 text-muted-foreground" />
-          <h3 class="font-semibold text-sm">Tags</h3>
-        </div>
-        <div class="p-4">
-          <div class="flex flex-wrap gap-2">
-            <Badge v-for="tag in tags" :key="tag.id" variant="secondary" class="text-sm px-3 py-1">
-              {{ tag.label }}
-            </Badge>
-          </div>
-        </div>
-      </div>
-    </aside>
   </div>
 </template>

@@ -145,72 +145,14 @@ export class AdminForumController {
     resource: PermissionResource.FORUM_POST,
   })
   async getComments(@Query() query: ForumCommentQueryDto) {
-    const {
-      search,
-      postId,
-      authorId,
-      is_flagged, // ForumComment doesn't have is_flagged, ignoring for now or mapping if possible
-      page = 1,
-      limit = 20,
-    } = query;
-
-    // Use is_flagged to avoid unused var error if it was kept
-    if (is_flagged !== undefined) {
-      // Ignored for now as schema doesn't support it
-    }
-
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.ForumCommentWhereInput = {};
-
-    if (search) {
-      where.body = { contains: search };
-    }
-
-    if (postId) {
-      where.post_id = postId;
-    }
-
-    if (authorId) {
-      where.author_id = authorId;
-    }
-
-    // ForumComment schema has no is_flagged. Ignoring is_flagged filter.
-
-    const comments = await this.prisma.forumComment.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { created_at: 'desc' },
-      include: {
-        author: {
-          select: {
-            id: true,
-            username: true,
-            avatar: true,
-          },
-        },
-        post: {
-          select: {
-            id: true,
-            title: true,
-          },
-        },
-      },
-    });
-    const total = await this.prisma.forumComment.count({ where });
-
+    // Deprecated: Use AdminCommentController instead
     return {
-      data: comments.map((c) => ({
-        ...c,
-        id: c.id.toString(),
-        post_id: c.post_id.toString(),
-        user_id: c.author_id.toString(),
-      })),
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      data: [],
+      total: 0,
+      page: 1,
+      limit: 20,
+      totalPages: 0,
+      message: 'This endpoint is deprecated. Use /admin/comments instead.'
     };
   }
 
@@ -451,19 +393,8 @@ export class AdminForumController {
     resource: PermissionResource.FORUM_POST,
   })
   async deleteComment(@Param('id') id: string, @CurrentAdmin() admin: User) {
-    // ForumComment has no is_deleted. Use delete().
-    await this.prisma.forumComment.delete({
-      where: { id: id },
-    });
-
-    await this.auditService.log({
-      performerId: admin.id,
-      action: 'DELETE_FORUM_COMMENT',
-      entityType: 'FORUM_COMMENT',
-      entityId: id,
-    });
-
-    return { message: 'Comment deleted successfully' };
+    // Deprecated: Use AdminCommentController instead
+    return { message: 'This endpoint is deprecated. Use /admin/comments/:id instead.' };
   }
 
   @Post('bulk')

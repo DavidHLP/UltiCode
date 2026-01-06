@@ -8,6 +8,23 @@ export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
 export const DEFAULT_LOCALE: SupportedLocale = 'en-US';
 export const FALLBACK_LOCALE: SupportedLocale = 'en-US';
+export const LOCALE_HEADER_KEY = 'x-locale';
+
+export function matchSupportedLocale(locale?: string): SupportedLocale | null {
+  if (!locale) return null;
+  const trimmed = locale.trim();
+  if (!trimmed) return null;
+
+  if (SUPPORTED_LOCALES.includes(trimmed as SupportedLocale)) {
+    return trimmed as SupportedLocale;
+  }
+
+  const partial = SUPPORTED_LOCALES.find((supported) =>
+    supported.toLowerCase().startsWith(trimmed.toLowerCase().split('-')[0]),
+  );
+
+  return partial ?? null;
+}
 
 /**
  * Entity types that support translations

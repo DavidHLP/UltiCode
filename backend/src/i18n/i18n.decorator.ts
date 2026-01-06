@@ -3,7 +3,8 @@ import { Request } from 'express';
 import {
   SupportedLocale,
   DEFAULT_LOCALE,
-  SUPPORTED_LOCALES,
+  LOCALE_HEADER_KEY,
+  matchSupportedLocale,
 } from './i18n.constants';
 
 /**
@@ -17,6 +18,14 @@ import {
 export const Locale = createParamDecorator(
   (_data: unknown, ctx: ExecutionContext): SupportedLocale => {
     const request = ctx.switchToHttp().getRequest<Request>();
+    const preferredHeader = request.headers[LOCALE_HEADER_KEY];
+    const preferredLocale = Array.isArray(preferredHeader)
+      ? preferredHeader[0]
+      : preferredHeader;
+
+    const matchedPreferred = matchSupportedLocale(preferredLocale);
+    if (matchedPreferred) return matchedPreferred;
+
     const header = request.headers['accept-language'];
 
     if (!header) return DEFAULT_LOCALE;
@@ -30,15 +39,8 @@ export const Locale = createParamDecorator(
     languages.sort((a, b) => b.quality - a.quality);
 
     for (const { code } of languages) {
-      // Exact match
-      if (SUPPORTED_LOCALES.includes(code as SupportedLocale)) {
-        return code as SupportedLocale;
-      }
-      // Partial match (e.g., "zh" matches "zh-CN")
-      const partial = SUPPORTED_LOCALES.find((l) =>
-        l.toLowerCase().startsWith(code.toLowerCase().split('-')[0]),
-      );
-      if (partial) return partial;
+      const matched = matchSupportedLocale(code);
+      if (matched) return matched;
     }
 
     return DEFAULT_LOCALE;

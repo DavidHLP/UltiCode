@@ -79,29 +79,6 @@ const problemDescription = computed<ProblemDescription>(() => ({
 
     <!-- Right Column: Meta -->
     <div class="space-y-4">
-      <!-- Engagement -->
-      <div class="p-4 rounded-lg border">
-        <h3 class="text-xs font-medium mb-3">Engagement</h3>
-        <div class="space-y-2 text-sm">
-          <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">Likes</span>
-            <span class="font-medium tabular-nums">{{ problem.detail?.likes || 0 }}</span>
-          </div>
-          <Separator class="my-2" />
-          <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">Dislikes</span>
-            <span class="font-medium tabular-nums">{{ problem.detail?.dislikes || 0 }}</span>
-          </div>
-          <Separator class="my-2" />
-          <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">Rating</span>
-            <span class="font-medium tabular-nums">{{
-              problem.detail?.difficulty_rating || '-'
-            }}</span>
-          </div>
-        </div>
-      </div>
-
       <!-- Tags & Languages -->
       <div class="p-4 rounded-lg border">
         <div class="space-y-3">

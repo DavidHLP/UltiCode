@@ -4,7 +4,6 @@ import { useRoute, useRouter } from 'vue-router'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
   ArrowLeft,
@@ -12,25 +11,18 @@ import {
   Eye,
   EyeOff,
   FileText,
-  Code,
   ListChecks,
-  Lightbulb,
   Trophy,
-  Clock,
   BarChart3,
+  Clock,
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import OverviewTab from './tabs/OverviewTab.vue'
-import PreviewTab from './tabs/ProblemPreviewTab.vue'
-import TestCasesTab from './tabs/TestCasesTab.vue'
-import SubmissionsTab from './tabs/SubmissionsTab.vue'
-import SolutionsTab from './tabs/SolutionsTab.vue'
 
 const router = useRouter()
 const route = useRoute()
 const problemsStore = useProblemsStore()
 
-const activeTab = ref('overview')
 const publishing = ref(false)
 const isInitialLoad = ref(true)
 
@@ -80,18 +72,10 @@ function getDifficultyVariant(difficulty: string) {
   }
 }
 
-const tabItems = computed(() => [
-  { value: 'overview', label: 'Overview', icon: FileText, count: null },
-  { value: 'preview', label: 'Preview', icon: Eye, count: null },
-  { value: 'testcases', label: 'Examples', icon: Code, count: problem.value?.examples?.length },
-  {
-    value: 'submissions',
-    label: 'Submissions',
-    icon: ListChecks,
-    count: problem.value?.submission_count,
-  },
-  { value: 'solutions', label: 'Solutions', icon: Lightbulb, count: problem.value?.solution_count },
-])
+const acceptanceRate = computed(() => {
+  if (!problem.value?.submission_count || !problem.value?.solution_count) return '-'
+  return ((problem.value.solution_count / problem.value.submission_count) * 100).toFixed(1) + '%'
+})
 </script>
 
 <template>
@@ -210,13 +194,7 @@ const tabItems = computed(() => [
             <BarChart3 :size="14" class="text-muted-foreground" />
             <div class="min-w-0">
               <p class="text-[10px] text-muted-foreground uppercase tracking-wide">Acceptance</p>
-              <p class="text-sm font-medium tabular-nums">
-                {{
-                  problem.submission_count && problem.solution_count
-                    ? ((problem.solution_count / problem.submission_count) * 100).toFixed(1) + '%'
-                    : '-'
-                }}
-              </p>
+              <p class="text-sm font-medium tabular-nums">{{ acceptanceRate }}</p>
             </div>
           </div>
           <div class="flex items-center gap-2 px-3 py-2 rounded-lg border bg-muted/20">
@@ -230,45 +208,8 @@ const tabItems = computed(() => [
           </div>
         </div>
 
-        <!-- Tabs -->
-        <Tabs v-model="activeTab" class="w-full">
-          <TabsList class="h-9 bg-muted/50 px-1">
-            <TabsTrigger
-              v-for="tab in tabItems"
-              :key="tab.value"
-              :value="tab.value"
-              class="gap-1.5 h-8 px-3 text-xs data-[state=active]:bg-background"
-            >
-              <component :is="tab.icon" :size="14" />
-              <span>{{ tab.label }}</span>
-              <Badge v-if="tab.count" variant="secondary" class="h-4 px-1 text-[10px]">
-                {{ tab.count }}
-              </Badge>
-            </TabsTrigger>
-          </TabsList>
-
-          <div class="mt-4">
-            <TabsContent value="overview" class="mt-0">
-              <OverviewTab :problem="problem" />
-            </TabsContent>
-
-            <TabsContent value="preview" class="mt-0">
-              <PreviewTab :problem="problem" />
-            </TabsContent>
-
-            <TabsContent value="testcases" class="mt-0">
-              <TestCasesTab :examples="problem.examples || []" />
-            </TabsContent>
-
-            <TabsContent value="submissions" class="mt-0">
-              <SubmissionsTab :problem-id="problem.id" />
-            </TabsContent>
-
-            <TabsContent value="solutions" class="mt-0">
-              <SolutionsTab :problem-id="problem.id" />
-            </TabsContent>
-          </div>
-        </Tabs>
+        <!-- Overview -->
+        <OverviewTab :problem="problem" />
       </template>
     </main>
   </div>

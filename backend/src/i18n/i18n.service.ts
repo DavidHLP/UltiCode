@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import {
-  SUPPORTED_LOCALES,
   SupportedLocale,
   DEFAULT_LOCALE,
   FALLBACK_LOCALE,
   TranslatableEntity,
   TRANSLATABLE_ENTITIES,
+  matchSupportedLocale,
 } from './i18n.constants';
 
 @Injectable()
@@ -33,15 +33,8 @@ export class I18nService {
     languages.sort((a, b) => b.quality - a.quality);
 
     for (const { code } of languages) {
-      // Exact match
-      if (SUPPORTED_LOCALES.includes(code as SupportedLocale)) {
-        return code as SupportedLocale;
-      }
-      // Partial match (e.g., "zh" matches "zh-CN")
-      const partial = SUPPORTED_LOCALES.find((l) =>
-        l.toLowerCase().startsWith(code.toLowerCase().split('-')[0]),
-      );
-      if (partial) return partial;
+      const matched = matchSupportedLocale(code);
+      if (matched) return matched;
     }
 
     return DEFAULT_LOCALE;

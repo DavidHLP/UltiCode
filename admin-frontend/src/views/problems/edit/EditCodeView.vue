@@ -35,7 +35,7 @@ async function handleSubmit(data: CodeFormData) {
       languages: data.languages.map((lang) => lang.language),
     })
     toast.success('Languages updated successfully')
-    router.push({ name: 'problem-detail', params: { id: problemId.value } })
+    router.push({ name: 'problem-view-code', params: { id: problemId.value } })
   } catch (error) {
     console.error('Failed to update problem languages:', error)
     toast.error('Failed to update languages')
@@ -52,7 +52,7 @@ const formattedProblem = computed(() => {
 })
 
 function handleCancel() {
-  router.push({ name: 'problem-detail', params: { id: problemId.value } })
+  router.push({ name: 'problem-view-code', params: { id: problemId.value } })
 }
 </script>
 
@@ -65,7 +65,7 @@ function handleCancel() {
       </router-link>
       <span>/</span>
       <router-link
-        :to="{ name: 'problem-detail', params: { id: problemId } }"
+        :to="{ name: 'problem-view-code', params: { id: problemId } }"
         class="hover:text-foreground transition-colors"
       >
         {{ problemData?.title || 'Loading...' }}

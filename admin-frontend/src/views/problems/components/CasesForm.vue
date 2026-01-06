@@ -12,7 +12,7 @@ import {
   IconPlus,
   IconX,
   IconCheck,
-  IconTrash2,
+  IconTrash,
 } from '@tabler/icons-vue'
 import { Separator } from '@/components/ui/separator'
 import TestCasesEditor from '@/components/problem/TestCasesEditor.vue'
@@ -253,7 +253,7 @@ defineExpose({
                   class="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                   @click="removeHint(idx)"
                 >
-                  <IconTrash2 class="h-4 w-4" />
+                  <IconTrash class="h-4 w-4" />
                 </Button>
               </div>
             </div>

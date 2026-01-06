@@ -26,7 +26,7 @@ onMounted(async () => {
       </router-link>
       <span>/</span>
       <router-link
-        :to="{ name: 'problem-detail', params: { id: problemId } }"
+        :to="{ name: 'problem-view-description', params: { id: problemId } }"
         class="hover:text-foreground transition-colors"
       >
         {{ problem.title }}

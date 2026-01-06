@@ -1,0 +1,299 @@
+<script setup lang="ts">
+import { computed } from 'vue'
+import { renderMarkdown } from '@/utils/markdown'
+import { toast } from 'vue-sonner'
+
+/**
+ * Problem description data model for markdown rendering.
+ */
+export interface ProblemDescription {
+  /** Main description body */
+  content: string
+  /** Example list */
+  examples?: Array<{
+    input: string
+    output: string
+    explanation?: string
+  }>
+  /** Constraint bullets */
+  constraints?: string[]
+  /** Follow-up prompt */
+  followUp?: string
+}
+
+const props = defineProps<{
+  /** Problem description data */
+  description: ProblemDescription
+}>()
+
+const handleCopy = (e: MouseEvent) => {
+  const target = (e.target as HTMLElement).closest('.lc-copy-btn')
+  if (!target) return
+
+  const code = (target as HTMLElement).dataset.code
+  if (code) {
+    try {
+      const decoded = decodeURIComponent(code)
+      navigator.clipboard.writeText(decoded)
+      toast.success('Code copied')
+    } catch (err) {
+      console.error('Failed to copy', err)
+    }
+  }
+}
+
+/**
+ * Compose the complete Markdown content for the viewer.
+ */
+const markdownContent = computed(() => {
+  const parts: string[] = [props.description.content]
+
+  // Add examples
+  if (props.description.examples?.length) {
+    parts.push('\n\n')
+
+    props.description.examples.forEach((example, index) => {
+      parts.push(
+        `### Example ${index + 1}\n`,
+        `> **Input:** \`${example.input}\`\n>\n`,
+        `> **Expected Output:** \`${example.output}\`\n`,
+      )
+
+      if (example.explanation) {
+        parts.push(`>\n> **Explanation:** ${example.explanation}\n`)
+      }
+
+      parts.push(`\n`)
+    })
+  }
+
+  // Add constraints
+  if (props.description.constraints?.length) {
+    parts.push(`\n\n### Constraints\n\n`, ...props.description.constraints.map((c) => `- ${c}\n`))
+  }
+
+  // Add follow-up
+  if (props.description.followUp) {
+    parts.push(`\n\n### Hints\n\n${props.description.followUp}`)
+  }
+
+  return parts.join('')
+})
+
+const htmlContent = computed(() => renderMarkdown(markdownContent.value))
+</script>
+
+<template>
+  <div class="description-markdown" @click="handleCopy">
+    <div class="markdown-content" v-html="htmlContent"></div>
+  </div>
+</template>
+
+<style scoped>
+.description-markdown :deep(.markdown-content) {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--foreground);
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif,
+    'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+}
+
+/* Headings */
+.description-markdown :deep(.markdown-content h1) {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.description-markdown :deep(.markdown-content h2) {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.description-markdown :deep(.markdown-content h3) {
+  font-size: 1rem;
+  font-weight: 700;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.description-markdown :deep(.markdown-content h4) {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+}
+
+.description-markdown :deep(.markdown-content p) {
+  margin-bottom: 1em;
+}
+
+/* Lists */
+.description-markdown :deep(.markdown-content ul),
+.description-markdown :deep(.markdown-content ol) {
+  padding-left: 1.25rem;
+  margin-bottom: 1rem;
+}
+
+.description-markdown :deep(.markdown-content ul) {
+  list-style: disc;
+}
+
+.description-markdown :deep(.markdown-content li) {
+  margin-bottom: 0.25rem;
+}
+
+/* Inline Code - Pill Style */
+.description-markdown :deep(.markdown-content code) {
+  font-family: 'Menlo', 'Monaco', 'Consolas', 'Courier New', monospace;
+  font-size: 0.85em;
+  background-color: var(--muted);
+  color: var(--foreground);
+  padding: 0.125rem 0.375rem;
+  border-radius: 0.25rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* Code Blocks */
+.description-markdown :deep(.markdown-content pre) {
+  background-color: var(--muted);
+  border-radius: 0.5rem;
+  padding: 1rem;
+  margin: 1rem 0;
+  overflow-x: auto;
+}
+
+.description-markdown :deep(.markdown-content pre code) {
+  background-color: transparent;
+  padding: 0;
+  border-radius: 0;
+  color: inherit;
+  font-size: 0.9em;
+}
+
+/* Blockquote - Example blocks */
+.description-markdown :deep(.markdown-content blockquote) {
+  border-left: 3px solid var(--border);
+  padding-left: 1rem;
+  color: var(--muted-foreground);
+  margin: 1rem 0;
+}
+
+/* Strong text */
+.description-markdown :deep(.markdown-content strong) {
+  font-weight: 600;
+}
+
+/* Katex adjustments */
+.description-markdown :deep(.katex) {
+  font-size: 1.1em;
+}
+
+.description-markdown :deep(.katex-display) {
+  margin: 0.5rem 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+/* Dark mode tweaks */
+.dark .description-markdown :deep(.markdown-content code) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Code Tabs Styles */
+.description-markdown :deep(.lc-code-tabs) {
+  margin: 1rem 0;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.description-markdown :deep(.lc-tabs-header) {
+  display: flex;
+  background: var(--muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.description-markdown :deep(.lc-tab-btn) {
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+  color: var(--muted-foreground);
+}
+
+.description-markdown :deep(.lc-tab-btn:hover) {
+  color: var(--foreground);
+}
+
+.description-markdown :deep(.lc-tab-btn.active) {
+  color: var(--foreground);
+  border-bottom-color: var(--primary);
+  background: var(--background);
+}
+
+.description-markdown :deep(.lc-tabs-body) {
+  position: relative;
+}
+
+.description-markdown :deep(.lc-code-panel) {
+  display: none;
+}
+
+.description-markdown :deep(.lc-code-panel.active) {
+  display: block;
+}
+
+.description-markdown :deep(.lc-code-block) {
+  position: relative;
+}
+
+.description-markdown :deep(.lc-copy-wrapper) {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+}
+
+.description-markdown :deep(.lc-copy-btn) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 0.25rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: var(--muted-foreground);
+}
+
+.description-markdown :deep(.lc-code-block:hover .lc-copy-btn) {
+  opacity: 1;
+}
+
+.description-markdown :deep(.lc-copy-btn:hover) {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.description-markdown :deep(.lc-code-block pre) {
+  margin: 0;
+  padding: 1rem;
+  padding-right: 3rem;
+  background: transparent;
+}
+
+.description-markdown :deep(.lc-code-block code) {
+  background: transparent;
+  padding: 0;
+}
+</style>

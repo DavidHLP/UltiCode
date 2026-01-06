@@ -43,9 +43,6 @@ async function handleReset() {
   loading.value = true
   try {
     await usersStore.resetPassword(props.userId, newPassword.value)
-    toast.success('Password reset successfully', {
-      description: `The password for ${props.username || 'the user'} has been updated.`,
-    })
     emit('success')
     emit('update:open', false)
   } catch {

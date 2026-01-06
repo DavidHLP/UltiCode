@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Separator } from '@/components/ui/separator'
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import {
   ArrowLeft,
   Edit,
@@ -16,8 +15,6 @@ import {
   ListChecks,
   Trophy,
   BarChart3,
-  Brackets,
-  Beaker,
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DescriptionDisplay from './components/DescriptionDisplay.vue'
@@ -34,12 +31,24 @@ const isInitialLoad = ref(true)
 const problemId = computed(() => route.params.id as string)
 const problem = computed(() => problemsStore.currentProblem)
 
-// Determine active tab from route or default to description
-const activeTab = computed(() => {
+// Determine current view from route
+const currentView = computed(() => {
   const path = route.path
   if (path.endsWith('/code')) return 'code'
   if (path.endsWith('/cases')) return 'cases'
   return 'description'
+})
+
+// Page title based on current view
+const pageTitle = computed(() => {
+  switch (currentView.value) {
+    case 'code':
+      return 'Code'
+    case 'cases':
+      return 'Test Cases'
+    default:
+      return 'Description'
+  }
 })
 
 onMounted(async () => {
@@ -69,24 +78,19 @@ async function togglePublish() {
 }
 
 function editProblem() {
-  // Navigate to the edit view for the current tab
-  router.push({ name: 'problem-edit-description', params: { id: problemId.value } })
+  // Navigate to the edit view corresponding to current view
+  const editRoutes: Record<string, string> = {
+    code: 'problem-edit-code',
+    cases: 'problem-edit-cases',
+    description: 'problem-edit-description',
+  }
+  router.push({ name: editRoutes[currentView.value], params: { id: problemId.value } })
 }
 
 const acceptanceRate = computed(() => {
   if (!problem.value?.submission_count || !problem.value?.solution_count) return '0.0'
   return ((problem.value.solution_count / problem.value.submission_count) * 100).toFixed(1)
 })
-
-function setTab(tab: string | number) {
-  const tabStr = String(tab)
-  const routes: Record<string, string> = {
-    description: 'problem-view-description',
-    code: 'problem-view-code',
-    cases: 'problem-view-cases',
-  }
-  router.push({ name: routes[tabStr] || routes.description, params: { id: problemId.value } })
-}
 </script>
 
 <template>
@@ -120,6 +124,9 @@ function setTab(tab: string | number) {
               class="text-[10px] px-1.5 py-0 shrink-0"
             >
               Premium
+            </Badge>
+            <Badge variant="outline" class="text-[10px] px-1.5 py-0 shrink-0 text-muted-foreground">
+              {{ pageTitle }}
             </Badge>
           </div>
           <Skeleton v-else class="h-5 w-32" />
@@ -226,38 +233,10 @@ function setTab(tab: string | number) {
 
         <Separator class="mb-6" />
 
-        <!-- Tabs -->
-        <Tabs :model-value="activeTab" @update:model-value="setTab">
-          <TabsList class="w-full sm:w-auto sm:inline-flex">
-            <TabsTrigger value="description" class="gap-1.5">
-              <FileText :size="14" />
-              Description
-            </TabsTrigger>
-            <TabsTrigger value="code" class="gap-1.5">
-              <Brackets :size="14" />
-              Code
-            </TabsTrigger>
-            <TabsTrigger value="cases" class="gap-1.5">
-              <Beaker :size="14" />
-              Test Cases
-            </TabsTrigger>
-          </TabsList>
-
-          <!-- Description Tab -->
-          <TabsContent value="description" class="mt-6">
-            <DescriptionDisplay :problem="problem" />
-          </TabsContent>
-
-          <!-- Code Tab -->
-          <TabsContent value="code" class="mt-6">
-            <CodeDisplay :languages="problem.languages" />
-          </TabsContent>
-
-          <!-- Test Cases Tab -->
-          <TabsContent value="cases" class="mt-6">
-            <CasesDisplay :problem="problem" />
-          </TabsContent>
-        </Tabs>
+        <!-- Content based on current view -->
+        <DescriptionDisplay v-if="currentView === 'description'" :problem="problem" />
+        <CodeDisplay v-else-if="currentView === 'code'" :languages="problem.languages" />
+        <CasesDisplay v-else-if="currentView === 'cases'" :problem="problem" />
       </template>
     </main>
   </div>

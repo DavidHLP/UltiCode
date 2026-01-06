@@ -41,7 +41,7 @@ watch(
   availableLanguages,
   (langs) => {
     if (!selectedLanguage.value && langs.length > 0) {
-      selectedLanguage.value = langs[0].language
+      selectedLanguage.value = langs[0]?.language || ''
     }
   },
   { immediate: true },

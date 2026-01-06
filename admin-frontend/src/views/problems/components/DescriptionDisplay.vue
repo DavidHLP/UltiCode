@@ -8,7 +8,7 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { IconTag, IconCalendar, IconBulb } from '@tabler/icons-vue'
+import { IconTag, IconCalendar, IconBulb, IconInfoCircle } from '@tabler/icons-vue'
 import DescriptionMarkdown, {
   type ProblemDescription,
 } from '@/components/problems/DescriptionMarkdown.vue'
@@ -152,70 +152,69 @@ const hintsList = computed(() => {
         <Separator />
 
         <!-- Accordion for Tags, Hints, Metadata -->
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
-          <!-- Left: Accordion -->
-          <div class="lg:col-span-2 space-y-4">
-            <Accordion type="multiple" class="w-full">
-              <!-- Related Tags -->
-              <AccordionItem v-if="hasTags" value="tags">
-                <AccordionTrigger class="text-xs hover:no-underline py-3">
-                  <div class="flex items-center gap-2">
-                    <IconTag class="h-4 w-4" />
-                    <span>Tags</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <div class="mt-2 flex flex-wrap gap-1.5 pl-7">
-                    <Badge
-                      v-for="tag in problem.tags"
-                      :key="tag.id"
-                      variant="secondary"
-                      class="text-xs px-2 py-1"
-                    >
-                      {{ tag.label }}
-                    </Badge>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
+        <Accordion type="multiple" class="w-full">
+          <!-- Related Tags -->
+          <AccordionItem v-if="hasTags" value="tags">
+            <AccordionTrigger class="text-xs hover:no-underline py-3">
+              <div class="flex items-center gap-2">
+                <IconTag class="h-4 w-4" />
+                <span>Tags</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div class="mt-2 flex flex-wrap gap-1.5 pl-7">
+                <Badge
+                  v-for="tag in problem.tags"
+                  :key="tag.id"
+                  variant="secondary"
+                  class="text-xs px-2 py-1"
+                >
+                  {{ tag.label }}
+                </Badge>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
 
-              <!-- Hints -->
-              <AccordionItem v-if="hasHints" value="hints">
-                <AccordionTrigger class="text-xs hover:no-underline py-3">
-                  <div class="flex items-center gap-2">
-                    <IconBulb class="h-4 w-4" />
-                    <span>Hints</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent>
-                  <ul class="mt-2 space-y-2 pl-7">
-                    <li
-                      v-for="(hint, index) in hintsList"
-                      :key="index"
-                      class="text-sm text-muted-foreground"
-                    >
-                      <span class="font-medium">{{ index + 1 }}.</span> {{ hint }}
-                    </li>
-                  </ul>
-                </AccordionContent>
-              </AccordionItem>
-            </Accordion>
-          </div>
+          <!-- Hints -->
+          <AccordionItem v-if="hasHints" value="hints">
+            <AccordionTrigger class="text-xs hover:no-underline py-3">
+              <div class="flex items-center gap-2">
+                <IconBulb class="h-4 w-4" />
+                <span>Hints</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <ul class="mt-2 space-y-2 pl-7">
+                <li
+                  v-for="(hint, index) in hintsList"
+                  :key="index"
+                  class="text-sm text-muted-foreground"
+                >
+                  <span class="font-medium">{{ index + 1 }}.</span> {{ hint }}
+                </li>
+              </ul>
+            </AccordionContent>
+          </AccordionItem>
 
-          <!-- Right: Metadata -->
-          <div class="lg:col-span-1">
-            <!-- Metadata Card -->
-            <div class="p-4 rounded-lg border bg-card">
-              <h3 class="text-xs font-medium mb-3">Metadata</h3>
-              <div class="space-y-2 text-xs">
-                <div class="grid grid-cols-2 gap-2">
+          <!-- Metadata -->
+          <AccordionItem value="metadata">
+            <AccordionTrigger class="text-xs hover:no-underline py-3">
+              <div class="flex items-center gap-2">
+                <IconInfoCircle class="h-4 w-4" />
+                <span>Metadata</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div class="mt-2 text-xs pl-7 max-w-2xl">
+                <div class="grid grid-cols-2 gap-4 sm:grid-cols-4 mb-4">
                   <div>
-                    <p class="text-muted-foreground mb-0.5">ID</p>
-                    <span class="font-mono bg-muted px-1.5 py-0.5 rounded text-xs">
-                      {{ problem.id.slice(0, 8) }}
+                    <p class="text-muted-foreground mb-1">ID</p>
+                    <span class="font-mono bg-muted px-1.5 py-0.5 rounded text-xs select-all">
+                      {{ problem.id }}
                     </span>
                   </div>
                   <div>
-                    <p class="text-muted-foreground mb-0.5">Status</p>
+                    <p class="text-muted-foreground mb-1">Status</p>
                     <Badge
                       :variant="problem.is_published ? 'default' : 'secondary'"
                       class="text-[10px] px-1.5 py-0"
@@ -224,34 +223,34 @@ const hintsList = computed(() => {
                     </Badge>
                   </div>
                 </div>
-                <Separator class="my-2" />
-                <div class="space-y-1.5">
+
+                <div class="space-y-2">
                   <div class="flex items-center gap-2">
-                    <IconCalendar class="w-3 h-3 text-muted-foreground shrink-0" />
-                    <span class="text-muted-foreground">Created</span>
-                    <span class="ml-auto">{{
-                      new Date(problem.created_at).toLocaleDateString()
+                    <IconCalendar class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span class="text-muted-foreground">Created:</span>
+                    <span class="font-medium">{{
+                      new Date(problem.created_at).toLocaleString()
                     }}</span>
                   </div>
                   <div class="flex items-center gap-2">
-                    <IconCalendar class="w-3 h-3 text-muted-foreground shrink-0" />
-                    <span class="text-muted-foreground">Updated</span>
-                    <span class="ml-auto">{{
-                      new Date(problem.updated_at).toLocaleDateString()
+                    <IconCalendar class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span class="text-muted-foreground">Updated:</span>
+                    <span class="font-medium">{{
+                      new Date(problem.updated_at).toLocaleString()
                     }}</span>
                   </div>
                   <div v-if="problem.published_at" class="flex items-center gap-2">
-                    <IconCalendar class="w-3 h-3 text-muted-foreground shrink-0" />
-                    <span class="text-muted-foreground">Published</span>
-                    <span class="ml-auto">{{
-                      new Date(problem.published_at).toLocaleDateString()
+                    <IconCalendar class="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                    <span class="text-muted-foreground">Published:</span>
+                    <span class="font-medium">{{
+                      new Date(problem.published_at).toLocaleString()
                     }}</span>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </div>
     </section>
   </section>

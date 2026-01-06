@@ -135,13 +135,11 @@ function startBanUser(user: User) {
   banDialogOpen.value = true
 }
 
-async function unbanUser(id: string) {
-  try {
-    await usersStore.unbanUser(id)
-    toast.success('User has been unbanned')
-    await loadUsers()
-  } catch {
-    toast.error('Failed to unban user')
+  async function unbanUser(id: string) {
+    try {
+      await usersStore.unbanUser(id)
+      await loadUsers()
+    } catch {    toast.error('Failed to unban user')
   }
 }
 
@@ -154,7 +152,6 @@ async function handleBulkBan() {
   bulkActionLoading.value = true
   try {
     await usersStore.bulkBan(ids, reason)
-    toast.success(`Successfully banned ${ids.length} users`)
     await loadUsers()
     selectedRows.value = []
   } catch {
@@ -171,7 +168,6 @@ async function handleBulkUnban() {
   bulkActionLoading.value = true
   try {
     await usersStore.bulkUnban(ids)
-    toast.success(`Successfully unbanned ${ids.length} users`)
     await loadUsers()
     selectedRows.value = []
   } catch {
@@ -190,7 +186,6 @@ async function handleBulkDelete() {
   bulkActionLoading.value = true
   try {
     await usersStore.bulkDelete(ids)
-    toast.success(`Successfully deleted ${ids.length} users`)
     await loadUsers()
     selectedRows.value = []
   } catch {

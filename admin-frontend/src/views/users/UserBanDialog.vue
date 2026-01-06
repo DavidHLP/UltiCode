@@ -43,7 +43,6 @@ async function handleBan() {
   loading.value = true
   try {
     await usersStore.banUser(props.userId, banReason.value)
-    toast.success('User has been banned')
     emit('success')
     emit('update:open', false)
   } catch {

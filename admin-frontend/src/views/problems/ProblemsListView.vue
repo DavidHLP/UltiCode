@@ -11,6 +11,8 @@ import {
   IconEye,
   IconEyeOff,
   IconFile,
+  IconFlask,
+  IconBrackets,
   IconLoader,
   IconPencil,
   IconPlus,
@@ -31,6 +33,9 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuSub,
+  DropdownMenuSubTrigger,
+  DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu'
 import {
   Select,
@@ -108,11 +113,27 @@ watch(
 )
 
 function viewProblem(id: string) {
-  router.push({ name: 'problem-detail', params: { id } })
+  router.push({ name: 'problem-view-description', params: { id } })
+}
+
+function viewProblemCode(id: string) {
+  router.push({ name: 'problem-view-code', params: { id } })
+}
+
+function viewProblemCases(id: string) {
+  router.push({ name: 'problem-view-cases', params: { id } })
 }
 
 function editProblem(id: string) {
-  router.push({ name: 'problem-edit', params: { id } })
+  router.push({ name: 'problem-edit-description', params: { id } })
+}
+
+function editProblemCode(id: string) {
+  router.push({ name: 'problem-edit-code', params: { id } })
+}
+
+function editProblemCases(id: string) {
+  router.push({ name: 'problem-edit-cases', params: { id } })
 }
 
 function confirmDelete(problem: Problem) {
@@ -361,27 +382,119 @@ const columns: ColumnDef<Problem>[] = [
               { align: 'end' },
               {
                 default: () => [
+                  // View Sub-menu
                   h(
-                    DropdownMenuItem,
-                    { onClick: () => viewProblem(problem.id) },
+                    DropdownMenuSub,
+                    {},
                     {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconEye, { class: 'h-4 w-4' }),
-                          'View Details',
-                        ]),
+                      default: () => [
+                        h(
+                          DropdownMenuSubTrigger,
+                          { class: 'gap-2' },
+                          {
+                            default: () => [h(IconEye, { class: 'h-4 w-4' }), 'View'],
+                          },
+                        ),
+                        h(
+                          DropdownMenuSubContent,
+                          {},
+                          {
+                            default: () => [
+                              h(
+                                DropdownMenuItem,
+                                { onClick: () => viewProblem(problem.id) },
+                                {
+                                  default: () =>
+                                    h('div', { class: 'flex items-center gap-2' }, [
+                                      h(IconFile, { class: 'h-4 w-4' }),
+                                      'Description',
+                                    ]),
+                                },
+                              ),
+                              h(
+                                DropdownMenuItem,
+                                { onClick: () => viewProblemCode(problem.id) },
+                                {
+                                  default: () =>
+                                    h('div', { class: 'flex items-center gap-2' }, [
+                                      h(IconBrackets, { class: 'h-4 w-4' }),
+                                      'Code',
+                                    ]),
+                                },
+                              ),
+                              h(
+                                DropdownMenuItem,
+                                { onClick: () => viewProblemCases(problem.id) },
+                                {
+                                  default: () =>
+                                    h('div', { class: 'flex items-center gap-2' }, [
+                                      h(IconFlask, { class: 'h-4 w-4' }),
+                                      'Test Cases',
+                                    ]),
+                                },
+                              ),
+                            ],
+                          },
+                        ),
+                      ],
                     },
                   ),
+                  // Edit Sub-menu
                   canUpdateProblem.value
                     ? h(
-                        DropdownMenuItem,
-                        { onClick: () => editProblem(problem.id) },
+                        DropdownMenuSub,
+                        {},
                         {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconPencil, { class: 'h-4 w-4' }),
-                              'Edit',
-                            ]),
+                          default: () => [
+                            h(
+                              DropdownMenuSubTrigger,
+                              { class: 'gap-2' },
+                              {
+                                default: () => [h(IconPencil, { class: 'h-4 w-4' }), 'Edit'],
+                              },
+                            ),
+                            h(
+                              DropdownMenuSubContent,
+                              {},
+                              {
+                                default: () => [
+                                  h(
+                                    DropdownMenuItem,
+                                    { onClick: () => editProblem(problem.id) },
+                                    {
+                                      default: () =>
+                                        h('div', { class: 'flex items-center gap-2' }, [
+                                          h(IconFile, { class: 'h-4 w-4' }),
+                                          'Description',
+                                        ]),
+                                    },
+                                  ),
+                                  h(
+                                    DropdownMenuItem,
+                                    { onClick: () => editProblemCode(problem.id) },
+                                    {
+                                      default: () =>
+                                        h('div', { class: 'flex items-center gap-2' }, [
+                                          h(IconBrackets, { class: 'h-4 w-4' }),
+                                          'Code',
+                                        ]),
+                                    },
+                                  ),
+                                  h(
+                                    DropdownMenuItem,
+                                    { onClick: () => editProblemCases(problem.id) },
+                                    {
+                                      default: () =>
+                                        h('div', { class: 'flex items-center gap-2' }, [
+                                          h(IconFlask, { class: 'h-4 w-4' }),
+                                          'Test Cases',
+                                        ]),
+                                    },
+                                  ),
+                                ],
+                              },
+                            ),
+                          ],
                         },
                       )
                     : null,

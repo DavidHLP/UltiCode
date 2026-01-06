@@ -131,6 +131,17 @@ const router = createRouter({
             ],
           },
         },
+        // Forum
+        {
+          path: 'forum',
+          redirect: 'forum/posts',
+        },
+        {
+          path: 'forum/posts',
+          name: 'forum-posts',
+          component: () => import('@/views/forum/ForumPostsListView.vue'),
+          meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
+        },
         // Contests
         {
           path: 'contests',

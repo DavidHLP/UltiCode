@@ -16,6 +16,7 @@ import {
   IconUsers,
   IconHistory,
   IconMessageCircle,
+  IconMessages,
   IconTrophy,
 } from '@tabler/icons-vue'
 
@@ -79,6 +80,15 @@ const navMain = computed(() => {
       title: 'Contests',
       url: '/contests',
       icon: IconTrophy,
+    })
+  }
+
+  // Add Forum if user has permission
+  if (authStore.hasPermission('MODERATE', 'FORUM_POST')) {
+    items.push({
+      title: 'Forum',
+      url: '/forum/posts',
+      icon: IconMessages,
     })
   }
 

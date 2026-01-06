@@ -472,6 +472,12 @@ model ForumComment {
   parent     ForumComment?  @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
   replies    ForumComment[] @relation("CommentReplies")
   post       ForumPost      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  is_flagged     Boolean   @default(false)
+  flagged_reason String?   @db.Text
+  flagged_at     DateTime?
+  is_deleted     Boolean   @default(false)
+  deleted_at     DateTime?
+  deleted_by     String?   @db.VarChar(40)
 
   @@index([author_id], map: "forum_comments_author_id_fkey")
   @@index([parent_id], map: "forum_comments_parent_id_fkey")
@@ -679,6 +685,12 @@ model SolutionComment {
   replies     SolutionComment[] @relation("SolutionCommentReplies")
   solution    Solution          @relation(fields: [solution_id], references: [id], onDelete: Cascade)
   author      User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  is_flagged     Boolean   @default(false)
+  flagged_reason String?   @db.Text
+  flagged_at     DateTime?
+  is_deleted     Boolean   @default(false)
+  deleted_at     DateTime?
+  deleted_by     String?   @db.VarChar(40)
 
   @@index([parent_id], map: "solution_comments_parent_id_fkey")
   @@index([solution_id], map: "solution_comments_solution_id_fkey")

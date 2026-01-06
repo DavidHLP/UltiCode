@@ -81,8 +81,8 @@ function getLanguageColor(lang: string): string {
       <!-- Code Header -->
       <div class="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-b">
         <div class="flex items-center gap-2">
-           <IconCode class="h-4 w-4 text-muted-foreground" />
-           <span class="text-xs font-medium text-muted-foreground">Source Code</span>
+          <IconCode class="h-4 w-4 text-muted-foreground" />
+          <span class="text-xs font-medium text-muted-foreground">Source Code</span>
         </div>
         <div class="flex items-center gap-1">
           <div class="w-2.5 h-2.5 rounded-full bg-red-400/80" />

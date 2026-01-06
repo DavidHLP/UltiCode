@@ -13,12 +13,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import { useSolutionsStore } from '@/stores/admin/solutions'
+import { useCommentsStore } from '@/stores/admin/comments'
+import type { CommentType } from '@/api/admin/comments'
 
 const props = defineProps<{
   open: boolean
-  solutionId: string | null
-  solutionTitle: string | null
+  commentId: string | null
+  commentType: CommentType | null
 }>()
 
 const emit = defineEmits<{
@@ -26,12 +27,12 @@ const emit = defineEmits<{
   (e: 'success'): void
 }>()
 
-const solutionsStore = useSolutionsStore()
+const commentsStore = useCommentsStore()
 const loading = ref(false)
 const reason = ref('')
 
 async function handleFlag() {
-  if (!props.solutionId) return
+  if (!props.commentId || !props.commentType) return
   if (!reason.value.trim()) {
     toast.error('Please provide a reason for flagging')
     return
@@ -39,13 +40,13 @@ async function handleFlag() {
 
   loading.value = true
   try {
-    await solutionsStore.flagSolution(props.solutionId, { reason: reason.value })
-    toast.success('Solution flagged successfully')
+    await commentsStore.flagComment(props.commentId, props.commentType, reason.value)
+    toast.success('Comment flagged successfully')
     reason.value = ''
     emit('update:open', false)
     emit('success')
   } catch (error) {
-    toast.error('Failed to flag solution')
+    toast.error('Failed to flag comment')
     console.error(error)
   } finally {
     loading.value = false
@@ -59,12 +60,10 @@ async function handleFlag() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-amber-600">
           <IconFlag class="h-5 w-5" />
-          Flag Solution
+          Flag Comment
         </DialogTitle>
         <DialogDescription>
-          Flagging solution
-          <span class="font-medium text-foreground">"{{ solutionTitle }}"</span> will mark it for
-          review and may hide it from public view depending on settings.
+          Flagging this comment will mark it for review and may hide it from public view depending on settings.
         </DialogDescription>
       </DialogHeader>
 
@@ -74,7 +73,7 @@ async function handleFlag() {
           <Textarea
             id="reason"
             v-model="reason"
-            placeholder="Please explain why this solution violates community guidelines..."
+            placeholder="Please explain why this comment violates community guidelines..."
             class="min-h-[100px]"
           />
         </div>
@@ -90,7 +89,7 @@ async function handleFlag() {
           :disabled="loading"
         >
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Flag Solution
+          Flag Comment
         </Button>
       </DialogFooter>
     </DialogContent>

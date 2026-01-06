@@ -62,7 +62,6 @@ async function unflagSolution() {
 function handleDeleteSuccess() {
   router.push({ name: 'solutions' })
 }
-
 </script>
 
 <template>
@@ -91,7 +90,7 @@ function handleDeleteSuccess() {
               >
                 Flagged
               </Badge>
-               <Badge
+              <Badge
                 v-if="!solution.is_published"
                 variant="secondary"
                 class="text-[10px] px-1.5 py-0 h-5"
@@ -109,7 +108,7 @@ function handleDeleteSuccess() {
 
         <!-- Center: Tabs (Desktop) -->
         <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
-           <Tabs :model-value="currentView" @update:model-value="handleTabChange">
+          <Tabs :model-value="currentView" @update:model-value="handleTabChange">
             <TabsList class="h-9">
               <TabsTrigger value="description" class="text-xs h-7 px-3">Description</TabsTrigger>
               <TabsTrigger value="code" class="text-xs h-7 px-3">Code</TabsTrigger>
@@ -156,12 +155,12 @@ function handleDeleteSuccess() {
 
       <!-- Mobile Tabs (Below Header) -->
       <div class="md:hidden border-t p-1 bg-muted/10">
-         <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
-            <TabsList class="w-full h-9">
-              <TabsTrigger value="description" class="flex-1 text-xs h-7">Description</TabsTrigger>
-              <TabsTrigger value="code" class="flex-1 text-xs h-7">Code</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
+          <TabsList class="w-full h-9">
+            <TabsTrigger value="description" class="flex-1 text-xs h-7">Description</TabsTrigger>
+            <TabsTrigger value="code" class="flex-1 text-xs h-7">Code</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
     </header>
 
@@ -188,19 +187,22 @@ function handleDeleteSuccess() {
       <!-- Loading State -->
       <div v-else-if="isInitialLoad || solutionsStore.loading" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-           <div class="lg:col-span-8 space-y-4">
-              <Skeleton class="h-12 w-3/4 rounded-lg" />
-              <Skeleton class="h-64 w-full rounded-xl" />
-           </div>
-           <div class="lg:col-span-4 space-y-4">
-              <Skeleton class="h-32 w-full rounded-xl" />
-              <Skeleton class="h-32 w-full rounded-xl" />
-           </div>
+          <div class="lg:col-span-8 space-y-4">
+            <Skeleton class="h-12 w-3/4 rounded-lg" />
+            <Skeleton class="h-64 w-full rounded-xl" />
+          </div>
+          <div class="lg:col-span-4 space-y-4">
+            <Skeleton class="h-32 w-full rounded-xl" />
+            <Skeleton class="h-32 w-full rounded-xl" />
+          </div>
         </div>
       </div>
 
       <!-- Not Found State -->
-      <div v-else-if="!solution" class="flex flex-col items-center justify-center py-24 text-center">
+      <div
+        v-else-if="!solution"
+        class="flex flex-col items-center justify-center py-24 text-center"
+      >
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>

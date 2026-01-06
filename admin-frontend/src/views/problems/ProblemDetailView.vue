@@ -92,7 +92,7 @@ function editProblem() {
           <div v-if="problem" class="flex items-center gap-3 min-w-0">
             <h1 class="text-sm font-semibold truncate">{{ problem.title }}</h1>
             <div class="hidden sm:flex items-center gap-2">
-               <Badge
+              <Badge
                 v-if="!problem.is_published"
                 variant="secondary"
                 class="text-[10px] px-1.5 py-0 h-5"
@@ -113,7 +113,7 @@ function editProblem() {
 
         <!-- Center: Tabs (Desktop) -->
         <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
-           <Tabs :model-value="currentView" @update:model-value="handleTabChange">
+          <Tabs :model-value="currentView" @update:model-value="handleTabChange">
             <TabsList class="h-9">
               <TabsTrigger value="description" class="text-xs h-7 px-3">Description</TabsTrigger>
               <TabsTrigger value="code" class="text-xs h-7 px-3">Code</TabsTrigger>
@@ -124,11 +124,16 @@ function editProblem() {
 
         <!-- Right: Actions -->
         <div v-if="problem" class="flex items-center gap-2">
-          <Button variant="outline" size="sm" class="h-8 gap-1.5 hidden sm:flex" @click="editProblem">
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-8 gap-1.5 hidden sm:flex"
+            @click="editProblem"
+          >
             <Edit :size="14" />
             <span>Edit</span>
           </Button>
-          
+
           <Button
             :variant="problem.is_published ? 'outline' : 'default'"
             size="sm"
@@ -144,16 +149,16 @@ function editProblem() {
           </Button>
         </div>
       </div>
-      
+
       <!-- Mobile Tabs (Below Header) -->
       <div class="md:hidden border-t p-1 bg-muted/10">
-         <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
-            <TabsList class="w-full h-9">
-              <TabsTrigger value="description" class="flex-1 text-xs h-7">Description</TabsTrigger>
-              <TabsTrigger value="code" class="flex-1 text-xs h-7">Code</TabsTrigger>
-              <TabsTrigger value="cases" class="flex-1 text-xs h-7">Test Cases</TabsTrigger>
-            </TabsList>
-          </Tabs>
+        <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
+          <TabsList class="w-full h-9">
+            <TabsTrigger value="description" class="flex-1 text-xs h-7">Description</TabsTrigger>
+            <TabsTrigger value="code" class="flex-1 text-xs h-7">Code</TabsTrigger>
+            <TabsTrigger value="cases" class="flex-1 text-xs h-7">Test Cases</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
     </header>
 
@@ -180,14 +185,14 @@ function editProblem() {
       <!-- Loading State -->
       <div v-else-if="isInitialLoad || problemsStore.loading" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-           <div class="lg:col-span-8 space-y-4">
-              <Skeleton class="h-12 w-3/4 rounded-lg" />
-              <Skeleton class="h-64 w-full rounded-xl" />
-           </div>
-           <div class="lg:col-span-4 space-y-4">
-              <Skeleton class="h-32 w-full rounded-xl" />
-              <Skeleton class="h-32 w-full rounded-xl" />
-           </div>
+          <div class="lg:col-span-8 space-y-4">
+            <Skeleton class="h-12 w-3/4 rounded-lg" />
+            <Skeleton class="h-64 w-full rounded-xl" />
+          </div>
+          <div class="lg:col-span-4 space-y-4">
+            <Skeleton class="h-32 w-full rounded-xl" />
+            <Skeleton class="h-32 w-full rounded-xl" />
+          </div>
         </div>
       </div>
 
@@ -217,8 +222,14 @@ function editProblem() {
           leave-from-class="opacity-100"
           leave-to-class="opacity-0"
         >
-          <component 
-            :is="currentView === 'description' ? DescriptionDisplay : currentView === 'code' ? CodeDisplay : CasesDisplay"
+          <component
+            :is="
+              currentView === 'description'
+                ? DescriptionDisplay
+                : currentView === 'code'
+                  ? CodeDisplay
+                  : CasesDisplay
+            "
             :key="currentView"
             :problem="problem"
             :languages="problem.languages"

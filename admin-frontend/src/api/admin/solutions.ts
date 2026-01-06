@@ -108,7 +108,9 @@ export const solutionsApi = {
     await apiClient.delete(`/admin/solutions/${id}`)
   },
 
-  async bulkAction(data: BulkSolutionActionDto): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
+  async bulkAction(
+    data: BulkSolutionActionDto,
+  ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
     const response = await apiClient.post('/admin/solutions/bulk', data)
     return response.data
   },

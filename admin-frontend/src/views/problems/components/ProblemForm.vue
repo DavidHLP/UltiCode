@@ -414,7 +414,7 @@ defineExpose({
           </div>
 
           <div class="space-y-4 pt-2">
-             <div
+            <div
               class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.is_premium = !formData.is_premium"
             >
@@ -424,7 +424,7 @@ defineExpose({
               </div>
               <Checkbox v-model:checked="formData.is_premium" />
             </div>
-            
+
             <div
               class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.is_published = !formData.is_published"

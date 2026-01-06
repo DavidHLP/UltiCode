@@ -107,12 +107,16 @@ const hintsList = computed(() => {
               <span>{{ problem.slug }}</span>
             </div>
           </div>
-          
+
           <div class="flex items-center gap-2">
             <Badge variant="outline" :class="['capitalize px-2.5 py-0.5 border', difficultyClass]">
               {{ problem.difficulty.toLowerCase() }}
             </Badge>
-            <Badge v-if="problem.is_premium" variant="secondary" class="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20 border">
+            <Badge
+              v-if="problem.is_premium"
+              variant="secondary"
+              class="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20 border"
+            >
               Premium
             </Badge>
             <Badge :variant="problem.is_published ? 'default' : 'outline'" class="capitalize">
@@ -210,7 +214,9 @@ const hintsList = computed(() => {
               :key="index"
               class="text-sm text-muted-foreground p-3 rounded-lg bg-muted/30 flex items-start gap-2.5"
             >
-              <span class="font-mono text-xs font-medium text-foreground/70 bg-background border px-1.5 rounded shrink-0 h-5 flex items-center justify-center">
+              <span
+                class="font-mono text-xs font-medium text-foreground/70 bg-background border px-1.5 rounded shrink-0 h-5 flex items-center justify-center"
+              >
                 {{ index + 1 }}
               </span>
               <span class="leading-snug">{{ hint }}</span>

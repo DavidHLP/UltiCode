@@ -148,13 +148,13 @@ const hintsList = computed(() => {
       </div>
 
       <!-- Statistics and Accordion Section -->
-      <div class="mt-4 flex flex-col gap-3">
+      <div class="mt-4">
         <Separator />
 
         <!-- Accordion for Tags, Hints, Metadata -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-6">
           <!-- Left: Accordion -->
-          <div class="lg:col-span-2">
+          <div class="lg:col-span-2 space-y-4">
             <Accordion type="multiple" class="w-full">
               <!-- Related Tags -->
               <AccordionItem v-if="hasTags" value="tags">
@@ -202,9 +202,9 @@ const hintsList = computed(() => {
           </div>
 
           <!-- Right: Metadata -->
-          <div class="space-y-4">
+          <div class="lg:col-span-1">
             <!-- Metadata Card -->
-            <div class="p-4 rounded-lg border">
+            <div class="p-4 rounded-lg border bg-card">
               <h3 class="text-xs font-medium mb-3">Metadata</h3>
               <div class="space-y-2 text-xs">
                 <div class="grid grid-cols-2 gap-2">
@@ -227,21 +227,21 @@ const hintsList = computed(() => {
                 <Separator class="my-2" />
                 <div class="space-y-1.5">
                   <div class="flex items-center gap-2">
-                    <IconCalendar class="w-3 h-3 text-muted-foreground" />
+                    <IconCalendar class="w-3 h-3 text-muted-foreground shrink-0" />
                     <span class="text-muted-foreground">Created</span>
                     <span class="ml-auto">{{
                       new Date(problem.created_at).toLocaleDateString()
                     }}</span>
                   </div>
                   <div class="flex items-center gap-2">
-                    <IconCalendar class="w-3 h-3 text-muted-foreground" />
+                    <IconCalendar class="w-3 h-3 text-muted-foreground shrink-0" />
                     <span class="text-muted-foreground">Updated</span>
                     <span class="ml-auto">{{
                       new Date(problem.updated_at).toLocaleDateString()
                     }}</span>
                   </div>
                   <div v-if="problem.published_at" class="flex items-center gap-2">
-                    <IconCalendar class="w-3 h-3 text-muted-foreground" />
+                    <IconCalendar class="w-3 h-3 text-muted-foreground shrink-0" />
                     <span class="text-muted-foreground">Published</span>
                     <span class="ml-auto">{{
                       new Date(problem.published_at).toLocaleDateString()

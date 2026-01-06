@@ -2,16 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
-import { IconBrackets, IconCopy, IconCheck } from '@tabler/icons-vue'
-import { IconCode } from '@tabler/icons-vue'
+import { IconCopy, IconCheck, IconCode, IconBrackets } from '@tabler/icons-vue'
 
 interface ProblemLanguage {
   id: string
@@ -30,13 +21,8 @@ const props = defineProps<Props>()
 const selectedLanguage = ref<string>('')
 const copied = ref(false)
 
-// Set first language as default
-const availableLanguages = computed(() => {
-  if (!props.languages?.length) return []
-  return props.languages
-})
+const availableLanguages = computed(() => props.languages || [])
 
-// Auto-select first language when available languages change
 watch(
   availableLanguages,
   (langs) => {
@@ -55,18 +41,15 @@ const currentCode = computed(() => {
   return lang?.starter_code || ''
 })
 
-const hasLanguages = computed(() => {
-  return availableLanguages.value.length > 0
-})
+const lineCount = computed(() => currentCode.value.split('\n').length)
+const hasLanguages = computed(() => availableLanguages.value.length > 0)
 
 async function copyToClipboard() {
   if (!currentCode.value) return
   try {
     await navigator.clipboard.writeText(currentCode.value)
     copied.value = true
-    setTimeout(() => {
-      copied.value = false
-    }, 2000)
+    setTimeout(() => (copied.value = false), 2000)
   } catch (err) {
     console.error('Failed to copy:', err)
   }
@@ -74,136 +57,111 @@ async function copyToClipboard() {
 
 function getLanguageColor(lang: string): string {
   const colors: Record<string, string> = {
-    python: 'text-blue-500',
-    javascript: 'text-yellow-500',
-    typescript: 'text-blue-600',
-    java: 'text-orange-500',
-    cpp: 'text-blue-400',
-    c: 'text-gray-500',
-    csharp: 'text-purple-500',
-    go: 'text-cyan-500',
-    rust: 'text-orange-600',
-    ruby: 'text-red-500',
-    php: 'text-indigo-500',
-    swift: 'text-orange-500',
-    kotlin: 'text-purple-600',
-    scala: 'text-red-600',
+    python: 'bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20',
+    javascript: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20 hover:bg-yellow-500/20',
+    typescript: 'bg-blue-600/10 text-blue-700 border-blue-600/20 hover:bg-blue-600/20',
+    java: 'bg-orange-500/10 text-orange-600 border-orange-500/20 hover:bg-orange-500/20',
+    cpp: 'bg-blue-400/10 text-blue-500 border-blue-400/20 hover:bg-blue-400/20',
+    c: 'bg-gray-500/10 text-gray-600 border-gray-500/20 hover:bg-gray-500/20',
+    csharp: 'bg-purple-500/10 text-purple-600 border-purple-500/20 hover:bg-purple-500/20',
+    go: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20 hover:bg-cyan-500/20',
+    rust: 'bg-orange-600/10 text-orange-700 border-orange-600/20 hover:bg-orange-600/20',
+    ruby: 'bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20',
+    php: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20',
+    swift: 'bg-orange-500/10 text-orange-600 border-orange-500/20 hover:bg-orange-500/20',
+    kotlin: 'bg-purple-600/10 text-purple-700 border-purple-600/20 hover:bg-purple-600/20',
+    scala: 'bg-red-600/10 text-red-700 border-red-600/20 hover:bg-red-600/20',
   }
-  return colors[lang.toLowerCase()] || 'text-gray-500'
+  return colors[lang.toLowerCase()] || 'bg-muted text-muted-foreground'
 }
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Empty State -->
-    <Card v-if="!hasLanguages" class="border-dashed">
-      <CardContent class="flex flex-col items-center justify-center py-12 text-center">
-        <IconCode class="h-12 w-12 text-muted-foreground mb-3" />
-        <p class="text-sm font-medium mb-1">No starter code configured</p>
-        <p class="text-xs text-muted-foreground">
-          This problem doesn't have any starter code templates set up.
-        </p>
-        <p class="text-xs text-muted-foreground mt-1">
-          The problem will be available in all languages by default.
-        </p>
-      </CardContent>
-    </Card>
+  <!-- Empty State -->
+  <div
+    v-if="!hasLanguages"
+    class="flex flex-col items-center justify-center py-16 px-4 text-center"
+  >
+    <div class="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
+      <IconCode class="h-8 w-8 text-muted-foreground" />
+    </div>
+    <h3 class="text-base font-semibold mb-2">No Starter Code Configured</h3>
+    <p class="text-sm text-muted-foreground max-w-sm">
+      This problem will be available in all programming languages by default.
+    </p>
+  </div>
+
+  <!-- Code Viewer -->
+  <div v-else class="space-y-4">
+    <!-- Language Selector -->
+    <div class="flex items-center justify-between gap-4">
+      <div class="flex flex-wrap gap-2">
+        <button
+          v-for="lang in availableLanguages"
+          :key="lang.id"
+          :class="[
+            'px-3 py-1.5 rounded-lg text-sm font-mono font-medium transition-all border',
+            selectedLanguage.toLowerCase() === lang.language.toLowerCase()
+              ? getLanguageColor(lang.language) + ' shadow-sm'
+              : 'bg-muted/50 text-muted-foreground hover:bg-muted border-transparent',
+          ]"
+          @click="selectedLanguage = lang.language"
+        >
+          <IconBrackets class="h-3.5 w-3.5 mr-1.5 inline-block" />
+          {{ lang.language }}
+        </button>
+      </div>
+
+      <Button
+        v-if="currentCode"
+        variant="outline"
+        size="sm"
+        class="gap-1.5 shrink-0"
+        @click="copyToClipboard"
+      >
+        <IconCheck v-if="copied" class="h-4 w-4 text-green-500" />
+        <IconCopy v-else class="h-4 w-4" />
+        {{ copied ? 'Copied' : 'Copy' }}
+      </Button>
+    </div>
 
     <!-- Code Display -->
-    <Card v-else>
-      <CardHeader>
-        <div class="flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <IconBrackets class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Starter Code</CardTitle>
-          </div>
-          <Button
-            v-if="currentCode"
+    <div class="relative rounded-xl border bg-card overflow-hidden">
+      <!-- Code Header -->
+      <div class="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-b">
+        <div class="flex items-center gap-3">
+          <Badge
             variant="outline"
-            size="sm"
-            class="gap-1.5"
-            @click="copyToClipboard"
+            class="font-mono text-xs"
+            :class="getLanguageColor(selectedLanguage)"
           >
-            <IconCheck v-if="copied" class="h-4 w-4 text-green-500" />
-            <IconCopy v-else class="h-4 w-4" />
-            {{ copied ? 'Copied!' : 'Copy' }}
-          </Button>
-        </div>
-        <CardDescription>
-          Starter code templates for different programming languages.
-        </CardDescription>
-      </CardHeader>
-      <CardContent class="space-y-4">
-        <!-- Language Selector -->
-        <div class="space-y-2">
-          <label class="text-sm font-medium">Select Language</label>
-          <Select v-model="selectedLanguage">
-            <SelectTrigger class="w-full sm:w-[200px]">
-              <SelectValue placeholder="Select a language" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem v-for="lang in availableLanguages" :key="lang.id" :value="lang.language">
-                <div class="flex items-center gap-2">
-                  <Badge variant="outline" class="font-mono text-xs">
-                    {{ lang.language }}
-                  </Badge>
-                </div>
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <!-- Language Info -->
-        <div v-if="selectedLanguage" class="flex items-center gap-2">
-          <Badge variant="outline" class="font-mono" :class="getLanguageColor(selectedLanguage)">
             <IconBrackets class="h-3 w-3 mr-1" />
             {{ selectedLanguage }}
           </Badge>
-          <span class="text-sm text-muted-foreground">
-            {{ currentCode.split('\n').length }} lines
-          </span>
+          <span class="text-xs text-muted-foreground">{{ lineCount }} lines</span>
         </div>
+        <div class="flex items-center gap-1">
+          <div class="w-2.5 h-2.5 rounded-full bg-red-400/80" />
+          <div class="w-2.5 h-2.5 rounded-full bg-yellow-400/80" />
+          <div class="w-2.5 h-2.5 rounded-full bg-green-400/80" />
+        </div>
+      </div>
 
-        <!-- Code Display -->
-        <div v-if="currentCode" class="relative p-4 rounded-lg border bg-muted/30 overflow-x-auto">
-          <pre
-            class="text-sm font-mono whitespace-pre-wrap break-words"
-          ><code>{{ currentCode || '// No starter code available for this language' }}</code></pre>
-        </div>
-        <div
-          v-else
-          class="p-8 rounded-lg border bg-muted/20 text-center text-sm text-muted-foreground italic"
-        >
-          No starter code available for {{ selectedLanguage }}
-        </div>
-      </CardContent>
-    </Card>
+      <!-- Code Content -->
+      <div v-if="currentCode" class="p-4 overflow-x-auto bg-[#0d1117]">
+        <pre
+          class="text-sm font-mono whitespace-pre-wrap break-words text-gray-100"
+        ><code>{{ currentCode }}</code></pre>
+      </div>
+      <div v-else class="p-8 text-center text-sm text-muted-foreground italic bg-muted/20">
+        No starter code available for {{ selectedLanguage }}
+      </div>
+    </div>
 
-    <!-- All Languages Summary -->
-    <Card v-if="hasLanguages">
-      <CardHeader class="pb-3">
-        <CardTitle class="text-base">Configured Languages</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div class="flex flex-wrap gap-2">
-          <Badge
-            v-for="lang in availableLanguages"
-            :key="lang.id"
-            variant="secondary"
-            class="font-mono text-sm px-3 py-1"
-            :class="getLanguageColor(lang.language)"
-          >
-            <IconBrackets class="h-3 w-3 mr-1" />
-            {{ lang.language }}
-          </Badge>
-        </div>
-        <p v-if="availableLanguages.length === 0" class="text-sm text-muted-foreground mt-2">
-          No specific languages configured. Problem is available in all languages.
-        </p>
-        <p v-else class="text-xs text-muted-foreground mt-2">
-          {{ availableLanguages.length }} language(s) configured with starter code.
-        </p>
-      </CardContent>
-    </Card>
+    <!-- Summary Footer -->
+    <div class="flex items-center justify-between text-xs text-muted-foreground px-1">
+      <span>{{ availableLanguages.length }} language(s) configured</span>
+      <span>Click a language above to view its starter code</span>
+    </div>
   </div>
 </template>

@@ -131,6 +131,19 @@ const router = createRouter({
             ],
           },
         },
+        // Contests
+        {
+          path: 'contests',
+          name: 'contests',
+          component: () => import('@/views/contests/ContestsListView.vue'),
+          meta: { permission: { action: 'READ', resource: 'CONTEST' } },
+        },
+        {
+          path: 'contests/:id',
+          name: 'contest-detail',
+          component: () => import('@/views/contests/ContestDetailView.vue'),
+          meta: { permission: { action: 'READ', resource: 'CONTEST' } },
+        },
       ],
     },
   ],

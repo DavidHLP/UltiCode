@@ -1,8 +1,19 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { IconBrackets, IconBulb, IconTag, IconCode, IconCalendar } from '@tabler/icons-vue'
-import { renderMarkdown } from '@/utils/markdown'
+import { IconTag, IconCode, IconCalendar } from '@tabler/icons-vue'
+import DescriptionMarkdown, {
+  type ProblemDescription,
+} from '@/components/problems/DescriptionMarkdown.vue'
+
+interface ProblemExample {
+  id: string
+  input: string
+  output: string
+  explanation?: string
+  order: number
+}
 
 interface ProblemDetail {
   id: string
@@ -28,64 +39,41 @@ interface ProblemDetail {
   }
   tags: Array<{ id: string; label: string }>
   languages?: Array<{ id: string; language: string }>
+  examples?: ProblemExample[]
 }
 
 const props = defineProps<{
   problem: ProblemDetail
 }>()
 
-const renderedSummary = () => {
-  return props.problem.detail?.summary ? renderMarkdown(props.problem.detail.summary) : ''
-}
+/**
+ * Normalize problem data into the structure expected by DescriptionMarkdown.
+ */
+const problemDescription = computed<ProblemDescription>(() => ({
+  content: props.problem.detail?.summary || '',
+  examples: (props.problem.examples || [])
+    .sort((a, b) => a.order - b.order)
+    .map((example) => ({
+      input: example.input,
+      output: example.output,
+      explanation: example.explanation,
+    })),
+  constraints: props.problem.detail?.constraints_json || [],
+  followUp: props.problem.detail?.hints?.join('\n'),
+}))
 </script>
 
 <template>
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <!-- Left Column -->
     <div class="lg:col-span-2 space-y-4">
-      <!-- Summary -->
-      <div v-if="problem.detail?.summary" class="p-4 rounded-lg border bg-muted/20">
-        <h3 class="text-xs font-medium mb-2">Summary</h3>
-        <div
-          class="prose prose-sm dark:prose-invert max-w-none prose-p:text-muted-foreground prose-p:leading-relaxed"
-          v-html="renderedSummary()"
-        />
-      </div>
-
-      <!-- Constraints -->
-      <div v-if="problem.detail?.constraints_json?.length" class="p-4 rounded-lg border">
-        <div class="flex items-center gap-2 mb-3">
-          <IconBrackets class="w-4 h-4 text-muted-foreground" />
-          <h3 class="text-xs font-medium">Constraints</h3>
-        </div>
-        <ul class="grid sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
-          <li v-for="(c, i) in problem.detail.constraints_json" :key="i" class="flex gap-2">
-            <span class="text-muted-foreground/60">•</span>
-            <span>{{ c }}</span>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Hints -->
-      <div v-if="problem.detail?.hints?.length" class="p-4 rounded-lg border">
-        <div class="flex items-center gap-2 mb-3">
-          <IconBulb class="w-4 h-4 text-muted-foreground" />
-          <h3 class="text-xs font-medium">Hints</h3>
-        </div>
-        <div class="space-y-2">
-          <div
-            v-for="(hint, i) in problem.detail.hints"
-            :key="i"
-            class="flex gap-3 p-2.5 rounded bg-muted/30 text-sm text-muted-foreground"
-          >
-            <span
-              class="flex-shrink-0 w-5 h-5 flex items-center justify-center text-xs font-mono rounded bg-muted"
-            >
-              {{ i + 1 }}
-            </span>
-            <span>{{ hint }}</span>
-          </div>
-        </div>
+      <!-- Problem Description with Markdown Rendering -->
+      <div
+        v-if="problemDescription.content || problemDescription.examples?.length"
+        class="p-4 rounded-lg border bg-muted/20"
+      >
+        <h3 class="text-xs font-medium mb-3">Description</h3>
+        <DescriptionMarkdown :description="problemDescription" />
       </div>
     </div>
 

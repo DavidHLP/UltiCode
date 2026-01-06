@@ -24,21 +24,17 @@ export class AdminCommentService {
     } = query;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-
-    if (search) {
-      where.content = { contains: search };
-    }
+    const baseWhere: any = {};
 
     if (is_flagged !== undefined) {
-      where.is_flagged = is_flagged;
+      baseWhere.is_flagged = is_flagged;
     }
 
     if (is_deleted !== undefined) {
-      where.is_deleted = is_deleted;
+      baseWhere.is_deleted = is_deleted;
     } else {
       // Default to not showing deleted unless requested
-      where.is_deleted = false;
+      baseWhere.is_deleted = false;
     }
 
     let forumComments: any[] = [];
@@ -48,9 +44,14 @@ export class AdminCommentService {
 
     // If type is specified or 'all', fetch accordingly
     if (!type || type === CommentType.FORUM) {
+      const forumWhere = { ...baseWhere };
+      if (search) {
+        forumWhere.body = { contains: search };
+      }
+
       const [fData, fCount] = await Promise.all([
         this.prisma.forumComment.findMany({
-          where,
+          where: forumWhere,
           include: {
             author: { select: { id: true, username: true, avatar: true } },
             post: { select: { id: true, title: true } },
@@ -59,16 +60,21 @@ export class AdminCommentService {
           take: type === CommentType.FORUM ? limit : Math.floor(limit / 2), // Simple split if both
           skip: type === CommentType.FORUM ? skip : 0,
         }) as Promise<any[]>,
-        this.prisma.forumComment.count({ where }),
+        this.prisma.forumComment.count({ where: forumWhere }),
       ]);
       forumComments = fData;
       totalForum = fCount;
     }
 
     if (!type || type === CommentType.SOLUTION) {
+      const solutionWhere = { ...baseWhere };
+      if (search) {
+        solutionWhere.content = { contains: search };
+      }
+
       const [sData, sCount] = await Promise.all([
         this.prisma.solutionComment.findMany({
-          where,
+          where: solutionWhere,
           include: {
             author: { select: { id: true, username: true, avatar: true } },
             solution: { select: { id: true, title: true } },
@@ -77,7 +83,7 @@ export class AdminCommentService {
           take: type === CommentType.SOLUTION ? limit : Math.floor(limit / 2),
           skip: type === CommentType.SOLUTION ? skip : 0,
         }) as Promise<any[]>,
-        this.prisma.solutionComment.count({ where }),
+        this.prisma.solutionComment.count({ where: solutionWhere }),
       ]);
       solutionComments = sData;
       totalSolution = sCount;
@@ -86,6 +92,7 @@ export class AdminCommentService {
     // Transform and merge
     const transformedForum = forumComments.map((c: any): any => ({
       ...c,
+      content: c.body,
       type: 'forum',
       parentId: c.post_id,
       parentTitle: c.post?.title,

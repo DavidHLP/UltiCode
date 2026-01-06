@@ -163,7 +163,7 @@ router.beforeEach(async (to, from, next) => {
 
     // Check if user has ANY of the required permissions
     const hasAnyPermission = permissions.some((p: { action: string; resource: string }) =>
-      authStore.hasPermission(p.action, p.resource)
+      authStore.hasPermission(p.action, p.resource),
     )
 
     if (!hasAnyPermission) {

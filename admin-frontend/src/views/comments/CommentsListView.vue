@@ -47,7 +47,7 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const typeFilter = ref<CommentType | 'all'>('all')
 const flaggedFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
+const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedCommentId = ref<string | null>(null)
 const selectedCommentType = ref<CommentType | null>(null)
@@ -143,9 +143,8 @@ const columns: ColumnDef<Comment>[] = [
     header: 'Comment',
     cell: ({ row }) => {
       const comment = row.original
-      const truncated = comment.content.length > 100
-        ? comment.content.slice(0, 100) + '...'
-        : comment.content
+      const truncated =
+        comment.content.length > 100 ? comment.content.slice(0, 100) + '...' : comment.content
 
       return h('div', { class: 'flex flex-col gap-1' }, [
         h('span', { class: 'font-medium text-sm' }, truncated),
@@ -174,9 +173,7 @@ const columns: ColumnDef<Comment>[] = [
     header: 'Type',
     cell: ({ row }) => {
       const type = row.getValue('type') as CommentType
-      return h(Badge, { variant: 'outline' }, () =>
-        type === 'forum' ? 'Forum' : 'Solution'
-      )
+      return h(Badge, { variant: 'outline' }, () => (type === 'forum' ? 'Forum' : 'Solution'))
     },
   },
   {
@@ -349,10 +346,7 @@ const columns: ColumnDef<Comment>[] = [
               @click="loadComments()"
               title="Refresh"
             >
-              <IconRefresh
-                class="h-3.5 w-3.5"
-                :class="{ 'animate-spin': commentsStore.loading }"
-              />
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': commentsStore.loading }" />
             </Button>
           </div>
         </div>

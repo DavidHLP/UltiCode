@@ -116,6 +116,32 @@ const navMain = computed(() => {
   return items
 })
 
+const navSecondary = computed(() => {
+  const items = []
+
+  if (authStore.hasPermission('UPDATE', 'SYSTEM')) {
+    items.push({
+      title: 'Settings',
+      url: '/settings',
+      icon: IconSettings,
+    })
+  }
+
+  items.push({
+    title: 'Get Help',
+    url: '#',
+    icon: IconHelp,
+  })
+
+  items.push({
+    title: 'Search',
+    url: '#',
+    icon: IconSearch,
+  })
+
+  return items
+})
+
 const data = {
   navClouds: [
     {
@@ -165,23 +191,6 @@ const data = {
       ],
     },
   ],
-  navSecondary: [
-    {
-      title: 'Settings',
-      url: '#',
-      icon: IconSettings,
-    },
-    {
-      title: 'Get Help',
-      url: '#',
-      icon: IconHelp,
-    },
-    {
-      title: 'Search',
-      url: '#',
-      icon: IconSearch,
-    },
-  ],
   documents: [
     {
       name: 'Data Library',
@@ -219,7 +228,7 @@ const data = {
     <SidebarContent>
       <NavMain :items="navMain" />
       <NavDocuments :items="data.documents" />
-      <NavSecondary :items="data.navSecondary" class="mt-auto" />
+      <NavSecondary :items="navSecondary" class="mt-auto" />
     </SidebarContent>
     <SidebarFooter>
       <NavUser :user="user" />

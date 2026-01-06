@@ -1032,3 +1032,12 @@ model AuditLog {
   @@index([created_at])
   @@map("audit_logs")
 }
+
+model SystemSetting {
+  key         String   @id @db.VarChar(50)
+  value       String   @db.Text
+  description String?  @db.VarChar(255)
+  updated_at  DateTime @updatedAt
+
+  @@map("system_settings")
+}

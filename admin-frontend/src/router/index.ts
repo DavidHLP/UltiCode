@@ -155,6 +155,13 @@ const router = createRouter({
           component: () => import('@/views/contests/ContestDetailView.vue'),
           meta: { permission: { action: 'READ', resource: 'CONTEST' } },
         },
+        // Settings
+        {
+          path: 'settings',
+          name: 'settings',
+          component: () => import('@/views/settings/SettingsView.vue'),
+          meta: { permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+        },
       ],
     },
   ],

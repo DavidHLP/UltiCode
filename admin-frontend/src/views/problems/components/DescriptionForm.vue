@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { IconFileDescription } from '@tabler/icons-vue'
+import { IconFileDescription, IconCheck } from '@tabler/icons-vue'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import {
   Select,
@@ -132,9 +132,9 @@ defineExpose({
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-    <!-- Left Column: Main Content -->
-    <div class="lg:col-span-2 space-y-6">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <!-- Main Content -->
+    <div class="lg:col-span-8 space-y-6">
       <Card>
         <CardHeader>
           <div class="flex items-center gap-2">
@@ -210,35 +210,41 @@ defineExpose({
       </Card>
     </div>
 
-    <!-- Right Column: Sidebar -->
-    <div class="space-y-6 lg:sticky lg:top-6 h-fit">
+    <!-- Sidebar -->
+    <div class="lg:col-span-4 space-y-6 lg:sticky lg:top-6 h-fit">
       <!-- Publishing Card -->
       <Card class="border-primary/10 shadow-sm">
-        <CardHeader class="pb-3">
-          <CardTitle>Publishing</CardTitle>
+        <CardHeader class="pb-3 border-b bg-muted/20">
+          <CardTitle class="text-base">Publishing</CardTitle>
         </CardHeader>
-        <CardContent class="space-y-4">
-          <div class="space-y-3">
+        <CardContent class="pt-6 space-y-6">
+          <div class="space-y-4">
             <div
-              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+              class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.is_premium = !formData.is_premium"
             >
-              <Label class="cursor-pointer">Premium Problem</Label>
+              <div class="space-y-0.5">
+                <Label class="text-base cursor-pointer">Premium</Label>
+                <p class="text-xs text-muted-foreground">Only for premium users</p>
+              </div>
               <Checkbox v-model:checked="formData.is_premium" />
             </div>
+            
             <div
-              class="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors cursor-pointer"
+              class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
               @click="formData.is_published = !formData.is_published"
             >
-              <Label class="cursor-pointer">
-                {{ isEdit ? 'Published' : 'Publish immediately' }}
-              </Label>
+              <div class="space-y-0.5">
+                <Label class="text-base cursor-pointer">Published</Label>
+                <p class="text-xs text-muted-foreground">Visible to all users</p>
+              </div>
               <Checkbox v-model:checked="formData.is_published" />
             </div>
           </div>
 
-          <div class="flex flex-col gap-3 pt-2">
+          <div class="flex flex-col gap-3">
             <Button class="w-full" :disabled="loading" @click="submit">
+              <IconCheck v-if="!loading" class="h-4 w-4 mr-2" />
               {{ loading ? 'Saving...' : isEdit ? 'Update Description' : 'Save Description' }}
             </Button>
             <Button variant="outline" class="w-full" @click="cancel"> Cancel </Button>

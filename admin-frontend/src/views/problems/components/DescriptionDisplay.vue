@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { Badge } from '@/components/ui/badge'
-import { Separator } from '@/components/ui/separator'
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from '@/components/ui/accordion'
-import { IconTag, IconBulb, IconInfoCircle } from '@tabler/icons-vue'
+import { IconTag, IconBulb, IconInfoCircle, IconCalendar, IconHash } from '@tabler/icons-vue'
 import DescriptionMarkdown, {
   type ProblemDescription,
 } from '@/components/problems/DescriptionMarkdown.vue'
+import { Separator } from '@/components/ui/separator'
 
 interface ProblemExample {
   id: string
@@ -50,10 +44,10 @@ const props = defineProps<{
  */
 const difficultyClass = computed(() => {
   const difficulty = props.problem.difficulty.toLowerCase()
-  if (difficulty === 'easy') return 'text-green-600 dark:text-green-500'
-  if (difficulty === 'medium') return 'text-orange-600 dark:text-orange-500'
-  if (difficulty === 'hard') return 'text-red-600 dark:text-red-500'
-  return 'text-foreground'
+  if (difficulty === 'easy') return 'text-green-600 bg-green-500/10 border-green-500/20'
+  if (difficulty === 'medium') return 'text-orange-600 bg-orange-500/10 border-orange-500/20'
+  if (difficulty === 'hard') return 'text-red-600 bg-red-500/10 border-red-500/20'
+  return 'text-foreground bg-muted'
 })
 
 /**
@@ -69,8 +63,6 @@ const hasHints = computed(() => {
 const hasTags = computed(() => {
   return props.problem.tags?.length > 0
 })
-
-// Note: refs for accordion sections are not needed since scroll-to-section was removed
 
 /**
  * Normalize problem data into the structure expected by DescriptionMarkdown.
@@ -89,163 +81,143 @@ const problemDescription = computed<ProblemDescription>(() => ({
 }))
 
 /**
- * Parse hints as array for accordion display
+ * Parse hints as array
  */
 const hintsList = computed(() => {
   const hints = props.problem.detail?.hints
   if (!hints || hints.length === 0) return []
-  // If hints is an array of strings, return as is
   if (typeof hints[0] === 'string') return hints
-  // If hints is a single string, split by newlines
   const joined = hints.join('\n')
   return joined.split('\n').filter((h) => h.trim())
 })
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
     <!-- Main Content: Description -->
-    <div class="lg:col-span-3 space-y-6">
-      <section class="space-y-3">
-        <!-- Title -->
-        <h1 class="text-2xl font-semibold leading-tight">
-          {{ problem.title }}
-        </h1>
-
-        <!-- Badges Row -->
-        <div class="flex flex-wrap gap-1">
-          <!-- Difficulty Badge -->
-          <div
-            class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted text-xs"
-            :class="difficultyClass"
-          >
-            {{ problem.difficulty }}
+    <div class="lg:col-span-8 space-y-6">
+      <div class="rounded-xl border bg-card p-6 shadow-sm">
+        <!-- Header -->
+        <div class="flex flex-col gap-4 mb-6">
+          <div class="space-y-1">
+            <h1 class="text-2xl font-bold tracking-tight">
+              {{ problem.title }}
+            </h1>
+            <div class="flex items-center gap-2 text-muted-foreground text-sm font-mono">
+              <span>{{ problem.slug }}</span>
+            </div>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <Badge variant="outline" :class="['capitalize px-2.5 py-0.5 border', difficultyClass]">
+              {{ problem.difficulty.toLowerCase() }}
+            </Badge>
+            <Badge v-if="problem.is_premium" variant="secondary" class="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20 border">
+              Premium
+            </Badge>
+            <Badge :variant="problem.is_published ? 'default' : 'outline'" class="capitalize">
+              {{ problem.is_published ? 'Published' : 'Draft' }}
+            </Badge>
           </div>
         </div>
 
+        <Separator class="mb-6" />
+
         <!-- Problem Description with Markdown Rendering -->
-        <div
-          v-if="problemDescription.content || problemDescription.examples?.length"
-          class="p-4 rounded-lg border bg-muted/20"
-        >
+        <div class="prose prose-sm dark:prose-invert max-w-none">
           <DescriptionMarkdown :description="problemDescription" />
         </div>
-      </section>
+      </div>
     </div>
 
     <!-- Sidebar: Metadata, Tags, Hints -->
-    <div class="lg:col-span-1 space-y-6">
-      <div class="space-y-4">
-        <Accordion type="multiple" class="w-full" :default-value="['metadata']">
-          <!-- Metadata (Always visible by default recommended) -->
-          <AccordionItem value="metadata">
-            <AccordionTrigger class="text-xs hover:no-underline py-2">
-              <div class="flex items-center gap-2">
-                <IconInfoCircle class="h-4 w-4" />
-                <span>Metadata</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div class="space-y-4 pt-1">
-                <!-- ID & Status -->
-                <div class="grid grid-cols-2 gap-2">
-                  <div>
-                    <p class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-                      ID
-                    </p>
-                    <span
-                      class="font-mono bg-muted px-1.5 py-0.5 rounded text-xs select-all block w-fit"
-                    >
-                      {{ problem.id.slice(0, 8) }}
-                    </span>
-                  </div>
-                  <div>
-                    <p class="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">
-                      Status
-                    </p>
-                    <Badge
-                      :variant="problem.is_published ? 'default' : 'secondary'"
-                      class="text-[10px] px-1.5 py-0"
-                    >
-                      {{ problem.is_published ? 'Published' : 'Draft' }}
-                    </Badge>
-                  </div>
-                </div>
-
-                <Separator />
-
-                <!-- Dates -->
-                <div class="space-y-2 text-xs">
-                  <div class="flex justify-between items-center">
-                    <span class="text-muted-foreground">Created</span>
-                    <span class="font-medium">{{
-                      new Date(problem.created_at).toLocaleDateString()
-                    }}</span>
-                  </div>
-                  <div class="flex justify-between items-center">
-                    <span class="text-muted-foreground">Updated</span>
-                    <span class="font-medium">{{
-                      new Date(problem.updated_at).toLocaleDateString()
-                    }}</span>
-                  </div>
-                  <div v-if="problem.published_at" class="flex justify-between items-center">
-                    <span class="text-muted-foreground">Published</span>
-                    <span class="font-medium">{{
-                      new Date(problem.published_at).toLocaleDateString()
-                    }}</span>
-                  </div>
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          <!-- Related Tags -->
-          <AccordionItem v-if="hasTags" value="tags">
-            <AccordionTrigger class="text-xs hover:no-underline py-2">
-              <div class="flex items-center gap-2">
-                <IconTag class="h-4 w-4" />
-                <span>Tags</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div class="flex flex-wrap gap-1.5 pt-1">
-                <Badge
-                  v-for="tag in problem.tags"
-                  :key="tag.id"
-                  variant="secondary"
-                  class="text-xs px-2 py-1"
-                >
-                  {{ tag.label }}
-                </Badge>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
-          <!-- Hints -->
-          <AccordionItem v-if="hasHints" value="hints">
-            <AccordionTrigger class="text-xs hover:no-underline py-2">
-              <div class="flex items-center gap-2">
-                <IconBulb class="h-4 w-4" />
-                <span>Hints</span>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <ul class="space-y-3 pt-1">
-                <li
-                  v-for="(hint, index) in hintsList"
-                  :key="index"
-                  class="text-xs text-muted-foreground leading-relaxed bg-muted/30 p-2 rounded border"
-                >
-                  <span class="font-mono text-[10px] font-bold text-foreground mr-1"
-                    >#{{ index + 1 }}</span
-                  >
-                  {{ hint }}
-                </li>
-              </ul>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+    <aside class="lg:col-span-4 space-y-6">
+      <!-- Metadata Card -->
+      <div class="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
+          <IconInfoCircle class="h-4 w-4 text-muted-foreground" />
+          <h3 class="font-semibold text-sm">Metadata</h3>
+        </div>
+        <div class="p-4 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <IconHash class="h-3 w-3" /> ID
+              </span>
+              <p class="font-mono text-xs bg-muted/50 p-1 rounded select-all truncate">
+                {{ problem.id }}
+              </p>
+            </div>
+            <div class="space-y-1">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <IconCalendar class="h-3 w-3" /> Created
+              </span>
+              <p class="text-sm font-medium">
+                {{ new Date(problem.created_at).toLocaleDateString() }}
+              </p>
+            </div>
+            <div class="space-y-1">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <IconCalendar class="h-3 w-3" /> Updated
+              </span>
+              <p class="text-sm font-medium">
+                {{ new Date(problem.updated_at).toLocaleDateString() }}
+              </p>
+            </div>
+            <div v-if="problem.published_at" class="space-y-1">
+              <span class="text-xs text-muted-foreground flex items-center gap-1">
+                <IconCalendar class="h-3 w-3" /> Published
+              </span>
+              <p class="text-sm font-medium">
+                {{ new Date(problem.published_at).toLocaleDateString() }}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    </div>
+
+      <!-- Tags Card -->
+      <div v-if="hasTags" class="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
+          <IconTag class="h-4 w-4 text-muted-foreground" />
+          <h3 class="font-semibold text-sm">Tags</h3>
+        </div>
+        <div class="p-4">
+          <div class="flex flex-wrap gap-1.5">
+            <Badge
+              v-for="tag in problem.tags"
+              :key="tag.id"
+              variant="secondary"
+              class="px-2.5 py-0.5 text-xs font-normal"
+            >
+              {{ tag.label }}
+            </Badge>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hints Card -->
+      <div v-if="hasHints" class="rounded-xl border bg-card overflow-hidden shadow-sm">
+        <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
+          <IconBulb class="h-4 w-4 text-muted-foreground" />
+          <h3 class="font-semibold text-sm">Hints</h3>
+          <Badge variant="secondary" class="ml-auto text-xs">{{ hintsList.length }}</Badge>
+        </div>
+        <div class="p-4">
+          <ul class="space-y-2">
+            <li
+              v-for="(hint, index) in hintsList"
+              :key="index"
+              class="text-sm text-muted-foreground p-3 rounded-lg bg-muted/30 flex items-start gap-2.5"
+            >
+              <span class="font-mono text-xs font-medium text-foreground/70 bg-background border px-1.5 rounded shrink-0 h-5 flex items-center justify-center">
+                {{ index + 1 }}
+              </span>
+              <span class="leading-snug">{{ hint }}</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </aside>
   </div>
 </template>

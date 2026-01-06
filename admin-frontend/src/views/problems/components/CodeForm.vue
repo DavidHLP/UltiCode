@@ -207,7 +207,7 @@ defineExpose({
             placeholder="Custom language name..."
             class="font-mono text-sm flex-1 max-w-xs"
             @keyup.enter="
-              addLanguage(customLanguage)
+              addLanguage(customLanguage);
               customLanguage = ''
             "
           />
@@ -215,7 +215,7 @@ defineExpose({
             size="sm"
             :disabled="!customLanguage.trim()"
             @click="
-              addLanguage(customLanguage)
+              addLanguage(customLanguage);
               customLanguage = ''
             "
           >

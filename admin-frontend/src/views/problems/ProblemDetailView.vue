@@ -21,6 +21,7 @@ import {
 } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import OverviewTab from './tabs/OverviewTab.vue'
+import PreviewTab from './tabs/ProblemPreviewTab.vue'
 import TestCasesTab from './tabs/TestCasesTab.vue'
 import SubmissionsTab from './tabs/SubmissionsTab.vue'
 import SolutionsTab from './tabs/SolutionsTab.vue'
@@ -81,6 +82,7 @@ function getDifficultyVariant(difficulty: string) {
 
 const tabItems = computed(() => [
   { value: 'overview', label: 'Overview', icon: FileText, count: null },
+  { value: 'preview', label: 'Preview', icon: Eye, count: null },
   { value: 'testcases', label: 'Examples', icon: Code, count: problem.value?.examples?.length },
   {
     value: 'submissions',
@@ -248,6 +250,10 @@ const tabItems = computed(() => [
           <div class="mt-4">
             <TabsContent value="overview" class="mt-0">
               <OverviewTab :problem="problem" />
+            </TabsContent>
+
+            <TabsContent value="preview" class="mt-0">
+              <PreviewTab :problem="problem" />
             </TabsContent>
 
             <TabsContent value="testcases" class="mt-0">

@@ -102,6 +102,28 @@ export interface BulkActionResult {
   error?: string
 }
 
+// Detail view interfaces
+export interface AuditEntry {
+  id: string
+  action: string
+  performer: {
+    id: string
+    username: string
+  }
+  entityType: string
+  entityId: string
+  oldValues?: Record<string, unknown>
+  newValues?: Record<string, unknown>
+  ipAddress?: string
+  userAgent?: string
+  created_at: string
+}
+
+export interface ForumPostDetail extends ForumPost {
+  full_content?: string
+  moderation_history?: AuditEntry[]
+}
+
 export const forumApi = {
   async getPosts(params: ForumPostQueryParams): Promise<AdminForumPostsResponse> {
     const response = await apiClient.get<AdminForumPostsResponse>('/admin/forum/posts', { params })
@@ -141,5 +163,24 @@ export const forumApi = {
   async bulkAction(data: BulkForumActionDto): Promise<{ results: BulkActionResult[] }> {
     const response = await apiClient.post('/admin/forum/bulk', data)
     return response.data
+  },
+
+  // Detail view methods
+  async getPostDetail(id: string): Promise<ForumPostDetail> {
+    const response = await apiClient.get<ForumPostDetail>(`/admin/forum/posts/${id}`)
+    return response.data
+  },
+
+  async getPostAuditHistory(id: string): Promise<AuditEntry[]> {
+    const response = await apiClient.get<{ data: AuditEntry[] }>(`/admin/forum/posts/${id}/audit`)
+    return response.data.data
+  },
+
+  async flagPost(id: string, reason: string): Promise<void> {
+    await apiClient.post(`/admin/forum/posts/${id}/flag`, { reason })
+  },
+
+  async unflagPost(id: string): Promise<void> {
+    await apiClient.post(`/admin/forum/posts/${id}/unflag`)
   },
 }

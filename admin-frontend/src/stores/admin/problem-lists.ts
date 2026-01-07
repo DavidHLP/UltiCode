@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
+import { isAxiosError } from 'axios';
 import {
   adminProblemListsApi,
   type ProblemList,
@@ -17,6 +18,13 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
+  function getErrorMessage(err: unknown, defaultMessage: string): string {
+    if (isAxiosError(err) && err.response?.data?.message) {
+      return err.response.data.message;
+    }
+    return defaultMessage;
+  }
+
   async function fetchLists(query: ProblemListQuery) {
     isLoading.value = true;
     error.value = null;
@@ -24,8 +32,8 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
       const response = await adminProblemListsApi.getLists(query);
       lists.value = response.data;
       total.value = response.total;
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to fetch problem lists';
+    } catch (err) {
+      error.value = getErrorMessage(err, 'Failed to fetch problem lists');
       throw err;
     } finally {
       isLoading.value = false;
@@ -37,8 +45,8 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
     error.value = null;
     try {
       currentList.value = await adminProblemListsApi.getList(id);
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to fetch problem list';
+    } catch (err) {
+      error.value = getErrorMessage(err, 'Failed to fetch problem list');
       throw err;
     } finally {
       isLoading.value = false;
@@ -50,8 +58,8 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
     error.value = null;
     try {
       return await adminProblemListsApi.createList(data);
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to create problem list';
+    } catch (err) {
+      error.value = getErrorMessage(err, 'Failed to create problem list');
       throw err;
     } finally {
       isLoading.value = false;
@@ -67,8 +75,8 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
         currentList.value = { ...currentList.value, ...updatedList };
       }
       return updatedList;
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to update problem list';
+    } catch (err) {
+      error.value = getErrorMessage(err, 'Failed to update problem list');
       throw err;
     } finally {
       isLoading.value = false;
@@ -81,8 +89,8 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
     try {
       await adminProblemListsApi.deleteList(id);
       lists.value = lists.value.filter((l) => l.id !== id);
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to delete problem list';
+    } catch (err) {
+      error.value = getErrorMessage(err, 'Failed to delete problem list');
       throw err;
     } finally {
       isLoading.value = false;
@@ -96,8 +104,8 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
       await adminProblemListsApi.updateListProblems(id, data);
       // Refresh list details
       await fetchList(id);
-    } catch (err: any) {
-      error.value = err.response?.data?.message || 'Failed to update list problems';
+    } catch (err) {
+      error.value = getErrorMessage(err, 'Failed to update list problems');
       throw err;
     } finally {
       isLoading.value = false;

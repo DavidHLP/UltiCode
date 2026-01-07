@@ -75,7 +75,7 @@ export interface AuditExportParams extends AuditLogQueryParams {
 export const auditApi = {
   async getAuditLogs(params: AuditLogQueryParams = {}): Promise<AuditLogsResponse> {
     const response = await apiClient.get<AuditLogsResponse>('/admin/audit/logs', { params })
-    return response.data
+    return response
   },
 
   async getAuditStats(params?: {
@@ -84,18 +84,23 @@ export const auditApi = {
     performerId?: string
   }): Promise<AuditStats> {
     const response = await apiClient.get<AuditStats>('/admin/audit/stats', { params })
-    return response.data
+    return response
   },
 
   async exportAuditLogs(params: AuditExportParams = {}): Promise<void> {
     const { format = 'csv', ...queryParams } = params
-    const response = await apiClient.get('/admin/audit/export', {
+    const response = await apiClient.get<Blob | unknown>('/admin/audit/export', {
       params: { ...queryParams, format },
       responseType: format === 'csv' ? 'blob' : 'json',
     })
 
     // Create download link
-    const url = window.URL.createObjectURL(new Blob([response.data]))
+    // response is already the data (Blob or JSON array) due to interceptor
+    const blob = format === 'csv'
+      ? (response as Blob)
+      : new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' })
+
+    const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
     link.setAttribute('download', `audit-logs-${new Date().toISOString()}.${format}`)

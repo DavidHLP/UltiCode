@@ -47,9 +47,7 @@ export class ApiError extends Error {
 
   static fromAxiosError(error: AxiosError): ApiError {
     const message =
-      (error.response?.data as { message?: string })?.message ||
-      error.message ||
-      'Request failed'
+      (error.response?.data as { message?: string })?.message || error.message || 'Request failed'
     const code = error.response?.status || 0
     return new ApiError(message, code, error.response)
   }
@@ -67,7 +65,8 @@ interface RequestMetadata {
 /**
  * Extended config with metadata
  */
-interface ConfigWithMetadata extends Omit<InternalAxiosRequestConfig, 'headers'>, Omit<RequestConfig, 'headers'> {
+interface ConfigWithMetadata
+  extends Omit<InternalAxiosRequestConfig, 'headers'>, Omit<RequestConfig, 'headers'> {
   headers: InternalAxiosRequestConfig['headers']
   _metadata?: RequestMetadata
 }
@@ -206,7 +205,11 @@ service.interceptors.response.use(
     // Retry logic for network errors and 5xx
     if (config) {
       const enableRetry = config.retry === undefined ? true : config.retry > 0
-      const metadata = config._metadata || { requestId: 'unknown', startTime: Date.now(), retryCount: 0 }
+      const metadata = config._metadata || {
+        requestId: 'unknown',
+        startTime: Date.now(),
+        retryCount: 0,
+      }
       const retryCount = metadata.retryCount || 0
       const maxRetry = config.retry || 2
 
@@ -261,10 +264,7 @@ service.interceptors.response.use(
  * HTTP Methods with full type safety
  */
 
-export async function apiGet<T = unknown>(
-  path: string,
-  init?: RequestConfig,
-): Promise<T> {
+export async function apiGet<T = unknown>(path: string, init?: RequestConfig): Promise<T> {
   return service.get<T, T>(path, { ...init })
 }
 
@@ -292,10 +292,7 @@ export async function apiPatch<T = unknown>(
   return service.patch<T, T, unknown>(path, body, { ...init })
 }
 
-export async function apiDelete<T = unknown>(
-  path: string,
-  init?: RequestConfig,
-): Promise<T> {
+export async function apiDelete<T = unknown>(path: string, init?: RequestConfig): Promise<T> {
   return service.delete<T, T>(path, { ...init })
 }
 

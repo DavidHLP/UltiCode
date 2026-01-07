@@ -68,7 +68,7 @@ interface RequestMetadata {
  * Extended config with metadata
  */
 interface ConfigWithMetadata extends Omit<InternalAxiosRequestConfig, 'headers'>, Omit<RequestConfig, 'headers'> {
-  headers: any
+  headers: InternalAxiosRequestConfig['headers']
   _metadata?: RequestMetadata
 }
 

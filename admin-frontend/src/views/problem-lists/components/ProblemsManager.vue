@@ -36,16 +36,15 @@ watch(
       problems.value = []
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 function addProblem(problem: { id: string; title: string; difficulty: string; slug: string }) {
   const problemId = parseInt(problem.id)
   if (problems.value.some((p) => p.id === problemId)) return
 
-  const maxOrder = problems.value.length > 0
-    ? Math.max(...problems.value.map(p => p.sort_order))
-    : 0
+  const maxOrder =
+    problems.value.length > 0 ? Math.max(...problems.value.map((p) => p.sort_order)) : 0
 
   problems.value.push({
     id: problemId,
@@ -66,7 +65,7 @@ function removeProblem(problemId: number) {
 }
 
 function updateSortOrder(problemId: number, order: number) {
-  const problem = problems.value.find(p => p.id === problemId)
+  const problem = problems.value.find((p) => p.id === problemId)
   if (problem) {
     problem.sort_order = order
     // Re-sort the list for display
@@ -121,10 +120,7 @@ async function saveProblems() {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow
-            v-for="problem in problems"
-            :key="problem.id"
-          >
+          <TableRow v-for="problem in problems" :key="problem.id">
             <TableCell>
               <Input
                 type="number"
@@ -167,7 +163,7 @@ async function saveProblems() {
 
     <ContestProblemPicker
       v-model:open="pickerOpen"
-      :exclude-ids="problems.map(p => p.id.toString())"
+      :exclude-ids="problems.map((p) => p.id.toString())"
       @select="addProblem"
     />
   </div>

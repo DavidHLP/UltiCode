@@ -24,7 +24,11 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
-import type { ProblemListDetail, CreateProblemListDto, UpdateProblemListDto } from '@/api/admin/problem-lists'
+import type {
+  ProblemListDetail,
+  CreateProblemListDto,
+  UpdateProblemListDto,
+} from '@/api/admin/problem-lists'
 
 const props = defineProps<{
   list: ProblemListDetail | null
@@ -47,7 +51,7 @@ const formSchema = toTypedSchema(
     banner_tag: z.string().optional(),
     banner_theme: z.string().optional(),
     banner_order: z.number().int().optional(),
-  })
+  }),
 )
 
 const form = useForm({
@@ -122,9 +126,7 @@ const bannerThemes = [
           <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
             <div class="space-y-0.5">
               <FormLabel class="text-base">Public</FormLabel>
-              <FormDescription>
-                Make this list visible to all users
-              </FormDescription>
+              <FormDescription> Make this list visible to all users </FormDescription>
             </div>
             <FormControl>
               <Switch :checked="value" @update:checked="handleChange" />
@@ -136,9 +138,7 @@ const bannerThemes = [
           <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
             <div class="space-y-0.5">
               <FormLabel class="text-base">Featured</FormLabel>
-              <FormDescription>
-                Show this list on the home page
-              </FormDescription>
+              <FormDescription> Show this list on the home page </FormDescription>
             </div>
             <FormControl>
               <Switch :checked="value" @update:checked="handleChange" />

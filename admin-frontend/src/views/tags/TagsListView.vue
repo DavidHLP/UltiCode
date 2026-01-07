@@ -2,20 +2,24 @@
 import { ref, onMounted, computed, h, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
+import { toast } from 'vue-sonner'
 import {
-  IconRefresh,
-  IconPlus,
+  IconCircleXFilled,
   IconDotsVertical,
-  IconPencil,
-  IconTrash,
   IconGitMerge,
-  IconX,
-  IconSearch,
+  IconHash,
+  IconPencil,
+  IconPlus,
+  IconRefresh,
+  IconTag,
+  IconTrash,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Separator } from '@/components/ui/separator'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,18 +48,21 @@ const authStore = useAuthStore()
 
 const searchQuery = ref('')
 const tagTypeFilter = ref<TagType>(TagType.PROBLEM)
-const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
+const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedTag = ref<Tag | null>(null)
 const editDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 const mergeDialogOpen = ref(false)
 
+const bulkActionLoading = ref(false)
+const selectedRows = ref<Tag[]>([])
+
 const canManageTags = computed(
   () =>
     authStore.hasPermission('MANAGE_USERS', 'SYSTEM') ||
     authStore.hasPermission('UPDATE', 'PROBLEM'),
-) // Approximate perm
+)
 
 onMounted(() => loadTags())
 
@@ -108,33 +115,92 @@ function openMergeDialog(tag: Tag) {
   mergeDialogOpen.value = true
 }
 
+async function handleBulkDelete() {
+  if (selectedRows.value.length === 0) return
+  if (
+    !confirm(
+      `Are you sure you want to delete ${selectedRows.value.length} tags? This action is IRREVERSIBLE.`,
+    )
+  )
+    return
+
+  bulkActionLoading.value = true
+  try {
+    for (const tag of selectedRows.value) {
+      await tagsStore.deleteTag(tag.id, tagTypeFilter.value)
+    }
+    await loadTags()
+    selectedRows.value = []
+    toast.success(`${selectedRows.value.length} tags deleted`)
+  } catch {
+    toast.error('Failed to delete some tags')
+  } finally {
+    bulkActionLoading.value = false
+  }
+}
+
 const columns: ColumnDef<Tag>[] = [
   {
+    id: 'select',
+    header: ({ table }) =>
+      h(Checkbox, {
+        modelValue:
+          table.getIsAllPageRowsSelected() ||
+          (table.getIsSomePageRowsSelected() && 'indeterminate'),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
+          table.toggleAllPageRowsSelected(!!value),
+        'aria-label': 'Select all',
+      }),
+    cell: ({ row }) =>
+      h(Checkbox, {
+        modelValue: row.getIsSelected(),
+        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
+        'aria-label': 'Select row',
+      }),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
     accessorKey: 'name',
-    header: 'Name',
+    header: 'Tag',
     cell: ({ row }) => {
       const tag = row.original
-      return h('div', { class: 'flex items-center gap-2' }, [
-        tag.color
-          ? h('div', {
-              class: 'w-3 h-3 rounded-full',
-              style: { backgroundColor: tag.color },
-            })
-          : null,
-        h('span', { class: 'font-medium' }, tag.name),
+      return h('div', { class: 'flex items-center gap-3' }, [
+        h(
+          'div',
+          {
+            class: 'h-9 w-9 rounded-lg flex items-center justify-center',
+            style: {
+              backgroundColor: tag.color ? `${tag.color}20` : 'var(--primary-10)',
+              color: tag.color || 'var(--primary)',
+            },
+          },
+          [h(IconTag, { class: 'h-4 w-4' })],
+        ),
+        h('div', { class: 'flex flex-col' }, [
+          h('div', { class: 'flex items-center gap-2' }, [
+            tag.color
+              ? h('div', {
+                  class: 'w-2.5 h-2.5 rounded-full',
+                  style: { backgroundColor: tag.color },
+                })
+              : null,
+            h('span', { class: 'font-medium text-sm' }, tag.name),
+          ]),
+          h('span', { class: 'text-muted-foreground text-xs' }, tag.slug || '-'),
+        ]),
       ])
     },
   },
   {
-    accessorKey: 'slug',
-    header: 'Slug',
-    cell: ({ row }) => h(Badge, { variant: 'secondary' }, () => row.original.slug || '-'),
-  },
-  {
     accessorKey: 'usage_count',
     header: 'Usage',
-    cell: ({ row }) =>
-      h('span', { class: 'tabular-nums' }, row.original.usage_count.toLocaleString()),
+    cell: ({ row }) => {
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(IconHash, { class: 'h-4 w-4 text-muted-foreground' }),
+        h(Badge, { variant: 'secondary' }, () => row.original.usage_count.toLocaleString()),
+      ])
+    },
   },
   {
     accessorKey: 'description',
@@ -142,7 +208,7 @@ const columns: ColumnDef<Tag>[] = [
     cell: ({ row }) =>
       h(
         'span',
-        { class: 'text-muted-foreground truncate max-w-[200px] block' },
+        { class: 'text-muted-foreground text-sm truncate max-w-[250px] block' },
         row.original.description || '-',
       ),
   },
@@ -207,10 +273,10 @@ const columns: ColumnDef<Tag>[] = [
                     canManageTags.value &&
                       h(
                         DropdownMenuItem,
-                        { onClick: () => openDeleteDialog(tag), class: 'text-destructive' },
+                        { onClick: () => openDeleteDialog(tag) },
                         {
                           default: () =>
-                            h('div', { class: 'flex items-center gap-2' }, [
+                            h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                               h(IconTrash, { class: 'h-4 w-4' }),
                               'Delete',
                             ]),
@@ -235,11 +301,29 @@ const columns: ColumnDef<Tag>[] = [
 
 <template>
   <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-    <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold tracking-tight">Tags Management</h1>
-      <Button v-if="canManageTags" @click="openCreateDialog">
-        <IconPlus class="mr-2 h-4 w-4" />
-        Create Tag
+    <div
+      v-if="selectedRows.length > 0"
+      class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
+    >
+      <div class="flex items-center gap-3">
+        <span class="text-sm font-medium">{{ selectedRows.length }} tags selected</span>
+        <Separator orientation="vertical" class="h-4" />
+        <div class="flex items-center gap-2">
+          <Button
+            v-if="canManageTags"
+            variant="destructive"
+            size="sm"
+            class="h-8 text-xs"
+            @click="handleBulkDelete"
+            :disabled="bulkActionLoading"
+          >
+            <IconTrash class="h-3.5 w-3.5 mr-1" />
+            Bulk Delete
+          </Button>
+        </div>
+      </div>
+      <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
+        Clear Selection
       </Button>
     </div>
 
@@ -249,67 +333,73 @@ const columns: ColumnDef<Tag>[] = [
       :pagination="tablePagination"
       :row-count="tagsStore.total"
       :loading="tagsStore.isLoading"
+      v-model:selected-rows="selectedRows"
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <Input
-            v-model="searchQuery"
-            placeholder="Search tags..."
-            class="h-8 min-w-[150px] w-full lg:w-[250px]"
-          >
-            <template #leading>
-              <IconSearch class="h-3 w-3 text-muted-foreground" />
-            </template>
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconX class="h-3 w-3" />
-              </button>
-            </template>
-          </Input>
+        <Input v-model="searchQuery" placeholder="Search tags..." class="min-w-[200px] w-[260px]">
+          <template #trailing>
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="rounded-sm opacity-70 hover:opacity-100"
+            >
+              <IconCircleXFilled class="h-4 w-4" />
+            </button>
+          </template>
+        </Input>
+        <Select v-model="tagTypeFilter">
+          <SelectTrigger class="w-[150px]">
+            <SelectValue placeholder="Tag Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem :value="TagType.PROBLEM">Problem Tags</SelectItem>
+            <SelectItem :value="TagType.FORUM">Forum Tags</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="icon" @click="loadTags()" title="Refresh">
+          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': tagsStore.isLoading }" />
+        </Button>
+      </template>
 
-          <Select v-model="tagTypeFilter">
-            <SelectTrigger class="h-8 w-[150px]">
-              <SelectValue placeholder="Tag Type" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem :value="TagType.PROBLEM">Problem Tags</SelectItem>
-              <SelectItem :value="TagType.FORUM">Forum Tags</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Button variant="ghost" size="icon" class="h-8 w-8" @click="loadTags()" title="Refresh">
-            <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': tagsStore.isLoading }" />
-          </Button>
-        </div>
+      <template #extra-actions>
+        <Button v-if="canManageTags" variant="outline" size="sm" @click="openCreateDialog">
+          <IconPlus />
+          <span class="hidden lg:inline">Create Tag</span>
+        </Button>
       </template>
     </DataTable>
 
-    <TagEditDialog
-      v-model:open="editDialogOpen"
-      :tag-to-edit="selectedTag"
-      :tag-type="tagTypeFilter"
-      @success="loadTags"
-    />
-
-    <TagDeleteDialog
-      v-model:open="deleteDialogOpen"
-      :tag-id="selectedTag?.id || null"
-      :tag-name="selectedTag?.name || null"
-      :tag-type="tagTypeFilter"
-      @success="loadTags"
-    />
-
-    <TagMergeDialog
-      v-model:open="mergeDialogOpen"
-      :source-tag-id="selectedTag?.id || null"
-      :source-tag-name="selectedTag?.name || null"
-      :tag-type="tagTypeFilter"
-      @success="loadTags"
-    />
+    <!-- Error state -->
+    <div
+      v-if="tagsStore.error"
+      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+    >
+      <span class="text-destructive">{{ tagsStore.error }}</span>
+      <Button variant="outline" size="sm" @click="loadTags()">Retry</Button>
+    </div>
   </div>
+
+  <TagEditDialog
+    v-model:open="editDialogOpen"
+    :tag-to-edit="selectedTag"
+    :tag-type="tagTypeFilter"
+    @success="loadTags"
+  />
+
+  <TagDeleteDialog
+    v-model:open="deleteDialogOpen"
+    :tag-id="selectedTag?.id || null"
+    :tag-name="selectedTag?.name || null"
+    :tag-type="tagTypeFilter"
+    @success="loadTags"
+  />
+
+  <TagMergeDialog
+    v-model:open="mergeDialogOpen"
+    :source-tag-id="selectedTag?.id || null"
+    :source-tag-name="selectedTag?.name || null"
+    :tag-type="tagTypeFilter"
+    @success="loadTags"
+  />
 </template>

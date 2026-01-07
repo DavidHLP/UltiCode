@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete } from '../client'
 
 export type CommentType = 'forum' | 'solution'
 
@@ -59,27 +59,22 @@ export interface BulkCommentActionDto {
 
 export const commentsApi = {
   async getComments(params: CommentQueryParams): Promise<CommentsResponse> {
-    const response = await apiClient.get<CommentsResponse>('/admin/comments', { params })
-    return response.data
+    return apiGet<CommentsResponse>('/admin/comments', { params })
   },
 
   async flagComment(id: string, type: CommentType, reason: string): Promise<Comment> {
-    const response = await apiClient.patch<Comment>(`/admin/comments/${type}/${id}/flag`, {
-      reason,
-    })
-    return response.data
+    return apiPatch<Comment>(`/admin/comments/${type}/${id}/flag`, { reason })
   },
 
   async unflagComment(id: string, type: CommentType): Promise<Comment> {
-    const response = await apiClient.patch<Comment>(`/admin/comments/${type}/${id}/unflag`)
-    return response.data
+    return apiPatch<Comment>(`/admin/comments/${type}/${id}/unflag`)
   },
 
   async deleteComment(id: string, type: CommentType): Promise<void> {
-    await apiClient.delete(`/admin/comments/${type}/${id}`)
+    await apiDelete(`/admin/comments/${type}/${id}`)
   },
 
   async bulkAction(data: BulkCommentActionDto): Promise<void> {
-    await apiClient.post('/admin/comments/bulk', data)
+    await apiPost('/admin/comments/bulk', data)
   },
 }

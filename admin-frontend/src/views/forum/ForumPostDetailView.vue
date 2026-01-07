@@ -157,7 +157,11 @@ function handleFlagSuccess() {
               >
                 Flagged
               </Badge>
-              <Badge v-if="post.is_deleted" variant="destructive" class="text-[10px] px-1.5 py-0 h-5">
+              <Badge
+                v-if="post.is_deleted"
+                variant="destructive"
+                class="text-[10px] px-1.5 py-0 h-5"
+              >
                 Deleted
               </Badge>
             </div>
@@ -298,10 +302,7 @@ function handleFlagSuccess() {
       </div>
 
       <!-- Not Found State -->
-      <div
-        v-else-if="!post"
-        class="flex flex-col items-center justify-center py-24 text-center"
-      >
+      <div v-else-if="!post" class="flex flex-col items-center justify-center py-24 text-center">
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>
@@ -333,12 +334,11 @@ function handleFlagSuccess() {
                   ? CommentsTab
                   : AuditTab
             "
-            :key="currentView"
+            :key="post ? `${currentView}-${post.id}` : currentView"
             :post="post"
             :post-id="postId"
             :audit-history="forumStore.auditHistory"
             :loading="auditLoading"
-            @update-count="() => loadData()"
           />
         </transition>
       </template>

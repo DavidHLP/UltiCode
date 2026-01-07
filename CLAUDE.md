@@ -366,6 +366,8 @@ Include Prisma migration files when changing schema.
 
 ### Quality & Commit Workflow (MANDATORY)
 
+### Quality & Commit Workflow (MANDATORY)
+
 After completing a coding task, you **MUST** follow this exact sequence before ending the turn:
 
 1. **Verify**:
@@ -377,9 +379,10 @@ After completing a coding task, you **MUST** follow this exact sequence before e
 2. **Commit**:
 * If verifications pass, you **MUST** create a git commit.
 * Run `git add .` (or specific files)
+* **FORBIDDEN**: Do NOT include any AI attribution, signatures, "Generated with...", "Co-Authored-By", or robot emojis (🤖). The commit message must appear strictly human-written.
 * Run `git commit -m "type(scope): message"`
 
 
 3. **Finish**:
 * You may only mark the task as "Complete" or "Done" **AFTER** the git commit is successfully executed.
-**CRITICAL RULE**: Do not leave code changes uncommitted. Always run `git commit` as the final step of your implementation.
+  **CRITICAL RULE**: Do not leave code changes uncommitted. Always run `git commit` as the final step of your implementation.

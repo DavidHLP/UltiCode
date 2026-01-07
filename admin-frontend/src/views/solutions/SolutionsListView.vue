@@ -50,7 +50,7 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const flaggedFilter = ref<string>('all')
 const publishedFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
+const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedSolutionId = ref<string | null>(null)
 const selectedSolutionTitle = ref<string | null>(null)

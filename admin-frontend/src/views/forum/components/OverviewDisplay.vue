@@ -183,10 +183,7 @@ function formatDate(dateStr: string) {
     </Card>
 
     <!-- Deleted Info -->
-    <Card
-      v-if="post.is_deleted"
-      class="border-destructive/20 bg-destructive/5"
-    >
+    <Card v-if="post.is_deleted" class="border-destructive/20 bg-destructive/5">
       <CardHeader>
         <CardTitle class="text-base text-destructive flex items-center gap-2">
           <IconTrash class="h-4 w-4" />

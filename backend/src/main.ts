@@ -8,7 +8,7 @@ declare global {
     toJSON(): number;
   }
 }
-BigInt.prototype.toJSON = function () {
+BigInt.prototype.toJSON = function (this: bigint) {
   return Number(this);
 };
 

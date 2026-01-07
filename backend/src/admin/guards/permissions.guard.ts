@@ -7,7 +7,7 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PermissionService } from '../services/permission.service';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { User } from '../../user/user.entity';
+import { User, UserRole } from '../../user/user.entity';
 import { RequiredPermission } from '../types/admin.types';
 
 @Injectable()
@@ -33,6 +33,11 @@ export class PermissionsGuard implements CanActivate {
 
     if (!user) {
       throw new ForbiddenException('User not authenticated');
+    }
+
+    // Super Admin has all permissions
+    if (user.role === UserRole.SUPER_ADMIN) {
+      return true;
     }
 
     for (const perm of requiredPermissions) {

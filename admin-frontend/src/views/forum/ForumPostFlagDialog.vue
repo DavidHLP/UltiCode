@@ -30,11 +30,14 @@ const loading = ref(false)
 const reason = ref('')
 
 // Reset form when dialog opens
-watch(() => props.open, (isOpen) => {
-  if (isOpen) {
-    reason.value = ''
-  }
-})
+watch(
+  () => props.open,
+  (isOpen) => {
+    if (isOpen) {
+      reason.value = ''
+    }
+  },
+)
 
 async function handleFlag() {
   if (!props.postId || !reason.value.trim()) {

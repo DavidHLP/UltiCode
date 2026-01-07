@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete } from '../client'
 import { toast } from 'vue-sonner'
 
 export interface User {
@@ -99,51 +99,51 @@ export interface BulkActionDto {
 
 export const usersApi = {
   async getUsers(params: UserQueryParams): Promise<UsersResponse> {
-    const response = await apiClient.get<UsersResponse>('/admin/users', { params })
-    return response.data
+    const response = await apiGet<UsersResponse>('/admin/users', { params })
+    return response
   },
 
   async getUser(id: string): Promise<User> {
-    const response = await apiClient.get<User>(`/admin/users/${id}`)
-    return response.data
+    const response = await apiGet<User>(`/admin/users/${id}`)
+    return response
   },
 
   async createUser(data: CreateUserDto): Promise<User> {
-    const response = await apiClient.post<User>('/admin/users', data)
+    const response = await apiPost<User>('/admin/users', data)
     toast.success('User created successfully')
-    return response.data
+    return response
   },
 
   async updateUser(id: string, data: UpdateUserDto): Promise<User> {
-    const response = await apiClient.patch<User>(`/admin/users/${id}`, data)
+    const response = await apiPatch<User>(`/admin/users/${id}`, data)
     toast.success('User updated successfully')
-    return response.data
+    return response
   },
 
   async deleteUser(id: string): Promise<void> {
-    await apiClient.delete(`/admin/users/${id}`)
+    await apiDelete(`/admin/users/${id}`)
     toast.success('User deleted successfully')
   },
 
   async banUser(id: string, data: BanUserDto): Promise<User> {
-    const response = await apiClient.post<User>(`/admin/users/${id}/ban`, data)
+    const response = await apiPost<User>(`/admin/users/${id}/ban`, data)
     toast.success('User has been banned')
-    return response.data
+    return response
   },
 
   async unbanUser(id: string): Promise<User> {
-    const response = await apiClient.post<User>(`/admin/users/${id}/unban`)
+    const response = await apiPost<User>(`/admin/users/${id}/unban`)
     toast.success('User has been unbanned')
-    return response.data
+    return response
   },
 
   async grantPermission(id: string, data: GrantPermissionDto): Promise<void> {
-    await apiClient.post(`/admin/users/${id}/permissions`, data)
+    await apiPost(`/admin/users/${id}/permissions`, data)
     toast.success('Permission granted successfully')
   },
 
   async revokePermission(id: string, action: string, resource: string): Promise<void> {
-    await apiClient.delete(`/admin/users/${id}/permissions`, {
+    await apiDelete(`/admin/users/${id}/permissions`, {
       data: { action, resource },
     })
     toast.success('Permission revoked successfully')
@@ -153,29 +153,35 @@ export const usersApi = {
     ids: string[],
     reason?: string,
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiClient.post('/admin/users/bulk-ban', { ids, reason })
+    const response = await apiPost<{
+      results: { id: string; success: boolean; error?: string }[]
+    }>('/admin/users/bulk-ban', { ids, reason })
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response.data
+    return response
   },
 
   async bulkUnban(
     ids: string[],
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiClient.post('/admin/users/bulk-unban', { ids })
+    const response = await apiPost<{
+      results: { id: string; success: boolean; error?: string }[]
+    }>('/admin/users/bulk-unban', { ids })
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response.data
+    return response
   },
 
   async bulkDelete(
     ids: string[],
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiClient.delete('/admin/users/bulk-delete', { data: { ids } })
+    const response = await apiDelete<{
+      results: { id: string; success: boolean; error?: string }[]
+    }>('/admin/users/bulk-delete', { data: { ids } })
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response.data
+    return response
   },
 
   async resetPassword(id: string, password: string): Promise<void> {
-    await apiClient.post(`/admin/users/${id}/reset-password`, { password })
+    await apiPost(`/admin/users/${id}/reset-password`, { password })
     toast.success('Password reset successfully')
   },
 }

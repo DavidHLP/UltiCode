@@ -20,8 +20,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
     error.value = null
     try {
       const response = await tagsApi.getTags(query)
-      tags.value = response.data.data
-      total.value = response.data.total
+      tags.value = response.data
+      total.value = response.total
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch tags'
       console.error(err)
@@ -34,8 +34,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await tagsApi.getTag(id, type)
-      return response.data
+      const tag = await tagsApi.getTag(id, type)
+      return tag
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to fetch tag'
       throw err
@@ -48,9 +48,9 @@ export const useTagsStore = defineStore('admin-tags', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await tagsApi.createTag(data)
+      const newTag = await tagsApi.createTag(data)
       // Optimistically add to list if it matches current view, but simplest is to reload
-      return response.data
+      return newTag
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to create tag'
       throw err
@@ -63,12 +63,12 @@ export const useTagsStore = defineStore('admin-tags', () => {
     isLoading.value = true
     error.value = null
     try {
-      const response = await tagsApi.updateTag(id, data)
+      const updatedTag = await tagsApi.updateTag(id, data)
       const index = tags.value.findIndex((t) => t.id === id)
       if (index !== -1) {
-        tags.value[index] = { ...tags.value[index], ...response.data }
+        tags.value[index] = { ...tags.value[index], ...updatedTag }
       }
-      return response.data
+      return updatedTag
     } catch (err) {
       error.value = err instanceof Error ? err.message : 'Failed to update tag'
       throw err

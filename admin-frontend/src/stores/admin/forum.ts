@@ -6,6 +6,8 @@ import {
   type ForumCommunity,
   type ForumPostQueryParams,
   type BulkForumActionType,
+  type ForumPostDetail,
+  type AuditEntry,
 } from '@/api/admin/forum'
 
 export const useForumStore = defineStore('adminForum', () => {
@@ -18,6 +20,12 @@ export const useForumStore = defineStore('adminForum', () => {
   // Communities State
   const communities = ref<ForumCommunity[]>([])
   const communitiesLoading = ref(false)
+
+  // Post Detail State
+  const currentPost = ref<ForumPostDetail | null>(null)
+  const postLoading = ref(false)
+  const postError = ref<string | null>(null)
+  const auditHistory = ref<AuditEntry[]>([])
 
   // Actions
   async function fetchPosts(params: ForumPostQueryParams = {}) {
@@ -127,6 +135,60 @@ export const useForumStore = defineStore('adminForum', () => {
     postsError.value = null
   }
 
+  // Post Detail Actions
+  async function fetchPostDetail(id: string) {
+    postLoading.value = true
+    postError.value = null
+    try {
+      currentPost.value = await forumApi.getPostDetail(id)
+    } catch (err: unknown) {
+      postError.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to fetch post details'
+      console.error('Failed to fetch post details:', err)
+      throw err
+    } finally {
+      postLoading.value = false
+    }
+  }
+
+  async function fetchPostAuditHistory(id: string) {
+    try {
+      auditHistory.value = await forumApi.getPostAuditHistory(id)
+    } catch (err) {
+      console.error('Failed to fetch audit history:', err)
+      throw err
+    }
+  }
+
+  async function flagPost(id: string, reason: string) {
+    try {
+      await forumApi.flagPost(id, reason)
+      if (currentPost.value?.id === id) {
+        currentPost.value.is_flagged = true
+        currentPost.value.flagged_reason = reason
+        currentPost.value.flagged_at = new Date().toISOString()
+      }
+    } catch (err) {
+      console.error('Failed to flag post:', err)
+      throw err
+    }
+  }
+
+  async function unflagPost(id: string) {
+    try {
+      await forumApi.unflagPost(id)
+      if (currentPost.value?.id === id) {
+        currentPost.value.is_flagged = false
+        currentPost.value.flagged_reason = undefined
+        currentPost.value.flagged_at = undefined
+      }
+    } catch (err) {
+      console.error('Failed to unflag post:', err)
+      throw err
+    }
+  }
+
   return {
     posts,
     totalPosts,
@@ -134,11 +196,19 @@ export const useForumStore = defineStore('adminForum', () => {
     postsError,
     communities,
     communitiesLoading,
+    currentPost,
+    postLoading,
+    postError,
+    auditHistory,
     fetchPosts,
     fetchCommunities,
+    fetchPostDetail,
+    fetchPostAuditHistory,
     deletePost,
     togglePin,
     toggleLock,
+    flagPost,
+    unflagPost,
     bulkAction,
     clearError,
   }

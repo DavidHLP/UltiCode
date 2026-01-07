@@ -168,6 +168,29 @@ const router = createRouter({
           component: () => import('@/views/forum/ForumPostsListView.vue'),
           meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
         },
+        // Forum post detail views (with tabs)
+        {
+          path: 'forum/posts/:id',
+          redirect: (to) => ({ name: 'forum-post-detail-overview', params: { id: to.params.id } }),
+        },
+        {
+          path: 'forum/posts/:id/overview',
+          name: 'forum-post-detail-overview',
+          component: () => import('@/views/forum/ForumPostDetailView.vue'),
+          meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
+        },
+        {
+          path: 'forum/posts/:id/comments',
+          name: 'forum-post-detail-comments',
+          component: () => import('@/views/forum/ForumPostDetailView.vue'),
+          meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
+        },
+        {
+          path: 'forum/posts/:id/audit',
+          name: 'forum-post-detail-audit',
+          component: () => import('@/views/forum/ForumPostDetailView.vue'),
+          meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
+        },
         // Contests
         {
           path: 'contests',

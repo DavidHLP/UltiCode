@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
+import { useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
@@ -41,8 +42,8 @@ import type { ForumPost } from '@/api/admin/forum'
 
 import DataTable from '@/components/table/DataTable.vue'
 import ForumPostDeleteDialog from './ForumPostDeleteDialog.vue'
-import ForumPostDetailDrawer from './ForumPostDetailDrawer.vue'
 
+const router = useRouter()
 const forumStore = useForumStore()
 const authStore = useAuthStore()
 
@@ -54,9 +55,7 @@ const lockedFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedPostId = ref<string | null>(null)
-const selectedPost = ref<ForumPost | null>(null)
 const deleteDialogOpen = ref(false)
-const detailDrawerOpen = ref(false)
 
 const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_POST'))
 
@@ -104,8 +103,7 @@ function confirmDelete(post: ForumPost) {
 }
 
 function viewPostDetails(post: ForumPost) {
-  selectedPost.value = post
-  detailDrawerOpen.value = true
+  router.push({ name: 'forum-post-detail-overview', params: { id: post.id } })
 }
 
 async function togglePin(post: ForumPost) {
@@ -422,6 +420,4 @@ const columns: ColumnDef<ForumPost>[] = [
     :post-id="selectedPostId"
     @success="loadPosts"
   />
-
-  <ForumPostDetailDrawer v-model:open="detailDrawerOpen" :post="selectedPost" />
 </template>

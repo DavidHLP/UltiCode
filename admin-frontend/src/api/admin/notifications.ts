@@ -1,4 +1,4 @@
-import client from '@/api/client'
+import { apiGet, apiPost, apiDelete } from '@/api/client'
 
 export enum NotificationType {
   COMMENT = 'COMMENT',
@@ -47,14 +47,14 @@ export interface SystemAnnouncement {
 
 export const adminNotifications = {
   create: (data: CreateNotificationDto) => {
-    return client.post('/admin/notifications', data)
+    return apiPost<SystemAnnouncement>('/admin/notifications', data)
   },
 
   getAll: () => {
-    return client.get<SystemAnnouncement[]>('/admin/notifications')
+    return apiGet<SystemAnnouncement[]>('/admin/notifications')
   },
 
   delete: (id: string) => {
-    return client.delete(`/admin/notifications/${id}`)
+    return apiDelete<{ message: string }>(`/admin/notifications/${id}`)
   },
 }

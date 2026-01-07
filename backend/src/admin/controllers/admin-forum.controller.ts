@@ -261,6 +261,177 @@ export class AdminForumController {
     };
   }
 
+  @Get('posts/:id')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.FORUM_POST,
+  })
+  async getPostDetail(@Param('id') id: string) {
+    const post = await this.prisma.forumPost.findUnique({
+      where: { id: id },
+      include: {
+        author: {
+          select: {
+            id: true,
+            username: true,
+            avatar: true,
+          },
+        },
+        community: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+          },
+        },
+      },
+    });
+
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    type ForumPostDetail = Prisma.ForumPostGetPayload<{
+      include: {
+        author: { select: { id: true; username: true; avatar: true } };
+        community: { select: { id: true; name: true; slug: true } };
+        _count: { select: { comments: true } };
+      };
+    }>;
+
+    const result = post as ForumPostDetail;
+    return {
+      ...result,
+      id: result.id.toString(),
+      user_id: result.user_id.toString(),
+      community_id: result.community_id?.toString(),
+      comment_count: result._count.comments,
+      _count: undefined,
+    };
+  }
+
+  @Get('posts/:id/audit')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.FORUM_POST,
+  })
+  async getPostAuditHistory(@Param('id') id: string) {
+    const auditLogs = await this.prisma.auditLog.findMany({
+      where: {
+        entity_type: 'FORUM_POST',
+        entity_id: id,
+      },
+      orderBy: {
+        created_at: 'desc',
+      },
+      take: 100,
+    });
+
+    // Get performer user IDs
+    const performerIds = auditLogs
+      .map((log) => log.performer_id)
+      .filter(Boolean);
+    const users = await this.prisma.user.findMany({
+      where: {
+        id: { in: performerIds },
+      },
+      select: {
+        id: true,
+        username: true,
+      },
+    });
+
+    const userMap = new Map(users.map((u) => [u.id, u]));
+
+    return {
+      data: auditLogs.map((log) => ({
+        id: log.id,
+        action: log.action,
+        performer: {
+          id: log.performer_id || '',
+          username: userMap.get(log.performer_id)?.username || 'Unknown',
+        },
+        entityType: log.entity_type,
+        entityId: log.entity_id,
+        oldValues: log.old_values as Record<string, unknown> | undefined,
+        newValues: log.new_values as Record<string, unknown> | undefined,
+        ipAddress: log.ip_address,
+        userAgent: log.user_agent,
+        created_at: log.created_at.toISOString(),
+      })),
+    };
+  }
+
+  @Post('posts/:id/flag')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.FORUM_POST,
+  })
+  async flagPost(
+    @Param('id') id: string,
+    @Body() body: { reason: string },
+    @CurrentAdmin() admin: User,
+  ) {
+    await this.prisma.forumPost.update({
+      where: { id: id },
+      data: {
+        is_flagged: true,
+        flagged_reason: body.reason,
+        flagged_at: new Date(),
+      },
+    });
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'FLAG_FORUM_POST',
+      entityType: 'FORUM_POST',
+      entityId: id,
+      newValues: {
+        is_flagged: true,
+        flagged_reason: body.reason,
+      },
+    });
+
+    return { message: 'Post flagged successfully' };
+  }
+
+  @Post('posts/:id/unflag')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.FORUM_POST,
+  })
+  async unflagPost(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    await this.prisma.forumPost.update({
+      where: { id: id },
+      data: {
+        is_flagged: false,
+        flagged_reason: null,
+        flagged_at: null,
+      },
+    });
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'UNFLAG_FORUM_POST',
+      entityType: 'FORUM_POST',
+      entityId: id,
+      newValues: {
+        is_flagged: false,
+      },
+    });
+
+    return { message: 'Post unflagged successfully' };
+  }
+
   @Delete('posts/:id')
   @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
   @RequirePermissions({

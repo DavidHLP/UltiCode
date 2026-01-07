@@ -87,7 +87,7 @@ async function saveProblems() {
     })
     toast.success('Problems updated successfully')
     isDirty.value = false
-  } catch (error) {
+  } catch {
     toast.error('Failed to update problems')
   } finally {
     loading.value = false

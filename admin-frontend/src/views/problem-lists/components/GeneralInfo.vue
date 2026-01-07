@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
-import type { ProblemListDetail } from '@/api/admin/problem-lists'
+import type { ProblemListDetail, CreateProblemListDto, UpdateProblemListDto } from '@/api/admin/problem-lists'
 
 const props = defineProps<{
   list: ProblemListDetail | null
@@ -63,18 +63,18 @@ const form = useForm({
   },
 })
 
-async function onSubmit(values: any) {
+async function onSubmit(values: Record<string, unknown>) {
   loading.value = true
   try {
     if (props.mode === 'create') {
-      const newList = await store.createList(values)
+      const newList = await store.createList(values as unknown as CreateProblemListDto)
       toast.success('List created successfully')
       emit('success', newList.id)
     } else if (props.list) {
-      await store.updateList(props.list.id, values)
+      await store.updateList(props.list.id, values as unknown as UpdateProblemListDto)
       toast.success('List updated successfully')
     }
-  } catch (error) {
+  } catch {
     toast.error('Failed to save list')
   } finally {
     loading.value = false

@@ -24,7 +24,7 @@ onMounted(async () => {
   if (!isCreate.value && listId.value) {
     try {
       await store.fetchList(listId.value)
-    } catch (e) {
+    } catch {
       // Error handled by store
     } finally {
       isInitialLoad.value = false

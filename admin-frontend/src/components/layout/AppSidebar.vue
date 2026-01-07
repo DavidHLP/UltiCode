@@ -18,6 +18,7 @@ import {
   IconMessageCircle,
   IconMessages,
   IconTrophy,
+  IconTags,
 } from '@tabler/icons-vue'
 
 import NavDocuments from './NavDocuments.vue'
@@ -71,6 +72,15 @@ const navMain = computed(() => {
       title: 'Problem Lists',
       url: '/problem-lists',
       icon: IconListDetails,
+    })
+  }
+
+  // Add Tags if user has permission
+  if (authStore.hasPermission('READ', 'TAG')) {
+    items.push({
+      title: 'Tags',
+      url: '/tags',
+      icon: IconTags,
     })
   }
 

@@ -8,7 +8,13 @@ import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { settingsApi, type SystemSettings } from '@/api/admin/settings'
 import { toast } from 'vue-sonner'
-import { IconSettings, IconServer, IconUsers, IconDeviceFloppy, IconRefresh } from '@tabler/icons-vue'
+import {
+  IconSettings,
+  IconServer,
+  IconUsers,
+  IconDeviceFloppy,
+  IconRefresh,
+} from '@tabler/icons-vue'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -20,7 +26,7 @@ const settings = ref<SystemSettings>({
   enable_registrations: true,
   site_name: '',
   site_description: '',
-  require_email_verification: false
+  require_email_verification: false,
 })
 
 async function loadSettings() {
@@ -72,9 +78,7 @@ onMounted(() => {
     <!-- Header -->
     <div class="flex flex-col gap-2">
       <h1 class="text-3xl font-bold tracking-tight">System Settings</h1>
-      <p class="text-muted-foreground">
-        Manage global system configuration and preferences.
-      </p>
+      <p class="text-muted-foreground">Manage global system configuration and preferences.</p>
     </div>
 
     <div v-if="loading" class="flex items-center justify-center py-12">
@@ -98,7 +102,10 @@ onMounted(() => {
           </div>
           <div class="space-y-2">
             <Label>Site Description</Label>
-            <Input v-model="settings.site_description" placeholder="Competitive Programming Platform" />
+            <Input
+              v-model="settings.site_description"
+              placeholder="Competitive Programming Platform"
+            />
           </div>
         </CardContent>
       </Card>
@@ -116,22 +123,34 @@ onMounted(() => {
           <div class="flex items-center justify-between space-x-2">
             <Label class="flex flex-col space-y-1">
               <span>Enable Registrations</span>
-              <span class="font-normal text-xs text-muted-foreground">Allow new users to create accounts.</span>
+              <span class="font-normal text-xs text-muted-foreground"
+                >Allow new users to create accounts.</span
+              >
             </Label>
-            <Switch :checked="settings.enable_registrations" @update:checked="(v: boolean) => settings.enable_registrations = v" />
+            <Switch
+              :checked="settings.enable_registrations"
+              @update:checked="(v: boolean) => (settings.enable_registrations = v)"
+            />
           </div>
           <div class="flex items-center justify-between space-x-2">
             <Label class="flex flex-col space-y-1">
               <span>Require Email Verification</span>
-              <span class="font-normal text-xs text-muted-foreground">Users must verify email before logging in.</span>
+              <span class="font-normal text-xs text-muted-foreground"
+                >Users must verify email before logging in.</span
+              >
             </Label>
-            <Switch :checked="settings.require_email_verification" @update:checked="(v: boolean) => settings.require_email_verification = v" />
+            <Switch
+              :checked="settings.require_email_verification"
+              @update:checked="(v: boolean) => (settings.require_email_verification = v)"
+            />
           </div>
         </CardContent>
       </Card>
 
       <!-- Maintenance Mode -->
-      <Card class="md:col-span-2 border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20">
+      <Card
+        class="md:col-span-2 border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20"
+      >
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconServer class="h-5 w-5 text-orange-600 dark:text-orange-400" />
@@ -143,18 +162,26 @@ onMounted(() => {
           <div class="flex items-center justify-between space-x-2">
             <Label class="flex flex-col space-y-1">
               <span>Maintenance Mode</span>
-              <span class="font-normal text-xs text-muted-foreground">Only admins can access the site when enabled.</span>
+              <span class="font-normal text-xs text-muted-foreground"
+                >Only admins can access the site when enabled.</span
+              >
             </Label>
             <Switch
               :checked="settings.maintenance_mode"
-              @update:checked="(v: boolean) => settings.maintenance_mode = v"
+              @update:checked="(v: boolean) => (settings.maintenance_mode = v)"
               class="data-[state=checked]:bg-orange-600"
             />
           </div>
 
-          <div v-if="settings.maintenance_mode" class="space-y-2 animate-in fade-in slide-in-from-top-2">
+          <div
+            v-if="settings.maintenance_mode"
+            class="space-y-2 animate-in fade-in slide-in-from-top-2"
+          >
             <Label>Maintenance Message</Label>
-            <Textarea v-model="settings.maintenance_message" placeholder="We are currently performing maintenance..." />
+            <Textarea
+              v-model="settings.maintenance_message"
+              placeholder="We are currently performing maintenance..."
+            />
           </div>
         </CardContent>
       </Card>
@@ -165,15 +192,15 @@ onMounted(() => {
           <CardTitle>Actions</CardTitle>
         </CardHeader>
         <CardContent class="flex items-center justify-between">
-            <Button variant="outline" @click="clearCache" :disabled="clearingCache">
-                <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': clearingCache }" />
-                Clear System Cache
-            </Button>
+          <Button variant="outline" @click="clearCache" :disabled="clearingCache">
+            <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': clearingCache }" />
+            Clear System Cache
+          </Button>
 
-            <Button @click="saveSettings" :disabled="saving">
-                <IconDeviceFloppy class="h-4 w-4 mr-2" />
-                {{ saving ? 'Saving...' : 'Save Changes' }}
-            </Button>
+          <Button @click="saveSettings" :disabled="saving">
+            <IconDeviceFloppy class="h-4 w-4 mr-2" />
+            {{ saving ? 'Saving...' : 'Save Changes' }}
+          </Button>
         </CardContent>
       </Card>
     </div>

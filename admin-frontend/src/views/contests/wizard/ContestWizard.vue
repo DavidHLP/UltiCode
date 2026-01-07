@@ -19,6 +19,10 @@ import StepSchedule from './StepSchedule.vue'
 import StepProblems from './StepProblems.vue'
 import StepReview from './StepReview.vue'
 
+const props = defineProps<{
+  open: boolean
+}>()
+
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
   (e: 'success'): void
@@ -33,7 +37,7 @@ const steps = [
   { step: 2, title: 'Schedule', component: StepSchedule },
   { step: 3, title: 'Problems', component: StepProblems },
   { step: 4, title: 'Review', component: StepReview },
-]
+] as const
 
 const formData = ref({
   title: '',
@@ -43,8 +47,16 @@ const formData = ref({
   start_time: '',
   duration: 120,
   is_published: false,
-  selectedProblems: [] as { id: string; title: string; difficulty: string; slug: string; score?: number }[],
+  selectedProblems: [] as {
+    id: string
+    title: string
+    difficulty: string
+    slug: string
+    score?: number
+  }[],
 })
+
+const currentStepItem = computed(() => steps[currentStep.value - 1])
 
 const isStepValid = computed(() => {
   switch (currentStep.value) {
@@ -123,7 +135,7 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="$emit('update:open', $event)">
+  <Dialog :open="props.open" @update:open="emit('update:open', $event)">
     <DialogContent class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0">
       <DialogHeader class="px-6 py-4 border-b">
         <DialogTitle>Create Contest</DialogTitle>
@@ -157,7 +169,8 @@ async function handleSubmit() {
         <div class="mt-4">
           <keep-alive>
             <component
-              :is="steps[currentStep - 1].component"
+              v-if="currentStepItem"
+              :is="currentStepItem.component"
               v-model:formData="formData"
             />
           </keep-alive>
@@ -165,25 +178,13 @@ async function handleSubmit() {
       </div>
 
       <DialogFooter class="px-6 py-4 border-t bg-muted/20">
-        <Button
-          variant="outline"
-          @click="prevStep"
-          :disabled="currentStep === 1 || loading"
-        >
+        <Button variant="outline" @click="prevStep" :disabled="currentStep === 1 || loading">
           Previous
         </Button>
-        <Button
-          v-if="currentStep < steps.length"
-          @click="nextStep"
-          :disabled="!isStepValid"
-        >
+        <Button v-if="currentStep < steps.length" @click="nextStep" :disabled="!isStepValid">
           Next
         </Button>
-        <Button
-          v-else
-          @click="handleSubmit"
-          :disabled="!isStepValid || loading"
-        >
+        <Button v-else @click="handleSubmit" :disabled="!isStepValid || loading">
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
           Create Contest
         </Button>

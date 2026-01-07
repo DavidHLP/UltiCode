@@ -3,7 +3,7 @@ import { ref, onMounted, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useContestsStore } from '@/stores/admin/contests'
 import { useAuthStore } from '@/stores/admin/auth'
-import DataTable from '@/components/ui/data-table/DataTable.vue'
+import DataTable from '@/components/table/DataTable.vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { Contest } from '@/api/admin/contests'
 import { ContestType } from '@/api/admin/contests'
@@ -25,13 +25,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  IconDots,
-  IconPlus,
-  IconEdit,
-  IconTrash,
-  IconEye,
-} from '@tabler/icons-vue'
+import { IconDots, IconPlus, IconEdit, IconTrash, IconEye } from '@tabler/icons-vue'
 import { useDebounceFn } from '@vueuse/core'
 import { toast } from 'vue-sonner'
 import ContestWizard from './wizard/ContestWizard.vue'
@@ -61,8 +55,11 @@ const columns: ColumnDef<Contest>[] = [
       return h('div', { class: 'flex flex-col' }, [
         h(
           'span',
-          { class: 'font-medium cursor-pointer hover:underline', onClick: () => navigateToDetail(contest.id) },
-          contest.title
+          {
+            class: 'font-medium cursor-pointer hover:underline',
+            onClick: () => navigateToDetail(contest.id),
+          },
+          contest.title,
         ),
         h('span', { class: 'text-xs text-muted-foreground' }, contest.slug),
       ])
@@ -81,11 +78,7 @@ const columns: ColumnDef<Contest>[] = [
     cell: ({ row }) => {
       const status = row.original.status
       const variant =
-        status === 'RUNNING'
-          ? 'default'
-          : status === 'FINISHED'
-            ? 'secondary'
-            : 'outline'
+        status === 'RUNNING' ? 'default' : status === 'FINISHED' ? 'secondary' : 'outline'
       return h(Badge, { variant, class: 'capitalize' }, () => status.toLowerCase())
     },
   },
@@ -120,38 +113,42 @@ const columns: ColumnDef<Contest>[] = [
                   h(
                     Button,
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                    { default: () => h(IconDots, { class: 'h-4 w-4' }) }
+                    { default: () => h(IconDots, { class: 'h-4 w-4' }) },
                   ),
-              }
+              },
             ),
           content: () =>
-            h(DropdownMenuContent, { align: 'end' }, {
-              default: () => [
-                h(DropdownMenuLabel, () => 'Actions'),
-                h(
-                  DropdownMenuItem,
-                  { onClick: () => navigateToDetail(contest.id) },
-                  { default: () => [h(IconEye, { class: 'mr-2 h-4 w-4' }), 'View Details'] }
-                ),
-                canUpdate.value &&
+            h(
+              DropdownMenuContent,
+              { align: 'end' },
+              {
+                default: () => [
+                  h(DropdownMenuLabel, () => 'Actions'),
                   h(
                     DropdownMenuItem,
-                    { onClick: () => navigateToDetail(contest.id) }, // Edit is in detail view for now
-                    { default: () => [h(IconEdit, { class: 'mr-2 h-4 w-4' }), 'Edit'] }
+                    { onClick: () => navigateToDetail(contest.id) },
+                    { default: () => [h(IconEye, { class: 'mr-2 h-4 w-4' }), 'View Details'] },
                   ),
-                h(DropdownMenuSeparator),
-                canDelete.value &&
-                  h(
-                    DropdownMenuItem,
-                    {
-                      class: 'text-destructive',
-                      onClick: () => handleDelete(contest.id),
-                    },
-                    { default: () => [h(IconTrash, { class: 'mr-2 h-4 w-4' }), 'Delete'] }
-                  ),
-              ],
-            }),
-        }
+                  canUpdate.value &&
+                    h(
+                      DropdownMenuItem,
+                      { onClick: () => navigateToDetail(contest.id) }, // Edit is in detail view for now
+                      { default: () => [h(IconEdit, { class: 'mr-2 h-4 w-4' }), 'Edit'] },
+                    ),
+                  h(DropdownMenuSeparator),
+                  canDelete.value &&
+                    h(
+                      DropdownMenuItem,
+                      {
+                        class: 'text-destructive',
+                        onClick: () => handleDelete(contest.id),
+                      },
+                      { default: () => [h(IconTrash, { class: 'mr-2 h-4 w-4' }), 'Delete'] },
+                    ),
+                ],
+              },
+            ),
+        },
       )
     },
   },
@@ -165,6 +162,19 @@ const fetchContests = async () => {
     type: typeFilter.value === 'all' ? undefined : (typeFilter.value as ContestType),
     page: 1, // Reset to page 1 on filter change
     limit: 20,
+  })
+}
+
+const pagination = computed(() => ({
+  pageIndex: 0,
+  pageSize: 20,
+  total: contestsStore.total,
+}))
+
+function handlePaginationUpdate(paginationState: { pageIndex: number; pageSize: number }) {
+  void contestsStore.fetchContests({
+    page: paginationState.pageIndex + 1,
+    limit: paginationState.pageSize,
   })
 }
 
@@ -218,10 +228,7 @@ onMounted(() => {
           class="h-8 w-[150px] lg:w-[250px]"
           @input="debouncedSearch"
         />
-        <Select
-          v-model="statusFilter"
-          @update:model-value="fetchContests"
-        >
+        <Select v-model="statusFilter" @update:model-value="fetchContests">
           <SelectTrigger class="h-8 w-[150px]">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
@@ -232,10 +239,7 @@ onMounted(() => {
             <SelectItem value="finished">Finished</SelectItem>
           </SelectContent>
         </Select>
-        <Select
-          v-model="typeFilter"
-          @update:model-value="fetchContests"
-        >
+        <Select v-model="typeFilter" @update:model-value="fetchContests">
           <SelectTrigger class="h-8 w-[150px]">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
@@ -252,18 +256,11 @@ onMounted(() => {
         :columns="columns"
         :data="contestsStore.contests"
         :loading="contestsStore.loading"
-        :pagination="{
-          pageIndex: (contestsStore.page || 1) - 1, // API 1-based, Table 0-based
-          pageSize: contestsStore.limit || 20,
-          total: contestsStore.total
-        }"
-        @update:pagination="(p) => contestsStore.fetchContests({ page: p.pageIndex + 1, limit: p.pageSize })"
+        :pagination="pagination"
+        @update:pagination="handlePaginationUpdate"
       />
     </div>
 
-    <ContestWizard
-      v-model:open="isWizardOpen"
-      @success="handleWizardSuccess"
-    />
+    <ContestWizard v-model:open="isWizardOpen" @success="handleWizardSuccess" />
   </div>
 </template>

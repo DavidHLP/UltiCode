@@ -32,9 +32,7 @@ const formattedDate = computed(() => {
     <div class="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
-            Basic Info
-          </CardTitle>
+          <CardTitle class="text-sm font-medium text-muted-foreground"> Basic Info </CardTitle>
         </CardHeader>
         <CardContent class="space-y-2">
           <div>
@@ -102,9 +100,7 @@ const formattedDate = computed(() => {
               <Badge variant="outline" class="text-[10px] capitalize">
                 {{ problem.difficulty?.toLowerCase() }}
               </Badge>
-              <span class="text-muted-foreground w-12 text-right">
-                {{ problem.score }} pts
-              </span>
+              <span class="text-muted-foreground w-12 text-right"> {{ problem.score }} pts </span>
             </div>
           </div>
           <div

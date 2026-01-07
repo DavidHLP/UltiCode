@@ -116,9 +116,7 @@ export class AuthService {
   private decodeToken(
     token: string,
   ): { exp: number; [key: string]: unknown } | null | string {
-    const result = this.jwtService.decode(token);
-    // The JWT library returns `any`, but we know the structure includes `exp`
-    return result as { exp: number; [key: string]: unknown } | null | string;
+    return this.jwtService.decode(token);
   }
 
   async logout(logoutDto: LogoutDto): Promise<{ message: string }> {

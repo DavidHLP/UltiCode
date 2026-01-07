@@ -65,6 +65,15 @@ const navMain = computed(() => {
     })
   }
 
+  // Add Problem Lists if user has permission
+  if (authStore.hasPermission('READ', 'PROBLEM_LIST')) {
+    items.push({
+      title: 'Problem Lists',
+      url: '/problem-lists',
+      icon: IconListDetails,
+    })
+  }
+
   // Add Solutions if user has permission
   if (authStore.hasPermission('READ', 'SOLUTION')) {
     items.push({

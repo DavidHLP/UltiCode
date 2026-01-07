@@ -146,9 +146,10 @@ const columns: ColumnDef<ForumPost>[] = [
       const post = row.original
       return h('div', { class: 'flex flex-col gap-1' }, [
         h('div', { class: 'flex items-center gap-2' }, [
-            h('span', { class: 'font-medium text-sm' }, post.title),
-            post.is_pinned && h(IconPin, { class: 'h-3 w-3 text-blue-500', 'aria-label': 'Pinned' }),
-            post.is_locked && h(IconLock, { class: 'h-3 w-3 text-amber-500', 'aria-label': 'Locked' }),
+          h('span', { class: 'font-medium text-sm' }, post.title),
+          post.is_pinned && h(IconPin, { class: 'h-3 w-3 text-blue-500', 'aria-label': 'Pinned' }),
+          post.is_locked &&
+            h(IconLock, { class: 'h-3 w-3 text-amber-500', 'aria-label': 'Locked' }),
         ]),
         h('div', { class: 'flex items-center gap-1 text-xs text-muted-foreground' }, [
           h(IconUser, { class: 'h-3 w-3' }),
@@ -166,16 +167,16 @@ const columns: ColumnDef<ForumPost>[] = [
       const post = row.original
       return h('div', { class: 'flex items-center gap-3 text-muted-foreground text-xs' }, [
         h('div', { class: 'flex items-center gap-1' }, [
-            h(IconEye, { class: 'h-3 w-3' }),
-            h('span', {}, post.view_count || 0)
+          h(IconEye, { class: 'h-3 w-3' }),
+          h('span', {}, post.view_count || 0),
         ]),
         h('div', { class: 'flex items-center gap-1' }, [
-            h(IconMessage, { class: 'h-3 w-3' }),
-            h('span', {}, post.comment_count || 0)
+          h(IconMessage, { class: 'h-3 w-3' }),
+          h('span', {}, post.comment_count || 0),
         ]),
         h('div', { class: 'flex items-center gap-1' }, [
-            h(IconThumbUp, { class: 'h-3 w-3' }),
-            h('span', {}, post.upvotes || 0)
+          h(IconThumbUp, { class: 'h-3 w-3' }),
+          h('span', {}, post.upvotes || 0),
         ]),
       ])
     },
@@ -250,10 +251,10 @@ const columns: ColumnDef<ForumPost>[] = [
                     DropdownMenuItem,
                     { onClick: () => togglePin(post) },
                     {
-                        default: () =>
+                      default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconPin, { class: 'h-4 w-4' }),
-                            post.is_pinned ? 'Unpin' : 'Pin',
+                          h(IconPin, { class: 'h-4 w-4' }),
+                          post.is_pinned ? 'Unpin' : 'Pin',
                         ]),
                     },
                   ),
@@ -261,10 +262,10 @@ const columns: ColumnDef<ForumPost>[] = [
                     DropdownMenuItem,
                     { onClick: () => toggleLock(post) },
                     {
-                        default: () =>
+                      default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconLock, { class: 'h-4 w-4' }),
-                            post.is_locked ? 'Unlock' : 'Lock',
+                          h(IconLock, { class: 'h-4 w-4' }),
+                          post.is_locked ? 'Unlock' : 'Lock',
                         ]),
                     },
                   ),
@@ -320,7 +321,7 @@ const columns: ColumnDef<ForumPost>[] = [
           </Input>
 
           <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-             <Select v-model="communityFilter">
+            <Select v-model="communityFilter">
               <SelectTrigger class="h-8 w-[150px]">
                 <SelectValue placeholder="Community" />
               </SelectTrigger>
@@ -348,25 +349,25 @@ const columns: ColumnDef<ForumPost>[] = [
             </Select>
 
             <Select v-model="pinnedFilter">
-                <SelectTrigger class="h-8 w-[130px]">
-                  <SelectValue placeholder="Pinned" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="pinned">Pinned</SelectItem>
-                  <SelectItem value="unpinned">Unpinned</SelectItem>
-                </SelectContent>
+              <SelectTrigger class="h-8 w-[130px]">
+                <SelectValue placeholder="Pinned" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="pinned">Pinned</SelectItem>
+                <SelectItem value="unpinned">Unpinned</SelectItem>
+              </SelectContent>
             </Select>
 
             <Select v-model="lockedFilter">
-                <SelectTrigger class="h-8 w-[130px]">
-                  <SelectValue placeholder="Locked" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="locked">Locked</SelectItem>
-                  <SelectItem value="unlocked">Unlocked</SelectItem>
-                </SelectContent>
+              <SelectTrigger class="h-8 w-[130px]">
+                <SelectValue placeholder="Locked" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All</SelectItem>
+                <SelectItem value="locked">Locked</SelectItem>
+                <SelectItem value="unlocked">Unlocked</SelectItem>
+              </SelectContent>
             </Select>
 
             <Button
@@ -376,7 +377,10 @@ const columns: ColumnDef<ForumPost>[] = [
               @click="loadPosts()"
               title="Refresh"
             >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': forumStore.postsLoading }" />
+              <IconRefresh
+                class="h-3.5 w-3.5"
+                :class="{ 'animate-spin': forumStore.postsLoading }"
+              />
             </Button>
           </div>
         </div>

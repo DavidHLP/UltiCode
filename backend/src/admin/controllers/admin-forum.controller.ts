@@ -144,7 +144,7 @@ export class AdminForumController {
     action: PermissionAction.MODERATE,
     resource: PermissionResource.FORUM_POST,
   })
-  async getComments(@Query() query: ForumCommentQueryDto) {
+  getComments(@Query() _query: ForumCommentQueryDto) {
     // Deprecated: Use AdminCommentController instead
     return {
       data: [],
@@ -218,12 +218,21 @@ export class AdminForumController {
     action: PermissionAction.READ,
     resource: PermissionResource.FORUM_POST,
   })
-  async getCommunities(@Query('page') page = 1, @Query('limit') limit = 20) {
-    const skip = (page - 1) * limit;
+  async getCommunities(
+    @Query('page') page: string | number = 1,
+    @Query('limit') limit: string | number = 20,
+  ) {
+    const pageNumber = typeof page === 'string' ? parseInt(page, 10) : page;
+    const limitNumber = typeof limit === 'string' ? parseInt(limit, 10) : limit;
+    const safePage =
+      Number.isFinite(pageNumber) && pageNumber > 0 ? pageNumber : 1;
+    const safeLimit =
+      Number.isFinite(limitNumber) && limitNumber > 0 ? limitNumber : 20;
+    const skip = (safePage - 1) * safeLimit;
 
     const communities = await this.prisma.forumCommunity.findMany({
       skip,
-      take: limit,
+      take: safeLimit,
       orderBy: { created_at: 'desc' },
       include: {
         _count: {
@@ -246,9 +255,9 @@ export class AdminForumController {
         _count: undefined,
       })),
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: safePage,
+      limit: safeLimit,
+      totalPages: Math.ceil(total / safeLimit),
     };
   }
 
@@ -392,7 +401,7 @@ export class AdminForumController {
     action: PermissionAction.MODERATE,
     resource: PermissionResource.FORUM_POST,
   })
-  async deleteComment(@Param('id') id: string, @CurrentAdmin() admin: User) {
+  deleteComment(@Param('id') _id: string, @CurrentAdmin() _admin: User) {
     // Deprecated: Use AdminCommentController instead
     return {
       message: 'This endpoint is deprecated. Use /admin/comments/:id instead.',

@@ -19,6 +19,8 @@ import { UserModule } from '../user/user.module';
 import { AdminCommentService } from './services/admin-comment.service';
 import { AdminSettingsService } from './services/settings.service';
 
+import { AdminProblemListController } from './controllers/admin-problem-list.controller';
+
 @Global()
 @Module({
   imports: [UserModule],
@@ -27,6 +29,7 @@ import { AdminSettingsService } from './services/settings.service';
     AdminDashboardController,
     AdminAuditController,
     AdminProblemController,
+    AdminProblemListController,
     AdminSolutionController,
     AdminContestController,
     AdminForumController,

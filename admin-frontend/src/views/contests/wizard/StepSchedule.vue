@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import {
-  FormLabel,
-  FormDescription,
-} from '@/components/ui/form'
+import { FormLabel, FormDescription } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'

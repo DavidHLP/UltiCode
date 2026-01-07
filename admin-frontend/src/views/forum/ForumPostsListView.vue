@@ -41,6 +41,7 @@ import type { ForumPost } from '@/api/admin/forum'
 
 import DataTable from '@/components/table/DataTable.vue'
 import ForumPostDeleteDialog from './ForumPostDeleteDialog.vue'
+import ForumPostDetailDrawer from './ForumPostDetailDrawer.vue'
 
 const forumStore = useForumStore()
 const authStore = useAuthStore()
@@ -53,7 +54,9 @@ const lockedFilter = ref<string>('all')
 const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedPostId = ref<string | null>(null)
+const selectedPost = ref<ForumPost | null>(null)
 const deleteDialogOpen = ref(false)
+const detailDrawerOpen = ref(false)
 
 const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_POST'))
 
@@ -98,6 +101,11 @@ watch(
 function confirmDelete(post: ForumPost) {
   selectedPostId.value = post.id
   deleteDialogOpen.value = true
+}
+
+function viewPostDetails(post: ForumPost) {
+  selectedPost.value = post
+  detailDrawerOpen.value = true
 }
 
 async function togglePin(post: ForumPost) {
@@ -247,6 +255,18 @@ const columns: ColumnDef<ForumPost>[] = [
               { align: 'end' },
               {
                 default: () => [
+                  h(
+                    DropdownMenuItem,
+                    { onClick: () => viewPostDetails(post) },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconEye, { class: 'h-4 w-4' }),
+                          'View Details',
+                        ]),
+                    },
+                  ),
+                  h(DropdownMenuSeparator, {}),
                   h(
                     DropdownMenuItem,
                     { onClick: () => togglePin(post) },
@@ -402,4 +422,6 @@ const columns: ColumnDef<ForumPost>[] = [
     :post-id="selectedPostId"
     @success="loadPosts"
   />
+
+  <ForumPostDetailDrawer v-model:open="detailDrawerOpen" :post="selectedPost" />
 </template>

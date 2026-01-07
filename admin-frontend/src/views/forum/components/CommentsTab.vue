@@ -57,8 +57,14 @@ async function loadComments() {
 }
 
 // Only watch pageIndex and pageSize separately to avoid deep watch issues
-watch(() => tablePagination.value.pageIndex, () => loadComments())
-watch(() => tablePagination.value.pageSize, () => loadComments())
+watch(
+  () => tablePagination.value.pageIndex,
+  () => loadComments(),
+)
+watch(
+  () => tablePagination.value.pageSize,
+  () => loadComments(),
+)
 
 function confirmDelete(comment: Comment) {
   selectedCommentId.value = comment.id

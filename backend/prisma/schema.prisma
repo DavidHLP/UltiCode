@@ -103,6 +103,12 @@ model ProblemDetail {
 model ProblemTag {
   id               String               @id @db.VarChar(40)
   label            String               @db.VarChar(120)
+  slug             String?              @unique @db.VarChar(120) // Added for consistency
+  color            String?              @db.VarChar(20)          // Added for UI
+  description      String?              @db.Text                 // Added for info
+  usage_count      Int                  @default(0)              // Added for stats
+  created_at       DateTime             @default(now())          // Added for audit
+  updated_at       DateTime             @default(now()) @updatedAt // Added for audit, temporary default for migration
   problemRelations ProblemTagRelation[]
 
   @@map("problem_tags")
@@ -944,6 +950,7 @@ enum PermissionResource {
   FORUM_COMMENT
   SYSTEM
   PROBLEM_LIST
+  TAG
 }
 
 // ============================================================================

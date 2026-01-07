@@ -18,8 +18,10 @@ import { PrismaService } from '../prisma.service';
 import { UserModule } from '../user/user.module';
 import { AdminCommentService } from './services/admin-comment.service';
 import { AdminSettingsService } from './services/settings.service';
+import { AdminTagService } from './services/admin-tag.service';
 
 import { AdminProblemListController } from './controllers/admin-problem-list.controller';
+import { AdminTagController } from './controllers/admin-tag.controller';
 
 @Global()
 @Module({
@@ -36,6 +38,7 @@ import { AdminProblemListController } from './controllers/admin-problem-list.con
     AdminCommentController,
     AdminSettingsController,
     AdminBulkController,
+    AdminTagController,
   ],
   providers: [
     PermissionService,
@@ -43,6 +46,7 @@ import { AdminProblemListController } from './controllers/admin-problem-list.con
     AdminDashboardService,
     AdminCommentService,
     AdminSettingsService,
+    AdminTagService,
     PermissionsGuard,
     RolesGuard,
     PrismaService,

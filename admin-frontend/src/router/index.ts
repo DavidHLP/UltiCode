@@ -150,6 +150,13 @@ const router = createRouter({
             ],
           },
         },
+        // Tags
+        {
+          path: 'tags',
+          name: 'tags',
+          component: () => import('@/views/tags/TagsListView.vue'),
+          meta: { permission: { action: 'READ', resource: 'TAG' } },
+        },
         // Forum
         {
           path: 'forum',

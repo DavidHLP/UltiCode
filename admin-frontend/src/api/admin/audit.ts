@@ -94,9 +94,10 @@ export const auditApi = {
 
     // Create download link
     // response is already the data (Blob or JSON array) due to interceptor
-    const blob = format === 'csv'
-      ? (response as Blob)
-      : new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' })
+    const blob =
+      format === 'csv'
+        ? (response as Blob)
+        : new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' })
 
     const url = window.URL.createObjectURL(blob)
     const link = document.createElement('a')

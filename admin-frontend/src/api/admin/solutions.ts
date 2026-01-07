@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPost, apiDelete } from '../client'
 
 export interface Solution {
   id: string
@@ -80,38 +80,40 @@ export interface FlagSolutionDto {
 
 export const solutionsApi = {
   async getSolutions(params: SolutionQueryParams): Promise<SolutionsResponse> {
-    const response = await apiClient.get<SolutionsResponse>('/admin/solutions', { params })
-    return response.data
+    const response = await apiGet<SolutionsResponse>('/admin/solutions', { params })
+    return response
   },
 
   async getFlaggedSolutions(params: SolutionQueryParams): Promise<SolutionsResponse> {
-    const response = await apiClient.get<SolutionsResponse>('/admin/solutions/flagged', { params })
-    return response.data
+    const response = await apiGet<SolutionsResponse>('/admin/solutions/flagged', { params })
+    return response
   },
 
   async getSolution(id: string): Promise<Solution> {
-    const response = await apiClient.get<Solution>(`/admin/solutions/${id}`)
-    return response.data
+    const response = await apiGet<Solution>(`/admin/solutions/${id}`)
+    return response
   },
 
   async flagSolution(id: string, data: FlagSolutionDto): Promise<Solution> {
-    const response = await apiClient.post<Solution>(`/admin/solutions/${id}/flag`, data)
-    return response.data
+    const response = await apiPost<Solution>(`/admin/solutions/${id}/flag`, data)
+    return response
   },
 
   async unflagSolution(id: string): Promise<Solution> {
-    const response = await apiClient.post<Solution>(`/admin/solutions/${id}/unflag`)
-    return response.data
+    const response = await apiPost<Solution>(`/admin/solutions/${id}/unflag`)
+    return response
   },
 
   async deleteSolution(id: string): Promise<void> {
-    await apiClient.delete(`/admin/solutions/${id}`)
+    await apiDelete(`/admin/solutions/${id}`)
   },
 
   async bulkAction(
     data: BulkSolutionActionDto,
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiClient.post('/admin/solutions/bulk', data)
-    return response.data
+    const response = await apiPost<{
+      results: { id: string; success: boolean; error?: string }[]
+    }>('/admin/solutions/bulk', data)
+    return response
   },
 }

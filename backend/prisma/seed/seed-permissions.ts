@@ -35,6 +35,7 @@ export async function seedRolePermissions(
     'FORUM_POST',
     'FORUM_COMMENT',
     'SYSTEM',
+    'PROBLEM_LIST',
   ];
   const superAdminActions: PermissionAction[] = [
     'CREATE',
@@ -61,6 +62,7 @@ export async function seedRolePermissions(
     'FORUM_POST',
     'FORUM_COMMENT',
     'SYSTEM',
+    'PROBLEM_LIST',
   ];
   const adminActions: PermissionAction[] = [
     'CREATE',

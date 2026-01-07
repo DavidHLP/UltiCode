@@ -1,82 +1,165 @@
 <script setup lang="ts">
-import { onMounted, h } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted, h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { toast } from 'vue-sonner'
-import { IconPlus, IconTrash, IconDotsVertical } from '@tabler/icons-vue'
+import {
+  IconPlus,
+  IconTrash,
+  IconDotsVertical,
+  IconRefresh,
+  IconCircleXFilled,
+} from '@tabler/icons-vue'
 import { format } from 'date-fns'
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { useNotificationsStore } from '@/stores/admin/notifications'
-import type { SystemAnnouncement } from '@/api/admin/notifications'
+import { NotificationType, type SystemAnnouncement } from '@/api/admin/notifications'
 
 import DataTable from '@/components/table/DataTable.vue'
+import NotificationCreateDialog from './NotificationCreateDialog.vue'
+import NotificationDeleteDialog from './NotificationDeleteDialog.vue'
 
-const router = useRouter()
 const store = useNotificationsStore()
+
+const searchQuery = ref('')
+const typeFilter = ref<string>('all')
+const createDialogOpen = ref(false)
+const deleteDialogOpen = ref(false)
+const selectedNotificationId = ref<string | null>(null)
+const selectedNotificationTitle = ref<string | null>(null)
+
+function startDelete(notification: SystemAnnouncement) {
+  selectedNotificationId.value = notification.id
+  selectedNotificationTitle.value = notification.title
+  deleteDialogOpen.value = true
+}
+
+function getTypeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive' | 'outline' {
+  switch (type) {
+    case 'SYSTEM':
+      return 'default'
+    case 'SECURITY':
+      return 'destructive'
+    case 'CONTEST':
+      return 'secondary'
+    default:
+      return 'outline'
+  }
+}
 
 const columns: ColumnDef<SystemAnnouncement>[] = [
   {
     accessorKey: 'title',
     header: 'Title',
-    cell: ({ row }) => h('div', { class: 'font-medium' }, row.original.title),
+    cell: ({ row }) =>
+      h('div', { class: 'font-medium max-w-[300px] truncate' }, row.original.title),
   },
   {
     accessorKey: 'type',
     header: 'Type',
-    cell: ({ row }) => h(Badge, { variant: 'outline' }, () => row.original.type),
+    cell: ({ row }) =>
+      h(Badge, { variant: getTypeBadgeVariant(row.original.type) }, () => row.original.type),
   },
   {
     accessorKey: 'created_at',
     header: 'Sent At',
-    cell: ({ row }) => format(new Date(row.original.created_at), 'MMM d, yyyy HH:mm'),
+    cell: ({ row }) =>
+      h(
+        'span',
+        { class: 'text-muted-foreground text-sm' },
+        format(new Date(row.original.created_at), 'MMM d, yyyy HH:mm'),
+      ),
   },
   {
     accessorKey: 'creator',
     header: 'Sent By',
-    cell: ({ row }) => h('div', { class: 'flex items-center gap-2' }, [
-      h('span', row.original.creator.username)
-    ]),
-  },
-  {
-    id: 'actions',
     cell: ({ row }) => {
-      return h(DropdownMenu, [
-        h(DropdownMenuTrigger, { asChild: true }, [
-          h(Button, { variant: 'ghost', class: 'h-8 w-8 p-0' }, [
-            h(IconDotsVertical, { class: 'h-4 w-4' })
-          ])
-        ]),
-        h(DropdownMenuContent, { align: 'end' }, [
-          h(DropdownMenuItem, {
-            class: 'text-destructive',
-            onClick: () => handleDelete(row.original.id)
-          }, [
-            h(IconTrash, { class: 'mr-2 h-4 w-4' }),
-            'Delete'
-          ]),
-        ]),
+      const creator = row.original.creator
+      const initials = creator.username.slice(0, 2).toUpperCase()
+      return h('div', { class: 'flex items-center gap-2' }, [
+        h(
+          Avatar,
+          { class: 'h-7 w-7' },
+          {
+            default: () => [
+              h(AvatarImage, { src: creator.avatar ?? '' }),
+              h(AvatarFallback, { class: 'text-xs' }, () => initials),
+            ],
+          },
+        ),
+        h('span', { class: 'text-sm' }, creator.username),
       ])
     },
   },
+  {
+    id: 'actions',
+    header: 'Actions',
+    cell: ({ row }) => {
+      return h(
+        DropdownMenu,
+        {},
+        {
+          default: () => [
+            h(
+              DropdownMenuTrigger,
+              { asChild: true },
+              {
+                default: () =>
+                  h(
+                    Button,
+                    { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
+                    {
+                      default: () => [
+                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h(IconDotsVertical, { class: 'h-4 w-4' }),
+                      ],
+                    },
+                  ),
+              },
+            ),
+            h(
+              DropdownMenuContent,
+              { align: 'end' },
+              {
+                default: () => [
+                  h(
+                    DropdownMenuItem,
+                    {
+                      class: 'text-destructive',
+                      onClick: () => startDelete(row.original),
+                    },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconTrash, { class: 'h-4 w-4' }),
+                          'Delete',
+                        ]),
+                    },
+                  ),
+                ],
+              },
+            ),
+          ],
+        },
+      )
+    },
+  },
 ]
-
-const handleDelete = async (id: string) => {
-  if (!confirm('Are you sure you want to delete this announcement? It will be removed for all users.')) return
-  try {
-    await store.deleteAnnouncement(id)
-    toast.success('Announcement deleted')
-  } catch {
-    toast.error('Failed to delete announcement')
-  }
-}
 
 onMounted(() => {
   store.fetchAnnouncements()
@@ -84,26 +167,63 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4 p-4 lg:p-6 h-[calc(100vh-theme(spacing.16))]">
-    <div class="flex items-center justify-between">
-      <div class="space-y-1">
-        <h2 class="text-2xl font-semibold tracking-tight">Notifications</h2>
-        <p class="text-sm text-muted-foreground">
-          Manage system-wide announcements and notifications.
-        </p>
-      </div>
-      <Button @click="router.push('/notifications/create')">
-        <IconPlus class="mr-2 h-4 w-4" />
-        New Notification
-      </Button>
-    </div>
+  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+    <DataTable :columns="columns" :data="store.announcements" :loading="store.isLoading">
+      <template #toolbar-left>
+        <Input
+          v-model="searchQuery"
+          placeholder="Search notifications..."
+          class="min-w-[200px] w-[260px]"
+        >
+          <template #trailing>
+            <button
+              v-if="searchQuery"
+              @click="searchQuery = ''"
+              class="rounded-sm opacity-70 hover:opacity-100"
+            >
+              <IconCircleXFilled class="h-4 w-4" />
+            </button>
+          </template>
+        </Input>
+        <Select v-model="typeFilter">
+          <SelectTrigger class="w-[160px]">
+            <SelectValue placeholder="All Types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem v-for="type in NotificationType" :key="type" :value="type">
+              {{ type }}
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <Button variant="outline" size="icon" @click="store.fetchAnnouncements()" title="Refresh">
+          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': store.isLoading }" />
+        </Button>
+      </template>
 
-    <div class="flex-1 overflow-hidden rounded-md border bg-card">
-      <DataTable
-        :columns="columns"
-        :data="store.announcements"
-        :loading="store.isLoading"
-      />
+      <template #extra-actions>
+        <Button variant="outline" size="sm" @click="createDialogOpen = true">
+          <IconPlus />
+          <span class="hidden lg:inline">New Notification</span>
+        </Button>
+      </template>
+    </DataTable>
+
+    <!-- Error state -->
+    <div
+      v-if="store.error"
+      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+    >
+      <span class="text-destructive">{{ store.error }}</span>
+      <Button variant="outline" size="sm" @click="store.fetchAnnouncements()">Retry</Button>
     </div>
   </div>
+
+  <NotificationCreateDialog v-model:open="createDialogOpen" @success="store.fetchAnnouncements()" />
+  <NotificationDeleteDialog
+    v-model:open="deleteDialogOpen"
+    :notification-id="selectedNotificationId"
+    :notification-title="selectedNotificationTitle"
+    @success="store.fetchAnnouncements()"
+  />
 </template>

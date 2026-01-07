@@ -82,7 +82,9 @@ export interface ProblemListResponse {
 
 export const adminProblemListsApi = {
   async getLists(query: ProblemListQuery): Promise<ProblemListResponse> {
-    const response = await apiClient.get<ProblemListResponse>('/admin/problem-lists', { params: query })
+    const response = await apiClient.get<ProblemListResponse>('/admin/problem-lists', {
+      params: query,
+    })
     return response.data
   },
 

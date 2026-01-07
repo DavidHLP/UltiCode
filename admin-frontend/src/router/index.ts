@@ -188,6 +188,19 @@ const router = createRouter({
           component: () => import('@/views/settings/SettingsView.vue'),
           meta: { permission: { action: 'UPDATE', resource: 'SYSTEM' } },
         },
+        // Notifications
+        {
+          path: 'notifications',
+          name: 'notifications',
+          component: () => import('@/views/notifications/NotificationsListView.vue'),
+          meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
+        },
+        {
+          path: 'notifications/create',
+          name: 'notification-create',
+          component: () => import('@/views/notifications/NotificationCreateView.vue'),
+          meta: { permission: { action: 'CREATE', resource: 'SYSTEM' } },
+        },
       ],
     },
   ],

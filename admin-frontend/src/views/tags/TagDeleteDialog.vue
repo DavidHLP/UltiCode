@@ -57,8 +57,8 @@ async function handleDelete() {
         </DialogTitle>
         <DialogDescription>
           Are you sure you want to delete the tag
-          <span class="font-medium text-foreground">"{{ tagName }}"</span>? This action cannot
-          be undone.
+          <span class="font-medium text-foreground">"{{ tagName }}"</span>? This action cannot be
+          undone.
         </DialogDescription>
       </DialogHeader>
 

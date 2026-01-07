@@ -22,6 +22,8 @@ import { AdminTagService } from './services/admin-tag.service';
 
 import { AdminProblemListController } from './controllers/admin-problem-list.controller';
 import { AdminTagController } from './controllers/admin-tag.controller';
+import { AdminNotificationController } from './controllers/admin-notification.controller';
+import { AdminNotificationService } from './services/admin-notification.service';
 
 @Global()
 @Module({
@@ -39,6 +41,7 @@ import { AdminTagController } from './controllers/admin-tag.controller';
     AdminSettingsController,
     AdminBulkController,
     AdminTagController,
+    AdminNotificationController,
   ],
   providers: [
     PermissionService,
@@ -47,6 +50,7 @@ import { AdminTagController } from './controllers/admin-tag.controller';
     AdminCommentService,
     AdminSettingsService,
     AdminTagService,
+    AdminNotificationService,
     PermissionsGuard,
     RolesGuard,
     PrismaService,

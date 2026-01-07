@@ -19,6 +19,7 @@ import {
   IconMessages,
   IconTrophy,
   IconTags,
+  IconBell,
 } from '@tabler/icons-vue'
 
 import NavDocuments from './NavDocuments.vue'
@@ -120,6 +121,15 @@ const navMain = computed(() => {
       title: 'Comments',
       url: '/comments',
       icon: IconMessageCircle,
+    })
+  }
+
+  // Add Notifications if user has permission
+  if (authStore.hasPermission('READ', 'SYSTEM')) {
+    items.push({
+      title: 'Notifications',
+      url: '/notifications',
+      icon: IconBell,
     })
   }
 

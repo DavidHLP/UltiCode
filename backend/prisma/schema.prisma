@@ -47,6 +47,8 @@ model User {
   permissions           UserPermission[]
   auditLogs             AuditLog[]              @relation("AuditLogUser")
   performedAudits       AuditLog[]              @relation("AuditLogPerformer")
+  systemAnnouncements      SystemAnnouncement[]
+  systemAnnouncementReads  SystemAnnouncementRead[]
 
   @@index([role])
   @@index([is_active, is_banned])
@@ -1048,4 +1050,33 @@ model SystemSetting {
   updated_at  DateTime @updatedAt
 
   @@map("system_settings")
+}
+
+model SystemAnnouncement {
+  id          String   @id @default(uuid()) @db.VarChar(40)
+  title       String   @db.VarChar(255)
+  content     String   @db.Text
+  type        NotificationType
+  created_by  String   @db.VarChar(40)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+
+  creator     User     @relation(fields: [created_by], references: [id])
+  reads       SystemAnnouncementRead[]
+
+  @@map("system_announcements")
+}
+
+model SystemAnnouncementRead {
+  id              String             @id @default(uuid()) @db.VarChar(40)
+  user_id         String             @db.VarChar(40)
+  announcement_id String             @db.VarChar(40)
+  is_read         Boolean            @default(true)
+  read_at         DateTime?          @default(now())
+
+  user            User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  announcement    SystemAnnouncement @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, announcement_id])
+  @@map("system_announcement_reads")
 }

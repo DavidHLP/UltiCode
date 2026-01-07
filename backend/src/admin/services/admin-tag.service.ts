@@ -27,7 +27,13 @@ export class AdminTagService {
       .replace(/(^-|-$)+/g, '');
   }
 
-  async findAll(query: TagQueryDto) {
+  async findAll(query: TagQueryDto): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
     const {
       search,
       type,

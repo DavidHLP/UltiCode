@@ -61,14 +61,8 @@ onMounted(() => loadLists())
 async function loadLists() {
   await store.fetchLists({
     search: searchQuery.value || undefined,
-    is_featured:
-      featuredFilter.value === 'all'
-        ? undefined
-        : featuredFilter.value === 'featured',
-    is_public:
-      visibilityFilter.value === 'all'
-        ? undefined
-        : visibilityFilter.value === 'public',
+    is_featured: featuredFilter.value === 'all' ? undefined : featuredFilter.value === 'featured',
+    is_public: visibilityFilter.value === 'all' ? undefined : visibilityFilter.value === 'public',
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
   })
@@ -113,7 +107,11 @@ const columns: ColumnDef<ProblemList>[] = [
       const list = row.original
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'font-medium text-sm' }, list.name),
-        h('span', { class: 'text-muted-foreground text-xs line-clamp-1' }, list.description || 'No description'),
+        h(
+          'span',
+          { class: 'text-muted-foreground text-xs line-clamp-1' },
+          list.description || 'No description',
+        ),
       ])
     },
   },
@@ -163,11 +161,7 @@ const columns: ColumnDef<ProblemList>[] = [
     header: 'Order',
     cell: ({ row }) => {
       const order = row.original.banner_order
-      return h(
-        'span',
-        { class: 'text-muted-foreground text-sm tabular-nums' },
-        order,
-      )
+      return h('span', { class: 'text-muted-foreground text-sm tabular-nums' }, order)
     },
   },
   {

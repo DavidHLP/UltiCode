@@ -943,6 +943,7 @@ enum PermissionResource {
   FORUM_POST
   FORUM_COMMENT
   SYSTEM
+  PROBLEM_LIST
 }
 
 // ============================================================================

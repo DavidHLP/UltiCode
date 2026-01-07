@@ -71,9 +71,7 @@ debouncedSearch('')
     <DialogContent class="p-0 overflow-hidden max-w-2xl">
       <DialogHeader class="px-6 pt-6 pb-2">
         <DialogTitle>Select Problem</DialogTitle>
-        <DialogDescription>
-          Search and select a problem to add to the contest.
-        </DialogDescription>
+        <DialogDescription> Search and select a problem to add to the contest. </DialogDescription>
       </DialogHeader>
       <div class="px-4 pb-4">
         <Command class="border rounded-md">

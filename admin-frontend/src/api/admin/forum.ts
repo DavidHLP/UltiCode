@@ -109,9 +109,12 @@ export const forumApi = {
   },
 
   async getCommunities(page = 1, limit = 20): Promise<AdminForumCommunitiesResponse> {
-    const response = await apiClient.get<AdminForumCommunitiesResponse>('/admin/forum/communities', {
-      params: { page, limit }
-    })
+    const response = await apiClient.get<AdminForumCommunitiesResponse>(
+      '/admin/forum/communities',
+      {
+        params: { page, limit },
+      },
+    )
     return response.data
   },
 
@@ -138,5 +141,5 @@ export const forumApi = {
   async bulkAction(data: BulkForumActionDto): Promise<{ results: BulkActionResult[] }> {
     const response = await apiClient.post('/admin/forum/bulk', data)
     return response.data
-  }
+  },
 }

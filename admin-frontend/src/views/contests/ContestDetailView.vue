@@ -88,7 +88,8 @@ async function handleEnd() {
 }
 
 async function handleDelete() {
-  if (!confirm('Are you sure you want to delete this contest? This action cannot be undone.')) return
+  if (!confirm('Are you sure you want to delete this contest? This action cannot be undone.'))
+    return
   try {
     await contestsStore.deleteContest(contestId.value)
     toast.success('Contest deleted')
@@ -125,9 +126,9 @@ async function handleRemoveProblem(problemId: string) {
   }
 }
 
-function handleTabChange(value: string) {
-  activeTab.value = value
-  if (value === 'rankings') {
+function handleTabChange(value: string | number) {
+  activeTab.value = String(value)
+  if (activeTab.value === 'rankings') {
     contestsStore.fetchRankings(contestId.value)
   }
 }
@@ -155,8 +156,8 @@ function handleTabChange(value: string) {
                 contest.status === 'RUNNING'
                   ? 'default'
                   : contest.status === 'FINISHED'
-                  ? 'secondary'
-                  : 'outline'
+                    ? 'secondary'
+                    : 'outline'
               "
               class="capitalize text-[10px]"
             >
@@ -302,10 +303,7 @@ function handleTabChange(value: string) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  <TableRow
-                    v-for="cp in contest.problems"
-                    :key="cp.id"
-                  >
+                  <TableRow v-for="cp in contest.problems" :key="cp.id">
                     <TableCell class="font-medium">{{ cp.problem_index }}</TableCell>
                     <TableCell>
                       <div class="flex flex-col">
@@ -413,15 +411,13 @@ function handleTabChange(value: string) {
 
       <div v-else class="flex flex-col items-center justify-center h-64 text-muted-foreground">
         <p>Contest not found.</p>
-        <Button variant="link" @click="router.push({ name: 'contests' })">
-          Back to list
-        </Button>
+        <Button variant="link" @click="router.push({ name: 'contests' })"> Back to list </Button>
       </div>
 
       <ContestProblemPicker
         v-if="contest"
         v-model:open="problemPickerOpen"
-        :exclude-ids="contest.problems?.map(p => p.problem_id) || []"
+        :exclude-ids="contest.problems?.map((p) => p.problem_id) || []"
         @select="handleAddProblem"
       />
     </main>

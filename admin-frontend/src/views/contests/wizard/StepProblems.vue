@@ -13,7 +13,6 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { IconPlus, IconTrash } from '@tabler/icons-vue'
 import ContestProblemPicker from '../components/ContestProblemPicker.vue'
-import type { Problem } from '@/api/admin/problems'
 
 const props = defineProps<{
   formData: {
@@ -34,7 +33,7 @@ const emit = defineEmits<{
 
 const pickerOpen = ref(false)
 
-function addProblem(problem: Problem) {
+function addProblem(problem: { id: string; title: string; slug: string; difficulty: string }) {
   const currentProblems = props.formData.selectedProblems || []
   if (currentProblems.find((p) => p.id === problem.id)) return
 
@@ -62,9 +61,7 @@ function updateScore(problemId: string, score: number) {
   const currentProblems = props.formData.selectedProblems || []
   emit('update:formData', {
     ...props.formData,
-    selectedProblems: currentProblems.map((p) =>
-      p.id === problemId ? { ...p, score } : p,
-    ),
+    selectedProblems: currentProblems.map((p) => (p.id === problemId ? { ...p, score } : p)),
   })
 }
 </script>
@@ -91,10 +88,7 @@ function updateScore(problemId: string, score: number) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow
-            v-for="(problem, index) in formData.selectedProblems || []"
-            :key="problem.id"
-          >
+          <TableRow v-for="(problem, index) in formData.selectedProblems || []" :key="problem.id">
             <TableCell class="font-medium">
               {{ String.fromCharCode(65 + index) }}
             </TableCell>

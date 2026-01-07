@@ -1,8 +1,5 @@
 <script setup lang="ts">
-import {
-  FormLabel,
-  FormDescription,
-} from '@/components/ui/form'
+import { FormLabel, FormDescription } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import {
@@ -33,7 +30,9 @@ const emit = defineEmits<{
   (e: 'update:formData', value: unknown): void
 }>()
 
-function updateField(field: string, value: string | ContestType) {
+function updateField(field: string, value: string | number | bigint | ContestType | null) {
+  if (value === null) return
+
   emit('update:formData', {
     ...props.formData,
     [field]: value,
@@ -67,7 +66,7 @@ function updateField(field: string, value: string | ContestType) {
       <FormLabel>Type</FormLabel>
       <Select
         :model-value="formData.type"
-        @update:model-value="updateField('type', $event)"
+        @update:model-value="updateField('type', $event as ContestType)"
       >
         <SelectTrigger>
           <SelectValue placeholder="Select type" />

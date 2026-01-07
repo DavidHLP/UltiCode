@@ -96,6 +96,25 @@ const router = createRouter({
           name: 'problem-edit',
           redirect: (to) => ({ name: 'problem-edit-description', params: { id: to.params.id } }),
         },
+        // Problem Lists
+        {
+          path: 'problem-lists',
+          name: 'problem-lists',
+          component: () => import('@/views/problem-lists/ProblemListsListView.vue'),
+          meta: { permission: { action: 'READ', resource: 'PROBLEM_LIST' } },
+        },
+        {
+          path: 'problem-lists/create',
+          name: 'problem-list-create',
+          component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
+          meta: { permission: { action: 'CREATE', resource: 'PROBLEM_LIST' } },
+        },
+        {
+          path: 'problem-lists/:id/edit',
+          name: 'problem-list-edit',
+          component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
+          meta: { permission: { action: 'UPDATE', resource: 'PROBLEM_LIST' } },
+        },
         // Solutions
         {
           path: 'solutions',

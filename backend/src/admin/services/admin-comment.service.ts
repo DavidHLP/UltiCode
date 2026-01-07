@@ -1,8 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import {
+  Prisma,
+  type ForumComment,
+  type SolutionComment,
+} from '@prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { CommentQueryDto, CommentType } from '../dto/comment.dto';
 import { AuditService } from './audit.service';
-import type { ForumComment, SolutionComment } from '@prisma/client';
 
 @Injectable()
 export class AdminCommentService {
@@ -24,7 +28,8 @@ export class AdminCommentService {
     } = query;
     const skip = (page - 1) * limit;
 
-    const baseWhere: any = {};
+    const baseWhere: Prisma.ForumCommentWhereInput &
+      Prisma.SolutionCommentWhereInput = {};
 
     if (is_flagged !== undefined) {
       baseWhere.is_flagged = is_flagged;
@@ -37,14 +42,37 @@ export class AdminCommentService {
       baseWhere.is_deleted = false;
     }
 
-    let forumComments: any[] = [];
-    let solutionComments: any[] = [];
+    const sortField: Prisma.ForumCommentScalarFieldEnum &
+      Prisma.SolutionCommentScalarFieldEnum =
+      sortBy as Prisma.ForumCommentScalarFieldEnum &
+        Prisma.SolutionCommentScalarFieldEnum;
+    const orderBy: Prisma.ForumCommentOrderByWithRelationInput &
+      Prisma.SolutionCommentOrderByWithRelationInput = {
+      [sortField]: sortOrder,
+    };
+
+    type ForumCommentWithRelations = Prisma.ForumCommentGetPayload<{
+      include: {
+        author: { select: { id: true; username: true; avatar: true } };
+        post: { select: { id: true; title: true } };
+      };
+    }>;
+
+    type SolutionCommentWithRelations = Prisma.SolutionCommentGetPayload<{
+      include: {
+        author: { select: { id: true; username: true; avatar: true } };
+        solution: { select: { id: true; title: true } };
+      };
+    }>;
+
+    let forumComments: ForumCommentWithRelations[] = [];
+    let solutionComments: SolutionCommentWithRelations[] = [];
     let totalForum = 0;
     let totalSolution = 0;
 
     // If type is specified or 'all', fetch accordingly
     if (!type || type === CommentType.FORUM) {
-      const forumWhere = { ...baseWhere };
+      const forumWhere: Prisma.ForumCommentWhereInput = { ...baseWhere };
       if (search) {
         forumWhere.body = { contains: search };
       }
@@ -56,10 +84,10 @@ export class AdminCommentService {
             author: { select: { id: true, username: true, avatar: true } },
             post: { select: { id: true, title: true } },
           },
-          orderBy: { [sortBy]: sortOrder },
+          orderBy,
           take: type === CommentType.FORUM ? limit : Math.floor(limit / 2), // Simple split if both
           skip: type === CommentType.FORUM ? skip : 0,
-        }) as Promise<any[]>,
+        }),
         this.prisma.forumComment.count({ where: forumWhere }),
       ]);
       forumComments = fData;
@@ -67,7 +95,7 @@ export class AdminCommentService {
     }
 
     if (!type || type === CommentType.SOLUTION) {
-      const solutionWhere = { ...baseWhere };
+      const solutionWhere: Prisma.SolutionCommentWhereInput = { ...baseWhere };
       if (search) {
         solutionWhere.content = { contains: search };
       }
@@ -79,10 +107,10 @@ export class AdminCommentService {
             author: { select: { id: true, username: true, avatar: true } },
             solution: { select: { id: true, title: true } },
           },
-          orderBy: { [sortBy]: sortOrder },
+          orderBy,
           take: type === CommentType.SOLUTION ? limit : Math.floor(limit / 2),
           skip: type === CommentType.SOLUTION ? skip : 0,
-        }) as Promise<any[]>,
+        }),
         this.prisma.solutionComment.count({ where: solutionWhere }),
       ]);
       solutionComments = sData;
@@ -90,17 +118,17 @@ export class AdminCommentService {
     }
 
     // Transform and merge
-    const transformedForum = forumComments.map((c: any): any => ({
+    const transformedForum = forumComments.map((c) => ({
       ...c,
       content: c.body,
-      type: 'forum',
+      type: 'forum' as const,
       parentId: c.post_id,
       parentTitle: c.post?.title,
     }));
 
-    const transformedSolution = solutionComments.map((c: any): any => ({
+    const transformedSolution = solutionComments.map((c) => ({
       ...c,
-      type: 'solution',
+      type: 'solution' as const,
       parentId: c.solution_id,
       parentTitle: c.solution?.title,
     }));
@@ -109,9 +137,11 @@ export class AdminCommentService {
 
     // Re-sort if mixed
     if (!type) {
-      data.sort((a: any, b: any) => {
-        const dateA = new Date(a[sortBy]).getTime();
-        const dateB = new Date(b[sortBy]).getTime();
+      data.sort((a, b) => {
+        const rawA = a[sortField];
+        const rawB = b[sortField];
+        const dateA = rawA instanceof Date ? rawA.getTime() : 0;
+        const dateB = rawB instanceof Date ? rawB.getTime() : 0;
         return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
       });
     }

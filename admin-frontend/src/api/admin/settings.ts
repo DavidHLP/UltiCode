@@ -20,7 +20,9 @@ export const settingsApi = {
     return response.data
   },
 
-  async updateSettings(data: Partial<SystemSettings>): Promise<{ message: string; settings: SystemSettings }> {
+  async updateSettings(
+    data: Partial<SystemSettings>,
+  ): Promise<{ message: string; settings: SystemSettings }> {
     const response = await apiClient.patch<{ message: string; settings: SystemSettings }>(
       '/admin/settings',
       data,
@@ -28,7 +30,9 @@ export const settingsApi = {
     return response.data
   },
 
-  async toggleMaintenance(data: MaintenanceModeDto): Promise<{ message: string; maintenance_mode: boolean }> {
+  async toggleMaintenance(
+    data: MaintenanceModeDto,
+  ): Promise<{ message: string; maintenance_mode: boolean }> {
     const response = await apiClient.post<{ message: string; maintenance_mode: boolean }>(
       '/admin/settings/maintenance',
       data,

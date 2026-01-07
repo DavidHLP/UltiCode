@@ -5,7 +5,7 @@ import {
   type ForumPost,
   type ForumCommunity,
   type ForumPostQueryParams,
-  type BulkForumActionType
+  type BulkForumActionType,
 } from '@/api/admin/forum'
 
 export const useForumStore = defineStore('adminForum', () => {
@@ -58,7 +58,9 @@ export const useForumStore = defineStore('adminForum', () => {
       // Optimistic update or refresh
       await fetchPosts() // Refreshing is safer for pagination
     } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || 'Failed to delete post'
+      const msg =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to delete post'
       postsError.value = msg
       throw err
     } finally {
@@ -75,7 +77,7 @@ export const useForumStore = defineStore('adminForum', () => {
         await forumApi.pinPost(post.id)
       }
       // Update locally
-      const index = posts.value.findIndex(p => p.id === post.id)
+      const index = posts.value.findIndex((p) => p.id === post.id)
       if (index !== -1 && posts.value[index]) {
         posts.value[index].is_pinned = !post.is_pinned
       }
@@ -96,7 +98,7 @@ export const useForumStore = defineStore('adminForum', () => {
         await forumApi.lockPost(post.id)
       }
       // Update locally
-      const index = posts.value.findIndex(p => p.id === post.id)
+      const index = posts.value.findIndex((p) => p.id === post.id)
       if (index !== -1 && posts.value[index]) {
         posts.value[index].is_locked = !post.is_locked
       }
@@ -138,6 +140,6 @@ export const useForumStore = defineStore('adminForum', () => {
     togglePin,
     toggleLock,
     bulkAction,
-    clearError
+    clearError,
   }
 })

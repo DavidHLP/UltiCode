@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet } from '../client'
 
 export enum ChartPeriod {
   HOUR = 'hour',
@@ -87,14 +87,14 @@ export interface ChartQueryParams {
 
 export const dashboardApi = {
   async getStats(): Promise<DashboardStats> {
-    const response = await apiClient.get<DashboardStats>('/admin/dashboard/stats')
-    return response.data
+    const response = await apiGet<DashboardStats>('/admin/dashboard/stats')
+    return response
   },
 
   async getChartStats(params: ChartQueryParams = {}): Promise<ChartStatsResponse> {
-    const response = await apiClient.get<ChartStatsResponse>('/admin/dashboard/charts', {
+    const response = await apiGet<ChartStatsResponse>('/admin/dashboard/charts', {
       params,
     })
-    return response.data
+    return response
   },
 }

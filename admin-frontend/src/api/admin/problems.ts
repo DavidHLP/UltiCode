@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete } from '../client'
 
 export enum Difficulty {
   EASY = 'EASY',
@@ -128,48 +128,48 @@ export interface BulkProblemActionDto {
 
 export const problemsApi = {
   async getProblems(params: ProblemQueryParams): Promise<ProblemsResponse> {
-    const response = await apiClient.get<ProblemsResponse>('/admin/problems', { params })
-    return response.data
+    const response = await apiGet<ProblemsResponse>('/admin/problems', { params })
+    return response
   },
 
   async getProblem(id: string): Promise<Problem> {
-    const response = await apiClient.get<Problem>(`/admin/problems/${id}`)
-    return response.data
+    const response = await apiGet<Problem>(`/admin/problems/${id}`)
+    return response
   },
 
   async createProblem(data: CreateProblemDto): Promise<Problem> {
-    const response = await apiClient.post<Problem>('/admin/problems', data)
-    return response.data
+    const response = await apiPost<Problem>('/admin/problems', data)
+    return response
   },
 
   async updateProblem(id: string, data: UpdateProblemDto): Promise<Problem> {
-    const response = await apiClient.patch<Problem>(`/admin/problems/${id}`, data)
-    return response.data
+    const response = await apiPatch<Problem>(`/admin/problems/${id}`, data)
+    return response
   },
 
   async deleteProblem(id: string): Promise<void> {
-    await apiClient.delete(`/admin/problems/${id}`)
+    await apiDelete(`/admin/problems/${id}`)
   },
 
   async publishProblem(id: string): Promise<Problem> {
-    const response = await apiClient.post<Problem>(`/admin/problems/${id}/publish`)
-    return response.data
+    const response = await apiPost<Problem>(`/admin/problems/${id}/publish`)
+    return response
   },
 
   async unpublishProblem(id: string): Promise<Problem> {
-    const response = await apiClient.post<Problem>(`/admin/problems/${id}/unpublish`)
-    return response.data
+    const response = await apiPost<Problem>(`/admin/problems/${id}/unpublish`)
+    return response
   },
 
   async getProblemSubmissions(
     id: string,
     params: { page?: number; limit?: number } = {},
   ): Promise<unknown> {
-    const response = await apiClient.get(`/admin/problems/${id}/submissions`, { params })
-    return response.data
+    const response = await apiGet(`/admin/problems/${id}/submissions`, { params })
+    return response
   },
 
   async bulkAction(data: BulkProblemActionDto): Promise<void> {
-    await apiClient.post('/admin/problems/bulk', data)
+    await apiPost('/admin/problems/bulk', data)
   },
 }

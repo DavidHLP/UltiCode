@@ -16,11 +16,11 @@ export class TagQueryDto {
   type?: TagType;
 
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
+  @Transform(({ value }) => parseInt(String(value), 10))
   page?: number = 1;
 
   @IsOptional()
-  @Transform(({ value }) => parseInt(value))
+  @Transform(({ value }) => parseInt(String(value), 10))
   limit?: number = 20;
 
   @IsOptional()

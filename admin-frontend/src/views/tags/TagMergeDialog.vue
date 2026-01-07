@@ -41,7 +41,7 @@ const targetTagId = ref<string>('')
 // Filter out the source tag from available targets
 const availableTargets = computed(() => {
   if (!props.sourceTagId) return tagsStore.tags
-  return tagsStore.tags.filter(t => t.id !== props.sourceTagId)
+  return tagsStore.tags.filter((t) => t.id !== props.sourceTagId)
 })
 
 async function handleMerge() {
@@ -75,8 +75,8 @@ async function handleMerge() {
           Merge Tags
         </DialogTitle>
         <DialogDescription>
-          Merge <span class="font-medium text-foreground">"{{ sourceTagName }}"</span> into another tag.
-          All relations will be moved to the target tag, and the source tag will be deleted.
+          Merge <span class="font-medium text-foreground">"{{ sourceTagName }}"</span> into another
+          tag. All relations will be moved to the target tag, and the source tag will be deleted.
         </DialogDescription>
       </DialogHeader>
 
@@ -88,11 +88,7 @@ async function handleMerge() {
               <SelectValue placeholder="Select a tag to merge into" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem
-                v-for="tag in availableTargets"
-                :key="tag.id"
-                :value="tag.id"
-              >
+              <SelectItem v-for="tag in availableTargets" :key="tag.id" :value="tag.id">
                 {{ tag.name }}
               </SelectItem>
             </SelectContent>

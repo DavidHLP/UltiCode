@@ -51,7 +51,11 @@ const editDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 const mergeDialogOpen = ref(false)
 
-const canManageTags = computed(() => authStore.hasPermission('MANAGE_USERS', 'SYSTEM') || authStore.hasPermission('UPDATE', 'PROBLEM')) // Approximate perm
+const canManageTags = computed(
+  () =>
+    authStore.hasPermission('MANAGE_USERS', 'SYSTEM') ||
+    authStore.hasPermission('UPDATE', 'PROBLEM'),
+) // Approximate perm
 
 onMounted(() => loadTags())
 
@@ -129,7 +133,8 @@ const columns: ColumnDef<Tag>[] = [
   {
     accessorKey: 'usage_count',
     header: 'Usage',
-    cell: ({ row }) => h('span', { class: 'tabular-nums' }, row.original.usage_count.toLocaleString()),
+    cell: ({ row }) =>
+      h('span', { class: 'tabular-nums' }, row.original.usage_count.toLocaleString()),
   },
   {
     accessorKey: 'description',
@@ -138,7 +143,7 @@ const columns: ColumnDef<Tag>[] = [
       h(
         'span',
         { class: 'text-muted-foreground truncate max-w-[200px] block' },
-        row.original.description || '-'
+        row.original.description || '-',
       ),
   },
   {
@@ -172,46 +177,52 @@ const columns: ColumnDef<Tag>[] = [
               DropdownMenuContent,
               { align: 'end' },
               {
-                default: () => [
-                  canManageTags.value &&
-                    h(
-                      DropdownMenuItem,
-                      { onClick: () => openEditDialog(tag) },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconPencil, { class: 'h-4 w-4' }),
-                            'Edit',
-                          ]),
-                      },
-                    ),
-                  canManageTags.value &&
-                    h(
-                      DropdownMenuItem,
-                      { onClick: () => openMergeDialog(tag) },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconGitMerge, { class: 'h-4 w-4' }),
-                            'Merge into...',
-                          ]),
-                      },
-                    ),
-                  canManageTags.value && h(DropdownMenuSeparator),
-                  canManageTags.value &&
-                    h(
-                      DropdownMenuItem,
-                      { onClick: () => openDeleteDialog(tag), class: 'text-destructive' },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconTrash, { class: 'h-4 w-4' }),
-                            'Delete',
-                          ]),
-                      },
-                    ),
-                  !canManageTags.value && h(DropdownMenuItem, { disabled: true }, { default: () => 'No actions available' }),
-                ].filter(Boolean),
+                default: () =>
+                  [
+                    canManageTags.value &&
+                      h(
+                        DropdownMenuItem,
+                        { onClick: () => openEditDialog(tag) },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              h(IconPencil, { class: 'h-4 w-4' }),
+                              'Edit',
+                            ]),
+                        },
+                      ),
+                    canManageTags.value &&
+                      h(
+                        DropdownMenuItem,
+                        { onClick: () => openMergeDialog(tag) },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              h(IconGitMerge, { class: 'h-4 w-4' }),
+                              'Merge into...',
+                            ]),
+                        },
+                      ),
+                    canManageTags.value && h(DropdownMenuSeparator),
+                    canManageTags.value &&
+                      h(
+                        DropdownMenuItem,
+                        { onClick: () => openDeleteDialog(tag), class: 'text-destructive' },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              h(IconTrash, { class: 'h-4 w-4' }),
+                              'Delete',
+                            ]),
+                        },
+                      ),
+                    !canManageTags.value &&
+                      h(
+                        DropdownMenuItem,
+                        { disabled: true },
+                        { default: () => 'No actions available' },
+                      ),
+                  ].filter(Boolean),
               },
             ),
           ],
@@ -271,17 +282,8 @@ const columns: ColumnDef<Tag>[] = [
             </SelectContent>
           </Select>
 
-          <Button
-            variant="ghost"
-            size="icon"
-            class="h-8 w-8"
-            @click="loadTags()"
-            title="Refresh"
-          >
-            <IconRefresh
-              class="h-3.5 w-3.5"
-              :class="{ 'animate-spin': tagsStore.isLoading }"
-            />
+          <Button variant="ghost" size="icon" class="h-8 w-8" @click="loadTags()" title="Refresh">
+            <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': tagsStore.isLoading }" />
           </Button>
         </div>
       </template>

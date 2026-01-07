@@ -37,8 +37,14 @@ export class AdminTagController {
     action: PermissionAction.READ,
     resource: PermissionResource.TAG,
   })
-  async findAll(@Query() query: TagQueryDto) {
-    return this.tagService.findAll(query);
+  async findAll(@Query() query: TagQueryDto): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    return await this.tagService.findAll(query);
   }
 
   @Get(':id')

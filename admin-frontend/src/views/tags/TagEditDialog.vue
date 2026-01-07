@@ -13,13 +13,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
@@ -46,7 +40,7 @@ const formSchema = toTypedSchema(
     slug: z.string().optional(),
     description: z.string().optional(),
     color: z.string().optional(),
-  })
+  }),
 )
 
 const form = useForm({
@@ -67,7 +61,7 @@ watch(
       form.resetForm()
     }
   },
-  { immediate: true }
+  { immediate: true },
 )
 
 const onSubmit = form.handleSubmit(async (values) => {

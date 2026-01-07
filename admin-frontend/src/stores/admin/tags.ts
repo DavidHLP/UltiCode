@@ -22,8 +22,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
       const response = await tagsApi.getTags(query);
       tags.value = response.data.data;
       total.value = response.data.total;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch tags';
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch tags';
       console.error(err);
     } finally {
       isLoading.value = false;
@@ -36,8 +36,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
     try {
       const response = await tagsApi.getTag(id, type);
       return response.data;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to fetch tag';
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to fetch tag';
       throw err;
     } finally {
       isLoading.value = false;
@@ -51,8 +51,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
       const response = await tagsApi.createTag(data);
       // Optimistically add to list if it matches current view, but simplest is to reload
       return response.data;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to create tag';
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to create tag';
       throw err;
     } finally {
       isLoading.value = false;
@@ -69,8 +69,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
         tags.value[index] = { ...tags.value[index], ...response.data };
       }
       return response.data;
-    } catch (err: any) {
-      error.value = err.message || 'Failed to update tag';
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to update tag';
       throw err;
     } finally {
       isLoading.value = false;
@@ -83,8 +83,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
     try {
       await tagsApi.deleteTag(id, type);
       tags.value = tags.value.filter((t) => t.id !== id);
-    } catch (err: any) {
-      error.value = err.message || 'Failed to delete tag';
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to delete tag';
       throw err;
     } finally {
       isLoading.value = false;
@@ -98,8 +98,8 @@ export const useTagsStore = defineStore('admin-tags', () => {
       await tagsApi.mergeTag(data);
       // Remove source tag from list locally
       tags.value = tags.value.filter((t) => t.id !== data.sourceId);
-    } catch (err: any) {
-      error.value = err.message || 'Failed to merge tags';
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : 'Failed to merge tags';
       throw err;
     } finally {
       isLoading.value = false;

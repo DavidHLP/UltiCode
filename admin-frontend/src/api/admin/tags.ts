@@ -1,4 +1,4 @@
-import axios from '@/utils/axios';
+import apiClient from '../client';
 
 export enum TagType {
   PROBLEM = 'PROBLEM',
@@ -52,26 +52,26 @@ export interface TagListResponse {
 
 export const tagsApi = {
   getTags(query: TagQuery) {
-    return axios.get<TagListResponse>('/admin/tags', { params: query });
+    return apiClient.get<TagListResponse>('/admin/tags', { params: query });
   },
 
   getTag(id: string, type: TagType) {
-    return axios.get<Tag>(`/admin/tags/${id}`, { params: { type } });
+    return apiClient.get<Tag>(`/admin/tags/${id}`, { params: { type } });
   },
 
   createTag(data: CreateTagDto) {
-    return axios.post<Tag>('/admin/tags', data);
+    return apiClient.post<Tag>('/admin/tags', data);
   },
 
   updateTag(id: string, data: UpdateTagDto) {
-    return axios.patch<Tag>(`/admin/tags/${id}`, data);
+    return apiClient.patch<Tag>(`/admin/tags/${id}`, data);
   },
 
   deleteTag(id: string, type: TagType) {
-    return axios.delete(`/admin/tags/${id}`, { params: { type } });
+    return apiClient.delete(`/admin/tags/${id}`, { params: { type } });
   },
 
   mergeTag(data: { sourceId: string; targetTagId: string; type: TagType }) {
-    return axios.post('/admin/tags/merge', data);
+    return apiClient.post('/admin/tags/merge', data);
   },
 };

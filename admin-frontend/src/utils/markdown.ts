@@ -131,14 +131,13 @@ const groupFencesPlugin = (md: MarkdownIt) => {
       }
 
       const activeClass = index === 0 ? 'active' : ''
-      const encodedContent = encodeURIComponent(fence.content)
 
       // Note: We use a simplified structure here, relying on CSS for layout
       bodyHtml += `
         <div class="lc-code-panel ${activeClass}" data-index="${index}">
           <div class="lc-code-block group/code">
              <div class="lc-copy-wrapper">
-                <button class="lc-copy-btn" data-code="${encodedContent}" aria-label="Copy code">
+                <button class="lc-copy-btn" aria-label="Copy code">
                   <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lc-copy-icon"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
                 </button>
              </div>

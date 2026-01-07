@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete } from '../client'
 
 export enum TagType {
   PROBLEM = 'PROBLEM',
@@ -52,26 +52,26 @@ export interface TagListResponse {
 
 export const tagsApi = {
   getTags(query: TagQuery) {
-    return apiClient.get<TagListResponse>('/admin/tags', { params: query })
+    return apiGet<TagListResponse>('/admin/tags', { params: query })
   },
 
   getTag(id: string, type: TagType) {
-    return apiClient.get<Tag>(`/admin/tags/${id}`, { params: { type } })
+    return apiGet<Tag>(`/admin/tags/${id}`, { params: { type } })
   },
 
   createTag(data: CreateTagDto) {
-    return apiClient.post<Tag>('/admin/tags', data)
+    return apiPost<Tag>('/admin/tags', data)
   },
 
   updateTag(id: string, data: UpdateTagDto) {
-    return apiClient.patch<Tag>(`/admin/tags/${id}`, data)
+    return apiPatch<Tag>(`/admin/tags/${id}`, data)
   },
 
   deleteTag(id: string, type: TagType) {
-    return apiClient.delete(`/admin/tags/${id}`, { params: { type } })
+    return apiDelete(`/admin/tags/${id}`, { params: { type } })
   },
 
   mergeTag(data: { sourceId: string; targetTagId: string; type: TagType }) {
-    return apiClient.post('/admin/tags/merge', data)
+    return apiPost('/admin/tags/merge', data)
   },
 }

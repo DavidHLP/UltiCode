@@ -16,7 +16,6 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -174,41 +173,45 @@ const columns: ColumnDef<Tag>[] = [
               { align: 'end' },
               {
                 default: () => [
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => openEditDialog(tag) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconPencil, { class: 'h-4 w-4' }),
-                          'Edit',
-                        ]),
-                    },
-                  ),
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => openMergeDialog(tag) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconGitMerge, { class: 'h-4 w-4' }),
-                          'Merge into...',
-                        ]),
-                    },
-                  ),
-                  h(DropdownMenuSeparator),
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => openDeleteDialog(tag), class: 'text-destructive' },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconTrash, { class: 'h-4 w-4' }),
-                          'Delete',
-                        ]),
-                    },
-                  ),
-                ],
+                  canManageTags.value &&
+                    h(
+                      DropdownMenuItem,
+                      { onClick: () => openEditDialog(tag) },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconPencil, { class: 'h-4 w-4' }),
+                            'Edit',
+                          ]),
+                      },
+                    ),
+                  canManageTags.value &&
+                    h(
+                      DropdownMenuItem,
+                      { onClick: () => openMergeDialog(tag) },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconGitMerge, { class: 'h-4 w-4' }),
+                            'Merge into...',
+                          ]),
+                      },
+                    ),
+                  canManageTags.value && h(DropdownMenuSeparator),
+                  canManageTags.value &&
+                    h(
+                      DropdownMenuItem,
+                      { onClick: () => openDeleteDialog(tag), class: 'text-destructive' },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconTrash, { class: 'h-4 w-4' }),
+                            'Delete',
+                          ]),
+                      },
+                    ),
+                  !canManageTags.value && h(DropdownMenuItem, { disabled: true }, { default: () => 'No actions available' }),
+                ].filter(Boolean),
               },
             ),
           ],
@@ -223,7 +226,7 @@ const columns: ColumnDef<Tag>[] = [
   <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
     <div class="flex items-center justify-between">
       <h1 class="text-2xl font-bold tracking-tight">Tags Management</h1>
-      <Button @click="openCreateDialog">
+      <Button v-if="canManageTags" @click="openCreateDialog">
         <IconPlus class="mr-2 h-4 w-4" />
         Create Tag
       </Button>

@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet } from '../client'
 
 export interface AuditLog {
   id: string
@@ -74,8 +74,7 @@ export interface AuditExportParams extends AuditLogQueryParams {
 
 export const auditApi = {
   async getAuditLogs(params: AuditLogQueryParams = {}): Promise<AuditLogsResponse> {
-    const response = await apiClient.get<AuditLogsResponse>('/admin/audit/logs', { params })
-    return response
+    return apiGet<AuditLogsResponse>('/admin/audit/logs', { params })
   },
 
   async getAuditStats(params?: {
@@ -83,13 +82,12 @@ export const auditApi = {
     endDate?: string
     performerId?: string
   }): Promise<AuditStats> {
-    const response = await apiClient.get<AuditStats>('/admin/audit/stats', { params })
-    return response
+    return apiGet<AuditStats>('/admin/audit/stats', { params })
   },
 
   async exportAuditLogs(params: AuditExportParams = {}): Promise<void> {
     const { format = 'csv', ...queryParams } = params
-    const response = await apiClient.get<Blob | unknown>('/admin/audit/export', {
+    const response = await apiGet<Blob | unknown>('/admin/audit/export', {
       params: { ...queryParams, format },
       responseType: format === 'csv' ? 'blob' : 'json',
     })

@@ -16,7 +16,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     error.value = null
     try {
       const response = await adminNotifications.getAll()
-      announcements.value = response.data
+      announcements.value = response
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
       error.value = err.response?.data?.message || 'Failed to fetch announcements'

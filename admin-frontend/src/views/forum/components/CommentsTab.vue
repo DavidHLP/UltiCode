@@ -33,10 +33,6 @@ defineProps<{
   postId: string
 }>()
 
-const emit = defineEmits<{
-  'update-count': [count: number]
-}>()
-
 const commentsStore = useCommentsStore()
 const authStore = useAuthStore()
 
@@ -51,7 +47,6 @@ const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_CO
 onMounted(() => loadComments())
 
 async function loadComments() {
-  commentsStore.reset()
   await commentsStore.fetchComments({
     type: 'forum',
     // Note: The comments API doesn't currently support filtering by post_id
@@ -59,15 +54,11 @@ async function loadComments() {
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
   })
-  // Emit count for parent to update
-  emit('update-count', commentsStore.total)
 }
 
-watch(
-  () => tablePagination.value,
-  () => loadComments(),
-  { deep: true },
-)
+// Only watch pageIndex and pageSize separately to avoid deep watch issues
+watch(() => tablePagination.value.pageIndex, () => loadComments())
+watch(() => tablePagination.value.pageSize, () => loadComments())
 
 function confirmDelete(comment: Comment) {
   selectedCommentId.value = comment.id
@@ -248,13 +239,7 @@ const columns: ColumnDef<Comment>[] = [
         <IconMessage class="h-5 w-5 text-muted-foreground" />
         <h3 class="text-lg font-semibold">Post Comments</h3>
       </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        class="h-8 w-8"
-        @click="loadComments"
-        title="Refresh"
-      >
+      <Button variant="ghost" size="icon" class="h-8 w-8" @click="loadComments" title="Refresh">
         <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': commentsStore.loading }" />
       </Button>
     </div>

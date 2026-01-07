@@ -46,7 +46,7 @@ const authStore = useAuthStore()
 const searchQuery = ref('')
 const featuredFilter = ref<string>('all')
 const visibilityFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
+const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedListId = ref<string | null>(null)
 const selectedListName = ref<string | null>(null)

@@ -88,7 +88,9 @@ export class NotificationService {
       skip: skip, // Basic skip, imperfect when merging
     });
 
-    const totalUserNotifications = await this.prisma.notification.count({ where });
+    const totalUserNotifications = await this.prisma.notification.count({
+      where,
+    });
     let total = totalUserNotifications;
     let items = userNotifications.map((item) => this.mapNotification(item));
 
@@ -186,7 +188,9 @@ export class NotificationService {
       take: 20, // Check recent 20
     });
 
-    const unreadAnnouncements = announcements.filter((a) => !a.reads[0]?.is_read).length;
+    const unreadAnnouncements = announcements.filter(
+      (a) => !a.reads[0]?.is_read,
+    ).length;
 
     return { count: userUnread + unreadAnnouncements };
   }

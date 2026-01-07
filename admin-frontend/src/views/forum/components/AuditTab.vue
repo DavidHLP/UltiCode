@@ -135,11 +135,7 @@ function getChangesText(entry: AuditEntry): string | null {
 
     <!-- Audit Timeline -->
     <div v-else class="space-y-3">
-      <Card
-        v-for="entry in auditHistory"
-        :key="entry.id"
-        class="overflow-hidden"
-      >
+      <Card v-for="entry in auditHistory" :key="entry.id" class="overflow-hidden">
         <CardContent class="p-4">
           <div class="flex items-start gap-4">
             <!-- Action Icon -->
@@ -176,7 +172,10 @@ function getChangesText(entry: AuditEntry): string | null {
               </div>
 
               <!-- Additional Info -->
-              <div v-if="entry.ipAddress || entry.userAgent" class="mt-2 text-xs text-muted-foreground">
+              <div
+                v-if="entry.ipAddress || entry.userAgent"
+                class="mt-2 text-xs text-muted-foreground"
+              >
                 <div v-if="entry.ipAddress">IP: {{ entry.ipAddress }}</div>
                 <div v-if="entry.userAgent" class="truncate">{{ entry.userAgent }}</div>
               </div>

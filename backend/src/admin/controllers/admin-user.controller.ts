@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
 } from '@nestjs/common';
+import { randomUUID } from 'crypto';
 import { Like, FindOptionsWhere } from 'typeorm';
 import { AuthGuard } from '../../auth/auth.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -131,8 +132,8 @@ export class AdminUserController {
     @Body() createUserDto: CreateUserDto,
     @CurrentAdmin() admin: User,
   ) {
-    // Generate a unique ID manually as the database doesn't have a default for it
-    const id = `u-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    // Generate a unique ID using UUID
+    const id = randomUUID();
 
     const user = await this.userService.create({
       ...createUserDto,

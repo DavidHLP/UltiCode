@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
-import { randomBytes } from 'crypto';
+import { randomBytes, randomUUID } from 'crypto';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma.service';
 import { RegisterDto } from './dto/register.dto';
@@ -167,7 +167,7 @@ export class AuthService {
     }
 
     // 生成用户 ID
-    const id = `u-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+    const id = randomUUID();
 
     // 哈希密码
     const hashedPassword = await this.hashPassword(registerDto.password);
@@ -316,7 +316,7 @@ export class AuthService {
     let user = await this.userService.findByEmail(githubUser.email);
     if (!user) {
       user = await this.userService.create({
-        id: `u-gh-${Date.now()}`,
+        id: randomUUID(),
         username: githubUser.username,
         email: githubUser.email,
         name: 'GitHub User',

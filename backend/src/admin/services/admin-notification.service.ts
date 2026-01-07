@@ -1,6 +1,9 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
-import { CreateNotificationDto, NotificationTarget } from '../dto/notification.dto';
+import {
+  CreateNotificationDto,
+  NotificationTarget,
+} from '../dto/notification.dto';
 import { NotificationCategory } from '@prisma/client';
 
 @Injectable()
@@ -21,7 +24,9 @@ export class AdminNotificationService {
 
     if (dto.target === NotificationTarget.USERS) {
       if (!dto.userIds || dto.userIds.length === 0) {
-        throw new BadRequestException('User IDs are required for unicast notifications');
+        throw new BadRequestException(
+          'User IDs are required for unicast notifications',
+        );
       }
 
       // Verify users exist
@@ -33,7 +38,7 @@ export class AdminNotificationService {
       const validUserIds = users.map((u) => u.id);
 
       if (validUserIds.length === 0) {
-         throw new BadRequestException('No valid users found');
+        throw new BadRequestException('No valid users found');
       }
 
       // Create notifications in batch

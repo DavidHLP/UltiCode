@@ -59,7 +59,7 @@ const searchQuery = ref('')
 const difficultyFilter = ref<string>('all')
 const statusFilter = ref<string>('all')
 const publishedFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 20 })
+const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedProblemId = ref<string | null>(null)
 const selectedProblemTitle = ref<string | null>(null)

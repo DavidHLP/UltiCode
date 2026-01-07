@@ -1,4 +1,10 @@
-import { IsEnum, IsNotEmpty, IsOptional, IsString, IsArray } from 'class-validator';
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsArray,
+} from 'class-validator';
 import { NotificationType, NotificationCategory } from '@prisma/client';
 
 export enum NotificationTarget {

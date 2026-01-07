@@ -30,14 +30,13 @@ const handleCopy = (e: MouseEvent) => {
   const target = (e.target as HTMLElement).closest('.lc-copy-btn')
   if (!target) return
 
-  const code = (target as HTMLElement).dataset.code
-  if (code) {
-    try {
-      const decoded = decodeURIComponent(code)
-      navigator.clipboard.writeText(decoded)
+  // Find the code block within the parent container
+  const codeBlock = target.closest('.lc-code-block')?.querySelector('code')
+  if (codeBlock) {
+    const code = codeBlock.textContent || ''
+    if (code) {
+      navigator.clipboard.writeText(code)
       toast.success('Code copied')
-    } catch (err) {
-      console.error('Failed to copy', err)
     }
   }
 }

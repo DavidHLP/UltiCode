@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete } from '../client'
 
 export enum ContestType {
   PUBLIC = 'PUBLIC',
@@ -118,52 +118,50 @@ export interface AddContestProblemDto {
 
 export const contestsApi = {
   async getContests(params: ContestQueryParams): Promise<ContestsResponse> {
-    const response = await apiClient.get<ContestsResponse>('/admin/contests', { params })
-    return response.data
+    const response = await apiGet<ContestsResponse>('/admin/contests', { params })
+    return response
   },
 
   async getContest(id: string): Promise<Contest> {
-    const response = await apiClient.get<Contest>(`/admin/contests/${id}`)
-    return response.data
+    const response = await apiGet<Contest>(`/admin/contests/${id}`)
+    return response
   },
 
   async createContest(data: CreateContestDto): Promise<Contest> {
-    const response = await apiClient.post<Contest>('/admin/contests', data)
-    return response.data
+    const response = await apiPost<Contest>('/admin/contests', data)
+    return response
   },
 
   async updateContest(id: string, data: UpdateContestDto): Promise<Contest> {
-    const response = await apiClient.patch<Contest>(`/admin/contests/${id}`, data)
-    return response.data
+    const response = await apiPatch<Contest>(`/admin/contests/${id}`, data)
+    return response
   },
 
   async deleteContest(id: string): Promise<void> {
-    await apiClient.delete(`/admin/contests/${id}`)
+    await apiDelete(`/admin/contests/${id}`)
   },
 
   async addProblem(id: string, data: AddContestProblemDto): Promise<ContestProblem> {
-    const response = await apiClient.post<ContestProblem>(`/admin/contests/${id}/problems`, data)
-    return response.data
+    const response = await apiPost<ContestProblem>(`/admin/contests/${id}/problems`, data)
+    return response
   },
 
   async removeProblem(id: string, problemId: string): Promise<void> {
-    await apiClient.delete(`/admin/contests/${id}/problems/${problemId}`)
+    await apiDelete(`/admin/contests/${id}/problems/${problemId}`)
   },
 
   async getRankings(id: string): Promise<{ data: ContestRanking[] }> {
-    const response = await apiClient.get<{ data: ContestRanking[] }>(
-      `/admin/contests/${id}/rankings`,
-    )
-    return response.data
+    const response = await apiGet<{ data: ContestRanking[] }>(`/admin/contests/${id}/rankings`)
+    return response
   },
 
   async startContest(id: string): Promise<Contest> {
-    const response = await apiClient.post<Contest>(`/admin/contests/${id}/start`)
-    return response.data
+    const response = await apiPost<Contest>(`/admin/contests/${id}/start`)
+    return response
   },
 
   async endContest(id: string): Promise<Contest> {
-    const response = await apiClient.post<Contest>(`/admin/contests/${id}/end`)
-    return response.data
+    const response = await apiPost<Contest>(`/admin/contests/${id}/end`)
+    return response
   },
 }

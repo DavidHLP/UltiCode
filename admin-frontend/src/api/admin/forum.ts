@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPost, apiDelete } from '../client'
 
 export interface ForumUser {
   id: string
@@ -126,61 +126,58 @@ export interface ForumPostDetail extends ForumPost {
 
 export const forumApi = {
   async getPosts(params: ForumPostQueryParams): Promise<AdminForumPostsResponse> {
-    const response = await apiClient.get<AdminForumPostsResponse>('/admin/forum/posts', { params })
-    return response.data
+    const response = await apiGet<AdminForumPostsResponse>('/admin/forum/posts', { params })
+    return response
   },
 
   async getCommunities(page = 1, limit = 20): Promise<AdminForumCommunitiesResponse> {
-    const response = await apiClient.get<AdminForumCommunitiesResponse>(
-      '/admin/forum/communities',
-      {
-        params: { page, limit },
-      },
-    )
-    return response.data
+    const response = await apiGet<AdminForumCommunitiesResponse>('/admin/forum/communities', {
+      params: { page, limit },
+    })
+    return response
   },
 
   async deletePost(id: string): Promise<void> {
-    await apiClient.delete(`/admin/forum/posts/${id}`)
+    await apiDelete(`/admin/forum/posts/${id}`)
   },
 
   async pinPost(id: string): Promise<void> {
-    await apiClient.post(`/admin/forum/posts/${id}/pin`)
+    await apiPost(`/admin/forum/posts/${id}/pin`)
   },
 
   async unpinPost(id: string): Promise<void> {
-    await apiClient.post(`/admin/forum/posts/${id}/unpin`)
+    await apiPost(`/admin/forum/posts/${id}/unpin`)
   },
 
   async lockPost(id: string): Promise<void> {
-    await apiClient.post(`/admin/forum/posts/${id}/lock`)
+    await apiPost(`/admin/forum/posts/${id}/lock`)
   },
 
   async unlockPost(id: string): Promise<void> {
-    await apiClient.post(`/admin/forum/posts/${id}/unlock`)
+    await apiPost(`/admin/forum/posts/${id}/unlock`)
   },
 
   async bulkAction(data: BulkForumActionDto): Promise<{ results: BulkActionResult[] }> {
-    const response = await apiClient.post('/admin/forum/bulk', data)
-    return response.data
+    const response = await apiPost<{ results: BulkActionResult[] }>('/admin/forum/bulk', data)
+    return response
   },
 
   // Detail view methods
   async getPostDetail(id: string): Promise<ForumPostDetail> {
-    const response = await apiClient.get<ForumPostDetail>(`/admin/forum/posts/${id}`)
-    return response.data
+    const response = await apiGet<ForumPostDetail>(`/admin/forum/posts/${id}`)
+    return response
   },
 
   async getPostAuditHistory(id: string): Promise<AuditEntry[]> {
-    const response = await apiClient.get<{ data: AuditEntry[] }>(`/admin/forum/posts/${id}/audit`)
-    return response.data.data
+    const response = await apiGet<{ data: AuditEntry[] }>(`/admin/forum/posts/${id}/audit`)
+    return response.data
   },
 
   async flagPost(id: string, reason: string): Promise<void> {
-    await apiClient.post(`/admin/forum/posts/${id}/flag`, { reason })
+    await apiPost(`/admin/forum/posts/${id}/flag`, { reason })
   },
 
   async unflagPost(id: string): Promise<void> {
-    await apiClient.post(`/admin/forum/posts/${id}/unflag`)
+    await apiPost(`/admin/forum/posts/${id}/unflag`)
   },
 }

@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete } from '../client'
 
 export interface ProblemList {
   id: string
@@ -82,32 +82,32 @@ export interface ProblemListResponse {
 
 export const adminProblemListsApi = {
   async getLists(query: ProblemListQuery): Promise<ProblemListResponse> {
-    const response = await apiClient.get<ProblemListResponse>('/admin/problem-lists', {
+    const response = await apiGet<ProblemListResponse>('/admin/problem-lists', {
       params: query,
     })
-    return response.data
+    return response
   },
 
   async getList(id: string): Promise<ProblemListDetail> {
-    const response = await apiClient.get<ProblemListDetail>(`/admin/problem-lists/${id}`)
-    return response.data
+    const response = await apiGet<ProblemListDetail>(`/admin/problem-lists/${id}`)
+    return response
   },
 
   async createList(data: CreateProblemListDto): Promise<ProblemList> {
-    const response = await apiClient.post<ProblemList>('/admin/problem-lists', data)
-    return response.data
+    const response = await apiPost<ProblemList>('/admin/problem-lists', data)
+    return response
   },
 
   async updateList(id: string, data: UpdateProblemListDto): Promise<ProblemList> {
-    const response = await apiClient.patch<ProblemList>(`/admin/problem-lists/${id}`, data)
-    return response.data
+    const response = await apiPatch<ProblemList>(`/admin/problem-lists/${id}`, data)
+    return response
   },
 
   async deleteList(id: string): Promise<void> {
-    await apiClient.delete(`/admin/problem-lists/${id}`)
+    await apiDelete(`/admin/problem-lists/${id}`)
   },
 
   async updateListProblems(id: string, data: UpdateProblemListProblemsDto): Promise<void> {
-    await apiClient.post(`/admin/problem-lists/${id}/problems`, data)
+    await apiPost(`/admin/problem-lists/${id}/problems`, data)
   },
 }

@@ -1,4 +1,4 @@
-import apiClient from '../client'
+import { apiGet, apiPatch, apiPost } from '../client'
 
 export interface SystemSettings {
   maintenance_mode: boolean
@@ -16,32 +16,32 @@ export interface MaintenanceModeDto {
 
 export const settingsApi = {
   async getSettings(): Promise<SystemSettings> {
-    const response = await apiClient.get<SystemSettings>('/admin/settings')
-    return response.data
+    const response = await apiGet<SystemSettings>('/admin/settings')
+    return response
   },
 
   async updateSettings(
     data: Partial<SystemSettings>,
   ): Promise<{ message: string; settings: SystemSettings }> {
-    const response = await apiClient.patch<{ message: string; settings: SystemSettings }>(
+    const response = await apiPatch<{ message: string; settings: SystemSettings }>(
       '/admin/settings',
       data,
     )
-    return response.data
+    return response
   },
 
   async toggleMaintenance(
     data: MaintenanceModeDto,
   ): Promise<{ message: string; maintenance_mode: boolean }> {
-    const response = await apiClient.post<{ message: string; maintenance_mode: boolean }>(
+    const response = await apiPost<{ message: string; maintenance_mode: boolean }>(
       '/admin/settings/maintenance',
       data,
     )
-    return response.data
+    return response
   },
 
   async clearCache(): Promise<{ message: string }> {
-    const response = await apiClient.post<{ message: string }>('/admin/settings/cache/clear')
-    return response.data
+    const response = await apiPost<{ message: string }>('/admin/settings/cache/clear')
+    return response
   },
 }

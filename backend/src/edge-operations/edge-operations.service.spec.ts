@@ -57,8 +57,8 @@ describe('EdgeOperationsService', () => {
         dislikes: 1,
         userVote: 1,
       } as never);
-      prisma.bookmarkFolder.findMany.mockResolvedValue([]);
-      prisma.problemList.findMany.mockResolvedValue([]);
+      (prisma.bookmarkFolder.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.operate('user-123', {
         operationType: EdgeOperationType.VOTE_UP,
@@ -80,8 +80,8 @@ describe('EdgeOperationsService', () => {
         dislikes: 3,
         userVote: -1,
       } as never);
-      prisma.bookmarkFolder.findMany.mockResolvedValue([]);
-      prisma.problemList.findMany.mockResolvedValue([]);
+      (prisma.bookmarkFolder.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.operate('user-123', {
         operationType: EdgeOperationType.VOTE_DOWN,
@@ -111,8 +111,8 @@ describe('EdgeOperationsService', () => {
 
       voteService.getVoteCounts.mockResolvedValue({ likes: 0, dislikes: 0 });
       voteService.getUserVote.mockResolvedValue(0);
-      prisma.bookmarkFolder.findMany.mockResolvedValue([]);
-      prisma.problemList.findMany.mockResolvedValue([]);
+      (prisma.bookmarkFolder.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.operate('user-123', {
         operationType: EdgeOperationType.ANALYZE,
@@ -133,8 +133,8 @@ describe('EdgeOperationsService', () => {
     it('should return interactions for target', async () => {
       voteService.getVoteCounts.mockResolvedValue({ likes: 5, dislikes: 2 });
       voteService.getUserVote.mockResolvedValue(1);
-      prisma.bookmarkFolder.findMany.mockResolvedValue([]);
-      prisma.problemList.findMany.mockResolvedValue([]);
+      (prisma.bookmarkFolder.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getInteractions(
         EdgeOperationTargetType.FORUM_POST,
@@ -152,8 +152,8 @@ describe('EdgeOperationsService', () => {
 
     it('should return interactions without user vote when userId not provided', async () => {
       voteService.getVoteCounts.mockResolvedValue({ likes: 5, dislikes: 2 });
-      prisma.bookmarkFolder.findMany.mockResolvedValue([]);
-      prisma.problemList.findMany.mockResolvedValue([]);
+      (prisma.bookmarkFolder.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getInteractions(
         EdgeOperationTargetType.FORUM_POST,

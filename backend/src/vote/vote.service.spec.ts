@@ -128,7 +128,7 @@ describe('VoteService', () => {
 
   describe('getVoteCounts', () => {
     it('should return vote counts', async () => {
-      prisma.edgeOperation.groupBy.mockResolvedValue([
+      (prisma.edgeOperation.groupBy as jest.Mock).mockResolvedValue([
         { operation_type: EdgeOperationType.VOTE_UP, _count: 5 },
         { operation_type: EdgeOperationType.VOTE_DOWN, _count: 2 },
       ] as never);
@@ -142,7 +142,7 @@ describe('VoteService', () => {
     });
 
     it('should return zero counts when no votes', async () => {
-      prisma.edgeOperation.groupBy.mockResolvedValue([]);
+      (prisma.edgeOperation.groupBy as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getVoteCounts(
         EdgeOperationTargetType.FORUM_POST,
@@ -155,7 +155,7 @@ describe('VoteService', () => {
 
   describe('getVoteCountsBatch', () => {
     it('should return vote counts for multiple targets', async () => {
-      prisma.edgeOperation.groupBy.mockResolvedValue([
+      (prisma.edgeOperation.groupBy as jest.Mock).mockResolvedValue([
         {
           target_id: 'post-1',
           operation_type: EdgeOperationType.VOTE_UP,
@@ -183,7 +183,7 @@ describe('VoteService', () => {
     });
 
     it('should initialize all targets with zero counts', async () => {
-      prisma.edgeOperation.groupBy.mockResolvedValue([]);
+      (prisma.edgeOperation.groupBy as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getVoteCountsBatch(
         EdgeOperationTargetType.FORUM_POST,
@@ -198,7 +198,7 @@ describe('VoteService', () => {
 
   describe('getUserVotesBatch', () => {
     it('should return user votes for multiple targets', async () => {
-      prisma.edgeOperation.findMany.mockResolvedValue([
+      (prisma.edgeOperation.findMany as jest.Mock).mockResolvedValue([
         { target_id: 'post-1', operation_type: EdgeOperationType.VOTE_UP },
         { target_id: 'post-2', operation_type: EdgeOperationType.VOTE_DOWN },
       ] as never);
@@ -217,7 +217,7 @@ describe('VoteService', () => {
 
   describe('getUserVote', () => {
     it('should return user vote for target', async () => {
-      prisma.edgeOperation.findFirst.mockResolvedValue({
+      (prisma.edgeOperation.findFirst as jest.Mock).mockResolvedValue({
         operation_type: EdgeOperationType.VOTE_UP,
       } as never);
 
@@ -231,7 +231,7 @@ describe('VoteService', () => {
     });
 
     it('should return 0 when no vote exists', async () => {
-      prisma.edgeOperation.findFirst.mockResolvedValue(null);
+      (prisma.edgeOperation.findFirst as jest.Mock).mockResolvedValue(null);
 
       const result = await service.getUserVote(
         'user-123',
@@ -243,7 +243,7 @@ describe('VoteService', () => {
     });
 
     it('should return -1 for downvote', async () => {
-      prisma.edgeOperation.findFirst.mockResolvedValue({
+      (prisma.edgeOperation.findFirst as jest.Mock).mockResolvedValue({
         operation_type: EdgeOperationType.VOTE_DOWN,
       } as never);
 

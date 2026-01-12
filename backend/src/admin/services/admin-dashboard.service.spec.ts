@@ -58,14 +58,14 @@ describe('AdminDashboardService', () => {
 
   describe('getDashboardStats', () => {
     it('should return dashboard statistics', async () => {
-      prisma.user.count.mockResolvedValue(100);
-      prisma.problem.count.mockResolvedValue(50);
-      prisma.contest.count.mockResolvedValue(10);
-      prisma.submission.count.mockResolvedValue(500);
-      prisma.solution.count.mockResolvedValue(30);
-      prisma.forumPost.count.mockResolvedValue(20);
-      prisma.forumComment.count.mockResolvedValue(50);
-      prisma.forumCommunity.count.mockResolvedValue(5);
+      (prisma.user.count as jest.Mock).mockResolvedValue(100);
+      (prisma.problem.count as jest.Mock).mockResolvedValue(50);
+      (prisma.contest.count as jest.Mock).mockResolvedValue(10);
+      (prisma.submission.count as jest.Mock).mockResolvedValue(500);
+      (prisma.solution.count as jest.Mock).mockResolvedValue(30);
+      (prisma.forumPost.count as jest.Mock).mockResolvedValue(20);
+      (prisma.forumComment.count as jest.Mock).mockResolvedValue(50);
+      (prisma.forumCommunity.count as jest.Mock).mockResolvedValue(5);
 
       const result = await service.getDashboardStats();
 
@@ -82,7 +82,7 @@ describe('AdminDashboardService', () => {
 
   describe('getChartStats', () => {
     it('should return chart statistics', async () => {
-      prisma.user.groupBy.mockResolvedValue([]);
+      (prisma.user.groupBy as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getChartStats({
         period: 'daily' as any,

@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ProblemNoteController } from './note.controller';
 import { ProblemNoteService } from './note.service';
 import { SaveNoteDto } from './dto/save-note.dto';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector, ModuleRef } from '@nestjs/core';
+import { AuthGuard } from '../../auth/auth.guard';
 
 describe('ProblemNoteController', () => {
   let controller: ProblemNoteController;
@@ -10,7 +13,7 @@ describe('ProblemNoteController', () => {
   const mockNote = {
     id: 'note-123',
     user_id: 'user-123',
-    problem_id: 1,
+    problem_id: BigInt(1),
     content: 'This is my note',
     created_at: new Date(),
     updated_at: new Date(),
@@ -31,8 +34,31 @@ describe('ProblemNoteController', () => {
             findByProblem: jest.fn(),
           },
         },
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn(),
+            getAll: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<ProblemNoteController>(ProblemNoteController);
     noteService = module.get(ProblemNoteService);

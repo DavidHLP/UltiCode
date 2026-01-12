@@ -10,7 +10,7 @@ import { getQueueToken } from '@nestjs/bullmq';
 describe('SubmissionService', () => {
   let service: SubmissionService;
   let prisma: jest.Mocked<PrismaService>;
-  let judgeService: jest.Mocked<JudgeService>;
+  let _judgeService: jest.Mocked<JudgeService>;
   let judgeQueue: jest.Mocked<Queue>;
 
   const mockSubmission = {
@@ -82,7 +82,7 @@ describe('SubmissionService', () => {
 
     service = module.get<SubmissionService>(SubmissionService);
     prisma = module.get(PrismaService);
-    judgeService = module.get(JudgeService);
+    _judgeService = module.get(JudgeService);
     judgeQueue = module.get(getQueueToken('judge_queue'));
   });
 
@@ -92,7 +92,9 @@ describe('SubmissionService', () => {
 
   describe('findAll', () => {
     it('should return array of submissions', async () => {
-      prisma.submission.findMany.mockResolvedValue([mockSubmission] as never);
+      (prisma.submission.findMany as jest.Mock).mockResolvedValue([
+        mockSubmission,
+      ] as never);
 
       const result = await service.findAll();
 
@@ -103,7 +105,9 @@ describe('SubmissionService', () => {
 
   describe('findOne', () => {
     it('should return a submission by id', async () => {
-      prisma.submission.findUnique.mockResolvedValue(mockSubmission as never);
+      (prisma.submission.findUnique as jest.Mock).mockResolvedValue(
+        mockSubmission as never,
+      );
 
       const result = await service.findOne('sub-123');
 
@@ -115,7 +119,7 @@ describe('SubmissionService', () => {
     });
 
     it('should throw NotFoundException for non-existent submission', async () => {
-      prisma.submission.findUnique.mockResolvedValue(null);
+      (prisma.submission.findUnique as jest.Mock).mockResolvedValue(null);
 
       await expect(service.findOne('non-existent')).rejects.toThrow(
         NotFoundException,
@@ -138,7 +142,9 @@ describe('SubmissionService', () => {
         },
       ];
 
-      prisma.submission.findMany.mockResolvedValue(mockSubmissions as never);
+      (prisma.submission.findMany as jest.Mock).mockResolvedValue(
+        mockSubmissions as never,
+      );
 
       const result = await service.getProblemStatusMap('user-123');
 
@@ -150,7 +156,9 @@ describe('SubmissionService', () => {
 
   describe('create', () => {
     it('should create a new submission and add to queue', async () => {
-      prisma.submission.create.mockResolvedValue(mockSubmission as never);
+      (prisma.submission.create as jest.Mock).mockResolvedValue(
+        mockSubmission as never,
+      );
       judgeQueue.add.mockResolvedValue('job' as never);
 
       const result = await service.create('user-123', 1, {
@@ -166,7 +174,7 @@ describe('SubmissionService', () => {
 
   describe('getStatusDefinitions', () => {
     it('should return status definitions', async () => {
-      prisma.submissionStatus.findMany.mockResolvedValue([]);
+      (prisma.submissionStatus.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getStatusDefinitions();
 

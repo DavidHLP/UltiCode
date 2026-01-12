@@ -96,8 +96,10 @@ describe('RankingService', () => {
         },
       ];
 
-      prisma.contestRanking.findMany.mockResolvedValue(mockRankings as never);
-      prisma.contestRanking.count.mockResolvedValue(1);
+      (prisma.contestRanking.findMany as jest.Mock).mockResolvedValue(
+        mockRankings as never,
+      );
+      (prisma.contestRanking.count as jest.Mock).mockResolvedValue(1);
 
       const result = await service.getContestRanking('contest-123', {});
 
@@ -125,8 +127,10 @@ describe('RankingService', () => {
         },
       ];
 
-      prisma.globalRanking.findMany.mockResolvedValue(mockRankings as never);
-      prisma.globalRanking.count.mockResolvedValue(1);
+      (prisma.globalRanking.findMany as jest.Mock).mockResolvedValue(
+        mockRankings as never,
+      );
+      (prisma.globalRanking.count as jest.Mock).mockResolvedValue(1);
 
       const result = await service.getGlobalRanking({});
 
@@ -158,7 +162,9 @@ describe('RankingService', () => {
         },
       ];
 
-      prisma.contestRanking.findMany.mockResolvedValue(mockRankings as never);
+      (prisma.contestRanking.findMany as jest.Mock).mockResolvedValue(
+        mockRankings as never,
+      );
 
       const result = await service.getUserContestHistory('user-123');
 

@@ -58,7 +58,7 @@ describe('ViewService', () => {
         },
       };
 
-      prisma.view.findFirst.mockResolvedValue(null);
+      (prisma.view.findFirst as jest.Mock).mockResolvedValue(null);
       (prisma.$transaction as jest.Mock).mockImplementation((callback) =>
         callback(mockTx as never),
       );
@@ -88,7 +88,7 @@ describe('ViewService', () => {
         },
       };
 
-      prisma.view.findFirst.mockResolvedValue(null);
+      (prisma.view.findFirst as jest.Mock).mockResolvedValue(null);
       (prisma.$transaction as jest.Mock).mockImplementation((callback) =>
         callback(mockTx as never),
       );
@@ -108,7 +108,7 @@ describe('ViewService', () => {
     });
 
     it('should not count view within cooldown period', async () => {
-      prisma.view.findFirst.mockResolvedValue({
+      (prisma.view.findFirst as jest.Mock).mockResolvedValue({
         id: 'view-123',
         viewed_at: new Date(),
       } as never);
@@ -135,8 +135,8 @@ describe('ViewService', () => {
       };
 
       // View outside cooldown (2 hours ago - but cooldown is 60 minutes)
-      const oldDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
-      prisma.view.findFirst.mockResolvedValueOnce(null); // First call returns null (no recent view)
+      const _oldDate = new Date(Date.now() - 2 * 60 * 60 * 1000);
+      (prisma.view.findFirst as jest.Mock).mockResolvedValueOnce(null); // First call returns null (no recent view)
       (prisma.$transaction as jest.Mock).mockImplementation((callback) =>
         callback(mockTx as never),
       );

@@ -8,7 +8,7 @@ import { Queue } from 'bullmq';
 describe('ContestSchedulerService', () => {
   let service: ContestSchedulerService;
   let prisma: jest.Mocked<PrismaService>;
-  let rankingService: jest.Mocked<RankingService>;
+  let _rankingService: jest.Mocked<RankingService>;
   let contestQueue: jest.Mocked<Queue>;
 
   const mockContest = {
@@ -61,7 +61,7 @@ describe('ContestSchedulerService', () => {
 
     service = module.get<ContestSchedulerService>(ContestSchedulerService);
     prisma = module.get(PrismaService);
-    rankingService = module.get(RankingService);
+    _rankingService = module.get(RankingService);
     contestQueue = module.get('BullMQ_contest');
   });
 
@@ -71,7 +71,7 @@ describe('ContestSchedulerService', () => {
 
   describe('updateContestStatuses', () => {
     it('should update contest statuses', async () => {
-      prisma.contest.findMany.mockResolvedValue([]);
+      (prisma.contest.findMany as jest.Mock).mockResolvedValue([]);
 
       await service.updateContestStatuses();
 
@@ -81,7 +81,9 @@ describe('ContestSchedulerService', () => {
 
   describe('manuallyFinalizeContest', () => {
     it('should finalize a running contest', async () => {
-      prisma.contest.update.mockResolvedValue(mockContest as never);
+      (prisma.contest.update as jest.Mock).mockResolvedValue(
+        mockContest as never,
+      );
       contestQueue.add.mockResolvedValue('job' as never);
 
       await service.manuallyFinalizeContest('contest-123');
@@ -94,7 +96,7 @@ describe('ContestSchedulerService', () => {
     });
 
     it('should throw error for non-existent contest', async () => {
-      prisma.contest.findUnique.mockResolvedValue(null);
+      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.manuallyFinalizeContest('non-existent'),

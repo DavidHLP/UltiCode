@@ -8,7 +8,7 @@ import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
 describe('AdminAuditController', () => {
   let controller: AdminAuditController;
-  let auditService: jest.Mocked<AuditService>;
+  let _auditService: jest.Mocked<AuditService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -60,7 +60,7 @@ describe('AdminAuditController', () => {
       .compile();
 
     controller = module.get<AdminAuditController>(AdminAuditController);
-    auditService = module.get(AuditService);
+    _auditService = module.get(AuditService);
   });
 
   it('should be defined', () => {

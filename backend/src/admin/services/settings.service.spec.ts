@@ -4,7 +4,7 @@ import { PrismaService } from '../../prisma.service';
 
 describe('AdminSettingsService', () => {
   let service: AdminSettingsService;
-  let prisma: jest.Mocked<PrismaService>;
+  let _prisma: jest.Mocked<PrismaService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -24,7 +24,7 @@ describe('AdminSettingsService', () => {
     }).compile();
 
     service = module.get<AdminSettingsService>(AdminSettingsService);
-    prisma = module.get(PrismaService);
+    _prisma = module.get(PrismaService);
   });
 
   it('should be defined', () => {

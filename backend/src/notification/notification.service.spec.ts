@@ -65,11 +65,11 @@ describe('NotificationService', () => {
 
   describe('list', () => {
     it('should return paginated notifications', async () => {
-      prisma.notification.findMany.mockResolvedValue([
+      (prisma.notification.findMany as jest.Mock).mockResolvedValue([
         mockNotification,
       ] as never);
-      prisma.notification.count.mockResolvedValue(1);
-      prisma.systemAnnouncement.findMany.mockResolvedValue([]);
+      (prisma.notification.count as jest.Mock).mockResolvedValue(1);
+      (prisma.systemAnnouncement.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.list('user-123', {});
 
@@ -81,8 +81,8 @@ describe('NotificationService', () => {
 
   describe('getUnreadCount', () => {
     it('should return unread count', async () => {
-      prisma.notification.count.mockResolvedValue(3);
-      prisma.systemAnnouncement.findMany.mockResolvedValue([]);
+      (prisma.notification.count as jest.Mock).mockResolvedValue(3);
+      (prisma.systemAnnouncement.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getUnreadCount('user-123');
 
@@ -92,9 +92,13 @@ describe('NotificationService', () => {
 
   describe('markAllRead', () => {
     it('should mark all notifications as read', async () => {
-      prisma.notification.updateMany.mockResolvedValue({ count: 5 } as never);
-      prisma.systemAnnouncement.findMany.mockResolvedValue([]);
-      prisma.systemAnnouncementRead.findMany.mockResolvedValue([]);
+      (prisma.notification.updateMany as jest.Mock).mockResolvedValue({
+        count: 5,
+      } as never);
+      (prisma.systemAnnouncement.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.systemAnnouncementRead.findMany as jest.Mock).mockResolvedValue(
+        [],
+      );
 
       const result = await service.markAllRead('user-123');
 
@@ -105,17 +109,21 @@ describe('NotificationService', () => {
 
   describe('createNotification', () => {
     it('should create a new notification', async () => {
-      prisma.notificationPreference.findUnique.mockResolvedValue({
-        communication: true,
-        marketing: false,
-        system: true,
-        security: true,
-      } as never);
-      prisma.notification.create.mockResolvedValue(mockNotification as never);
+      (prisma.notificationPreference.findUnique as jest.Mock).mockResolvedValue(
+        {
+          communication: true,
+          marketing: false,
+          system: true,
+          security: true,
+        } as never,
+      );
+      (prisma.notification.create as jest.Mock).mockResolvedValue(
+        mockNotification as never,
+      );
 
       const result = await service.createNotification({
         userId: 'user-123',
-        type: 'INFO',
+        type: 'SYSTEM' as const,
         category: 'SYSTEM',
         title: 'New Notification',
         body: 'Notification content',
@@ -128,8 +136,10 @@ describe('NotificationService', () => {
 
   describe('updateNotification', () => {
     it('should update a notification', async () => {
-      prisma.notification.updateMany.mockResolvedValue({ count: 1 } as never);
-      prisma.notification.findUnique.mockResolvedValue({
+      (prisma.notification.updateMany as jest.Mock).mockResolvedValue({
+        count: 1,
+      } as never);
+      (prisma.notification.findUnique as jest.Mock).mockResolvedValue({
         ...mockNotification,
         is_read: true,
       } as never);
@@ -153,7 +163,7 @@ describe('NotificationService', () => {
         security: true,
       };
 
-      prisma.notificationPreference.findUnique.mockResolvedValue(
+      (prisma.notificationPreference.findUnique as jest.Mock).mockResolvedValue(
         mockPreferences as never,
       );
 
@@ -173,10 +183,10 @@ describe('NotificationService', () => {
         security: true,
       };
 
-      prisma.notificationPreference.findUnique.mockResolvedValue(
+      (prisma.notificationPreference.findUnique as jest.Mock).mockResolvedValue(
         mockPreferences as never,
       );
-      prisma.notificationPreference.update.mockResolvedValue(
+      (prisma.notificationPreference.update as jest.Mock).mockResolvedValue(
         mockPreferences as never,
       );
 

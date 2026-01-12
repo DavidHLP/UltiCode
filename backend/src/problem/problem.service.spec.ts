@@ -8,8 +8,8 @@ import { I18nService } from '../i18n/i18n.service';
 describe('ProblemService', () => {
   let service: ProblemService;
   let problemsRepository: jest.Mocked<Repository<Problem>>;
-  let problemDetailsRepository: jest.Mocked<Repository<ProblemDetail>>;
-  let i18nService: jest.Mocked<I18nService>;
+  let _problemDetailsRepository: jest.Mocked<Repository<ProblemDetail>>;
+  let _i18nService: jest.Mocked<I18nService>;
 
   const mockProblem = {
     id: 1,
@@ -47,7 +47,7 @@ describe('ProblemService', () => {
             getTranslations: jest.fn().mockResolvedValue(new Map()),
             applyTranslations: jest
               .fn()
-              .mockImplementation((obj, trans, fields) => obj),
+              .mockImplementation((obj, _trans, _fields) => obj),
           },
         },
       ],
@@ -55,8 +55,8 @@ describe('ProblemService', () => {
 
     service = module.get<ProblemService>(ProblemService);
     problemsRepository = module.get('ProblemRepository');
-    problemDetailsRepository = module.get('ProblemDetailRepository');
-    i18nService = module.get(I18nService);
+    _problemDetailsRepository = module.get('ProblemDetailRepository');
+    _i18nService = module.get(I18nService);
   });
 
   it('should be defined', () => {
@@ -65,7 +65,7 @@ describe('ProblemService', () => {
 
   describe('findAll', () => {
     it('should return array of problems', async () => {
-      problemsRepository.getMany.mockResolvedValue([mockProblem]);
+      (problemsRepository as any).getMany.mockResolvedValue([mockProblem]);
 
       const result = await service.findAll();
 
@@ -76,7 +76,7 @@ describe('ProblemService', () => {
 
   describe('findOne', () => {
     it('should return problem by id', async () => {
-      problemsRepository.findOne.mockResolvedValue(mockProblem);
+      problemsRepository.findOne.mockResolvedValue(mockProblem as never);
 
       const result = await service.findOne('1');
 
@@ -89,7 +89,7 @@ describe('ProblemService', () => {
     });
 
     it('should return problem by slug', async () => {
-      problemsRepository.findOne.mockResolvedValue(mockProblem);
+      problemsRepository.findOne.mockResolvedValue(mockProblem as never);
 
       const result = await service.findOne('two-sum');
 
@@ -113,7 +113,7 @@ describe('ProblemService', () => {
   describe('getRandom', () => {
     it('should return a random problem', async () => {
       problemsRepository.count.mockResolvedValue(10);
-      problemsRepository.find.mockResolvedValue([mockProblem]);
+      problemsRepository.find.mockResolvedValue([mockProblem] as never);
 
       const result = await service.getRandom();
 

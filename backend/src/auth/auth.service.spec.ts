@@ -164,8 +164,10 @@ describe('AuthService', () => {
   describe('forgotPassword', () => {
     it('should return message when user exists', async () => {
       userService.findByEmail.mockResolvedValue(mockUser as any);
-      prisma.passwordReset.updateMany.mockResolvedValue({ count: 1 });
-      prisma.passwordReset.create.mockResolvedValue({} as never);
+      (prisma.passwordReset.updateMany as jest.Mock).mockResolvedValue({
+        count: 1,
+      });
+      (prisma.passwordReset.create as jest.Mock).mockResolvedValue({} as never);
 
       const result = await service.forgotPassword('test@example.com');
 
@@ -190,7 +192,7 @@ describe('AuthService', () => {
         newPassword: 'newPassword123',
       };
 
-      prisma.passwordReset.findUnique.mockResolvedValue({
+      (prisma.passwordReset.findUnique as jest.Mock).mockResolvedValue({
         id: 'reset-123',
         user_id: 'user-123',
         token: 'valid-reset-token',
@@ -199,7 +201,7 @@ describe('AuthService', () => {
       });
 
       userService.update.mockResolvedValue(mockUser as any);
-      prisma.passwordReset.update.mockResolvedValue({} as never);
+      (prisma.passwordReset.update as jest.Mock).mockResolvedValue({} as never);
       (service as any).hashPassword = jest.fn().mockResolvedValue('new-hashed');
 
       const result = await service.resetPassword(resetPasswordDto);

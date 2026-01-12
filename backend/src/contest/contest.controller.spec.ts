@@ -7,8 +7,8 @@ import { RatingService } from './rating.service';
 describe('ContestController', () => {
   let controller: ContestController;
   let contestService: jest.Mocked<ContestService>;
-  let rankingService: jest.Mocked<RankingService>;
-  let ratingService: jest.Mocked<RatingService>;
+  let _rankingService: jest.Mocked<RankingService>;
+  let _ratingService: jest.Mocked<RatingService>;
 
   const mockContest = {
     id: 'contest-123',
@@ -67,8 +67,8 @@ describe('ContestController', () => {
 
     controller = module.get<ContestController>(ContestController);
     contestService = module.get(ContestService);
-    rankingService = module.get(RankingService);
-    ratingService = module.get(RatingService);
+    _rankingService = module.get(RankingService);
+    _ratingService = module.get(RatingService);
   });
 
   it('should be defined', () => {
@@ -84,7 +84,7 @@ describe('ContestController', () => {
         limit: 10,
       };
 
-      contestService.findAll.mockResolvedValue(mockResponse);
+      contestService.findAll.mockResolvedValue(mockResponse as never);
 
       const result = await controller.findAll({});
 

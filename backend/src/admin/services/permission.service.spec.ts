@@ -46,7 +46,7 @@ describe('PermissionService', () => {
 
   describe('hasPermission', () => {
     it('should return false when user not found', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       const result = await service.hasPermission(
         'user-123',
@@ -58,8 +58,8 @@ describe('PermissionService', () => {
     });
 
     it('should return true when user has role permission', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.rolePermission.findMany.mockResolvedValue([
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.rolePermission.findMany as jest.Mock).mockResolvedValue([
         {
           action: PermissionAction.READ,
           resource: PermissionResource.PROBLEM,
@@ -86,8 +86,8 @@ describe('PermissionService', () => {
           },
         ],
       };
-      prisma.user.findUnique.mockResolvedValue(userWithPerm);
-      prisma.rolePermission.findMany.mockResolvedValue([]);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(userWithPerm);
+      (prisma.rolePermission.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.hasPermission(
         'user-123',
@@ -115,8 +115,8 @@ describe('PermissionService', () => {
 
   describe('getUserPermissions', () => {
     it('should return user permissions', async () => {
-      prisma.user.findUnique.mockResolvedValue(mockUser);
-      prisma.rolePermission.findMany.mockResolvedValue([
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
+      (prisma.rolePermission.findMany as jest.Mock).mockResolvedValue([
         {
           action: PermissionAction.READ,
           resource: PermissionResource.PROBLEM,
@@ -129,7 +129,7 @@ describe('PermissionService', () => {
     });
 
     it('should return empty array when user not found', async () => {
-      prisma.user.findUnique.mockResolvedValue(null);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       const result = await service.getUserPermissions('user-123');
 
@@ -139,7 +139,9 @@ describe('PermissionService', () => {
 
   describe('grantPermission', () => {
     it('should grant permission to user', async () => {
-      prisma.userPermission.upsert.mockResolvedValue({} as never);
+      (prisma.userPermission.upsert as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
 
       await service.grantPermission(
         'user-123',
@@ -154,7 +156,9 @@ describe('PermissionService', () => {
 
   describe('revokePermission', () => {
     it('should revoke permission from user', async () => {
-      prisma.userPermission.deleteMany.mockResolvedValue({ count: 1 } as never);
+      (prisma.userPermission.deleteMany as jest.Mock).mockResolvedValue({
+        count: 1,
+      } as never);
 
       await service.revokePermission(
         'user-123',
@@ -168,7 +172,7 @@ describe('PermissionService', () => {
 
   describe('updateUserRole', () => {
     it('should update user role', async () => {
-      prisma.user.update.mockResolvedValue({} as never);
+      (prisma.user.update as jest.Mock).mockResolvedValue({} as never);
 
       await service.updateUserRole('user-123', UserRole.ADMIN, 'admin-123');
 

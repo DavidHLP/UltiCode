@@ -89,7 +89,9 @@ describe('ProblemController', () => {
         problemStats: { accepted: 0, total: 0 },
       };
 
-      submissionService.getLatestRunResult.mockResolvedValue(mockResults);
+      submissionService.getLatestRunResult.mockResolvedValue(
+        mockResults as never,
+      );
 
       const result = await controller.getProblemResults('1');
 

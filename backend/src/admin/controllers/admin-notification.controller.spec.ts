@@ -8,7 +8,7 @@ import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
 describe('AdminNotificationController', () => {
   let controller: AdminNotificationController;
-  let adminNotificationService: jest.Mocked<AdminNotificationService>;
+  let _adminNotificationService: jest.Mocked<AdminNotificationService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -65,7 +65,7 @@ describe('AdminNotificationController', () => {
     controller = module.get<AdminNotificationController>(
       AdminNotificationController,
     );
-    adminNotificationService = module.get(AdminNotificationService);
+    _adminNotificationService = module.get(AdminNotificationService);
   });
 
   it('should be defined', () => {

@@ -1,10 +1,11 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminCommentService } from './admin-comment.service';
 import { PrismaService } from '../../prisma.service';
+import { AuditService } from './audit.service';
 
 describe('AdminCommentService', () => {
   let service: AdminCommentService;
-  let prisma: jest.Mocked<PrismaService>;
+  let _prisma: jest.Mocked<PrismaService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -22,11 +23,24 @@ describe('AdminCommentService', () => {
             },
           },
         },
+        {
+          provide: AuditService,
+          useValue: {
+            log: jest.fn().mockResolvedValue({}),
+            getAuditLogs: jest.fn().mockResolvedValue({ logs: [], total: 0 }),
+            getAuditStats: jest.fn().mockResolvedValue({
+              totalActions: 0,
+              actionsByEntity: [],
+              actionsByPerformer: [],
+              topPerformers: [],
+            }),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<AdminCommentService>(AdminCommentService);
-    prisma = module.get(PrismaService);
+    _prisma = module.get(PrismaService);
   });
 
   it('should be defined', () => {

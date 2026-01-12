@@ -1,4 +1,4 @@
-import apiClient from './client'
+import { apiPost, apiGet } from './client'
 
 export interface LoginCredentials {
   username: string
@@ -29,16 +29,14 @@ export interface User {
 
 export const authApi = {
   async login(credentials: LoginCredentials): Promise<LoginResponse> {
-    const response = await apiClient.post<LoginResponse>('/auth/login', credentials)
-    return response.data
+    return apiPost<LoginResponse>('/auth/login', credentials)
   },
 
   async logout(): Promise<void> {
-    await apiClient.post('/auth/logout')
+    return apiPost('/auth/logout')
   },
 
   async getCurrentUser(): Promise<User> {
-    const response = await apiClient.get<User>('/auth/profile')
-    return response.data
+    return apiGet<User>('/auth/profile')
   },
 }

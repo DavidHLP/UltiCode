@@ -195,6 +195,7 @@ After completing a coding task, you **MUST** follow this exact sequence before e
    - Run `npm run type-check`
    - Run `npm run lint`
    - Run `npm run format`
+   - Run `npm run test --prefix backend` (ensure unit tests pass)
 
 2. **Commit**:
 

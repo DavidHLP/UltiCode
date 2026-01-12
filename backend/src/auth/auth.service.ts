@@ -295,7 +295,7 @@ export class AuthService {
     const clientId = process.env.GITHUB_CLIENT_ID || 'mock_client_id';
     const redirectUri =
       process.env.GITHUB_REDIRECT_URI ||
-      'http://localhost:3000/auth/github/callback';
+      'http://localhost:4001/auth/github/callback';
     const target = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
     res.redirect(target);
   }

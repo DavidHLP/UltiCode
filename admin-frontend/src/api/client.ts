@@ -95,7 +95,7 @@ function getRequestKey(config: InternalAxiosRequestConfig): string {
  * Get environment specific settings
  */
 const isDevelopment = import.meta.env.DEV
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4001'
 
 /**
  * Create axios instance with default config

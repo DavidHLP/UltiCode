@@ -8,7 +8,7 @@ import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
 describe('AdminProblemController', () => {
   let controller: AdminProblemController;
-  let prisma: jest.Mocked<PrismaService>;
+  let _prisma: jest.Mocked<PrismaService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -65,7 +65,7 @@ describe('AdminProblemController', () => {
       .compile();
 
     controller = module.get<AdminProblemController>(AdminProblemController);
-    prisma = module.get(PrismaService);
+    _prisma = module.get(PrismaService);
   });
 
   it('should be defined', () => {

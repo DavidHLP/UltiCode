@@ -103,7 +103,7 @@ describe('SubmissionController', () => {
   describe('getStatusMap', () => {
     it('should return problem status map', async () => {
       const mockMap = new Map([
-        [1, { status: 'solved', completed_time: new Date() }],
+        [1, { status: 'solved' as const, completed_time: new Date() }],
       ]);
       submissionService.getProblemStatusMap.mockResolvedValue(mockMap);
 

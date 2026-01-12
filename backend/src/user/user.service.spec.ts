@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { Repository } from 'typeorm';
-import { User } from './user.entity';
+import { User, UserRole } from './user.entity';
 import { PrismaService } from '../prisma.service';
 
 describe('UserService', () => {
@@ -14,8 +14,11 @@ describe('UserService', () => {
     username: 'testuser',
     email: 'test@example.com',
     name: 'Test User',
-    role: 'USER',
+    role: UserRole.USER,
     joined_at: new Date(),
+    avatar: 'avatar.png',
+    is_active: true,
+    is_banned: false,
   };
 
   beforeEach(async () => {
@@ -192,7 +195,7 @@ describe('UserService', () => {
     it('should update and return user', async () => {
       const userData = { name: 'Updated Name' };
 
-      usersRepository.update.mockResolvedValue(undefined);
+      usersRepository.update.mockResolvedValue({} as never);
       usersRepository.findOneBy.mockResolvedValue({
         ...mockUser,
         name: 'Updated Name',

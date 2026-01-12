@@ -9,7 +9,7 @@ import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
 describe('AdminSettingsController', () => {
   let controller: AdminSettingsController;
-  let settingsService: jest.Mocked<AdminSettingsService>;
+  let _settingsService: jest.Mocked<AdminSettingsService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -67,7 +67,7 @@ describe('AdminSettingsController', () => {
       .compile();
 
     controller = module.get<AdminSettingsController>(AdminSettingsController);
-    settingsService = module.get(AdminSettingsService);
+    _settingsService = module.get(AdminSettingsService);
   });
 
   it('should be defined', () => {

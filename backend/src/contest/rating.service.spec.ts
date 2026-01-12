@@ -73,7 +73,7 @@ describe('RatingService', () => {
 
   describe('calculateContestRatings', () => {
     it('should return empty array when no rankings', async () => {
-      prisma.contestRanking.findMany.mockResolvedValue([]);
+      (prisma.contestRanking.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.calculateContestRatings('contest-123');
 
@@ -97,7 +97,9 @@ describe('RatingService', () => {
         },
       ];
 
-      prisma.contestRanking.findMany.mockResolvedValue(mockRankings as never);
+      (prisma.contestRanking.findMany as jest.Mock).mockResolvedValue(
+        mockRankings as never,
+      );
 
       const result = await service.getUserRatingHistory('user-123');
 

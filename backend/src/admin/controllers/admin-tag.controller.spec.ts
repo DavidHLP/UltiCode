@@ -8,7 +8,7 @@ import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
 describe('AdminTagController', () => {
   let controller: AdminTagController;
-  let adminTagService: jest.Mocked<AdminTagService>;
+  let _adminTagService: jest.Mocked<AdminTagService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -63,7 +63,7 @@ describe('AdminTagController', () => {
       .compile();
 
     controller = module.get<AdminTagController>(AdminTagController);
-    adminTagService = module.get(AdminTagService);
+    _adminTagService = module.get(AdminTagService);
   });
 
   it('should be defined', () => {

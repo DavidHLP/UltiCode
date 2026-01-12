@@ -8,7 +8,7 @@ import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
 describe('AdminForumController', () => {
   let controller: AdminForumController;
-  let prisma: jest.Mocked<PrismaService>;
+  let _prisma: jest.Mocked<PrismaService>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -76,7 +76,7 @@ describe('AdminForumController', () => {
       .compile();
 
     controller = module.get<AdminForumController>(AdminForumController);
-    prisma = module.get(PrismaService);
+    _prisma = module.get(PrismaService);
   });
 
   it('should be defined', () => {

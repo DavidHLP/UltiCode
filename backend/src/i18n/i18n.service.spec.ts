@@ -57,7 +57,7 @@ describe('I18nService', () => {
 
   describe('getTranslations', () => {
     it('should return translations for entity', async () => {
-      prisma.translation.findMany.mockResolvedValue([
+      (prisma.translation.findMany as jest.Mock).mockResolvedValue([
         {
           field_name: 'title',
           content: 'Two Sum',
@@ -74,7 +74,7 @@ describe('I18nService', () => {
     });
 
     it('should return empty map when no translations', async () => {
-      prisma.translation.findMany.mockResolvedValue([]);
+      (prisma.translation.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getTranslations(
         'PROBLEM' as TranslatableEntity,
@@ -86,7 +86,7 @@ describe('I18nService', () => {
     });
 
     it('should fallback to default locale for missing fields', async () => {
-      prisma.translation.findMany
+      (prisma.translation.findMany as jest.Mock)
         .mockResolvedValueOnce([
           { field_name: 'title', content: 'Two Sum' },
         ] as never)
@@ -106,7 +106,7 @@ describe('I18nService', () => {
 
   describe('getBatchTranslations', () => {
     it('should return translations for multiple entities', async () => {
-      prisma.translation.findMany.mockResolvedValue([
+      (prisma.translation.findMany as jest.Mock).mockResolvedValue([
         {
           entity_id: '1',
           field_name: 'title',
@@ -142,7 +142,7 @@ describe('I18nService', () => {
     });
 
     it('should override fallback with requested locale', async () => {
-      prisma.translation.findMany.mockResolvedValue([
+      (prisma.translation.findMany as jest.Mock).mockResolvedValue([
         {
           entity_id: '1',
           field_name: 'title',
@@ -225,7 +225,9 @@ describe('I18nService', () => {
 
   describe('bulkUpsertTranslations', () => {
     it('should bulk upsert translations', async () => {
-      prisma.translation.createMany.mockResolvedValue({ count: 2 } as never);
+      (prisma.translation.createMany as jest.Mock).mockResolvedValue({
+        count: 2,
+      } as never);
 
       await service.bulkUpsertTranslations([
         {

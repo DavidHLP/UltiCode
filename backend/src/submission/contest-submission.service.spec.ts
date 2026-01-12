@@ -106,13 +106,19 @@ describe('ContestSubmissionService', () => {
 
   describe('submitInContest', () => {
     it('should create a contest submission successfully', async () => {
-      prisma.contest.findUnique.mockResolvedValue(mockContest as never);
-      prisma.contestParticipant.findFirst.mockResolvedValue(
+      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(
+        mockContest as never,
+      );
+      (prisma.contestParticipant.findFirst as jest.Mock).mockResolvedValue(
         mockParticipant as never,
       );
-      prisma.contestParticipant.update.mockResolvedValue({} as never);
+      (prisma.contestParticipant.update as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
       submissionService.create.mockResolvedValue(mockSubmission as never);
-      prisma.contestSubmission.create.mockResolvedValue({} as never);
+      (prisma.contestSubmission.create as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
 
       const result = await service.submitInContest(
         'contest-123',
@@ -146,13 +152,21 @@ describe('ContestSubmissionService', () => {
         score: 100,
       };
 
-      prisma.contestSubmission.findFirst.mockResolvedValue({
+      (prisma.contestSubmission.findFirst as jest.Mock).mockResolvedValue({
         id: 'cs-123',
       } as never);
-      prisma.contestSubmission.update.mockResolvedValue({} as never);
-      prisma.contestProblemResult.findFirst.mockResolvedValue(null);
-      prisma.contestProblem.update.mockResolvedValue({} as never);
-      prisma.contestParticipant.update.mockResolvedValue({} as never);
+      (prisma.contestSubmission.update as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
+      (prisma.contestProblemResult.findFirst as jest.Mock).mockResolvedValue(
+        null,
+      );
+      (prisma.contestProblem.update as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
+      (prisma.contestParticipant.update as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
       rankingService.updateContestProblemResult.mockResolvedValue(undefined);
 
       await service.processContestSubmissionResult(params);
@@ -189,7 +203,7 @@ describe('ContestSubmissionService', () => {
         },
       ];
 
-      prisma.contestSubmission.findMany.mockResolvedValue(
+      (prisma.contestSubmission.findMany as jest.Mock).mockResolvedValue(
         mockContestSubmissions as never,
       );
 

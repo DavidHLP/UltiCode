@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BookmarkService } from './bookmark.service';
 import { PrismaService } from '../prisma.service';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { ForbiddenException } from '@nestjs/common';
 import { BookmarkType } from '@prisma/client';
 
 describe('BookmarkService', () => {
@@ -87,7 +87,7 @@ describe('BookmarkService', () => {
 
   describe('ensureDefaultFolder', () => {
     it('should return existing default folder', async () => {
-      prisma.bookmarkFolder.findFirst.mockResolvedValue({
+      (prisma.bookmarkFolder.findFirst as jest.Mock).mockResolvedValue({
         id: 'folder-123',
         name: 'Favorites',
       } as never);
@@ -98,8 +98,8 @@ describe('BookmarkService', () => {
     });
 
     it('should create default folder if not exists', async () => {
-      prisma.bookmarkFolder.findFirst.mockResolvedValue(null);
-      prisma.bookmarkFolder.create.mockResolvedValue({
+      (prisma.bookmarkFolder.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.bookmarkFolder.create as jest.Mock).mockResolvedValue({
         id: 'folder-123',
         name: 'Favorites',
       } as never);
@@ -163,7 +163,9 @@ describe('BookmarkService', () => {
 
   describe('getUserFolders', () => {
     it('should return all user folders', async () => {
-      prisma.bookmarkFolder.findMany.mockResolvedValue([mockFolder] as never);
+      (prisma.bookmarkFolder.findMany as jest.Mock).mockResolvedValue([
+        mockFolder,
+      ] as never);
 
       const result = await service.getUserFolders('user-123');
 
@@ -174,10 +176,12 @@ describe('BookmarkService', () => {
 
   describe('createFolder', () => {
     it('should create a new folder', async () => {
-      prisma.bookmarkFolder.aggregate.mockResolvedValue({
+      (prisma.bookmarkFolder.aggregate as jest.Mock).mockResolvedValue({
         _max: { sort_order: 0 },
       } as never);
-      prisma.bookmarkFolder.create.mockResolvedValue(mockFolder as never);
+      (prisma.bookmarkFolder.create as jest.Mock).mockResolvedValue(
+        mockFolder as never,
+      );
 
       const result = await service.createFolder('user-123', {
         name: 'My Folder',
@@ -192,11 +196,13 @@ describe('BookmarkService', () => {
 
   describe('deleteFolder', () => {
     it('should delete a folder', async () => {
-      prisma.bookmarkFolder.findFirst.mockResolvedValue({
+      (prisma.bookmarkFolder.findFirst as jest.Mock).mockResolvedValue({
         ...mockFolder,
         is_default: false,
       } as never);
-      prisma.bookmarkFolder.delete.mockResolvedValue({} as never);
+      (prisma.bookmarkFolder.delete as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
 
       await service.deleteFolder('user-123', 'folder-123');
 
@@ -206,7 +212,7 @@ describe('BookmarkService', () => {
     });
 
     it('should throw error when deleting default folder', async () => {
-      prisma.bookmarkFolder.findFirst.mockResolvedValue({
+      (prisma.bookmarkFolder.findFirst as jest.Mock).mockResolvedValue({
         ...mockFolder,
         is_default: true,
       } as never);
@@ -219,7 +225,7 @@ describe('BookmarkService', () => {
 
   describe('getFavoriteCount', () => {
     it('should return favorite count', async () => {
-      prisma.bookmark.count.mockResolvedValue(5);
+      (prisma.bookmark.count as jest.Mock).mockResolvedValue(5);
 
       const result = await service.getFavoriteCount(
         BookmarkType.FORUM_POST,
@@ -232,7 +238,7 @@ describe('BookmarkService', () => {
 
   describe('getFavoriteCountsBatch', () => {
     it('should return favorite counts for multiple items', async () => {
-      prisma.bookmark.groupBy.mockResolvedValue([
+      (prisma.bookmark.groupBy as jest.Mock).mockResolvedValue([
         { target_id: 'post-1', _count: { target_id: 5 } },
         { target_id: 'post-2', _count: { target_id: 3 } },
       ] as never);

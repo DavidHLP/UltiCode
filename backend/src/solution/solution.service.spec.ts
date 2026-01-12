@@ -73,8 +73,12 @@ describe('SolutionService', () => {
                   update: jest.fn().mockResolvedValue({}),
                   delete: jest.fn().mockResolvedValue({}),
                 },
+                problem: {
+                  update: jest.fn().mockResolvedValue({}),
+                },
                 edgeOperation: {
                   deleteMany: jest.fn().mockResolvedValue({}),
+                  create: jest.fn().mockResolvedValue({}),
                 },
               };
               return callback(tx as never);
@@ -102,12 +106,14 @@ describe('SolutionService', () => {
 
   describe('create', () => {
     it('should create a new solution', async () => {
-      prisma.submission.findFirst.mockResolvedValue({
+      (prisma.submission.findFirst as jest.Mock).mockResolvedValue({
         status: 'Accepted',
       } as never);
-      prisma.solution.findFirst.mockResolvedValue(null);
-      prisma.solution.create.mockResolvedValue(mockSolution as never);
-      prisma.problem.update.mockResolvedValue({} as never);
+      (prisma.solution.findFirst as jest.Mock).mockResolvedValue(null);
+      (prisma.solution.create as jest.Mock).mockResolvedValue(
+        mockSolution as never,
+      );
+      (prisma.problem.update as jest.Mock).mockResolvedValue({} as never);
 
       const result = await service.create('1', 'user-123', {
         title: 'Two Sum Solution',
@@ -120,7 +126,7 @@ describe('SolutionService', () => {
     });
 
     it('should throw BadRequestException when no accepted submission exists', async () => {
-      prisma.submission.findFirst.mockResolvedValue(null);
+      (prisma.submission.findFirst as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.create('1', 'user-123', {
@@ -134,7 +140,9 @@ describe('SolutionService', () => {
 
   describe('findByProblemId', () => {
     it('should return solutions for a problem', async () => {
-      prisma.solution.findMany.mockResolvedValue([mockSolution] as never);
+      (prisma.solution.findMany as jest.Mock).mockResolvedValue([
+        mockSolution,
+      ] as never);
       voteService.getVoteCountsBatch.mockResolvedValue(new Map());
       voteService.getUserVotesBatch.mockResolvedValue(new Map());
 
@@ -147,7 +155,9 @@ describe('SolutionService', () => {
 
   describe('findOne', () => {
     it('should return a solution by id', async () => {
-      prisma.solution.findUnique.mockResolvedValue(mockSolution as never);
+      (prisma.solution.findUnique as jest.Mock).mockResolvedValue(
+        mockSolution as never,
+      );
       voteService.getVoteCountsBatch.mockResolvedValue(
         new Map([['solution-123', { likes: 5, dislikes: 0 }]]),
       );
@@ -162,7 +172,7 @@ describe('SolutionService', () => {
     });
 
     it('should return null for non-existent solution', async () => {
-      prisma.solution.findUnique.mockResolvedValue(null);
+      (prisma.solution.findUnique as jest.Mock).mockResolvedValue(null);
 
       const result = await service.findOne('non-existent');
 
@@ -187,7 +197,9 @@ describe('SolutionService', () => {
         },
       ];
 
-      prisma.solutionComment.findMany.mockResolvedValue(mockComments as never);
+      (prisma.solutionComment.findMany as jest.Mock).mockResolvedValue(
+        mockComments as never,
+      );
       voteService.getVoteCountsBatch.mockResolvedValue(new Map());
       voteService.getUserVotesBatch.mockResolvedValue(new Map());
 
@@ -210,13 +222,15 @@ describe('SolutionService', () => {
         },
       };
 
-      prisma.solutionComment.create.mockResolvedValue(mockComment as never);
+      (prisma.solutionComment.create as jest.Mock).mockResolvedValue(
+        mockComment as never,
+      );
 
       const result = await service.createComment(
         'solution-123',
         {
           content: 'Great solution!',
-          parentId: null,
+          parentId: undefined,
         },
         'user-456',
       );
@@ -228,15 +242,17 @@ describe('SolutionService', () => {
 
   describe('delete', () => {
     it('should delete a solution by owner', async () => {
-      prisma.solution.findUnique.mockResolvedValue({
+      (prisma.solution.findUnique as jest.Mock).mockResolvedValue({
         ...mockSolution,
         user_id: 'user-123',
       } as never);
-      prisma.solutionComment.findMany.mockResolvedValue([]);
-      prisma.solution.count.mockResolvedValue(0);
-      prisma.edgeOperation.deleteMany.mockResolvedValue({} as never);
-      prisma.solution.delete.mockResolvedValue({} as never);
-      prisma.problem.update.mockResolvedValue({} as never);
+      (prisma.solutionComment.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.solution.count as jest.Mock).mockResolvedValue(0);
+      (prisma.edgeOperation.deleteMany as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
+      (prisma.solution.delete as jest.Mock).mockResolvedValue({} as never);
+      (prisma.problem.update as jest.Mock).mockResolvedValue({} as never);
 
       const result = await service.delete('solution-123', 'user-123');
 
@@ -246,11 +262,13 @@ describe('SolutionService', () => {
 
   describe('update', () => {
     it('should update a solution by owner', async () => {
-      prisma.solution.findUnique.mockResolvedValue({
+      (prisma.solution.findUnique as jest.Mock).mockResolvedValue({
         ...mockSolution,
         user_id: 'user-123',
       } as never);
-      prisma.solution.update.mockResolvedValue(mockSolution as never);
+      (prisma.solution.update as jest.Mock).mockResolvedValue(
+        mockSolution as never,
+      );
 
       const result = await service.update('solution-123', 'user-123', {
         title: 'Updated Title',

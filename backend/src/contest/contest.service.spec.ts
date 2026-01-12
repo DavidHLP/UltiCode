@@ -8,8 +8,8 @@ import { NotFoundException } from '@nestjs/common';
 describe('ContestService', () => {
   let service: ContestService;
   let prisma: jest.Mocked<PrismaService>;
-  let i18nService: jest.Mocked<I18nService>;
-  let rankingService: jest.Mocked<RankingService>;
+  let _i18nService: jest.Mocked<I18nService>;
+  let _rankingService: jest.Mocked<RankingService>;
 
   const mockContest = {
     id: 'contest-123',
@@ -77,8 +77,8 @@ describe('ContestService', () => {
 
     service = module.get<ContestService>(ContestService);
     prisma = module.get(PrismaService);
-    i18nService = module.get(I18nService);
-    rankingService = module.get(RankingService);
+    _i18nService = module.get(I18nService);
+    _rankingService = module.get(RankingService);
   });
 
   it('should be defined', () => {
@@ -87,8 +87,10 @@ describe('ContestService', () => {
 
   describe('findAll', () => {
     it('should return paginated contests', async () => {
-      prisma.contest.findMany.mockResolvedValue([mockContest] as never);
-      prisma.contest.count.mockResolvedValue(1);
+      (prisma.contest.findMany as jest.Mock).mockResolvedValue([
+        mockContest,
+      ] as never);
+      (prisma.contest.count as jest.Mock).mockResolvedValue(1);
 
       const result = await service.findAll();
 
@@ -105,7 +107,9 @@ describe('ContestService', () => {
         problems: [],
       };
 
-      prisma.contest.findUnique.mockResolvedValue(contestWithProblems as never);
+      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(
+        contestWithProblems as never,
+      );
 
       const result = await service.findOne('contest-123');
 
@@ -117,7 +121,7 @@ describe('ContestService', () => {
     });
 
     it('should throw NotFoundException when contest not found', async () => {
-      prisma.contest.findUnique.mockResolvedValue(null);
+      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(null);
 
       await expect(service.findOne('non-existent')).rejects.toThrow(
         NotFoundException,
@@ -127,7 +131,9 @@ describe('ContestService', () => {
 
   describe('findUpcoming', () => {
     it('should return upcoming contests', async () => {
-      prisma.contest.findMany.mockResolvedValue([mockContest] as never);
+      (prisma.contest.findMany as jest.Mock).mockResolvedValue([
+        mockContest,
+      ] as never);
 
       const result = await service.findUpcoming();
 
@@ -142,7 +148,9 @@ describe('ContestService', () => {
   describe('findRunning', () => {
     it('should return running contests', async () => {
       const runningContest = { ...mockContest, status: 'running' };
-      prisma.contest.findMany.mockResolvedValue([runningContest] as never);
+      (prisma.contest.findMany as jest.Mock).mockResolvedValue([
+        runningContest,
+      ] as never);
 
       const result = await service.findRunning();
 
@@ -156,8 +164,8 @@ describe('ContestService', () => {
 
   describe('getStats', () => {
     it('should return contest statistics', async () => {
-      prisma.contest.count.mockResolvedValue(10);
-      prisma.contestParticipant.count.mockResolvedValue(100);
+      (prisma.contest.count as jest.Mock).mockResolvedValue(10);
+      (prisma.contestParticipant.count as jest.Mock).mockResolvedValue(100);
 
       const result = await service.getStats();
 
@@ -170,10 +178,16 @@ describe('ContestService', () => {
 
   describe('registerForContest', () => {
     it('should register user for contest', async () => {
-      prisma.contest.findUnique.mockResolvedValue(mockContest as never);
-      prisma.contestParticipant.findFirst.mockResolvedValue(null);
-      prisma.contestParticipant.create.mockResolvedValue({} as never);
-      prisma.contest.update.mockResolvedValue({} as never);
+      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(
+        mockContest as never,
+      );
+      (prisma.contestParticipant.findFirst as jest.Mock).mockResolvedValue(
+        null,
+      );
+      (prisma.contestParticipant.create as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
+      (prisma.contest.update as jest.Mock).mockResolvedValue({} as never);
 
       await service.registerForContest('contest-123', 'user-123');
 
@@ -186,14 +200,16 @@ describe('ContestService', () => {
       const createDto = {
         title: 'New Contest',
         slug: 'new-contest',
-        contest_type: 'weekly',
-        start_time: new Date(),
+        contest_type: 'weekly' as const,
+        start_time: new Date().toISOString(),
         duration_minutes: 120,
         is_rated: true,
         problems: [],
       };
 
-      prisma.contest.create.mockResolvedValue(mockContest as never);
+      (prisma.contest.create as jest.Mock).mockResolvedValue(
+        mockContest as never,
+      );
 
       const result = await service.createContest(createDto, 'user-123');
 

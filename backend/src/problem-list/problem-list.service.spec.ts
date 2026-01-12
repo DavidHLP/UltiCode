@@ -15,11 +15,11 @@ describe('ProblemListService', () => {
   let listsRepository: jest.Mocked<Repository<ProblemList>>;
   let problemsRepository: jest.Mocked<Repository<Problem>>;
   let relationsRepository: jest.Mocked<Repository<ProblemListProblemRelation>>;
-  let submissionService: jest.Mocked<SubmissionService>;
-  let dataSource: jest.Mocked<DataSource>;
+  let _submissionService: jest.Mocked<SubmissionService>;
+  let _dataSource: jest.Mocked<DataSource>;
   let prisma: jest.Mocked<PrismaService>;
   let bookmarkService: jest.Mocked<BookmarkService>;
-  let i18nService: jest.Mocked<I18nService>;
+  let _i18nService: jest.Mocked<I18nService>;
 
   const mockList = {
     id: 'list-123',
@@ -143,11 +143,11 @@ describe('ProblemListService', () => {
     listsRepository = module.get('ProblemListRepository');
     problemsRepository = module.get('ProblemRepository');
     relationsRepository = module.get('ProblemListProblemRelationRepository');
-    submissionService = module.get(SubmissionService);
-    dataSource = module.get(DataSource);
+    _submissionService = module.get(SubmissionService);
+    _dataSource = module.get(DataSource);
     prisma = module.get(PrismaService);
     bookmarkService = module.get(BookmarkService);
-    i18nService = module.get(I18nService);
+    _i18nService = module.get(I18nService);
   });
 
   it('should be defined', () => {
@@ -304,8 +304,8 @@ describe('ProblemListService', () => {
       problemsRepository.findOne.mockResolvedValue(mockProblem as never);
       relationsRepository.findOne.mockResolvedValue(null);
       relationsRepository.count.mockResolvedValue(0);
-      relationsRepository.create.mockReturnValue({});
-      relationsRepository.save.mockResolvedValue({});
+      relationsRepository.create.mockReturnValue({} as never);
+      relationsRepository.save.mockResolvedValue({} as never);
 
       await service.addProblem('list-123', 'user-123', 1);
 
@@ -343,7 +343,9 @@ describe('ProblemListService', () => {
 
   describe('unsaveList', () => {
     it('should unsave list', async () => {
-      prisma.bookmark.deleteMany.mockResolvedValue({ count: 1 } as never);
+      (prisma.bookmark.deleteMany as jest.Mock).mockResolvedValue({
+        count: 1,
+      } as never);
 
       await service.unsaveList('user-123', 'list-123');
 
@@ -375,7 +377,7 @@ describe('ProblemListService', () => {
         name: 'Updated Category',
         sortOrder: 0,
       } as never);
-      prisma.bookmark.findMany.mockResolvedValue([] as never);
+      (prisma.bookmark.findMany as jest.Mock).mockResolvedValue([] as never);
       listsRepository.find.mockResolvedValue([] as never);
 
       const result = await service.updateCategory('folder-123', 'user-123', {

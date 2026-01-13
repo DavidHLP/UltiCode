@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed, toRefs } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { IconAlertTriangle, IconLoader } from '@tabler/icons-vue'
 import {
@@ -13,6 +14,8 @@ import {
 import { Button } from '@/components/ui/button'
 import { useTagsStore } from '@/stores/admin/tags'
 import { TagType } from '@/api/admin/tags'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -29,17 +32,23 @@ const emit = defineEmits<{
 const tagsStore = useTagsStore()
 const loading = ref(false)
 
+const { tagName } = toRefs(props)
+
+const deleteDescription = computed(() => {
+  return t('tags.delete.description', { name: tagName.value }).replace(/<[^>]*>/g, '')
+})
+
 async function handleDelete() {
   if (!props.tagId || !props.tagType) return
 
   loading.value = true
   try {
     await tagsStore.deleteTag(props.tagId, props.tagType)
-    toast.success('Tag deleted successfully')
+    toast.success(t('tags.toast.deletedSuccessfully'))
     emit('update:open', false)
     emit('success')
   } catch (error) {
-    toast.error('Failed to delete tag')
+    toast.error(t('tags.toast.failedToDelete'))
     console.error(error)
   } finally {
     loading.value = false
@@ -53,22 +62,20 @@ async function handleDelete() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-destructive">
           <IconAlertTriangle class="h-5 w-5" />
-          Delete Tag
+          {{ t('tags.delete.title') }}
         </DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete the tag
-          <span class="font-medium text-foreground">"{{ tagName }}"</span>? This action cannot be
-          undone.
+          {{ deleteDescription }}
         </DialogDescription>
       </DialogHeader>
 
       <DialogFooter>
         <Button variant="outline" @click="$emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('common.cancel') }}
         </Button>
         <Button variant="destructive" @click="handleDelete" :disabled="loading">
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Delete Tag
+          {{ t('tags.delete.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

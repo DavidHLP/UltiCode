@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ const emit = defineEmits<{
   (e: 'success'): void
 }>()
 
+const { t } = useI18n()
 const store = useAdminProblemListsStore()
 const loading = ref(false)
 
@@ -31,11 +33,11 @@ async function handleDelete() {
   loading.value = true
   try {
     await store.deleteList(props.listId)
-    toast.success('Problem list deleted successfully')
+    toast.success(t('problemLists.toast.deletedSuccess'))
     emit('success')
     emit('update:open', false)
   } catch {
-    toast.error('Failed to delete problem list')
+    toast.error(t('problemLists.toast.deleteFailed'))
   } finally {
     loading.value = false
   }
@@ -46,18 +48,21 @@ async function handleDelete() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Delete Problem List</DialogTitle>
+        <DialogTitle>{{ t('problemLists.delete.title') }}</DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete <strong>{{ listName || 'this list' }}</strong
-          >? This action cannot be undone.
+          {{
+            t('problemLists.delete.description', {
+              name: listName || t('problemLists.delete.thisList'),
+            })
+          }}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('problemLists.delete.cancel') }}
         </Button>
         <Button variant="destructive" @click="handleDelete" :disabled="loading">
-          {{ loading ? 'Deleting...' : 'Delete List' }}
+          {{ loading ? t('problemLists.delete.deleting') : t('problemLists.delete.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

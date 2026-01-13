@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
@@ -39,12 +40,13 @@ const emit = defineEmits<{
   (e: 'success', id: string): void
 }>()
 
+const { t } = useI18n()
 const store = useAdminProblemListsStore()
 const loading = ref(false)
 
 const formSchema = toTypedSchema(
   z.object({
-    name: z.string().min(1, 'Name is required').max(100),
+    name: z.string().min(1, t('problemLists.form.validation.nameRequired')).max(100),
     description: z.string().optional(),
     is_public: z.boolean(),
     is_featured: z.boolean(),
@@ -72,25 +74,25 @@ async function onSubmit(values: Record<string, unknown>) {
   try {
     if (props.mode === 'create') {
       const newList = await store.createList(values as unknown as CreateProblemListDto)
-      toast.success('List created successfully')
+      toast.success(t('problemLists.toast.createdSuccess'))
       emit('success', newList.id)
     } else if (props.list) {
       await store.updateList(props.list.id, values as unknown as UpdateProblemListDto)
-      toast.success('List updated successfully')
+      toast.success(t('problemLists.toast.updatedSuccess'))
     }
   } catch {
-    toast.error('Failed to save list')
+    toast.error(t('problemLists.toast.createFailed'))
   } finally {
     loading.value = false
   }
 }
 
 const bannerThemes = [
-  { value: 'blue', label: 'Blue' },
-  { value: 'green', label: 'Green' },
-  { value: 'purple', label: 'Purple' },
-  { value: 'orange', label: 'Orange' },
-  { value: 'red', label: 'Red' },
+  { value: 'blue', label: t('problemLists.themes.blue') },
+  { value: 'green', label: t('problemLists.themes.green') },
+  { value: 'purple', label: t('problemLists.themes.purple') },
+  { value: 'orange', label: t('problemLists.themes.orange') },
+  { value: 'red', label: t('problemLists.themes.red') },
 ]
 </script>
 
@@ -99,9 +101,9 @@ const bannerThemes = [
     <form @submit="form.handleSubmit(onSubmit)" class="space-y-6">
       <FormField v-slot="{ componentField }" name="name">
         <FormItem>
-          <FormLabel>Name</FormLabel>
+          <FormLabel>{{ t('problemLists.form.name') }}</FormLabel>
           <FormControl>
-            <Input v-bind="componentField" placeholder="e.g. Top 100 Dynamic Programming" />
+            <Input v-bind="componentField" :placeholder="t('problemLists.form.namePlaceholder')" />
           </FormControl>
           <FormMessage />
         </FormItem>
@@ -109,11 +111,11 @@ const bannerThemes = [
 
       <FormField v-slot="{ componentField }" name="description">
         <FormItem>
-          <FormLabel>Description</FormLabel>
+          <FormLabel>{{ t('problemLists.form.description') }}</FormLabel>
           <FormControl>
             <Textarea
               v-bind="componentField"
-              placeholder="Describe what this list is about..."
+              :placeholder="t('problemLists.form.descriptionPlaceholder')"
               class="h-32"
             />
           </FormControl>
@@ -125,8 +127,8 @@ const bannerThemes = [
         <FormField v-slot="{ value, handleChange }" name="is_public">
           <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
             <div class="space-y-0.5">
-              <FormLabel class="text-base">Public</FormLabel>
-              <FormDescription> Make this list visible to all users </FormDescription>
+              <FormLabel class="text-base">{{ t('problemLists.form.isPublic') }}</FormLabel>
+              <FormDescription>{{ t('problemLists.form.isPublicDescription') }}</FormDescription>
             </div>
             <FormControl>
               <Switch :checked="value" @update:checked="handleChange" />
@@ -137,8 +139,8 @@ const bannerThemes = [
         <FormField v-slot="{ value, handleChange }" name="is_featured">
           <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
             <div class="space-y-0.5">
-              <FormLabel class="text-base">Featured</FormLabel>
-              <FormDescription> Show this list on the home page </FormDescription>
+              <FormLabel class="text-base">{{ t('problemLists.form.isFeatured') }}</FormLabel>
+              <FormDescription>{{ t('problemLists.form.isFeaturedDescription') }}</FormDescription>
             </div>
             <FormControl>
               <Switch :checked="value" @update:checked="handleChange" />
@@ -150,22 +152,22 @@ const bannerThemes = [
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6" v-if="form.values.is_featured">
         <FormField v-slot="{ componentField }" name="banner_tag">
           <FormItem>
-            <FormLabel>Banner Tag</FormLabel>
+            <FormLabel>{{ t('problemLists.form.bannerTag') }}</FormLabel>
             <FormControl>
-              <Input v-bind="componentField" placeholder="e.g. POPULAR" />
+              <Input v-bind="componentField" :placeholder="t('problemLists.form.bannerTagPlaceholder')" />
             </FormControl>
-            <FormDescription>Small tag shown on the banner card</FormDescription>
+            <FormDescription>{{ t('problemLists.form.bannerTagDescription') }}</FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>
 
         <FormField v-slot="{ componentField }" name="banner_theme">
           <FormItem>
-            <FormLabel>Banner Theme</FormLabel>
+            <FormLabel>{{ t('problemLists.form.bannerTheme') }}</FormLabel>
             <Select v-bind="componentField">
               <FormControl>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a theme" />
+                  <SelectValue :placeholder="t('problemLists.form.bannerThemePlaceholder')" />
                 </SelectTrigger>
               </FormControl>
               <SelectContent>
@@ -180,11 +182,11 @@ const bannerThemes = [
 
         <FormField v-slot="{ componentField }" name="banner_order">
           <FormItem>
-            <FormLabel>Sort Order</FormLabel>
+            <FormLabel>{{ t('problemLists.form.sortOrder') }}</FormLabel>
             <FormControl>
               <Input type="number" v-bind="componentField" />
             </FormControl>
-            <FormDescription>Order in featured lists section (lower first)</FormDescription>
+            <FormDescription>{{ t('problemLists.form.sortOrderDescription') }}</FormDescription>
             <FormMessage />
           </FormItem>
         </FormField>
@@ -192,7 +194,7 @@ const bannerThemes = [
 
       <div class="flex justify-end gap-2">
         <Button type="submit" :disabled="loading">
-          {{ loading ? 'Saving...' : 'Save Changes' }}
+          {{ loading ? t('problemLists.form.saving') : t('problemLists.form.saveChanges') }}
         </Button>
       </div>
     </form>

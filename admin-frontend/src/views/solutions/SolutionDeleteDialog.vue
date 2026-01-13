@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
+import { useI18n } from 'vue-i18n'
 import { IconAlertTriangle, IconLoader } from '@tabler/icons-vue'
 import {
   Dialog,
@@ -26,6 +27,7 @@ const emit = defineEmits<{
 
 const solutionsStore = useSolutionsStore()
 const loading = ref(false)
+const { t } = useI18n()
 
 async function handleDelete() {
   if (!props.solutionId) return
@@ -33,11 +35,11 @@ async function handleDelete() {
   loading.value = true
   try {
     await solutionsStore.deleteSolution(props.solutionId)
-    toast.success('Solution deleted successfully')
+    toast.success(t('solutions.toast.deletedSuccessfully'))
     emit('update:open', false)
     emit('success')
   } catch (error) {
-    toast.error('Failed to delete solution')
+    toast.error(t('solutions.toast.failedToDelete'))
     console.error(error)
   } finally {
     loading.value = false
@@ -51,22 +53,20 @@ async function handleDelete() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-destructive">
           <IconAlertTriangle class="h-5 w-5" />
-          Delete Solution
+          {{ t('solutions.delete.title') }}
         </DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete the solution
-          <span class="font-medium text-foreground">"{{ solutionTitle }}"</span>? This action cannot
-          be undone.
+          <span v-html="t('solutions.delete.description', { title: solutionTitle })"></span>
         </DialogDescription>
       </DialogHeader>
 
       <DialogFooter>
         <Button variant="outline" @click="$emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('solutions.delete.cancel') }}
         </Button>
         <Button variant="destructive" @click="handleDelete" :disabled="loading">
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Delete Solution
+          {{ t('solutions.delete.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

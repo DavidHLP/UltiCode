@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
+import { useI18n } from 'vue-i18n'
 import { IconFlag, IconLoader } from '@tabler/icons-vue'
 import {
   Dialog,
@@ -29,23 +30,24 @@ const emit = defineEmits<{
 const solutionsStore = useSolutionsStore()
 const loading = ref(false)
 const reason = ref('')
+const { t } = useI18n()
 
 async function handleFlag() {
   if (!props.solutionId) return
   if (!reason.value.trim()) {
-    toast.error('Please provide a reason for flagging')
+    toast.error(t('solutions.toast.reasonRequired'))
     return
   }
 
   loading.value = true
   try {
     await solutionsStore.flagSolution(props.solutionId, { reason: reason.value })
-    toast.success('Solution flagged successfully')
+    toast.success(t('solutions.toast.flaggedSuccessfully'))
     reason.value = ''
     emit('update:open', false)
     emit('success')
   } catch (error) {
-    toast.error('Failed to flag solution')
+    toast.error(t('solutions.toast.failedToFlag'))
     console.error(error)
   } finally {
     loading.value = false
@@ -59,22 +61,20 @@ async function handleFlag() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-amber-600">
           <IconFlag class="h-5 w-5" />
-          Flag Solution
+          {{ t('solutions.flag.title') }}
         </DialogTitle>
         <DialogDescription>
-          Flagging solution
-          <span class="font-medium text-foreground">"{{ solutionTitle }}"</span> will mark it for
-          review and may hide it from public view depending on settings.
+          <span v-html="t('solutions.flag.description', { title: solutionTitle })"></span>
         </DialogDescription>
       </DialogHeader>
 
       <div class="grid gap-4 py-4">
         <div class="space-y-2">
-          <Label for="reason">Reason for flagging</Label>
+          <Label for="reason">{{ t('solutions.flag.reasonLabel') }}</Label>
           <Textarea
             id="reason"
             v-model="reason"
-            placeholder="Please explain why this solution violates community guidelines..."
+            :placeholder="t('solutions.flag.reasonPlaceholder')"
             class="min-h-[100px]"
           />
         </div>
@@ -82,7 +82,7 @@ async function handleFlag() {
 
       <DialogFooter>
         <Button variant="outline" @click="$emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('solutions.flag.cancel') }}
         </Button>
         <Button
           class="bg-amber-600 hover:bg-amber-700 text-white"
@@ -90,7 +90,7 @@ async function handleFlag() {
           :disabled="loading"
         >
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Flag Solution
+          {{ t('solutions.flag.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

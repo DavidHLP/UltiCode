@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -43,6 +44,8 @@ const emit = defineEmits<{
   submit: [data: CasesFormData]
   cancel: []
 }>()
+
+const { t } = useI18n()
 
 function ensureExamples(examples?: TestCaseExample[]): TestCaseExample[] {
   if (examples && examples.length > 0) {
@@ -90,15 +93,15 @@ watch(
 function validate(): boolean {
   errors.value = {}
   if (formData.value.examples?.length === 0) {
-    errors.value.examples = 'At least one example is required'
+    errors.value.examples = t('problems.casesForm.validation.examplesRequired')
   }
   for (let i = 0; i < (formData.value.examples?.length || 0); i++) {
     const example = formData.value.examples![i]
     if (example && !example.input?.trim()) {
-      errors.value[`example-${i}-input`] = 'Input is required'
+      errors.value[`example-${i}-input`] = t('problems.casesForm.validation.inputRequired')
     }
     if (example && !example.output?.trim()) {
-      errors.value[`example-${i}-output`] = 'Output is required'
+      errors.value[`example-${i}-output`] = t('problems.casesForm.validation.outputRequired')
     }
   }
   return Object.keys(errors.value).length === 0
@@ -161,7 +164,7 @@ defineExpose({
       <section class="p-5 rounded-xl border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconFlask class="h-5 w-5 text-muted-foreground" />
-          <h2 class="font-semibold">Test Cases</h2>
+          <h2 class="font-semibold">{{ t('problems.casesForm.testCasesSection') }}</h2>
         </div>
         <TestCasesEditor v-model="formData.examples as TestCaseExample[]" />
         <p v-if="errors.examples" class="text-sm text-destructive mt-3">{{ errors.examples }}</p>
@@ -171,7 +174,7 @@ defineExpose({
       <section class="p-5 rounded-xl border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconBrackets class="h-5 w-5 text-muted-foreground" />
-          <h2 class="font-semibold">Constraints & Hints</h2>
+          <h2 class="font-semibold">{{ t('problems.casesForm.constraintsAndHints') }}</h2>
         </div>
 
         <div class="space-y-6">
@@ -179,7 +182,7 @@ defineExpose({
           <div class="space-y-3">
             <Label class="text-sm text-muted-foreground flex items-center gap-2">
               <IconBrackets class="h-4 w-4" />
-              Constraints
+              {{ t('problems.casesForm.constraints') }}
               <Badge v-if="formData.constraints.length > 0" variant="secondary" class="text-xs">
                 {{ formData.constraints.length }}
               </Badge>
@@ -188,13 +191,13 @@ defineExpose({
             <div class="flex gap-2">
               <Input
                 v-model="newConstraint"
-                placeholder="e.g. 1 <= nums.length <= 10^4"
+                :placeholder="t('problems.casesForm.constraintPlaceholder')"
                 @keyup.enter="addConstraint"
                 class="font-mono text-sm"
               />
               <Button size="sm" variant="secondary" @click="addConstraint">
                 <IconPlus class="h-4 w-4 mr-1" />
-                Add
+                {{ t('problems.casesForm.add') }}
               </Button>
             </div>
 
@@ -214,7 +217,7 @@ defineExpose({
                 </button>
               </Badge>
             </div>
-            <p v-else class="text-sm text-muted-foreground italic">No constraints added.</p>
+            <p v-else class="text-sm text-muted-foreground italic">{{ t('problems.casesForm.noConstraints') }}</p>
           </div>
 
           <Separator />
@@ -223,17 +226,17 @@ defineExpose({
           <div class="space-y-3">
             <Label class="text-sm text-muted-foreground flex items-center gap-2">
               <IconBulb class="h-4 w-4" />
-              Hints
+              {{ t('problems.casesForm.hints') }}
               <Badge v-if="formData.hints.length > 0" variant="secondary" class="text-xs">
                 {{ formData.hints.length }}
               </Badge>
             </Label>
 
             <div class="flex gap-2">
-              <Input v-model="newHint" placeholder="Add a hint..." @keyup.enter="addHint" />
+              <Input v-model="newHint" :placeholder="t('problems.casesForm.addHint')" @keyup.enter="addHint" />
               <Button size="sm" variant="secondary" @click="addHint">
                 <IconPlus class="h-4 w-4 mr-1" />
-                Add
+                {{ t('problems.casesForm.add') }}
               </Button>
             </div>
 
@@ -257,7 +260,7 @@ defineExpose({
                 </Button>
               </div>
             </div>
-            <p v-else class="text-sm text-muted-foreground italic">No hints added.</p>
+            <p v-else class="text-sm text-muted-foreground italic">{{ t('problems.casesForm.noHints') }}</p>
           </div>
         </div>
       </section>
@@ -269,14 +272,14 @@ defineExpose({
       <div class="p-4 rounded-xl border bg-card">
         <div class="flex items-center gap-2 mb-3">
           <IconTag class="h-4 w-4 text-muted-foreground" />
-          <h3 class="text-sm font-medium">Tags</h3>
+          <h3 class="text-sm font-medium">{{ t('problems.casesForm.tags') }}</h3>
         </div>
 
         <div class="space-y-3">
           <div class="relative">
             <Input
               v-model="newTag"
-              placeholder="Add tag..."
+              :placeholder="t('problems.casesForm.addTag')"
               @keyup.enter="addTag"
               class="pr-9 text-sm"
             />
@@ -305,28 +308,28 @@ defineExpose({
               </button>
             </Badge>
           </div>
-          <p v-else class="text-xs text-muted-foreground italic">No tags added.</p>
+          <p v-else class="text-xs text-muted-foreground italic">{{ t('problems.casesForm.noTags') }}</p>
         </div>
       </div>
 
       <!-- Summary Card -->
       <div class="p-4 rounded-xl border bg-card">
-        <h3 class="text-sm font-medium mb-3">Configuration Summary</h3>
+        <h3 class="text-sm font-medium mb-3">{{ t('problems.casesForm.configurationSummary') }}</h3>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">Test Cases</span>
+            <span class="text-muted-foreground">{{ t('problems.casesForm.summary.testCases') }}</span>
             <span class="font-medium tabular-nums">{{ formData.examples.length }}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">Constraints</span>
+            <span class="text-muted-foreground">{{ t('problems.casesForm.summary.constraints') }}</span>
             <span class="font-medium tabular-nums">{{ formData.constraints.length }}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">Hints</span>
+            <span class="text-muted-foreground">{{ t('problems.casesForm.summary.hints') }}</span>
             <span class="font-medium tabular-nums">{{ formData.hints.length }}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">Tags</span>
+            <span class="text-muted-foreground">{{ t('problems.casesForm.summary.tags') }}</span>
             <span class="font-medium tabular-nums">{{ formData.tags.length }}</span>
           </div>
         </div>
@@ -337,9 +340,9 @@ defineExpose({
         <div class="flex flex-col gap-2">
           <Button class="w-full" :disabled="loading" @click="submit">
             <IconCheck v-if="!loading" class="h-4 w-4 mr-1" />
-            {{ loading ? 'Saving...' : 'Save Changes' }}
+            {{ loading ? t('problems.casesForm.saving') : t('problems.casesForm.saveChanges') }}
           </Button>
-          <Button variant="outline" class="w-full" @click="cancel"> Cancel </Button>
+          <Button variant="outline" class="w-full" @click="cancel">{{ t('common.cancel') }}</Button>
         </div>
       </div>
     </aside>

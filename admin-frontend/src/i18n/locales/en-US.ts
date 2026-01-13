@@ -292,23 +292,6 @@ export default {
       unpublishFailed: 'Failed to unpublish problem',
     },
 
-    // Form
-    form: {
-      title: 'Title',
-      slug: 'Slug',
-      difficulty: 'Difficulty',
-      timeLimit: 'Time Limit (ms)',
-      memoryLimit: 'Memory Limit (MB)',
-      isPublic: 'Public',
-      isPublished: 'Published',
-      description: 'Description',
-      inputFormat: 'Input Format',
-      outputFormat: 'Output Format',
-      constraints: 'Constraints',
-      hint: 'Hint',
-      tags: 'Tags',
-    },
-
     // Code template
     code: {
       template: 'Code Template',
@@ -326,6 +309,219 @@ export default {
       sample: 'Sample',
       isSample: 'Is Sample Case',
       isHidden: 'Hidden',
+    },
+
+    // Edit views
+    edit: {
+      description: 'Description',
+      code: 'Code',
+      testCases: 'Test Cases',
+    },
+
+    // View views
+    view: {
+      errorLoading: 'Error loading problem',
+      notFound: 'Problem not found',
+      backToProblems: 'Back to Problems',
+    },
+
+    // Display components
+    display: {
+      metadata: 'Metadata',
+      id: 'ID',
+      created: 'Created',
+      updated: 'Updated',
+      published: 'Published',
+      tags: 'Tags',
+      hints: 'Hints',
+    },
+
+    // Code form
+    codeForm: {
+      addLanguages: 'Add Languages',
+      quickAdd: 'Quick Add',
+      customLanguagePlaceholder: 'Enter custom language...',
+      add: 'Add',
+      languagesConfigured: '{count} languages configured',
+      allLanguages: 'All languages (no filter)',
+      selectedLanguages: 'Only problems in selected languages',
+      configuration: 'Configuration',
+      languages: 'Languages',
+      saving: 'Saving...',
+      saveChanges: 'Save Changes',
+      noLanguages: 'No Languages Added',
+      noLanguagesDescription: 'Add programming languages to configure starter code templates',
+      starterCodeTemplate: 'Starter Code Template',
+      lines: 'lines',
+      selectLanguage: 'Select a language to view its starter code',
+    },
+
+    // Code display
+    codeDisplay: {
+      noCode: 'No Code Configured',
+      noCodeDescription: 'No starter code has been configured for this problem',
+      copy: 'Copy',
+      copied: 'Copied!',
+      lines: 'lines',
+      languagesConfigured: '{count} languages configured',
+      selectLanguage: 'Select a language to view its starter code',
+      noCodeForLanguage: 'No starter code configured for {language}',
+    },
+
+    // Cases form
+    casesForm: {
+      testCasesSection: 'Test Cases',
+      constraintsAndHints: 'Constraints & Hints',
+      constraints: 'Constraints',
+      hints: 'Hints',
+      tags: 'Tags',
+      configurationSummary: 'Configuration Summary',
+      noConstraints: 'No constraints added',
+      noHints: 'No hints added',
+      noTags: 'No tags added',
+      constraintPlaceholder: 'e.g. 1 <= nums.length <= 10^4',
+      add: 'Add',
+      addHint: 'Add a hint...',
+      addTag: 'Add tag...',
+      saving: 'Saving...',
+      saveChanges: 'Save Changes',
+      summary: {
+        testCases: 'Test Cases',
+        constraints: 'Constraints',
+        hints: 'Hints',
+        tags: 'Tags',
+      },
+      validation: {
+        examplesRequired: 'At least one example is required',
+        inputRequired: 'Input is required',
+        outputRequired: 'Output is required',
+      },
+    },
+
+    // Cases display
+    casesDisplay: {
+      noCases: 'No Test Cases Added',
+      noCasesDescription: 'Add test cases with sample inputs and outputs to help users understand the problem',
+      examples: 'Examples',
+      input: 'Input',
+      output: 'Output',
+      explanation: 'Explanation',
+    },
+
+    // Description form
+    descriptionForm: {
+      problemDescription: 'Problem Description',
+      problemDescriptionSubtitle: 'Basic information and content of the problem',
+      titlePlaceholder: 'e.g. Two Sum',
+      slugPlaceholder: 'e.g. two-sum',
+      summaryPlaceholder: 'Brief summary displayed in lists...',
+      contentPlaceholder: 'Write the full problem description in markdown...',
+      publishing: 'Publishing',
+      premium: 'Premium',
+      premiumDescription: 'Only for premium users',
+      published: 'Published',
+      publishedDescription: 'Visible to all users',
+      saving: 'Saving...',
+      updateDescription: 'Update Description',
+      saveDescription: 'Save Description',
+      validation: {
+        slugRequired: 'Slug is required',
+        slugInvalid: 'Slug must contain only lowercase letters, numbers, and hyphens',
+        titleRequired: 'Title is required',
+      },
+    },
+
+    // Test cases editor
+    testCasesEditor: {
+      addExample: 'Add Example',
+      example: 'Example {number}',
+      input: 'Input',
+      output: 'Output',
+      explanationOptional: 'Explanation (optional)',
+      inputPlaceholder: 'Enter the test case input...',
+      outputPlaceholder: 'Enter the expected output...',
+      explanationPlaceholder: 'Explanation for this example...',
+      noCases: 'No test cases. Click "Add Example" to create one.',
+    },
+
+    // Markdown editor
+    markdownEditor: {
+      placeholder: 'Write markdown here...',
+      bold: 'Bold (Ctrl+B)',
+      italic: 'Italic (Ctrl+I)',
+      inlineCode: 'Inline Code',
+      codeBlock: 'Code Block',
+      insertLink: 'Insert Link',
+      insertImage: 'Insert Image',
+      toggleFullscreen: 'Toggle Fullscreen (Esc)',
+    },
+
+    // Problem form (main create/edit form)
+    form: {
+      // Card titles
+      details: {
+        title: 'Problem Details',
+        description: 'Basic information about the problem',
+      },
+      testCases: {
+        title: 'Test Cases',
+        description: 'Define sample inputs and outputs',
+      },
+      additionalInfo: {
+        title: 'Additional Information',
+        description: 'Add constraints, hints, and other metadata',
+      },
+      // Labels
+      title: 'Title',
+      titlePlaceholder: 'Enter problem title',
+      slug: 'Slug',
+      slugPlaceholder: 'problem-slug',
+      summary: 'Summary',
+      summaryPlaceholder: 'Brief description of the problem',
+      fullContent: 'Full Content',
+      contentPlaceholder: 'Detailed problem description in markdown',
+      difficulty: 'Difficulty',
+      status: 'Status',
+      constraints: {
+        title: 'Constraints',
+        placeholder: 'Add a constraint...',
+      },
+      hints: {
+        title: 'Hints',
+        placeholder: 'Add a hint...',
+      },
+      languages: 'Languages',
+      all: 'All',
+      tags: 'Tags',
+      isPremium: 'Premium',
+      isPremiumDescription: 'Only available for premium users',
+      isPublished: 'Published',
+      isPublishedDescription: 'Visible to all users',
+      taxonomy: 'Taxonomy',
+      // Actions
+      add: 'Add',
+      createProblem: 'Create Problem',
+      updateProblem: 'Update Problem',
+      saving: 'Saving...',
+      // Validation
+      validation: {
+        slugRequired: 'Slug is required',
+        slugInvalid: 'Slug must contain only lowercase letters, numbers, and hyphens',
+        titleRequired: 'Title is required',
+        examplesRequired: 'At least one test case is required',
+        inputRequired: 'Input is required',
+        outputRequired: 'Output is required',
+      },
+    },
+
+    // Dialog
+    dialog: {
+      delete: {
+        title: 'Delete Problem',
+        description: 'Are you sure you want to delete "{title}"? This action is IRREVERSIBLE.',
+        thisProblem: 'this problem',
+        confirm: 'Delete Problem',
+      },
     },
   },
 

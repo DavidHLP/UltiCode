@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -25,6 +26,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:modelValue': [value: TestCaseExample[]]
 }>()
+
+const { t } = useI18n()
 
 const activeId = ref('')
 const localCases = ref<TestCaseExample[]>([])
@@ -68,7 +71,7 @@ const activeCase = computed(() => {
 const caseTabs = computed(() =>
   localCases.value.map((testCase, index) => ({
     ...testCase,
-    displayLabel: `Example ${index + 1}`,
+    displayLabel: t('problems.testCasesEditor.example', { number: index + 1 }),
   })),
 )
 
@@ -148,46 +151,46 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
         @click="addCase"
       >
         <Plus :size="14" class="mr-1" />
-        Add Example
+        {{ t('problems.testCasesEditor.addExample') }}
       </Button>
     </div>
 
     <div v-if="activeCase" class="space-y-4">
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">Input</label>
+        <label class="text-sm font-medium text-muted-foreground">{{ t('problems.testCasesEditor.input') }}</label>
         <Textarea
           :model-value="activeCase.input"
           :readonly="readonly"
-          placeholder="Enter the test case input..."
+          :placeholder="t('problems.testCasesEditor.inputPlaceholder')"
           class="font-mono text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px]"
           @update:model-value="(v) => updateCase('input', v as string)"
         />
       </div>
 
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">Output</label>
+        <label class="text-sm font-medium text-muted-foreground">{{ t('problems.testCasesEditor.output') }}</label>
         <Textarea
           :model-value="activeCase.output"
           :readonly="readonly"
-          placeholder="Enter the expected output..."
+          :placeholder="t('problems.testCasesEditor.outputPlaceholder')"
           class="font-mono text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px]"
           @update:model-value="(v) => updateCase('output', v as string)"
         />
       </div>
 
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">Explanation (optional)</label>
+        <label class="text-sm font-medium text-muted-foreground">{{ t('problems.testCasesEditor.explanationOptional') }}</label>
         <Input
           :model-value="activeCase.explanation || ''"
           :readonly="readonly"
-          placeholder="Explanation for this example..."
+          :placeholder="t('problems.testCasesEditor.explanationPlaceholder')"
           @update:model-value="(v) => updateCase('explanation', v as string)"
         />
       </div>
     </div>
 
     <p v-else class="text-sm text-muted-foreground italic py-4">
-      No test cases. Click "Add Example" to create one.
+      {{ t('problems.testCasesEditor.noCases') }}
     </p>
   </div>
 </template>

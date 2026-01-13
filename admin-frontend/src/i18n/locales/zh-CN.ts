@@ -292,23 +292,6 @@ export default {
       unpublishFailed: '取消发布失败',
     },
 
-    // 表单
-    form: {
-      title: '题目标题',
-      slug: 'URL 标识',
-      difficulty: '难度',
-      timeLimit: '时间限制 (毫秒)',
-      memoryLimit: '内存限制 (MB)',
-      isPublic: '公开',
-      isPublished: '已发布',
-      description: '题目描述',
-      inputFormat: '输入格式',
-      outputFormat: '输出格式',
-      constraints: '限制条件',
-      hint: '提示',
-      tags: '标签',
-    },
-
     // 代码模板
     code: {
       template: '代码模板',
@@ -326,6 +309,219 @@ export default {
       sample: '示例',
       isSample: '是示例用例',
       isHidden: '隐藏',
+    },
+
+    // 编辑视图
+    edit: {
+      description: '题目描述',
+      code: '代码模板',
+      testCases: '测试用例',
+    },
+
+    // 查看视图
+    view: {
+      errorLoading: '加载题目失败',
+      notFound: '题目不存在',
+      backToProblems: '返回题目列表',
+    },
+
+    // 显示组件
+    display: {
+      metadata: '元数据',
+      id: 'ID',
+      created: '创建时间',
+      updated: '更新时间',
+      published: '发布时间',
+      tags: '标签',
+      hints: '提示',
+    },
+
+    // 代码表单
+    codeForm: {
+      addLanguages: '添加编程语言',
+      quickAdd: '快速添加',
+      customLanguagePlaceholder: '输入自定义语言...',
+      add: '添加',
+      languagesConfigured: '已配置 {count} 种语言',
+      allLanguages: '所有语言（无过滤）',
+      selectedLanguages: '仅显示选定语言的题目',
+      configuration: '配置',
+      languages: '语言',
+      saving: '保存中...',
+      saveChanges: '保存更改',
+      noLanguages: '未添加语言',
+      noLanguagesDescription: '添加编程语言以配置起始代码模板',
+      starterCodeTemplate: '起始代码模板',
+      lines: '行',
+      selectLanguage: '选择一种语言查看其起始代码',
+    },
+
+    // 代码显示
+    codeDisplay: {
+      noCode: '未配置代码',
+      noCodeDescription: '此题目尚未配置起始代码',
+      copy: '复制',
+      copied: '已复制！',
+      lines: '行',
+      languagesConfigured: '已配置 {count} 种语言',
+      selectLanguage: '选择一种语言查看其起始代码',
+      noCodeForLanguage: '{language} 未配置起始代码',
+    },
+
+    // 测试用例表单
+    casesForm: {
+      testCasesSection: '测试用例',
+      constraintsAndHints: '限制条件与提示',
+      constraints: '限制条件',
+      hints: '提示',
+      tags: '标签',
+      configurationSummary: '配置概要',
+      noConstraints: '未添加限制条件',
+      noHints: '未添加提示',
+      noTags: '未添加标签',
+      constraintPlaceholder: '例如：1 <= nums.length <= 10^4',
+      add: '添加',
+      addHint: '添加提示...',
+      addTag: '添加标签...',
+      saving: '保存中...',
+      saveChanges: '保存更改',
+      summary: {
+        testCases: '测试用例',
+        constraints: '限制条件',
+        hints: '提示',
+        tags: '标签',
+      },
+      validation: {
+        examplesRequired: '至少需要一个示例',
+        inputRequired: '输入不能为空',
+        outputRequired: '输出不能为空',
+      },
+    },
+
+    // 测试用例显示
+    casesDisplay: {
+      noCases: '未添加测试用例',
+      noCasesDescription: '添加示例输入和输出以帮助用户理解题目',
+      examples: '示例',
+      input: '输入',
+      output: '输出',
+      explanation: '说明',
+    },
+
+    // 描述表单
+    descriptionForm: {
+      problemDescription: '题目描述',
+      problemDescriptionSubtitle: '题目的基本信息和内容',
+      titlePlaceholder: '例如：两数之和',
+      slugPlaceholder: '例如：two-sum',
+      summaryPlaceholder: '列表中显示的简短描述...',
+      contentPlaceholder: '使用 Markdown 编写完整的题目描述...',
+      publishing: '发布设置',
+      premium: '高级会员',
+      premiumDescription: '仅限高级用户访问',
+      published: '已发布',
+      publishedDescription: '对所有用户可见',
+      saving: '保存中...',
+      updateDescription: '更新描述',
+      saveDescription: '保存描述',
+      validation: {
+        slugRequired: 'URL 标识不能为空',
+        slugInvalid: 'URL 标识只能包含小写字母、数字和连字符',
+        titleRequired: '题目标题不能为空',
+      },
+    },
+
+    // 测试用例编辑器
+    testCasesEditor: {
+      addExample: '添加示例',
+      example: '示例 {number}',
+      input: '输入',
+      output: '输出',
+      explanationOptional: '说明（可选）',
+      inputPlaceholder: '输入测试用例输入...',
+      outputPlaceholder: '输入预期输出...',
+      explanationPlaceholder: '此示例的说明...',
+      noCases: '暂无测试用例。点击"添加示例"创建一个。',
+    },
+
+    // Markdown 编辑器
+    markdownEditor: {
+      placeholder: '在此输入 Markdown...',
+      bold: '粗体 (Ctrl+B)',
+      italic: '斜体 (Ctrl+I)',
+      inlineCode: '行内代码',
+      codeBlock: '代码块',
+      insertLink: '插入链接',
+      insertImage: '插入图片',
+      toggleFullscreen: '切换全屏 (Esc)',
+    },
+
+    // 题目表单（主创建/编辑表单）
+    form: {
+      // 卡片标题
+      details: {
+        title: '题目详情',
+        description: '题目的基本信息',
+      },
+      testCases: {
+        title: '测试用例',
+        description: '定义示例输入和输出',
+      },
+      additionalInfo: {
+        title: '附加信息',
+        description: '添加限制条件、提示和其他元数据',
+      },
+      // 标签
+      title: '题目标题',
+      titlePlaceholder: '输入题目标题',
+      slug: 'URL 标识',
+      slugPlaceholder: 'problem-slug',
+      summary: '简介',
+      summaryPlaceholder: '题目的简要描述',
+      fullContent: '完整内容',
+      contentPlaceholder: '使用 Markdown 编写详细的题目描述',
+      difficulty: '难度',
+      status: '状态',
+      constraints: {
+        title: '限制条件',
+        placeholder: '添加限制条件...',
+      },
+      hints: {
+        title: '提示',
+        placeholder: '添加提示...',
+      },
+      languages: '编程语言',
+      all: '全部',
+      tags: '标签',
+      isPremium: '高级',
+      isPremiumDescription: '仅限高级用户访问',
+      isPublished: '已发布',
+      isPublishedDescription: '对所有用户可见',
+      taxonomy: '分类',
+      // 操作
+      add: '添加',
+      createProblem: '创建题目',
+      updateProblem: '更新题目',
+      saving: '保存中...',
+      // 验证
+      validation: {
+        slugRequired: 'URL 标识不能为空',
+        slugInvalid: 'URL 标识只能包含小写字母、数字和连字符',
+        titleRequired: '题目标题不能为空',
+        examplesRequired: '至少需要一个测试用例',
+        inputRequired: '输入不能为空',
+        outputRequired: '输出不能为空',
+      },
+    },
+
+    // 对话框
+    dialog: {
+      delete: {
+        title: '删除题目',
+        description: '确定要删除"{title}"吗？此操作不可撤销。',
+        thisProblem: '此题目',
+        confirm: '删除题目',
+      },
     },
   },
 

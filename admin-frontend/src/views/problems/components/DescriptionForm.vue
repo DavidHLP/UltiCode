@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -54,6 +55,8 @@ const emit = defineEmits<{
   cancel: []
 }>()
 
+const { t } = useI18n()
+
 // Initialize form data with safe defaults
 const formData = ref<DescriptionFormData>({
   slug: '',
@@ -102,13 +105,13 @@ function validate(): boolean {
   errors.value = {}
 
   if (!formData.value.slug?.trim()) {
-    errors.value.slug = 'Slug is required'
+    errors.value.slug = t('problems.descriptionForm.validation.slugRequired')
   } else if (!/^[a-z0-9-]+$/.test(formData.value.slug)) {
-    errors.value.slug = 'Slug must contain only lowercase letters, numbers, and hyphens'
+    errors.value.slug = t('problems.descriptionForm.validation.slugInvalid')
   }
 
   if (!formData.value.title?.trim()) {
-    errors.value.title = 'Title is required'
+    errors.value.title = t('problems.descriptionForm.validation.titleRequired')
   }
 
   return Object.keys(errors.value).length === 0
@@ -139,71 +142,71 @@ defineExpose({
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Problem Description</CardTitle>
+            <CardTitle>{{ t('problems.descriptionForm.problemDescription') }}</CardTitle>
           </div>
-          <CardDescription>Basic information and content of the problem.</CardDescription>
+          <CardDescription>{{ t('problems.descriptionForm.problemDescriptionSubtitle') }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
-              <Label>Title</Label>
-              <Input v-model="formData.title" placeholder="e.g. Two Sum" />
+              <Label>{{ t('problems.form.title') }}</Label>
+              <Input v-model="formData.title" :placeholder="t('problems.descriptionForm.titlePlaceholder')" />
               <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
             </div>
 
             <div class="space-y-2">
-              <Label>Slug</Label>
-              <Input v-model="formData.slug" placeholder="e.g. two-sum" class="font-mono" />
+              <Label>{{ t('problems.form.slug') }}</Label>
+              <Input v-model="formData.slug" :placeholder="t('problems.descriptionForm.slugPlaceholder')" class="font-mono" />
               <p v-if="errors.slug" class="text-sm text-destructive">{{ errors.slug }}</p>
             </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
-              <Label>Difficulty</Label>
+              <Label>{{ t('problems.form.difficulty') }}</Label>
               <Select v-model="formData.difficulty">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="Difficulty.EASY">Easy</SelectItem>
-                  <SelectItem :value="Difficulty.MEDIUM">Medium</SelectItem>
-                  <SelectItem :value="Difficulty.HARD">Hard</SelectItem>
+                  <SelectItem :value="Difficulty.EASY">{{ t('problems.difficulty.EASY') }}</SelectItem>
+                  <SelectItem :value="Difficulty.MEDIUM">{{ t('problems.difficulty.MEDIUM') }}</SelectItem>
+                  <SelectItem :value="Difficulty.HARD">{{ t('problems.difficulty.HARD') }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div class="space-y-2">
-              <Label>Status</Label>
+              <Label>{{ t('problems.form.status') }}</Label>
               <Select v-model="formData.status">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="ProblemStatus.TODO">Todo</SelectItem>
-                  <SelectItem :value="ProblemStatus.ATTEMPTED">Attempted</SelectItem>
-                  <SelectItem :value="ProblemStatus.SOLVED">Solved</SelectItem>
+                  <SelectItem :value="ProblemStatus.TODO">{{ t('problems.status.todo') }}</SelectItem>
+                  <SelectItem :value="ProblemStatus.ATTEMPTED">{{ t('problems.status.attempted') }}</SelectItem>
+                  <SelectItem :value="ProblemStatus.SOLVED">{{ t('problems.status.solved') }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
           </div>
 
           <div class="space-y-2">
-            <Label>Summary</Label>
+            <Label>{{ t('problems.form.summary') }}</Label>
             <Textarea
               v-model="formData.summary"
               rows="2"
-              placeholder="Brief summary displayed in lists..."
+              :placeholder="t('problems.descriptionForm.summaryPlaceholder')"
               class="resize-none"
             />
           </div>
 
           <div class="space-y-2">
-            <Label>Full Content</Label>
+            <Label>{{ t('problems.form.fullContent') }}</Label>
             <MarkdownEditor
               :model-value="formData.content ?? ''"
               @update:model-value="(v) => (formData.content = v)"
-              placeholder="Write the full problem description in markdown..."
+              :placeholder="t('problems.descriptionForm.contentPlaceholder')"
             />
           </div>
         </CardContent>
@@ -215,7 +218,7 @@ defineExpose({
       <!-- Publishing Card -->
       <Card class="border-primary/10 shadow-sm">
         <CardHeader class="pb-3 border-b bg-muted/20">
-          <CardTitle class="text-base">Publishing</CardTitle>
+          <CardTitle class="text-base">{{ t('problems.descriptionForm.publishing') }}</CardTitle>
         </CardHeader>
         <CardContent class="pt-6 space-y-6">
           <div class="space-y-4">
@@ -224,8 +227,8 @@ defineExpose({
               @click="formData.is_premium = !formData.is_premium"
             >
               <div class="space-y-0.5">
-                <Label class="text-base cursor-pointer">Premium</Label>
-                <p class="text-xs text-muted-foreground">Only for premium users</p>
+                <Label class="text-base cursor-pointer">{{ t('problems.descriptionForm.premium') }}</Label>
+                <p class="text-xs text-muted-foreground">{{ t('problems.descriptionForm.premiumDescription') }}</p>
               </div>
               <Checkbox v-model:checked="formData.is_premium" />
             </div>
@@ -235,8 +238,8 @@ defineExpose({
               @click="formData.is_published = !formData.is_published"
             >
               <div class="space-y-0.5">
-                <Label class="text-base cursor-pointer">Published</Label>
-                <p class="text-xs text-muted-foreground">Visible to all users</p>
+                <Label class="text-base cursor-pointer">{{ t('problems.descriptionForm.published') }}</Label>
+                <p class="text-xs text-muted-foreground">{{ t('problems.descriptionForm.publishedDescription') }}</p>
               </div>
               <Checkbox v-model:checked="formData.is_published" />
             </div>
@@ -245,9 +248,9 @@ defineExpose({
           <div class="flex flex-col gap-3">
             <Button class="w-full" :disabled="loading" @click="submit">
               <IconCheck v-if="!loading" class="h-4 w-4 mr-2" />
-              {{ loading ? 'Saving...' : isEdit ? 'Update Description' : 'Save Description' }}
+              {{ loading ? t('problems.descriptionForm.saving') : (isEdit ? t('problems.descriptionForm.updateDescription') : t('problems.descriptionForm.saveDescription')) }}
             </Button>
-            <Button variant="outline" class="w-full" @click="cancel"> Cancel </Button>
+            <Button variant="outline" class="w-full" @click="cancel">{{ t('common.cancel') }}</Button>
           </div>
         </CardContent>
       </Card>

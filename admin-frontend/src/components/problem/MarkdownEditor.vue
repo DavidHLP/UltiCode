@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { renderMarkdown } from '@/utils/markdown'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -14,6 +15,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
+
+const { t } = useI18n()
 
 const editorContent = ref(props.modelValue)
 const isFullscreen = ref(false)
@@ -110,7 +113,7 @@ onUnmounted(() => {
           size="sm"
           @click="insertBold"
           :disabled="readonly"
-          title="Bold (Ctrl+B)"
+          :title="t('problems.markdownEditor.bold')"
         >
           <Bold :size="16" />
         </Button>
@@ -120,7 +123,7 @@ onUnmounted(() => {
           size="sm"
           @click="insertItalic"
           :disabled="readonly"
-          title="Italic (Ctrl+I)"
+          :title="t('problems.markdownEditor.italic')"
         >
           <Italic :size="16" />
         </Button>
@@ -130,7 +133,7 @@ onUnmounted(() => {
           size="sm"
           @click="insertCode"
           :disabled="readonly"
-          title="Inline Code"
+          :title="t('problems.markdownEditor.inlineCode')"
         >
           <Code :size="16" />
         </Button>
@@ -140,7 +143,7 @@ onUnmounted(() => {
           size="sm"
           @click="insertCodeBlock"
           :disabled="readonly"
-          title="Code Block"
+          :title="t('problems.markdownEditor.codeBlock')"
         >
           <Code :size="16" />
           <span class="text-xs">/block</span>
@@ -151,7 +154,7 @@ onUnmounted(() => {
           size="sm"
           @click="insertLink"
           :disabled="readonly"
-          title="Insert Link"
+          :title="t('problems.markdownEditor.insertLink')"
         >
           <Link :size="16" />
         </Button>
@@ -161,7 +164,7 @@ onUnmounted(() => {
           size="sm"
           @click="insertImage"
           :disabled="readonly"
-          title="Insert Image"
+          :title="t('problems.markdownEditor.insertImage')"
         >
           <Image :size="16" />
         </Button>
@@ -172,7 +175,7 @@ onUnmounted(() => {
           variant="ghost"
           size="sm"
           @click="toggleFullscreen"
-          title="Toggle Fullscreen (Esc)"
+          :title="t('problems.markdownEditor.toggleFullscreen')"
         >
           <Maximize2 v-if="!isFullscreen" :size="16" />
           <Minimize2 v-else :size="16" />
@@ -187,7 +190,7 @@ onUnmounted(() => {
         <Textarea
           ref="editorRef"
           v-model="editorContent"
-          :placeholder="placeholder || 'Write markdown here...'"
+          :placeholder="placeholder || t('problems.markdownEditor.placeholder')"
           :readonly="readonly"
           class="editor-textarea"
           @scroll="syncScroll('editor')"

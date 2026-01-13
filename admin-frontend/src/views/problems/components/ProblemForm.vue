@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -129,6 +130,7 @@ const newHint = ref('')
 const newLanguage = ref('')
 const newTag = ref('')
 const loading = ref(false)
+const { t } = useI18n()
 
 // Validation errors
 const errors = ref<Record<string, string>>({})
@@ -137,26 +139,26 @@ function validate(): boolean {
   errors.value = {}
 
   if (!formData.value.slug?.trim()) {
-    errors.value.slug = 'Slug is required'
+    errors.value.slug = t('problems.form.validation.slugRequired')
   } else if (!/^[a-z0-9-]+$/.test(formData.value.slug)) {
-    errors.value.slug = 'Slug must contain only lowercase letters, numbers, and hyphens'
+    errors.value.slug = t('problems.form.validation.slugInvalid')
   }
 
   if (!formData.value.title?.trim()) {
-    errors.value.title = 'Title is required'
+    errors.value.title = t('problems.form.validation.titleRequired')
   }
 
   if (formData.value.examples?.length === 0) {
-    errors.value.examples = 'At least one example is required'
+    errors.value.examples = t('problems.form.validation.examplesRequired')
   }
 
   for (let i = 0; i < (formData.value.examples?.length || 0); i++) {
     const example = formData.value.examples![i]
     if (example && !example.input?.trim()) {
-      errors.value[`example-${i}-input`] = 'Input is required'
+      errors.value[`example-${i}-input`] = t('problems.form.validation.inputRequired')
     }
     if (example && !example.output?.trim()) {
-      errors.value[`example-${i}-output`] = 'Output is required'
+      errors.value[`example-${i}-output`] = t('problems.form.validation.outputRequired')
     }
   }
 
@@ -229,41 +231,41 @@ defineExpose({
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Problem Details</CardTitle>
+            <CardTitle>{{ t('problems.form.details.title') }}</CardTitle>
           </div>
-          <CardDescription> Basic information and content of the problem. </CardDescription>
+          <CardDescription>{{ t('problems.form.details.description') }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
-              <Label>Title</Label>
-              <Input v-model="formData.title" placeholder="e.g. Two Sum" />
+              <Label>{{ t('problems.form.title') }}</Label>
+              <Input v-model="formData.title" :placeholder="t('problems.form.titlePlaceholder')" />
               <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
             </div>
 
             <div class="space-y-2">
-              <Label>Slug</Label>
-              <Input v-model="formData.slug" placeholder="e.g. two-sum" class="font-mono" />
+              <Label>{{ t('problems.form.slug') }}</Label>
+              <Input v-model="formData.slug" :placeholder="t('problems.form.slugPlaceholder')" class="font-mono" />
               <p v-if="errors.slug" class="text-sm text-destructive">{{ errors.slug }}</p>
             </div>
           </div>
 
           <div class="space-y-2">
-            <Label>Summary</Label>
+            <Label>{{ t('problems.form.summary') }}</Label>
             <Textarea
               v-model="formData.summary"
               rows="2"
-              placeholder="Brief summary displayed in lists..."
+              :placeholder="t('problems.form.summaryPlaceholder')"
               class="resize-none"
             />
           </div>
 
           <div class="space-y-2">
-            <Label>Full Content</Label>
+            <Label>{{ t('problems.form.fullContent') }}</Label>
             <MarkdownEditor
               :model-value="formData.content ?? ''"
               @update:model-value="(v) => (formData.content = v)"
-              placeholder="Write the full problem description in markdown..."
+              :placeholder="t('problems.form.contentPlaceholder')"
             />
           </div>
         </CardContent>
@@ -274,10 +276,10 @@ defineExpose({
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconFlask class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Test Cases</CardTitle>
+            <CardTitle>{{ t('problems.form.testCases.title') }}</CardTitle>
           </div>
           <CardDescription>
-            Add examples to help users understand input/output format.
+            {{ t('problems.form.testCases.description') }}
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
@@ -291,7 +293,7 @@ defineExpose({
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconInfoCircle class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>Additional Information</CardTitle>
+            <CardTitle>{{ t('problems.form.additionalInfo.title') }}</CardTitle>
           </div>
         </CardHeader>
         <CardContent class="space-y-8">
@@ -299,18 +301,18 @@ defineExpose({
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <Label class="text-base flex items-center gap-2">
-                <IconBrackets class="h-4 w-4" /> Constraints
+                <IconBrackets class="h-4 w-4" /> {{ t('problems.form.constraints.title') }}
               </Label>
             </div>
 
             <div class="flex gap-2">
               <Input
                 v-model="newConstraint"
-                placeholder="e.g. 1 <= nums.length <= 10^4"
+                :placeholder="t('problems.form.constraints.placeholder')"
                 @keyup.enter="addConstraint"
                 class="font-mono text-sm"
               />
-              <Button type="button" variant="secondary" @click="addConstraint">Add</Button>
+              <Button type="button" variant="secondary" @click="addConstraint">{{ t('problems.form.add') }}</Button>
             </div>
 
             <ul v-if="formData.constraints!.length > 0" class="space-y-2">

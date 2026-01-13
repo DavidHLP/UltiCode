@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import {
   Drawer,
   DrawerContent,
@@ -19,6 +20,8 @@ import {
   getEntityTypeIcon,
 } from './utils'
 
+const { t } = useI18n()
+
 defineProps<{
   open: boolean
   log: AuditLog | null
@@ -35,7 +38,7 @@ const emit = defineEmits<{
       <DrawerHeader class="border-b px-6 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <DrawerTitle>Audit Log Details</DrawerTitle>
+            <DrawerTitle>{{ t('audit.columns.details') }}</DrawerTitle>
             <DrawerDescription>Detailed record of the system event.</DrawerDescription>
           </div>
         </div>
@@ -75,7 +78,7 @@ const emit = defineEmits<{
           <div class="grid grid-cols-2 gap-6">
             <div class="space-y-4">
               <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Performer
+                {{ t('audit.columns.performer') }}
               </h4>
               <div class="flex items-center gap-3">
                 <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
@@ -121,7 +124,7 @@ const emit = defineEmits<{
           >
             <div v-if="log.ip_address" class="flex items-center justify-between text-sm">
               <span class="text-muted-foreground flex items-center gap-2">
-                <IconTerminal class="h-3.5 w-3.5" /> IP Address
+                <IconTerminal class="h-3.5 w-3.5" /> {{ t('audit.columns.ip') }}
               </span>
               <span class="font-mono">{{ log.ip_address }}</span>
             </div>

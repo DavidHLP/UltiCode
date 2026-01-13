@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
@@ -40,6 +41,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import ProblemListDeleteDialog from './ProblemListDeleteDialog.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const store = useAdminProblemListsStore()
 const authStore = useAuthStore()
 
@@ -102,7 +104,7 @@ function confirmDelete(list: ProblemList) {
 const columns: ColumnDef<ProblemList>[] = [
   {
     accessorKey: 'name',
-    header: 'Name',
+    header: () => t('problemLists.columns.name'),
     cell: ({ row }) => {
       const list = row.original
       return h('div', { class: 'flex flex-col' }, [
@@ -110,14 +112,14 @@ const columns: ColumnDef<ProblemList>[] = [
         h(
           'span',
           { class: 'text-muted-foreground text-xs line-clamp-1' },
-          list.description || 'No description',
+          list.description || t('common.noData'),
         ),
       ])
     },
   },
   {
     accessorKey: 'is_featured',
-    header: 'Featured',
+    header: () => t('problemLists.columns.featured'),
     cell: ({ row }) => {
       const isFeatured = row.getValue('is_featured') as boolean
       return isFeatured
@@ -127,7 +129,7 @@ const columns: ColumnDef<ProblemList>[] = [
   },
   {
     accessorKey: 'is_public',
-    header: 'Visibility',
+    header: () => t('problemLists.columns.visibility'),
     cell: ({ row }) => {
       const isPublic = row.getValue('is_public') as boolean
       return h(
@@ -138,7 +140,7 @@ const columns: ColumnDef<ProblemList>[] = [
             isPublic
               ? h(IconEye, { class: 'mr-1 h-3 w-3' })
               : h(IconEyeOff, { class: 'mr-1 h-3 w-3' }),
-            isPublic ? 'Public' : 'Private',
+            isPublic ? t('problemLists.filters.public') : t('problemLists.filters.private'),
           ],
         },
       )
@@ -146,7 +148,7 @@ const columns: ColumnDef<ProblemList>[] = [
   },
   {
     accessorKey: 'problem_count',
-    header: 'Problems',
+    header: () => t('problemLists.columns.problems'),
     cell: ({ row }) => {
       const count = row.original.problem_count || 0
       return h(
@@ -158,7 +160,7 @@ const columns: ColumnDef<ProblemList>[] = [
   },
   {
     accessorKey: 'banner_order',
-    header: 'Order',
+    header: () => t('problemLists.columns.order'),
     cell: ({ row }) => {
       const order = row.original.banner_order
       return h('span', { class: 'text-muted-foreground text-sm tabular-nums' }, order)
@@ -166,7 +168,7 @@ const columns: ColumnDef<ProblemList>[] = [
   },
   {
     accessorKey: 'updated_at',
-    header: 'Updated',
+    header: () => t('common.updated'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('updated_at') as string)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
@@ -174,7 +176,7 @@ const columns: ColumnDef<ProblemList>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('common.actions'),
     cell: ({ row }) => {
       const list = row.original
       return h(
@@ -192,7 +194,7 @@ const columns: ColumnDef<ProblemList>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h('span', { class: 'sr-only' }, t('common.open')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },
@@ -212,7 +214,7 @@ const columns: ColumnDef<ProblemList>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
                               h(IconPencil, { class: 'h-4 w-4' }),
-                              'Edit',
+                              t('common.edit'),
                             ]),
                         },
                       )
@@ -225,7 +227,7 @@ const columns: ColumnDef<ProblemList>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                               h(IconTrash, { class: 'h-4 w-4' }),
-                              'Delete',
+                              t('common.delete'),
                             ]),
                         },
                       )
@@ -255,7 +257,7 @@ const columns: ColumnDef<ProblemList>[] = [
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Input
             v-model="searchQuery"
-            placeholder="Search lists..."
+            :placeholder="t('problemLists.searchPlaceholder')"
             class="h-8 min-w-[150px] w-full lg:w-[250px]"
           >
             <template #trailing>
@@ -272,23 +274,23 @@ const columns: ColumnDef<ProblemList>[] = [
           <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
             <Select v-model="featuredFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Type" />
+                <SelectValue :placeholder="t('problemLists.filters.type')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="featured">Featured</SelectItem>
-                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="all">{{ t('problemLists.filters.allTypes') }}</SelectItem>
+                <SelectItem value="featured">{{ t('problemLists.filters.featured') }}</SelectItem>
+                <SelectItem value="standard">{{ t('problemLists.filters.standard') }}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select v-model="visibilityFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Visibility" />
+                <SelectValue :placeholder="t('problemLists.filters.visibility')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Visibility</SelectItem>
-                <SelectItem value="public">Public</SelectItem>
-                <SelectItem value="private">Private</SelectItem>
+                <SelectItem value="all">{{ t('problemLists.filters.allVisibility') }}</SelectItem>
+                <SelectItem value="public">{{ t('problemLists.filters.public') }}</SelectItem>
+                <SelectItem value="private">{{ t('problemLists.filters.private') }}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -297,7 +299,7 @@ const columns: ColumnDef<ProblemList>[] = [
               size="icon"
               class="h-8 w-8"
               @click="loadLists()"
-              title="Refresh"
+              :title="t('common.refresh')"
             >
               <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': store.isLoading }" />
             </Button>
@@ -313,7 +315,7 @@ const columns: ColumnDef<ProblemList>[] = [
           @click="router.push({ name: 'problem-list-create' })"
         >
           <IconPlus class="mr-2 h-4 w-4" />
-          <span>Create List</span>
+          <span>{{ t('problemLists.addList') }}</span>
         </Button>
       </template>
     </DataTable>
@@ -324,7 +326,7 @@ const columns: ColumnDef<ProblemList>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ store.error }}</span>
-      <Button variant="outline" size="sm" @click="loadLists()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadLists()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 

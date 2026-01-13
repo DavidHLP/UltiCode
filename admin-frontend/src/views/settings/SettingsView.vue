@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -15,6 +16,8 @@ import {
   IconDeviceFloppy,
   IconRefresh,
 } from '@tabler/icons-vue'
+
+const { t } = useI18n()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -34,7 +37,7 @@ async function loadSettings() {
   try {
     settings.value = await settingsApi.getSettings()
   } catch (error) {
-    toast.error('Failed to load settings')
+    toast.error(t('settings.toast.loadFailed'))
     console.error(error)
   } finally {
     loading.value = false
@@ -48,7 +51,7 @@ async function saveSettings() {
     settings.value = updatedSettings
     toast.success(message)
   } catch (error) {
-    toast.error('Failed to save settings')
+    toast.error(t('settings.toast.saveFailed'))
     console.error(error)
   } finally {
     saving.value = false
@@ -61,7 +64,7 @@ async function clearCache() {
     const { message } = await settingsApi.clearCache()
     toast.success(message)
   } catch (error) {
-    toast.error('Failed to clear cache')
+    toast.error(t('settings.toast.clearCacheFailed'))
     console.error(error)
   } finally {
     clearingCache.value = false
@@ -77,8 +80,8 @@ onMounted(() => {
   <div class="space-y-6">
     <!-- Header -->
     <div class="flex flex-col gap-2">
-      <h1 class="text-3xl font-bold tracking-tight">System Settings</h1>
-      <p class="text-muted-foreground">Manage global system configuration and preferences.</p>
+      <h1 class="text-3xl font-bold tracking-tight">{{ t('settings.title') }}</h1>
+      <p class="text-muted-foreground">{{ t('settings.description') }}</p>
     </div>
 
     <div v-if="loading" class="flex items-center justify-center py-12">
@@ -91,17 +94,17 @@ onMounted(() => {
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconSettings class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>General Settings</CardTitle>
+            <CardTitle>{{ t('settings.general.title') }}</CardTitle>
           </div>
-          <CardDescription>Basic site information.</CardDescription>
+          <CardDescription>{{ t('settings.general.description') }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
           <div class="space-y-2">
-            <Label>Site Name</Label>
+            <Label>{{ t('settings.siteName') }}</Label>
             <Input v-model="settings.site_name" placeholder="UltiCode" />
           </div>
           <div class="space-y-2">
-            <Label>Site Description</Label>
+            <Label>{{ t('settings.siteDescription') }}</Label>
             <Input
               v-model="settings.site_description"
               placeholder="Competitive Programming Platform"
@@ -115,17 +118,17 @@ onMounted(() => {
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconUsers class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>User Registration</CardTitle>
+            <CardTitle>{{ t('settings.userRegistration.title') }}</CardTitle>
           </div>
-          <CardDescription>Control how users sign up.</CardDescription>
+          <CardDescription>{{ t('settings.userRegistration.description') }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
           <div class="flex items-center justify-between space-x-2">
             <Label class="flex flex-col space-y-1">
-              <span>Enable Registrations</span>
-              <span class="font-normal text-xs text-muted-foreground"
-                >Allow new users to create accounts.</span
-              >
+              <span>{{ t('settings.userRegistration.enableRegistrations') }}</span>
+              <span class="font-normal text-xs text-muted-foreground">{{
+                t('settings.userRegistration.enableRegistrationsDescription')
+              }}</span>
             </Label>
             <Switch
               :checked="settings.enable_registrations"
@@ -134,10 +137,10 @@ onMounted(() => {
           </div>
           <div class="flex items-center justify-between space-x-2">
             <Label class="flex flex-col space-y-1">
-              <span>Require Email Verification</span>
-              <span class="font-normal text-xs text-muted-foreground"
-                >Users must verify email before logging in.</span
-              >
+              <span>{{ t('settings.userRegistration.requireEmailVerification') }}</span>
+              <span class="font-normal text-xs text-muted-foreground">{{
+                t('settings.userRegistration.requireEmailVerificationDescription')
+              }}</span>
             </Label>
             <Switch
               :checked="settings.require_email_verification"
@@ -154,17 +157,19 @@ onMounted(() => {
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconServer class="h-5 w-5 text-orange-600 dark:text-orange-400" />
-            <CardTitle class="text-orange-700 dark:text-orange-300">System Status</CardTitle>
+            <CardTitle class="text-orange-700 dark:text-orange-300">{{
+              t('settings.systemStatus.title')
+            }}</CardTitle>
           </div>
-          <CardDescription>Control site availability.</CardDescription>
+          <CardDescription>{{ t('settings.systemStatus.description') }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
           <div class="flex items-center justify-between space-x-2">
             <Label class="flex flex-col space-y-1">
-              <span>Maintenance Mode</span>
-              <span class="font-normal text-xs text-muted-foreground"
-                >Only admins can access the site when enabled.</span
-              >
+              <span>{{ t('settings.systemStatus.maintenanceMode') }}</span>
+              <span class="font-normal text-xs text-muted-foreground">{{
+                t('settings.systemStatus.maintenanceModeDescription')
+              }}</span>
             </Label>
             <Switch
               :checked="settings.maintenance_mode"
@@ -177,7 +182,7 @@ onMounted(() => {
             v-if="settings.maintenance_mode"
             class="space-y-2 animate-in fade-in slide-in-from-top-2"
           >
-            <Label>Maintenance Message</Label>
+            <Label>{{ t('settings.systemStatus.maintenanceMessage') }}</Label>
             <Textarea
               v-model="settings.maintenance_message"
               placeholder="We are currently performing maintenance..."
@@ -189,17 +194,17 @@ onMounted(() => {
       <!-- Actions -->
       <Card class="md:col-span-2">
         <CardHeader>
-          <CardTitle>Actions</CardTitle>
+          <CardTitle>{{ t('settings.actions.title') }}</CardTitle>
         </CardHeader>
         <CardContent class="flex items-center justify-between">
           <Button variant="outline" @click="clearCache" :disabled="clearingCache">
             <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': clearingCache }" />
-            Clear System Cache
+            {{ t('settings.actions.clearCache') }}
           </Button>
 
           <Button @click="saveSettings" :disabled="saving">
             <IconDeviceFloppy class="h-4 w-4 mr-2" />
-            {{ saving ? 'Saving...' : 'Save Changes' }}
+            {{ saving ? t('settings.actions.saving') : t('settings.actions.saveChanges') }}
           </Button>
         </CardContent>
       </Card>

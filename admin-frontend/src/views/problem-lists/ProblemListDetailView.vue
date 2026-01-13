@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -11,6 +12,7 @@ import ProblemsManager from './components/ProblemsManager.vue'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const store = useAdminProblemListsStore()
 
 const isInitialLoad = ref(true)
@@ -57,7 +59,9 @@ function handleCreateSuccess(id: string) {
 
           <div class="flex items-center gap-3">
             <h1 class="text-sm font-semibold">
-              {{ isCreate ? 'Create Problem List' : list?.name || 'Edit List' }}
+              {{
+                isCreate ? t('problemLists.createList') : list?.name || t('problemLists.editList')
+              }}
             </h1>
           </div>
         </div>
@@ -82,10 +86,10 @@ function handleCreateSuccess(id: string) {
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">Error Loading List</h2>
+        <h2 class="text-sm font-semibold mb-1">{{ t('problemLists.errorLoading') }}</h2>
         <p class="text-xs text-muted-foreground mb-4">{{ store.error }}</p>
         <Button variant="outline" size="sm" @click="router.push({ name: 'problem-lists' })">
-          Back to Lists
+          {{ t('problemLists.backToLists') }}
         </Button>
       </div>
 
@@ -93,8 +97,8 @@ function handleCreateSuccess(id: string) {
       <div v-else class="space-y-6">
         <Tabs v-model="activeTab" class="w-full">
           <TabsList class="grid w-full grid-cols-2 max-w-[400px]">
-            <TabsTrigger value="general">General Info</TabsTrigger>
-            <TabsTrigger value="problems" :disabled="isCreate">Problems</TabsTrigger>
+            <TabsTrigger value="general">{{ t('problemLists.generalInfo') }}</TabsTrigger>
+            <TabsTrigger value="problems" :disabled="isCreate">{{ t('problemLists.problems') }}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" class="mt-6">

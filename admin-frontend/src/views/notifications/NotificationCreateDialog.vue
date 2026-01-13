@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +36,8 @@ import {
   NotificationCategory,
   NotificationTarget,
 } from '@/api/admin/notifications'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -94,19 +97,19 @@ async function handleSubmit() {
       form.value.target === NotificationTarget.USERS &&
       (!payload.userIds || payload.userIds.length === 0)
     ) {
-      error.value = 'At least one User ID is required'
+      error.value = t('notifications.form.atLeastOneUserId')
       loading.value = false
       return
     }
 
     await store.createNotification(payload)
-    toast.success('Notification sent successfully')
+    toast.success(t('notifications.toast.sentSuccessfully'))
     emit('success')
     emit('update:open', false)
   } catch (err: unknown) {
     error.value =
       (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-      'Failed to send notification'
+      t('notifications.toast.failedToSend')
   } finally {
     loading.value = false
   }
@@ -117,8 +120,8 @@ async function handleSubmit() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent class="sm:max-w-[600px]">
       <DialogHeader>
-        <DialogTitle>New Notification</DialogTitle>
-        <DialogDescription> Create and send a notification to users. </DialogDescription>
+        <DialogTitle>{{ t('notifications.dialog.createTitle') }}</DialogTitle>
+        <DialogDescription>{{ t('notifications.dialog.createDescription') }}</DialogDescription>
       </DialogHeader>
 
       <form @submit.prevent="handleSubmit">
@@ -131,29 +134,35 @@ async function handleSubmit() {
 
         <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
           <FieldSet>
-            <FieldLegend>Message Content</FieldLegend>
-            <FieldDescription>The notification message to send to users.</FieldDescription>
+            <FieldLegend>{{ t('notifications.form.messageContent') }}</FieldLegend>
+            <FieldDescription>{{
+              t('notifications.form.messageContentDescription')
+            }}</FieldDescription>
             <FieldGroup>
               <Field>
-                <FieldLabel for="notification-title">Title</FieldLabel>
+                <FieldLabel for="notification-title">{{
+                  t('notifications.form.notificationTitle')
+                }}</FieldLabel>
                 <Input
                   id="notification-title"
                   v-model="form.title"
                   type="text"
                   required
                   :disabled="loading"
-                  placeholder="Notification title"
+                  :placeholder="t('notifications.form.notificationTitlePlaceholder')"
                 />
               </Field>
 
               <Field>
-                <FieldLabel for="notification-content">Content</FieldLabel>
+                <FieldLabel for="notification-content">{{
+                  t('notifications.form.notificationContent')
+                }}</FieldLabel>
                 <Textarea
                   id="notification-content"
                   v-model="form.content"
                   required
                   :disabled="loading"
-                  placeholder="Notification content..."
+                  :placeholder="t('notifications.form.notificationContentPlaceholder')"
                   rows="4"
                 />
               </Field>
@@ -163,15 +172,19 @@ async function handleSubmit() {
           <FieldSeparator />
 
           <FieldSet>
-            <FieldLegend>Classification</FieldLegend>
-            <FieldDescription>Type and category for the notification.</FieldDescription>
+            <FieldLegend>{{ t('notifications.form.classification') }}</FieldLegend>
+            <FieldDescription>{{
+              t('notifications.form.classificationDescription')
+            }}</FieldDescription>
             <FieldGroup>
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field>
-                  <FieldLabel for="notification-type">Type</FieldLabel>
+                  <FieldLabel for="notification-type">{{
+                    t('notifications.form.type')
+                  }}</FieldLabel>
                   <Select v-model="form.type" :disabled="loading">
                     <SelectTrigger id="notification-type">
-                      <SelectValue placeholder="Select type" />
+                      <SelectValue :placeholder="t('notifications.form.selectType')" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem v-for="type in NotificationType" :key="type" :value="type">
@@ -182,10 +195,12 @@ async function handleSubmit() {
                 </Field>
 
                 <Field>
-                  <FieldLabel for="notification-category">Category</FieldLabel>
+                  <FieldLabel for="notification-category">{{
+                    t('notifications.form.category')
+                  }}</FieldLabel>
                   <Select v-model="form.category" :disabled="loading">
                     <SelectTrigger id="notification-category">
-                      <SelectValue placeholder="Select category" />
+                      <SelectValue :placeholder="t('notifications.form.selectCategory')" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem
@@ -205,33 +220,37 @@ async function handleSubmit() {
           <FieldSeparator />
 
           <FieldSet>
-            <FieldLegend>Target Audience</FieldLegend>
-            <FieldDescription>Who should receive this notification.</FieldDescription>
+            <FieldLegend>{{ t('notifications.form.targetAudience') }}</FieldLegend>
+            <FieldDescription>{{
+              t('notifications.form.targetAudienceDescription')
+            }}</FieldDescription>
             <FieldGroup>
               <Field>
                 <RadioGroup v-model="form.target" class="flex flex-col space-y-2">
                   <div class="flex items-center space-x-3">
                     <RadioGroupItem :value="NotificationTarget.ALL" id="target-all" />
                     <FieldLabel for="target-all" class="font-normal cursor-pointer">
-                      All Users (Broadcast)
+                      {{ t('notifications.form.allUsers') }}
                     </FieldLabel>
                   </div>
                   <div class="flex items-center space-x-3">
                     <RadioGroupItem :value="NotificationTarget.USERS" id="target-users" />
                     <FieldLabel for="target-users" class="font-normal cursor-pointer">
-                      Specific Users
+                      {{ t('notifications.form.specificUsers') }}
                     </FieldLabel>
                   </div>
                 </RadioGroup>
               </Field>
 
               <Field v-if="form.target === NotificationTarget.USERS">
-                <FieldLabel for="notification-userIds">User IDs</FieldLabel>
+                <FieldLabel for="notification-userIds">{{
+                  t('notifications.form.userIds')
+                }}</FieldLabel>
                 <Textarea
                   id="notification-userIds"
                   v-model="form.userIds"
                   :disabled="loading"
-                  placeholder="Comma separated User IDs (e.g. user1, user2)"
+                  :placeholder="t('notifications.form.userIdsPlaceholder')"
                   rows="2"
                 />
               </Field>
@@ -241,10 +260,14 @@ async function handleSubmit() {
 
         <DialogFooter class="mt-6">
           <Button type="button" variant="outline" @click="emit('update:open', false)">
-            Cancel
+            {{ t('common.cancel') }}
           </Button>
           <Button type="submit" :disabled="loading">
-            {{ loading ? 'Sending...' : 'Send Notification' }}
+            {{
+              loading
+                ? t('notifications.dialog.sending')
+                : t('notifications.dialog.sendNotification')
+            }}
           </Button>
         </DialogFooter>
       </form>

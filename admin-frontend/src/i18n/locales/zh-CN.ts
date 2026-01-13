@@ -921,6 +921,15 @@ export default {
     addTag: '添加标签',
     searchPlaceholder: '搜索标签...',
     mergeTags: '合并标签',
+    selected: '已选择 {count} 个标签',
+    selected_one: '已选择 {count} 个标签',
+    clearSelection: '清除选择',
+    bulkDelete: '批量删除',
+    createTag: '创建标签',
+    tagType: '标签类型',
+    problemTags: '题目标签',
+    forumTags: '论坛标签',
+    retry: '重试',
 
     // 表格列
     columns: {
@@ -929,6 +938,10 @@ export default {
       color: '颜色',
       problems: '题目数',
       createdAt: '创建时间',
+      tag: '标签',
+      usage: '使用量',
+      description: '描述',
+      actions: '操作',
     },
 
     // 操作
@@ -936,6 +949,8 @@ export default {
       edit: '编辑',
       delete: '删除',
       merge: '合并到...',
+      mergeInto: '合并到...',
+      noActionsAvailable: '无可用操作',
     },
 
     // 表单
@@ -944,13 +959,57 @@ export default {
       label: '显示标签',
       color: '颜色',
       description: '描述',
+      slug: '标识符（可选）',
+      slugPlaceholder: 'dynamic-programming',
+      colorHex: '颜色（十六进制）',
+      colorPlaceholder: '#3b82f6',
+      namePlaceholder: '动态规划',
+      descriptionPlaceholder: '标签描述...',
+      editTitle: '编辑标签',
+      createTitle: '创建标签',
+      editDescription: '在此处更改标签。',
+      createDescription: '添加新标签到系统。',
+      saveChanges: '保存更改',
+      createTag: '创建标签',
+      nameRequired: '名称为必填项',
+      nameTooLong: '名称过长',
+    },
+
+    // 删除对话框
+    delete: {
+      title: '删除标签',
+      description:
+        '确定要删除标签 <span class="font-medium text-foreground">"{name}"</span> 吗？此操作无法撤销。',
+      confirm: '删除标签',
     },
 
     // 合并对话框
     merge: {
+      title: '合并标签',
+      description:
+        '将 <span class="font-medium text-foreground">"{source}"</span> 合并到另一个标签。所有关联将移动到目标标签，源标签将被删除。',
+      targetTag: '目标标签',
+      targetTagPlaceholder: '选择要合并到的标签',
+      confirm: '合并标签',
       sourceTag: '源标签（将被删除）',
-      targetTag: '目标标签（将被保留）',
-      confirm: '确定合并标签吗？所有标记为 "{source}" 的题目将被重新标记为 "{target}"。',
+      targetTagLabel: '目标标签（将被保留）',
+      mergeConfirm: '确定合并标签吗？所有标记为 "{source}" 的题目将被重新标记为 "{target}"。',
+    },
+
+    // 消息提示
+    toast: {
+      createdSuccessfully: '标签创建成功',
+      updatedSuccessfully: '标签更新成功',
+      deletedSuccessfully: '标签删除成功',
+      mergedSuccessfully: '标签合并成功',
+      failedToCreate: '创建标签失败',
+      failedToUpdate: '更新标签失败',
+      failedToDelete: '删除标签失败',
+      failedToMerge: '合并标签失败',
+      bulkDeleteSuccess: '已删除 {count} 个标签',
+      bulkDeleteFailed: '部分标签删除失败',
+      bulkDeleteConfirm: '确定要删除 {count} 个标签吗？此操作不可撤销。',
+      bulkDeleteConfirm_one: '确定要删除 {count} 个标签吗？此操作不可撤销。',
     },
   },
 

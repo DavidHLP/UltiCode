@@ -3,6 +3,7 @@ import { ref, onMounted, h, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { IconDotsVertical, IconInfoCircle, IconRefresh, IconX } from '@tabler/icons-vue'
+import { useI18n } from 'vue-i18n'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -32,6 +33,7 @@ import {
   getEntityTypeIcon,
 } from './utils'
 
+const { t } = useI18n()
 const auditStore = useAuditStore()
 
 const searchQuery = ref('')
@@ -85,7 +87,7 @@ function showDetails(log: AuditLog) {
 const columns: ColumnDef<AuditLog>[] = [
   {
     accessorKey: 'created_at',
-    header: 'Timestamp',
+    header: () => t('audit.columns.createdAt'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('created_at') as Date)
       return h(
@@ -97,7 +99,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'action',
-    header: 'Action',
+    header: () => t('audit.columns.action'),
     cell: ({ row }) => {
       const action = row.getValue('action') as string
       const icon = getActionIcon(action)
@@ -110,7 +112,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'entity_type',
-    header: 'Entity',
+    header: () => t('audit.columns.entityType'),
     cell: ({ row }) => {
       const entityType = row.original.entity_type
       const entityId = row.original.entity_id
@@ -133,7 +135,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'performer',
-    header: 'Performer',
+    header: () => t('audit.columns.performer'),
     cell: ({ row }) => {
       const performer = row.original.performer
       if (!performer) {
@@ -149,7 +151,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'user',
-    header: 'Target User',
+    header: () => t('audit.columns.target'),
     cell: ({ row }) => {
       const user = row.original.user
       if (!user) {
@@ -162,7 +164,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'ip_address',
-    header: 'IP / Agent',
+    header: () => t('audit.columns.ip'),
     cell: ({ row }) => {
       const ip = row.original.ip_address
       if (!ip) {
@@ -175,7 +177,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('common.actions'),
     cell: ({ row }) => {
       const log = row.original
       return h(
@@ -212,7 +214,7 @@ const columns: ColumnDef<AuditLog>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconInfoCircle, { class: 'h-4 w-4' }),
-                          'View Details',
+                          t('audit.actions.viewDetails'),
                         ]),
                     },
                   ),
@@ -241,7 +243,7 @@ const columns: ColumnDef<AuditLog>[] = [
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Input
             v-model="searchQuery"
-            placeholder="Search logs..."
+            :placeholder="t('audit.searchPlaceholder')"
             class="h-8 min-w-[150px] w-full lg:w-[250px]"
           >
             <template #trailing>
@@ -258,10 +260,10 @@ const columns: ColumnDef<AuditLog>[] = [
           <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
             <Select v-model="actionFilter">
               <SelectTrigger class="h-8 w-[150px]">
-                <SelectValue placeholder="All Actions" />
+                <SelectValue :placeholder="t('audit.filters.allActions')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Actions</SelectItem>
+                <SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
                 <SelectItem value="CREATE_USER">Create User</SelectItem>
                 <SelectItem value="UPDATE_USER">Update User</SelectItem>
                 <SelectItem value="DELETE_USER">Delete User</SelectItem>
@@ -286,7 +288,13 @@ const columns: ColumnDef<AuditLog>[] = [
               </SelectContent>
             </Select>
 
-            <Button variant="ghost" size="icon" class="h-8 w-8" @click="loadLogs()" title="Refresh">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-8 w-8"
+              @click="loadLogs()"
+              :title="t('common.refresh')"
+            >
               <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': auditStore.loading }" />
             </Button>
           </div>
@@ -300,7 +308,7 @@ const columns: ColumnDef<AuditLog>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ auditStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadLogs()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadLogs()">{{ t('common.retry') }}</Button>
     </div>
 
     <AuditLogDetailDrawer v-model:open="detailsDrawerOpen" :log="selectedLog" />

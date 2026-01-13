@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +12,8 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { useNotificationsStore } from '@/stores/admin/notifications'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -40,11 +43,11 @@ async function handleDelete() {
   loading.value = true
   try {
     await store.deleteAnnouncement(props.notificationId)
-    toast.success('Notification deleted')
+    toast.success(t('notifications.toast.deletedSuccessfully'))
     emit('success')
     emit('update:open', false)
   } catch {
-    toast.error('Failed to delete notification')
+    toast.error(t('notifications.toast.failedToDelete'))
   } finally {
     loading.value = false
   }
@@ -55,19 +58,21 @@ async function handleDelete() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Delete Notification</DialogTitle>
+        <DialogTitle>{{ t('notifications.dialog.deleteTitle') }}</DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete
-          <strong>"{{ notificationTitle || 'this notification' }}"</strong>? This action cannot be
-          undone and the notification will be removed for all users.
+          {{
+            t('notifications.dialog.deleteDescription', {
+              title: notificationTitle || t('notifications.dialog.deleteFallback'),
+            })
+          }}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('common.cancel') }}
         </Button>
         <Button variant="destructive" @click="handleDelete" :disabled="loading">
-          {{ loading ? 'Deleting...' : 'Delete' }}
+          {{ loading ? t('notifications.dialog.deleting') : t('common.delete') }}
         </Button>
       </DialogFooter>
     </DialogContent>

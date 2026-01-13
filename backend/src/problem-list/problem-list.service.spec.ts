@@ -9,6 +9,10 @@ import { PrismaService } from '../prisma.service';
 import { BookmarkService } from '../bookmark/bookmark.service';
 import { I18nService } from '../i18n/i18n.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { v4 as uuidv4 } from 'uuid';
+
+jest.mock('uuid');
+(uuidv4 as jest.Mock).mockReturnValue('new-list-id');
 
 describe('ProblemListService', () => {
   let service: ProblemListService;
@@ -92,7 +96,11 @@ describe('ProblemListService', () => {
         {
           provide: DataSource,
           useValue: {
-            transaction: jest.fn((callback) => callback({})),
+            transaction: jest.fn((callback) =>
+              callback({
+                save: jest.fn().mockResolvedValue(mockList),
+              }),
+            ),
           },
         },
         {

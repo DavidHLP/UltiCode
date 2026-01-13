@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotificationController } from './notification.controller';
 import { NotificationService } from './notification.service';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector, ModuleRef } from '@nestjs/core';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('NotificationController', () => {
   let controller: NotificationController;
@@ -15,6 +18,26 @@ describe('NotificationController', () => {
       controllers: [NotificationController],
       providers: [
         {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn(),
+            getAll: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
+        {
           provide: NotificationService,
           useValue: {
             list: jest.fn(),
@@ -28,7 +51,10 @@ describe('NotificationController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<NotificationController>(NotificationController);
     notificationService = module.get(NotificationService);

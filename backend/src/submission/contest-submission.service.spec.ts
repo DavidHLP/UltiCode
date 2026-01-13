@@ -75,7 +75,24 @@ describe('ContestSubmissionService', () => {
               create: jest.fn(),
               update: jest.fn(),
             },
-            $transaction: jest.fn((callback) => callback({})),
+            $transaction: jest.fn((callback) =>
+              callback({
+                contestSubmission: {
+                  create: jest.fn().mockResolvedValue({}),
+                  findMany: jest.fn().mockResolvedValue([]),
+                  findFirst: jest.fn().mockResolvedValue(null),
+                  update: jest.fn().mockResolvedValue({}),
+                },
+                contestProblem: {
+                  update: jest.fn().mockResolvedValue({}),
+                },
+                contestProblemResult: {
+                  findFirst: jest.fn().mockResolvedValue(null),
+                  create: jest.fn().mockResolvedValue({}),
+                  update: jest.fn().mockResolvedValue({}),
+                },
+              }),
+            ),
           },
         },
         {
@@ -152,26 +169,32 @@ describe('ContestSubmissionService', () => {
         score: 100,
       };
 
-      (prisma.contestSubmission.findFirst as jest.Mock).mockResolvedValue({
-        id: 'cs-123',
-      } as never);
-      (prisma.contestSubmission.update as jest.Mock).mockResolvedValue(
-        {} as never,
-      );
-      (prisma.contestProblemResult.findFirst as jest.Mock).mockResolvedValue(
-        null,
-      );
-      (prisma.contestProblem.update as jest.Mock).mockResolvedValue(
-        {} as never,
-      );
-      (prisma.contestParticipant.update as jest.Mock).mockResolvedValue(
-        {} as never,
+      (prisma.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          const tx = {
+            contestSubmission: {
+              findFirst: jest.fn().mockResolvedValue({ id: 'cs-123' }),
+              update: jest.fn().mockResolvedValue({}),
+            },
+            contestProblemResult: {
+              findFirst: jest.fn().mockResolvedValue(null),
+              update: jest.fn().mockResolvedValue({}),
+            },
+            contestProblem: {
+              update: jest.fn().mockResolvedValue({}),
+            },
+            contestParticipant: {
+              update: jest.fn().mockResolvedValue({}),
+            },
+          };
+          return await callback(tx as never);
+        },
       );
       rankingService.updateContestProblemResult.mockResolvedValue(undefined);
 
       await service.processContestSubmissionResult(params);
 
-      expect(prisma.contestSubmission.update).toHaveBeenCalled();
+      expect(prisma.$transaction).toHaveBeenCalled();
       expect(rankingService.updateContestProblemResult).toHaveBeenCalledWith(
         'participant-123',
         'cp-1',

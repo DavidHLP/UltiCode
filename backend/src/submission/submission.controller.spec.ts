@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SubmissionController } from './submission.controller';
 import { SubmissionService } from './submission.service';
 import { ContestSubmissionService } from './contest-submission.service';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector, ModuleRef } from '@nestjs/core';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('SubmissionController', () => {
   let submissionController: SubmissionController;
@@ -25,6 +28,26 @@ describe('SubmissionController', () => {
       controllers: [SubmissionController],
       providers: [
         {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn(),
+            getAll: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
+        {
           provide: SubmissionService,
           useValue: {
             findAll: jest.fn(),
@@ -45,7 +68,10 @@ describe('SubmissionController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     submissionController =
       module.get<SubmissionController>(SubmissionController);

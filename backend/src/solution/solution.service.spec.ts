@@ -110,10 +110,25 @@ describe('SolutionService', () => {
         status: 'Accepted',
       } as never);
       (prisma.solution.findFirst as jest.Mock).mockResolvedValue(null);
-      (prisma.solution.create as jest.Mock).mockResolvedValue(
-        mockSolution as never,
+      (prisma.$transaction as jest.Mock).mockImplementation(
+        async (callback) => {
+          const tx = {
+            solution: {
+              create: jest.fn().mockResolvedValue(mockSolution),
+              update: jest.fn().mockResolvedValue({}),
+              delete: jest.fn().mockResolvedValue({}),
+            },
+            problem: {
+              update: jest.fn().mockResolvedValue({}),
+            },
+            edgeOperation: {
+              deleteMany: jest.fn().mockResolvedValue({}),
+              create: jest.fn().mockResolvedValue({}),
+            },
+          };
+          return await callback(tx as never);
+        },
       );
-      (prisma.problem.update as jest.Mock).mockResolvedValue({} as never);
 
       const result = await service.create('1', 'user-123', {
         title: 'Two Sum Solution',
@@ -122,7 +137,7 @@ describe('SolutionService', () => {
       });
 
       expect(result).toBeDefined();
-      expect(prisma.solution.create).toHaveBeenCalled();
+      expect(prisma.$transaction).toHaveBeenCalled();
     });
 
     it('should throw BadRequestException when no accepted submission exists', async () => {

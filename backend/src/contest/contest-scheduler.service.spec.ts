@@ -51,7 +51,7 @@ describe('ContestSchedulerService', () => {
           useValue: {},
         },
         {
-          provide: 'BullMQ_contest',
+          provide: 'BullQueue_contest',
           useValue: {
             add: jest.fn(),
           },
@@ -62,7 +62,7 @@ describe('ContestSchedulerService', () => {
     service = module.get<ContestSchedulerService>(ContestSchedulerService);
     prisma = module.get(PrismaService);
     _rankingService = module.get(RankingService);
-    contestQueue = module.get('BullMQ_contest');
+    contestQueue = module.get('BullQueue_contest');
   });
 
   it('should be defined', () => {
@@ -81,8 +81,12 @@ describe('ContestSchedulerService', () => {
 
   describe('manuallyFinalizeContest', () => {
     it('should finalize a running contest', async () => {
+      const runningContest = { ...mockContest, status: 'running' as const };
+      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(
+        runningContest as never,
+      );
       (prisma.contest.update as jest.Mock).mockResolvedValue(
-        mockContest as never,
+        runningContest as never,
       );
       contestQueue.add.mockResolvedValue('job' as never);
 

@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BookmarkController } from './bookmark.controller';
 import { BookmarkService } from './bookmark.service';
 import { BookmarkType } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector, ModuleRef } from '@nestjs/core';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('BookmarkController', () => {
   let controller: BookmarkController;
@@ -15,6 +18,26 @@ describe('BookmarkController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BookmarkController],
       providers: [
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn(),
+            getAll: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
         {
           provide: BookmarkService,
           useValue: {
@@ -33,7 +56,10 @@ describe('BookmarkController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<BookmarkController>(BookmarkController);
     bookmarkService = module.get(BookmarkService);

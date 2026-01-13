@@ -3,6 +3,9 @@ import { ContestController } from './contest.controller';
 import { ContestService } from './contest.service';
 import { RankingService } from './ranking.service';
 import { RatingService } from './rating.service';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector, ModuleRef } from '@nestjs/core';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('ContestController', () => {
   let controller: ContestController;
@@ -27,6 +30,26 @@ describe('ContestController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ContestController],
       providers: [
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn(),
+            getAll: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
         {
           provide: ContestService,
           useValue: {
@@ -63,7 +86,10 @@ describe('ContestController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<ContestController>(ContestController);
     contestService = module.get(ContestService);

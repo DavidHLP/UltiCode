@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
@@ -51,6 +52,7 @@ import { Difficulty, type Problem } from '@/api/admin/problems'
 import DataTable from '@/components/table/DataTable.vue'
 import ProblemDeleteDialog from './ProblemDeleteDialog.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const problemsStore = useProblemsStore()
 const authStore = useAuthStore()
@@ -145,20 +147,20 @@ function confirmDelete(problem: Problem) {
 async function publishProblem(id: string) {
   try {
     await problemsStore.publishProblem(id)
-    toast.success('Problem published successfully')
+    toast.success(t('problems.toast.publishSuccess'))
     await loadProblems()
   } catch {
-    toast.error('Failed to publish problem')
+    toast.error(t('problems.toast.publishFailed'))
   }
 }
 
 async function unpublishProblem(id: string) {
   try {
     await problemsStore.unpublishProblem(id)
-    toast.success('Problem unpublished successfully')
+    toast.success(t('problems.toast.unpublishSuccess'))
     await loadProblems()
   } catch {
-    toast.error('Failed to unpublish problem')
+    toast.error(t('problems.toast.unpublishFailed'))
   }
 }
 
@@ -226,7 +228,7 @@ const columns: ColumnDef<Problem>[] = [
   },
   {
     accessorKey: 'id',
-    header: 'ID',
+    header: () => t('problems.columns.id'),
     cell: ({ row }) => {
       const id = row.getValue('id') as string
       return h('span', { class: 'text-muted-foreground text-xs font-mono' }, id.slice(0, 8))
@@ -234,7 +236,7 @@ const columns: ColumnDef<Problem>[] = [
   },
   {
     accessorKey: 'title',
-    header: 'Problem',
+    header: () => t('problems.columns.problem'),
     cell: ({ row }) => {
       const problem = row.original
       return h('div', { class: 'flex flex-col' }, [
@@ -245,20 +247,22 @@ const columns: ColumnDef<Problem>[] = [
   },
   {
     accessorKey: 'difficulty',
-    header: 'Difficulty',
+    header: () => t('problems.columns.difficulty'),
     cell: ({ row }) => {
       const difficulty = row.getValue('difficulty') as Difficulty
       const icon = getDifficultyIcon(difficulty)
       const color = getDifficultyColor(difficulty)
       return h('div', { class: 'flex items-center gap-2' }, [
         h(icon, { class: `h-4 w-4 ${color}` }),
-        h(Badge, { variant: getDifficultyBadgeVariant(difficulty) }, () => difficulty),
+        h(Badge, { variant: getDifficultyBadgeVariant(difficulty) }, () =>
+          t(`problems.difficulty.${difficulty}`),
+        ),
       ])
     },
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: () => t('common.status'),
     cell: ({ row }) => {
       const status = row.getValue('status') as string
       const isSolved = status === 'solved'
@@ -269,7 +273,7 @@ const columns: ColumnDef<Problem>[] = [
         : isAttempted
           ? ('secondary' as const)
           : ('outline' as const)
-      const label = isSolved ? 'Solved' : isAttempted ? 'Attempted' : 'Todo'
+      const label = t(`problems.status.${isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'}`)
       return h('div', { class: 'flex items-center gap-2' }, [
         icon
           ? h(icon, { class: 'h-4 w-4 text-emerald-500' })
@@ -280,7 +284,7 @@ const columns: ColumnDef<Problem>[] = [
   },
   {
     accessorKey: 'is_published',
-    header: 'Published',
+    header: () => t('problems.columns.published'),
     cell: ({ row }) => {
       const isPublished = row.getValue('is_published') as boolean
       const isDeleted = row.original.is_deleted
@@ -289,7 +293,7 @@ const columns: ColumnDef<Problem>[] = [
           Badge,
           { variant: 'destructive' },
           {
-            default: () => [h(IconX, { class: 'mr-1 h-3 w-3' }), 'Deleted'],
+            default: () => [h(IconX, { class: 'mr-1 h-3 w-3' }), t('problems.published.deleted')],
           },
         )
       }
@@ -301,7 +305,7 @@ const columns: ColumnDef<Problem>[] = [
             isPublished
               ? h(IconCheck, { class: 'mr-1 h-3 w-3' })
               : h(IconEyeOff, { class: 'mr-1 h-3 w-3' }),
-            isPublished ? 'Published' : 'Draft',
+            isPublished ? t('problems.published.published') : t('problems.published.draft'),
           ],
         },
       )
@@ -309,7 +313,7 @@ const columns: ColumnDef<Problem>[] = [
   },
   {
     accessorKey: 'submission_count',
-    header: 'Submissions',
+    header: () => t('problems.columns.submissions'),
     cell: ({ row }) => {
       const count = row.original.submission_count || 0
       return h(
@@ -321,7 +325,7 @@ const columns: ColumnDef<Problem>[] = [
   },
   {
     accessorKey: 'tags',
-    header: 'Tags',
+    header: () => t('problems.columns.tags'),
     cell: ({ row }) => {
       const tags = row.original.tags || []
       if (tags.length === 0) {
@@ -344,7 +348,7 @@ const columns: ColumnDef<Problem>[] = [
   },
   {
     accessorKey: 'created_at',
-    header: 'Created',
+    header: () => t('common.created'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('created_at') as Date)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
@@ -352,7 +356,7 @@ const columns: ColumnDef<Problem>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('common.actions'),
     cell: ({ row }) => {
       const problem = row.original
       return h(
@@ -392,7 +396,7 @@ const columns: ColumnDef<Problem>[] = [
                           DropdownMenuSubTrigger,
                           { class: 'gap-2' },
                           {
-                            default: () => [h(IconEye, { class: 'h-4 w-4' }), 'View'],
+                            default: () => [h(IconEye, { class: 'h-4 w-4' }), t('common.view')],
                           },
                         ),
                         h(
@@ -407,7 +411,7 @@ const columns: ColumnDef<Problem>[] = [
                                   default: () =>
                                     h('div', { class: 'flex items-center gap-2' }, [
                                       h(IconFile, { class: 'h-4 w-4' }),
-                                      'Description',
+                                      t('problems.tabs.description'),
                                     ]),
                                 },
                               ),
@@ -418,7 +422,7 @@ const columns: ColumnDef<Problem>[] = [
                                   default: () =>
                                     h('div', { class: 'flex items-center gap-2' }, [
                                       h(IconBrackets, { class: 'h-4 w-4' }),
-                                      'Code',
+                                      t('problems.tabs.code'),
                                     ]),
                                 },
                               ),
@@ -429,7 +433,7 @@ const columns: ColumnDef<Problem>[] = [
                                   default: () =>
                                     h('div', { class: 'flex items-center gap-2' }, [
                                       h(IconFlask, { class: 'h-4 w-4' }),
-                                      'Test Cases',
+                                      t('problems.tabs.testCases'),
                                     ]),
                                 },
                               ),
@@ -450,7 +454,10 @@ const columns: ColumnDef<Problem>[] = [
                               DropdownMenuSubTrigger,
                               { class: 'gap-2' },
                               {
-                                default: () => [h(IconPencil, { class: 'h-4 w-4' }), 'Edit'],
+                                default: () => [
+                                  h(IconPencil, { class: 'h-4 w-4' }),
+                                  t('common.edit'),
+                                ],
                               },
                             ),
                             h(
@@ -465,7 +472,7 @@ const columns: ColumnDef<Problem>[] = [
                                       default: () =>
                                         h('div', { class: 'flex items-center gap-2' }, [
                                           h(IconFile, { class: 'h-4 w-4' }),
-                                          'Description',
+                                          t('problems.tabs.description'),
                                         ]),
                                     },
                                   ),
@@ -476,7 +483,7 @@ const columns: ColumnDef<Problem>[] = [
                                       default: () =>
                                         h('div', { class: 'flex items-center gap-2' }, [
                                           h(IconBrackets, { class: 'h-4 w-4' }),
-                                          'Code',
+                                          t('problems.tabs.code'),
                                         ]),
                                     },
                                   ),
@@ -487,7 +494,7 @@ const columns: ColumnDef<Problem>[] = [
                                       default: () =>
                                         h('div', { class: 'flex items-center gap-2' }, [
                                           h(IconFlask, { class: 'h-4 w-4' }),
-                                          'Test Cases',
+                                          t('problems.tabs.testCases'),
                                         ]),
                                     },
                                   ),
@@ -508,7 +515,7 @@ const columns: ColumnDef<Problem>[] = [
                             default: () =>
                               h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
                                 h(IconEyeOff, { class: 'h-4 w-4' }),
-                                'Unpublish',
+                                t('problems.actions.unpublish'),
                               ]),
                           },
                         )
@@ -519,7 +526,7 @@ const columns: ColumnDef<Problem>[] = [
                             default: () =>
                               h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
                                 h(IconEye, { class: 'h-4 w-4' }),
-                                'Publish',
+                                t('problems.actions.publish'),
                               ]),
                           },
                         )
@@ -532,7 +539,7 @@ const columns: ColumnDef<Problem>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                               h(IconTrash, { class: 'h-4 w-4' }),
-                              'Delete',
+                              t('common.delete'),
                             ]),
                         },
                       )
@@ -562,7 +569,7 @@ const columns: ColumnDef<Problem>[] = [
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Input
             v-model="searchQuery"
-            placeholder="Search problems..."
+            :placeholder="t('problems.searchPlaceholder')"
             class="h-8 min-w-[150px] w-full lg:w-[250px]"
           >
             <template #trailing>
@@ -579,36 +586,36 @@ const columns: ColumnDef<Problem>[] = [
           <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
             <Select v-model="difficultyFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Difficulty" />
+                <SelectValue :placeholder="t('problems.filters.difficulty')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Levels</SelectItem>
-                <SelectItem value="EASY">Easy</SelectItem>
-                <SelectItem value="MEDIUM">Medium</SelectItem>
-                <SelectItem value="HARD">Hard</SelectItem>
+                <SelectItem value="all">{{ t('problems.filters.allLevels') }}</SelectItem>
+                <SelectItem value="EASY">{{ t('problems.difficulty.EASY') }}</SelectItem>
+                <SelectItem value="MEDIUM">{{ t('problems.difficulty.MEDIUM') }}</SelectItem>
+                <SelectItem value="HARD">{{ t('problems.difficulty.HARD') }}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select v-model="statusFilter">
               <SelectTrigger class="h-8 w-[120px]">
-                <SelectValue placeholder="Status" />
+                <SelectValue :placeholder="t('problems.filters.status')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="todo">Todo</SelectItem>
-                <SelectItem value="attempted">Attempted</SelectItem>
-                <SelectItem value="solved">Solved</SelectItem>
+                <SelectItem value="all">{{ t('problems.filters.allStatus') }}</SelectItem>
+                <SelectItem value="todo">{{ t('problems.status.todo') }}</SelectItem>
+                <SelectItem value="attempted">{{ t('problems.status.attempted') }}</SelectItem>
+                <SelectItem value="solved">{{ t('problems.status.solved') }}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select v-model="publishedFilter">
               <SelectTrigger class="h-8 w-[120px]">
-                <SelectValue placeholder="Visibility" />
+                <SelectValue :placeholder="t('problems.filters.visibility')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">Any</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="unpublished">Draft</SelectItem>
+                <SelectItem value="all">{{ t('problems.filters.any') }}</SelectItem>
+                <SelectItem value="published">{{ t('problems.filters.published') }}</SelectItem>
+                <SelectItem value="unpublished">{{ t('problems.filters.unpublished') }}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -617,7 +624,7 @@ const columns: ColumnDef<Problem>[] = [
               size="icon"
               class="h-8 w-8"
               @click="loadProblems()"
-              title="Refresh"
+              :title="t('common.refresh')"
             >
               <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': problemsStore.loading }" />
             </Button>
@@ -633,7 +640,7 @@ const columns: ColumnDef<Problem>[] = [
           @click="router.push({ name: 'problem-create' })"
         >
           <IconPlus class="mr-2 h-4 w-4" />
-          <span>Add Problem</span>
+          <span>{{ t('problems.addProblem') }}</span>
         </Button>
       </template>
     </DataTable>
@@ -644,7 +651,7 @@ const columns: ColumnDef<Problem>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ problemsStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadProblems()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadProblems()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 

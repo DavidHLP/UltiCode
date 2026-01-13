@@ -111,7 +111,8 @@ onMounted(() => loadData())
       <div class="space-y-1">
         <h1 class="text-3xl font-bold tracking-tight">{{ t('dashboard.title') }}</h1>
         <p class="text-muted-foreground">
-          {{ t('dashboard.welcome') }}, <span class="font-medium text-foreground">{{ authStore.userName }}</span>
+          {{ t('dashboard.welcome') }},
+          <span class="font-medium text-foreground">{{ authStore.userName }}</span>
         </p>
       </div>
 
@@ -160,7 +161,9 @@ onMounted(() => loadData())
                   <p class="text-sm font-medium leading-none">
                     {{ activity.action }}
                   </p>
-                  <p class="text-sm text-muted-foreground">{{ t('dashboard.recentActivity.target') }}: {{ activity.target }}</p>
+                  <p class="text-sm text-muted-foreground">
+                    {{ t('dashboard.recentActivity.target') }}: {{ activity.target }}
+                  </p>
                 </div>
                 <div class="text-sm text-muted-foreground whitespace-nowrap">
                   {{ activity.time }}

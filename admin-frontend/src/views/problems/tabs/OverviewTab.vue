@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -12,6 +13,8 @@ import { IconTag, IconCalendar, IconBulb } from '@tabler/icons-vue'
 import DescriptionMarkdown, {
   type ProblemDescription,
 } from '@/components/problems/DescriptionMarkdown.vue'
+
+const { t } = useI18n()
 
 interface ProblemExample {
   id: string
@@ -136,7 +139,7 @@ const hintsList = computed(() => {
           class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted text-xs"
           :class="difficultyClass"
         >
-          {{ problem.difficulty }}
+          {{ t(`problems.difficulty.${problem.difficulty.toUpperCase()}`) }}
         </div>
 
         <!-- Tags Button -->
@@ -146,7 +149,7 @@ const hintsList = computed(() => {
           @click="scrollToSection(tagsSection)"
         >
           <IconTag class="h-3.5 w-3.5" />
-          <span>Tags</span>
+          <span>{{ t('problems.display.tags') }}</span>
         </button>
 
         <!-- Hints Button -->
@@ -156,7 +159,7 @@ const hintsList = computed(() => {
           @click="scrollToSection(hintsSection)"
         >
           <IconBulb class="h-3.5 w-3.5" />
-          <span>Hints</span>
+          <span>{{ t('problems.display.hints') }}</span>
         </button>
       </div>
 
@@ -182,7 +185,7 @@ const hintsList = computed(() => {
                 <AccordionTrigger class="text-xs hover:no-underline py-3">
                   <div class="flex items-center gap-2">
                     <IconTag class="h-4 w-4" />
-                    <span>Tags</span>
+                    <span>{{ t('problems.display.tags') }}</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -204,7 +207,7 @@ const hintsList = computed(() => {
                 <AccordionTrigger class="text-xs hover:no-underline py-3">
                   <div class="flex items-center gap-2">
                     <IconBulb class="h-4 w-4" />
-                    <span>Hints</span>
+                    <span>{{ t('problems.display.hints') }}</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
@@ -226,22 +229,22 @@ const hintsList = computed(() => {
           <div class="space-y-4">
             <!-- Metadata Card -->
             <div class="p-4 rounded-lg border">
-              <h3 class="text-xs font-medium mb-3">Metadata</h3>
+              <h3 class="text-xs font-medium mb-3">{{ t('problems.display.metadata') }}</h3>
               <div class="space-y-2 text-xs">
                 <div class="grid grid-cols-2 gap-2">
                   <div>
-                    <p class="text-muted-foreground mb-0.5">ID</p>
+                    <p class="text-muted-foreground mb-0.5">{{ t('problems.display.id') }}</p>
                     <span class="font-mono bg-muted px-1.5 py-0.5 rounded text-xs">
                       {{ problem.id.slice(0, 8) }}
                     </span>
                   </div>
                   <div>
-                    <p class="text-muted-foreground mb-0.5">Status</p>
+                    <p class="text-muted-foreground mb-0.5">{{ t('common.status') }}</p>
                     <Badge
                       :variant="problem.is_published ? 'default' : 'secondary'"
                       class="text-[10px] px-1.5 py-0"
                     >
-                      {{ problem.is_published ? 'Published' : 'Draft' }}
+                      {{ problem.is_published ? t('problems.published.published') : t('problems.published.draft') }}
                     </Badge>
                   </div>
                 </div>
@@ -249,21 +252,21 @@ const hintsList = computed(() => {
                 <div class="space-y-1.5">
                   <div class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
-                    <span class="text-muted-foreground">Created</span>
+                    <span class="text-muted-foreground">{{ t('problems.display.created') }}</span>
                     <span class="ml-auto">{{
                       new Date(problem.created_at).toLocaleDateString()
                     }}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
-                    <span class="text-muted-foreground">Updated</span>
+                    <span class="text-muted-foreground">{{ t('problems.display.updated') }}</span>
                     <span class="ml-auto">{{
                       new Date(problem.updated_at).toLocaleDateString()
                     }}</span>
                   </div>
                   <div v-if="problem.published_at" class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
-                    <span class="text-muted-foreground">Published</span>
+                    <span class="text-muted-foreground">{{ t('problems.display.published') }}</span>
                     <span class="ml-auto">{{
                       new Date(problem.published_at).toLocaleDateString()
                     }}</span>
@@ -274,7 +277,7 @@ const hintsList = computed(() => {
 
             <!-- Languages -->
             <div v-if="problem.languages?.length" class="p-4 rounded-lg border">
-              <h3 class="text-xs font-medium mb-3">Languages</h3>
+              <h3 class="text-xs font-medium mb-3">{{ t('problems.form.languages') }}</h3>
               <div class="flex flex-wrap gap-1.5">
                 <Badge
                   v-for="lang in problem.languages"

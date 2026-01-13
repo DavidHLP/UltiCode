@@ -144,19 +144,28 @@ defineExpose({
             <IconFileDescription class="h-5 w-5 text-muted-foreground" />
             <CardTitle>{{ t('problems.descriptionForm.problemDescription') }}</CardTitle>
           </div>
-          <CardDescription>{{ t('problems.descriptionForm.problemDescriptionSubtitle') }}</CardDescription>
+          <CardDescription>{{
+            t('problems.descriptionForm.problemDescriptionSubtitle')
+          }}</CardDescription>
         </CardHeader>
         <CardContent class="space-y-6">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div class="space-y-2">
               <Label>{{ t('problems.form.title') }}</Label>
-              <Input v-model="formData.title" :placeholder="t('problems.descriptionForm.titlePlaceholder')" />
+              <Input
+                v-model="formData.title"
+                :placeholder="t('problems.descriptionForm.titlePlaceholder')"
+              />
               <p v-if="errors.title" class="text-sm text-destructive">{{ errors.title }}</p>
             </div>
 
             <div class="space-y-2">
               <Label>{{ t('problems.form.slug') }}</Label>
-              <Input v-model="formData.slug" :placeholder="t('problems.descriptionForm.slugPlaceholder')" class="font-mono" />
+              <Input
+                v-model="formData.slug"
+                :placeholder="t('problems.descriptionForm.slugPlaceholder')"
+                class="font-mono"
+              />
               <p v-if="errors.slug" class="text-sm text-destructive">{{ errors.slug }}</p>
             </div>
           </div>
@@ -169,9 +178,15 @@ defineExpose({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="Difficulty.EASY">{{ t('problems.difficulty.EASY') }}</SelectItem>
-                  <SelectItem :value="Difficulty.MEDIUM">{{ t('problems.difficulty.MEDIUM') }}</SelectItem>
-                  <SelectItem :value="Difficulty.HARD">{{ t('problems.difficulty.HARD') }}</SelectItem>
+                  <SelectItem :value="Difficulty.EASY">{{
+                    t('problems.difficulty.EASY')
+                  }}</SelectItem>
+                  <SelectItem :value="Difficulty.MEDIUM">{{
+                    t('problems.difficulty.MEDIUM')
+                  }}</SelectItem>
+                  <SelectItem :value="Difficulty.HARD">{{
+                    t('problems.difficulty.HARD')
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -183,9 +198,15 @@ defineExpose({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="ProblemStatus.TODO">{{ t('problems.status.todo') }}</SelectItem>
-                  <SelectItem :value="ProblemStatus.ATTEMPTED">{{ t('problems.status.attempted') }}</SelectItem>
-                  <SelectItem :value="ProblemStatus.SOLVED">{{ t('problems.status.solved') }}</SelectItem>
+                  <SelectItem :value="ProblemStatus.TODO">{{
+                    t('problems.status.todo')
+                  }}</SelectItem>
+                  <SelectItem :value="ProblemStatus.ATTEMPTED">{{
+                    t('problems.status.attempted')
+                  }}</SelectItem>
+                  <SelectItem :value="ProblemStatus.SOLVED">{{
+                    t('problems.status.solved')
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -227,8 +248,12 @@ defineExpose({
               @click="formData.is_premium = !formData.is_premium"
             >
               <div class="space-y-0.5">
-                <Label class="text-base cursor-pointer">{{ t('problems.descriptionForm.premium') }}</Label>
-                <p class="text-xs text-muted-foreground">{{ t('problems.descriptionForm.premiumDescription') }}</p>
+                <Label class="text-base cursor-pointer">{{
+                  t('problems.descriptionForm.premium')
+                }}</Label>
+                <p class="text-xs text-muted-foreground">
+                  {{ t('problems.descriptionForm.premiumDescription') }}
+                </p>
               </div>
               <Checkbox v-model:checked="formData.is_premium" />
             </div>
@@ -238,8 +263,12 @@ defineExpose({
               @click="formData.is_published = !formData.is_published"
             >
               <div class="space-y-0.5">
-                <Label class="text-base cursor-pointer">{{ t('problems.descriptionForm.published') }}</Label>
-                <p class="text-xs text-muted-foreground">{{ t('problems.descriptionForm.publishedDescription') }}</p>
+                <Label class="text-base cursor-pointer">{{
+                  t('problems.descriptionForm.published')
+                }}</Label>
+                <p class="text-xs text-muted-foreground">
+                  {{ t('problems.descriptionForm.publishedDescription') }}
+                </p>
               </div>
               <Checkbox v-model:checked="formData.is_published" />
             </div>
@@ -248,9 +277,17 @@ defineExpose({
           <div class="flex flex-col gap-3">
             <Button class="w-full" :disabled="loading" @click="submit">
               <IconCheck v-if="!loading" class="h-4 w-4 mr-2" />
-              {{ loading ? t('problems.descriptionForm.saving') : (isEdit ? t('problems.descriptionForm.updateDescription') : t('problems.descriptionForm.saveDescription')) }}
+              {{
+                loading
+                  ? t('problems.descriptionForm.saving')
+                  : isEdit
+                    ? t('problems.descriptionForm.updateDescription')
+                    : t('problems.descriptionForm.saveDescription')
+              }}
             </Button>
-            <Button variant="outline" class="w-full" @click="cancel">{{ t('common.cancel') }}</Button>
+            <Button variant="outline" class="w-full" @click="cancel">{{
+              t('common.cancel')
+            }}</Button>
           </div>
         </CardContent>
       </Card>

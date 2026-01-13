@@ -244,7 +244,11 @@ const hintsList = computed(() => {
                       :variant="problem.is_published ? 'default' : 'secondary'"
                       class="text-[10px] px-1.5 py-0"
                     >
-                      {{ problem.is_published ? t('problems.published.published') : t('problems.published.draft') }}
+                      {{
+                        problem.is_published
+                          ? t('problems.published.published')
+                          : t('problems.published.draft')
+                      }}
                     </Badge>
                   </div>
                 </div>

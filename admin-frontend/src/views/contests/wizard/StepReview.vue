@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
@@ -21,8 +22,10 @@ const props = defineProps<{
   }
 }>()
 
+const { t } = useI18n()
+
 const formattedDate = computed(() => {
-  if (!props.formData.start_time) return 'Not set'
+  if (!props.formData.start_time) return t('contests.scheduleStep.notSet')
   return new Date(props.formData.start_time).toLocaleString()
 })
 </script>
@@ -32,21 +35,23 @@ const formattedDate = computed(() => {
     <div class="grid gap-4 md:grid-cols-2">
       <Card>
         <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground"> Basic Info </CardTitle>
+          <CardTitle class="text-sm font-medium text-muted-foreground">
+            {{ t('contests.reviewStep.basicInfo') }}
+          </CardTitle>
         </CardHeader>
         <CardContent class="space-y-2">
           <div>
-            <span class="text-xs text-muted-foreground">Title:</span>
+            <span class="text-xs text-muted-foreground">{{ t('contests.basics.title') }}:</span>
             <p class="font-medium">{{ formData.title }}</p>
           </div>
           <div>
-            <span class="text-xs text-muted-foreground">Slug:</span>
+            <span class="text-xs text-muted-foreground">{{ t('contests.basics.slug') }}:</span>
             <p class="font-mono text-sm">{{ formData.slug }}</p>
           </div>
           <div>
-            <span class="text-xs text-muted-foreground">Type:</span>
+            <span class="text-xs text-muted-foreground">{{ t('contests.basics.type') }}:</span>
             <p>
-              <Badge variant="outline">{{ formData.type }}</Badge>
+              <Badge variant="outline">{{ t(`contests.type.${formData.type}`) }}</Badge>
             </p>
           </div>
         </CardContent>
@@ -54,22 +59,34 @@ const formattedDate = computed(() => {
 
       <Card>
         <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">Schedule</CardTitle>
+          <CardTitle class="text-sm font-medium text-muted-foreground">
+            {{ t('contests.reviewStep.schedule') }}
+          </CardTitle>
         </CardHeader>
         <CardContent class="space-y-2">
           <div>
-            <span class="text-xs text-muted-foreground">Start Time:</span>
+            <span class="text-xs text-muted-foreground"
+              >{{ t('contests.reviewStep.startTime') }}:</span
+            >
             <p class="font-medium">{{ formattedDate }}</p>
           </div>
           <div>
-            <span class="text-xs text-muted-foreground">Duration:</span>
-            <p class="font-medium">{{ formData.duration }} minutes</p>
+            <span class="text-xs text-muted-foreground"
+              >{{ t('contests.reviewStep.duration') }}:</span
+            >
+            <p class="font-medium">{{ formData.duration }} {{ t('common.minutes') }}</p>
           </div>
           <div>
-            <span class="text-xs text-muted-foreground">Visibility:</span>
+            <span class="text-xs text-muted-foreground"
+              >{{ t('contests.reviewStep.visibility') }}:</span
+            >
             <p>
               <Badge :variant="formData.is_published ? 'default' : 'secondary'">
-                {{ formData.is_published ? 'Published' : 'Draft' }}
+                {{
+                  formData.is_published
+                    ? t('contests.reviewStep.published')
+                    : t('contests.reviewStep.draft')
+                }}
               </Badge>
             </p>
           </div>
@@ -80,7 +97,11 @@ const formattedDate = computed(() => {
     <Card>
       <CardHeader class="pb-2">
         <CardTitle class="text-sm font-medium text-muted-foreground">
-          Problems ({{ formData.selectedProblems?.length || 0 }})
+          {{
+            t('contests.reviewStep.problemsCount', {
+              count: formData.selectedProblems?.length || 0,
+            })
+          }}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -100,14 +121,16 @@ const formattedDate = computed(() => {
               <Badge variant="outline" class="text-[10px] capitalize">
                 {{ problem.difficulty?.toLowerCase() }}
               </Badge>
-              <span class="text-muted-foreground w-12 text-right"> {{ problem.score }} pts </span>
+              <span class="text-muted-foreground w-12 text-right">
+                {{ problem.score }} {{ t('contests.drawer.pts') }}</span
+              >
             </div>
           </div>
           <div
             v-if="!formData.selectedProblems?.length"
             class="text-sm text-muted-foreground italic"
           >
-            No problems selected.
+            {{ t('contests.reviewStep.noProblemsSelected') }}
           </div>
         </div>
       </CardContent>

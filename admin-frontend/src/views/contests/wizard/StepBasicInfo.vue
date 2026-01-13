@@ -10,11 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ContestType } from '@/api/admin/contests'
-
-// Define the form fields/types expected by parent form context
-// But typically wizard steps are just parts of a larger form or define their own schema
-// Using simple props/emits for now, or assume provide/inject of form context if using VeeValidate across steps
-// For simplicity: props bound to v-model of the formData part
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   formData: {
@@ -30,6 +26,8 @@ const emit = defineEmits<{
   (e: 'update:formData', value: unknown): void
 }>()
 
+const { t } = useI18n()
+
 function updateField(field: string, value: string | number | bigint | ContestType | null) {
   if (value === null) return
 
@@ -43,51 +41,57 @@ function updateField(field: string, value: string | number | bigint | ContestTyp
 <template>
   <div class="space-y-4">
     <div class="space-y-2">
-      <FormLabel>Title</FormLabel>
+      <FormLabel>{{ t('contests.basics.title') }}</FormLabel>
       <Input
         :model-value="formData.title"
         @update:model-value="updateField('title', $event)"
-        placeholder="Weekly Contest 101"
+        :placeholder="t('contests.basics.titlePlaceholder')"
       />
-      <FormDescription>The display name of the contest.</FormDescription>
+      <FormDescription>{{ t('contests.basics.titleDescription') }}</FormDescription>
     </div>
 
     <div class="space-y-2">
-      <FormLabel>Slug</FormLabel>
+      <FormLabel>{{ t('contests.basics.slug') }}</FormLabel>
       <Input
         :model-value="formData.slug"
         @update:model-value="updateField('slug', $event)"
-        placeholder="weekly-contest-101"
+        :placeholder="t('contests.basics.slugPlaceholder')"
       />
-      <FormDescription>Unique URL identifier for the contest.</FormDescription>
+      <FormDescription>{{ t('contests.basics.slugDescription') }}</FormDescription>
     </div>
 
     <div class="space-y-2">
-      <FormLabel>Type</FormLabel>
+      <FormLabel>{{ t('contests.basics.type') }}</FormLabel>
       <Select
         :model-value="formData.type"
         @update:model-value="updateField('type', $event as ContestType)"
       >
         <SelectTrigger>
-          <SelectValue placeholder="Select type" />
+          <SelectValue :placeholder="t('contests.basics.typePlaceholder')" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem :value="ContestType.PUBLIC">Public</SelectItem>
-          <SelectItem :value="ContestType.PRIVATE">Private</SelectItem>
-          <SelectItem :value="ContestType.VIRTUAL">Virtual</SelectItem>
+          <SelectItem :value="ContestType.PUBLIC">{{
+            t('contests.basics.type.PUBLIC')
+          }}</SelectItem>
+          <SelectItem :value="ContestType.PRIVATE">{{
+            t('contests.basics.type.PRIVATE')
+          }}</SelectItem>
+          <SelectItem :value="ContestType.VIRTUAL">{{
+            t('contests.basics.type.VIRTUAL')
+          }}</SelectItem>
         </SelectContent>
       </Select>
       <FormDescription>
-        Public contests are visible to everyone. Private requires invitation.
+        {{ t('contests.basics.typeDescription') }}
       </FormDescription>
     </div>
 
     <div class="space-y-2">
-      <FormLabel>Description</FormLabel>
+      <FormLabel>{{ t('contests.basics.description') }}</FormLabel>
       <Textarea
         :model-value="formData.description"
         @update:model-value="updateField('description', $event)"
-        placeholder="Contest details and rules..."
+        :placeholder="t('contests.basics.descriptionPlaceholder')"
         rows="4"
       />
     </div>

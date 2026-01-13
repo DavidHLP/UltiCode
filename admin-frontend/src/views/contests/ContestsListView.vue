@@ -3,6 +3,7 @@ import { ref, onMounted, computed, h, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
+import { useI18n } from 'vue-i18n'
 import {
   IconCalendar,
   IconCircleCheckFilled,
@@ -51,6 +52,7 @@ import ContestDetailDrawer from './ContestDetailDrawer.vue'
 
 const contestsStore = useContestsStore()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const searchQuery = ref('')
 const statusFilter = ref<string>('all')
@@ -120,30 +122,27 @@ function startDeleteContest(contest: Contest) {
 async function handleStartContest(contest: Contest) {
   try {
     await contestsStore.startContest(contest.id)
-    toast.success('Contest started successfully')
+    toast.success(t('contests.toast.startedSuccessfully'))
     await loadContests()
   } catch {
-    toast.error('Failed to start contest')
+    toast.error(t('contests.toast.failedToStart'))
   }
 }
 
 async function handleEndContest(contest: Contest) {
   try {
     await contestsStore.endContest(contest.id)
-    toast.success('Contest ended successfully')
+    toast.success(t('contests.toast.endedSuccessfully'))
     await loadContests()
   } catch {
-    toast.error('Failed to end contest')
+    toast.error(t('contests.toast.failedToEnd'))
   }
 }
 
 async function handleBulkDelete() {
   if (selectedRows.value.length === 0) return
   const ids = selectedRows.value.map((r) => r.id)
-  if (
-    !confirm(`Are you sure you want to delete ${ids.length} contests? This action is IRREVERSIBLE.`)
-  )
-    return
+  if (!confirm(t('contests.confirmation.bulkDelete', { count: ids.length }))) return
 
   bulkActionLoading.value = true
   try {
@@ -152,9 +151,9 @@ async function handleBulkDelete() {
     }
     await loadContests()
     selectedRows.value = []
-    toast.success(`${ids.length} contests deleted`)
+    toast.success(t('contests.toast.bulkDeleteSuccess', { count: ids.length }))
   } catch {
-    toast.error('Failed to delete some contests')
+    toast.error(t('contests.toast.bulkDeleteFailed'))
   } finally {
     bulkActionLoading.value = false
   }
@@ -174,11 +173,11 @@ function getStatusIcon(status: string) {
 function getStatusBadge(status: string) {
   switch (status) {
     case 'RUNNING':
-      return h(Badge, { variant: 'default' }, () => 'Running')
+      return h(Badge, { variant: 'default' }, () => t('contests.status.running'))
     case 'FINISHED':
-      return h(Badge, { variant: 'secondary' }, () => 'Finished')
+      return h(Badge, { variant: 'secondary' }, () => t('contests.status.finished'))
     default:
-      return h(Badge, { variant: 'outline' }, () => 'Upcoming')
+      return h(Badge, { variant: 'outline' }, () => t('contests.status.upcoming'))
   }
 }
 
@@ -218,7 +217,7 @@ const columns: ColumnDef<Contest>[] = [
   },
   {
     accessorKey: 'title',
-    header: 'Contest',
+    header: () => t('contests.columns.contest'),
     cell: ({ row }) => {
       const contest = row.original
       return h('div', { class: 'flex items-center gap-3' }, [
@@ -245,17 +244,17 @@ const columns: ColumnDef<Contest>[] = [
   },
   {
     accessorKey: 'contest_type',
-    header: 'Type',
+    header: () => t('contests.columns.type'),
     cell: ({ row }) => {
       const type = row.original.contest_type
       return h('div', { class: 'flex items-center gap-2' }, [
-        h(Badge, { variant: getTypeBadgeVariant(type) }, () => type),
+        h(Badge, { variant: getTypeBadgeVariant(type) }, () => t(`contests.type.${type}`)),
       ])
     },
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: () => t('contests.columns.status'),
     cell: ({ row }) => {
       const status = row.original.status
       return h('div', { class: 'flex items-center gap-2' }, [
@@ -266,7 +265,7 @@ const columns: ColumnDef<Contest>[] = [
   },
   {
     accessorKey: 'start_time',
-    header: 'Schedule',
+    header: () => t('contests.columns.schedule'),
     cell: ({ row }) => {
       const contest = row.original
       const startDate = new Date(contest.start_time)
@@ -277,14 +276,14 @@ const columns: ColumnDef<Contest>[] = [
         ]),
         h('div', { class: 'flex items-center gap-1.5 text-muted-foreground' }, [
           h(IconClock, { class: 'h-3.5 w-3.5' }),
-          h('span', {}, `${contest.duration_minutes} mins`),
+          h('span', {}, t('contests.scheduleStep.minutes', { minutes: contest.duration_minutes })),
         ]),
       ])
     },
   },
   {
     accessorKey: 'participant_count',
-    header: 'Participants',
+    header: () => t('contests.columns.participants'),
     cell: ({ row }) => {
       return h('div', { class: 'flex items-center gap-2 text-muted-foreground text-sm' }, [
         h(IconUsers, { class: 'h-4 w-4' }),
@@ -294,7 +293,7 @@ const columns: ColumnDef<Contest>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('contests.columns.actions'),
     cell: ({ row }) => {
       const contest = row.original
       return h(
@@ -331,7 +330,7 @@ const columns: ColumnDef<Contest>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconEye, { class: 'h-4 w-4' }),
-                          'View Details',
+                          t('contests.actions.viewDetails'),
                         ]),
                     },
                   ),
@@ -343,7 +342,7 @@ const columns: ColumnDef<Contest>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
                               h(IconPlayerPlay, { class: 'h-4 w-4' }),
-                              'Start Contest',
+                              t('contests.actions.startContest'),
                             ]),
                         },
                       )
@@ -356,7 +355,7 @@ const columns: ColumnDef<Contest>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
                               h(IconPlayerStop, { class: 'h-4 w-4' }),
-                              'End Contest',
+                              t('contests.actions.endContest'),
                             ]),
                         },
                       )
@@ -370,7 +369,7 @@ const columns: ColumnDef<Contest>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                               h(IconTrash, { class: 'h-4 w-4' }),
-                              'Delete',
+                              t('contests.actions.delete'),
                             ]),
                         },
                       )
@@ -393,7 +392,9 @@ const columns: ColumnDef<Contest>[] = [
       class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
     >
       <div class="flex items-center gap-3">
-        <span class="text-sm font-medium">{{ selectedRows.length }} contests selected</span>
+        <span class="text-sm font-medium">{{
+          t('contests.selected', { count: selectedRows.length })
+        }}</span>
         <Separator orientation="vertical" class="h-4" />
         <div class="flex items-center gap-2">
           <Button
@@ -405,12 +406,12 @@ const columns: ColumnDef<Contest>[] = [
             :disabled="bulkActionLoading"
           >
             <IconTrash class="h-3.5 w-3.5 mr-1" />
-            Bulk Delete
+            {{ t('contests.actions.bulkDelete') }}
           </Button>
         </div>
       </div>
       <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
-        Clear Selection
+        {{ t('contests.clearSelection') }}
       </Button>
     </div>
 
@@ -426,7 +427,7 @@ const columns: ColumnDef<Contest>[] = [
       <template #toolbar-left>
         <Input
           v-model="searchQuery"
-          placeholder="Search contests..."
+          :placeholder="t('contests.searchPlaceholder')"
           class="min-w-[200px] w-[260px]"
         >
           <template #trailing>
@@ -441,27 +442,27 @@ const columns: ColumnDef<Contest>[] = [
         </Input>
         <Select v-model="statusFilter">
           <SelectTrigger class="w-[140px]">
-            <SelectValue placeholder="All Status" />
+            <SelectValue :placeholder="t('contests.filters.allStatus')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="UPCOMING">Upcoming</SelectItem>
-            <SelectItem value="RUNNING">Running</SelectItem>
-            <SelectItem value="FINISHED">Finished</SelectItem>
+            <SelectItem value="all">{{ t('contests.filters.allStatus') }}</SelectItem>
+            <SelectItem value="UPCOMING">{{ t('contests.status.upcoming') }}</SelectItem>
+            <SelectItem value="RUNNING">{{ t('contests.status.running') }}</SelectItem>
+            <SelectItem value="FINISHED">{{ t('contests.status.finished') }}</SelectItem>
           </SelectContent>
         </Select>
         <Select v-model="typeFilter">
           <SelectTrigger class="w-[130px]">
-            <SelectValue placeholder="All Types" />
+            <SelectValue :placeholder="t('contests.filters.allTypes')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="PUBLIC">Public</SelectItem>
-            <SelectItem value="PRIVATE">Private</SelectItem>
-            <SelectItem value="VIRTUAL">Virtual</SelectItem>
+            <SelectItem value="all">{{ t('contests.filters.allTypes') }}</SelectItem>
+            <SelectItem value="PUBLIC">{{ t('contests.type.PUBLIC') }}</SelectItem>
+            <SelectItem value="PRIVATE">{{ t('contests.type.PRIVATE') }}</SelectItem>
+            <SelectItem value="VIRTUAL">{{ t('contests.type.VIRTUAL') }}</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="icon" @click="loadContests()" title="Refresh">
+        <Button variant="outline" size="icon" @click="loadContests()" :title="t('common.refresh')">
           <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': contestsStore.loading }" />
         </Button>
       </template>
@@ -469,7 +470,7 @@ const columns: ColumnDef<Contest>[] = [
       <template #extra-actions>
         <Button v-if="canCreate" variant="outline" size="sm" @click="wizardOpen = true">
           <IconPlus />
-          <span class="hidden lg:inline">Create Contest</span>
+          <span class="hidden lg:inline">{{ t('contests.createContest') }}</span>
         </Button>
       </template>
     </DataTable>
@@ -480,7 +481,7 @@ const columns: ColumnDef<Contest>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ contestsStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadContests()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadContests()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 

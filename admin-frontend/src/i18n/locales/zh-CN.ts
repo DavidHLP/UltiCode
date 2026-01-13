@@ -529,72 +529,217 @@ export default {
   contests: {
     title: '比赛',
     listTitle: '比赛管理',
-    addContest: '添加比赛',
+    addContest: '创建比赛',
+    createContest: '创建比赛',
     searchPlaceholder: '搜索比赛...',
+    selected: '已选择 {count} 个比赛',
+    clearSelection: '清除选择',
 
     // 筛选器
     filters: {
       allStatus: '全部状态',
+      allTypes: '全部类型',
       upcoming: '即将开始',
       running: '进行中',
       finished: '已结束',
+      public: '公开',
+      private: '私有',
+      virtual: '虚拟',
+    },
+
+    // 类型
+    type: {
+      PUBLIC: '公开',
+      PRIVATE: '私有',
+      VIRTUAL: '虚拟',
     },
 
     // 表格列
     columns: {
-      id: 'ID',
-      name: '名称',
-      startTime: '开始时间',
-      duration: '时长',
-      participants: '参赛人数',
-      problems: '题目',
+      contest: '比赛',
+      type: '类型',
       status: '状态',
+      schedule: '时间安排',
+      participants: '参赛人数',
+      actions: '操作',
     },
 
-    // 状态
+    // 操作
+    actions: {
+      viewDetails: '查看详情',
+      startContest: '开始比赛',
+      endContest: '结束比赛',
+      bulkDelete: '批量删除',
+      delete: '删除',
+    },
+
+    // 状态徽章
     status: {
       upcoming: '即将开始',
       running: '进行中',
       finished: '已结束',
     },
 
-    // 向导步骤
+    // 向导
     wizard: {
-      step1: '基本信息',
-      step2: '选择题目',
-      step3: '时间安排',
-      step4: '确认信息',
-      next: '下一步',
+      basics: '基本信息',
+      schedule: '时间安排',
+      problems: '题目选择',
+      review: '确认信息',
       previous: '上一步',
+      next: '下一步',
       submit: '创建比赛',
+      createContest: '创建比赛',
     },
 
-    // 表单
-    form: {
-      name: '比赛名称',
+    // 基本信息步骤
+    basics: {
+      title: '标题',
+      titlePlaceholder: '第101周赛',
+      titleDescription: '比赛的显示名称。',
+      slug: '标识符',
+      slugPlaceholder: 'weekly-contest-101',
+      slugDescription: '比赛的唯一URL标识符。',
+      type: '类型',
+      typePlaceholder: '选择类型',
+      typeDescription: '公开比赛对所有用户可见。私有比赛需要邀请才能参加。',
       description: '描述',
+      descriptionPlaceholder: '比赛详情和规则说明...',
+    },
+
+    // 时间安排步骤
+    scheduleStep: {
       startTime: '开始时间',
-      endTime: '结束时间',
+      startTimeDescription: '比赛开始的时间。',
       duration: '时长（分钟）',
-      isPublic: '公开',
-      rules: '规则说明',
+      durationDescription: '比赛的持续时间，单位为分钟。',
+      publishImmediately: '立即发布',
+      publishImmediatelyDescription: '如果启用，比赛将立即显示在即将开始的比赛列表中。',
+      notSet: '未设置',
+      minutes: '{minutes} 分钟',
+    },
+
+    // 题目选择步骤
+    problemsStep: {
+      contestProblems: '比赛题目',
+      addProblem: '添加题目',
+      index: '序号',
+      title: '标题',
+      difficulty: '难度',
+      score: '分值',
+      noProblemsSelected: '尚未选择题目。请添加比赛题目。',
+    },
+
+    // 确认步骤
+    reviewStep: {
+      basicInfo: '基本信息',
+      schedule: '时间安排',
+      startTime: '开始时间',
+      duration: '时长',
+      visibility: '可见性',
+      problemsCount: '题目 ({count})',
+      noProblemsSelected: '尚未选择题目。',
+      published: '已发布',
+      draft: '草稿',
     },
 
     // 题目选择器
     problemPicker: {
-      addProblems: '添加题目',
-      selectedProblems: '已选题目',
-      availableProblems: '可选题目',
-      remove: '移除',
-      points: '分值',
+      title: '选择题目',
+      description: '搜索并选择要添加到比赛的题目。',
+      searchPlaceholder: '按标题或标识符搜索题目...',
+      problems: '题目',
+      noProblemsFound: '未找到题目。',
+      noProblems: '无题目',
     },
 
-    // 确认
-    review: {
-      reviewContest: '确认比赛信息',
-      contestSummary: '比赛概要',
-      problemsSummary: '题目列表',
-      scheduleSummary: '时间安排',
+    // 详情视图
+    detail: {
+      overview: '概览',
+      problems: '题目',
+      participants: '参赛者',
+      rankings: '排名',
+      details: '详情',
+      statsAndSchedule: '统计与时间安排',
+      description: '描述',
+      noDescription: '未提供描述。',
+      slug: '标识符',
+      visibility: '可见性',
+      published: '已发布',
+      hidden: '隐藏',
+      startTime: '开始时间',
+      duration: '时长',
+      contestProblems: '比赛题目',
+      addProblem: '添加题目',
+      idx: '序号',
+      problem: '题目',
+      difficulty: '难度',
+      score: '分值',
+      noProblemsAdded: '尚未添加题目。',
+      user: '用户',
+      joinedAt: '加入时间',
+      noParticipantsYet: '尚无参赛者。',
+      rank: '排名',
+      penalty: '罚时',
+      noRankingsYet: '暂无排名数据。',
+      contestNotFound: '未找到比赛。',
+      backToList: '返回列表',
+      start: '开始',
+      end: '结束',
+    },
+
+    // 详情抽屉
+    drawer: {
+      title: '比赛详情',
+      subtitle: '查看比赛信息和统计数据。',
+      fullView: '完整视图',
+      loadingDetails: '加载比赛详情中...',
+      contestNotFound: '未找到比赛',
+      statistics: '统计信息',
+      schedule: '时间安排',
+      start: '开始时间',
+      duration: '时长（分钟）',
+      description: '描述',
+      problemsCount: '题目 ({count})',
+      moreProblems: '+ {count} 个题目',
+      pts: '分',
+    },
+
+    // 删除对话框
+    delete: {
+      title: '删除比赛',
+      description: '确定要删除 <strong>{title}</strong> 吗？此操作无法撤销。',
+      thisContest: '此比赛',
+      confirm: '删除比赛',
+      deleting: '删除中...',
+      cancel: '取消',
+    },
+
+    // 提示消息
+    toast: {
+      startedSuccessfully: '比赛已开始',
+      failedToStart: '启动比赛失败',
+      endedSuccessfully: '比赛已结束',
+      failedToEnd: '结束比赛失败',
+      deletedSuccessfully: '比赛已删除',
+      failedToDelete: '删除比赛失败',
+      createdSuccessfully: '比赛已创建',
+      failedToCreate: '创建比赛失败',
+      problemAdded: '题目已添加到比赛',
+      failedToAddProblem: '添加题目失败',
+      problemRemoved: '题目已移除',
+      failedToRemoveProblem: '移除题目失败',
+      bulkDeleteSuccess: '已删除 {count} 个比赛',
+      bulkDeleteFailed: '删除部分比赛失败',
+    },
+
+    // 确认提示
+    confirmation: {
+      startNow: '确定要立即开始此比赛吗？',
+      endNow: '确定要结束此比赛吗？',
+      deleteThis: '确定要删除此比赛吗？此操作无法撤销。',
+      bulkDelete: '确定要删除 {count} 个比赛吗？此操作不可撤销。',
+      removeProblem: '要从比赛中移除此题目吗？',
     },
   },
 

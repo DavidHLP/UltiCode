@@ -253,7 +253,8 @@ defineExpose({
                 {{ lang.language }}
               </Badge>
               <span class="text-xs text-muted-foreground">
-                {{ lang.starter_code.split('\n').filter(Boolean).length || 0 }} {{ t('problems.codeForm.lines') }}
+                {{ lang.starter_code.split('\n').filter(Boolean).length || 0 }}
+                {{ t('problems.codeForm.lines') }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -276,7 +277,9 @@ defineExpose({
 
           <!-- Starter Code Editor -->
           <div v-if="expandedLang === lang.language" class="p-4 border-t bg-muted/10">
-            <Label class="text-xs text-muted-foreground mb-2 block">{{ t('problems.codeForm.starterCodeTemplate') }}</Label>
+            <Label class="text-xs text-muted-foreground mb-2 block">{{
+              t('problems.codeForm.starterCodeTemplate')
+            }}</Label>
             <Textarea
               :model-value="lang.starter_code"
               @update:model-value="(v) => updateStarterCode(index, String(v))"

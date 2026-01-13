@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Dialog,
   DialogContent,
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 }>()
 
 const contestsStore = useContestsStore()
+const { t } = useI18n()
 const currentStep = ref(1)
 const loading = ref(false)
 
@@ -109,7 +111,7 @@ async function handleSubmit() {
       // Let's stick to default 100 for now or enhance later.
     })
 
-    toast.success('Contest created successfully')
+    toast.success(t('contests.toast.createdSuccessfully'))
     emit('update:open', false)
     emit('success')
 
@@ -126,7 +128,7 @@ async function handleSubmit() {
     }
     currentStep.value = 1
   } catch (error) {
-    toast.error('Failed to create contest')
+    toast.error(t('contests.toast.failedToCreate'))
     console.error(error)
   } finally {
     loading.value = false
@@ -138,7 +140,7 @@ async function handleSubmit() {
   <Dialog :open="props.open" @update:open="emit('update:open', $event)">
     <DialogContent class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0">
       <DialogHeader class="px-6 py-4 border-b">
-        <DialogTitle>Create Contest</DialogTitle>
+        <DialogTitle>{{ t('contests.wizard.createContest') }}</DialogTitle>
       </DialogHeader>
 
       <div class="flex-1 overflow-y-auto px-6 py-4">
@@ -156,7 +158,9 @@ async function handleSubmit() {
               >
                 {{ step.step }}
               </StepperTrigger>
-              <span class="text-xs font-medium">{{ step.title }}</span>
+              <span class="text-xs font-medium">{{
+                t(`contests.wizard.${step.title.toLowerCase()}`)
+              }}</span>
               <StepperSeparator
                 v-if="step.step !== steps.length"
                 class="absolute left-[calc(50%+20px)] top-4 w-[calc(100%-40px)]"
@@ -179,14 +183,14 @@ async function handleSubmit() {
 
       <DialogFooter class="px-6 py-4 border-t bg-muted/20">
         <Button variant="outline" @click="prevStep" :disabled="currentStep === 1 || loading">
-          Previous
+          {{ t('contests.wizard.previous') }}
         </Button>
         <Button v-if="currentStep < steps.length" @click="nextStep" :disabled="!isStepValid">
-          Next
+          {{ t('contests.wizard.next') }}
         </Button>
         <Button v-else @click="handleSubmit" :disabled="!isStepValid || loading">
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Create Contest
+          {{ t('contests.wizard.submit') }}
         </Button>
       </DialogFooter>
     </DialogContent>

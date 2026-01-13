@@ -106,7 +106,11 @@ async function saveProblems() {
           {{ t('problemLists.problemsManager.addProblem') }}
         </Button>
         <Button size="sm" @click="saveProblems" :disabled="!isDirty || loading">
-          {{ loading ? t('problemLists.problemsManager.saving') : t('problemLists.problemsManager.saveChanges') }}
+          {{
+            loading
+              ? t('problemLists.problemsManager.saving')
+              : t('problemLists.problemsManager.saveChanges')
+          }}
         </Button>
       </div>
     </div>

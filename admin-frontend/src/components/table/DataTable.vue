@@ -254,9 +254,7 @@ watch(
           <EmptyContent>
             <EmptyTitle>{{ emptyTitle || t('table.emptyTitle') }}</EmptyTitle>
             <EmptyDescription>
-              {{
-                emptyDescription || t('table.emptyDescription')
-              }}
+              {{ emptyDescription || t('table.emptyDescription') }}
             </EmptyDescription>
           </EmptyContent>
         </Empty>
@@ -272,7 +270,9 @@ watch(
       </div>
       <div class="flex w-full items-center gap-8 lg:w-fit">
         <div class="hidden items-center gap-2 lg:flex">
-          <Label for="rows-per-page" class="text-sm font-medium">{{ t('table.rowsPerPage') }}</Label>
+          <Label for="rows-per-page" class="text-sm font-medium">{{
+            t('table.rowsPerPage')
+          }}</Label>
           <Select
             :disabled="loading"
             :model-value="`${table.getState().pagination.pageSize}`"

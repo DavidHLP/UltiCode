@@ -139,7 +139,10 @@ const onSubmit = form.handleSubmit(async (values) => {
           <FormItem>
             <FormLabel>{{ t('tags.form.description') }}</FormLabel>
             <FormControl>
-              <Textarea v-bind="componentField" :placeholder="t('tags.form.descriptionPlaceholder')" />
+              <Textarea
+                v-bind="componentField"
+                :placeholder="t('tags.form.descriptionPlaceholder')"
+              />
             </FormControl>
             <FormMessage />
           </FormItem>

@@ -154,7 +154,10 @@ const bannerThemes = [
           <FormItem>
             <FormLabel>{{ t('problemLists.form.bannerTag') }}</FormLabel>
             <FormControl>
-              <Input v-bind="componentField" :placeholder="t('problemLists.form.bannerTagPlaceholder')" />
+              <Input
+                v-bind="componentField"
+                :placeholder="t('problemLists.form.bannerTagPlaceholder')"
+              />
             </FormControl>
             <FormDescription>{{ t('problemLists.form.bannerTagDescription') }}</FormDescription>
             <FormMessage />

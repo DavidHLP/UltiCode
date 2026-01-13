@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useUsersStore } from '@/stores/admin/users'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +14,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -46,8 +49,8 @@ async function handleReset() {
     emit('success')
     emit('update:open', false)
   } catch {
-    toast.error('Failed to reset password', {
-      description: 'An error occurred while attempting to update the password.',
+    toast.error(t('users.toast.resetPasswordFailed'), {
+      description: t('users.toast.resetPasswordFailedDescription'),
     })
   } finally {
     loading.value = false
@@ -59,30 +62,33 @@ async function handleReset() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Reset Password</DialogTitle>
+        <DialogTitle>{{ t('users.actions.resetPassword') }}</DialogTitle>
         <DialogDescription>
-          Set a new password for <strong>{{ username || 'this user' }}</strong
-          >.
+          {{
+            t('users.actions.resetPasswordDescription', {
+              username: username || t('users.actions.thisUser'),
+            })
+          }}
         </DialogDescription>
       </DialogHeader>
       <div class="grid gap-4 py-4">
         <div class="grid gap-2">
-          <Label for="new-password">New Password</Label>
+          <Label for="new-password">{{ t('users.form.newPassword') }}</Label>
           <Input
             id="new-password"
             v-model="newPassword"
             type="password"
-            placeholder="Enter new password"
+            :placeholder="t('users.form.newPasswordPlaceholder')"
             :disabled="loading"
           />
         </div>
       </div>
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('users.actions.cancel') }}
         </Button>
         <Button @click="handleReset" :disabled="!newPassword || loading">
-          {{ loading ? 'Resetting...' : 'Reset Password' }}
+          {{ loading ? t('users.actions.resetting') : t('users.actions.resetPasswordAction') }}
         </Button>
       </DialogFooter>
     </DialogContent>

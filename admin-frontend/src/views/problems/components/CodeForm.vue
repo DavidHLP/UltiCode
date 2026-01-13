@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -85,6 +86,7 @@ const customLanguage = ref('')
 const loading = ref(false)
 const errors = ref<Record<string, string>>({})
 const expandedLang = ref<string | null>(null)
+const { t } = useI18n()
 
 function updateForm(data?: ProblemData) {
   if (!data) {
@@ -174,12 +176,12 @@ defineExpose({
       <section class="p-5 rounded-xl border bg-card">
         <div class="flex items-center gap-2 mb-4">
           <IconBrackets class="h-5 w-5 text-muted-foreground" />
-          <h2 class="font-semibold">Add Languages</h2>
+          <h2 class="font-semibold">{{ t('problems.codeForm.addLanguages') }}</h2>
         </div>
 
         <!-- Quick Add -->
         <div class="space-y-3">
-          <Label class="text-sm text-muted-foreground">Quick Add (Common Languages)</Label>
+          <Label class="text-sm text-muted-foreground">{{ t('problems.codeForm.quickAdd') }}</Label>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="lang in commonLanguages"
@@ -204,7 +206,7 @@ defineExpose({
         <div class="mt-4 flex gap-2">
           <Input
             v-model="customLanguage"
-            placeholder="Custom language name..."
+            :placeholder="t('problems.codeForm.customLanguagePlaceholder')"
             class="font-mono text-sm flex-1 max-w-xs"
             @keyup.enter="
               addLanguage(customLanguage)
@@ -220,7 +222,7 @@ defineExpose({
             "
           >
             <IconPlus class="h-4 w-4 mr-1" />
-            Add
+            {{ t('problems.codeForm.add') }}
           </Button>
         </div>
         <p v-if="errors.language" class="text-sm text-destructive mt-2">{{ errors.language }}</p>
@@ -251,7 +253,7 @@ defineExpose({
                 {{ lang.language }}
               </Badge>
               <span class="text-xs text-muted-foreground">
-                {{ lang.starter_code.split('\n').filter(Boolean).length || 0 }} lines
+                {{ lang.starter_code.split('\n').filter(Boolean).length || 0 }} {{ t('problems.codeForm.lines') }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -274,7 +276,7 @@ defineExpose({
 
           <!-- Starter Code Editor -->
           <div v-if="expandedLang === lang.language" class="p-4 border-t bg-muted/10">
-            <Label class="text-xs text-muted-foreground mb-2 block">Starter Code Template</Label>
+            <Label class="text-xs text-muted-foreground mb-2 block">{{ t('problems.codeForm.starterCodeTemplate') }}</Label>
             <Textarea
               :model-value="lang.starter_code"
               @update:model-value="(v) => updateStarterCode(index, String(v))"
@@ -294,9 +296,9 @@ defineExpose({
         <div class="w-12 h-12 rounded-xl bg-muted flex items-center justify-center mb-3">
           <IconBrackets class="h-6 w-6 text-muted-foreground" />
         </div>
-        <h3 class="text-sm font-medium mb-1">No Languages Added</h3>
+        <h3 class="text-sm font-medium mb-1">{{ t('problems.codeForm.noLanguages') }}</h3>
         <p class="text-xs text-muted-foreground max-w-xs">
-          Add languages above to configure starter code templates.
+          {{ t('problems.codeForm.noLanguagesDescription') }}
         </p>
       </div>
     </div>
@@ -305,17 +307,17 @@ defineExpose({
     <aside class="lg:col-span-4 space-y-4 lg:sticky lg:top-6 h-fit self-start">
       <!-- Status Card -->
       <div class="p-4 rounded-xl border bg-card">
-        <h3 class="text-sm font-medium mb-3">Configuration</h3>
+        <h3 class="text-sm font-medium mb-3">{{ t('problems.codeForm.configuration') }}</h3>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">Languages</span>
+            <span class="text-muted-foreground">{{ t('problems.codeForm.languages') }}</span>
             <span class="font-medium tabular-nums">{{ formData.languages.length }}</span>
           </div>
           <p class="text-xs text-muted-foreground pt-2 border-t">
             {{
               formData.languages.length === 0
-                ? 'Problem will be available in all languages.'
-                : 'Starter code configured for selected languages.'
+                ? t('problems.codeForm.allLanguages')
+                : t('problems.codeForm.selectedLanguages')
             }}
           </p>
         </div>
@@ -330,9 +332,9 @@ defineExpose({
             @click="submit"
           >
             <IconCheck v-if="!loading" class="h-4 w-4 mr-1" />
-            {{ loading ? 'Saving...' : 'Save Changes' }}
+            {{ loading ? t('problems.codeForm.saving') : t('problems.codeForm.saveChanges') }}
           </Button>
-          <Button variant="outline" class="w-full" @click="cancel"> Cancel </Button>
+          <Button variant="outline" class="w-full" @click="cancel">{{ t('common.cancel') }}</Button>
         </div>
       </div>
     </aside>

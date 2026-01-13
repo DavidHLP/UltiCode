@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconCopy, IconCheck, IconCode, IconBrackets } from '@tabler/icons-vue'
@@ -18,6 +19,7 @@ interface Props {
 
 const props = defineProps<Props>()
 
+const { t } = useI18n()
 const selectedLanguage = ref<string>('')
 const copied = ref(false)
 
@@ -85,9 +87,9 @@ function getLanguageColor(lang: string): string {
     <div class="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
       <IconCode class="h-8 w-8 text-muted-foreground" />
     </div>
-    <h3 class="text-base font-semibold mb-2">No Starter Code Configured</h3>
+    <h3 class="text-base font-semibold mb-2">{{ t('problems.codeDisplay.noCode') }}</h3>
     <p class="text-sm text-muted-foreground max-w-sm">
-      This problem will be available in all programming languages by default.
+      {{ t('problems.codeDisplay.noCodeDescription') }}
     </p>
   </div>
 
@@ -121,7 +123,7 @@ function getLanguageColor(lang: string): string {
       >
         <IconCheck v-if="copied" class="h-4 w-4 text-green-500" />
         <IconCopy v-else class="h-4 w-4" />
-        {{ copied ? 'Copied' : 'Copy' }}
+        {{ copied ? t('problems.codeDisplay.copied') : t('problems.codeDisplay.copy') }}
       </Button>
     </div>
 
@@ -138,7 +140,7 @@ function getLanguageColor(lang: string): string {
             <IconBrackets class="h-3 w-3 mr-1" />
             {{ selectedLanguage }}
           </Badge>
-          <span class="text-xs text-muted-foreground">{{ lineCount }} lines</span>
+          <span class="text-xs text-muted-foreground">{{ lineCount }} {{ t('problems.codeDisplay.lines') }}</span>
         </div>
         <div class="flex items-center gap-1">
           <div class="w-2.5 h-2.5 rounded-full bg-red-400/80" />
@@ -154,14 +156,14 @@ function getLanguageColor(lang: string): string {
         ><code>{{ currentCode }}</code></pre>
       </div>
       <div v-else class="p-8 text-center text-sm text-muted-foreground italic bg-muted/20">
-        No starter code available for {{ selectedLanguage }}
+        {{ t('problems.codeDisplay.noCodeForLanguage', { language: selectedLanguage }) }}
       </div>
     </div>
 
     <!-- Summary Footer -->
     <div class="flex items-center justify-between text-xs text-muted-foreground px-1">
-      <span>{{ availableLanguages.length }} language(s) configured</span>
-      <span>Click a language above to view its starter code</span>
+      <span>{{ t('problems.codeDisplay.languagesConfigured', { count: availableLanguages.length }) }}</span>
+      <span>{{ t('problems.codeDisplay.selectLanguage') }}</span>
     </div>
   </div>
 </template>

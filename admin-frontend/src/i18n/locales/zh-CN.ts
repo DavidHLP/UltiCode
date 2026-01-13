@@ -743,144 +743,6 @@ export default {
     },
   },
 
-  // 题解
-  solutions: {
-    title: '题解',
-    listTitle: '题解管理',
-    searchPlaceholder: '搜索题解...',
-
-    // 表格列
-    columns: {
-      problem: '题目',
-      author: '作者',
-      language: '语言',
-      status: '状态',
-      flags: '标记',
-      createdAt: '创建时间',
-    },
-
-    // 操作
-    actions: {
-      view: '查看',
-      flag: '标记',
-      unflag: '取消标记',
-      delete: '删除',
-    },
-
-    // 状态
-    status: {
-      flagged: '已标记',
-      approved: '已通过',
-      pending: '待审核',
-    },
-
-    // 标签页
-    tabs: {
-      code: '代码',
-      description: '题解说明',
-    },
-
-    // 表单
-    form: {
-      flagReason: '标记原因',
-      notes: '管理员备注',
-    },
-  },
-
-  // 论坛
-  forum: {
-    title: '论坛',
-    postsTitle: '论坛帖子',
-    commentsTitle: '论坛评论',
-    searchPlaceholder: '搜索帖子...',
-
-    // 表格列
-    columns: {
-      title: '标题',
-      author: '作者',
-      category: '分类',
-      replies: '回复数',
-      views: '浏览数',
-      status: '状态',
-      createdAt: '创建时间',
-    },
-
-    // 操作
-    actions: {
-      view: '查看',
-      flag: '标记',
-      unflag: '取消标记',
-      delete: '删除',
-      lock: '锁定',
-      unlock: '解锁',
-      pin: '置顶',
-      unpin: '取消置顶',
-    },
-
-    // 状态
-    status: {
-      flagged: '已标记',
-      locked: '已锁定',
-      pinned: '已置顶',
-    },
-
-    // 标签页
-    tabs: {
-      overview: '概览',
-      comments: '评论',
-      audit: '审计日志',
-    },
-
-    // 表单
-    form: {
-      flagReason: '标记原因',
-      moderationNotes: '审核备注',
-    },
-  },
-
-  // 评论
-  comments: {
-    title: '评论',
-    listTitle: '评论管理',
-    searchPlaceholder: '搜索评论...',
-
-    // 表格列
-    columns: {
-      content: '内容',
-      author: '作者',
-      type: '类型',
-      target: '目标',
-      status: '状态',
-      createdAt: '创建时间',
-    },
-
-    // 操作
-    actions: {
-      view: '查看',
-      flag: '标记',
-      unflag: '取消标记',
-      delete: '删除',
-    },
-
-    // 类型
-    type: {
-      forumPost: '论坛帖子',
-      forumComment: '论坛评论',
-      solutionComment: '题解评论',
-    },
-
-    // 状态
-    status: {
-      flagged: '已标记',
-      visible: '可见',
-      hidden: '隐藏',
-    },
-
-    // 表单
-    form: {
-      flagReason: '标记原因',
-    },
-  },
 
   // 通知
   notifications: {
@@ -1090,6 +952,371 @@ export default {
       sourceTag: '源标签（将被删除）',
       targetTag: '目标标签（将被保留）',
       confirm: '确定合并标签吗？所有标记为 "{source}" 的题目将被重新标记为 "{target}"。',
+    },
+  },
+
+  // 题解
+  solutions: {
+    title: '题解',
+    listTitle: '题解管理',
+    searchPlaceholder: '搜索题解...',
+
+    // 筛选
+    filters: {
+      flagStatus: '标记状态',
+      visibility: '可见性',
+      all: '全部',
+      flagged: '已标记',
+      clean: '正常',
+      published: '已发布',
+      unpublished: '未发布',
+    },
+
+    // 表格列
+    columns: {
+      id: 'ID',
+      solution: '题解',
+      author: '作者',
+      status: '状态',
+      views: '浏览',
+      created: '创建时间',
+      actions: '操作',
+    },
+
+    // 状态
+    status: {
+      deleted: '已删除',
+      flagged: '已标记',
+      published: '已发布',
+      unpublished: '未发布',
+    },
+
+    // 操作
+    actions: {
+      viewDetails: '查看详情',
+      unflag: '取消标记',
+      flag: '标记',
+      delete: '删除',
+    },
+
+    // 标签页
+    tabs: {
+      description: '描述',
+      code: '代码',
+    },
+
+    // 详情视图
+    detail: {
+      solutionFor: '{problem} 的题解',
+      noDescriptionContent: '未提供描述内容。',
+      summary: '摘要',
+      metadata: '元数据',
+      author: '作者',
+      problemDifficulty: '题目难度',
+      views: '浏览量',
+      language: '语言',
+      created: '创建时间',
+      updated: '更新时间',
+      tags: '标签',
+      flaggedReason: '标记原因',
+      at: '于',
+      sourceCode: '源代码',
+      lines: '行',
+      copied: '已复制',
+      copy: '复制',
+      noCodeContent: '无代码内容。',
+    },
+
+    // 删除对话框
+    delete: {
+      title: '删除题解',
+      description:
+        '确定要删除题解 <span class="font-medium text-foreground">"{title}"</span> 吗？此操作无法撤销。',
+      cancel: '取消',
+      confirm: '删除题解',
+      deleting: '删除中...',
+    },
+
+    // 标记对话框
+    flag: {
+      title: '标记题解',
+      description:
+        '标记题解 <span class="font-medium text-foreground">"{title}"</span> 将其标记为审核，并根据设置可能会从公共视图中隐藏。',
+      reasonLabel: '标记原因',
+      reasonPlaceholder: '请说明此题解违反社区准则的原因...',
+      cancel: '取消',
+      confirm: '标记题解',
+      flagging: '标记中...',
+    },
+
+    // 提示消息
+    toast: {
+      unflaggedSuccessfully: '题解已成功取消标记',
+      failedToUnflag: '取消标记题解失败',
+      deletedSuccessfully: '题解已成功删除',
+      failedToDelete: '删除题解失败',
+      flaggedSuccessfully: '题解已成功标记',
+      failedToFlag: '标记题解失败',
+      reasonRequired: '请提供标记原因',
+    },
+
+    // 错误状态
+    error: {
+      loadingSolution: '题解加载错误',
+      solutionNotFound: '未找到题解',
+      notFoundDescription: '题解不存在或您没有权限查看。',
+      backToSolutions: '返回题解列表',
+      back: '返回',
+      retry: '重试',
+    },
+  },
+
+  // 论坛
+  forum: {
+    title: '论坛',
+    postsTitle: '论坛帖子',
+    searchPlaceholder: '搜索帖子...',
+
+    // 筛选
+    filters: {
+      community: '社区',
+      allCommunities: '所有社区',
+      flagStatus: '标记状态',
+      pinned: '置顶',
+      locked: '锁定',
+      all: '全部',
+      flagged: '已标记',
+      clean: '正常',
+      unpinned: '未置顶',
+      unlocked: '未锁定',
+    },
+
+    // 表格列
+    columns: {
+      title: '标题',
+      stats: '统计',
+      status: '状态',
+      created: '创建时间',
+      actions: '操作',
+    },
+
+    // 状态
+    status: {
+      deleted: '已删除',
+      flagged: '已标记',
+      active: '活跃',
+      pinned: '已置顶',
+      locked: '已锁定',
+    },
+
+    // 操作
+    actions: {
+      viewDetails: '查看详情',
+      pin: '置顶',
+      unpin: '取消置顶',
+      lock: '锁定',
+      unlock: '解锁',
+      delete: '删除',
+    },
+
+    // 标签页
+    tabs: {
+      overview: '概览',
+      comments: '评论',
+      audit: '审核记录',
+    },
+
+    // 详情视图
+    detail: {
+      inCommunity: '于 {community}',
+      content: '内容',
+      noContentAvailable: '无可用内容',
+      views: '浏览',
+      comments: '评论',
+      upvotes: '赞同',
+      downvotes: '反对',
+      timeline: '时间线',
+      created: '创建时间',
+      updated: '更新时间',
+      flagInformation: '标记信息',
+      reason: '原因：',
+      flaggedOn: '标记于：',
+      deletionInformation: '删除信息',
+      deletedOn: '删除于：',
+      identifiers: '标识符',
+      postId: '帖子 ID：',
+      authorId: '作者 ID：',
+      communityId: '社区 ID：',
+    },
+
+    // 抽屉
+    drawer: {
+      title: '帖子详情',
+      description: '查看论坛帖信息和内容。',
+      authorCommunity: '作者与社区',
+      unknownCommunity: '未知社区',
+      statistics: '统计信息',
+      contentPreview: '内容预览',
+      postNotFound: '未找到帖子',
+    },
+
+    // 概览显示
+    overview: {
+      author: '作者',
+      unknown: '未知',
+    },
+
+    // 评论标签页
+    comments: {
+      postComments: '帖子评论',
+      noCommentsFound: '此帖子没有评论',
+    },
+
+    // 审核标签页
+    audit: {
+      noAuditHistory: '无审核记录',
+      performed: '执行了',
+      ip: 'IP：',
+      from: '从：',
+      to: '到：',
+    },
+
+    // 审核操作标签
+    auditActions: {
+      PIN_FORUM_POST: '已置顶',
+      UNPIN_FORUM_POST: '已取消置顶',
+      LOCK_FORUM_POST: '已锁定',
+      UNLOCK_FORUM_POST: '已解锁',
+      DELETE_FORUM_POST: '已删除',
+      FLAG_FORUM_POST: '已标记',
+      UNFLAG_FORUM_POST: '已取消标记',
+      BULK_DELETE_FORUM: '批量删除',
+      BULK_PIN_FORUM: '批量置顶',
+    },
+
+    // 删除对话框
+    delete: {
+      title: '删除帖子',
+      description: '确定要删除此帖子吗？此操作无法撤销。',
+      cancel: '取消',
+      confirm: '删除帖子',
+      deleting: '删除中...',
+    },
+
+    // 标记对话框
+    flag: {
+      title: '标记帖子',
+      description: '请提供标记此帖子进行审核的原因。',
+      reasonLabel: '原因',
+      reasonPlaceholder: '输入标记此帖子的原因...',
+      cancel: '取消',
+      confirm: '标记帖子',
+      flagging: '标记中...',
+    },
+
+    // 提示消息
+    toast: {
+      unpinnedSuccessfully: '帖子已取消置顶',
+      pinnedSuccessfully: '帖子已置顶',
+      failedToUpdatePin: '更新置顶状态失败',
+      unlockedSuccessfully: '帖子已解锁',
+      lockedSuccessfully: '帖子已锁定',
+      failedToUpdateLock: '更新锁定状态失败',
+      unflaggedSuccessfully: '帖子已成功取消标记',
+      failedToUnflag: '取消标记帖子失败',
+      deletedSuccessfully: '帖子已成功删除',
+      failedToDelete: '删除帖子失败',
+      flaggedSuccessfully: '帖子已成功标记',
+      failedToFlag: '标记帖子失败',
+      reasonRequired: '请提供标记原因',
+    },
+
+    // 错误状态
+    error: {
+      loadingPost: '帖子加载错误',
+      postNotFound: '未找到帖子',
+      notFoundDescription: '帖子不存在或您没有权限查看。',
+      backToForumPosts: '返回论坛帖子',
+      back: '返回',
+      retry: '重试',
+    },
+  },
+
+  // 评论
+  comments: {
+    title: '评论',
+    listTitle: '评论管理',
+    searchPlaceholder: '搜索评论...',
+
+    // 筛选
+    filters: {
+      type: '类型',
+      allTypes: '所有类型',
+      flagStatus: '标记状态',
+      all: '全部',
+      flagged: '已标记',
+      clean: '正常',
+    },
+
+    // 类型
+    type: {
+      forum: '论坛',
+      solution: '题解',
+    },
+
+    // 表格列
+    columns: {
+      comment: '评论',
+      author: '作者',
+      type: '类型',
+      status: '状态',
+      created: '创建时间',
+      actions: '操作',
+    },
+
+    // 状态
+    status: {
+      deleted: '已删除',
+      flagged: '已标记',
+      active: '活跃',
+    },
+
+    // 操作
+    actions: {
+      unflag: '取消标记',
+      flag: '标记',
+      delete: '删除',
+    },
+
+    // 删除对话框
+    delete: {
+      title: '删除评论',
+      description: '确定要删除此评论吗？此操作无法撤销。',
+      cancel: '取消',
+      confirm: '删除评论',
+      deleting: '删除中...',
+    },
+
+    // 标记对话框
+    flag: {
+      title: '标记评论',
+      description: '标记此评论将其标记为审核，并根据设置可能会从公共视图中隐藏。',
+      reasonLabel: '标记原因',
+      reasonPlaceholder: '请说明此评论违反社区准则的原因...',
+      cancel: '取消',
+      confirm: '标记评论',
+      flagging: '标记中...',
+    },
+
+    // 提示消息
+    toast: {
+      unflaggedSuccessfully: '评论已成功取消标记',
+      failedToUnflag: '取消标记评论失败',
+      deletedSuccessfully: '评论已成功删除',
+      failedToDelete: '删除评论失败',
+      flaggedSuccessfully: '评论已成功标记',
+      failedToFlag: '标记评论失败',
+      reasonRequired: '请提供标记原因',
     },
   },
 

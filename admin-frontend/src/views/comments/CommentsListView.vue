@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
@@ -41,6 +42,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import CommentDeleteDialog from './CommentDeleteDialog.vue'
 import CommentFlagDialog from './CommentFlagDialog.vue'
 
+const { t } = useI18n()
 const commentsStore = useCommentsStore()
 const authStore = useAuthStore()
 
@@ -105,9 +107,9 @@ function openFlagDialog(comment: Comment) {
 async function unflagComment(comment: Comment) {
   try {
     await commentsStore.unflagComment(comment.id, comment.type)
-    toast.success('Comment unflagged successfully')
+    toast.success(t('comments.toast.unflaggedSuccessfully'))
   } catch {
-    toast.error('Failed to unflag comment')
+    toast.error(t('comments.toast.failedToUnflag'))
   }
 }
 
@@ -127,20 +129,20 @@ const columns: ColumnDef<Comment>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate'),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'aria-label': 'Select all',
+        'aria-label': t('table.selectAll'),
       }),
     cell: ({ row }) =>
       h(Checkbox, {
         modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': 'Select row',
+        'aria-label': t('table.select'),
       }),
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: 'content',
-    header: 'Comment',
+    header: () => t('comments.columns.comment'),
     cell: ({ row }) => {
       const comment = row.original
       const truncated =
@@ -152,33 +154,33 @@ const columns: ColumnDef<Comment>[] = [
           comment.type === 'forum'
             ? h(IconMessage, { class: 'h-3 w-3' })
             : h(IconFileText, { class: 'h-3 w-3' }),
-          h('span', {}, comment.parentTitle || 'Unknown Parent'),
+          h('span', {}, comment.parentTitle || t('comments.type.unknown')),
         ]),
       ])
     },
   },
   {
     accessorKey: 'author',
-    header: 'Author',
+    header: () => t('comments.columns.author'),
     cell: ({ row }) => {
       const author = row.original.author
       return h('div', { class: 'flex items-center gap-2' }, [
         h(IconUser, { class: 'h-3 w-3 text-muted-foreground' }),
-        h('span', { class: 'text-sm' }, author?.username || 'Unknown'),
+        h('span', { class: 'text-sm' }, author?.username || t('comments.status.unknown')),
       ])
     },
   },
   {
     accessorKey: 'type',
-    header: 'Type',
+    header: () => t('comments.columns.type'),
     cell: ({ row }) => {
       const type = row.getValue('type') as CommentType
-      return h(Badge, { variant: 'outline' }, () => (type === 'forum' ? 'Forum' : 'Solution'))
+      return h(Badge, { variant: 'outline' }, () => t('comments.type.' + type))
     },
   },
   {
     accessorKey: 'is_flagged',
-    header: 'Status',
+    header: () => t('comments.columns.status'),
     cell: ({ row }) => {
       const isFlagged = row.getValue('is_flagged') as boolean
       const isDeleted = row.original.is_deleted
@@ -186,23 +188,23 @@ const columns: ColumnDef<Comment>[] = [
       if (isDeleted) {
         return h(Badge, { variant: 'destructive' }, () => [
           h(IconTrash, { class: 'mr-1 h-3 w-3' }),
-          'Deleted',
+          t('comments.status.deleted'),
         ])
       }
 
       if (isFlagged) {
         return h(Badge, { variant: 'destructive' }, () => [
           h(IconFlag, { class: 'mr-1 h-3 w-3' }),
-          'Flagged',
+          t('comments.status.flagged'),
         ])
       }
 
-      return h(Badge, { variant: 'secondary' }, () => 'Active')
+      return h(Badge, { variant: 'secondary' }, () => t('comments.status.active'))
     },
   },
   {
     accessorKey: 'created_at',
-    header: 'Created',
+    header: () => t('comments.columns.created'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('created_at') as string)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
@@ -210,7 +212,7 @@ const columns: ColumnDef<Comment>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('comments.columns.actions'),
     cell: ({ row }) => {
       const comment = row.original
       if (!canModerate(comment)) return null
@@ -230,7 +232,7 @@ const columns: ColumnDef<Comment>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h('span', { class: 'sr-only' }, t('table.actions')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },
@@ -250,7 +252,7 @@ const columns: ColumnDef<Comment>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
                               h(IconCheck, { class: 'h-4 w-4' }),
-                              'Unflag',
+                              t('comments.actions.unflag'),
                             ]),
                         },
                       )
@@ -261,7 +263,7 @@ const columns: ColumnDef<Comment>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
                               h(IconFlag, { class: 'h-4 w-4' }),
-                              'Flag',
+                              t('comments.actions.flag'),
                             ]),
                         },
                       ),
@@ -273,7 +275,7 @@ const columns: ColumnDef<Comment>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                           h(IconTrash, { class: 'h-4 w-4' }),
-                          'Delete',
+                          t('comments.actions.delete'),
                         ]),
                     },
                   ),
@@ -302,7 +304,7 @@ const columns: ColumnDef<Comment>[] = [
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Input
             v-model="searchQuery"
-            placeholder="Search comments..."
+            :placeholder="t('comments.searchPlaceholder')"
             class="h-8 min-w-[150px] w-full lg:w-[250px]"
           >
             <template #trailing>
@@ -319,23 +321,23 @@ const columns: ColumnDef<Comment>[] = [
           <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
             <Select v-model="typeFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Type" />
+                <SelectValue :placeholder="t('comments.filters.type')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="forum">Forum</SelectItem>
-                <SelectItem value="solution">Solution</SelectItem>
+                <SelectItem value="all">{{ t('comments.filters.allTypes') }}</SelectItem>
+                <SelectItem value="forum">{{ t('comments.type.forum') }}</SelectItem>
+                <SelectItem value="solution">{{ t('comments.type.solution') }}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select v-model="flaggedFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Flag Status" />
+                <SelectValue :placeholder="t('comments.filters.flagStatus')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="flagged">Flagged</SelectItem>
-                <SelectItem value="clean">Clean</SelectItem>
+                <SelectItem value="all">{{ t('comments.filters.all') }}</SelectItem>
+                <SelectItem value="flagged">{{ t('comments.filters.flagged') }}</SelectItem>
+                <SelectItem value="clean">{{ t('comments.filters.clean') }}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -344,7 +346,7 @@ const columns: ColumnDef<Comment>[] = [
               size="icon"
               class="h-8 w-8"
               @click="loadComments()"
-              title="Refresh"
+              :title="t('common.refresh')"
             >
               <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': commentsStore.loading }" />
             </Button>
@@ -359,7 +361,7 @@ const columns: ColumnDef<Comment>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ commentsStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadComments()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadComments()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 

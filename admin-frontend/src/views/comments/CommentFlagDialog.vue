@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { IconFlag, IconLoader } from '@tabler/icons-vue'
 import {
@@ -15,6 +16,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { useCommentsStore } from '@/stores/admin/comments'
 import type { CommentType } from '@/api/admin/comments'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -34,19 +37,19 @@ const reason = ref('')
 async function handleFlag() {
   if (!props.commentId || !props.commentType) return
   if (!reason.value.trim()) {
-    toast.error('Please provide a reason for flagging')
+    toast.error(t('comments.toast.reasonRequired'))
     return
   }
 
   loading.value = true
   try {
     await commentsStore.flagComment(props.commentId, props.commentType, reason.value)
-    toast.success('Comment flagged successfully')
+    toast.success(t('comments.toast.flaggedSuccessfully'))
     reason.value = ''
     emit('update:open', false)
     emit('success')
   } catch (error) {
-    toast.error('Failed to flag comment')
+    toast.error(t('comments.toast.failedToFlag'))
     console.error(error)
   } finally {
     loading.value = false
@@ -60,21 +63,20 @@ async function handleFlag() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-amber-600">
           <IconFlag class="h-5 w-5" />
-          Flag Comment
+          {{ t('comments.flag.title') }}
         </DialogTitle>
         <DialogDescription>
-          Flagging this comment will mark it for review and may hide it from public view depending
-          on settings.
+          {{ t('comments.flag.description') }}
         </DialogDescription>
       </DialogHeader>
 
       <div class="grid gap-4 py-4">
         <div class="space-y-2">
-          <Label for="reason">Reason for flagging</Label>
+          <Label for="reason">{{ t('comments.flag.reasonLabel') }}</Label>
           <Textarea
             id="reason"
             v-model="reason"
-            placeholder="Please explain why this comment violates community guidelines..."
+            :placeholder="t('comments.flag.reasonPlaceholder')"
             class="min-h-[100px]"
           />
         </div>
@@ -82,7 +84,7 @@ async function handleFlag() {
 
       <DialogFooter>
         <Button variant="outline" @click="$emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('comments.flag.cancel') }}
         </Button>
         <Button
           class="bg-amber-600 hover:bg-amber-700 text-white"
@@ -90,7 +92,7 @@ async function handleFlag() {
           :disabled="loading"
         >
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Flag Comment
+          {{ t('comments.flag.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

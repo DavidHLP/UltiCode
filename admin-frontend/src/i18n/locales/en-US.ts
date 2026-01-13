@@ -746,145 +746,6 @@ export default {
     },
   },
 
-  // Solutions
-  solutions: {
-    title: 'Solutions',
-    listTitle: 'Solution Management',
-    searchPlaceholder: 'Search solutions...',
-
-    // Table columns
-    columns: {
-      problem: 'Problem',
-      author: 'Author',
-      language: 'Language',
-      status: 'Status',
-      flags: 'Flags',
-      createdAt: 'Created',
-    },
-
-    // Actions
-    actions: {
-      view: 'View',
-      flag: 'Flag',
-      unflag: 'Unflag',
-      delete: 'Delete',
-    },
-
-    // Status
-    status: {
-      flagged: 'Flagged',
-      approved: 'Approved',
-      pending: 'Pending',
-    },
-
-    // Tabs
-    tabs: {
-      code: 'Code',
-      description: 'Description',
-    },
-
-    // Form
-    form: {
-      flagReason: 'Flag Reason',
-      notes: 'Admin Notes',
-    },
-  },
-
-  // Forum
-  forum: {
-    title: 'Forum',
-    postsTitle: 'Forum Posts',
-    commentsTitle: 'Forum Comments',
-    searchPlaceholder: 'Search posts...',
-
-    // Table columns
-    columns: {
-      title: 'Title',
-      author: 'Author',
-      category: 'Category',
-      replies: 'Replies',
-      views: 'Views',
-      status: 'Status',
-      createdAt: 'Created',
-    },
-
-    // Actions
-    actions: {
-      view: 'View',
-      flag: 'Flag',
-      unflag: 'Unflag',
-      delete: 'Delete',
-      lock: 'Lock',
-      unlock: 'Unlock',
-      pin: 'Pin',
-      unpin: 'Unpin',
-    },
-
-    // Status
-    status: {
-      flagged: 'Flagged',
-      locked: 'Locked',
-      pinned: 'Pinned',
-    },
-
-    // Tabs
-    tabs: {
-      overview: 'Overview',
-      comments: 'Comments',
-      audit: 'Audit Log',
-    },
-
-    // Form
-    form: {
-      flagReason: 'Flag Reason',
-      moderationNotes: 'Moderation Notes',
-    },
-  },
-
-  // Comments
-  comments: {
-    title: 'Comments',
-    listTitle: 'Comment Management',
-    searchPlaceholder: 'Search comments...',
-
-    // Table columns
-    columns: {
-      content: 'Content',
-      author: 'Author',
-      type: 'Type',
-      target: 'Target',
-      status: 'Status',
-      createdAt: 'Created',
-    },
-
-    // Actions
-    actions: {
-      view: 'View',
-      flag: 'Flag',
-      unflag: 'Unflag',
-      delete: 'Delete',
-    },
-
-    // Types
-    type: {
-      forumPost: 'Forum Post',
-      forumComment: 'Forum Comment',
-      solutionComment: 'Solution Comment',
-    },
-
-    // Status
-    status: {
-      flagged: 'Flagged',
-      visible: 'Visible',
-      hidden: 'Hidden',
-    },
-
-    // Form
-    form: {
-      flagReason: 'Flag Reason',
-    },
-  },
-
   // Notifications
   notifications: {
     title: 'Notifications',
@@ -1093,6 +954,374 @@ export default {
       sourceTag: 'Source Tag (will be deleted)',
       targetTag: 'Target Tag (will be kept)',
       confirm: 'Merge tags? All problems tagged with "{source}" will be retagged as "{target}".',
+    },
+  },
+
+  // Solutions
+  solutions: {
+    title: 'Solutions',
+    listTitle: 'Solution Management',
+    searchPlaceholder: 'Search solutions...',
+
+    // Filters
+    filters: {
+      flagStatus: 'Flag Status',
+      visibility: 'Visibility',
+      all: 'All',
+      flagged: 'Flagged',
+      clean: 'Clean',
+      published: 'Published',
+      unpublished: 'Unpublished',
+    },
+
+    // Table columns
+    columns: {
+      id: 'ID',
+      solution: 'Solution',
+      author: 'Author',
+      status: 'Status',
+      views: 'Views',
+      created: 'Created',
+      actions: 'Actions',
+    },
+
+    // Status
+    status: {
+      deleted: 'Deleted',
+      flagged: 'Flagged',
+      published: 'Published',
+      unpublished: 'Unpublished',
+    },
+
+    // Actions
+    actions: {
+      viewDetails: 'View Details',
+      unflag: 'Unflag',
+      flag: 'Flag',
+      delete: 'Delete',
+    },
+
+    // Tabs
+    tabs: {
+      description: 'Description',
+      code: 'Code',
+    },
+
+    // Detail view
+    detail: {
+      solutionFor: 'Solution for {problem}',
+      noDescriptionContent: 'No description content provided.',
+      summary: 'Summary',
+      metadata: 'Metadata',
+      author: 'Author',
+      problemDifficulty: 'Problem Difficulty',
+      views: 'Views',
+      language: 'Language',
+      created: 'Created',
+      updated: 'Updated',
+      tags: 'Tags',
+      flaggedReason: 'Flagged Reason',
+      at: 'at',
+      sourceCode: 'Source Code',
+      lines: 'lines',
+      copied: 'Copied',
+      copy: 'Copy',
+      noCodeContent: 'No code content available.',
+    },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Solution',
+      description:
+        'Are you sure you want to delete the solution <span class="font-medium text-foreground">"{title}"</span>? This action cannot be undone.',
+      cancel: 'Cancel',
+      confirm: 'Delete Solution',
+      deleting: 'Deleting...',
+    },
+
+    // Flag dialog
+    flag: {
+      title: 'Flag Solution',
+      description:
+        'Flagging solution <span class="font-medium text-foreground">"{title}"</span> will mark it for review and may hide it from public view depending on settings.',
+      reasonLabel: 'Reason for flagging',
+      reasonPlaceholder: 'Please explain why this solution violates community guidelines...',
+      cancel: 'Cancel',
+      confirm: 'Flag Solution',
+      flagging: 'Flagging...',
+    },
+
+    // Toast messages
+    toast: {
+      unflaggedSuccessfully: 'Solution unflagged successfully',
+      failedToUnflag: 'Failed to unflag solution',
+      deletedSuccessfully: 'Solution deleted successfully',
+      failedToDelete: 'Failed to delete solution',
+      flaggedSuccessfully: 'Solution flagged successfully',
+      failedToFlag: 'Failed to flag solution',
+      reasonRequired: 'Please provide a reason for flagging',
+    },
+
+    // Error states
+    error: {
+      loadingSolution: 'Error Loading Solution',
+      solutionNotFound: 'Solution Not Found',
+      notFoundDescription: "The solution doesn't exist or you don't have permission to view it.",
+      backToSolutions: 'Back to Solutions',
+      back: 'Back',
+      retry: 'Retry',
+    },
+  },
+
+  // Forum
+  forum: {
+    title: 'Forum',
+    postsTitle: 'Forum Posts',
+    searchPlaceholder: 'Search posts...',
+
+    // Filters
+    filters: {
+      community: 'Community',
+      allCommunities: 'All Communities',
+      flagStatus: 'Flag Status',
+      pinned: 'Pinned',
+      locked: 'Locked',
+      all: 'All',
+      flagged: 'Flagged',
+      clean: 'Clean',
+      unpinned: 'Unpinned',
+      unlocked: 'Unlocked',
+    },
+
+    // Table columns
+    columns: {
+      title: 'Title',
+      stats: 'Stats',
+      status: 'Status',
+      created: 'Created',
+      actions: 'Actions',
+    },
+
+    // Status
+    status: {
+      deleted: 'Deleted',
+      flagged: 'Flagged',
+      active: 'Active',
+      pinned: 'Pinned',
+      locked: 'Locked',
+    },
+
+    // Actions
+    actions: {
+      viewDetails: 'View Details',
+      pin: 'Pin',
+      unpin: 'Unpin',
+      lock: 'Lock',
+      unlock: 'Unlock',
+      delete: 'Delete',
+    },
+
+    // Tabs
+    tabs: {
+      overview: 'Overview',
+      comments: 'Comments',
+      audit: 'Audit',
+    },
+
+    // Detail view
+    detail: {
+      inCommunity: 'in {community}',
+      content: 'Content',
+      noContentAvailable: 'No content available',
+      views: 'Views',
+      comments: 'Comments',
+      upvotes: 'Upvotes',
+      downvotes: 'Downvotes',
+      timeline: 'Timeline',
+      created: 'Created',
+      updated: 'Updated',
+      flagInformation: 'Flag Information',
+      reason: 'Reason:',
+      flaggedOn: 'Flagged on:',
+      deletionInformation: 'Deletion Information',
+      deletedOn: 'Deleted on:',
+      identifiers: 'Identifiers',
+      postId: 'Post ID:',
+      authorId: 'Author ID:',
+      communityId: 'Community ID:',
+    },
+
+    // Drawer
+    drawer: {
+      title: 'Post Details',
+      description: 'View forum post information and content.',
+      authorCommunity: 'Author & Community',
+      unknownCommunity: 'Unknown Community',
+      statistics: 'Statistics',
+      contentPreview: 'Content Preview',
+      postNotFound: 'Post not found',
+    },
+
+    // Overview display
+    overview: {
+      author: 'Author',
+      unknown: 'Unknown',
+    },
+
+    // Comments tab
+    comments: {
+      postComments: 'Post Comments',
+      noCommentsFound: 'No comments found for this post',
+    },
+
+    // Audit tab
+    audit: {
+      noAuditHistory: 'No audit history available',
+      performed: 'performed',
+      ip: 'IP:',
+      from: 'From:',
+      to: 'To:',
+    },
+
+    // Action labels for audit
+    auditActions: {
+      PIN_FORUM_POST: 'Pinned',
+      UNPIN_FORUM_POST: 'Unpinned',
+      LOCK_FORUM_POST: 'Locked',
+      UNLOCK_FORUM_POST: 'Unlocked',
+      DELETE_FORUM_POST: 'Deleted',
+      FLAG_FORUM_POST: 'Flagged',
+      UNFLAG_FORUM_POST: 'Unflagged',
+      BULK_DELETE_FORUM: 'Bulk Delete',
+      BULK_PIN_FORUM: 'Bulk Pin',
+    },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Post',
+      description: 'Are you sure you want to delete this post? This action cannot be undone.',
+      cancel: 'Cancel',
+      confirm: 'Delete Post',
+      deleting: 'Deleting...',
+    },
+
+    // Flag dialog
+    flag: {
+      title: 'Flag Post',
+      description: 'Please provide a reason for flagging this post for review.',
+      reasonLabel: 'Reason',
+      reasonPlaceholder: 'Enter the reason for flagging this post...',
+      cancel: 'Cancel',
+      confirm: 'Flag Post',
+      flagging: 'Flagging...',
+    },
+
+    // Toast messages
+    toast: {
+      unpinnedSuccessfully: 'Post unpinned',
+      pinnedSuccessfully: 'Post pinned',
+      failedToUpdatePin: 'Failed to update pin status',
+      unlockedSuccessfully: 'Post unlocked',
+      lockedSuccessfully: 'Post locked',
+      failedToUpdateLock: 'Failed to update lock status',
+      unflaggedSuccessfully: 'Post unflagged successfully',
+      failedToUnflag: 'Failed to unflag post',
+      deletedSuccessfully: 'Post deleted successfully',
+      failedToDelete: 'Failed to delete post',
+      flaggedSuccessfully: 'Post flagged successfully',
+      failedToFlag: 'Failed to flag post',
+      reasonRequired: 'Please provide a reason for flagging',
+    },
+
+    // Error states
+    error: {
+      loadingPost: 'Error Loading Post',
+      postNotFound: 'Post Not Found',
+      notFoundDescription: "The post doesn't exist or you don't have permission to view it.",
+      backToForumPosts: 'Back to Forum Posts',
+      back: 'Back',
+      retry: 'Retry',
+    },
+  },
+
+  // Comments
+  comments: {
+    title: 'Comments',
+    listTitle: 'Comment Management',
+    searchPlaceholder: 'Search comments...',
+
+    // Filters
+    filters: {
+      type: 'Type',
+      allTypes: 'All Types',
+      flagStatus: 'Flag Status',
+      all: 'All',
+      flagged: 'Flagged',
+      clean: 'Clean',
+    },
+
+    // Types
+    type: {
+      forum: 'Forum',
+      solution: 'Solution',
+      unknown: 'Unknown',
+    },
+
+    // Table columns
+    columns: {
+      comment: 'Comment',
+      author: 'Author',
+      type: 'Type',
+      status: 'Status',
+      created: 'Created',
+      actions: 'Actions',
+    },
+
+    // Status
+    status: {
+      deleted: 'Deleted',
+      flagged: 'Flagged',
+      active: 'Active',
+      unknown: 'Unknown',
+    },
+
+    // Actions
+    actions: {
+      unflag: 'Unflag',
+      flag: 'Flag',
+      delete: 'Delete',
+    },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Comment',
+      description: 'Are you sure you want to delete this comment? This action cannot be undone.',
+      cancel: 'Cancel',
+      confirm: 'Delete Comment',
+      deleting: 'Deleting...',
+    },
+
+    // Flag dialog
+    flag: {
+      title: 'Flag Comment',
+      description:
+        'Flagging this comment will mark it for review and may hide it from public view depending on settings.',
+      reasonLabel: 'Reason for flagging',
+      reasonPlaceholder: 'Please explain why this comment violates community guidelines...',
+      cancel: 'Cancel',
+      confirm: 'Flag Comment',
+      flagging: 'Flagging...',
+    },
+
+    // Toast messages
+    toast: {
+      unflaggedSuccessfully: 'Comment unflagged successfully',
+      failedToUnflag: 'Failed to unflag comment',
+      deletedSuccessfully: 'Comment deleted successfully',
+      failedToDelete: 'Failed to delete comment',
+      flaggedSuccessfully: 'Comment flagged successfully',
+      failedToFlag: 'Failed to flag comment',
+      reasonRequired: 'Please provide a reason for flagging',
     },
   },
 

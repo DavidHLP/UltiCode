@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
 import { IconFlask, IconCode } from '@tabler/icons-vue'
 
@@ -23,6 +24,8 @@ interface ProblemDetail {
 const props = defineProps<{
   problem: ProblemDetail
 }>()
+
+const { t } = useI18n()
 
 const examples = computed(() => {
   return (props.problem.examples || []).sort((a, b) => a.order - b.order)
@@ -63,9 +66,9 @@ const hasAnyContent = computed(
     <div class="w-16 h-16 rounded-2xl bg-muted flex items-center justify-center mb-4">
       <IconCode class="h-8 w-8 text-muted-foreground" />
     </div>
-    <h3 class="text-base font-semibold mb-2">No Test Cases Added</h3>
+    <h3 class="text-base font-semibold mb-2">{{ t('problems.casesDisplay.noCases') }}</h3>
     <p class="text-sm text-muted-foreground max-w-sm">
-      This problem doesn't have any test cases, constraints, or hints configured yet.
+      {{ t('problems.casesDisplay.noCasesDescription') }}
     </p>
   </div>
 
@@ -75,7 +78,7 @@ const hasAnyContent = computed(
     <section v-if="hasExamples" class="lg:col-span-7 rounded-xl border bg-card overflow-hidden">
       <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
         <IconFlask class="h-4 w-4 text-muted-foreground" />
-        <h3 class="font-semibold text-sm">Examples</h3>
+        <h3 class="font-semibold text-sm">{{ t('problems.casesDisplay.examples') }}</h3>
         <Badge variant="secondary" class="ml-auto text-xs">{{ examples.length }}</Badge>
       </div>
 
@@ -95,7 +98,7 @@ const hasAnyContent = computed(
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <!-- Input -->
             <div class="space-y-1.5">
-              <p class="text-xs font-medium text-muted-foreground">Input</p>
+              <p class="text-xs font-medium text-muted-foreground">{{ t('problems.casesDisplay.input') }}</p>
               <pre
                 class="text-sm font-mono p-3 rounded-lg bg-[#0d1117] text-gray-100 overflow-x-auto"
                 >{{ example.input }}</pre
@@ -104,7 +107,7 @@ const hasAnyContent = computed(
 
             <!-- Output -->
             <div class="space-y-1.5">
-              <p class="text-xs font-medium text-muted-foreground">Output</p>
+              <p class="text-xs font-medium text-muted-foreground">{{ t('problems.casesDisplay.output') }}</p>
               <pre
                 class="text-sm font-mono p-3 rounded-lg bg-[#0d1117] text-gray-100 overflow-x-auto"
                 >{{ example.output }}</pre
@@ -114,7 +117,7 @@ const hasAnyContent = computed(
 
           <!-- Explanation -->
           <p v-if="example.explanation" class="text-sm text-muted-foreground mt-3 pl-1">
-            <span class="font-medium">Explanation:</span> {{ example.explanation }}
+            <span class="font-medium">{{ t('problems.casesDisplay.explanation') }}:</span> {{ example.explanation }}
           </p>
         </div>
       </div>

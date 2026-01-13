@@ -36,7 +36,7 @@ describe('I18nService', () => {
   describe('parseAcceptLanguage', () => {
     it('should return default locale when header is empty', () => {
       const result = service.parseAcceptLanguage(undefined);
-      expect(result).toBe('en-US');
+      expect(result).toBe('zh-CN');
     });
 
     it('should parse Accept-Language header', () => {
@@ -46,7 +46,7 @@ describe('I18nService', () => {
 
     it('should return default locale for unsupported language', () => {
       const result = service.parseAcceptLanguage('fr-FR,fr;q=0.9');
-      expect(result).toBe('en-US');
+      expect(result).toBe('zh-CN');
     });
 
     it('should respect quality values', () => {

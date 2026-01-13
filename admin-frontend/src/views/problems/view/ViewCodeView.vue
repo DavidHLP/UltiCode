@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { onMounted, computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useProblemsStore } from '@/stores/admin/problems'
 import CodeDisplay from '../components/CodeDisplay.vue'
 
 const route = useRoute()
+const { t } = useI18n()
 const problemsStore = useProblemsStore()
 
 const problemId = computed(() => route.params.id as string)
@@ -22,7 +24,7 @@ onMounted(async () => {
     <!-- Breadcrumbs -->
     <div class="flex items-center gap-2 text-sm text-muted-foreground">
       <router-link :to="{ name: 'problems' }" class="hover:text-foreground transition-colors">
-        Problems
+        {{ t('problems.title') }}
       </router-link>
       <span>/</span>
       <router-link
@@ -32,7 +34,7 @@ onMounted(async () => {
         {{ problem.title }}
       </router-link>
       <span>/</span>
-      <span class="text-foreground">Code</span>
+      <span class="text-foreground">{{ t('problems.tabs.code') }}</span>
     </div>
 
     <CodeDisplay :languages="problem.languages" />
@@ -43,6 +45,6 @@ onMounted(async () => {
     <div
       class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
     ></div>
-    <p class="mt-2 text-muted-foreground">Loading problem...</p>
+    <p class="mt-2 text-muted-foreground">{{ t('problems.view.loading') }}</p>
   </div>
 </template>

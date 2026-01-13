@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
@@ -37,6 +38,8 @@ import {
 import { useTagsStore } from '@/stores/admin/tags'
 import { useAuthStore } from '@/stores/admin/auth'
 import { TagType, type Tag } from '@/api/admin/tags'
+
+const { t } = useI18n()
 
 import DataTable from '@/components/table/DataTable.vue'
 import TagEditDialog from './TagEditDialog.vue'
@@ -117,12 +120,9 @@ function openMergeDialog(tag: Tag) {
 
 async function handleBulkDelete() {
   if (selectedRows.value.length === 0) return
-  if (
-    !confirm(
-      `Are you sure you want to delete ${selectedRows.value.length} tags? This action is IRREVERSIBLE.`,
-    )
-  )
-    return
+  const count = selectedRows.value.length
+  const confirmMsg = t('tags.toast.bulkDeleteConfirm', { count })
+  if (!confirm(confirmMsg)) return
 
   bulkActionLoading.value = true
   try {
@@ -131,9 +131,9 @@ async function handleBulkDelete() {
     }
     await loadTags()
     selectedRows.value = []
-    toast.success(`${selectedRows.value.length} tags deleted`)
+    toast.success(t('tags.toast.bulkDeleteSuccess', { count }))
   } catch {
-    toast.error('Failed to delete some tags')
+    toast.error(t('tags.toast.bulkDeleteFailed'))
   } finally {
     bulkActionLoading.value = false
   }
@@ -149,20 +149,20 @@ const columns: ColumnDef<Tag>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate'),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'aria-label': 'Select all',
+        'aria-label': t('common.selectAll'),
       }),
     cell: ({ row }) =>
       h(Checkbox, {
         modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': 'Select row',
+        'aria-label': t('table.selected', { count: 1 }),
       }),
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: 'name',
-    header: 'Tag',
+    header: () => t('tags.columns.tag'),
     cell: ({ row }) => {
       const tag = row.original
       return h('div', { class: 'flex items-center gap-3' }, [
@@ -194,7 +194,7 @@ const columns: ColumnDef<Tag>[] = [
   },
   {
     accessorKey: 'usage_count',
-    header: 'Usage',
+    header: () => t('tags.columns.usage'),
     cell: ({ row }) => {
       return h('div', { class: 'flex items-center gap-2' }, [
         h(IconHash, { class: 'h-4 w-4 text-muted-foreground' }),
@@ -204,7 +204,7 @@ const columns: ColumnDef<Tag>[] = [
   },
   {
     accessorKey: 'description',
-    header: 'Description',
+    header: () => t('tags.columns.description'),
     cell: ({ row }) =>
       h(
         'span',
@@ -214,7 +214,7 @@ const columns: ColumnDef<Tag>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('tags.columns.actions'),
     cell: ({ row }) => {
       const tag = row.original
       return h(
@@ -232,7 +232,7 @@ const columns: ColumnDef<Tag>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h('span', { class: 'sr-only' }, t('common.open')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },
@@ -253,7 +253,7 @@ const columns: ColumnDef<Tag>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
                               h(IconPencil, { class: 'h-4 w-4' }),
-                              'Edit',
+                              t('tags.actions.edit'),
                             ]),
                         },
                       ),
@@ -265,7 +265,7 @@ const columns: ColumnDef<Tag>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
                               h(IconGitMerge, { class: 'h-4 w-4' }),
-                              'Merge into...',
+                              t('tags.actions.mergeInto'),
                             ]),
                         },
                       ),
@@ -278,7 +278,7 @@ const columns: ColumnDef<Tag>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                               h(IconTrash, { class: 'h-4 w-4' }),
-                              'Delete',
+                              t('tags.actions.delete'),
                             ]),
                         },
                       ),
@@ -286,7 +286,7 @@ const columns: ColumnDef<Tag>[] = [
                       h(
                         DropdownMenuItem,
                         { disabled: true },
-                        { default: () => 'No actions available' },
+                        { default: () => t('tags.actions.noActionsAvailable') },
                       ),
                   ].filter(Boolean),
               },
@@ -306,7 +306,9 @@ const columns: ColumnDef<Tag>[] = [
       class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
     >
       <div class="flex items-center gap-3">
-        <span class="text-sm font-medium">{{ selectedRows.length }} tags selected</span>
+        <span class="text-sm font-medium">
+          {{ t('tags.selected', { count: selectedRows.length }) }}
+        </span>
         <Separator orientation="vertical" class="h-4" />
         <div class="flex items-center gap-2">
           <Button
@@ -318,12 +320,12 @@ const columns: ColumnDef<Tag>[] = [
             :disabled="bulkActionLoading"
           >
             <IconTrash class="h-3.5 w-3.5 mr-1" />
-            Bulk Delete
+            {{ t('tags.bulkDelete') }}
           </Button>
         </div>
       </div>
       <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
-        Clear Selection
+        {{ t('tags.clearSelection') }}
       </Button>
     </div>
 
@@ -337,7 +339,7 @@ const columns: ColumnDef<Tag>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input v-model="searchQuery" placeholder="Search tags..." class="min-w-[200px] w-[260px]">
+        <Input v-model="searchQuery" :placeholder="t('tags.searchPlaceholder')" class="min-w-[200px] w-[260px]">
           <template #trailing>
             <button
               v-if="searchQuery"
@@ -350,14 +352,14 @@ const columns: ColumnDef<Tag>[] = [
         </Input>
         <Select v-model="tagTypeFilter">
           <SelectTrigger class="w-[150px]">
-            <SelectValue placeholder="Tag Type" />
+            <SelectValue :placeholder="t('tags.tagType')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem :value="TagType.PROBLEM">Problem Tags</SelectItem>
-            <SelectItem :value="TagType.FORUM">Forum Tags</SelectItem>
+            <SelectItem :value="TagType.PROBLEM">{{ t('tags.problemTags') }}</SelectItem>
+            <SelectItem :value="TagType.FORUM">{{ t('tags.forumTags') }}</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="icon" @click="loadTags()" title="Refresh">
+        <Button variant="outline" size="icon" @click="loadTags()" :title="t('common.refresh')">
           <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': tagsStore.isLoading }" />
         </Button>
       </template>
@@ -365,7 +367,7 @@ const columns: ColumnDef<Tag>[] = [
       <template #extra-actions>
         <Button v-if="canManageTags" variant="outline" size="sm" @click="openCreateDialog">
           <IconPlus />
-          <span class="hidden lg:inline">Create Tag</span>
+          <span class="hidden lg:inline">{{ t('tags.createTag') }}</span>
         </Button>
       </template>
     </DataTable>

@@ -752,6 +752,11 @@ export default {
     listTitle: 'Notification Management',
     addNotification: 'Add Notification',
     searchPlaceholder: 'Search notifications...',
+    newNotification: 'New Notification',
+    allTypes: 'All Types',
+    sentAt: 'Sent At',
+    sentBy: 'Sent By',
+    refresh: 'Refresh',
 
     // Table columns
     columns: {
@@ -780,6 +785,25 @@ export default {
       sendAt: 'Send At',
       sendToAll: 'Send to All Users',
       targetUsers: 'Target Users',
+      messageContent: 'Message Content',
+      messageContentDescription: 'The notification message to send to users.',
+      notificationTitle: 'Title',
+      notificationTitlePlaceholder: 'Notification title',
+      notificationContent: 'Content',
+      notificationContentPlaceholder: 'Notification content...',
+      classification: 'Classification',
+      classificationDescription: 'Type and category for the notification.',
+      selectType: 'Select type',
+      category: 'Category',
+      selectCategory: 'Select category',
+      targetAudience: 'Target Audience',
+      targetAudienceDescription: 'Who should receive this notification.',
+      allUsers: 'All Users (Broadcast)',
+      specificUsers: 'Specific Users',
+      userIds: 'User IDs',
+      userIdsPlaceholder: 'Comma separated User IDs (e.g. user1, user2)',
+      select: 'Select',
+      atLeastOneUserId: 'At least one User ID is required',
     },
 
     // Types
@@ -788,6 +812,9 @@ export default {
       warning: 'Warning',
       success: 'Success',
       error: 'Error',
+      SYSTEM: 'SYSTEM',
+      SECURITY: 'SECURITY',
+      CONTEST: 'CONTEST',
     },
 
     // Priority
@@ -803,6 +830,41 @@ export default {
       draft: 'Draft',
       scheduled: 'Scheduled',
       sent: 'Sent',
+    },
+
+    // Dialogs
+    dialog: {
+      createTitle: 'New Notification',
+      createDescription: 'Create and send a notification to users.',
+      deleteTitle: 'Delete Notification',
+      deleteDescription:
+        'Are you sure you want to delete <strong>"{title}"</strong>? This action cannot be undone and the notification will be removed for all users.',
+      deleteFallback: 'this notification',
+      sending: 'Sending...',
+      sendNotification: 'Send Notification',
+      deleting: 'Deleting...',
+    },
+
+    // Toast messages
+    toast: {
+      sentSuccessfully: 'Notification sent successfully',
+      failedToSend: 'Failed to send notification',
+      deletedSuccessfully: 'Notification deleted',
+      failedToDelete: 'Failed to delete notification',
+    },
+
+    // Category
+    category: {
+      SYSTEM: 'SYSTEM',
+      CONTEST: 'CONTEST',
+      ACCOUNT: 'ACCOUNT',
+      GENERAL: 'GENERAL',
+    },
+
+    // Target
+    target: {
+      ALL: 'ALL',
+      USERS: 'USERS',
     },
   },
 
@@ -839,7 +901,15 @@ export default {
 
   // Settings
   settings: {
-    title: 'Settings',
+    title: 'System Settings',
+    description: 'Manage global system configuration and preferences.',
+
+    // Toast messages
+    toast: {
+      loadFailed: 'Failed to load settings',
+      saveFailed: 'Failed to save settings',
+      clearCacheFailed: 'Failed to clear cache',
+    },
 
     // General settings
     generalSettings: {
@@ -877,6 +947,41 @@ export default {
       smtpFromName: 'From Name',
       testEmail: 'Send Test Email',
     },
+
+    // System settings
+    general: {
+      title: 'General Settings',
+      description: 'Basic site information.',
+    },
+    siteName: 'Site Name',
+    siteDescription: 'Site Description',
+
+    // User registration
+    userRegistration: {
+      title: 'User Registration',
+      description: 'Control how users sign up.',
+      enableRegistrations: 'Enable Registrations',
+      enableRegistrationsDescription: 'Allow new users to create accounts.',
+      requireEmailVerification: 'Require Email Verification',
+      requireEmailVerificationDescription: 'Users must verify email before logging in.',
+    },
+
+    // System status
+    systemStatus: {
+      title: 'System Status',
+      description: 'Control site availability.',
+      maintenanceMode: 'Maintenance Mode',
+      maintenanceModeDescription: 'Only admins can access the site when enabled.',
+      maintenanceMessage: 'Maintenance Message',
+    },
+
+    // Actions
+    actions: {
+      title: 'Actions',
+      clearCache: 'Clear System Cache',
+      saveChanges: 'Save Changes',
+      saving: 'Saving...',
+    },
   },
 
   // Problem Lists
@@ -884,14 +989,33 @@ export default {
     title: 'Problem Lists',
     addList: 'Add List',
     searchPlaceholder: 'Search lists...',
+    createList: 'Create Problem List',
+    editList: 'Edit List',
+    backToLists: 'Back to Lists',
+    errorLoading: 'Error Loading List',
+    generalInfo: 'General Info',
+    problems: 'Problems',
 
     // Table columns
     columns: {
       name: 'Name',
-      owner: 'Owner',
+      featured: 'Featured',
+      visibility: 'Visibility',
       problems: 'Problems',
-      isPublic: 'Public',
+      order: 'Order',
       createdAt: 'Created',
+    },
+
+    // Filters
+    filters: {
+      type: 'Type',
+      allTypes: 'All Types',
+      featured: 'Featured',
+      standard: 'Standard',
+      visibility: 'Visibility',
+      allVisibility: 'All Visibility',
+      public: 'Public',
+      private: 'Private',
     },
 
     // Actions
@@ -903,18 +1027,74 @@ export default {
 
     // Form
     form: {
-      name: 'List Name',
+      name: 'Name',
+      namePlaceholder: 'e.g. Top 100 Dynamic Programming',
       description: 'Description',
+      descriptionPlaceholder: 'Describe what this list is about...',
       isPublic: 'Public',
+      isPublicDescription: 'Make this list visible to all users',
+      isFeatured: 'Featured',
+      isFeaturedDescription: 'Show this list on the home page',
+      bannerTag: 'Banner Tag',
+      bannerTagPlaceholder: 'e.g. POPULAR',
+      bannerTagDescription: 'Small tag shown on the banner card',
+      bannerTheme: 'Banner Theme',
+      bannerThemePlaceholder: 'Select a theme',
+      sortOrder: 'Sort Order',
+      sortOrderDescription: 'Order in featured lists section (lower first)',
+      saving: 'Saving...',
+      saveChanges: 'Save Changes',
+      validation: {
+        nameRequired: 'Name is required',
+      },
+    },
+
+    // Themes
+    themes: {
+      blue: 'Blue',
+      green: 'Green',
+      purple: 'Purple',
+      orange: 'Orange',
+      red: 'Red',
     },
 
     // Problems manager
     problemsManager: {
+      title: 'Problems',
+      addProblem: 'Add Problem',
+      saveChanges: 'Save Changes',
+      saving: 'Saving...',
+      order: 'Order',
+      problem: 'Problem',
+      difficulty: 'Difficulty',
+      noProblems: 'No problems in this list.',
       addProblems: 'Add Problems',
       removeProblems: 'Remove Problems',
       selectedProblems: 'Selected Problems',
       availableProblems: 'Available Problems',
       reorder: 'Reorder',
+    },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Problem List',
+      description:
+        'Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone.',
+      thisList: 'this list',
+      confirm: 'Delete List',
+      deleting: 'Deleting...',
+      cancel: 'Cancel',
+    },
+
+    // Toast messages
+    toast: {
+      createdSuccess: 'List created successfully',
+      updatedSuccess: 'List updated successfully',
+      deletedSuccess: 'Problem list deleted successfully',
+      createFailed: 'Failed to save list',
+      deleteFailed: 'Failed to delete problem list',
+      problemsUpdated: 'Problems updated successfully',
+      problemsUpdateFailed: 'Failed to update problems',
     },
   },
 
@@ -924,6 +1104,15 @@ export default {
     addTag: 'Add Tag',
     searchPlaceholder: 'Search tags...',
     mergeTags: 'Merge Tags',
+    selected: '{count} tags selected',
+    selected_one: '{count} tag selected',
+    clearSelection: 'Clear Selection',
+    bulkDelete: 'Bulk Delete',
+    createTag: 'Create Tag',
+    tagType: 'Tag Type',
+    problemTags: 'Problem Tags',
+    forumTags: 'Forum Tags',
+    retry: 'Retry',
 
     // Table columns
     columns: {
@@ -932,6 +1121,10 @@ export default {
       color: 'Color',
       problems: 'Problems',
       createdAt: 'Created',
+      tag: 'Tag',
+      usage: 'Usage',
+      description: 'Description',
+      actions: 'Actions',
     },
 
     // Actions
@@ -939,6 +1132,8 @@ export default {
       edit: 'Edit',
       delete: 'Delete',
       merge: 'Merge With...',
+      mergeInto: 'Merge into...',
+      noActionsAvailable: 'No actions available',
     },
 
     // Form
@@ -947,13 +1142,60 @@ export default {
       label: 'Display Label',
       color: 'Color',
       description: 'Description',
+      slug: 'Slug (Optional)',
+      slugPlaceholder: 'dynamic-programming',
+      colorHex: 'Color (Hex)',
+      colorPlaceholder: '#3b82f6',
+      namePlaceholder: 'Dynamic Programming',
+      descriptionPlaceholder: 'Tag description...',
+      editTitle: 'Edit Tag',
+      createTitle: 'Create Tag',
+      editDescription: 'Make changes to the tag here.',
+      createDescription: 'Add a new tag to the system.',
+      saveChanges: 'Save Changes',
+      createTag: 'Create Tag',
+      nameRequired: 'Name is required',
+      nameTooLong: 'Name is too long',
+    },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Tag',
+      description:
+        'Are you sure you want to delete the tag <span class="font-medium text-foreground">"{name}"</span>? This action cannot be undone.',
+      confirm: 'Delete Tag',
     },
 
     // Merge dialog
     merge: {
+      title: 'Merge Tags',
+      description:
+        'Merge <span class="font-medium text-foreground">"{source}"</span> into another tag. All relations will be moved to the target tag, and the source tag will be deleted.',
+      targetTag: 'Target Tag',
+      targetTagPlaceholder: 'Select a tag to merge into',
+      confirm: 'Merge Tags',
       sourceTag: 'Source Tag (will be deleted)',
-      targetTag: 'Target Tag (will be kept)',
-      confirm: 'Merge tags? All problems tagged with "{source}" will be retagged as "{target}".',
+      targetTagLabel: 'Target Tag (will be kept)',
+      mergeConfirm:
+        'Merge tags? All problems tagged with "{source}" will be retagged as "{target}".',
+    },
+
+    // Toast messages
+    toast: {
+      createdSuccessfully: 'Tag created successfully',
+      updatedSuccessfully: 'Tag updated successfully',
+      deletedSuccessfully: 'Tag deleted successfully',
+      mergedSuccessfully: 'Tags merged successfully',
+      failedToCreate: 'Failed to create tag',
+      failedToUpdate: 'Failed to update tag',
+      failedToDelete: 'Failed to delete tag',
+      failedToMerge: 'Failed to merge tags',
+      bulkDeleteSuccess: '{count} tags deleted',
+      bulkDeleteFailed: 'Failed to delete some tags',
+      bulkDeleteConfirm:
+        'Are you sure you want to delete {count} tags? This action is IRREVERSIBLE.',
+      bulkDeleteConfirm_one:
+        'Are you sure you want to delete {count} tag? This action is IRREVERSIBLE.',
     },
   },
 

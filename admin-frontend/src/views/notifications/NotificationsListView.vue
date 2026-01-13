@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, h } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconPlus,
@@ -34,6 +35,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import NotificationCreateDialog from './NotificationCreateDialog.vue'
 import NotificationDeleteDialog from './NotificationDeleteDialog.vue'
 
+const { t } = useI18n()
 const store = useNotificationsStore()
 
 const searchQuery = ref('')
@@ -65,19 +67,19 @@ function getTypeBadgeVariant(type: string): 'default' | 'secondary' | 'destructi
 const columns: ColumnDef<SystemAnnouncement>[] = [
   {
     accessorKey: 'title',
-    header: 'Title',
+    header: () => t('notifications.columns.title'),
     cell: ({ row }) =>
       h('div', { class: 'font-medium max-w-[300px] truncate' }, row.original.title),
   },
   {
     accessorKey: 'type',
-    header: 'Type',
+    header: () => t('notifications.columns.type'),
     cell: ({ row }) =>
       h(Badge, { variant: getTypeBadgeVariant(row.original.type) }, () => row.original.type),
   },
   {
     accessorKey: 'created_at',
-    header: 'Sent At',
+    header: () => t('notifications.sentAt'),
     cell: ({ row }) =>
       h(
         'span',
@@ -87,7 +89,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
   },
   {
     accessorKey: 'creator',
-    header: 'Sent By',
+    header: () => t('notifications.sentBy'),
     cell: ({ row }) => {
       const creator = row.original.creator
       const initials = creator.username.slice(0, 2).toUpperCase()
@@ -108,7 +110,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('common.actions'),
     cell: ({ row }) => {
       return h(
         DropdownMenu,
@@ -125,7 +127,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h('span', { class: 'sr-only' }, t('common.open')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },
@@ -147,7 +149,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconTrash, { class: 'h-4 w-4' }),
-                          'Delete',
+                          t('common.delete'),
                         ]),
                     },
                   ),
@@ -172,7 +174,7 @@ onMounted(() => {
       <template #toolbar-left>
         <Input
           v-model="searchQuery"
-          placeholder="Search notifications..."
+          :placeholder="t('notifications.searchPlaceholder')"
           class="min-w-[200px] w-[260px]"
         >
           <template #trailing>
@@ -187,16 +189,21 @@ onMounted(() => {
         </Input>
         <Select v-model="typeFilter">
           <SelectTrigger class="w-[160px]">
-            <SelectValue placeholder="All Types" />
+            <SelectValue :placeholder="t('notifications.allTypes')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="all">{{ t('notifications.allTypes') }}</SelectItem>
             <SelectItem v-for="type in NotificationType" :key="type" :value="type">
               {{ type }}
             </SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="icon" @click="store.fetchAnnouncements()" title="Refresh">
+        <Button
+          variant="outline"
+          size="icon"
+          @click="store.fetchAnnouncements()"
+          :title="t('notifications.refresh')"
+        >
           <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': store.isLoading }" />
         </Button>
       </template>
@@ -204,7 +211,7 @@ onMounted(() => {
       <template #extra-actions>
         <Button variant="outline" size="sm" @click="createDialogOpen = true">
           <IconPlus />
-          <span class="hidden lg:inline">New Notification</span>
+          <span class="hidden lg:inline">{{ t('notifications.newNotification') }}</span>
         </Button>
       </template>
     </DataTable>
@@ -215,7 +222,9 @@ onMounted(() => {
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ store.error }}</span>
-      <Button variant="outline" size="sm" @click="store.fetchAnnouncements()">Retry</Button>
+      <Button variant="outline" size="sm" @click="store.fetchAnnouncements()">{{
+        t('common.retry')
+      }}</Button>
     </div>
   </div>
 

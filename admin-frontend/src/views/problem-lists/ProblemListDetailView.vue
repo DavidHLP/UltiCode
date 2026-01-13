@@ -98,7 +98,9 @@ function handleCreateSuccess(id: string) {
         <Tabs v-model="activeTab" class="w-full">
           <TabsList class="grid w-full grid-cols-2 max-w-[400px]">
             <TabsTrigger value="general">{{ t('problemLists.generalInfo') }}</TabsTrigger>
-            <TabsTrigger value="problems" :disabled="isCreate">{{ t('problemLists.problems') }}</TabsTrigger>
+            <TabsTrigger value="problems" :disabled="isCreate">{{
+              t('problemLists.problems')
+            }}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="general" class="mt-6">

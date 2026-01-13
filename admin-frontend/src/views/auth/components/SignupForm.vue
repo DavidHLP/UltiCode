@@ -30,21 +30,11 @@ const { t } = useI18n()
       </div>
       <Field>
         <FieldLabel for="name">{{ t('auth.signup.fullName') }}</FieldLabel>
-        <Input
-          id="name"
-          type="text"
-          :placeholder="t('auth.signup.fullNamePlaceholder')"
-          required
-        />
+        <Input id="name" type="text" :placeholder="t('auth.signup.fullNamePlaceholder')" required />
       </Field>
       <Field>
         <FieldLabel for="email">{{ t('auth.signup.email') }}</FieldLabel>
-        <Input
-          id="email"
-          type="email"
-          :placeholder="t('auth.signup.emailPlaceholder')"
-          required
-        />
+        <Input id="email" type="email" :placeholder="t('auth.signup.emailPlaceholder')" required />
         <FieldDescription>{{ t('auth.signup.emailDescription') }}</FieldDescription>
       </Field>
       <Field>

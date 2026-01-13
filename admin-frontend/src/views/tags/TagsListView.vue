@@ -339,7 +339,11 @@ const columns: ColumnDef<Tag>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input v-model="searchQuery" :placeholder="t('tags.searchPlaceholder')" class="min-w-[200px] w-[260px]">
+        <Input
+          v-model="searchQuery"
+          :placeholder="t('tags.searchPlaceholder')"
+          class="min-w-[200px] w-[260px]"
+        >
           <template #trailing>
             <button
               v-if="searchQuery"

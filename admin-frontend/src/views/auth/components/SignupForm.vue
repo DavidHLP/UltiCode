@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
@@ -14,42 +15,52 @@ import { Input } from '@/components/ui/input'
 const props = defineProps<{
   class?: HTMLAttributes['class']
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
   <form :class="cn('flex flex-col gap-6', props.class)">
     <FieldGroup>
       <div class="flex flex-col items-center gap-1 text-center">
-        <h1 class="text-2xl font-bold">Create your account</h1>
+        <h1 class="text-2xl font-bold">{{ t('auth.signup.title') }}</h1>
         <p class="text-muted-foreground text-sm text-balance">
-          Fill in the form below to create your account
+          {{ t('auth.signup.subtitle') }}
         </p>
       </div>
       <Field>
-        <FieldLabel for="name"> Full Name </FieldLabel>
-        <Input id="name" type="text" placeholder="John Doe" required />
+        <FieldLabel for="name">{{ t('auth.signup.fullName') }}</FieldLabel>
+        <Input
+          id="name"
+          type="text"
+          :placeholder="t('auth.signup.fullNamePlaceholder')"
+          required
+        />
       </Field>
       <Field>
-        <FieldLabel for="email"> Email </FieldLabel>
-        <Input id="email" type="email" placeholder="m@example.com" required />
-        <FieldDescription>
-          We'll use this to contact you. We will not share your email with anyone else.
-        </FieldDescription>
+        <FieldLabel for="email">{{ t('auth.signup.email') }}</FieldLabel>
+        <Input
+          id="email"
+          type="email"
+          :placeholder="t('auth.signup.emailPlaceholder')"
+          required
+        />
+        <FieldDescription>{{ t('auth.signup.emailDescription') }}</FieldDescription>
       </Field>
       <Field>
-        <FieldLabel for="password"> Password </FieldLabel>
+        <FieldLabel for="password">{{ t('auth.signup.password') }}</FieldLabel>
         <Input id="password" type="password" required />
-        <FieldDescription> Must be at least 8 characters long. </FieldDescription>
+        <FieldDescription>{{ t('auth.signup.passwordDescription') }}</FieldDescription>
       </Field>
       <Field>
-        <FieldLabel for="confirm-password"> Confirm Password </FieldLabel>
+        <FieldLabel for="confirm-password">{{ t('auth.signup.confirmPassword') }}</FieldLabel>
         <Input id="confirm-password" type="password" required />
-        <FieldDescription>Please confirm your password.</FieldDescription>
+        <FieldDescription>{{ t('auth.signup.confirmPasswordDescription') }}</FieldDescription>
       </Field>
       <Field>
-        <Button type="submit"> Create Account </Button>
+        <Button type="submit">{{ t('auth.signup.submit') }}</Button>
       </Field>
-      <FieldSeparator>Or continue with</FieldSeparator>
+      <FieldSeparator>{{ t('auth.signup.orContinueWith') }}</FieldSeparator>
       <Field>
         <Button variant="outline" type="button">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
@@ -58,10 +69,10 @@ const props = defineProps<{
               fill="currentColor"
             />
           </svg>
-          Sign up with GitHub
+          {{ t('auth.signup.github') }}
         </Button>
         <FieldDescription class="px-6 text-center">
-          Already have an account? <a href="#">Sign in</a>
+          {{ t('auth.signup.alreadyHaveAccount') }} <a href="#">{{ t('auth.signup.signIn') }}</a>
         </FieldDescription>
       </Field>
     </FieldGroup>

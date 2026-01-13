@@ -1382,10 +1382,20 @@ export default {
   auth: {
     // 登录
     login: {
-      title: '管理员登录',
+      title: '登录',
+      subtitle: '输入您的凭据以访问管理面板',
       username: '用户名',
+      usernamePlaceholder: 'admin',
       password: '密码',
+      passwordPlaceholder: '••••••••',
       submit: '登录',
+      submitting: '登录中...',
+      invalidCredentials: '用户名或密码无效',
+      loginFailed: '登录失败。请重试。',
+      demoAccounts: '演示账号',
+      demoAccountsTitle: '使用以下凭据：',
+      demoAdmin: '• admin / admin123 (超级管理员)',
+      demoModerator: '• moderator / mod123 (版主)',
       rememberMe: '记住我',
       forgotPassword: '忘记密码？',
       noAccount: '还没有账号？',
@@ -1394,14 +1404,22 @@ export default {
 
     // 注册
     signup: {
-      title: '管理员注册',
-      username: '用户名',
+      title: '创建您的账号',
+      subtitle: '填写以下表单以创建您的账号',
+      fullName: '全名',
+      fullNamePlaceholder: '张三',
       email: '邮箱',
+      emailPlaceholder: 'm@example.com',
+      emailDescription: '我们将使用此联系方式与您联系。我们不会与任何人分享您的邮箱。',
       password: '密码',
+      passwordDescription: '密码至少需要 8 个字符。',
       confirmPassword: '确认密码',
+      confirmPasswordDescription: '请确认您的密码。',
       submit: '创建账号',
-      hasAccount: '已有账号？',
-      login: '登录',
+      orContinueWith: '或继续使用',
+      github: '使用 GitHub 注册',
+      alreadyHaveAccount: '已有账号？',
+      signIn: '登录',
       agreeToTerms: '我同意服务条款',
     },
 

@@ -3,11 +3,11 @@
  * Defines supported locales and translatable entity configurations
  */
 
-export const SUPPORTED_LOCALES = ['en-US', 'zh-CN'] as const;
+export const SUPPORTED_LOCALES = ['zh-CN', 'en-US'] as const;
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number];
 
-export const DEFAULT_LOCALE: SupportedLocale = 'en-US';
-export const FALLBACK_LOCALE: SupportedLocale = 'en-US';
+export const DEFAULT_LOCALE: SupportedLocale = 'zh-CN';
+export const FALLBACK_LOCALE: SupportedLocale = 'zh-CN';
 export const LOCALE_HEADER_KEY = 'x-locale';
 
 export function matchSupportedLocale(locale?: string): SupportedLocale | null {

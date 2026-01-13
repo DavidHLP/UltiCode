@@ -206,18 +206,12 @@ defineExpose({
             v-model="customLanguage"
             placeholder="Custom language name..."
             class="font-mono text-sm flex-1 max-w-xs"
-            @keyup.enter="
-              addLanguage(customLanguage)
-              customLanguage = ''
-            "
+            @keyup.enter="addLanguage(customLanguage); customLanguage = ''"
           />
           <Button
             size="sm"
             :disabled="!customLanguage.trim()"
-            @click="
-              addLanguage(customLanguage)
-              customLanguage = ''
-            "
+            @click="addLanguage(customLanguage); customLanguage = ''"
           >
             <IconPlus class="h-4 w-4 mr-1" />
             Add

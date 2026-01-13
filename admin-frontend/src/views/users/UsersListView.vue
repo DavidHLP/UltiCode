@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
@@ -48,6 +49,7 @@ import UserDetailDrawer from './UserDetailDrawer.vue'
 import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
 import UserBanDialog from './UserBanDialog.vue'
 
+const { t } = useI18n()
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
 
@@ -140,14 +142,14 @@ async function unbanUser(id: string) {
     await usersStore.unbanUser(id)
     await loadUsers()
   } catch {
-    toast.error('Failed to unban user')
+    toast.error(t('users.toast.unbanFailed'))
   }
 }
 
 async function handleBulkBan() {
   if (selectedRows.value.length === 0) return
   const ids = selectedRows.value.map((r) => r.id)
-  const reason = prompt('Enter reason for bulk ban:')
+  const reason = prompt(t('users.banReasonPrompt'))
   if (reason === null) return
 
   bulkActionLoading.value = true
@@ -156,7 +158,7 @@ async function handleBulkBan() {
     await loadUsers()
     selectedRows.value = []
   } catch {
-    toast.error('Failed to bulk ban users')
+    toast.error(t('users.toast.bulkBanFailed'))
   } finally {
     bulkActionLoading.value = false
   }
@@ -172,7 +174,7 @@ async function handleBulkUnban() {
     await loadUsers()
     selectedRows.value = []
   } catch {
-    toast.error('Failed to bulk unban users')
+    toast.error(t('users.toast.bulkUnbanFailed'))
   } finally {
     bulkActionLoading.value = false
   }
@@ -181,7 +183,8 @@ async function handleBulkUnban() {
 async function handleBulkDelete() {
   if (selectedRows.value.length === 0) return
   const ids = selectedRows.value.map((r) => r.id)
-  if (!confirm(`Are you sure you want to delete ${ids.length} users? This action is IRREVERSIBLE.`))
+  const count = ids.length
+  if (!confirm(t('users.deleteConfirm', { count })))
     return
 
   bulkActionLoading.value = true
@@ -190,7 +193,7 @@ async function handleBulkDelete() {
     await loadUsers()
     selectedRows.value = []
   } catch {
-    toast.error('Failed to bulk delete users')
+    toast.error(t('users.toast.bulkDeleteFailed'))
   } finally {
     bulkActionLoading.value = false
   }
@@ -221,12 +224,12 @@ function getStatusIcon(user: User) {
 
 function getStatusBadge(user: User) {
   if (user.is_banned) {
-    return h(Badge, { variant: 'destructive' }, () => 'Banned')
+    return h(Badge, { variant: 'destructive' }, () => t('users.status.banned'))
   }
   if (user.is_active) {
-    return h(Badge, { variant: 'default' }, () => 'Active')
+    return h(Badge, { variant: 'default' }, () => t('users.status.active'))
   }
-  return h(Badge, { variant: 'secondary' }, () => 'Inactive')
+  return h(Badge, { variant: 'secondary' }, () => t('users.status.inactive'))
 }
 
 const columns: ColumnDef<User>[] = [
@@ -252,7 +255,7 @@ const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'username',
-    header: 'User',
+    header: () => t('users.columns.user'),
     cell: ({ row }) => {
       const user = row.original
       const initials =
@@ -286,7 +289,7 @@ const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'role',
-    header: 'Role',
+    header: () => t('users.columns.role'),
     cell: ({ row }) => {
       const role = row.getValue('role') as string
       const icon = role === 'USER' ? IconUser : IconShield
@@ -298,7 +301,7 @@ const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'status',
-    header: 'Status',
+    header: () => t('common.status'),
     cell: ({ row }) => {
       const user = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
@@ -309,7 +312,7 @@ const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'joined_at',
-    header: 'Joined',
+    header: () => t('users.columns.joined'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('joined_at') as string)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
@@ -317,11 +320,11 @@ const columns: ColumnDef<User>[] = [
   },
   {
     accessorKey: 'last_login_at',
-    header: 'Last Login',
+    header: () => t('users.columns.lastLogin'),
     cell: ({ row }) => {
       const lastLogin = row.getValue('last_login_at') as string | undefined
       if (!lastLogin) {
-        return h('span', { class: 'text-muted-foreground text-sm' }, 'Never')
+        return h('span', { class: 'text-muted-foreground text-sm' }, t('common.never'))
       }
       const date = new Date(lastLogin)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
@@ -329,7 +332,7 @@ const columns: ColumnDef<User>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('common.actions'),
     cell: ({ row }) => {
       const user = row.original
       return h(
@@ -366,7 +369,7 @@ const columns: ColumnDef<User>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconUser, { class: 'h-4 w-4' }),
-                          'View Details',
+                          t('users.actions.viewDetails'),
                         ]),
                     },
                   ),
@@ -377,7 +380,7 @@ const columns: ColumnDef<User>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconShield, { class: 'h-4 w-4' }),
-                          'Edit Profile',
+                          t('users.actions.editProfile'),
                         ]),
                     },
                   ),
@@ -388,7 +391,7 @@ const columns: ColumnDef<User>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconLock, { class: 'h-4 w-4' }),
-                          'Reset Password',
+                          t('users.actions.resetPassword'),
                         ]),
                     },
                   ),
@@ -402,7 +405,7 @@ const columns: ColumnDef<User>[] = [
                             default: () =>
                               h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
                                 h(IconCheck, { class: 'h-4 w-4' }),
-                                'Unban User',
+                                t('users.actions.unbanUser'),
                               ]),
                           },
                         )
@@ -413,7 +416,7 @@ const columns: ColumnDef<User>[] = [
                             default: () =>
                               h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                                 h(IconBan, { class: 'h-4 w-4' }),
-                                'Ban User',
+                                t('users.actions.banUser'),
                               ]),
                           },
                         )
@@ -436,7 +439,7 @@ const columns: ColumnDef<User>[] = [
       class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
     >
       <div class="flex items-center gap-3">
-        <span class="text-sm font-medium">{{ selectedRows.length }} users selected</span>
+        <span class="text-sm font-medium">{{ t('users.selected', { count: selectedRows.length }) }}</span>
         <Separator orientation="vertical" class="h-4" />
         <div class="flex items-center gap-2">
           <Button
@@ -447,7 +450,7 @@ const columns: ColumnDef<User>[] = [
             :disabled="bulkActionLoading"
           >
             <IconBan class="h-3.5 w-3.5 mr-1" />
-            Bulk Ban
+            {{ t('users.bulkActions.bulkBan') }}
           </Button>
           <Button
             variant="outline"
@@ -457,7 +460,7 @@ const columns: ColumnDef<User>[] = [
             :disabled="bulkActionLoading"
           >
             <IconCheck class="h-3.5 w-3.5 mr-1" />
-            Bulk Unban
+            {{ t('users.bulkActions.bulkUnban') }}
           </Button>
           <Button
             v-if="canDeleteUser"
@@ -468,12 +471,12 @@ const columns: ColumnDef<User>[] = [
             :disabled="bulkActionLoading"
           >
             <IconCircleXFilled class="h-3.5 w-3.5 mr-1" />
-            Bulk Delete
+            {{ t('users.bulkActions.bulkDelete') }}
           </Button>
         </div>
       </div>
       <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
-        Clear Selection
+        {{ t('users.clearSelection') }}
       </Button>
     </div>
 
@@ -487,7 +490,7 @@ const columns: ColumnDef<User>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input v-model="searchQuery" placeholder="Search users..." class="min-w-[200px] w-[260px]">
+        <Input v-model="searchQuery" :placeholder="t('users.searchPlaceholder')" class="min-w-[200px] w-[260px]">
           <template #trailing>
             <button
               v-if="searchQuery"
@@ -500,28 +503,28 @@ const columns: ColumnDef<User>[] = [
         </Input>
         <Select v-model="roleFilter">
           <SelectTrigger class="w-[160px]">
-            <SelectValue placeholder="All Roles" />
+            <SelectValue :placeholder="t('users.filters.allRoles')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Roles</SelectItem>
-            <SelectItem value="USER">User</SelectItem>
-            <SelectItem value="MODERATOR">Moderator</SelectItem>
-            <SelectItem value="ADMIN">Admin</SelectItem>
-            <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+            <SelectItem value="all">{{ t('users.filters.allRoles') }}</SelectItem>
+            <SelectItem value="USER">{{ t('users.filters.role.USER') }}</SelectItem>
+            <SelectItem value="MODERATOR">{{ t('users.filters.role.MODERATOR') }}</SelectItem>
+            <SelectItem value="ADMIN">{{ t('users.filters.role.ADMIN') }}</SelectItem>
+            <SelectItem value="SUPER_ADMIN">{{ t('users.filters.role.SUPER_ADMIN') }}</SelectItem>
           </SelectContent>
         </Select>
         <Select v-model="statusFilter">
           <SelectTrigger class="w-[140px]">
-            <SelectValue placeholder="All Status" />
+            <SelectValue :placeholder="t('users.filters.allStatus')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-            <SelectItem value="banned">Banned</SelectItem>
+            <SelectItem value="all">{{ t('users.filters.allStatus') }}</SelectItem>
+            <SelectItem value="active">{{ t('users.filters.status.active') }}</SelectItem>
+            <SelectItem value="inactive">{{ t('users.filters.status.inactive') }}</SelectItem>
+            <SelectItem value="banned">{{ t('users.filters.status.banned') }}</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="icon" @click="loadUsers()" title="Refresh">
+        <Button variant="outline" size="icon" @click="loadUsers()" :title="t('common.refresh')">
           <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': usersStore.loading }" />
         </Button>
       </template>
@@ -529,7 +532,7 @@ const columns: ColumnDef<User>[] = [
       <template #extra-actions>
         <Button v-if="canCreateUser" variant="outline" size="sm" @click="createDialogOpen = true">
           <IconPlus />
-          <span class="hidden lg:inline">Add User</span>
+          <span class="hidden lg:inline">{{ t('users.addUser') }}</span>
         </Button>
       </template>
     </DataTable>
@@ -540,7 +543,7 @@ const columns: ColumnDef<User>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ usersStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadUsers()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadUsers()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 

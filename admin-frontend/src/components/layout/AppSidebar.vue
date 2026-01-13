@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/admin/auth'
 import {
   IconCamera,
@@ -36,6 +37,7 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 
 const user = computed(() => ({
@@ -47,12 +49,12 @@ const user = computed(() => ({
 const navMain = computed(() => {
   const items = [
     {
-      title: 'Dashboard',
+      title: t('nav.dashboard'),
       url: '/',
       icon: IconDashboard,
     },
     {
-      title: 'Users',
+      title: t('nav.users'),
       url: '/users',
       icon: IconUsers,
     },
@@ -61,7 +63,7 @@ const navMain = computed(() => {
   // Add Problems if user has permission
   if (authStore.hasPermission('READ', 'PROBLEM')) {
     items.push({
-      title: 'Problems',
+      title: t('nav.problems'),
       url: '/problems',
       icon: IconListDetails,
     })
@@ -70,7 +72,7 @@ const navMain = computed(() => {
   // Add Problem Lists if user has permission
   if (authStore.hasPermission('READ', 'PROBLEM_LIST')) {
     items.push({
-      title: 'Problem Lists',
+      title: t('nav.problemLists'),
       url: '/problem-lists',
       icon: IconListDetails,
     })
@@ -79,7 +81,7 @@ const navMain = computed(() => {
   // Add Tags if user has permission
   if (authStore.hasPermission('READ', 'TAG')) {
     items.push({
-      title: 'Tags',
+      title: t('nav.tags'),
       url: '/tags',
       icon: IconTags,
     })
@@ -88,7 +90,7 @@ const navMain = computed(() => {
   // Add Solutions if user has permission
   if (authStore.hasPermission('READ', 'SOLUTION')) {
     items.push({
-      title: 'Solutions',
+      title: t('nav.solutions'),
       url: '/solutions',
       icon: IconFileDescription,
     })
@@ -97,7 +99,7 @@ const navMain = computed(() => {
   // Add Contests if user has permission
   if (authStore.hasPermission('READ', 'CONTEST')) {
     items.push({
-      title: 'Contests',
+      title: t('nav.contests'),
       url: '/contests',
       icon: IconTrophy,
     })
@@ -106,7 +108,7 @@ const navMain = computed(() => {
   // Add Forum if user has permission
   if (authStore.hasPermission('MODERATE', 'FORUM_POST')) {
     items.push({
-      title: 'Forum',
+      title: t('nav.forum'),
       url: '/forum/posts',
       icon: IconMessages,
     })
@@ -118,7 +120,7 @@ const navMain = computed(() => {
     authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT')
   ) {
     items.push({
-      title: 'Comments',
+      title: t('nav.comments'),
       url: '/comments',
       icon: IconMessageCircle,
     })
@@ -127,7 +129,7 @@ const navMain = computed(() => {
   // Add Notifications if user has permission
   if (authStore.hasPermission('READ', 'SYSTEM')) {
     items.push({
-      title: 'Notifications',
+      title: t('nav.notifications'),
       url: '/notifications',
       icon: IconBell,
     })
@@ -136,7 +138,7 @@ const navMain = computed(() => {
   // Add Audit Logs only if user has permission
   if (authStore.hasPermission('READ', 'SYSTEM')) {
     items.push({
-      title: 'Audit Logs',
+      title: t('nav.auditLogs'),
       url: '/audit',
       icon: IconHistory,
     })
@@ -150,20 +152,20 @@ const navSecondary = computed(() => {
 
   if (authStore.hasPermission('UPDATE', 'SYSTEM')) {
     items.push({
-      title: 'Settings',
+      title: t('nav.settings'),
       url: '/settings',
       icon: IconSettings,
     })
   }
 
   items.push({
-    title: 'Get Help',
+    title: t('nav.getHelp'),
     url: '#',
     icon: IconHelp,
   })
 
   items.push({
-    title: 'Search',
+    title: t('nav.search'),
     url: '#',
     icon: IconSearch,
   })

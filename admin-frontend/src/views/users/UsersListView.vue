@@ -184,8 +184,7 @@ async function handleBulkDelete() {
   if (selectedRows.value.length === 0) return
   const ids = selectedRows.value.map((r) => r.id)
   const count = ids.length
-  if (!confirm(t('users.deleteConfirm', { count })))
-    return
+  if (!confirm(t('users.deleteConfirm', { count }))) return
 
   bulkActionLoading.value = true
   try {
@@ -439,7 +438,9 @@ const columns: ColumnDef<User>[] = [
       class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
     >
       <div class="flex items-center gap-3">
-        <span class="text-sm font-medium">{{ t('users.selected', { count: selectedRows.length }) }}</span>
+        <span class="text-sm font-medium">{{
+          t('users.selected', { count: selectedRows.length })
+        }}</span>
         <Separator orientation="vertical" class="h-4" />
         <div class="flex items-center gap-2">
           <Button
@@ -490,7 +491,11 @@ const columns: ColumnDef<User>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input v-model="searchQuery" :placeholder="t('users.searchPlaceholder')" class="min-w-[200px] w-[260px]">
+        <Input
+          v-model="searchQuery"
+          :placeholder="t('users.searchPlaceholder')"
+          class="min-w-[200px] w-[260px]"
+        >
           <template #trailing>
             <button
               v-if="searchQuery"

@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -14,6 +15,7 @@ import CasesDisplay from './components/CasesDisplay.vue'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const problemsStore = useProblemsStore()
 
 const publishing = ref(false)
@@ -49,14 +51,14 @@ async function togglePublish() {
   try {
     if (problem.value.is_published) {
       await problemsStore.unpublishProblem(problemId.value)
-      toast.success('Problem unpublished')
+      toast.success(t('problems.toast.unpublishSuccess'))
     } else {
       await problemsStore.publishProblem(problemId.value)
-      toast.success('Problem published')
+      toast.success(t('problems.toast.publishSuccess'))
     }
   } catch (error) {
     console.error('Failed to toggle publish:', error)
-    toast.error('Failed to update publish status')
+    toast.error(t('problems.toast.publishFailed'))
   } finally {
     publishing.value = false
   }
@@ -97,14 +99,14 @@ function editProblem() {
                 variant="secondary"
                 class="text-[10px] px-1.5 py-0 h-5"
               >
-                Draft
+                {{ t('problems.published.draft') }}
               </Badge>
               <Badge
                 v-if="problem.is_premium"
                 variant="outline"
                 class="text-[10px] px-1.5 py-0 h-5 border-amber-500/20 text-amber-600 bg-amber-500/5"
               >
-                Premium
+                {{ t('problems.badges.premium') }}
               </Badge>
             </div>
           </div>
@@ -115,9 +117,15 @@ function editProblem() {
         <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
           <Tabs :model-value="currentView" @update:model-value="handleTabChange">
             <TabsList class="h-9">
-              <TabsTrigger value="description" class="text-xs h-7 px-3">Description</TabsTrigger>
-              <TabsTrigger value="code" class="text-xs h-7 px-3">Code</TabsTrigger>
-              <TabsTrigger value="cases" class="text-xs h-7 px-3">Test Cases</TabsTrigger>
+              <TabsTrigger value="description" class="text-xs h-7 px-3">{{
+                t('problems.tabs.description')
+              }}</TabsTrigger>
+              <TabsTrigger value="code" class="text-xs h-7 px-3">{{
+                t('problems.tabs.code')
+              }}</TabsTrigger>
+              <TabsTrigger value="cases" class="text-xs h-7 px-3">{{
+                t('problems.tabs.testCases')
+              }}</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -131,7 +139,7 @@ function editProblem() {
             @click="editProblem"
           >
             <Edit :size="14" />
-            <span>Edit</span>
+            <span>{{ t('common.edit') }}</span>
           </Button>
 
           <Button
@@ -144,7 +152,7 @@ function editProblem() {
             <Eye v-if="!problem.is_published" :size="14" />
             <EyeOff v-else :size="14" />
             <span class="hidden sm:inline">{{
-              problem.is_published ? 'Unpublish' : 'Publish'
+              problem.is_published ? t('problems.actions.unpublish') : t('problems.actions.publish')
             }}</span>
           </Button>
         </div>
@@ -154,9 +162,15 @@ function editProblem() {
       <div class="md:hidden border-t p-1 bg-muted/10">
         <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
           <TabsList class="w-full h-9">
-            <TabsTrigger value="description" class="flex-1 text-xs h-7">Description</TabsTrigger>
-            <TabsTrigger value="code" class="flex-1 text-xs h-7">Code</TabsTrigger>
-            <TabsTrigger value="cases" class="flex-1 text-xs h-7">Test Cases</TabsTrigger>
+            <TabsTrigger value="description" class="flex-1 text-xs h-7">{{
+              t('problems.tabs.description')
+            }}</TabsTrigger>
+            <TabsTrigger value="code" class="flex-1 text-xs h-7">{{
+              t('problems.tabs.code')
+            }}</TabsTrigger>
+            <TabsTrigger value="cases" class="flex-1 text-xs h-7">{{
+              t('problems.tabs.testCases')
+            }}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -172,13 +186,15 @@ function editProblem() {
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">Error Loading Problem</h2>
+        <h2 class="text-sm font-semibold mb-1">{{ t('problems.view.errorLoading') }}</h2>
         <p class="text-xs text-muted-foreground mb-4">{{ problemsStore.error }}</p>
         <div class="flex gap-2">
           <Button variant="outline" size="sm" @click="router.push({ name: 'problems' })">
-            Back
+            {{ t('common.back') }}
           </Button>
-          <Button size="sm" @click="problemsStore.fetchProblem(problemId)"> Retry </Button>
+          <Button size="sm" @click="problemsStore.fetchProblem(problemId)">{{
+            t('common.retry')
+          }}</Button>
         </div>
       </div>
 
@@ -201,12 +217,12 @@ function editProblem() {
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">Problem Not Found</h2>
+        <h2 class="text-sm font-semibold mb-1">{{ t('problems.view.notFound') }}</h2>
         <p class="text-xs text-muted-foreground mb-4">
-          The problem doesn't exist or you don't have permission to view it.
+          {{ t('problems.view.notFoundDescription') }}
         </p>
         <Button variant="outline" size="sm" @click="router.push({ name: 'problems' })">
-          Back to Problems
+          {{ t('problems.view.backToProblems') }}
         </Button>
       </div>
 

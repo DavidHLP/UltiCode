@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -23,6 +24,7 @@ const emit = defineEmits<{
   (e: 'success'): void
 }>()
 
+const { t } = useI18n()
 const problemsStore = useProblemsStore()
 const loading = ref(false)
 
@@ -31,11 +33,11 @@ async function handleDelete() {
   loading.value = true
   try {
     await problemsStore.deleteProblem(props.problemId)
-    toast.success('Problem deleted successfully')
+    toast.success(t('problems.toast.deleteSuccess'))
     emit('success')
     emit('update:open', false)
   } catch {
-    toast.error('Failed to delete problem')
+    toast.error(t('problems.toast.deleteFailed'))
   } finally {
     loading.value = false
   }
@@ -46,18 +48,21 @@ async function handleDelete() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Delete Problem</DialogTitle>
+        <DialogTitle>{{ t('problems.dialog.delete.title') }}</DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete <strong>{{ problemTitle || 'this problem' }}</strong
-          >? This action cannot be undone and will remove all associated data.
+          {{
+            t('problems.dialog.delete.description', {
+              title: problemTitle || t('problems.dialog.delete.thisProblem'),
+            })
+          }}
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('common.cancel') }}
         </Button>
         <Button variant="destructive" @click="handleDelete" :disabled="loading">
-          {{ loading ? 'Deleting...' : 'Delete Problem' }}
+          {{ loading ? t('problems.dialog.delete.deleting') : t('problems.dialog.delete.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

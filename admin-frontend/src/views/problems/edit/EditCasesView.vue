@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { useProblemsStore } from '@/stores/admin/problems'
 import CasesForm from '../components/CasesForm.vue'
@@ -9,6 +10,7 @@ import type { Problem, ProblemExample } from '@/api/admin/problems'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const problemsStore = useProblemsStore()
 
 const formRef = ref<InstanceType<typeof CasesForm>>()
@@ -52,11 +54,11 @@ async function handleSubmit(data: CasesFormData) {
       hints: data.hints,
       tags: data.tags,
     })
-    toast.success('Test cases updated successfully')
+    toast.success(t('problems.toast.updateSuccess'))
     router.push({ name: 'problem-view-cases', params: { id: problemId.value } })
   } catch (error) {
     console.error('Failed to update problem test cases:', error)
-    toast.error('Failed to update test cases')
+    toast.error(t('problems.toast.updateFailed'))
   }
 }
 
@@ -82,23 +84,23 @@ function handleCancel() {
     <!-- Breadcrumbs -->
     <div class="flex items-center gap-2 text-sm text-muted-foreground">
       <router-link :to="{ name: 'problems' }" class="hover:text-foreground transition-colors">
-        Problems
+        {{ t('problems.title') }}
       </router-link>
       <span>/</span>
       <router-link
         :to="{ name: 'problem-view-cases', params: { id: problemId } }"
         class="hover:text-foreground transition-colors"
       >
-        {{ problemData?.title || 'Loading...' }}
+        {{ problemData?.title || t('common.loading') }}
       </router-link>
       <span>/</span>
-      <span class="text-foreground">Edit Test Cases</span>
+      <span class="text-foreground">{{ t('problems.edit.testCases') }}</span>
     </div>
 
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-3xl font-bold tracking-tight">Edit Test Cases</h1>
-        <p class="text-muted-foreground">Update examples, constraints, hints, and tags</p>
+        <h1 class="text-3xl font-bold tracking-tight">{{ t('problems.edit.testCases') }}</h1>
+        <p class="text-muted-foreground">{{ t('problems.edit.testCasesSubtitle') }}</p>
       </div>
     </div>
 
@@ -106,7 +108,7 @@ function handleCancel() {
       <div
         class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
       ></div>
-      <p class="mt-2 text-muted-foreground">Loading problem data...</p>
+      <p class="mt-2 text-muted-foreground">{{ t('problems.edit.loading') }}</p>
     </div>
 
     <CasesForm

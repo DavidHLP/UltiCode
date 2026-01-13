@@ -378,7 +378,7 @@ const columns: ColumnDef<Tag>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ tagsStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadTags()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadTags()">{{ t('tags.retry') }}</Button>
     </div>
   </div>
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { IconGitMerge, IconLoader } from '@tabler/icons-vue'
 import {
@@ -21,6 +22,8 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { useTagsStore } from '@/stores/admin/tags'
 import { TagType } from '@/api/admin/tags'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -54,11 +57,11 @@ async function handleMerge() {
       targetTagId: targetTagId.value,
       type: props.tagType,
     })
-    toast.success('Tags merged successfully')
+    toast.success(t('tags.toast.mergedSuccessfully'))
     emit('update:open', false)
     emit('success')
   } catch (error) {
-    toast.error('Failed to merge tags')
+    toast.error(t('tags.toast.failedToMerge'))
     console.error(error)
   } finally {
     loading.value = false
@@ -72,20 +75,19 @@ async function handleMerge() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2">
           <IconGitMerge class="h-5 w-5" />
-          Merge Tags
+          {{ t('tags.merge.title') }}
         </DialogTitle>
         <DialogDescription>
-          Merge <span class="font-medium text-foreground">"{{ sourceTagName }}"</span> into another
-          tag. All relations will be moved to the target tag, and the source tag will be deleted.
+          <span v-html="t('tags.merge.description', { source: sourceTagName })"></span>
         </DialogDescription>
       </DialogHeader>
 
       <div class="grid gap-4 py-4">
         <div class="grid gap-2">
-          <Label for="target-tag">Target Tag</Label>
+          <Label for="target-tag">{{ t('tags.merge.targetTag') }}</Label>
           <Select v-model="targetTagId">
             <SelectTrigger id="target-tag">
-              <SelectValue placeholder="Select a tag to merge into" />
+              <SelectValue :placeholder="t('tags.merge.targetTagPlaceholder')" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem v-for="tag in availableTargets" :key="tag.id" :value="tag.id">
@@ -98,11 +100,11 @@ async function handleMerge() {
 
       <DialogFooter>
         <Button variant="outline" @click="$emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('common.cancel') }}
         </Button>
         <Button @click="handleMerge" :disabled="loading || !targetTagId">
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Merge Tags
+          {{ t('tags.merge.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

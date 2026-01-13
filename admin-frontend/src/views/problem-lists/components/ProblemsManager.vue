@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Table,
   TableBody,
@@ -21,6 +22,7 @@ const props = defineProps<{
   list: ProblemListDetail | null
 }>()
 
+const { t } = useI18n()
 const store = useAdminProblemListsStore()
 const loading = ref(false)
 const problems = ref<ProblemListProblem[]>([])
@@ -84,10 +86,10 @@ async function saveProblems() {
         sort_order: p.sort_order,
       })),
     })
-    toast.success('Problems updated successfully')
+    toast.success(t('problemLists.toast.problemsUpdated'))
     isDirty.value = false
   } catch {
-    toast.error('Failed to update problems')
+    toast.error(t('problemLists.toast.problemsUpdateFailed'))
   } finally {
     loading.value = false
   }
@@ -97,14 +99,14 @@ async function saveProblems() {
 <template>
   <div class="space-y-4">
     <div class="flex justify-between items-center">
-      <h3 class="text-lg font-medium">Problems</h3>
+      <h3 class="text-lg font-medium">{{ t('problemLists.problemsManager.title') }}</h3>
       <div class="flex gap-2">
         <Button size="sm" variant="outline" @click="pickerOpen = true">
           <IconPlus class="mr-2 h-4 w-4" />
-          Add Problem
+          {{ t('problemLists.problemsManager.addProblem') }}
         </Button>
         <Button size="sm" @click="saveProblems" :disabled="!isDirty || loading">
-          {{ loading ? 'Saving...' : 'Save Changes' }}
+          {{ loading ? t('problemLists.problemsManager.saving') : t('problemLists.problemsManager.saveChanges') }}
         </Button>
       </div>
     </div>
@@ -113,9 +115,9 @@ async function saveProblems() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead class="w-[80px]">Order</TableHead>
-            <TableHead>Problem</TableHead>
-            <TableHead>Difficulty</TableHead>
+            <TableHead class="w-[80px]">{{ t('problemLists.problemsManager.order') }}</TableHead>
+            <TableHead>{{ t('problemLists.problemsManager.problem') }}</TableHead>
+            <TableHead>{{ t('problemLists.problemsManager.difficulty') }}</TableHead>
             <TableHead class="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -154,7 +156,7 @@ async function saveProblems() {
 
           <TableRow v-if="problems.length === 0">
             <TableCell colspan="4" class="h-24 text-center text-muted-foreground">
-              No problems in this list.
+              {{ t('problemLists.problemsManager.noProblems') }}
             </TableCell>
           </TableRow>
         </TableBody>

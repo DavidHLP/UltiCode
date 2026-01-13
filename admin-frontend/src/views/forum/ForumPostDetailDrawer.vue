@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Drawer,
   DrawerContent,
@@ -34,6 +35,8 @@ const emit = defineEmits<{
   'update:open': [value: boolean]
 }>()
 
+const { t } = useI18n()
+
 const authorInitials = computed(() => {
   if (!props.post?.author?.username) return '?'
   return props.post.author.username.slice(0, 2).toUpperCase()
@@ -50,8 +53,8 @@ function formatDate(dateStr: string) {
       <DrawerHeader class="border-b px-6 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <DrawerTitle>Post Details</DrawerTitle>
-            <DrawerDescription>View forum post information and content.</DrawerDescription>
+            <DrawerTitle>{{ t('forum.drawer.title') }}</DrawerTitle>
+            <DrawerDescription>{{ t('forum.drawer.description') }}</DrawerDescription>
           </div>
         </div>
       </DrawerHeader>
@@ -71,19 +74,19 @@ function formatDate(dateStr: string) {
                 <div class="flex flex-wrap gap-2">
                   <Badge v-if="post.is_pinned" variant="default">
                     <IconPin class="h-3 w-3 mr-1" />
-                    Pinned
+                    {{ t('forum.status.pinned') }}
                   </Badge>
                   <Badge v-if="post.is_locked" variant="secondary">
                     <IconLock class="h-3 w-3 mr-1" />
-                    Locked
+                    {{ t('forum.status.locked') }}
                   </Badge>
                   <Badge v-if="post.is_flagged" variant="destructive">
                     <IconFlag class="h-3 w-3 mr-1" />
-                    Flagged
+                    {{ t('forum.status.flagged') }}
                   </Badge>
                   <Badge v-if="post.is_deleted" variant="destructive">
                     <IconTrash class="h-3 w-3 mr-1" />
-                    Deleted
+                    {{ t('forum.status.deleted') }}
                   </Badge>
                   <Badge
                     v-if="
@@ -91,7 +94,7 @@ function formatDate(dateStr: string) {
                     "
                     variant="outline"
                   >
-                    Active
+                    {{ t('forum.status.active') }}
                   </Badge>
                 </div>
               </div>
@@ -103,7 +106,7 @@ function formatDate(dateStr: string) {
           <!-- Author & Community -->
           <div class="space-y-4">
             <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Author & Community
+              {{ t('forum.drawer.authorCommunity') }}
             </h4>
             <div class="flex items-center gap-3">
               <Avatar class="h-10 w-10">
@@ -111,9 +114,15 @@ function formatDate(dateStr: string) {
                 <AvatarFallback>{{ authorInitials }}</AvatarFallback>
               </Avatar>
               <div class="flex flex-col">
-                <span class="font-medium text-sm">{{ post.author?.username || 'Unknown' }}</span>
+                <span class="font-medium text-sm">{{
+                  post.author?.username || t('forum.overview.unknown')
+                }}</span>
                 <span class="text-xs text-muted-foreground">
-                  in {{ post.community?.name || 'Unknown Community' }}
+                  {{
+                    t('forum.detail.inCommunity', {
+                      community: post.community?.name || t('forum.drawer.unknownCommunity'),
+                    })
+                  }}
                 </span>
               </div>
             </div>
@@ -124,7 +133,7 @@ function formatDate(dateStr: string) {
           <!-- Statistics -->
           <div class="space-y-4">
             <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Statistics
+              {{ t('forum.drawer.statistics') }}
             </h4>
             <div class="grid grid-cols-2 gap-4">
               <div
@@ -132,28 +141,36 @@ function formatDate(dateStr: string) {
               >
                 <IconEye class="h-6 w-6 text-blue-500 mb-2" />
                 <span class="text-2xl font-bold tabular-nums">{{ post.view_count || 0 }}</span>
-                <span class="text-xs text-muted-foreground uppercase">Views</span>
+                <span class="text-xs text-muted-foreground uppercase">{{
+                  t('forum.detail.views')
+                }}</span>
               </div>
               <div
                 class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
               >
                 <IconMessage class="h-6 w-6 text-purple-500 mb-2" />
                 <span class="text-2xl font-bold tabular-nums">{{ post.comment_count || 0 }}</span>
-                <span class="text-xs text-muted-foreground uppercase">Comments</span>
+                <span class="text-xs text-muted-foreground uppercase">{{
+                  t('forum.detail.comments')
+                }}</span>
               </div>
               <div
                 class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
               >
                 <IconThumbUp class="h-6 w-6 text-emerald-500 mb-2" />
                 <span class="text-2xl font-bold tabular-nums">{{ post.upvotes || 0 }}</span>
-                <span class="text-xs text-muted-foreground uppercase">Upvotes</span>
+                <span class="text-xs text-muted-foreground uppercase">{{
+                  t('forum.detail.upvotes')
+                }}</span>
               </div>
               <div
                 class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
               >
                 <IconThumbDown class="h-6 w-6 text-rose-500 mb-2" />
                 <span class="text-2xl font-bold tabular-nums">{{ post.downvotes || 0 }}</span>
-                <span class="text-xs text-muted-foreground uppercase">Downvotes</span>
+                <span class="text-xs text-muted-foreground uppercase">{{
+                  t('forum.detail.downvotes')
+                }}</span>
               </div>
             </div>
           </div>
@@ -163,13 +180,13 @@ function formatDate(dateStr: string) {
           <!-- Dates -->
           <div class="space-y-4">
             <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Timeline
+              {{ t('forum.detail.timeline') }}
             </h4>
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1">
                 <p class="text-sm font-medium flex items-center gap-2">
                   <IconCalendar class="h-4 w-4 text-muted-foreground" />
-                  Created
+                  {{ t('forum.detail.created') }}
                 </p>
                 <p class="text-sm text-muted-foreground pl-6">
                   {{ formatDate(post.created_at) }}
@@ -178,7 +195,7 @@ function formatDate(dateStr: string) {
               <div class="space-y-1">
                 <p class="text-sm font-medium flex items-center gap-2">
                   <IconCalendar class="h-4 w-4 text-muted-foreground" />
-                  Updated
+                  {{ t('forum.detail.updated') }}
                 </p>
                 <p class="text-sm text-muted-foreground pl-6">
                   {{ formatDate(post.updated_at) }}
@@ -194,15 +211,15 @@ function formatDate(dateStr: string) {
           >
             <h4 class="text-sm font-medium text-destructive flex items-center gap-2">
               <IconFlag class="h-4 w-4" />
-              Flag Information
+              {{ t('forum.detail.flagInformation') }}
             </h4>
             <div class="space-y-2">
-              <p class="text-sm font-medium">Reason:</p>
+              <p class="text-sm font-medium">{{ t('forum.detail.reason') }}</p>
               <p class="text-sm text-muted-foreground italic">
                 {{ post.flagged_reason }}
               </p>
               <p v-if="post.flagged_at" class="text-xs text-muted-foreground">
-                Flagged on: {{ formatDate(post.flagged_at) }}
+                {{ t('forum.detail.flaggedOn') }} {{ formatDate(post.flagged_at) }}
               </p>
             </div>
           </div>
@@ -214,11 +231,11 @@ function formatDate(dateStr: string) {
           >
             <h4 class="text-sm font-medium text-destructive flex items-center gap-2">
               <IconTrash class="h-4 w-4" />
-              Deletion Information
+              {{ t('forum.detail.deletionInformation') }}
             </h4>
             <div class="space-y-2">
               <p v-if="post.deleted_at" class="text-xs text-muted-foreground">
-                Deleted on: {{ formatDate(post.deleted_at) }}
+                {{ t('forum.detail.deletedOn') }} {{ formatDate(post.deleted_at) }}
               </p>
             </div>
           </div>
@@ -228,11 +245,11 @@ function formatDate(dateStr: string) {
           <!-- Content Preview -->
           <div class="space-y-4">
             <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Content Preview
+              {{ t('forum.drawer.contentPreview') }}
             </h4>
             <div class="rounded-lg border p-4">
               <p class="text-sm text-muted-foreground whitespace-pre-wrap">
-                {{ post.content || post.excerpt || 'No content available' }}
+                {{ post.content || post.excerpt || t('forum.detail.noContentAvailable') }}
               </p>
             </div>
           </div>
@@ -240,19 +257,19 @@ function formatDate(dateStr: string) {
           <!-- IDs -->
           <div class="space-y-4">
             <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Identifiers
+              {{ t('forum.detail.identifiers') }}
             </h4>
             <div class="grid gap-2 text-xs">
               <div class="flex items-center gap-2">
-                <span class="text-muted-foreground">Post ID:</span>
+                <span class="text-muted-foreground">{{ t('forum.detail.postId') }}</span>
                 <code class="bg-muted px-1.5 py-0.5 rounded font-mono">{{ post.id }}</code>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-muted-foreground">Author ID:</span>
+                <span class="text-muted-foreground">{{ t('forum.detail.authorId') }}</span>
                 <code class="bg-muted px-1.5 py-0.5 rounded font-mono">{{ post.user_id }}</code>
               </div>
               <div class="flex items-center gap-2">
-                <span class="text-muted-foreground">Community ID:</span>
+                <span class="text-muted-foreground">{{ t('forum.detail.communityId') }}</span>
                 <code class="bg-muted px-1.5 py-0.5 rounded font-mono">{{
                   post.community_id
                 }}</code>
@@ -263,7 +280,7 @@ function formatDate(dateStr: string) {
       </ScrollArea>
 
       <div v-else class="flex h-full items-center justify-center p-8">
-        <p class="text-muted-foreground">Post not found</p>
+        <p class="text-muted-foreground">{{ t('forum.drawer.postNotFound') }}</p>
       </div>
     </DrawerContent>
   </Drawer>

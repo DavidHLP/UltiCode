@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
@@ -33,6 +34,7 @@ defineProps<{
   postId: string
 }>()
 
+const { t } = useI18n()
 const commentsStore = useCommentsStore()
 const authStore = useAuthStore()
 
@@ -81,9 +83,9 @@ function openFlagDialog(comment: Comment) {
 async function unflagComment(comment: Comment) {
   try {
     await commentsStore.unflagComment(comment.id, comment.type)
-    toast.success('Comment unflagged successfully')
+    toast.success(t('comments.toast.unflaggedSuccessfully'))
   } catch {
-    toast.error('Failed to unflag comment')
+    toast.error(t('comments.toast.failedToUnflag'))
   }
 }
 
@@ -97,20 +99,20 @@ const columns: ColumnDef<Comment>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate'),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'aria-label': 'Select all',
+        'aria-label': t('table.selectAll'),
       }),
     cell: ({ row }) =>
       h(Checkbox, {
         modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': 'Select row',
+        'aria-label': t('table.selectAll'),
       }),
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: 'content',
-    header: 'Comment',
+    header: () => t('comments.columns.comment'),
     cell: ({ row }) => {
       const comment = row.original
       const truncated =
@@ -120,14 +122,14 @@ const columns: ColumnDef<Comment>[] = [
         h('span', { class: 'text-sm' }, truncated),
         h('div', { class: 'flex items-center gap-1 text-xs text-muted-foreground' }, [
           h(IconUser, { class: 'h-3 w-3' }),
-          h('span', {}, comment.author?.username || 'Unknown'),
+          h('span', {}, comment.author?.username || t('forum.overview.unknown')),
         ]),
       ])
     },
   },
   {
     accessorKey: 'created_at',
-    header: 'Created',
+    header: () => t('comments.columns.created'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('created_at') as string)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
@@ -135,7 +137,7 @@ const columns: ColumnDef<Comment>[] = [
   },
   {
     accessorKey: 'is_flagged',
-    header: 'Status',
+    header: () => t('comments.columns.status'),
     cell: ({ row }) => {
       const isFlagged = row.getValue('is_flagged') as boolean
       const isDeleted = row.original.is_deleted
@@ -143,23 +145,23 @@ const columns: ColumnDef<Comment>[] = [
       if (isDeleted) {
         return h(Badge, { variant: 'destructive' }, () => [
           h(IconTrash, { class: 'mr-1 h-3 w-3' }),
-          'Deleted',
+          t('comments.status.deleted'),
         ])
       }
 
       if (isFlagged) {
         return h(Badge, { variant: 'destructive' }, () => [
           h(IconFlag, { class: 'mr-1 h-3 w-3' }),
-          'Flagged',
+          t('comments.status.flagged'),
         ])
       }
 
-      return h(Badge, { variant: 'secondary' }, () => 'Active')
+      return h(Badge, { variant: 'secondary' }, () => t('comments.status.active'))
     },
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('common.actions'),
     cell: ({ row }) => {
       const comment = row.original
       if (!canModerate.value) return null
@@ -179,7 +181,7 @@ const columns: ColumnDef<Comment>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h('span', { class: 'sr-only' }, t('common.open')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },
@@ -199,7 +201,7 @@ const columns: ColumnDef<Comment>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
                               h(IconCheck, { class: 'h-4 w-4' }),
-                              'Unflag',
+                              t('comments.actions.unflag'),
                             ]),
                         },
                       )
@@ -210,7 +212,7 @@ const columns: ColumnDef<Comment>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
                               h(IconFlag, { class: 'h-4 w-4' }),
-                              'Flag',
+                              t('comments.actions.flag'),
                             ]),
                         },
                       ),
@@ -222,7 +224,7 @@ const columns: ColumnDef<Comment>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                           h(IconTrash, { class: 'h-4 w-4' }),
-                          'Delete',
+                          t('comments.actions.delete'),
                         ]),
                     },
                   ),
@@ -243,9 +245,15 @@ const columns: ColumnDef<Comment>[] = [
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <IconMessage class="h-5 w-5 text-muted-foreground" />
-        <h3 class="text-lg font-semibold">Post Comments</h3>
+        <h3 class="text-lg font-semibold">{{ t('forum.comments.postComments') }}</h3>
       </div>
-      <Button variant="ghost" size="icon" class="h-8 w-8" @click="loadComments" title="Refresh">
+      <Button
+        variant="ghost"
+        size="icon"
+        class="h-8 w-8"
+        @click="loadComments"
+        :title="t('common.refresh')"
+      >
         <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': commentsStore.loading }" />
       </Button>
     </div>
@@ -266,7 +274,7 @@ const columns: ColumnDef<Comment>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ commentsStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadComments">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadComments">{{ t('common.retry') }}</Button>
     </div>
 
     <!-- Empty state -->
@@ -275,7 +283,7 @@ const columns: ColumnDef<Comment>[] = [
       class="text-center py-8"
     >
       <IconMessage class="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-      <p class="text-sm text-muted-foreground">No comments found for this post</p>
+      <p class="text-sm text-muted-foreground">{{ t('forum.comments.noCommentsFound') }}</p>
     </div>
 
     <!-- Dialogs -->

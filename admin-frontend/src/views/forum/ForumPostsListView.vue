@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
@@ -44,6 +45,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import ForumPostDeleteDialog from './ForumPostDeleteDialog.vue'
 
 const router = useRouter()
+const { t } = useI18n()
 const forumStore = useForumStore()
 const authStore = useAuthStore()
 
@@ -109,18 +111,22 @@ function viewPostDetails(post: ForumPost) {
 async function togglePin(post: ForumPost) {
   try {
     await forumStore.togglePin(post)
-    toast.success(post.is_pinned ? 'Post unpinned' : 'Post pinned')
+    toast.success(
+      post.is_pinned ? t('forum.toast.unpinnedSuccessfully') : t('forum.toast.pinnedSuccessfully'),
+    )
   } catch {
-    toast.error('Failed to update pin status')
+    toast.error(t('forum.toast.failedToUpdatePin'))
   }
 }
 
 async function toggleLock(post: ForumPost) {
   try {
     await forumStore.toggleLock(post)
-    toast.success(post.is_locked ? 'Post unlocked' : 'Post locked')
+    toast.success(
+      post.is_locked ? t('forum.toast.unlockedSuccessfully') : t('forum.toast.lockedSuccessfully'),
+    )
   } catch {
-    toast.error('Failed to update lock status')
+    toast.error(t('forum.toast.failedToUpdateLock'))
   }
 }
 
@@ -134,41 +140,45 @@ const columns: ColumnDef<ForumPost>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate'),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'aria-label': 'Select all',
+        'aria-label': t('table.selectAll'),
       }),
     cell: ({ row }) =>
       h(Checkbox, {
         modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': 'Select row',
+        'aria-label': t('table.selectAll'),
       }),
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: 'title',
-    header: 'Title',
+    header: () => t('forum.columns.title'),
     cell: ({ row }) => {
       const post = row.original
       return h('div', { class: 'flex flex-col gap-1' }, [
         h('div', { class: 'flex items-center gap-2' }, [
           h('span', { class: 'font-medium text-sm' }, post.title),
-          post.is_pinned && h(IconPin, { class: 'h-3 w-3 text-blue-500', 'aria-label': 'Pinned' }),
+          post.is_pinned &&
+            h(IconPin, { class: 'h-3 w-3 text-blue-500', 'aria-label': t('forum.status.pinned') }),
           post.is_locked &&
-            h(IconLock, { class: 'h-3 w-3 text-amber-500', 'aria-label': 'Locked' }),
+            h(IconLock, {
+              class: 'h-3 w-3 text-amber-500',
+              'aria-label': t('forum.status.locked'),
+            }),
         ]),
         h('div', { class: 'flex items-center gap-1 text-xs text-muted-foreground' }, [
           h(IconUser, { class: 'h-3 w-3' }),
-          h('span', {}, post.author?.username || 'Unknown'),
+          h('span', {}, post.author?.username || t('forum.overview.unknown')),
           h('span', { class: 'mx-1' }, '•'),
-          h('span', {}, post.community?.name || 'Unknown Community'),
+          h('span', {}, post.community?.name || t('forum.drawer.unknownCommunity')),
         ]),
       ])
     },
   },
   {
     accessorKey: 'stats',
-    header: 'Stats',
+    header: () => t('forum.columns.stats'),
     cell: ({ row }) => {
       const post = row.original
       return h('div', { class: 'flex items-center gap-3 text-muted-foreground text-xs' }, [
@@ -189,7 +199,7 @@ const columns: ColumnDef<ForumPost>[] = [
   },
   {
     accessorKey: 'is_flagged',
-    header: 'Status',
+    header: () => t('forum.columns.status'),
     cell: ({ row }) => {
       const isFlagged = row.getValue('is_flagged') as boolean
       const isDeleted = row.original.is_deleted
@@ -197,23 +207,23 @@ const columns: ColumnDef<ForumPost>[] = [
       if (isDeleted) {
         return h(Badge, { variant: 'destructive' }, () => [
           h(IconTrash, { class: 'mr-1 h-3 w-3' }),
-          'Deleted',
+          t('forum.status.deleted'),
         ])
       }
 
       if (isFlagged) {
         return h(Badge, { variant: 'destructive' }, () => [
           h(IconFlag, { class: 'mr-1 h-3 w-3' }),
-          'Flagged',
+          t('forum.status.flagged'),
         ])
       }
 
-      return h(Badge, { variant: 'secondary' }, () => 'Active')
+      return h(Badge, { variant: 'secondary' }, () => t('forum.status.active'))
     },
   },
   {
     accessorKey: 'created_at',
-    header: 'Created',
+    header: () => t('forum.columns.created'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('created_at') as string)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
@@ -221,7 +231,7 @@ const columns: ColumnDef<ForumPost>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('common.actions'),
     cell: ({ row }) => {
       const post = row.original
       if (!canModerate.value) return null
@@ -241,7 +251,7 @@ const columns: ColumnDef<ForumPost>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h('span', { class: 'sr-only' }, t('common.open')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },
@@ -260,7 +270,7 @@ const columns: ColumnDef<ForumPost>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconEye, { class: 'h-4 w-4' }),
-                          'View Details',
+                          t('forum.actions.viewDetails'),
                         ]),
                     },
                   ),
@@ -272,7 +282,7 @@ const columns: ColumnDef<ForumPost>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconPin, { class: 'h-4 w-4' }),
-                          post.is_pinned ? 'Unpin' : 'Pin',
+                          post.is_pinned ? t('forum.actions.unpin') : t('forum.actions.pin'),
                         ]),
                     },
                   ),
@@ -283,7 +293,7 @@ const columns: ColumnDef<ForumPost>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconLock, { class: 'h-4 w-4' }),
-                          post.is_locked ? 'Unlock' : 'Lock',
+                          post.is_locked ? t('forum.actions.unlock') : t('forum.actions.lock'),
                         ]),
                     },
                   ),
@@ -295,7 +305,7 @@ const columns: ColumnDef<ForumPost>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                           h(IconTrash, { class: 'h-4 w-4' }),
-                          'Delete',
+                          t('forum.actions.delete'),
                         ]),
                     },
                   ),
@@ -324,7 +334,7 @@ const columns: ColumnDef<ForumPost>[] = [
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Input
             v-model="searchQuery"
-            placeholder="Search posts..."
+            :placeholder="t('forum.searchPlaceholder')"
             class="h-8 min-w-[150px] w-full lg:w-[250px]"
           >
             <template #trailing>
@@ -341,10 +351,10 @@ const columns: ColumnDef<ForumPost>[] = [
           <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
             <Select v-model="communityFilter">
               <SelectTrigger class="h-8 w-[150px]">
-                <SelectValue placeholder="Community" />
+                <SelectValue :placeholder="t('forum.filters.community')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Communities</SelectItem>
+                <SelectItem value="all">{{ t('forum.filters.allCommunities') }}</SelectItem>
                 <SelectItem
                   v-for="community in forumStore.communities"
                   :key="community.id"
@@ -357,34 +367,34 @@ const columns: ColumnDef<ForumPost>[] = [
 
             <Select v-model="flaggedFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Flag Status" />
+                <SelectValue :placeholder="t('forum.filters.flagStatus')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="flagged">Flagged</SelectItem>
-                <SelectItem value="clean">Clean</SelectItem>
+                <SelectItem value="all">{{ t('forum.filters.all') }}</SelectItem>
+                <SelectItem value="flagged">{{ t('forum.filters.flagged') }}</SelectItem>
+                <SelectItem value="clean">{{ t('forum.filters.clean') }}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select v-model="pinnedFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Pinned" />
+                <SelectValue :placeholder="t('forum.filters.pinned')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="pinned">Pinned</SelectItem>
-                <SelectItem value="unpinned">Unpinned</SelectItem>
+                <SelectItem value="all">{{ t('forum.filters.all') }}</SelectItem>
+                <SelectItem value="pinned">{{ t('forum.status.pinned') }}</SelectItem>
+                <SelectItem value="unpinned">{{ t('forum.filters.unpinned') }}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select v-model="lockedFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Locked" />
+                <SelectValue :placeholder="t('forum.filters.locked')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="locked">Locked</SelectItem>
-                <SelectItem value="unlocked">Unlocked</SelectItem>
+                <SelectItem value="all">{{ t('forum.filters.all') }}</SelectItem>
+                <SelectItem value="locked">{{ t('forum.status.locked') }}</SelectItem>
+                <SelectItem value="unlocked">{{ t('forum.filters.unlocked') }}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -393,7 +403,7 @@ const columns: ColumnDef<ForumPost>[] = [
               size="icon"
               class="h-8 w-8"
               @click="loadPosts()"
-              title="Refresh"
+              :title="t('common.refresh')"
             >
               <IconRefresh
                 class="h-3.5 w-3.5"
@@ -411,7 +421,7 @@ const columns: ColumnDef<ForumPost>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ forumStore.postsError }}</span>
-      <Button variant="outline" size="sm" @click="loadPosts()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadPosts()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 

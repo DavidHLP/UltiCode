@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { IconAlertTriangle, IconLoader } from '@tabler/icons-vue'
 import {
@@ -23,6 +24,7 @@ const emit = defineEmits<{
   (e: 'success'): void
 }>()
 
+const { t } = useI18n()
 const forumStore = useForumStore()
 const loading = ref(false)
 
@@ -32,11 +34,11 @@ async function handleDelete() {
   loading.value = true
   try {
     await forumStore.deletePost(props.postId)
-    toast.success('Post deleted successfully')
+    toast.success(t('forum.toast.deletedSuccessfully'))
     emit('update:open', false)
     emit('success')
   } catch (error) {
-    toast.error('Failed to delete post')
+    toast.error(t('forum.toast.failedToDelete'))
     console.error(error)
   } finally {
     loading.value = false
@@ -50,20 +52,20 @@ async function handleDelete() {
       <DialogHeader>
         <DialogTitle class="flex items-center gap-2 text-destructive">
           <IconAlertTriangle class="h-5 w-5" />
-          Delete Post
+          {{ t('forum.delete.title') }}
         </DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete this post? This action cannot be undone.
+          {{ t('forum.delete.description') }}
         </DialogDescription>
       </DialogHeader>
 
       <DialogFooter>
         <Button variant="outline" @click="$emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('forum.delete.cancel') }}
         </Button>
         <Button variant="destructive" @click="handleDelete" :disabled="loading">
           <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-          Delete Post
+          {{ t('forum.delete.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

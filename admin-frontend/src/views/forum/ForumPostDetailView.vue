@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useForumStore } from '@/stores/admin/forum'
 import { useAuthStore } from '@/stores/admin/auth'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,7 @@ import ForumPostFlagDialog from './ForumPostFlagDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
+const { t } = useI18n()
 const forumStore = useForumStore()
 const authStore = useAuthStore()
 
@@ -85,10 +87,14 @@ async function togglePin() {
   if (!post.value) return
   try {
     await forumStore.togglePin(post.value)
-    toast.success(post.value.is_pinned ? 'Post unpinned' : 'Post pinned')
+    toast.success(
+      post.value.is_pinned
+        ? t('forum.toast.unpinnedSuccessfully')
+        : t('forum.toast.pinnedSuccessfully'),
+    )
     await loadData() // Reload to get fresh data
   } catch {
-    toast.error('Failed to update pin status')
+    toast.error(t('forum.toast.failedToUpdatePin'))
   }
 }
 
@@ -96,10 +102,14 @@ async function toggleLock() {
   if (!post.value) return
   try {
     await forumStore.toggleLock(post.value)
-    toast.success(post.value.is_locked ? 'Post unlocked' : 'Post locked')
+    toast.success(
+      post.value.is_locked
+        ? t('forum.toast.unlockedSuccessfully')
+        : t('forum.toast.lockedSuccessfully'),
+    )
     await loadData() // Reload to get fresh data
   } catch {
-    toast.error('Failed to update lock status')
+    toast.error(t('forum.toast.failedToUpdateLock'))
   }
 }
 
@@ -107,11 +117,11 @@ async function unflagPost() {
   if (!post.value) return
   try {
     await forumStore.unflagPost(postId.value)
-    toast.success('Post unflagged successfully')
+    toast.success(t('forum.toast.unflaggedSuccessfully'))
     await loadData() // Reload to get fresh data
     await loadAuditHistory() // Refresh audit history
   } catch {
-    toast.error('Failed to unflag post')
+    toast.error(t('forum.toast.failedToUnflag'))
   }
 }
 
@@ -145,24 +155,24 @@ function handleFlagSuccess() {
             <h1 class="text-sm font-semibold truncate">{{ post.title }}</h1>
             <div class="hidden sm:flex items-center gap-2">
               <Badge v-if="post.is_pinned" variant="default" class="text-[10px] px-1.5 py-0 h-5">
-                Pinned
+                {{ t('forum.status.pinned') }}
               </Badge>
               <Badge v-if="post.is_locked" variant="secondary" class="text-[10px] px-1.5 py-0 h-5">
-                Locked
+                {{ t('forum.status.locked') }}
               </Badge>
               <Badge
                 v-if="post.is_flagged"
                 variant="destructive"
                 class="text-[10px] px-1.5 py-0 h-5"
               >
-                Flagged
+                {{ t('forum.status.flagged') }}
               </Badge>
               <Badge
                 v-if="post.is_deleted"
                 variant="destructive"
                 class="text-[10px] px-1.5 py-0 h-5"
               >
-                Deleted
+                {{ t('forum.status.deleted') }}
               </Badge>
             </div>
           </div>
@@ -175,15 +185,15 @@ function handleFlagSuccess() {
             <TabsList class="h-9">
               <TabsTrigger value="overview" class="text-xs h-7 px-3">
                 <FileText :size="14" class="mr-1" />
-                Overview
+                {{ t('forum.tabs.overview') }}
               </TabsTrigger>
               <TabsTrigger value="comments" class="text-xs h-7 px-3">
                 <MessageSquare :size="14" class="mr-1" />
-                Comments
+                {{ t('forum.tabs.comments') }}
               </TabsTrigger>
               <TabsTrigger value="audit" class="text-xs h-7 px-3">
                 <History :size="14" class="mr-1" />
-                Audit
+                {{ t('forum.tabs.audit') }}
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -199,7 +209,7 @@ function handleFlagSuccess() {
               @click="togglePin"
             >
               <Pin :size="14" />
-              <span>{{ post.is_pinned ? 'Unpin' : 'Pin' }}</span>
+              <span>{{ post.is_pinned ? t('forum.actions.unpin') : t('forum.actions.pin') }}</span>
             </Button>
 
             <Button
@@ -209,7 +219,9 @@ function handleFlagSuccess() {
               @click="toggleLock"
             >
               <Lock :size="14" />
-              <span>{{ post.is_locked ? 'Unlock' : 'Lock' }}</span>
+              <span>{{
+                post.is_locked ? t('forum.actions.unlock') : t('forum.actions.lock')
+              }}</span>
             </Button>
 
             <Button
@@ -220,7 +232,7 @@ function handleFlagSuccess() {
               @click="unflagPost"
             >
               <Flag :size="14" />
-              <span>Unflag</span>
+              <span>{{ t('forum.actions.unflag') }}</span>
             </Button>
             <Button
               v-else
@@ -230,7 +242,7 @@ function handleFlagSuccess() {
               @click="flagDialogOpen = true"
             >
               <Flag :size="14" />
-              <span>Flag</span>
+              <span>{{ t('forum.actions.flag') }}</span>
             </Button>
           </template>
 
@@ -252,15 +264,15 @@ function handleFlagSuccess() {
           <TabsList class="w-full h-9">
             <TabsTrigger value="overview" class="flex-1 text-xs h-7">
               <FileText :size="14" class="mr-1" />
-              Overview
+              {{ t('forum.tabs.overview') }}
             </TabsTrigger>
             <TabsTrigger value="comments" class="flex-1 text-xs h-7">
               <MessageSquare :size="14" class="mr-1" />
-              Comments
+              {{ t('forum.tabs.comments') }}
             </TabsTrigger>
             <TabsTrigger value="audit" class="flex-1 text-xs h-7">
               <History :size="14" class="mr-1" />
-              Audit
+              {{ t('forum.tabs.audit') }}
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -277,13 +289,13 @@ function handleFlagSuccess() {
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">Error Loading Post</h2>
+        <h2 class="text-sm font-semibold mb-1">{{ t('forum.error.loadingPost') }}</h2>
         <p class="text-xs text-muted-foreground mb-4">{{ forumStore.postError }}</p>
         <div class="flex gap-2">
           <Button variant="outline" size="sm" @click="router.push({ name: 'forum-posts' })">
-            Back
+            {{ t('forum.error.back') }}
           </Button>
-          <Button size="sm" @click="loadData">Retry</Button>
+          <Button size="sm" @click="loadData">{{ t('forum.error.retry') }}</Button>
         </div>
       </div>
 
@@ -306,12 +318,12 @@ function handleFlagSuccess() {
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">Post Not Found</h2>
+        <h2 class="text-sm font-semibold mb-1">{{ t('forum.error.postNotFound') }}</h2>
         <p class="text-xs text-muted-foreground mb-4">
-          The post doesn't exist or you don't have permission to view it.
+          {{ t('forum.error.notFoundDescription') }}
         </p>
         <Button variant="outline" size="sm" @click="router.push({ name: 'forum-posts' })">
-          Back to Forum Posts
+          {{ t('forum.error.backToForumPosts') }}
         </Button>
       </div>
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconCopy, IconCheck, IconCode, IconBrackets } from '@tabler/icons-vue'
@@ -10,6 +11,7 @@ const props = defineProps<{
 }>()
 
 const copied = ref(false)
+const { t } = useI18n()
 
 const currentCode = computed(() => props.solution.content || '')
 const language = computed(() => props.solution.language || 'text')
@@ -60,7 +62,9 @@ function getLanguageColor(lang: string): string {
           <IconBrackets class="h-3.5 w-3.5 mr-1.5 inline-block" />
           {{ language }}
         </Badge>
-        <span class="text-sm text-muted-foreground">{{ lineCount }} lines</span>
+        <span class="text-sm text-muted-foreground"
+          >{{ lineCount }} {{ t('solutions.detail.lines') }}</span
+        >
       </div>
 
       <Button
@@ -72,7 +76,7 @@ function getLanguageColor(lang: string): string {
       >
         <IconCheck v-if="copied" class="h-4 w-4 text-green-500" />
         <IconCopy v-else class="h-4 w-4" />
-        {{ copied ? 'Copied' : 'Copy' }}
+        {{ copied ? t('solutions.detail.copied') : t('solutions.detail.copy') }}
       </Button>
     </div>
 
@@ -82,7 +86,9 @@ function getLanguageColor(lang: string): string {
       <div class="flex items-center justify-between px-4 py-2.5 bg-muted/30 border-b">
         <div class="flex items-center gap-2">
           <IconCode class="h-4 w-4 text-muted-foreground" />
-          <span class="text-xs font-medium text-muted-foreground">Source Code</span>
+          <span class="text-xs font-medium text-muted-foreground">{{
+            t('solutions.detail.sourceCode')
+          }}</span>
         </div>
         <div class="flex items-center gap-1">
           <div class="w-2.5 h-2.5 rounded-full bg-red-400/80" />
@@ -98,7 +104,7 @@ function getLanguageColor(lang: string): string {
         ><code>{{ currentCode }}</code></pre>
       </div>
       <div v-else class="p-8 text-center text-sm text-muted-foreground italic bg-muted/20">
-        No code content available.
+        {{ t('solutions.detail.noCodeContent') }}
       </div>
     </div>
   </div>

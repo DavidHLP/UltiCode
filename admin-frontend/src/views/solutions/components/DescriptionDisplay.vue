@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import {
@@ -18,6 +19,8 @@ import DescriptionMarkdown from '@/components/problems/DescriptionMarkdown.vue'
 const props = defineProps<{
   solution: Solution
 }>()
+
+const { t } = useI18n()
 
 /**
  * Difficulty color mapping
@@ -52,7 +55,9 @@ const solutionContent = computed(() => ({
             </h1>
             <div class="flex items-center gap-2 text-muted-foreground text-sm font-mono">
               <IconFileText class="h-4 w-4" />
-              <span>Solution for {{ solution.problem?.title }}</span>
+              <span>{{
+                t('solutions.detail.solutionFor', { problem: solution.problem?.title })
+              }}</span>
             </div>
           </div>
         </div>
@@ -64,12 +69,12 @@ const solutionContent = computed(() => ({
           <DescriptionMarkdown :description="solutionContent" />
         </div>
         <div v-else class="text-center py-12 text-muted-foreground italic">
-          No description content provided.
+          {{ t('solutions.detail.noDescriptionContent') }}
         </div>
 
         <!-- Additional info if summary exists -->
         <div v-if="solution.summary" class="mt-8 p-4 bg-muted/30 rounded-lg">
-          <h3 class="font-semibold text-sm mb-2">Summary</h3>
+          <h3 class="font-semibold text-sm mb-2">{{ t('solutions.detail.summary') }}</h3>
           <p class="text-sm text-muted-foreground">{{ solution.summary }}</p>
         </div>
       </div>
@@ -81,13 +86,13 @@ const solutionContent = computed(() => ({
       <div class="rounded-xl border bg-card overflow-hidden shadow-sm">
         <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
           <IconInfoCircle class="h-4 w-4 text-muted-foreground" />
-          <h3 class="font-semibold text-sm">Metadata</h3>
+          <h3 class="font-semibold text-sm">{{ t('solutions.detail.metadata') }}</h3>
         </div>
         <div class="p-4 space-y-4">
           <div class="space-y-4">
             <div class="space-y-1">
               <span class="text-xs text-muted-foreground flex items-center gap-1">
-                <IconUser class="h-3 w-3" /> Author
+                <IconUser class="h-3 w-3" /> {{ t('solutions.detail.author') }}
               </span>
               <div class="flex items-center gap-2">
                 <span class="text-sm font-medium">{{ solution.author.username }}</span>
@@ -97,7 +102,7 @@ const solutionContent = computed(() => ({
 
             <div class="space-y-1">
               <span class="text-xs text-muted-foreground flex items-center gap-1">
-                <IconHash class="h-3 w-3" /> Problem Difficulty
+                <IconHash class="h-3 w-3" /> {{ t('solutions.detail.problemDifficulty') }}
               </span>
               <Badge
                 variant="outline"
@@ -110,7 +115,7 @@ const solutionContent = computed(() => ({
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1">
                 <span class="text-xs text-muted-foreground flex items-center gap-1">
-                  <IconEye class="h-3 w-3" /> Views
+                  <IconEye class="h-3 w-3" /> {{ t('solutions.detail.views') }}
                 </span>
                 <p class="text-sm font-medium tabular-nums">
                   {{ solution.views.toLocaleString() }}
@@ -118,7 +123,7 @@ const solutionContent = computed(() => ({
               </div>
               <div class="space-y-1">
                 <span class="text-xs text-muted-foreground flex items-center gap-1">
-                  <IconTag class="h-3 w-3" /> Language
+                  <IconTag class="h-3 w-3" /> {{ t('solutions.detail.language') }}
                 </span>
                 <p class="text-sm font-medium">
                   {{ solution.language }}
@@ -131,7 +136,7 @@ const solutionContent = computed(() => ({
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-1">
                 <span class="text-xs text-muted-foreground flex items-center gap-1">
-                  <IconCalendar class="h-3 w-3" /> Created
+                  <IconCalendar class="h-3 w-3" /> {{ t('solutions.detail.created') }}
                 </span>
                 <p class="text-sm font-medium">
                   {{ new Date(solution.created_at).toLocaleDateString() }}
@@ -139,7 +144,7 @@ const solutionContent = computed(() => ({
               </div>
               <div class="space-y-1">
                 <span class="text-xs text-muted-foreground flex items-center gap-1">
-                  <IconCalendar class="h-3 w-3" /> Updated
+                  <IconCalendar class="h-3 w-3" /> {{ t('solutions.detail.updated') }}
                 </span>
                 <p class="text-sm font-medium">
                   {{ new Date(solution.updated_at).toLocaleDateString() }}
@@ -152,11 +157,11 @@ const solutionContent = computed(() => ({
               class="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-600 space-y-1"
             >
               <span class="text-xs font-semibold flex items-center gap-1">
-                <IconFlag class="h-3 w-3" /> Flagged Reason
+                <IconFlag class="h-3 w-3" /> {{ t('solutions.detail.flaggedReason') }}
               </span>
               <p class="text-xs italic">"{{ solution.flagged_reason }}"</p>
               <p class="text-[10px] opacity-70" v-if="solution.flagged_at">
-                at {{ new Date(solution.flagged_at).toLocaleString() }}
+                {{ t('solutions.detail.at') }} {{ new Date(solution.flagged_at).toLocaleString() }}
               </p>
             </div>
           </div>
@@ -170,7 +175,7 @@ const solutionContent = computed(() => ({
       >
         <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
           <IconTag class="h-4 w-4 text-muted-foreground" />
-          <h3 class="font-semibold text-sm">Tags</h3>
+          <h3 class="font-semibold text-sm">{{ t('solutions.detail.tags') }}</h3>
         </div>
         <div class="p-4">
           <div class="flex flex-wrap gap-1.5">

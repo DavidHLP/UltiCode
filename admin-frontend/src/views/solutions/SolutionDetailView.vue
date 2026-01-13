@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useSolutionsStore } from '@/stores/admin/solutions'
 import { useAuthStore } from '@/stores/admin/auth'
 import { Button } from '@/components/ui/button'
@@ -18,6 +19,7 @@ const router = useRouter()
 const route = useRoute()
 const solutionsStore = useSolutionsStore()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const isInitialLoad = ref(true)
 const deleteDialogOpen = ref(false)
@@ -53,9 +55,9 @@ async function unflagSolution() {
   if (!solution.value) return
   try {
     await solutionsStore.unflagSolution(solutionId.value)
-    toast.success('Solution unflagged successfully')
+    toast.success(t('solutions.toast.unflaggedSuccessfully'))
   } catch {
-    toast.error('Failed to unflag solution')
+    toast.error(t('solutions.toast.failedToUnflag'))
   }
 }
 
@@ -88,14 +90,14 @@ function handleDeleteSuccess() {
                 variant="destructive"
                 class="text-[10px] px-1.5 py-0 h-5"
               >
-                Flagged
+                {{ t('solutions.status.flagged') }}
               </Badge>
               <Badge
                 v-if="!solution.is_published"
                 variant="secondary"
                 class="text-[10px] px-1.5 py-0 h-5"
               >
-                Unpublished
+                {{ t('solutions.status.unpublished') }}
               </Badge>
               <Badge variant="outline" class="text-[10px] px-1.5 py-0 h-5 flex gap-1">
                 <User :size="10" />
@@ -110,8 +112,12 @@ function handleDeleteSuccess() {
         <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
           <Tabs :model-value="currentView" @update:model-value="handleTabChange">
             <TabsList class="h-9">
-              <TabsTrigger value="description" class="text-xs h-7 px-3">Description</TabsTrigger>
-              <TabsTrigger value="code" class="text-xs h-7 px-3">Code</TabsTrigger>
+              <TabsTrigger value="description" class="text-xs h-7 px-3">{{
+                t('solutions.tabs.description')
+              }}</TabsTrigger>
+              <TabsTrigger value="code" class="text-xs h-7 px-3">{{
+                t('solutions.tabs.code')
+              }}</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -127,7 +133,7 @@ function handleDeleteSuccess() {
               @click="unflagSolution"
             >
               <Eye :size="14" />
-              <span>Unflag</span>
+              <span>{{ t('solutions.actions.unflag') }}</span>
             </Button>
             <Button
               v-else
@@ -137,7 +143,7 @@ function handleDeleteSuccess() {
               @click="flagDialogOpen = true"
             >
               <Flag :size="14" />
-              <span>Flag</span>
+              <span>{{ t('solutions.actions.flag') }}</span>
             </Button>
           </template>
 
@@ -157,8 +163,12 @@ function handleDeleteSuccess() {
       <div class="md:hidden border-t p-1 bg-muted/10">
         <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
           <TabsList class="w-full h-9">
-            <TabsTrigger value="description" class="flex-1 text-xs h-7">Description</TabsTrigger>
-            <TabsTrigger value="code" class="flex-1 text-xs h-7">Code</TabsTrigger>
+            <TabsTrigger value="description" class="flex-1 text-xs h-7">{{
+              t('solutions.tabs.description')
+            }}</TabsTrigger>
+            <TabsTrigger value="code" class="flex-1 text-xs h-7">{{
+              t('solutions.tabs.code')
+            }}</TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
@@ -174,13 +184,15 @@ function handleDeleteSuccess() {
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">Error Loading Solution</h2>
+        <h2 class="text-sm font-semibold mb-1">{{ t('solutions.error.loadingSolution') }}</h2>
         <p class="text-xs text-muted-foreground mb-4">{{ solutionsStore.error }}</p>
         <div class="flex gap-2">
           <Button variant="outline" size="sm" @click="router.push({ name: 'solutions' })">
-            Back
+            {{ t('solutions.error.back') }}
           </Button>
-          <Button size="sm" @click="solutionsStore.fetchSolution(solutionId)"> Retry </Button>
+          <Button size="sm" @click="solutionsStore.fetchSolution(solutionId)">
+            {{ t('solutions.error.retry') }}
+          </Button>
         </div>
       </div>
 
@@ -206,12 +218,12 @@ function handleDeleteSuccess() {
         <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
           <FileText :size="24" class="text-muted-foreground" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">Solution Not Found</h2>
+        <h2 class="text-sm font-semibold mb-1">{{ t('solutions.error.solutionNotFound') }}</h2>
         <p class="text-xs text-muted-foreground mb-4">
-          The solution doesn't exist or you don't have permission to view it.
+          {{ t('solutions.error.notFoundDescription') }}
         </p>
         <Button variant="outline" size="sm" @click="router.push({ name: 'solutions' })">
-          Back to Solutions
+          {{ t('solutions.error.backToSolutions') }}
         </Button>
       </div>
 

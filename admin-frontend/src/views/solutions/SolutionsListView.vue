@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
+import { useI18n } from 'vue-i18n'
 import {
   IconCheck,
   IconDotsVertical,
@@ -46,6 +47,7 @@ import SolutionFlagDialog from './SolutionFlagDialog.vue'
 const router = useRouter()
 const solutionsStore = useSolutionsStore()
 const authStore = useAuthStore()
+const { t } = useI18n()
 
 const searchQuery = ref('')
 const flaggedFilter = ref<string>('all')
@@ -117,10 +119,10 @@ function openFlagDialog(solution: Solution) {
 async function unflagSolution(id: string) {
   try {
     await solutionsStore.unflagSolution(id)
-    toast.success('Solution unflagged successfully')
+    toast.success(t('solutions.toast.unflaggedSuccessfully'))
     // We update local state in store, so no need to reload unless desired
   } catch {
-    toast.error('Failed to unflag solution')
+    toast.error(t('solutions.toast.failedToUnflag'))
   }
 }
 
@@ -134,20 +136,20 @@ const columns: ColumnDef<Solution>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate'),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'aria-label': 'Select all',
+        'aria-label': t('table.selectAll'),
       }),
     cell: ({ row }) =>
       h(Checkbox, {
         modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': 'Select row',
+        'aria-label': t('table.select'),
       }),
     enableSorting: false,
     enableHiding: false,
   },
   {
     accessorKey: 'id',
-    header: 'ID',
+    header: () => t('solutions.columns.id'),
     cell: ({ row }) => {
       const id = row.getValue('id') as string
       return h('span', { class: 'text-muted-foreground text-xs font-mono' }, id.slice(0, 8))
@@ -155,32 +157,32 @@ const columns: ColumnDef<Solution>[] = [
   },
   {
     accessorKey: 'title',
-    header: 'Solution',
+    header: () => t('solutions.columns.solution'),
     cell: ({ row }) => {
       const solution = row.original
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'font-medium text-sm' }, solution.title),
         h('div', { class: 'flex items-center gap-1 text-xs text-muted-foreground' }, [
           h(IconCode, { class: 'h-3 w-3' }),
-          h('span', {}, solution.problem?.title || 'Unknown Problem'),
+          h('span', {}, solution.problem?.title || t('common.noData')),
         ]),
       ])
     },
   },
   {
     accessorKey: 'author',
-    header: 'Author',
+    header: () => t('solutions.columns.author'),
     cell: ({ row }) => {
       const author = row.original.author
       return h('div', { class: 'flex items-center gap-2' }, [
         h(IconUser, { class: 'h-3 w-3 text-muted-foreground' }),
-        h('span', { class: 'text-sm' }, author?.username || 'Unknown'),
+        h('span', { class: 'text-sm' }, author?.username || t('common.noData')),
       ])
     },
   },
   {
     accessorKey: 'is_flagged',
-    header: 'Status',
+    header: () => t('solutions.columns.status'),
     cell: ({ row }) => {
       const isFlagged = row.getValue('is_flagged') as boolean
       const isPublished = row.original.is_published
@@ -189,14 +191,14 @@ const columns: ColumnDef<Solution>[] = [
       if (isDeleted) {
         return h(Badge, { variant: 'destructive' }, () => [
           h(IconTrash, { class: 'mr-1 h-3 w-3' }),
-          'Deleted',
+          t('solutions.status.deleted'),
         ])
       }
 
       if (isFlagged) {
         return h(Badge, { variant: 'destructive' }, () => [
           h(IconFlag, { class: 'mr-1 h-3 w-3' }),
-          'Flagged',
+          t('solutions.status.flagged'),
         ])
       }
 
@@ -204,13 +206,13 @@ const columns: ColumnDef<Solution>[] = [
         isPublished
           ? h(IconCheck, { class: 'mr-1 h-3 w-3' })
           : h(IconEyeOff, { class: 'mr-1 h-3 w-3' }),
-        isPublished ? 'Published' : 'Unpublished',
+        isPublished ? t('solutions.status.published') : t('solutions.status.unpublished'),
       ])
     },
   },
   {
     accessorKey: 'views',
-    header: 'Views',
+    header: () => t('solutions.columns.views'),
     cell: ({ row }) => {
       const views = row.getValue('views') as number
       return h(
@@ -222,7 +224,7 @@ const columns: ColumnDef<Solution>[] = [
   },
   {
     accessorKey: 'created_at',
-    header: 'Created',
+    header: () => t('solutions.columns.created'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('created_at') as Date)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
@@ -230,7 +232,7 @@ const columns: ColumnDef<Solution>[] = [
   },
   {
     id: 'actions',
-    header: 'Actions',
+    header: () => t('solutions.columns.actions'),
     cell: ({ row }) => {
       const solution = row.original
       return h(
@@ -248,7 +250,7 @@ const columns: ColumnDef<Solution>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h('span', { class: 'sr-only' }, t('common.open')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },
@@ -267,7 +269,7 @@ const columns: ColumnDef<Solution>[] = [
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
                           h(IconFile, { class: 'h-4 w-4' }),
-                          'View Details',
+                          t('solutions.actions.viewDetails'),
                         ]),
                     },
                   ),
@@ -280,7 +282,7 @@ const columns: ColumnDef<Solution>[] = [
                             default: () =>
                               h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
                                 h(IconCheck, { class: 'h-4 w-4' }),
-                                'Unflag',
+                                t('solutions.actions.unflag'),
                               ]),
                           },
                         )
@@ -291,7 +293,7 @@ const columns: ColumnDef<Solution>[] = [
                             default: () =>
                               h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
                                 h(IconFlag, { class: 'h-4 w-4' }),
-                                'Flag',
+                                t('solutions.actions.flag'),
                               ]),
                           },
                         )
@@ -305,7 +307,7 @@ const columns: ColumnDef<Solution>[] = [
                           default: () =>
                             h('div', { class: 'flex items-center gap-2 text-destructive' }, [
                               h(IconTrash, { class: 'h-4 w-4' }),
-                              'Delete',
+                              t('solutions.actions.delete'),
                             ]),
                         },
                       )
@@ -335,7 +337,7 @@ const columns: ColumnDef<Solution>[] = [
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
           <Input
             v-model="searchQuery"
-            placeholder="Search solutions..."
+            :placeholder="t('solutions.searchPlaceholder')"
             class="h-8 min-w-[150px] w-full lg:w-[250px]"
           >
             <template #trailing>
@@ -352,23 +354,25 @@ const columns: ColumnDef<Solution>[] = [
           <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
             <Select v-model="flaggedFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Flag Status" />
+                <SelectValue :placeholder="t('solutions.filters.flagStatus')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="flagged">Flagged</SelectItem>
-                <SelectItem value="clean">Clean</SelectItem>
+                <SelectItem value="all">{{ t('solutions.filters.all') }}</SelectItem>
+                <SelectItem value="flagged">{{ t('solutions.filters.flagged') }}</SelectItem>
+                <SelectItem value="clean">{{ t('solutions.filters.clean') }}</SelectItem>
               </SelectContent>
             </Select>
 
             <Select v-model="publishedFilter">
               <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue placeholder="Visibility" />
+                <SelectValue :placeholder="t('solutions.filters.visibility')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All</SelectItem>
-                <SelectItem value="published">Published</SelectItem>
-                <SelectItem value="unpublished">Unpublished</SelectItem>
+                <SelectItem value="all">{{ t('solutions.filters.all') }}</SelectItem>
+                <SelectItem value="published">{{ t('solutions.filters.published') }}</SelectItem>
+                <SelectItem value="unpublished">{{
+                  t('solutions.filters.unpublished')
+                }}</SelectItem>
               </SelectContent>
             </Select>
 
@@ -377,7 +381,7 @@ const columns: ColumnDef<Solution>[] = [
               size="icon"
               class="h-8 w-8"
               @click="loadSolutions()"
-              title="Refresh"
+              :title="t('common.refresh')"
             >
               <IconRefresh
                 class="h-3.5 w-3.5"
@@ -395,7 +399,7 @@ const columns: ColumnDef<Solution>[] = [
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
       <span class="text-destructive">{{ solutionsStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadSolutions()">Retry</Button>
+      <Button variant="outline" size="sm" @click="loadSolutions()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 

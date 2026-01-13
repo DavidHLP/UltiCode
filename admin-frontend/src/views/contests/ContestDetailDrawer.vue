@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useContestsStore } from '@/stores/admin/contests'
+import { useI18n } from 'vue-i18n'
 import {
   Drawer,
   DrawerContent,
@@ -34,6 +35,7 @@ const emit = defineEmits<{
 
 const router = useRouter()
 const contestsStore = useContestsStore()
+const { t } = useI18n()
 const loading = ref(false)
 
 async function loadContest() {
@@ -92,12 +94,12 @@ function navigateToDetail() {
       <DrawerHeader class="border-b px-6 py-4">
         <div class="flex items-center justify-between">
           <div>
-            <DrawerTitle>Contest Details</DrawerTitle>
-            <DrawerDescription>View contest information and statistics.</DrawerDescription>
+            <DrawerTitle>{{ t('contests.drawer.title') }}</DrawerTitle>
+            <DrawerDescription>{{ t('contests.drawer.subtitle') }}</DrawerDescription>
           </div>
           <Button variant="outline" size="sm" @click="navigateToDetail">
             <IconExternalLink class="h-4 w-4 mr-1" />
-            Full View
+            {{ t('contests.drawer.fullView') }}
           </Button>
         </div>
       </DrawerHeader>
@@ -107,7 +109,7 @@ function navigateToDetail() {
           <div
             class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
           ></div>
-          <p class="text-sm text-muted-foreground">Loading contest details...</p>
+          <p class="text-sm text-muted-foreground">{{ t('contests.drawer.loadingDetails') }}</p>
         </div>
       </div>
 
@@ -130,18 +132,18 @@ function navigateToDetail() {
                 </p>
                 <div class="flex flex-wrap gap-2 mt-1">
                   <Badge :variant="getTypeBadgeVariant(contestsStore.currentContest.contest_type)">
-                    {{ contestsStore.currentContest.contest_type }}
+                    {{ t(`contests.type.${contestsStore.currentContest.contest_type}`) }}
                   </Badge>
                   <Badge :variant="getStatusBadgeVariant(contestsStore.currentContest.status)">
-                    {{ contestsStore.currentContest.status }}
+                    {{ t(`contests.status.${contestsStore.currentContest.status.toLowerCase()}`) }}
                   </Badge>
                   <Badge v-if="contestsStore.currentContest.is_visible" variant="outline">
                     <IconEye class="h-3 w-3 mr-1" />
-                    Published
+                    {{ t('contests.drawer.published') }}
                   </Badge>
                   <Badge v-else variant="secondary">
                     <IconEyeOff class="h-3 w-3 mr-1" />
-                    Hidden
+                    {{ t('contests.detail.hidden') }}
                   </Badge>
                 </div>
               </div>
@@ -153,7 +155,7 @@ function navigateToDetail() {
           <!-- Statistics -->
           <div class="space-y-4">
             <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-              Statistics
+              {{ t('contests.drawer.statistics') }}
             </h4>
             <div class="grid grid-cols-2 gap-4">
               <div
@@ -163,7 +165,9 @@ function navigateToDetail() {
                 <span class="text-2xl font-bold">{{
                   contestsStore.currentContest.problems?.length || 0
                 }}</span>
-                <span class="text-xs text-muted-foreground uppercase">Problems</span>
+                <span class="text-xs text-muted-foreground uppercase">{{
+                  t('contests.drawer.problems')
+                }}</span>
               </div>
               <div
                 class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
@@ -172,7 +176,9 @@ function navigateToDetail() {
                 <span class="text-2xl font-bold">{{
                   contestsStore.currentContest.participant_count || 0
                 }}</span>
-                <span class="text-xs text-muted-foreground uppercase">Participants</span>
+                <span class="text-xs text-muted-foreground uppercase">{{
+                  t('contests.drawer.participants')
+                }}</span>
               </div>
             </div>
           </div>
@@ -183,13 +189,13 @@ function navigateToDetail() {
           <div class="grid gap-6">
             <div class="space-y-4">
               <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Schedule
+                {{ t('contests.drawer.schedule') }}
               </h4>
               <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-1">
                   <p class="text-sm font-medium flex items-center gap-2">
                     <IconCalendar class="h-4 w-4 text-muted-foreground" />
-                    Start Time
+                    {{ t('contests.drawer.start') }}
                   </p>
                   <p class="text-sm text-muted-foreground pl-6">
                     {{ new Date(contestsStore.currentContest.start_time).toLocaleString() }}
@@ -198,10 +204,10 @@ function navigateToDetail() {
                 <div class="space-y-1">
                   <p class="text-sm font-medium flex items-center gap-2">
                     <IconClock class="h-4 w-4 text-muted-foreground" />
-                    Duration
+                    {{ t('contests.drawer.duration') }}
                   </p>
                   <p class="text-sm text-muted-foreground pl-6">
-                    {{ contestsStore.currentContest.duration_minutes }} minutes
+                    {{ contestsStore.currentContest.duration_minutes }} {{ t('common.minutes') }}
                   </p>
                 </div>
               </div>
@@ -209,7 +215,7 @@ function navigateToDetail() {
 
             <div v-if="contestsStore.currentContest.description" class="space-y-4">
               <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Description
+                {{ t('contests.drawer.description') }}
               </h4>
               <p class="text-sm text-muted-foreground whitespace-pre-wrap">
                 {{ contestsStore.currentContest.description }}
@@ -219,7 +225,11 @@ function navigateToDetail() {
             <!-- Problems List Preview -->
             <div v-if="contestsStore.currentContest.problems?.length" class="space-y-4">
               <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-                Problems ({{ contestsStore.currentContest.problems.length }})
+                {{
+                  t('contests.drawer.problemsCount', {
+                    count: contestsStore.currentContest.problems.length,
+                  })
+                }}
               </h4>
               <div class="space-y-2">
                 <div
@@ -236,13 +246,17 @@ function navigateToDetail() {
                       <p class="text-xs text-muted-foreground">{{ cp.problem.slug }}</p>
                     </div>
                   </div>
-                  <Badge variant="outline">{{ cp.score }} pts</Badge>
+                  <Badge variant="outline">{{ cp.score }} {{ t('contests.drawer.pts') }}</Badge>
                 </div>
                 <p
                   v-if="contestsStore.currentContest.problems.length > 5"
                   class="text-xs text-muted-foreground text-center pt-2"
                 >
-                  + {{ contestsStore.currentContest.problems.length - 5 }} more problems
+                  {{
+                    t('contests.drawer.moreProblems', {
+                      count: contestsStore.currentContest.problems.length - 5,
+                    })
+                  }}
                 </p>
               </div>
             </div>
@@ -251,7 +265,7 @@ function navigateToDetail() {
       </ScrollArea>
 
       <div v-else class="flex h-full items-center justify-center p-8">
-        <p class="text-muted-foreground">Contest not found</p>
+        <p class="text-muted-foreground">{{ t('contests.drawer.contestNotFound') }}</p>
       </div>
     </DrawerContent>
   </Drawer>

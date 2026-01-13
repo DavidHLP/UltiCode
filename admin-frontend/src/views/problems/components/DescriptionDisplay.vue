@@ -123,7 +123,11 @@ const hintsList = computed(() => {
               {{ t('problems.badges.premium') }}
             </Badge>
             <Badge :variant="problem.is_published ? 'default' : 'outline'" class="capitalize">
-              {{ problem.is_published ? t('problems.published.published') : t('problems.published.draft') }}
+              {{
+                problem.is_published
+                  ? t('problems.published.published')
+                  : t('problems.published.draft')
+              }}
             </Badge>
           </div>
         </div>

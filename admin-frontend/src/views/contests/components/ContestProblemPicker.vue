@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +33,7 @@ const emit = defineEmits<{
 }>()
 
 const problemsStore = useProblemsStore()
+const { t } = useI18n()
 const searchQuery = ref('')
 
 const filteredProblems = computed(() => {
@@ -70,13 +72,13 @@ debouncedSearch('')
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
     <DialogContent class="p-0 overflow-hidden max-w-2xl">
       <DialogHeader class="px-6 pt-6 pb-2">
-        <DialogTitle>Select Problem</DialogTitle>
-        <DialogDescription> Search and select a problem to add to the contest. </DialogDescription>
+        <DialogTitle>{{ t('contests.problemPicker.title') }}</DialogTitle>
+        <DialogDescription>{{ t('contests.problemPicker.description') }}</DialogDescription>
       </DialogHeader>
       <div class="px-4 pb-4">
         <Command class="border rounded-md">
           <CommandInput
-            placeholder="Search problems by title or slug..."
+            :placeholder="t('contests.problemPicker.searchPlaceholder')"
             :value="searchQuery"
             @input="handleInput"
           />
@@ -88,9 +90,9 @@ debouncedSearch('')
               v-else-if="filteredProblems.length === 0"
               class="py-6 text-center text-sm text-muted-foreground"
             >
-              No problems found.
+              {{ t('contests.problemPicker.noProblemsFound') }}
             </CommandEmpty>
-            <CommandGroup v-else heading="Problems">
+            <CommandGroup v-else :heading="t('contests.problemPicker.problems')">
               <CommandItem
                 v-for="problem in filteredProblems"
                 :key="problem.id"

@@ -245,7 +245,11 @@ defineExpose({
 
             <div class="space-y-2">
               <Label>{{ t('problems.form.slug') }}</Label>
-              <Input v-model="formData.slug" :placeholder="t('problems.form.slugPlaceholder')" class="font-mono" />
+              <Input
+                v-model="formData.slug"
+                :placeholder="t('problems.form.slugPlaceholder')"
+                class="font-mono"
+              />
               <p v-if="errors.slug" class="text-sm text-destructive">{{ errors.slug }}</p>
             </div>
           </div>
@@ -312,7 +316,9 @@ defineExpose({
                 @keyup.enter="addConstraint"
                 class="font-mono text-sm"
               />
-              <Button type="button" variant="secondary" @click="addConstraint">{{ t('problems.form.add') }}</Button>
+              <Button type="button" variant="secondary" @click="addConstraint">{{
+                t('problems.form.add')
+              }}</Button>
             </div>
 
             <ul v-if="formData.constraints!.length > 0" class="space-y-2">

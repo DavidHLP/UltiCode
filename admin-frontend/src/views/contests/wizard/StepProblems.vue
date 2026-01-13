@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import {
   Table,
@@ -31,6 +32,7 @@ const emit = defineEmits<{
   (e: 'update:formData', value: unknown): void
 }>()
 
+const { t } = useI18n()
 const pickerOpen = ref(false)
 
 function addProblem(problem: { id: string; title: string; slug: string; difficulty: string }) {
@@ -69,10 +71,10 @@ function updateScore(problemId: string, score: number) {
 <template>
   <div class="space-y-4">
     <div class="flex justify-between items-center">
-      <h3 class="text-sm font-medium">Contest Problems</h3>
+      <h3 class="text-sm font-medium">{{ t('contests.problemsStep.contestProblems') }}</h3>
       <Button size="sm" variant="outline" @click="pickerOpen = true">
         <IconPlus class="mr-2 h-4 w-4" />
-        Add Problem
+        {{ t('contests.problemsStep.addProblem') }}
       </Button>
     </div>
 
@@ -80,10 +82,10 @@ function updateScore(problemId: string, score: number) {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead class="w-[50px]">Index</TableHead>
-            <TableHead>Title</TableHead>
-            <TableHead>Difficulty</TableHead>
-            <TableHead class="w-[100px]">Score</TableHead>
+            <TableHead class="w-[50px]">{{ t('contests.problemsStep.index') }}</TableHead>
+            <TableHead>{{ t('contests.problemsStep.title') }}</TableHead>
+            <TableHead>{{ t('contests.problemsStep.difficulty') }}</TableHead>
+            <TableHead class="w-[100px]">{{ t('contests.problemsStep.score') }}</TableHead>
             <TableHead class="w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -125,7 +127,7 @@ function updateScore(problemId: string, score: number) {
           </TableRow>
           <TableRow v-if="!formData.selectedProblems?.length">
             <TableCell colspan="5" class="h-24 text-center text-muted-foreground">
-              No problems selected. Add problems to the contest.
+              {{ t('contests.problemsStep.noProblemsSelected') }}
             </TableCell>
           </TableRow>
         </TableBody>

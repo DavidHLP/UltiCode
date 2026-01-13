@@ -401,7 +401,8 @@ export default {
     // Cases display
     casesDisplay: {
       noCases: 'No Test Cases Added',
-      noCasesDescription: 'Add test cases with sample inputs and outputs to help users understand the problem',
+      noCasesDescription:
+        'Add test cases with sample inputs and outputs to help users understand the problem',
       examples: 'Examples',
       input: 'Input',
       output: 'Output',
@@ -529,72 +530,219 @@ export default {
   contests: {
     title: 'Contests',
     listTitle: 'Contest Management',
-    addContest: 'Add Contest',
+    addContest: 'Create Contest',
+    createContest: 'Create Contest',
     searchPlaceholder: 'Search contests...',
+    selected: '{count} contests selected',
+    clearSelection: 'Clear Selection',
 
     // Filters
     filters: {
       allStatus: 'All Status',
+      allTypes: 'All Types',
       upcoming: 'Upcoming',
       running: 'Running',
       finished: 'Finished',
+      public: 'Public',
+      private: 'Private',
+      virtual: 'Virtual',
+    },
+
+    // Type
+    type: {
+      PUBLIC: 'Public',
+      PRIVATE: 'Private',
+      VIRTUAL: 'Virtual',
     },
 
     // Table columns
     columns: {
-      id: 'ID',
-      name: 'Name',
-      startTime: 'Start Time',
-      duration: 'Duration',
-      participants: 'Participants',
-      problems: 'Problems',
+      contest: 'Contest',
+      type: 'Type',
       status: 'Status',
+      schedule: 'Schedule',
+      participants: 'Participants',
+      actions: 'Actions',
     },
 
-    // Status
+    // Actions
+    actions: {
+      viewDetails: 'View Details',
+      startContest: 'Start Contest',
+      endContest: 'End Contest',
+      bulkDelete: 'Bulk Delete',
+      delete: 'Delete',
+    },
+
+    // Status badges
     status: {
       upcoming: 'Upcoming',
       running: 'Running',
       finished: 'Finished',
     },
 
-    // Wizard steps
+    // Wizard
     wizard: {
-      step1: 'Basic Info',
-      step2: 'Problems',
-      step3: 'Schedule',
-      step4: 'Review',
-      next: 'Next',
+      basics: 'Basics',
+      schedule: 'Schedule',
+      problems: 'Problems',
+      review: 'Review',
       previous: 'Previous',
+      next: 'Next',
       submit: 'Create Contest',
+      createContest: 'Create Contest',
     },
 
-    // Form
-    form: {
-      name: 'Contest Name',
+    // Basic Info step
+    basics: {
+      title: 'Title',
+      titlePlaceholder: 'Weekly Contest 101',
+      titleDescription: 'The display name of the contest.',
+      slug: 'Slug',
+      slugPlaceholder: 'weekly-contest-101',
+      slugDescription: 'Unique URL identifier for the contest.',
+      type: 'Type',
+      typePlaceholder: 'Select type',
+      typeDescription: 'Public contests are visible to everyone. Private requires invitation.',
       description: 'Description',
+      descriptionPlaceholder: 'Contest details and rules...',
+    },
+
+    // Schedule step
+    scheduleStep: {
       startTime: 'Start Time',
-      endTime: 'End Time',
-      duration: 'Duration (minutes)',
-      isPublic: 'Public',
-      rules: 'Rules',
+      startTimeDescription: 'When the contest begins.',
+      duration: 'Duration (Minutes)',
+      durationDescription: 'Length of the contest in minutes.',
+      publishImmediately: 'Publish Immediately',
+      publishImmediatelyDescription:
+        'If enabled, the contest will be visible in the upcoming list immediately.',
+      notSet: 'Not set',
+      minutes: '{minutes} minutes',
+    },
+
+    // Problems step
+    problemsStep: {
+      contestProblems: 'Contest Problems',
+      addProblem: 'Add Problem',
+      index: 'Index',
+      title: 'Title',
+      difficulty: 'Difficulty',
+      score: 'Score',
+      noProblemsSelected: 'No problems selected. Add problems to the contest.',
+    },
+
+    // Review step
+    reviewStep: {
+      basicInfo: 'Basic Info',
+      schedule: 'Schedule',
+      startTime: 'Start Time',
+      duration: 'Duration',
+      visibility: 'Visibility',
+      problemsCount: 'Problems ({count})',
+      noProblemsSelected: 'No problems selected.',
+      published: 'Published',
+      draft: 'Draft',
     },
 
     // Problem picker
     problemPicker: {
-      addProblems: 'Add Problems',
-      selectedProblems: 'Selected Problems',
-      availableProblems: 'Available Problems',
-      remove: 'Remove',
-      points: 'Points',
+      title: 'Select Problem',
+      description: 'Search and select a problem to add to the contest.',
+      searchPlaceholder: 'Search problems by title or slug...',
+      problems: 'Problems',
+      noProblemsFound: 'No problems found.',
+      noProblems: 'No problems',
     },
 
-    // Review
-    review: {
-      reviewContest: 'Review Contest',
-      contestSummary: 'Contest Summary',
-      problemsSummary: 'Problems',
-      scheduleSummary: 'Schedule',
+    // Detail view
+    detail: {
+      overview: 'Overview',
+      problems: 'Problems',
+      participants: 'Participants',
+      rankings: 'Rankings',
+      details: 'Details',
+      statsAndSchedule: 'Stats & Schedule',
+      description: 'Description',
+      noDescription: 'No description provided.',
+      slug: 'Slug',
+      visibility: 'Visibility',
+      published: 'Published',
+      hidden: 'Hidden',
+      startTime: 'Start Time',
+      duration: 'Duration',
+      contestProblems: 'Contest Problems',
+      addProblem: 'Add Problem',
+      idx: 'Idx',
+      problem: 'Problem',
+      difficulty: 'Difficulty',
+      score: 'Score',
+      noProblemsAdded: 'No problems added yet.',
+      user: 'User',
+      joinedAt: 'Joined At',
+      noParticipantsYet: 'No participants yet.',
+      rank: 'Rank',
+      penalty: 'Penalty',
+      noRankingsYet: 'No rankings available yet.',
+      contestNotFound: 'Contest not found.',
+      backToList: 'Back to list',
+      start: 'Start',
+      end: 'End',
+    },
+
+    // Detail drawer
+    drawer: {
+      title: 'Contest Details',
+      subtitle: 'View contest information and statistics.',
+      fullView: 'Full View',
+      loadingDetails: 'Loading contest details...',
+      contestNotFound: 'Contest not found',
+      statistics: 'Statistics',
+      schedule: 'Schedule',
+      start: 'Start Time',
+      duration: 'Duration (minutes)',
+      description: 'Description',
+      problemsCount: 'Problems ({count})',
+      moreProblems: '+ {count} more problems',
+      pts: 'pts',
+    },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Contest',
+      description:
+        'Are you sure you want to delete <strong>{title}</strong>? This action cannot be undone.',
+      thisContest: 'this contest',
+      confirm: 'Delete Contest',
+      deleting: 'Deleting...',
+      cancel: 'Cancel',
+    },
+
+    // Toast messages
+    toast: {
+      startedSuccessfully: 'Contest started successfully',
+      failedToStart: 'Failed to start contest',
+      endedSuccessfully: 'Contest ended successfully',
+      failedToEnd: 'Failed to end contest',
+      deletedSuccessfully: 'Contest deleted successfully',
+      failedToDelete: 'Failed to delete contest',
+      createdSuccessfully: 'Contest created successfully',
+      failedToCreate: 'Failed to create contest',
+      problemAdded: 'Problem added to contest',
+      failedToAddProblem: 'Failed to add problem',
+      problemRemoved: 'Problem removed',
+      failedToRemoveProblem: 'Failed to remove problem',
+      bulkDeleteSuccess: '{count} contests deleted',
+      bulkDeleteFailed: 'Failed to delete some contests',
+    },
+
+    // Confirmations
+    confirmation: {
+      startNow: 'Are you sure you want to start this contest now?',
+      endNow: 'Are you sure you want to end this contest?',
+      deleteThis: 'Are you sure you want to delete this contest? This action cannot be undone.',
+      bulkDelete: 'Are you sure you want to delete {count} contests? This action is IRREVERSIBLE.',
+      removeProblem: 'Remove this problem from the contest?',
     },
   },
 

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { useContestsStore } from '@/stores/admin/contests'
 import { toast } from 'vue-sonner'
+import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -24,6 +25,7 @@ const emit = defineEmits<{
 }>()
 
 const contestsStore = useContestsStore()
+const { t } = useI18n()
 const loading = ref(false)
 
 watch(
@@ -40,11 +42,11 @@ async function handleDelete() {
   loading.value = true
   try {
     await contestsStore.deleteContest(props.contestId)
-    toast.success('Contest deleted successfully')
+    toast.success(t('contests.toast.deletedSuccessfully'))
     emit('success')
     emit('update:open', false)
   } catch {
-    toast.error('Failed to delete contest')
+    toast.error(t('contests.toast.failedToDelete'))
   } finally {
     loading.value = false
   }
@@ -55,19 +57,23 @@ async function handleDelete() {
   <Dialog :open="open" @update:open="emit('update:open', $event)">
     <DialogContent>
       <DialogHeader>
-        <DialogTitle>Delete Contest</DialogTitle>
+        <DialogTitle>{{ t('contests.delete.title') }}</DialogTitle>
         <DialogDescription>
-          Are you sure you want to delete
-          <strong>{{ contestTitle || 'this contest' }}</strong
-          >? This action cannot be undone.
+          <span
+            v-html="
+              t('contests.delete.description', {
+                title: contestTitle || t('contests.delete.thisContest'),
+              })
+            "
+          />
         </DialogDescription>
       </DialogHeader>
       <DialogFooter>
         <Button variant="outline" @click="emit('update:open', false)" :disabled="loading">
-          Cancel
+          {{ t('contests.delete.cancel') }}
         </Button>
         <Button variant="destructive" @click="handleDelete" :disabled="loading">
-          {{ loading ? 'Deleting...' : 'Delete Contest' }}
+          {{ loading ? t('contests.delete.deleting') : t('contests.delete.confirm') }}
         </Button>
       </DialogFooter>
     </DialogContent>

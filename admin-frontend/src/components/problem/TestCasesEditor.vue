@@ -157,7 +157,9 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
 
     <div v-if="activeCase" class="space-y-4">
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">{{ t('problems.testCasesEditor.input') }}</label>
+        <label class="text-sm font-medium text-muted-foreground">{{
+          t('problems.testCasesEditor.input')
+        }}</label>
         <Textarea
           :model-value="activeCase.input"
           :readonly="readonly"
@@ -168,7 +170,9 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
       </div>
 
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">{{ t('problems.testCasesEditor.output') }}</label>
+        <label class="text-sm font-medium text-muted-foreground">{{
+          t('problems.testCasesEditor.output')
+        }}</label>
         <Textarea
           :model-value="activeCase.output"
           :readonly="readonly"
@@ -179,7 +183,9 @@ const updateCase = (field: keyof TestCaseExample, value: string) => {
       </div>
 
       <div class="space-y-2">
-        <label class="text-sm font-medium text-muted-foreground">{{ t('problems.testCasesEditor.explanationOptional') }}</label>
+        <label class="text-sm font-medium text-muted-foreground">{{
+          t('problems.testCasesEditor.explanationOptional')
+        }}</label>
         <Input
           :model-value="activeCase.explanation || ''"
           :readonly="readonly"

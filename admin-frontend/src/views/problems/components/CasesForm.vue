@@ -217,7 +217,9 @@ defineExpose({
                 </button>
               </Badge>
             </div>
-            <p v-else class="text-sm text-muted-foreground italic">{{ t('problems.casesForm.noConstraints') }}</p>
+            <p v-else class="text-sm text-muted-foreground italic">
+              {{ t('problems.casesForm.noConstraints') }}
+            </p>
           </div>
 
           <Separator />
@@ -233,7 +235,11 @@ defineExpose({
             </Label>
 
             <div class="flex gap-2">
-              <Input v-model="newHint" :placeholder="t('problems.casesForm.addHint')" @keyup.enter="addHint" />
+              <Input
+                v-model="newHint"
+                :placeholder="t('problems.casesForm.addHint')"
+                @keyup.enter="addHint"
+              />
               <Button size="sm" variant="secondary" @click="addHint">
                 <IconPlus class="h-4 w-4 mr-1" />
                 {{ t('problems.casesForm.add') }}
@@ -260,7 +266,9 @@ defineExpose({
                 </Button>
               </div>
             </div>
-            <p v-else class="text-sm text-muted-foreground italic">{{ t('problems.casesForm.noHints') }}</p>
+            <p v-else class="text-sm text-muted-foreground italic">
+              {{ t('problems.casesForm.noHints') }}
+            </p>
           </div>
         </div>
       </section>
@@ -308,7 +316,9 @@ defineExpose({
               </button>
             </Badge>
           </div>
-          <p v-else class="text-xs text-muted-foreground italic">{{ t('problems.casesForm.noTags') }}</p>
+          <p v-else class="text-xs text-muted-foreground italic">
+            {{ t('problems.casesForm.noTags') }}
+          </p>
         </div>
       </div>
 
@@ -317,11 +327,15 @@ defineExpose({
         <h3 class="text-sm font-medium mb-3">{{ t('problems.casesForm.configurationSummary') }}</h3>
         <div class="space-y-2 text-sm">
           <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">{{ t('problems.casesForm.summary.testCases') }}</span>
+            <span class="text-muted-foreground">{{
+              t('problems.casesForm.summary.testCases')
+            }}</span>
             <span class="font-medium tabular-nums">{{ formData.examples.length }}</span>
           </div>
           <div class="flex items-center justify-between">
-            <span class="text-muted-foreground">{{ t('problems.casesForm.summary.constraints') }}</span>
+            <span class="text-muted-foreground">{{
+              t('problems.casesForm.summary.constraints')
+            }}</span>
             <span class="font-medium tabular-nums">{{ formData.constraints.length }}</span>
           </div>
           <div class="flex items-center justify-between">

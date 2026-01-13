@@ -140,7 +140,9 @@ function getLanguageColor(lang: string): string {
             <IconBrackets class="h-3 w-3 mr-1" />
             {{ selectedLanguage }}
           </Badge>
-          <span class="text-xs text-muted-foreground">{{ lineCount }} {{ t('problems.codeDisplay.lines') }}</span>
+          <span class="text-xs text-muted-foreground"
+            >{{ lineCount }} {{ t('problems.codeDisplay.lines') }}</span
+          >
         </div>
         <div class="flex items-center gap-1">
           <div class="w-2.5 h-2.5 rounded-full bg-red-400/80" />
@@ -162,7 +164,9 @@ function getLanguageColor(lang: string): string {
 
     <!-- Summary Footer -->
     <div class="flex items-center justify-between text-xs text-muted-foreground px-1">
-      <span>{{ t('problems.codeDisplay.languagesConfigured', { count: availableLanguages.length }) }}</span>
+      <span>{{
+        t('problems.codeDisplay.languagesConfigured', { count: availableLanguages.length })
+      }}</span>
       <span>{{ t('problems.codeDisplay.selectLanguage') }}</span>
     </div>
   </div>

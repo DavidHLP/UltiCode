@@ -98,7 +98,9 @@ const hasAnyContent = computed(
           <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
             <!-- Input -->
             <div class="space-y-1.5">
-              <p class="text-xs font-medium text-muted-foreground">{{ t('problems.casesDisplay.input') }}</p>
+              <p class="text-xs font-medium text-muted-foreground">
+                {{ t('problems.casesDisplay.input') }}
+              </p>
               <pre
                 class="text-sm font-mono p-3 rounded-lg bg-[#0d1117] text-gray-100 overflow-x-auto"
                 >{{ example.input }}</pre
@@ -107,7 +109,9 @@ const hasAnyContent = computed(
 
             <!-- Output -->
             <div class="space-y-1.5">
-              <p class="text-xs font-medium text-muted-foreground">{{ t('problems.casesDisplay.output') }}</p>
+              <p class="text-xs font-medium text-muted-foreground">
+                {{ t('problems.casesDisplay.output') }}
+              </p>
               <pre
                 class="text-sm font-mono p-3 rounded-lg bg-[#0d1117] text-gray-100 overflow-x-auto"
                 >{{ example.output }}</pre
@@ -117,7 +121,8 @@ const hasAnyContent = computed(
 
           <!-- Explanation -->
           <p v-if="example.explanation" class="text-sm text-muted-foreground mt-3 pl-1">
-            <span class="font-medium">{{ t('problems.casesDisplay.explanation') }}:</span> {{ example.explanation }}
+            <span class="font-medium">{{ t('problems.casesDisplay.explanation') }}:</span>
+            {{ example.explanation }}
           </p>
         </div>
       </div>

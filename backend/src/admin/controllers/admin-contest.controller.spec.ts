@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminContestController } from './admin-contest.controller';
 import { PrismaService } from '../../prisma.service';
+import { AuditService } from '../services/audit.service';
+import { PermissionService } from '../services/permission.service';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -32,6 +34,18 @@ describe('AdminContestController', () => {
           provide: ModuleRef,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: PermissionService,
+          useValue: {
+            hasPermission: jest.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: AuditService,
+          useValue: {
+            log: jest.fn(),
           },
         },
         {

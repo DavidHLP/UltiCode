@@ -5,6 +5,9 @@ import { SignInDto } from './dto/sign-in.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
 import { Response } from 'express';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector, ModuleRef } from '@nestjs/core';
+import { AuthGuard } from './auth.guard';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -25,6 +28,26 @@ describe('AuthController', () => {
       controllers: [AuthController],
       providers: [
         {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn(),
+            getAll: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
+        {
           provide: AuthService,
           useValue: {
             signIn: jest.fn(),
@@ -37,7 +60,10 @@ describe('AuthController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<AuthController>(AuthController);
     service = module.get(AuthService);

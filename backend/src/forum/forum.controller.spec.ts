@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForumController } from './forum.controller';
 import { ForumService } from './forum.service';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector, ModuleRef } from '@nestjs/core';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('ForumController', () => {
   let controller: ForumController;
@@ -23,6 +26,26 @@ describe('ForumController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ForumController],
       providers: [
+        {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn(),
+            getAll: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
         {
           provide: ForumService,
           useValue: {
@@ -47,7 +70,10 @@ describe('ForumController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<ForumController>(ForumController);
     forumService = module.get(ForumService);

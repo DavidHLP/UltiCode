@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminDashboardController } from './admin-dashboard.controller';
 import { AdminDashboardService } from '../services/admin-dashboard.service';
+import { PermissionService } from '../services/permission.service';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -33,6 +34,12 @@ describe('AdminDashboardController', () => {
           provide: ModuleRef,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: PermissionService,
+          useValue: {
+            hasPermission: jest.fn().mockResolvedValue(true),
           },
         },
         {

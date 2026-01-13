@@ -1,6 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminUserController } from './admin-user.controller';
 import { PrismaService } from '../../prisma.service';
+import { UserService } from '../../user/user.service';
+import { AuditService } from '../services/audit.service';
+import { PermissionService } from '../services/permission.service';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -32,6 +35,26 @@ describe('AdminUserController', () => {
           provide: ModuleRef,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: PermissionService,
+          useValue: {
+            hasPermission: jest.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: UserService,
+          useValue: {
+            findById: jest.fn().mockResolvedValue({}),
+            update: jest.fn().mockResolvedValue({}),
+            delete: jest.fn().mockResolvedValue({}),
+          },
+        },
+        {
+          provide: AuditService,
+          useValue: {
+            log: jest.fn(),
           },
         },
         {

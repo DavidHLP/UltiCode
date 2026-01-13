@@ -2,6 +2,9 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SolutionController } from './solution.controller';
 import { SolutionService } from './solution.service';
 import { CreateSolutionDto } from './dto/create-solution.dto';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector, ModuleRef } from '@nestjs/core';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('SolutionController', () => {
   let controller: SolutionController;
@@ -25,6 +28,26 @@ describe('SolutionController', () => {
       controllers: [SolutionController],
       providers: [
         {
+          provide: JwtService,
+          useValue: {
+            sign: jest.fn(),
+            verify: jest.fn(),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            get: jest.fn(),
+            getAll: jest.fn(),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn(),
+          },
+        },
+        {
           provide: SolutionService,
           useValue: {
             findByProblemId: jest.fn(),
@@ -37,7 +60,10 @@ describe('SolutionController', () => {
           },
         },
       ],
-    }).compile();
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: jest.fn(() => true) })
+      .compile();
 
     controller = module.get<SolutionController>(SolutionController);
     solutionService = module.get(SolutionService);

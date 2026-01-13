@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminNotificationController } from './admin-notification.controller';
 import { AdminNotificationService } from '../services/admin-notification.service';
+import { PermissionService } from '../services/permission.service';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -32,6 +33,12 @@ describe('AdminNotificationController', () => {
           provide: ModuleRef,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: PermissionService,
+          useValue: {
+            hasPermission: jest.fn().mockResolvedValue(true),
           },
         },
         {

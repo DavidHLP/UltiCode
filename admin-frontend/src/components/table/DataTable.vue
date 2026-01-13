@@ -25,6 +25,7 @@ import {
 } from '@tanstack/vue-table'
 import { DragDropProvider } from 'dnd-kit-vue'
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -78,6 +79,7 @@ const emit = defineEmits<{
   'update:selectedRows': [value: TData[]]
 }>()
 
+const { t } = useI18n()
 const sorting = ref<SortingState>([])
 const columnFilters = ref<ColumnFiltersState>([])
 const columnVisibility = ref<VisibilityState>({})
@@ -170,8 +172,8 @@ watch(
           <DropdownMenuTrigger as-child>
             <Button variant="outline" size="sm">
               <IconLayoutColumns />
-              <span class="hidden lg:inline">Customize Columns</span>
-              <span class="lg:hidden">Columns</span>
+              <span class="hidden lg:inline">{{ t('table.customizeColumns') }}</span>
+              <span class="lg:hidden">{{ t('table.columns') }}</span>
               <IconChevronDown />
             </Button>
           </DropdownMenuTrigger>
@@ -250,11 +252,10 @@ watch(
             <IconSearchOff />
           </EmptyMedia>
           <EmptyContent>
-            <EmptyTitle>{{ emptyTitle || 'No results found' }}</EmptyTitle>
+            <EmptyTitle>{{ emptyTitle || t('table.emptyTitle') }}</EmptyTitle>
             <EmptyDescription>
               {{
-                emptyDescription ||
-                "We couldn't find what you're looking for. Try adjusting your filters or search query."
+                emptyDescription || t('table.emptyDescription')
               }}
             </EmptyDescription>
           </EmptyContent>
@@ -266,12 +267,12 @@ watch(
       class="flex items-center justify-between px-2"
     >
       <div class="text-muted-foreground hidden flex-1 text-sm lg:flex">
-        {{ table.getFilteredSelectedRowModel().rows.length }} of
-        {{ table.getFilteredRowModel().rows.length }} row(s) selected.
+        {{ table.getFilteredSelectedRowModel().rows.length }} {{ t('table.of') }}
+        {{ table.getFilteredRowModel().rows.length }} {{ t('table.rowsSelected') }}.
       </div>
       <div class="flex w-full items-center gap-8 lg:w-fit">
         <div class="hidden items-center gap-2 lg:flex">
-          <Label for="rows-per-page" class="text-sm font-medium"> Rows per page </Label>
+          <Label for="rows-per-page" class="text-sm font-medium">{{ t('table.rowsPerPage') }}</Label>
           <Select
             :disabled="loading"
             :model-value="`${table.getState().pagination.pageSize}`"
@@ -296,7 +297,7 @@ watch(
           </Select>
         </div>
         <div class="flex w-fit items-center justify-center text-sm font-medium">
-          Page {{ table.getState().pagination.pageIndex + 1 }} of
+          {{ t('table.page') }} {{ table.getState().pagination.pageIndex + 1 }} {{ t('table.of') }}
           {{ table.getPageCount() }}
         </div>
         <div class="ml-auto flex items-center gap-2 lg:ml-0">
@@ -306,7 +307,7 @@ watch(
             :disabled="loading || !table.getCanPreviousPage()"
             @click="table.setPageIndex(0)"
           >
-            <span class="sr-only">Go to first page</span>
+            <span class="sr-only">{{ t('table.goToFirstPage') }}</span>
             <IconChevronsLeft />
           </Button>
           <Button
@@ -316,7 +317,7 @@ watch(
             :disabled="loading || !table.getCanPreviousPage()"
             @click="table.previousPage()"
           >
-            <span class="sr-only">Go to previous page</span>
+            <span class="sr-only">{{ t('table.goToPreviousPage') }}</span>
             <IconChevronLeft />
           </Button>
           <Button
@@ -326,7 +327,7 @@ watch(
             :disabled="loading || !table.getCanNextPage()"
             @click="table.nextPage()"
           >
-            <span class="sr-only">Go to next page</span>
+            <span class="sr-only">{{ t('table.goToNextPage') }}</span>
             <IconChevronRight />
           </Button>
           <Button
@@ -336,7 +337,7 @@ watch(
             :disabled="loading || !table.getCanNextPage()"
             @click="table.setPageIndex(table.getPageCount() - 1)"
           >
-            <span class="sr-only">Go to last page</span>
+            <span class="sr-only">{{ t('table.goToLastPage') }}</span>
             <IconChevronsRight />
           </Button>
         </div>

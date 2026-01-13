@@ -1479,16 +1479,28 @@ export default {
   // 数据表格
   table: {
     emptyState: '暂无数据',
+    emptyTitle: '未找到结果',
+    emptyDescription: '我们找不到您要查找的内容。尝试调整您的筛选器或搜索查询。',
     searchPlaceholder: '搜索...',
     filterPlaceholder: '筛选...',
     clearFilters: '清除筛选',
     showColumns: '显示列',
     hideColumns: '隐藏列',
     resetColumns: '重置列',
+    customizeColumns: '自定义列',
+    columns: '列',
     selectAll: '全选',
     deselectAll: '取消全选',
     selected: '已选 {count} 项',
     selected_one: '已选 {count} 项',
+    rowsPerPage: '每页行数',
+    of: '/',
+    page: '第',
+    rowsSelected: '行被选中',
+    goToFirstPage: '转到第一页',
+    goToPreviousPage: '转到上一页',
+    goToNextPage: '转到下一页',
+    goToLastPage: '转到最后一页',
   },
 
   // 对话框标签

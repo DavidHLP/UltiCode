@@ -1668,16 +1668,28 @@ export default {
   // Data table
   table: {
     emptyState: 'No data available',
+    emptyTitle: 'No results found',
+    emptyDescription: "We couldn't find what you're looking for. Try adjusting your filters or search query.",
     searchPlaceholder: 'Search...',
     filterPlaceholder: 'Filter...',
     clearFilters: 'Clear Filters',
     showColumns: 'Show Columns',
     hideColumns: 'Hide Columns',
     resetColumns: 'Reset Columns',
+    customizeColumns: 'Customize Columns',
+    columns: 'Columns',
     selectAll: 'Select All',
     deselectAll: 'Deselect All',
     selected: '{count} selected',
     selected_one: '{count} selected',
+    rowsPerPage: 'Rows per page',
+    of: 'of',
+    page: 'Page',
+    rowsSelected: 'row(s) selected',
+    goToFirstPage: 'Go to first page',
+    goToPreviousPage: 'Go to previous page',
+    goToNextPage: 'Go to next page',
+    goToLastPage: 'Go to last page',
   },
 
   // Dialog labels

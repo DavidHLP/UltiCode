@@ -1,5 +1,11 @@
 import { describe, it, expect } from '@jest/globals';
-import { matchSupportedLocale, SUPPORTED_LOCALES } from './i18n.constants';
+import {
+  matchSupportedLocale,
+  SUPPORTED_LOCALES,
+  parseAcceptLanguageHeader,
+  parseAcceptLanguageHeaderWithMatch,
+  DEFAULT_LOCALE,
+} from './i18n.constants';
 
 describe('matchSupportedLocale', () => {
   describe('exact matches', () => {
@@ -151,6 +157,108 @@ describe('matchSupportedLocale', () => {
 
     it('should include en-US', () => {
       expect(SUPPORTED_LOCALES).toContain('en-US');
+    });
+  });
+});
+
+describe('parseAcceptLanguageHeader', () => {
+  describe('basic parsing', () => {
+    it('should parse single language without quality', () => {
+      expect(parseAcceptLanguageHeader('zh-CN')).toEqual([
+        { code: 'zh-CN', quality: 1.0 },
+      ]);
+    });
+
+    it('should parse multiple languages with quality values', () => {
+      expect(parseAcceptLanguageHeader('zh-CN,zh;q=0.9,en;q=0.8')).toEqual([
+        { code: 'zh-CN', quality: 1.0 },
+        { code: 'zh', quality: 0.9 },
+        { code: 'en', quality: 0.8 },
+      ]);
+    });
+  });
+
+  describe('sorting', () => {
+    it('should sort by quality descending', () => {
+      expect(parseAcceptLanguageHeader('en;q=0.5,zh-CN;q=0.9')).toEqual([
+        { code: 'zh-CN', quality: 0.9 },
+        { code: 'en', quality: 0.5 },
+      ]);
+    });
+
+    it('should maintain order when qualities are equal', () => {
+      expect(parseAcceptLanguageHeader('zh-CN,en;q=1.0')).toEqual([
+        { code: 'zh-CN', quality: 1.0 },
+        { code: 'en', quality: 1.0 },
+      ]);
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should return empty array for empty string', () => {
+      expect(parseAcceptLanguageHeader('')).toEqual([]);
+    });
+
+    it('should trim whitespace', () => {
+      expect(parseAcceptLanguageHeader(' zh-CN , en;q=0.8 ')).toEqual([
+        { code: 'zh-CN', quality: 1.0 },
+        { code: 'en', quality: 0.8 },
+      ]);
+    });
+
+    it('should handle quality values with varying precision', () => {
+      expect(parseAcceptLanguageHeader('zh;q=0.9,en;q=0.85')).toEqual([
+        { code: 'zh', quality: 0.9 },
+        { code: 'en', quality: 0.85 },
+      ]);
+    });
+  });
+});
+
+describe('parseAcceptLanguageHeaderWithMatch', () => {
+  describe('matching', () => {
+    it('should return zh-CN for exact match', () => {
+      expect(parseAcceptLanguageHeaderWithMatch('zh-CN')).toBe('zh-CN');
+    });
+
+    it('should return en-US for en-GB variant', () => {
+      expect(parseAcceptLanguageHeaderWithMatch('en-GB')).toBe('en-US');
+    });
+
+    it('should respect quality values', () => {
+      expect(parseAcceptLanguageHeaderWithMatch('en;q=0.5,zh-CN;q=0.9')).toBe(
+        'zh-CN',
+      );
+    });
+
+    it('should match first supported locale in preference list', () => {
+      expect(parseAcceptLanguageHeaderWithMatch('fr-FR,zh-CN,en;q=0.8')).toBe(
+        'zh-CN',
+      );
+    });
+  });
+
+  describe('fallback', () => {
+    it('should return DEFAULT_LOCALE for unsupported languages', () => {
+      expect(parseAcceptLanguageHeaderWithMatch('fr-FR,fr;q=0.9')).toBe(
+        DEFAULT_LOCALE,
+      );
+    });
+
+    it('should return DEFAULT_LOCALE for undefined header', () => {
+      expect(parseAcceptLanguageHeaderWithMatch(undefined)).toBe(
+        DEFAULT_LOCALE,
+      );
+    });
+
+    it('should return DEFAULT_LOCALE for empty string', () => {
+      expect(parseAcceptLanguageHeaderWithMatch('')).toBe(DEFAULT_LOCALE);
+    });
+
+    it('should try all preferences before falling back', () => {
+      expect(parseAcceptLanguageHeaderWithMatch('ja-JP,ko-KR,de-DE')).toBe(
+        DEFAULT_LOCALE,
+      );
     });
   });
 });

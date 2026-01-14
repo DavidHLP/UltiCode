@@ -2,9 +2,9 @@ import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 import { Request } from 'express';
 import {
   SupportedLocale,
-  DEFAULT_LOCALE,
   LOCALE_HEADER_KEY,
   matchSupportedLocale,
+  parseAcceptLanguageHeaderWithMatch,
 } from './i18n.constants';
 
 /**
@@ -27,22 +27,6 @@ export const Locale = createParamDecorator(
     if (matchedPreferred) return matchedPreferred;
 
     const header = request.headers['accept-language'];
-
-    if (!header) return DEFAULT_LOCALE;
-
-    const languages = header.split(',').map((lang) => {
-      const [code, qValue] = lang.trim().split(';q=');
-      return { code: code.trim(), quality: qValue ? parseFloat(qValue) : 1.0 };
-    });
-
-    // Sort by quality (highest first)
-    languages.sort((a, b) => b.quality - a.quality);
-
-    for (const { code } of languages) {
-      const matched = matchSupportedLocale(code);
-      if (matched) return matched;
-    }
-
-    return DEFAULT_LOCALE;
+    return parseAcceptLanguageHeaderWithMatch(header);
   },
 );

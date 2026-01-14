@@ -2,12 +2,20 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { I18nService } from './i18n.service';
 import { PrismaService } from '../prisma.service';
 import { SupportedLocale, TRANSLATABLE_ENTITIES } from './i18n.constants';
+import { ConflictException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 type TranslatableEntity = keyof typeof TRANSLATABLE_ENTITIES;
 
 describe('I18nService', () => {
   let service: I18nService;
   let prisma: jest.Mocked<PrismaService>;
+  const mockLogger = {
+    warn: jest.fn(),
+    log: jest.fn(),
+    error: jest.fn(),
+    debug: jest.fn(),
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -18,7 +26,8 @@ describe('I18nService', () => {
           useValue: {
             translation: {
               findMany: jest.fn().mockResolvedValue([]),
-              createMany: jest.fn().mockResolvedValue({}),
+              findUnique: jest.fn().mockResolvedValue(null),
+              createMany: jest.fn().mockResolvedValue({ count: 0 }),
             },
           },
         },
@@ -27,6 +36,10 @@ describe('I18nService', () => {
 
     service = module.get<I18nService>(I18nService);
     prisma = module.get(PrismaService);
+
+    // Replace the logger with our mock
+    (service as any).logger = mockLogger;
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -224,27 +237,29 @@ describe('I18nService', () => {
   });
 
   describe('bulkUpsertTranslations', () => {
-    it('should bulk upsert translations', async () => {
+    const sampleTranslations = [
+      {
+        entityType: 'PROBLEM' as TranslatableEntity,
+        entityId: '1',
+        fieldName: 'title',
+        locale: 'zh-CN' as SupportedLocale,
+        content: '两数之和',
+      },
+      {
+        entityType: 'PROBLEM' as TranslatableEntity,
+        entityId: '2',
+        fieldName: 'title',
+        locale: 'zh-CN' as SupportedLocale,
+        content: '三数之和',
+      },
+    ];
+
+    it('should bulk upsert translations and return result', async () => {
       (prisma.translation.createMany as jest.Mock).mockResolvedValue({
         count: 2,
       } as never);
 
-      await service.bulkUpsertTranslations([
-        {
-          entityType: 'PROBLEM' as TranslatableEntity,
-          entityId: '1',
-          fieldName: 'title',
-          locale: 'zh-CN' as SupportedLocale,
-          content: '两数之和',
-        },
-        {
-          entityType: 'PROBLEM' as TranslatableEntity,
-          entityId: '2',
-          fieldName: 'title',
-          locale: 'zh-CN' as SupportedLocale,
-          content: '三数之和',
-        },
-      ]);
+      const result = await service.bulkUpsertTranslations(sampleTranslations);
 
       expect(prisma.translation.createMany).toHaveBeenCalledWith({
         data: [
@@ -265,6 +280,97 @@ describe('I18nService', () => {
         ],
         skipDuplicates: true,
       });
+      expect(result).toEqual({
+        created: 2,
+        skipped: 0,
+        duplicates: [],
+      });
+    });
+
+    it('should return empty result for empty translations array', async () => {
+      const result = await service.bulkUpsertTranslations([]);
+
+      expect(result).toEqual({
+        created: 0,
+        skipped: 0,
+        duplicates: [],
+      });
+      expect(prisma.translation.createMany).not.toHaveBeenCalled();
+    });
+
+    it('should skip duplicates when skipDuplicates is true', async () => {
+      (prisma.translation.createMany as jest.Mock).mockResolvedValue({
+        count: 1,
+      } as never);
+
+      const result = await service.bulkUpsertTranslations(sampleTranslations, {
+        skipDuplicates: true,
+        logSkipped: true,
+      });
+
+      expect(result.created).toBe(1);
+      expect(result.skipped).toBe(1);
+      expect(mockLogger.warn).toHaveBeenCalledWith(
+        'Skipped 1 duplicate translations during bulk upsert',
+      );
+    });
+
+    it('should not log when logSkipped is false', async () => {
+      (prisma.translation.createMany as jest.Mock).mockResolvedValue({
+        count: 1,
+      } as never);
+
+      const result = await service.bulkUpsertTranslations(sampleTranslations, {
+        skipDuplicates: true,
+        logSkipped: false,
+      });
+
+      expect(result.created).toBe(1);
+      expect(result.skipped).toBe(1);
+      expect(mockLogger.warn).not.toHaveBeenCalled();
+    });
+
+    it('should throw ConflictException when skipDuplicates is false and duplicates exist', async () => {
+      (prisma.translation.findUnique as jest.Mock).mockResolvedValue({
+        id: 'existing-id',
+      });
+
+      await expect(
+        service.bulkUpsertTranslations(sampleTranslations, {
+          skipDuplicates: false,
+        }),
+      ).rejects.toThrow(ConflictException);
+
+      expect(prisma.translation.createMany).not.toHaveBeenCalled();
+    });
+
+    it('should handle Prisma unique constraint error for single translation', async () => {
+      const prismaError = new Prisma.PrismaClientKnownRequestError(
+        'Unique constraint violation',
+        {
+          code: 'P2002',
+          clientVersion: '5.0.0',
+        },
+      );
+
+      (prisma.translation.createMany as jest.Mock).mockRejectedValue(
+        prismaError,
+      );
+
+      await expect(
+        service.bulkUpsertTranslations([sampleTranslations[0]]),
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should pass through other errors', async () => {
+      const otherError = new Error('Database connection failed');
+      (prisma.translation.createMany as jest.Mock).mockRejectedValue(
+        otherError,
+      );
+
+      await expect(
+        service.bulkUpsertTranslations([sampleTranslations[0]]),
+      ).rejects.toThrow('Database connection failed');
     });
   });
 });

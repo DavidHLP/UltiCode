@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import {
   SupportedLocale,
@@ -8,9 +8,13 @@ import {
   TRANSLATABLE_ENTITIES,
   matchSupportedLocale,
 } from './i18n.constants';
+import { Prisma } from '@prisma/client';
+import { BulkUpsertOptions, BulkUpsertResult } from './dto/translation.dto';
 
 @Injectable()
 export class I18nService {
+  private readonly logger = new Logger(I18nService.name);
+
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -170,8 +174,106 @@ export class I18nService {
   }
 
   /**
+   * Validate field name against translatable entity configuration
+   * @param entityType Type of entity
+   * @param fieldName Field name to validate
+   * @returns True if field is valid for the entity type
+   */
+  private isValidFieldName(
+    entityType: TranslatableEntity,
+    fieldName: string,
+  ): boolean {
+    const entityConfig = TRANSLATABLE_ENTITIES[entityType];
+    const fields = entityConfig.fields as readonly string[];
+    return fields.includes(fieldName);
+  }
+
+  /**
+   * Check if translations already exist in the database
+   * @param translations Array of translation data to check
+   * @returns Array of duplicate translation identifiers (in format: "entityType#entityId:fieldName:locale")
+   */
+  private async checkForDuplicates(
+    translations: Array<{
+      entityType: TranslatableEntity;
+      entityId: string | number | bigint;
+      fieldName: string;
+      locale: SupportedLocale;
+    }>,
+  ): Promise<string[]> {
+    if (translations.length === 0) return [];
+
+    const duplicateIds: string[] = [];
+
+    // Check each translation for existence
+    for (const translation of translations) {
+      const existing = await this.prisma.translation.findUnique({
+        where: {
+          entity_type_entity_id_field_name_locale: {
+            entity_type: translation.entityType,
+            entity_id: String(translation.entityId),
+            field_name: translation.fieldName,
+            locale: translation.locale,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (existing) {
+        duplicateIds.push(
+          `${translation.entityType}#${translation.entityId}:${translation.fieldName}:${translation.locale}`,
+        );
+      }
+    }
+
+    return duplicateIds;
+  }
+
+  /**
+   * Handle Prisma unique constraint errors with user-friendly messages
+   * @param error The error from Prisma
+   * @param translation The translation that caused the error
+   * @throws ConflictException with user-friendly message
+   */
+  private handlePrismaError(
+    error: any,
+    translation: {
+      entityType: TranslatableEntity;
+      entityId: string | number | bigint;
+      fieldName: string;
+      locale: SupportedLocale;
+    },
+  ): never {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === 'P2002'
+    ) {
+      throw new ConflictException(
+        `Translation already exists for ${translation.entityType}#${translation.entityId}, field: ${translation.fieldName}, locale: ${translation.locale}`,
+      );
+    }
+    throw error;
+  }
+
+  /**
+   * Create a translation identifier for logging
+   * @param translation Translation data
+   * @returns Identifier string
+   */
+  private getTranslationIdentifier(translation: {
+    entityType: TranslatableEntity;
+    entityId: string | number | bigint;
+    fieldName: string;
+    locale: SupportedLocale;
+  }): string {
+    return `${translation.entityType}#${translation.entityId}:${translation.fieldName}:${translation.locale}`;
+  }
+
+  /**
    * Bulk upsert translations (for seeding/admin)
    * @param translations Array of translation data
+   * @param options Options for the bulk upsert operation
+   * @returns Result with counts of created and skipped translations
    */
   async bulkUpsertTranslations(
     translations: Array<{
@@ -181,17 +283,65 @@ export class I18nService {
       locale: SupportedLocale;
       content: string;
     }>,
-  ): Promise<void> {
-    // Use createMany with skipDuplicates for efficiency
-    await this.prisma.translation.createMany({
-      data: translations.map((t) => ({
-        entity_type: t.entityType,
-        entity_id: String(t.entityId),
-        field_name: t.fieldName,
-        locale: t.locale,
-        content: t.content,
-      })),
-      skipDuplicates: true,
-    });
+    options: BulkUpsertOptions = {},
+  ): Promise<BulkUpsertResult> {
+    const { skipDuplicates = true, logSkipped = true } = options;
+
+    // Early return for empty array
+    if (translations.length === 0) {
+      return { created: 0, skipped: 0, duplicates: [] };
+    }
+
+    // Check for existing translations if not skipping duplicates
+    let duplicateIds: string[] = [];
+    if (!skipDuplicates) {
+      duplicateIds = await this.checkForDuplicates(translations);
+      if (duplicateIds.length > 0) {
+        throw new ConflictException(
+          `Duplicate translations detected: ${duplicateIds.join(', ')}`,
+        );
+      }
+    }
+
+    // Prepare data for insertion
+    const data = translations.map((t) => ({
+      entity_type: t.entityType,
+      entity_id: String(t.entityId),
+      field_name: t.fieldName,
+      locale: t.locale,
+      content: t.content,
+    }));
+
+    try {
+      // Attempt to create translations
+      const result = await this.prisma.translation.createMany({
+        data,
+        skipDuplicates: skipDuplicates,
+      });
+
+      // Get actual duplicate count by comparing
+      const actualSkipped = skipDuplicates
+        ? translations.length - result.count
+        : 0;
+
+      // Log skipped duplicates
+      if (logSkipped && actualSkipped > 0) {
+        this.logger.warn(
+          `Skipped ${actualSkipped} duplicate translations during bulk upsert`,
+        );
+      }
+
+      return {
+        created: result.count,
+        skipped: actualSkipped,
+        duplicates: duplicateIds,
+      };
+    } catch (error) {
+      // Handle Prisma unique constraint errors
+      if (translations.length === 1) {
+        this.handlePrismaError(error, translations[0]);
+      }
+      throw error;
+    }
   }
 }

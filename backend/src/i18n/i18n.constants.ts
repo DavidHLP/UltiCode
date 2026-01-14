@@ -116,5 +116,79 @@ export const TRANSLATABLE_ENTITIES = {
 
 export type TranslatableEntity = keyof typeof TRANSLATABLE_ENTITIES;
 
+/**
+ * Represents a language preference from Accept-Language header
+ */
+export interface LanguagePreference {
+  code: string;
+  quality: number;
+}
+
+/**
+ * Parse Accept-Language header into sorted language preference array
+ *
+ * @param header - Accept-Language header value (e.g., 'zh-CN,zh;q=0.9,en;q=0.8')
+ * @returns Sorted array of language preferences (highest quality first)
+ *
+ * @example
+ * parseAcceptLanguageHeader('zh-CN,zh;q=0.9,en;q=0.8')
+ * // → [{code: 'zh-CN', quality: 1.0}, {code: 'zh', quality: 0.9}, {code: 'en', quality: 0.8}]
+ *
+ * @example
+ * parseAcceptLanguageHeader('en;q=0.5,zh-CN;q=0.9')
+ * // → [{code: 'zh-CN', quality: 0.9}, {code: 'en', quality: 0.5}]
+ */
+export function parseAcceptLanguageHeader(
+  header: string,
+): LanguagePreference[] {
+  if (!header) return [];
+
+  const languages = header.split(',').map((lang) => {
+    const [code, qValue] = lang.trim().split(';q=');
+    return {
+      code: code.trim(),
+      quality: qValue ? parseFloat(qValue) : 1.0,
+    };
+  });
+
+  // Sort by quality (highest first)
+  languages.sort((a, b) => b.quality - a.quality);
+
+  return languages;
+}
+
+/**
+ * Parse Accept-Language header and return best matching supported locale
+ *
+ * @param header - Accept-Language header value
+ * @returns Best matching supported locale, or DEFAULT_LOCALE if no match
+ *
+ * @example
+ * parseAcceptLanguageHeaderWithMatch('zh-CN,zh;q=0.9,en;q=0.8')
+ * // → 'zh-CN'
+ *
+ * @example
+ * parseAcceptLanguageHeaderWithMatch('en-GB,en;q=0.9')
+ * // → 'en-US' (via variant mapping)
+ *
+ * @example
+ * parseAcceptLanguageHeaderWithMatch('fr-FR,fr;q=0.9')
+ * // → 'zh-CN' (DEFAULT_LOCALE, no match)
+ */
+export function parseAcceptLanguageHeaderWithMatch(
+  header: string | undefined,
+): SupportedLocale {
+  if (!header) return DEFAULT_LOCALE;
+
+  const languages = parseAcceptLanguageHeader(header);
+
+  for (const { code } of languages) {
+    const matched = matchSupportedLocale(code);
+    if (matched) return matched;
+  }
+
+  return DEFAULT_LOCALE;
+}
+
 export type TranslatableFields<E extends TranslatableEntity> =
   (typeof TRANSLATABLE_ENTITIES)[E]['fields'][number];

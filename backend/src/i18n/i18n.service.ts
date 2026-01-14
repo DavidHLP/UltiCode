@@ -2,11 +2,10 @@ import { Injectable, Logger, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import {
   SupportedLocale,
-  DEFAULT_LOCALE,
   FALLBACK_LOCALE,
   TranslatableEntity,
   TRANSLATABLE_ENTITIES,
-  matchSupportedLocale,
+  parseAcceptLanguageHeaderWithMatch,
 } from './i18n.constants';
 import { Prisma } from '@prisma/client';
 import { BulkUpsertOptions, BulkUpsertResult } from './dto/translation.dto';
@@ -23,25 +22,7 @@ export class I18nService {
    * @returns Best matching supported locale
    */
   parseAcceptLanguage(header: string | undefined): SupportedLocale {
-    if (!header) return DEFAULT_LOCALE;
-
-    const languages = header.split(',').map((lang) => {
-      const [code, qValue] = lang.trim().split(';q=');
-      return {
-        code: code.trim(),
-        quality: qValue ? parseFloat(qValue) : 1.0,
-      };
-    });
-
-    // Sort by quality (highest first)
-    languages.sort((a, b) => b.quality - a.quality);
-
-    for (const { code } of languages) {
-      const matched = matchSupportedLocale(code);
-      if (matched) return matched;
-    }
-
-    return DEFAULT_LOCALE;
+    return parseAcceptLanguageHeaderWithMatch(header);
   }
 
   /**

@@ -1,12 +1,47 @@
-import { forwardRef, Module } from '@nestjs/common';
+import {
+  forwardRef,
+  Injectable,
+  Module,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { UserModule } from '../user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthGuard } from './auth.guard';
-import { TokenBlacklistService } from './token-blacklist.service';
+import {
+  TokenBlacklistService,
+  REDIS_CONNECTION,
+} from './token-blacklist.service';
 import { PrismaService } from '../prisma.service';
+import Redis from 'ioredis';
+
+/**
+ * Redis connection holder for cleanup on module destroy
+ * This ensures the Redis connection is properly closed when the module is destroyed
+ */
+@Injectable()
+class RedisConnectionHolder implements OnModuleDestroy {
+  public readonly connection: Redis;
+
+  constructor() {
+    this.connection = new Redis({
+      host: process.env.REDIS_HOST || 'localhost',
+      port: parseInt(process.env.REDIS_PORT || '6379'),
+      password: process.env.REDIS_PASSWORD || undefined,
+      maxRetriesPerRequest: 3,
+      retryStrategy: (times) => {
+        const delay = Math.min(times * 50, 2000);
+        return delay;
+      },
+    });
+  }
+
+  async onModuleDestroy() {
+    await this.connection.quit();
+  }
+}
 
 @Module({
   imports: [
@@ -28,7 +63,17 @@ import { PrismaService } from '../prisma.service';
       },
     }),
   ],
-  providers: [AuthService, AuthGuard, TokenBlacklistService, PrismaService],
+  providers: [
+    AuthService,
+    AuthGuard,
+    TokenBlacklistService,
+    PrismaService,
+    RedisConnectionHolder,
+    {
+      provide: REDIS_CONNECTION,
+      useExisting: RedisConnectionHolder,
+    },
+  ],
   controllers: [AuthController],
   exports: [AuthService, AuthGuard, TokenBlacklistService],
 })

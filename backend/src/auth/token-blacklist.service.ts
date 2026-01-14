@@ -1,6 +1,11 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common';
 import { createHash } from 'crypto';
 import Redis from 'ioredis';
+
+/**
+ * Injection token for the Redis connection used by TokenBlacklistService
+ */
+export const REDIS_CONNECTION = Symbol('REDIS_CONNECTION');
 
 /**
  * Token Blacklist Service
@@ -12,28 +17,13 @@ import Redis from 'ioredis';
  */
 @Injectable()
 export class TokenBlacklistService implements OnModuleDestroy {
-  private redis: Redis;
-
   /**
    * The default token expiration time (7 days) in seconds
    * This should match the JWT_EXPIRES_IN in auth.module.ts
    */
   private readonly DEFAULT_TTL = 7 * 24 * 60 * 60; // 7 days in seconds
 
-  constructor() {
-    // Create a dedicated Redis connection for the token blacklist
-    // Reads connection settings from environment variables
-    this.redis = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD || undefined,
-      maxRetriesPerRequest: 3,
-      retryStrategy: (times) => {
-        const delay = Math.min(times * 50, 2000);
-        return delay;
-      },
-    });
-  }
+  constructor(@Inject(REDIS_CONNECTION) private readonly redis: Redis) {}
 
   async onModuleDestroy() {
     // Close the Redis connection when the module is destroyed

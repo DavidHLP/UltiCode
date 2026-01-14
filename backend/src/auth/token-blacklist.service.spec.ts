@@ -1,5 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { TokenBlacklistService } from './token-blacklist.service';
+import {
+  TokenBlacklistService,
+  REDIS_CONNECTION,
+} from './token-blacklist.service';
 import Redis from 'ioredis';
 
 describe('TokenBlacklistService', () => {
@@ -11,7 +14,7 @@ describe('TokenBlacklistService', () => {
       providers: [
         TokenBlacklistService,
         {
-          provide: 'Redis',
+          provide: REDIS_CONNECTION,
           useValue: {
             set: jest.fn(),
             get: jest.fn(),
@@ -23,10 +26,7 @@ describe('TokenBlacklistService', () => {
     }).compile();
 
     service = module.get<TokenBlacklistService>(TokenBlacklistService);
-    redis = module.get('Redis');
-
-    // Replace the internal redis instance with our mock
-    (service as any).redis = redis;
+    redis = module.get(REDIS_CONNECTION);
   });
 
   it('should be defined', () => {

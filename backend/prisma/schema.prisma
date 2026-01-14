@@ -49,6 +49,8 @@ model User {
   performedAudits       AuditLog[]              @relation("AuditLogPerformer")
   systemAnnouncements      SystemAnnouncement[]
   systemAnnouncementReads  SystemAnnouncementRead[]
+  createdTranslations      Translation[]            @relation("TranslationCreator")
+  updatedTranslations      Translation[]            @relation("TranslationUpdater")
 
   @@index([role])
   @@index([is_active, is_banned])
@@ -966,12 +968,19 @@ model Translation {
   field_name  String   @db.VarChar(50) // title, summary, description, etc.
   locale      String   @db.VarChar(10) // en-US, zh-CN
   content     String   @db.Text
+  created_by  String?  @db.VarChar(40)
+  updated_by  String?  @db.VarChar(40)
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
+
+  creator     User?    @relation("TranslationCreator", fields: [created_by], references: [id])
+  updater     User?    @relation("TranslationUpdater", fields: [updated_by], references: [id])
 
   @@unique([entity_type, entity_id, field_name, locale])
   @@index([entity_type, entity_id, locale])
   @@index([locale])
+  @@index([created_by])
+  @@index([updated_by])
   @@map("translations")
 }
 

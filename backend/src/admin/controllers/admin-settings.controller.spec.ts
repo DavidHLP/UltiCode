@@ -8,6 +8,8 @@ import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
+import { CsrfService } from '../../auth/csrf.service';
 describe('AdminSettingsController', () => {
   let controller: AdminSettingsController;
   let _settingsService: jest.Mocked<AdminSettingsService>;
@@ -55,6 +57,12 @@ describe('AdminSettingsController', () => {
           },
         },
         {
+          provide: CsrfGuard,
+          useValue: {
+            canActivate: jest.fn(() => true),
+          },
+        },
+        {
           provide: AdminSettingsService,
           useValue: {
             getSettings: jest.fn(),
@@ -65,6 +73,14 @@ describe('AdminSettingsController', () => {
           provide: AuditService,
           useValue: {
             log: jest.fn(),
+          },
+        },
+        {
+          provide: CsrfService,
+          useValue: {
+            generateCsrfToken: jest.fn().mockResolvedValue('mock-csrf-token'),
+            validateCsrfToken: jest.fn().mockResolvedValue(true),
+            revokeCsrfToken: jest.fn(),
           },
         },
       ],

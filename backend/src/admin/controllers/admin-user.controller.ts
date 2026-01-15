@@ -12,6 +12,7 @@ import {
 import { randomUUID } from 'crypto';
 import { Like, FindOptionsWhere } from 'typeorm';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
@@ -35,7 +36,7 @@ import { User } from '../../user/user.entity';
 import * as bcrypt from 'bcrypt';
 
 @Controller('admin/users')
-@UseGuards(AuthGuard, PermissionsGuard, RolesGuard)
+@UseGuards(AuthGuard, PermissionsGuard, RolesGuard, CsrfGuard)
 export class AdminUserController {
   constructor(
     private userService: UserService,

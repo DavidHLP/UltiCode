@@ -10,6 +10,7 @@ import {
   Patch,
 } from '@nestjs/common';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
@@ -24,7 +25,7 @@ import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import type { User } from '@prisma/client';
 
 @Controller('admin/comments')
-@UseGuards(AuthGuard, RolesGuard)
+@UseGuards(AuthGuard, RolesGuard, CsrfGuard)
 @RequireRoles(UserRole.ADMIN, UserRole.MODERATOR, UserRole.SUPER_ADMIN)
 export class AdminCommentController {
   constructor(private readonly commentService: AdminCommentService) {}

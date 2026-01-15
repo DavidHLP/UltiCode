@@ -15,9 +15,10 @@ import { PermissionAction, PermissionResource } from '@prisma/client';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
 
 @Controller('admin/notifications')
-@UseGuards(AuthGuard, PermissionsGuard)
+@UseGuards(AuthGuard, PermissionsGuard, CsrfGuard)
 export class AdminNotificationController {
   constructor(private readonly notificationService: AdminNotificationService) {}
 

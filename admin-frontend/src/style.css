@@ -307,3 +307,10 @@
 .lc-copy-icon {
   pointer-events: none;
 }
+
+/* Fix non-passive wheel event listener warning from @unovis/vue */
+[data-vis-xy-container] {
+  overflow: hidden;
+  contain: content;
+  touch-action: none;
+}

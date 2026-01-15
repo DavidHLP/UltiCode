@@ -2,7 +2,7 @@ import * as DOMPurifyModule from 'dompurify'
 import { renderMarkdown } from './markdown'
 
 // Handle both ESM and CommonJS exports
- 
+
 const DOMPurify = ('default' in DOMPurifyModule ? DOMPurifyModule.default : DOMPurifyModule) as {
   sanitize: (html: string, config?: object) => string
 }

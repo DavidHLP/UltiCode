@@ -1,6 +1,7 @@
 import { Controller, Get, Query, UseGuards, Response } from '@nestjs/common';
 import type { Response as ExpressResponse } from 'express';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
@@ -15,7 +16,7 @@ import {
 } from '../dto/audit.dto';
 
 @Controller('admin/audit')
-@UseGuards(AuthGuard, PermissionsGuard, RolesGuard)
+@UseGuards(AuthGuard, PermissionsGuard, RolesGuard, CsrfGuard)
 export class AdminAuditController {
   constructor(private auditService: AuditService) {}
 

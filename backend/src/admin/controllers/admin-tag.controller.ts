@@ -10,6 +10,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
@@ -27,7 +28,7 @@ import {
 } from '../dto/tag.dto';
 
 @Controller('admin/tags')
-@UseGuards(AuthGuard, PermissionsGuard, RolesGuard)
+@UseGuards(AuthGuard, PermissionsGuard, RolesGuard, CsrfGuard)
 export class AdminTagController {
   constructor(private readonly tagService: AdminTagService) {}
 

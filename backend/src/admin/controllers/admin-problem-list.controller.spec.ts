@@ -8,6 +8,8 @@ import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
+import { CsrfService } from '../../auth/csrf.service';
 describe('AdminProblemListController', () => {
   let controller: AdminProblemListController;
   let _prisma: jest.Mocked<PrismaService>;
@@ -49,6 +51,14 @@ describe('AdminProblemListController', () => {
           },
         },
         {
+          provide: CsrfService,
+          useValue: {
+            generateCsrfToken: jest.fn().mockResolvedValue('mock-csrf-token'),
+            validateCsrfToken: jest.fn().mockResolvedValue(true),
+            revokeCsrfToken: jest.fn(),
+          },
+        },
+        {
           provide: PermissionsGuard,
           useValue: {
             canActivate: jest.fn(() => true),
@@ -56,6 +66,12 @@ describe('AdminProblemListController', () => {
         },
         {
           provide: RolesGuard,
+          useValue: {
+            canActivate: jest.fn(() => true),
+          },
+        },
+        {
+          provide: CsrfGuard,
           useValue: {
             canActivate: jest.fn(() => true),
           },

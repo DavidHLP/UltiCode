@@ -7,6 +7,7 @@ export interface LoginCredentials {
 
 export interface LoginResponse {
   access_token: string
+  csrf_token: string
   user: {
     id: string
     username: string

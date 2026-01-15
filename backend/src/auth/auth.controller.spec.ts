@@ -15,6 +15,7 @@ describe('AuthController', () => {
 
   const mockLoginResponse = {
     access_token: 'jwt-token',
+    csrf_token: 'mock-csrf-token',
     user: {
       id: 'user-123',
       username: 'testuser',

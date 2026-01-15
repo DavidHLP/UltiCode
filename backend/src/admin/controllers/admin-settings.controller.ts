@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Patch, Body, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
@@ -12,7 +13,7 @@ import { PermissionAction, PermissionResource } from '@prisma/client';
 import { SystemSettingsDto, MaintenanceModeDto } from '../dto/settings.dto';
 
 @Controller('admin/settings')
-@UseGuards(AuthGuard, PermissionsGuard, RolesGuard)
+@UseGuards(AuthGuard, PermissionsGuard, RolesGuard, CsrfGuard)
 export class AdminSettingsController {
   constructor(
     private settingsService: AdminSettingsService,

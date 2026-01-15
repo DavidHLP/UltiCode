@@ -9,9 +9,11 @@ import { RegisterDto } from './dto/register.dto';
 import { BusinessException } from '../common/exceptions/business.exception';
 import { ErrorCode } from '../common/error-codes';
 import { TokenBlacklistService } from './token-blacklist.service';
+import { CsrfService } from './csrf.service';
 
 export interface LoginResponse {
   access_token: string;
+  csrf_token: string;
   user: {
     id: string;
     username: string;
@@ -38,6 +40,7 @@ export class AuthService {
     private userService: UserService,
     private jwtService: JwtService,
     private tokenBlacklistService: TokenBlacklistService,
+    private csrfService: CsrfService,
     private prisma: PrismaService,
   ) {}
 
@@ -97,8 +100,12 @@ export class AuthService {
     // 生成 JWT token
     const token = this.generateToken(user.id, user.username, user.role);
 
+    // 生成 CSRF token
+    const csrfToken = await this.csrfService.generateCsrfToken(user.id);
+
     return {
       access_token: token,
+      csrf_token: csrfToken,
       user: {
         id: user.id,
         username: user.username,
@@ -137,6 +144,11 @@ export class AuthService {
               logoutDto.token,
               ttl,
             );
+          }
+
+          // Revoke CSRF token
+          if ('sub' in decoded) {
+            await this.csrfService.revokeCsrfToken(decoded.sub as string);
           }
         } else {
           // If we can't decode the token, use default TTL
@@ -192,8 +204,12 @@ export class AuthService {
       newUser.role,
     );
 
+    // 生成 CSRF token
+    const csrfToken = await this.csrfService.generateCsrfToken(newUser.id);
+
     return {
       access_token: token,
+      csrf_token: csrfToken,
       user: {
         id: newUser.id,
         username: newUser.username,

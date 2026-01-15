@@ -1,10 +1,18 @@
-import { Controller, Get, Param, Query, Req } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Param,
+  Query,
+  Req,
+  ParseIntPipe,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { ProblemService } from './problem.service';
 import { Problem } from './problem.entity';
 import { SubmissionService } from '../submission/submission.service';
 import { Locale } from '../i18n/i18n.decorator';
 import type { SupportedLocale } from '../i18n/i18n.constants';
+import { FindAllProblemsQueryDto, ProblemParamsDto } from './dto';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string };
@@ -19,13 +27,11 @@ export class ProblemController {
 
   @Get()
   async findAll(
-    @Query('userId') userId?: string,
-    @Query('category') category?: string,
-    @Query('difficulty') difficulty?: string,
-    @Query('search') search?: string,
+    @Query() query: FindAllProblemsQueryDto,
     @Req() req?: AuthenticatedRequest,
     @Locale() locale?: string,
   ): Promise<Problem[]> {
+    const { userId, category, difficulty, search } = query;
     const problems = await this.problemService.findAll(
       {
         category,
@@ -63,16 +69,16 @@ export class ProblemController {
 
   @Get(':id')
   async findOne(
-    @Param('id') id: string,
-    @Query('userId') userId?: string,
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: ProblemParamsDto,
     @Req() req?: AuthenticatedRequest,
     @Locale() locale?: string,
   ): Promise<Problem | null> {
     const problem = await this.problemService.findOne(
-      id,
+      String(id),
       locale as SupportedLocale,
     );
-    const effectiveUserId = userId || req?.user?.id;
+    const effectiveUserId = query.userId || req?.user?.id;
     if (!problem || !effectiveUserId) {
       return problem;
     }
@@ -89,16 +95,15 @@ export class ProblemController {
   }
 
   @Get(':id/results')
-  getProblemResults(@Param('id') id: string, @Query('userId') userId?: string) {
-    const numericId = Number(id);
-    if (Number.isNaN(numericId)) {
-      return null;
-    }
-    return this.submissionService.getLatestRunResult(numericId, userId);
+  getProblemResults(
+    @Param('id', ParseIntPipe) id: number,
+    @Query() query: ProblemParamsDto,
+  ) {
+    return this.submissionService.getLatestRunResult(id, query.userId);
   }
 
   @Get(':id/adjacent')
-  getAdjacent(@Param('id') id: string) {
-    return this.problemService.findAdjacent(Number(id));
+  getAdjacent(@Param('id', ParseIntPipe) id: number) {
+    return this.problemService.findAdjacent(id);
   }
 }

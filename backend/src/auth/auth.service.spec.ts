@@ -5,6 +5,7 @@ import { AuthService } from './auth.service';
 import { UserService } from '../user/user.service';
 import { PrismaService } from '../prisma.service';
 import { TokenBlacklistService } from './token-blacklist.service';
+import { CsrfService } from './csrf.service';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../user/user.entity';
 
@@ -67,6 +68,14 @@ describe('AuthService', () => {
           },
         },
         {
+          provide: CsrfService,
+          useValue: {
+            generateCsrfToken: jest.fn().mockResolvedValue('csrf-token'),
+            revokeCsrfToken: jest.fn().mockResolvedValue(undefined),
+            validateCsrfToken: jest.fn().mockResolvedValue(true),
+          },
+        },
+        {
           provide: PrismaService,
           useValue: {
             passwordReset: {
@@ -101,6 +110,7 @@ describe('AuthService', () => {
 
       expect(result).toEqual({
         access_token: 'jwt-token',
+        csrf_token: 'csrf-token',
         user: {
           id: mockUser.id,
           username: mockUser.username,
@@ -129,6 +139,7 @@ describe('AuthService', () => {
 
       expect(result).toEqual({
         access_token: 'jwt-token',
+        csrf_token: 'csrf-token',
         user: {
           id: mockUser.id,
           username: mockUser.username,

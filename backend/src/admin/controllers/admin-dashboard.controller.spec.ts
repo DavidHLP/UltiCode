@@ -7,6 +7,8 @@ import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
+import { CsrfService } from '../../auth/csrf.service';
 import { ChartPeriod, ChartMetric } from '../dto/dashboard.dto';
 describe('AdminDashboardController', () => {
   let controller: AdminDashboardController;
@@ -52,6 +54,20 @@ describe('AdminDashboardController', () => {
           provide: RolesGuard,
           useValue: {
             canActivate: jest.fn(() => true),
+          },
+        },
+        {
+          provide: CsrfGuard,
+          useValue: {
+            canActivate: jest.fn(() => true),
+          },
+        },
+        {
+          provide: CsrfService,
+          useValue: {
+            generateCsrfToken: jest.fn(),
+            validateCsrfToken: jest.fn(),
+            revokeCsrfToken: jest.fn(),
           },
         },
         {

@@ -88,13 +88,20 @@ describe('ProblemController', () => {
   describe('getProblemResults', () => {
     it('should return problem results', async () => {
       const mockResults = {
-        latestRuns: [],
-        problemStats: { accepted: 0, total: 0 },
+        id: 'run-1',
+        submissionId: 'sub-1',
+        problemId: 1,
+        userId: 'user-123',
+        verdict: 'Accepted',
+        runtime: '100 ms',
+        memory: '50 MB',
+        cases: [],
+        passed_cases: 0,
+        total_cases: 0,
+        error_message: null,
       };
 
-      submissionService.getLatestRunResult.mockResolvedValue(
-        mockResults as never,
-      );
+      submissionService.getLatestRunResult.mockResolvedValue(mockResults);
 
       const query = new ProblemParamsDto();
       const result = await controller.getProblemResults(1, query);
@@ -109,8 +116,17 @@ describe('ProblemController', () => {
     it('should return problem results with valid id', async () => {
       const query = new ProblemParamsDto();
       const mockResults = {
-        latestRuns: [],
-        problemStats: { accepted: 0, total: 0 },
+        id: 'run-2',
+        submissionId: 'sub-2',
+        problemId: 2,
+        userId: 'user-456',
+        verdict: 'Wrong Answer',
+        runtime: '150 ms',
+        memory: '60 MB',
+        cases: [],
+        passed_cases: 0,
+        total_cases: 0,
+        error_message: null,
       };
       submissionService.getLatestRunResult.mockResolvedValue(mockResults);
 

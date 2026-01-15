@@ -227,6 +227,7 @@ export default {
       status: '状态',
       allStatus: '全部状态',
       visibility: '可见性',
+      any: '任意',
       published: '已发布',
       unpublished: '草稿',
     },

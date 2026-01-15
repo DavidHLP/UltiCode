@@ -31,6 +31,7 @@ import {
   BulkProblemActionDto,
   Difficulty,
 } from '../dto/problem.dto';
+import DOMPurify from 'dompurify';
 
 // Map Prisma difficulty to frontend UPPERCASE format
 function mapDifficultyToFrontend(
@@ -60,6 +61,29 @@ function mapDifficultyToPrisma(difficulty: Difficulty): PrismaDifficulty {
     default:
       return PrismaDifficulty.Easy;
   }
+}
+
+/**
+ * Sanitize markdown content to prevent XSS attacks.
+ *
+ * For the summary/content field, we want to:
+ * 1. Allow storing raw markdown (for proper rendering)
+ * 2. Strip any HTML tags that might have been injected
+ * 3. Keep the text content intact
+ *
+ * This is a defense-in-depth measure - the frontend also sanitizes
+ * when rendering, but we sanitize here too in case the API is called
+ * directly or the frontend protection fails.
+ */
+function sanitizeMarkdown(content: string): string {
+  if (!content) return content;
+  // Strip all HTML tags but keep the text content
+  // This prevents any HTML/JS injection while preserving markdown
+  return DOMPurify.sanitize(content, {
+    ALLOWED_TAGS: [], // Disallow all HTML tags
+    ALLOWED_ATTR: [], // Disallow all attributes
+    KEEP_CONTENT: true, // Keep text content
+  });
 }
 
 @Controller('admin/problems')
@@ -332,6 +356,9 @@ export class AdminProblemController {
       tags,
     } = createProblemDto;
 
+    // Sanitize markdown content to prevent XSS
+    const sanitizedSummary = summary ? sanitizeMarkdown(summary) : undefined;
+
     // Generate a unique ID for the problem
     const id = BigInt(Date.now());
 
@@ -348,12 +375,12 @@ export class AdminProblemController {
         is_published: is_published || false,
         published_at: is_published ? new Date() : null,
         published_by: is_published ? admin.id : null,
-        detail: summary
+        detail: sanitizedSummary
           ? {
               create: {
                 id: crypto.randomUUID(),
                 slug,
-                summary,
+                summary: sanitizedSummary,
                 constraints_json: constraints || [],
                 hints,
                 updated_at: new Date(),
@@ -367,7 +394,9 @@ export class AdminProblemController {
                 problem_id: id,
                 input_text: ex.input,
                 output_text: ex.output,
-                explanation: ex.explanation,
+                explanation: ex.explanation
+                  ? sanitizeMarkdown(ex.explanation)
+                  : undefined,
                 example_order: idx,
               })),
             }
@@ -468,7 +497,8 @@ export class AdminProblemController {
     if (is_premium !== undefined) updateData.is_premium = is_premium;
     if (has_solution !== undefined) updateData.has_solution = has_solution;
 
-    if (summary !== undefined) detailUpdate.summary = summary;
+    // Sanitize markdown content to prevent XSS
+    if (summary !== undefined) detailUpdate.summary = sanitizeMarkdown(summary);
     if (constraints !== undefined) detailUpdate.constraints_json = constraints;
     if (hints !== undefined) detailUpdate.hints = hints;
 

@@ -16,6 +16,7 @@ import { AdminSettingsController } from './controllers/admin-settings.controller
 import { AdminBulkController } from './controllers/admin-bulk.controller';
 import { PrismaService } from '../prisma.service';
 import { UserModule } from '../user/user.module';
+import { AuthModule } from '../auth/auth.module';
 import { AdminCommentService } from './services/admin-comment.service';
 import { AdminSettingsService } from './services/settings.service';
 import { AdminTagService } from './services/admin-tag.service';
@@ -27,7 +28,7 @@ import { AdminNotificationService } from './services/admin-notification.service'
 
 @Global()
 @Module({
-  imports: [UserModule],
+  imports: [UserModule, AuthModule],
   controllers: [
     AdminUserController,
     AdminDashboardController,

@@ -241,6 +241,7 @@ export default {
       status: 'Status',
       allStatus: 'All Status',
       visibility: 'Visibility',
+      any: 'Any',
       published: 'Published',
       unpublished: 'Draft',
     },

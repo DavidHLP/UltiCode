@@ -95,7 +95,7 @@ function getRequestKey(config: InternalAxiosRequestConfig): string {
  * Get environment specific settings
  */
 const isDevelopment = import.meta.env.DEV
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4001'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6001'
 
 /**
  * Create axios instance with default config
@@ -127,6 +127,15 @@ service.interceptors.request.use(
       const token = localStorage.getItem('admin_token')
       if (token) {
         config.headers.Authorization = `Bearer ${token}`
+      }
+    }
+
+    // Add CSRF token for state-changing methods
+    const method = config.method?.toUpperCase()
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method || '')) {
+      const csrfToken = localStorage.getItem('admin_csrf_token')
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken
       }
     }
 
@@ -239,6 +248,7 @@ service.interceptors.response.use(
     // Handle authentication errors - redirect to login
     if (error.response?.status === 401) {
       localStorage.removeItem('admin_token')
+      localStorage.removeItem('admin_csrf_token')
       localStorage.removeItem('admin_user')
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'

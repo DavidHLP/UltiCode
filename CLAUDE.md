@@ -190,131 +190,149 @@ Include Prisma migration files when changing schema.
 
 After completing a coding task, you **MUST** follow this exact sequence before ending the turn:
 
-1. **Verify**:
+### Pre-Implementation: Discovery with Gemini (Optional but Recommended)
+
+For complex tasks involving multiple files or modules:
+
+1. **Use Gemini for codebase analysis**:
+   - "use gemini to analyze @backend/src/[module] and identify all affected files"
+   - "ask gemini to find existing patterns for [feature] across the codebase"
+   - "use gemini to understand the dependencies between these modules"
+
+2. **Plan your approach** based on Gemini's findings:
+   - Identify all files that need modification
+   - Understand existing patterns to follow
+   - Verify functionality doesn't already exist
+
+### Implementation Phase
+
+3. **Make targeted changes**:
+   - Use Claude's Read/Edit/Write tools for precise modifications
+   - Run tests frequently during development
+
+### Post-Implementation: Verification & Commit (MANDATORY)
+
+4. **Verify**:
 
    - Run `npm run type-check`
    - Run `npm run lint`
    - Run `npm run format`
    - Run `npm run test --prefix backend` (ensure unit tests pass)
 
-2. **Commit**:
+5. **Optional: Gemini pattern verification** (for complex changes):
+   - "use gemini to verify @modified-files/ follow project patterns"
+   - "ask gemini to check if all occurrences of [pattern] were updated"
+
+6. **Commit**:
 
    - If verifications pass, you **MUST** create a git commit.
    - Run `git add .` (or specific files)
    - **FORBIDDEN**: Do NOT include any AI attribution, signatures, "Generated with...", "Co-Authored-By", or robot emojis. The commit message must appear strictly human-written.
    - Run `git commit -m "type(scope): message"`
 
-3. **Finish**:
+7. **Finish**:
    - You may only mark the task as "Complete" or "Done" **AFTER** the git commit is successfully executed.
 
 **CRITICAL RULE**: Do not leave code changes uncommitted. Always run `git commit` as the final step of your implementation.
 
-## Using Gemini CLI for Large Codebase Analysis
+**Workflow Summary**: Gemini for understanding → Claude for implementing → Tests for verification → Git for committing
 
-When analyzing large codebases or multiple files that might exceed context limits, use the Gemini CLI with its massive context window. Use `gemini -p` to leverage Google Gemini's large context capacity.
+## Using Gemini MCP Tool for Large Codebase Analysis
 
-### File and Directory Inclusion Syntax
+This project integrates the Gemini MCP Tool, which allows Claude to leverage Google Gemini's massive token context window for analyzing large files and codebases that would otherwise exceed context limits.
 
-Use the `@` syntax to include files and directories in your Gemini prompts. The paths should be relative to WHERE you run the gemini command:
+### Setup
 
-**Single file analysis:**
+The Gemini MCP Tool should be configured in your Claude Code environment. Verify installation by typing `/mcp` in Claude Code to confirm `gemini-cli` is active.
 
-```bash
-gemini -p "@src/main.py Explain this file's purpose and structure"
-```
+### Usage via MCP Tool (Recommended)
 
-**Multiple files:**
+Use the MCP tool directly through Claude:
 
-```bash
-gemini -p "@package.json @src/index.js Analyze the dependencies used in the code"
-```
+**Natural language requests:**
+- "use gemini to explain backend/src/auth/"
+- "ask gemini to analyze the frontend architecture"
+- "use gemini to search for authentication patterns"
 
-**Entire directory:**
+**With file references (using @ syntax):**
+- "use gemini to analyze @backend/src/auth/ and explain the authentication flow"
+- "ask gemini to compare @frontend/src/stores/ with @admin-frontend/src/stores/"
+- "use gemini to verify @backend/src/problem/ for proper error handling"
 
-```bash
-gemini -p "@src/ Summarize the architecture of this codebase"
-```
+**Sandbox mode for safe testing:**
+- "use gemini sandbox to test this Python script"
+- "ask gemini to safely create and run a data processing script"
 
-**Multiple directories:**
+### When to Use Gemini
 
-```bash
-gemini -p "@src/ @tests/ Analyze test coverage for the source code"
-```
+Use Gemini during these phases:
 
-**Current directory and subdirectories:**
+**Planning Phase (Before Implementation):**
+- Analyzing entire modules to understand architecture before changes
+- Identifying all files affected by a planned feature
+- Discovering existing patterns to follow or avoid
+- Verifying if functionality already exists before implementing
+- Understanding dependencies and cross-module interactions
 
-```bash
-gemini -p "@./ Give me an overview of this entire project"
-# Or use --all_files flag:
-gemini --all_files -p "Analyze the project structure and dependencies"
-```
+**Research/Discovery:**
+- Finding all usages of a specific pattern across the codebase
+- Locating where specific features are implemented
+- Understanding how similar problems were solved previously
+- Identifying potential impact areas for changes
 
-### Implementation Verification Examples
+**Verification (After Implementation):**
+- Checking if new code follows existing patterns
+- Verifying all occurrences of a pattern were updated
+- Ensuring consistency across similar modules
 
-**Check if a feature is implemented:**
+**Use Gemini when:**
+- Analyzing directories with >10 files or >100KB total
+- Comparing multiple large files side-by-side
+- Searching for patterns across entire modules
+- Context window constraints prevent full analysis
+- Need comprehensive project-wide understanding
 
-```bash
-gemini -p "@src/ @lib/ Has dark mode been implemented in this codebase? Show me the relevant files and functions"
-```
+### Integration with Task Planning
 
-**Verify authentication implementation:**
+When starting a new task, follow this enhanced workflow:
 
-```bash
-gemini -p "@src/ @middleware/ Is JWT authentication implemented? List all auth-related endpoints and middleware"
-```
+1. **Discovery Phase** (Use Gemini for large-scale analysis):
+   - "use gemini to analyze @backend/src/[module] and describe the architecture"
+   - "ask gemini to find all files related to [feature] in @frontend/src/"
+   - "use gemini to identify the authentication flow across the codebase"
 
-**Check for specific patterns:**
+2. **Planning Phase** (Use insights from Gemini):
+   - Create task list based on comprehensive understanding
+   - Identify all affected files upfront
+   - Follow existing patterns discovered
 
-```bash
-gemini -p "@src/ Are there any React hooks that handle WebSocket connections? List them with file paths"
-```
+3. **Implementation Phase** (Use Claude's tools):
+   - Make targeted changes to specific files
+   - Run tests, lint, type-check
+   - Use Gemini for verification if needed
 
-**Verify error handling:**
+4. **Verification Phase** (Optional Gemini check):
+   - "use gemini to verify @backend/src/[modified-files] follow project patterns"
 
-```bash
-gemini -p "@src/ @api/ Is proper error handling implemented for all API endpoints? Show examples of try-catch blocks"
-```
+### MCP Tool Capabilities
 
-**Check for rate limiting:**
+**ask-gemini**: General analysis and questions
+- Supports @ syntax for file/directory inclusion
+- Optional: specify model (default: gemini-2.5-pro)
+- Optional: sandbox mode for safe execution
 
-```bash
-gemini -p "@backend/ @middleware/ Is rate limiting implemented for the API? Show the implementation details"
-```
+**brainstorm**: Generate creative ideas
+- Methodology options: divergent, convergent, scamper, design-thinking
+- Domain context integration
+- Feasibility analysis
 
-**Verify caching strategy:**
-
-```bash
-gemini -p "@src/ @lib/ @services/ Is Redis caching implemented? List all cache-related functions and their usage"
-```
-
-**Check for specific security measures:**
-
-```bash
-gemini -p "@src/ @api/ Are SQL injection protections implemented? How are user inputs sanitized"
-```
-
-**Verify test coverage for features:**
-
-```bash
-gemini -p "@src/payment/ @tests/ Is the payment processing module fully tested? List all test cases"
-```
-
-### When to Use Gemini CLI
-
-Use `gemini -p` when:
-
-- Analyzing entire codebases or large directories
-- Comparing multiple large files
-- Need to understand project-wide patterns or architecture
-- Current context window is insufficient for the task
-- Working with files totaling more than 100KB
-- Verifying if specific features, patterns, or security measures are implemented
-- Checking for the presence of certain coding patterns across the entire codebase
+**sandbox-test**: Safe code execution
+- Isolated environment for testing scripts
+- No risk to local files
 
 ### Important Notes
 
-- Paths in `@` syntax are relative to your current working directory when invoking gemini
-- The CLI will include file contents directly in the context
-- No need for `--yolo` flag for read-only analysis
-- Gemini's context window can handle entire codebases that would overflow Claude's context
-- When checking implementations, be specific about what you're looking for to get accurate results
+- @ syntax paths are relative to current working directory
+- Gemini excels at broad analysis; Claude excels at targeted changes
+- Use Gemini for understanding, Claude for implementation
+- No special flags needed for read-only analysis via MCP

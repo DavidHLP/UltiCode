@@ -45,6 +45,8 @@ provideChartContext({
     "
     :style="{
       'touch-action': 'none',
+      'overflow': 'hidden',
+      'contain': 'content',
       '--vis-tooltip-padding': '0px',
       '--vis-tooltip-background-color': 'transparent',
       '--vis-tooltip-border-color': 'transparent',

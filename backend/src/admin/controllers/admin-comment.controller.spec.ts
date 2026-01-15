@@ -6,6 +6,8 @@ import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
 import { AuthGuard } from '../../auth/auth.guard';
+import { CsrfGuard } from '../../auth/csrf.guard';
+import { CsrfService } from '../../auth/csrf.service';
 describe('AdminCommentController', () => {
   let controller: AdminCommentController;
   let _adminCommentService: jest.Mocked<AdminCommentService>;
@@ -44,6 +46,20 @@ describe('AdminCommentController', () => {
           provide: RolesGuard,
           useValue: {
             canActivate: jest.fn(() => true),
+          },
+        },
+        {
+          provide: CsrfGuard,
+          useValue: {
+            canActivate: jest.fn(() => true),
+          },
+        },
+        {
+          provide: CsrfService,
+          useValue: {
+            generateCsrfToken: jest.fn(),
+            validateCsrfToken: jest.fn(),
+            revokeCsrfToken: jest.fn(),
           },
         },
         {

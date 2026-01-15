@@ -70,6 +70,7 @@ async function handleSubmit(event: Event) {
           id="username"
           v-model="username"
           type="text"
+          autocomplete="username"
           :placeholder="t('auth.login.usernamePlaceholder')"
           required
           :disabled="loading"
@@ -81,6 +82,7 @@ async function handleSubmit(event: Event) {
           id="password"
           v-model="password"
           type="password"
+          autocomplete="current-password"
           :placeholder="t('auth.login.passwordPlaceholder')"
           required
           :disabled="loading"

@@ -44,6 +44,7 @@ provideChartContext({
       )
     "
     :style="{
+      'touch-action': 'none',
       '--vis-tooltip-padding': '0px',
       '--vis-tooltip-background-color': 'transparent',
       '--vis-tooltip-border-color': 'transparent',

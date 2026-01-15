@@ -3,6 +3,7 @@ import { ProblemController } from './problem.controller';
 import { ProblemService } from './problem.service';
 import { SubmissionService } from '../submission/submission.service';
 import { Problem } from './problem.entity';
+import { FindAllProblemsQueryDto, ProblemParamsDto } from './dto';
 
 describe('ProblemController', () => {
   let controller: ProblemController;
@@ -53,7 +54,8 @@ describe('ProblemController', () => {
       problemService.findAll.mockResolvedValue([mockProblem]);
       submissionService.getProblemStatusMap.mockResolvedValue(new Map());
 
-      const result = await controller.findAll();
+      const query = new FindAllProblemsQueryDto();
+      const result = await controller.findAll(query);
 
       expect(result).toEqual([mockProblem]);
       expect(problemService.findAll).toHaveBeenCalled();
@@ -75,7 +77,8 @@ describe('ProblemController', () => {
     it('should return a problem by id', async () => {
       problemService.findOne.mockResolvedValue(mockProblem);
 
-      const result = await controller.findOne('1');
+      const query = new ProblemParamsDto();
+      const result = await controller.findOne(1, query);
 
       expect(result).toEqual(mockProblem);
       expect(problemService.findOne).toHaveBeenCalledWith('1', undefined);
@@ -93,7 +96,8 @@ describe('ProblemController', () => {
         mockResults as never,
       );
 
-      const result = await controller.getProblemResults('1');
+      const query = new ProblemParamsDto();
+      const result = await controller.getProblemResults(1, query);
 
       expect(result).toEqual(mockResults);
       expect(submissionService.getLatestRunResult).toHaveBeenCalledWith(
@@ -102,10 +106,16 @@ describe('ProblemController', () => {
       );
     });
 
-    it('should return null for invalid id', async () => {
-      const result = await controller.getProblemResults('invalid');
+    it('should return problem results with valid id', async () => {
+      const query = new ProblemParamsDto();
+      const mockResults = {
+        latestRuns: [],
+        problemStats: { accepted: 0, total: 0 },
+      };
+      submissionService.getLatestRunResult.mockResolvedValue(mockResults);
 
-      expect(result).toBeNull();
+      const result = await controller.getProblemResults(2, query);
+      expect(result).toEqual(mockResults);
     });
   });
 
@@ -118,7 +128,7 @@ describe('ProblemController', () => {
 
       problemService.findAdjacent.mockResolvedValue(adjacent);
 
-      const result = await controller.getAdjacent('2');
+      const result = await controller.getAdjacent(2);
 
       expect(result).toEqual(adjacent);
       expect(problemService.findAdjacent).toHaveBeenCalledWith(2);

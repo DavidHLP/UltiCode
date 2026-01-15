@@ -15,6 +15,8 @@ import {
   REDIS_CONNECTION,
 } from './token-blacklist.service';
 import { PrismaService } from '../prisma.service';
+import { CsrfService } from './csrf.service';
+import { CsrfGuard } from './csrf.guard';
 import Redis from 'ioredis';
 
 /**
@@ -67,14 +69,23 @@ class RedisConnectionHolder implements OnModuleDestroy {
     AuthService,
     AuthGuard,
     TokenBlacklistService,
+    CsrfService,
+    CsrfGuard,
     PrismaService,
     RedisConnectionHolder,
     {
       provide: REDIS_CONNECTION,
-      useExisting: RedisConnectionHolder,
+      useFactory: (holder: RedisConnectionHolder) => holder.connection,
+      inject: [RedisConnectionHolder],
     },
   ],
   controllers: [AuthController],
-  exports: [AuthService, AuthGuard, TokenBlacklistService],
+  exports: [
+    AuthService,
+    AuthGuard,
+    TokenBlacklistService,
+    CsrfService,
+    CsrfGuard,
+  ],
 })
 export class AuthModule {}

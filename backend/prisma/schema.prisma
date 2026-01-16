@@ -102,6 +102,9 @@ model Problem {
   solutions            Solution[]
   submissions          Submission[]
 
+  @@index([difficulty])
+  @@index([slug])
+  @@index([title])
   @@map("problems")
 }
 
@@ -120,6 +123,7 @@ model ProblemDetail {
   hints             Json?
   problem           Problem  @relation(fields: [problem_id], references: [id], onDelete: Cascade)
 
+  @@index([likes])
   @@map("problem_details")
 }
 

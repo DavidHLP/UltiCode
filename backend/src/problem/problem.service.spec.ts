@@ -122,16 +122,28 @@ describe('ProblemService', () => {
 
   describe('getRandom', () => {
     it('should return a random problem', async () => {
-      problemsRepository.count.mockResolvedValue(10);
-      problemsRepository.find.mockResolvedValue([mockProblem] as never);
+      const mockQueryBuilder = {
+        orderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(mockProblem),
+      } as any;
+      problemsRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
       const result = await service.getRandom();
 
       expect(result).toEqual(mockProblem);
+      expect(mockQueryBuilder.orderBy).toHaveBeenCalledWith('RAND()');
+      expect(mockQueryBuilder.limit).toHaveBeenCalledWith(1);
+      expect(mockQueryBuilder.getOne).toHaveBeenCalled();
     });
 
     it('should return null when no problems exist', async () => {
-      problemsRepository.count.mockResolvedValue(0);
+      const mockQueryBuilder = {
+        orderBy: jest.fn().mockReturnThis(),
+        limit: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(null),
+      } as any;
+      problemsRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
       const result = await service.getRandom();
 

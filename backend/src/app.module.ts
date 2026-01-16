@@ -24,6 +24,7 @@ import { ViewModule } from './view/view.module';
 import { I18nModule } from './i18n/i18n.module';
 import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
+import { SubscriptionModule } from './subscription/subscription.module';
 
 @Module({
   imports: [
@@ -82,6 +83,7 @@ import { AdminModule } from './admin/admin.module';
     BookmarkModule,
     I18nModule,
     NotificationModule,
+    SubscriptionModule,
   ],
   controllers: [AppController],
   providers: [

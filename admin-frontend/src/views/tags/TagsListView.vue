@@ -149,7 +149,7 @@ const columns: ColumnDef<Tag>[] = [
           (table.getIsSomePageRowsSelected() && 'indeterminate'),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
-        'aria-label': t('common.selectAll'),
+        'aria-label': t('table.selectAll'),
       }),
     cell: ({ row }) =>
       h(Checkbox, {

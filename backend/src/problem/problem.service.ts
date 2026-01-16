@@ -51,16 +51,14 @@ export class ProblemService {
       // Map frontend category to tag labels
       const tagLabel = CATEGORY_TAG_MAP[filters.category];
       if (tagLabel) {
-        query.andWhere((qb) => {
-          const subQuery = qb
-            .subQuery()
-            .select('relation.problem_id')
-            .from('problem_tag_relations', 'relation')
-            .leftJoin('relation.tag', 't')
-            .where('t.label = :tagLabel')
-            .getQuery();
-          return `problem.id IN ${subQuery}`;
-        });
+        const subQuery = query
+          .subQuery()
+          .select('relation.problem_id')
+          .from('problem_tag_relations', 'relation')
+          .leftJoin('relation.tag', 't')
+          .where('t.label = :tagLabel')
+          .getQuery();
+        query.andWhere('problem.id IN ' + subQuery);
         query.setParameter('tagLabel', tagLabel);
       }
     }

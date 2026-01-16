@@ -1,4 +1,13 @@
-import { IsOptional, IsString, IsEnum, MaxLength } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  IsEnum,
+  MaxLength,
+  IsInt,
+  Min,
+  Max,
+} from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class FindAllProblemsQueryDto {
   @IsOptional()
@@ -22,4 +31,17 @@ export class FindAllProblemsQueryDto {
   @IsString()
   @MaxLength(100)
   search?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page?: number = 1;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  limit?: number = 20;
 }

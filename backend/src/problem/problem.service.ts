@@ -11,6 +11,7 @@ import {
   TRANSLATABLE_ENTITIES,
 } from '../i18n/i18n.constants';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { PaginatedResult } from '../contest/dto/ranking.dto';
 
 @Injectable()
 export class ProblemService {
@@ -28,13 +29,22 @@ export class ProblemService {
       category?: string;
       difficulty?: string;
       search?: string;
+      page?: number;
+      limit?: number;
     } = {},
     locale: SupportedLocale = DEFAULT_LOCALE,
-  ): Promise<Problem[]> {
+  ): Promise<PaginatedResult<Problem>> {
+    const page = filters.page ?? 1;
+    const limit = filters.limit ?? 20;
+    const skip = (page - 1) * limit;
+
     const query = this.problemsRepository
       .createQueryBuilder('problem')
       .leftJoinAndSelect('problem.tagRelations', 'tagRelations')
-      .leftJoinAndSelect('tagRelations.tag', 'tag');
+      .leftJoinAndSelect('tagRelations.tag', 'tag')
+      .orderBy('problem.id', 'ASC')
+      .skip(skip)
+      .take(limit);
 
     if (filters.difficulty) {
       query.andWhere('problem.difficulty = :difficulty', {
@@ -65,9 +75,13 @@ export class ProblemService {
       }
     }
 
-    const problems = await query.getMany();
+    const [problems, total] = await Promise.all([
+      query.getMany(),
+      query.getCount(),
+    ]);
 
     // Apply i18n translations
+    let translatedProblems = problems;
     if (problems.length > 0) {
       const ids = problems.map((p) => p.id);
       const problemTranslationsMap =
@@ -93,7 +107,7 @@ export class ProblemService {
           )
         : new Map<string, Map<string, string>>();
 
-      return problems.map((problem) => {
+      translatedProblems = problems.map((problem) => {
         const translations: Map<string, string> =
           problemTranslationsMap.get(String(problem.id)) ??
           new Map<string, string>();
@@ -126,7 +140,13 @@ export class ProblemService {
       });
     }
 
-    return problems;
+    return {
+      items: translatedProblems,
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
   }
 
   async findOne(

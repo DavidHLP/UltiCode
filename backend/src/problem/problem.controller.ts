@@ -9,6 +9,7 @@ import type { SupportedLocale } from '../i18n/i18n.constants';
 import { FindAllProblemsQueryDto, ProblemParamsDto } from './dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { Public } from '../auth/auth.decorator';
+import { PaginatedResult } from '../contest/dto/ranking.dto';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; role?: string };
@@ -29,36 +30,43 @@ export class ProblemController {
     @Query() query: FindAllProblemsQueryDto,
     @Req() req?: AuthenticatedRequest,
     @Locale() locale?: string,
-  ): Promise<Problem[]> {
-    const { userId, category, difficulty, search } = query;
-    const problems = await this.problemService.findAll(
+  ): Promise<PaginatedResult<Problem>> {
+    const { userId, category, difficulty, search, page, limit } = query;
+    const paginatedResult = await this.problemService.findAll(
       {
         category,
         difficulty,
         search,
+        page,
+        limit,
       },
       locale as SupportedLocale,
     );
     const effectiveUserId = userId || req?.user?.id;
     if (!effectiveUserId) {
-      return problems;
+      return paginatedResult;
     }
-    const problemIds = problems.map((problem) => Number(problem.id));
+    const problemIds = paginatedResult.items.map((problem) =>
+      Number(problem.id),
+    );
     if (problemIds.length === 0) {
-      return [];
+      return paginatedResult;
     }
     const statusMap = await this.submissionService.getProblemStatusMap(
       effectiveUserId,
       problemIds,
     );
-    return problems.map((problem) => {
-      const entry = statusMap.get(Number(problem.id));
-      return {
-        ...problem,
-        status: entry?.status ?? 'todo',
-        completed_time: entry ? entry.completed_time : null,
-      };
-    });
+    return {
+      ...paginatedResult,
+      items: paginatedResult.items.map((problem) => {
+        const entry = statusMap.get(Number(problem.id));
+        return {
+          ...problem,
+          status: entry?.status ?? 'todo',
+          completed_time: entry ? entry.completed_time : null,
+        };
+      }),
+    };
   }
 
   @Get('random')

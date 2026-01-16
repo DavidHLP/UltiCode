@@ -568,6 +568,8 @@ export default {
       PUBLIC: 'Public',
       PRIVATE: 'Private',
       VIRTUAL: 'Virtual',
+      weekly: 'Weekly',
+      biweekly: 'Biweekly',
     },
 
     // Table columns

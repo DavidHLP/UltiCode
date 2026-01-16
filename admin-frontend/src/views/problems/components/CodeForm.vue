@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { IconPlus, IconTrash, IconBrackets, IconCheck } from '@tabler/icons-vue'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
+import { sanitizeTextInput } from '@/utils/sanitize-input'
 
 export interface LanguageWithCode {
   language: string
@@ -124,10 +125,13 @@ function cancel() {
 }
 
 function addLanguage(name: string) {
-  if (!name.trim()) return
+  // Sanitize input before processing
+  const sanitizedName = sanitizeTextInput(name, 50)
+
+  if (!sanitizedName) return
 
   const exists = formData.value.languages.some(
-    (lang) => lang.language.toLowerCase() === name.toLowerCase(),
+    (lang) => lang.language.toLowerCase() === sanitizedName.toLowerCase(),
   )
 
   if (exists) {
@@ -135,8 +139,8 @@ function addLanguage(name: string) {
     return
   }
 
-  formData.value.languages.push({ language: name, starter_code: '' })
-  expandedLang.value = name
+  formData.value.languages.push({ language: sanitizedName, starter_code: '' })
+  expandedLang.value = sanitizedName
   delete errors.value.language
 }
 

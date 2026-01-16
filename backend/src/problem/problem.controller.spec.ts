@@ -66,7 +66,7 @@ describe('ProblemController', () => {
         {
           provide: Reflector,
           useValue: {
-            getAllAndOverride: jest.fn((key, context) => {
+            getAllAndOverride: jest.fn((key, _context) => {
               // Make @Public() decorator return true
               if (key === 'isPublic') {
                 return true;
@@ -92,7 +92,9 @@ describe('ProblemController', () => {
           useValue: {
             get: jest.fn((token) => {
               if (token === UserService) {
-                return { findOne: jest.fn().mockResolvedValue({ id: 'test-user-id' }) };
+                return {
+                  findOne: jest.fn().mockResolvedValue({ id: 'test-user-id' }),
+                };
               }
               if (token === TokenBlacklistService) {
                 return { isBlacklisted: jest.fn().mockResolvedValue(false) };

@@ -232,7 +232,7 @@ const columns: ColumnDef<Comment>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, t('table.actions')),
+                        h('span', { class: 'sr-only' }, t('common.actions')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },

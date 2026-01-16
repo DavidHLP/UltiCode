@@ -10,6 +10,7 @@ import { ModuleRef } from '@nestjs/core';
 import { UserService } from '../user/user.service';
 import { TokenBlacklistService } from '../auth/token-blacklist.service';
 import { AuthGuard } from '../auth/auth.guard';
+import { PaginatedResult } from '../contest/dto/ranking.dto';
 
 describe('ProblemController', () => {
   let controller: ProblemController;
@@ -35,6 +36,14 @@ describe('ProblemController', () => {
   const mockRequest = {
     user: { id: 'test-user-id', role: 'USER' },
   } as any;
+
+  const mockPaginatedResult: PaginatedResult<Problem> = {
+    items: [mockProblem],
+    total: 1,
+    page: 1,
+    limit: 20,
+    totalPages: 1,
+  };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -117,14 +126,14 @@ describe('ProblemController', () => {
   });
 
   describe('findAll', () => {
-    it('should return array of problems', async () => {
-      problemService.findAll.mockResolvedValue([mockProblem]);
+    it('should return paginated result of problems', async () => {
+      problemService.findAll.mockResolvedValue(mockPaginatedResult);
       submissionService.getProblemStatusMap.mockResolvedValue(new Map());
 
       const query = new FindAllProblemsQueryDto();
       const result = await controller.findAll(query);
 
-      expect(result).toEqual([mockProblem]);
+      expect(result).toEqual(mockPaginatedResult);
       expect(problemService.findAll).toHaveBeenCalled();
     });
   });

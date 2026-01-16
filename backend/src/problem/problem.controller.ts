@@ -1,4 +1,5 @@
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { ProblemService } from './problem.service';
 import { Problem } from './problem.entity';
@@ -23,6 +24,7 @@ export class ProblemController {
 
   @Get()
   @Public()
+  @Throttle({ short: { limit: 100, ttl: 60000 } })
   async findAll(
     @Query() query: FindAllProblemsQueryDto,
     @Req() req?: AuthenticatedRequest,
@@ -60,11 +62,13 @@ export class ProblemController {
   }
 
   @Get('random')
+  @Throttle({ short: { limit: 100, ttl: 60000 } })
   getRandom(): Promise<Problem | null> {
     return this.problemService.getRandom();
   }
 
   @Get(':id')
+  @Throttle({ strict: { limit: 10, ttl: 60000 } })
   async findOne(
     @Param('id') id: string | number,
     @Query() query: ProblemParamsDto,
@@ -113,6 +117,7 @@ export class ProblemController {
   }
 
   @Get(':id/results')
+  @Throttle({ strict: { limit: 10, ttl: 60000 } })
   getProblemResults(
     @Param('id') id: string | number,
     @Query() query: ProblemParamsDto,
@@ -121,6 +126,7 @@ export class ProblemController {
   }
 
   @Get(':id/adjacent')
+  @Throttle({ short: { limit: 100, ttl: 60000 } })
   getAdjacent(@Param('id') id: string | number) {
     return this.problemService.findAdjacent(Number(id));
   }

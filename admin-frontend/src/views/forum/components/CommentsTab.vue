@@ -105,7 +105,7 @@ const columns: ColumnDef<Comment>[] = [
       h(Checkbox, {
         modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': t('table.selectAll'),
+        'aria-label': t('common.select'),
       }),
     enableSorting: false,
     enableHiding: false,

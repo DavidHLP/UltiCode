@@ -142,7 +142,7 @@ const columns: ColumnDef<Solution>[] = [
       h(Checkbox, {
         modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': t('table.select'),
+        'aria-label': t('common.select'),
       }),
     enableSorting: false,
     enableHiding: false,

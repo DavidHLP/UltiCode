@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  Req,
-  ParseIntPipe,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { ProblemService } from './problem.service';
 import { Problem } from './problem.entity';
@@ -69,7 +62,7 @@ export class ProblemController {
 
   @Get(':id')
   async findOne(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string | number,
     @Query() query: ProblemParamsDto,
     @Req() req?: AuthenticatedRequest,
     @Locale() locale?: string,
@@ -96,14 +89,14 @@ export class ProblemController {
 
   @Get(':id/results')
   getProblemResults(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('id') id: string | number,
     @Query() query: ProblemParamsDto,
   ) {
-    return this.submissionService.getLatestRunResult(id, query.userId);
+    return this.submissionService.getLatestRunResult(Number(id), query.userId);
   }
 
   @Get(':id/adjacent')
-  getAdjacent(@Param('id', ParseIntPipe) id: number) {
-    return this.problemService.findAdjacent(id);
+  getAdjacent(@Param('id') id: string | number) {
+    return this.problemService.findAdjacent(Number(id));
   }
 }

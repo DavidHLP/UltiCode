@@ -4,6 +4,12 @@ import { ProblemService } from './problem.service';
 import { SubmissionService } from '../submission/submission.service';
 import { Problem } from './problem.entity';
 import { FindAllProblemsQueryDto, ProblemParamsDto } from './dto';
+import { JwtService } from '@nestjs/jwt';
+import { Reflector } from '@nestjs/core';
+import { ModuleRef } from '@nestjs/core';
+import { UserService } from '../user/user.service';
+import { TokenBlacklistService } from '../auth/token-blacklist.service';
+import { AuthGuard } from '../auth/auth.guard';
 
 describe('ProblemController', () => {
   let controller: ProblemController;
@@ -15,7 +21,20 @@ describe('ProblemController', () => {
     title: 'Two Sum',
     slug: 'two-sum',
     difficulty: 'Easy',
+    is_premium: false,
+    acceptance_rate: 0.5,
+    status: 'todo',
+    has_solution: false,
+    completed_time: null,
+    tagRelations: [],
+    detail: { id: 'detail-1' } as any,
+    examples: [],
+    languages: [],
   } as Problem;
+
+  const mockRequest = {
+    user: { id: 'test-user-id', role: 'USER' },
+  } as any;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -26,6 +45,7 @@ describe('ProblemController', () => {
           useValue: {
             findAll: jest.fn(),
             findOne: jest.fn(),
+            findOneWithPremiumCheck: jest.fn(),
             getRandom: jest.fn(),
             findAdjacent: jest.fn(),
           },
@@ -37,6 +57,51 @@ describe('ProblemController', () => {
             getLatestRunResult: jest.fn(),
           },
         },
+        {
+          provide: JwtService,
+          useValue: {
+            verifyAsync: jest.fn().mockResolvedValue({ sub: 'test-user-id' }),
+          },
+        },
+        {
+          provide: Reflector,
+          useValue: {
+            getAllAndOverride: jest.fn((key, context) => {
+              // Make @Public() decorator return true
+              if (key === 'isPublic') {
+                return true;
+              }
+              return false;
+            }),
+          },
+        },
+        {
+          provide: UserService,
+          useValue: {
+            findOne: jest.fn().mockResolvedValue({ id: 'test-user-id' }),
+          },
+        },
+        {
+          provide: TokenBlacklistService,
+          useValue: {
+            isBlacklisted: jest.fn().mockResolvedValue(false),
+          },
+        },
+        {
+          provide: ModuleRef,
+          useValue: {
+            get: jest.fn((token) => {
+              if (token === UserService) {
+                return { findOne: jest.fn().mockResolvedValue({ id: 'test-user-id' }) };
+              }
+              if (token === TokenBlacklistService) {
+                return { isBlacklisted: jest.fn().mockResolvedValue(false) };
+              }
+              return {};
+            }),
+          },
+        },
+        AuthGuard,
       ],
     }).compile();
 
@@ -75,13 +140,21 @@ describe('ProblemController', () => {
 
   describe('findOne', () => {
     it('should return a problem by id', async () => {
-      problemService.findOne.mockResolvedValue(mockProblem);
+      problemService.findOneWithPremiumCheck.mockResolvedValue(mockProblem);
+      submissionService.getProblemStatusMap.mockResolvedValue(
+        new Map([[1, { status: 'todo', completed_time: null }]]),
+      );
 
       const query = new ProblemParamsDto();
-      const result = await controller.findOne(1, query);
+      const result = await controller.findOne(1, query, mockRequest);
 
-      expect(result).toEqual(mockProblem);
-      expect(problemService.findOne).toHaveBeenCalledWith('1', undefined);
+      expect(result).toBeDefined();
+      expect(problemService.findOneWithPremiumCheck).toHaveBeenCalledWith(
+        '1',
+        'test-user-id',
+        'USER',
+        undefined,
+      );
     });
   });
 

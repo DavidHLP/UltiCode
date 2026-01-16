@@ -10,6 +10,7 @@ import {
   DEFAULT_LOCALE,
   TRANSLATABLE_ENTITIES,
 } from '../i18n/i18n.constants';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 @Injectable()
 export class ProblemService {
@@ -19,6 +20,7 @@ export class ProblemService {
     @InjectRepository(ProblemDetail)
     private problemDetailsRepository: Repository<ProblemDetail>,
     private readonly i18nService: I18nService,
+    private readonly subscriptionService: SubscriptionService,
   ) {}
 
   async findAll(
@@ -294,6 +296,50 @@ export class ProblemService {
     return {
       prev: prev?.slug || null,
       next: next?.slug || null,
+    };
+  }
+
+  /**
+   * Find a problem with premium access check
+   * Returns full problem data for non-premium or premium users
+   * Returns partial data (teaser) for premium problems without access
+   */
+  async findOneWithPremiumCheck(
+    idOrSlug: string | number,
+    userId: string,
+    userRole?: string,
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<Problem | object | null> {
+    const problem = await this.findOne(idOrSlug, locale);
+
+    if (!problem) {
+      return null;
+    }
+
+    // Non-premium problems are fully accessible
+    if (!problem.is_premium) {
+      return problem;
+    }
+
+    // Check user premium access
+    const checkResult = await this.subscriptionService.hasPremiumAccess(
+      userId,
+      userRole,
+    );
+
+    if (checkResult.hasAccess) {
+      return problem; // Full access for premium users
+    }
+
+    // Return teaser (partial data) for non-premium users
+    return {
+      id: problem.id,
+      slug: problem.slug,
+      title: problem.title,
+      difficulty: problem.difficulty,
+      is_premium: true,
+      acceptance_rate: problem.acceptance_rate,
+      // Omit: detail, examples, languages (the actual content)
     };
   }
 }

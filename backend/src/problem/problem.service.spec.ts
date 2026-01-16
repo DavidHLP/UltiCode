@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Problem } from './problem.entity';
 import { ProblemDetail } from './problem-detail.entity';
 import { I18nService } from '../i18n/i18n.service';
+import { SubscriptionService } from '../subscription/subscription.service';
 
 describe('ProblemService', () => {
   let service: ProblemService;
@@ -48,6 +49,15 @@ describe('ProblemService', () => {
             applyTranslations: jest
               .fn()
               .mockImplementation((obj, _trans, _fields) => obj),
+          },
+        },
+        {
+          provide: SubscriptionService,
+          useValue: {
+            hasPremiumAccess: jest.fn().mockResolvedValue({
+              hasAccess: false,
+              subscription: null,
+            }),
           },
         },
       ],

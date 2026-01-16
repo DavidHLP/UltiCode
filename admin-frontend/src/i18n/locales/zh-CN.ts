@@ -752,6 +752,11 @@ export default {
     listTitle: '通知管理',
     addNotification: '添加通知',
     searchPlaceholder: '搜索通知...',
+    newNotification: '新建通知',
+    allTypes: '所有类型',
+    sentAt: '发送时间',
+    sentBy: '发送者',
+    refresh: '刷新',
 
     // 表格列
     columns: {

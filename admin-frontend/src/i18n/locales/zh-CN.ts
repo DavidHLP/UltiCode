@@ -882,14 +882,33 @@ export default {
     title: '题目列表',
     addList: '添加列表',
     searchPlaceholder: '搜索列表...',
+    createList: '创建题目列表',
+    editList: '编辑列表',
+    backToLists: '返回列表',
+    errorLoading: '加载列表出错',
+    generalInfo: '基本信息',
+    problems: '题目',
 
     // 表格列
     columns: {
       name: '名称',
-      owner: '创建者',
+      featured: '精选',
+      visibility: '可见性',
       problems: '题目数',
-      isPublic: '公开',
+      order: '排序',
       createdAt: '创建时间',
+    },
+
+    // 筛选
+    filters: {
+      type: '类型',
+      allTypes: '全部类型',
+      featured: '精选',
+      standard: '标准',
+      visibility: '可见性',
+      allVisibility: '全部可见性',
+      public: '公开',
+      private: '私有',
     },
 
     // 操作
@@ -902,17 +921,72 @@ export default {
     // 表单
     form: {
       name: '列表名称',
+      namePlaceholder: '例如：动态编程前100题',
       description: '描述',
+      descriptionPlaceholder: '描述此列表的内容...',
       isPublic: '公开',
+      isPublicDescription: '使此列表对所有用户可见',
+      isFeatured: '精选',
+      isFeaturedDescription: '在主页上显示此列表',
+      bannerTag: '横幅标签',
+      bannerTagPlaceholder: '例如：热门',
+      bannerTagDescription: '在横幅卡片上显示的小标签',
+      bannerTheme: '横幅主题',
+      bannerThemePlaceholder: '选择主题',
+      sortOrder: '排序顺序',
+      sortOrderDescription: '在精选列表中的顺序（越小越靠前）',
+      saving: '保存中...',
+      saveChanges: '保存更改',
+      validation: {
+        nameRequired: '列表名称为必填项',
+      },
+    },
+
+    // 主题
+    themes: {
+      blue: '蓝色',
+      green: '绿色',
+      purple: '紫色',
+      orange: '橙色',
+      red: '红色',
     },
 
     // 题目管理器
     problemsManager: {
+      title: '题目',
+      addProblem: '添加题目',
+      saveChanges: '保存更改',
+      saving: '保存中...',
+      order: '顺序',
+      problem: '题目',
+      difficulty: '难度',
+      noProblems: '此列表中没有题目。',
       addProblems: '添加题目',
       removeProblems: '移除题目',
       selectedProblems: '已选题目',
       availableProblems: '可选题目',
       reorder: '重新排序',
+    },
+
+    // 删除对话框
+    delete: {
+      title: '删除题目列表',
+      description: '确定要删除 <strong>{name}</strong> 吗？此操作无法撤销。',
+      thisList: '此列表',
+      confirm: '删除列表',
+      deleting: '删除中...',
+      cancel: '取消',
+    },
+
+    // 提示消息
+    toast: {
+      createdSuccess: '列表创建成功',
+      updatedSuccess: '列表更新成功',
+      deletedSuccess: '题目列表删除成功',
+      createFailed: '保存列表失败',
+      deleteFailed: '删除题目列表失败',
+      problemsUpdated: '题目更新成功',
+      problemsUpdateFailed: '更新题目失败',
     },
   },
 

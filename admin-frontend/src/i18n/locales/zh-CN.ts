@@ -553,6 +553,8 @@ export default {
       PUBLIC: '公开',
       PRIVATE: '私有',
       VIRTUAL: '虚拟',
+      weekly: '周赛',
+      biweekly: '双周赛',
     },
 
     // 表格列

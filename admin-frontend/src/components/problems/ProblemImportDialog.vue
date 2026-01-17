@@ -8,6 +8,7 @@ import {
   IconX,
   IconAlertTriangle,
   IconLoader,
+  IconCheck,
 } from '@tabler/icons-vue'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -27,7 +28,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { problemsApi, type ImportProblemsResponse } from '@/api/admin/problems'
+import {
+  problemsApi,
+  type ImportProblemsResponse,
+  type ImportProblemDto,
+  Difficulty,
+  type ProblemStatus,
+} from '@/api/admin/problems'
 
 interface Props {
   open: boolean
@@ -36,7 +43,7 @@ interface Props {
 defineProps<Props>()
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'imported': []
+  imported: []
 }>()
 
 const { t } = useI18n()
@@ -63,9 +70,7 @@ const isValidFile = computed(() => {
   const validTypes = ['application/json', 'text/csv', 'application/vnd.ms-excel']
   const validExtensions = ['.json', '.csv']
   const extension = '.' + fileName.value.split('.').pop()?.toLowerCase()
-  return (
-    validTypes.includes(file.value.type) || validExtensions.includes(extension)
-  )
+  return validTypes.includes(file.value.type) || validExtensions.includes(extension)
 })
 
 function handleFileSelect(event: Event) {
@@ -109,22 +114,30 @@ async function handleImport() {
   result.value = null
 
   try {
-    const formData = new FormData()
-    formData.append('file', file.value)
+    // Read file content
+    const fileContent = await readFileContent(file.value)
+    progress.value = 30
 
-    const response = await problemsApi.importProblems({
-      file: formData,
-      onConflict: onConflict.value,
-    })
+    // Parse file content
+    let problems: ImportProblemDto[] = []
+    if (file.value.name.endsWith('.json')) {
+      problems = parseJSONFile(fileContent)
+    } else if (file.value.name.endsWith('.csv')) {
+      problems = parseCSVFile(fileContent)
+    }
+    progress.value = 60
+
+    // Import problems
+    const response = await problemsApi.importProblems(problems, onConflict.value)
 
     result.value = response
     progress.value = 100
 
-    if (response.errors.length > 0) {
+    if (response.failed > 0) {
       toast.warning(
         t('problems.import.partialSuccess', {
-          success: response.success,
-          total: response.success + response.errors.length,
+          success: response.created + response.updated,
+          total: response.total,
         }),
         {
           description: t('problems.import.someErrors'),
@@ -133,7 +146,7 @@ async function handleImport() {
     } else {
       toast.success(
         t('problems.import.success', {
-          count: response.success,
+          count: response.created + response.updated,
         }),
       )
     }
@@ -145,6 +158,73 @@ async function handleImport() {
   } finally {
     importing.value = false
   }
+}
+
+async function readFileContent(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => resolve(e.target?.result as string)
+    reader.onerror = (e) => reject(e)
+    reader.readAsText(file)
+  })
+}
+
+function parseJSONFile(content: string): ImportProblemDto[] {
+  try {
+    const data = JSON.parse(content)
+    if (Array.isArray(data)) {
+      return data
+    }
+    return [data]
+  } catch (error) {
+    console.error('Failed to parse JSON file:', error)
+    throw new Error('Invalid JSON format')
+  }
+}
+
+function parseCSVFile(content: string): ImportProblemDto[] {
+  const lines = content.split('\n').filter((line) => line.trim())
+  if (lines.length < 2) {
+    return []
+  }
+
+  const headers = (lines[0] || '').split(',').map((h) => h.trim())
+  const problems: ImportProblemDto[] = []
+
+  for (let i = 1; i < lines.length; i++) {
+    const values = (lines[i] || '').split(',').map((v) => v.trim())
+    const problemObj: { [key: string]: string } = {}
+    headers.forEach((header, index) => {
+      problemObj[header] = values[index] || ''
+    })
+    const getValue = (key: string): string => {
+      // @ts-expect-error - TypeScript can't infer that problemObj[key] is defined
+      const value = problemObj[key]
+      return value !== undefined && value !== null ? value : ''
+    }
+
+    const slug = getValue('slug')
+    const title = getValue('title')
+    const difficulty = (getValue('difficulty') || 'EASY') as Difficulty
+    const status = (getValue('status') || 'TODO') as ProblemStatus
+    const isPremium = getValue('is_premium') === 'true'
+    const hasSolution = getValue('has_solution') === 'true'
+    const isPublished = getValue('is_published') === 'true'
+    const summary = getValue('summary')
+
+    problems.push({
+      slug,
+      title,
+      difficulty,
+      status,
+      is_premium: isPremium,
+      has_solution: hasSolution,
+      is_published: isPublished,
+      summary,
+    })
+  }
+
+  return problems
 }
 
 function handleClose() {
@@ -238,7 +318,10 @@ function handleClose() {
           </div>
 
           <!-- Validation Error -->
-          <div v-if="file && !isValidFile" class="mt-3 flex items-center gap-2 text-destructive text-sm">
+          <div
+            v-if="file && !isValidFile"
+            class="mt-3 flex items-center gap-2 text-destructive text-sm"
+          >
             <IconAlertTriangle class="h-4 w-4" />
             <span>{{ t('problems.import.invalidFile') }}</span>
           </div>
@@ -280,53 +363,68 @@ function handleClose() {
         <!-- Results -->
         <div v-if="result" class="space-y-4">
           <!-- Summary -->
-          <div class="grid grid-cols-3 gap-4">
+          <div class="grid grid-cols-4 gap-4">
             <div class="rounded-lg border bg-card p-4 text-center">
-              <div class="flex items-center justify-center gap-2 text-2xl font-bold text-emerald-600">
+              <div
+                class="flex items-center justify-center gap-2 text-2xl font-bold text-emerald-600"
+              >
                 <IconCheck class="h-5 w-5" />
-                {{ result.success }}
+                {{ result.created }}
               </div>
               <p class="text-xs text-muted-foreground mt-1">
-                {{ t('problems.import.imported') }}
+                {{ t('problems.import.created') }}
               </p>
             </div>
             <div class="rounded-lg border bg-card p-4 text-center">
-              <div class="flex items-center justify-center gap-2 text-2xl font-bold text-destructive">
+              <div class="flex items-center justify-center gap-2 text-2xl font-bold text-blue-600">
+                <IconFile class="h-5 w-5" />
+                {{ result.updated }}
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">
+                {{ t('problems.import.updated') }}
+              </p>
+            </div>
+            <div class="rounded-lg border bg-card p-4 text-center">
+              <div
+                class="flex items-center justify-center gap-2 text-2xl font-bold text-muted-foreground"
+              >
+                <IconAlertTriangle class="h-5 w-5" />
+                {{ result.skipped }}
+              </div>
+              <p class="text-xs text-muted-foreground mt-1">
+                {{ t('problems.import.skipped') }}
+              </p>
+            </div>
+            <div class="rounded-lg border bg-card p-4 text-center">
+              <div
+                class="flex items-center justify-center gap-2 text-2xl font-bold text-destructive"
+              >
                 <IconX class="h-5 w-5" />
-                {{ result.errors.length }}
+                {{ result.failed }}
               </div>
               <p class="text-xs text-muted-foreground mt-1">
                 {{ t('problems.import.failed') }}
               </p>
             </div>
-            <div class="rounded-lg border bg-card p-4 text-center">
-              <div class="flex items-center justify-center gap-2 text-2xl font-bold text-muted-foreground">
-                <IconFile class="h-5 w-5" />
-                {{ result.success + result.errors.length }}
-              </div>
-              <p class="text-xs text-muted-foreground mt-1">
-                {{ t('problems.import.total') }}
-              </p>
-            </div>
           </div>
 
           <!-- Errors -->
-          <div v-if="result.errors.length > 0" class="space-y-2">
+          <div v-if="result.results.filter((r) => !r.success).length > 0" class="space-y-2">
             <div class="flex items-center gap-2 text-sm font-medium">
               <IconAlertTriangle class="h-4 w-4 text-amber-500" />
               <span>{{ t('problems.import.errors') }}</span>
             </div>
             <div class="max-h-48 overflow-y-auto space-y-2">
               <div
-                v-for="(error, index) in result.errors"
+                v-for="(error, index) in result.results.filter((r) => !r.success)"
                 :key="index"
                 class="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm"
               >
                 <div class="flex items-start gap-2">
                   <IconX class="h-4 w-4 text-destructive mt-0.5 flex-shrink-0" />
                   <div class="flex-1 min-w-0">
-                    <p class="text-destructive font-medium">{{ error.title }}</p>
-                    <p class="text-muted-foreground text-xs mt-1">{{ error.message }}</p>
+                    <p class="text-destructive font-medium">{{ error.slug }}</p>
+                    <p class="text-muted-foreground text-xs mt-1">{{ error.error }}</p>
                   </div>
                 </div>
               </div>
@@ -340,11 +438,7 @@ function handleClose() {
         <Button variant="outline" @click="handleClose" :disabled="importing">
           {{ result ? t('common.close') : t('common.cancel') }}
         </Button>
-        <Button
-          v-if="!result"
-          @click="handleImport"
-          :disabled="!file || !isValidFile || importing"
-        >
+        <Button v-if="!result" @click="handleImport" :disabled="!file || !isValidFile || importing">
           <IconLoader v-if="importing" class="mr-2 h-4 w-4 animate-spin" />
           <IconUpload v-else class="mr-2 h-4 w-4" />
           {{ importing ? t('problems.import.importing') : t('problems.import.import') }}

@@ -1,13 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  IconArrowRight,
-  IconArrowUp,
-  IconArrowDown,
-  IconX,
-  IconCheck,
-} from '@tabler/icons-vue'
+import { IconArrowRight, IconArrowUp, IconArrowDown, IconX, IconCheck } from '@tabler/icons-vue'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import type { ProblemVersion } from '@/api/admin/problems'
@@ -78,7 +72,9 @@ function formatValue(value: unknown, type: string): string {
     case 'array':
       if (Array.isArray(value)) {
         if (value.length === 0) return '—'
-        return value.map((v) => (typeof v === 'object' ? v.label || v.name || JSON.stringify(v) : v)).join(', ')
+        return value
+          .map((v) => (typeof v === 'object' ? v.label || v.name || JSON.stringify(v) : v))
+          .join(', ')
       }
       return String(value)
     case 'object':
@@ -167,7 +163,10 @@ function getChangeLabel(type: 'added' | 'removed' | 'changed') {
             />
             <span class="text-sm font-medium">{{ change.label }}</span>
           </div>
-          <Badge :variant="getChangeBadgeVariant(getChangeType(change.oldValue, change.newValue))" class="text-xs">
+          <Badge
+            :variant="getChangeBadgeVariant(getChangeType(change.oldValue, change.newValue))"
+            class="text-xs"
+          >
             {{ getChangeLabel(getChangeType(change.oldValue, change.newValue)) }}
           </Badge>
         </div>
@@ -183,13 +182,16 @@ function getChangeLabel(type: 'added' | 'removed' | 'changed') {
             <div
               class="rounded-md bg-muted/50 p-2.5 min-h-[60px] text-xs"
               :class="{
-                'line-through text-muted-foreground': change.oldValue !== null && change.oldValue !== undefined,
+                'line-through text-muted-foreground':
+                  change.oldValue !== null && change.oldValue !== undefined,
               }"
             >
               <pre v-if="change.type === 'object'" class="whitespace-pre-wrap font-mono">{{
                 formatValue(change.oldValue, change.type)
               }}</pre>
-              <span v-else class="break-words">{{ formatValue(change.oldValue, change.type) }}</span>
+              <span v-else class="break-words">{{
+                formatValue(change.oldValue, change.type)
+              }}</span>
             </div>
           </div>
 
@@ -202,13 +204,16 @@ function getChangeLabel(type: 'added' | 'removed' | 'changed') {
             <div
               class="rounded-md bg-muted/50 p-2.5 min-h-[60px] text-xs"
               :class="{
-                'border-2 border-primary/20': change.newValue !== null && change.newValue !== undefined,
+                'border-2 border-primary/20':
+                  change.newValue !== null && change.newValue !== undefined,
               }"
             >
               <pre v-if="change.type === 'object'" class="whitespace-pre-wrap font-mono">{{
                 formatValue(change.newValue, change.type)
               }}</pre>
-              <span v-else class="break-words">{{ formatValue(change.newValue, change.type) }}</span>
+              <span v-else class="break-words">{{
+                formatValue(change.newValue, change.type)
+              }}</span>
             </div>
           </div>
         </div>

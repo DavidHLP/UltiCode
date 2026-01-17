@@ -194,7 +194,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   async function updateProblemWithPublish(
     id: string,
     data: UpdateProblemDto,
-    targetPublishedState: boolean
+    targetPublishedState: boolean,
   ) {
     loading.value = true
     error.value = null

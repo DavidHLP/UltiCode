@@ -1544,6 +1544,40 @@ export default {
     createFailed: '创建失败',
   },
 
+  // 错误消息
+  errors: {
+    validation: {
+      title: '验证错误',
+      default: '提交的数据无效',
+      suggestion: '请检查输入后重试',
+    },
+    unauthorized: {
+      title: '未授权',
+      message: '需要登录才能执行此操作',
+      suggestion: '请登录后重试',
+    },
+    forbidden: {
+      title: '访问被拒绝',
+      message: '您没有执行此操作的权限',
+      suggestion: '如果您认为这是一个错误，请联系管理员',
+    },
+    notFound: {
+      title: '未找到',
+      message: '资源未找到',
+      suggestion: '资源可能已被删除或移动',
+    },
+    serverError: {
+      title: '服务器错误',
+      message: '服务器遇到错误',
+      suggestion: '请稍后重试或联系支持',
+    },
+    network: {
+      title: '网络错误',
+      message: '无法连接到服务器',
+      suggestion: '请检查您的网络连接',
+    },
+  },
+
   // 分页
   pagination: {
     rowsPerPage: '每页行数',

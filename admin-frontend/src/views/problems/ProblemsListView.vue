@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, computed, h, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { watchDebounced } from '@vueuse/core'
+import { watchDebounced, useDebounceFn } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
@@ -48,20 +48,26 @@ import {
 import { useProblemsStore } from '@/stores/admin/problems'
 import { useAuthStore } from '@/stores/admin/auth'
 import { Difficulty, type Problem } from '@/api/admin/problems'
+import { ApiError } from '@/api/client'
 
 import DataTable from '@/components/table/DataTable.vue'
 import ProblemDeleteDialog from './ProblemDeleteDialog.vue'
 
 const { t } = useI18n()
 const router = useRouter()
+const route = useRoute()
 const problemsStore = useProblemsStore()
 const authStore = useAuthStore()
 
-const searchQuery = ref('')
-const difficultyFilter = ref<string>('all')
-const statusFilter = ref<string>('all')
-const publishedFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
+// Initialize filters from URL query params
+const searchQuery = ref((route.query.search as string) || '')
+const difficultyFilter = ref((route.query.difficulty as string) || 'all')
+const statusFilter = ref((route.query.status as string) || 'all')
+const publishedFilter = ref((route.query.published as string) || 'all')
+
+// Convert page from query (1-based) to pageIndex (0-based)
+const initialPage = Number(route.query.page) || 1
+const tablePagination = ref({ pageIndex: Math.max(0, initialPage - 1), pageSize: 10 })
 
 const selectedProblemId = ref<string | null>(null)
 const selectedProblemTitle = ref<string | null>(null)
@@ -114,6 +120,38 @@ watch(
   { deep: true },
 )
 
+// URL synchronization - debounced to avoid excessive updates
+const debouncedUpdateUrl = useDebounceFn(() => {
+  router.push({
+    query: {
+      ...(searchQuery.value && { search: searchQuery.value }),
+      ...(difficultyFilter.value !== 'all' && { difficulty: difficultyFilter.value }),
+      ...(statusFilter.value !== 'all' && { status: statusFilter.value }),
+      ...(publishedFilter.value !== 'all' && { published: publishedFilter.value }),
+      page: (tablePagination.value.pageIndex + 1).toString()
+    }
+  })
+}, 300)
+
+// Watch all filter state changes and update URL
+watch([searchQuery, difficultyFilter, statusFilter, publishedFilter, tablePagination],
+  debouncedUpdateUrl,
+  { deep: true }
+)
+
+// Handle browser back/forward navigation
+watch(() => route.query, (newQuery) => {
+  searchQuery.value = (newQuery.search as string) || ''
+  difficultyFilter.value = (newQuery.difficulty as string) || 'all'
+  statusFilter.value = (newQuery.status as string) || 'all'
+  publishedFilter.value = (newQuery.published as string) || 'all'
+
+  const page = Number(newQuery.page) || 1
+  tablePagination.value.pageIndex = Math.max(0, page - 1)
+
+  loadProblems()
+}, { deep: true })
+
 function viewProblem(id: string) {
   router.push({ name: 'problem-view-description', params: { id } })
 }
@@ -144,13 +182,81 @@ function confirmDelete(problem: Problem) {
   deleteDialogOpen.value = true
 }
 
+// Error context handler for detailed error messages
+interface ErrorContext {
+  title: string
+  message: string
+  suggestion?: string
+  canRetry: boolean
+}
+
+function getErrorContext(error: unknown, action: string): ErrorContext {
+  const apiError = error instanceof ApiError ? error : null
+  const statusCode = apiError?.code || 0
+  const errorMessage = apiError?.response?.data?.message || apiError?.message || 'Unknown error'
+
+  switch (statusCode) {
+    case 400:
+      return {
+        title: t('errors.validation.title'),
+        message: errorMessage || t('errors.validation.default'),
+        suggestion: t('errors.validation.suggestion'),
+        canRetry: false
+      }
+    case 401:
+      return {
+        title: t('errors.unauthorized.title'),
+        message: t('errors.unauthorized.message'),
+        suggestion: t('errors.unauthorized.suggestion'),
+        canRetry: false
+      }
+    case 403:
+      return {
+        title: t('errors.forbidden.title'),
+        message: t('errors.forbidden.message'),
+        suggestion: t('errors.forbidden.suggestion'),
+        canRetry: false
+      }
+    case 404:
+      return {
+        title: t('errors.notFound.title'),
+        message: `${action} ${t('errors.notFound.message')}`,
+        suggestion: t('errors.notFound.suggestion'),
+        canRetry: false
+      }
+    case 500:
+    case 502:
+    case 503:
+      return {
+        title: t('errors.serverError.title'),
+        message: t('errors.serverError.message'),
+        suggestion: t('errors.serverError.suggestion'),
+        canRetry: true
+      }
+    default:
+      return {
+        title: t('errors.network.title'),
+        message: errorMessage,
+        suggestion: t('errors.network.suggestion'),
+        canRetry: true
+      }
+  }
+}
+
 async function publishProblem(id: string) {
   try {
     await problemsStore.publishProblem(id)
     toast.success(t('problems.toast.publishSuccess'))
     await loadProblems()
-  } catch {
-    toast.error(t('problems.toast.publishFailed'))
+  } catch (error) {
+    const ctx = getErrorContext(error, t('problems.actions.publish'))
+    toast.error(ctx.message, {
+      description: ctx.suggestion,
+      action: ctx.canRetry ? {
+        label: t('common.retry'),
+        onClick: () => publishProblem(id)
+      } : undefined
+    })
   }
 }
 
@@ -159,8 +265,15 @@ async function unpublishProblem(id: string) {
     await problemsStore.unpublishProblem(id)
     toast.success(t('problems.toast.unpublishSuccess'))
     await loadProblems()
-  } catch {
-    toast.error(t('problems.toast.unpublishFailed'))
+  } catch (error) {
+    const ctx = getErrorContext(error, t('problems.actions.unpublish'))
+    toast.error(ctx.message, {
+      description: ctx.suggestion,
+      action: ctx.canRetry ? {
+        label: t('common.retry'),
+        onClick: () => unpublishProblem(id)
+      } : undefined
+    })
   }
 }
 

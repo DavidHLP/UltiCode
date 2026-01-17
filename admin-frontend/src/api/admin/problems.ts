@@ -126,6 +126,14 @@ export interface BulkProblemActionDto {
   action: 'publish' | 'unpublish' | 'delete' | 'restore'
 }
 
+export interface BulkEditProblemDto {
+  ids: string[]
+  category?: string
+  difficulty?: Difficulty
+  tags?: string[]
+  is_premium?: boolean
+}
+
 export interface ProblemVersion {
   id: string
   action: string
@@ -234,6 +242,15 @@ export const problemsApi = {
     const response = await apiPost<{
       results: Array<{ id: string; success: boolean; error?: string }>
     }>('/admin/bulk/problems/publish', data)
+    return response
+  },
+
+  async bulkEdit(data: BulkEditProblemDto): Promise<{
+    results: Array<{ id: string; success: boolean; error?: string }>
+  }> {
+    const response = await apiPost<{
+      results: Array<{ id: string; success: boolean; error?: string }>
+    }>('/admin/bulk/problems/edit', data)
     return response
   },
 

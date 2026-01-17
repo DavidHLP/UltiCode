@@ -75,3 +75,22 @@ export class BulkForumActionDto extends BulkActionDto {
   @IsEnum(['delete', 'unflag'])
   action: 'delete' | 'unflag';
 }
+
+export class BulkEditProblemDto extends BulkActionDto {
+  @IsString()
+  @IsOptional()
+  category?: string;
+
+  @IsEnum(['EASY', 'MEDIUM', 'HARD', 'EXPERT'])
+  @IsOptional()
+  difficulty?: 'EASY' | 'MEDIUM' | 'HARD' | 'EXPERT';
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  tags?: string[];
+
+  @IsBoolean()
+  @IsOptional()
+  is_premium?: boolean;
+}

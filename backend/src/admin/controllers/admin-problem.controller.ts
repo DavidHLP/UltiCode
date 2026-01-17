@@ -1365,4 +1365,206 @@ export class AdminProblemController {
       results,
     };
   }
+
+  @Post(':id/flag')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.PROBLEM,
+  })
+  async flagProblem(
+    @Param('id') id: string,
+    @Body() flagDto: { reason: string },
+    @CurrentAdmin() admin: User,
+  ) {
+    const problemId = BigInt(id);
+
+    await this.prisma.problem.update({
+      where: { id: problemId },
+      data: {
+        is_flagged: true,
+        flag_reason: flagDto.reason,
+        flag_reported_by: admin.id,
+        flag_reported_at: new Date(),
+        flag_status: 'PENDING',
+      },
+    });
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'FLAG_PROBLEM',
+      entityType: 'PROBLEM',
+      entityId: id,
+      newValues: {
+        is_flagged: true,
+        flag_reason: flagDto.reason,
+        flag_status: 'PENDING',
+      },
+    });
+
+    // Return complete problem data
+    const completeProblem = await this.getCompleteProblem(problemId);
+    return this.transformProblemForFrontend(completeProblem);
+  }
+
+  @Post(':id/moderate')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.PROBLEM,
+  })
+  async moderateProblem(
+    @Param('id') id: string,
+    @Body()
+    moderationDto: {
+      status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+      notes?: string;
+    },
+    @CurrentAdmin() admin: User,
+  ) {
+    const problemId = BigInt(id);
+
+    const updateData: Prisma.ProblemUpdateInput = {
+      flag_status: moderationDto.status,
+      flag_reviewed_by: admin.id,
+      flag_reviewed_at: new Date(),
+    };
+
+    if (moderationDto.notes !== undefined) {
+      updateData.flag_notes = moderationDto.notes;
+    }
+
+    // If the status is RESOLVED or DISMISSED, unflag the problem
+    if (
+      moderationDto.status === 'RESOLVED' ||
+      moderationDto.status === 'DISMISSED'
+    ) {
+      updateData.is_flagged = false;
+    }
+
+    await this.prisma.problem.update({
+      where: { id: problemId },
+      data: updateData,
+    });
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'MODERATE_PROBLEM',
+      entityType: 'PROBLEM',
+      entityId: id,
+      newValues: {
+        flag_status: moderationDto.status,
+        flag_notes: moderationDto.notes,
+        is_flagged:
+          moderationDto.status === 'RESOLVED' ||
+          moderationDto.status === 'DISMISSED'
+            ? false
+            : true,
+      },
+    });
+
+    // Return complete problem data
+    const completeProblem = await this.getCompleteProblem(problemId);
+    return this.transformProblemForFrontend(completeProblem);
+  }
+
+  @Get('flagged')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  async getFlaggedProblems(
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+    @Query('status') status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED',
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ProblemWhereInput = {
+      is_flagged: true,
+    };
+
+    if (status) {
+      where.flag_status = status;
+    }
+
+    const problems = await this.prisma.problem.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { flag_reported_at: 'desc' },
+      include: {
+        detail: {
+          select: {
+            id: true,
+            summary: true,
+            difficulty_rating: true,
+            likes: true,
+            dislikes: true,
+            updated_at: true,
+          },
+        },
+        tagRelations: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                label: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            submissions: true,
+            solutions: true,
+          },
+        },
+      },
+    });
+
+    const total = await this.prisma.problem.count({ where });
+
+    return {
+      data: problems.map((p) => ({
+        id: p.id.toString(),
+        slug: p.slug,
+        title: p.title,
+        difficulty: mapDifficultyToFrontend(p.difficulty),
+        status: p.status,
+        is_premium: p.is_premium,
+        has_solution: p.has_solution,
+        is_published: p.is_published,
+        is_flagged: p.is_flagged,
+        flag_reason: p.flag_reason,
+        flag_reported_by: p.flag_reported_by,
+        flag_reported_at: p.flag_reported_at,
+        flag_status: p.flag_status,
+        flag_reviewed_by: p.flag_reviewed_by,
+        flag_reviewed_at: p.flag_reviewed_at,
+        flag_notes: p.flag_notes,
+        created_at: p.published_at || new Date(),
+        updated_at: p.detail?.updated_at || new Date(),
+        detail: p.detail
+          ? {
+              id: p.detail.id,
+              summary: p.detail.summary,
+              difficulty_rating: p.detail.difficulty_rating
+                ? Number(p.detail.difficulty_rating)
+                : 0,
+              likes: p.detail.likes,
+              dislikes: p.detail.dislikes,
+            }
+          : null,
+        tags: p.tagRelations.map((tr) => tr.tag),
+        submission_count: p._count.submissions,
+        solution_count: p._count.solutions,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
 }

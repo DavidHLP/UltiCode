@@ -69,6 +69,15 @@ const navMain = computed(() => {
     })
   }
 
+  // Add Moderation if user has permission
+  if (authStore.hasPermission('MODERATE', 'PROBLEM')) {
+    items.push({
+      title: t('nav.moderation'),
+      url: '/moderation',
+      icon: IconReport,
+    })
+  }
+
   // Add Problem Lists if user has permission
   if (authStore.hasPermission('READ', 'PROBLEM_LIST')) {
     items.push({

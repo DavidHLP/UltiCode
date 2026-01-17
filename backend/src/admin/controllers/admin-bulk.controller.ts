@@ -242,23 +242,20 @@ export class AdminBulkController {
     @Body() bulkDto: BulkEditProblemDto,
     @CurrentAdmin() admin: User,
   ) {
-    const { ids, category, difficulty, tags, is_premium } = bulkDto;
+    const { ids, difficulty, is_premium } = bulkDto;
     const results: { id: string; success: boolean; error?: string }[] = [];
 
     for (const id of ids) {
       try {
         const updateData: Prisma.ProblemUpdateInput = {};
 
-        if (category !== undefined) {
-          updateData.category = category;
-        }
-
         if (difficulty !== undefined) {
-          updateData.difficulty = difficulty;
-        }
-
-        if (tags !== undefined) {
-          updateData.tags = tags;
+          const difficultyMap: Record<string, 'Easy' | 'Medium' | 'Hard'> = {
+            EASY: 'Easy',
+            MEDIUM: 'Medium',
+            HARD: 'Hard',
+          };
+          updateData.difficulty = difficultyMap[difficulty];
         }
 
         if (is_premium !== undefined) {
@@ -281,9 +278,7 @@ export class AdminBulkController {
       entityType: 'PROBLEM',
       entityId: ids.join(','),
       newValues: {
-        category,
         difficulty,
-        tags,
         is_premium,
         count: ids.length,
       },

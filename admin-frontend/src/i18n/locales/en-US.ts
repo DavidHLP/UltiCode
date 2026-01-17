@@ -56,6 +56,16 @@ export default {
     yesterday: 'Yesterday',
     thisWeek: 'This week',
     lastWeek: 'Last week',
+
+    // Additional labels
+    reportedBy: 'Reported by',
+    reportedAt: 'Reported at',
+    submissions: 'Submissions',
+    solutions: 'Solutions',
+    page: 'Page',
+    saving: 'Saving...',
+    premium: 'Premium',
+    unpublished: 'Unpublished',
   },
 
   // Navigation
@@ -72,6 +82,7 @@ export default {
     comments: 'Comments',
     notifications: 'Notifications',
     auditLogs: 'Audit Logs',
+    moderation: 'Moderation',
     getHelp: 'Get Help',
     search: 'Search',
   },
@@ -285,6 +296,7 @@ export default {
       code: 'Code',
       testCases: 'Test Cases',
       overview: 'Overview',
+      audit: 'Audit Logs',
     },
 
     // Actions
@@ -686,6 +698,30 @@ export default {
         RESTORE: 'Restored',
       },
     },
+
+    // Moderation
+    moderation: {
+      title: 'Moderation Queue',
+      description: 'Review and manage flagged problems',
+      filterStatus: 'Filter by Status',
+      allStatuses: 'All Statuses',
+      statusPending: 'Pending',
+      statusReviewed: 'Reviewed',
+      statusResolved: 'Resolved',
+      statusDismissed: 'Dismissed',
+      noFlagged: 'No Flagged Problems',
+      noFlaggedDescription: 'There are no flagged problems to review at this time.',
+      flagReason: 'Flag Reason',
+      moderationNotes: 'Moderation Notes',
+      moderate: 'Moderate',
+      moderateTitle: 'Moderate Problem',
+      status: 'Status',
+      notes: 'Notes',
+      notesPlaceholder: 'Add moderation notes (optional)...',
+      success: 'Problem moderated successfully',
+      error: 'Failed to moderate problem',
+      loadError: 'Failed to load flagged problems',
+    },
   },
 
   // Contests
@@ -1059,8 +1095,46 @@ export default {
     // Actions
     actions: {
       viewDetails: 'View Details',
-      export: 'Export Logs',
+      exportLogs: 'Export Logs',
+      create: 'Create',
+      update: 'Update',
+      delete: 'Delete',
+      publish: 'Publish',
+      moderate: 'Moderate',
     },
+
+    // Audit log viewer
+    filterAction: 'Filter by Action',
+    allActions: 'All Actions',
+    noLogs: 'No Audit Logs',
+    noLogsDescription: 'There are no audit logs to display.',
+    systemAction: 'System Action',
+    oldValues: 'Old Values',
+    newValues: 'New Values',
+    ipAddress: 'IP Address',
+    userAgent: 'User Agent',
+  },
+
+  // Audit Report
+  auditReport: {
+    title: 'Audit Report',
+    description: 'View audit statistics and generate reports',
+    filters: 'Filters',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    performer: 'Performer',
+    performerPlaceholder: 'Filter by performer ID...',
+    applyFilters: 'Apply Filters',
+    export: 'Export Report',
+    totalActions: 'Total Actions',
+    allTime: 'All time',
+    uniqueEntities: 'Unique Entities',
+    entityTypes: 'Entity types',
+    activePerformers: 'Active Performers',
+    users: 'Users',
+    topPerformers: 'Top Performers',
+    actionsByEntity: 'Actions by Entity',
+    actions: 'actions',
   },
 
   // Settings

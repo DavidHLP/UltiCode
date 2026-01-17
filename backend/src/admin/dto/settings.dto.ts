@@ -77,20 +77,38 @@ export class BulkForumActionDto extends BulkActionDto {
 }
 
 export class BulkEditProblemDto extends BulkActionDto {
-  @IsString()
+  @IsEnum(['EASY', 'MEDIUM', 'HARD'])
   @IsOptional()
-  category?: string;
-
-  @IsEnum(['EASY', 'MEDIUM', 'HARD', 'EXPERT'])
-  @IsOptional()
-  difficulty?: 'EASY' | 'MEDIUM' | 'HARD' | 'EXPERT';
-
-  @IsArray()
-  @IsString({ each: true })
-  @IsOptional()
-  tags?: string[];
+  difficulty?: 'EASY' | 'MEDIUM' | 'HARD';
 
   @IsBoolean()
   @IsOptional()
   is_premium?: boolean;
+}
+
+export class FlagProblemDto {
+  @IsString()
+  problemId: string;
+
+  @IsString()
+  reason: string;
+
+  @IsString()
+  @IsOptional()
+  reporterId?: string;
+}
+
+export class ModerationActionDto {
+  @IsString()
+  problemId: string;
+
+  @IsEnum(['PENDING', 'REVIEWED', 'RESOLVED', 'DISMISSED'])
+  status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+
+  @IsString()
+  @IsOptional()
+  notes?: string;
+
+  @IsString()
+  moderatorId: string;
 }

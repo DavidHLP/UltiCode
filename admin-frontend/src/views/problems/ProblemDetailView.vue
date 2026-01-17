@@ -13,6 +13,7 @@ import DescriptionDisplay from './components/DescriptionDisplay.vue'
 import CodeDisplay from './components/CodeDisplay.vue'
 import CasesDisplay from './components/CasesDisplay.vue'
 import VersionHistoryTimeline from '@/components/problems/VersionHistoryTimeline.vue'
+import AuditLogViewer from '@/components/audit/AuditLogViewer.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -31,6 +32,7 @@ const currentView = computed(() => {
   const path = route.path
   if (path.endsWith('/code')) return 'code'
   if (path.endsWith('/cases')) return 'cases'
+  if (path.endsWith('/audit')) return 'audit'
   return 'description'
 })
 
@@ -133,6 +135,9 @@ async function handleVersionRestored() {
               <TabsTrigger value="cases" class="text-xs h-7 px-3">{{
                 t('problems.tabs.testCases')
               }}</TabsTrigger>
+              <TabsTrigger value="audit" class="text-xs h-7 px-3">{{
+                t('problems.tabs.audit')
+              }}</TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
@@ -187,6 +192,9 @@ async function handleVersionRestored() {
             }}</TabsTrigger>
             <TabsTrigger value="cases" class="flex-1 text-xs h-7">{{
               t('problems.tabs.testCases')
+            }}</TabsTrigger>
+            <TabsTrigger value="audit" class="flex-1 text-xs h-7">{{
+              t('problems.tabs.audit')
             }}</TabsTrigger>
           </TabsList>
         </Tabs>
@@ -261,11 +269,15 @@ async function handleVersionRestored() {
                 ? DescriptionDisplay
                 : currentView === 'code'
                   ? CodeDisplay
-                  : CasesDisplay
+                  : currentView === 'cases'
+                    ? CasesDisplay
+                    : AuditLogViewer
             "
             :key="currentView"
-            :problem="problem"
-            :languages="problem.languages"
+            :problem="currentView !== 'audit' ? problem : undefined"
+            :languages="currentView !== 'audit' ? problem.languages : undefined"
+            :entity-type="currentView === 'audit' ? 'PROBLEM' : undefined"
+            :entity-id="currentView === 'audit' ? problemId : undefined"
           />
         </transition>
       </template>

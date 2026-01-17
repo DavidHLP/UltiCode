@@ -22,6 +22,8 @@ import {
   IconTrash,
   IconTrophy,
   IconX,
+  IconDownload,
+  IconUpload,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
@@ -47,11 +49,12 @@ import {
 } from '@/components/ui/select'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { useAuthStore } from '@/stores/admin/auth'
-import { Difficulty, type Problem } from '@/api/admin/problems'
+import { Difficulty, type Problem, problemsApi } from '@/api/admin/problems'
 import { ApiError } from '@/api/client'
 
 import DataTable from '@/components/table/DataTable.vue'
 import ProblemDeleteDialog from './ProblemDeleteDialog.vue'
+import ProblemImportDialog from '@/components/problems/ProblemImportDialog.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -72,6 +75,8 @@ const tablePagination = ref({ pageIndex: Math.max(0, initialPage - 1), pageSize:
 const selectedProblemId = ref<string | null>(null)
 const selectedProblemTitle = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
+const importing = ref(false)
+const importDialogOpen = ref(false)
 
 const canCreateProblem = computed(() => authStore.hasPermission('CREATE', 'PROBLEM'))
 const canUpdateProblem = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM'))
@@ -128,29 +133,34 @@ const debouncedUpdateUrl = useDebounceFn(() => {
       ...(difficultyFilter.value !== 'all' && { difficulty: difficultyFilter.value }),
       ...(statusFilter.value !== 'all' && { status: statusFilter.value }),
       ...(publishedFilter.value !== 'all' && { published: publishedFilter.value }),
-      page: (tablePagination.value.pageIndex + 1).toString()
-    }
+      page: (tablePagination.value.pageIndex + 1).toString(),
+    },
   })
 }, 300)
 
 // Watch all filter state changes and update URL
-watch([searchQuery, difficultyFilter, statusFilter, publishedFilter, tablePagination],
+watch(
+  [searchQuery, difficultyFilter, statusFilter, publishedFilter, tablePagination],
   debouncedUpdateUrl,
-  { deep: true }
+  { deep: true },
 )
 
 // Handle browser back/forward navigation
-watch(() => route.query, (newQuery) => {
-  searchQuery.value = (newQuery.search as string) || ''
-  difficultyFilter.value = (newQuery.difficulty as string) || 'all'
-  statusFilter.value = (newQuery.status as string) || 'all'
-  publishedFilter.value = (newQuery.published as string) || 'all'
+watch(
+  () => route.query,
+  (newQuery) => {
+    searchQuery.value = (newQuery.search as string) || ''
+    difficultyFilter.value = (newQuery.difficulty as string) || 'all'
+    statusFilter.value = (newQuery.status as string) || 'all'
+    publishedFilter.value = (newQuery.published as string) || 'all'
 
-  const page = Number(newQuery.page) || 1
-  tablePagination.value.pageIndex = Math.max(0, page - 1)
+    const page = Number(newQuery.page) || 1
+    tablePagination.value.pageIndex = Math.max(0, page - 1)
 
-  loadProblems()
-}, { deep: true })
+    loadProblems()
+  },
+  { deep: true },
+)
 
 function viewProblem(id: string) {
   router.push({ name: 'problem-view-description', params: { id } })
@@ -201,28 +211,28 @@ function getErrorContext(error: unknown, action: string): ErrorContext {
         title: t('errors.validation.title'),
         message: errorMessage || t('errors.validation.default'),
         suggestion: t('errors.validation.suggestion'),
-        canRetry: false
+        canRetry: false,
       }
     case 401:
       return {
         title: t('errors.unauthorized.title'),
         message: t('errors.unauthorized.message'),
         suggestion: t('errors.unauthorized.suggestion'),
-        canRetry: false
+        canRetry: false,
       }
     case 403:
       return {
         title: t('errors.forbidden.title'),
         message: t('errors.forbidden.message'),
         suggestion: t('errors.forbidden.suggestion'),
-        canRetry: false
+        canRetry: false,
       }
     case 404:
       return {
         title: t('errors.notFound.title'),
         message: `${action} ${t('errors.notFound.message')}`,
         suggestion: t('errors.notFound.suggestion'),
-        canRetry: false
+        canRetry: false,
       }
     case 500:
     case 502:
@@ -231,14 +241,14 @@ function getErrorContext(error: unknown, action: string): ErrorContext {
         title: t('errors.serverError.title'),
         message: t('errors.serverError.message'),
         suggestion: t('errors.serverError.suggestion'),
-        canRetry: true
+        canRetry: true,
       }
     default:
       return {
         title: t('errors.network.title'),
         message: errorMessage,
         suggestion: t('errors.network.suggestion'),
-        canRetry: true
+        canRetry: true,
       }
   }
 }
@@ -252,10 +262,12 @@ async function publishProblem(id: string) {
     const ctx = getErrorContext(error, t('problems.actions.publish'))
     toast.error(ctx.message, {
       description: ctx.suggestion,
-      action: ctx.canRetry ? {
-        label: t('common.retry'),
-        onClick: () => publishProblem(id)
-      } : undefined
+      action: ctx.canRetry
+        ? {
+            label: t('common.retry'),
+            onClick: () => publishProblem(id),
+          }
+        : undefined,
     })
   }
 }
@@ -269,10 +281,12 @@ async function unpublishProblem(id: string) {
     const ctx = getErrorContext(error, t('problems.actions.unpublish'))
     toast.error(ctx.message, {
       description: ctx.suggestion,
-      action: ctx.canRetry ? {
-        label: t('common.retry'),
-        onClick: () => unpublishProblem(id)
-      } : undefined
+      action: ctx.canRetry
+        ? {
+            label: t('common.retry'),
+            onClick: () => unpublishProblem(id),
+          }
+        : undefined,
     })
   }
 }
@@ -316,6 +330,38 @@ function getDifficultyColor(difficulty: Difficulty) {
     default:
       return 'text-muted-foreground'
   }
+}
+
+async function exportProblems(format: 'json' | 'csv') {
+  try {
+    importing.value = true
+    await problemsApi.exportProblems({
+      format,
+      search: searchQuery.value || undefined,
+      difficulty:
+        difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
+      status: statusFilter.value === 'all' ? undefined : (statusFilter.value as Problem['status']),
+      is_published:
+        publishedFilter.value === 'all'
+          ? undefined
+          : publishedFilter.value === 'published'
+            ? true
+            : false,
+    })
+    toast.success(t('problems.export.success'))
+  } catch (error) {
+    console.error('Failed to export problems:', error)
+    const ctx = getErrorContext(error, t('problems.actions.export'))
+    toast.error(ctx.message, {
+      description: ctx.suggestion,
+    })
+  } finally {
+    importing.value = false
+  }
+}
+
+async function handleImported() {
+  await loadProblems()
 }
 
 const columns: ColumnDef<Problem>[] = [
@@ -746,15 +792,44 @@ const columns: ColumnDef<Problem>[] = [
       </template>
 
       <template #extra-actions>
-        <Button
-          v-if="canCreateProblem"
-          size="sm"
-          class="h-8"
-          @click="router.push({ name: 'problem-create' })"
-        >
-          <IconPlus class="mr-2 h-4 w-4" />
-          <span>{{ t('problems.addProblem') }}</span>
-        </Button>
+        <div class="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger as-child>
+              <Button variant="outline" size="sm" class="h-8 gap-1.5">
+                <IconDownload class="h-4 w-4" />
+                <span class="hidden sm:inline">{{ t('problems.export.title') }}</span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem @click="exportProblems('json')">
+                {{ t('problems.export.json') }}
+              </DropdownMenuItem>
+              <DropdownMenuItem @click="exportProblems('csv')">
+                {{ t('problems.export.csv') }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-8 gap-1.5"
+            @click="importDialogOpen = true"
+          >
+            <IconUpload class="h-4 w-4" />
+            <span class="hidden sm:inline">{{ t('problems.import.title') }}</span>
+          </Button>
+
+          <Button
+            v-if="canCreateProblem"
+            size="sm"
+            class="h-8"
+            @click="router.push({ name: 'problem-create' })"
+          >
+            <IconPlus class="mr-2 h-4 w-4" />
+            <span>{{ t('problems.addProblem') }}</span>
+          </Button>
+        </div>
       </template>
     </DataTable>
 
@@ -773,5 +848,10 @@ const columns: ColumnDef<Problem>[] = [
     :problem-id="selectedProblemId"
     :problem-title="selectedProblemTitle"
     @success="loadProblems"
+  />
+
+  <ProblemImportDialog
+    v-model:open="importDialogOpen"
+    @imported="handleImported"
   />
 </template>

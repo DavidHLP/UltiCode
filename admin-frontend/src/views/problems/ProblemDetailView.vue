@@ -7,11 +7,12 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Edit, Eye, EyeOff, FileText } from 'lucide-vue-next'
+import { ArrowLeft, Edit, Eye, EyeOff, FileText, History } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DescriptionDisplay from './components/DescriptionDisplay.vue'
 import CodeDisplay from './components/CodeDisplay.vue'
 import CasesDisplay from './components/CasesDisplay.vue'
+import VersionHistoryTimeline from '@/components/problems/VersionHistoryTimeline.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -20,6 +21,7 @@ const problemsStore = useProblemsStore()
 
 const publishing = ref(false)
 const isInitialLoad = ref(true)
+const versionHistoryOpen = ref(false)
 
 const problemId = computed(() => route.params.id as string)
 const problem = computed(() => problemsStore.currentProblem)
@@ -72,6 +74,11 @@ function editProblem() {
     description: 'problem-edit-description',
   }
   router.push({ name: editRoutes[currentView.value], params: { id: problemId.value } })
+}
+
+async function handleVersionRestored() {
+  toast.success(t('problems.versionHistory.restoreSuccess'))
+  await problemsStore.fetchProblem(problemId.value)
 }
 </script>
 
@@ -132,6 +139,16 @@ function editProblem() {
 
         <!-- Right: Actions -->
         <div v-if="problem" class="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            class="h-8 gap-1.5"
+            @click="versionHistoryOpen = true"
+          >
+            <History :size="14" />
+            <span class="hidden sm:inline">{{ t('problems.versionHistory.title') }}</span>
+          </Button>
+
           <Button
             variant="outline"
             size="sm"
@@ -253,5 +270,12 @@ function editProblem() {
         </transition>
       </template>
     </main>
+
+    <!-- Version History Dialog -->
+    <VersionHistoryTimeline
+      v-model:open="versionHistoryOpen"
+      :problem-id="problemId"
+      @restored="handleVersionRestored"
+    />
   </div>
 </template>

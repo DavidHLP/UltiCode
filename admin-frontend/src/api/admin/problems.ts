@@ -228,8 +228,13 @@ export const problemsApi = {
     return response
   },
 
-  async bulkAction(data: BulkProblemActionDto): Promise<void> {
-    await apiPost('/admin/problems/bulk', data)
+  async bulkAction(data: BulkProblemActionDto): Promise<{
+    results: Array<{ id: string; success: boolean; error?: string }>
+  }> {
+    const response = await apiPost<{
+      results: Array<{ id: string; success: boolean; error?: string }>
+    }>('/admin/bulk/problems/publish', data)
+    return response
   },
 
   async getProblemVersions(id: string): Promise<VersionsResponse> {

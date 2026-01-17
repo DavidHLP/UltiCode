@@ -45,7 +45,7 @@ async function handleSubmit(data: DescriptionFormData) {
         summary: data.summary,
         content: data.content,
       },
-      data.is_published
+      data.is_published,
     )
 
     toast.success(t('problems.toast.updateSuccess'))

@@ -35,7 +35,7 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'restored': []
+  restored: []
 }>()
 
 const { t } = useI18n()
@@ -61,7 +61,7 @@ async function loadVersions() {
 
   try {
     const response = await problemsApi.getProblemVersions(props.problemId)
-    versions.value = response.versions
+    versions.value = response.data
   } catch (err) {
     console.error('Failed to load versions:', err)
     error.value = t('problems.versionHistory.loadError')
@@ -193,10 +193,7 @@ function handleClose() {
         </div>
 
         <!-- Error State -->
-        <div
-          v-else-if="error"
-          class="flex flex-col items-center justify-center py-12 text-center"
-        >
+        <div v-else-if="error" class="flex flex-col items-center justify-center py-12 text-center">
           <IconX class="h-10 w-10 text-destructive mb-3" />
           <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
           <Button variant="outline" size="sm" @click="loadVersions">
@@ -268,7 +265,7 @@ function handleClose() {
               <!-- Performer -->
               <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <IconUser class="h-3 w-3" />
-                <span>{{ version.performerName || t('common.unknown') }}</span>
+                <span>{{ version.performer?.name || t('common.unknown') }}</span>
               </div>
 
               <!-- Changed Fields -->
@@ -286,7 +283,10 @@ function handleClose() {
                   >
                     {{ field }}
                   </Badge>
-                  <span v-if="getChangedFields(version).length === 0" class="text-xs text-muted-foreground">
+                  <span
+                    v-if="getChangedFields(version).length === 0"
+                    class="text-xs text-muted-foreground"
+                  >
                     {{ t('problems.versionHistory.noChanges') }}
                   </span>
                 </div>
@@ -320,11 +320,15 @@ function handleClose() {
         <div v-if="selectedVersion" class="space-y-2 py-4">
           <div class="flex items-center gap-2 text-sm">
             <IconClock class="h-4 w-4 text-muted-foreground" />
-            <span class="text-muted-foreground">{{ formatTimestamp(selectedVersion.createdAt) }}</span>
+            <span class="text-muted-foreground">{{
+              formatTimestamp(selectedVersion.createdAt)
+            }}</span>
           </div>
           <div class="flex items-center gap-2 text-sm">
             <IconUser class="h-4 w-4 text-muted-foreground" />
-            <span class="text-muted-foreground">{{ selectedVersion.performerName || t('common.unknown') }}</span>
+            <span class="text-muted-foreground">{{
+              selectedVersion.performer?.name || t('common.unknown')
+            }}</span>
           </div>
         </div>
 

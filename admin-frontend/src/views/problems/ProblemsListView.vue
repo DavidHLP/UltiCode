@@ -55,6 +55,7 @@ import { ApiError } from '@/api/client'
 import DataTable from '@/components/table/DataTable.vue'
 import ProblemDeleteDialog from './ProblemDeleteDialog.vue'
 import ProblemImportDialog from '@/components/problems/ProblemImportDialog.vue'
+import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -77,6 +78,10 @@ const selectedProblemTitle = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const importing = ref(false)
 const importDialogOpen = ref(false)
+const selectedRows = ref<Problem[]>([])
+const bulkActionDialogOpen = ref(false)
+const bulkActionType = ref<'publish' | 'unpublish' | 'delete' | 'restore'>('publish')
+const bulkActionLoading = ref(false)
 
 const canCreateProblem = computed(() => authStore.hasPermission('CREATE', 'PROBLEM'))
 const canUpdateProblem = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM'))
@@ -335,19 +340,22 @@ function getDifficultyColor(difficulty: Difficulty) {
 async function exportProblems(format: 'json' | 'csv') {
   try {
     importing.value = true
-    await problemsApi.exportProblems({
+    await problemsApi.exportProblems(
+      {
+        search: searchQuery.value || undefined,
+        difficulty:
+          difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
+        status:
+          statusFilter.value === 'all' ? undefined : (statusFilter.value as Problem['status']),
+        is_published:
+          publishedFilter.value === 'all'
+            ? undefined
+            : publishedFilter.value === 'published'
+              ? true
+              : false,
+      },
       format,
-      search: searchQuery.value || undefined,
-      difficulty:
-        difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
-      status: statusFilter.value === 'all' ? undefined : (statusFilter.value as Problem['status']),
-      is_published:
-        publishedFilter.value === 'all'
-          ? undefined
-          : publishedFilter.value === 'published'
-            ? true
-            : false,
-    })
+    )
     toast.success(t('problems.export.success'))
   } catch (error) {
     console.error('Failed to export problems:', error)
@@ -362,6 +370,66 @@ async function exportProblems(format: 'json' | 'csv') {
 
 async function handleImported() {
   await loadProblems()
+}
+
+async function handleBulkAction(action: 'publish' | 'unpublish' | 'delete' | 'restore') {
+  if (selectedRows.value.length === 0) {
+    toast.error(t('problems.bulk.noSelection'))
+    return
+  }
+  bulkActionType.value = action
+  bulkActionDialogOpen.value = true
+}
+
+async function confirmBulkAction() {
+  if (selectedRows.value.length === 0) return
+
+  bulkActionLoading.value = true
+  try {
+    const response = await problemsApi.bulkAction({
+      ids: selectedRows.value.map((p) => p.id),
+      action: bulkActionType.value,
+    })
+
+    const successCount = response.results.filter((r) => r.success).length
+    const failedCount = response.results.filter((r) => !r.success).length
+
+    if (failedCount === 0) {
+      toast.success(
+        t('problems.bulk.success', {
+          count: successCount,
+          action: t(`problems.bulk.${bulkActionType.value}`),
+        }),
+      )
+    } else if (successCount === 0) {
+      toast.error(
+        t('problems.bulk.failed', {
+          count: failedCount,
+          action: t(`problems.bulk.${bulkActionType.value}`),
+        }),
+      )
+    } else {
+      toast.warning(
+        t('problems.bulk.partial', {
+          success: successCount,
+          failed: failedCount,
+          action: t(`problems.bulk.${bulkActionType.value}`),
+        }),
+      )
+    }
+
+    selectedRows.value = []
+    bulkActionDialogOpen.value = false
+    await loadProblems()
+  } catch (error) {
+    console.error('Failed to perform bulk action:', error)
+    const ctx = getErrorContext(error, t('problems.bulk.action'))
+    toast.error(ctx.message, {
+      description: ctx.suggestion,
+    })
+  } finally {
+    bulkActionLoading.value = false
+  }
 }
 
 const columns: ColumnDef<Problem>[] = [
@@ -722,7 +790,9 @@ const columns: ColumnDef<Problem>[] = [
       :pagination="tablePagination"
       :row-count="problemsStore.total"
       :loading="problemsStore.loading"
+      :selected-rows="selectedRows"
       @update:pagination="tablePagination = $event"
+      @update:selected-rows="selectedRows = $event"
     >
       <template #toolbar-left>
         <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
@@ -787,6 +857,32 @@ const columns: ColumnDef<Problem>[] = [
             >
               <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': problemsStore.loading }" />
             </Button>
+
+            <DropdownMenu v-if="selectedRows.length > 0">
+              <DropdownMenuTrigger as-child>
+                <Button variant="outline" size="sm" class="h-8 gap-1.5">
+                  <span>{{ t('problems.bulk.selected', { count: selectedRows.length }) }}</span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem @click="handleBulkAction('publish')">
+                  <IconEye class="mr-2 h-4 w-4 text-emerald-600" />
+                  <span>{{ t('problems.bulk.publish') }}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleBulkAction('unpublish')">
+                  <IconEyeOff class="mr-2 h-4 w-4 text-amber-600" />
+                  <span>{{ t('problems.bulk.unpublish') }}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleBulkAction('delete')">
+                  <IconTrash class="mr-2 h-4 w-4 text-destructive" />
+                  <span>{{ t('problems.bulk.delete') }}</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem @click="handleBulkAction('restore')">
+                  <IconRefresh class="mr-2 h-4 w-4 text-blue-600" />
+                  <span>{{ t('problems.bulk.restore') }}</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </template>
@@ -810,12 +906,7 @@ const columns: ColumnDef<Problem>[] = [
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <Button
-            variant="outline"
-            size="sm"
-            class="h-8 gap-1.5"
-            @click="importDialogOpen = true"
-          >
+          <Button variant="outline" size="sm" class="h-8 gap-1.5" @click="importDialogOpen = true">
             <IconUpload class="h-4 w-4" />
             <span class="hidden sm:inline">{{ t('problems.import.title') }}</span>
           </Button>
@@ -850,8 +941,12 @@ const columns: ColumnDef<Problem>[] = [
     @success="loadProblems"
   />
 
-  <ProblemImportDialog
-    v-model:open="importDialogOpen"
-    @imported="handleImported"
+  <ProblemImportDialog v-model:open="importDialogOpen" @imported="handleImported" />
+
+  <BulkActionDialog
+    v-model:open="bulkActionDialogOpen"
+    :action="bulkActionType"
+    :count="selectedRows.length"
+    @confirm="confirmBulkAction"
   />
 </template>

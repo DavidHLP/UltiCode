@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch, apiDelete } from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete, apiDownload } from '../client'
 
 export enum Difficulty {
   EASY = 'EASY',
@@ -126,6 +126,65 @@ export interface BulkProblemActionDto {
   action: 'publish' | 'unpublish' | 'delete' | 'restore'
 }
 
+export interface ProblemVersion {
+  id: string
+  action: string
+  performer: {
+    id: string
+    username: string
+    name: string
+    role: string
+  }
+  entityType: string
+  entityId: string
+  oldValues?: Record<string, unknown>
+  newValues?: Record<string, unknown>
+  createdAt: string
+}
+
+export interface VersionsResponse {
+  data: ProblemVersion[]
+  total: number
+}
+
+export interface ImportProblemDto {
+  slug: string
+  title: string
+  difficulty: Difficulty
+  status?: ProblemStatus
+  is_premium?: boolean
+  has_solution?: boolean
+  is_published?: boolean
+  summary?: string
+  examples?: Array<{
+    input: string
+    output: string
+    explanation?: string
+  }>
+  constraints?: string[]
+  hints?: string[]
+  languages?: Array<{
+    label: string
+    value: string
+    starter_code: string
+  }>
+  tags?: string[]
+}
+
+export interface ImportProblemsResponse {
+  total: number
+  created: number
+  updated: number
+  skipped: number
+  failed: number
+  results: Array<{
+    slug: string
+    success: boolean
+    error?: string
+    action?: 'created' | 'updated' | 'skipped'
+  }>
+}
+
 export const problemsApi = {
   async getProblems(params: ProblemQueryParams): Promise<ProblemsResponse> {
     const response = await apiGet<ProblemsResponse>('/admin/problems', { params })
@@ -171,5 +230,33 @@ export const problemsApi = {
 
   async bulkAction(data: BulkProblemActionDto): Promise<void> {
     await apiPost('/admin/problems/bulk', data)
+  },
+
+  async getProblemVersions(id: string): Promise<VersionsResponse> {
+    const response = await apiGet<VersionsResponse>(`/admin/problems/${id}/versions`)
+    return response
+  },
+
+  async restoreProblemVersion(id: string, versionId: string): Promise<Problem> {
+    const response = await apiPost<Problem>(`/admin/problems/${id}/versions/${versionId}/restore`)
+    return response
+  },
+
+  async exportProblems(params: ProblemQueryParams, format: 'json' | 'csv' = 'json'): Promise<void> {
+    const date = new Date().toISOString().split('T')[0]
+    const filename =
+      format === 'json' ? `problems-export-${date}.json` : `problems-export-${date}.csv`
+    await apiDownload(`/admin/problems/export?format=${format}`, filename, { params })
+  },
+
+  async importProblems(
+    problems: ImportProblemDto[],
+    onConflict: 'skip' | 'update' | 'create_new' = 'skip',
+  ): Promise<ImportProblemsResponse> {
+    const response = await apiPost<ImportProblemsResponse>('/admin/problems/import', {
+      problems,
+      onConflict,
+    })
+    return response
   },
 }

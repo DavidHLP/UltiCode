@@ -8,6 +8,7 @@ import {
   Body,
   Query,
   UseGuards,
+  Res,
 } from '@nestjs/common';
 import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
@@ -24,12 +25,14 @@ import {
   PermissionResource,
   Prisma,
   Difficulty as PrismaDifficulty,
+  ProblemStatus,
 } from '@prisma/client';
 import {
   CreateProblemDto,
   UpdateProblemDto,
   ProblemQueryDto,
   BulkProblemActionDto,
+  ImportProblemsDto,
   Difficulty,
 } from '../dto/problem.dto';
 import DOMPurify from 'dompurify';
@@ -441,17 +444,32 @@ export class AdminProblemController {
       }
     }
 
+    // Fetch complete problem data for audit snapshot
+    const completeProblem = await this.getCompleteProblem(id);
+    const transformedProblem =
+      this.transformProblemForFrontend(completeProblem);
+
+    if (!transformedProblem) {
+      throw new Error('Failed to create problem');
+    }
+
     await this.auditService.log({
       performerId: admin.id,
       action: 'CREATE_PROBLEM',
       entityType: 'PROBLEM',
       entityId: id.toString(),
-      newValues: { slug, title, difficulty },
+      newValues: {
+        ...transformedProblem,
+        // Include all related data for version history
+        detail: transformedProblem.detail,
+        examples: transformedProblem.examples,
+        languages: transformedProblem.languages,
+        tags: transformedProblem.tags,
+      },
     });
 
     // Return complete problem data
-    const completeProblem = await this.getCompleteProblem(id);
-    return this.transformProblemForFrontend(completeProblem);
+    return transformedProblem;
   }
 
   @Patch(':id')
@@ -521,22 +539,43 @@ export class AdminProblemController {
       },
     });
 
+    // Fetch complete problem data for audit snapshots
+    const oldCompleteProblem = await this.getCompleteProblem(problemId);
+    const oldTransformedProblem =
+      this.transformProblemForFrontend(oldCompleteProblem);
+    const newCompleteProblem = await this.getCompleteProblem(problemId);
+    const newTransformedProblem =
+      this.transformProblemForFrontend(newCompleteProblem);
+
+    if (!oldTransformedProblem || !newTransformedProblem) {
+      throw new Error('Failed to update problem');
+    }
+
     await this.auditService.log({
       performerId: admin.id,
       action: 'UPDATE_PROBLEM',
       entityType: 'PROBLEM',
       entityId: id,
       oldValues: {
-        slug: oldProblem.slug,
-        title: oldProblem.title,
-        difficulty: oldProblem.difficulty,
+        ...oldTransformedProblem,
+        // Include all related data for version history
+        detail: oldTransformedProblem.detail,
+        examples: oldTransformedProblem.examples,
+        languages: oldTransformedProblem.languages,
+        tags: oldTransformedProblem.tags,
       },
-      newValues: updateProblemDto,
+      newValues: {
+        ...newTransformedProblem,
+        // Include all related data for version history
+        detail: newTransformedProblem.detail,
+        examples: newTransformedProblem.examples,
+        languages: newTransformedProblem.languages,
+        tags: newTransformedProblem.tags,
+      },
     });
 
     // Return complete problem data
-    const completeProblem = await this.getCompleteProblem(problemId);
-    return this.transformProblemForFrontend(completeProblem);
+    return newTransformedProblem;
   }
 
   @Delete(':id')
@@ -749,5 +788,581 @@ export class AdminProblemController {
     });
 
     return { results };
+  }
+
+  @Get(':id/versions')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  async getVersions(@Param('id') id: string) {
+    const auditLogs = await this.prisma.auditLog.findMany({
+      where: {
+        entity_type: 'PROBLEM',
+        entity_id: id,
+        action: {
+          in: ['CREATE_PROBLEM', 'UPDATE_PROBLEM'],
+        },
+      },
+      orderBy: { created_at: 'desc' },
+      include: {
+        performer: {
+          select: {
+            id: true,
+            username: true,
+            name: true,
+            role: true,
+          },
+        },
+      },
+    });
+
+    return {
+      data: auditLogs.map((log) => ({
+        id: log.id,
+        action: log.action,
+        performer: {
+          id: log.performer.id,
+          username: log.performer.username,
+          name: log.performer.name,
+          role: log.performer.role,
+        },
+        entityType: log.entity_type,
+        entityId: log.entity_id,
+        oldValues: log.old_values as Record<string, unknown> | undefined,
+        newValues: log.new_values as Record<string, unknown> | undefined,
+        createdAt: log.created_at.toISOString(),
+      })),
+      total: auditLogs.length,
+    };
+  }
+
+  @Post(':id/versions/:versionId/restore')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.PROBLEM,
+  })
+  async restoreVersion(
+    @Param('id') id: string,
+    @Param('versionId') versionId: string,
+    @CurrentAdmin() admin: User,
+  ) {
+    // Fetch the audit log for the version to restore
+    const auditLog = await this.prisma.auditLog.findUnique({
+      where: { id: versionId },
+    });
+
+    if (
+      !auditLog ||
+      auditLog.entity_id !== id ||
+      auditLog.entity_type !== 'PROBLEM'
+    ) {
+      throw new Error('Version not found or does not belong to this problem');
+    }
+
+    // Extract the snapshot from the audit log
+    const snapshot = auditLog.new_values as Record<string, unknown>;
+    if (!snapshot) {
+      throw new Error('No snapshot data found in version');
+    }
+
+    const problemId = BigInt(id);
+
+    // Fetch current problem data for audit log
+    const oldCompleteProblem = await this.getCompleteProblem(problemId);
+    const oldTransformedProblem =
+      this.transformProblemForFrontend(oldCompleteProblem);
+
+    // Restore the problem from the snapshot
+    const updateData: Prisma.ProblemUpdateInput = {};
+    const detailUpdate: Prisma.ProblemDetailUpdateWithoutProblemInput = {};
+
+    // Restore basic fields
+    if (snapshot.slug) updateData.slug = snapshot.slug as string;
+    if (snapshot.title) updateData.title = snapshot.title as string;
+    if (snapshot.difficulty) {
+      updateData.difficulty = mapDifficultyToPrisma(
+        snapshot.difficulty as Difficulty,
+      );
+    }
+    if (snapshot.status) {
+      updateData.status = snapshot.status as ProblemStatus;
+    }
+    if (snapshot.is_premium !== undefined) {
+      updateData.is_premium = snapshot.is_premium as boolean;
+    }
+    if (snapshot.has_solution !== undefined) {
+      updateData.has_solution = snapshot.has_solution as boolean;
+    }
+
+    // Restore detail fields
+    if (snapshot.detail) {
+      const detail = snapshot.detail as Record<string, unknown>;
+      if (detail.summary) detailUpdate.summary = detail.summary as string;
+      if (detail.constraints_json) {
+        detailUpdate.constraints_json = detail.constraints_json as string[];
+      }
+      if (detail.hints) detailUpdate.hints = detail.hints as string[];
+      detailUpdate.updated_at = new Date();
+    }
+
+    // Update the problem
+    await this.prisma.problem.update({
+      where: { id: problemId },
+      data: {
+        ...updateData,
+        detail:
+          Object.keys(detailUpdate).length > 0
+            ? {
+                update: detailUpdate,
+              }
+            : undefined,
+      },
+    });
+
+    // Log the restore operation
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'RESTORE_PROBLEM_VERSION',
+      entityType: 'PROBLEM',
+      entityId: id,
+      oldValues: oldTransformedProblem,
+      newValues: {
+        ...snapshot,
+        restoredFromVersion: versionId,
+        restoredAt: new Date().toISOString(),
+      },
+    });
+
+    // Return the restored problem
+    const newCompleteProblem = await this.getCompleteProblem(problemId);
+    return this.transformProblemForFrontend(newCompleteProblem);
+  }
+
+  @Get('export')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  async exportProblems(
+    @Query() query: ProblemQueryDto,
+    @Query('format') format: 'json' | 'csv' = 'json',
+    @Res()
+    res: {
+      set: (headers: Record<string, string>) => void;
+      send: (data: string) => void;
+      json: (data: unknown) => void;
+    },
+  ) {
+    const { search, difficulty, status, is_published, is_deleted, tag } = query;
+
+    // Build where clause
+    const where: Prisma.ProblemWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { slug: { contains: search } },
+      ];
+    }
+
+    if (difficulty) {
+      where.difficulty = mapDifficultyToPrisma(difficulty);
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (is_published !== undefined) {
+      where.is_published = is_published;
+    }
+
+    if (is_deleted !== undefined) {
+      where.is_deleted = is_deleted;
+    }
+
+    if (tag) {
+      where.tagRelations = {
+        some: {
+          tag: {
+            label: tag,
+          },
+        },
+      };
+    }
+
+    const problems = await this.prisma.problem.findMany({
+      where,
+      orderBy: { id: 'asc' },
+      include: {
+        detail: true,
+        examples: {
+          orderBy: { example_order: 'asc' },
+        },
+        languages: true,
+        tagRelations: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    const exportData = problems.map((problem) => ({
+      id: problem.id.toString(),
+      slug: problem.slug,
+      title: problem.title,
+      difficulty: mapDifficultyToFrontend(problem.difficulty),
+      status: problem.status,
+      is_premium: problem.is_premium,
+      has_solution: problem.has_solution,
+      is_published: problem.is_published,
+      published_at: problem.published_at,
+      published_by: problem.published_by,
+      is_deleted: problem.is_deleted,
+      deleted_at: problem.deleted_at,
+      deleted_by: problem.deleted_by,
+      detail: problem.detail
+        ? {
+            summary: problem.detail.summary,
+            constraints_json: problem.detail.constraints_json,
+            hints: problem.detail.hints,
+          }
+        : null,
+      examples: problem.examples.map((ex) => ({
+        input: ex.input_text,
+        output: ex.output_text,
+        explanation: ex.explanation,
+      })),
+      languages: problem.languages.map((lang) => ({
+        label: lang.label,
+        value: lang.value,
+        starter_code: lang.starter_code,
+      })),
+      tags: problem.tagRelations.map((tr) => tr.tag.label),
+    }));
+
+    if (format === 'csv') {
+      // CSV format
+      const headers = [
+        'id',
+        'slug',
+        'title',
+        'difficulty',
+        'status',
+        'is_premium',
+        'has_solution',
+        'is_published',
+        'published_at',
+        'is_deleted',
+        'deleted_at',
+        'summary',
+        'constraints',
+        'hints',
+        'tags',
+      ];
+
+      const rows = exportData.map((p) => [
+        p.id,
+        p.slug,
+        `"${p.title.replace(/"/g, '""')}"`,
+        p.difficulty,
+        p.status,
+        p.is_premium,
+        p.has_solution,
+        p.is_published,
+        p.published_at || '',
+        p.is_deleted,
+        p.deleted_at || '',
+        `"${(p.detail?.summary || '').replace(/"/g, '""')}"`,
+        `"${JSON.stringify(p.detail?.constraints_json || []).replace(
+          /"/g,
+          '""',
+        )}"`,
+        `"${JSON.stringify(p.detail?.hints || []).replace(/"/g, '""')}"`,
+        `"${p.tags.join(', ').replace(/"/g, '""')}"`,
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) => row.join(',')),
+      ].join('\n');
+
+      res.set({
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename=problems-export-${new Date().toISOString().split('T')[0]}.csv`,
+      });
+      res.send(csvContent);
+    } else {
+      // JSON format
+      res.set({
+        'Content-Type': 'application/json',
+        'Content-Disposition': `attachment; filename=problems-export-${new Date().toISOString().split('T')[0]}.json`,
+      });
+      res.json({
+        exportedAt: new Date().toISOString(),
+        count: exportData.length,
+        data: exportData,
+      });
+    }
+  }
+
+  @Post('import')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.CREATE,
+    resource: PermissionResource.PROBLEM,
+  })
+  async importProblems(
+    @Body() importDto: ImportProblemsDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    const { problems, onConflict = 'skip' } = importDto;
+    const results: {
+      slug: string;
+      success: boolean;
+      error?: string;
+      action?: 'created' | 'updated' | 'skipped';
+    }[] = [];
+
+    for (const problemData of problems) {
+      try {
+        // Check if problem already exists
+        const existingProblem = await this.prisma.problem.findFirst({
+          where: { slug: problemData.slug },
+        });
+
+        if (existingProblem) {
+          // Handle conflict based on strategy
+          if (onConflict === 'skip') {
+            results.push({
+              slug: problemData.slug,
+              success: true,
+              action: 'skipped',
+            });
+            continue;
+          }
+
+          if (onConflict === 'create_new') {
+            // Generate a new slug
+            const baseSlug = problemData.slug;
+            let newSlug = baseSlug;
+            let counter = 1;
+            while (
+              await this.prisma.problem.findFirst({ where: { slug: newSlug } })
+            ) {
+              newSlug = `${baseSlug}-${counter}`;
+              counter++;
+            }
+            problemData.slug = newSlug;
+          }
+        }
+
+        // Sanitize markdown content
+        const sanitizedSummary = problemData.summary
+          ? sanitizeMarkdown(problemData.summary)
+          : undefined;
+
+        const prismaDifficulty = mapDifficultyToPrisma(problemData.difficulty);
+
+        // Use transaction to ensure data consistency
+        await this.prisma.$transaction(async (tx) => {
+          let problemId: bigint;
+
+          if (existingProblem && onConflict === 'update') {
+            // Update existing problem
+            problemId = existingProblem.id;
+
+            const updateData: Prisma.ProblemUpdateInput = {};
+            const detailUpdate: Prisma.ProblemDetailUpdateWithoutProblemInput =
+              {};
+
+            if (problemData.title) updateData.title = problemData.title;
+            if (problemData.difficulty) {
+              updateData.difficulty = prismaDifficulty;
+            }
+            if (problemData.status) updateData.status = problemData.status;
+            if (problemData.is_premium !== undefined) {
+              updateData.is_premium = problemData.is_premium;
+            }
+            if (problemData.has_solution !== undefined) {
+              updateData.has_solution = problemData.has_solution;
+            }
+            if (problemData.is_published !== undefined) {
+              updateData.is_published = problemData.is_published;
+            }
+
+            if (sanitizedSummary) detailUpdate.summary = sanitizedSummary;
+            if (problemData.constraints) {
+              detailUpdate.constraints_json = problemData.constraints;
+            }
+            if (problemData.hints) detailUpdate.hints = problemData.hints;
+            if (Object.keys(detailUpdate).length > 0) {
+              detailUpdate.updated_at = new Date();
+            }
+
+            await tx.problem.update({
+              where: { id: problemId },
+              data: {
+                ...updateData,
+                detail:
+                  Object.keys(detailUpdate).length > 0
+                    ? {
+                        update: detailUpdate,
+                      }
+                    : undefined,
+              },
+            });
+
+            // Delete existing examples and recreate
+            await tx.problemExample.deleteMany({
+              where: { problem_id: problemId },
+            });
+            // Delete existing languages and recreate
+            await tx.problemLanguage.deleteMany({
+              where: { problem_id: problemId },
+            });
+            // Delete existing tag relations and recreate
+            await tx.problemTagRelation.deleteMany({
+              where: { problem_id: problemId },
+            });
+
+            results.push({
+              slug: problemData.slug,
+              success: true,
+              action: 'updated',
+            });
+          } else {
+            // Create new problem
+            problemId = BigInt(Date.now() + Math.random() * 1000);
+
+            await tx.problem.create({
+              data: {
+                id: problemId,
+                slug: problemData.slug,
+                title: problemData.title,
+                difficulty: prismaDifficulty,
+                status: problemData.status || 'todo',
+                is_premium: problemData.is_premium || false,
+                has_solution: problemData.has_solution || false,
+                is_published: problemData.is_published || false,
+                published_at: problemData.is_published ? new Date() : null,
+                published_by: problemData.is_published ? admin.id : null,
+                detail: sanitizedSummary
+                  ? {
+                      create: {
+                        id: crypto.randomUUID(),
+                        slug: problemData.slug,
+                        summary: sanitizedSummary,
+                        constraints_json: problemData.constraints || [],
+                        hints: problemData.hints,
+                        updated_at: new Date(),
+                      },
+                    }
+                  : undefined,
+                examples: problemData.examples
+                  ? {
+                      create: problemData.examples.map((ex, idx) => ({
+                        id: crypto.randomUUID(),
+                        problem_id: problemId,
+                        input_text: ex.input,
+                        output_text: ex.output,
+                        explanation: ex.explanation
+                          ? sanitizeMarkdown(ex.explanation)
+                          : undefined,
+                        example_order: idx,
+                      })),
+                    }
+                  : undefined,
+                languages: problemData.languages
+                  ? {
+                      create: problemData.languages.map((lang) => ({
+                        id: crypto.randomUUID(),
+                        problem_id: problemId,
+                        label: lang.label,
+                        value: lang.value,
+                        starter_code: lang.starter_code,
+                      })),
+                    }
+                  : undefined,
+              },
+            });
+
+            results.push({
+              slug: problemData.slug,
+              success: true,
+              action: 'created',
+            });
+          }
+
+          // Add or update tags
+          if (problemData.tags && problemData.tags.length > 0) {
+            for (const tagLabel of problemData.tags) {
+              let tag = await tx.problemTag.findFirst({
+                where: { label: tagLabel },
+              });
+
+              if (!tag) {
+                tag = await tx.problemTag.create({
+                  data: {
+                    id: crypto.randomUUID(),
+                    label: tagLabel,
+                  },
+                });
+              }
+
+              await tx.problemTagRelation.upsert({
+                where: {
+                  problem_id_tag_id: {
+                    problem_id: problemId,
+                    tag_id: tag.id,
+                  },
+                },
+                create: {
+                  problem_id: problemId,
+                  tag_id: tag.id,
+                },
+                update: {},
+              });
+            }
+          }
+        });
+      } catch (error) {
+        results.push({
+          slug: problemData.slug,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    // Log the import operation
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'IMPORT_PROBLEMS',
+      entityType: 'PROBLEM',
+      entityId: problems.map((p) => p.slug).join(','),
+      newValues: {
+        total: problems.length,
+        created: results.filter((r) => r.action === 'created').length,
+        updated: results.filter((r) => r.action === 'updated').length,
+        skipped: results.filter((r) => r.action === 'skipped').length,
+        failed: results.filter((r) => !r.success).length,
+        onConflict,
+      },
+    });
+
+    return {
+      total: problems.length,
+      created: results.filter((r) => r.action === 'created').length,
+      updated: results.filter((r) => r.action === 'updated').length,
+      skipped: results.filter((r) => r.action === 'skipped').length,
+      failed: results.filter((r) => !r.success).length,
+      results,
+    };
   }
 }

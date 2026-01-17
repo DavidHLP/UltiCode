@@ -8,6 +8,7 @@ import {
   Min,
   Max,
   MaxLength,
+  ValidateNested,
 } from 'class-validator';
 import { Type, Transform } from 'class-transformer';
 
@@ -214,4 +215,75 @@ export class BulkProblemActionDto {
 
   @IsEnum(['publish', 'unpublish', 'delete', 'restore'])
   action: 'publish' | 'unpublish' | 'delete' | 'restore';
+}
+
+export class ImportProblemDto {
+  @IsString()
+  @MaxLength(120)
+  slug: string;
+
+  @IsString()
+  @MaxLength(255)
+  title: string;
+
+  @IsEnum(Difficulty)
+  difficulty: Difficulty;
+
+  @IsEnum(ProblemStatus)
+  @IsOptional()
+  status?: ProblemStatus = ProblemStatus.TODO;
+
+  @IsBoolean()
+  @IsOptional()
+  is_premium?: boolean = false;
+
+  @IsBoolean()
+  @IsOptional()
+  has_solution?: boolean = false;
+
+  @IsBoolean()
+  @IsOptional()
+  is_published?: boolean = false;
+
+  @IsString()
+  @IsOptional()
+  summary?: string;
+
+  @IsArray()
+  @IsOptional()
+  examples?: Array<{
+    input: string;
+    output: string;
+    explanation?: string;
+  }>;
+
+  @IsArray()
+  @IsOptional()
+  constraints?: string[];
+
+  @IsArray()
+  @IsOptional()
+  hints?: string[];
+
+  @IsArray()
+  @IsOptional()
+  languages?: Array<{
+    label: string;
+    value: string;
+    starter_code: string;
+  }>;
+
+  @IsArray()
+  @IsOptional()
+  tags?: string[];
+}
+
+export class ImportProblemsDto {
+  @IsArray()
+  @ValidateNested({ each: true })
+  problems: ImportProblemDto[];
+
+  @IsEnum(['skip', 'update', 'create_new'])
+  @IsOptional()
+  onConflict?: 'skip' | 'update' | 'create_new' = 'skip';
 }

@@ -1669,6 +1669,40 @@ export default {
     createFailed: 'Failed to create',
   },
 
+  // Error messages
+  errors: {
+    validation: {
+      title: 'Validation Error',
+      default: 'The submitted data is invalid',
+      suggestion: 'Please check your input and try again',
+    },
+    unauthorized: {
+      title: 'Unauthorized',
+      message: 'You need to log in to perform this action',
+      suggestion: 'Please log in and try again',
+    },
+    forbidden: {
+      title: 'Access Denied',
+      message: 'You do not have permission to perform this action',
+      suggestion: 'Contact your administrator if you believe this is an error',
+    },
+    notFound: {
+      title: 'Not Found',
+      message: 'The resource was not found',
+      suggestion: 'The resource may have been deleted or moved',
+    },
+    serverError: {
+      title: 'Server Error',
+      message: 'The server encountered an error',
+      suggestion: 'Please try again later or contact support',
+    },
+    network: {
+      title: 'Network Error',
+      message: 'Unable to connect to the server',
+      suggestion: 'Please check your internet connection',
+    },
+  },
+
   // Pagination
   pagination: {
     rowsPerPage: 'Rows per page',

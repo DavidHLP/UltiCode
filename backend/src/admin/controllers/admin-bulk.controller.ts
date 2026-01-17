@@ -16,6 +16,7 @@ import {
   BulkProblemActionDto,
   BulkSolutionActionDto,
   BulkForumActionDto,
+  BulkEditProblemDto,
 } from '../dto/settings.dto';
 
 @Controller('admin/bulk')
@@ -226,6 +227,66 @@ export class AdminBulkController {
       entityType: 'PROBLEM',
       entityId: ids.join(','),
       newValues: { action, count: ids.length },
+    });
+
+    return { results };
+  }
+
+  @Post('problems/edit')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.PROBLEM,
+  })
+  async bulkEditProblems(
+    @Body() bulkDto: BulkEditProblemDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    const { ids, category, difficulty, tags, is_premium } = bulkDto;
+    const results: { id: string; success: boolean; error?: string }[] = [];
+
+    for (const id of ids) {
+      try {
+        const updateData: Prisma.ProblemUpdateInput = {};
+
+        if (category !== undefined) {
+          updateData.category = category;
+        }
+
+        if (difficulty !== undefined) {
+          updateData.difficulty = difficulty;
+        }
+
+        if (tags !== undefined) {
+          updateData.tags = tags;
+        }
+
+        if (is_premium !== undefined) {
+          updateData.is_premium = is_premium;
+        }
+
+        await this.prisma.problem.update({
+          where: { id: BigInt(id) },
+          data: updateData,
+        });
+        results.push({ id, success: true });
+      } catch (_error) {
+        results.push({ id, success: false, error: 'Failed to edit problem' });
+      }
+    }
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'BULK_EDIT_PROBLEMS',
+      entityType: 'PROBLEM',
+      entityId: ids.join(','),
+      newValues: {
+        category,
+        difficulty,
+        tags,
+        is_premium,
+        count: ids.length,
+      },
     });
 
     return { results };

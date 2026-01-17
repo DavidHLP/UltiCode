@@ -198,7 +198,6 @@ function parseCSVFile(content: string): ImportProblemDto[] {
       problemObj[header] = values[index] || ''
     })
     const getValue = (key: string): string => {
-      // @ts-expect-error - TypeScript can't infer that problemObj[key] is defined
       const value = problemObj[key]
       return value !== undefined && value !== null ? value : ''
     }

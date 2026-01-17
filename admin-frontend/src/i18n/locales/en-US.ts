@@ -569,6 +569,46 @@ export default {
       partial: 'Partially completed: {success} succeeded, {failed} failed',
     },
 
+    // Bulk edit
+    bulkEdit: {
+      title: 'Bulk Edit',
+      description: 'Edit {count} problem(s)',
+      category: 'Category',
+      categoryPlaceholder: 'e.g. Array, String, Tree',
+      categoryHint: 'Leave empty to keep current category',
+      difficulty: 'Difficulty',
+      difficultyPlaceholder: 'Select difficulty',
+      tags: 'Tags',
+      tagsPlaceholder: 'Add tags (press Enter)',
+      addTag: 'Add',
+      tagsHint: 'Leave empty to keep current tags',
+      premium: 'Premium',
+      premiumHint: 'Toggle premium status for all selected problems',
+      noChanges: 'No changes to apply',
+      edit: 'Bulk Edit',
+      editing: 'Editing...',
+      success: 'Successfully edited {count} problem(s)',
+      failure: 'Failed to edit problems',
+      partial: 'Partially completed: {success} succeeded, {failed} failed',
+      error: 'Failed to bulk edit problems',
+    },
+
+    // Sort
+    sort: {
+      title: 'Sort By',
+      default: 'Default',
+      titleAsc: 'Title (A-Z)',
+      titleDesc: 'Title (Z-A)',
+      difficultyAsc: 'Difficulty (Easy to Hard)',
+      difficultyDesc: 'Difficulty (Hard to Easy)',
+      createdAsc: 'Created (Oldest First)',
+      createdDesc: 'Created (Newest First)',
+      updatedAsc: 'Updated (Oldest First)',
+      updatedDesc: 'Updated (Newest First)',
+      submissionsAsc: 'Submissions (Low to High)',
+      submissionsDesc: 'Submissions (High to Low)',
+    },
+
     // Export
     export: {
       title: 'Export',

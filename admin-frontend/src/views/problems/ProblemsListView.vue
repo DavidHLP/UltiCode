@@ -56,6 +56,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import ProblemDeleteDialog from './ProblemDeleteDialog.vue'
 import ProblemImportDialog from '@/components/problems/ProblemImportDialog.vue'
 import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
+import BulkEditDialog from '@/components/problems/BulkEditDialog.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -72,6 +73,8 @@ const publishedFilter = ref((route.query.published as string) || 'all')
 // Convert page from query (1-based) to pageIndex (0-based)
 const initialPage = Number(route.query.page) || 1
 const tablePagination = ref({ pageIndex: Math.max(0, initialPage - 1), pageSize: 10 })
+const sortBy = ref((route.query.sortBy as string) || '')
+const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') || 'desc')
 
 const selectedProblemId = ref<string | null>(null)
 const selectedProblemTitle = ref<string | null>(null)
@@ -82,6 +85,7 @@ const selectedRows = ref<Problem[]>([])
 const bulkActionDialogOpen = ref(false)
 const bulkActionType = ref<'publish' | 'unpublish' | 'delete' | 'restore'>('publish')
 const bulkActionLoading = ref(false)
+const bulkEditDialogOpen = ref(false)
 
 const canCreateProblem = computed(() => authStore.hasPermission('CREATE', 'PROBLEM'))
 const canUpdateProblem = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM'))
@@ -101,6 +105,8 @@ async function loadProblems() {
         : publishedFilter.value === 'published'
           ? true
           : false,
+    sortBy: sortBy.value || undefined,
+    sortOrder: sortOrder.value || undefined,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
   })
@@ -138,6 +144,8 @@ const debouncedUpdateUrl = useDebounceFn(() => {
       ...(difficultyFilter.value !== 'all' && { difficulty: difficultyFilter.value }),
       ...(statusFilter.value !== 'all' && { status: statusFilter.value }),
       ...(publishedFilter.value !== 'all' && { published: publishedFilter.value }),
+      ...(sortBy.value && { sortBy: sortBy.value }),
+      ...(sortOrder.value && { sortOrder: sortOrder.value }),
       page: (tablePagination.value.pageIndex + 1).toString(),
     },
   })
@@ -145,7 +153,15 @@ const debouncedUpdateUrl = useDebounceFn(() => {
 
 // Watch all filter state changes and update URL
 watch(
-  [searchQuery, difficultyFilter, statusFilter, publishedFilter, tablePagination],
+  [
+    searchQuery,
+    difficultyFilter,
+    statusFilter,
+    publishedFilter,
+    sortBy,
+    sortOrder,
+    tablePagination,
+  ],
   debouncedUpdateUrl,
   { deep: true },
 )
@@ -158,6 +174,8 @@ watch(
     difficultyFilter.value = (newQuery.difficulty as string) || 'all'
     statusFilter.value = (newQuery.status as string) || 'all'
     publishedFilter.value = (newQuery.published as string) || 'all'
+    sortBy.value = (newQuery.sortBy as string) || ''
+    sortOrder.value = (newQuery.sortOrder as 'asc' | 'desc') || 'desc'
 
     const page = Number(newQuery.page) || 1
     tablePagination.value.pageIndex = Math.max(0, page - 1)
@@ -430,6 +448,12 @@ async function confirmBulkAction() {
   } finally {
     bulkActionLoading.value = false
   }
+}
+
+async function handleBulkEdited() {
+  selectedRows.value = []
+  bulkEditDialogOpen.value = false
+  await loadProblems()
 }
 
 const columns: ColumnDef<Problem>[] = [
@@ -858,6 +882,32 @@ const columns: ColumnDef<Problem>[] = [
               <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': problemsStore.loading }" />
             </Button>
 
+            <Select v-model="sortBy">
+              <SelectTrigger class="h-8 w-[150px]">
+                <SelectValue :placeholder="t('problems.sort.title')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">{{ t('problems.sort.default') }}</SelectItem>
+                <SelectItem value="title">{{ t('problems.sort.titleAsc') }}</SelectItem>
+                <SelectItem value="difficulty">{{ t('problems.sort.difficultyAsc') }}</SelectItem>
+                <SelectItem value="created_at">{{ t('problems.sort.createdDesc') }}</SelectItem>
+                <SelectItem value="updated_at">{{ t('problems.sort.updatedDesc') }}</SelectItem>
+                <SelectItem value="submission_count">{{
+                  t('problems.sort.submissionsDesc')
+                }}</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              class="h-8 w-8"
+              @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+              :title="t('common.sort')"
+            >
+              <IconTrophy class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
+            </Button>
+
             <DropdownMenu v-if="selectedRows.length > 0">
               <DropdownMenuTrigger as-child>
                 <Button variant="outline" size="sm" class="h-8 gap-1.5">
@@ -880,6 +930,11 @@ const columns: ColumnDef<Problem>[] = [
                 <DropdownMenuItem @click="handleBulkAction('restore')">
                   <IconRefresh class="mr-2 h-4 w-4 text-blue-600" />
                   <span>{{ t('problems.bulk.restore') }}</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem @click="bulkEditDialogOpen = true">
+                  <IconPencil class="mr-2 h-4 w-4" />
+                  <span>{{ t('problems.bulkEdit.edit') }}</span>
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -948,5 +1003,11 @@ const columns: ColumnDef<Problem>[] = [
     :action="bulkActionType"
     :count="selectedRows.length"
     @confirm="confirmBulkAction"
+  />
+
+  <BulkEditDialog
+    v-model:open="bulkEditDialogOpen"
+    :problems="selectedRows"
+    @edited="handleBulkEdited"
   />
 </template>

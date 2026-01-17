@@ -553,6 +553,46 @@ export default {
       partial: '部分完成：{success} 个成功，{failed} 个失败',
     },
 
+    // 批量编辑
+    bulkEdit: {
+      title: '批量编辑',
+      description: '编辑 {count} 个题目',
+      category: '类别',
+      categoryPlaceholder: '例如：数组、字符串、树',
+      categoryHint: '留空以保持当前类别',
+      difficulty: '难度',
+      difficultyPlaceholder: '选择难度',
+      tags: '标签',
+      tagsPlaceholder: '添加标签（按回车）',
+      addTag: '添加',
+      tagsHint: '留空以保持当前标签',
+      premium: '高级',
+      premiumHint: '切换所有选中题目的高级状态',
+      noChanges: '没有要应用的更改',
+      edit: '批量编辑',
+      editing: '编辑中...',
+      success: '成功编辑 {count} 个题目',
+      failure: '编辑题目失败',
+      partial: '部分完成：{success} 个成功，{failed} 个失败',
+      error: '批量编辑题目失败',
+    },
+
+    // 排序
+    sort: {
+      title: '排序方式',
+      default: '默认',
+      titleAsc: '标题（A-Z）',
+      titleDesc: '标题（Z-A）',
+      difficultyAsc: '难度（从易到难）',
+      difficultyDesc: '难度（从难到易）',
+      createdAsc: '创建时间（从旧到新）',
+      createdDesc: '创建时间（从新到旧）',
+      updatedAsc: '更新时间（从旧到新）',
+      updatedDesc: '更新时间（从新到旧）',
+      submissionsAsc: '提交数（从低到高）',
+      submissionsDesc: '提交数（从高到低）',
+    },
+
     // 导出
     export: {
       title: '导出',

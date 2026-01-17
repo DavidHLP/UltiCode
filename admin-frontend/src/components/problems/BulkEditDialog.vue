@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -21,8 +20,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Badge } from '@/components/ui/badge'
-import { IconX } from '@tabler/icons-vue'
 import {
   problemsApi,
   Difficulty,
@@ -45,38 +42,15 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const editing = ref(false)
-const category = ref('')
 const difficulty = ref<Difficulty | undefined>(undefined)
-const tags = ref<string[]>([])
-const tagInput = ref('')
 const isPremium = ref<boolean | undefined>(undefined)
 
 const hasChanges = computed(() => {
-  return (
-    category.value !== '' ||
-    difficulty.value !== undefined ||
-    tags.value.length > 0 ||
-    isPremium.value !== undefined
-  )
+  return difficulty.value !== undefined || isPremium.value !== undefined
 })
 
-function addTag() {
-  const tag = tagInput.value.trim()
-  if (tag && !tags.value.includes(tag)) {
-    tags.value.push(tag)
-    tagInput.value = ''
-  }
-}
-
-function removeTag(tag: string) {
-  tags.value = tags.value.filter((t) => t !== tag)
-}
-
 function resetForm() {
-  category.value = ''
   difficulty.value = undefined
-  tags.value = []
-  tagInput.value = ''
   isPremium.value = undefined
 }
 
@@ -92,16 +66,8 @@ async function handleEdit() {
       ids: props.problems.map((p) => p.id),
     }
 
-    if (category.value !== '') {
-      editData.category = category.value
-    }
-
     if (difficulty.value !== undefined) {
       editData.difficulty = difficulty.value
-    }
-
-    if (tags.value.length > 0) {
-      editData.tags = tags.value
     }
 
     if (isPremium.value !== undefined) {
@@ -155,19 +121,6 @@ function handleOpenChange(open: boolean) {
       </DialogHeader>
 
       <div class="space-y-4 py-4">
-        <!-- Category -->
-        <div class="space-y-2">
-          <Label for="category">{{ t('problems.bulkEdit.category') }}</Label>
-          <Input
-            id="category"
-            v-model="category"
-            :placeholder="t('problems.bulkEdit.categoryPlaceholder')"
-          />
-          <p class="text-xs text-muted-foreground">
-            {{ t('problems.bulkEdit.categoryHint') }}
-          </p>
-        </div>
-
         <!-- Difficulty -->
         <div class="space-y-2">
           <Label for="difficulty">{{ t('problems.bulkEdit.difficulty') }}</Label>
@@ -187,33 +140,6 @@ function handleOpenChange(open: boolean) {
               </SelectItem>
             </SelectContent>
           </Select>
-        </div>
-
-        <!-- Tags -->
-        <div class="space-y-2">
-          <Label for="tags">{{ t('problems.bulkEdit.tags') }}</Label>
-          <div class="flex gap-2">
-            <Input
-              id="tags"
-              v-model="tagInput"
-              :placeholder="t('problems.bulkEdit.tagsPlaceholder')"
-              @keyup.enter="addTag"
-            />
-            <Button type="button" variant="outline" @click="addTag">
-              {{ t('problems.bulkEdit.addTag') }}
-            </Button>
-          </div>
-          <div v-if="tags.length > 0" class="flex flex-wrap gap-2">
-            <Badge v-for="tag in tags" :key="tag" variant="secondary" class="gap-1">
-              {{ tag }}
-              <button type="button" class="ml-1 hover:text-destructive" @click="removeTag(tag)">
-                <IconX :size="14" />
-              </button>
-            </Badge>
-          </div>
-          <p class="text-xs text-muted-foreground">
-            {{ t('problems.bulkEdit.tagsHint') }}
-          </p>
         </div>
 
         <!-- Premium -->

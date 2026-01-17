@@ -96,6 +96,13 @@ const router = createRouter({
           name: 'problem-edit',
           redirect: (to) => ({ name: 'problem-edit-description', params: { id: to.params.id } }),
         },
+        // Moderation
+        {
+          path: 'moderation',
+          name: 'moderation',
+          component: () => import('@/views/moderation/ModerationQueueView.vue'),
+          meta: { permission: { action: 'MODERATE', resource: 'PROBLEM' } },
+        },
         // Problem Lists
         {
           path: 'problem-lists',

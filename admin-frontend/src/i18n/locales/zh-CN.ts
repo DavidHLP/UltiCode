@@ -56,6 +56,16 @@ export default {
     yesterday: '昨天',
     thisWeek: '本周',
     lastWeek: '上周',
+
+    // Additional labels
+    reportedBy: '举报人',
+    reportedAt: '举报时间',
+    submissions: '提交数',
+    solutions: '题解数',
+    page: '页',
+    saving: '保存中...',
+    premium: '高级',
+    unpublished: '未发布',
   },
 
   // 导航
@@ -72,6 +82,7 @@ export default {
     comments: '评论管理',
     notifications: '通知管理',
     auditLogs: '审计日志',
+    moderation: '内容审核',
     getHelp: '获取帮助',
     search: '搜索',
   },
@@ -271,6 +282,7 @@ export default {
       code: '代码模板',
       testCases: '测试用例',
       overview: '概览',
+      audit: '审计日志',
     },
 
     // 操作
@@ -669,6 +681,30 @@ export default {
         RESTORE: '恢复',
       },
     },
+
+    // 内容审核
+    moderation: {
+      title: '审核队列',
+      description: '查看和管理被标记的题目',
+      filterStatus: '按状态筛选',
+      allStatuses: '全部状态',
+      statusPending: '待处理',
+      statusReviewed: '已审核',
+      statusResolved: '已解决',
+      statusDismissed: '已驳回',
+      noFlagged: '无被标记的题目',
+      noFlaggedDescription: '目前没有需要审核的被标记题目。',
+      flagReason: '标记原因',
+      moderationNotes: '审核备注',
+      moderate: '审核',
+      moderateTitle: '审核题目',
+      status: '状态',
+      notes: '备注',
+      notesPlaceholder: '添加审核备注（可选）...',
+      success: '题目审核成功',
+      error: '审核题目失败',
+      loadError: '加载被标记题目失败',
+    },
   },
 
   // 比赛
@@ -983,8 +1019,46 @@ export default {
     // 操作
     actions: {
       viewDetails: '查看详情',
-      export: '导出日志',
+      exportLogs: '导出日志',
+      create: '创建',
+      update: '更新',
+      delete: '删除',
+      publish: '发布',
+      moderate: '审核',
     },
+
+    // 审计日志查看器
+    filterAction: '按操作筛选',
+    allActions: '全部操作',
+    noLogs: '无审计日志',
+    noLogsDescription: '没有可显示的审计日志。',
+    systemAction: '系统操作',
+    oldValues: '旧值',
+    newValues: '新值',
+    ipAddress: 'IP 地址',
+    userAgent: '用户代理',
+  },
+
+  // 审计报告
+  auditReport: {
+    title: '审计报告',
+    description: '查看审计统计信息并生成报告',
+    filters: '筛选器',
+    startDate: '开始日期',
+    endDate: '结束日期',
+    performer: '操作者',
+    performerPlaceholder: '按操作者ID筛选...',
+    applyFilters: '应用筛选',
+    export: '导出报告',
+    totalActions: '总操作数',
+    allTime: '全部时间',
+    uniqueEntities: '唯一实体',
+    entityTypes: '实体类型',
+    activePerformers: '活跃操作者',
+    users: '用户',
+    topPerformers: '活跃操作者排行',
+    actionsByEntity: '按实体分类的操作',
+    actions: '操作',
   },
 
   // 设置

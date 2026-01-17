@@ -41,6 +41,14 @@ export interface Problem {
   published_by?: string
   is_deleted: boolean
   deleted_at?: Date
+  is_flagged?: boolean
+  flag_reason?: string
+  flag_reported_by?: string
+  flag_reported_at?: Date
+  flag_status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
+  flag_reviewed_by?: string
+  flag_reviewed_at?: Date
+  flag_notes?: string
   created_at: Date
   updated_at: Date
   detail?: ProblemDetail
@@ -128,9 +136,7 @@ export interface BulkProblemActionDto {
 
 export interface BulkEditProblemDto {
   ids: string[]
-  category?: string
   difficulty?: Difficulty
-  tags?: string[]
   is_premium?: boolean
 }
 
@@ -279,6 +285,31 @@ export const problemsApi = {
       problems,
       onConflict,
     })
+    return response
+  },
+
+  async flagProblem(id: string, reason: string): Promise<Problem> {
+    const response = await apiPost<Problem>(`/admin/problems/${id}/flag`, { reason })
+    return response
+  },
+
+  async moderateProblem(
+    id: string,
+    data: {
+      status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
+      notes?: string
+    },
+  ): Promise<Problem> {
+    const response = await apiPost<Problem>(`/admin/problems/${id}/moderate`, data)
+    return response
+  },
+
+  async getFlaggedProblems(params: {
+    page?: number
+    limit?: number
+    status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
+  }): Promise<ProblemsResponse> {
+    const response = await apiGet<ProblemsResponse>('/admin/problems/flagged', { params })
     return response
   },
 }

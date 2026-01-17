@@ -92,6 +92,14 @@ model Problem {
   is_deleted           Boolean                      @default(false)
   deleted_at           DateTime?
   deleted_by           String?                      @db.VarChar(40)
+  is_flagged           Boolean                      @default(false)
+  flag_reason          String?                      @db.Text
+  flag_reported_by     String?                      @db.VarChar(40)
+  flag_reported_at     DateTime?
+  flag_status          FlagStatus?
+  flag_reviewed_by     String?                      @db.VarChar(40)
+  flag_reviewed_at     DateTime?
+  flag_notes           String?                      @db.Text
   contestProblems      ContestProblem[]
   detail               ProblemDetail?
   examples             ProblemExample[]
@@ -826,6 +834,13 @@ enum ProblemStatus {
   solved
   attempted
   todo
+}
+
+enum FlagStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
 }
 
 enum ContestType {

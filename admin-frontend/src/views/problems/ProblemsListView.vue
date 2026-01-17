@@ -6,12 +6,15 @@ import { watchDebounced, useDebounceFn } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
+  IconAlertTriangle,
   IconCheck,
   IconCircleCheckFilled,
   IconDotsVertical,
   IconEye,
   IconEyeOff,
   IconFile,
+  IconFlag,
+  IconFlagOff,
   IconFlask,
   IconBrackets,
   IconLoader,
@@ -314,6 +317,30 @@ async function unpublishProblem(id: string) {
   }
 }
 
+async function flagProblem(id: string) {
+  try {
+    const reason = prompt(t('moderation.reasonPrompt'))
+    if (!reason) return
+    await problemsApi.flagProblem(id, reason)
+    toast.success(t('moderation.flagSuccess'))
+    await loadProblems()
+  } catch (error) {
+    const ctx = getErrorContext(error, t('problems.actions.flag'))
+    toast.error(ctx.message, { description: ctx.suggestion })
+  }
+}
+
+async function unflagProblem(id: string) {
+  try {
+    await problemsApi.moderateProblem(id, { status: 'DISMISSED' })
+    toast.success(t('moderation.unflagSuccess'))
+    await loadProblems()
+  } catch (error) {
+    const ctx = getErrorContext(error, t('problems.actions.unflag'))
+    toast.error(ctx.message, { description: ctx.suggestion })
+  }
+}
+
 function getDifficultyBadgeVariant(
   difficulty: Difficulty,
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -563,6 +590,26 @@ const columns: ColumnDef<Problem>[] = [
     },
   },
   {
+    accessorKey: 'is_flagged',
+    header: () => t('problems.columns.flagged'),
+    cell: ({ row }) => {
+      const isFlagged = row.original.is_flagged
+      if (!isFlagged) {
+        return h('span', { class: 'text-muted-foreground text-sm' }, '—')
+      }
+      return h(
+        Badge,
+        { variant: 'destructive', class: 'gap-1' },
+        {
+          default: () => [
+            h(IconAlertTriangle, { class: 'h-3 w-3' }),
+            t('moderation.statusPending'),
+          ],
+        },
+      )
+    },
+  },
+  {
     accessorKey: 'submission_count',
     header: () => t('problems.columns.submissions'),
     cell: ({ row }) => {
@@ -753,6 +800,23 @@ const columns: ColumnDef<Problem>[] = [
                               },
                             ),
                           ],
+                        },
+                      )
+                    : null,
+                  h(DropdownMenuSeparator, {}),
+                  // Flag/Unflag action
+                  canUpdateProblem.value
+                    ? h(
+                        DropdownMenuItem,
+                        { onClick: () => (problem.is_flagged ? unflagProblem(problem.id) : flagProblem(problem.id)) },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              problem.is_flagged
+                                ? h(IconFlagOff, { class: 'h-4 w-4 text-emerald-600' })
+                                : h(IconFlag, { class: 'h-4 w-4 text-amber-600' }),
+                              problem.is_flagged ? t('moderation.unflag') : t('moderation.flag'),
+                            ]),
                         },
                       )
                     : null,

@@ -33,28 +33,23 @@ async function loadData() {
 
 async function handleSubmit(data: DescriptionFormData) {
   try {
-    // Update problem data (note: is_published is handled separately via publish/unpublish actions)
-    await problemsStore.updateProblem(problemId.value, {
-      slug: data.slug,
-      title: data.title,
-      difficulty: data.difficulty,
-      status: data.status,
-      is_premium: data.is_premium,
-      summary: data.summary,
-      content: data.content,
-    })
-
-    // Handle publish state change if needed
-    const currentPublished = problemData.value?.is_published
-    if (data.is_published !== currentPublished) {
-      if (data.is_published) {
-        await problemsStore.publishProblem(problemId.value)
-      } else {
-        await problemsStore.unpublishProblem(problemId.value)
-      }
-    }
+    // Atomically update problem data and publish state to prevent race condition
+    await problemsStore.updateProblemWithPublish(
+      problemId.value,
+      {
+        slug: data.slug,
+        title: data.title,
+        difficulty: data.difficulty,
+        status: data.status,
+        is_premium: data.is_premium,
+        summary: data.summary,
+        content: data.content,
+      },
+      data.is_published
+    )
 
     toast.success(t('problems.toast.updateSuccess'))
+    await loadData() // Refresh to show current state
     router.push({ name: 'problem-view-description', params: { id: problemId.value } })
   } catch (error) {
     console.error('Failed to update problem description:', error)

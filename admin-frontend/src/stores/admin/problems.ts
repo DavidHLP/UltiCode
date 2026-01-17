@@ -182,6 +182,55 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     }
   }
 
+  /**
+   * Atomically updates problem data and publish state in a single operation.
+   * This prevents race conditions where the update succeeds but publish/unpublish fails.
+   *
+   * @param id - Problem ID
+   * @param data - Problem data to update
+   * @param targetPublishedState - Desired publish state (true = publish, false = unpublish)
+   * @returns The updated problem object
+   */
+  async function updateProblemWithPublish(
+    id: string,
+    data: UpdateProblemDto,
+    targetPublishedState: boolean
+  ) {
+    loading.value = true
+    error.value = null
+    try {
+      // First, update the problem data
+      let problem = await problemsApi.updateProblem(id, data)
+
+      // Then, update publish state if needed
+      const currentState = problem.is_published
+      if (currentState !== targetPublishedState) {
+        problem = targetPublishedState
+          ? await problemsApi.publishProblem(id)
+          : await problemsApi.unpublishProblem(id)
+
+        // Update local state
+        const index = problems.value.findIndex((p) => p.id === id)
+        if (index !== -1) {
+          problems.value[index] = problem
+        }
+        if (currentProblem.value?.id === id) {
+          currentProblem.value = problem
+        }
+      }
+
+      return problem
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to update problem'
+      console.error('Failed to update problem:', err)
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
   async function bulkAction(data: BulkProblemActionDto) {
     loading.value = true
     error.value = null
@@ -226,6 +275,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     fetchProblem,
     createProblem,
     updateProblem,
+    updateProblemWithPublish,
     deleteProblem,
     publishProblem,
     unpublishProblem,

@@ -1,6 +1,7 @@
 import {
   forwardRef,
   Injectable,
+  Logger,
   Module,
   OnModuleDestroy,
 } from '@nestjs/common';
@@ -25,22 +26,56 @@ import Redis from 'ioredis';
  */
 @Injectable()
 class RedisConnectionHolder implements OnModuleDestroy {
+  private readonly logger = new Logger(RedisConnectionHolder.name);
   public readonly connection: Redis;
 
   constructor() {
+    const redisHost = process.env.REDIS_HOST || 'localhost';
+    const redisPort = parseInt(process.env.REDIS_PORT || '6379');
+    const redisPassword = process.env.REDIS_PASSWORD || undefined;
+
+    this.logger.log(
+      `[REDIS_CONNECT] Connecting to Redis at ${redisHost}:${redisPort}`,
+    );
+
     this.connection = new Redis({
-      host: process.env.REDIS_HOST || 'localhost',
-      port: parseInt(process.env.REDIS_PORT || '6379'),
-      password: process.env.REDIS_PASSWORD || undefined,
+      host: redisHost,
+      port: redisPort,
+      password: redisPassword,
       maxRetriesPerRequest: 3,
       retryStrategy: (times) => {
         const delay = Math.min(times * 50, 2000);
+        this.logger.warn(
+          `[REDIS_RETRY] Retry attempt ${times}, delay=${delay}ms`,
+        );
         return delay;
       },
+    });
+
+    // Log connection events
+    this.connection.on('connect', () => {
+      this.logger.log(`[REDIS_CONNECT] Connection established`);
+    });
+
+    this.connection.on('ready', () => {
+      this.logger.log(`[REDIS_READY] Redis connection ready for commands`);
+    });
+
+    this.connection.on('error', (err) => {
+      this.logger.error(`[REDIS_ERROR] ${err.message}`, err.stack);
+    });
+
+    this.connection.on('close', () => {
+      this.logger.log(`[REDIS_CLOSE] Connection closed`);
+    });
+
+    this.connection.on('reconnecting', () => {
+      this.logger.warn(`[REDIS_RECONNECTING] Attempting to reconnect...`);
     });
   }
 
   async onModuleDestroy() {
+    this.logger.log(`[REDIS_DESTROY] Closing Redis connection`);
     await this.connection.quit();
   }
 }

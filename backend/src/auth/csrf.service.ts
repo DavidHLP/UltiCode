@@ -39,7 +39,10 @@ export class CsrfService {
     await this.redis.hset(key, 'token', token);
     await this.redis.expire(key, this.TOKEN_TTL);
 
-    this.logger.debug(`Generated CSRF token for user ${userId}`);
+    const tokenPrefix = token.substring(0, 8);
+    this.logger.log(
+      `[CSRF_GENERATE] userId=${userId}, key=${key}, token=${tokenPrefix}..., ttl=${this.TOKEN_TTL}s`,
+    );
     return token;
   }
 
@@ -51,11 +54,34 @@ export class CsrfService {
    */
   async validateCsrfToken(userId: string, token: string): Promise<boolean> {
     const key = this.getCsrfKey(userId);
+    const tokenPrefix = token.substring(0, 8);
+
+    this.logger.log(
+      `[CSRF_VALIDATE_START] userId=${userId}, key=${key}, providedToken=${tokenPrefix}...`,
+    );
+
     const storedToken = await this.redis.hget(key, 'token');
+
+    if (storedToken) {
+      const storedPrefix = storedToken.substring(0, 8);
+      this.logger.log(
+        `[CSRF_VALIDATE_REDIS] userId=${userId}, storedToken=${storedPrefix}..., keyExists=true`,
+      );
+    } else {
+      this.logger.warn(
+        `[CSRF_VALIDATE_REDIS] userId=${userId}, keyExists=false, token not found in Redis`,
+      );
+    }
 
     const isValid = storedToken === token;
     if (!isValid) {
-      this.logger.warn(`CSRF validation failed for user ${userId}`);
+      this.logger.error(
+        `[CSRF_VALIDATE_FAIL] userId=${userId}, providedToken=${tokenPrefix}..., storedToken=${storedToken?.substring(0, 8) || 'null'}..., mismatch=true`,
+      );
+    } else {
+      this.logger.log(
+        `[CSRF_VALIDATE_SUCCESS] userId=${userId}, token=${tokenPrefix}..., match=true`,
+      );
     }
 
     return isValid;
@@ -68,7 +94,7 @@ export class CsrfService {
   async revokeCsrfToken(userId: string): Promise<void> {
     const key = this.getCsrfKey(userId);
     await this.redis.del(key);
-    this.logger.debug(`Revoked CSRF token for user ${userId}`);
+    this.logger.log(`[CSRF_REVOKE] userId=${userId}, key=${key}`);
   }
 
   /**

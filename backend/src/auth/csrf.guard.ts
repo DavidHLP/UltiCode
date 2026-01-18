@@ -55,35 +55,57 @@ export class CsrfGuard implements CanActivate {
     ]);
 
     if (skipCsrf || isPublic) {
+      this.logger.debug(
+        `[CSRF_GUARD] Skipped for ${request.method} ${request.url} (skipCsrf=${skipCsrf}, isPublic=${isPublic})`,
+      );
       return true;
     }
 
     // Skip validation for safe HTTP methods
     const method = request.method;
     if (['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+      this.logger.debug(
+        `[CSRF_GUARD] Skipped for safe method ${method} ${request.url}`,
+      );
       return true;
     }
 
     // Validate CSRF token for state-changing operations
     const user = request['user'] as { id: string } | undefined;
     if (!user) {
+      this.logger.error(
+        `[CSRF_GUARD] No user found in request for ${method} ${request.url}`,
+      );
       throw new ForbiddenException('User not authenticated');
     }
 
     const csrfToken = request.headers['x-csrf-token'] as string;
     if (!csrfToken) {
-      this.logger.warn(`Missing CSRF token for user ${user.id}`);
+      this.logger.error(
+        `[CSRF_GUARD] Missing CSRF token header for userId=${user.id}, method=${method}, url=${request.url}`,
+      );
       throw new ForbiddenException('Missing CSRF token');
     }
+
+    const tokenPrefix = csrfToken.substring(0, 8);
+    this.logger.log(
+      `[CSRF_GUARD] Validating for userId=${user.id}, token=${tokenPrefix}..., method=${method}, url=${request.url}`,
+    );
 
     const isValid = await this.csrfService.validateCsrfToken(
       user.id,
       csrfToken,
     );
     if (!isValid) {
+      this.logger.error(
+        `[CSRF_GUARD] Validation failed for userId=${user.id}, token=${tokenPrefix}..., method=${method}, url=${request.url}`,
+      );
       throw new ForbiddenException('Invalid CSRF token');
     }
 
+    this.logger.log(
+      `[CSRF_GUARD] Validation passed for userId=${user.id}, method=${method}, url=${request.url}`,
+    );
     return true;
   }
 }

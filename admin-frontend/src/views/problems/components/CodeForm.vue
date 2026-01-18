@@ -144,6 +144,11 @@ function addLanguage(name: string) {
   delete errors.value.language
 }
 
+function handleAddLanguage() {
+  addLanguage(customLanguage.value)
+  customLanguage.value = ''
+}
+
 function removeLanguage(index: number) {
   formData.value.languages.splice(index, 1)
   if (expandedLang.value === formData.value.languages[index]?.language) {
@@ -212,18 +217,12 @@ defineExpose({
             v-model="customLanguage"
             :placeholder="t('problems.codeForm.customLanguagePlaceholder')"
             class="font-mono text-sm flex-1 max-w-xs"
-            @keyup.enter="
-              addLanguage(customLanguage)
-              customLanguage = ''
-            "
+            @keyup.enter="handleAddLanguage"
           />
           <Button
             size="sm"
             :disabled="!customLanguage.trim()"
-            @click="
-              addLanguage(customLanguage)
-              customLanguage = ''
-            "
+            @click="handleAddLanguage"
           >
             <IconPlus class="h-4 w-4 mr-1" />
             {{ t('problems.codeForm.add') }}

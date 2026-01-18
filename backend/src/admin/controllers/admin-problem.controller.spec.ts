@@ -1,5 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminProblemController } from './admin-problem.controller';
+
+// Mock JSDOM to avoid ESM import issues in Jest
+jest.mock('jsdom', () => ({
+  JSDOM: jest.fn().mockImplementation(() => ({
+    window: {
+      document: {
+        createTextNode: jest.fn(),
+      },
+    },
+  })),
+}));
 import { PrismaService } from '../../prisma.service';
 import { AuditService } from '../services/audit.service';
 import { PermissionService } from '../services/permission.service';

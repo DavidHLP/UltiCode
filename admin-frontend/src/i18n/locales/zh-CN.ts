@@ -110,6 +110,11 @@ export default {
     success: '题目审核成功',
     error: '审核题目失败',
     loadError: '加载被标记题目失败',
+    reasonPrompt: '请输入标记此题目的原因：',
+    flagSuccess: '题目标记成功',
+    unflagSuccess: '题目取消标记成功',
+    flag: '标记',
+    unflag: '取消标记',
   },
 
   // 仪表板

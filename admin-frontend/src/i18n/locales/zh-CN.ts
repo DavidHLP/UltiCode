@@ -270,6 +270,12 @@ export default {
     addProblem: '添加题目',
     searchPlaceholder: '搜索题目...',
 
+    // 创建
+    create: {
+      title: '创建题目',
+      description: '为平台创建新题目',
+    },
+
     // 筛选器
     filters: {
       difficulty: '难度',

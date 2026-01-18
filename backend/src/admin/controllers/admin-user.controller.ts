@@ -8,9 +8,10 @@ import {
   Body,
   Query,
   UseGuards,
+  ConflictException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Like, FindOptionsWhere } from 'typeorm';
+import { Like, FindOptionsWhere, QueryFailedError } from 'typeorm';
 import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -136,23 +137,53 @@ export class AdminUserController {
     // Generate a unique ID using UUID
     const id = randomUUID();
 
-    const user = await this.userService.create({
-      ...createUserDto,
-      id,
-      role: createUserDto.role || UserRole.USER,
-      is_active: createUserDto.is_active ?? true,
-      is_banned: false,
-    });
+    try {
+      const user = await this.userService.create({
+        ...createUserDto,
+        id,
+        role: createUserDto.role || UserRole.USER,
+        is_active: createUserDto.is_active ?? true,
+        is_banned: false,
+      });
 
-    await this.auditService.log({
-      performerId: admin.id,
-      action: 'CREATE_USER',
-      entityType: 'USER',
-      entityId: user.id,
-      newValues: { ...createUserDto, password: '***' },
-    });
+      await this.auditService.log({
+        performerId: admin.id,
+        action: 'CREATE_USER',
+        entityType: 'USER',
+        entityId: user.id,
+        newValues: { ...createUserDto, password: '***' },
+      });
 
-    return user;
+      return user;
+    } catch (error) {
+      // Handle duplicate entry errors (MySQL error code 1062 / ER_DUP_ENTRY)
+      if (error instanceof QueryFailedError && (error as any).errno === 1062) {
+        // Parse the SQL message to determine which field is duplicated
+        const message = error.message;
+        if (
+          message.includes('users_username_key') ||
+          message.includes(`'${createUserDto.username}'`)
+        ) {
+          throw new ConflictException(
+            `Username '${createUserDto.username}' already exists`,
+          );
+        }
+        if (
+          message.includes('users_email_key') ||
+          message.includes(`'${createUserDto.email}'`)
+        ) {
+          throw new ConflictException(
+            `Email '${createUserDto.email}' already exists`,
+          );
+        }
+        // Generic duplicate error if we can't determine the field
+        throw new ConflictException(
+          'A user with this username or email already exists',
+        );
+      }
+      // Re-throw other errors
+      throw error;
+    }
   }
 
   @Patch(':id')

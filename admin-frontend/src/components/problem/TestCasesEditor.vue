@@ -31,6 +31,7 @@ const { t } = useI18n()
 
 const activeId = ref('')
 const localCases = ref<TestCaseExample[]>([])
+const isLocalUpdate = ref(false)
 
 const generateId = () => `case-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
@@ -38,18 +39,22 @@ const generateId = () => `case-${Date.now()}-${Math.random().toString(36).slice(
 watch(
   () => props.modelValue,
   (cases) => {
-    localCases.value = cases.map((c) => ({ ...c }))
-    if (!activeId.value && localCases.value.length > 0) {
-      activeId.value = localCases.value[0]?.id ?? ''
+    if (!isLocalUpdate.value) {
+      localCases.value = cases.map((c) => ({ ...c }))
+      if (!activeId.value && localCases.value.length > 0) {
+        activeId.value = localCases.value[0]?.id ?? ''
+      }
     }
+    isLocalUpdate.value = false
   },
-  { immediate: true, deep: true },
+  { immediate: true },
 )
 
 // Emit changes when local cases change
 watch(
   localCases,
   (cases) => {
+    isLocalUpdate.value = true
     emit('update:modelValue', cases)
   },
   { deep: true },

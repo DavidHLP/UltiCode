@@ -37,6 +37,11 @@ import {
 } from '../dto/problem.dto';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import dompurify = require('dompurify');
+import { JSDOM } from 'jsdom';
+
+const window = new JSDOM('').window;
+
+const DOMPurify = dompurify(window as any);
 
 // Map Prisma difficulty to frontend UPPERCASE format
 function mapDifficultyToFrontend(
@@ -84,7 +89,7 @@ function sanitizeMarkdown(content: string): string {
   if (!content) return content;
   // Strip all HTML tags but keep the text content
   // This prevents any HTML/JS injection while preserving markdown
-  return dompurify.sanitize(content, {
+  return DOMPurify.sanitize(content, {
     ALLOWED_TAGS: [], // Disallow all HTML tags
     ALLOWED_ATTR: [], // Disallow all attributes
     KEEP_CONTENT: true, // Keep text content
@@ -456,6 +461,7 @@ export class AdminProblemController {
       is_premium,
       is_published,
       summary,
+      content,
       examples,
       constraints,
       hints,
@@ -464,12 +470,19 @@ export class AdminProblemController {
     } = createProblemDto;
 
     // Sanitize markdown content to prevent XSS
-    const sanitizedSummary = summary ? sanitizeMarkdown(summary) : undefined;
+    const rawContent = content || summary || '';
+    const sanitizedSummary = sanitizeMarkdown(rawContent);
 
     // Generate a unique ID for the problem
     const id = BigInt(Date.now());
 
     const prismaDifficulty = mapDifficultyToPrisma(difficulty);
+
+    const hasDetail = !!(
+      rawContent ||
+      (constraints && constraints.length > 0) ||
+      (hints && hints.length > 0)
+    );
 
     await this.prisma.problem.create({
       data: {
@@ -482,14 +495,14 @@ export class AdminProblemController {
         is_published: is_published || false,
         published_at: is_published ? new Date() : null,
         published_by: is_published ? admin.id : null,
-        detail: sanitizedSummary
+        detail: hasDetail
           ? {
               create: {
                 id: crypto.randomUUID(),
                 slug,
                 summary: sanitizedSummary,
                 constraints_json: constraints || [],
-                hints,
+                hints: hints || [],
                 updated_at: new Date(),
               },
             }
@@ -498,7 +511,6 @@ export class AdminProblemController {
           ? {
               create: examples.map((ex, idx) => ({
                 id: ex.id || crypto.randomUUID(),
-                problem_id: id,
                 input_text: ex.input,
                 output_text: ex.output,
                 explanation: ex.explanation
@@ -512,7 +524,6 @@ export class AdminProblemController {
           ? {
               create: languages.map((lang) => ({
                 id: crypto.randomUUID(),
-                problem_id: id,
                 label: lang,
                 value: lang.toLowerCase(),
                 starter_code: '// Write your code here',
@@ -603,6 +614,7 @@ export class AdminProblemController {
       is_premium,
       has_solution,
       summary,
+      content,
       constraints,
       hints,
     } = updateProblemDto;
@@ -620,7 +632,9 @@ export class AdminProblemController {
     if (has_solution !== undefined) updateData.has_solution = has_solution;
 
     // Sanitize markdown content to prevent XSS
-    if (summary !== undefined) detailUpdate.summary = sanitizeMarkdown(summary);
+    const rawContent = content !== undefined ? content : summary;
+    if (rawContent !== undefined)
+      detailUpdate.summary = sanitizeMarkdown(rawContent);
     if (constraints !== undefined) detailUpdate.constraints_json = constraints;
     if (hints !== undefined) detailUpdate.hints = hints;
 
@@ -1266,9 +1280,8 @@ export class AdminProblemController {
         }
 
         // Sanitize markdown content
-        const sanitizedSummary = problemData.summary
-          ? sanitizeMarkdown(problemData.summary)
-          : undefined;
+        const rawContent = problemData.summary || '';
+        const sanitizedSummary = sanitizeMarkdown(rawContent);
 
         const prismaDifficulty = mapDifficultyToPrisma(problemData.difficulty);
 
@@ -1299,7 +1312,7 @@ export class AdminProblemController {
               updateData.is_published = problemData.is_published;
             }
 
-            if (sanitizedSummary) detailUpdate.summary = sanitizedSummary;
+            if (rawContent) detailUpdate.summary = sanitizedSummary;
             if (problemData.constraints) {
               detailUpdate.constraints_json = problemData.constraints;
             }
@@ -1315,7 +1328,17 @@ export class AdminProblemController {
                 detail:
                   Object.keys(detailUpdate).length > 0
                     ? {
-                        update: detailUpdate,
+                        upsert: {
+                          create: {
+                            id: crypto.randomUUID(),
+                            slug: problemData.slug,
+                            summary: sanitizedSummary || '',
+                            constraints_json: problemData.constraints || [],
+                            hints: problemData.hints || [],
+                            updated_at: new Date(),
+                          },
+                          update: detailUpdate,
+                        },
                       }
                     : undefined,
               },
@@ -1341,7 +1364,13 @@ export class AdminProblemController {
             });
           } else {
             // Create new problem
-            problemId = BigInt(Date.now() + Math.random() * 1000);
+            problemId = BigInt(Date.now() + Math.round(Math.random() * 1000));
+
+            const hasDetail = !!(
+              rawContent ||
+              (problemData.constraints && problemData.constraints.length > 0) ||
+              (problemData.hints && problemData.hints.length > 0)
+            );
 
             await tx.problem.create({
               data: {
@@ -1355,14 +1384,14 @@ export class AdminProblemController {
                 is_published: problemData.is_published || false,
                 published_at: problemData.is_published ? new Date() : null,
                 published_by: problemData.is_published ? admin.id : null,
-                detail: sanitizedSummary
+                detail: hasDetail
                   ? {
                       create: {
                         id: crypto.randomUUID(),
                         slug: problemData.slug,
                         summary: sanitizedSummary,
                         constraints_json: problemData.constraints || [],
-                        hints: problemData.hints,
+                        hints: problemData.hints || [],
                         updated_at: new Date(),
                       },
                     }
@@ -1371,7 +1400,6 @@ export class AdminProblemController {
                   ? {
                       create: problemData.examples.map((ex, idx) => ({
                         id: crypto.randomUUID(),
-                        problem_id: problemId,
                         input_text: ex.input,
                         output_text: ex.output,
                         explanation: ex.explanation
@@ -1385,7 +1413,6 @@ export class AdminProblemController {
                   ? {
                       create: problemData.languages.map((lang) => ({
                         id: crypto.randomUUID(),
-                        problem_id: problemId,
                         label: lang.label,
                         value: lang.value,
                         starter_code: lang.starter_code,

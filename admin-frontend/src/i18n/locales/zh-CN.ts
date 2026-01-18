@@ -88,6 +88,30 @@ export default {
     search: '搜索',
   },
 
+  // 内容审核
+  moderation: {
+    title: '审核队列',
+    description: '查看和管理被标记的题目',
+    filterStatus: '按状态筛选',
+    allStatuses: '全部状态',
+    statusPending: '待处理',
+    statusReviewed: '已审核',
+    statusResolved: '已解决',
+    statusDismissed: '已驳回',
+    noFlagged: '无被标记的题目',
+    noFlaggedDescription: '目前没有需要审核的被标记题目。',
+    flagReason: '标记原因',
+    moderationNotes: '审核备注',
+    moderate: '审核',
+    moderateTitle: '审核题目',
+    status: '状态',
+    notes: '备注',
+    notesPlaceholder: '添加审核备注（可选）...',
+    success: '题目审核成功',
+    error: '审核题目失败',
+    loadError: '加载被标记题目失败',
+  },
+
   // 仪表板
   dashboard: {
     title: '仪表板',

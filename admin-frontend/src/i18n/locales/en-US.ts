@@ -87,6 +87,30 @@ export default {
     search: 'Search',
   },
 
+  // Moderation
+  moderation: {
+    title: 'Moderation Queue',
+    description: 'Review and manage flagged problems',
+    filterStatus: 'Filter by Status',
+    allStatuses: 'All Statuses',
+    statusPending: 'Pending',
+    statusReviewed: 'Reviewed',
+    statusResolved: 'Resolved',
+    statusDismissed: 'Dismissed',
+    noFlagged: 'No Flagged Problems',
+    noFlaggedDescription: 'There are currently no flagged problems requiring review.',
+    flagReason: 'Flag Reason',
+    moderationNotes: 'Moderation Notes',
+    moderate: 'Moderate',
+    moderateTitle: 'Moderate Problem',
+    status: 'Status',
+    notes: 'Notes',
+    notesPlaceholder: 'Add moderation notes (optional)...',
+    success: 'Problem moderated successfully',
+    error: 'Failed to moderate problem',
+    loadError: 'Failed to load flagged problems',
+  },
+
   // Dashboard
   dashboard: {
     title: 'Dashboard',

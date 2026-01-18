@@ -36,12 +36,24 @@ export class CsrfService {
     const token = randomBytes(this.TOKEN_LENGTH).toString('hex');
     const key = this.getCsrfKey(userId);
 
-    await this.redis.hset(key, 'token', token);
-    await this.redis.expire(key, this.TOKEN_TTL);
+    // Use atomic transaction to ensure both hset and expire succeed together
+    const results = await this.redis
+      .multi()
+      .hset(key, 'token', token)
+      .expire(key, this.TOKEN_TTL)
+      .exec();
+
+    // Check if transaction succeeded
+    if (!results || results.some(([err]) => err)) {
+      this.logger.error(
+        `[CSRF_WRITE_FAIL] userId=${userId}, key=${key}, transaction failed`,
+      );
+      throw new Error(`Failed to store CSRF token for user ${userId}`);
+    }
 
     const tokenPrefix = token.substring(0, 8);
     this.logger.log(
-      `[CSRF_GENERATE] userId=${userId}, key=${key}, token=${tokenPrefix}..., ttl=${this.TOKEN_TTL}s`,
+      `[CSRF_WRITE_SUCCESS] userId=${userId}, key=${key}, token=${tokenPrefix}..., ttl=${this.TOKEN_TTL}s`,
     );
     return token;
   }

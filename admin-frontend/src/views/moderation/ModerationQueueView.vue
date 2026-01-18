@@ -38,10 +38,11 @@ const { t } = useI18n()
 const router = useRouter()
 
 type FlagStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
+type FilterValue = FlagStatus | 'all'
 
 const flaggedProblems = ref<Problem[]>([])
 const loading = ref(false)
-const statusFilter = ref<FlagStatus | ''>('')
+const statusFilter = ref<FilterValue>('all')
 const currentPage = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
@@ -59,7 +60,7 @@ async function loadFlaggedProblems() {
     const response = await problemsApi.getFlaggedProblems({
       page: currentPage.value,
       limit: pageSize.value,
-      status: statusFilter.value || undefined,
+      status: statusFilter.value === 'all' ? undefined : statusFilter.value,
     })
     flaggedProblems.value = response.data
     total.value = response.total
@@ -137,6 +138,16 @@ function getStatusIcon(status: FlagStatus | null) {
   }
 }
 
+function handlePreviousPage() {
+  currentPage.value--
+  loadFlaggedProblems()
+}
+
+function handleNextPage() {
+  currentPage.value++
+  loadFlaggedProblems()
+}
+
 const filteredProblems = computed(() => {
   return flaggedProblems.value
 })
@@ -163,7 +174,7 @@ onMounted(() => {
             <SelectValue :placeholder="t('moderation.filterStatus')" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">{{ t('moderation.allStatuses') }}</SelectItem>
+            <SelectItem value="all">{{ t('moderation.allStatuses') }}</SelectItem>
             <SelectItem value="PENDING">{{ t('moderation.statusPending') }}</SelectItem>
             <SelectItem value="REVIEWED">{{ t('moderation.statusReviewed') }}</SelectItem>
             <SelectItem value="RESOLVED">{{ t('moderation.statusResolved') }}</SelectItem>
@@ -276,27 +287,13 @@ onMounted(() => {
     </div>
 
     <div v-if="totalPages > 1" class="flex items-center justify-center gap-2">
-      <Button
-        variant="outline"
-        :disabled="currentPage === 1"
-        @click="
-          currentPage--
-          loadFlaggedProblems()
-        "
-      >
+      <Button variant="outline" :disabled="currentPage === 1" @click="handlePreviousPage">
         {{ t('common.previous') }}
       </Button>
       <span class="text-sm text-muted-foreground">
         {{ t('common.page') }} {{ currentPage }} / {{ totalPages }}
       </span>
-      <Button
-        variant="outline"
-        :disabled="currentPage === totalPages"
-        @click="
-          currentPage++
-          loadFlaggedProblems()
-        "
-      >
+      <Button variant="outline" :disabled="currentPage === totalPages" @click="handleNextPage">
         {{ t('common.next') }}
       </Button>
     </div>

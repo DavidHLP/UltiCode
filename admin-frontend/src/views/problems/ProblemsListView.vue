@@ -76,7 +76,7 @@ const publishedFilter = ref((route.query.published as string) || 'all')
 // Convert page from query (1-based) to pageIndex (0-based)
 const initialPage = Number(route.query.page) || 1
 const tablePagination = ref({ pageIndex: Math.max(0, initialPage - 1), pageSize: 10 })
-const sortBy = ref((route.query.sortBy as string) || '')
+const sortBy = ref((route.query.sortBy as string) || 'default')
 const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') || 'desc')
 
 const selectedProblemId = ref<string | null>(null)
@@ -108,7 +108,7 @@ async function loadProblems() {
         : publishedFilter.value === 'published'
           ? true
           : false,
-    sortBy: sortBy.value || undefined,
+    sortBy: sortBy.value === 'default' ? undefined : sortBy.value,
     sortOrder: sortOrder.value || undefined,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
@@ -147,7 +147,7 @@ const debouncedUpdateUrl = useDebounceFn(() => {
       ...(difficultyFilter.value !== 'all' && { difficulty: difficultyFilter.value }),
       ...(statusFilter.value !== 'all' && { status: statusFilter.value }),
       ...(publishedFilter.value !== 'all' && { published: publishedFilter.value }),
-      ...(sortBy.value && { sortBy: sortBy.value }),
+      ...(sortBy.value !== 'default' && { sortBy: sortBy.value }),
       ...(sortOrder.value && { sortOrder: sortOrder.value }),
       page: (tablePagination.value.pageIndex + 1).toString(),
     },
@@ -177,7 +177,7 @@ watch(
     difficultyFilter.value = (newQuery.difficulty as string) || 'all'
     statusFilter.value = (newQuery.status as string) || 'all'
     publishedFilter.value = (newQuery.published as string) || 'all'
-    sortBy.value = (newQuery.sortBy as string) || ''
+    sortBy.value = (newQuery.sortBy as string) || 'default'
     sortOrder.value = (newQuery.sortOrder as 'asc' | 'desc') || 'desc'
 
     const page = Number(newQuery.page) || 1
@@ -808,7 +808,12 @@ const columns: ColumnDef<Problem>[] = [
                   canUpdateProblem.value
                     ? h(
                         DropdownMenuItem,
-                        { onClick: () => (problem.is_flagged ? unflagProblem(problem.id) : flagProblem(problem.id)) },
+                        {
+                          onClick: () =>
+                            problem.is_flagged
+                              ? unflagProblem(problem.id)
+                              : flagProblem(problem.id),
+                        },
                         {
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
@@ -951,7 +956,7 @@ const columns: ColumnDef<Problem>[] = [
                 <SelectValue :placeholder="t('problems.sort.title')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">{{ t('problems.sort.default') }}</SelectItem>
+                <SelectItem value="default">{{ t('problems.sort.default') }}</SelectItem>
                 <SelectItem value="title">{{ t('problems.sort.titleAsc') }}</SelectItem>
                 <SelectItem value="difficulty">{{ t('problems.sort.difficultyAsc') }}</SelectItem>
                 <SelectItem value="created_at">{{ t('problems.sort.createdDesc') }}</SelectItem>

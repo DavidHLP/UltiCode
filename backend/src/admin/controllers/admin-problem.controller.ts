@@ -432,6 +432,176 @@ export class AdminProblemController {
     };
   }
 
+  @Get('export')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  async exportProblems(
+    @Query() query: ProblemQueryDto,
+    @Query('format') format: 'json' | 'csv' = 'json',
+    @Res()
+    res: {
+      set: (headers: Record<string, string>) => void;
+      send: (data: string) => void;
+      json: (data: unknown) => void;
+    },
+  ) {
+    const { search, difficulty, status, is_published, is_deleted, tag } = query;
+
+    // Build where clause
+    const where: Prisma.ProblemWhereInput = {};
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search } },
+        { slug: { contains: search } },
+      ];
+    }
+
+    if (difficulty) {
+      where.difficulty = mapDifficultyToPrisma(difficulty);
+    }
+
+    if (status) {
+      where.status = status;
+    }
+
+    if (is_published !== undefined) {
+      where.is_published = is_published;
+    }
+
+    if (is_deleted !== undefined) {
+      where.is_deleted = is_deleted;
+    }
+
+    if (tag) {
+      where.tagRelations = {
+        some: {
+          tag: {
+            label: tag,
+          },
+        },
+      };
+    }
+
+    const problems = await this.prisma.problem.findMany({
+      where,
+      orderBy: { id: 'asc' },
+      include: {
+        detail: true,
+        examples: {
+          orderBy: { example_order: 'asc' },
+        },
+        languages: true,
+        tagRelations: {
+          include: {
+            tag: true,
+          },
+        },
+      },
+    });
+
+    const exportData = problems.map((problem) => ({
+      id: problem.id.toString(),
+      slug: problem.slug,
+      title: problem.title,
+      difficulty: mapDifficultyToFrontend(problem.difficulty),
+      status: problem.status,
+      is_premium: problem.is_premium,
+      has_solution: problem.has_solution,
+      is_published: problem.is_published,
+      published_at: problem.published_at,
+      published_by: problem.published_by,
+      is_deleted: problem.is_deleted,
+      deleted_at: problem.deleted_at,
+      deleted_by: problem.deleted_by,
+      detail: problem.detail
+        ? {
+            summary: problem.detail.summary,
+            constraints_json: problem.detail.constraints_json,
+            hints: problem.detail.hints,
+          }
+        : null,
+      examples: problem.examples.map((ex) => ({
+        input: ex.input_text,
+        output: ex.output_text,
+        explanation: ex.explanation,
+      })),
+      languages: problem.languages.map((lang) => ({
+        label: lang.label,
+        value: lang.value,
+        starter_code: lang.starter_code,
+      })),
+      tags: problem.tagRelations.map((tr) => tr.tag.label),
+    }));
+
+    if (format === 'csv') {
+      // CSV format
+      const headers = [
+        'id',
+        'slug',
+        'title',
+        'difficulty',
+        'status',
+        'is_premium',
+        'has_solution',
+        'is_published',
+        'published_at',
+        'is_deleted',
+        'deleted_at',
+        'summary',
+        'constraints',
+        'hints',
+        'tags',
+      ];
+
+      const rows = exportData.map((p) => [
+        p.id,
+        p.slug,
+        `"${p.title.replace(/"/g, '""')}"`,
+        p.difficulty,
+        p.status,
+        p.is_premium,
+        p.has_solution,
+        p.is_published,
+        p.published_at || '',
+        p.is_deleted,
+        p.deleted_at || '',
+        `"${(p.detail?.summary || '').replace(/"/g, '""')}"`,
+        `"${JSON.stringify(p.detail?.constraints_json || []).replace(
+          /"/g,
+          '""',
+        )}"`,
+        `"${JSON.stringify(p.detail?.hints || []).replace(/"/g, '""')}"`,
+        `"${p.tags.join(', ').replace(/"/g, '""')}"`,
+      ]);
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map((row) => row.join(',')),
+      ].join('\n');
+
+      res.set({
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename=problems-export-${new Date().toISOString().split('T')[0]}.csv`,
+      });
+      res.send(csvContent);
+    } else {
+      // JSON format
+      res.set({
+        'Content-Type': 'application/json',
+        'Content-Disposition': `attachment; filename=problems-export-${new Date().toISOString().split('T')[0]}.json`,
+      });
+      res.json({
+        exportedAt: new Date().toISOString(),
+        count: exportData.length,
+        data: exportData,
+      });
+    }
+  }
+
   @Get(':id')
   @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @RequirePermissions({
@@ -1056,176 +1226,6 @@ export class AdminProblemController {
     // Return the restored problem
     const newCompleteProblem = await this.getCompleteProblem(problemId);
     return this.transformProblemForFrontend(newCompleteProblem);
-  }
-
-  @Get('export')
-  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @RequirePermissions({
-    action: PermissionAction.READ,
-    resource: PermissionResource.PROBLEM,
-  })
-  async exportProblems(
-    @Query() query: ProblemQueryDto,
-    @Query('format') format: 'json' | 'csv' = 'json',
-    @Res()
-    res: {
-      set: (headers: Record<string, string>) => void;
-      send: (data: string) => void;
-      json: (data: unknown) => void;
-    },
-  ) {
-    const { search, difficulty, status, is_published, is_deleted, tag } = query;
-
-    // Build where clause
-    const where: Prisma.ProblemWhereInput = {};
-
-    if (search) {
-      where.OR = [
-        { title: { contains: search } },
-        { slug: { contains: search } },
-      ];
-    }
-
-    if (difficulty) {
-      where.difficulty = mapDifficultyToPrisma(difficulty);
-    }
-
-    if (status) {
-      where.status = status;
-    }
-
-    if (is_published !== undefined) {
-      where.is_published = is_published;
-    }
-
-    if (is_deleted !== undefined) {
-      where.is_deleted = is_deleted;
-    }
-
-    if (tag) {
-      where.tagRelations = {
-        some: {
-          tag: {
-            label: tag,
-          },
-        },
-      };
-    }
-
-    const problems = await this.prisma.problem.findMany({
-      where,
-      orderBy: { id: 'asc' },
-      include: {
-        detail: true,
-        examples: {
-          orderBy: { example_order: 'asc' },
-        },
-        languages: true,
-        tagRelations: {
-          include: {
-            tag: true,
-          },
-        },
-      },
-    });
-
-    const exportData = problems.map((problem) => ({
-      id: problem.id.toString(),
-      slug: problem.slug,
-      title: problem.title,
-      difficulty: mapDifficultyToFrontend(problem.difficulty),
-      status: problem.status,
-      is_premium: problem.is_premium,
-      has_solution: problem.has_solution,
-      is_published: problem.is_published,
-      published_at: problem.published_at,
-      published_by: problem.published_by,
-      is_deleted: problem.is_deleted,
-      deleted_at: problem.deleted_at,
-      deleted_by: problem.deleted_by,
-      detail: problem.detail
-        ? {
-            summary: problem.detail.summary,
-            constraints_json: problem.detail.constraints_json,
-            hints: problem.detail.hints,
-          }
-        : null,
-      examples: problem.examples.map((ex) => ({
-        input: ex.input_text,
-        output: ex.output_text,
-        explanation: ex.explanation,
-      })),
-      languages: problem.languages.map((lang) => ({
-        label: lang.label,
-        value: lang.value,
-        starter_code: lang.starter_code,
-      })),
-      tags: problem.tagRelations.map((tr) => tr.tag.label),
-    }));
-
-    if (format === 'csv') {
-      // CSV format
-      const headers = [
-        'id',
-        'slug',
-        'title',
-        'difficulty',
-        'status',
-        'is_premium',
-        'has_solution',
-        'is_published',
-        'published_at',
-        'is_deleted',
-        'deleted_at',
-        'summary',
-        'constraints',
-        'hints',
-        'tags',
-      ];
-
-      const rows = exportData.map((p) => [
-        p.id,
-        p.slug,
-        `"${p.title.replace(/"/g, '""')}"`,
-        p.difficulty,
-        p.status,
-        p.is_premium,
-        p.has_solution,
-        p.is_published,
-        p.published_at || '',
-        p.is_deleted,
-        p.deleted_at || '',
-        `"${(p.detail?.summary || '').replace(/"/g, '""')}"`,
-        `"${JSON.stringify(p.detail?.constraints_json || []).replace(
-          /"/g,
-          '""',
-        )}"`,
-        `"${JSON.stringify(p.detail?.hints || []).replace(/"/g, '""')}"`,
-        `"${p.tags.join(', ').replace(/"/g, '""')}"`,
-      ]);
-
-      const csvContent = [
-        headers.join(','),
-        ...rows.map((row) => row.join(',')),
-      ].join('\n');
-
-      res.set({
-        'Content-Type': 'text/csv',
-        'Content-Disposition': `attachment; filename=problems-export-${new Date().toISOString().split('T')[0]}.csv`,
-      });
-      res.send(csvContent);
-    } else {
-      // JSON format
-      res.set({
-        'Content-Type': 'application/json',
-        'Content-Disposition': `attachment; filename=problems-export-${new Date().toISOString().split('T')[0]}.json`,
-      });
-      res.json({
-        exportedAt: new Date().toISOString(),
-        count: exportData.length,
-        data: exportData,
-      });
-    }
   }
 
   @Post('import')

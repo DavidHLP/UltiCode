@@ -1,3 +1,4 @@
+import type { Request } from 'express';
 import {
   Body,
   Controller,
@@ -6,6 +7,7 @@ import {
   HttpStatus,
   Post,
   Query,
+  Req,
   Res,
   UseGuards,
 } from '@nestjs/common';
@@ -64,7 +66,16 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   @UseGuards(AuthGuard)
-  async logout(@Body() body: { token?: string }) {
-    return this.authService.logout({ token: body.token || '' });
+  async logout(@Req() req: Request) {
+    const token = this.extractTokenFromHeader(req);
+    return this.authService.logout({ token: token || '' });
+  }
+
+  private extractTokenFromHeader(request: Request): string | undefined {
+    const [type, token] = (request.headers.authorization?.split(' ') ?? []) as [
+      string | undefined,
+      string | undefined,
+    ];
+    return type === 'Bearer' ? token : undefined;
   }
 }

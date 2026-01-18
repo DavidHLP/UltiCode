@@ -4,7 +4,7 @@ import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
-import { Response } from 'express';
+import { Response, Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { AuthGuard } from './auth.guard';
@@ -175,24 +175,49 @@ describe('AuthController', () => {
 
   describe('logout', () => {
     it('should logout user and return success message', async () => {
-      const logoutBody = { token: 'valid-jwt-token' };
+      const mockRequest = {
+        headers: {
+          authorization: 'Bearer valid-jwt-token',
+        },
+      } as unknown as Request;
+
       const messageResponse = { message: 'Logged out successfully' };
 
       service.logout.mockResolvedValue(messageResponse);
 
-      const result = await controller.logout(logoutBody);
+      const result = await controller.logout(mockRequest);
 
       expect(result).toEqual(messageResponse);
       expect(service.logout).toHaveBeenCalledWith({ token: 'valid-jwt-token' });
     });
 
     it('should logout even without token', async () => {
-      const logoutBody = {};
+      const mockRequest = {
+        headers: {},
+      } as unknown as Request;
+
       const messageResponse = { message: 'Logged out successfully' };
 
       service.logout.mockResolvedValue(messageResponse);
 
-      const result = await controller.logout(logoutBody);
+      const result = await controller.logout(mockRequest);
+
+      expect(result).toEqual(messageResponse);
+      expect(service.logout).toHaveBeenCalledWith({ token: '' });
+    });
+
+    it('should handle malformed authorization header', async () => {
+      const mockRequest = {
+        headers: {
+          authorization: 'InvalidFormat token',
+        },
+      } as unknown as Request;
+
+      const messageResponse = { message: 'Logged out successfully' };
+
+      service.logout.mockResolvedValue(messageResponse);
+
+      const result = await controller.logout(mockRequest);
 
       expect(result).toEqual(messageResponse);
       expect(service.logout).toHaveBeenCalledWith({ token: '' });

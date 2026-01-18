@@ -324,6 +324,106 @@ export class AdminProblemController {
     };
   }
 
+  @Get('flagged')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  async getFlaggedProblems(
+    @Query('page') page = 1,
+    @Query('limit') limit = 20,
+    @Query('status') status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED',
+  ) {
+    const skip = (page - 1) * limit;
+
+    const where: Prisma.ProblemWhereInput = {
+      is_flagged: true,
+    };
+
+    if (status) {
+      where.flag_status = status;
+    }
+
+    const problems = await this.prisma.problem.findMany({
+      where,
+      skip,
+      take: limit,
+      orderBy: { flag_reported_at: 'desc' },
+      include: {
+        detail: {
+          select: {
+            id: true,
+            summary: true,
+            difficulty_rating: true,
+            likes: true,
+            dislikes: true,
+            updated_at: true,
+          },
+        },
+        tagRelations: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                label: true,
+              },
+            },
+          },
+        },
+        _count: {
+          select: {
+            submissions: true,
+            solutions: true,
+          },
+        },
+      },
+    });
+
+    const total = await this.prisma.problem.count({ where });
+
+    return {
+      data: problems.map((p) => ({
+        id: p.id.toString(),
+        slug: p.slug,
+        title: p.title,
+        difficulty: mapDifficultyToFrontend(p.difficulty),
+        status: p.status,
+        is_premium: p.is_premium,
+        has_solution: p.has_solution,
+        is_published: p.is_published,
+        is_flagged: p.is_flagged,
+        flag_reason: p.flag_reason,
+        flag_reported_by: p.flag_reported_by,
+        flag_reported_at: p.flag_reported_at,
+        flag_status: p.flag_status,
+        flag_reviewed_by: p.flag_reviewed_by,
+        flag_reviewed_at: p.flag_reviewed_at,
+        flag_notes: p.flag_notes,
+        created_at: p.published_at || new Date(),
+        updated_at: p.detail?.updated_at || new Date(),
+        detail: p.detail
+          ? {
+              id: p.detail.id,
+              summary: p.detail.summary,
+              difficulty_rating: p.detail.difficulty_rating
+                ? Number(p.detail.difficulty_rating)
+                : 0,
+              likes: p.detail.likes,
+              dislikes: p.detail.dislikes,
+            }
+          : null,
+        tags: p.tagRelations.map((tr) => tr.tag),
+        submission_count: p._count.submissions,
+        solution_count: p._count.solutions,
+      })),
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    };
+  }
+
   @Get(':id')
   @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @RequirePermissions({
@@ -1466,105 +1566,5 @@ export class AdminProblemController {
     // Return complete problem data
     const completeProblem = await this.getCompleteProblem(problemId);
     return this.transformProblemForFrontend(completeProblem);
-  }
-
-  @Get('flagged')
-  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
-  @RequirePermissions({
-    action: PermissionAction.READ,
-    resource: PermissionResource.PROBLEM,
-  })
-  async getFlaggedProblems(
-    @Query('page') page = 1,
-    @Query('limit') limit = 20,
-    @Query('status') status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED',
-  ) {
-    const skip = (page - 1) * limit;
-
-    const where: Prisma.ProblemWhereInput = {
-      is_flagged: true,
-    };
-
-    if (status) {
-      where.flag_status = status;
-    }
-
-    const problems = await this.prisma.problem.findMany({
-      where,
-      skip,
-      take: limit,
-      orderBy: { flag_reported_at: 'desc' },
-      include: {
-        detail: {
-          select: {
-            id: true,
-            summary: true,
-            difficulty_rating: true,
-            likes: true,
-            dislikes: true,
-            updated_at: true,
-          },
-        },
-        tagRelations: {
-          include: {
-            tag: {
-              select: {
-                id: true,
-                label: true,
-              },
-            },
-          },
-        },
-        _count: {
-          select: {
-            submissions: true,
-            solutions: true,
-          },
-        },
-      },
-    });
-
-    const total = await this.prisma.problem.count({ where });
-
-    return {
-      data: problems.map((p) => ({
-        id: p.id.toString(),
-        slug: p.slug,
-        title: p.title,
-        difficulty: mapDifficultyToFrontend(p.difficulty),
-        status: p.status,
-        is_premium: p.is_premium,
-        has_solution: p.has_solution,
-        is_published: p.is_published,
-        is_flagged: p.is_flagged,
-        flag_reason: p.flag_reason,
-        flag_reported_by: p.flag_reported_by,
-        flag_reported_at: p.flag_reported_at,
-        flag_status: p.flag_status,
-        flag_reviewed_by: p.flag_reviewed_by,
-        flag_reviewed_at: p.flag_reviewed_at,
-        flag_notes: p.flag_notes,
-        created_at: p.published_at || new Date(),
-        updated_at: p.detail?.updated_at || new Date(),
-        detail: p.detail
-          ? {
-              id: p.detail.id,
-              summary: p.detail.summary,
-              difficulty_rating: p.detail.difficulty_rating
-                ? Number(p.detail.difficulty_rating)
-                : 0,
-              likes: p.detail.likes,
-              dislikes: p.detail.dislikes,
-            }
-          : null,
-        tags: p.tagRelations.map((tr) => tr.tag),
-        submission_count: p._count.submissions,
-        solution_count: p._count.solutions,
-      })),
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-    };
   }
 }

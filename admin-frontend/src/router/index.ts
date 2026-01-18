@@ -61,6 +61,12 @@ const router = createRouter({
           component: () => import('@/views/problems/ProblemDetailView.vue'),
           meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
         },
+        {
+          path: 'problems/:id/audit',
+          name: 'problem-view-audit',
+          component: () => import('@/views/problems/ProblemDetailView.vue'),
+          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+        },
         // Problem edit views (split into 3 views)
         {
           path: 'problems/create',

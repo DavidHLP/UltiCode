@@ -73,6 +73,8 @@ model User {
 
   @@index([role])
   @@index([is_active, is_banned])
+  @@index([is_active, last_login_at])
+  @@index([joined_at])
   @@map("users")
 }
 
@@ -113,6 +115,8 @@ model Problem {
   @@index([difficulty])
   @@index([slug])
   @@index([title])
+  @@index([is_published, is_deleted])
+  @@index([is_flagged, is_deleted])
   @@map("problems")
 }
 
@@ -316,6 +320,7 @@ model ContestParticipant {
   @@unique([contest_id, user_id, virtual_session_id])
   @@index([user_id])
   @@index([contest_id, final_rank])
+  @@index([user_id, status, is_virtual])
   @@index([virtual_session_id], map: "contest_participants_virtual_session_id_fkey")
   @@map("contest_participants")
 }
@@ -496,6 +501,8 @@ model ForumPost {
 
   @@index([community_id], map: "forum_posts_community_id_fkey")
   @@index([user_id], map: "forum_posts_user_id_fkey")
+  @@index([is_deleted, created_at])
+  @@index([community_id, created_at])
   @@map("forum_posts")
 }
 
@@ -524,6 +531,7 @@ model ForumComment {
   @@index([author_id], map: "forum_comments_author_id_fkey")
   @@index([parent_id], map: "forum_comments_parent_id_fkey")
   @@index([post_id], map: "forum_comments_post_id_fkey")
+  @@index([post_id, created_at])
   @@map("forum_comments")
 }
 
@@ -712,6 +720,10 @@ model Solution {
 
   @@index([problem_id], map: "solutions_problem_id_fkey")
   @@index([user_id], map: "solutions_user_id_fkey")
+  @@index([problem_id, created_at])
+  @@index([user_id, created_at])
+  @@index([is_flagged, is_deleted])
+  @@index([is_published, is_deleted])
   @@map("solutions")
 }
 
@@ -737,6 +749,7 @@ model SolutionComment {
   @@index([parent_id], map: "solution_comments_parent_id_fkey")
   @@index([solution_id], map: "solution_comments_solution_id_fkey")
   @@index([user_id], map: "solution_comments_user_id_fkey")
+  @@index([solution_id, created_at])
   @@map("solution_comments")
 }
 
@@ -790,6 +803,8 @@ model Submission {
   user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([problem_id, user_id])
+  @@index([created_at])
+  @@index([user_id, status, created_at])
   @@index([user_id], map: "submissions_user_id_fkey")
   @@map("submissions")
 }

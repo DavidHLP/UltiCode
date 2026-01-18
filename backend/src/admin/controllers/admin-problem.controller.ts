@@ -41,7 +41,7 @@ import { JSDOM } from 'jsdom';
 
 const window = new JSDOM('').window;
 
-const DOMPurify = dompurify(window as any);
+const DOMPurify = dompurify(window);
 
 // Map Prisma difficulty to frontend UPPERCASE format
 function mapDifficultyToFrontend(

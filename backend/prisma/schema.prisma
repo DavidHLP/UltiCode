@@ -129,6 +129,7 @@ model ProblemDetail {
   follow_up         String?  @db.Text
   constraints_json  Json
   hints             Json?
+  interactions      Json?
   problem           Problem  @relation(fields: [problem_id], references: [id], onDelete: Cascade)
 
   @@index([likes])

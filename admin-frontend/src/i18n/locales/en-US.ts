@@ -269,6 +269,12 @@ export default {
     addProblem: 'Add Problem',
     searchPlaceholder: 'Search problems...',
 
+    // Create
+    create: {
+      title: 'Create Problem',
+      description: 'Create a new problem for the platform',
+    },
+
     // Filters
     filters: {
       difficulty: 'Difficulty',

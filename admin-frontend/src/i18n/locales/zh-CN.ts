@@ -1095,6 +1095,14 @@ export default {
   // 设置
   settings: {
     title: '设置',
+    description: '管理系统全局配置和偏好。',
+
+    // 提示消息
+    toast: {
+      loadFailed: '加载设置失败',
+      saveFailed: '保存设置失败',
+      clearCacheFailed: '清除缓存失败',
+    },
 
     // 通用设置
     generalSettings: {
@@ -1131,6 +1139,40 @@ export default {
       smtpFrom: '发件邮箱',
       smtpFromName: '发件人名称',
       testEmail: '发送测试邮件',
+    },
+
+    // 基本设置
+    general: {
+      title: '基本设置',
+      description: '站点基本信息。',
+    },
+    siteName: '站点名称',
+    siteDescription: '站点描述',
+
+    // 用户注册
+    userRegistration: {
+      title: '用户注册',
+      description: '控制用户注册方式。',
+      enableRegistrations: '启用注册',
+      enableRegistrationsDescription: '允许新用户创建账号。',
+      requireEmailVerification: '需要邮箱验证',
+      requireEmailVerificationDescription: '用户必须验证邮箱后才能登录。',
+    },
+
+    // 系统状态
+    systemStatus: {
+      title: '系统状态',
+      description: '控制站点可用性。',
+      maintenanceMode: '维护模式',
+      maintenanceModeDescription: '启用后仅管理员可访问站点。',
+    },
+
+    // 操作
+    actions: {
+      title: '操作',
+      clearCache: '清除系统缓存',
+      saveChanges: '保存更改',
+      saving: '保存中...',
     },
   },
 

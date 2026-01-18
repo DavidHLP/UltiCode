@@ -35,7 +35,7 @@ import {
   ImportProblemsDto,
   Difficulty,
 } from '../dto/problem.dto';
-import { sanitize } from 'dompurify';
+import DOMPurify from 'dompurify';
 
 // Map Prisma difficulty to frontend UPPERCASE format
 function mapDifficultyToFrontend(
@@ -83,7 +83,7 @@ function sanitizeMarkdown(content: string): string {
   if (!content) return content;
   // Strip all HTML tags but keep the text content
   // This prevents any HTML/JS injection while preserving markdown
-  return sanitize(content, {
+  return DOMPurify.sanitize(content, {
     ALLOWED_TAGS: [], // Disallow all HTML tags
     ALLOWED_ATTR: [], // Disallow all attributes
     KEEP_CONTENT: true, // Keep text content

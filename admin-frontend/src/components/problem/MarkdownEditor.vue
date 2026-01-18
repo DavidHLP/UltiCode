@@ -19,6 +19,7 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const editorContent = ref(props.modelValue)
+const isLocalUpdate = ref(false)
 const isFullscreen = ref(false)
 const editorRef = ref<HTMLTextAreaElement>()
 const previewRef = ref<HTMLDivElement>()
@@ -29,14 +30,16 @@ const previewHtml = computed(() => renderSafeMarkdown(editorContent.value))
 watch(
   () => props.modelValue,
   (val) => {
-    if (val !== editorContent.value) {
+    if (!isLocalUpdate.value && val !== editorContent.value) {
       editorContent.value = val
     }
+    isLocalUpdate.value = false
   },
 )
 
 // Emit changes
 watch(editorContent, (val) => {
+  isLocalUpdate.value = true
   emit('update:modelValue', val)
 })
 

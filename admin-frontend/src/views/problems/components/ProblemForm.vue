@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -135,8 +135,10 @@ const { t } = useI18n()
 // Validation errors
 const errors = ref<Record<string, string>>({})
 
-function validate(): boolean {
+async function validate(): Promise<boolean> {
   errors.value = {}
+
+  await nextTick()
 
   if (!formData.value.slug?.trim()) {
     errors.value.slug = t('problems.form.validation.slugRequired')
@@ -165,8 +167,8 @@ function validate(): boolean {
   return Object.keys(errors.value).length === 0
 }
 
-function submit() {
-  if (!validate()) return
+async function submit() {
+  if (!(await validate())) return
   emit('submit', formData.value)
 }
 

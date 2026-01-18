@@ -64,9 +64,11 @@ export class CreateProblemDto {
   @IsArray()
   @IsOptional()
   examples?: Array<{
+    id?: string;
     input: string;
     output: string;
     explanation?: string;
+    order?: number;
   }>;
 
   @IsArray()
@@ -124,9 +126,11 @@ export class UpdateProblemDto {
   @IsArray()
   @IsOptional()
   examples?: Array<{
+    id?: string;
     input: string;
     output: string;
     explanation?: string;
+    order?: number;
   }>;
 
   @IsArray()
@@ -252,9 +256,11 @@ export class ImportProblemDto {
   @IsArray()
   @IsOptional()
   examples?: Array<{
+    id?: string;
     input: string;
     output: string;
     explanation?: string;
+    order?: number;
   }>;
 
   @IsArray()

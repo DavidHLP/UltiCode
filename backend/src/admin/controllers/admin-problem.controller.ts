@@ -497,14 +497,14 @@ export class AdminProblemController {
         examples: examples
           ? {
               create: examples.map((ex, idx) => ({
-                id: crypto.randomUUID(),
+                id: ex.id || crypto.randomUUID(),
                 problem_id: id,
                 input_text: ex.input,
                 output_text: ex.output,
                 explanation: ex.explanation
                   ? sanitizeMarkdown(ex.explanation)
                   : undefined,
-                example_order: idx,
+                example_order: ex.order ?? idx,
               })),
             }
           : undefined,

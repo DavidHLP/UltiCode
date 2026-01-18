@@ -335,7 +335,9 @@ export class AdminProblemController {
     @Query('limit') limit = 20,
     @Query('status') status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED',
   ) {
-    const skip = (page - 1) * limit;
+    const pageNum = Number(page);
+    const limitNum = Number(limit);
+    const skip = (pageNum - 1) * limitNum;
 
     const where: Prisma.ProblemWhereInput = {
       is_flagged: true,
@@ -348,7 +350,7 @@ export class AdminProblemController {
     const problems = await this.prisma.problem.findMany({
       where,
       skip,
-      take: limit,
+      take: limitNum,
       orderBy: { flag_reported_at: 'desc' },
       include: {
         detail: {
@@ -418,9 +420,9 @@ export class AdminProblemController {
         solution_count: p._count.solutions,
       })),
       total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      page: pageNum,
+      limit: limitNum,
+      totalPages: Math.ceil(total / limitNum),
     };
   }
 

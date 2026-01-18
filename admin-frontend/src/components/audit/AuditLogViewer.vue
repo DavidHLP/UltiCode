@@ -59,7 +59,7 @@ async function loadAuditLogs() {
       entityType: props.entityType,
       entityId: props.entityId,
       search: searchQuery.value || undefined,
-      action: actionFilter.value || undefined,
+      action: actionFilter.value && actionFilter.value !== 'all' ? actionFilter.value : undefined,
       performerId: performerFilter.value || undefined,
       page: currentPage.value,
       limit: pageSize.value,
@@ -82,6 +82,16 @@ function toggleExpand(logId: string) {
   } else {
     expandedLogs.value.add(logId)
   }
+}
+
+function handlePreviousPage() {
+  currentPage.value--
+  loadAuditLogs()
+}
+
+function handleNextPage() {
+  currentPage.value++
+  loadAuditLogs()
 }
 
 function formatDate(date: Date | string): string {
@@ -151,7 +161,7 @@ onMounted(() => {
           <SelectValue :placeholder="t('auditLogs.filterAction')" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="">{{ t('auditLogs.allActions') }}</SelectItem>
+          <SelectItem value="all">{{ t('auditLogs.allActions') }}</SelectItem>
           <SelectItem value="CREATE">{{ t('auditLogs.actions.create') }}</SelectItem>
           <SelectItem value="UPDATE">{{ t('auditLogs.actions.update') }}</SelectItem>
           <SelectItem value="DELETE">{{ t('auditLogs.actions.delete') }}</SelectItem>
@@ -266,27 +276,13 @@ onMounted(() => {
     </div>
 
     <div v-if="totalPages > 1" class="flex items-center justify-center gap-2">
-      <Button
-        variant="outline"
-        :disabled="currentPage === 1"
-        @click="
-          currentPage--
-          loadAuditLogs()
-        "
-      >
+      <Button variant="outline" :disabled="currentPage === 1" @click="handlePreviousPage">
         {{ t('common.previous') }}
       </Button>
       <span class="text-sm text-muted-foreground">
         {{ t('common.page') }} {{ currentPage }} / {{ totalPages }}
       </span>
-      <Button
-        variant="outline"
-        :disabled="currentPage === totalPages"
-        @click="
-          currentPage++
-          loadAuditLogs()
-        "
-      >
+      <Button variant="outline" :disabled="currentPage === totalPages" @click="handleNextPage">
         {{ t('common.next') }}
       </Button>
     </div>

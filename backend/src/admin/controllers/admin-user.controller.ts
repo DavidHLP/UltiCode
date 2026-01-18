@@ -157,7 +157,11 @@ export class AdminUserController {
       return user;
     } catch (error) {
       // Handle duplicate entry errors (MySQL error code 1062 / ER_DUP_ENTRY)
-      if (error instanceof QueryFailedError && (error as any).errno === 1062) {
+      if (
+        error instanceof QueryFailedError &&
+        'errno' in error &&
+        (error as QueryFailedError & { errno: number }).errno === 1062
+      ) {
         // Parse the SQL message to determine which field is duplicated
         const message = error.message;
         if (

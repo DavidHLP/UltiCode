@@ -48,4 +48,17 @@ export class ProblemDetail {
 
   @Column({ type: 'json', nullable: true })
   hints: string[] | null;
+
+  @Column({ type: 'json', nullable: true })
+  interactions: {
+    counts: {
+      likes: number;
+      dislikes: number;
+      favorites: number;
+    };
+    viewer: {
+      reaction: 'like' | 'dislike' | null;
+      isFavorite: boolean;
+    } | null;
+  } | null;
 }

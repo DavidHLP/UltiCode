@@ -9,7 +9,6 @@ import {
   Query,
   UseGuards,
   Res,
-  ParseEnumPipe,
 } from '@nestjs/common';
 import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
@@ -35,15 +34,12 @@ import {
   BulkProblemActionDto,
   ImportProblemsDto,
   Difficulty,
+  ExportProblemsQueryDto,
+  ExportFormat,
 } from '../dto/problem.dto';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import dompurify = require('dompurify');
 import { JSDOM } from 'jsdom';
-
-export enum ExportFormat {
-  JSON = 'json',
-  CSV = 'csv',
-}
 
 const window = new JSDOM('').window;
 
@@ -445,9 +441,7 @@ export class AdminProblemController {
     resource: PermissionResource.PROBLEM,
   })
   async exportProblems(
-    @Query() query: ProblemQueryDto,
-    @Query('format', new ParseEnumPipe(ExportFormat, { optional: true }))
-    format: ExportFormat = ExportFormat.JSON,
+    @Query() query: ExportProblemsQueryDto,
     @Res()
     res: {
       set: (headers: Record<string, string>) => void;
@@ -455,7 +449,15 @@ export class AdminProblemController {
       json: (data: unknown) => void;
     },
   ) {
-    const { search, difficulty, status, is_published, is_deleted, tag } = query;
+    const {
+      search,
+      difficulty,
+      status,
+      is_published,
+      is_deleted,
+      tag,
+      format = ExportFormat.JSON,
+    } = query;
 
     // Build where clause
     const where: Prisma.ProblemWhereInput = {};

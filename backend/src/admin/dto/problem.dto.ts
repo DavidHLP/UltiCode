@@ -24,6 +24,11 @@ export enum ProblemStatus {
   TODO = 'todo',
 }
 
+export enum ExportFormat {
+  JSON = 'json',
+  CSV = 'csv',
+}
+
 export class CreateProblemDto {
   @IsString()
   @MaxLength(120)
@@ -210,6 +215,46 @@ export class ProblemQueryDto {
   @IsString()
   @IsOptional()
   sortOrder?: 'asc' | 'desc' = 'desc';
+}
+
+export class ExportProblemsQueryDto {
+  @IsString()
+  @IsOptional()
+  search?: string;
+
+  @IsEnum(Difficulty)
+  @IsOptional()
+  difficulty?: Difficulty;
+
+  @IsEnum(ProblemStatus)
+  @IsOptional()
+  status?: ProblemStatus;
+
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  @IsOptional()
+  is_published?: boolean;
+
+  @Transform(({ value }: { value: unknown }) => {
+    if (value === 'true') return true;
+    if (value === 'false') return false;
+    return value;
+  })
+  @IsBoolean()
+  @IsOptional()
+  is_deleted?: boolean;
+
+  @IsString()
+  @IsOptional()
+  tag?: string;
+
+  @IsEnum(ExportFormat, { message: 'format must be either json or csv' })
+  @IsOptional()
+  format?: ExportFormat;
 }
 
 export class BulkProblemActionDto {

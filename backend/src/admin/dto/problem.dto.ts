@@ -332,6 +332,7 @@ export class ImportProblemDto {
 export class ImportProblemsDto {
   @IsArray()
   @ValidateNested({ each: true })
+  @Type(() => ImportProblemDto)
   problems: ImportProblemDto[];
 
   @IsEnum(['skip', 'update', 'create_new'])

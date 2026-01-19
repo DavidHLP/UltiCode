@@ -33,7 +33,7 @@ import {
   type ImportProblemsResponse,
   type ImportProblemDto,
   Difficulty,
-  type ProblemStatus,
+  ProblemStatus,
 } from '@/api/admin/problems'
 
 interface Props {
@@ -193,7 +193,7 @@ function transformExportToImportFormat(problem: {
     slug: problem.slug,
     title: problem.title,
     difficulty: problem.difficulty,
-    status: problem.status || 'todo',
+    status: problem.status || ProblemStatus.TODO,
     is_premium: problem.is_premium || false,
     has_solution: problem.has_solution || false,
     is_published: problem.is_published || false,

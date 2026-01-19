@@ -666,7 +666,8 @@ export default {
     // Import
     import: {
       title: 'Import',
-      dragDrop: 'Drag and drop your file here, or click to browse',
+      description: 'Import problems from JSON or CSV files',
+      dropFile: 'Drag and drop your file here, or click to browse',
       browse: 'Browse',
       supportedFormats: 'Supported formats: JSON, CSV',
       conflictStrategy: 'Conflict Strategy',

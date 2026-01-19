@@ -663,7 +663,8 @@ export default {
     // 导入
     import: {
       title: '导入',
-      dragDrop: '拖放文件到此处，或点击浏览',
+      description: '从 JSON 或 CSV 文件导入题目',
+      dropFile: '拖放文件到此处，或点击浏览',
       browse: '浏览',
       supportedFormats: '支持的格式：JSON、CSV',
       conflictStrategy: '冲突策略',

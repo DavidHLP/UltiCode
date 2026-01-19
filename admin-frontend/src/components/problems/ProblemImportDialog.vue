@@ -171,11 +171,26 @@ async function readFileContent(file: File): Promise<string> {
 
 function parseJSONFile(content: string): ImportProblemDto[] {
   try {
-    const data = JSON.parse(content)
-    if (Array.isArray(data)) {
-      return data
+    const parsed = JSON.parse(content)
+
+    // Handle export format: {exportedAt, count, data: [...]}
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      !Array.isArray(parsed) &&
+      'data' in parsed &&
+      Array.isArray(parsed.data)
+    ) {
+      return parsed.data
     }
-    return [data]
+
+    // Handle direct array format
+    if (Array.isArray(parsed)) {
+      return parsed
+    }
+
+    // Handle single problem object
+    return [parsed]
   } catch (error) {
     console.error('Failed to parse JSON file:', error)
     throw new Error('Invalid JSON format')

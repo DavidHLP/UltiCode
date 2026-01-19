@@ -170,6 +170,46 @@ async function readFileContent(file: File): Promise<string> {
   })
 }
 
+// Transform export format to import format
+function transformExportToImportFormat(problem: {
+  slug: string
+  title: string
+  difficulty: Difficulty
+  status?: ProblemStatus
+  is_premium?: boolean
+  has_solution?: boolean
+  is_published?: boolean
+  detail?: {
+    summary?: string
+    constraints_json?: string[]
+    hints?: string[]
+  }
+  examples?: Array<{ input: string; output: string; explanation?: string }>
+  languages?: Array<{ label: string; value: string; starter_code: string }>
+  tags?: string[]
+}): ImportProblemDto {
+  return {
+    // Core fields
+    slug: problem.slug,
+    title: problem.title,
+    difficulty: problem.difficulty,
+    status: problem.status || 'todo',
+    is_premium: problem.is_premium || false,
+    has_solution: problem.has_solution || false,
+    is_published: problem.is_published || false,
+
+    // Flatten detail object
+    summary: problem.detail?.summary,
+    constraints: problem.detail?.constraints_json,
+    hints: problem.detail?.hints,
+
+    // Nested arrays pass through
+    examples: problem.examples,
+    languages: problem.languages,
+    tags: problem.tags,
+  }
+}
+
 function parseJSONFile(content: string): ImportProblemDto[] {
   try {
     const parsed = JSON.parse(content)
@@ -182,16 +222,21 @@ function parseJSONFile(content: string): ImportProblemDto[] {
       'data' in parsed &&
       Array.isArray(parsed.data)
     ) {
-      return parsed.data
+      // Transform each problem to match ImportProblemDto format
+      return parsed.data.map(transformExportToImportFormat)
     }
 
     // Handle direct array format
     if (Array.isArray(parsed)) {
+      // Check if items have 'detail' property (export format)
+      if (parsed.length > 0 && 'detail' in parsed[0]) {
+        return parsed.map(transformExportToImportFormat)
+      }
       return parsed
     }
 
     // Handle single problem object
-    return [parsed]
+    return [transformExportToImportFormat(parsed)]
   } catch (error) {
     console.error('Failed to parse JSON file:', error)
     throw new Error('Invalid JSON format')
@@ -300,12 +345,7 @@ function handleClose() {
                   {{ t('problems.import.supportedFormats') }}
                 </p>
               </div>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                @click="fileInputRef?.click()"
-              >
+              <Button type="button" variant="outline" size="sm" @click="fileInputRef?.click()">
                 {{ t('problems.import.browse') }}
               </Button>
             </div>

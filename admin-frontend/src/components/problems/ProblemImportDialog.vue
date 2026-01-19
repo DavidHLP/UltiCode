@@ -53,6 +53,7 @@ const onConflict = ref<'skip' | 'update' | 'create_new'>('skip')
 const importing = ref(false)
 const progress = ref(0)
 const result = ref<ImportProblemsResponse | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
 
 const isDragging = ref(false)
 
@@ -279,6 +280,7 @@ function handleClose() {
             ]"
           >
             <input
+              ref="fileInputRef"
               type="file"
               accept=".json,.csv"
               class="hidden"
@@ -302,7 +304,7 @@ function handleClose() {
                 type="button"
                 variant="outline"
                 size="sm"
-                @click="($event.target as HTMLInputElement).click()"
+                @click="fileInputRef?.click()"
               >
                 {{ t('problems.import.browse') }}
               </Button>

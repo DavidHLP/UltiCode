@@ -704,6 +704,7 @@ export default {
     // 版本历史
     versionHistory: {
       title: '版本历史',
+      description: '查看和管理此题目的版本历史',
       noVersions: '暂无版本历史',
       viewVersion: '查看版本',
       restoreVersion: '恢复此版本',

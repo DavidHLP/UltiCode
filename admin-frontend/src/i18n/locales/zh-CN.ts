@@ -677,7 +677,7 @@ export default {
       strategyDescriptions: {
         skip: '跳过已存在的题目',
         update: '用新数据更新已存在的题目',
-        createNew: '创建新题目，在 slug 后添加后缀',
+        create_new: '创建新题目，在 slug 后添加后缀',
       },
       import: '导入',
       cancel: '取消',
@@ -1089,6 +1089,28 @@ export default {
     newValues: '新值',
     ipAddress: 'IP 地址',
     userAgent: '用户代理',
+  },
+
+  // 审计日志（用于 AuditLogViewer 组件）
+  auditLogs: {
+    searchPlaceholder: '搜索日志...',
+    filterAction: '按操作筛选',
+    allActions: '全部操作',
+    noLogs: '无审计日志',
+    noLogsDescription: '没有可显示的审计日志。',
+    export: '导出',
+    systemAction: '系统操作',
+    oldValues: '旧值',
+    newValues: '新值',
+    ipAddress: 'IP 地址',
+    userAgent: '用户代理',
+    actions: {
+      create: '创建',
+      update: '更新',
+      delete: '删除',
+      publish: '发布',
+      moderate: '审核',
+    },
   },
 
   // 审计报告

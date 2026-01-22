@@ -265,8 +265,8 @@ function parseCSVFile(content: string): ImportProblemDto[] {
 
     const slug = getValue('slug')
     const title = getValue('title')
-    const difficulty = (getValue('difficulty') || 'EASY') as Difficulty
-    const status = (getValue('status') || 'TODO') as ProblemStatus
+    const difficulty = (getValue('difficulty') || 'EASY').toUpperCase() as Difficulty
+    const status = (getValue('status') || 'todo').toLowerCase() as ProblemStatus
     const isPremium = getValue('is_premium') === 'true'
     const hasSolution = getValue('has_solution') === 'true'
     const isPublished = getValue('is_published') === 'true'

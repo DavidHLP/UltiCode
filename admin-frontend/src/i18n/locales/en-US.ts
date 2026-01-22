@@ -680,7 +680,7 @@ export default {
       strategyDescriptions: {
         skip: 'Skip problems that already exist',
         update: 'Update existing problems with new data',
-        createNew: 'Create new problems with a suffix added to the slug',
+        create_new: 'Create new problems with a suffix added to the slug',
       },
       import: 'Import',
       cancel: 'Cancel',
@@ -1152,6 +1152,28 @@ export default {
     newValues: 'New Values',
     ipAddress: 'IP Address',
     userAgent: 'User Agent',
+  },
+
+  // Audit Logs (for AuditLogViewer component)
+  auditLogs: {
+    searchPlaceholder: 'Search logs...',
+    filterAction: 'Filter by Action',
+    allActions: 'All Actions',
+    noLogs: 'No Audit Logs',
+    noLogsDescription: 'There are no audit logs to display.',
+    export: 'Export',
+    systemAction: 'System Action',
+    oldValues: 'Old Values',
+    newValues: 'New Values',
+    ipAddress: 'IP Address',
+    userAgent: 'User Agent',
+    actions: {
+      create: 'Create',
+      update: 'Update',
+      delete: 'Delete',
+      publish: 'Publish',
+      moderate: 'Moderate',
+    },
   },
 
   // Audit Report

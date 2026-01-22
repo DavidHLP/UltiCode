@@ -707,6 +707,7 @@ export default {
     // Version history
     versionHistory: {
       title: 'Version History',
+      description: 'View and manage version history of this problem',
       noVersions: 'No version history available',
       viewVersion: 'View version',
       restoreVersion: 'Restore this version',

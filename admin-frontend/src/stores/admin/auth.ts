@@ -4,19 +4,15 @@ import { authApi, type LoginCredentials, type User } from '@/api/auth'
 
 export const useAuthStore = defineStore('adminAuth', () => {
   const user = ref<User | null>(null)
-  const token = ref<string | null>(localStorage.getItem('admin_token'))
-  const csrfToken = ref<string | null>(localStorage.getItem('admin_csrf_token'))
   const permissions = ref<Set<string>>(new Set())
 
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
+  const isAuthenticated = computed(() => !!user.value)
   const userRole = computed(() => user.value?.role)
   const userName = computed(() => user.value?.name || user.value?.username)
 
   async function login(credentials: LoginCredentials) {
     try {
       const response = await authApi.login(credentials)
-      token.value = response.access_token
-      csrfToken.value = response.csrf_token
       // Login response returns partial user data, create a full User object
       user.value = {
         ...response.user,
@@ -27,8 +23,7 @@ export const useAuthStore = defineStore('adminAuth', () => {
         joined_at: new Date().toISOString(),
       } as User
 
-      localStorage.setItem('admin_token', response.access_token)
-      localStorage.setItem('admin_csrf_token', response.csrf_token)
+      // Store user data in localStorage for session persistence (not sensitive data)
       localStorage.setItem('admin_user', JSON.stringify(user.value))
 
       await loadPermissions()
@@ -45,12 +40,8 @@ export const useAuthStore = defineStore('adminAuth', () => {
     } catch (error) {
       console.error('Logout error:', error)
     } finally {
-      token.value = null
-      csrfToken.value = null
       user.value = null
       permissions.value.clear()
-      localStorage.removeItem('admin_token')
-      localStorage.removeItem('admin_csrf_token')
       localStorage.removeItem('admin_user')
     }
   }
@@ -128,13 +119,9 @@ export const useAuthStore = defineStore('adminAuth', () => {
 
   // Initialize from localStorage
   function initialize() {
-    const savedToken = localStorage.getItem('admin_token')
-    const savedCsrfToken = localStorage.getItem('admin_csrf_token')
     const savedUser = localStorage.getItem('admin_user')
 
-    if (savedToken && savedUser) {
-      token.value = savedToken
-      csrfToken.value = savedCsrfToken
+    if (savedUser) {
       try {
         user.value = JSON.parse(savedUser)
         loadPermissions()
@@ -147,8 +134,6 @@ export const useAuthStore = defineStore('adminAuth', () => {
 
   return {
     user,
-    token,
-    csrfToken,
     permissions,
     isAuthenticated,
     userRole,

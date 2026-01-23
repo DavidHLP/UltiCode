@@ -241,7 +241,7 @@ router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
   // Initialize auth store if not already done
-  if (!authStore.isAuthenticated && localStorage.getItem('admin_token')) {
+  if (!authStore.isAuthenticated && localStorage.getItem('admin_user')) {
     authStore.initialize()
   }
 

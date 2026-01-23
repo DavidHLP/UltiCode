@@ -55,6 +55,7 @@ model User {
   edgeOperations        EdgeOperation[]
   globalRanking         GlobalRanking?
   problemNotes          ProblemNote[]
+  refreshTokens         RefreshToken[]
   solutionComments      SolutionComment[]
   solutions             Solution[]
   submissions           Submission[]
@@ -1067,6 +1068,24 @@ model PasswordReset {
   @@index([user_id])
   @@index([expires_at])
   @@map("password_resets")
+}
+
+model RefreshToken {
+  id           String   @id @default(uuid()) @db.VarChar(40)
+  user_id      String   @db.VarChar(40)
+  token        String   @unique @db.VarChar(255)
+  expires_at   DateTime
+  created_at   DateTime @default(now())
+  rotated_at   DateTime?
+  revoked_at   DateTime?
+  is_revoked   Boolean  @default(false)
+
+  user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id])
+  @@index([token])
+  @@index([expires_at])
+  @@map("refresh_tokens")
 }
 
 model UserPermission {

@@ -18,6 +18,7 @@ import {
 import { PrismaService } from '../prisma.service';
 import { CsrfService } from './csrf.service';
 import { CsrfGuard } from './csrf.guard';
+import { RefreshTokenService } from './refresh-token.service';
 import Redis from 'ioredis';
 
 /**
@@ -93,9 +94,12 @@ class RedisConnectionHolder implements OnModuleDestroy {
             'JWT_SECRET must be set in environment variables and be at least 32 characters long',
           );
         }
+        const expiresIn = configService.get<string>('JWT_ACCESS_EXPIRY', '15m');
         return {
           secret,
-          signOptions: { expiresIn: '7d' }, // Token 有效期 7 天
+          signOptions: {
+            expiresIn: expiresIn as never,
+          },
         };
       },
     }),
@@ -106,6 +110,7 @@ class RedisConnectionHolder implements OnModuleDestroy {
     TokenBlacklistService,
     CsrfService,
     CsrfGuard,
+    RefreshTokenService,
     PrismaService,
     RedisConnectionHolder,
     {
@@ -121,6 +126,7 @@ class RedisConnectionHolder implements OnModuleDestroy {
     TokenBlacklistService,
     CsrfService,
     CsrfGuard,
+    RefreshTokenService,
   ],
 })
 export class AuthModule {}

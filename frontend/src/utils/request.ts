@@ -7,7 +7,6 @@ import axios, {
   type CancelTokenSource,
   type AxiosRequestHeaders,
 } from "axios";
-import { getToken, removeToken } from "@/utils/auth";
 import { LOCALE_HEADER_KEY } from "@/i18n";
 import { getActiveLocale } from "@/i18n/utils/locale";
 
@@ -111,6 +110,7 @@ const API_BASE_URL =
 const service: AxiosInstance = axios.create({
   baseURL: API_BASE_URL,
   timeout: 30000,
+  withCredentials: true, // Important: include cookies in all requests
   headers: {
     "Content-Type": "application/json",
   },
@@ -130,13 +130,8 @@ service.interceptors.request.use(
       retryCount: 0,
     };
 
-    // Add auth token if available
-    if (!config.skipAuth) {
-      const token = getToken();
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
+    // Note: Auth is now handled via httpOnly cookies (withCredentials: true)
+    // No need to manually attach Authorization header
 
     // Add locale headers (both custom x-locale and standard Accept-Language)
     const activeLocale = getActiveLocale();
@@ -254,11 +249,12 @@ service.interceptors.response.use(
       error.response &&
       (error.response.status === 401 || error.response.status === 403)
     ) {
-      removeToken();
-      // Optionally redirect to login
-      // if (window.location.pathname !== '/login') {
-      //   window.location.href = '/login'
-      // }
+      // Cookies are httpOnly - cannot be removed by JavaScript
+      // Backend will handle cookie clearing on logout
+      // Redirect to login page
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
     }
 
     // Log error

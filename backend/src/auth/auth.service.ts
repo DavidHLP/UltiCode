@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Response } from 'express';
 import * as bcrypt from 'bcrypt';
@@ -10,16 +10,19 @@ import { BusinessException } from '../common/exceptions/business.exception';
 import { ErrorCode } from '../common/error-codes';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { CsrfService } from './csrf.service';
+import { RefreshTokenService } from './refresh-token.service';
 
 export interface LoginResponse {
-  access_token: string;
-  csrf_token: string;
   user: {
     id: string;
     username: string;
     name: string;
     role: string;
   };
+}
+
+export interface LoginResponseWithCookies extends LoginResponse {
+  csrf_token?: string;
 }
 
 export interface LogoutDto {
@@ -36,11 +39,15 @@ export class AuthService {
   // Password reset token expires in 1 hour
   private readonly PASSWORD_RESET_EXPIRY = 60 * 60 * 1000; // 1 hour in ms
 
+  // Access token expiry (15 minutes) - matches JWT_ACCESS_EXPIRY
+  private readonly ACCESS_TOKEN_EXPIRY = 15 * 60 * 1000;
+
   constructor(
     private userService: UserService,
     private jwtService: JwtService,
     private tokenBlacklistService: TokenBlacklistService,
     private csrfService: CsrfService,
+    private refreshTokenService: RefreshTokenService,
     private prisma: PrismaService,
   ) {}
 
@@ -68,9 +75,9 @@ export class AuthService {
   }
 
   /**
-   * 生成 JWT Token
+   * 生成 JWT Token (Access Token - short lived)
    */
-  private generateToken(
+  private generateAccessToken(
     userId: string,
     username: string,
     role: string,
@@ -79,7 +86,66 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 
-  async signIn(username: string, password: string): Promise<LoginResponse> {
+  /**
+   * 生成 JWT Token (legacy method, alias for generateAccessToken)
+   */
+  private generateToken(
+    userId: string,
+    username: string,
+    role: string,
+  ): string {
+    return this.generateAccessToken(userId, username, role);
+  }
+
+  /**
+   * Set auth cookies (access_token and refresh_token)
+   */
+  private setAuthCookies(
+    res: Response,
+    accessToken: string,
+    refreshToken: string,
+  ): void {
+    const isSecure = process.env.COOKIE_SECURE === 'true';
+    const sameSite = (process.env.COOKIE_SAME_SITE || 'lax') as
+      | 'strict'
+      | 'lax'
+      | 'none';
+    const domain = process.env.COOKIE_DOMAIN;
+
+    // Access token cookie (short-lived - 15 minutes)
+    res.cookie('access_token', accessToken, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite,
+      domain,
+      maxAge: this.ACCESS_TOKEN_EXPIRY,
+    });
+
+    // Refresh token cookie (long-lived - 7 days)
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: isSecure,
+      sameSite,
+      domain,
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+  }
+
+  /**
+   * Clear auth cookies
+   */
+  private clearAuthCookies(res: Response): void {
+    const domain = process.env.COOKIE_DOMAIN;
+
+    res.clearCookie('access_token', { domain });
+    res.clearCookie('refresh_token', { domain });
+  }
+
+  async signIn(
+    username: string,
+    password: string,
+    res: Response,
+  ): Promise<LoginResponseWithCookies> {
     // 查找用户
     const user = await this.userService.findByUsername(username);
 
@@ -97,14 +163,24 @@ export class AuthService {
       throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
     }
 
-    // 生成 JWT token
-    const token = this.generateToken(user.id, user.username, user.role);
+    // 生成 JWT access token (short-lived)
+    const accessToken = this.generateAccessToken(
+      user.id,
+      user.username,
+      user.role,
+    );
+
+    // 生成 refresh token (long-lived)
+    const refreshTokenRecord =
+      await this.refreshTokenService.createRefreshToken(user.id);
 
     // 生成 CSRF token
     const csrfToken = await this.csrfService.generateCsrfToken(user.id);
 
+    // Set httpOnly cookies
+    this.setAuthCookies(res, accessToken, refreshTokenRecord.token);
+
     return {
-      access_token: token,
       csrf_token: csrfToken,
       user: {
         id: user.id,
@@ -126,7 +202,10 @@ export class AuthService {
     return this.jwtService.decode(token);
   }
 
-  async logout(logoutDto: LogoutDto): Promise<{ message: string }> {
+  async logout(
+    logoutDto: LogoutDto,
+    res: Response,
+  ): Promise<{ message: string }> {
     // If a token is provided, add it to the blacklist
     if (logoutDto.token) {
       // Decode the token to get its remaining time
@@ -149,6 +228,10 @@ export class AuthService {
           // Revoke CSRF token
           if ('sub' in decoded) {
             await this.csrfService.revokeCsrfToken(decoded.sub as string);
+            // Revoke all refresh tokens for this user
+            await this.refreshTokenService.revokeAllUserTokens(
+              decoded.sub as string,
+            );
           }
         } else {
           // If we can't decode the token, use default TTL
@@ -160,10 +243,57 @@ export class AuthService {
       }
     }
 
+    // Clear auth cookies
+    this.clearAuthCookies(res);
+
     return { message: 'Logged out successfully' };
   }
 
-  async register(registerDto: RegisterDto): Promise<LoginResponse> {
+  /**
+   * Refresh tokens using a valid refresh token
+   * Creates a new access token and rotates the refresh token
+   */
+  async refreshTokens(
+    refreshToken: string,
+    res: Response,
+  ): Promise<LoginResponse> {
+    const tokenRecord =
+      await this.refreshTokenService.rotateRefreshToken(refreshToken);
+
+    if (!tokenRecord) {
+      this.clearAuthCookies(res);
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const user = await this.userService.findOne(tokenRecord.user_id);
+    if (!user) {
+      throw new UnauthorizedException('User not found');
+    }
+
+    // Generate new access token
+    const accessToken = this.generateAccessToken(
+      user.id,
+      user.username,
+      user.role,
+    );
+
+    // Set new cookies
+    this.setAuthCookies(res, accessToken, tokenRecord.token);
+
+    return {
+      user: {
+        id: user.id,
+        username: user.username,
+        name: user.name || user.username,
+        role: user.role,
+      },
+    };
+  }
+
+  async register(
+    registerDto: RegisterDto,
+    res: Response,
+  ): Promise<LoginResponseWithCookies> {
     // 检查用户名是否已存在
     const existingUser = await this.userService.findByUsername(
       registerDto.username,
@@ -197,18 +327,24 @@ export class AuthService {
       password: hashedPassword,
     });
 
-    // 自动登录
-    const token = this.generateToken(
+    // 自动登录 - 生成 access token
+    const accessToken = this.generateAccessToken(
       newUser.id,
       newUser.username,
       newUser.role,
     );
 
+    // 生成 refresh token
+    const refreshTokenRecord =
+      await this.refreshTokenService.createRefreshToken(newUser.id);
+
     // 生成 CSRF token
     const csrfToken = await this.csrfService.generateCsrfToken(newUser.id);
 
+    // Set httpOnly cookies
+    this.setAuthCookies(res, accessToken, refreshTokenRecord.token);
+
     return {
-      access_token: token,
       csrf_token: csrfToken,
       user: {
         id: newUser.id,

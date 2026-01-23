@@ -14,7 +14,6 @@ import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { login } from "@/api/auth";
-import { setToken, setUserId } from "@/utils/auth";
 import { toast } from "vue-sonner";
 
 const props = defineProps<{
@@ -23,9 +22,17 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const router = useRouter();
-const email = ref("yuki_codes");
-const password = ref("password123");
+const email = ref("");
+const password = ref("");
 const loading = ref(false);
+
+// Fill test credentials in development mode
+function fillTestCredentials() {
+  if (import.meta.env.DEV) {
+    email.value = import.meta.env.VITE_TEST_USERNAME || "";
+    password.value = import.meta.env.VITE_TEST_PASSWORD || "";
+  }
+}
 
 async function handleSubmit(e: Event) {
   e.preventDefault();
@@ -43,13 +50,13 @@ async function handleSubmit(e: Event) {
       );
     }
 
-    if (!res.access_token) {
+    if (!res.user) {
       console.error("Invalid response format:", res);
       throw new Error("Invalid login response format");
     }
 
-    setToken(res.access_token);
-    setUserId(res.user.id);
+    // Cookies are set automatically by the backend (httpOnly)
+    // No need to manually store tokens
     toast.success(t("auth.messages.loginSuccess"));
     router.push("/");
   } catch (error) {
@@ -61,7 +68,7 @@ async function handleSubmit(e: Event) {
 }
 
 function handleGithubLogin() {
-  window.location.href = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:4001"}/auth/github`;
+  window.location.href = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:6001"}/auth/github`;
 }
 </script>
 
@@ -106,6 +113,17 @@ function handleGithubLogin() {
       <Field>
         <Button type="submit" :disabled="loading">
           {{ loading ? t("auth.login.submitting") : t("auth.login.submit") }}
+        </Button>
+      </Field>
+      <!-- Development-only test credential button -->
+      <Field v-if="import.meta.env.DEV">
+        <Button
+          type="button"
+          variant="outline"
+          class="text-xs"
+          @click="fillTestCredentials"
+        >
+          Fill Test Credentials
         </Button>
       </Field>
       <FieldSeparator>{{ t("auth.login.orContinueWith") }}</FieldSeparator>

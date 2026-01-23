@@ -25,6 +25,7 @@ const router = useRouter();
 const email = ref("");
 const password = ref("");
 const loading = ref(false);
+const isDev = import.meta.env.DEV;
 
 // Fill test credentials in development mode
 function fillTestCredentials() {
@@ -116,7 +117,7 @@ function handleGithubLogin() {
         </Button>
       </Field>
       <!-- Development-only test credential button -->
-      <Field v-if="import.meta.env.DEV">
+      <Field v-if="isDev">
         <Button
           type="button"
           variant="outline"

@@ -14,7 +14,6 @@ describe('AuthController', () => {
   let service: jest.Mocked<AuthService>;
 
   const mockLoginResponse = {
-    access_token: 'jwt-token',
     csrf_token: 'mock-csrf-token',
     user: {
       id: 'user-123',
@@ -22,6 +21,16 @@ describe('AuthController', () => {
       name: 'Test User',
       role: 'USER',
     },
+  };
+
+  const mockResponse = () => {
+    const res: Partial<Response> = {
+      cookie: jest.fn().mockReturnThis(),
+      clearCookie: jest.fn().mockReturnThis(),
+      json: jest.fn().mockReturnThis(),
+      status: jest.fn().mockReturnThis(),
+    };
+    return res as Response;
   };
 
   beforeEach(async () => {
@@ -58,6 +67,7 @@ describe('AuthController', () => {
             githubLogin: jest.fn(),
             githubCallback: jest.fn(),
             logout: jest.fn(),
+            refreshTokens: jest.fn(),
           },
         },
       ],
@@ -81,12 +91,17 @@ describe('AuthController', () => {
         password: 'password123',
       };
 
-      service.signIn.mockResolvedValue(mockLoginResponse);
+      service.signIn.mockResolvedValue(mockLoginResponse as any);
 
-      const result = await controller.signIn(signInDto);
+      const res = mockResponse();
+      await controller.signIn(signInDto, res);
 
-      expect(result).toEqual(mockLoginResponse);
-      expect(service.signIn).toHaveBeenCalledWith('testuser', 'password123');
+      expect(service.signIn).toHaveBeenCalledWith(
+        'testuser',
+        'password123',
+        res,
+      );
+      expect(res.json).toHaveBeenCalledWith(mockLoginResponse);
     });
   });
 
@@ -98,12 +113,13 @@ describe('AuthController', () => {
         password: 'password123',
       };
 
-      service.register.mockResolvedValue(mockLoginResponse);
+      service.register.mockResolvedValue(mockLoginResponse as any);
 
-      const result = await controller.register(registerDto);
+      const res = mockResponse();
+      await controller.register(registerDto, res);
 
-      expect(result).toEqual(mockLoginResponse);
-      expect(service.register).toHaveBeenCalledWith(registerDto);
+      expect(service.register).toHaveBeenCalledWith(registerDto, res);
+      expect(res.json).toHaveBeenCalledWith(mockLoginResponse);
     });
   });
 
@@ -185,10 +201,14 @@ describe('AuthController', () => {
 
       service.logout.mockResolvedValue(messageResponse);
 
-      const result = await controller.logout(mockRequest);
+      const res = mockResponse();
+      await controller.logout(mockRequest, res);
 
-      expect(result).toEqual(messageResponse);
-      expect(service.logout).toHaveBeenCalledWith({ token: 'valid-jwt-token' });
+      expect(service.logout).toHaveBeenCalledWith(
+        { token: 'valid-jwt-token' },
+        res,
+      );
+      expect(res.json).toHaveBeenCalledWith(messageResponse);
     });
 
     it('should logout even without token', async () => {
@@ -200,10 +220,11 @@ describe('AuthController', () => {
 
       service.logout.mockResolvedValue(messageResponse);
 
-      const result = await controller.logout(mockRequest);
+      const res = mockResponse();
+      await controller.logout(mockRequest, res);
 
-      expect(result).toEqual(messageResponse);
-      expect(service.logout).toHaveBeenCalledWith({ token: '' });
+      expect(service.logout).toHaveBeenCalledWith({ token: '' }, res);
+      expect(res.json).toHaveBeenCalledWith(messageResponse);
     });
 
     it('should handle malformed authorization header', async () => {
@@ -217,10 +238,46 @@ describe('AuthController', () => {
 
       service.logout.mockResolvedValue(messageResponse);
 
-      const result = await controller.logout(mockRequest);
+      const res = mockResponse();
+      await controller.logout(mockRequest, res);
 
-      expect(result).toEqual(messageResponse);
-      expect(service.logout).toHaveBeenCalledWith({ token: '' });
+      expect(service.logout).toHaveBeenCalledWith({ token: '' }, res);
+      expect(res.json).toHaveBeenCalledWith(messageResponse);
+    });
+  });
+
+  describe('refresh', () => {
+    it('should refresh tokens successfully', async () => {
+      const mockRequest = {
+        cookies: {
+          refresh_token: 'valid-refresh-token',
+        },
+      } as unknown as Request;
+
+      service.refreshTokens.mockResolvedValue(mockLoginResponse as any);
+
+      const res = mockResponse();
+      await controller.refresh(mockRequest, res);
+
+      expect(service.refreshTokens).toHaveBeenCalledWith(
+        'valid-refresh-token',
+        res,
+      );
+      expect(res.json).toHaveBeenCalledWith(mockLoginResponse);
+    });
+
+    it('should return unauthorized when no refresh token', async () => {
+      const mockRequest = {
+        cookies: {},
+      } as unknown as Request;
+
+      const res = mockResponse();
+      await controller.refresh(mockRequest, res);
+
+      expect(res.status).toHaveBeenCalledWith(401);
+      expect(res.json).toHaveBeenCalledWith({
+        message: 'No refresh token provided',
+      });
     });
   });
 });

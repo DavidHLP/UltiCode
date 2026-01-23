@@ -26,15 +26,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('login')
   @Throttle({ default: { limit: 5, ttl: 60000 } }) // 5 login attempts per minute
-  async signIn(@Body() signInDto: SignInDto) {
-    return this.authService.signIn(signInDto.username, signInDto.password);
+  async signIn(@Body() signInDto: SignInDto, @Res() res: Response) {
+    const result = await this.authService.signIn(
+      signInDto.username,
+      signInDto.password,
+      res,
+    );
+    return res.json(result);
   }
 
   @HttpCode(HttpStatus.CREATED)
   @Post('register')
   @Throttle({ default: { limit: 3, ttl: 300000 } }) // 3 registrations per 5 minutes
-  async register(@Body() registerDto: RegisterDto) {
-    return this.authService.register(registerDto);
+  async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
+    const result = await this.authService.register(registerDto, res);
+    return res.json(result);
   }
 
   @HttpCode(HttpStatus.OK)
@@ -66,9 +72,25 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   @Post('logout')
   @UseGuards(AuthGuard)
-  async logout(@Req() req: Request) {
+  async logout(@Req() req: Request, @Res() res: Response) {
     const token = this.extractTokenFromHeader(req);
-    return this.authService.logout({ token: token || '' });
+    const result = await this.authService.logout({ token: token || '' }, res);
+    return res.json(result);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Post('refresh')
+  async refresh(@Req() req: Request, @Res() res: Response) {
+    const cookies = req.cookies as { refresh_token?: string } | undefined;
+    const refreshToken = cookies?.refresh_token;
+    if (!refreshToken) {
+      return res
+        .status(HttpStatus.UNAUTHORIZED)
+        .json({ message: 'No refresh token provided' });
+    }
+
+    const result = await this.authService.refreshTokens(refreshToken, res);
+    return res.json(result);
   }
 
   private extractTokenFromHeader(request: Request): string | undefined {

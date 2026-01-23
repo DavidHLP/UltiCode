@@ -87,17 +87,6 @@ export class AuthService {
   }
 
   /**
-   * 生成 JWT Token (legacy method, alias for generateAccessToken)
-   */
-  private generateToken(
-    userId: string,
-    username: string,
-    role: string,
-  ): string {
-    return this.generateAccessToken(userId, username, role);
-  }
-
-  /**
    * Set auth cookies (access_token and refresh_token)
    */
   private setAuthCookies(
@@ -384,13 +373,13 @@ export class AuthService {
       },
     });
 
-    // In production, send email with reset link
-    // For now, return the token for testing (remove in production!)
+    // TODO: Send email with reset link containing the token
+    // In production, this would send an email with a link like:
+    // https://example.com/reset-password?token={token}
+
     return {
       message:
         'If an account exists with this email, a password reset link will be sent',
-      // DEV_ONLY: Reset token - remove this in production
-      resetToken: process.env.NODE_ENV === 'development' ? token : undefined,
     };
   }
 
@@ -477,10 +466,77 @@ export class AuthService {
       });
     }
 
-    const token = this.generateToken(user.id, user.username, user.role);
+    // Generate access token
+    const accessToken = this.generateAccessToken(
+      user.id,
+      user.username,
+      user.role,
+    );
 
-    // 重定向到前端并携带 token
+    // Generate refresh token
+    const refreshTokenRecord =
+      await this.refreshTokenService.createRefreshToken(user.id);
+
+    // Generate CSRF token
+    const csrfToken = await this.csrfService.generateCsrfToken(user.id);
+
+    // Set httpOnly cookies
+    this.setAuthCookies(res, accessToken, refreshTokenRecord.token);
+
+    // 重定向到前端（不再在 URL 中携带 token）
     const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-    res.redirect(`${frontendUrl}/login?token=${token}&userId=${user.id}`);
+    res.redirect(`${frontendUrl}/?csrf=${csrfToken}`);
+  }
+
+  /**
+   * Get user permissions based on role
+   */
+  getUserPermissions(role: string): string[] {
+    const perms = new Set<string>();
+
+    if (role === 'SUPER_ADMIN') {
+      perms.add('*:*');
+    } else if (role === 'ADMIN') {
+      perms.add('READ:USER');
+      perms.add('CREATE:USER');
+      perms.add('UPDATE:USER');
+      perms.add('DELETE:USER');
+      perms.add('MODERATE:USER');
+      perms.add('READ:PROBLEM');
+      perms.add('CREATE:PROBLEM');
+      perms.add('UPDATE:PROBLEM');
+      perms.add('DELETE:PROBLEM');
+      perms.add('PUBLISH:PROBLEM');
+      perms.add('READ:CONTEST');
+      perms.add('CREATE:CONTEST');
+      perms.add('UPDATE:CONTEST');
+      perms.add('DELETE:CONTEST');
+      perms.add('READ:SOLUTION');
+      perms.add('MODERATE:SOLUTION');
+      perms.add('READ:FORUM_POST');
+      perms.add('MODERATE:FORUM_POST');
+      perms.add('READ:FORUM_COMMENT');
+      perms.add('MODERATE:FORUM_COMMENT');
+      perms.add('READ:SYSTEM');
+    } else if (role === 'MODERATOR') {
+      perms.add('READ:USER');
+      perms.add('READ:PROBLEM');
+      perms.add('READ:CONTEST');
+      perms.add('READ:SOLUTION');
+      perms.add('MODERATE:SOLUTION');
+      perms.add('UPDATE:SOLUTION');
+      perms.add('DELETE:SOLUTION');
+      perms.add('READ:FORUM_POST');
+      perms.add('MODERATE:FORUM_POST');
+      perms.add('UPDATE:FORUM_POST');
+      perms.add('DELETE:FORUM_POST');
+      perms.add('READ:FORUM_COMMENT');
+      perms.add('MODERATE:FORUM_COMMENT');
+      perms.add('UPDATE:FORUM_COMMENT');
+      perms.add('DELETE:FORUM_COMMENT');
+      perms.add('READ:SYSTEM');
+    }
+
+    return Array.from(perms);
   }
 }

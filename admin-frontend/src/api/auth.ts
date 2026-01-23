@@ -1,4 +1,4 @@
-import { apiPost } from './client'
+import { apiGet, apiPost } from './client'
 
 export interface LoginCredentials {
   username: string
@@ -35,5 +35,13 @@ export const authApi = {
 
   async logout(): Promise<void> {
     return apiPost('/auth/logout')
+  },
+
+  async getCurrentUser(): Promise<User> {
+    return apiGet<User>('/auth/me')
+  },
+
+  async getPermissions(): Promise<string[]> {
+    return apiGet<string[]>('/auth/permissions')
   },
 }

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { SidebarProps } from "@/components/ui/sidebar";
 import Calendars from "@/features/sider/Calendars.vue";
-import { fetchUserProfile } from "@/api/user";
 import NavUser from "@/features/sider/NavUser.vue";
 import SidebarNav from "@/features/sider/SidebarNav.vue";
 import {
@@ -10,10 +9,10 @@ import {
   contestSidebarData,
   personalSidebarData,
 } from "@/features/sider/sidebar.data";
-import { onMounted, ref, computed } from "vue";
+import { computed } from "vue";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { fetchCurrentUserId } from "@/utils/auth";
+import { useAuthStore } from "@/stores/auth";
 import {
   Sidebar,
   SidebarContent,
@@ -26,26 +25,21 @@ import {
 const props = defineProps<SidebarProps>();
 const route = useRoute();
 const { t } = useI18n();
+const authStore = useAuthStore();
 
-const user = ref({
-  name: t("common.labels.guest"),
-  email: "guest@example.com",
-  avatar: "",
-});
-
-onMounted(async () => {
-  try {
-    const userId = fetchCurrentUserId();
-    if (!userId) return;
-    const profile = await fetchUserProfile(userId);
-    user.value = {
-      name: profile.name || profile.username,
-      email: profile.email || "",
-      avatar: profile.avatar || "",
+const user = computed(() => {
+  if (authStore.isAuthenticated && authStore.user) {
+    return {
+      name: authStore.user.name || authStore.user.username,
+      email: authStore.user.email || "",
+      avatar: authStore.user.avatar || "",
     };
-  } catch (error) {
-    console.error("Failed to load user profile", error);
   }
+  return {
+    name: t("common.labels.guest"),
+    email: "guest@example.com",
+    avatar: "",
+  };
 });
 
 const isProblemContext = computed(() => route.path.startsWith("/problemset"));

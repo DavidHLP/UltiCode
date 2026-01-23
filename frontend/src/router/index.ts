@@ -159,6 +159,7 @@ const forumEditRoute: RouteRecordRaw = {
 const personalRoutes: RouteRecordRaw = {
   path: "/personal",
   component: () => import("@/features/sider/AppLayout.vue"),
+  meta: { requiresAuth: true },
   children: [
     {
       path: "",
@@ -203,6 +204,13 @@ const personalRoutes: RouteRecordRaw = {
   ],
 };
 
+// Mark create routes as requiring auth
+solutionCreateRoute.meta = { requiresAuth: true };
+solutionCreateFromSubmissionRoute.meta = { requiresAuth: true };
+solutionEditRoute.meta = { requiresAuth: true };
+forumCreateRoute.meta = { requiresAuth: true };
+forumEditRoute.meta = { requiresAuth: true };
+
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
@@ -239,5 +247,38 @@ const router = createRouter({
     personalRoutes,
   ],
 });
+
+// Navigation guard for authentication
+router.beforeEach(async (to, from, next) => {
+  const { useAuthStore } = await import('@/stores/auth')
+  const authStore = useAuthStore()
+
+  // Initialize auth store on first navigation
+  if (!authStore.isInitialized) {
+    await authStore.initialize()
+  }
+
+  const requiresAuth = to.matched.some(
+    (record) => record.meta.requiresAuth === true,
+  )
+
+  if (requiresAuth && !authStore.isAuthenticated) {
+    // Redirect to login with return url
+    return next({
+      name: 'login',
+      query: { redirect: to.fullPath },
+    })
+  }
+
+  // If already authenticated and trying to access login/register, redirect to home
+  if (
+    authStore.isAuthenticated &&
+    (to.name === 'login' || to.name === 'register')
+  ) {
+    return next({ name: 'forum-home' })
+  }
+
+  next()
+})
 
 export default router;

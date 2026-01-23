@@ -10,6 +10,7 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import { UserService } from '../user/user.service';
 import { TokenBlacklistService } from './token-blacklist.service';
+import { extractTokenFromHeader } from './auth.utils';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
@@ -39,7 +40,15 @@ export class AuthGuard implements CanActivate {
     ]);
 
     const request = context.switchToHttp().getRequest<Request>();
-    const token = this.extractTokenFromHeader(request);
+
+    // Try to get token from Authorization header first
+    let token = extractTokenFromHeader(request);
+
+    // If no token in header, try cookie (for browser clients)
+    if (!token) {
+      const cookies = request.cookies as { access_token?: string } | undefined;
+      token = cookies?.access_token;
+    }
 
     if (token) {
       try {
@@ -72,14 +81,5 @@ export class AuthGuard implements CanActivate {
     }
 
     return true;
-  }
-
-  private extractTokenFromHeader(request: Request): string | undefined {
-    // Check headers safely
-    const [type, token] = (request.headers.authorization?.split(' ') ?? []) as [
-      string | undefined,
-      string | undefined,
-    ];
-    return type === 'Bearer' ? token : undefined;
   }
 }

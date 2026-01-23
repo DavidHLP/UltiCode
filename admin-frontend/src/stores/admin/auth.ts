@@ -5,6 +5,7 @@ import { authApi, type LoginCredentials, type User } from '@/api/auth'
 export const useAuthStore = defineStore('adminAuth', () => {
   const user = ref<User | null>(null)
   const permissions = ref<Set<string>>(new Set())
+  const isInitialized = ref(false)
 
   const isAuthenticated = computed(() => !!user.value)
   const userRole = computed(() => user.value?.role)
@@ -12,21 +13,9 @@ export const useAuthStore = defineStore('adminAuth', () => {
 
   async function login(credentials: LoginCredentials) {
     try {
-      const response = await authApi.login(credentials)
-      // Login response returns partial user data, create a full User object
-      user.value = {
-        ...response.user,
-        email: '',
-        avatar: undefined,
-        is_active: true,
-        is_banned: false,
-        joined_at: new Date().toISOString(),
-      } as User
-
-      // Store user data in localStorage for session persistence (not sensitive data)
-      localStorage.setItem('admin_user', JSON.stringify(user.value))
-
-      await loadPermissions()
+      await authApi.login(credentials)
+      // Login response returns partial user data, fetch full user data
+      await fetchUser()
       return true
     } catch (error) {
       console.error('Login failed:', error)
@@ -42,64 +31,39 @@ export const useAuthStore = defineStore('adminAuth', () => {
     } finally {
       user.value = null
       permissions.value.clear()
-      localStorage.removeItem('admin_user')
     }
   }
 
   async function loadPermissions() {
-    // For now, set permissions based on role
-    // In production, fetch from API
     if (!user.value) return
 
-    const role = user.value.role
-    const perms = new Set<string>()
-
-    if (role === 'SUPER_ADMIN') {
-      // All permissions
-      perms.add('*:*')
-    } else if (role === 'ADMIN') {
-      // Most permissions except manage_permissions
-      perms.add('READ:USER')
-      perms.add('CREATE:USER')
-      perms.add('UPDATE:USER')
-      perms.add('DELETE:USER')
-      perms.add('MODERATE:USER')
-      perms.add('READ:PROBLEM')
-      perms.add('CREATE:PROBLEM')
-      perms.add('UPDATE:PROBLEM')
-      perms.add('DELETE:PROBLEM')
-      perms.add('PUBLISH:PROBLEM')
-      perms.add('READ:CONTEST')
-      perms.add('CREATE:CONTEST')
-      perms.add('UPDATE:CONTEST')
-      perms.add('DELETE:CONTEST')
-      perms.add('READ:SOLUTION')
-      perms.add('MODERATE:SOLUTION')
-      perms.add('READ:FORUM_POST')
-      perms.add('MODERATE:FORUM_POST')
-      perms.add('READ:FORUM_COMMENT')
-      perms.add('MODERATE:FORUM_COMMENT')
-      perms.add('READ:SYSTEM')
-    } else if (role === 'MODERATOR') {
-      perms.add('READ:USER')
-      perms.add('READ:PROBLEM')
-      perms.add('READ:CONTEST')
-      perms.add('READ:SOLUTION')
-      perms.add('MODERATE:SOLUTION')
-      perms.add('UPDATE:SOLUTION')
-      perms.add('DELETE:SOLUTION')
-      perms.add('READ:FORUM_POST')
-      perms.add('MODERATE:FORUM_POST')
-      perms.add('UPDATE:FORUM_POST')
-      perms.add('DELETE:FORUM_POST')
-      perms.add('READ:FORUM_COMMENT')
-      perms.add('MODERATE:FORUM_COMMENT')
-      perms.add('UPDATE:FORUM_COMMENT')
-      perms.add('DELETE:FORUM_COMMENT')
-      perms.add('READ:SYSTEM')
+    try {
+      const perms = await authApi.getPermissions()
+      permissions.value = new Set(perms)
+    } catch (error) {
+      console.error('Failed to load permissions:', error)
     }
+  }
 
-    permissions.value = perms
+  async function fetchUser() {
+    try {
+      const userData = await authApi.getCurrentUser()
+      user.value = userData
+      await loadPermissions()
+      return userData
+    } catch (error) {
+      console.error('Failed to fetch user:', error)
+      user.value = null
+      permissions.value.clear()
+      return null
+    }
+  }
+
+  async function initialize() {
+    if (isInitialized.value) return
+
+    isInitialized.value = true
+    await fetchUser()
   }
 
   function hasPermission(action: string, resource: string): boolean {
@@ -117,33 +81,20 @@ export const useAuthStore = defineStore('adminAuth', () => {
     return roles.includes(user.value?.role || '')
   }
 
-  // Initialize from localStorage
-  function initialize() {
-    const savedUser = localStorage.getItem('admin_user')
-
-    if (savedUser) {
-      try {
-        user.value = JSON.parse(savedUser)
-        loadPermissions()
-      } catch (error) {
-        console.error('Failed to parse saved user:', error)
-        logout()
-      }
-    }
-  }
-
   return {
     user,
     permissions,
+    isInitialized,
     isAuthenticated,
     userRole,
     userName,
     login,
     logout,
     loadPermissions,
+    fetchUser,
+    initialize,
     hasPermission,
     hasRole,
     hasAnyRole,
-    initialize,
   }
 })

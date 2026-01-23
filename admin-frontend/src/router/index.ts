@@ -240,9 +240,9 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
-  // Initialize auth store if not already done
-  if (!authStore.isAuthenticated && localStorage.getItem('admin_user')) {
-    authStore.initialize()
+  // Initialize auth store on first navigation
+  if (!authStore.isInitialized) {
+    await authStore.initialize()
   }
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth !== false)

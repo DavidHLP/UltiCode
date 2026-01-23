@@ -1,0 +1,316 @@
+@layer base {
+  :root {
+    /* Chart Visualization Colors */
+    --vis-primary-color: 222.2 47.4% 11.2%;
+    --vis-secondary-color: 160 81% 40%;
+    --vis-text-color: var(--muted-foreground);
+
+    /* Status Colors (HSL format for charts) */
+    --chart-status-solved: 142 71% 45%;
+    --chart-status-attempted: 45 93% 47%;
+    --chart-status-todo: 215 16% 47%;
+
+    /* Difficulty Colors */
+    --chart-difficulty-easy: 142 71% 45%;
+    --chart-difficulty-medium: 45 93% 47%;
+    --chart-difficulty-hard: 0 84% 60%;
+
+    /* Multi-series Chart Colors (for line/bar charts) */
+    --chart-series-1: 221 83% 53%;
+    --chart-series-2: 142 71% 45%;
+    --chart-series-3: 45 93% 47%;
+    --chart-series-4: 262 83% 58%;
+    --chart-series-5: 0 84% 60%;
+    --chart-series-6: 199 89% 48%;
+
+    /* Accent & Highlight Colors */
+    --chart-accent-primary: 221 83% 53%;
+    --chart-accent-secondary: 142 71% 45%;
+    --chart-accent-warning: 45 93% 47%;
+    --chart-accent-danger: 0 84% 60%;
+    --chart-accent-info: 199 89% 48%;
+
+    /* Background & Grid Colors */
+    --chart-grid-color: 215 16% 90%;
+    --chart-background: var(--card);
+    --chart-tooltip-background: oklch(1 0 0);
+    --chart-tooltip-border: oklch(0.922 0 0);
+
+    /* Premium & Solution Indicators */
+    --chart-premium: 280 100% 70%;
+    --chart-solution: 199 89% 48%;
+  }
+
+  .dark {
+    /* Chart Visualization Colors - Dark Mode */
+    --vis-primary-color: 210 40% 98%;
+    --vis-secondary-color: 160 81% 45%;
+
+    /* Status Colors - Dark Mode */
+    --chart-status-solved: 142 70% 50%;
+    --chart-status-attempted: 45 93% 55%;
+    --chart-status-todo: 215 20% 60%;
+
+    /* Difficulty Colors - Dark Mode */
+    --chart-difficulty-easy: 142 70% 50%;
+    --chart-difficulty-medium: 45 93% 55%;
+    --chart-difficulty-hard: 0 84% 65%;
+
+    /* Multi-series Chart Colors - Dark Mode */
+    --chart-series-1: 221 83% 60%;
+    --chart-series-2: 142 70% 50%;
+    --chart-series-3: 45 93% 55%;
+    --chart-series-4: 262 83% 65%;
+    --chart-series-5: 0 84% 65%;
+    --chart-series-6: 199 89% 55%;
+
+    /* Accent & Highlight Colors - Dark Mode */
+    --chart-accent-primary: 221 83% 60%;
+    --chart-accent-secondary: 142 70% 50%;
+    --chart-accent-warning: 45 93% 55%;
+    --chart-accent-danger: 0 84% 65%;
+    --chart-accent-info: 199 89% 55%;
+
+    /* Background & Grid Colors - Dark Mode */
+    --chart-grid-color: 215 16% 25%;
+    --chart-tooltip-background: oklch(0.205 0 0);
+    --chart-tooltip-border: oklch(0.269 0 0);
+
+    /* Premium & Solution Indicators - Dark Mode */
+    --chart-premium: 280 100% 75%;
+    --chart-solution: 199 89% 55%;
+  }
+}
+
+/* Utility Classes for Chart Components */
+@layer utilities {
+  /* Status Color Classes */
+  .chart-solved {
+    color: hsl(var(--chart-status-solved));
+  }
+
+  .chart-attempted {
+    color: hsl(var(--chart-status-attempted));
+  }
+
+  .chart-todo {
+    color: hsl(var(--chart-status-todo));
+  }
+
+  .bg-chart-solved {
+    background-color: hsl(var(--chart-status-solved));
+  }
+
+  .bg-chart-attempted {
+    background-color: hsl(var(--chart-status-attempted));
+  }
+
+  .bg-chart-todo {
+    background-color: hsl(var(--chart-status-todo));
+  }
+
+  /* Difficulty Color Classes */
+  .chart-easy {
+    color: hsl(var(--chart-difficulty-easy));
+  }
+
+  .chart-medium {
+    color: hsl(var(--chart-difficulty-medium));
+  }
+
+  .chart-hard {
+    color: hsl(var(--chart-difficulty-hard));
+  }
+
+  .bg-chart-easy {
+    background-color: hsl(var(--chart-difficulty-easy));
+  }
+
+  .bg-chart-medium {
+    background-color: hsl(var(--chart-difficulty-medium));
+  }
+
+  .bg-chart-hard {
+    background-color: hsl(var(--chart-difficulty-hard));
+  }
+
+  /* Series Color Classes */
+  .chart-series-1 {
+    color: hsl(var(--chart-series-1));
+  }
+
+  .chart-series-2 {
+    color: hsl(var(--chart-series-2));
+  }
+
+  .chart-series-3 {
+    color: hsl(var(--chart-series-3));
+  }
+
+  .chart-series-4 {
+    color: hsl(var(--chart-series-4));
+  }
+
+  .chart-series-5 {
+    color: hsl(var(--chart-series-5));
+  }
+
+  .chart-series-6 {
+    color: hsl(var(--chart-series-6));
+  }
+}
+
+/* Chart Component Styling */
+@layer components {
+  /* Donut Chart Segments */
+  [data-chart-segment="Solved"] {
+    fill: hsl(var(--chart-status-solved));
+  }
+
+  [data-chart-segment="Attempted"] {
+    fill: hsl(var(--chart-status-attempted));
+  }
+
+  [data-chart-segment="Todo"] {
+    fill: hsl(var(--chart-status-todo));
+  }
+
+  /* Bar Chart Segments */
+  [data-chart-bar="Solved"] {
+    fill: hsl(var(--chart-status-solved));
+  }
+
+  [data-chart-bar="Attempted"] {
+    fill: hsl(var(--chart-status-attempted));
+  }
+
+  [data-chart-bar="Todo"] {
+    fill: hsl(var(--chart-status-todo));
+  }
+
+  /* Line Chart Series */
+  [data-chart-line="Solved Share"] {
+    stroke: hsl(var(--chart-status-solved) / 0.8);
+  }
+
+  [data-chart-line="Attempted Share"] {
+    stroke: hsl(var(--chart-status-attempted) / 0.8);
+  }
+
+  [data-chart-line="Todo Share"] {
+    stroke: hsl(var(--chart-status-todo) / 0.8);
+  }
+
+  [data-chart-line="Acceptance Rate"] {
+    stroke: hsl(var(--chart-accent-info) / 0.9);
+  }
+
+  /* Chart Container Styling */
+  .chart-container {
+    background: var(--chart-background);
+    border-radius: var(--radius-lg);
+    padding: 1rem;
+  }
+
+  /* Chart Grid Lines */
+  .chart-grid-line {
+    stroke: hsl(var(--chart-grid-color));
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
+  }
+
+  /* Chart Tooltip */
+  .chart-tooltip {
+    background: var(--chart-tooltip-background);
+    border: 1px solid var(--chart-tooltip-border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem 0.75rem;
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  }
+
+  /* Chart Legend */
+  .chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--vis-text-color);
+  }
+
+  .chart-legend-marker {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+  }
+
+  .chart-legend-marker-solved {
+    background-color: hsl(var(--chart-status-solved));
+  }
+
+  .chart-legend-marker-attempted {
+    background-color: hsl(var(--chart-status-attempted));
+  }
+
+  .chart-legend-marker-todo {
+    background-color: hsl(var(--chart-status-todo));
+  }
+
+  /* Premium & Solution Badges */
+  .chart-badge-premium {
+    color: hsl(var(--chart-premium));
+    border-color: hsl(var(--chart-premium) / 0.3);
+    background-color: hsl(var(--chart-premium) / 0.1);
+  }
+
+  .chart-badge-solution {
+    color: hsl(var(--chart-solution));
+    border-color: hsl(var(--chart-solution) / 0.3);
+    background-color: hsl(var(--chart-solution) / 0.1);
+  }
+}
+
+/* Animations for Chart Elements */
+@layer utilities {
+  .chart-fade-in {
+    animation: chartFadeIn 0.3s ease-in-out;
+  }
+
+  .chart-scale-in {
+    animation: chartScaleIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+
+  .chart-slide-up {
+    animation: chartSlideUp 0.5s ease-out;
+  }
+
+  @keyframes chartFadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes chartScaleIn {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes chartSlideUp {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}

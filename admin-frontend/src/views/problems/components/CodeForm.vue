@@ -219,11 +219,7 @@ defineExpose({
             class="font-mono text-sm flex-1 max-w-xs"
             @keyup.enter="handleAddLanguage"
           />
-          <Button
-            size="sm"
-            :disabled="!customLanguage.trim()"
-            @click="handleAddLanguage"
-          >
+          <Button size="sm" :disabled="!customLanguage.trim()" @click="handleAddLanguage">
             <IconPlus class="h-4 w-4 mr-1" />
             {{ t('problems.codeForm.add') }}
           </Button>

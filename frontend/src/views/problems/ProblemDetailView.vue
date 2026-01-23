@@ -8,6 +8,8 @@ import {
   provide,
   h,
   defineComponent,
+  markRaw,
+  nextTick,
   type Component,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
@@ -291,7 +293,7 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
 
 const getLeetLayoutConfig = () => {
   const groups = createInitialHeaderGroups();
-  const layout: LayoutNode = {
+  const layout: LayoutNode = markRaw({
     id: "programming-root",
     type: "container",
     direction: "horizontal",
@@ -335,13 +337,13 @@ const getLeetLayoutConfig = () => {
         ],
       },
     ],
-  };
+  });
   return { groups, layout };
 };
 
 const getClassicLayoutConfig = () => {
   const groups = createInitialHeaderGroups();
-  const layout: LayoutNode = {
+  const layout: LayoutNode = markRaw({
     id: "classic-root",
     type: "container",
     direction: "vertical",
@@ -385,13 +387,13 @@ const getClassicLayoutConfig = () => {
         ],
       },
     ],
-  };
+  });
   return { groups, layout };
 };
 
 const getCompactLayoutConfig = () => {
   const groups = createInitialHeaderGroups();
-  const layout: LayoutNode = {
+  const layout: LayoutNode = markRaw({
     id: "compact-root",
     type: "container",
     direction: "horizontal",
@@ -435,13 +437,13 @@ const getCompactLayoutConfig = () => {
         },
       },
     ],
-  };
+  });
   return { groups, layout };
 };
 
 const getWideLayoutConfig = () => {
   const groups = createInitialHeaderGroups();
-  const layout: LayoutNode = {
+  const layout: LayoutNode = markRaw({
     id: "wide-root",
     type: "container",
     direction: "horizontal",
@@ -474,7 +476,7 @@ const getWideLayoutConfig = () => {
         groupMetadata: { id: "test-info", name: t("problem.layout.testInfo") },
       },
     ],
-  };
+  });
   return { groups, layout };
 };
 
@@ -511,10 +513,17 @@ const REV_TAB_MAP: Record<number, string> = {
   3: "submissions",
 };
 
+// Guards to prevent infinite loop between URL and store sync
+const isUpdatingFromRoute = ref(false);
+const isUpdatingFromStore = ref(false);
+
 // Sync URL to Store (when route changes, e.g. back button)
 watch(
   () => route.params.tab,
   (newTab) => {
+    // Skip if we're updating from store (prevent loop)
+    if (isUpdatingFromStore.value) return;
+
     const tabName = Array.isArray(newTab) ? newTab[0] : newTab;
     if (tabName && Object.prototype.hasOwnProperty.call(TAB_MAP, tabName)) {
       const targetId = TAB_MAP[tabName];
@@ -522,12 +531,21 @@ watch(
         targetId !== undefined &&
         headerStore.activeHeaderByGroup["problem-info"] !== targetId
       ) {
+        isUpdatingFromRoute.value = true;
         headerStore.setActiveHeader("problem-info", targetId);
+        // Reset flag after next tick to allow store update to complete
+        nextTick(() => {
+          isUpdatingFromRoute.value = false;
+        });
       }
     } else if (!tabName) {
       // Default to description if no tab specified
       if (headerStore.activeHeaderByGroup["problem-info"] !== 1) {
+        isUpdatingFromRoute.value = true;
         headerStore.setActiveHeader("problem-info", 1);
+        nextTick(() => {
+          isUpdatingFromRoute.value = false;
+        });
       }
     }
   },
@@ -537,6 +555,9 @@ watch(
 watch(
   () => headerStore.activeHeaderByGroup["problem-info"],
   (newHeaderId) => {
+    // Skip if we're updating from route (prevent loop)
+    if (isUpdatingFromRoute.value) return;
+
     if (newHeaderId && newHeaderId in REV_TAB_MAP) {
       const tabName = REV_TAB_MAP[newHeaderId];
       if (!tabName) return;
@@ -548,9 +569,15 @@ watch(
         lastTab.value = tabName;
       }
       if (route.params.tab !== tabName) {
+        isUpdatingFromStore.value = true;
         router.push({
           name: "problem-detail",
           params: { ...route.params, tab: tabName },
+        }).then(() => {
+          // Reset flag after navigation completes
+          nextTick(() => {
+            isUpdatingFromStore.value = false;
+          });
         });
       }
     }

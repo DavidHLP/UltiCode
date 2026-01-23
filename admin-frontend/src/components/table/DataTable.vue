@@ -26,7 +26,6 @@ import {
 import { DragDropProvider } from 'dnd-kit-vue'
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -34,7 +33,6 @@ import {
   DropdownMenuContent,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -51,7 +49,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-
 import {
   Empty,
   EmptyContent,
@@ -60,8 +57,10 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { Skeleton } from '@/components/ui/skeleton'
-
 import DraggableRow from './DraggableRow.vue'
+
+// Constants for page size options
+const PAGE_SIZE_OPTIONS = [10, 20, 30, 40, 50] as const
 
 const props = defineProps<{
   columns: ColumnDef<TData, TValue>[]
@@ -287,7 +286,7 @@ watch(
             </SelectTrigger>
             <SelectContent side="top">
               <SelectItem
-                v-for="pageSize in [10, 20, 30, 40, 50]"
+                v-for="pageSize in PAGE_SIZE_OPTIONS"
                 :key="pageSize"
                 :value="`${pageSize}`"
               >

@@ -1,4 +1,4 @@
-<script setup lang="ts" generic="T">
+<script setup lang="ts" generic="T extends object">
 import { computed, onMounted, onUnmounted } from "vue";
 import {
   Table,
@@ -13,8 +13,13 @@ import { SearchX } from "lucide-vue-next";
 export interface ColumnDef {
   key: string;
   header: string;
-  class?: string; // Class for TableCell
-  headerClass?: string; // Class for TableHead
+  class?: string;
+  headerClass?: string;
+}
+
+// Interface for data with an optional id property
+interface Identifiable {
+  id?: string | number;
 }
 
 const props = defineProps<{
@@ -77,7 +82,7 @@ onUnmounted(() => {
           <template v-if="hasColumnDefinitions">
             <TableRow
               v-for="(item, index) in data"
-              :key="(item as any).id || index"
+              :key="(item as Identifiable).id || index"
               class="odd:bg-muted/30 even:bg-background hover:bg-muted/50 cursor-pointer transition-colors"
               @click="emit('row-click', item)"
             >
@@ -87,7 +92,7 @@ onUnmounted(() => {
                 :class="col.class"
               >
                 <slot :name="'cell-' + col.key" :item="item">
-                  {{ (item as any)[col.key] }}
+                  {{ (item as Record<string, unknown>)[col.key] }}
                 </slot>
               </TableCell>
             </TableRow>
@@ -96,7 +101,7 @@ onUnmounted(() => {
             <slot
               name="row"
               v-for="item in data"
-              :key="(item as any).id || JSON.stringify(item)"
+              :key="(item as Identifiable).id || JSON.stringify(item)"
               :item="item"
             />
           </template>

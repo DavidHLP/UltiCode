@@ -1,0 +1,73 @@
+import { Crosshair, NumericAccessor } from '@unovis/ts';
+export declare const VisCrosshairSelectors: typeof import("@unovis/ts/dist/components/crosshair/style");
+declare const _default: <Datum>(__VLS_props: any, __VLS_ctx?: {
+    attrs: any;
+    emit: any;
+    slots: any;
+}, __VLS_expose?: any, __VLS_setup?: Promise<{
+    props: {
+        duration?: number;
+        events?: {
+            [selector: string]: {
+                touchstart?: import("@unovis/ts").VisEventCallback<any>;
+                touchmove?: import("@unovis/ts").VisEventCallback<any>;
+                touchend?: import("@unovis/ts").VisEventCallback<any>;
+                mouseover?: import("@unovis/ts").VisEventCallback<any>;
+                mousemove?: import("@unovis/ts").VisEventCallback<any>;
+                mousedown?: import("@unovis/ts").VisEventCallback<any>;
+                mouseup?: import("@unovis/ts").VisEventCallback<any>;
+                click?: import("@unovis/ts").VisEventCallback<any>;
+                auxclick?: import("@unovis/ts").VisEventCallback<any>;
+                contextmenu?: import("@unovis/ts").VisEventCallback<any>;
+                dblclick?: import("@unovis/ts").VisEventCallback<any>;
+                mouseenter?: import("@unovis/ts").VisEventCallback<any>;
+                mouseleave?: import("@unovis/ts").VisEventCallback<any>;
+                mouseout?: import("@unovis/ts").VisEventCallback<any>;
+                scroll?: import("@unovis/ts").VisEventCallback<any>;
+                select?: import("@unovis/ts").VisEventCallback<any>;
+                wheel?: import("@unovis/ts").VisEventCallback<any>;
+                pointerdown?: import("@unovis/ts").VisEventCallback<any>;
+                pointerup?: import("@unovis/ts").VisEventCallback<any>;
+                pointerout?: import("@unovis/ts").VisEventCallback<any>;
+                pointermove?: import("@unovis/ts").VisEventCallback<any>;
+            };
+        };
+        attributes?: {
+            [selector: string]: {
+                [attr: string]: string | number | boolean | ((datum: any) => string | number | boolean);
+            };
+        };
+        data?: Datum[];
+        x?: NumericAccessor<Datum>;
+        y?: NumericAccessor<Datum> | NumericAccessor<Datum>[];
+        template?: (datum: Datum, x: number | Date, data?: Datum[], leftNearestDatumIndex?: number) => string | HTMLElement;
+        color?: import("@unovis/ts").ColorAccessor<Datum>;
+        baseline?: NumericAccessor<Datum>;
+        id?: (d: Datum, i: number, ...any: any[]) => string;
+        xScale?: import("@unovis/ts").ContinuousScale;
+        yScale?: import("@unovis/ts").ContinuousScale;
+        excludeFromDomainCalculation?: boolean;
+        strokeColor?: import("@unovis/ts").ColorAccessor<Datum>;
+        strokeWidth?: NumericAccessor<Datum>;
+        yStacked?: NumericAccessor<Datum>[];
+        tooltip?: import("@unovis/ts").Tooltip;
+        hideWhenFarFromPointer?: boolean;
+        hideWhenFarFromPointerDistance?: number;
+        snapToData?: boolean;
+        getCircles?: (x: number | Date, data: Datum[], yScale: import("@unovis/ts").ContinuousScale, leftNearestDatumIndex?: number) => import("@unovis/ts").CrosshairCircle[];
+        onCrosshairMove?: (x?: number | Date, datum?: Datum, datumIndex?: number, event?: MouseEvent | WheelEvent) => void;
+        forceShowAt?: number | Date;
+        skipRangeCheck?: boolean;
+    } & import("vue").VNodeProps & import("vue").AllowedComponentProps & import("vue").ComponentCustomProps;
+    expose(exposed: import("vue").ShallowUnwrapRef<{
+        component: import("vue").Ref<Crosshair<Datum>, Crosshair<Datum>>;
+    }>): void;
+    attrs: any;
+    slots: {};
+    emit: any;
+}>) => import("vue").VNode<import("vue").RendererNode, import("vue").RendererElement, {
+    [key: string]: any;
+}> & {
+    __ctx?: any;
+};
+export default _default;

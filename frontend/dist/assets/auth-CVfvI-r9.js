@@ -1,0 +1,1 @@
+import{c as o}from"./request-CsQxgJX2.js";async function n(t){return o("/auth/login",t)}async function a(t){return o("/auth/register",t)}async function s(t){return o("/auth/forgot-password",{email:t})}async function u(){return o("/auth/logout")}export{n as a,s as f,u as l,a as r};

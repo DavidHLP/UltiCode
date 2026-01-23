@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { Problem } from "@/types/problem";
+import type { Component } from "vue";
 
 import { computed, onMounted, ref, watch, markRaw } from "vue";
 import {
@@ -36,6 +37,14 @@ import { Button } from "@/components/ui/button";
 
 const router = useRouter();
 const { t } = useI18n();
+
+// Interface for enriched problem with status icon
+interface EnrichedProblem extends Omit<Problem, "acceptance_rate"> {
+  status?: "solved" | "attempted" | "todo";
+  statusIcon?: Component;
+  acceptanceRate?: number;
+  acceptance_rate?: number | undefined;
+}
 
 const props = defineProps<ProblemExplorerProps>();
 
@@ -88,7 +97,7 @@ onMounted(() => {
 });
 
 const sourceProblems = computed(() => props.problems ?? fallbackProblems.value);
-const enrichedProblems = computed(() => {
+const enrichedProblems = computed<EnrichedProblem[]>(() => {
   const enriched = sourceProblems.value.map((p) => {
     const status = p.status ?? "todo";
     const icon =
@@ -102,7 +111,7 @@ const enrichedProblems = computed(() => {
       ...p,
       status,
       statusIcon: icon,
-    };
+    } as EnrichedProblem;
   });
   return enriched;
 });
@@ -161,7 +170,7 @@ const filteredProblems = computed(() => {
 
 const totalFilteredProblems = computed(() => filteredProblems.value.length);
 
-const displayedProblems = computed(() => {
+const displayedProblems = computed<EnrichedProblem[]>(() => {
   return filteredProblems.value.slice(0, numProblemsToShow.value).map((p) => ({
     ...p,
     statusIcon:
@@ -170,7 +179,7 @@ const displayedProblems = computed(() => {
         : p.status === "attempted"
           ? FileEdit
           : undefined,
-  }));
+  })) as EnrichedProblem[];
 });
 
 const columns = computed<ColumnDef[]>(() => {
@@ -338,15 +347,15 @@ const goToDetail = (slug: string) => {
   router.push({ name: "problem-detail", params: { slug } });
 };
 
-const handleRowClick = (problem: Problem) => {
+const handleRowClick = (problem: EnrichedProblem) => {
   if (problem && problem.slug) {
     goToDetail(problem.slug);
   }
 };
 
-const handleRemove = (e: Event, problem: Problem) => {
+const handleRemove = (e: Event, problem: EnrichedProblem) => {
   e.stopPropagation();
-  emit("remove", problem);
+  emit("remove", problem as Problem);
 };
 </script>
 
@@ -524,11 +533,12 @@ const handleRemove = (e: Event, problem: Problem) => {
       <template #cell-status="{ item: problem }">
         <div class="flex justify-center items-center">
           <component
-            :is="(problem as any).statusIcon"
-            v-if="(problem as any).statusIcon"
+            :is="(problem as EnrichedProblem).statusIcon"
+            v-if="(problem as EnrichedProblem).statusIcon"
             class="h-5 w-5"
             :class="{
-              'text-emerald-600': (problem as any).status === 'solved',
+              'text-emerald-600':
+                (problem as EnrichedProblem).status === 'solved',
             }"
           />
         </div>
@@ -537,10 +547,11 @@ const handleRemove = (e: Event, problem: Problem) => {
       <template #cell-title="{ item: problem }">
         <div class="flex items-center gap-2">
           <span class="truncate"
-            >{{ (problem as any).id }}. {{ (problem as any).title }}</span
+            >{{ (problem as EnrichedProblem).id }}.
+            {{ (problem as EnrichedProblem).title }}</span
           >
           <a
-            v-if="(problem as any).hasSolution"
+            v-if="(problem as EnrichedProblem).hasSolution"
             href="#"
             class="no-underline hover:no-underline text-muted-foreground hover:text-foreground"
             @click.stop
@@ -548,7 +559,7 @@ const handleRemove = (e: Event, problem: Problem) => {
             <Video class="h-4 w-4" />
           </a>
           <Lock
-            v-if="(problem as any).isPremium"
+            v-if="(problem as EnrichedProblem).isPremium"
             class="h-4 w-4 text-amber-500"
           />
         </div>
@@ -557,15 +568,19 @@ const handleRemove = (e: Event, problem: Problem) => {
       <template #cell-acceptance="{ item: problem }">
         {{
           formatAcceptance(
-            (problem as any).acceptanceRate ?? (problem as any).acceptance_rate,
+            (problem as EnrichedProblem).acceptanceRate ??
+              (problem as EnrichedProblem).acceptance_rate,
           )
         }}
       </template>
 
       <template #cell-difficulty="{ item: problem }">
-        <span :class="difficultyClass((problem as any).difficulty)">
+        <span :class="difficultyClass((problem as EnrichedProblem).difficulty)">
           {{
-            t("problem.difficulty." + (problem as any).difficulty.toLowerCase())
+            t(
+              "problem.difficulty." +
+                (problem as EnrichedProblem).difficulty.toLowerCase(),
+            )
           }}
         </span>
       </template>
@@ -575,7 +590,9 @@ const handleRemove = (e: Event, problem: Problem) => {
           variant="ghost"
           size="icon"
           class="h-8 w-8 text-muted-foreground hover:text-destructive rounded-full"
-          @click="(e: MouseEvent) => handleRemove(e, problem as Problem)"
+          @click="
+            (e: MouseEvent) => handleRemove(e, problem as EnrichedProblem)
+          "
         >
           <Trash2 class="h-4 w-4" />
         </Button>

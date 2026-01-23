@@ -18,6 +18,7 @@ import { SignInDto } from './dto/sign-in.dto';
 import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthGuard } from './auth.guard';
+import { extractTokenFromHeader } from './auth.utils';
 
 @Controller('auth')
 export class AuthController {
@@ -73,7 +74,7 @@ export class AuthController {
   @Post('logout')
   @UseGuards(AuthGuard)
   async logout(@Req() req: Request, @Res() res: Response) {
-    const token = this.extractTokenFromHeader(req);
+    const token = extractTokenFromHeader(req);
     const result = await this.authService.logout({ token: token || '' }, res);
     return res.json(result);
   }
@@ -93,11 +94,18 @@ export class AuthController {
     return res.json(result);
   }
 
-  private extractTokenFromHeader(request: Request): string | undefined {
-    const [type, token] = (request.headers.authorization?.split(' ') ?? []) as [
-      string | undefined,
-      string | undefined,
-    ];
-    return type === 'Bearer' ? token : undefined;
+  @Get('me')
+  @UseGuards(AuthGuard)
+  getCurrentUser(@Req() req: Request) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return req['user'];
+  }
+
+  @Get('permissions')
+  @UseGuards(AuthGuard)
+  getPermissions(@Req() req: Request) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+    const user = req['user'];
+    return this.authService.getUserPermissions(user.role);
   }
 }

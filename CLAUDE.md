@@ -105,6 +105,33 @@ Seeds in `backend/prisma/seed/`
 - Use DTOs with class-validator for all API inputs
 - Business logic in services, not controllers
 
+### TypeScript Type Safety (MANDATORY)
+
+**FORBIDDEN: Using eslint-disable comments to bypass type checking**
+
+The following patterns are strictly prohibited:
+
+```typescript
+// ❌ FORBIDDEN - Do not use these comments to skip type checking
+// eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
+// eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+// eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+// eslint-disable-next-line @typescript-eslint/no-unsafe-call
+// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+```
+
+**Required approach:**
+
+1. Define proper types/interfaces for all data structures
+2. Use type guards for runtime type validation
+3. Leverage TypeScript's type inference properly
+4. When working with external APIs, define response types
+5. Use Prisma generated types for database models
+6. Use generic types with proper constraints
+
+If TypeScript's type system cannot express a type safely, reconsider the architecture rather than disabling type checking.
+
 ## Admin Frontend Design Guide
 
 The admin frontend (`admin-frontend/src/template/`) follows a dashboard design pattern with these key elements:

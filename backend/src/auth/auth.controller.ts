@@ -19,6 +19,8 @@ import { RegisterDto } from './dto/register.dto';
 import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthGuard } from './auth.guard';
 import { extractTokenFromHeader } from './auth.utils';
+import { CurrentUser } from './decorators/current-user.decorator';
+import { User } from '../user/user.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -96,16 +98,13 @@ export class AuthController {
 
   @Get('me')
   @UseGuards(AuthGuard)
-  getCurrentUser(@Req() req: Request) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-    return req['user'];
+  getCurrentUser(@CurrentUser() user: User): User {
+    return user;
   }
 
   @Get('permissions')
   @UseGuards(AuthGuard)
-  getPermissions(@Req() req: Request) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const user = req['user'];
+  getPermissions(@CurrentUser() user: User) {
     return this.authService.getUserPermissions(user.role);
   }
 }

@@ -9,6 +9,7 @@ import axios, {
 } from "axios";
 import { LOCALE_HEADER_KEY } from "@/i18n";
 import { getActiveLocale } from "@/i18n/utils/locale";
+import { getCsrfToken } from "@/utils/csrf";
 
 /**
  * Standard API Response wrapper
@@ -132,6 +133,15 @@ service.interceptors.request.use(
 
     // Note: Auth is now handled via httpOnly cookies (withCredentials: true)
     // No need to manually attach Authorization header
+
+    // Attach CSRF token for state-changing requests (POST, PUT, PATCH, DELETE)
+    const method = config.method?.toUpperCase();
+    if (method && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+      const csrfToken = getCsrfToken();
+      if (csrfToken) {
+        config.headers['X-CSRF-Token'] = csrfToken;
+      }
+    }
 
     // Add locale headers (both custom x-locale and standard Accept-Language)
     const activeLocale = getActiveLocale();

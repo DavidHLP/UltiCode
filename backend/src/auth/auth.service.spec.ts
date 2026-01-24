@@ -275,9 +275,8 @@ describe('AuthService', () => {
 
   describe('githubCallback', () => {
     it('should create new user and redirect on first GitHub login', async () => {
-      const res = {
-        redirect: jest.fn(),
-      } as unknown as Response;
+      const res = mockResponse();
+      res.redirect = jest.fn().mockReturnThis();
 
       userService.findByEmail.mockResolvedValue(null);
       userService.create.mockResolvedValue(mockUser as any);
@@ -289,9 +288,8 @@ describe('AuthService', () => {
     });
 
     it('should use existing user and redirect on subsequent GitHub login', async () => {
-      const res = {
-        redirect: jest.fn(),
-      } as unknown as Response;
+      const res = mockResponse();
+      res.redirect = jest.fn().mockReturnThis();
 
       userService.findByEmail.mockResolvedValue(mockUser as any);
       jwtService.sign.mockReturnValue('github-jwt-token');

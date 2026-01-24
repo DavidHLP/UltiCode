@@ -91,9 +91,9 @@ onUnmounted(() => {
                 :key="col.key"
                 :class="col.class"
               >
-                <slot :name="'cell-' + col.key" :item="item">
-                  {{ (item as Record<string, unknown>)[col.key] }}
-                </slot>
+                <slot :name="`cell-${col.key}`" :item="item">{{
+                  (item as Record<string, unknown>)[col.key]
+                }}</slot>
               </TableCell>
             </TableRow>
           </template>

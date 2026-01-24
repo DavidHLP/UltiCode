@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
+import { setCsrfToken, clearCsrfToken } from '@/utils/csrf'
 
 export const useAuthStore = defineStore('adminAuth', () => {
   const user = ref<User | null>(null)
@@ -13,7 +14,11 @@ export const useAuthStore = defineStore('adminAuth', () => {
 
   async function login(credentials: LoginCredentials) {
     try {
-      await authApi.login(credentials)
+      const loginResponse = await authApi.login(credentials)
+      // Store CSRF token for subsequent state-changing requests
+      if (loginResponse.csrf_token) {
+        setCsrfToken(loginResponse.csrf_token)
+      }
       // Login response returns partial user data, fetch full user data
       await fetchUser()
       return true
@@ -31,6 +36,7 @@ export const useAuthStore = defineStore('adminAuth', () => {
     } finally {
       user.value = null
       permissions.value.clear()
+      clearCsrfToken()
     }
   }
 

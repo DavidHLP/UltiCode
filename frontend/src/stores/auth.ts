@@ -2,6 +2,7 @@ import { defineStore } from "pinia";
 import { ref, computed } from "vue";
 import { apiGet } from "@/utils/request";
 import type { User } from "@/api/auth";
+import { clearCsrfToken } from "@/utils/csrf";
 
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
@@ -39,6 +40,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   function clearUser(): void {
     user.value = null;
+    clearCsrfToken();
   }
 
   return {

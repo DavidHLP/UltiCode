@@ -15,6 +15,7 @@ import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { login } from "@/api/auth";
 import { toast } from "vue-sonner";
+import { setCsrfToken } from "@/utils/csrf";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -58,6 +59,12 @@ async function handleSubmit(e: Event) {
 
     // Cookies are set automatically by the backend (httpOnly)
     // No need to manually store tokens
+
+    // Store CSRF token for subsequent state-changing requests
+    if (res.csrf_token) {
+      setCsrfToken(res.csrf_token);
+    }
+
     toast.success(t("auth.messages.loginSuccess"));
     router.push("/");
   } catch (error) {

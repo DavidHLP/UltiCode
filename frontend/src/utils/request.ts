@@ -255,6 +255,17 @@ service.interceptors.response.use(
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
+      // 401/403 is expected for unauthenticated users - log only in non-dev mode or for unexpected cases
+      if (!isDevelopment || error.response.status !== 401) {
+        console.error(
+          `[API Error] ${config?._metadata?.requestId || "unknown"}`,
+          {
+            status: error.response?.status,
+            message: error.message,
+          },
+        );
+      }
+      return Promise.reject(ApiError.fromAxiosError(error));
     }
 
     // Log error

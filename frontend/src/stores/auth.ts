@@ -21,8 +21,8 @@ export const useAuthStore = defineStore("auth", () => {
       const userData = await apiGet<User>("/auth/me");
       user.value = userData;
       return userData;
-    } catch (error) {
-      console.error("Failed to fetch user:", error);
+    } catch {
+      // 401 is expected for unauthenticated users - no need to log
       user.value = null;
       return null;
     } finally {

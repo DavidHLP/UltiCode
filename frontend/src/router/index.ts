@@ -250,35 +250,35 @@ const router = createRouter({
 
 // Navigation guard for authentication
 router.beforeEach(async (to, from, next) => {
-  const { useAuthStore } = await import('@/stores/auth')
-  const authStore = useAuthStore()
+  const { useAuthStore } = await import("@/stores/auth");
+  const authStore = useAuthStore();
 
   // Initialize auth store on first navigation
   if (!authStore.isInitialized) {
-    await authStore.initialize()
+    await authStore.initialize();
   }
 
   const requiresAuth = to.matched.some(
     (record) => record.meta.requiresAuth === true,
-  )
+  );
 
   if (requiresAuth && !authStore.isAuthenticated) {
     // Redirect to login with return url
     return next({
-      name: 'login',
+      name: "login",
       query: { redirect: to.fullPath },
-    })
+    });
   }
 
   // If already authenticated and trying to access login/register, redirect to home
   if (
     authStore.isAuthenticated &&
-    (to.name === 'login' || to.name === 'register')
+    (to.name === "login" || to.name === "register")
   ) {
-    return next({ name: 'forum-home' })
+    return next({ name: "forum-home" });
   }
 
-  next()
-})
+  next();
+});
 
 export default router;

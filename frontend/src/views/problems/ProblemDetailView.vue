@@ -570,15 +570,17 @@ watch(
       }
       if (route.params.tab !== tabName) {
         isUpdatingFromStore.value = true;
-        router.push({
-          name: "problem-detail",
-          params: { ...route.params, tab: tabName },
-        }).then(() => {
-          // Reset flag after navigation completes
-          nextTick(() => {
-            isUpdatingFromStore.value = false;
+        router
+          .push({
+            name: "problem-detail",
+            params: { ...route.params, tab: tabName },
+          })
+          .then(() => {
+            // Reset flag after navigation completes
+            nextTick(() => {
+              isUpdatingFromStore.value = false;
+            });
           });
-        });
       }
     }
   },

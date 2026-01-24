@@ -1,1 +1,0 @@
-import{i as e}from"./Collection-B22D5QLd.js";import{r,c as i}from"./index-BlNg8JvZ.js";function a(n,o=Number.NEGATIVE_INFINITY,t=Number.POSITIVE_INFINITY){return Math.min(t,Math.max(o,n))}function m(n){return n==null}function s(n){const o=e({nonce:r()});return i(()=>n?.value||o.nonce?.value)}export{a as c,m as i,s as u};

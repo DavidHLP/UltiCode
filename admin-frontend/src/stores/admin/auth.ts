@@ -51,8 +51,8 @@ export const useAuthStore = defineStore('adminAuth', () => {
       user.value = userData
       await loadPermissions()
       return userData
-    } catch (error) {
-      console.error('Failed to fetch user:', error)
+    } catch {
+      // 401 is expected for unauthenticated users - no need to log
       user.value = null
       permissions.value.clear()
       return null

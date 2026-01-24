@@ -1,1 +1,0 @@
-import{a as e}from"./index-Bxlg1VJc.js";const a=e("gallery-vertical-end",[["path",{d:"M7 2h10",key:"nczekb"}],["path",{d:"M5 6h14",key:"u2x4p"}],["rect",{width:"18",height:"12",x:"3",y:"10",rx:"2",key:"l0tzu3"}]]);export{a as G};

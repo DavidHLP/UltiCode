@@ -1,1 +1,0 @@
-import{a4 as s,l as a,p as o,f as t,o as n}from"./index-BlNg8JvZ.js";const c={},l={class:"max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500"},r={class:"space-y-6"};function i(e,d){return n(),a("div",l,[o("div",r,[t(e.$slots,"default")])])}const f=s(c,[["render",i]]);export{f as P};

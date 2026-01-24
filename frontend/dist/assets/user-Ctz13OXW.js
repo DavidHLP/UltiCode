@@ -1,1 +1,0 @@
-import{b as r,g as e}from"./request-CsQxgJX2.js";async function n(s){return r(`/users/${s}`)}async function u(s,t){return e(`/users/${s}`,t)}async function c(s){return r(`/users/${s}/stats`)}export{c as a,n as f,u};

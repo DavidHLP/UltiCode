@@ -51,9 +51,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useProblemsStore } from '@/stores/admin/problems'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import { Difficulty, type Problem, problemsApi } from '@/api/admin/problems'
-import { ApiError } from '@/api/client'
+import { ApiError } from '@/utils/request'
 
 import DataTable from '@/components/table/DataTable.vue'
 import ProblemDeleteDialog from './ProblemDeleteDialog.vue'

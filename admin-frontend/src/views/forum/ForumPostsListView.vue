@@ -38,7 +38,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useForumStore } from '@/stores/admin/forum'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import type { ForumPost } from '@/api/admin/forum'
 
 import DataTable from '@/components/table/DataTable.vue'

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from '../client'
+import { apiGet, apiPost, apiDelete } from '@/utils/request'
 
 export interface ForumUser {
   id: string

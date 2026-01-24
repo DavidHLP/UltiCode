@@ -1,4 +1,4 @@
-import { apiGet } from '../client'
+import { apiGet } from '@/utils/request'
 
 export interface AuditLog {
   id: string

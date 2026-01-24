@@ -41,7 +41,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useContestsStore } from '@/stores/admin/contests'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import type { Contest } from '@/api/admin/contests'
 import { ContestType } from '@/api/admin/contests'
 

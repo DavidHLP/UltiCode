@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
-import { resetPassword } from "@/api/auth";
+import { authApi } from "@/api/auth";
 import { toast } from "vue-sonner";
 import { GalleryVerticalEnd } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
@@ -53,7 +53,7 @@ async function handleReset(e: Event) {
 
   loading.value = true;
   try {
-    await resetPassword(token.value, newPassword.value);
+    await authApi.resetPassword(token.value, newPassword.value);
     toast.success(t("auth.resetPassword.successMessage"));
     router.push("/login");
   } catch (error) {

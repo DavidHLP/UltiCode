@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch, apiDelete } from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
 export interface ProblemList {
   id: string

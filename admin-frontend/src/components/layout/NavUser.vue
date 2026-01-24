@@ -8,7 +8,7 @@ import {
 } from '@tabler/icons-vue'
 
 import { useRouter } from 'vue-router'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,

@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiPost } from '../client'
+import { apiGet, apiPatch, apiPost } from '@/utils/request'
 
 export interface SystemSettings {
   maintenance_mode: boolean

@@ -39,7 +39,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useUsersStore } from '@/stores/admin/users'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/api/admin/users'
 
 import DataTable from '@/components/table/DataTable.vue'

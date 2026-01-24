@@ -1,4 +1,4 @@
-import { apiGet, apiPost } from './client'
+import { apiGet, apiPost } from '@/utils/request'
 
 export interface LoginCredentials {
   username: string

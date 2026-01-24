@@ -29,6 +29,7 @@ export interface RequestConfig extends AxiosRequestConfig {
   retryDelay?: number;
   skipAuth?: boolean;
   skipErrorHandler?: boolean;
+  skipResponseUnwrap?: boolean;
   cache?: boolean;
   cacheTTL?: number;
   requestId?: string;
@@ -202,7 +203,10 @@ service.interceptors.response.use(
       });
     }
 
-    // Return unwrapped data by default
+    // Return full response for download requests, unwrapped data otherwise
+    if (config.skipResponseUnwrap) {
+      return response;
+    }
     return response.data;
   },
   async (error: AxiosError) => {
@@ -370,9 +374,10 @@ export async function apiDownload(
   const response = await (service as AxiosInstance).get<Blob>(path, {
     ...init,
     responseType: "blob",
-  });
+    skipResponseUnwrap: true,
+  } as RequestConfig);
 
-  const url = window.URL.createObjectURL(response.data);
+  const url = window.URL.createObjectURL(response.data as Blob);
   const link = document.createElement("a");
   link.href = url;
   link.setAttribute("download", filename || "download");

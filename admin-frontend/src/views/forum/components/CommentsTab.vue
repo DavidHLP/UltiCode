@@ -23,7 +23,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useCommentsStore } from '@/stores/admin/comments'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import type { Comment, CommentType } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'

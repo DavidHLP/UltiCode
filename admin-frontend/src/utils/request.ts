@@ -6,6 +6,7 @@ import axios, {
   type AxiosInstance,
   type CancelTokenSource,
 } from 'axios'
+import { LOCALE_HEADER_KEY, getActiveLocale } from '@/i18n'
 import { getCsrfToken } from '@/utils/csrf'
 
 /**
@@ -82,7 +83,7 @@ const pendingRequests = new Map<string, CancelTokenSource>()
  * Generate unique request ID
  */
 function generateRequestId(): string {
-  return `admin_req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
+  return `req_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`
 }
 
 /**
@@ -137,6 +138,11 @@ service.interceptors.request.use(
       }
     }
 
+    // Add locale headers (both custom x-locale and standard Accept-Language)
+    const activeLocale = getActiveLocale()
+    config.headers[LOCALE_HEADER_KEY] = activeLocale
+    config.headers['Accept-Language'] = activeLocale
+
     // Request deduplication
     const key = getRequestKey(config)
     if (pendingRequests.has(key)) {
@@ -151,7 +157,7 @@ service.interceptors.request.use(
 
     // Log request in development
     if (isDevelopment) {
-      console.log(`[Admin API Request] ${requestId}`, {
+      console.log(`[API Request] ${requestId}`, {
         method: config.method?.toUpperCase(),
         url: config.url,
         headers: config.headers,
@@ -184,7 +190,7 @@ service.interceptors.response.use(
     // Log response in development
     if (isDevelopment && metadata) {
       const duration = Date.now() - metadata.startTime
-      console.log(`[Admin API Response] ${metadata.requestId}`, {
+      console.log(`[API Response] ${metadata.requestId}`, {
         status: response.status,
         duration: `${duration}ms`,
         data: response.data,
@@ -208,7 +214,7 @@ service.interceptors.response.use(
 
     // Handle request cancellation
     if (axios.isCancel(error)) {
-      console.log('Admin request canceled:', error.message)
+      console.log('Request canceled:', error.message)
       return Promise.reject(new ApiError('Request canceled', 0))
     }
 
@@ -235,7 +241,7 @@ service.interceptors.response.use(
         await new Promise((resolve) => setTimeout(resolve, delay))
 
         if (isDevelopment) {
-          console.log(`[Admin API Retry] ${metadata.requestId}`, {
+          console.log(`[API Retry] ${metadata.requestId}`, {
             attempt: retryCount + 1,
             maxRetry,
             delay,
@@ -246,30 +252,34 @@ service.interceptors.response.use(
       }
     }
 
-    // Handle authentication errors (401)
+    // Handle authentication errors (401/403)
     // Cookies are httpOnly - cannot be removed by JavaScript
     // Backend will handle cookie clearing on logout
-    if (error.response?.status === 401) {
+    if (
+      error.response &&
+      (error.response.status === 401 || error.response.status === 403)
+    ) {
+      // Redirect to login page
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
-      // Silent handling for 401 - expected for unauthenticated users
+      // Silent handling for 401/403 - expected for unauthenticated users
       return Promise.reject(ApiError.fromAxiosError(error))
     }
 
-    // Log other errors - skip 401
+    // Log other errors - skip auth errors
     if (isDevelopment && config?._metadata) {
       const status = error.response?.status
-      // Skip logging 401 - already handled above with redirect
-      if (status !== 401) {
-        console.error(`[Admin API Error] ${config._metadata.requestId}`, {
+      // Skip logging 401/403 - already handled above with redirect
+      if (status !== 401 && status !== 403) {
+        console.error(`[API Error] ${config._metadata.requestId}`, {
           status: error.response?.status,
           message: error.message,
           data: error.response?.data,
         })
       }
     } else {
-      console.error('Admin request error:', error)
+      console.error('Request error:', error)
     }
 
     return Promise.reject(ApiError.fromAxiosError(error))

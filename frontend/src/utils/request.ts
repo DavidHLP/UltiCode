@@ -244,37 +244,32 @@ service.interceptors.response.use(
       }
     }
 
-    // Handle authentication errors
+    // Handle authentication errors (401/403)
+    // Cookies are httpOnly - cannot be removed by JavaScript
+    // Backend will handle cookie clearing on logout
     if (
       error.response &&
       (error.response.status === 401 || error.response.status === 403)
     ) {
-      // Cookies are httpOnly - cannot be removed by JavaScript
-      // Backend will handle cookie clearing on logout
       // Redirect to login page
       if (window.location.pathname !== "/login") {
         window.location.href = "/login";
       }
-      // 401/403 is expected for unauthenticated users - log only in non-dev mode or for unexpected cases
-      if (!isDevelopment || error.response.status !== 401) {
-        console.error(
-          `[API Error] ${config?._metadata?.requestId || "unknown"}`,
-          {
-            status: error.response?.status,
-            message: error.message,
-          },
-        );
-      }
+      // Silent handling for 401/403 - expected for unauthenticated users
       return Promise.reject(ApiError.fromAxiosError(error));
     }
 
-    // Log error
+    // Log other errors - skip auth errors
     if (isDevelopment && config?._metadata) {
-      console.error(`[API Error] ${config._metadata.requestId}`, {
-        status: error.response?.status,
-        message: error.message,
-        data: error.response?.data,
-      });
+      const status = error.response?.status;
+      // Skip logging 401/403 - already handled above with redirect
+      if (status !== 401 && status !== 403) {
+        console.error(`[API Error] ${config._metadata.requestId}`, {
+          status: error.response?.status,
+          message: error.message,
+          data: error.response?.data,
+        });
+      }
     } else {
       console.error("Request error:", error);
     }

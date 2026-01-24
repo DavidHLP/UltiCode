@@ -236,30 +236,28 @@ service.interceptors.response.use(
       }
     }
 
-    // Handle authentication errors - redirect to login
+    // Handle authentication errors (401)
     // Cookies are httpOnly - cannot be removed by JavaScript
     // Backend will handle cookie clearing on logout
     if (error.response?.status === 401) {
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'
       }
-      // 401 is expected for unauthenticated users - log only in non-dev mode or for unexpected cases
-      if (!isDevelopment || error.response.status !== 401) {
-        console.error(`[Admin API Error] ${config?._metadata?.requestId || 'unknown'}`, {
-          status: error.response?.status,
-          message: error.message,
-        })
-      }
+      // Silent handling for 401 - expected for unauthenticated users
       return Promise.reject(ApiError.fromAxiosError(error))
     }
 
-    // Log error
+    // Log other errors - skip 401
     if (isDevelopment && config?._metadata) {
-      console.error(`[Admin API Error] ${config._metadata.requestId}`, {
-        status: error.response?.status,
-        message: error.message,
-        data: error.response?.data,
-      })
+      const status = error.response?.status
+      // Skip logging 401 - already handled above with redirect
+      if (status !== 401) {
+        console.error(`[Admin API Error] ${config._metadata.requestId}`, {
+          status: error.response?.status,
+          message: error.message,
+          data: error.response?.data,
+        })
+      }
     } else {
       console.error('Admin request error:', error)
     }

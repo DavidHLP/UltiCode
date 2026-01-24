@@ -58,6 +58,11 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener("scroll", handleScroll);
 });
+
+// Helper function to get cell value
+const getCellValue = (item: T, key: string) => {
+  return (item as Record<string, unknown>)[key];
+};
 </script>
 
 <template>
@@ -91,9 +96,12 @@ onUnmounted(() => {
                 :key="col.key"
                 :class="col.class"
               >
-                <slot :name="`cell-${col.key}`" :item="item">{{
-                  (item as Record<string, unknown>)[col.key]
-                }}</slot>
+                <template v-if="$slots[`cell-${col.key}`]">
+                  <slot :name="`cell-${col.key}`" :item="item" />
+                </template>
+                <template v-else>
+                  {{ getCellValue(item, col.key) }}
+                </template>
               </TableCell>
             </TableRow>
           </template>

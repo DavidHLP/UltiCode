@@ -37,7 +37,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useSolutionsStore } from '@/stores/admin/solutions'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import type { Solution } from '@/api/admin/solutions'
 
 import DataTable from '@/components/table/DataTable.vue'

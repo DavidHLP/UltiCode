@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/admin/dashboard'
 import { useAuditStore } from '@/stores/admin/audit'
 import SectionCards, { type StatItem } from '@/components/dashboard/SectionCards.vue'

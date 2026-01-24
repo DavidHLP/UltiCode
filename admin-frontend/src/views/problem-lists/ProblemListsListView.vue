@@ -34,7 +34,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import type { ProblemList } from '@/api/admin/problem-lists'
 
 import DataTable from '@/components/table/DataTable.vue'

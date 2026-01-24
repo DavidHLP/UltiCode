@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { login } from "@/api/auth";
+import { authApi } from "@/api/auth";
 import { toast } from "vue-sonner";
 import { setCsrfToken } from "@/utils/csrf";
 
@@ -40,7 +40,7 @@ async function handleSubmit(e: Event) {
   e.preventDefault();
   loading.value = true;
   try {
-    const res = await login({
+    const res = await authApi.login({
       username: email.value,
       password: password.value,
     });

@@ -217,149 +217,30 @@ Include Prisma migration files when changing schema.
 
 After completing a coding task, you **MUST** follow this exact sequence before ending the turn:
 
-### Pre-Implementation: Discovery with Gemini (Optional but Recommended)
-
-For complex tasks involving multiple files or modules:
-
-1. **Use Gemini for codebase analysis**:
-   - "use gemini to analyze @backend/src/[module] and identify all affected files"
-   - "ask gemini to find existing patterns for [feature] across the codebase"
-   - "use gemini to understand the dependencies between these modules"
-
-2. **Plan your approach** based on Gemini's findings:
-   - Identify all files that need modification
-   - Understand existing patterns to follow
-   - Verify functionality doesn't already exist
-
 ### Implementation Phase
 
-3. **Make targeted changes**:
+1. **Make targeted changes**:
    - Use Claude's Read/Edit/Write tools for precise modifications
    - Run tests frequently during development
 
 ### Post-Implementation: Verification & Commit (MANDATORY)
 
-4. **Verify**:
+2. **Verify**:
 
    - Run `npm run type-check`
    - Run `npm run lint`
    - Run `npm run format`
    - Run `npm run test --prefix backend` (ensure unit tests pass)
 
-5. **Optional: Gemini pattern verification** (for complex changes):
-   - "use gemini to verify @modified-files/ follow project patterns"
-   - "ask gemini to check if all occurrences of [pattern] were updated"
-
-6. **Commit**:
+3. **Commit**:
 
    - If verifications pass, you **MUST** create a git commit.
    - Run `git add .` (or specific files)
    - **FORBIDDEN**: Do NOT include any AI attribution, signatures, "Generated with...", "Co-Authored-By", or robot emojis. The commit message must appear strictly human-written.
    - Run `git commit -m "type(scope): message"`
 
-7. **Finish**:
+4. **Finish**:
    - You may only mark the task as "Complete" or "Done" **AFTER** the git commit is successfully executed.
 
 **CRITICAL RULE**: Do not leave code changes uncommitted. Always run `git commit` as the final step of your implementation.
 
-**Workflow Summary**: Gemini for understanding → Claude for implementing → Tests for verification → Git for committing
-
-## Using Gemini MCP Tool for Large Codebase Analysis
-
-This project integrates the Gemini MCP Tool, which allows Claude to leverage Google Gemini's massive token context window for analyzing large files and codebases that would otherwise exceed context limits.
-
-### Setup
-
-The Gemini MCP Tool should be configured in your Claude Code environment. Verify installation by typing `/mcp` in Claude Code to confirm `gemini-cli` is active.
-
-### Usage via MCP Tool (Recommended)
-
-Use the MCP tool directly through Claude:
-
-**Natural language requests:**
-- "use gemini to explain backend/src/auth/"
-- "ask gemini to analyze the frontend architecture"
-- "use gemini to search for authentication patterns"
-
-**With file references (using @ syntax):**
-- "use gemini to analyze @backend/src/auth/ and explain the authentication flow"
-- "ask gemini to compare @frontend/src/stores/ with @admin-frontend/src/stores/"
-- "use gemini to verify @backend/src/problem/ for proper error handling"
-
-**Sandbox mode for safe testing:**
-- "use gemini sandbox to test this Python script"
-- "ask gemini to safely create and run a data processing script"
-
-### When to Use Gemini
-
-Use Gemini during these phases:
-
-**Planning Phase (Before Implementation):**
-- Analyzing entire modules to understand architecture before changes
-- Identifying all files affected by a planned feature
-- Discovering existing patterns to follow or avoid
-- Verifying if functionality already exists before implementing
-- Understanding dependencies and cross-module interactions
-
-**Research/Discovery:**
-- Finding all usages of a specific pattern across the codebase
-- Locating where specific features are implemented
-- Understanding how similar problems were solved previously
-- Identifying potential impact areas for changes
-
-**Verification (After Implementation):**
-- Checking if new code follows existing patterns
-- Verifying all occurrences of a pattern were updated
-- Ensuring consistency across similar modules
-
-**Use Gemini when:**
-- Analyzing directories with >10 files or >100KB total
-- Comparing multiple large files side-by-side
-- Searching for patterns across entire modules
-- Context window constraints prevent full analysis
-- Need comprehensive project-wide understanding
-
-### Integration with Task Planning
-
-When starting a new task, follow this enhanced workflow:
-
-1. **Discovery Phase** (Use Gemini for large-scale analysis):
-   - "use gemini to analyze @backend/src/[module] and describe the architecture"
-   - "ask gemini to find all files related to [feature] in @frontend/src/"
-   - "use gemini to identify the authentication flow across the codebase"
-
-2. **Planning Phase** (Use insights from Gemini):
-   - Create task list based on comprehensive understanding
-   - Identify all affected files upfront
-   - Follow existing patterns discovered
-
-3. **Implementation Phase** (Use Claude's tools):
-   - Make targeted changes to specific files
-   - Run tests, lint, type-check
-   - Use Gemini for verification if needed
-
-4. **Verification Phase** (Optional Gemini check):
-   - "use gemini to verify @backend/src/[modified-files] follow project patterns"
-
-### MCP Tool Capabilities
-
-**ask-gemini**: General analysis and questions
-- Supports @ syntax for file/directory inclusion
-- Optional: specify model (default: gemini-2.5-pro)
-- Optional: sandbox mode for safe execution
-
-**brainstorm**: Generate creative ideas
-- Methodology options: divergent, convergent, scamper, design-thinking
-- Domain context integration
-- Feasibility analysis
-
-**sandbox-test**: Safe code execution
-- Isolated environment for testing scripts
-- No risk to local files
-
-### Important Notes
-
-- @ syntax paths are relative to current working directory
-- Gemini excels at broad analysis; Claude excels at targeted changes
-- Use Gemini for understanding, Claude for implementation
-- No special flags needed for read-only analysis via MCP

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch, apiDelete, apiDownload } from '../client'
+import { apiGet, apiPost, apiPatch, apiDelete, apiDownload } from '@/utils/request'
 
 export enum Difficulty {
   EASY = 'EASY',

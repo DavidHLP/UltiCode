@@ -36,7 +36,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useTagsStore } from '@/stores/admin/tags'
-import { useAuthStore } from '@/stores/admin/auth'
+import { useAuthStore } from '@/stores/auth'
 import { TagType, type Tag } from '@/api/admin/tags'
 
 const { t } = useI18n()

@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from '@/api/client'
+import { apiGet, apiPost, apiDelete } from '@/utils/request'
 
 export enum NotificationType {
   COMMENT = 'COMMENT',

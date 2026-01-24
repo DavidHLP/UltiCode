@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { register } from "@/api/auth";
+import { authApi } from "@/api/auth";
 import { setToken, setUserId } from "@/utils/auth";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
@@ -32,7 +32,7 @@ async function handleSubmit(e: Event) {
   e.preventDefault();
   loading.value = true;
   try {
-    const res = await register({
+    const res = await authApi.register({
       username: username.value,
       email: email.value,
       password: password.value,

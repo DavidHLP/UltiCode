@@ -33,7 +33,7 @@ import {
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { logout } from "@/api/auth";
+import { authApi } from "@/api/auth";
 import { isAuthenticated, removeToken, removeUserId } from "@/utils/auth";
 import { toast } from "vue-sonner";
 import { useNotificationStore } from "@/stores/notification";
@@ -64,7 +64,7 @@ onMounted(() => {
 
 async function handleLogout() {
   try {
-    await logout();
+    await authApi.logout();
   } catch (error) {
     console.error("Logout failed", error);
     // Continue with local cleanup anyway

@@ -1,4 +1,5 @@
 import { createI18n } from 'vue-i18n'
+import { isRef } from 'vue'
 import zhCN from './locales/zh-CN'
 import enUS from './locales/en-US'
 
@@ -67,5 +68,19 @@ export const i18n = createI18n({
     'en-US': enUS,
   },
 })
+
+/**
+ * Get active locale from i18n instance
+ */
+export function getActiveLocale(): SupportedLocale {
+  const localeRef = i18n.global.locale
+  const localeValue = isRef(localeRef) ? localeRef.value : localeRef
+
+  if (SUPPORTED_LOCALES.includes(localeValue as SupportedLocale)) {
+    return localeValue as SupportedLocale
+  }
+
+  return DEFAULT_LOCALE
+}
 
 export default i18n

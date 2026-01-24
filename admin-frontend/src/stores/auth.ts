@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
 import { setCsrfToken, clearCsrfToken } from '@/utils/csrf'
 
-export const useAuthStore = defineStore('adminAuth', () => {
+export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const permissions = ref<Set<string>>(new Set())
   const isInitialized = ref(false)

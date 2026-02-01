@@ -104,7 +104,7 @@ function getRequestKey(config: InternalAxiosRequestConfig): string {
  */
 const isDevelopment = import.meta.env.DEV;
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:6001";
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
 
 /**
  * Create axios instance with default config
@@ -137,10 +137,15 @@ service.interceptors.request.use(
 
     // Attach CSRF token for state-changing requests (POST, PUT, PATCH, DELETE)
     const method = config.method?.toUpperCase();
-    if (method && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
+    if (
+      method &&
+      method !== "GET" &&
+      method !== "HEAD" &&
+      method !== "OPTIONS"
+    ) {
       const csrfToken = getCsrfToken();
       if (csrfToken) {
-        config.headers['X-CSRF-Token'] = csrfToken;
+        config.headers["X-CSRF-Token"] = csrfToken;
       }
     }
 

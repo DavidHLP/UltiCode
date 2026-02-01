@@ -8,14 +8,14 @@
  * XSS attacks from stealing them.
  */
 
-let csrfToken: string | null = null;
+let csrfToken: string | null = null
 
 /**
  * Store the CSRF token
  * @param token - The CSRF token from the login response
  */
 export function setCsrfToken(token: string): void {
-  csrfToken = token;
+  csrfToken = token
 }
 
 /**
@@ -23,7 +23,7 @@ export function setCsrfToken(token: string): void {
  * @returns The CSRF token or null if not set
  */
 export function getCsrfToken(): string | null {
-  return csrfToken;
+  return csrfToken
 }
 
 /**
@@ -31,5 +31,5 @@ export function getCsrfToken(): string | null {
  * Called on logout to clean up
  */
 export function clearCsrfToken(): void {
-  csrfToken = null;
+  csrfToken = null
 }

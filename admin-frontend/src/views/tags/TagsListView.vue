@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
+import { ref, computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
@@ -39,27 +38,25 @@ import { useTagsStore } from '@/stores/admin/tags'
 import { useAuthStore } from '@/stores/auth'
 import { TagType, type Tag } from '@/api/admin/tags'
 
-const { t } = useI18n()
-
 import DataTable from '@/components/table/DataTable.vue'
 import TagEditDialog from './TagEditDialog.vue'
-import TagDeleteDialog from './TagDeleteDialog.vue'
 import TagMergeDialog from './TagMergeDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { useDataTable } from '@/composables/useDataTable'
 
+const { t } = useI18n()
 const tagsStore = useTagsStore()
 const authStore = useAuthStore()
 
-const searchQuery = ref('')
 const tagTypeFilter = ref<TagType>(TagType.PROBLEM)
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedTag = ref<Tag | null>(null)
+const selectedTagName = ref<string | null>(null)
 const editDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 const mergeDialogOpen = ref(false)
 
 const bulkActionLoading = ref(false)
-const selectedRows = ref<Tag[]>([])
 
 const canManageTags = computed(
   () =>
@@ -67,36 +64,34 @@ const canManageTags = computed(
     authStore.hasPermission('UPDATE', 'PROBLEM'),
 )
 
-onMounted(() => loadTags())
-
-async function loadTags() {
-  await tagsStore.fetchTags({
-    search: searchQuery.value || undefined,
-    type: tagTypeFilter.value,
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
-
-watchDebounced(
+const {
   searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadTags()
+  tablePagination,
+  selectedRows,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadTags,
+} = useDataTable<Tag, { tagType: TagType }, Parameters<typeof tagsStore.fetchTags>[0]>({
+  store: {
+    data: computed(() => tagsStore.tags),
+    total: computed(() => tagsStore.total),
+    isLoading: computed(() => tagsStore.isLoading),
+    error: computed(() => tagsStore.error),
+    fetch: (params) => tagsStore.fetchTags(params),
   },
-  { debounce: 500 },
-)
-
-watch(tagTypeFilter, () => {
-  tablePagination.value.pageIndex = 0
-  loadTags()
+  filters: {
+    tagType: tagTypeFilter.value,
+  },
+  transformParams: ({ search, filters, page, limit }) => ({
+    search,
+    type: filters.tagType,
+    page,
+    limit,
+  }),
+  autoLoad: true,
 })
-
-watch(
-  () => tablePagination.value,
-  () => loadTags(),
-  { deep: true },
-)
 
 function openCreateDialog() {
   selectedTag.value = null
@@ -110,12 +105,17 @@ function openEditDialog(tag: Tag) {
 
 function openDeleteDialog(tag: Tag) {
   selectedTag.value = tag
+  selectedTagName.value = tag.name
   deleteDialogOpen.value = true
 }
 
 function openMergeDialog(tag: Tag) {
   selectedTag.value = tag
   mergeDialogOpen.value = true
+}
+
+async function handleDeleteTag(id: string | number) {
+  await tagsStore.deleteTag(String(id), tagTypeFilter.value)
 }
 
 async function handleBulkDelete() {
@@ -331,10 +331,10 @@ const columns: ColumnDef<Tag>[] = [
 
     <DataTable
       :columns="columns"
-      :data="tagsStore.tags"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="tagsStore.total"
-      :loading="tagsStore.isLoading"
+      :row-count="total"
+      :loading="loading"
       v-model:selected-rows="selectedRows"
       @update:pagination="tablePagination = $event"
     >
@@ -364,7 +364,7 @@ const columns: ColumnDef<Tag>[] = [
           </SelectContent>
         </Select>
         <Button variant="outline" size="icon" @click="loadTags()" :title="t('common.refresh')">
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': tagsStore.isLoading }" />
+          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
         </Button>
       </template>
 
@@ -378,10 +378,10 @@ const columns: ColumnDef<Tag>[] = [
 
     <!-- Error state -->
     <div
-      v-if="tagsStore.error"
+      v-if="error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ tagsStore.error }}</span>
+      <span class="text-destructive">{{ error }}</span>
       <Button variant="outline" size="sm" @click="loadTags()">{{ t('tags.retry') }}</Button>
     </div>
   </div>
@@ -393,11 +393,18 @@ const columns: ColumnDef<Tag>[] = [
     @success="loadTags"
   />
 
-  <TagDeleteDialog
+  <EntityActionDialog
     v-model:open="deleteDialogOpen"
-    :tag-id="selectedTag?.id || null"
-    :tag-name="selectedTag?.name || null"
-    :tag-type="tagTypeFilter"
+    :entity-id="selectedTag?.id || null"
+    :entity-title="selectedTagName"
+    action="delete"
+    :title="t('tags.delete.title')"
+    :description="t('tags.delete.description')"
+    :confirm-label="t('tags.delete.confirm')"
+    :cancel-label="t('common.cancel')"
+    :success-label="t('tags.toast.deletedSuccessfully')"
+    :error-label="t('tags.toast.failedToDelete')"
+    :on-action="handleDeleteTag"
     @success="loadTags"
   />
 

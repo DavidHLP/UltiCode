@@ -27,8 +27,7 @@ import { useAuthStore } from '@/stores/auth'
 import type { Comment, CommentType } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'
-import CommentDeleteDialog from '../../comments/CommentDeleteDialog.vue'
-import CommentFlagDialog from '../../comments/CommentFlagDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 
 defineProps<{
   postId: string
@@ -41,6 +40,7 @@ const authStore = useAuthStore()
 const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 const selectedCommentId = ref<string | null>(null)
 const selectedCommentType = ref<CommentType | null>(null)
+const selectedCommentContent = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
 
@@ -71,13 +71,26 @@ watch(
 function confirmDelete(comment: Comment) {
   selectedCommentId.value = comment.id
   selectedCommentType.value = comment.type
+  selectedCommentContent.value = comment.content
   deleteDialogOpen.value = true
 }
 
 function openFlagDialog(comment: Comment) {
   selectedCommentId.value = comment.id
   selectedCommentType.value = comment.type
+  selectedCommentContent.value = comment.content
   flagDialogOpen.value = true
+}
+
+async function handleDeleteComment(id: string | number) {
+  if (!selectedCommentType.value) return
+  await commentsStore.deleteComment(String(id), selectedCommentType.value)
+}
+
+async function handleFlagComment(id: string | number, reason?: string) {
+  if (!selectedCommentType.value) return
+  void reason // Used by EntityActionDialog
+  await commentsStore.flagComment(String(id), selectedCommentType.value, reason || '')
 }
 
 async function unflagComment(comment: Comment) {
@@ -287,17 +300,35 @@ const columns: ColumnDef<Comment>[] = [
     </div>
 
     <!-- Dialogs -->
-    <CommentDeleteDialog
+    <EntityActionDialog
       v-model:open="deleteDialogOpen"
-      :comment-id="selectedCommentId"
-      :comment-type="selectedCommentType"
+      :entity-id="selectedCommentId"
+      :entity-title="selectedCommentContent"
+      action="delete"
+      :title="t('comments.delete.title')"
+      :description="t('comments.delete.description')"
+      :confirm-label="t('comments.delete.confirm')"
+      :cancel-label="t('comments.delete.cancel')"
+      :success-label="t('comments.toast.deletedSuccessfully')"
+      :error-label="t('comments.toast.failedToDelete')"
+      :on-action="handleDeleteComment"
       @success="loadComments"
     />
 
-    <CommentFlagDialog
+    <EntityActionDialog
       v-model:open="flagDialogOpen"
-      :comment-id="selectedCommentId"
-      :comment-type="selectedCommentType"
+      :entity-id="selectedCommentId"
+      action="flag"
+      :title="t('comments.flag.title')"
+      :description="t('comments.flag.description')"
+      :confirm-label="t('comments.flag.confirm')"
+      :cancel-label="t('comments.flag.cancel')"
+      :success-label="t('comments.toast.flaggedSuccessfully')"
+      :error-label="t('comments.toast.failedToFlag')"
+      :reason-label="t('comments.flag.reasonLabel')"
+      :reason-placeholder="t('comments.flag.reasonPlaceholder')"
+      :reason-required-label="t('comments.toast.reasonRequired')"
+      :on-action="handleFlagComment"
       @success="loadComments"
     />
   </div>

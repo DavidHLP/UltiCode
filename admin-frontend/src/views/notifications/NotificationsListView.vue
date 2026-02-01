@@ -33,7 +33,7 @@ import { NotificationType, type SystemAnnouncement } from '@/api/admin/notificat
 
 import DataTable from '@/components/table/DataTable.vue'
 import NotificationCreateDialog from './NotificationCreateDialog.vue'
-import NotificationDeleteDialog from './NotificationDeleteDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 
 const { t } = useI18n()
 const store = useNotificationsStore()
@@ -49,6 +49,10 @@ function startDelete(notification: SystemAnnouncement) {
   selectedNotificationId.value = notification.id
   selectedNotificationTitle.value = notification.title
   deleteDialogOpen.value = true
+}
+
+async function handleDelete(id: string | number) {
+  await store.deleteAnnouncement(String(id))
 }
 
 function getTypeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive' | 'outline' {
@@ -229,10 +233,18 @@ onMounted(() => {
   </div>
 
   <NotificationCreateDialog v-model:open="createDialogOpen" @success="store.fetchAnnouncements()" />
-  <NotificationDeleteDialog
+  <EntityActionDialog
     v-model:open="deleteDialogOpen"
-    :notification-id="selectedNotificationId"
-    :notification-title="selectedNotificationTitle"
+    :entity-id="selectedNotificationId"
+    :entity-title="selectedNotificationTitle"
+    action="delete"
+    :title="t('notifications.delete.title')"
+    :description="t('notifications.delete.description')"
+    :confirm-label="t('common.deleteConfirm')"
+    :cancel-label="t('common.cancel')"
+    :success-label="t('notifications.deleteSuccess')"
+    :error-label="t('notifications.deleteError')"
+    :on-action="handleDelete"
     @success="store.fetchAnnouncements()"
   />
 </template>

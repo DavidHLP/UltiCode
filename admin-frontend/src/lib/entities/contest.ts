@@ -1,6 +1,5 @@
-import type { Component } from 'vue'
-import { h } from 'vue'
-import { IconCircleCheckFilled, IconCircleXFilled, IconLoader } from '@tabler/icons-vue'
+import { h, type VNode } from 'vue'
+import { IconCalendar, IconPlayerPlay, IconPlayerStop } from '@tabler/icons-vue'
 import { Badge } from '@/components/ui/badge'
 import type { BadgeVariant } from './user'
 
@@ -10,14 +9,14 @@ export type ContestType = 'PUBLIC' | 'PRIVATE' | 'VIRTUAL'
 /**
  * Returns the icon component for a contest status
  */
-export function getContestStatusIcon(status: ContestStatus): Component {
+export function getContestStatusIcon(status: ContestStatus): VNode {
   switch (status) {
     case 'RUNNING':
-      return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-emerald-500' })
+      return h(IconPlayerPlay, { class: 'h-4 w-4 text-emerald-500' })
     case 'FINISHED':
-      return h(IconCircleXFilled, { class: 'h-4 w-4 text-muted-foreground' })
+      return h(IconPlayerStop, { class: 'h-4 w-4 text-muted-foreground' })
     default:
-      return h(IconLoader, { class: 'h-4 w-4 animate-spin text-blue-500' })
+      return h(IconCalendar, { class: 'h-4 w-4 text-blue-500' })
   }
 }
 
@@ -55,10 +54,7 @@ export function getContestStatusBadgeVariant(status: ContestStatus): BadgeVarian
  * Returns the badge component for a contest status
  * @param t - i18n translation function
  */
-export function getContestStatusBadge(
-  status: ContestStatus,
-  t: (key: string) => string,
-): Component {
+export function getContestStatusBadge(status: ContestStatus, t: (key: string) => string): VNode {
   const variant = getContestStatusBadgeVariant(status)
   return h(Badge, { variant }, () => t(`contests.status.${status.toLowerCase()}`))
 }
@@ -67,7 +63,7 @@ export function getContestStatusBadge(
  * Returns the badge component for a contest type
  * @param t - i18n translation function
  */
-export function getContestTypeBadge(type: ContestType, t: (key: string) => string): Component {
+export function getContestTypeBadge(type: ContestType, t: (key: string) => string): VNode {
   const variant = getContestTypeBadgeVariant(type)
   return h(Badge, { variant }, () => t(`contests.type.${type}`))
 }

@@ -11,21 +11,8 @@ import type { User } from '@/api/admin/users'
 
 export type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
 
-/**
- * Returns the badge variant for a user role
- */
-export function getRoleBadgeVariant(role: string): BadgeVariant {
-  switch (role) {
-    case 'SUPER_ADMIN':
-      return 'destructive'
-    case 'ADMIN':
-      return 'default'
-    case 'MODERATOR':
-      return 'secondary'
-    default:
-      return 'outline'
-  }
-}
+// Re-export getRoleBadgeVariant from the centralized location
+export { getRoleBadgeVariant } from '@/lib/ui/roles'
 
 /**
  * Returns the icon component for a user's status

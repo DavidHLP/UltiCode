@@ -61,6 +61,7 @@ import ProblemImportDialog from '@/components/problems/ProblemImportDialog.vue'
 import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
 import BulkEditDialog from '@/components/problems/BulkEditDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
+import { getDifficultyBadgeVariant as getDifficultyBadgeVariantFromStatus } from '@/lib/ui/status'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -480,16 +481,13 @@ async function handleBulkEdited() {
 function getDifficultyBadgeVariant(
   difficulty: Difficulty,
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (difficulty) {
-    case 'EASY':
-      return 'default'
-    case 'MEDIUM':
-      return 'secondary'
-    case 'HARD':
-      return 'destructive'
-    default:
-      return 'outline'
+  // Use centralized utility - map enum to string
+  const difficultyMap: Record<Difficulty, string> = {
+    EASY: 'Easy',
+    MEDIUM: 'Medium',
+    HARD: 'Hard',
   }
+  return getDifficultyBadgeVariantFromStatus(difficultyMap[difficulty] || difficulty)
 }
 
 function getDifficultyIcon(difficulty: Difficulty) {

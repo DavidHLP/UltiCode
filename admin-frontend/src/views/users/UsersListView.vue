@@ -40,11 +40,11 @@ import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/api/admin/users'
 
 import DataTable from '@/components/table/DataTable.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import UserEditDialog from './UserEditDialog.vue'
 import UserCreateDialog from './UserCreateDialog.vue'
 import UserDetailDrawer from './UserDetailDrawer.vue'
 import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
-import UserBanDialog from './UserBanDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 import { getRoleBadgeVariant, getStatusIcon, getStatusBadge } from '@/lib/entities/user'
 
@@ -126,6 +126,11 @@ function startBanUser(user: User) {
   selectedUserId.value = user.id
   selectedUsername.value = user.username
   banDialogOpen.value = true
+}
+
+async function handleBanUser(id: string | number, reason?: string) {
+  if (!reason) return
+  await usersStore.banUser(id as string, reason)
 }
 
 async function unbanUser(id: string) {
@@ -522,10 +527,16 @@ const columns: ColumnDef<User>[] = [
     :user-id="selectedUserId"
     :username="selectedUsername"
   />
-  <UserBanDialog
+  <EntityActionDialog
     v-model:open="banDialogOpen"
-    :user-id="selectedUserId"
-    :username="selectedUsername"
+    :entity-id="selectedUserId"
+    :entity-title="selectedUsername"
+    action="ban"
+    :title="t('users.actions.banUser')"
+    :description="t('users.actions.banUserDescription', { username: selectedUsername || t('users.actions.thisUser') })"
+    :reason-label="t('users.form.banReason')"
+    :reason-placeholder="t('users.form.banReasonPlaceholder')"
+    :on-action="handleBanUser"
     @success="loadUsers"
   />
 </template>

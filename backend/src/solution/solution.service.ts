@@ -74,9 +74,10 @@ export class SolutionService {
     const summary = this.buildSummary(dto.content);
 
     return this.prisma.$transaction(async (tx) => {
+      const solutionId: string = uuidv4();
       const solution = await tx.solution.create({
         data: {
-          id: uuidv4(),
+          id: solutionId,
           problem_id: BigInt(problemId),
           user_id: userId,
           title: dto.title,
@@ -248,9 +249,10 @@ export class SolutionService {
     dto: CreateSolutionCommentDto,
     userId: string,
   ) {
+    const commentId: string = uuidv4();
     return this.prisma.solutionComment.create({
       data: {
-        id: uuidv4(),
+        id: commentId,
         solution_id: solutionId,
         content: dto.content,
         parent_id: dto.parentId,

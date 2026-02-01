@@ -313,9 +313,10 @@ export class ContestService {
     }
 
     // Create participation record
+    const participantId: string = uuid();
     await this.prisma.contestParticipant.create({
       data: {
-        id: uuid(),
+        id: participantId,
         contest_id: contestId,
         user_id: userId,
         status: 'REGISTERED',
@@ -480,9 +481,10 @@ export class ContestService {
     );
 
     // Create virtual session
+    const sessionId: string = uuid();
     const session = await this.prisma.virtualContestSession.create({
       data: {
-        id: uuid(),
+        id: sessionId,
         contest_id: contestId,
         user_id: userId,
         status: 'IN_PROGRESS',
@@ -492,9 +494,10 @@ export class ContestService {
     });
 
     // Create virtual participant
+    const virtualParticipantId: string = uuid();
     await this.prisma.contestParticipant.create({
       data: {
-        id: uuid(),
+        id: virtualParticipantId,
         contest_id: contestId,
         user_id: userId,
         status: 'STARTED',
@@ -572,9 +575,10 @@ export class ContestService {
   // =========================================================================
 
   async createContest(dto: CreateContestDto, userId: string) {
+    const contestId: string = uuid();
     const contest = await this.prisma.contest.create({
       data: {
-        id: uuid(),
+        id: contestId,
         title: dto.title,
         slug: dto.slug,
         contest_type: dto.contest_type,
@@ -599,16 +603,19 @@ export class ContestService {
     // Create contest problems if provided
     if (dto.problems && dto.problems.length > 0) {
       await this.prisma.contestProblem.createMany({
-        data: dto.problems.map((p) => ({
-          id: uuid(),
-          contest_id: contest.id,
-          problem_id: BigInt(p.problem_id),
-          problem_index: p.problem_index,
-          score: p.score,
-          ...(p.penalty_per_wrong !== undefined && {
-            penalty_per_wrong: p.penalty_per_wrong,
-          }),
-        })),
+        data: dto.problems.map((p) => {
+          const problemId: string = uuid();
+          return {
+            id: problemId,
+            contest_id: contest.id,
+            problem_id: BigInt(p.problem_id),
+            problem_index: p.problem_index,
+            score: p.score,
+            ...(p.penalty_per_wrong !== undefined && {
+              penalty_per_wrong: p.penalty_per_wrong,
+            }),
+          };
+        }),
       });
     }
 

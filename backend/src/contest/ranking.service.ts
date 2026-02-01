@@ -519,9 +519,10 @@ export class RankingService {
         data: { ranking_id: existingRanking.id },
       });
     } else {
+      const rankingId: string = uuid();
       const newRanking = await this.prisma.contestRanking.create({
         data: {
-          id: uuid(),
+          id: rankingId,
           contest_id: participant.contest_id,
           user_id: participant.user_id,
           rank,
@@ -656,9 +657,10 @@ export class RankingService {
             data: { ranking_id: existingRanking.id },
           });
         } else {
+          const rankingId: string = uuid();
           const newRanking = await tx.contestRanking.create({
             data: {
-              id: uuid(),
+              id: rankingId,
               contest_id: contestId,
               user_id: p.user_id,
               rank,

@@ -62,7 +62,7 @@ class RedisConnectionHolder implements OnModuleDestroy {
       this.logger.log(`[REDIS_READY] Redis connection ready for commands`);
     });
 
-    this.connection.on('error', (err) => {
+    this.connection.on('error', (err: Error) => {
       this.logger.error(`[REDIS_ERROR] ${err.message}`, err.stack);
     });
 
@@ -75,7 +75,7 @@ class RedisConnectionHolder implements OnModuleDestroy {
     });
   }
 
-  async onModuleDestroy() {
+  async onModuleDestroy(): Promise<void> {
     this.logger.log(`[REDIS_DESTROY] Closing Redis connection`);
     await this.connection.quit();
   }

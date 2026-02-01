@@ -34,6 +34,7 @@ import { NotificationType, type SystemAnnouncement } from '@/api/admin/notificat
 import DataTable from '@/components/table/DataTable.vue'
 import NotificationCreateDialog from './NotificationCreateDialog.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { getNotificationTypeBadgeVariant } from '@/lib/ui/status'
 
 const { t } = useI18n()
 const store = useNotificationsStore()
@@ -56,16 +57,7 @@ async function handleDelete(id: string | number) {
 }
 
 function getTypeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (type) {
-    case 'SYSTEM':
-      return 'default'
-    case 'SECURITY':
-      return 'destructive'
-    case 'CONTEST':
-      return 'secondary'
-    default:
-      return 'outline'
-  }
+  return getNotificationTypeBadgeVariant(type)
 }
 
 const columns: ColumnDef<SystemAnnouncement>[] = [

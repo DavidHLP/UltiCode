@@ -48,6 +48,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import ContestWizard from './wizard/ContestWizard.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ContestDetailDrawer from './ContestDetailDrawer.vue'
+import { getContestTypeBadgeVariant } from '@/lib/ui/status'
 import { useDataTable } from '@/composables/useDataTable'
 
 const contestsStore = useContestsStore()
@@ -178,16 +179,7 @@ function getStatusBadge(status: string) {
 }
 
 function getTypeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (type) {
-    case 'PUBLIC':
-      return 'default'
-    case 'PRIVATE':
-      return 'secondary'
-    case 'VIRTUAL':
-      return 'outline'
-    default:
-      return 'outline'
-  }
+  return getContestTypeBadgeVariant(type)
 }
 
 async function handleDeleteContest(id: string | number) {

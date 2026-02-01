@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/admin/dashboard'
 import { useAuditStore } from '@/stores/admin/audit'
 import SectionCards, { type StatItem } from '@/components/dashboard/SectionCards.vue'
-import ChartAreaInteractive from '@/components/dashboard/ChartAreaInteractive.vue'
+import AreaChart from '@/components/dashboard/AreaChart.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { IconShieldCheck } from '@tabler/icons-vue'
@@ -135,7 +135,7 @@ onMounted(() => loadData())
       <SectionCards :stats="stats" />
 
       <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7 px-4 lg:px-6">
-        <ChartAreaInteractive
+        <AreaChart
           class="col-span-4"
           :title="t('dashboard.chart.userRegistrationTrend')"
           :description="t('dashboard.chart.dailyRegistrations')"

@@ -33,6 +33,7 @@ import {
   IconAlertTriangle,
 } from '@tabler/icons-vue'
 import { problemsApi, type Problem } from '@/api/admin/problems'
+import { getFlagStatusBadgeVariant } from '@/lib/ui/status'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -109,18 +110,15 @@ function viewProblem(problem: Problem) {
 }
 
 function getStatusBadgeVariant(status: FlagStatus | null) {
-  switch (status) {
-    case 'PENDING':
-      return 'destructive'
-    case 'REVIEWED':
-      return 'default'
-    case 'RESOLVED':
-      return 'outline'
-    case 'DISMISSED':
-      return 'secondary'
-    default:
-      return 'default'
+  if (!status) return 'default'
+  // Map moderation status to flag status
+  const statusMap: Record<FlagStatus, 'PENDING' | 'RESOLVED'> = {
+    PENDING: 'PENDING',
+    REVIEWED: 'PENDING',
+    RESOLVED: 'RESOLVED',
+    DISMISSED: 'RESOLVED',
   }
+  return getFlagStatusBadgeVariant(statusMap[status] || 'PENDING')
 }
 
 function getStatusIcon(status: FlagStatus | null) {

@@ -2,7 +2,7 @@
 import { ref, watch, computed, type Component } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconAlertTriangle, IconFlag, IconLoader } from '@tabler/icons-vue'
+import { IconAlertTriangle, IconBan, IconFlag, IconLoader } from '@tabler/icons-vue'
 import {
   Dialog,
   DialogContent,
@@ -16,7 +16,7 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 
-export type ActionType = 'delete' | 'flag'
+export type ActionType = 'delete' | 'flag' | 'ban' | 'unban'
 
 export interface EntityActionDialogProps<T extends string | number> {
   open: boolean
@@ -60,17 +60,30 @@ const loading = ref(false)
 const reason = ref('')
 
 const isFlagAction = computed(() => props.action === 'flag')
-const showReasonInput = computed(() => isFlagAction.value || props.requiresReason)
+const isBanAction = computed(() => props.action === 'ban')
+const showReasonInput = computed(() => isFlagAction.value || isBanAction.value || props.requiresReason)
 
 const defaultTitle = computed(() => {
   if (props.title) return props.title
   if (isFlagAction.value) return t('common.flag')
+  if (isBanAction.value) return t('users.actions.banUser')
+  if (props.action === 'unban') return t('users.actions.unbanUser')
   return t('common.delete')
 })
 
 const defaultDescription = computed(() => {
   if (props.description) return props.description
   if (isFlagAction.value) return t('common.flagDescription')
+  if (isBanAction.value) {
+    return t('users.actions.banUserDescription', {
+      username: props.entityTitle || t('users.actions.thisUser'),
+    })
+  }
+  if (props.action === 'unban') {
+    return t('users.actions.unbanUserDescription', {
+      username: props.entityTitle || t('users.actions.thisUser'),
+    })
+  }
   if (props.entityTitle) {
     return t('common.deleteDescriptionWithName', { name: props.entityTitle })
   }
@@ -80,6 +93,8 @@ const defaultDescription = computed(() => {
 const defaultConfirmLabel = computed(() => {
   if (props.confirmLabel) return props.confirmLabel
   if (isFlagAction.value) return t('common.flagConfirm')
+  if (isBanAction.value) return t('users.actions.confirmBan')
+  if (props.action === 'unban') return t('users.actions.confirmUnban')
   return t('common.deleteConfirm')
 })
 
@@ -91,12 +106,16 @@ const defaultCancelLabel = computed(() => {
 const defaultSuccessLabel = computed(() => {
   if (props.successLabel) return props.successLabel
   if (isFlagAction.value) return t('common.flagSuccess')
+  if (isBanAction.value) return t('users.toast.banSuccess')
+  if (props.action === 'unban') return t('users.toast.unbanSuccess')
   return t('common.deleteSuccess')
 })
 
 const defaultErrorLabel = computed(() => {
   if (props.errorLabel) return props.errorLabel
   if (isFlagAction.value) return t('common.flagError')
+  if (isBanAction.value) return t('users.toast.banFailed')
+  if (props.action === 'unban') return t('users.toast.unbanFailed')
   return t('common.deleteError')
 })
 
@@ -150,16 +169,24 @@ async function handleAction() {
 }
 
 const headerIcon = computed<Component>(() => {
-  return isFlagAction.value ? IconFlag : IconAlertTriangle
+  if (isFlagAction.value) return IconFlag
+  if (isBanAction.value || props.action === 'unban') return IconBan
+  return IconAlertTriangle
 })
 
 const headerClass = computed(() => {
-  return isFlagAction.value ? 'text-amber-600' : 'text-destructive'
+  if (isFlagAction.value) return 'text-amber-600'
+  if (isBanAction.value) return 'text-destructive'
+  if (props.action === 'unban') return 'text-emerald-600'
+  return 'text-destructive'
 })
 
 const confirmButtonClass = computed(() => {
   if (isFlagAction.value) {
     return 'bg-amber-600 hover:bg-amber-700 text-white'
+  }
+  if (props.action === 'unban') {
+    return 'bg-emerald-600 hover:bg-emerald-700 text-white'
   }
   return 'destructive'
 })
@@ -184,14 +211,15 @@ const confirmButtonClass = computed(() => {
             {{ defaultReasonLabel }} <span class="text-destructive">*</span>
           </Label>
           <Textarea
-            v-if="action === 'flag'"
+            v-if="action === 'flag' || action === 'ban'"
             id="reason"
             v-model="reason"
             :placeholder="defaultReasonPlaceholder"
+            :disabled="loading"
             class="min-h-[100px]"
           />
           <Input
-            v-else
+            v-else-if="action !== 'unban'"
             id="reason"
             v-model="reason"
             :placeholder="defaultReasonPlaceholder"

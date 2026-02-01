@@ -12,8 +12,7 @@ import { ArrowLeft, Flag, Eye, FileText, Trash, User } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DescriptionDisplay from './components/DescriptionDisplay.vue'
 import CodeDisplay from './components/CodeDisplay.vue'
-import SolutionFlagDialog from './SolutionFlagDialog.vue'
-import SolutionDeleteDialog from './SolutionDeleteDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -56,6 +55,7 @@ async function unflagSolution() {
   try {
     await solutionsStore.unflagSolution(solutionId.value)
     toast.success(t('solutions.toast.unflaggedSuccessfully'))
+    await solutionsStore.fetchSolution(solutionId.value)
   } catch {
     toast.error(t('solutions.toast.failedToUnflag'))
   }
@@ -63,6 +63,18 @@ async function unflagSolution() {
 
 function handleDeleteSuccess() {
   router.push({ name: 'solutions' })
+}
+
+function handleFlagSuccess() {
+  solutionsStore.fetchSolution(solutionId.value)
+}
+
+async function handleDeleteSolution(id: string | number) {
+  await solutionsStore.deleteSolution(String(id))
+}
+
+async function handleFlagSolution(id: string | number, reason?: string) {
+  await solutionsStore.flagSolution(String(id), { reason: reason || '' })
 }
 </script>
 
@@ -247,20 +259,36 @@ function handleDeleteSuccess() {
       </template>
     </main>
 
-    <SolutionDeleteDialog
-      v-if="solution"
+    <EntityActionDialog
       v-model:open="deleteDialogOpen"
-      :solution-id="solution.id"
-      :solution-title="solution.title"
+      :entity-id="solutionId"
+      :entity-title="solution?.title || null"
+      action="delete"
+      :title="t('solutions.delete.title')"
+      :description="t('solutions.delete.description')"
+      :confirm-label="t('solutions.delete.confirm')"
+      :cancel-label="t('solutions.delete.cancel')"
+      :success-label="t('solutions.toast.deletedSuccessfully')"
+      :error-label="t('solutions.toast.failedToDelete')"
+      :on-action="handleDeleteSolution"
       @success="handleDeleteSuccess"
     />
 
-    <SolutionFlagDialog
-      v-if="solution"
+    <EntityActionDialog
       v-model:open="flagDialogOpen"
-      :solution-id="solution.id"
-      :solution-title="solution.title"
-      @success="solutionsStore.fetchSolution(solutionId)"
+      :entity-id="solutionId"
+      action="flag"
+      :title="t('solutions.flag.title')"
+      :description="t('solutions.flag.description')"
+      :confirm-label="t('solutions.flag.confirm')"
+      :cancel-label="t('solutions.flag.cancel')"
+      :success-label="t('solutions.toast.flaggedSuccessfully')"
+      :error-label="t('solutions.toast.failedToFlag')"
+      :reason-label="t('solutions.flag.reasonLabel')"
+      :reason-placeholder="t('solutions.flag.reasonPlaceholder')"
+      :reason-required-label="t('solutions.toast.reasonRequired')"
+      :on-action="handleFlagSolution"
+      @success="handleFlagSuccess"
     />
   </div>
 </template>

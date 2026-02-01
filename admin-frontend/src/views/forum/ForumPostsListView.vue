@@ -1,18 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
+import { ref, computed, h, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
+  IconCheck,
   IconDotsVertical,
   IconFlag,
   IconRefresh,
   IconTrash,
   IconX,
   IconUser,
-  IconMessage,
   IconEye,
   IconThumbUp,
   IconPin,
@@ -42,66 +41,88 @@ import { useAuthStore } from '@/stores/auth'
 import type { ForumPost } from '@/api/admin/forum'
 
 import DataTable from '@/components/table/DataTable.vue'
-import ForumPostDeleteDialog from './ForumPostDeleteDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { useDataTable } from '@/composables/useDataTable'
 
 const router = useRouter()
 const { t } = useI18n()
 const forumStore = useForumStore()
 const authStore = useAuthStore()
 
-const searchQuery = ref('')
 const communityFilter = ref<string>('all')
 const flaggedFilter = ref<string>('all')
 const pinnedFilter = ref<string>('all')
 const lockedFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedPostId = ref<string | null>(null)
+const selectedPostTitle = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
+const flagDialogOpen = ref(false)
 
 const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_POST'))
 
+const {
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadPosts,
+} = useDataTable<
+  ForumPost,
+  {
+    communityFilter: string
+    flaggedFilter: string
+    pinnedFilter: string
+    lockedFilter: string
+  },
+  Parameters<typeof forumStore.fetchPosts>[0]
+>({
+  store: {
+    data: computed(() => forumStore.posts),
+    total: computed(() => forumStore.totalPosts),
+    isLoading: computed(() => forumStore.postsLoading),
+    error: computed(() => forumStore.postsError),
+    fetch: (params) => forumStore.fetchPosts(params),
+  },
+  filters: {
+    communityFilter: communityFilter.value,
+    flaggedFilter: flaggedFilter.value,
+    pinnedFilter: pinnedFilter.value,
+    lockedFilter: lockedFilter.value,
+  },
+  transformParams: ({ search, filters, page, limit }) => ({
+    search,
+    communityId:
+      filters.communityFilter === 'all' ? undefined : filters.communityFilter,
+    is_flagged:
+      filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    is_pinned:
+      filters.pinnedFilter === 'all' ? undefined : filters.pinnedFilter === 'pinned',
+    is_locked:
+      filters.lockedFilter === 'all' ? undefined : filters.lockedFilter === 'locked',
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
+// Load communities on mount
 onMounted(() => {
-  loadPosts()
   forumStore.fetchCommunities()
 })
 
-async function loadPosts() {
-  await forumStore.fetchPosts({
-    search: searchQuery.value || undefined,
-    communityId: communityFilter.value === 'all' ? undefined : communityFilter.value,
-    is_flagged: flaggedFilter.value === 'all' ? undefined : flaggedFilter.value === 'flagged',
-    is_pinned: pinnedFilter.value === 'all' ? undefined : pinnedFilter.value === 'pinned',
-    is_locked: lockedFilter.value === 'all' ? undefined : lockedFilter.value === 'locked',
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
-
-// Watchers
-watchDebounced(
-  searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadPosts()
-  },
-  { debounce: 500 },
-)
-
-watch([communityFilter, flaggedFilter, pinnedFilter, lockedFilter], () => {
-  tablePagination.value.pageIndex = 0
-  loadPosts()
-})
-
-watch(
-  () => tablePagination.value,
-  () => loadPosts(),
-  { deep: true },
-)
-
 function confirmDelete(post: ForumPost) {
   selectedPostId.value = post.id
+  selectedPostTitle.value = post.title
   deleteDialogOpen.value = true
+}
+
+function openFlagDialog(post: ForumPost) {
+  selectedPostId.value = post.id
+  selectedPostTitle.value = post.title
+  flagDialogOpen.value = true
 }
 
 function viewPostDetails(post: ForumPost) {
@@ -128,6 +149,23 @@ async function toggleLock(post: ForumPost) {
   } catch {
     toast.error(t('forum.toast.failedToUpdateLock'))
   }
+}
+
+async function unflagPost(id: string) {
+  try {
+    await forumStore.unflagPost(id)
+    toast.success(t('forum.toast.unflaggedSuccessfully'))
+  } catch {
+    toast.error(t('forum.toast.failedToUnflag'))
+  }
+}
+
+async function handleDeletePost(id: string | number) {
+  await forumStore.deletePost(String(id))
+}
+
+async function handleFlagPost(id: string | number, reason?: string) {
+  await forumStore.flagPost(String(id), reason || '')
 }
 
 const columns: ColumnDef<ForumPost>[] = [
@@ -187,10 +225,6 @@ const columns: ColumnDef<ForumPost>[] = [
           h('span', {}, post.view_count || 0),
         ]),
         h('div', { class: 'flex items-center gap-1' }, [
-          h(IconMessage, { class: 'h-3 w-3' }),
-          h('span', {}, post.comment_count || 0),
-        ]),
-        h('div', { class: 'flex items-center gap-1' }, [
           h(IconThumbUp, { class: 'h-3 w-3' }),
           h('span', {}, post.upvotes || 0),
         ]),
@@ -231,11 +265,9 @@ const columns: ColumnDef<ForumPost>[] = [
   },
   {
     id: 'actions',
-    header: () => t('common.actions'),
+    header: () => t('forum.columns.actions'),
     cell: ({ row }) => {
       const post = row.original
-      if (!canModerate.value) return null
-
       return h(
         DropdownMenu,
         {},
@@ -274,41 +306,73 @@ const columns: ColumnDef<ForumPost>[] = [
                         ]),
                     },
                   ),
-                  h(DropdownMenuSeparator, {}),
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => togglePin(post) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconPin, { class: 'h-4 w-4' }),
-                          post.is_pinned ? t('forum.actions.unpin') : t('forum.actions.pin'),
-                        ]),
-                    },
-                  ),
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => toggleLock(post) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconLock, { class: 'h-4 w-4' }),
-                          post.is_locked ? t('forum.actions.unlock') : t('forum.actions.lock'),
-                        ]),
-                    },
-                  ),
-                  h(DropdownMenuSeparator, {}),
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => confirmDelete(post) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                          h(IconTrash, { class: 'h-4 w-4' }),
-                          t('forum.actions.delete'),
-                        ]),
-                    },
-                  ),
+                  canModerate.value ? h(DropdownMenuSeparator, {}) : null,
+                  canModerate.value
+                    ? h(
+                        DropdownMenuItem,
+                        { onClick: () => togglePin(post) },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              h(IconPin, { class: 'h-4 w-4' }),
+                              post.is_pinned ? t('forum.actions.unpin') : t('forum.actions.pin'),
+                            ]),
+                        },
+                      )
+                    : null,
+                  canModerate.value
+                    ? h(
+                        DropdownMenuItem,
+                        { onClick: () => toggleLock(post) },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              h(IconLock, { class: 'h-4 w-4' }),
+                              post.is_locked ? t('forum.actions.unlock') : t('forum.actions.lock'),
+                            ]),
+                        },
+                      )
+                    : null,
+                  canModerate.value ? h(DropdownMenuSeparator, {}) : null,
+                  canModerate.value
+                    ? post.is_flagged
+                      ? h(
+                          DropdownMenuItem,
+                          { onClick: () => unflagPost(post.id) },
+                          {
+                            default: () =>
+                              h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
+                                h(IconCheck, { class: 'h-4 w-4' }),
+                                t('forum.actions.unflag'),
+                              ]),
+                          },
+                        )
+                      : h(
+                          DropdownMenuItem,
+                          { onClick: () => openFlagDialog(post) },
+                          {
+                            default: () =>
+                              h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
+                                h(IconFlag, { class: 'h-4 w-4' }),
+                                t('forum.actions.flag'),
+                              ]),
+                          },
+                        )
+                    : null,
+                  canModerate.value ? h(DropdownMenuSeparator, {}) : null,
+                  canModerate.value
+                    ? h(
+                        DropdownMenuItem,
+                        { onClick: () => confirmDelete(post) },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2 text-destructive' }, [
+                              h(IconTrash, { class: 'h-4 w-4' }),
+                              t('forum.actions.delete'),
+                            ]),
+                        },
+                      )
+                    : null,
                 ],
               },
             ),
@@ -324,10 +388,10 @@ const columns: ColumnDef<ForumPost>[] = [
   <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
     <DataTable
       :columns="columns"
-      :data="forumStore.posts"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="forumStore.totalPosts"
-      :loading="forumStore.postsLoading"
+      :row-count="total"
+      :loading="loading"
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
@@ -405,10 +469,7 @@ const columns: ColumnDef<ForumPost>[] = [
               @click="loadPosts()"
               :title="t('common.refresh')"
             >
-              <IconRefresh
-                class="h-3.5 w-3.5"
-                :class="{ 'animate-spin': forumStore.postsLoading }"
-              />
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
             </Button>
           </div>
         </div>
@@ -417,17 +478,43 @@ const columns: ColumnDef<ForumPost>[] = [
 
     <!-- Error state -->
     <div
-      v-if="forumStore.postsError"
+      v-if="error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ forumStore.postsError }}</span>
+      <span class="text-destructive">{{ error }}</span>
       <Button variant="outline" size="sm" @click="loadPosts()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 
-  <ForumPostDeleteDialog
+  <EntityActionDialog
     v-model:open="deleteDialogOpen"
-    :post-id="selectedPostId"
+    :entity-id="selectedPostId"
+    :entity-title="selectedPostTitle"
+    action="delete"
+    :title="t('forum.delete.title')"
+    :description="t('forum.delete.description')"
+    :confirm-label="t('forum.delete.confirm')"
+    :cancel-label="t('forum.delete.cancel')"
+    :success-label="t('forum.toast.deletedSuccessfully')"
+    :error-label="t('forum.toast.failedToDelete')"
+    :on-action="handleDeletePost"
+    @success="loadPosts"
+  />
+
+  <EntityActionDialog
+    v-model:open="flagDialogOpen"
+    :entity-id="selectedPostId"
+    action="flag"
+    :title="t('forum.flag.title')"
+    :description="t('forum.flag.description')"
+    :confirm-label="t('forum.flag.confirm')"
+    :cancel-label="t('forum.flag.cancel')"
+    :success-label="t('forum.toast.flaggedSuccessfully')"
+    :error-label="t('forum.toast.failedToFlag')"
+    :reason-label="t('forum.flag.reasonLabel')"
+    :reason-placeholder="t('forum.flag.reasonPlaceholder')"
+    :reason-required-label="t('forum.toast.reasonRequired')"
+    :on-action="handleFlagPost"
     @success="loadPosts"
   />
 </template>

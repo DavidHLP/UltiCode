@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
+import { ref, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconDotsVertical,
@@ -38,17 +37,16 @@ import { useAuthStore } from '@/stores/auth'
 import type { ProblemList } from '@/api/admin/problem-lists'
 
 import DataTable from '@/components/table/DataTable.vue'
-import ProblemListDeleteDialog from './ProblemListDeleteDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { useDataTable } from '@/composables/useDataTable'
 
 const router = useRouter()
 const { t } = useI18n()
 const store = useAdminProblemListsStore()
 const authStore = useAuthStore()
 
-const searchQuery = ref('')
 const featuredFilter = ref<string>('all')
 const visibilityFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedListId = ref<string | null>(null)
 const selectedListName = ref<string | null>(null)
@@ -58,38 +56,39 @@ const canCreate = computed(() => authStore.hasPermission('CREATE', 'PROBLEM_LIST
 const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM_LIST'))
 const canDelete = computed(() => authStore.hasPermission('DELETE', 'PROBLEM_LIST'))
 
-onMounted(() => loadLists())
-
-async function loadLists() {
-  await store.fetchLists({
-    search: searchQuery.value || undefined,
-    is_featured: featuredFilter.value === 'all' ? undefined : featuredFilter.value === 'featured',
-    is_public: visibilityFilter.value === 'all' ? undefined : visibilityFilter.value === 'public',
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
-
-// Watchers
-watchDebounced(
+const {
   searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadLists()
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadLists,
+} = useDataTable<
+  ProblemList,
+  { featuredFilter: string; visibilityFilter: string },
+  Parameters<typeof store.fetchLists>[0]
+>({
+  store: {
+    data: computed(() => store.lists),
+    total: computed(() => store.total),
+    isLoading: computed(() => store.isLoading),
+    error: computed(() => store.error),
+    fetch: (params) => store.fetchLists(params),
   },
-  { debounce: 500 },
-)
-
-watch([featuredFilter, visibilityFilter], () => {
-  tablePagination.value.pageIndex = 0
-  loadLists()
+  filters: {
+    featuredFilter: featuredFilter.value,
+    visibilityFilter: visibilityFilter.value,
+  },
+  transformParams: ({ search, filters, page, limit }) => ({
+    search,
+    is_featured: filters.featuredFilter === 'all' ? undefined : filters.featuredFilter === 'featured',
+    is_public: filters.visibilityFilter === 'all' ? undefined : filters.visibilityFilter === 'public',
+    page,
+    limit,
+  }),
+  autoLoad: true,
 })
-
-watch(
-  () => tablePagination.value,
-  () => loadLists(),
-  { deep: true },
-)
 
 function editList(id: string) {
   router.push({ name: 'problem-list-edit', params: { id } })
@@ -99,6 +98,10 @@ function confirmDelete(list: ProblemList) {
   selectedListId.value = list.id
   selectedListName.value = list.name
   deleteDialogOpen.value = true
+}
+
+async function handleDelete(id: string | number) {
+  await store.deleteList(String(id))
 }
 
 const columns: ColumnDef<ProblemList>[] = [
@@ -247,10 +250,10 @@ const columns: ColumnDef<ProblemList>[] = [
   <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
     <DataTable
       :columns="columns"
-      :data="store.lists"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="store.total"
-      :loading="store.isLoading"
+      :row-count="total"
+      :loading="loading"
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
@@ -301,7 +304,7 @@ const columns: ColumnDef<ProblemList>[] = [
               @click="loadLists()"
               :title="t('common.refresh')"
             >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': store.isLoading }" />
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
             </Button>
           </div>
         </div>
@@ -322,18 +325,26 @@ const columns: ColumnDef<ProblemList>[] = [
 
     <!-- Error state -->
     <div
-      v-if="store.error"
+      v-if="error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ store.error }}</span>
+      <span class="text-destructive">{{ error }}</span>
       <Button variant="outline" size="sm" @click="loadLists()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 
-  <ProblemListDeleteDialog
+  <EntityActionDialog
     v-model:open="deleteDialogOpen"
-    :list-id="selectedListId"
-    :list-name="selectedListName"
+    :entity-id="selectedListId"
+    :entity-title="selectedListName"
+    action="delete"
+    :title="t('problemLists.delete.title')"
+    :description="t('problemLists.delete.description', { name: selectedListName || t('problemLists.delete.thisList') })"
+    :confirm-label="t('problemLists.delete.confirm')"
+    :cancel-label="t('problemLists.delete.cancel')"
+    :success-label="t('problemLists.toast.deletedSuccess')"
+    :error-label="t('problemLists.toast.deleteFailed')"
+    :on-action="handleDelete"
     @success="loadLists"
   />
 </template>

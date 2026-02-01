@@ -33,7 +33,7 @@ class RedisConnectionHolder implements OnModuleDestroy {
   constructor() {
     const redisHost = process.env.REDIS_HOST || 'localhost';
     const redisPort = parseInt(process.env.REDIS_PORT || '6379');
-    const redisPassword = process.env.REDIS_PASSWORD || undefined;
+    const redisPassword = process.env.REDIS_PASSWORD || '123456';
 
     this.logger.log(
       `[REDIS_CONNECT] Connecting to Redis at ${redisHost}:${redisPort}`,

@@ -73,7 +73,7 @@ export async function verifyAuth(): Promise<boolean> {
     // Make a lightweight API call to verify auth
     // The endpoint should return 401 if not authenticated
     const response = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL || "http://localhost:6001"}/auth/me`,
+      `${import.meta.env.VITE_API_BASE_URL || "http://localhost:9001"}/auth/me`,
       {
         method: "GET",
         credentials: "include",

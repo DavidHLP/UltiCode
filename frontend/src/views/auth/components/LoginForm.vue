@@ -76,7 +76,7 @@ async function handleSubmit(e: Event) {
 }
 
 function handleGithubLogin() {
-  window.location.href = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:6001"}/auth/github`;
+  window.location.href = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:9001"}/auth/github`;
 }
 </script>
 

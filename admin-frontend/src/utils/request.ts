@@ -98,7 +98,7 @@ function getRequestKey(config: InternalAxiosRequestConfig): string {
  * Get environment specific settings
  */
 const isDevelopment = import.meta.env.DEV
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:6001'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:9001'
 
 /**
  * Create axios instance with default config
@@ -255,10 +255,7 @@ service.interceptors.response.use(
     // Handle authentication errors (401/403)
     // Cookies are httpOnly - cannot be removed by JavaScript
     // Backend will handle cookie clearing on logout
-    if (
-      error.response &&
-      (error.response.status === 401 || error.response.status === 403)
-    ) {
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
       // Redirect to login page
       if (window.location.pathname !== '/login') {
         window.location.href = '/login'

@@ -1,6 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
-import { watchDebounced } from '@vueuse/core'
+import { ref, computed, h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
@@ -47,8 +46,9 @@ import { ContestType } from '@/api/admin/contests'
 
 import DataTable from '@/components/table/DataTable.vue'
 import ContestWizard from './wizard/ContestWizard.vue'
-import ContestDeleteDialog from './ContestDeleteDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ContestDetailDrawer from './ContestDetailDrawer.vue'
+import { useDataTable } from '@/composables/useDataTable'
 
 const contestsStore = useContestsStore()
 const authStore = useAuthStore()
@@ -57,7 +57,6 @@ const { t } = useI18n()
 const searchQuery = ref('')
 const statusFilter = ref<string>('all')
 const typeFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 const selectedContestId = ref<string | null>(null)
 const selectedContestTitle = ref<string | null>(null)
 
@@ -72,41 +71,38 @@ const canCreate = computed(() => authStore.hasPermission('CREATE', 'CONTEST'))
 const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'CONTEST'))
 const canDelete = computed(() => authStore.hasPermission('DELETE', 'CONTEST'))
 
-onMounted(() => loadContests())
-
-async function loadContests() {
-  await contestsStore.fetchContests({
-    search: searchQuery.value || undefined,
-    status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-    type: typeFilter.value === 'all' ? undefined : (typeFilter.value as ContestType),
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
-
-// Watchers for automatic queries
-watchDebounced(
-  searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadContests()
+const {
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadContests,
+} = useDataTable<
+  Contest,
+  { statusFilter: string; typeFilter: string },
+  Parameters<typeof contestsStore.fetchContests>[0]
+>({
+  store: {
+    data: computed(() => contestsStore.contests),
+    total: computed(() => contestsStore.total),
+    isLoading: computed(() => contestsStore.loading),
+    error: computed(() => contestsStore.error),
+    fetch: (params) => contestsStore.fetchContests(params),
   },
-  { debounce: 500 },
-)
-
-watch([statusFilter, typeFilter], () => {
-  if (tablePagination.value.pageIndex === 0) {
-    loadContests()
-  } else {
-    tablePagination.value.pageIndex = 0
-  }
+  filters: {
+    statusFilter: statusFilter.value,
+    typeFilter: typeFilter.value,
+  },
+  transformParams: ({ search, filters, page, limit }) => ({
+    search,
+    status: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
+    type: filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestType),
+    page,
+    limit,
+  }),
+  autoLoad: true,
 })
-
-watch(
-  () => tablePagination.value,
-  () => loadContests(),
-  { deep: true },
-)
 
 function viewContest(contest: Contest) {
   selectedContestId.value = contest.id
@@ -192,6 +188,10 @@ function getTypeBadgeVariant(type: string): 'default' | 'secondary' | 'destructi
     default:
       return 'outline'
   }
+}
+
+async function handleDeleteContest(id: string | number) {
+  await contestsStore.deleteContest(String(id))
 }
 
 const columns: ColumnDef<Contest>[] = [
@@ -417,10 +417,10 @@ const columns: ColumnDef<Contest>[] = [
 
     <DataTable
       :columns="columns"
-      :data="contestsStore.contests"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="contestsStore.total"
-      :loading="contestsStore.loading"
+      :row-count="total"
+      :loading="loading"
       v-model:selected-rows="selectedRows"
       @update:pagination="tablePagination = $event"
     >
@@ -463,7 +463,7 @@ const columns: ColumnDef<Contest>[] = [
           </SelectContent>
         </Select>
         <Button variant="outline" size="icon" @click="loadContests()" :title="t('common.refresh')">
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': contestsStore.loading }" />
+          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
         </Button>
       </template>
 
@@ -477,21 +477,31 @@ const columns: ColumnDef<Contest>[] = [
 
     <!-- Error state -->
     <div
-      v-if="contestsStore.error"
+      v-if="error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ contestsStore.error }}</span>
+      <span class="text-destructive">{{ error }}</span>
       <Button variant="outline" size="sm" @click="loadContests()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 
   <ContestWizard v-model:open="wizardOpen" @success="loadContests" />
-  <ContestDeleteDialog
+
+  <EntityActionDialog
     v-model:open="deleteDialogOpen"
-    :contest-id="selectedContestId"
-    :contest-title="selectedContestTitle"
+    :entity-id="selectedContestId"
+    :entity-title="selectedContestTitle"
+    action="delete"
+    :title="t('contests.delete.title')"
+    :description="t('contests.delete.description', { title: selectedContestTitle || t('contests.delete.thisContest') })"
+    :confirm-label="t('contests.delete.confirm')"
+    :cancel-label="t('contests.delete.cancel')"
+    :success-label="t('contests.toast.deletedSuccessfully')"
+    :error-label="t('contests.toast.failedToDelete')"
+    :on-action="handleDeleteContest"
     @success="loadContests"
   />
+
   <ContestDetailDrawer
     v-model:open="detailDrawerOpen"
     :contest-id="selectedContestId"

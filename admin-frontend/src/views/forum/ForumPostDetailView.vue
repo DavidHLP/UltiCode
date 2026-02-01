@@ -22,8 +22,7 @@ import { toast } from 'vue-sonner'
 import OverviewDisplay from './components/OverviewDisplay.vue'
 import CommentsTab from './components/CommentsTab.vue'
 import AuditTab from './components/AuditTab.vue'
-import ForumPostDeleteDialog from './ForumPostDeleteDialog.vue'
-import ForumPostFlagDialog from './ForumPostFlagDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 
 const router = useRouter()
 const route = useRoute()
@@ -132,6 +131,14 @@ function handleDeleteSuccess() {
 function handleFlagSuccess() {
   loadData()
   loadAuditHistory()
+}
+
+async function handleDeletePost(id: string | number) {
+  await forumStore.deletePost(String(id))
+}
+
+async function handleFlagPost(id: string | number, reason?: string) {
+  await forumStore.flagPost(String(id), reason || '')
 }
 </script>
 
@@ -357,17 +364,35 @@ function handleFlagSuccess() {
     </main>
 
     <!-- Dialogs -->
-    <ForumPostDeleteDialog
-      v-if="post"
+    <EntityActionDialog
       v-model:open="deleteDialogOpen"
-      :post-id="post.id"
+      :entity-id="postId"
+      :entity-title="post?.title || null"
+      action="delete"
+      :title="t('forum.delete.title')"
+      :description="t('forum.delete.description')"
+      :confirm-label="t('forum.delete.confirm')"
+      :cancel-label="t('forum.delete.cancel')"
+      :success-label="t('forum.toast.deletedSuccessfully')"
+      :error-label="t('forum.toast.failedToDelete')"
+      :on-action="handleDeletePost"
       @success="handleDeleteSuccess"
     />
 
-    <ForumPostFlagDialog
-      v-if="post"
+    <EntityActionDialog
       v-model:open="flagDialogOpen"
-      :post-id="post.id"
+      :entity-id="postId"
+      action="flag"
+      :title="t('forum.flag.title')"
+      :description="t('forum.flag.description')"
+      :confirm-label="t('forum.flag.confirm')"
+      :cancel-label="t('forum.flag.cancel')"
+      :success-label="t('forum.toast.flaggedSuccessfully')"
+      :error-label="t('forum.toast.failedToFlag')"
+      :reason-label="t('forum.flag.reasonLabel')"
+      :reason-placeholder="t('forum.flag.reasonPlaceholder')"
+      :reason-required-label="t('forum.toast.reasonRequired')"
+      :on-action="handleFlagPost"
       @success="handleFlagSuccess"
     />
   </div>

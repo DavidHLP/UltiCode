@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
+import { ref, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
-import { watchDebounced } from '@vueuse/core'
+import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
-import { useI18n } from 'vue-i18n'
 import {
   IconCheck,
   IconDotsVertical,
@@ -41,18 +40,16 @@ import { useAuthStore } from '@/stores/auth'
 import type { Solution } from '@/api/admin/solutions'
 
 import DataTable from '@/components/table/DataTable.vue'
-import SolutionDeleteDialog from './SolutionDeleteDialog.vue'
-import SolutionFlagDialog from './SolutionFlagDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { useDataTable } from '@/composables/useDataTable'
 
 const router = useRouter()
 const solutionsStore = useSolutionsStore()
 const authStore = useAuthStore()
 const { t } = useI18n()
 
-const searchQuery = ref('')
 const flaggedFilter = ref<string>('all')
 const publishedFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedSolutionId = ref<string | null>(null)
 const selectedSolutionTitle = ref<string | null>(null)
@@ -62,43 +59,44 @@ const flagDialogOpen = ref(false)
 const canUpdateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION'))
 const canDeleteSolution = computed(() => authStore.hasPermission('DELETE', 'SOLUTION'))
 
-onMounted(() => loadSolutions())
-
-async function loadSolutions() {
-  await solutionsStore.fetchSolutions({
-    search: searchQuery.value || undefined,
-    is_flagged: flaggedFilter.value === 'all' ? undefined : flaggedFilter.value === 'flagged',
+const {
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadSolutions,
+} = useDataTable<
+  Solution,
+  { flaggedFilter: string; publishedFilter: string },
+  Parameters<typeof solutionsStore.fetchSolutions>[0]
+>({
+  store: {
+    data: computed(() => solutionsStore.solutions),
+    total: computed(() => solutionsStore.total),
+    isLoading: computed(() => solutionsStore.loading),
+    error: computed(() => solutionsStore.error),
+    fetch: (params) => solutionsStore.fetchSolutions(params),
+  },
+  filters: {
+    flaggedFilter: flaggedFilter.value,
+    publishedFilter: publishedFilter.value,
+  },
+  transformParams: ({ search, filters, page, limit }) => ({
+    search,
+    is_flagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
     is_published:
-      publishedFilter.value === 'all'
+      filters.publishedFilter === 'all'
         ? undefined
-        : publishedFilter.value === 'published'
+        : filters.publishedFilter === 'published'
           ? true
           : false,
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
-
-// Watchers
-watchDebounced(
-  searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadSolutions()
-  },
-  { debounce: 500 },
-)
-
-watch([flaggedFilter, publishedFilter], () => {
-  tablePagination.value.pageIndex = 0
-  loadSolutions()
+    page,
+    limit,
+  }),
+  autoLoad: true,
 })
-
-watch(
-  () => tablePagination.value,
-  () => loadSolutions(),
-  { deep: true },
-)
 
 function viewSolution(id: string) {
   router.push({ name: 'solution-view-description', params: { id } })
@@ -120,10 +118,17 @@ async function unflagSolution(id: string) {
   try {
     await solutionsStore.unflagSolution(id)
     toast.success(t('solutions.toast.unflaggedSuccessfully'))
-    // We update local state in store, so no need to reload unless desired
   } catch {
     toast.error(t('solutions.toast.failedToUnflag'))
   }
+}
+
+async function handleDeleteSolution(id: string | number) {
+  await solutionsStore.deleteSolution(String(id))
+}
+
+async function handleFlagSolution(id: string | number, reason?: string) {
+  await solutionsStore.flagSolution(String(id), { reason: reason || '' })
 }
 
 const columns: ColumnDef<Solution>[] = [
@@ -327,10 +332,10 @@ const columns: ColumnDef<Solution>[] = [
   <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
     <DataTable
       :columns="columns"
-      :data="solutionsStore.solutions"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="solutionsStore.total"
-      :loading="solutionsStore.loading"
+      :row-count="total"
+      :loading="loading"
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
@@ -383,10 +388,7 @@ const columns: ColumnDef<Solution>[] = [
               @click="loadSolutions()"
               :title="t('common.refresh')"
             >
-              <IconRefresh
-                class="h-3.5 w-3.5"
-                :class="{ 'animate-spin': solutionsStore.loading }"
-              />
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
             </Button>
           </div>
         </div>
@@ -395,25 +397,43 @@ const columns: ColumnDef<Solution>[] = [
 
     <!-- Error state -->
     <div
-      v-if="solutionsStore.error"
+      v-if="error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ solutionsStore.error }}</span>
+      <span class="text-destructive">{{ error }}</span>
       <Button variant="outline" size="sm" @click="loadSolutions()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 
-  <SolutionDeleteDialog
+  <EntityActionDialog
     v-model:open="deleteDialogOpen"
-    :solution-id="selectedSolutionId"
-    :solution-title="selectedSolutionTitle"
+    :entity-id="selectedSolutionId"
+    :entity-title="selectedSolutionTitle"
+    action="delete"
+    :title="t('solutions.delete.title')"
+    :description="t('solutions.delete.description')"
+    :confirm-label="t('solutions.delete.confirm')"
+    :cancel-label="t('solutions.delete.cancel')"
+    :success-label="t('solutions.toast.deletedSuccessfully')"
+    :error-label="t('solutions.toast.failedToDelete')"
+    :on-action="handleDeleteSolution"
     @success="loadSolutions"
   />
 
-  <SolutionFlagDialog
+  <EntityActionDialog
     v-model:open="flagDialogOpen"
-    :solution-id="selectedSolutionId"
-    :solution-title="selectedSolutionTitle"
+    :entity-id="selectedSolutionId"
+    action="flag"
+    :title="t('solutions.flag.title')"
+    :description="t('solutions.flag.description')"
+    :confirm-label="t('solutions.flag.confirm')"
+    :cancel-label="t('solutions.flag.cancel')"
+    :success-label="t('solutions.toast.flaggedSuccessfully')"
+    :error-label="t('solutions.toast.failedToFlag')"
+    :reason-label="t('solutions.flag.reasonLabel')"
+    :reason-placeholder="t('solutions.flag.reasonPlaceholder')"
+    :reason-required-label="t('solutions.toast.reasonRequired')"
+    :on-action="handleFlagSolution"
     @success="loadSolutions"
   />
 </template>

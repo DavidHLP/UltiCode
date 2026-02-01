@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
+import { ref, computed, onMounted, h, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { watchDebounced, useDebounceFn } from '@vueuse/core'
+import { useDebounceFn } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
@@ -22,8 +22,8 @@ import {
   IconPlus,
   IconRefresh,
   IconSparkles,
-  IconTrash,
   IconTrophy,
+  IconTrash,
   IconX,
   IconDownload,
   IconUpload,
@@ -56,10 +56,11 @@ import { Difficulty, type Problem, problemsApi } from '@/api/admin/problems'
 import { ApiError } from '@/utils/request'
 
 import DataTable from '@/components/table/DataTable.vue'
-import ProblemDeleteDialog from './ProblemDeleteDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ProblemImportDialog from '@/components/problems/ProblemImportDialog.vue'
 import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
 import BulkEditDialog from '@/components/problems/BulkEditDialog.vue'
+import { useDataTable } from '@/composables/useDataTable'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -75,7 +76,6 @@ const publishedFilter = ref((route.query.published as string) || 'all')
 
 // Convert page from query (1-based) to pageIndex (0-based)
 const initialPage = Number(route.query.page) || 1
-const tablePagination = ref({ pageIndex: Math.max(0, initialPage - 1), pageSize: 10 })
 const sortBy = ref((route.query.sortBy as string) || 'default')
 const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') || 'desc')
 
@@ -94,11 +94,35 @@ const canCreateProblem = computed(() => authStore.hasPermission('CREATE', 'PROBL
 const canUpdateProblem = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM'))
 const canDeleteProblem = computed(() => authStore.hasPermission('DELETE', 'PROBLEM'))
 
-onMounted(() => loadProblems())
-
-async function loadProblems() {
-  await problemsStore.fetchProblems({
-    search: searchQuery.value || undefined,
+const {
+  searchQuery: internalSearchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadProblems,
+} = useDataTable<
+  Problem,
+  {
+    sortBy: string
+    sortOrder: 'asc' | 'desc'
+  },
+  Parameters<typeof problemsStore.fetchProblems>[0]
+>({
+  store: {
+    data: computed(() => problemsStore.problems),
+    total: computed(() => problemsStore.total),
+    isLoading: computed(() => problemsStore.loading),
+    error: computed(() => problemsStore.error),
+    fetch: (params) => problemsStore.fetchProblems(params),
+  },
+  filters: {
+    sortBy: sortBy.value,
+    sortOrder: sortOrder.value,
+  },
+  transformParams: ({ search, filters, page, limit }) => ({
+    search,
     difficulty:
       difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
     status: statusFilter.value === 'all' ? undefined : (statusFilter.value as Problem['status']),
@@ -108,36 +132,28 @@ async function loadProblems() {
         : publishedFilter.value === 'published'
           ? true
           : false,
-    sortBy: sortBy.value === 'default' ? undefined : sortBy.value,
-    sortOrder: sortOrder.value || undefined,
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
-
-// Watchers
-watchDebounced(
-  searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadProblems()
-  },
-  { debounce: 500 },
-)
-
-watch([difficultyFilter, statusFilter, publishedFilter], () => {
-  if (tablePagination.value.pageIndex === 0) {
-    loadProblems()
-  } else {
-    tablePagination.value.pageIndex = 0
-  }
+    sortBy: filters.sortBy === 'default' ? undefined : filters.sortBy,
+    sortOrder: filters.sortOrder || undefined,
+    page,
+    limit,
+  }),
+  autoLoad: false,
 })
 
+// Initialize pageIndex from URL
+tablePagination.value.pageIndex = Math.max(0, initialPage - 1)
+
+// Sync external searchQuery with internal one and trigger reload
 watch(
-  () => tablePagination.value,
-  () => loadProblems(),
-  { deep: true },
+  () => searchQuery.value,
+  (newValue) => {
+    internalSearchQuery.value = newValue
+  },
+  { immediate: true },
 )
+
+// Load on mount
+onMounted(() => loadProblems())
 
 // URL synchronization - debounced to avoid excessive updates
 const debouncedUpdateUrl = useDebounceFn(() => {
@@ -166,6 +182,21 @@ watch(
     tablePagination,
   ],
   debouncedUpdateUrl,
+  { deep: true },
+)
+
+// Watch filters for data reload (debouncing search separately)
+watch(
+  [difficultyFilter, statusFilter, publishedFilter, sortBy, sortOrder],
+  () => {
+    loadProblems()
+  },
+)
+
+// Watch pagination for data reload
+watch(
+  () => tablePagination.value,
+  () => loadProblems(),
   { deep: true },
 )
 
@@ -216,6 +247,10 @@ function confirmDelete(problem: Problem) {
   selectedProblemId.value = problem.id
   selectedProblemTitle.value = problem.title
   deleteDialogOpen.value = true
+}
+
+async function handleDeleteProblem(id: string | number) {
+  await problemsStore.deleteProblem(String(id))
 }
 
 // Error context handler for detailed error messages
@@ -341,47 +376,6 @@ async function unflagProblem(id: string) {
   }
 }
 
-function getDifficultyBadgeVariant(
-  difficulty: Difficulty,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (difficulty) {
-    case 'EASY':
-      return 'default'
-    case 'MEDIUM':
-      return 'secondary'
-    case 'HARD':
-      return 'destructive'
-    default:
-      return 'outline'
-  }
-}
-
-function getDifficultyIcon(difficulty: Difficulty) {
-  switch (difficulty) {
-    case 'EASY':
-      return IconCheck
-    case 'MEDIUM':
-      return IconSparkles
-    case 'HARD':
-      return IconTrophy
-    default:
-      return IconFile
-  }
-}
-
-function getDifficultyColor(difficulty: Difficulty) {
-  switch (difficulty) {
-    case 'EASY':
-      return 'text-emerald-500'
-    case 'MEDIUM':
-      return 'text-amber-500'
-    case 'HARD':
-      return 'text-red-500'
-    default:
-      return 'text-muted-foreground'
-  }
-}
-
 async function exportProblems(format: 'json' | 'csv') {
   try {
     importing.value = true
@@ -481,6 +475,47 @@ async function handleBulkEdited() {
   selectedRows.value = []
   bulkEditDialogOpen.value = false
   await loadProblems()
+}
+
+function getDifficultyBadgeVariant(
+  difficulty: Difficulty,
+): 'default' | 'secondary' | 'destructive' | 'outline' {
+  switch (difficulty) {
+    case 'EASY':
+      return 'default'
+    case 'MEDIUM':
+      return 'secondary'
+    case 'HARD':
+      return 'destructive'
+    default:
+      return 'outline'
+  }
+}
+
+function getDifficultyIcon(difficulty: Difficulty) {
+  switch (difficulty) {
+    case 'EASY':
+      return IconCheck
+    case 'MEDIUM':
+      return IconSparkles
+    case 'HARD':
+      return IconTrophy
+    default:
+      return IconFile
+  }
+}
+
+function getDifficultyColor(difficulty: Difficulty) {
+  switch (difficulty) {
+    case 'EASY':
+      return 'text-emerald-500'
+    case 'MEDIUM':
+      return 'text-amber-500'
+    case 'HARD':
+      return 'text-red-500'
+    default:
+      return 'text-muted-foreground'
+  }
 }
 
 const columns: ColumnDef<Problem>[] = [
@@ -879,10 +914,10 @@ const columns: ColumnDef<Problem>[] = [
   <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
     <DataTable
       :columns="columns"
-      :data="problemsStore.problems"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="problemsStore.total"
-      :loading="problemsStore.loading"
+      :row-count="total"
+      :loading="loading"
       :selected-rows="selectedRows"
       @update:pagination="tablePagination = $event"
       @update:selected-rows="selectedRows = $event"
@@ -948,7 +983,7 @@ const columns: ColumnDef<Problem>[] = [
               @click="loadProblems()"
               :title="t('common.refresh')"
             >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': problemsStore.loading }" />
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
             </Button>
 
             <Select v-model="sortBy">
@@ -1050,18 +1085,26 @@ const columns: ColumnDef<Problem>[] = [
 
     <!-- Error state -->
     <div
-      v-if="problemsStore.error"
+      v-if="error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ problemsStore.error }}</span>
+      <span class="text-destructive">{{ error }}</span>
       <Button variant="outline" size="sm" @click="loadProblems()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 
-  <ProblemDeleteDialog
+  <EntityActionDialog
     v-model:open="deleteDialogOpen"
-    :problem-id="selectedProblemId"
-    :problem-title="selectedProblemTitle"
+    :entity-id="selectedProblemId"
+    :entity-title="selectedProblemTitle"
+    action="delete"
+    :title="t('problems.dialog.delete.title')"
+    :description="t('problems.dialog.delete.description', { title: selectedProblemTitle || t('problems.dialog.delete.thisProblem') })"
+    :confirm-label="t('problems.dialog.delete.confirm')"
+    :cancel-label="t('common.cancel')"
+    :success-label="t('problems.toast.deleteSuccess')"
+    :error-label="t('problems.toast.deleteFailed')"
+    :on-action="handleDeleteProblem"
     @success="loadProblems"
   />
 

@@ -1,16 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
-import { watchDebounced } from '@vueuse/core'
+import { ref, computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
   IconBan,
   IconCheck,
-  IconCircleCheckFilled,
   IconCircleXFilled,
   IconDotsVertical,
-  IconLoader,
   IconLock,
   IconPlus,
   IconRefresh,
@@ -48,15 +45,15 @@ import UserCreateDialog from './UserCreateDialog.vue'
 import UserDetailDrawer from './UserDetailDrawer.vue'
 import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
 import UserBanDialog from './UserBanDialog.vue'
+import { useDataTable } from '@/composables/useDataTable'
+import { getRoleBadgeVariant, getStatusIcon, getStatusBadge } from '@/lib/entities/user'
 
 const { t } = useI18n()
 const usersStore = useUsersStore()
 const authStore = useAuthStore()
 
-const searchQuery = ref('')
 const roleFilter = ref<string>('all')
 const statusFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 const selectedUserId = ref<string | null>(null)
 const selectedUsername = ref<string | null>(null)
 
@@ -67,53 +64,47 @@ const resetPasswordDialogOpen = ref(false)
 const banDialogOpen = ref(false)
 
 const bulkActionLoading = ref(false)
-const selectedRows = ref<User[]>([])
 
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
 const canDeleteUser = computed(() => authStore.hasPermission('DELETE', 'USER'))
 
-onMounted(() => loadUsers())
-
-async function loadUsers() {
-  await usersStore.fetchUsers({
-    search: searchQuery.value || undefined,
-    role: roleFilter.value === 'all' ? undefined : roleFilter.value,
-    is_active:
-      statusFilter.value === 'active'
-        ? true
-        : statusFilter.value === 'inactive'
-          ? false
-          : undefined,
-    is_banned: statusFilter.value === 'banned' ? true : undefined,
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
-
-// Watchers for automatic queries
-watchDebounced(
+const {
   searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadUsers()
+  tablePagination,
+  selectedRows,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadUsers,
+} = useDataTable<
+  User,
+  { role: string; status: string },
+  Parameters<typeof usersStore.fetchUsers>[0]
+>({
+  store: {
+    data: computed(() => usersStore.users),
+    total: computed(() => usersStore.total),
+    isLoading: computed(() => usersStore.loading),
+    error: computed(() => usersStore.error),
+    fetch: (params) => usersStore.fetchUsers(params),
   },
-  { debounce: 500 },
-)
-
-watch([roleFilter, statusFilter], () => {
-  if (tablePagination.value.pageIndex === 0) {
-    loadUsers()
-  } else {
-    tablePagination.value.pageIndex = 0
-  }
+  filters: {
+    role: roleFilter.value,
+    status: statusFilter.value,
+  },
+  transformParams: ({ search, filters, page, limit }) => ({
+    search,
+    role: filters.role === 'all' ? undefined : filters.role,
+    is_active:
+      filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined,
+    is_banned: filters.status === 'banned' ? true : undefined,
+    page,
+    limit,
+  }),
+  autoLoad: true,
 })
-
-watch(
-  () => tablePagination.value,
-  () => loadUsers(),
-  { deep: true },
-)
 
 function viewUser(user: User) {
   selectedUserId.value = user.id
@@ -198,39 +189,6 @@ async function handleBulkDelete() {
   }
 }
 
-function getRoleBadgeVariant(role: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (role) {
-    case 'SUPER_ADMIN':
-      return 'destructive'
-    case 'ADMIN':
-      return 'default'
-    case 'MODERATOR':
-      return 'secondary'
-    default:
-      return 'outline'
-  }
-}
-
-function getStatusIcon(user: User) {
-  if (user.is_banned) {
-    return h(IconCircleXFilled, { class: 'h-4 w-4 text-destructive' })
-  }
-  if (user.is_active) {
-    return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-emerald-500' })
-  }
-  return h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' })
-}
-
-function getStatusBadge(user: User) {
-  if (user.is_banned) {
-    return h(Badge, { variant: 'destructive' }, () => t('users.status.banned'))
-  }
-  if (user.is_active) {
-    return h(Badge, { variant: 'default' }, () => t('users.status.active'))
-  }
-  return h(Badge, { variant: 'secondary' }, () => t('users.status.inactive'))
-}
-
 const columns: ColumnDef<User>[] = [
   {
     id: 'select',
@@ -305,7 +263,7 @@ const columns: ColumnDef<User>[] = [
       const user = row.original
       return h('div', { class: 'flex items-center gap-2' }, [
         getStatusIcon(user),
-        getStatusBadge(user),
+        getStatusBadge(user, t),
       ])
     },
   },
@@ -483,10 +441,10 @@ const columns: ColumnDef<User>[] = [
 
     <DataTable
       :columns="columns"
-      :data="usersStore.users"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="usersStore.total"
-      :loading="usersStore.loading"
+      :row-count="total"
+      :loading="loading"
       v-model:selected-rows="selectedRows"
       @update:pagination="tablePagination = $event"
     >
@@ -530,7 +488,7 @@ const columns: ColumnDef<User>[] = [
           </SelectContent>
         </Select>
         <Button variant="outline" size="icon" @click="loadUsers()" :title="t('common.refresh')">
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': usersStore.loading }" />
+          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
         </Button>
       </template>
 
@@ -544,10 +502,10 @@ const columns: ColumnDef<User>[] = [
 
     <!-- Error state -->
     <div
-      v-if="usersStore.error"
+      v-if="error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ usersStore.error }}</span>
+      <span class="text-destructive">{{ error }}</span>
       <Button variant="outline" size="sm" @click="loadUsers()">{{ t('common.retry') }}</Button>
     </div>
   </div>

@@ -1,5 +1,8 @@
+import { h, type VNode } from 'vue'
+import { Badge } from '@/components/ui/badge'
 import type { BadgeVariant } from './user'
 import type { Difficulty } from '@/api/admin/problems'
+import { IconFlask, IconBrackets, IconSparkles } from '@tabler/icons-vue'
 
 /**
  * Returns the badge variant for a problem difficulty
@@ -47,4 +50,30 @@ export function getDifficultyBgColor(difficulty: Difficulty): string {
     default:
       return 'bg-muted text-muted-foreground'
   }
+}
+
+/**
+ * Returns the icon component for a problem difficulty
+ */
+export function getDifficultyIcon(difficulty: Difficulty): VNode {
+  switch (difficulty) {
+    case 'EASY':
+      return h(IconFlask, { class: 'h-4 w-4' })
+    case 'MEDIUM':
+      return h(IconBrackets, { class: 'h-4 w-4' })
+    case 'HARD':
+      return h(IconSparkles, { class: 'h-4 w-4' })
+    default:
+      return h(IconFlask, { class: 'h-4 w-4' })
+  }
+}
+
+/**
+ * Returns the badge component for a problem difficulty
+ * @param t - i18n translation function
+ */
+export function getDifficultyBadge(difficulty: Difficulty, t: (key: string) => string): VNode {
+  return h(Badge, { variant: getDifficultyBadgeVariant(difficulty) }, () =>
+    t(`problems.difficulty.${difficulty.toLowerCase()}`),
+  )
 }

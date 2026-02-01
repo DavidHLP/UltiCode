@@ -1,5 +1,4 @@
-import type { Component } from 'vue'
-import { h } from 'vue'
+import { h, type VNode } from 'vue'
 import {
   IconUser,
   IconShield,
@@ -31,7 +30,7 @@ export function getRoleBadgeVariant(role: string): BadgeVariant {
 /**
  * Returns the icon component for a user's status
  */
-export function getStatusIcon(user: User): Component {
+export function getStatusIcon(user: User): VNode {
   if (user.is_banned) {
     return h(IconCircleXFilled, { class: 'h-4 w-4 text-destructive' })
   }
@@ -45,7 +44,7 @@ export function getStatusIcon(user: User): Component {
  * Returns the badge component for a user's status
  * @param t - i18n translation function
  */
-export function getStatusBadge(user: User, t: (key: string) => string): Component {
+export function getStatusBadge(user: User, t: (key: string) => string): VNode {
   if (user.is_banned) {
     return h(Badge, { variant: 'destructive' }, () => t('users.status.banned'))
   }
@@ -58,7 +57,7 @@ export function getStatusBadge(user: User, t: (key: string) => string): Componen
 /**
  * Returns the icon component for a user's role
  */
-export function getRoleIcon(role: string): Component {
+export function getRoleIcon(role: string): VNode {
   const icon = role === 'USER' ? IconUser : IconShield
   return h(icon, { class: 'h-4 w-4 text-muted-foreground' })
 }

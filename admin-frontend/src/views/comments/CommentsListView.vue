@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch } from 'vue'
+import { ref, computed, h } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
@@ -12,8 +11,6 @@ import {
   IconTrash,
   IconX,
   IconUser,
-  IconMessage,
-  IconFileText,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
@@ -39,69 +36,82 @@ import { useAuthStore } from '@/stores/auth'
 import type { Comment, CommentType } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'
-import CommentDeleteDialog from './CommentDeleteDialog.vue'
-import CommentFlagDialog from './CommentFlagDialog.vue'
+import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { useDataTable } from '@/composables/useDataTable'
+import { getCommentStatusBadge, getCommentTypeIcon } from '@/lib/entities/comment'
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
 const authStore = useAuthStore()
 
-const searchQuery = ref('')
 const typeFilter = ref<CommentType | 'all'>('all')
 const flaggedFilter = ref<string>('all')
-const tablePagination = ref({ pageIndex: 0, pageSize: 10 })
 
 const selectedCommentId = ref<string | null>(null)
 const selectedCommentType = ref<CommentType | null>(null)
+const selectedCommentContent = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
 
 const canModerateForum = computed(() => authStore.hasPermission('MODERATE', 'FORUM_COMMENT'))
 const canModerateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT'))
 
-onMounted(() => loadComments())
-
-async function loadComments() {
-  await commentsStore.fetchComments({
-    search: searchQuery.value || undefined,
-    type: typeFilter.value === 'all' ? undefined : typeFilter.value,
-    is_flagged: flaggedFilter.value === 'all' ? undefined : flaggedFilter.value === 'flagged',
-    page: tablePagination.value.pageIndex + 1,
-    limit: tablePagination.value.pageSize,
-  })
-}
-
-// Watchers
-watchDebounced(
+const {
   searchQuery,
-  () => {
-    tablePagination.value.pageIndex = 0
-    loadComments()
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadComments,
+} = useDataTable<
+  Comment,
+  { type: CommentType | 'all'; flaggedFilter: string },
+  Parameters<typeof commentsStore.fetchComments>[0]
+>({
+  store: {
+    data: computed(() => commentsStore.comments),
+    total: computed(() => commentsStore.total),
+    isLoading: computed(() => commentsStore.loading),
+    error: computed(() => commentsStore.error),
+    fetch: (params) => commentsStore.fetchComments(params),
   },
-  { debounce: 500 },
-)
-
-watch([typeFilter, flaggedFilter], () => {
-  tablePagination.value.pageIndex = 0
-  loadComments()
+  filters: {
+    type: typeFilter.value,
+    flaggedFilter: flaggedFilter.value,
+  },
+  transformParams: ({ search, filters, page, limit }) => ({
+    search,
+    type: filters.type === 'all' ? undefined : filters.type,
+    is_flagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    page,
+    limit,
+  }),
+  autoLoad: true,
 })
-
-watch(
-  () => tablePagination.value,
-  () => loadComments(),
-  { deep: true },
-)
 
 function confirmDelete(comment: Comment) {
   selectedCommentId.value = comment.id
   selectedCommentType.value = comment.type
+  selectedCommentContent.value = comment.content
   deleteDialogOpen.value = true
 }
 
 function openFlagDialog(comment: Comment) {
   selectedCommentId.value = comment.id
   selectedCommentType.value = comment.type
+  selectedCommentContent.value = comment.content
   flagDialogOpen.value = true
+}
+
+async function handleDeleteComment(id: string | number) {
+  if (!selectedCommentType.value) return
+  await commentsStore.deleteComment(String(id), selectedCommentType.value)
+}
+
+async function handleFlagComment(id: string | number, reason?: string) {
+  if (!selectedCommentType.value) return
+  await commentsStore.flagComment(String(id), selectedCommentType.value, reason || '')
 }
 
 async function unflagComment(comment: Comment) {
@@ -151,9 +161,7 @@ const columns: ColumnDef<Comment>[] = [
       return h('div', { class: 'flex flex-col gap-1' }, [
         h('span', { class: 'font-medium text-sm' }, truncated),
         h('div', { class: 'flex items-center gap-1 text-xs text-muted-foreground' }, [
-          comment.type === 'forum'
-            ? h(IconMessage, { class: 'h-3 w-3' })
-            : h(IconFileText, { class: 'h-3 w-3' }),
+          getCommentTypeIcon(comment.type),
           h('span', {}, comment.parentTitle || t('comments.type.unknown')),
         ]),
       ])
@@ -182,24 +190,8 @@ const columns: ColumnDef<Comment>[] = [
     accessorKey: 'is_flagged',
     header: () => t('comments.columns.status'),
     cell: ({ row }) => {
-      const isFlagged = row.getValue('is_flagged') as boolean
-      const isDeleted = row.original.is_deleted
-
-      if (isDeleted) {
-        return h(Badge, { variant: 'destructive' }, () => [
-          h(IconTrash, { class: 'mr-1 h-3 w-3' }),
-          t('comments.status.deleted'),
-        ])
-      }
-
-      if (isFlagged) {
-        return h(Badge, { variant: 'destructive' }, () => [
-          h(IconFlag, { class: 'mr-1 h-3 w-3' }),
-          t('comments.status.flagged'),
-        ])
-      }
-
-      return h(Badge, { variant: 'secondary' }, () => t('comments.status.active'))
+      const comment = row.original
+      return getCommentStatusBadge(comment.is_flagged, comment.is_deleted, t)
     },
   },
   {
@@ -294,10 +286,10 @@ const columns: ColumnDef<Comment>[] = [
   <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
     <DataTable
       :columns="columns"
-      :data="commentsStore.comments"
+      :data="data"
       :pagination="tablePagination"
-      :row-count="commentsStore.total"
-      :loading="commentsStore.loading"
+      :row-count="total"
+      :loading="loading"
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
@@ -348,7 +340,7 @@ const columns: ColumnDef<Comment>[] = [
               @click="loadComments()"
               :title="t('common.refresh')"
             >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': commentsStore.loading }" />
+              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
             </Button>
           </div>
         </div>
@@ -357,25 +349,43 @@ const columns: ColumnDef<Comment>[] = [
 
     <!-- Error state -->
     <div
-      v-if="commentsStore.error"
+      v-if="error"
       class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
     >
-      <span class="text-destructive">{{ commentsStore.error }}</span>
+      <span class="text-destructive">{{ error }}</span>
       <Button variant="outline" size="sm" @click="loadComments()">{{ t('common.retry') }}</Button>
     </div>
   </div>
 
-  <CommentDeleteDialog
+  <EntityActionDialog
     v-model:open="deleteDialogOpen"
-    :comment-id="selectedCommentId"
-    :comment-type="selectedCommentType"
+    :entity-id="selectedCommentId"
+    :entity-title="selectedCommentContent"
+    action="delete"
+    :title="t('comments.delete.title')"
+    :description="t('comments.delete.description')"
+    :confirm-label="t('comments.delete.confirm')"
+    :cancel-label="t('comments.delete.cancel')"
+    :success-label="t('comments.toast.deletedSuccessfully')"
+    :error-label="t('comments.toast.failedToDelete')"
+    :on-action="handleDeleteComment"
     @success="loadComments"
   />
 
-  <CommentFlagDialog
+  <EntityActionDialog
     v-model:open="flagDialogOpen"
-    :comment-id="selectedCommentId"
-    :comment-type="selectedCommentType"
+    :entity-id="selectedCommentId"
+    action="flag"
+    :title="t('comments.flag.title')"
+    :description="t('comments.flag.description')"
+    :confirm-label="t('comments.flag.confirm')"
+    :cancel-label="t('comments.flag.cancel')"
+    :success-label="t('comments.toast.flaggedSuccessfully')"
+    :error-label="t('comments.toast.failedToFlag')"
+    :reason-label="t('comments.flag.reasonLabel')"
+    :reason-placeholder="t('comments.flag.reasonPlaceholder')"
+    :reason-required-label="t('comments.toast.reasonRequired')"
+    :on-action="handleFlagComment"
     @success="loadComments"
   />
 </template>

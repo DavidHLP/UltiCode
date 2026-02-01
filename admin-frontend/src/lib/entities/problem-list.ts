@@ -1,0 +1,55 @@
+import { h, type VNode } from 'vue'
+import { Badge } from '@/components/ui/badge'
+import type { BadgeVariant } from './user'
+import { IconEye, IconEyeOff, IconLock, IconWorld } from '@tabler/icons-vue'
+
+/**
+ * Problem list visibility
+ */
+export type ProblemListVisibility = 'PUBLIC' | 'PRIVATE' | 'UNLISTED'
+
+/**
+ * Returns the badge variant for a problem list visibility
+ */
+export function getProblemListVisibilityBadgeVariant(
+  visibility: ProblemListVisibility,
+): BadgeVariant {
+  switch (visibility) {
+    case 'PUBLIC':
+      return 'default'
+    case 'PRIVATE':
+      return 'secondary'
+    case 'UNLISTED':
+      return 'outline'
+    default:
+      return 'outline'
+  }
+}
+
+/**
+ * Returns the icon component for a problem list visibility
+ */
+export function getProblemListVisibilityIcon(visibility: ProblemListVisibility): VNode {
+  switch (visibility) {
+    case 'PUBLIC':
+      return h(IconWorld, { class: 'h-4 w-4 text-emerald-500' })
+    case 'PRIVATE':
+      return h(IconLock, { class: 'h-4 w-4 text-amber-500' })
+    case 'UNLISTED':
+      return h(IconEyeOff, { class: 'h-4 w-4 text-muted-foreground' })
+    default:
+      return h(IconEye, { class: 'h-4 w-4 text-muted-foreground' })
+  }
+}
+
+/**
+ * Returns the badge component for a problem list visibility
+ * @param t - i18n translation function
+ */
+export function getProblemListVisibilityBadge(
+  visibility: ProblemListVisibility,
+  t: (key: string) => string,
+): VNode {
+  const variant = getProblemListVisibilityBadgeVariant(visibility)
+  return h(Badge, { variant }, () => t(`problemLists.visibility.${visibility.toLowerCase()}`))
+}

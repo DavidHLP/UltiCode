@@ -1,0 +1,28 @@
+services:
+  mysql:
+    image: mysql:9.1
+    container_name: ulticode-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ulticode
+      MYSQL_USER: ulticode
+      MYSQL_PASSWORD: ulticode
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7-alpine
+    container_name: ulticode-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    command: redis-server --requirepass 123456
+    volumes:
+      - redis_data:/data
+
+volumes:
+  mysql_data:
+  redis_data:

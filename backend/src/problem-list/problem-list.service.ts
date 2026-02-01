@@ -612,7 +612,7 @@ export class ProblemListService {
     userId: string,
     data: { name: string; description?: string; isPublic?: boolean },
   ): Promise<ProblemListSummary> {
-    const newListId = uuidv4();
+    const newListId: string = uuidv4();
     const newList = this.listsRepository.create({
       id: newListId,
       name: data.name,
@@ -684,7 +684,7 @@ export class ProblemListService {
       where: { list_id: listId },
     });
 
-    const newListId = uuidv4();
+    const newListId: string = uuidv4();
     const newList = this.listsRepository.create({
       id: newListId,
       name: `${originalList.name} (Copy)`,
@@ -697,10 +697,11 @@ export class ProblemListService {
     });
 
     await this.dataSource.transaction(async (manager) => {
-      await manager.save(newList);
+      const savedList = await manager.save(newList);
+      const listIdToUse: string = savedList.id;
       const newRelations = relations.map((r) =>
         this.relationsRepository.create({
-          list_id: newListId,
+          list_id: listIdToUse,
           problem_id: r.problem_id,
           sort_order: r.sort_order,
         }),

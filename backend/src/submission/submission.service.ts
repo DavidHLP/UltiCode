@@ -332,7 +332,7 @@ export class SubmissionService {
         memory: 0,
         runtime_percentile: null,
         memory_percentile: null,
-        test_details: Prisma.DbNull,
+        test_details: Prisma.DbNull as unknown as Prisma.InputJsonValue,
       },
     });
 

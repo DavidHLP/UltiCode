@@ -146,7 +146,7 @@ export class AdminProblemListController {
     @Body() createDto: CreateProblemListDto,
     @CurrentAdmin() admin: User,
   ) {
-    const id = uuidv4();
+    const id: string = uuidv4();
     const {
       name,
       description,

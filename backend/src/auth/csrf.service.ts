@@ -37,11 +37,12 @@ export class CsrfService {
     const key = this.getCsrfKey(userId);
 
     // Use atomic transaction to ensure both hset and expire succeed together
-    const results = await this.redis
+    type PipelineResult = [Error | null, unknown][] | null;
+    const results = (await this.redis
       .multi()
       .hset(key, 'token', token)
       .expire(key, this.TOKEN_TTL)
-      .exec();
+      .exec()) as PipelineResult;
 
     // Check if transaction succeeded
     if (!results || results.some(([err]) => err)) {

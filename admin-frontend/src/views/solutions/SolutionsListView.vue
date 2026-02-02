@@ -10,15 +10,12 @@ import {
   IconEyeOff,
   IconFile,
   IconFlag,
-  IconRefresh,
   IconTrash,
-  IconX,
   IconUser,
   IconCode,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -28,18 +25,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useSolutionsStore } from '@/stores/admin/solutions'
 import { useAuthStore } from '@/stores/auth'
 import type { Solution } from '@/api/admin/solutions'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 
@@ -58,6 +49,29 @@ const flagDialogOpen = ref(false)
 
 const canUpdateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION'))
 const canDeleteSolution = computed(() => authStore.hasPermission('DELETE', 'SOLUTION'))
+
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: flaggedFilter.value,
+    placeholder: t('solutions.filters.flagStatus'),
+    width: 'w-[130px]',
+    options: [
+      { value: 'all', label: t('solutions.filters.all') },
+      { value: 'flagged', label: t('solutions.filters.flagged') },
+      { value: 'clean', label: t('solutions.filters.clean') },
+    ],
+  },
+  {
+    modelValue: publishedFilter.value,
+    placeholder: t('solutions.filters.visibility'),
+    width: 'w-[130px]',
+    options: [
+      { value: 'all', label: t('solutions.filters.all') },
+      { value: 'published', label: t('solutions.filters.published') },
+      { value: 'unpublished', label: t('solutions.filters.unpublished') },
+    ],
+  },
+])
 
 const {
   searchQuery,
@@ -339,59 +353,19 @@ const columns: ColumnDef<Solution>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <Input
-            v-model="searchQuery"
-            :placeholder="t('solutions.searchPlaceholder')"
-            class="h-8 min-w-[150px] w-full lg:w-[250px]"
-          >
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconX class="h-3 w-3" />
-              </button>
-            </template>
-          </Input>
-
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-            <Select v-model="flaggedFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('solutions.filters.flagStatus')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('solutions.filters.all') }}</SelectItem>
-                <SelectItem value="flagged">{{ t('solutions.filters.flagged') }}</SelectItem>
-                <SelectItem value="clean">{{ t('solutions.filters.clean') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select v-model="publishedFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('solutions.filters.visibility')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('solutions.filters.all') }}</SelectItem>
-                <SelectItem value="published">{{ t('solutions.filters.published') }}</SelectItem>
-                <SelectItem value="unpublished">{{
-                  t('solutions.filters.unpublished')
-                }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-8 w-8"
-              @click="loadSolutions()"
-              :title="t('common.refresh')"
-            >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
-            </Button>
-          </div>
-        </div>
+        <DataTableToolbar
+          :search-model-value="searchQuery"
+          @update:search-model-value="searchQuery = $event"
+          :search-placeholder="t('solutions.searchPlaceholder')"
+          search-width="min-w-[150px] w-full lg:w-[250px]"
+          :filters="toolbarFilters"
+          @update:filter="
+            (index, value) =>
+              index === 0 ? (flaggedFilter = String(value)) : (publishedFilter = String(value))
+          "
+          :loading="loading"
+          :on-refresh="loadSolutions"
+        />
       </template>
     </DataTable>
 

@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/admin/dashboard'
 import { useAuditStore } from '@/stores/admin/audit'
-import SectionCards, { type StatItem } from '@/components/dashboard/SectionCards.vue'
+import StatCards, { type StatItem } from '@/components/dashboard/StatCards.vue'
 import AreaChart from '@/components/dashboard/AreaChart.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -132,7 +132,7 @@ onMounted(() => loadData())
     </div>
 
     <div v-else class="flex flex-col gap-4">
-      <SectionCards :stats="stats" />
+      <StatCards :stats="stats" />
 
       <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-7 px-4 lg:px-6">
         <AreaChart

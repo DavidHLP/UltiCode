@@ -10,13 +10,11 @@ import {
   IconDotsVertical,
   IconLock,
   IconPlus,
-  IconRefresh,
   IconShield,
   IconUser,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -28,18 +26,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useUsersStore } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/api/admin/users'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import UserEditDialog from './UserEditDialog.vue'
 import UserCreateDialog from './UserCreateDialog.vue'
@@ -68,6 +60,31 @@ const bulkActionLoading = ref(false)
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
 const canDeleteUser = computed(() => authStore.hasPermission('DELETE', 'USER'))
+
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: roleFilter.value,
+    placeholder: t('users.filters.allRoles'),
+    options: [
+      { value: 'all', label: t('users.filters.allRoles') },
+      { value: 'USER', label: t('users.filters.role.USER') },
+      { value: 'MODERATOR', label: t('users.filters.role.MODERATOR') },
+      { value: 'ADMIN', label: t('users.filters.role.ADMIN') },
+      { value: 'SUPER_ADMIN', label: t('users.filters.role.SUPER_ADMIN') },
+    ],
+  },
+  {
+    modelValue: statusFilter.value,
+    placeholder: t('users.filters.allStatus'),
+    width: 'w-[140px]',
+    options: [
+      { value: 'all', label: t('users.filters.allStatus') },
+      { value: 'active', label: t('users.filters.status.active') },
+      { value: 'inactive', label: t('users.filters.status.inactive') },
+      { value: 'banned', label: t('users.filters.status.banned') },
+    ],
+  },
+])
 
 const {
   searchQuery,
@@ -454,47 +471,18 @@ const columns: ColumnDef<User>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input
-          v-model="searchQuery"
-          :placeholder="t('users.searchPlaceholder')"
-          class="min-w-[200px] w-[260px]"
-        >
-          <template #trailing>
-            <button
-              v-if="searchQuery"
-              @click="searchQuery = ''"
-              class="rounded-sm opacity-70 hover:opacity-100"
-            >
-              <IconCircleXFilled class="h-4 w-4" />
-            </button>
-          </template>
-        </Input>
-        <Select v-model="roleFilter">
-          <SelectTrigger class="w-[160px]">
-            <SelectValue :placeholder="t('users.filters.allRoles')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{{ t('users.filters.allRoles') }}</SelectItem>
-            <SelectItem value="USER">{{ t('users.filters.role.USER') }}</SelectItem>
-            <SelectItem value="MODERATOR">{{ t('users.filters.role.MODERATOR') }}</SelectItem>
-            <SelectItem value="ADMIN">{{ t('users.filters.role.ADMIN') }}</SelectItem>
-            <SelectItem value="SUPER_ADMIN">{{ t('users.filters.role.SUPER_ADMIN') }}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select v-model="statusFilter">
-          <SelectTrigger class="w-[140px]">
-            <SelectValue :placeholder="t('users.filters.allStatus')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{{ t('users.filters.allStatus') }}</SelectItem>
-            <SelectItem value="active">{{ t('users.filters.status.active') }}</SelectItem>
-            <SelectItem value="inactive">{{ t('users.filters.status.inactive') }}</SelectItem>
-            <SelectItem value="banned">{{ t('users.filters.status.banned') }}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="icon" @click="loadUsers()" :title="t('common.refresh')">
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-        </Button>
+        <DataTableToolbar
+          :search-model-value="searchQuery"
+          @update:search-model-value="searchQuery = $event"
+          :search-placeholder="t('users.searchPlaceholder')"
+          :filters="toolbarFilters"
+          @update:filter="
+            (index, value) =>
+              index === 0 ? (roleFilter = String(value)) : (statusFilter = String(value))
+          "
+          :loading="loading"
+          :on-refresh="loadUsers"
+        />
       </template>
 
       <template #extra-actions>
@@ -533,7 +521,11 @@ const columns: ColumnDef<User>[] = [
     :entity-title="selectedUsername"
     action="ban"
     :title="t('users.actions.banUser')"
-    :description="t('users.actions.banUserDescription', { username: selectedUsername || t('users.actions.thisUser') })"
+    :description="
+      t('users.actions.banUserDescription', {
+        username: selectedUsername || t('users.actions.thisUser'),
+      })
+    "
     :reason-label="t('users.form.banReason')"
     :reason-placeholder="t('users.form.banReasonPlaceholder')"
     :on-action="handleBanUser"

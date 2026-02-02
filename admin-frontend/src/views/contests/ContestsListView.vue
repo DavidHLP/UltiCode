@@ -14,14 +14,12 @@ import {
   IconPlayerPlay,
   IconPlayerStop,
   IconPlus,
-  IconRefresh,
   IconTrash,
   IconTrophy,
   IconUsers,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
@@ -32,19 +30,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useContestsStore } from '@/stores/admin/contests'
 import { useAuthStore } from '@/stores/auth'
 import type { Contest } from '@/api/admin/contests'
 import { ContestType } from '@/api/admin/contests'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import ContestWizard from './wizard/ContestWizard.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ContestDetailDrawer from './ContestDetailDrawer.vue'
@@ -71,6 +63,31 @@ const selectedRows = ref<Contest[]>([])
 const canCreate = computed(() => authStore.hasPermission('CREATE', 'CONTEST'))
 const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'CONTEST'))
 const canDelete = computed(() => authStore.hasPermission('DELETE', 'CONTEST'))
+
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: statusFilter.value,
+    placeholder: t('contests.filters.allStatus'),
+    width: 'w-[140px]',
+    options: [
+      { value: 'all', label: t('contests.filters.allStatus') },
+      { value: 'NOT_STARTED', label: t('contests.filters.status.notStarted') },
+      { value: 'ONGOING', label: t('contests.filters.status.ongoing') },
+      { value: 'FINISHED', label: t('contests.filters.status.finished') },
+    ],
+  },
+  {
+    modelValue: typeFilter.value,
+    placeholder: t('contests.filters.allTypes'),
+    width: 'w-[140px]',
+    options: [
+      { value: 'all', label: t('contests.filters.allTypes') },
+      { value: 'IOI', label: t('contests.filters.type.ioi') },
+      { value: 'ICPC', label: t('contests.filters.type.icpc') },
+      { value: 'CUSTOM', label: t('contests.filters.type.custom') },
+    ],
+  },
+])
 
 const {
   tablePagination,
@@ -417,46 +434,18 @@ const columns: ColumnDef<Contest>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <Input
-          v-model="searchQuery"
-          :placeholder="t('contests.searchPlaceholder')"
-          class="min-w-[200px] w-[260px]"
-        >
-          <template #trailing>
-            <button
-              v-if="searchQuery"
-              @click="searchQuery = ''"
-              class="rounded-sm opacity-70 hover:opacity-100"
-            >
-              <IconCircleXFilled class="h-4 w-4" />
-            </button>
-          </template>
-        </Input>
-        <Select v-model="statusFilter">
-          <SelectTrigger class="w-[140px]">
-            <SelectValue :placeholder="t('contests.filters.allStatus')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{{ t('contests.filters.allStatus') }}</SelectItem>
-            <SelectItem value="UPCOMING">{{ t('contests.status.upcoming') }}</SelectItem>
-            <SelectItem value="RUNNING">{{ t('contests.status.running') }}</SelectItem>
-            <SelectItem value="FINISHED">{{ t('contests.status.finished') }}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select v-model="typeFilter">
-          <SelectTrigger class="w-[130px]">
-            <SelectValue :placeholder="t('contests.filters.allTypes')" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">{{ t('contests.filters.allTypes') }}</SelectItem>
-            <SelectItem value="PUBLIC">{{ t('contests.type.PUBLIC') }}</SelectItem>
-            <SelectItem value="PRIVATE">{{ t('contests.type.PRIVATE') }}</SelectItem>
-            <SelectItem value="VIRTUAL">{{ t('contests.type.VIRTUAL') }}</SelectItem>
-          </SelectContent>
-        </Select>
-        <Button variant="outline" size="icon" @click="loadContests()" :title="t('common.refresh')">
-          <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
-        </Button>
+        <DataTableToolbar
+          :search-model-value="searchQuery"
+          @update:search-model-value="searchQuery = $event"
+          :search-placeholder="t('contests.searchPlaceholder')"
+          :filters="toolbarFilters"
+          @update:filter="
+            (index, value) =>
+              index === 0 ? (statusFilter = String(value)) : (typeFilter = String(value))
+          "
+          :loading="loading"
+          :on-refresh="loadContests"
+        />
       </template>
 
       <template #extra-actions>
@@ -485,7 +474,11 @@ const columns: ColumnDef<Contest>[] = [
     :entity-title="selectedContestTitle"
     action="delete"
     :title="t('contests.delete.title')"
-    :description="t('contests.delete.description', { title: selectedContestTitle || t('contests.delete.thisContest') })"
+    :description="
+      t('contests.delete.description', {
+        title: selectedContestTitle || t('contests.delete.thisContest'),
+      })
+    "
     :confirm-label="t('contests.delete.confirm')"
     :cancel-label="t('contests.delete.cancel')"
     :success-label="t('contests.toast.deletedSuccessfully')"

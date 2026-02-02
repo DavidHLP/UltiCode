@@ -30,7 +30,6 @@ import {
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -56,6 +55,7 @@ import { Difficulty, type Problem, problemsApi } from '@/api/admin/problems'
 import { ApiError } from '@/utils/request'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ProblemImportDialog from '@/components/problems/ProblemImportDialog.vue'
 import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
@@ -94,6 +94,41 @@ const bulkEditDialogOpen = ref(false)
 const canCreateProblem = computed(() => authStore.hasPermission('CREATE', 'PROBLEM'))
 const canUpdateProblem = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM'))
 const canDeleteProblem = computed(() => authStore.hasPermission('DELETE', 'PROBLEM'))
+
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: difficultyFilter.value,
+    placeholder: t('problems.filters.allDifficulty'),
+    width: 'w-[140px]',
+    options: [
+      { value: 'all', label: t('problems.filters.allDifficulty') },
+      { value: 'EASY', label: t('problems.difficulty.EASY') },
+      { value: 'MEDIUM', label: t('problems.difficulty.MEDIUM') },
+      { value: 'HARD', label: t('problems.difficulty.HARD') },
+    ],
+  },
+  {
+    modelValue: statusFilter.value,
+    placeholder: t('problems.filters.allStatus'),
+    width: 'w-[140px]',
+    options: [
+      { value: 'all', label: t('problems.filters.allStatus') },
+      { value: 'DRAFT', label: t('problems.status.DRAFT') },
+      { value: 'PUBLISHED', label: t('problems.status.PUBLISHED') },
+      { value: 'ARCHIVED', label: t('problems.status.ARCHIVED') },
+    ],
+  },
+  {
+    modelValue: publishedFilter.value,
+    placeholder: t('problems.filters.allPublished'),
+    width: 'w-[160px]',
+    options: [
+      { value: 'all', label: t('problems.filters.allPublished') },
+      { value: 'published', label: t('problems.filters.published') },
+      { value: 'unpublished', label: t('problems.filters.unpublished') },
+    ],
+  },
+])
 
 const {
   searchQuery: internalSearchQuery,
@@ -187,12 +222,9 @@ watch(
 )
 
 // Watch filters for data reload (debouncing search separately)
-watch(
-  [difficultyFilter, statusFilter, publishedFilter, sortBy, sortOrder],
-  () => {
-    loadProblems()
-  },
-)
+watch([difficultyFilter, statusFilter, publishedFilter, sortBy, sortOrder], () => {
+  loadProblems()
+})
 
 // Watch pagination for data reload
 watch(
@@ -921,69 +953,23 @@ const columns: ColumnDef<Problem>[] = [
       @update:selected-rows="selectedRows = $event"
     >
       <template #toolbar-left>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <Input
-            v-model="searchQuery"
-            :placeholder="t('problems.searchPlaceholder')"
-            class="h-8 min-w-[150px] w-full lg:w-[250px]"
-          >
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconX class="h-3 w-3" />
-              </button>
-            </template>
-          </Input>
-
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-            <Select v-model="difficultyFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('problems.filters.difficulty')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('problems.filters.allLevels') }}</SelectItem>
-                <SelectItem value="EASY">{{ t('problems.difficulty.EASY') }}</SelectItem>
-                <SelectItem value="MEDIUM">{{ t('problems.difficulty.MEDIUM') }}</SelectItem>
-                <SelectItem value="HARD">{{ t('problems.difficulty.HARD') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select v-model="statusFilter">
-              <SelectTrigger class="h-8 w-[120px]">
-                <SelectValue :placeholder="t('problems.filters.status')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('problems.filters.allStatus') }}</SelectItem>
-                <SelectItem value="todo">{{ t('problems.status.todo') }}</SelectItem>
-                <SelectItem value="attempted">{{ t('problems.status.attempted') }}</SelectItem>
-                <SelectItem value="solved">{{ t('problems.status.solved') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select v-model="publishedFilter">
-              <SelectTrigger class="h-8 w-[120px]">
-                <SelectValue :placeholder="t('problems.filters.visibility')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('problems.filters.any') }}</SelectItem>
-                <SelectItem value="published">{{ t('problems.filters.published') }}</SelectItem>
-                <SelectItem value="unpublished">{{ t('problems.filters.unpublished') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-8 w-8"
-              @click="loadProblems()"
-              :title="t('common.refresh')"
-            >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
-            </Button>
-
+        <DataTableToolbar
+          :search-model-value="searchQuery"
+          @update:search-model-value="searchQuery = $event"
+          :search-placeholder="t('problems.searchPlaceholder')"
+          search-width="min-w-[150px] w-full lg:w-[250px]"
+          :filters="toolbarFilters"
+          @update:filter="
+            (index, value) => {
+              if (index === 0) difficultyFilter = String(value)
+              else if (index === 1) statusFilter = String(value)
+              else publishedFilter = String(value)
+            }
+          "
+          :loading="loading"
+          :on-refresh="loadProblems"
+        >
+          <template #extra-actions>
             <Select v-model="sortBy">
               <SelectTrigger class="h-8 w-[150px]">
                 <SelectValue :placeholder="t('problems.sort.title')" />
@@ -1040,8 +1026,8 @@ const columns: ColumnDef<Problem>[] = [
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </div>
-        </div>
+          </template>
+        </DataTableToolbar>
       </template>
 
       <template #extra-actions>
@@ -1097,7 +1083,11 @@ const columns: ColumnDef<Problem>[] = [
     :entity-title="selectedProblemTitle"
     action="delete"
     :title="t('problems.dialog.delete.title')"
-    :description="t('problems.dialog.delete.description', { title: selectedProblemTitle || t('problems.dialog.delete.thisProblem') })"
+    :description="
+      t('problems.dialog.delete.description', {
+        title: selectedProblemTitle || t('problems.dialog.delete.thisProblem'),
+      })
+    "
     :confirm-label="t('problems.dialog.delete.confirm')"
     :cancel-label="t('common.cancel')"
     :success-label="t('problems.toast.deleteSuccess')"

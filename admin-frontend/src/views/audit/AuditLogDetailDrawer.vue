@@ -123,9 +123,7 @@ const emit = defineEmits<{
           <span class="text-muted-foreground flex items-center gap-2">
             <IconEye class="h-3.5 w-3.5" /> User Agent
           </span>
-          <span
-            class="text-xs text-muted-foreground break-all bg-background p-2 rounded border"
-          >
+          <span class="text-xs text-muted-foreground break-all bg-background p-2 rounded border">
             {{ entity.user_agent }}
           </span>
         </div>

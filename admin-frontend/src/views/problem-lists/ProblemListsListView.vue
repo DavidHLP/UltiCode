@@ -82,8 +82,10 @@ const {
   },
   transformParams: ({ search, filters, page, limit }) => ({
     search,
-    is_featured: filters.featuredFilter === 'all' ? undefined : filters.featuredFilter === 'featured',
-    is_public: filters.visibilityFilter === 'all' ? undefined : filters.visibilityFilter === 'public',
+    is_featured:
+      filters.featuredFilter === 'all' ? undefined : filters.featuredFilter === 'featured',
+    is_public:
+      filters.visibilityFilter === 'all' ? undefined : filters.visibilityFilter === 'public',
     page,
     limit,
   }),
@@ -339,7 +341,11 @@ const columns: ColumnDef<ProblemList>[] = [
     :entity-title="selectedListName"
     action="delete"
     :title="t('problemLists.delete.title')"
-    :description="t('problemLists.delete.description', { name: selectedListName || t('problemLists.delete.thisList') })"
+    :description="
+      t('problemLists.delete.description', {
+        name: selectedListName || t('problemLists.delete.thisList'),
+      })
+    "
     :confirm-label="t('problemLists.delete.confirm')"
     :cancel-label="t('problemLists.delete.cancel')"
     :success-label="t('problemLists.toast.deletedSuccess')"

@@ -1,31 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
 import {
   IconBan,
-  IconCheck,
   IconCircleXFilled,
-  IconDotsVertical,
-  IconLock,
   IconPlus,
-  IconShield,
-  IconUser,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+
 import { useUsersStore } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/api/admin/users'
@@ -38,7 +23,7 @@ import UserCreateDialog from './UserCreateDialog.vue'
 import UserDetailDrawer from './UserDetailDrawer.vue'
 import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
-import { getRoleBadgeVariant, getStatusIcon, getStatusBadge } from '@/lib/entities/user'
+import { createColumns } from './columns'
 
 const { t } = useI18n()
 const usersStore = useUsersStore()
@@ -123,40 +108,42 @@ const {
   autoLoad: true,
 })
 
-function viewUser(user: User) {
-  selectedUserId.value = user.id
-  detailDrawerOpen.value = true
-}
-
-function editUser(user: User) {
-  selectedUserId.value = user.id
-  editDialogOpen.value = true
-}
-
-function resetPassword(user: User) {
-  selectedUserId.value = user.id
-  selectedUsername.value = user.username
-  resetPasswordDialogOpen.value = true
-}
-
-function startBanUser(user: User) {
-  selectedUserId.value = user.id
-  selectedUsername.value = user.username
-  banDialogOpen.value = true
-}
+const columns = createColumns(
+  t,
+  {
+    viewUser: (user: User) => {
+      selectedUserId.value = user.id
+      detailDrawerOpen.value = true
+    },
+    editUser: (user: User) => {
+      selectedUserId.value = user.id
+      editDialogOpen.value = true
+    },
+    resetPassword: (user: User) => {
+      selectedUserId.value = user.id
+      selectedUsername.value = user.username
+      resetPasswordDialogOpen.value = true
+    },
+    startBanUser: (user: User) => {
+      selectedUserId.value = user.id
+      selectedUsername.value = user.username
+      banDialogOpen.value = true
+    },
+    unbanUser: async (id: string) => {
+      try {
+        await usersStore.unbanUser(id)
+        await loadUsers()
+      } catch {
+        toast.error(t('users.toast.unbanFailed'))
+      }
+    },
+  },
+  () => canModerateUser.value,
+)
 
 async function handleBanUser(id: string | number, reason?: string) {
   if (!reason) return
   await usersStore.banUser(id as string, reason)
-}
-
-async function unbanUser(id: string) {
-  try {
-    await usersStore.unbanUser(id)
-    await loadUsers()
-  } catch {
-    toast.error(t('users.toast.unbanFailed'))
-  }
 }
 
 async function handleBulkBan() {
@@ -210,205 +197,6 @@ async function handleBulkDelete() {
     bulkActionLoading.value = false
   }
 }
-
-const columns: ColumnDef<User>[] = [
-  {
-    id: 'select',
-    header: ({ table }) =>
-      h(Checkbox, {
-        modelValue:
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate'),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          table.toggleAllPageRowsSelected(!!value),
-        'aria-label': 'Select all',
-      }),
-    cell: ({ row }) =>
-      h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': 'Select row',
-      }),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: 'username',
-    header: () => t('users.columns.user'),
-    cell: ({ row }) => {
-      const user = row.original
-      const initials =
-        user.name
-          ?.split(' ')
-          .map((n: string) => n[0])
-          .join('')
-          .toUpperCase()
-          .slice(0, 2) || user.username.slice(0, 2).toUpperCase()
-
-      const displayName = user.name || user.username
-      const displayEmail = user.email ?? user.username
-
-      return h('div', { class: 'flex items-center gap-3' }, [
-        h(
-          Avatar,
-          { class: 'h-9 w-9' },
-          {
-            default: () => [
-              h(AvatarImage, { src: user.avatar ?? '' }),
-              h(AvatarFallback, {}, () => initials),
-            ],
-          },
-        ),
-        h('div', { class: 'flex flex-col' }, [
-          h('span', { class: 'font-medium text-sm' }, displayName),
-          h('span', { class: 'text-muted-foreground text-xs' }, displayEmail),
-        ]),
-      ])
-    },
-  },
-  {
-    accessorKey: 'role',
-    header: () => t('users.columns.role'),
-    cell: ({ row }) => {
-      const role = row.getValue('role') as string
-      const icon = role === 'USER' ? IconUser : IconShield
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(icon, { class: 'h-4 w-4 text-muted-foreground' }),
-        h(Badge, { variant: getRoleBadgeVariant(role) }, () => role.replace('_', ' ')),
-      ])
-    },
-  },
-  {
-    accessorKey: 'status',
-    header: () => t('common.status'),
-    cell: ({ row }) => {
-      const user = row.original
-      return h('div', { class: 'flex items-center gap-2' }, [
-        getStatusIcon(user),
-        getStatusBadge(user, t),
-      ])
-    },
-  },
-  {
-    accessorKey: 'joined_at',
-    header: () => t('users.columns.joined'),
-    cell: ({ row }) => {
-      const date = new Date(row.getValue('joined_at') as string)
-      return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
-    },
-  },
-  {
-    accessorKey: 'last_login_at',
-    header: () => t('users.columns.lastLogin'),
-    cell: ({ row }) => {
-      const lastLogin = row.getValue('last_login_at') as string | undefined
-      if (!lastLogin) {
-        return h('span', { class: 'text-muted-foreground text-sm' }, t('common.never'))
-      }
-      const date = new Date(lastLogin)
-      return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
-    },
-  },
-  {
-    id: 'actions',
-    header: () => t('common.actions'),
-    cell: ({ row }) => {
-      const user = row.original
-      return h(
-        DropdownMenu,
-        {},
-        {
-          default: () => [
-            h(
-              DropdownMenuTrigger,
-              { asChild: true },
-              {
-                default: () =>
-                  h(
-                    Button,
-                    { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                    {
-                      default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
-                        h(IconDotsVertical, { class: 'h-4 w-4' }),
-                      ],
-                    },
-                  ),
-              },
-            ),
-            h(
-              DropdownMenuContent,
-              { align: 'end' },
-              {
-                default: () => [
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => viewUser(user) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconUser, { class: 'h-4 w-4' }),
-                          t('users.actions.viewDetails'),
-                        ]),
-                    },
-                  ),
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => editUser(user) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconShield, { class: 'h-4 w-4' }),
-                          t('users.actions.editProfile'),
-                        ]),
-                    },
-                  ),
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => resetPassword(user) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconLock, { class: 'h-4 w-4' }),
-                          t('users.actions.resetPassword'),
-                        ]),
-                    },
-                  ),
-                  h(DropdownMenuSeparator, {}),
-                  canModerateUser.value
-                    ? user.is_banned
-                      ? h(
-                          DropdownMenuItem,
-                          { onClick: () => unbanUser(user.id) },
-                          {
-                            default: () =>
-                              h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
-                                h(IconCheck, { class: 'h-4 w-4' }),
-                                t('users.actions.unbanUser'),
-                              ]),
-                          },
-                        )
-                      : h(
-                          DropdownMenuItem,
-                          { onClick: () => startBanUser(user) },
-                          {
-                            default: () =>
-                              h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                                h(IconBan, { class: 'h-4 w-4' }),
-                                t('users.actions.banUser'),
-                              ]),
-                          },
-                        )
-                    : null,
-                ],
-              },
-            ),
-          ],
-        },
-      )
-    },
-  },
-]
 </script>
 
 <template>
@@ -440,7 +228,7 @@ const columns: ColumnDef<User>[] = [
             @click="handleBulkUnban"
             :disabled="bulkActionLoading"
           >
-            <IconCheck class="h-3.5 w-3.5 mr-1" />
+            <IconCircleXFilled class="h-3.5 w-3.5 mr-1" />
             {{ t('users.bulkActions.bulkUnban') }}
           </Button>
           <Button
@@ -451,7 +239,7 @@ const columns: ColumnDef<User>[] = [
             @click="handleBulkDelete"
             :disabled="bulkActionLoading"
           >
-            <IconCircleXFilled class="h-3.5 w-3.5 mr-1" />
+            <IconBan class="h-3.5 w-3.5 mr-1" />
             {{ t('users.bulkActions.bulkDelete') }}
           </Button>
         </div>

@@ -1,46 +1,22 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
-import type { ColumnDef } from '@tanstack/vue-table'
+import { ref, computed } from 'vue'
 import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
-import {
-  IconCalendar,
-  IconCircleCheckFilled,
-  IconCircleXFilled,
-  IconClock,
-  IconDotsVertical,
-  IconEye,
-  IconLoader,
-  IconPlayerPlay,
-  IconPlayerStop,
-  IconPlus,
-  IconTrash,
-  IconTrophy,
-  IconUsers,
-} from '@tabler/icons-vue'
+import { IconPlus, IconTrash } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import { Separator } from '@/components/ui/separator'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
+
 import { useContestsStore } from '@/stores/admin/contests'
 import { useAuthStore } from '@/stores/auth'
-import type { Contest } from '@/api/admin/contests'
-import { ContestType } from '@/api/admin/contests'
+import type { Contest, ContestType } from '@/api/admin/contests'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import ContestWizard from './wizard/ContestWizard.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ContestDetailDrawer from './ContestDetailDrawer.vue'
-import { getContestTypeBadgeVariant } from '@/lib/ui/status'
+import { createColumns } from './columns'
 import { useDataTable } from '@/composables/useDataTable'
 
 const contestsStore = useContestsStore()
@@ -115,43 +91,47 @@ const {
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     status: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
-    type: filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestType),
+    type: filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestType | undefined),
     page,
     limit,
   }),
   autoLoad: true,
 })
 
-function viewContest(contest: Contest) {
-  selectedContestId.value = contest.id
-  detailDrawerOpen.value = true
-}
-
-function startDeleteContest(contest: Contest) {
-  selectedContestId.value = contest.id
-  selectedContestTitle.value = contest.title
-  deleteDialogOpen.value = true
-}
-
-async function handleStartContest(contest: Contest) {
-  try {
-    await contestsStore.startContest(contest.id)
-    toast.success(t('contests.toast.startedSuccessfully'))
-    await loadContests()
-  } catch {
-    toast.error(t('contests.toast.failedToStart'))
-  }
-}
-
-async function handleEndContest(contest: Contest) {
-  try {
-    await contestsStore.endContest(contest.id)
-    toast.success(t('contests.toast.endedSuccessfully'))
-    await loadContests()
-  } catch {
-    toast.error(t('contests.toast.failedToEnd'))
-  }
-}
+const columns = createColumns(
+  t,
+  {
+    viewContest: (contest: Contest) => {
+      selectedContestId.value = contest.id
+      detailDrawerOpen.value = true
+    },
+    startContest: async (contest: Contest) => {
+      try {
+        await contestsStore.startContest(contest.id)
+        toast.success(t('contests.toast.startedSuccessfully'))
+        await loadContests()
+      } catch {
+        toast.error(t('contests.toast.failedToStart'))
+      }
+    },
+    endContest: async (contest: Contest) => {
+      try {
+        await contestsStore.endContest(contest.id)
+        toast.success(t('contests.toast.endedSuccessfully'))
+        await loadContests()
+      } catch {
+        toast.error(t('contests.toast.failedToEnd'))
+      }
+    },
+    startDeleteContest: (contest: Contest) => {
+      selectedContestId.value = contest.id
+      selectedContestTitle.value = contest.title
+      deleteDialogOpen.value = true
+    },
+  },
+  () => canUpdate.value,
+  () => canDelete.value,
+)
 
 async function handleBulkDelete() {
   if (selectedRows.value.length === 0) return
@@ -173,225 +153,9 @@ async function handleBulkDelete() {
   }
 }
 
-function getStatusIcon(status: string) {
-  switch (status) {
-    case 'RUNNING':
-      return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-emerald-500' })
-    case 'FINISHED':
-      return h(IconCircleXFilled, { class: 'h-4 w-4 text-muted-foreground' })
-    default:
-      return h(IconLoader, { class: 'h-4 w-4 animate-spin text-blue-500' })
-  }
-}
-
-function getStatusBadge(status: string) {
-  switch (status) {
-    case 'RUNNING':
-      return h(Badge, { variant: 'default' }, () => t('contests.status.running'))
-    case 'FINISHED':
-      return h(Badge, { variant: 'secondary' }, () => t('contests.status.finished'))
-    default:
-      return h(Badge, { variant: 'outline' }, () => t('contests.status.upcoming'))
-  }
-}
-
-function getTypeBadgeVariant(type: string): 'default' | 'secondary' | 'destructive' | 'outline' {
-  return getContestTypeBadgeVariant(type)
-}
-
 async function handleDeleteContest(id: string | number) {
   await contestsStore.deleteContest(String(id))
 }
-
-const columns: ColumnDef<Contest>[] = [
-  {
-    id: 'select',
-    header: ({ table }) =>
-      h(Checkbox, {
-        modelValue:
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate'),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          table.toggleAllPageRowsSelected(!!value),
-        'aria-label': 'Select all',
-      }),
-    cell: ({ row }) =>
-      h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': 'Select row',
-      }),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: 'title',
-    header: () => t('contests.columns.contest'),
-    cell: ({ row }) => {
-      const contest = row.original
-      return h('div', { class: 'flex items-center gap-3' }, [
-        h(
-          'div',
-          {
-            class: 'h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary',
-          },
-          [h(IconTrophy, { class: 'h-4 w-4' })],
-        ),
-        h('div', { class: 'flex flex-col' }, [
-          h(
-            'span',
-            {
-              class: 'font-medium text-sm cursor-pointer hover:underline',
-              onClick: () => viewContest(contest),
-            },
-            contest.title,
-          ),
-          h('span', { class: 'text-muted-foreground text-xs' }, contest.slug),
-        ]),
-      ])
-    },
-  },
-  {
-    accessorKey: 'contest_type',
-    header: () => t('contests.columns.type'),
-    cell: ({ row }) => {
-      const type = row.original.contest_type
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(Badge, { variant: getTypeBadgeVariant(type) }, () => t(`contests.type.${type}`)),
-      ])
-    },
-  },
-  {
-    accessorKey: 'status',
-    header: () => t('contests.columns.status'),
-    cell: ({ row }) => {
-      const status = row.original.status
-      return h('div', { class: 'flex items-center gap-2' }, [
-        getStatusIcon(status),
-        getStatusBadge(status),
-      ])
-    },
-  },
-  {
-    accessorKey: 'start_time',
-    header: () => t('contests.columns.schedule'),
-    cell: ({ row }) => {
-      const contest = row.original
-      const startDate = new Date(contest.start_time)
-      return h('div', { class: 'flex flex-col text-sm' }, [
-        h('div', { class: 'flex items-center gap-1.5 text-muted-foreground' }, [
-          h(IconCalendar, { class: 'h-3.5 w-3.5' }),
-          h('span', {}, startDate.toLocaleDateString()),
-        ]),
-        h('div', { class: 'flex items-center gap-1.5 text-muted-foreground' }, [
-          h(IconClock, { class: 'h-3.5 w-3.5' }),
-          h('span', {}, t('contests.scheduleStep.minutes', { minutes: contest.duration_minutes })),
-        ]),
-      ])
-    },
-  },
-  {
-    accessorKey: 'participant_count',
-    header: () => t('contests.columns.participants'),
-    cell: ({ row }) => {
-      return h('div', { class: 'flex items-center gap-2 text-muted-foreground text-sm' }, [
-        h(IconUsers, { class: 'h-4 w-4' }),
-        h('span', {}, row.original.participant_count || 0),
-      ])
-    },
-  },
-  {
-    id: 'actions',
-    header: () => t('contests.columns.actions'),
-    cell: ({ row }) => {
-      const contest = row.original
-      return h(
-        DropdownMenu,
-        {},
-        {
-          default: () => [
-            h(
-              DropdownMenuTrigger,
-              { asChild: true },
-              {
-                default: () =>
-                  h(
-                    Button,
-                    { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                    {
-                      default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
-                        h(IconDotsVertical, { class: 'h-4 w-4' }),
-                      ],
-                    },
-                  ),
-              },
-            ),
-            h(
-              DropdownMenuContent,
-              { align: 'end' },
-              {
-                default: () => [
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => viewContest(contest) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconEye, { class: 'h-4 w-4' }),
-                          t('contests.actions.viewDetails'),
-                        ]),
-                    },
-                  ),
-                  canUpdate.value && contest.status === 'UPCOMING'
-                    ? h(
-                        DropdownMenuItem,
-                        { onClick: () => handleStartContest(contest) },
-                        {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
-                              h(IconPlayerPlay, { class: 'h-4 w-4' }),
-                              t('contests.actions.startContest'),
-                            ]),
-                        },
-                      )
-                    : null,
-                  canUpdate.value && contest.status === 'RUNNING'
-                    ? h(
-                        DropdownMenuItem,
-                        { onClick: () => handleEndContest(contest) },
-                        {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
-                              h(IconPlayerStop, { class: 'h-4 w-4' }),
-                              t('contests.actions.endContest'),
-                            ]),
-                        },
-                      )
-                    : null,
-                  h(DropdownMenuSeparator, {}),
-                  canDelete.value
-                    ? h(
-                        DropdownMenuItem,
-                        { onClick: () => startDeleteContest(contest) },
-                        {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                              h(IconTrash, { class: 'h-4 w-4' }),
-                              t('contests.actions.delete'),
-                            ]),
-                        },
-                      )
-                    : null,
-                ],
-              },
-            ),
-          ],
-        },
-      )
-    },
-  },
-]
 </script>
 
 <template>

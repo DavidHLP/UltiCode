@@ -28,9 +28,7 @@ defineProps<{
           <TableCell class="font-medium">
             <div class="flex items-center gap-2">
               <span>{{ p.user.username }}</span>
-              <span v-if="p.user.name" class="text-muted-foreground">
-                ({{ p.user.name }})
-              </span>
+              <span v-if="p.user.name" class="text-muted-foreground"> ({{ p.user.name }}) </span>
             </div>
           </TableCell>
           <TableCell class="text-muted-foreground"> - </TableCell>

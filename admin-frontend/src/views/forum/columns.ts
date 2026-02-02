@@ -69,7 +69,10 @@ export function createColumns(
           h('div', { class: 'flex items-center gap-2' }, [
             h('span', { class: 'font-medium text-sm' }, post.title),
             post.is_pinned &&
-              h(IconPin, { class: 'h-3 w-3 text-blue-500', 'aria-label': t('forum.status.pinned') }),
+              h(IconPin, {
+                class: 'h-3 w-3 text-blue-500',
+                'aria-label': t('forum.status.pinned'),
+              }),
             post.is_locked &&
               h(IconLock, {
                 class: 'h-3 w-3 text-amber-500',

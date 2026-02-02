@@ -91,7 +91,8 @@ const {
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     status: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
-    type: filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestType | undefined),
+    type:
+      filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestType | undefined),
     page,
     limit,
   }),

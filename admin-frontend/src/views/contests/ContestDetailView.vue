@@ -8,12 +8,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import {
-  IconArrowLeft,
-  IconPlayerPlay,
-  IconPlayerStop,
-  IconTrash,
-} from '@tabler/icons-vue'
+import { IconArrowLeft, IconPlayerPlay, IconPlayerStop, IconTrash } from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
 import ContestProblemPicker from './components/ContestProblemPicker.vue'
 import ContestOverviewTab from './components/ContestOverviewTab.vue'

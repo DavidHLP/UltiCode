@@ -72,7 +72,8 @@ export function createColumns(
           h(
             'div',
             {
-              class: 'h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary',
+              class:
+                'h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary',
             },
             [h(IconTrophy, { class: 'h-4 w-4' })],
           ),
@@ -124,7 +125,11 @@ export function createColumns(
           ]),
           h('div', { class: 'flex items-center gap-1.5 text-muted-foreground' }, [
             h(IconClock, { class: 'h-3.5 w-3.5' }),
-            h('span', {}, t('contests.scheduleStep.minutes', { minutes: contest.duration_minutes })),
+            h(
+              'span',
+              {},
+              t('contests.scheduleStep.minutes', { minutes: contest.duration_minutes }),
+            ),
           ]),
         ])
       },
@@ -161,7 +166,10 @@ function getStatusIcon(status: string) {
   }
 }
 
-function getStatusBadge(status: string, t: (key: string, params?: Record<string, unknown>) => string) {
+function getStatusBadge(
+  status: string,
+  t: (key: string, params?: Record<string, unknown>) => string,
+) {
   switch (status) {
     case 'RUNNING':
       return h(Badge, { variant: 'default' }, () => t('contests.status.running'))

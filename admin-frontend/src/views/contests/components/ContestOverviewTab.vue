@@ -73,7 +73,9 @@ defineProps<{
             <div class="flex flex-col items-center p-3 bg-muted/30 rounded-lg">
               <IconTrophy class="h-5 w-5 text-yellow-500 mb-1" />
               <span class="text-2xl font-bold">{{ contest.problems?.length || 0 }}</span>
-              <span class="text-xs text-muted-foreground">{{ $t('contests.detail.problems') }}</span>
+              <span class="text-xs text-muted-foreground">{{
+                $t('contests.detail.problems')
+              }}</span>
             </div>
             <div class="flex flex-col items-center p-3 bg-muted/30 rounded-lg">
               <IconUsers class="h-5 w-5 text-blue-500 mb-1" />

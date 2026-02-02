@@ -14,9 +14,7 @@ const props = withDefaults(defineProps<Props>(), {
 })
 
 const normalizedTags = computed(() => {
-  return props.tags.map((tag) =>
-    typeof tag === 'string' ? tag : tag.label,
-  )
+  return props.tags.map((tag) => (typeof tag === 'string' ? tag : tag.label))
 })
 
 const hasCount = computed(() => props.count !== undefined)
@@ -33,7 +31,11 @@ const hasCount = computed(() => props.count !== undefined)
       <div class="flex flex-wrap gap-1.5">
         <Badge
           v-for="(tag, index) in normalizedTags"
-          :key="typeof tags[index] === 'object' && 'id' in (tags[index] as object) ? (tags[index] as { id: string }).id : index"
+          :key="
+            typeof tags[index] === 'object' && 'id' in (tags[index] as object)
+              ? (tags[index] as { id: string }).id
+              : index
+          "
           variant="secondary"
           class="px-2.5 py-0.5 text-xs font-normal"
         >

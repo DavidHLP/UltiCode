@@ -126,7 +126,11 @@ export function createColumns(
       header: () => t('solutions.columns.views'),
       cell: ({ row }) => {
         const views = row.getValue('views') as number
-        return h('span', { class: 'text-muted-foreground text-sm tabular-nums' }, views.toLocaleString())
+        return h(
+          'span',
+          { class: 'text-muted-foreground text-sm tabular-nums' },
+          views.toLocaleString(),
+        )
       },
     },
     {

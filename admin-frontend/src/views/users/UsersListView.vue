@@ -2,11 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import {
-  IconBan,
-  IconCircleXFilled,
-  IconPlus,
-} from '@tabler/icons-vue'
+import { IconBan, IconCircleXFilled, IconPlus } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'

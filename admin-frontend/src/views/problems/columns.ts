@@ -138,7 +138,9 @@ export function createColumns(
           : isAttempted
             ? ('secondary' as const)
             : ('outline' as const)
-        const label = t(`problems.status.${isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'}`)
+        const label = t(
+          `problems.status.${isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'}`,
+        )
         return h('div', { class: 'flex items-center gap-2' }, [
           icon
             ? h(icon, { class: 'h-4 w-4 text-emerald-500' })
@@ -188,7 +190,10 @@ export function createColumns(
           Badge,
           { variant: 'destructive', class: 'gap-1' },
           {
-            default: () => [h(IconAlertTriangle, { class: 'h-3 w-3' }), t('moderation.statusPending')],
+            default: () => [
+              h(IconAlertTriangle, { class: 'h-3 w-3' }),
+              t('moderation.statusPending'),
+            ],
           },
         )
       },
@@ -198,7 +203,11 @@ export function createColumns(
       header: () => t('problems.columns.submissions'),
       cell: ({ row }) => {
         const count = row.original.submission_count || 0
-        return h('span', { class: 'text-muted-foreground text-sm tabular-nums' }, count.toLocaleString())
+        return h(
+          'span',
+          { class: 'text-muted-foreground text-sm tabular-nums' },
+          count.toLocaleString(),
+        )
       },
     },
     {
@@ -212,9 +221,11 @@ export function createColumns(
         return h(
           'div',
           { class: 'flex items-center gap-1 flex-wrap' },
-          tags.slice(0, 3).map((tag) =>
-            h(Badge, { variant: 'outline', class: 'text-xs' }, { default: () => tag.label }),
-          ),
+          tags
+            .slice(0, 3)
+            .map((tag) =>
+              h(Badge, { variant: 'outline', class: 'text-xs' }, { default: () => tag.label }),
+            ),
         )
       },
     },
@@ -336,7 +347,9 @@ function createActionsDropdown(
                         h(
                           DropdownMenuSubTrigger,
                           { class: 'gap-2' },
-                          { default: () => [h(IconPencil, { class: 'h-4 w-4' }), t('common.edit')] },
+                          {
+                            default: () => [h(IconPencil, { class: 'h-4 w-4' }), t('common.edit')],
+                          },
                         ),
                         h(
                           DropdownMenuSubContent,

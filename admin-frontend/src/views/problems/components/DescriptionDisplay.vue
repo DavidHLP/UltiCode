@@ -2,11 +2,15 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Badge } from '@/components/ui/badge'
-import { IconTag, IconBulb, IconInfoCircle, IconCalendar, IconHash } from '@tabler/icons-vue'
+import { IconBulb, IconCalendar, IconHash } from '@tabler/icons-vue'
 import DescriptionMarkdown, {
   type ProblemDescription,
 } from '@/components/problems/DescriptionMarkdown.vue'
 import { Separator } from '@/components/ui/separator'
+import { formatDate } from '@/lib/format/date'
+import ContentWithSidebarLayout from '@/components/shared/ContentWithSidebarLayout.vue'
+import MetadataCard, { type MetadataItem } from '@/components/shared/MetadataCard.vue'
+import TagsCard from '@/components/shared/TagsCard.vue'
 
 interface ProblemExample {
   id: string
@@ -42,9 +46,6 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-/**
- * Difficulty color mapping - matches frontend design
- */
 const difficultyClass = computed(() => {
   const difficulty = props.problem.difficulty.toLowerCase()
   if (difficulty === 'easy') return 'text-green-600 bg-green-500/10 border-green-500/20'
@@ -53,23 +54,27 @@ const difficultyClass = computed(() => {
   return 'text-foreground bg-muted'
 })
 
-/**
- * Check if hints are available
- */
 const hasHints = computed(() => {
   return props.problem.detail?.hints?.length || props.problem.detail?.hints?.join('\n')
 })
 
-/**
- * Check if tags are available
- */
-const hasTags = computed(() => {
-  return props.problem.tags?.length > 0
+const hintsList = computed(() => {
+  const hints = props.problem.detail?.hints
+  if (!hints || hints.length === 0) return []
+  if (typeof hints[0] === 'string') return hints
+  const joined = hints.join('\n')
+  return joined.split('\n').filter((h) => h.trim())
 })
 
-/**
- * Normalize problem data into the structure expected by DescriptionMarkdown.
- */
+const metadataItems = computed<MetadataItem[]>(() => [
+  { label: t('problems.display.id'), value: props.problem.id.slice(0, 8), icon: IconHash },
+  { label: t('problems.display.created'), value: formatDate(props.problem.created_at), icon: IconCalendar },
+  { label: t('problems.display.updated'), value: formatDate(props.problem.updated_at), icon: IconCalendar },
+  ...(props.problem.published_at
+    ? [{ label: t('problems.display.published'), value: formatDate(props.problem.published_at), icon: IconCalendar }]
+    : []),
+])
+
 const problemDescription = computed<ProblemDescription>(() => ({
   content: props.problem.detail?.summary || '',
   examples: (props.problem.examples || [])
@@ -82,25 +87,12 @@ const problemDescription = computed<ProblemDescription>(() => ({
   constraints: props.problem.detail?.constraints_json || [],
   followUp: props.problem.detail?.hints?.join('\n'),
 }))
-
-/**
- * Parse hints as array
- */
-const hintsList = computed(() => {
-  const hints = props.problem.detail?.hints
-  if (!hints || hints.length === 0) return []
-  if (typeof hints[0] === 'string') return hints
-  const joined = hints.join('\n')
-  return joined.split('\n').filter((h) => h.trim())
-})
 </script>
 
 <template>
-  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-    <!-- Main Content: Description -->
-    <div class="lg:col-span-8 space-y-6">
+  <ContentWithSidebarLayout>
+    <template #main-content>
       <div class="rounded-xl border bg-card p-6 shadow-sm">
-        <!-- Header -->
         <div class="flex flex-col gap-4 mb-6">
           <div class="space-y-1">
             <h1 class="text-2xl font-bold tracking-tight">
@@ -134,80 +126,21 @@ const hintsList = computed(() => {
 
         <Separator class="mb-6" />
 
-        <!-- Problem Description with Markdown Rendering -->
         <div class="prose prose-sm dark:prose-invert max-w-none">
           <DescriptionMarkdown :description="problemDescription" />
         </div>
       </div>
-    </div>
+    </template>
 
-    <!-- Sidebar: Metadata, Tags, Hints -->
-    <aside class="lg:col-span-4 space-y-6">
-      <!-- Metadata Card -->
-      <div class="rounded-xl border bg-card overflow-hidden shadow-sm">
-        <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
-          <IconInfoCircle class="h-4 w-4 text-muted-foreground" />
-          <h3 class="font-semibold text-sm">{{ t('problems.display.metadata') }}</h3>
-        </div>
-        <div class="p-4 space-y-4">
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <span class="text-xs text-muted-foreground flex items-center gap-1">
-                <IconHash class="h-3 w-3" /> {{ t('problems.display.id') }}
-              </span>
-              <p class="font-mono text-xs bg-muted/50 p-1 rounded select-all truncate">
-                {{ problem.id }}
-              </p>
-            </div>
-            <div class="space-y-1">
-              <span class="text-xs text-muted-foreground flex items-center gap-1">
-                <IconCalendar class="h-3 w-3" /> {{ t('problems.display.created') }}
-              </span>
-              <p class="text-sm font-medium">
-                {{ new Date(problem.created_at).toLocaleDateString() }}
-              </p>
-            </div>
-            <div class="space-y-1">
-              <span class="text-xs text-muted-foreground flex items-center gap-1">
-                <IconCalendar class="h-3 w-3" /> {{ t('problems.display.updated') }}
-              </span>
-              <p class="text-sm font-medium">
-                {{ new Date(problem.updated_at).toLocaleDateString() }}
-              </p>
-            </div>
-            <div v-if="problem.published_at" class="space-y-1">
-              <span class="text-xs text-muted-foreground flex items-center gap-1">
-                <IconCalendar class="h-3 w-3" /> {{ t('problems.display.published') }}
-              </span>
-              <p class="text-sm font-medium">
-                {{ new Date(problem.published_at).toLocaleDateString() }}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <template #sidebar>
+      <MetadataCard :title="t('problems.display.metadata')" :metadata="metadataItems" />
 
-      <!-- Tags Card -->
-      <div v-if="hasTags" class="rounded-xl border bg-card overflow-hidden shadow-sm">
-        <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
-          <IconTag class="h-4 w-4 text-muted-foreground" />
-          <h3 class="font-semibold text-sm">{{ t('problems.display.tags') }}</h3>
-        </div>
-        <div class="p-4">
-          <div class="flex flex-wrap gap-1.5">
-            <Badge
-              v-for="tag in problem.tags"
-              :key="tag.id"
-              variant="secondary"
-              class="px-2.5 py-0.5 text-xs font-normal"
-            >
-              {{ tag.label }}
-            </Badge>
-          </div>
-        </div>
-      </div>
+      <TagsCard
+        v-if="problem.tags?.length"
+        :title="t('problems.display.tags')"
+        :tags="problem.tags"
+      />
 
-      <!-- Hints Card -->
       <div v-if="hasHints" class="rounded-xl border bg-card overflow-hidden shadow-sm">
         <div class="flex items-center gap-2 p-4 border-b bg-muted/20">
           <IconBulb class="h-4 w-4 text-muted-foreground" />
@@ -231,6 +164,6 @@ const hintsList = computed(() => {
           </ul>
         </div>
       </div>
-    </aside>
-  </div>
+    </template>
+  </ContentWithSidebarLayout>
 </template>

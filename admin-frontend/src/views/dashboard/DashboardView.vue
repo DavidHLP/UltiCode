@@ -6,10 +6,12 @@ import { useDashboardStore } from '@/stores/admin/dashboard'
 import { useAuditStore } from '@/stores/admin/audit'
 import StatCards, { type StatItem } from '@/components/dashboard/StatCards.vue'
 import AreaChart from '@/components/dashboard/AreaChart.vue'
+import type { ChartDataPoint } from '@/components/dashboard/AreaChart.vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { IconShieldCheck } from '@tabler/icons-vue'
 import { useRouter } from 'vue-router'
+import { ChartMetric, ChartPeriod } from '@/api/admin/dashboard'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -72,6 +74,24 @@ const recentActivity = computed(() => {
   }))
 })
 
+// Transform backend chart data to AreaChart format
+const chartData = computed<ChartDataPoint[]>(() => {
+  const data = dashboardStore.chartData?.data || []
+  // Backend returns Prisma groupBy results: { joined_at: Date, _count: number }
+  // AreaChart expects: { date: Date, [key: string]: number }
+  return data.map((item) => {
+    // Find the date field (joined_at, created_at, published_at, etc.)
+    const dateKey = Object.keys(item).find((key) => key.endsWith('_at') || key === 'date')
+    const dateValue = dateKey ? (item[dateKey] as string | Date) : new Date()
+    // Get the count value
+    const countValue = (item._count as number) || 0
+    return {
+      date: new Date(dateValue),
+      users: countValue,
+    }
+  })
+})
+
 function formatRelativeTime(date: Date | string): string {
   const d = new Date(date)
   const now = new Date()
@@ -93,7 +113,15 @@ function formatRelativeTime(date: Date | string): string {
 async function loadData() {
   loading.value = true
   try {
-    await Promise.all([dashboardStore.fetchStats(), auditStore.fetchLogs({ limit: 10 })])
+    await Promise.all([
+      dashboardStore.fetchStats(),
+      dashboardStore.fetchChartStats({
+        metric: ChartMetric.USERS,
+        period: ChartPeriod.DAY,
+        days: 90,
+      }),
+      auditStore.fetchLogs({ limit: 10 }),
+    ])
   } catch (error) {
     console.error('Failed to load dashboard data:', error)
   } finally {
@@ -139,6 +167,9 @@ onMounted(() => loadData())
           class="col-span-4"
           :title="t('dashboard.chart.userRegistrationTrend')"
           :description="t('dashboard.chart.dailyRegistrations')"
+          :data="chartData"
+          :series-keys="['users']"
+          :config="{ users: { label: 'Users', color: 'var(--primary)' } }"
         />
 
         <Card class="col-span-3">

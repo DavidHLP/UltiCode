@@ -61,7 +61,7 @@ import ProblemImportDialog from '@/components/problems/ProblemImportDialog.vue'
 import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
 import BulkEditDialog from '@/components/problems/BulkEditDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
-import { getDifficultyBadgeVariant as getDifficultyBadgeVariantFromStatus } from '@/lib/ui/status'
+import { getDifficultyBadgeVariant, getDifficultyColor } from '@/lib/entities/problem'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -510,18 +510,6 @@ async function handleBulkEdited() {
   await loadProblems()
 }
 
-function getDifficultyBadgeVariant(
-  difficulty: Difficulty,
-): 'default' | 'secondary' | 'destructive' | 'outline' {
-  // Use centralized utility - map enum to string
-  const difficultyMap: Record<Difficulty, string> = {
-    EASY: 'Easy',
-    MEDIUM: 'Medium',
-    HARD: 'Hard',
-  }
-  return getDifficultyBadgeVariantFromStatus(difficultyMap[difficulty] || difficulty)
-}
-
 function getDifficultyIcon(difficulty: Difficulty) {
   switch (difficulty) {
     case 'EASY':
@@ -532,19 +520,6 @@ function getDifficultyIcon(difficulty: Difficulty) {
       return IconTrophy
     default:
       return IconFile
-  }
-}
-
-function getDifficultyColor(difficulty: Difficulty) {
-  switch (difficulty) {
-    case 'EASY':
-      return 'text-emerald-500'
-    case 'MEDIUM':
-      return 'text-amber-500'
-    case 'HARD':
-      return 'text-red-500'
-    default:
-      return 'text-muted-foreground'
   }
 }
 

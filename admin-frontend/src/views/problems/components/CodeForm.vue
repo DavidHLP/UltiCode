@@ -8,6 +8,7 @@ import { IconPlus, IconTrash, IconBrackets, IconCheck } from '@tabler/icons-vue'
 import { Badge } from '@/components/ui/badge'
 import { Textarea } from '@/components/ui/textarea'
 import { sanitizeTextInput } from '@/utils/sanitize-input'
+import { getLanguageColor } from '@/lib/entities/language'
 
 export interface LanguageWithCode {
   language: string
@@ -43,43 +44,19 @@ const emit = defineEmits<{
 }>()
 
 const commonLanguages = [
-  { name: 'python', color: 'bg-blue-500/10 text-blue-600 border-blue-500/20 hover:bg-blue-500/20' },
-  {
-    name: 'javascript',
-    color: 'bg-yellow-500/10 text-yellow-600 border-yellow-500/20 hover:bg-yellow-500/20',
-  },
-  {
-    name: 'typescript',
-    color: 'bg-blue-600/10 text-blue-700 border-blue-600/20 hover:bg-blue-600/20',
-  },
-  {
-    name: 'java',
-    color: 'bg-orange-500/10 text-orange-600 border-orange-500/20 hover:bg-orange-500/20',
-  },
-  { name: 'cpp', color: 'bg-blue-400/10 text-blue-500 border-blue-400/20 hover:bg-blue-400/20' },
-  { name: 'c', color: 'bg-gray-500/10 text-gray-600 border-gray-500/20 hover:bg-gray-500/20' },
-  {
-    name: 'csharp',
-    color: 'bg-purple-500/10 text-purple-600 border-purple-500/20 hover:bg-purple-500/20',
-  },
-  { name: 'go', color: 'bg-cyan-500/10 text-cyan-600 border-cyan-500/20 hover:bg-cyan-500/20' },
-  {
-    name: 'rust',
-    color: 'bg-orange-600/10 text-orange-700 border-orange-600/20 hover:bg-orange-600/20',
-  },
-  { name: 'ruby', color: 'bg-red-500/10 text-red-600 border-red-500/20 hover:bg-red-500/20' },
-  {
-    name: 'php',
-    color: 'bg-indigo-500/10 text-indigo-600 border-indigo-500/20 hover:bg-indigo-500/20',
-  },
-  {
-    name: 'swift',
-    color: 'bg-orange-500/10 text-orange-600 border-orange-500/20 hover:bg-orange-500/20',
-  },
-  {
-    name: 'kotlin',
-    color: 'bg-purple-600/10 text-purple-700 border-purple-600/20 hover:bg-purple-600/20',
-  },
+  'python',
+  'javascript',
+  'typescript',
+  'java',
+  'cpp',
+  'c',
+  'csharp',
+  'go',
+  'rust',
+  'ruby',
+  'php',
+  'swift',
+  'kotlin',
 ]
 
 const formData = ref<CodeFormData>({ languages: [] })
@@ -165,11 +142,6 @@ function isLanguageAdded(name: string): boolean {
   return formData.value.languages.some((l) => l.language.toLowerCase() === name.toLowerCase())
 }
 
-function getLanguageColor(name: string): string {
-  const lang = commonLanguages.find((l) => l.name === name.toLowerCase())
-  return lang?.color || 'bg-muted text-muted-foreground'
-}
-
 defineExpose({
   setLoading: (value: boolean) => {
     loading.value = value
@@ -194,19 +166,19 @@ defineExpose({
           <div class="flex flex-wrap gap-2">
             <button
               v-for="lang in commonLanguages"
-              :key="lang.name"
+              :key="lang"
               :class="[
                 'px-2.5 py-1.5 rounded-lg text-xs font-mono font-medium transition-all border shrink-0',
-                isLanguageAdded(lang.name)
+                isLanguageAdded(lang)
                   ? 'bg-muted/50 text-muted-foreground border-transparent opacity-60 cursor-not-allowed'
-                  : lang.color + ' hover:shadow-sm',
+                  : getLanguageColor(lang) + ' hover:shadow-sm',
               ]"
-              :disabled="isLanguageAdded(lang.name)"
-              @click="addLanguage(lang.name)"
+              :disabled="isLanguageAdded(lang)"
+              @click="addLanguage(lang)"
             >
-              <IconPlus v-if="!isLanguageAdded(lang.name)" class="h-3 w-3 mr-1 inline-block" />
+              <IconPlus v-if="!isLanguageAdded(lang)" class="h-3 w-3 mr-1 inline-block" />
               <IconCheck v-else class="h-3 w-3 mr-1 inline-block" />
-              {{ lang.name }}
+              {{ lang }}
             </button>
           </div>
         </div>

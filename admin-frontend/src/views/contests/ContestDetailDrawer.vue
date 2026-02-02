@@ -124,9 +124,7 @@ function navigateToDetail() {
             class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
           >
             <IconTrophy class="h-8 w-8 text-yellow-500 mb-2" />
-            <span class="text-2xl font-bold">{{
-              entity.problems?.length || 0
-            }}</span>
+            <span class="text-2xl font-bold">{{ entity.problems?.length || 0 }}</span>
             <span class="text-xs text-muted-foreground uppercase">{{
               t('contests.drawer.problems')
             }}</span>
@@ -135,9 +133,7 @@ function navigateToDetail() {
             class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
           >
             <IconUsers class="h-8 w-8 text-blue-500 mb-2" />
-            <span class="text-2xl font-bold">{{
-              entity.participant_count || 0
-            }}</span>
+            <span class="text-2xl font-bold">{{ entity.participant_count || 0 }}</span>
             <span class="text-xs text-muted-foreground uppercase">{{
               t('contests.drawer.participants')
             }}</span>

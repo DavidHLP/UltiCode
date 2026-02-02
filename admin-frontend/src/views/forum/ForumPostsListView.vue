@@ -8,9 +8,7 @@ import {
   IconCheck,
   IconDotsVertical,
   IconFlag,
-  IconRefresh,
   IconTrash,
-  IconX,
   IconUser,
   IconEye,
   IconThumbUp,
@@ -19,7 +17,6 @@ import {
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -29,18 +26,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useForumStore } from '@/stores/admin/forum'
 import { useAuthStore } from '@/stores/auth'
 import type { ForumPost } from '@/api/admin/forum'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 
@@ -60,6 +51,48 @@ const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
 
 const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_POST'))
+
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: communityFilter.value,
+    placeholder: t('forum.filters.community'),
+    width: 'w-[150px]',
+    options: [
+      { value: 'all', label: t('forum.filters.allCommunities') },
+      ...forumStore.communities.map((c) => ({ value: c.id, label: c.name })),
+    ],
+  },
+  {
+    modelValue: flaggedFilter.value,
+    placeholder: t('forum.filters.flagStatus'),
+    width: 'w-[130px]',
+    options: [
+      { value: 'all', label: t('forum.filters.all') },
+      { value: 'flagged', label: t('forum.filters.flagged') },
+      { value: 'clean', label: t('forum.filters.clean') },
+    ],
+  },
+  {
+    modelValue: pinnedFilter.value,
+    placeholder: t('forum.filters.pinned'),
+    width: 'w-[130px]',
+    options: [
+      { value: 'all', label: t('forum.filters.all') },
+      { value: 'pinned', label: t('forum.filters.pinnedOnly') },
+      { value: 'unpinned', label: t('forum.filters.unpinnedOnly') },
+    ],
+  },
+  {
+    modelValue: lockedFilter.value,
+    placeholder: t('forum.filters.locked'),
+    width: 'w-[130px]',
+    options: [
+      { value: 'all', label: t('forum.filters.all') },
+      { value: 'locked', label: t('forum.filters.lockedOnly') },
+      { value: 'unlocked', label: t('forum.filters.unlockedOnly') },
+    ],
+  },
+])
 
 const {
   searchQuery,
@@ -94,14 +127,10 @@ const {
   },
   transformParams: ({ search, filters, page, limit }) => ({
     search,
-    communityId:
-      filters.communityFilter === 'all' ? undefined : filters.communityFilter,
-    is_flagged:
-      filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
-    is_pinned:
-      filters.pinnedFilter === 'all' ? undefined : filters.pinnedFilter === 'pinned',
-    is_locked:
-      filters.lockedFilter === 'all' ? undefined : filters.lockedFilter === 'locked',
+    communityId: filters.communityFilter === 'all' ? undefined : filters.communityFilter,
+    is_flagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    is_pinned: filters.pinnedFilter === 'all' ? undefined : filters.pinnedFilter === 'pinned',
+    is_locked: filters.lockedFilter === 'all' ? undefined : filters.lockedFilter === 'locked',
     page,
     limit,
   }),
@@ -395,84 +424,23 @@ const columns: ColumnDef<ForumPost>[] = [
       @update:pagination="tablePagination = $event"
     >
       <template #toolbar-left>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <Input
-            v-model="searchQuery"
-            :placeholder="t('forum.searchPlaceholder')"
-            class="h-8 min-w-[150px] w-full lg:w-[250px]"
-          >
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconX class="h-3 w-3" />
-              </button>
-            </template>
-          </Input>
-
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-            <Select v-model="communityFilter">
-              <SelectTrigger class="h-8 w-[150px]">
-                <SelectValue :placeholder="t('forum.filters.community')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('forum.filters.allCommunities') }}</SelectItem>
-                <SelectItem
-                  v-for="community in forumStore.communities"
-                  :key="community.id"
-                  :value="community.id"
-                >
-                  {{ community.name }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select v-model="flaggedFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('forum.filters.flagStatus')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('forum.filters.all') }}</SelectItem>
-                <SelectItem value="flagged">{{ t('forum.filters.flagged') }}</SelectItem>
-                <SelectItem value="clean">{{ t('forum.filters.clean') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select v-model="pinnedFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('forum.filters.pinned')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('forum.filters.all') }}</SelectItem>
-                <SelectItem value="pinned">{{ t('forum.status.pinned') }}</SelectItem>
-                <SelectItem value="unpinned">{{ t('forum.filters.unpinned') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select v-model="lockedFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('forum.filters.locked')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('forum.filters.all') }}</SelectItem>
-                <SelectItem value="locked">{{ t('forum.status.locked') }}</SelectItem>
-                <SelectItem value="unlocked">{{ t('forum.filters.unlocked') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-8 w-8"
-              @click="loadPosts()"
-              :title="t('common.refresh')"
-            >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
-            </Button>
-          </div>
-        </div>
+        <DataTableToolbar
+          :search-model-value="searchQuery"
+          @update:search-model-value="searchQuery = $event"
+          :search-placeholder="t('forum.searchPlaceholder')"
+          search-width="min-w-[150px] w-full lg:w-[250px]"
+          :filters="toolbarFilters"
+          @update:filter="
+            (index, value) => {
+              if (index === 0) communityFilter = String(value)
+              else if (index === 1) flaggedFilter = String(value)
+              else if (index === 2) pinnedFilter = String(value)
+              else lockedFilter = String(value)
+            }
+          "
+          :loading="loading"
+          :on-refresh="loadPosts"
+        />
       </template>
     </DataTable>
 

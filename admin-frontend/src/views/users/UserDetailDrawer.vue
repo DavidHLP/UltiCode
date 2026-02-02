@@ -116,11 +116,7 @@ watch(
         </div>
 
         <div class="space-y-3 mt-4">
-          <div
-            v-for="(data, diff) in entity.stats.stats"
-            :key="diff"
-            class="space-y-1.5"
-          >
+          <div v-for="(data, diff) in entity.stats.stats" :key="diff" class="space-y-1.5">
             <div class="flex items-center justify-between text-xs">
               <span class="font-medium">{{ diff }}</span>
               <span class="text-muted-foreground">{{ data.count }}/{{ data.total }}</span>
@@ -188,9 +184,7 @@ watch(
               </p>
               <p class="text-sm text-muted-foreground pl-6">
                 {{
-                  entity.last_login_at
-                    ? new Date(entity.last_login_at).toLocaleString()
-                    : 'Never'
+                  entity.last_login_at ? new Date(entity.last_login_at).toLocaleString() : 'Never'
                 }}
               </p>
             </div>
@@ -212,11 +206,7 @@ watch(
             </p>
             <p class="text-xs text-muted-foreground">
               Banned on:
-              {{
-                entity.banned_at
-                  ? new Date(entity.banned_at).toLocaleString()
-                  : 'Unknown'
-              }}
+              {{ entity.banned_at ? new Date(entity.banned_at).toLocaleString() : 'Unknown' }}
             </p>
           </div>
         </div>

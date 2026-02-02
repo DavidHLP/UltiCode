@@ -1,57 +1,81 @@
-# 前端冗余与肿大设计分析
+# 前端代码冗余与臃肿设计分析报告
 
-基于对项目文件结构的分析，发现以下几个主要方面的冗余和优化空间：
+经过对 `@src/views`, `@src/components` 等核心目录的代码审查，发现当前前端工程在组件复用、逻辑抽象和状态管理方面存在若干冗余和设计臃肿的问题。以下是详细分析与重构建议。
 
-## 1. 组件重复与未清理的模板代码
+## 1. 组件重复与幽灵组件 (Component Duplication)
 
-### Dashboard 组件冗余
-`src/components/dashboard/` 目录下存在大量与 `src/components/table/` 功能重复且实现较差的组件。
-- **重复的 DataTable**:
-  - `src/components/dashboard/DataTable.vue`: 这是一个硬编码列和数据的特定实现，缺乏灵活性。
-  - `src/components/table/DataTable.vue`: 这是一个通用的、基于 `@tanstack/vue-table` 的实现，被 `src/views/` 下的大多数列表页面使用。
-  - **建议**: 删除 `src/components/dashboard/DataTable.vue` 及其依赖 (`DraggableRow.vue`, `DragHandle.vue`)，统一使用 `src/components/table/` 下的组件。
+### 1.1 完全重复的统计卡片组件
+**问题描述**:
+`src/components/dashboard/SectionCards.vue` 与 `src/components/dashboard/StatCards.vue` 的代码内容完全一致。
+**影响**:
+增加了维护成本，修改一处样式需同步修改另一处，容易产生遗漏。
+**建议**:
+删除其中一个（建议保留 `StatCards.vue`），并将所有引用统一指向保留的组件。
 
-- **重复的图表组件**:
-  - `src/components/dashboard/AreaChart.vue` 和 `src/components/dashboard/ChartAreaInteractive.vue` 高度相似。后者包含大量硬编码数据，看起来像是开发过程中的遗留原型。
-  - **建议**: 保留 `AreaChart.vue`，删除 `ChartAreaInteractive.vue`。
+### 1.2 列表视图的工具栏样板代码 (Toolbar Boilerplate)
+**问题描述**:
+在所有的列表视图中（如 `UsersListView`, `ProblemsListView`, `ContestsListView`, `ForumPostsListView` 等），`DataTable` 上方的工具栏区域代码高度重复。
+*   **重复模式**:
+    *   左侧：搜索框 (`Input`) + 多个下拉筛选 (`Select`) + 刷新按钮 (`Button`).
+    *   右侧：列显示控制、导出/导入按钮、新建按钮。
+*   **示例**: `ProblemsListView.vue` 和 `UsersListView.vue` 中的 `<template #toolbar-left>` 部分几乎只有绑定的变量不同。
+**建议**:
+封装 `DataTableToolbar` 组件，接受 `search`, `filters` 配置项和 `slots`，将搜索、筛选、刷新等通用布局标准化。
 
-- **遗留的模板页面**:
-  - `src/views/dashboard/TemplateDashboardView.vue`: 包含硬编码数据的示例页面，未使用真实数据。
-  - **建议**: 删除此文件。
+## 2. 业务逻辑分散与硬编码 (Business Logic Dispersion)
 
-## 2. 目录结构碎片化
+### 2.1 状态与样式的映射逻辑分散
+**问题描述**:
+虽然项目中存在 `@/lib/ui/status` 工具函数，但仍有大量组件在内部**重新实现**了状态到样式（颜色/Badge Variant）的映射逻辑。
+*   **Problems**: 难度颜色在 `DescriptionDisplay.vue` 中通过 `difficultyClass` 计算属性硬编码，在 `ProblemsListView.vue` 中也存在类似的逻辑，且部分使用了 `getDifficultyBadgeVariantFromStatus`。
+*   **Solutions**: `CodeDisplay.vue` 中 `getLanguageColor` 硬编码了语言颜色映射，`SolutionDetailView.vue` 中又可能有类似的 Badge 逻辑。
+**影响**:
+如果设计系统决定更改 "Hard" 难度的颜色，需要在多个文件逐一修改，容易造成 UI 不一致。
+**建议**:
+强制统一使用 `@/lib/ui/status` 或创建专门的 `useStatusColor` composable，严禁在组件内部硬编码颜色映射 (`text-red-600`, `bg-red-500/10` 等)。
 
-### Problem 组件分散
-与“题目”相关的组件分散在两个命名极其相似的目录中，造成混淆。
-- `src/components/problem/`: 包含编辑器相关组件 (`MarkdownEditor`, `TestCasesEditor`)。
-- `src/components/problems/`: 包含展示和管理组件 (`DescriptionMarkdown`, `BulkActionDialog` 等)。
-- **建议**: 将 `src/components/problem/` 的内容合并到 `src/components/problems/` 中，保持命名一致性。
+### 2.2 编辑与创建表单的二元化 (Dual Forms)
+**问题描述**:
+题目模块中存在 "创建" 和 "编辑" 逻辑的分离导致了表单定义的冗余。
+*   **Create**: `ProblemCreateView` 使用了 `ProblemForm.vue` (这是一个包含了 Description, TestCases, Constraints 等的大一统表单)。
+*   **Edit**: 编辑界面被拆分为 `EditDescriptionView` (使用 `DescriptionForm`), `EditCasesView` (使用 `CasesForm`), `EditCodeView` (使用 `CodeForm`)。
+*   **冗余点**: `ProblemForm.vue` 内部实际上重复定义了 `DescriptionForm` 中的大部分字段（Title, Slug, Difficulty 等）。
+**建议**:
+重构 `ProblemForm.vue`，使其直接组合复用 `DescriptionForm`, `CasesForm` 和 `CodeForm`，而不是重新写一遍 Input 和 Select 绑定。让 "创建" 页面成为这些子表单的聚合容器。
 
-## 3. 通用功能的重复实现
+## 3. 视图层逻辑臃肿 (View Layer Bloat)
 
-### 弹窗 (Dialog) 组件
-`EntityActionDialog.vue` 是一个设计良好的通用组件，支持“删除”和“标记”操作（带原因输入）。然而，系统中仍存在功能重叠的专用组件：
-- `src/views/users/UserBanDialog.vue`: 功能本质上是“带原因的操作”，与 `EntityActionDialog` 的“Flag”模式（带原因输入）非常相似。
-- **建议**: 扩展 `EntityActionDialog` 支持自定义动作类型（如 `action="ban"`）和自定义标题/描述，从而替代 `UserBanDialog`。
+### 3.1 实体操作对话框的重复调用
+**问题描述**:
+几乎每个列表视图 (`ListView`) 都包含了一套完全相同的 `EntityActionDialog` 状态管理逻辑：
+```typescript
+const deleteDialogOpen = ref(false)
+const selectedId = ref(null)
+const selectedTitle = ref(null)
+function confirmDelete(...) { ... }
+```
+**建议**:
+封装 `useEntityAction` hook 或者封装一个 `ListViewLayout` 组件，将删除、封禁、标记等通用实体操作的状态管理和 Dialog 渲染逻辑下沉。
 
-### 抽屉 (Drawer) 组件
-所有的详情抽屉组件 (`UserDetailDrawer`, `ContestDetailDrawer`, `ForumPostDetailDrawer`, `AuditLogDetailDrawer`) 共享几乎完全相同的壳代码：
-- Drawer 容器
-- Header (标题 + 描述 + 关闭/操作按钮)
-- Loading 状态展示
-- ScrollArea 容器
-- Error/Empty 状态展示
-- **建议**: 提取一个 `BaseDetailDrawer.vue` 组件，封装上述通用 UI 结构，各业务 Drawer 只需通过插槽 (Slot) 传入具体内容区域。
+### 3.2 详情页 (DetailView) 职责过重
+**问题描述**:
+`ContestDetailView.vue` 是一个典型的 "上帝视图" 组件。
+*   它包含概览 (`Overview`)、题目列表 (`Problems`)、参与者 (`Participants`)、排名 (`Rankings`) 四个 Tab 的所有 UI 代码。
+*   文件长度过长，包含大量的 `Table`, `Card` 定义。
+**建议**:
+将每个 Tab 的内容拆分为独立组件，例如 `ContestOverview.vue`, `ContestProblems.vue`, `ContestRankings.vue`。`ContestDetailView` 只负责路由参数获取、Tab 切换状态管理和顶层数据获取。
 
-## 4. 样式与资源优化
+## 4. Markdown 渲染组件的潜在冗余
+**问题描述**:
+存在 `DescriptionMarkdown.vue` (用于展示) 和 `MarkdownEditor.vue` (用于编辑)。
+*   `DescriptionMarkdown.vue` 中包含了大量的 CSS 样式 (`:deep(.markdown-content h1)`) 用于美化渲染结果。
+*   `MarkdownEditor.vue` 中有一个预览窗格 (`preview-pane`)，里面可能也包含了一套 Markdown 渲染样式或使用了不同的渲染逻辑。
+**建议**:
+提取 Markdown 渲染样式为全局 CSS 类或独立的 `<style>` 模块。`MarkdownEditor` 的预览区域应直接复用 `DescriptionMarkdown` 组件，确保编辑时的预览效果与最终展示效果完全一致 (WYSIWYG)。
 
-### 依赖库使用
-- 项目中同时引用了 `lucide-vue-next` 和 `@tabler/icons-vue` 两个图标库。
-  - `src/components/problem/MarkdownEditor.vue` 使用了 `lucide-vue-next`。
-  - `src/views/problems/ProblemDetailView.vue` 混合使用了两者。
-  - 大多数其他文件主要使用 `@tabler/icons-vue`。
-- **建议**: 统一使用一个图标库（推荐 `@tabler/icons-vue`，因为在项目中用量更大），移除另一个以减小包体积。
+## 5. 总结
 
-## 总结
-
-当前前端代码库存在明显的“复制粘贴开发”痕迹，特别是在 Dashboard 模块和早期的原型文件中。通过清理这些冗余文件、合并碎片化的目录结构以及进一步抽象通用 UI 模式（如 Drawer 和 Dialog），可以显著降低维护成本并减小打包体积。
+当前前端代码结构清晰，利用了 Vue 3 Composition API 和 TypeScript，基础很好。主要的改进空间在于：
+1.  **DRY (Don't Repeat Yourself) 原则执行**: 特别是在列表页工具栏、实体操作对话框、以及状态样式映射上。
+2.  **组件粒度控制**: 防止核心业务实体（如题目、比赛）的表单和详情页变得过于庞大和难以维护。
+3.  **样式统一源**: 消除组件内的硬编码样式，建立统一的 UI 状态映射层。

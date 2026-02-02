@@ -61,7 +61,9 @@ const reason = ref('')
 
 const isFlagAction = computed(() => props.action === 'flag')
 const isBanAction = computed(() => props.action === 'ban')
-const showReasonInput = computed(() => isFlagAction.value || isBanAction.value || props.requiresReason)
+const showReasonInput = computed(
+  () => isFlagAction.value || isBanAction.value || props.requiresReason,
+)
 
 const defaultTitle = computed(() => {
   if (props.title) return props.title

@@ -100,7 +100,10 @@ async function copyToClipboard() {
   <!-- Code Viewer -->
   <div v-else class="space-y-4">
     <!-- Language Selector (for multi-language scenarios) -->
-    <div v-if="showLanguageSelector && hasLanguages" class="flex items-center justify-between gap-4">
+    <div
+      v-if="showLanguageSelector && hasLanguages"
+      class="flex items-center justify-between gap-4"
+    >
       <div class="flex flex-wrap gap-2">
         <button
           v-for="lang in availableLanguages"
@@ -193,14 +196,11 @@ async function copyToClipboard() {
 
       <!-- Code Content -->
       <div v-if="hasCode" class="p-4 overflow-x-auto bg-[#0d1117]">
-        <pre class="text-sm font-mono whitespace-pre-wrap break-words text-gray-100"
-          ><code>{{ currentCode }}</code></pre
-        >
+        <pre
+          class="text-sm font-mono whitespace-pre-wrap break-words text-gray-100"
+        ><code>{{ currentCode }}</code></pre>
       </div>
-      <div
-        v-else
-        class="p-8 text-center text-sm text-muted-foreground italic bg-muted/20"
-      >
+      <div v-else class="p-8 text-center text-sm text-muted-foreground italic bg-muted/20">
         {{
           noCodeMessage ||
           t('problems.codeDisplay.noCodeForLanguage', { language: displayLanguage })

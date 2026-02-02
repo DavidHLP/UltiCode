@@ -68,10 +68,24 @@ const hintsList = computed(() => {
 
 const metadataItems = computed<MetadataItem[]>(() => [
   { label: t('problems.display.id'), value: props.problem.id.slice(0, 8), icon: IconHash },
-  { label: t('problems.display.created'), value: formatDate(props.problem.created_at), icon: IconCalendar },
-  { label: t('problems.display.updated'), value: formatDate(props.problem.updated_at), icon: IconCalendar },
+  {
+    label: t('problems.display.created'),
+    value: formatDate(props.problem.created_at),
+    icon: IconCalendar,
+  },
+  {
+    label: t('problems.display.updated'),
+    value: formatDate(props.problem.updated_at),
+    icon: IconCalendar,
+  },
   ...(props.problem.published_at
-    ? [{ label: t('problems.display.published'), value: formatDate(props.problem.published_at), icon: IconCalendar }]
+    ? [
+        {
+          label: t('problems.display.published'),
+          value: formatDate(props.problem.published_at),
+          icon: IconCalendar,
+        },
+      ]
     : []),
 ])
 

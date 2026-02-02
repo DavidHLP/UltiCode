@@ -9,10 +9,7 @@ export {
 } from '@/lib/entities/contest'
 
 // Re-export problem badge utilities from entity file for type safety
-export {
-  getDifficultyBadgeVariant,
-  getDifficultyColor,
-} from '@/lib/entities/problem'
+export { getDifficultyBadgeVariant, getDifficultyColor } from '@/lib/entities/problem'
 
 /**
  * Returns the badge variant for a flag status

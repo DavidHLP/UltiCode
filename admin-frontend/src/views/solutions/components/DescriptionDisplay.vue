@@ -2,13 +2,7 @@
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Separator } from '@/components/ui/separator'
-import {
-  IconCalendar,
-  IconUser,
-  IconEye,
-  IconTag,
-  IconFileText,
-} from '@tabler/icons-vue'
+import { IconCalendar, IconUser, IconEye, IconTag, IconFileText } from '@tabler/icons-vue'
 import type { Solution } from '@/api/admin/solutions'
 import DescriptionMarkdown from '@/components/problems/DescriptionMarkdown.vue'
 import { formatDate } from '@/lib/format/date'
@@ -42,8 +36,16 @@ const metadataItems = computed<MetadataItem[]>(() => [
     value: props.solution.language,
     icon: IconTag,
   },
-  { label: t('solutions.detail.created'), value: formatDate(props.solution.created_at), icon: IconCalendar },
-  { label: t('solutions.detail.updated'), value: formatDate(props.solution.updated_at), icon: IconCalendar },
+  {
+    label: t('solutions.detail.created'),
+    value: formatDate(props.solution.created_at),
+    icon: IconCalendar,
+  },
+  {
+    label: t('solutions.detail.updated'),
+    value: formatDate(props.solution.updated_at),
+    icon: IconCalendar,
+  },
 ])
 
 const solutionContent = computed(() => ({

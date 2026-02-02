@@ -133,7 +133,9 @@ const columns = createColumns(
       try {
         await forumStore.togglePin(post)
         toast.success(
-          post.is_pinned ? t('forum.toast.unpinnedSuccessfully') : t('forum.toast.pinnedSuccessfully'),
+          post.is_pinned
+            ? t('forum.toast.unpinnedSuccessfully')
+            : t('forum.toast.pinnedSuccessfully'),
         )
       } catch {
         toast.error(t('forum.toast.failedToUpdatePin'))
@@ -143,7 +145,9 @@ const columns = createColumns(
       try {
         await forumStore.toggleLock(post)
         toast.success(
-          post.is_locked ? t('forum.toast.unlockedSuccessfully') : t('forum.toast.lockedSuccessfully'),
+          post.is_locked
+            ? t('forum.toast.unlockedSuccessfully')
+            : t('forum.toast.lockedSuccessfully'),
         )
       } catch {
         toast.error(t('forum.toast.failedToUpdateLock'))

@@ -231,6 +231,18 @@ const router = createRouter({
           component: () => import('@/views/notifications/NotificationsListView.vue'),
           meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
         },
+        // Account
+        {
+          path: 'account',
+          name: 'account',
+          component: () => import('@/views/account/AccountView.vue'),
+        },
+        // Billing
+        {
+          path: 'billing',
+          name: 'billing',
+          component: () => import('@/views/billing/BillingView.vue'),
+        },
       ],
     },
   ],

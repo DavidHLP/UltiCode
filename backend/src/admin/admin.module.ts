@@ -20,11 +20,13 @@ import { AuthModule } from '../auth/auth.module';
 import { AdminCommentService } from './services/admin-comment.service';
 import { AdminSettingsService } from './services/settings.service';
 import { AdminTagService } from './services/admin-tag.service';
+import { AccountService } from './services/account.service';
 
 import { AdminProblemListController } from './controllers/admin-problem-list.controller';
 import { AdminTagController } from './controllers/admin-tag.controller';
 import { AdminNotificationController } from './controllers/admin-notification.controller';
 import { AdminNotificationService } from './services/admin-notification.service';
+import { AdminAccountController } from './controllers/admin-account.controller';
 
 @Global()
 @Module({
@@ -43,6 +45,7 @@ import { AdminNotificationService } from './services/admin-notification.service'
     AdminBulkController,
     AdminTagController,
     AdminNotificationController,
+    AdminAccountController,
   ],
   providers: [
     PermissionService,
@@ -52,6 +55,7 @@ import { AdminNotificationService } from './services/admin-notification.service'
     AdminSettingsService,
     AdminTagService,
     AdminNotificationService,
+    AccountService,
     PermissionsGuard,
     RolesGuard,
     PrismaService,

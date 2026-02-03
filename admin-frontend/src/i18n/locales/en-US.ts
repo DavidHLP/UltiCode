@@ -66,6 +66,7 @@ export default {
     saving: 'Saving...',
     premium: 'Premium',
     unpublished: 'Unpublished',
+    deleteConfirm: 'Confirm Delete',
   },
 
   // Navigation
@@ -85,6 +86,9 @@ export default {
     moderation: 'Moderation',
     getHelp: 'Get Help',
     search: 'Search',
+    account: 'Account',
+    billing: 'Billing',
+    logout: 'Log out',
   },
 
   // Moderation
@@ -279,8 +283,10 @@ export default {
     filters: {
       difficulty: 'Difficulty',
       allLevels: 'All Levels',
+      allDifficulty: 'All Difficulty',
       status: 'Status',
       allStatus: 'All Status',
+      allPublished: 'All Published',
       visibility: 'Visibility',
       any: 'Any',
       published: 'Published',
@@ -299,6 +305,9 @@ export default {
       todo: 'Todo',
       attempted: 'Attempted',
       solved: 'Solved',
+      DRAFT: 'Draft',
+      PUBLISHED: 'Published',
+      ARCHIVED: 'Archived',
     },
 
     // Published state
@@ -350,6 +359,8 @@ export default {
       publishFailed: 'Failed to publish problem',
       unpublishSuccess: 'Problem unpublished successfully',
       unpublishFailed: 'Failed to unpublish problem',
+      deleteSuccess: 'Problem deleted successfully',
+      deleteFailed: 'Failed to delete problem',
     },
 
     // Code template
@@ -784,6 +795,16 @@ export default {
       public: 'Public',
       private: 'Private',
       virtual: 'Virtual',
+      status: {
+        notStarted: 'Not Started',
+        ongoing: 'Ongoing',
+        finished: 'Finished',
+      },
+      type: {
+        ioi: 'IOI',
+        icpc: 'ICPC',
+        custom: 'Custom',
+      },
     },
 
     // Type
@@ -950,8 +971,7 @@ export default {
     // Delete dialog
     delete: {
       title: 'Delete Contest',
-      description:
-        'Are you sure you want to delete <strong>{title}</strong>? This action cannot be undone.',
+      description: 'Are you sure you want to delete {title}? This action cannot be undone.',
       thisContest: 'this contest',
       confirm: 'Delete Contest',
       deleting: 'Deleting...',
@@ -1078,7 +1098,7 @@ export default {
       createDescription: 'Create and send a notification to users.',
       deleteTitle: 'Delete Notification',
       deleteDescription:
-        'Are you sure you want to delete <strong>"{title}"</strong>? This action cannot be undone and the notification will be removed for all users.',
+        'Are you sure you want to delete "{title}"? This action cannot be undone and the notification will be removed for all users.',
       deleteFallback: 'this notification',
       sending: 'Sending...',
       sendNotification: 'Send Notification',
@@ -1092,6 +1112,18 @@ export default {
       deletedSuccessfully: 'Notification deleted',
       failedToDelete: 'Failed to delete notification',
     },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Notification',
+      description: 'Are you sure you want to delete this notification? This action cannot be undone.',
+      confirm: 'Delete Notification',
+      cancel: 'Cancel',
+    },
+
+    // Delete result messages
+    deleteSuccess: 'Notification deleted successfully',
+    deleteError: 'Failed to delete notification',
 
     // Category
     category: {
@@ -1379,7 +1411,7 @@ export default {
     delete: {
       title: 'Delete Problem List',
       description:
-        'Are you sure you want to delete <strong>{name}</strong>? This action cannot be undone.',
+        'Are you sure you want to delete {name}? This action cannot be undone.',
       thisList: 'this list',
       confirm: 'Delete List',
       deleting: 'Deleting...',
@@ -1461,16 +1493,14 @@ export default {
     // Delete dialog
     delete: {
       title: 'Delete Tag',
-      description:
-        'Are you sure you want to delete the tag <span class="font-medium text-foreground">"{name}"</span>? This action cannot be undone.',
+      description: 'Are you sure you want to delete the tag "{name}"? This action cannot be undone.',
       confirm: 'Delete Tag',
     },
 
     // Merge dialog
     merge: {
       title: 'Merge Tags',
-      description:
-        'Merge <span class="font-medium text-foreground">"{source}"</span> into another tag. All relations will be moved to the target tag, and the source tag will be deleted.',
+      description: 'Merge "{source}" into another tag. All relations will be moved to the target tag, and the source tag will be deleted.',
       targetTag: 'Target Tag',
       targetTagPlaceholder: 'Select a tag to merge into',
       confirm: 'Merge Tags',
@@ -1574,8 +1604,7 @@ export default {
     // Delete dialog
     delete: {
       title: 'Delete Solution',
-      description:
-        'Are you sure you want to delete the solution <span class="font-medium text-foreground">"{title}"</span>? This action cannot be undone.',
+      description: 'Are you sure you want to delete the solution "{title}"? This action cannot be undone.',
       cancel: 'Cancel',
       confirm: 'Delete Solution',
       deleting: 'Deleting...',
@@ -1584,8 +1613,7 @@ export default {
     // Flag dialog
     flag: {
       title: 'Flag Solution',
-      description:
-        'Flagging solution <span class="font-medium text-foreground">"{title}"</span> will mark it for review and may hide it from public view depending on settings.',
+      description: 'Flagging solution "{title}" will mark it for review and may hide it from public view depending on settings.',
       reasonLabel: 'Reason for flagging',
       reasonPlaceholder: 'Please explain why this solution violates community guidelines...',
       cancel: 'Cancel',
@@ -1633,6 +1661,10 @@ export default {
       clean: 'Clean',
       unpinned: 'Unpinned',
       unlocked: 'Unlocked',
+      pinnedOnly: 'Pinned Only',
+      unpinnedOnly: 'Unpinned Only',
+      lockedOnly: 'Locked Only',
+      unlockedOnly: 'Unlocked Only',
     },
 
     // Table columns
@@ -2043,5 +2075,83 @@ export default {
     title: 'No data found',
     description: 'There are no items to display',
     action: 'Create your first item',
+  },
+
+  // Account
+  account: {
+    title: 'My Account',
+    subtitle: 'Manage your profile and preferences',
+    sections: {
+      basic: 'Basic Information',
+      about: 'About',
+      social: 'Social Links',
+      preferences: 'Preferences',
+      security: 'Security',
+      accountInfo: 'Account Information',
+    },
+    fields: {
+      name: 'Display Name',
+      email: 'Email',
+      avatar: 'Avatar URL',
+      bio: 'Bio',
+      company: 'Company',
+      location: 'Location',
+      github: 'GitHub',
+      twitter: 'Twitter',
+      website: 'Website',
+      preferredLanguage: 'Preferred Language',
+      role: 'Role',
+      joinedAt: 'Joined At',
+      lastLogin: 'Last Login',
+      currentPassword: 'Current Password',
+      newPassword: 'New Password',
+      confirmPassword: 'Confirm New Password',
+    },
+    actions: {
+      save: 'Save Changes',
+      cancel: 'Cancel',
+      changePassword: 'Change Password',
+    },
+    toast: {
+      saveSuccess: 'Profile updated successfully',
+      saveFailed: 'Failed to update profile',
+      passwordSuccess: 'Password changed successfully',
+      passwordFailed: 'Failed to change password',
+      passwordsDoNotMatch: 'Passwords do not match',
+    },
+  },
+
+  // Billing
+  billing: {
+    title: 'Billing & Subscription',
+    subtitle: 'Manage your subscription and billing information',
+    currentPlan: 'Current Plan',
+    planDetails: 'Plan Details',
+    status: 'Status',
+    startedAt: 'Started At',
+    expiresAt: 'Expires At',
+    cancelledAt: 'Cancelled At',
+    plans: {
+      FREE: 'Free',
+      PREMIUM_MONTHLY: 'Premium (Monthly)',
+      PREMIUM_YEARLY: 'Premium (Yearly)',
+    },
+    status: {
+      ACTIVE: 'Active',
+      CANCELLED: 'Cancelled',
+      EXPIRED: 'Expired',
+      PENDING: 'Pending',
+    },
+    features: {
+      free: {
+        title: 'Free Plan',
+        description: 'Basic access to platform features',
+      },
+      premium: {
+        title: 'Premium Plan',
+        description: 'Full access to all premium features',
+      },
+    },
+    noSubscription: 'No active subscription',
   },
 } as const

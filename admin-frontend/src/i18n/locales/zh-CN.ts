@@ -67,6 +67,7 @@ export default {
     saving: '保存中...',
     premium: '高级',
     unpublished: '未发布',
+    deleteConfirm: '确认删除',
   },
 
   // 导航
@@ -86,6 +87,9 @@ export default {
     moderation: '内容审核',
     getHelp: '获取帮助',
     search: '搜索',
+    account: '账户',
+    billing: '账单',
+    logout: '退出登录',
   },
 
   // 内容审核
@@ -280,8 +284,10 @@ export default {
     filters: {
       difficulty: '难度',
       allLevels: '全部难度',
+      allDifficulty: '全部难度',
       status: '状态',
       allStatus: '全部状态',
+      allPublished: '全部发布状态',
       visibility: '可见性',
       any: '任意',
       published: '已发布',
@@ -300,6 +306,9 @@ export default {
       todo: '未开始',
       attempted: '已尝试',
       solved: '已解决',
+      DRAFT: '草稿',
+      PUBLISHED: '已发布',
+      ARCHIVED: '已归档',
     },
 
     // 发布状态
@@ -349,6 +358,8 @@ export default {
       publishFailed: '题目发布失败',
       unpublishSuccess: '题目已取消发布',
       unpublishFailed: '取消发布失败',
+      deleteSuccess: '题目删除成功',
+      deleteFailed: '删除题目失败',
     },
 
     // 代码模板
@@ -780,6 +791,16 @@ export default {
       public: '公开',
       private: '私有',
       virtual: '虚拟',
+      status: {
+        notStarted: '未开始',
+        ongoing: '进行中',
+        finished: '已结束',
+      },
+      type: {
+        ioi: 'IOI',
+        icpc: 'ICPC',
+        custom: '自定义',
+      },
     },
 
     // 类型
@@ -945,7 +966,7 @@ export default {
     // 删除对话框
     delete: {
       title: '删除比赛',
-      description: '确定要删除 <strong>{title}</strong> 吗？此操作无法撤销。',
+      description: '确定要删除 {title} 吗？此操作无法撤销。',
       thisContest: '此比赛',
       confirm: '删除比赛',
       deleting: '删除中...',
@@ -1043,6 +1064,24 @@ export default {
       scheduled: '已计划',
       sent: '已发送',
     },
+
+    // 删除对话框
+    delete: {
+      title: '删除通知',
+      description: '确定要删除此通知吗？此操作无法撤销。',
+      confirm: '删除通知',
+      cancel: '取消',
+    },
+
+    // 提示消息
+    toast: {
+      deleteSuccess: '通知删除成功',
+      deleteError: '通知删除失败',
+    },
+
+    // 删除结果消息
+    deleteSuccess: '通知删除成功',
+    deleteError: '通知删除失败',
   },
 
   // 审计日志
@@ -1314,7 +1353,7 @@ export default {
     // 删除对话框
     delete: {
       title: '删除题目列表',
-      description: '确定要删除 <strong>{name}</strong> 吗？此操作无法撤销。',
+      description: '确定要删除 {name} 吗？此操作无法撤销。',
       thisList: '此列表',
       confirm: '删除列表',
       deleting: '删除中...',
@@ -1396,16 +1435,14 @@ export default {
     // 删除对话框
     delete: {
       title: '删除标签',
-      description:
-        '确定要删除标签 <span class="font-medium text-foreground">"{name}"</span> 吗？此操作无法撤销。',
+      description: '确定要删除标签 "{name}" 吗？此操作无法撤销。',
       confirm: '删除标签',
     },
 
     // 合并对话框
     merge: {
       title: '合并标签',
-      description:
-        '将 <span class="font-medium text-foreground">"{source}"</span> 合并到另一个标签。所有关联将移动到目标标签，源标签将被删除。',
+      description: '将 "{source}" 合并到另一个标签。所有关联将移动到目标标签，源标签将被删除。',
       targetTag: '目标标签',
       targetTagPlaceholder: '选择要合并到的标签',
       confirm: '合并标签',
@@ -1506,8 +1543,7 @@ export default {
     // 删除对话框
     delete: {
       title: '删除题解',
-      description:
-        '确定要删除题解 <span class="font-medium text-foreground">"{title}"</span> 吗？此操作无法撤销。',
+      description: '确定要删除题解 "{title}" 吗？此操作无法撤销。',
       cancel: '取消',
       confirm: '删除题解',
       deleting: '删除中...',
@@ -1516,8 +1552,7 @@ export default {
     // 标记对话框
     flag: {
       title: '标记题解',
-      description:
-        '标记题解 <span class="font-medium text-foreground">"{title}"</span> 将其标记为审核，并根据设置可能会从公共视图中隐藏。',
+      description: '标记题解 "{title}" 将其标记为审核，并根据设置可能会从公共视图中隐藏。',
       reasonLabel: '标记原因',
       reasonPlaceholder: '请说明此题解违反社区准则的原因...',
       cancel: '取消',
@@ -1565,6 +1600,10 @@ export default {
       clean: '正常',
       unpinned: '未置顶',
       unlocked: '未锁定',
+      pinnedOnly: '仅置顶',
+      unpinnedOnly: '仅未置顶',
+      lockedOnly: '仅已锁定',
+      unlockedOnly: '仅未锁定',
     },
 
     // 表格列
@@ -1970,5 +2009,83 @@ export default {
     title: '暂无数据',
     description: '没有可显示的项目',
     action: '创建第一个项目',
+  },
+
+  // 账户
+  account: {
+    title: '我的账户',
+    subtitle: '管理您的个人资料和偏好设置',
+    sections: {
+      basic: '基本信息',
+      about: '关于',
+      social: '社交链接',
+      preferences: '偏好设置',
+      security: '安全',
+      accountInfo: '账户信息',
+    },
+    fields: {
+      name: '显示名称',
+      email: '邮箱',
+      avatar: '头像 URL',
+      bio: '个人简介',
+      company: '公司',
+      location: '所在地',
+      github: 'GitHub',
+      twitter: 'Twitter',
+      website: '个人网站',
+      preferredLanguage: '首选语言',
+      role: '角色',
+      joinedAt: '加入时间',
+      lastLogin: '最后登录',
+      currentPassword: '当前密码',
+      newPassword: '新密码',
+      confirmPassword: '确认新密码',
+    },
+    actions: {
+      save: '保存更改',
+      cancel: '取消',
+      changePassword: '更改密码',
+    },
+    toast: {
+      saveSuccess: '个人资料更新成功',
+      saveFailed: '更新个人资料失败',
+      passwordSuccess: '密码更改成功',
+      passwordFailed: '更改密码失败',
+      passwordsDoNotMatch: '密码不匹配',
+    },
+  },
+
+  // 账单
+  billing: {
+    title: '账单与订阅',
+    subtitle: '管理您的订阅和账单信息',
+    currentPlan: '当前计划',
+    planDetails: '计划详情',
+    status: '状态',
+    startedAt: '开始时间',
+    expiresAt: '到期时间',
+    cancelledAt: '取消时间',
+    plans: {
+      FREE: '免费',
+      PREMIUM_MONTHLY: '高级会员（月付）',
+      PREMIUM_YEARLY: '高级会员（年付）',
+    },
+    status: {
+      ACTIVE: '活跃',
+      CANCELLED: '已取消',
+      EXPIRED: '已过期',
+      PENDING: '待处理',
+    },
+    features: {
+      free: {
+        title: '免费计划',
+        description: '平台基础功能访问权限',
+      },
+      premium: {
+        title: '高级计划',
+        description: '完整访问所有高级功能',
+      },
+    },
+    noSubscription: '无活跃订阅',
   },
 } as const

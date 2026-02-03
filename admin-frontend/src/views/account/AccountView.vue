@@ -1,0 +1,394 @@
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@/stores/auth'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import { accountApi, type AccountProfile, type UpdateProfileDto } from '@/api/admin/account'
+import { toast } from 'vue-sonner'
+import {
+  IconUser,
+  IconMail,
+  IconBuilding,
+  IconMapPin,
+  IconBrandGithub,
+  IconBrandTwitter,
+  IconWorld,
+  IconLanguage,
+  IconDeviceFloppy,
+  IconShield,
+  IconKey,
+  IconCalendar,
+} from '@tabler/icons-vue'
+
+const { t } = useI18n()
+const authStore = useAuthStore()
+
+const loading = ref(false)
+const saving = ref(false)
+const changingPassword = ref(false)
+
+const profile = ref<AccountProfile>({
+  id: '',
+  username: '',
+  name: '',
+  email: '',
+  role: '',
+  joined_at: '',
+})
+
+const formData = ref<UpdateProfileDto>({})
+
+const passwordData = ref({
+  currentPassword: '',
+  newPassword: '',
+  confirmPassword: '',
+})
+
+const showPasswordForm = ref(false)
+
+const canSave = computed(() => {
+  return Object.keys(formData.value).length > 0
+})
+
+async function loadProfile() {
+  loading.value = true
+  try {
+    profile.value = await accountApi.getProfile()
+  } catch (error) {
+    toast.error(t('account.toast.saveFailed'))
+    console.error(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+async function saveProfile() {
+  if (!canSave.value) return
+
+  saving.value = true
+  try {
+    const updatedProfile = await accountApi.updateProfile(formData.value)
+    profile.value = updatedProfile
+    formData.value = {}
+    toast.success(t('account.toast.saveSuccess'))
+  } catch (error) {
+    toast.error(t('account.toast.saveFailed'))
+    console.error(error)
+  } finally {
+    saving.value = false
+  }
+}
+
+async function changePassword() {
+  if (passwordData.value.newPassword !== passwordData.value.confirmPassword) {
+    toast.error(t('account.toast.passwordsDoNotMatch'))
+    return
+  }
+
+  changingPassword.value = true
+  try {
+    await accountApi.changePassword({
+      currentPassword: passwordData.value.currentPassword,
+      newPassword: passwordData.value.newPassword,
+    })
+    passwordData.value = {
+      currentPassword: '',
+      newPassword: '',
+      confirmPassword: '',
+    }
+    showPasswordForm.value = false
+    toast.success(t('account.toast.passwordSuccess'))
+  } catch (error) {
+    toast.error(t('account.toast.passwordFailed'))
+    console.error(error)
+  } finally {
+    changingPassword.value = false
+  }
+}
+
+function updateField<K extends keyof UpdateProfileDto>(key: K, value: UpdateProfileDto[K]) {
+  formData.value[key] = value
+}
+
+onMounted(() => {
+  loadProfile()
+})
+</script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col gap-2">
+      <h1 class="text-3xl font-bold tracking-tight">{{ t('account.title') }}</h1>
+      <p class="text-muted-foreground">{{ t('account.subtitle') }}</p>
+    </div>
+
+    <div v-if="loading" class="flex items-center justify-center py-12">
+      <IconUser class="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+
+    <div v-else class="space-y-6">
+      <!-- Basic Information -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconUser class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{{ t('account.sections.basic') }}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label>{{ t('account.fields.name') }}</Label>
+              <Input
+                :model-value="formData.name ?? profile.name"
+                @update:model-value="(v: string) => updateField('name', v)"
+                :placeholder="profile.name"
+              />
+            </div>
+            <div class="space-y-2">
+              <Label>{{ t('account.fields.email') }}</Label>
+              <Input
+                :model-value="formData.email ?? profile.email"
+                @update:model-value="(v: string) => updateField('email', v)"
+                type="email"
+                :placeholder="profile.email"
+              />
+            </div>
+          </div>
+          <div class="space-y-2">
+            <Label>{{ t('account.fields.avatar') }}</Label>
+            <Input
+              :model-value="formData.avatar ?? profile.avatar"
+              @update:model-value="(v: string) => updateField('avatar', v)"
+              :placeholder="profile.avatar || 'https://example.com/avatar.png'"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- About -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconUser class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{{ t('account.sections.about') }}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label>{{ t('account.fields.company') }}</Label>
+              <Input
+                :model-value="formData.company ?? profile.company"
+                @update:model-value="(v: string) => updateField('company', v)"
+                :placeholder="profile.company || 'Your company'"
+              />
+            </div>
+            <div class="space-y-2">
+              <Label>{{ t('account.fields.location') }}</Label>
+              <Input
+                :model-value="formData.location ?? profile.location"
+                @update:model-value="(v: string) => updateField('location', v)"
+                :placeholder="profile.location || 'Your location'"
+              />
+            </div>
+          </div>
+          <div class="space-y-2">
+            <Label>{{ t('account.fields.bio') }}</Label>
+            <Textarea
+              :model-value="formData.bio ?? profile.bio"
+              @update:model-value="(v: string) => updateField('bio', v)"
+              :placeholder="profile.bio || 'Tell us about yourself...'"
+              rows="3"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Social Links -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconWorld class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{{ t('account.sections.social') }}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <Label class="flex items-center gap-2">
+                <IconBrandGithub class="h-4 w-4" />
+                {{ t('account.fields.github') }}
+              </Label>
+              <Input
+                :model-value="formData.github ?? profile.github"
+                @update:model-value="(v: string) => updateField('github', v)"
+                :placeholder="profile.github || 'https://github.com/username'"
+              />
+            </div>
+            <div class="space-y-2">
+              <Label class="flex items-center gap-2">
+                <IconBrandTwitter class="h-4 w-4" />
+                {{ t('account.fields.twitter') }}
+              </Label>
+              <Input
+                :model-value="formData.twitter ?? profile.twitter"
+                @update:model-value="(v: string) => updateField('twitter', v)"
+                :placeholder="profile.twitter || 'https://twitter.com/username'"
+              />
+            </div>
+          </div>
+          <div class="space-y-2">
+            <Label class="flex items-center gap-2">
+              <IconWorld class="h-4 w-4" />
+              {{ t('account.fields.website') }}
+            </Label>
+            <Input
+              :model-value="formData.website ?? profile.website"
+              @update:model-value="(v: string) => updateField('website', v)"
+              :placeholder="profile.website || 'https://yourwebsite.com'"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Preferences -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconLanguage class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{{ t('account.sections.preferences') }}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="space-y-2">
+            <Label>{{ t('account.fields.preferredLanguage') }}</Label>
+            <Input
+              :model-value="formData.preferred_language ?? profile.preferred_language"
+              @update:model-value="(v: string) => updateField('preferred_language', v)"
+              :placeholder="profile.preferred_language || 'en-US'"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Security -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconShield class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{{ t('account.sections.security') }}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div v-if="!showPasswordForm">
+            <Button variant="outline" @click="showPasswordForm = true">
+              <IconKey class="h-4 w-4 mr-2" />
+              {{ t('account.actions.changePassword') }}
+            </Button>
+          </div>
+          <div v-else class="space-y-4">
+            <div class="space-y-2">
+              <Label>{{ t('account.fields.currentPassword') }}</Label>
+              <Input
+                v-model="passwordData.currentPassword"
+                type="password"
+                :placeholder="t('account.fields.currentPassword')"
+              />
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <Label>{{ t('account.fields.newPassword') }}</Label>
+                <Input
+                  v-model="passwordData.newPassword"
+                  type="password"
+                  :placeholder="t('account.fields.newPassword')"
+                />
+              </div>
+              <div class="space-y-2">
+                <Label>{{ t('account.fields.confirmPassword') }}</Label>
+                <Input
+                  v-model="passwordData.confirmPassword"
+                  type="password"
+                  :placeholder="t('account.fields.confirmPassword')"
+                />
+              </div>
+            </div>
+            <div class="flex gap-2">
+              <Button @click="changePassword" :disabled="changingPassword">
+                {{ changingPassword ? t('common.saving') : t('account.actions.changePassword') }}
+              </Button>
+              <Button variant="outline" @click="showPasswordForm = false">
+                {{ t('account.actions.cancel') }}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Account Information (Read-only) -->
+      <Card>
+        <CardHeader>
+          <div class="flex items-center gap-2">
+            <IconShield class="h-5 w-5 text-muted-foreground" />
+            <CardTitle>{{ t('account.sections.accountInfo') }}</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="space-y-1">
+              <Label class="text-muted-foreground">{{ t('account.fields.role') }}</Label>
+              <div>
+                <Badge>{{ profile.role }}</Badge>
+              </div>
+            </div>
+            <div class="space-y-1">
+              <Label class="text-muted-foreground">{{ t('account.fields.joinedAt') }}</Label>
+              <div class="text-sm">
+                {{ new Date(profile.joined_at).toLocaleDateString() }}
+              </div>
+            </div>
+          </div>
+          <Separator />
+          <div class="space-y-1">
+            <Label class="text-muted-foreground">Username</Label>
+            <div class="text-sm">@{{ profile.username }}</div>
+          </div>
+          <div v-if="profile.last_login_at" class="space-y-1">
+            <Label class="text-muted-foreground">{{ t('account.fields.lastLogin') }}</Label>
+            <div class="text-sm">
+              {{ new Date(profile.last_login_at).toLocaleString() }}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-2">
+        <Button
+          v-if="canSave"
+          variant="outline"
+          @click="
+            () => {
+              formData = {}
+              showPasswordForm = false
+            }
+          "
+        >
+          {{ t('account.actions.cancel') }}
+        </Button>
+        <Button @click="saveProfile" :disabled="saving || !canSave">
+          <IconDeviceFloppy class="h-4 w-4 mr-2" />
+          {{ saving ? t('common.saving') : t('account.actions.save') }}
+        </Button>
+      </div>
+    </div>
+  </div>
+</template>

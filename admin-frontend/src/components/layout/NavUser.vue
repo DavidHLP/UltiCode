@@ -8,6 +8,7 @@ import {
 } from '@tabler/icons-vue'
 
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
@@ -38,7 +39,20 @@ defineProps<{
 
 const { isMobile } = useSidebar()
 const router = useRouter()
+const { t } = useI18n()
 const authStore = useAuthStore()
+
+function handleAccount() {
+  router.push('/account')
+}
+
+function handleBilling() {
+  router.push('/billing')
+}
+
+function handleNotifications() {
+  router.push('/notifications')
+}
 
 async function handleLogout() {
   await authStore.logout()
@@ -90,23 +104,23 @@ async function handleLogout() {
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
-            <DropdownMenuItem>
+            <DropdownMenuItem @click="handleAccount">
               <IconUserCircle />
-              Account
+              {{ t('nav.account') }}
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem @click="handleBilling">
               <IconCreditCard />
-              Billing
+              {{ t('nav.billing') }}
             </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem @click="handleNotifications">
               <IconNotification />
-              Notifications
+              {{ t('nav.notifications') }}
             </DropdownMenuItem>
           </DropdownMenuGroup>
           <DropdownMenuSeparator />
           <DropdownMenuItem @click="handleLogout">
             <IconLogout />
-            Log out
+            {{ t('nav.logout') }}
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

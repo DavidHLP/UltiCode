@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { accountApi, type Subscription } from '@/api/admin/account'
-import { toast } from 'vue-sonner'
 import {
   IconCreditCard,
   IconCalendar,
@@ -129,7 +128,7 @@ onMounted(() => {
           <!-- Subscription Details -->
           <div v-if="subscription" class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="space-y-1">
-              <p class="text-sm text-muted-foreground">{{ t('billing.status') }}</p>
+              <p class="text-sm text-muted-foreground">{{ t('billing.statusLabel') }}</p>
               <p class="font-medium">{{ t(`billing.status.${subscription.status}`) }}</p>
             </div>
             <div class="space-y-1">
@@ -165,7 +164,11 @@ onMounted(() => {
 
           <div>
             <h4 class="font-medium mb-4">
-              {{ subscription ? t('billing.features.premium.title') : t('billing.features.free.title') }}
+              {{
+                subscription
+                  ? t('billing.features.premium.title')
+                  : t('billing.features.free.title')
+              }}
             </h4>
             <div class="space-y-3">
               <div v-if="subscription" class="flex items-start gap-3">

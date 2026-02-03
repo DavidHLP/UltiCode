@@ -2061,7 +2061,7 @@ export default {
     subtitle: '管理您的订阅和账单信息',
     currentPlan: '当前计划',
     planDetails: '计划详情',
-    status: '状态',
+    statusLabel: '状态',
     startedAt: '开始时间',
     expiresAt: '到期时间',
     cancelledAt: '取消时间',

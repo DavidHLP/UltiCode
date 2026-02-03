@@ -1116,7 +1116,8 @@ export default {
     // Delete dialog
     delete: {
       title: 'Delete Notification',
-      description: 'Are you sure you want to delete this notification? This action cannot be undone.',
+      description:
+        'Are you sure you want to delete this notification? This action cannot be undone.',
       confirm: 'Delete Notification',
       cancel: 'Cancel',
     },
@@ -1410,8 +1411,7 @@ export default {
     // Delete dialog
     delete: {
       title: 'Delete Problem List',
-      description:
-        'Are you sure you want to delete {name}? This action cannot be undone.',
+      description: 'Are you sure you want to delete {name}? This action cannot be undone.',
       thisList: 'this list',
       confirm: 'Delete List',
       deleting: 'Deleting...',
@@ -1493,14 +1493,16 @@ export default {
     // Delete dialog
     delete: {
       title: 'Delete Tag',
-      description: 'Are you sure you want to delete the tag "{name}"? This action cannot be undone.',
+      description:
+        'Are you sure you want to delete the tag "{name}"? This action cannot be undone.',
       confirm: 'Delete Tag',
     },
 
     // Merge dialog
     merge: {
       title: 'Merge Tags',
-      description: 'Merge "{source}" into another tag. All relations will be moved to the target tag, and the source tag will be deleted.',
+      description:
+        'Merge "{source}" into another tag. All relations will be moved to the target tag, and the source tag will be deleted.',
       targetTag: 'Target Tag',
       targetTagPlaceholder: 'Select a tag to merge into',
       confirm: 'Merge Tags',
@@ -1604,7 +1606,8 @@ export default {
     // Delete dialog
     delete: {
       title: 'Delete Solution',
-      description: 'Are you sure you want to delete the solution "{title}"? This action cannot be undone.',
+      description:
+        'Are you sure you want to delete the solution "{title}"? This action cannot be undone.',
       cancel: 'Cancel',
       confirm: 'Delete Solution',
       deleting: 'Deleting...',
@@ -1613,7 +1616,8 @@ export default {
     // Flag dialog
     flag: {
       title: 'Flag Solution',
-      description: 'Flagging solution "{title}" will mark it for review and may hide it from public view depending on settings.',
+      description:
+        'Flagging solution "{title}" will mark it for review and may hide it from public view depending on settings.',
       reasonLabel: 'Reason for flagging',
       reasonPlaceholder: 'Please explain why this solution violates community guidelines...',
       cancel: 'Cancel',
@@ -2127,7 +2131,7 @@ export default {
     subtitle: 'Manage your subscription and billing information',
     currentPlan: 'Current Plan',
     planDetails: 'Plan Details',
-    status: 'Status',
+    statusLabel: 'Status',
     startedAt: 'Started At',
     expiresAt: 'Expires At',
     cancelledAt: 'Cancelled At',

@@ -1,21 +1,17 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { accountApi, type AccountProfile, type UpdateProfileDto } from '@/api/admin/account'
 import { toast } from 'vue-sonner'
 import {
   IconUser,
-  IconMail,
-  IconBuilding,
-  IconMapPin,
   IconBrandGithub,
   IconBrandTwitter,
   IconWorld,
@@ -23,11 +19,9 @@ import {
   IconDeviceFloppy,
   IconShield,
   IconKey,
-  IconCalendar,
 } from '@tabler/icons-vue'
 
 const { t } = useI18n()
-const authStore = useAuthStore()
 
 const loading = ref(false)
 const saving = ref(false)
@@ -148,7 +142,7 @@ onMounted(() => {
               <Label>{{ t('account.fields.name') }}</Label>
               <Input
                 :model-value="formData.name ?? profile.name"
-                @update:model-value="(v: string) => updateField('name', v)"
+                @update:model-value="(v: string | number) => updateField('name', String(v))"
                 :placeholder="profile.name"
               />
             </div>
@@ -156,7 +150,7 @@ onMounted(() => {
               <Label>{{ t('account.fields.email') }}</Label>
               <Input
                 :model-value="formData.email ?? profile.email"
-                @update:model-value="(v: string) => updateField('email', v)"
+                @update:model-value="(v: string | number) => updateField('email', String(v))"
                 type="email"
                 :placeholder="profile.email"
               />
@@ -166,7 +160,7 @@ onMounted(() => {
             <Label>{{ t('account.fields.avatar') }}</Label>
             <Input
               :model-value="formData.avatar ?? profile.avatar"
-              @update:model-value="(v: string) => updateField('avatar', v)"
+              @update:model-value="(v: string | number) => updateField('avatar', String(v))"
               :placeholder="profile.avatar || 'https://example.com/avatar.png'"
             />
           </div>
@@ -187,7 +181,7 @@ onMounted(() => {
               <Label>{{ t('account.fields.company') }}</Label>
               <Input
                 :model-value="formData.company ?? profile.company"
-                @update:model-value="(v: string) => updateField('company', v)"
+                @update:model-value="(v: string | number) => updateField('company', String(v))"
                 :placeholder="profile.company || 'Your company'"
               />
             </div>
@@ -195,7 +189,7 @@ onMounted(() => {
               <Label>{{ t('account.fields.location') }}</Label>
               <Input
                 :model-value="formData.location ?? profile.location"
-                @update:model-value="(v: string) => updateField('location', v)"
+                @update:model-value="(v: string | number) => updateField('location', String(v))"
                 :placeholder="profile.location || 'Your location'"
               />
             </div>
@@ -204,7 +198,7 @@ onMounted(() => {
             <Label>{{ t('account.fields.bio') }}</Label>
             <Textarea
               :model-value="formData.bio ?? profile.bio"
-              @update:model-value="(v: string) => updateField('bio', v)"
+              @update:model-value="(v: string | number) => updateField('bio', String(v))"
               :placeholder="profile.bio || 'Tell us about yourself...'"
               rows="3"
             />
@@ -229,7 +223,7 @@ onMounted(() => {
               </Label>
               <Input
                 :model-value="formData.github ?? profile.github"
-                @update:model-value="(v: string) => updateField('github', v)"
+                @update:model-value="(v: string | number) => updateField('github', String(v))"
                 :placeholder="profile.github || 'https://github.com/username'"
               />
             </div>
@@ -240,7 +234,7 @@ onMounted(() => {
               </Label>
               <Input
                 :model-value="formData.twitter ?? profile.twitter"
-                @update:model-value="(v: string) => updateField('twitter', v)"
+                @update:model-value="(v: string | number) => updateField('twitter', String(v))"
                 :placeholder="profile.twitter || 'https://twitter.com/username'"
               />
             </div>
@@ -252,7 +246,7 @@ onMounted(() => {
             </Label>
             <Input
               :model-value="formData.website ?? profile.website"
-              @update:model-value="(v: string) => updateField('website', v)"
+              @update:model-value="(v: string | number) => updateField('website', String(v))"
               :placeholder="profile.website || 'https://yourwebsite.com'"
             />
           </div>
@@ -272,7 +266,9 @@ onMounted(() => {
             <Label>{{ t('account.fields.preferredLanguage') }}</Label>
             <Input
               :model-value="formData.preferred_language ?? profile.preferred_language"
-              @update:model-value="(v: string) => updateField('preferred_language', v)"
+              @update:model-value="
+                (v: string | number) => updateField('preferred_language', String(v))
+              "
               :placeholder="profile.preferred_language || 'en-US'"
             />
           </div>

@@ -3,13 +3,9 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository, DataSource } from 'typeorm';
+import { Prisma } from '@prisma/client';
 import { BookmarkType } from '@prisma/client';
-import { ProblemList } from './problem-list.entity';
-import { Problem } from '../problem/problem.entity';
 import { SubmissionService } from '../submission/submission.service';
-import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
 import { BookmarkService } from '../bookmark/bookmark.service';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaService } from '../prisma.service';
@@ -41,8 +37,8 @@ export interface ProblemListSummary {
   updatedAt: Date;
   problemCount: number;
   favoritesCount: number;
-  isSaved?: boolean; // Whether current user saved this list
-  categoryId?: string; // User's category for this list
+  isSaved?: boolean;
+  categoryId?: string;
 }
 
 export interface CategorySummary {
@@ -53,10 +49,10 @@ export interface CategorySummary {
 }
 
 export interface UserProblemListsResponse {
-  myLists: ProblemListSummary[]; // Lists created by user
-  savedLists: ProblemListSummary[]; // Lists saved by user (from others)
-  featured: ProblemListSummary[]; // Featured lists
-  categories: CategorySummary[]; // User's custom categories
+  myLists: ProblemListSummary[];
+  savedLists: ProblemListSummary[];
+  featured: ProblemListSummary[];
+  categories: CategorySummary[];
 }
 
 export interface ProblemListDetailResponse {
@@ -96,18 +92,33 @@ export interface ProblemListProblem {
   tags: string[];
 }
 
+// Helper function to convert Prisma ProblemList to TypeORM-compatible format
+function _convertProblemListFromPrisma(
+  list: Prisma.ProblemListGetPayload<Record<string, never>>,
+): ProblemListSummary {
+  return {
+    id: list.id,
+    name: list.name,
+    description: list.description ?? undefined,
+    authorId: list.author_id,
+    isPublic: list.is_public,
+    isFeatured: list.is_featured,
+    bannerTag: list.banner_tag ?? undefined,
+    bannerIcon: list.banner_icon ?? undefined,
+    bannerTheme: list.banner_theme ?? undefined,
+    bannerOrder: list.banner_order ?? undefined,
+    createdAt: list.created_at,
+    updatedAt: list.updated_at,
+    problemCount: 0,
+    favoritesCount: 0,
+  };
+}
+
 @Injectable()
 export class ProblemListService {
   constructor(
-    @InjectRepository(ProblemList)
-    private listsRepository: Repository<ProblemList>,
-    @InjectRepository(Problem)
-    private problemsRepository: Repository<Problem>,
-    @InjectRepository(ProblemListProblemRelation)
-    private relationsRepository: Repository<ProblemListProblemRelation>,
-    private submissionService: SubmissionService,
-    private dataSource: DataSource,
     private prisma: PrismaService,
+    private submissionService: SubmissionService,
     private bookmarkService: BookmarkService,
     private readonly i18nService: I18nService,
   ) {}
@@ -117,16 +128,14 @@ export class ProblemListService {
   // ============================================================================
 
   private async buildProblemCountMap(): Promise<Map<string, number>> {
-    const counts = await this.relationsRepository
-      .createQueryBuilder('relation')
-      .select('relation.list_id', 'listId')
-      .addSelect('COUNT(relation.problem_id)', 'count')
-      .groupBy('relation.list_id')
-      .getRawMany<{ listId: string; count: string }>();
+    const counts = await this.prisma.problemListProblemRelation.groupBy({
+      by: ['list_id'],
+      _count: { problem_id: true },
+    });
 
     const countMap = new Map<string, number>();
     counts.forEach((item) => {
-      countMap.set(item.listId, Number(item.count));
+      countMap.set(item.list_id, item._count.problem_id);
     });
     return countMap;
   }
@@ -138,7 +147,7 @@ export class ProblemListService {
       return new Map();
     }
 
-    const where = {
+    const where: Prisma.BookmarkWhereInput = {
       target_type: problemListTargetType,
       folder: { is_default: true },
       ...(listIds ? { target_id: { in: listIds } } : {}),
@@ -158,7 +167,7 @@ export class ProblemListService {
   }
 
   private mapList(
-    list: ProblemList,
+    list: Prisma.ProblemListGetPayload<Record<string, never>>,
     problemCount: number,
     favoritesCount: number,
     options?: { isSaved?: boolean; categoryId?: string },
@@ -233,24 +242,23 @@ export class ProblemListService {
     // Map listId -> folderId for category display
     const folderMap = new Map<string, string>();
     bookmarkItems.forEach((item) => {
-      // Prefer non-default folder for categoryId display
       if (!folderMap.has(item.target_id) || !item.folder.is_default) {
         folderMap.set(item.target_id, item.folder_id);
       }
     });
 
     // 1. Get lists created by user
-    const myLists = await this.listsRepository.find({
+    const myLists = await this.prisma.problemList.findMany({
       where: { author_id: userId },
-      order: { updated_at: 'DESC' },
+      orderBy: { updated_at: 'desc' },
     });
 
     // 2. Get user's saved lists (from other authors)
     const savedLists =
       savedListIdArray.length > 0
-        ? await this.listsRepository.find({
-            where: { id: In(savedListIdArray) },
-            order: { updated_at: 'DESC' },
+        ? await this.prisma.problemList.findMany({
+            where: { id: { in: savedListIdArray } },
+            orderBy: { updated_at: 'desc' },
           })
         : [];
 
@@ -259,12 +267,12 @@ export class ProblemListService {
     );
 
     // 3. Get featured lists
-    const featuredLists = await this.listsRepository.find({
+    const featuredLists = await this.prisma.problemList.findMany({
       where: { is_featured: true, is_public: true },
-      order: { banner_order: 'ASC', updated_at: 'DESC' },
+      orderBy: [{ banner_order: 'asc' }, { updated_at: 'desc' }],
     });
 
-    // 4. Get user's bookmark folders (replaces old categories)
+    // 4. Get user's bookmark folders
     const folders = await this.bookmarkService.getUserFolders(userId);
 
     // Build bookmark items map by folder
@@ -291,7 +299,9 @@ export class ProblemListService {
         const listIds = folderItemsMap.get(folder.id) ?? [];
         const lists =
           listIds.length > 0
-            ? await this.listsRepository.find({ where: { id: In(listIds) } })
+            ? await this.prisma.problemList.findMany({
+                where: { id: { in: listIds } },
+              })
             : [];
         return {
           id: folder.id,
@@ -344,11 +354,9 @@ export class ProblemListService {
     };
   }
 
-  // For backward compatibility - returns all lists grouped
   async findAll(
     _locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<UserProblemListsResponse> {
-    // Return empty response for anonymous users
     return {
       myLists: [],
       savedLists: [],
@@ -359,9 +367,9 @@ export class ProblemListService {
 
   async getFeaturedLists(): Promise<ProblemListSummary[]> {
     const countMap = await this.buildProblemCountMap();
-    const lists = await this.listsRepository.find({
+    const lists = await this.prisma.problemList.findMany({
       where: { is_featured: true, is_public: true },
-      order: { banner_order: 'ASC', updated_at: 'DESC' },
+      orderBy: [{ banner_order: 'asc' }, { updated_at: 'desc' }],
     });
     const favoritesCountMap = await this.buildFavoritesCountMap(
       lists.map((list) => list.id),
@@ -376,9 +384,9 @@ export class ProblemListService {
   }
 
   async getDefaultList(): Promise<ProblemListSummary | null> {
-    const list = await this.listsRepository.findOne({
+    const list = await this.prisma.problemList.findFirst({
       where: { is_public: true },
-      order: { created_at: 'ASC' },
+      orderBy: { created_at: 'asc' },
     });
     if (list) {
       const countMap = await this.buildProblemCountMap();
@@ -393,11 +401,11 @@ export class ProblemListService {
   }
 
   async getListById(listId: string): Promise<ProblemListSummary | null> {
-    const list = await this.listsRepository.findOne({
+    const list = await this.prisma.problemList.findUnique({
       where: { id: listId },
     });
     if (!list) return null;
-    const count = await this.relationsRepository.count({
+    const count = await this.prisma.problemListProblemRelation.count({
       where: { list_id: listId },
     });
     const favoritesCountMap = await this.buildFavoritesCountMap([list.id]);
@@ -409,8 +417,8 @@ export class ProblemListService {
   // ============================================================================
 
   async getStats(userId?: string): Promise<ProblemListStats[]> {
-    const lists = await this.listsRepository.find();
-    const relations = await this.relationsRepository.find();
+    const lists = await this.prisma.problemList.findMany();
+    const relations = await this.prisma.problemListProblemRelation.findMany();
 
     const problemIds = Array.from(
       new Set(relations.map((rel) => Number(rel.problem_id))),
@@ -418,9 +426,12 @@ export class ProblemListService {
 
     const problems =
       problemIds.length > 0
-        ? await this.problemsRepository.findBy({ id: In(problemIds) })
+        ? await this.prisma.problem.findMany({
+            where: { id: { in: problemIds } },
+          })
         : [];
-    const problemMap = new Map<number, Problem>();
+
+    const problemMap = new Map<number, (typeof problems)[0]>();
     problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
 
     const statusMap =
@@ -478,14 +489,20 @@ export class ProblemListService {
     userId?: string,
     locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<ProblemListProblem[]> {
-    const relations = await this.relationsRepository.find({
+    const relations = await this.prisma.problemListProblemRelation.findMany({
       where: { list_id: listId },
-      order: { sort_order: 'ASC', added_at: 'ASC' },
-      relations: [
-        'problem',
-        'problem.tagRelations',
-        'problem.tagRelations.tag',
-      ],
+      orderBy: [{ sort_order: 'asc' }, { added_at: 'asc' }],
+      include: {
+        problem: {
+          include: {
+            tagRelations: {
+              include: {
+                tag: true,
+              },
+            },
+          },
+        },
+      },
     });
 
     if (relations.length === 0) {
@@ -505,38 +522,60 @@ export class ProblemListService {
       locale,
     );
 
-    return relations
-      .map((rel) => rel.problem)
-      .filter((problem): problem is Problem => Boolean(problem))
-      .map((problem) => {
-        const translations: Map<string, string> =
-          problemTranslationsMap.get(String(problem.id)) ??
-          new Map<string, string>();
-        const translatedProblem = this.i18nService.applyTranslations(
-          problem,
-          translations,
-          TRANSLATABLE_ENTITIES.PROBLEM.fields,
-        );
+    return relations.map((rel) => {
+      const problem = rel.problem;
+      const translations: Map<string, string> =
+        problemTranslationsMap.get(String(problem.id)) ??
+        new Map<string, string>();
+      const translatedProblem = this.i18nService.applyTranslations(
+        problem as unknown as Record<string, unknown>,
+        translations,
+        TRANSLATABLE_ENTITIES.PROBLEM.fields,
+      );
 
-        return {
-          id: Number(translatedProblem.id),
-          slug: translatedProblem.slug,
-          title: translatedProblem.title,
-          difficulty: translatedProblem.difficulty,
-          acceptanceRate: Number(translatedProblem.acceptance_rate),
-          status: statusMap
-            ? (statusMap.get(Number(translatedProblem.id))?.status ?? 'todo')
-            : translatedProblem.status,
-          isPremium: translatedProblem.is_premium,
-          hasSolution: translatedProblem.has_solution,
-          completedTime: statusMap
-            ? (statusMap.get(Number(translatedProblem.id))?.completed_time ??
-              null)
-            : (translatedProblem.completed_time ?? null),
-          tags:
-            translatedProblem.tagRelations?.map((rel) => rel.tag.label) ?? [],
-        };
-      });
+      const slug =
+        (translatedProblem.slug as string | undefined) ?? problem.slug;
+      const title =
+        (translatedProblem.title as string | undefined) ?? problem.title;
+      const difficulty =
+        (translatedProblem.difficulty as string | undefined) ??
+        (problem.difficulty as string);
+      const status =
+        (translatedProblem.status as string | undefined) ??
+        (problem.status as string);
+      const isPremium =
+        (translatedProblem.is_premium as boolean | undefined) ??
+        problem.is_premium;
+      const hasSolution =
+        (translatedProblem.has_solution as boolean | undefined) ??
+        problem.has_solution;
+      const acceptanceRate =
+        (translatedProblem.acceptance_rate as number | undefined) ??
+        Number(problem.acceptance_rate);
+
+      return {
+        id: Number(translatedProblem.id),
+        slug,
+        title,
+        difficulty,
+        acceptanceRate,
+        status: statusMap
+          ? (statusMap.get(Number(translatedProblem.id))?.status ?? 'todo')
+          : status,
+        isPremium,
+        hasSolution,
+        completedTime: statusMap
+          ? (statusMap.get(Number(translatedProblem.id))?.completed_time ??
+            null)
+          : null,
+        tags:
+          (
+            translatedProblem as unknown as {
+              tagRelations?: Array<{ tag: { label: string } }>;
+            }
+          ).tagRelations?.map((rel) => rel.tag.label) ?? [],
+      };
+    });
   }
 
   // ============================================================================
@@ -568,7 +607,6 @@ export class ProblemListService {
     let categories: ProblemListDetailResponse['categories'] | undefined;
 
     if (userId) {
-      // Check if this list is in any of user's bookmark folders
       const folderIds = await this.bookmarkService.getBookmarkFolders(
         userId,
         problemListTargetType,
@@ -576,7 +614,6 @@ export class ProblemListService {
       );
 
       const isSaved = folderIds.length > 0;
-      // Get the first non-default folder as categoryId
       const folders = await this.bookmarkService.getUserFolders(userId);
       const nonDefaultFolderId = folderIds.find((id) => {
         const folder = folders.find((f) => f.id === id);
@@ -613,18 +650,19 @@ export class ProblemListService {
     data: { name: string; description?: string; isPublic?: boolean },
   ): Promise<ProblemListSummary> {
     const newListId: string = uuidv4();
-    const newList = this.listsRepository.create({
-      id: newListId,
-      name: data.name,
-      description: data.description ?? '',
-      author_id: userId,
-      is_public: data.isPublic ?? false,
-      is_featured: false,
-      created_at: new Date(),
-      updated_at: new Date(),
+    const newList = await this.prisma.problemList.create({
+      data: {
+        id: newListId,
+        name: data.name,
+        description: data.description ?? '',
+        author_id: userId,
+        is_public: data.isPublic ?? false,
+        is_featured: false,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
     });
 
-    await this.listsRepository.save(newList);
     return this.mapList(newList, 0, 0);
   }
 
@@ -633,7 +671,9 @@ export class ProblemListService {
     userId: string,
     data: { name?: string; description?: string; isPublic?: boolean },
   ): Promise<ProblemListSummary> {
-    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    const list = await this.prisma.problemList.findUnique({
+      where: { id: listId },
+    });
     if (!list) {
       throw new NotFoundException('List not found');
     }
@@ -643,23 +683,29 @@ export class ProblemListService {
       );
     }
 
-    if (data.name !== undefined) list.name = data.name;
+    const updateData: Prisma.ProblemListUpdateInput = {};
+    if (data.name !== undefined) updateData.name = data.name;
     if (data.description !== undefined)
-      list.description = data.description ?? '';
-    if (data.isPublic !== undefined) list.is_public = data.isPublic;
-    list.updated_at = new Date();
+      updateData.description = data.description;
+    if (data.isPublic !== undefined) updateData.is_public = data.isPublic;
+    updateData.updated_at = new Date();
 
-    await this.listsRepository.save(list);
+    const updated = await this.prisma.problemList.update({
+      where: { id: listId },
+      data: updateData,
+    });
 
-    const count = await this.relationsRepository.count({
+    const count = await this.prisma.problemListProblemRelation.count({
       where: { list_id: listId },
     });
     const favoritesCountMap = await this.buildFavoritesCountMap([list.id]);
-    return this.mapList(list, count, favoritesCountMap.get(list.id) ?? 0);
+    return this.mapList(updated, count, favoritesCountMap.get(list.id) ?? 0);
   }
 
   async deleteList(listId: string, userId: string): Promise<void> {
-    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    const list = await this.prisma.problemList.findUnique({
+      where: { id: listId },
+    });
     if (!list) {
       throw new NotFoundException('List not found');
     }
@@ -669,53 +715,57 @@ export class ProblemListService {
       );
     }
 
-    await this.listsRepository.remove(list);
+    await this.prisma.problemList.delete({
+      where: { id: listId },
+    });
   }
 
   async forkList(listId: string, userId: string): Promise<string> {
-    const originalList = await this.listsRepository.findOne({
+    const originalList = await this.prisma.problemList.findUnique({
       where: { id: listId },
     });
     if (!originalList) {
       throw new NotFoundException('List not found');
     }
 
-    const relations = await this.relationsRepository.find({
+    const relations = await this.prisma.problemListProblemRelation.findMany({
       where: { list_id: listId },
     });
 
     const newListId: string = uuidv4();
-    const newList = this.listsRepository.create({
-      id: newListId,
-      name: `${originalList.name} (Copy)`,
-      description: originalList.description,
-      author_id: userId,
-      is_public: false,
-      is_featured: false,
-      created_at: new Date(),
-      updated_at: new Date(),
-    });
 
-    await this.dataSource.transaction(async (manager) => {
-      const savedList = await manager.save(newList);
-      const listIdToUse: string = savedList.id;
-      const newRelations = relations.map((r) =>
-        this.relationsRepository.create({
-          list_id: listIdToUse,
+    // Use Prisma transaction instead of DataSource transaction
+    await this.prisma.$transaction(async (tx) => {
+      const _newList = await tx.problemList.create({
+        data: {
+          id: newListId,
+          name: `${originalList.name} (Copy)`,
+          description: originalList.description,
+          author_id: userId,
+          is_public: false,
+          is_featured: false,
+          created_at: new Date(),
+          updated_at: new Date(),
+        },
+      });
+
+      // Copy all relations
+      const _newRelations = await tx.problemListProblemRelation.createMany({
+        data: relations.map((r) => ({
+          list_id: newListId,
           problem_id: r.problem_id,
           sort_order: r.sort_order,
-        }),
-      );
-      await manager.save(newRelations);
+        })),
+      });
     });
 
     return newListId;
   }
 
   async getListsByUserId(userId: string): Promise<ProblemListSummary[]> {
-    const lists = await this.listsRepository.find({
+    const lists = await this.prisma.problemList.findMany({
       where: { author_id: userId },
-      order: { updated_at: 'DESC' },
+      orderBy: { updated_at: 'desc' },
     });
     const countMap = await this.buildProblemCountMap();
     const favoritesCountMap = await this.buildFavoritesCountMap(
@@ -739,7 +789,9 @@ export class ProblemListService {
     userId: string,
     problemId: number,
   ): Promise<void> {
-    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    const list = await this.prisma.problemList.findUnique({
+      where: { id: listId },
+    });
     if (!list) {
       throw new NotFoundException('List not found');
     }
@@ -749,28 +801,34 @@ export class ProblemListService {
       );
     }
 
-    const problem = await this.problemsRepository.findOne({
-      where: { id: problemId },
+    const problem = await this.prisma.problem.findUnique({
+      where: { id: BigInt(problemId) },
     });
     if (!problem) {
       throw new NotFoundException('Problem not found');
     }
 
-    const exists = await this.relationsRepository.findOne({
-      where: { list_id: listId, problem_id: problemId },
+    const exists = await this.prisma.problemListProblemRelation.findUnique({
+      where: {
+        list_id_problem_id: {
+          list_id: listId,
+          problem_id: BigInt(problemId),
+        },
+      },
     });
     if (exists) return;
 
-    const count = await this.relationsRepository.count({
+    const count = await this.prisma.problemListProblemRelation.count({
       where: { list_id: listId },
     });
 
-    const relation = this.relationsRepository.create({
-      list_id: listId,
-      problem_id: problemId,
-      sort_order: count,
+    await this.prisma.problemListProblemRelation.create({
+      data: {
+        list_id: listId,
+        problem_id: BigInt(problemId),
+        sort_order: count,
+      },
     });
-    await this.relationsRepository.save(relation);
   }
 
   async removeProblem(
@@ -778,7 +836,9 @@ export class ProblemListService {
     userId: string,
     problemId: number,
   ): Promise<void> {
-    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    const list = await this.prisma.problemList.findUnique({
+      where: { id: listId },
+    });
     if (!list) {
       throw new NotFoundException('List not found');
     }
@@ -788,9 +848,13 @@ export class ProblemListService {
       );
     }
 
-    await this.relationsRepository.delete({
-      list_id: listId,
-      problem_id: problemId,
+    await this.prisma.problemListProblemRelation.delete({
+      where: {
+        list_id_problem_id: {
+          list_id: listId,
+          problem_id: BigInt(problemId),
+        },
+      },
     });
   }
 
@@ -800,16 +864,16 @@ export class ProblemListService {
     listIds: string[],
   ): Promise<void> {
     // Verify problem exists
-    const problem = await this.problemsRepository.findOne({
-      where: { id: problemId },
+    const problem = await this.prisma.problem.findUnique({
+      where: { id: BigInt(problemId) },
     });
     if (!problem) {
       throw new NotFoundException('Problem not found');
     }
 
     // Verify all lists exist and user has permission to edit them
-    const lists = await this.listsRepository.find({
-      where: { id: In(listIds) },
+    const lists = await this.prisma.problemList.findMany({
+      where: { id: { in: listIds } },
     });
 
     if (lists.length !== listIds.length) {
@@ -824,26 +888,32 @@ export class ProblemListService {
       }
     }
 
-    // Add problem to all lists
-    await this.dataSource.transaction(async (manager) => {
+    // Use Prisma transaction
+    await this.prisma.$transaction(async (tx) => {
       for (const listId of listIds) {
         // Check if already exists
-        const exists = await manager.findOne(ProblemListProblemRelation, {
-          where: { list_id: listId, problem_id: problemId },
+        const exists = await tx.problemListProblemRelation.findUnique({
+          where: {
+            list_id_problem_id: {
+              list_id: listId,
+              problem_id: BigInt(problemId),
+            },
+          },
         });
         if (exists) continue;
 
         // Get current max sort order
-        const count = await manager.count(ProblemListProblemRelation, {
+        const count = await tx.problemListProblemRelation.count({
           where: { list_id: listId },
         });
 
-        const relation = manager.create(ProblemListProblemRelation, {
-          list_id: listId,
-          problem_id: problemId,
-          sort_order: count,
+        await tx.problemListProblemRelation.create({
+          data: {
+            list_id: listId,
+            problem_id: BigInt(problemId),
+            sort_order: count,
+          },
         });
-        await manager.save(relation);
       }
     });
   }
@@ -854,8 +924,8 @@ export class ProblemListService {
     listIds: string[],
   ): Promise<void> {
     // Verify lists exist and user has permission
-    const lists = await this.listsRepository.find({
-      where: { id: In(listIds) },
+    const lists = await this.prisma.problemList.findMany({
+      where: { id: { in: listIds } },
     });
 
     for (const list of lists) {
@@ -867,9 +937,11 @@ export class ProblemListService {
     }
 
     // Remove from all lists
-    await this.relationsRepository.delete({
-      list_id: In(listIds),
-      problem_id: problemId,
+    await this.prisma.problemListProblemRelation.deleteMany({
+      where: {
+        list_id: { in: listIds },
+        problem_id: BigInt(problemId),
+      },
     });
   }
 
@@ -885,9 +957,9 @@ export class ProblemListService {
     >
   > {
     // Get all lists user created
-    const myLists = await this.listsRepository.find({
+    const myLists = await this.prisma.problemList.findMany({
       where: { author_id: userId },
-      order: { updated_at: 'DESC' },
+      orderBy: { updated_at: 'desc' },
     });
 
     // Get problem count map
@@ -897,10 +969,10 @@ export class ProblemListService {
     );
 
     // Check which lists contain this problem
-    const relations = await this.relationsRepository.find({
+    const relations = await this.prisma.problemListProblemRelation.findMany({
       where: {
-        list_id: In(myLists.map((l) => l.id)),
-        problem_id: problemId,
+        list_id: { in: myLists.map((l) => l.id) },
+        problem_id: BigInt(problemId),
       },
     });
 
@@ -913,14 +985,14 @@ export class ProblemListService {
         favoritesCountMap.get(list.id) ?? 0,
       ),
       containsProblem: listsWithProblem.has(list.id),
-      canEdit: true, // User is the author
+      canEdit: true,
     }));
   }
 
   async getProblemListIds(problemId: number): Promise<string[]> {
-    const relations = await this.relationsRepository.find({
-      where: { problem_id: problemId },
-      select: ['list_id'],
+    const relations = await this.prisma.problemListProblemRelation.findMany({
+      where: { problem_id: BigInt(problemId) },
+      select: { list_id: true },
     });
     return relations.map((r) => r.list_id);
   }
@@ -934,7 +1006,9 @@ export class ProblemListService {
     listId: string,
     collectionId?: string,
   ): Promise<void> {
-    const list = await this.listsRepository.findOne({ where: { id: listId } });
+    const list = await this.prisma.problemList.findUnique({
+      where: { id: listId },
+    });
     if (!list) {
       throw new NotFoundException('List not found');
     }
@@ -943,7 +1017,6 @@ export class ProblemListService {
     }
 
     // If folderId is provided, add to that folder
-    // Otherwise, add to default folder (favorites)
     if (collectionId) {
       await this.bookmarkService.addBookmark(userId, collectionId, {
         targetId: listId,
@@ -961,7 +1034,6 @@ export class ProblemListService {
   }
 
   async unsaveList(userId: string, listId: string): Promise<void> {
-    // Remove from all user's bookmark folders
     await this.prisma.bookmark.deleteMany({
       where: {
         target_type: problemListTargetType,
@@ -983,7 +1055,7 @@ export class ProblemListService {
   }
 
   // ============================================================================
-  // Category Management (now delegates to BookmarkService)
+  // Category Management (delegates to BookmarkService)
   // ============================================================================
 
   async getCategories(userId: string): Promise<CategorySummary[]> {
@@ -1014,7 +1086,9 @@ export class ProblemListService {
       const listIds = folderItemsMap.get(folder.id) ?? [];
       const lists =
         listIds.length > 0
-          ? await this.listsRepository.find({ where: { id: In(listIds) } })
+          ? await this.prisma.problemList.findMany({
+              where: { id: { in: listIds } },
+            })
           : [];
 
       result.push({
@@ -1073,7 +1147,9 @@ export class ProblemListService {
     const listIds = bookmarkItems.map((item) => item.target_id);
     const lists =
       listIds.length > 0
-        ? await this.listsRepository.find({ where: { id: In(listIds) } })
+        ? await this.prisma.problemList.findMany({
+            where: { id: { in: listIds } },
+          })
         : [];
     const favoritesCountMap = await this.buildFavoritesCountMap(listIds);
 
@@ -1101,20 +1177,17 @@ export class ProblemListService {
     listId: string,
     folderId: string | null,
   ): Promise<void> {
-    // Check if list is saved in any folder
     const isSaved = await this.isListSaved(userId, listId);
     if (!isSaved) {
       throw new NotFoundException('List is not saved');
     }
 
     if (folderId) {
-      // Add to the specified folder
       await this.bookmarkService.addBookmark(userId, folderId, {
         targetId: listId,
         targetType: problemListTargetType,
       });
     } else {
-      // Remove from all non-default folders, keep in default
       const folders = await this.bookmarkService.getUserFolders(userId);
       for (const folder of folders) {
         if (!folder.isDefault) {

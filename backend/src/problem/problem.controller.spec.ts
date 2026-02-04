@@ -1,8 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProblemController } from './problem.controller';
-import { ProblemService } from './problem.service';
+import { ProblemService, Problem } from './problem.service';
 import { SubmissionService } from '../submission/submission.service';
-import { Problem } from './problem.entity';
 import { FindAllProblemsQueryDto, ProblemParamsDto } from './dto';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector } from '@nestjs/core';
@@ -17,23 +16,37 @@ describe('ProblemController', () => {
   let submissionService: jest.Mocked<SubmissionService>;
 
   const mockProblem = {
-    id: 1,
+    id: BigInt(1),
     title: 'Two Sum',
     slug: 'two-sum',
     difficulty: 'Easy',
-    is_premium: false,
     acceptance_rate: 0.5,
+    is_premium: false,
     status: 'todo',
     has_solution: false,
     completed_time: null,
+    is_published: true,
+    published_at: null,
+    published_by: null,
+    is_deleted: false,
+    deleted_at: null,
+    deleted_by: null,
+    is_flagged: false,
+    flag_reason: null,
+    flag_reported_by: null,
+    flag_reported_at: null,
+    flag_status: null,
+    flag_reviewed_by: null,
+    flag_reviewed_at: null,
+    flag_notes: null,
     tagRelations: [],
     detail: { id: 'detail-1', description: 'Given an array...' } as any,
     examples: [],
     languages: [],
-  } as Problem;
+  } as unknown as Problem;
 
   const mockPremiumProblem = {
-    id: 2,
+    id: BigInt(2),
     title: 'Premium Problem',
     slug: 'premium-problem',
     difficulty: 'Hard',
@@ -42,11 +55,25 @@ describe('ProblemController', () => {
     status: 'todo' as const,
     has_solution: false,
     completed_time: null,
+    is_published: true,
+    published_at: null,
+    published_by: null,
+    is_deleted: false,
+    deleted_at: null,
+    deleted_by: null,
+    is_flagged: false,
+    flag_reason: null,
+    flag_reported_by: null,
+    flag_reported_at: null,
+    flag_status: null,
+    flag_reviewed_by: null,
+    flag_reviewed_at: null,
+    flag_notes: null,
     tagRelations: [],
     detail: { id: 'detail-2', description: 'Premium content...' } as any,
     examples: [],
     languages: [],
-  } as Problem;
+  } as unknown as Problem;
 
   const mockRequest = {
     user: { id: 'test-user-id', role: 'USER' },

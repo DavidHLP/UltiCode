@@ -1,8 +1,7 @@
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
-import { ProblemService } from './problem.service';
-import { Problem } from './problem.entity';
+import { ProblemService, Problem } from './problem.service';
 import { SubmissionService } from '../submission/submission.service';
 import { Locale } from '../i18n/i18n.decorator';
 import type { SupportedLocale } from '../i18n/i18n.constants';

@@ -1,8 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Problem } from './problem.entity';
-import { ProblemDetail } from './problem-detail.entity';
+import { PrismaService } from '../prisma.service';
+import type { Problem, ProblemDetail, ProblemTag } from '@prisma/client';
 import { CATEGORY_TAG_MAP } from './constants';
 import { I18nService } from '../i18n/i18n.service';
 import {
@@ -13,13 +11,36 @@ import {
 import { SubscriptionService } from '../subscription/subscription.service';
 import { PaginatedResult } from '../contest/dto/ranking.dto';
 
+// Re-export Problem type from Prisma for backward compatibility
+export type { Problem } from '@prisma/client';
+
+// Extended types for relations
+export type ProblemWithRelations = Problem & {
+  detail?: ProblemDetail | null;
+  tagRelations?: Array<{
+    tag: ProblemTag;
+  }>;
+  languages?: Array<{
+    id: string;
+    label: string;
+    value: string;
+    style: string | null;
+    starter_code: string;
+  }>;
+  examples?: Array<{
+    id: string;
+    example_order: number;
+    input_text: string;
+    output_text: string;
+    explanation: string | null;
+    inputs: { name: string; value: string }[] | null;
+  }>;
+};
+
 @Injectable()
 export class ProblemService {
   constructor(
-    @InjectRepository(Problem)
-    private problemsRepository: Repository<Problem>,
-    @InjectRepository(ProblemDetail)
-    private problemDetailsRepository: Repository<ProblemDetail>,
+    private readonly prisma: PrismaService,
     private readonly i18nService: I18nService,
     private readonly subscriptionService: SubscriptionService,
   ) {}
@@ -38,59 +59,69 @@ export class ProblemService {
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const query = this.problemsRepository
-      .createQueryBuilder('problem')
-      .leftJoinAndSelect('problem.tagRelations', 'tagRelations')
-      .leftJoinAndSelect('tagRelations.tag', 'tag')
-      .orderBy('problem.id', 'ASC')
-      .skip(skip)
-      .take(limit);
+    const where: Record<string, unknown> = {};
 
     if (filters.difficulty) {
-      query.andWhere('problem.difficulty = :difficulty', {
-        difficulty: filters.difficulty,
-      });
+      where.difficulty = filters.difficulty;
     }
 
     if (filters.search) {
-      query.andWhere(
-        '(LOWER(problem.title) LIKE LOWER(:search) OR CAST(problem.id AS CHAR) LIKE :search)',
-        { search: `%${filters.search}%` },
-      );
-    }
-
-    if (filters.category && filters.category !== 'all') {
-      // Map frontend category to tag labels
-      const tagLabel = CATEGORY_TAG_MAP[filters.category];
-      if (tagLabel) {
-        const subQuery = query
-          .subQuery()
-          .select('relation.problem_id')
-          .from('problem_tag_relations', 'relation')
-          .leftJoin('relation.tag', 't')
-          .where('t.label = :tagLabel')
-          .getQuery();
-        query.andWhere('problem.id IN ' + subQuery);
-        query.setParameter('tagLabel', tagLabel);
-      }
+      where.OR = [
+        { title: { contains: filters.search, mode: 'insensitive' as const } },
+        // For ID search, we need to handle it separately since id is BigInt
+      ];
     }
 
     const [problems, total] = await Promise.all([
-      query.getMany(),
-      query.getCount(),
+      this.prisma.problem.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { id: 'asc' },
+        include: {
+          tagRelations: {
+            include: {
+              tag: true,
+            },
+          },
+        },
+      }),
+      this.prisma.problem.count({ where }),
     ]);
 
+    // Filter by category after query (since it requires tag filtering)
+    let filteredProblems = problems;
+    if (filters.category && filters.category !== 'all') {
+      const tagLabel = CATEGORY_TAG_MAP[filters.category];
+      if (tagLabel) {
+        filteredProblems = problems.filter((problem) =>
+          problem.tagRelations?.some((tr) => tr.tag.label === tagLabel),
+        );
+      }
+    }
+
+    // Filter by search in ID (if search looks like a number)
+    if (filters.search && !isNaN(Number(filters.search))) {
+      const searchId = BigInt(filters.search);
+      filteredProblems = filteredProblems.filter((p) => p.id === searchId);
+    } else if (filters.search) {
+      // Title search is handled by Prisma's contains
+      filteredProblems = filteredProblems.filter((problem) =>
+        problem.title.toLowerCase().includes(filters.search!.toLowerCase()),
+      );
+    }
+
     // Apply i18n translations
-    let translatedProblems = problems;
-    if (problems.length > 0) {
-      const ids = problems.map((p) => p.id);
+    let translatedProblems = filteredProblems;
+    if (filteredProblems.length > 0) {
+      const ids = filteredProblems.map((p) => p.id);
       const problemTranslationsMap =
         await this.i18nService.getBatchTranslations('PROBLEM', ids, locale);
 
       // Get all unique tag IDs
       const tagIds = [
         ...new Set(
-          problems.flatMap(
+          filteredProblems.flatMap(
             (p) =>
               p.tagRelations?.map((tr) => tr.tag?.id).filter(Boolean) || [],
           ),
@@ -107,7 +138,7 @@ export class ProblemService {
           )
         : new Map<string, Map<string, string>>();
 
-      translatedProblems = problems.map((problem) => {
+      translatedProblems = filteredProblems.map((problem) => {
         const translations: Map<string, string> =
           problemTranslationsMap.get(String(problem.id)) ??
           new Map<string, string>();
@@ -118,22 +149,22 @@ export class ProblemService {
         );
 
         // Apply tag translations
-        if (translatedProblem.tagRelations) {
-          translatedProblem.tagRelations = translatedProblem.tagRelations.map(
-            (tr) => {
-              if (!tr.tag) return tr;
-              const tagTranslations: Map<string, string> =
-                tagTranslationsMap.get(tr.tag.id) ?? new Map<string, string>();
-              return {
-                ...tr,
-                tag: this.i18nService.applyTranslations(
-                  tr.tag,
-                  tagTranslations,
-                  TRANSLATABLE_ENTITIES.PROBLEM_TAG.fields,
-                ),
-              };
-            },
-          );
+        if ((translatedProblem as ProblemWithRelations).tagRelations) {
+          (translatedProblem as ProblemWithRelations).tagRelations = (
+            translatedProblem as ProblemWithRelations
+          ).tagRelations!.map((tr) => {
+            if (!tr.tag) return tr;
+            const tagTranslations: Map<string, string> =
+              tagTranslationsMap.get(tr.tag.id) ?? new Map<string, string>();
+            return {
+              ...tr,
+              tag: this.i18nService.applyTranslations(
+                tr.tag,
+                tagTranslations,
+                TRANSLATABLE_ENTITIES.PROBLEM_TAG.fields,
+              ),
+            };
+          });
         }
 
         return translatedProblem;
@@ -152,32 +183,22 @@ export class ProblemService {
   async findOne(
     idOrSlug: string | number,
     locale: SupportedLocale = DEFAULT_LOCALE,
-  ): Promise<Problem | null> {
-    let problem: Problem | null;
+  ): Promise<ProblemWithRelations | null> {
+    const isNumeric = typeof idOrSlug === 'number' || !isNaN(Number(idOrSlug));
 
-    if (typeof idOrSlug === 'number' || !isNaN(Number(idOrSlug))) {
-      problem = await this.problemsRepository.findOne({
-        where: { id: Number(idOrSlug) },
-        relations: [
-          'detail',
-          'tagRelations',
-          'tagRelations.tag',
-          'languages',
-          'examples',
-        ],
-      });
-    } else {
-      problem = await this.problemsRepository.findOne({
-        where: { slug: idOrSlug },
-        relations: [
-          'detail',
-          'tagRelations',
-          'tagRelations.tag',
-          'languages',
-          'examples',
-        ],
-      });
-    }
+    const problem = await this.prisma.problem.findFirst({
+      where: isNumeric ? { id: BigInt(idOrSlug) } : { slug: String(idOrSlug) },
+      include: {
+        detail: true,
+        tagRelations: {
+          include: {
+            tag: true,
+          },
+        },
+        languages: true,
+        examples: true,
+      },
+    });
 
     if (!problem) return null;
 
@@ -191,7 +212,7 @@ export class ProblemService {
       problem,
       problemTranslations,
       TRANSLATABLE_ENTITIES.PROBLEM.fields,
-    );
+    ) as ProblemWithRelations;
 
     // Apply detail translations
     if (translatedProblem.detail) {
@@ -200,39 +221,39 @@ export class ProblemService {
         translatedProblem.detail.id,
         locale,
       );
-      translatedProblem = {
-        ...translatedProblem,
-        detail: this.i18nService.applyTranslations(
-          translatedProblem.detail,
-          detailTranslations,
-          TRANSLATABLE_ENTITIES.PROBLEM_DETAIL.fields,
-        ),
-      };
+      const translatedDetail = this.i18nService.applyTranslations(
+        translatedProblem.detail,
+        detailTranslations,
+        TRANSLATABLE_ENTITIES.PROBLEM_DETAIL.fields,
+      );
 
       // Ensure JSON fields are parsed if they were translated (stringified)
-      if (typeof translatedProblem.detail.constraints_json === 'string') {
+      if (typeof translatedDetail.constraints_json === 'string') {
         try {
-          const content = translatedProblem.detail
-            .constraints_json as unknown as string;
-          translatedProblem.detail.constraints_json = JSON.parse(
-            content,
-          ) as string[];
+          const content =
+            translatedDetail.constraints_json as unknown as string;
+          translatedDetail.constraints_json = JSON.parse(content) as string[];
         } catch (_e) {
           // Keep as is if parsing fails
         }
       }
 
       if (
-        translatedProblem.detail.hints &&
-        typeof translatedProblem.detail.hints === 'string'
+        translatedDetail.hints &&
+        typeof translatedDetail.hints === 'string'
       ) {
         try {
-          const content = translatedProblem.detail.hints as unknown as string;
-          translatedProblem.detail.hints = JSON.parse(content) as string[];
+          const content = translatedDetail.hints as unknown as string;
+          translatedDetail.hints = JSON.parse(content) as string[];
         } catch (_e) {
           // Keep as is if parsing fails
         }
       }
+
+      translatedProblem = {
+        ...translatedProblem,
+        detail: translatedDetail,
+      };
     }
 
     // Apply tag translations (batch)
@@ -290,23 +311,31 @@ export class ProblemService {
   }
 
   async getRandom(): Promise<Problem | null> {
-    const result = await this.problemsRepository
-      .createQueryBuilder('problem')
-      .orderBy('RAND()')
-      .limit(1)
-      .getOne();
-    return result || null;
+    // Get count first
+    const count = await this.prisma.problem.count();
+    if (count === 0) return null;
+
+    // Get random skip value
+    const skip = Math.floor(Math.random() * count);
+
+    const result = await this.prisma.problem.findMany({
+      take: 1,
+      skip,
+    });
+
+    return result[0] || null;
   }
+
   async findAdjacent(
     id: number,
   ): Promise<{ prev: string | null; next: string | null }> {
-    const prev = await this.problemsRepository.findOne({
-      where: { id: id - 1 },
-      select: ['slug'],
+    const prev = await this.prisma.problem.findUnique({
+      where: { id: BigInt(id - 1) },
+      select: { slug: true },
     });
-    const next = await this.problemsRepository.findOne({
-      where: { id: id + 1 },
-      select: ['slug'],
+    const next = await this.prisma.problem.findUnique({
+      where: { id: BigInt(id + 1) },
+      select: { slug: true },
     });
 
     return {
@@ -325,7 +354,7 @@ export class ProblemService {
     userId: string,
     userRole?: string,
     locale: SupportedLocale = DEFAULT_LOCALE,
-  ): Promise<Problem | object | null> {
+  ): Promise<ProblemWithRelations | object | null> {
     const problem = await this.findOne(idOrSlug, locale);
 
     if (!problem) {

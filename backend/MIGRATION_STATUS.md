@@ -44,18 +44,23 @@
 - **TypeORM Entity to Delete** (after full verification):
   - `user/user.entity.ts`
 
+### Phase 4: Problem Module Migration (Completed) ✅
+- **Files Migrated**:
+  - `problem/problem.service.ts` - Migrated from TypeORM to Prisma
+  - `problem/problem.module.ts` - Removed TypeORM imports, added PrismaService provider
+  - `problem/problem.controller.ts` - Updated to import Problem from problem.service
+  - `problem/problem.service.spec.ts` - Updated tests to use PrismaService mocks
+  - `problem/problem.controller.spec.ts` - Updated mock data to use Prisma types
+
+- **TypeORM Entities to Delete** (after full verification):
+  - `problem/problem.entity.ts`
+  - `problem/problem-detail.entity.ts`
+  - `problem/problem-tag.entity.ts`
+  - `problem/problem-tag-relation.entity.ts`
+  - `problem/problem-language.entity.ts`
+  - `problem/problem-example.entity.ts`
+
 ## Remaining Work
-
-### Phase 4: Problem Module Migration
-- **Files to Update**:
-  - `problem/problem.service.ts`
-  - `problem/problem.module.ts`
-  - `problem/problem.controller.ts` (if it imports entities)
-
-- **Key Changes Needed**:
-  - Remove `@InjectRepository` for `Problem`, `ProblemDetail`
-  - Replace QueryBuilder with Prisma queries
-  - Update relation handling for tags, languages, examples
 
 ### Phase 5: Remove TypeORM Configuration
 - **Files to Update**:
@@ -66,6 +71,12 @@
   - `@nestjs/typeorm`
   - `typeorm`
   - `mysql` (TypeORM driver, Prisma uses @prisma/client)
+
+- **TypeORM Entity Files to Delete** (after full verification of all phases):
+  - Forum: 11 entity files in `forum/entities/`
+  - ProblemList: 2 entity files in `problem-list/`
+  - User: 1 entity file `user/user.entity.ts`
+  - Problem: 6 entity files in `problem/`
 
 ## Type Conversion Patterns
 

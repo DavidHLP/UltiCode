@@ -1,30 +1,13 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProblemService } from './problem.service';
 import { ProblemController } from './problem.controller';
-import { Problem } from './problem.entity';
-import { ProblemDetail } from './problem-detail.entity';
-import { ProblemTag } from './problem-tag.entity';
-import { ProblemTagRelation } from './problem-tag-relation.entity';
-import { ProblemLanguage } from './problem-language.entity';
-import { ProblemExample } from './problem-example.entity';
 import { SubmissionModule } from '../submission/submission.module';
 import { SubscriptionModule } from '../subscription/subscription.module';
+import { PrismaService } from '../prisma.service';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      Problem,
-      ProblemDetail,
-      ProblemTag,
-      ProblemTagRelation,
-      ProblemLanguage,
-      ProblemExample,
-    ]),
-    SubmissionModule,
-    SubscriptionModule,
-  ],
-  providers: [ProblemService],
+  imports: [SubmissionModule, SubscriptionModule],
+  providers: [ProblemService, PrismaService],
   controllers: [ProblemController],
   exports: [ProblemService],
 })

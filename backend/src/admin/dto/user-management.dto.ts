@@ -7,10 +7,10 @@ import {
   IsDateString,
   MaxLength,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 import { UserRole } from '../../user/user.entity';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { IsQueryBoolean } from '../../common/decorators/boolean-transform.decorator';
 
 /**
  * Escape SQL LIKE wildcards to prevent wildcard injection
@@ -162,20 +162,12 @@ export class UserQueryDto extends PaginationDto {
   @IsOptional()
   role?: UserRole;
 
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @IsQueryBoolean()
   @IsBoolean()
   @IsOptional()
   is_active?: boolean;
 
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @IsQueryBoolean()
   @IsBoolean()
   @IsOptional()
   is_banned?: boolean;

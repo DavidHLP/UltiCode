@@ -5,8 +5,8 @@ import {
   IsEnum,
   IsArray,
 } from 'class-validator';
-import { Transform } from 'class-transformer';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { IsQueryBoolean } from '../../common/decorators/boolean-transform.decorator';
 
 export enum CommentType {
   FORUM = 'forum',
@@ -22,20 +22,12 @@ export class CommentQueryDto extends PaginationDto {
   @IsOptional()
   type?: CommentType;
 
-  @Transform(({ value }): boolean | string => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value as string;
-  })
+  @IsQueryBoolean()
   @IsBoolean()
   @IsOptional()
   is_flagged?: boolean;
 
-  @Transform(({ value }): boolean | string => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value as string;
-  })
+  @IsQueryBoolean()
   @IsBoolean()
   @IsOptional()
   is_deleted?: boolean;

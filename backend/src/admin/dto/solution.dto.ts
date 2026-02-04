@@ -1,6 +1,6 @@
 import { IsString, IsOptional, IsBoolean } from 'class-validator';
-import { Transform } from 'class-transformer';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { IsQueryBoolean } from '../../common/decorators/boolean-transform.decorator';
 
 export class SolutionQueryDto extends PaginationDto {
   @IsString()
@@ -15,29 +15,17 @@ export class SolutionQueryDto extends PaginationDto {
   @IsOptional()
   userId?: string;
 
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @IsQueryBoolean()
   @IsBoolean()
   @IsOptional()
   is_flagged?: boolean;
 
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @IsQueryBoolean()
   @IsBoolean()
   @IsOptional()
   is_published?: boolean;
 
-  @Transform(({ value }: { value: unknown }) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
-    return value;
-  })
+  @IsQueryBoolean()
   @IsBoolean()
   @IsOptional()
   is_deleted?: boolean;

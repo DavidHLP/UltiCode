@@ -21,8 +21,8 @@ import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { PermissionService } from '../services/permission.service';
 import { AuditService } from '../services/audit.service';
-import { UserService } from '../../user/user.service';
-import { UserRole } from '../../user/user.entity';
+import { UserService, UserRole } from '../../user/user.service';
+import type { User } from '../../user/user.service';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import {
   CreateUserDto,
@@ -33,7 +33,6 @@ import {
   BulkActionDto,
   ResetPasswordDto,
 } from '../dto/user-management.dto';
-import { User } from '../../user/user.entity';
 import * as bcrypt from 'bcrypt';
 
 @Controller('admin/users')
@@ -55,7 +54,7 @@ export class AdminUserController {
     const { role, is_active, is_banned, page = 1, limit = 20 } = query;
 
     // Build query conditions using proper TypeORM syntax
-    const baseWhere: FindOptionsWhere<User> = {};
+    const baseWhere: any = {};
 
     if (role) {
       baseWhere.role = role;
@@ -69,7 +68,7 @@ export class AdminUserController {
       baseWhere.is_banned = is_banned;
     }
 
-    let where: FindOptionsWhere<User> | FindOptionsWhere<User>[] = baseWhere;
+    let where: any = baseWhere;
 
     // Search in username, email, or name with sanitized input
     // Using TypeORM's Like operator which uses parameterized queries

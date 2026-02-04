@@ -1,53 +1,101 @@
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, FindManyOptions } from 'typeorm';
-import { User } from './user.entity';
 import { PrismaService } from '../prisma.service';
+import type { User } from '@prisma/client';
+import { UserRole } from '@prisma/client';
 
 interface PaginationOptions {
   page?: number;
   limit?: number;
 }
 
+// Re-export User type from Prisma for backward compatibility
+export type { User } from '@prisma/client';
+
+// Export UserRole for backward compatibility (it's an enum, so it's both type and value)
+export { UserRole };
+
+// Re-export User type for controllers that need it
+export type UserWithRank = User & { rank: number | null };
+
 @Injectable()
 export class UserService {
-  constructor(
-    @InjectRepository(User)
-    private usersRepository: Repository<User>,
-    private prisma: PrismaService,
-  ) {}
+  constructor(private prisma: PrismaService) {}
 
-  findAll(
-    where?: FindOptionsWhere<User> | FindOptionsWhere<User>[],
-    options?: PaginationOptions,
-  ): Promise<User[]> {
-    const findOptions: FindManyOptions<User> = {};
-
+  findAll(where?: any, options?: PaginationOptions): Promise<User[]> {
+    const prismaWhere: Record<string, unknown> = {};
     if (where) {
-      findOptions.where = where;
+      if (Array.isArray(where)) {
+        // Handle TypeORM OR conditions - convert to Prisma format
+        // For search queries with Like, we need to extract the actual values
+        const orConditions = where.map((w: any) => {
+          const condition: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(w)) {
+            // Handle TypeORM Like objects
+            if (
+              value &&
+              typeof value === 'object' &&
+              'constructor' in value &&
+              value.constructor.name === 'Like'
+            ) {
+              condition[key] = (value as any).parameter;
+            } else {
+              condition[key] = value;
+            }
+          }
+          return condition;
+        });
+        prismaWhere.OR = orConditions;
+      } else {
+        Object.assign(prismaWhere, where);
+      }
     }
+
+    const prismaOptions: Record<string, unknown> = { where: prismaWhere };
 
     if (options?.page && options?.limit) {
       const skip = (options.page - 1) * options.limit;
-      findOptions.skip = skip;
-      findOptions.take = options.limit;
+      prismaOptions.skip = skip;
+      prismaOptions.take = options.limit;
       // Order by joined_at desc by default for consistent pagination
-      findOptions.order = { joined_at: 'DESC' };
+      prismaOptions.orderBy = { joined_at: 'desc' as const };
     }
 
-    return this.usersRepository.find(findOptions);
+    return this.prisma.user.findMany(prismaOptions as any);
   }
 
-  async count(
-    where?: FindOptionsWhere<User> | FindOptionsWhere<User>[],
-  ): Promise<number> {
-    return this.usersRepository.count({ where });
+  async count(where?: any): Promise<number> {
+    const prismaWhere: Record<string, unknown> = {};
+    if (where) {
+      if (Array.isArray(where)) {
+        const orConditions = where.map((w: any) => {
+          const condition: Record<string, unknown> = {};
+          for (const [key, value] of Object.entries(w)) {
+            if (
+              value &&
+              typeof value === 'object' &&
+              'constructor' in value &&
+              value.constructor.name === 'Like'
+            ) {
+              condition[key] = (value as any).parameter;
+            } else {
+              condition[key] = value;
+            }
+          }
+          return condition;
+        });
+        prismaWhere.OR = orConditions;
+      } else {
+        Object.assign(prismaWhere, where);
+      }
+    }
+
+    return this.prisma.user.count({ where: prismaWhere });
   }
 
-  async getProfileWithRank(
-    id: string,
-  ): Promise<(User & { rank: number | null }) | null> {
-    const user = await this.usersRepository.findOneBy({ id });
+  async getProfileWithRank(id: string): Promise<UserWithRank | null> {
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+    });
     if (!user) return null;
 
     const rankRecord = await this.prisma.globalRanking.findUnique({
@@ -61,33 +109,40 @@ export class UserService {
   }
 
   findOne(id: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({ id });
+    return this.prisma.user.findUnique({
+      where: { id },
+    });
   }
 
   async remove(id: string): Promise<void> {
-    await this.usersRepository.delete(id);
+    await this.prisma.user.delete({
+      where: { id },
+    });
   }
 
   findByUsername(username: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({ username });
+    return this.prisma.user.findUnique({
+      where: { username },
+    });
   }
 
   findByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findOneBy({ email });
+    return this.prisma.user.findFirst({
+      where: { email },
+    });
   }
 
   async create(userData: Partial<User>): Promise<User> {
-    const user = this.usersRepository.create(userData);
-    return this.usersRepository.save(user);
+    return this.prisma.user.create({
+      data: userData as any,
+    });
   }
 
   async update(id: string, userData: Partial<User>): Promise<User> {
-    await this.usersRepository.update(id, userData);
-    const updatedUser = await this.findOne(id);
-    if (!updatedUser) {
-      throw new Error(`User with ID ${id} not found after update`);
-    }
-    return updatedUser;
+    return this.prisma.user.update({
+      where: { id },
+      data: userData as any,
+    });
   }
 
   async getUserStats(userId: string) {

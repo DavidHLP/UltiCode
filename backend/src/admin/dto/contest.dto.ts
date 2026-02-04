@@ -3,14 +3,15 @@ import {
   IsOptional,
   IsEnum,
   IsBoolean,
-  IsInt,
-  Min,
-  Max,
   MaxLength,
   IsDateString,
   IsArray,
+  IsInt,
+  Min,
+  Max,
 } from 'class-validator';
 import { Type } from 'class-transformer';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 export enum ContestType {
   PUBLIC = 'PUBLIC',
@@ -98,7 +99,7 @@ export class ContestProblemDto {
   score?: number;
 }
 
-export class ContestQueryDto {
+export class ContestQueryDto extends PaginationDto {
   @IsString()
   @IsOptional()
   search?: string;
@@ -111,26 +112,9 @@ export class ContestQueryDto {
   @IsOptional()
   status?: 'upcoming' | 'running' | 'finished';
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  @IsOptional()
-  limit?: number = 20;
-
   @IsString()
   @IsOptional()
-  sortBy?: string = 'start_time';
-
-  @IsString()
-  @IsOptional()
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  override sortBy?: string = 'start_time';
 }
 
 export class BulkContestActionDto {

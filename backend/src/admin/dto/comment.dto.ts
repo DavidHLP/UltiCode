@@ -2,20 +2,18 @@ import {
   IsString,
   IsOptional,
   IsBoolean,
-  IsInt,
-  Min,
-  Max,
   IsEnum,
   IsArray,
 } from 'class-validator';
-import { Type, Transform } from 'class-transformer';
+import { Transform } from 'class-transformer';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 export enum CommentType {
   FORUM = 'forum',
   SOLUTION = 'solution',
 }
 
-export class CommentQueryDto {
+export class CommentQueryDto extends PaginationDto {
   @IsString()
   @IsOptional()
   search?: string;
@@ -42,26 +40,9 @@ export class CommentQueryDto {
   @IsOptional()
   is_deleted?: boolean;
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  @IsOptional()
-  limit?: number = 20;
-
   @IsString()
   @IsOptional()
-  sortBy?: string = 'created_at';
-
-  @IsString()
-  @IsOptional()
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  override sortBy?: string = 'created_at';
 }
 
 export class FlagCommentDto {

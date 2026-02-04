@@ -6,13 +6,11 @@ import {
   IsBoolean,
   IsDateString,
   MaxLength,
-  IsInt,
-  Min,
-  Max,
 } from 'class-validator';
-import { Type, Transform } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import { UserRole } from '../../user/user.entity';
 import { PermissionAction, PermissionResource } from '@prisma/client';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 /**
  * Escape SQL LIKE wildcards to prevent wildcard injection
@@ -154,7 +152,7 @@ export class ResetPasswordDto {
   password: string;
 }
 
-export class UserQueryDto {
+export class UserQueryDto extends PaginationDto {
   @IsString()
   @MaxLength(100)
   @IsOptional()
@@ -182,26 +180,9 @@ export class UserQueryDto {
   @IsOptional()
   is_banned?: boolean;
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  @IsOptional()
-  limit?: number = 20;
-
   @IsString()
   @IsOptional()
-  sortBy?: string = 'joined_at';
-
-  @IsString()
-  @IsOptional()
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  override sortBy?: string = 'joined_at';
 
   /**
    * Get sanitized search term with wildcards escaped

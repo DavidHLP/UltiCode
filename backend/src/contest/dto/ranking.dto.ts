@@ -1,58 +1,24 @@
-import {
-  IsOptional,
-  IsBoolean,
-  IsInt,
-  IsString,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsOptional, IsBoolean, IsString } from 'class-validator';
 import { Type } from 'class-transformer';
+import {
+  PaginationDto,
+  PaginatedResult as SharedPaginatedResult,
+} from '../../common/dto/pagination.dto';
 
-export class ContestRankingQueryDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number = 1;
+// Re-export PaginatedResult for backwards compatibility
+export type PaginatedResult<T> = SharedPaginatedResult<T>;
 
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number = 50;
-
+export class ContestRankingQueryDto extends PaginationDto {
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()
   include_virtual?: boolean = true;
 }
 
-export class GlobalRankingQueryDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number = 1;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number = 50;
-
+export class GlobalRankingQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   country?: string;
-}
-
-export interface PaginatedResult<T> {
-  items: T[];
-  total: number;
-  page: number;
-  limit: number;
-  totalPages: number;
 }
 
 export interface ContestRankingEntry {

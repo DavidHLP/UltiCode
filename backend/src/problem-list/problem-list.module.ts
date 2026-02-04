@@ -1,24 +1,13 @@
 import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { ProblemListService } from './problem-list.service';
 import { ProblemListController } from './problem-list.controller';
-import { ProblemList } from './problem-list.entity';
-import { Problem } from '../problem/problem.entity';
-import { SubmissionModule } from '../submission/submission.module';
-import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
 import { PrismaService } from '../prisma.service';
+import { SubmissionModule } from '../submission/submission.module';
 import { BookmarkModule } from '../bookmark/bookmark.module';
+import { I18nModule } from '../i18n/i18n.module';
 
 @Module({
-  imports: [
-    TypeOrmModule.forFeature([
-      ProblemList,
-      ProblemListProblemRelation,
-      Problem,
-    ]),
-    SubmissionModule,
-    BookmarkModule,
-  ],
+  imports: [SubmissionModule, BookmarkModule, I18nModule],
   providers: [ProblemListService, PrismaService],
   controllers: [ProblemListController],
   exports: [ProblemListService],

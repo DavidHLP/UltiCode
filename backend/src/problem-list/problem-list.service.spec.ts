@@ -1,11 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ProblemListService } from './problem-list.service';
-import { Repository, DataSource } from 'typeorm';
-import { ProblemList } from './problem-list.entity';
-import { Problem } from '../problem/problem.entity';
-import { ProblemListProblemRelation } from './problem-list-problem-relation.entity';
-import { SubmissionService } from '../submission/submission.service';
 import { PrismaService } from '../prisma.service';
+import { SubmissionService } from '../submission/submission.service';
 import { BookmarkService } from '../bookmark/bookmark.service';
 import { I18nService } from '../i18n/i18n.service';
 import { NotFoundException, ForbiddenException } from '@nestjs/common';
@@ -16,12 +12,8 @@ jest.mock('uuid');
 
 describe('ProblemListService', () => {
   let service: ProblemListService;
-  let listsRepository: jest.Mocked<Repository<ProblemList>>;
-  let problemsRepository: jest.Mocked<Repository<Problem>>;
-  let relationsRepository: jest.Mocked<Repository<ProblemListProblemRelation>>;
-  let _submissionService: jest.Mocked<SubmissionService>;
-  let _dataSource: jest.Mocked<DataSource>;
   let prisma: jest.Mocked<PrismaService>;
+  let _submissionService: jest.Mocked<SubmissionService>;
   let bookmarkService: jest.Mocked<BookmarkService>;
   let _i18nService: jest.Mocked<I18nService>;
 
@@ -42,9 +34,44 @@ describe('ProblemListService', () => {
     title: 'Two Sum',
     difficulty: 'Easy',
     acceptance_rate: 0.45,
-    status: 'todo',
     is_premium: false,
     has_solution: true,
+  };
+
+  const mockPrismaService = {
+    problemList: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+      delete: jest.fn(),
+      count: jest.fn(),
+    },
+    problem: {
+      findUnique: jest.fn(),
+      findMany: jest.fn(),
+    },
+    problemListProblemRelation: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      create: jest.fn(),
+      createMany: jest.fn(),
+      delete: jest.fn(),
+      deleteMany: jest.fn(),
+      groupBy: jest.fn().mockResolvedValue([]),
+      count: jest.fn(),
+    },
+    problemTagRelation: {
+      findMany: jest.fn(),
+    },
+    bookmark: {
+      deleteMany: jest.fn(),
+      findMany: jest.fn(),
+      count: jest.fn(),
+      groupBy: jest.fn().mockResolvedValue([]),
+    },
+    $transaction: jest.fn(),
   };
 
   beforeEach(async () => {
@@ -52,66 +79,13 @@ describe('ProblemListService', () => {
       providers: [
         ProblemListService,
         {
-          provide: 'ProblemListRepository',
-          useValue: {
-            find: jest.fn().mockResolvedValue([]),
-            findOne: jest.fn().mockResolvedValue(null),
-            create: jest.fn().mockReturnValue(mockList),
-            save: jest.fn().mockResolvedValue(mockList),
-            remove: jest.fn().mockResolvedValue(mockList),
-            update: jest.fn().mockResolvedValue(mockList),
-            count: jest.fn().mockResolvedValue(0),
-          },
-        },
-        {
-          provide: 'ProblemRepository',
-          useValue: {
-            findBy: jest.fn().mockResolvedValue([]),
-            findOne: jest.fn().mockResolvedValue(mockProblem),
-          },
-        },
-        {
-          provide: 'ProblemListProblemRelationRepository',
-          useValue: {
-            find: jest.fn().mockResolvedValue([]),
-            findOne: jest.fn().mockResolvedValue(null),
-            create: jest.fn().mockReturnValue({}),
-            save: jest.fn().mockResolvedValue({}),
-            delete: jest.fn().mockResolvedValue({}),
-            count: jest.fn().mockResolvedValue(0),
-            createQueryBuilder: jest.fn().mockReturnValue({
-              select: jest.fn().mockReturnThis(),
-              addSelect: jest.fn().mockReturnThis(),
-              groupBy: jest.fn().mockReturnThis(),
-              getRawMany: jest.fn().mockResolvedValue([]),
-            }),
-          },
+          provide: PrismaService,
+          useValue: mockPrismaService,
         },
         {
           provide: SubmissionService,
           useValue: {
             getProblemStatusMap: jest.fn().mockResolvedValue(new Map()),
-          },
-        },
-        {
-          provide: DataSource,
-          useValue: {
-            transaction: jest.fn((callback) =>
-              callback({
-                save: jest.fn().mockResolvedValue(mockList),
-              }),
-            ),
-          },
-        },
-        {
-          provide: PrismaService,
-          useValue: {
-            bookmark: {
-              findMany: jest.fn().mockResolvedValue([]),
-              groupBy: jest.fn().mockResolvedValue([]),
-              deleteMany: jest.fn().mockResolvedValue({ count: 0 }),
-              count: jest.fn().mockResolvedValue(0),
-            },
           },
         },
         {
@@ -126,12 +100,12 @@ describe('ProblemListService', () => {
             updateFolder: jest.fn().mockResolvedValue({
               id: 'folder-123',
               name: 'Folder',
-              sortOrder: 0,
+              sort_order: 0,
             }),
             createFolder: jest.fn().mockResolvedValue({
               id: 'folder-123',
               name: 'Folder',
-              sortOrder: 0,
+              sort_order: 0,
             }),
             deleteFolder: jest.fn().mockResolvedValue(undefined),
             removeBookmarkByTarget: jest.fn().mockResolvedValue(undefined),
@@ -148,12 +122,8 @@ describe('ProblemListService', () => {
     }).compile();
 
     service = module.get<ProblemListService>(ProblemListService);
-    listsRepository = module.get('ProblemListRepository');
-    problemsRepository = module.get('ProblemRepository');
-    relationsRepository = module.get('ProblemListProblemRelationRepository');
-    _submissionService = module.get(SubmissionService);
-    _dataSource = module.get(DataSource);
     prisma = module.get(PrismaService);
+    _submissionService = module.get(SubmissionService);
     bookmarkService = module.get(BookmarkService);
     _i18nService = module.get(I18nService);
   });
@@ -164,9 +134,15 @@ describe('ProblemListService', () => {
 
   describe('getUserProblemLists', () => {
     it('should return user problem lists', async () => {
-      listsRepository.find.mockResolvedValue([mockList] as never);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([mockList]);
+      (prisma.bookmark.findMany as jest.Mock).mockResolvedValue([]);
       bookmarkService.getUserFolders.mockResolvedValue([
-        { id: 'folder-123', name: 'Favorites', isDefault: true, sortOrder: 0 },
+        {
+          id: 'folder-123',
+          name: 'Favorites',
+          is_default: true,
+          sort_order: 0,
+        },
       ] as never);
 
       const result = await service.getUserProblemLists('user-123');
@@ -181,7 +157,7 @@ describe('ProblemListService', () => {
 
   describe('findAll', () => {
     it('should return featured lists for anonymous users', async () => {
-      listsRepository.find.mockResolvedValue([mockList] as never);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([mockList]);
 
       const result = await service.findAll('en-US');
 
@@ -194,7 +170,7 @@ describe('ProblemListService', () => {
 
   describe('getFeaturedLists', () => {
     it('should return featured lists', async () => {
-      listsRepository.find.mockResolvedValue([mockList] as never);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([mockList]);
 
       const result = await service.getFeaturedLists();
 
@@ -205,15 +181,17 @@ describe('ProblemListService', () => {
 
   describe('getListOverview', () => {
     it('should return list overview with problems', async () => {
-      listsRepository.findOne.mockResolvedValue(mockList as never);
-      relationsRepository.find.mockResolvedValue([
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
+      (
+        prisma.problemListProblemRelation.findMany as jest.Mock
+      ).mockResolvedValue([
         {
           problem_id: 1,
           sort_order: 0,
           problem: mockProblem,
-          tagRelations: [],
         },
       ] as never);
+      (prisma.problemTagRelation.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getListOverview('list-123', 'user-123');
 
@@ -226,8 +204,7 @@ describe('ProblemListService', () => {
 
   describe('createList', () => {
     it('should create a new list', async () => {
-      listsRepository.create.mockReturnValue(mockList as never);
-      listsRepository.save.mockResolvedValue(mockList as never);
+      (prisma.problemList.create as jest.Mock).mockResolvedValue(mockList);
 
       const result = await service.createList('user-123', {
         name: 'My List',
@@ -242,22 +219,22 @@ describe('ProblemListService', () => {
 
   describe('updateList', () => {
     it('should update a list', async () => {
-      listsRepository.findOne.mockResolvedValue(mockList as never);
-      listsRepository.save.mockResolvedValue({
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
+      (prisma.problemList.update as jest.Mock).mockResolvedValue({
         ...mockList,
         name: 'Updated List',
-      } as never);
+      });
 
       const result = await service.updateList('list-123', 'user-123', {
         name: 'Updated List',
       });
 
       expect(result).toBeDefined();
-      expect(listsRepository.save).toHaveBeenCalled();
+      expect(prisma.problemList.update).toHaveBeenCalled();
     });
 
     it('should throw error if list not found', async () => {
-      listsRepository.findOne.mockResolvedValue(null);
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(null);
 
       await expect(
         service.updateList('list-123', 'user-123', { name: 'Updated' }),
@@ -265,10 +242,10 @@ describe('ProblemListService', () => {
     });
 
     it('should throw error if user is not author', async () => {
-      listsRepository.findOne.mockResolvedValue({
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue({
         ...mockList,
         author_id: 'other-user',
-      } as never);
+      });
 
       await expect(
         service.updateList('list-123', 'user-123', { name: 'Updated' }),
@@ -278,27 +255,33 @@ describe('ProblemListService', () => {
 
   describe('deleteList', () => {
     it('should delete a list', async () => {
-      listsRepository.findOne.mockResolvedValue(mockList as never);
-      listsRepository.remove.mockResolvedValue(mockList as never);
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
+      (prisma.problemList.delete as jest.Mock).mockResolvedValue(mockList);
 
       await service.deleteList('list-123', 'user-123');
 
-      expect(listsRepository.remove).toHaveBeenCalled();
+      expect(prisma.problemList.delete).toHaveBeenCalled();
     });
   });
 
   describe('forkList', () => {
     it('should fork a list', async () => {
-      listsRepository.findOne.mockResolvedValue(mockList as never);
-      relationsRepository.find.mockResolvedValue([] as never);
-      listsRepository.create.mockReturnValue({
-        ...mockList,
-        id: 'new-list-id',
-      } as never);
-      listsRepository.save.mockResolvedValue({
-        ...mockList,
-        id: 'new-list-id',
-      } as never);
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
+      (
+        prisma.problemListProblemRelation.findMany as jest.Mock
+      ).mockResolvedValue([]);
+      (prisma.$transaction as jest.Mock).mockImplementation((callback) =>
+        callback({
+          problemList: {
+            create: jest
+              .fn()
+              .mockResolvedValue({ ...mockList, id: 'new-list-id' }),
+          },
+          problemListProblemRelation: {
+            createMany: jest.fn().mockResolvedValue({ count: 1 }),
+          },
+        }),
+      );
 
       const result = await service.forkList('list-123', 'user-123');
 
@@ -308,36 +291,47 @@ describe('ProblemListService', () => {
 
   describe('addProblem', () => {
     it('should add problem to list', async () => {
-      listsRepository.findOne.mockResolvedValue(mockList as never);
-      problemsRepository.findOne.mockResolvedValue(mockProblem as never);
-      relationsRepository.findOne.mockResolvedValue(null);
-      relationsRepository.count.mockResolvedValue(0);
-      relationsRepository.create.mockReturnValue({} as never);
-      relationsRepository.save.mockResolvedValue({} as never);
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
+      (prisma.problem.findUnique as jest.Mock).mockResolvedValue(mockProblem);
+      (
+        prisma.problemListProblemRelation.findUnique as jest.Mock
+      ).mockResolvedValue(null);
+      (prisma.problemListProblemRelation.count as jest.Mock).mockResolvedValue(
+        0,
+      );
+      (prisma.problemListProblemRelation.create as jest.Mock).mockResolvedValue(
+        {},
+      );
 
       await service.addProblem('list-123', 'user-123', 1);
 
-      expect(relationsRepository.save).toHaveBeenCalled();
+      expect(prisma.problemListProblemRelation.create).toHaveBeenCalled();
     });
   });
 
   describe('removeProblem', () => {
     it('should remove problem from list', async () => {
-      listsRepository.findOne.mockResolvedValue(mockList as never);
-      relationsRepository.delete.mockResolvedValue({} as never);
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
+      (prisma.problemListProblemRelation.delete as jest.Mock).mockResolvedValue(
+        {},
+      );
 
       await service.removeProblem('list-123', 'user-123', 1);
 
-      expect(relationsRepository.delete).toHaveBeenCalledWith({
-        list_id: 'list-123',
-        problem_id: 1,
+      expect(prisma.problemListProblemRelation.delete).toHaveBeenCalledWith({
+        where: {
+          list_id_problem_id: {
+            list_id: 'list-123',
+            problem_id: BigInt(1),
+          },
+        },
       });
     });
   });
 
   describe('saveList', () => {
     it('should save list to bookmarks', async () => {
-      listsRepository.findOne.mockResolvedValue(mockList as never);
+      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
       bookmarkService.ensureDefaultFolder.mockResolvedValue({
         id: 'folder-123',
       } as never);
@@ -366,7 +360,7 @@ describe('ProblemListService', () => {
       bookmarkService.createFolder.mockResolvedValue({
         id: 'folder-123',
         name: 'My Category',
-        sortOrder: 0,
+        sort_order: 0,
       } as never);
 
       const result = await service.createCategory('user-123', {
@@ -383,10 +377,16 @@ describe('ProblemListService', () => {
       bookmarkService.updateFolder.mockResolvedValue({
         id: 'folder-123',
         name: 'Updated Category',
-        sortOrder: 0,
+        sort_order: 0,
       } as never);
-      (prisma.bookmark.findMany as jest.Mock).mockResolvedValue([] as never);
-      listsRepository.find.mockResolvedValue([] as never);
+      (
+        prisma.problemListProblemRelation.findMany as jest.Mock
+      ).mockResolvedValue([]);
+      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.bookmark.findMany as jest.Mock).mockResolvedValue([]);
+      (
+        prisma.problemListProblemRelation.groupBy as jest.Mock
+      ).mockResolvedValue([]);
 
       const result = await service.updateCategory('folder-123', 'user-123', {
         name: 'Updated Category',

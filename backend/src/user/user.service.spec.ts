@@ -1,24 +1,46 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
-import { Repository } from 'typeorm';
-import { User, UserRole } from './user.entity';
 import { PrismaService } from '../prisma.service';
 
 describe('UserService', () => {
   let service: UserService;
-  let usersRepository: jest.Mocked<Repository<User>>;
   let prisma: jest.Mocked<PrismaService>;
 
   const mockUser = {
     id: 'user-123',
     username: 'testuser',
     email: 'test@example.com',
-    name: 'Test User',
-    role: UserRole.USER,
-    joined_at: new Date(),
+    password: 'hashedpassword',
     avatar: 'avatar.png',
-    is_active: true,
-    is_banned: false,
+    karma: 0,
+    bio: null,
+    location: null,
+    website: null,
+    github: null,
+    twitter: null,
+    joined_at: new Date(),
+    updated_at: new Date(),
+  };
+
+  const mockPrismaService = {
+    user: {
+      findMany: jest.fn(),
+      findUnique: jest.fn(),
+      findFirst: jest.fn(),
+      count: jest.fn(),
+      delete: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    globalRanking: {
+      findUnique: jest.fn(),
+    },
+    submission: {
+      findMany: jest.fn(),
+    },
+    problem: {
+      groupBy: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -26,36 +48,13 @@ describe('UserService', () => {
       providers: [
         UserService,
         {
-          provide: 'UserRepository',
-          useValue: {
-            find: jest.fn(),
-            findOneBy: jest.fn(),
-            count: jest.fn(),
-            delete: jest.fn(),
-            create: jest.fn(),
-            save: jest.fn(),
-            update: jest.fn(),
-          },
-        },
-        {
           provide: PrismaService,
-          useValue: {
-            globalRanking: {
-              findUnique: jest.fn(),
-            },
-            submission: {
-              findMany: jest.fn(),
-            },
-            problem: {
-              groupBy: jest.fn(),
-            },
-          },
+          useValue: mockPrismaService,
         },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
-    usersRepository = module.get('UserRepository');
     prisma = module.get(PrismaService);
   });
 
@@ -65,24 +64,24 @@ describe('UserService', () => {
 
   describe('findAll', () => {
     it('should return array of users', async () => {
-      usersRepository.find.mockResolvedValue([mockUser]);
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([mockUser]);
 
       const result = await service.findAll();
 
       expect(result).toEqual([mockUser]);
-      expect(usersRepository.find).toHaveBeenCalled();
+      expect(prisma.user.findMany).toHaveBeenCalled();
     });
 
     it('should apply pagination when page and limit are provided', async () => {
-      usersRepository.find.mockResolvedValue([mockUser]);
+      (prisma.user.findMany as jest.Mock).mockResolvedValue([mockUser]);
 
       await service.findAll({}, { page: 1, limit: 10 });
 
-      expect(usersRepository.find).toHaveBeenCalledWith(
+      expect(prisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           skip: 0,
           take: 10,
-          order: { joined_at: 'DESC' },
+          orderBy: { joined_at: 'desc' },
         }),
       );
     });
@@ -90,18 +89,18 @@ describe('UserService', () => {
 
   describe('count', () => {
     it('should return count of users', async () => {
-      usersRepository.count.mockResolvedValue(5);
+      (prisma.user.count as jest.Mock).mockResolvedValue(5);
 
       const result = await service.count();
 
       expect(result).toBe(5);
-      expect(usersRepository.count).toHaveBeenCalled();
+      expect(prisma.user.count).toHaveBeenCalled();
     });
   });
 
   describe('getProfileWithRank', () => {
     it('should return user with rank', async () => {
-      usersRepository.findOneBy.mockResolvedValue(mockUser);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
       (prisma.globalRanking.findUnique as jest.Mock).mockResolvedValue({
         user_id: 'user-123',
         global_rank: 42,
@@ -116,7 +115,7 @@ describe('UserService', () => {
     });
 
     it('should return null when user not found', async () => {
-      usersRepository.findOneBy.mockResolvedValue(null);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(null);
 
       const result = await service.getProfileWithRank('non-existent');
 
@@ -126,49 +125,51 @@ describe('UserService', () => {
 
   describe('findOne', () => {
     it('should return user by id', async () => {
-      usersRepository.findOneBy.mockResolvedValue(mockUser);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findOne('user-123');
 
       expect(result).toEqual(mockUser);
-      expect(usersRepository.findOneBy).toHaveBeenCalledWith({
-        id: 'user-123',
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
       });
     });
   });
 
   describe('remove', () => {
     it('should delete user', async () => {
-      usersRepository.delete.mockResolvedValue({ affected: 1 } as never);
+      (prisma.user.delete as jest.Mock).mockResolvedValue(mockUser);
 
       await service.remove('user-123');
 
-      expect(usersRepository.delete).toHaveBeenCalledWith('user-123');
+      expect(prisma.user.delete).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+      });
     });
   });
 
   describe('findByUsername', () => {
     it('should return user by username', async () => {
-      usersRepository.findOneBy.mockResolvedValue(mockUser);
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findByUsername('testuser');
 
       expect(result).toEqual(mockUser);
-      expect(usersRepository.findOneBy).toHaveBeenCalledWith({
-        username: 'testuser',
+      expect(prisma.user.findUnique).toHaveBeenCalledWith({
+        where: { username: 'testuser' },
       });
     });
   });
 
   describe('findByEmail', () => {
     it('should return user by email', async () => {
-      usersRepository.findOneBy.mockResolvedValue(mockUser);
+      (prisma.user.findFirst as jest.Mock).mockResolvedValue(mockUser);
 
       const result = await service.findByEmail('test@example.com');
 
       expect(result).toEqual(mockUser);
-      expect(usersRepository.findOneBy).toHaveBeenCalledWith({
-        email: 'test@example.com',
+      expect(prisma.user.findFirst).toHaveBeenCalledWith({
+        where: { email: 'test@example.com' },
       });
     });
   });
@@ -178,33 +179,39 @@ describe('UserService', () => {
       const userData = {
         username: 'newuser',
         email: 'new@example.com',
+        password: 'hashed',
       };
 
-      usersRepository.create.mockReturnValue(userData as User);
-      usersRepository.save.mockResolvedValue(userData as User);
+      (prisma.user.create as jest.Mock).mockResolvedValue({
+        ...mockUser,
+        ...userData,
+      });
 
       const result = await service.create(userData);
 
-      expect(result).toEqual(userData);
-      expect(usersRepository.create).toHaveBeenCalledWith(userData);
-      expect(usersRepository.save).toHaveBeenCalled();
+      expect(result).toEqual(expect.objectContaining(userData));
+      expect(prisma.user.create).toHaveBeenCalledWith({
+        data: userData,
+      });
     });
   });
 
   describe('update', () => {
     it('should update and return user', async () => {
-      const userData = { name: 'Updated Name' };
+      const userData = { bio: 'Updated bio' };
 
-      usersRepository.update.mockResolvedValue({} as never);
-      usersRepository.findOneBy.mockResolvedValue({
+      (prisma.user.update as jest.Mock).mockResolvedValue({
         ...mockUser,
-        name: 'Updated Name',
+        bio: 'Updated bio',
       });
 
       const result = await service.update('user-123', userData);
 
-      expect(result.name).toBe('Updated Name');
-      expect(usersRepository.update).toHaveBeenCalledWith('user-123', userData);
+      expect(result.bio).toBe('Updated bio');
+      expect(prisma.user.update).toHaveBeenCalledWith({
+        where: { id: 'user-123' },
+        data: userData,
+      });
     });
   });
 

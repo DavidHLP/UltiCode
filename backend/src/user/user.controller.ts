@@ -9,8 +9,7 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { Request } from 'express';
-import { UserService } from './user.service';
-import { User } from './user.entity';
+import { UserService, User } from './user.service';
 import { AuthGuard } from '../auth/auth.guard';
 
 interface AuthenticatedRequest extends Request {

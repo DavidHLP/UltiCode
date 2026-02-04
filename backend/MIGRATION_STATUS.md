@@ -32,30 +32,19 @@
   - `problem-list/problem-list.entity.ts`
   - `problem-list/problem-list-problem-relation.entity.ts`
 
+### Phase 3: User Module Migration (Completed) ✅
+- **Files Migrated**:
+  - `user/user.service.ts` - Migrated from TypeORM to Prisma
+  - `user/user.module.ts` - Removed TypeORM imports
+  - `user/user.service.spec.ts` - Updated tests to use PrismaService mocks
+  - `user/user.controller.ts` - Updated to import User from user.service
+  - `admin/controllers/admin-user.controller.ts` - Updated to import User/UserRole from user.service
+  - `admin/decorators/current-admin.decorator.ts` - Updated to import User from user.service
+
+- **TypeORM Entity to Delete** (after full verification):
+  - `user/user.entity.ts`
+
 ## Remaining Work
-
-### Phase 3: User Module Migration
-- **Files to Update**:
-  - `problem-list/problem-list.service.ts`
-  - `problem-list/problem-list.module.ts`
-  - `problem-list/problem-list.service.spec.ts`
-
-- **Key Changes Needed**:
-  - Remove `@InjectRepository` for `ProblemList`, `Problem`, `ProblemListProblemRelation`
-  - Replace TypeORM queries with Prisma client calls
-  - Replace `DataSource` transactions with `prisma.$transaction()`
-  - Update type conversions for snake_case to camelCase
-
-### Phase 3: User Module Migration
-- **Files to Update**:
-  - `user/user.service.ts`
-  - `user/user.module.ts`
-  - `user/user.service.spec.ts`
-
-- **Key Changes Needed**:
-  - Remove `@InjectRepository(User)`
-  - Replace TypeORM CRUD with Prisma client calls
-  - Update field name mappings (joined_at → joined_at)
 
 ### Phase 4: Problem Module Migration
 - **Files to Update**:

@@ -1,28 +1,9 @@
-import {
-  IsOptional,
-  IsBoolean,
-  IsEnum,
-  IsInt,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsOptional, IsBoolean, IsEnum } from 'class-validator';
 import { Type } from 'class-transformer';
 import { NotificationCategory, NotificationType } from '@prisma/client';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
-export class NotificationQueryDto {
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  page?: number = 1;
-
-  @IsOptional()
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  limit?: number = 20;
-
+export class NotificationQueryDto extends PaginationDto {
   @IsOptional()
   @Type(() => Boolean)
   @IsBoolean()

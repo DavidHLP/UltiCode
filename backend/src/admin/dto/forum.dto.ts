@@ -1,14 +1,8 @@
-import {
-  IsString,
-  IsOptional,
-  IsBoolean,
-  IsInt,
-  Min,
-  Max,
-} from 'class-validator';
-import { Type, Transform } from 'class-transformer';
+import { IsString, IsOptional, IsBoolean } from 'class-validator';
+import { Transform } from 'class-transformer';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
-export class ForumPostQueryDto {
+export class ForumPostQueryDto extends PaginationDto {
   @IsString()
   @IsOptional()
   search?: string;
@@ -48,29 +42,12 @@ export class ForumPostQueryDto {
   @IsOptional()
   is_locked?: boolean;
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  @IsOptional()
-  limit?: number = 20;
-
   @IsString()
   @IsOptional()
-  sortBy?: string = 'created_at';
-
-  @IsString()
-  @IsOptional()
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  override sortBy?: string = 'created_at';
 }
 
-export class ForumCommentQueryDto {
+export class ForumCommentQueryDto extends PaginationDto {
   @IsString()
   @IsOptional()
   search?: string;
@@ -91,19 +68,6 @@ export class ForumCommentQueryDto {
   @IsBoolean()
   @IsOptional()
   is_flagged?: boolean;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(100)
-  @IsOptional()
-  limit?: number = 20;
 }
 
 export class ModerationActionDto {

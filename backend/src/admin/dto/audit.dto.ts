@@ -1,15 +1,10 @@
+import { IsString, IsOptional, IsDateString, IsEnum } from 'class-validator';
 import {
-  IsString,
-  IsOptional,
-  IsInt,
-  Min,
-  Max,
-  IsDateString,
-  IsEnum,
-} from 'class-validator';
-import { Type } from 'class-transformer';
+  PaginationDto,
+  PaginationExportDto,
+} from '../../common/dto/pagination.dto';
 
-export class AuditLogQueryDto {
+export class AuditLogQueryDto extends PaginationDto {
   @IsString()
   @IsOptional()
   performerId?: string;
@@ -38,29 +33,44 @@ export class AuditLogQueryDto {
   @IsOptional()
   endDate?: string;
 
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  page?: number = 1;
-
-  @Type(() => Number)
-  @IsInt()
-  @Min(1)
-  @Max(500)
-  @IsOptional()
-  limit?: number = 50;
-
   @IsString()
   @IsOptional()
-  sortBy?: string = 'created_at';
-
-  @IsString()
-  @IsOptional()
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  override sortBy?: string = 'created_at';
 }
 
-export class AuditLogExportDto extends AuditLogQueryDto {
+export class AuditLogExportDto extends PaginationExportDto {
+  @IsString()
+  @IsOptional()
+  performerId?: string;
+
+  @IsString()
+  @IsOptional()
+  userId?: string;
+
+  @IsString()
+  @IsOptional()
+  entityType?: string;
+
+  @IsString()
+  @IsOptional()
+  entityId?: string;
+
+  @IsString()
+  @IsOptional()
+  action?: string;
+
+  @IsDateString()
+  @IsOptional()
+  startDate?: string;
+
+  @IsDateString()
+  @IsOptional()
+  endDate?: string;
+
+  @IsString()
+  @IsOptional()
+  override sortBy?: string = 'created_at';
+
   @IsEnum(['csv', 'json'])
   @IsOptional()
   format?: 'csv' | 'json' = 'csv';

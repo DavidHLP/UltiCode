@@ -1,12 +1,12 @@
 import { IsString, IsOptional, IsIn } from 'class-validator';
-import { Transform } from 'class-transformer';
+import { PaginationDto } from '../../common/dto/pagination.dto';
 
 export enum TagType {
   PROBLEM = 'PROBLEM',
   FORUM = 'FORUM',
 }
 
-export class TagQueryDto {
+export class TagQueryDto extends PaginationDto {
   @IsOptional()
   @IsString()
   search?: string;
@@ -16,20 +16,8 @@ export class TagQueryDto {
   type?: TagType;
 
   @IsOptional()
-  @Transform(({ value }) => parseInt(String(value), 10))
-  page?: number = 1;
-
-  @IsOptional()
-  @Transform(({ value }) => parseInt(String(value), 10))
-  limit?: number = 20;
-
-  @IsOptional()
   @IsString()
-  sortBy?: string = 'usage_count';
-
-  @IsOptional()
-  @IsIn(['asc', 'desc'])
-  sortOrder?: 'asc' | 'desc' = 'desc';
+  override sortBy?: string = 'usage_count';
 }
 
 export class CreateTagDto {

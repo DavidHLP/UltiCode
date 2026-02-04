@@ -37,7 +37,6 @@
     "@nestjs/platform-express": "^11.0.1",
     "@nestjs/schedule": "^6.1.0",
     "@nestjs/throttler": "^6.5.0",
-    "@nestjs/typeorm": "^11.0.0",
     "@prisma/client": "^6.19.0",
     "@types/dompurify": "^3.0.5",
     "@types/jsdom": "^27.0.0",
@@ -50,11 +49,9 @@
     "dotenv": "^17.2.3",
     "ioredis": "^5.5.0",
     "jsdom": "^27.4.0",
-    "mysql2": "^3.15.3",
     "prisma": "^6.19.0",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1",
-    "typeorm": "^0.3.28",
     "typescript": "^5.7.3"
   },
   "devDependencies": {
@@ -100,6 +97,8 @@
     ],
     "coverageDirectory": "../coverage",
     "testEnvironment": "node",
-    "setupFiles": ["<rootDir>/jest.setup.ts"]
+    "setupFiles": [
+      "<rootDir>/jest.setup.ts"
+    ]
   }
 }

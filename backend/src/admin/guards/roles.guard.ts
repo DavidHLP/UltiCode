@@ -7,7 +7,8 @@ import {
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { UserService } from '../../user/user.service';
 import { ROLES_KEY } from '../decorators/roles.decorator';
-import { User, UserRole } from '../../user/user.entity';
+import type { User } from '../../user/user.service';
+import { UserRole } from '../../user/user.service';
 
 @Injectable()
 export class RolesGuard implements CanActivate {

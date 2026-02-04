@@ -7,7 +7,8 @@ import {
 import { Reflector } from '@nestjs/core';
 import { PermissionService } from '../services/permission.service';
 import { PERMISSIONS_KEY } from '../decorators/permissions.decorator';
-import { User, UserRole } from '../../user/user.entity';
+import type { User } from '../../user/user.service';
+import { UserRole } from '../../user/user.service';
 import { RequiredPermission } from '../types/admin.types';
 
 @Injectable()

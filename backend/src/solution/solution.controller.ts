@@ -13,7 +13,7 @@ import { SolutionService } from './solution.service';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
 import { CreateSolutionDto } from './dto/create-solution.dto';
 import { AuthGuard } from '../auth/auth.guard';
-import { User } from '../user/user.entity';
+import type { User } from '../user/user.service';
 
 interface RequestWithUser extends Request {
   user: User;

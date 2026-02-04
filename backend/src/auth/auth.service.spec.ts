@@ -8,7 +8,7 @@ import { TokenBlacklistService } from './token-blacklist.service';
 import { CsrfService } from './csrf.service';
 import { RefreshTokenService } from './refresh-token.service';
 import { RegisterDto } from './dto/register.dto';
-import { UserRole } from '../user/user.entity';
+import { UserRole } from '../user/user.service';
 
 describe('AuthService', () => {
   let service: AuthService;

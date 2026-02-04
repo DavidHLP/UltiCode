@@ -10,7 +10,7 @@ import {
 import { AdminNotificationService } from '../services/admin-notification.service';
 import { CreateNotificationDto } from '../dto/notification.dto';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
-import { User } from '../../user/user.entity';
+import type { User } from '../../user/user.service';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';

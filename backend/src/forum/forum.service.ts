@@ -4,39 +4,196 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { ForumPost } from './entities/post.entity';
-import { ForumCommunity } from './entities/community.entity';
-import { ForumComment } from './entities/comment.entity';
-import { ForumTag } from './entities/tag.entity';
-import { ForumCommunityRule } from './entities/community-rule.entity';
-import { ForumCommunityLink } from './entities/community-link.entity';
-import { ForumCommunityMember } from './entities/community-member.entity';
-import { ForumUser } from './entities/user.entity';
+import { PrismaService } from '../prisma.service';
+import {
+  ForumPost as PrismaForumPost,
+  ForumComment as PrismaForumComment,
+  ForumCommunity as PrismaForumCommunity,
+  ForumTag as PrismaForumTag,
+  ForumCommunityRule as PrismaForumCommunityRule,
+  ForumCommunityLink as PrismaForumCommunityLink,
+  ForumCommunityMember as PrismaForumCommunityMember,
+  ForumUser as PrismaForumUser,
+  FlairType,
+  Prisma,
+} from '@prisma/client';
 import { VoteService } from '../vote/vote.service';
 import { BookmarkType, EdgeOperationTargetType } from '@prisma/client';
 import { BookmarkService } from '../bookmark/bookmark.service';
 
+// Type-compatible interfaces that match TypeORM entity shape
+export interface ForumPost extends Omit<PrismaForumPost, 'stats'> {
+  communityId: string;
+  userId: string;
+  flairType: string | null;
+  flairLabel: string | null;
+  isPinned: boolean;
+  isLocked: boolean;
+  createdAt: Date;
+  community: ForumCommunity;
+  author: ForumUser;
+  tags: string[];
+  voteState?: string;
+  isSaved?: boolean;
+  likes?: number;
+  dislikes?: number;
+  score?: number;
+  userVote?: 0 | 1 | -1;
+  flair?: { type: string; text: string };
+  stats?: { views?: number; comments?: number; saves?: number };
+}
+
+export interface ForumComment extends PrismaForumComment {
+  postId: string;
+  parentId: string | null;
+  authorId: string;
+  editedAt: Date | null;
+  isPinned: boolean;
+  isLocked: boolean;
+  createdAt: Date;
+  author: ForumUser;
+  parent?: ForumComment | null;
+  likes?: number;
+  dislikes?: number;
+  upvotes?: number;
+  userVote?: number;
+}
+
+export interface ForumCommunity extends PrismaForumCommunity {
+  postsCount: number;
+  postsToday: number;
+  postsWeek: number;
+  isOfficial: boolean;
+  isFeatured: boolean;
+  sortOrder: number;
+  createdAt: Date;
+}
+
+export interface ForumTag extends PrismaForumTag {
+  usageCount: number;
+  createdAt: Date;
+}
+
+export interface ForumCommunityRule extends PrismaForumCommunityRule {
+  communityId: string;
+  sortOrder: number;
+  createdAt: Date;
+}
+
+export interface ForumCommunityLink extends PrismaForumCommunityLink {
+  communityId: string;
+  sortOrder: number;
+}
+
+export interface ForumCommunityMember extends PrismaForumCommunityMember {
+  communityId: string;
+  userId: string;
+  joinedAt: Date;
+}
+
+export type ForumUser = PrismaForumUser;
+
+// Helper function to convert Prisma result to TypeORM-compatible format
+function convertPostToTypeOrmFormat(
+  post: PrismaForumPost & {
+    author?: PrismaForumUser | null;
+    community?: PrismaForumCommunity | null;
+  },
+): ForumPost {
+  return {
+    ...post,
+    communityId: post.community_id,
+    userId: post.user_id,
+    flairType: post.flair_type,
+    flairLabel: post.flair_label,
+    isPinned: post.is_pinned,
+    isLocked: post.is_locked,
+    createdAt: post.created_at,
+    tags: post.tags as string[],
+    community: post.community
+      ? convertCommunityToTypeOrmFormat(post.community)
+      : (undefined as never),
+    author: (post.author as ForumUser) || (undefined as never),
+  } as ForumPost;
+}
+
+function convertCommunityToTypeOrmFormat(
+  community: PrismaForumCommunity,
+): ForumCommunity {
+  return {
+    ...community,
+    postsCount: community.posts_count,
+    postsToday: community.posts_today,
+    postsWeek: community.posts_week,
+    isOfficial: community.is_official,
+    isFeatured: community.is_featured,
+    sortOrder: community.sort_order,
+    createdAt: community.created_at,
+  };
+}
+
+function convertCommentToTypeOrmFormat(
+  comment: PrismaForumComment & {
+    author?: PrismaForumUser | null;
+  },
+): ForumComment {
+  return {
+    ...comment,
+    postId: comment.post_id,
+    parentId: comment.parent_id,
+    authorId: comment.author_id,
+    editedAt: comment.edited_at,
+    isPinned: comment.is_pinned,
+    isLocked: comment.is_locked,
+    createdAt: comment.created_at,
+    author: (comment.author as ForumUser) || (undefined as never),
+  } as ForumComment;
+}
+
+function convertTagToTypeOrmFormat(tag: PrismaForumTag): ForumTag {
+  return {
+    ...tag,
+    usageCount: tag.usage_count,
+    createdAt: tag.created_at,
+  };
+}
+
+function convertCommunityRuleToTypeOrmFormat(
+  rule: PrismaForumCommunityRule,
+): ForumCommunityRule {
+  return {
+    ...rule,
+    communityId: rule.community_id,
+    sortOrder: rule.sort_order,
+    createdAt: rule.created_at,
+  };
+}
+
+function convertCommunityLinkToTypeOrmFormat(
+  link: PrismaForumCommunityLink,
+): ForumCommunityLink {
+  return {
+    ...link,
+    communityId: link.community_id,
+    sortOrder: link.sort_order,
+  };
+}
+
+function convertCommunityMemberToTypeOrmFormat(
+  member: PrismaForumCommunityMember,
+): ForumCommunityMember {
+  return {
+    ...member,
+    communityId: member.community_id,
+    userId: member.user_id,
+    joinedAt: member.joined_at,
+  };
+}
+
 @Injectable()
 export class ForumService {
   constructor(
-    @InjectRepository(ForumPost)
-    private postsRepository: Repository<ForumPost>,
-    @InjectRepository(ForumCommunity)
-    private communitiesRepository: Repository<ForumCommunity>,
-    @InjectRepository(ForumComment)
-    private commentsRepository: Repository<ForumComment>,
-    @InjectRepository(ForumTag)
-    private tagsRepository: Repository<ForumTag>,
-    @InjectRepository(ForumCommunityRule)
-    private rulesRepository: Repository<ForumCommunityRule>,
-    @InjectRepository(ForumCommunityLink)
-    private linksRepository: Repository<ForumCommunityLink>,
-    @InjectRepository(ForumCommunityMember)
-    private membersRepository: Repository<ForumCommunityMember>,
-    @InjectRepository(ForumUser)
-    private forumUsersRepository: Repository<ForumUser>,
+    private readonly prisma: PrismaService,
     private readonly voteService: VoteService,
     private readonly bookmarkService: BookmarkService,
   ) {}
@@ -46,17 +203,18 @@ export class ForumService {
     username: string;
     avatar?: string | null;
   }) {
-    const existing = await this.forumUsersRepository.findOne({
+    const existing = await this.prisma.forumUser.findUnique({
       where: { id: user.id },
     });
     if (existing) return existing;
 
-    const forumUser = this.forumUsersRepository.create({
-      id: user.id,
-      username: user.username,
-      avatar: user.avatar ?? null,
+    return this.prisma.forumUser.create({
+      data: {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar ?? null,
+      },
     });
-    return this.forumUsersRepository.save(forumUser);
   }
 
   private resolveFlair(post: ForumPost) {
@@ -71,11 +229,16 @@ export class ForumService {
     post: ForumPost,
     options?: { commentsCount?: number; savesCount?: number },
   ) {
+    const stats = post.stats as {
+      views?: number;
+      comments?: number;
+      saves?: number;
+    } | null;
     return {
-      ...(post.stats ?? {}),
-      comments: options?.commentsCount ?? post.stats?.comments ?? 0,
-      views: post.views ?? post.stats?.views ?? 0,
-      saves: options?.savesCount ?? post.stats?.saves ?? 0,
+      ...(stats || {}),
+      comments: options?.commentsCount ?? stats?.comments ?? 0,
+      views: post.views ?? stats?.views ?? 0,
+      saves: options?.savesCount ?? stats?.saves ?? 0,
     };
   }
 
@@ -103,7 +266,6 @@ export class ForumService {
 
     return {
       ...post,
-      tags: Array.isArray(post.tags) ? post.tags : [],
       flair,
       stats,
       likes: options?.votes?.likes ?? 0,
@@ -116,38 +278,44 @@ export class ForumService {
       userVote: (options?.userVote ?? 0) as 0 | 1 | -1,
       voteState,
       isSaved: options?.isSaved ?? false,
-    } as unknown as ForumPost;
+    } as ForumPost;
   }
 
   private async getCommentCounts(postIds: string[]) {
     if (postIds.length === 0) return new Map<string, number>();
-    const rows = await this.commentsRepository
-      .createQueryBuilder('comment')
-      .select('comment.postId', 'postId')
-      .addSelect('COUNT(comment.id)', 'count')
-      .where('comment.postId IN (:...postIds)', { postIds })
-      .groupBy('comment.postId')
-      .getRawMany<{ postId: string; count: string }>();
-
-    const counts = new Map<string, number>();
-    rows.forEach((row) => {
-      counts.set(row.postId, Number(row.count));
+    const counts = await this.prisma.forumComment.groupBy({
+      by: ['post_id'],
+      where: { post_id: { in: postIds } },
+      _count: { id: true },
     });
-    return counts;
+
+    const countMap = new Map<string, number>();
+    counts.forEach((item) => {
+      countMap.set(item.post_id, item._count.id);
+    });
+    return countMap;
   }
 
   private async canModerateCommunity(userId: string, communityId: string) {
-    const membership = await this.membersRepository.findOne({
-      where: { userId, communityId },
+    const membership = await this.prisma.forumCommunityMember.findUnique({
+      where: {
+        community_id_user_id: {
+          community_id: communityId,
+          user_id: userId,
+        },
+      },
     });
     if (!membership) return false;
     return membership.role === 'OWNER' || membership.role === 'MODERATOR';
   }
 
   async findAllPosts(userId?: string): Promise<ForumPost[]> {
-    const posts = await this.postsRepository.find({
-      relations: ['author', 'community'],
-      order: { createdAt: 'DESC' },
+    const posts = await this.prisma.forumPost.findMany({
+      include: {
+        author: true,
+        community: true,
+      },
+      orderBy: { created_at: 'desc' },
     });
 
     const postIds = posts.map((p) => p.id);
@@ -170,47 +338,73 @@ export class ForumService {
       );
     }
 
-    return posts.map((post) =>
-      this.normalizePost(post, {
+    return posts.map((post) => {
+      const converted = convertPostToTypeOrmFormat(post);
+      return this.normalizePost(converted, {
         commentsCount: commentCounts.get(post.id) ?? 0,
         savesCount: favoriteCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
         isSaved: bookmarkMap.get(post.id) ?? false,
-      }),
-    );
+      });
+    });
   }
 
   async recordShare(postId: string): Promise<void> {
-    const post = await this.postsRepository.findOne({ where: { id: postId } });
+    const post = await this.prisma.forumPost.findUnique({
+      where: { id: postId },
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
-    const stats = post.stats || {};
+    const stats =
+      (post.stats as {
+        shares?: number;
+        views?: number;
+        comments?: number;
+        saves?: number;
+      }) || {};
     stats.shares = (stats.shares || 0) + 1;
 
-    await this.postsRepository.update(postId, { stats });
+    await this.prisma.forumPost.update({
+      where: { id: postId },
+      data: { stats: stats as Prisma.InputJsonValue },
+    });
   }
 
   async recordView(postId: string): Promise<void> {
-    const post = await this.postsRepository.findOne({ where: { id: postId } });
+    const post = await this.prisma.forumPost.findUnique({
+      where: { id: postId },
+    });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
-    const stats = post.stats || {};
+    const stats =
+      (post.stats as {
+        shares?: number;
+        views?: number;
+        comments?: number;
+        saves?: number;
+      }) || {};
     stats.views = (stats.views || 0) + 1;
 
-    await this.postsRepository.update(postId, {
-      views: (post.views || 0) + 1,
-      stats,
+    await this.prisma.forumPost.update({
+      where: { id: postId },
+      data: {
+        views: (post.views || 0) + 1,
+        stats: stats as Prisma.InputJsonValue,
+      },
     });
   }
 
   async findOnePost(id: string, userId?: string): Promise<ForumPost | null> {
-    const post = await this.postsRepository.findOne({
+    const post = await this.prisma.forumPost.findUnique({
       where: { id },
-      relations: ['author', 'community'],
+      include: {
+        author: true,
+        community: true,
+      },
     });
 
     if (!post) {
@@ -237,7 +431,8 @@ export class ForumService {
       );
     }
 
-    return this.normalizePost(post, {
+    const converted = convertPostToTypeOrmFormat(post);
+    return this.normalizePost(converted, {
       commentsCount: commentCounts.get(id) ?? 0,
       savesCount: favoriteCount,
       votes: stats,
@@ -249,16 +444,19 @@ export class ForumService {
     id: string,
     userId?: string,
   ): Promise<(ForumPost & { comments: ForumComment[] }) | null> {
-    const post = await this.postsRepository.findOne({
+    const post = await this.prisma.forumPost.findUnique({
       where: { id },
-      relations: ['author', 'community'],
+      include: {
+        author: true,
+        community: true,
+      },
     });
 
     if (post) {
-      const comments = await this.commentsRepository.find({
-        where: { postId: id },
-        relations: ['author'],
-        order: { createdAt: 'ASC' },
+      const comments = await this.prisma.forumComment.findMany({
+        where: { post_id: id },
+        include: { author: true },
+        orderBy: { created_at: 'asc' },
       });
 
       // 1. Fetch Post Stats
@@ -317,8 +515,9 @@ export class ForumService {
           likes: 0,
           dislikes: 0,
         };
+        const converted = convertCommentToTypeOrmFormat(comment);
         return {
-          ...comment,
+          ...converted,
           likes: stats.likes,
           dislikes: stats.dislikes,
           upvotes: stats.likes,
@@ -326,7 +525,8 @@ export class ForumService {
         };
       });
 
-      const normalizedPost = this.normalizePost(post, {
+      const convertedPost = convertPostToTypeOrmFormat(post);
+      const normalizedPost = this.normalizePost(convertedPost, {
         commentsCount: comments.length,
         savesCount: favoriteCount,
         votes: postStats,
@@ -336,8 +536,8 @@ export class ForumService {
 
       return {
         ...normalizedPost,
-        comments: uniqueComments as unknown as ForumComment[],
-      } as unknown as ForumPost & { comments: ForumComment[] };
+        comments: uniqueComments as ForumComment[],
+      } as ForumPost & { comments: ForumComment[] };
     }
 
     // Fallback to seed data if database is empty
@@ -349,23 +549,22 @@ export class ForumService {
     includePrivate?: boolean;
     featuredOnly?: boolean;
   }): Promise<ForumCommunity[]> {
-    const query = this.communitiesRepository.createQueryBuilder('community');
+    const where: Record<string, unknown> = {};
 
     if (!options?.includePrivate) {
-      query.andWhere('community.visibility != :private', {
-        private: 'PRIVATE',
-      });
+      where.visibility = { not: 'PRIVATE' };
     }
 
     if (options?.featuredOnly) {
-      query.andWhere('community.isFeatured = :featured', { featured: true });
+      where.is_featured = true;
     }
 
-    query
-      .orderBy('community.sortOrder', 'ASC')
-      .addOrderBy('community.createdAt', 'DESC');
+    const communities = await this.prisma.forumCommunity.findMany({
+      where: where as never,
+      orderBy: [{ sort_order: 'asc' }, { created_at: 'desc' }],
+    });
 
-    return query.getMany();
+    return communities.map((c) => convertCommunityToTypeOrmFormat(c));
   }
 
   // Find community by slug or ID with rules and links
@@ -374,8 +573,8 @@ export class ForumService {
     rules: ForumCommunityRule[];
     links: ForumCommunityLink[];
   }> {
-    const community = await this.communitiesRepository.findOne({
-      where: [{ id: slugOrId }, { slug: slugOrId }],
+    const community = await this.prisma.forumCommunity.findFirst({
+      where: { OR: [{ id: slugOrId }, { slug: slugOrId }] },
     });
 
     if (!community) {
@@ -383,17 +582,21 @@ export class ForumService {
     }
 
     const [rules, links] = await Promise.all([
-      this.rulesRepository.find({
-        where: { communityId: community.id },
-        order: { sortOrder: 'ASC' },
+      this.prisma.forumCommunityRule.findMany({
+        where: { community_id: community.id },
+        orderBy: { sort_order: 'asc' },
       }),
-      this.linksRepository.find({
-        where: { communityId: community.id },
-        order: { sortOrder: 'ASC' },
+      this.prisma.forumCommunityLink.findMany({
+        where: { community_id: community.id },
+        orderBy: { sort_order: 'asc' },
       }),
     ]);
 
-    return { community, rules, links };
+    return {
+      community: convertCommunityToTypeOrmFormat(community),
+      rules: rules.map((r) => convertCommunityRuleToTypeOrmFormat(r)),
+      links: links.map((l) => convertCommunityLinkToTypeOrmFormat(l)),
+    };
   }
 
   // Get posts by community slug
@@ -401,7 +604,7 @@ export class ForumService {
     communitySlug: string,
     _options?: { sortBy?: 'hot' | 'new' | 'top'; userId?: string },
   ): Promise<ForumPost[]> {
-    const community = await this.communitiesRepository.findOne({
+    const community = await this.prisma.forumCommunity.findUnique({
       where: { slug: communitySlug },
     });
 
@@ -409,10 +612,10 @@ export class ForumService {
       return [];
     }
 
-    const posts = await this.postsRepository.find({
-      where: { communityId: community.id },
-      relations: ['author', 'community'],
-      order: { createdAt: 'DESC' },
+    const posts = await this.prisma.forumPost.findMany({
+      where: { community_id: community.id },
+      include: { author: true, community: true },
+      orderBy: { created_at: 'desc' },
     });
 
     // Get vote counts for all posts
@@ -436,21 +639,23 @@ export class ForumService {
       );
     }
 
-    return posts.map((post) =>
-      this.normalizePost(post, {
+    return posts.map((post) => {
+      const converted = convertPostToTypeOrmFormat(post);
+      return this.normalizePost(converted, {
         commentsCount: commentCounts.get(post.id) ?? 0,
         savesCount: favoriteCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
         isSaved: bookmarkMap.get(post.id) ?? false,
-      }),
-    );
+      });
+    });
   }
 
   // Tag management
   async findAllTags(): Promise<ForumTag[]> {
-    return this.tagsRepository.find({
-      order: { usageCount: 'DESC' },
+    const tags = await this.prisma.forumTag.findMany({
+      orderBy: { usage_count: 'desc' },
     });
+    return tags.map((t) => convertTagToTypeOrmFormat(t));
   }
 
   // Membership operations
@@ -459,52 +664,70 @@ export class ForumService {
     communityId: string,
   ): Promise<ForumCommunityMember> {
     // Check if already a member
-    const existing = await this.membersRepository.findOne({
-      where: { userId, communityId },
+    const existing = await this.prisma.forumCommunityMember.findUnique({
+      where: {
+        community_id_user_id: {
+          community_id: communityId,
+          user_id: userId,
+        },
+      },
     });
 
     if (existing) {
-      return existing;
+      return convertCommunityMemberToTypeOrmFormat(existing);
     }
 
-    const member = this.membersRepository.create({
-      id: randomUUID(),
-      userId,
-      communityId,
-      role: 'MEMBER',
-      joinedAt: new Date(),
+    const member = await this.prisma.forumCommunityMember.create({
+      data: {
+        id: randomUUID(),
+        user_id: userId,
+        community_id: communityId,
+        role: 'MEMBER',
+        joined_at: new Date(),
+      },
     });
 
-    await this.membersRepository.save(member);
-
     // Increment member count
-    await this.communitiesRepository.increment(
-      { id: communityId },
-      'members',
-      1,
-    );
+    await this.prisma.forumCommunity.update({
+      where: { id: communityId },
+      data: { members: { increment: 1 } },
+    });
 
-    return member;
+    return convertCommunityMemberToTypeOrmFormat(member);
   }
 
   async leaveCommunity(userId: string, communityId: string): Promise<void> {
-    const member = await this.membersRepository.findOne({
-      where: { userId, communityId },
+    const member = await this.prisma.forumCommunityMember.findUnique({
+      where: {
+        community_id_user_id: {
+          community_id: communityId,
+          user_id: userId,
+        },
+      },
     });
 
     if (member) {
-      await this.membersRepository.delete({ id: member.id });
-      await this.communitiesRepository.decrement(
-        { id: communityId },
-        'members',
-        1,
-      );
+      await this.prisma.forumCommunityMember.delete({
+        where: {
+          community_id_user_id: {
+            community_id: communityId,
+            user_id: userId,
+          },
+        },
+      });
+      await this.prisma.forumCommunity.update({
+        where: { id: communityId },
+        data: { members: { decrement: 1 } },
+      });
     }
   }
 
   async checkMembership(userId: string, communityId: string): Promise<boolean> {
-    const count = await this.membersRepository.count({
-      where: { userId, communityId },
+    const count = await this.prisma.forumCommunityMember.count({
+      where: {
+        community_id: communityId,
+        user_id: userId,
+      },
     });
     return count > 0;
   }
@@ -515,7 +738,7 @@ export class ForumService {
     parentId: string | null,
     author: { id: string; username: string; avatar?: string | null },
   ): Promise<ForumComment> {
-    const post = await this.postsRepository.findOne({
+    const post = await this.prisma.forumPost.findUnique({
       where: { id: postId },
     });
     if (!post) {
@@ -524,27 +747,35 @@ export class ForumService {
 
     await this.ensureForumUser(author);
 
-    const comment = this.commentsRepository.create({
-      id: randomUUID(),
-      postId,
-      body,
-      parentId,
-      authorId: author.id,
-      createdAt: new Date(),
+    const comment = await this.prisma.forumComment.create({
+      data: {
+        id: randomUUID(),
+        post_id: postId,
+        body,
+        parent_id: parentId,
+        author_id: author.id,
+        created_at: new Date(),
+      },
+      include: { author: true },
     });
 
-    const saved = await this.commentsRepository.save(comment);
-
-    const commentCount = await this.commentsRepository.count({
-      where: { postId },
+    const commentCount = await this.prisma.forumComment.count({
+      where: { post_id: postId },
     });
-    const updatedStats = {
-      ...(post.stats ?? {}),
-      comments: commentCount,
-    };
-    await this.postsRepository.update({ id: postId }, { stats: updatedStats });
+    const stats =
+      (post.stats as {
+        shares?: number;
+        views?: number;
+        comments?: number;
+        saves?: number;
+      }) || {};
+    stats.comments = commentCount;
+    await this.prisma.forumPost.update({
+      where: { id: postId },
+      data: { stats: stats as Prisma.InputJsonValue },
+    });
 
-    return saved;
+    return convertCommentToTypeOrmFormat(comment);
   }
 
   async updateComment(
@@ -552,51 +783,63 @@ export class ForumService {
     body: string,
     userId: string,
   ): Promise<ForumComment> {
-    const comment = await this.commentsRepository.findOne({
+    const comment = await this.prisma.forumComment.findUnique({
       where: { id: commentId },
-      relations: ['author'],
+      include: { author: true },
     });
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
-    if (comment.authorId !== userId) {
+    if (comment.author_id !== userId) {
       throw new ForbiddenException('Not allowed to edit this comment');
     }
 
-    comment.body = body;
-    comment.editedAt = new Date();
+    const updated = await this.prisma.forumComment.update({
+      where: { id: commentId },
+      data: {
+        body,
+        edited_at: new Date(),
+      },
+      include: { author: true },
+    });
 
-    return this.commentsRepository.save(comment);
+    return convertCommentToTypeOrmFormat(updated);
   }
 
   async deleteComment(commentId: string, userId: string): Promise<void> {
-    const comment = await this.commentsRepository.findOne({
+    const comment = await this.prisma.forumComment.findUnique({
       where: { id: commentId },
     });
     if (!comment) {
       throw new NotFoundException('Comment not found');
     }
-    if (comment.authorId !== userId) {
+    if (comment.author_id !== userId) {
       throw new ForbiddenException('Not allowed to delete this comment');
     }
 
-    await this.commentsRepository.delete({ id: commentId });
+    await this.prisma.forumComment.delete({
+      where: { id: commentId },
+    });
 
-    const post = await this.postsRepository.findOne({
-      where: { id: comment.postId },
+    const post = await this.prisma.forumPost.findUnique({
+      where: { id: comment.post_id },
     });
     if (post) {
-      const commentCount = await this.commentsRepository.count({
-        where: { postId: comment.postId },
+      const commentCount = await this.prisma.forumComment.count({
+        where: { post_id: comment.post_id },
       });
-      const updatedStats = {
-        ...(post.stats ?? {}),
-        comments: commentCount,
-      };
-      await this.postsRepository.update(
-        { id: comment.postId },
-        { stats: updatedStats },
-      );
+      const stats =
+        (post.stats as {
+          shares?: number;
+          views?: number;
+          comments?: number;
+          saves?: number;
+        }) || {};
+      stats.comments = commentCount;
+      await this.prisma.forumPost.update({
+        where: { id: comment.post_id },
+        data: { stats: stats as Prisma.InputJsonValue },
+      });
     }
   }
 
@@ -612,7 +855,7 @@ export class ForumService {
     },
     author: { id: string; username: string; avatar?: string | null },
   ): Promise<ForumPost> {
-    const community = await this.communitiesRepository.findOne({
+    const community = await this.prisma.forumCommunity.findUnique({
       where: { id: input.communityId },
     });
     if (!community) {
@@ -627,29 +870,30 @@ export class ForumService {
 
     await this.ensureForumUser(author);
 
-    const post = this.postsRepository.create({
-      id: randomUUID(),
-      communityId: input.communityId,
-      userId: author.id,
-      title: input.title,
-      excerpt: input.excerpt ?? null,
-      tags: input.tags ?? [],
-      flairType: input.flairType ?? null,
-      flairLabel: input.flairLabel ?? null,
-      media: input.media ?? null,
-      createdAt: new Date(),
-      stats: { comments: 0, views: 0 },
+    const post = await this.prisma.forumPost.create({
+      data: {
+        id: randomUUID(),
+        community_id: input.communityId,
+        user_id: author.id,
+        title: input.title,
+        excerpt: input.excerpt ?? null,
+        tags: input.tags ?? [],
+        flair_type: (input.flairType as FlairType | null) ?? null,
+        flair_label: input.flairLabel ?? null,
+        media: input.media as Prisma.InputJsonValue,
+        created_at: new Date(),
+        stats: { comments: 0, views: 0 } as Prisma.InputJsonValue,
+      },
+      include: { author: true, community: true },
     });
 
-    const saved = await this.postsRepository.save(post);
+    await this.prisma.forumCommunity.update({
+      where: { id: input.communityId },
+      data: { posts_count: { increment: 1 } },
+    });
 
-    await this.communitiesRepository.increment(
-      { id: input.communityId },
-      'postsCount',
-      1,
-    );
-
-    return this.normalizePost(saved, {
+    const converted = convertPostToTypeOrmFormat(post);
+    return this.normalizePost(converted, {
       commentsCount: 0,
       votes: { likes: 0, dislikes: 0 },
     });
@@ -669,18 +913,18 @@ export class ForumService {
       isLocked?: boolean;
     },
   ): Promise<ForumPost> {
-    const post = await this.postsRepository.findOne({
+    const post = await this.prisma.forumPost.findUnique({
       where: { id: postId },
-      relations: ['community'],
+      include: { community: true },
     });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
-    const isAuthor = post.userId === userId;
+    const isAuthor = post.user_id === userId;
     const canModerate = await this.canModerateCommunity(
       userId,
-      post.communityId,
+      post.community_id,
     );
 
     if (!isAuthor && !canModerate) {
@@ -694,60 +938,70 @@ export class ForumService {
       throw new ForbiddenException('Not allowed to manage this post');
     }
 
+    const updateData: Prisma.ForumPostUpdateInput = {};
     if (isAuthor) {
-      if (input.title !== undefined) post.title = input.title;
-      if (input.excerpt !== undefined) post.excerpt = input.excerpt;
-      if (input.tags !== undefined) post.tags = input.tags;
-      if (input.flairType !== undefined) post.flairType = input.flairType;
-      if (input.flairLabel !== undefined) post.flairLabel = input.flairLabel;
-      if (input.media !== undefined) post.media = input.media;
+      if (input.title !== undefined) updateData.title = input.title;
+      if (input.excerpt !== undefined) updateData.excerpt = input.excerpt;
+      if (input.tags !== undefined) updateData.tags = input.tags;
+      if (input.flairType !== undefined)
+        updateData.flair_type = input.flairType as FlairType;
+      if (input.flairLabel !== undefined)
+        updateData.flair_label = input.flairLabel;
+      if (input.media !== undefined)
+        updateData.media = input.media as Prisma.InputJsonValue;
     }
+    if (input.isPinned !== undefined) updateData.is_pinned = input.isPinned;
+    if (input.isLocked !== undefined) updateData.is_locked = input.isLocked;
 
-    if (input.isPinned !== undefined) post.isPinned = input.isPinned;
-    if (input.isLocked !== undefined) post.isLocked = input.isLocked;
+    const saved = await this.prisma.forumPost.update({
+      where: { id: postId },
+      data: updateData,
+      include: { author: true, community: true },
+    });
 
-    const saved = await this.postsRepository.save(post);
-
-    return this.normalizePost(saved, {
-      commentsCount: post.stats?.comments ?? 0,
+    const stats = (saved.stats as { comments?: number }) || {};
+    const converted = convertPostToTypeOrmFormat(saved);
+    return this.normalizePost(converted, {
+      commentsCount: stats.comments ?? 0,
       votes: { likes: 0, dislikes: 0 },
     });
   }
 
   async deletePost(postId: string, userId: string): Promise<void> {
-    const post = await this.postsRepository.findOne({
+    const post = await this.prisma.forumPost.findUnique({
       where: { id: postId },
     });
     if (!post) {
       throw new NotFoundException('Post not found');
     }
 
-    const isAuthor = post.userId === userId;
+    const isAuthor = post.user_id === userId;
     const canModerate = await this.canModerateCommunity(
       userId,
-      post.communityId,
+      post.community_id,
     );
 
     if (!isAuthor && !canModerate) {
       throw new ForbiddenException('Not allowed to delete this post');
     }
 
-    await this.postsRepository.delete({ id: postId });
-    await this.communitiesRepository.decrement(
-      { id: post.communityId },
-      'postsCount',
-      1,
-    );
+    await this.prisma.forumPost.delete({
+      where: { id: postId },
+    });
+    await this.prisma.forumCommunity.update({
+      where: { id: post.community_id },
+      data: { posts_count: { decrement: 1 } },
+    });
   }
 
   async findPostsByUser(
     userId: string,
     currentUserId?: string,
   ): Promise<ForumPost[]> {
-    const posts = await this.postsRepository.find({
-      where: { userId },
-      relations: ['author', 'community'],
-      order: { createdAt: 'DESC' },
+    const posts = await this.prisma.forumPost.findMany({
+      where: { user_id: userId },
+      include: { author: true, community: true },
+      orderBy: { created_at: 'desc' },
     });
     const postIds = posts.map((p) => p.id);
     const voteMap = await this.voteService.getVoteCountsBatch(
@@ -769,13 +1023,14 @@ export class ForumService {
       );
     }
 
-    return posts.map((post) =>
-      this.normalizePost(post, {
+    return posts.map((post) => {
+      const converted = convertPostToTypeOrmFormat(post);
+      return this.normalizePost(converted, {
         commentsCount: commentCounts.get(post.id) ?? 0,
         savesCount: favoriteCounts.get(post.id) ?? 0,
         votes: voteMap.get(post.id) || { likes: 0, dislikes: 0 },
         isSaved: bookmarkMap.get(post.id) ?? false,
-      }),
-    );
+      });
+    });
   }
 }

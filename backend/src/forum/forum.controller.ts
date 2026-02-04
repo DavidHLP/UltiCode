@@ -10,10 +10,12 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { ForumService } from './forum.service';
-import { ForumPost } from './entities/post.entity';
-import { ForumCommunity } from './entities/community.entity';
-import { ForumComment } from './entities/comment.entity';
+import {
+  ForumService,
+  ForumPost,
+  ForumCommunity,
+  ForumComment,
+} from './forum.service';
 import forumData from '../../prisma/seed/data/forum.data';
 import { AuthGuard } from '../auth/auth.guard';
 import { Public } from '../auth/auth.decorator';

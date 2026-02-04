@@ -11,7 +11,7 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Like, FindOptionsWhere, QueryFailedError } from 'typeorm';
+import { Like, QueryFailedError } from 'typeorm';
 import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';

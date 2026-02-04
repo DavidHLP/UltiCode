@@ -19,7 +19,7 @@ import {
   SubscriptionStatus,
 } from './subscription.service';
 import { UserService } from '../user/user.service';
-import { UserRole } from '../user/user.entity';
+import { UserRole } from '../user/user.service';
 
 @Controller('admin/subscriptions')
 @UseGuards(AuthGuard, RolesGuard)

@@ -20,7 +20,7 @@ import { ForgotPasswordDto, ResetPasswordDto } from './dto/reset-password.dto';
 import { AuthGuard } from './auth.guard';
 import { extractTokenFromHeader } from './auth.utils';
 import { CurrentUser } from './decorators/current-user.decorator';
-import { User } from '../user/user.entity';
+import type { User } from '../user/user.service';
 
 @Controller('auth')
 export class AuthController {

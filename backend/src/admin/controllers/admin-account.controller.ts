@@ -1,17 +1,10 @@
-import {
-  Controller,
-  Get,
-  Patch,
-  Post,
-  Body,
-  UseGuards,
-} from '@nestjs/common';
+import { Controller, Get, Patch, Post, Body, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { AccountService } from '../services/account.service';
 import { UpdateProfileDto, ChangePasswordDto } from '../dto/account.dto';
-import { User } from '../../user/user.entity';
+import type { User } from '../../user/user.service';
 
 @Controller('admin/account')
 @UseGuards(AuthGuard, CsrfGuard)

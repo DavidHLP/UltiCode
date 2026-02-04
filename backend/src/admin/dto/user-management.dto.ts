@@ -7,7 +7,7 @@ import {
   IsDateString,
   MaxLength,
 } from 'class-validator';
-import { UserRole } from '../../user/user.entity';
+import { UserRole } from '../../user/user.service';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { IsQueryBoolean } from '../../common/decorators/boolean-transform.decorator';

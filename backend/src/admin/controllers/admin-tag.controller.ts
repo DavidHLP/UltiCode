@@ -16,7 +16,8 @@ import { RolesGuard } from '../guards/roles.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
-import { UserRole, User } from '../../user/user.entity';
+import type { User } from '../../user/user.service';
+import { UserRole } from '../../user/user.service';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import { AdminTagService } from '../services/admin-tag.service';
 import {

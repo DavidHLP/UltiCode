@@ -6,7 +6,7 @@ import { RolesGuard } from '../guards/roles.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { AdminDashboardService } from '../services/admin-dashboard.service';
-import { UserRole } from '../../user/user.entity';
+import { UserRole } from '../../user/user.service';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import { ChartQueryDto } from '../dto/dashboard.dto';
 

@@ -8,7 +8,8 @@ import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { AuditService } from '../services/audit.service';
 import { AdminSettingsService } from '../services/settings.service';
-import { UserRole, User } from '../../user/user.entity';
+import type { User } from '../../user/user.service';
+import { UserRole } from '../../user/user.service';
 import { PermissionAction, PermissionResource } from '@prisma/client';
 import { SystemSettingsDto, MaintenanceModeDto } from '../dto/settings.dto';
 

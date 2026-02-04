@@ -11,7 +11,6 @@ import {
   ConflictException,
 } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import { Like, QueryFailedError } from 'typeorm';
 import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -23,7 +22,7 @@ import { PermissionService } from '../services/permission.service';
 import { AuditService } from '../services/audit.service';
 import { UserService, UserRole } from '../../user/user.service';
 import type { User } from '../../user/user.service';
-import { PermissionAction, PermissionResource } from '@prisma/client';
+import { PermissionAction, PermissionResource, Prisma } from '@prisma/client';
 import {
   CreateUserDto,
   UpdateUserDto,
@@ -53,8 +52,8 @@ export class AdminUserController {
   async findAll(@Query() query: UserQueryDto) {
     const { role, is_active, is_banned, page = 1, limit = 20 } = query;
 
-    // Build query conditions using proper TypeORM syntax
-    const baseWhere: any = {};
+    // Build Prisma where clause
+    const baseWhere: Prisma.UserWhereInput = {};
 
     if (role) {
       baseWhere.role = role;
@@ -68,25 +67,21 @@ export class AdminUserController {
       baseWhere.is_banned = is_banned;
     }
 
-    let where: any = baseWhere;
-
     // Search in username, email, or name with sanitized input
-    // Using TypeORM's Like operator which uses parameterized queries
+    // MySQL's LIKE is case-insensitive by default for strings
     const sanitizedSearch = query.getSanitizedSearch();
     if (sanitizedSearch) {
-      const searchPattern = `%${sanitizedSearch}%`;
-      // TypeORM supports OR conditions via an array of objects.
-      // We must distribute the base AND conditions into each OR branch.
-      where = [
-        { ...baseWhere, username: Like(searchPattern) },
-        { ...baseWhere, email: Like(searchPattern) },
-        { ...baseWhere, name: Like(searchPattern) },
+      // Prisma supports OR conditions with an array
+      baseWhere.OR = [
+        { username: { contains: sanitizedSearch } },
+        { email: { contains: sanitizedSearch } },
+        { name: { contains: sanitizedSearch } },
       ];
     }
 
     const [users, total] = await Promise.all([
-      this.userService.findAll(where, { page, limit }),
-      this.userService.count(where),
+      this.userService.findAll(baseWhere, { page, limit }),
+      this.userService.count(baseWhere),
     ]);
 
     return {
@@ -155,31 +150,31 @@ export class AdminUserController {
 
       return user;
     } catch (error) {
-      // Handle duplicate entry errors (MySQL error code 1062 / ER_DUP_ENTRY)
+      // Handle duplicate entry errors (Prisma unique constraint violations)
       if (
-        error instanceof QueryFailedError &&
-        'errno' in error &&
-        (error as QueryFailedError & { errno: number }).errno === 1062
+        error &&
+        typeof error === 'object' &&
+        'code' in error &&
+        error.code === 'P2002'
       ) {
-        // Parse the SQL message to determine which field is duplicated
-        const message = error.message;
-        if (
-          message.includes('users_username_key') ||
-          message.includes(`'${createUserDto.username}'`)
-        ) {
-          throw new ConflictException(
-            `Username '${createUserDto.username}' already exists`,
-          );
+        // Prisma unique constraint violation
+        const meta = error.meta;
+        if (typeof meta === 'string') {
+          if (
+            meta.includes('username') ||
+            meta.includes(createUserDto.username)
+          ) {
+            throw new ConflictException(
+              `Username '${createUserDto.username}' already exists`,
+            );
+          }
+          if (meta.includes('email') || meta.includes(createUserDto.email)) {
+            throw new ConflictException(
+              `Email '${createUserDto.email}' already exists`,
+            );
+          }
         }
-        if (
-          message.includes('users_email_key') ||
-          message.includes(`'${createUserDto.email}'`)
-        ) {
-          throw new ConflictException(
-            `Email '${createUserDto.email}' already exists`,
-          );
-        }
-        // Generic duplicate error if we can't determine the field
+        // Generic duplicate error
         throw new ConflictException(
           'A user with this username or email already exists',
         );

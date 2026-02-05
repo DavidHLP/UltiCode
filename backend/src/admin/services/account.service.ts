@@ -1,6 +1,9 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserService } from '../../user/user.service';
-import { User } from '../../user/user.entity';
 import { PrismaService } from '../../prisma.service';
 import * as bcrypt from 'bcrypt';
 import { UpdateProfileDto, ChangePasswordDto } from '../dto/account.dto';
@@ -94,6 +97,10 @@ export class AccountService {
     const user = await this.userService.findOne(userId);
     if (!user) {
       throw new NotFoundException('User not found');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException('User has no password set');
     }
 
     // Verify current password

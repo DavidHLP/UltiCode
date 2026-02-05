@@ -3,12 +3,14 @@ import { ForumService } from './forum.service';
 import { PrismaService } from '../prisma.service';
 import { VoteService } from '../vote/vote.service';
 import { BookmarkService } from '../bookmark/bookmark.service';
+import { ForumModerationService } from './services/forum-moderation.service';
+import { ForumCommentService } from './services/forum-comment.service';
+import { ForumPostService } from './services/forum-post.service';
+import { ForumCommunityService } from './services/forum-community.service';
 
 describe('ForumService', () => {
   let service: ForumService;
   let prismaService: jest.Mocked<PrismaService>;
-  let voteService: jest.Mocked<VoteService>;
-  let bookmarkService: jest.Mocked<BookmarkService>;
 
   const mockPost = {
     id: 'post-123',
@@ -127,40 +129,44 @@ describe('ForumService', () => {
     },
   };
 
+  const mockVoteService = {
+    getVoteCountsBatch: jest.fn().mockResolvedValue(new Map()),
+    getUserVotesBatch: jest.fn().mockResolvedValue(new Map()),
+    getVoteCounts: jest.fn().mockResolvedValue({ likes: 0, dislikes: 0 }),
+  };
+
+  const mockBookmarkService = {
+    getFavoriteCountsBatch: jest.fn().mockResolvedValue(new Map()),
+    getBookmarkStatusBatch: jest.fn().mockResolvedValue(new Map()),
+    getFavoriteCount: jest.fn().mockResolvedValue(0),
+    isInDefaultFolder: jest.fn().mockResolvedValue(false),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ForumService,
+        ForumModerationService,
+        ForumCommentService,
+        ForumPostService,
+        ForumCommunityService,
         {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
         {
           provide: VoteService,
-          useValue: {
-            getVoteCountsBatch: jest.fn().mockResolvedValue(new Map()),
-            getUserVotesBatch: jest.fn().mockResolvedValue(new Map()),
-            getVoteCounts: jest
-              .fn()
-              .mockResolvedValue({ likes: 0, dislikes: 0 }),
-          },
+          useValue: mockVoteService,
         },
         {
           provide: BookmarkService,
-          useValue: {
-            getFavoriteCountsBatch: jest.fn().mockResolvedValue(new Map()),
-            getBookmarkStatusBatch: jest.fn().mockResolvedValue(new Map()),
-            getFavoriteCount: jest.fn().mockResolvedValue(0),
-            isInDefaultFolder: jest.fn().mockResolvedValue(false),
-          },
+          useValue: mockBookmarkService,
         },
       ],
     }).compile();
 
     service = module.get<ForumService>(ForumService);
     prismaService = module.get(PrismaService);
-    voteService = module.get(VoteService);
-    bookmarkService = module.get(BookmarkService);
   });
 
   it('should be defined', () => {
@@ -172,9 +178,6 @@ describe('ForumService', () => {
       (prismaService.forumPost.findMany as jest.Mock).mockResolvedValue([
         mockPost,
       ] as never);
-      voteService.getVoteCountsBatch.mockResolvedValue(new Map());
-      bookmarkService.getFavoriteCountsBatch.mockResolvedValue(new Map());
-      bookmarkService.getBookmarkStatusBatch.mockResolvedValue(new Map());
 
       const result = await service.findAllPosts('user-123');
 
@@ -187,9 +190,6 @@ describe('ForumService', () => {
       (prismaService.forumPost.findUnique as jest.Mock).mockResolvedValue(
         mockPost as never,
       );
-      voteService.getVoteCounts.mockResolvedValue({ likes: 5, dislikes: 0 });
-      bookmarkService.getFavoriteCount.mockResolvedValue(2);
-      bookmarkService.isInDefaultFolder.mockResolvedValue(true);
 
       const result = await service.findOnePost('post-123', 'user-123');
 
@@ -356,6 +356,20 @@ describe('ForumService', () => {
       const result = await service.joinCommunity('user-123', 'community-1');
 
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('getThread', () => {
+    it('should return post with comments', async () => {
+      (prismaService.forumPost.findUnique as jest.Mock).mockResolvedValue(
+        mockPost as never,
+      );
+      (prismaService.forumComment.findMany as jest.Mock).mockResolvedValue([]);
+
+      const result = await service.getThread('post-123', 'user-123');
+
+      expect(result).toBeDefined();
+      expect(result).toHaveProperty('comments');
     });
   });
 });

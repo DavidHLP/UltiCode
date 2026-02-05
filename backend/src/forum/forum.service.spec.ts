@@ -169,7 +169,9 @@ describe('ForumService', () => {
 
   describe('findAllPosts', () => {
     it('should return all posts', async () => {
-      prismaService.forumPost.findMany.mockResolvedValue([mockPost] as never);
+      (prismaService.forumPost.findMany as jest.Mock).mockResolvedValue([
+        mockPost,
+      ] as never);
       voteService.getVoteCountsBatch.mockResolvedValue(new Map());
       bookmarkService.getFavoriteCountsBatch.mockResolvedValue(new Map());
       bookmarkService.getBookmarkStatusBatch.mockResolvedValue(new Map());
@@ -182,7 +184,9 @@ describe('ForumService', () => {
 
   describe('findOnePost', () => {
     it('should return a post by id', async () => {
-      prismaService.forumPost.findUnique.mockResolvedValue(mockPost as never);
+      (prismaService.forumPost.findUnique as jest.Mock).mockResolvedValue(
+        mockPost as never,
+      );
       voteService.getVoteCounts.mockResolvedValue({ likes: 5, dislikes: 0 });
       bookmarkService.getFavoriteCount.mockResolvedValue(2);
       bookmarkService.isInDefaultFolder.mockResolvedValue(true);
@@ -193,7 +197,7 @@ describe('ForumService', () => {
     });
 
     it('should return null for non-existent post', async () => {
-      prismaService.forumPost.findUnique.mockResolvedValue(null);
+      (prismaService.forumPost.findUnique as jest.Mock).mockResolvedValue(null);
 
       const result = await service.findOnePost('non-existent');
 
@@ -203,7 +207,7 @@ describe('ForumService', () => {
 
   describe('findAllCommunities', () => {
     it('should return all communities', async () => {
-      prismaService.forumCommunity.findMany.mockResolvedValue([
+      (prismaService.forumCommunity.findMany as jest.Mock).mockResolvedValue([
         mockCommunity,
       ] as never);
 
@@ -213,7 +217,7 @@ describe('ForumService', () => {
     });
 
     it('should return only featured communities', async () => {
-      prismaService.forumCommunity.findMany.mockResolvedValue([
+      (prismaService.forumCommunity.findMany as jest.Mock).mockResolvedValue([
         mockCommunity,
       ] as never);
 
@@ -225,11 +229,15 @@ describe('ForumService', () => {
 
   describe('findOneCommunity', () => {
     it('should return community with rules and links', async () => {
-      prismaService.forumCommunity.findFirst.mockResolvedValue(
+      (prismaService.forumCommunity.findFirst as jest.Mock).mockResolvedValue(
         mockCommunity as never,
       );
-      prismaService.forumCommunityRule.findMany.mockResolvedValue([]);
-      prismaService.forumCommunityLink.findMany.mockResolvedValue([]);
+      (
+        prismaService.forumCommunityRule.findMany as jest.Mock
+      ).mockResolvedValue([]);
+      (
+        prismaService.forumCommunityLink.findMany as jest.Mock
+      ).mockResolvedValue([]);
 
       const result = await service.findOneCommunity('test-community');
 
@@ -241,13 +249,17 @@ describe('ForumService', () => {
 
   describe('createPost', () => {
     it('should create a new post', async () => {
-      prismaService.forumCommunity.findUnique.mockResolvedValue(
+      (prismaService.forumCommunity.findUnique as jest.Mock).mockResolvedValue(
         mockCommunity as never,
       );
-      prismaService.forumCommunity.update.mockResolvedValue({} as never);
-      prismaService.forumPost.create.mockResolvedValue(mockPost as never);
-      prismaService.forumUser.findUnique.mockResolvedValue(null);
-      prismaService.forumUser.create.mockResolvedValue(
+      (prismaService.forumCommunity.update as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
+      (prismaService.forumPost.create as jest.Mock).mockResolvedValue(
+        mockPost as never,
+      );
+      (prismaService.forumUser.findUnique as jest.Mock).mockResolvedValue(null);
+      (prismaService.forumUser.create as jest.Mock).mockResolvedValue(
         mockPost.author as never,
       );
 
@@ -266,9 +278,13 @@ describe('ForumService', () => {
 
   describe('createComment', () => {
     it('should create a new comment', async () => {
-      prismaService.forumPost.findUnique.mockResolvedValue(mockPost as never);
-      prismaService.forumPost.update.mockResolvedValue({} as never);
-      prismaService.forumComment.create.mockResolvedValue({
+      (prismaService.forumPost.findUnique as jest.Mock).mockResolvedValue(
+        mockPost as never,
+      );
+      (prismaService.forumPost.update as jest.Mock).mockResolvedValue(
+        {} as never,
+      );
+      (prismaService.forumComment.create as jest.Mock).mockResolvedValue({
         id: 'comment-123',
         body: 'Great post!',
         post_id: 'post-123',
@@ -280,9 +296,13 @@ describe('ForumService', () => {
         is_locked: false,
         author: mockPost.author,
       } as never);
-      prismaService.forumComment.count.mockResolvedValue(1);
-      prismaService.forumUser.findUnique.mockResolvedValue(mockPost.author);
-      prismaService.forumUser.create.mockResolvedValue(mockPost.author);
+      (prismaService.forumComment.count as jest.Mock).mockResolvedValue(1);
+      (prismaService.forumUser.findUnique as jest.Mock).mockResolvedValue(
+        mockPost.author,
+      );
+      (prismaService.forumUser.create as jest.Mock).mockResolvedValue(
+        mockPost.author,
+      );
 
       const result = await service.createComment(
         'post-123',
@@ -305,11 +325,15 @@ describe('ForumService', () => {
         joined_at: new Date(),
       };
 
-      prismaService.forumCommunityMember.findUnique.mockResolvedValue(null);
-      prismaService.forumCommunityMember.create.mockResolvedValue(
-        mockMember as never,
+      (
+        prismaService.forumCommunityMember.findUnique as jest.Mock
+      ).mockResolvedValue(null);
+      (
+        prismaService.forumCommunityMember.create as jest.Mock
+      ).mockResolvedValue(mockMember as never);
+      (prismaService.forumCommunity.update as jest.Mock).mockResolvedValue(
+        {} as never,
       );
-      prismaService.forumCommunity.update.mockResolvedValue({} as never);
 
       const result = await service.joinCommunity('user-123', 'community-1');
 
@@ -325,9 +349,9 @@ describe('ForumService', () => {
         joined_at: new Date(),
       };
 
-      prismaService.forumCommunityMember.findUnique.mockResolvedValue(
-        mockMember as never,
-      );
+      (
+        prismaService.forumCommunityMember.findUnique as jest.Mock
+      ).mockResolvedValue(mockMember as never);
 
       const result = await service.joinCommunity('user-123', 'community-1');
 

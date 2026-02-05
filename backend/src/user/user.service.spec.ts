@@ -177,6 +177,7 @@ describe('UserService', () => {
   describe('create', () => {
     it('should create and return new user', async () => {
       const userData = {
+        id: 'new-user-id',
         username: 'newuser',
         email: 'new@example.com',
         password: 'hashed',

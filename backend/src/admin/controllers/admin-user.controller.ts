@@ -151,14 +151,10 @@ export class AdminUserController {
       return user;
     } catch (error) {
       // Handle duplicate entry errors (Prisma unique constraint violations)
-      if (
-        error &&
-        typeof error === 'object' &&
-        'code' in error &&
-        error.code === 'P2002'
-      ) {
+      const prismaError = error as { code?: string; meta?: unknown };
+      if (prismaError.code === 'P2002') {
         // Prisma unique constraint violation
-        const meta = error.meta;
+        const meta = prismaError.meta;
         if (typeof meta === 'string') {
           if (
             meta.includes('username') ||

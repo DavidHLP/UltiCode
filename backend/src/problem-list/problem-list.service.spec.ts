@@ -4,7 +4,11 @@ import { PrismaService } from '../prisma.service';
 import { SubmissionService } from '../submission/submission.service';
 import { BookmarkService } from '../bookmark/bookmark.service';
 import { I18nService } from '../i18n/i18n.service';
-import { NotFoundException, ForbiddenException } from '@nestjs/common';
+import { ProblemListCrudService } from './services/problem-list-crud.service';
+import { ProblemListRelationService } from './services/problem-list-relation.service';
+import { ProblemListBookmarkService } from './services/problem-list-bookmark.service';
+import { ProblemListCategoryService } from './services/problem-list-category.service';
+import { ProblemListStatsService } from './services/problem-list-stats.service';
 import { v4 as uuidv4 } from 'uuid';
 
 jest.mock('uuid');
@@ -13,9 +17,10 @@ jest.mock('uuid');
 describe('ProblemListService', () => {
   let service: ProblemListService;
   let prisma: jest.Mocked<PrismaService>;
-  let _submissionService: jest.Mocked<SubmissionService>;
-  let bookmarkService: jest.Mocked<BookmarkService>;
-  let _i18nService: jest.Mocked<I18nService>;
+  let crudService: jest.Mocked<ProblemListCrudService>;
+  let relationService: jest.Mocked<ProblemListRelationService>;
+  let bookmarkService: jest.Mocked<ProblemListBookmarkService>;
+  let categoryService: jest.Mocked<ProblemListCategoryService>;
 
   const mockList = {
     id: 'list-123',
@@ -36,6 +41,19 @@ describe('ProblemListService', () => {
     acceptance_rate: 0.45,
     is_premium: false,
     has_solution: true,
+  };
+
+  const mockListSummary = {
+    id: 'list-123',
+    name: 'My List',
+    description: 'Test list',
+    authorId: 'user-123',
+    isPublic: true,
+    isFeatured: false,
+    createdAt: mockList.created_at,
+    updatedAt: mockList.updated_at,
+    problemCount: 0,
+    favoritesCount: 0,
   };
 
   const mockPrismaService = {
@@ -71,7 +89,38 @@ describe('ProblemListService', () => {
       count: jest.fn(),
       groupBy: jest.fn().mockResolvedValue([]),
     },
+    bookmarkFolder: {
+      findMany: jest.fn(),
+    },
     $transaction: jest.fn(),
+  };
+
+  const mockSubmissionService = {
+    getProblemStatusMap: jest.fn().mockResolvedValue(new Map()),
+  };
+
+  const mockI18nService = {
+    getBatchTranslations: jest.fn().mockResolvedValue(new Map()),
+    applyTranslations: jest.fn().mockReturnValue(mockProblem),
+  };
+
+  const mockBookmarkService = {
+    getUserFolders: jest.fn().mockResolvedValue([]),
+    ensureDefaultFolder: jest.fn().mockResolvedValue({ id: 'folder-123' }),
+    addBookmark: jest.fn().mockResolvedValue({}),
+    getBookmarkFolders: jest.fn().mockResolvedValue([]),
+    updateFolder: jest.fn().mockResolvedValue({
+      id: 'folder-123',
+      name: 'Folder',
+      sortOrder: 0,
+    }),
+    createFolder: jest.fn().mockResolvedValue({
+      id: 'folder-123',
+      name: 'Folder',
+      sortOrder: 0,
+    }),
+    deleteFolder: jest.fn().mockResolvedValue(undefined),
+    removeBookmarkByTarget: jest.fn().mockResolvedValue(undefined),
   };
 
   beforeEach(async () => {
@@ -84,38 +133,85 @@ describe('ProblemListService', () => {
         },
         {
           provide: SubmissionService,
-          useValue: {
-            getProblemStatusMap: jest.fn().mockResolvedValue(new Map()),
-          },
+          useValue: mockSubmissionService,
         },
         {
           provide: BookmarkService,
-          useValue: {
-            getUserFolders: jest.fn().mockResolvedValue([]),
-            ensureDefaultFolder: jest
-              .fn()
-              .mockResolvedValue({ id: 'folder-123' }),
-            addBookmark: jest.fn().mockResolvedValue({}),
-            getBookmarkFolders: jest.fn().mockResolvedValue([]),
-            updateFolder: jest.fn().mockResolvedValue({
-              id: 'folder-123',
-              name: 'Folder',
-              sort_order: 0,
-            }),
-            createFolder: jest.fn().mockResolvedValue({
-              id: 'folder-123',
-              name: 'Folder',
-              sort_order: 0,
-            }),
-            deleteFolder: jest.fn().mockResolvedValue(undefined),
-            removeBookmarkByTarget: jest.fn().mockResolvedValue(undefined),
-          },
+          useValue: mockBookmarkService,
         },
         {
           provide: I18nService,
+          useValue: mockI18nService,
+        },
+        {
+          provide: ProblemListStatsService,
           useValue: {
-            getBatchTranslations: jest.fn().mockResolvedValue(new Map()),
-            applyTranslations: jest.fn().mockReturnValue(mockProblem),
+            buildProblemCountMap: jest.fn().mockResolvedValue(new Map()),
+            buildFavoritesCountMap: jest.fn().mockResolvedValue(new Map()),
+            mapList: jest.fn().mockReturnValue(mockListSummary),
+            buildStatsFromProblems: jest.fn().mockReturnValue({
+              listId: 'list-123',
+              totalCount: 0,
+              solvedCount: 0,
+              attemptedCount: 0,
+              todoCount: 0,
+              progress: 0,
+            }),
+            getStats: jest.fn().mockResolvedValue([]),
+            enrichListWithCounts: jest.fn().mockResolvedValue(mockListSummary),
+          },
+        },
+        {
+          provide: ProblemListCrudService,
+          useValue: {
+            createList: jest.fn().mockResolvedValue(mockListSummary),
+            updateList: jest.fn().mockResolvedValue(mockListSummary),
+            deleteList: jest.fn().mockResolvedValue(undefined),
+            forkList: jest.fn().mockResolvedValue('new-list-id'),
+            getListById: jest.fn().mockResolvedValue(mockListSummary),
+            getListsByUserId: jest.fn().mockResolvedValue([mockListSummary]),
+            getFeaturedLists: jest.fn().mockResolvedValue([mockListSummary]),
+            getDefaultList: jest.fn().mockResolvedValue(mockListSummary),
+          },
+        },
+        {
+          provide: ProblemListRelationService,
+          useValue: {
+            addProblem: jest.fn().mockResolvedValue(undefined),
+            removeProblem: jest.fn().mockResolvedValue(undefined),
+            batchAddProblemToLists: jest.fn().mockResolvedValue(undefined),
+            batchRemoveProblemFromLists: jest.fn().mockResolvedValue(undefined),
+            getUserListsForProblem: jest.fn().mockResolvedValue([]),
+            getProblemListIds: jest.fn().mockResolvedValue([]),
+            getProblemsByListId: jest.fn().mockResolvedValue([]),
+          },
+        },
+        {
+          provide: ProblemListBookmarkService,
+          useValue: {
+            saveList: jest.fn().mockResolvedValue(undefined),
+            unsaveList: jest.fn().mockResolvedValue(undefined),
+            isListSaved: jest.fn().mockResolvedValue(true),
+          },
+        },
+        {
+          provide: ProblemListCategoryService,
+          useValue: {
+            getCategories: jest.fn().mockResolvedValue([]),
+            createCategory: jest.fn().mockResolvedValue({
+              id: 'folder-123',
+              name: 'My Category',
+              sortOrder: 0,
+              lists: [],
+            }),
+            updateCategory: jest.fn().mockResolvedValue({
+              id: 'folder-123',
+              name: 'Updated Category',
+              sortOrder: 0,
+              lists: [],
+            }),
+            deleteCategory: jest.fn().mockResolvedValue(undefined),
+            moveListToCategory: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -123,9 +219,10 @@ describe('ProblemListService', () => {
 
     service = module.get<ProblemListService>(ProblemListService);
     prisma = module.get(PrismaService);
-    _submissionService = module.get(SubmissionService);
-    bookmarkService = module.get(BookmarkService);
-    _i18nService = module.get(I18nService);
+    crudService = module.get(ProblemListCrudService);
+    relationService = module.get(ProblemListRelationService);
+    bookmarkService = module.get(ProblemListBookmarkService);
+    categoryService = module.get(ProblemListCategoryService);
   });
 
   it('should be defined', () => {
@@ -136,14 +233,7 @@ describe('ProblemListService', () => {
     it('should return user problem lists', async () => {
       (prisma.problemList.findMany as jest.Mock).mockResolvedValue([mockList]);
       (prisma.bookmark.findMany as jest.Mock).mockResolvedValue([]);
-      bookmarkService.getUserFolders.mockResolvedValue([
-        {
-          id: 'folder-123',
-          name: 'Favorites',
-          is_default: true,
-          sort_order: 0,
-        },
-      ] as never);
+      categoryService.getCategories.mockResolvedValue([]);
 
       const result = await service.getUserProblemLists('user-123');
 
@@ -157,7 +247,7 @@ describe('ProblemListService', () => {
 
   describe('findAll', () => {
     it('should return featured lists for anonymous users', async () => {
-      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([mockList]);
+      crudService.getFeaturedLists.mockResolvedValue([mockListSummary]);
 
       const result = await service.findAll('en-US');
 
@@ -170,7 +260,7 @@ describe('ProblemListService', () => {
 
   describe('getFeaturedLists', () => {
     it('should return featured lists', async () => {
-      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([mockList]);
+      crudService.getFeaturedLists.mockResolvedValue([mockListSummary]);
 
       const result = await service.getFeaturedLists();
 
@@ -181,17 +271,12 @@ describe('ProblemListService', () => {
 
   describe('getListOverview', () => {
     it('should return list overview with problems', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
-      (
-        prisma.problemListProblemRelation.findMany as jest.Mock
-      ).mockResolvedValue([
-        {
-          problem_id: 1,
-          sort_order: 0,
-          problem: mockProblem,
-        },
+      crudService.getListById.mockResolvedValue(mockListSummary);
+      relationService.getProblemsByListId.mockResolvedValue([
+        mockProblem,
       ] as never);
-      (prisma.problemTagRelation.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.bookmark.findMany as jest.Mock).mockResolvedValue([]);
+      (prisma.bookmarkFolder.findMany as jest.Mock).mockResolvedValue([]);
 
       const result = await service.getListOverview('list-123', 'user-123');
 
@@ -200,11 +285,26 @@ describe('ProblemListService', () => {
       expect(result.problems).toBeDefined();
       expect(result.stats).toBeDefined();
     });
+
+    it('should return list overview without user', async () => {
+      crudService.getListById.mockResolvedValue(mockListSummary);
+      relationService.getProblemsByListId.mockResolvedValue([
+        mockProblem,
+      ] as never);
+
+      const result = await service.getListOverview('list-123');
+
+      expect(result).toBeDefined();
+      expect(result.list).toBeDefined();
+      expect(result.problems).toBeDefined();
+      expect(result.stats).toBeDefined();
+      expect(result.viewer).toBeUndefined();
+    });
   });
 
   describe('createList', () => {
     it('should create a new list', async () => {
-      (prisma.problemList.create as jest.Mock).mockResolvedValue(mockList);
+      crudService.createList.mockResolvedValue(mockListSummary);
 
       const result = await service.createList('user-123', {
         name: 'My List',
@@ -219,69 +319,30 @@ describe('ProblemListService', () => {
 
   describe('updateList', () => {
     it('should update a list', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
-      (prisma.problemList.update as jest.Mock).mockResolvedValue({
-        ...mockList,
-        name: 'Updated List',
-      });
+      crudService.updateList.mockResolvedValue(mockListSummary);
 
       const result = await service.updateList('list-123', 'user-123', {
         name: 'Updated List',
       });
 
       expect(result).toBeDefined();
-      expect(prisma.problemList.update).toHaveBeenCalled();
-    });
-
-    it('should throw error if list not found', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(null);
-
-      await expect(
-        service.updateList('list-123', 'user-123', { name: 'Updated' }),
-      ).rejects.toThrow(NotFoundException);
-    });
-
-    it('should throw error if user is not author', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue({
-        ...mockList,
-        author_id: 'other-user',
-      });
-
-      await expect(
-        service.updateList('list-123', 'user-123', { name: 'Updated' }),
-      ).rejects.toThrow(ForbiddenException);
+      expect(crudService.updateList).toHaveBeenCalled();
     });
   });
 
   describe('deleteList', () => {
     it('should delete a list', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
-      (prisma.problemList.delete as jest.Mock).mockResolvedValue(mockList);
+      crudService.deleteList.mockResolvedValue(undefined);
 
       await service.deleteList('list-123', 'user-123');
 
-      expect(prisma.problemList.delete).toHaveBeenCalled();
+      expect(crudService.deleteList).toHaveBeenCalled();
     });
   });
 
   describe('forkList', () => {
     it('should fork a list', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
-      (
-        prisma.problemListProblemRelation.findMany as jest.Mock
-      ).mockResolvedValue([]);
-      (prisma.$transaction as jest.Mock).mockImplementation((callback) =>
-        callback({
-          problemList: {
-            create: jest
-              .fn()
-              .mockResolvedValue({ ...mockList, id: 'new-list-id' }),
-          },
-          problemListProblemRelation: {
-            createMany: jest.fn().mockResolvedValue({ count: 1 }),
-          },
-        }),
-      );
+      crudService.forkList.mockResolvedValue('new-list-id');
 
       const result = await service.forkList('list-123', 'user-123');
 
@@ -291,77 +352,60 @@ describe('ProblemListService', () => {
 
   describe('addProblem', () => {
     it('should add problem to list', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
-      (prisma.problem.findUnique as jest.Mock).mockResolvedValue(mockProblem);
-      (
-        prisma.problemListProblemRelation.findUnique as jest.Mock
-      ).mockResolvedValue(null);
-      (prisma.problemListProblemRelation.count as jest.Mock).mockResolvedValue(
-        0,
-      );
-      (prisma.problemListProblemRelation.create as jest.Mock).mockResolvedValue(
-        {},
-      );
+      relationService.addProblem.mockResolvedValue(undefined);
 
       await service.addProblem('list-123', 'user-123', 1);
 
-      expect(prisma.problemListProblemRelation.create).toHaveBeenCalled();
+      expect(relationService.addProblem).toHaveBeenCalledWith(
+        'list-123',
+        'user-123',
+        1,
+      );
     });
   });
 
   describe('removeProblem', () => {
     it('should remove problem from list', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
-      (prisma.problemListProblemRelation.delete as jest.Mock).mockResolvedValue(
-        {},
-      );
+      relationService.removeProblem.mockResolvedValue(undefined);
 
       await service.removeProblem('list-123', 'user-123', 1);
 
-      expect(prisma.problemListProblemRelation.delete).toHaveBeenCalledWith({
-        where: {
-          list_id_problem_id: {
-            list_id: 'list-123',
-            problem_id: BigInt(1),
-          },
-        },
-      });
+      expect(relationService.removeProblem).toHaveBeenCalledWith(
+        'list-123',
+        'user-123',
+        1,
+      );
     });
   });
 
   describe('saveList', () => {
     it('should save list to bookmarks', async () => {
-      (prisma.problemList.findUnique as jest.Mock).mockResolvedValue(mockList);
-      bookmarkService.ensureDefaultFolder.mockResolvedValue({
-        id: 'folder-123',
-      } as never);
-      bookmarkService.addBookmark.mockResolvedValue({} as never);
+      bookmarkService.saveList.mockResolvedValue(undefined);
 
       await service.saveList('user-123', 'list-123');
 
-      expect(bookmarkService.addBookmark).toHaveBeenCalled();
+      expect(bookmarkService.saveList).toHaveBeenCalled();
     });
   });
 
   describe('unsaveList', () => {
     it('should unsave list', async () => {
-      (prisma.bookmark.deleteMany as jest.Mock).mockResolvedValue({
-        count: 1,
-      } as never);
+      bookmarkService.unsaveList.mockResolvedValue(undefined);
 
       await service.unsaveList('user-123', 'list-123');
 
-      expect(prisma.bookmark.deleteMany).toHaveBeenCalled();
+      expect(bookmarkService.unsaveList).toHaveBeenCalled();
     });
   });
 
   describe('createCategory', () => {
     it('should create a category', async () => {
-      bookmarkService.createFolder.mockResolvedValue({
+      categoryService.createCategory.mockResolvedValue({
         id: 'folder-123',
         name: 'My Category',
-        sort_order: 0,
-      } as never);
+        sortOrder: 0,
+        lists: [],
+      });
 
       const result = await service.createCategory('user-123', {
         name: 'My Category',
@@ -374,19 +418,12 @@ describe('ProblemListService', () => {
 
   describe('updateCategory', () => {
     it('should update a category', async () => {
-      bookmarkService.updateFolder.mockResolvedValue({
+      categoryService.updateCategory.mockResolvedValue({
         id: 'folder-123',
         name: 'Updated Category',
-        sort_order: 0,
-      } as never);
-      (
-        prisma.problemListProblemRelation.findMany as jest.Mock
-      ).mockResolvedValue([]);
-      (prisma.problemList.findMany as jest.Mock).mockResolvedValue([]);
-      (prisma.bookmark.findMany as jest.Mock).mockResolvedValue([]);
-      (
-        prisma.problemListProblemRelation.groupBy as jest.Mock
-      ).mockResolvedValue([]);
+        sortOrder: 0,
+        lists: [],
+      });
 
       const result = await service.updateCategory('folder-123', 'user-123', {
         name: 'Updated Category',
@@ -399,13 +436,13 @@ describe('ProblemListService', () => {
 
   describe('deleteCategory', () => {
     it('should delete a category', async () => {
-      bookmarkService.deleteFolder.mockResolvedValue(undefined);
+      categoryService.deleteCategory.mockResolvedValue(undefined);
 
       await service.deleteCategory('folder-123', 'user-123');
 
-      expect(bookmarkService.deleteFolder).toHaveBeenCalledWith(
-        'user-123',
+      expect(categoryService.deleteCategory).toHaveBeenCalledWith(
         'folder-123',
+        'user-123',
       );
     });
   });

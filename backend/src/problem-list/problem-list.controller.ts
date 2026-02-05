@@ -14,7 +14,7 @@ import type {
   ProblemListSummary,
   ProblemListDetailResponse,
   CategorySummary,
-} from './problem-list.service';
+} from './types';
 import { Locale } from '../i18n/i18n.decorator';
 import type { SupportedLocale } from '../i18n/i18n.constants';
 

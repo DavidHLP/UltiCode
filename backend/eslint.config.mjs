@@ -54,4 +54,11 @@ export default tseslint.config(
       '@typescript-eslint/no-unsafe-assignment': 'off',
     },
   },
+  {
+    files: ['**/dto/**/*.ts'],
+    rules: {
+      // Disable unsafe-call for DTO files - decorators like @ApiProperty() can't be properly type-checked
+      '@typescript-eslint/no-unsafe-call': 'off',
+    },
+  },
 );

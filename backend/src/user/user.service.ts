@@ -1,11 +1,20 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import type { User } from '@prisma/client';
+import type { User, Prisma } from '@prisma/client';
 import { UserRole } from '@prisma/client';
 
 interface PaginationOptions {
   page?: number;
   limit?: number;
+}
+
+interface LikeObject {
+  constructor: { name: string };
+  parameter: string;
+}
+
+interface WhereCondition {
+  [key: string]: unknown;
 }
 
 // Re-export User type from Prisma for backward compatibility
@@ -21,36 +30,39 @@ export type UserWithRank = User & { rank: number | null };
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
-  findAll(where?: any, options?: PaginationOptions): Promise<User[]> {
-    const prismaWhere: Record<string, unknown> = {};
+  findAll(
+    where?: Prisma.UserWhereInput,
+    options?: PaginationOptions,
+  ): Promise<User[]> {
+    const prismaWhere: Prisma.UserWhereInput = {};
     if (where) {
       if (Array.isArray(where)) {
         // Handle TypeORM OR conditions - convert to Prisma format
         // For search queries with Like, we need to extract the actual values
-        const orConditions = where.map((w: any) => {
-          const condition: Record<string, unknown> = {};
+        const orConditions = where.map((w: WhereCondition) => {
+          const condition: WhereCondition = {};
           for (const [key, value] of Object.entries(w)) {
             // Handle TypeORM Like objects
             if (
               value &&
               typeof value === 'object' &&
               'constructor' in value &&
-              value.constructor.name === 'Like'
+              (value as LikeObject).constructor?.name === 'Like'
             ) {
-              condition[key] = (value as any).parameter;
+              condition[key] = (value as LikeObject).parameter;
             } else {
               condition[key] = value;
             }
           }
           return condition;
         });
-        prismaWhere.OR = orConditions;
+        prismaWhere.OR = orConditions as Prisma.UserWhereInput['OR'];
       } else {
         Object.assign(prismaWhere, where);
       }
     }
 
-    const prismaOptions: Record<string, unknown> = { where: prismaWhere };
+    const prismaOptions: Prisma.UserFindManyArgs = { where: prismaWhere };
 
     if (options?.page && options?.limit) {
       const skip = (options.page - 1) * options.limit;
@@ -60,30 +72,30 @@ export class UserService {
       prismaOptions.orderBy = { joined_at: 'desc' as const };
     }
 
-    return this.prisma.user.findMany(prismaOptions as any);
+    return this.prisma.user.findMany(prismaOptions);
   }
 
-  async count(where?: any): Promise<number> {
-    const prismaWhere: Record<string, unknown> = {};
+  async count(where?: Prisma.UserWhereInput): Promise<number> {
+    const prismaWhere: Prisma.UserWhereInput = {};
     if (where) {
       if (Array.isArray(where)) {
-        const orConditions = where.map((w: any) => {
-          const condition: Record<string, unknown> = {};
+        const orConditions = where.map((w: WhereCondition) => {
+          const condition: WhereCondition = {};
           for (const [key, value] of Object.entries(w)) {
             if (
               value &&
               typeof value === 'object' &&
               'constructor' in value &&
-              value.constructor.name === 'Like'
+              (value as LikeObject).constructor?.name === 'Like'
             ) {
-              condition[key] = (value as any).parameter;
+              condition[key] = (value as LikeObject).parameter;
             } else {
               condition[key] = value;
             }
           }
           return condition;
         });
-        prismaWhere.OR = orConditions;
+        prismaWhere.OR = orConditions as Prisma.UserWhereInput['OR'];
       } else {
         Object.assign(prismaWhere, where);
       }
@@ -132,16 +144,16 @@ export class UserService {
     });
   }
 
-  async create(userData: Partial<User>): Promise<User> {
+  async create(userData: Prisma.UserCreateInput): Promise<User> {
     return this.prisma.user.create({
-      data: userData as any,
+      data: userData,
     });
   }
 
-  async update(id: string, userData: Partial<User>): Promise<User> {
+  async update(id: string, userData: Prisma.UserUpdateInput): Promise<User> {
     return this.prisma.user.update({
       where: { id },
-      data: userData as any,
+      data: userData,
     });
   }
 

@@ -3,10 +3,15 @@ import { BookmarkService } from './bookmark.service';
 import { PrismaService } from '../prisma.service';
 import { ForbiddenException } from '@nestjs/common';
 import { BookmarkType } from '@prisma/client';
+import { BookmarkFolderService } from './services/bookmark-folder.service';
+import { BookmarkCrudService } from './services/bookmark-crud.service';
+import { BookmarkQueryService } from './services/bookmark-query.service';
 
 describe('BookmarkService', () => {
   let service: BookmarkService;
-  let prisma: jest.Mocked<PrismaService>;
+  let folderService: jest.Mocked<BookmarkFolderService>;
+  let crudService: jest.Mocked<BookmarkCrudService>;
+  let queryService: jest.Mocked<BookmarkQueryService>;
 
   const mockFolder = {
     id: 'folder-123',
@@ -15,21 +20,11 @@ describe('BookmarkService', () => {
     description: null,
     icon: null,
     color: null,
-    is_default: true,
-    sort_order: 0,
-    created_at: new Date(),
-    updated_at: new Date(),
-    _count: { bookmarks: 2 },
-  };
-
-  const mockBookmark = {
-    id: 'bookmark-123',
-    folder_id: 'folder-123',
-    target_type: BookmarkType.FORUM_POST,
-    target_id: 'post-123',
-    note: null,
-    sort_order: 0,
-    created_at: new Date(),
+    isDefault: true,
+    itemCount: 2,
+    sortOrder: 0,
+    createdAt: new Date(),
+    updatedAt: new Date(),
   };
 
   beforeEach(async () => {
@@ -38,47 +33,49 @@ describe('BookmarkService', () => {
         BookmarkService,
         {
           provide: PrismaService,
+          useValue: {},
+        },
+        {
+          provide: BookmarkFolderService,
           useValue: {
-            bookmarkFolder: {
-              findFirst: jest.fn(),
-              findMany: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
-              delete: jest.fn(),
-              aggregate: jest.fn(),
-            },
-            bookmark: {
-              findUnique: jest.fn(),
-              findFirst: jest.fn(),
-              findMany: jest.fn(),
-              create: jest.fn(),
-              upsert: jest.fn(),
-              update: jest.fn(),
-              delete: jest.fn(),
-              deleteMany: jest.fn(),
-              groupBy: jest.fn(),
-              count: jest.fn(),
-            },
-            forumPost: {
-              findMany: jest.fn(),
-            },
-            problem: {
-              findMany: jest.fn(),
-            },
-            problemList: {
-              findMany: jest.fn(),
-            },
-            solution: {
-              findMany: jest.fn(),
-            },
-            $transaction: jest.fn((callback) => callback({})),
+            ensureDefaultFolder: jest.fn(),
+            getUserFolders: jest.fn(),
+            getFolderWithBookmarks: jest.fn(),
+            createFolder: jest.fn(),
+            updateFolder: jest.fn(),
+            deleteFolder: jest.fn(),
+            reorderFolders: jest.fn(),
+            validateFolderOwnership: jest.fn(),
+          },
+        },
+        {
+          provide: BookmarkCrudService,
+          useValue: {
+            quickFavorite: jest.fn(),
+            isInDefaultFolder: jest.fn(),
+            addBookmark: jest.fn(),
+            removeBookmark: jest.fn(),
+            removeBookmarkByTarget: jest.fn(),
+            updateBookmark: jest.fn(),
+          },
+        },
+        {
+          provide: BookmarkQueryService,
+          useValue: {
+            getFolderWithHydratedItems: jest.fn(),
+            getBookmarkFolders: jest.fn(),
+            getBookmarkStatusBatch: jest.fn(),
+            getFavoriteCount: jest.fn(),
+            getFavoriteCountsBatch: jest.fn(),
           },
         },
       ],
     }).compile();
 
     service = module.get<BookmarkService>(BookmarkService);
-    prisma = module.get(PrismaService);
+    folderService = module.get(BookmarkFolderService);
+    crudService = module.get(BookmarkCrudService);
+    queryService = module.get(BookmarkQueryService);
   });
 
   it('should be defined', () => {
@@ -87,10 +84,10 @@ describe('BookmarkService', () => {
 
   describe('ensureDefaultFolder', () => {
     it('should return existing default folder', async () => {
-      (prisma.bookmarkFolder.findFirst as jest.Mock).mockResolvedValue({
+      folderService.ensureDefaultFolder.mockResolvedValue({
         id: 'folder-123',
         name: 'Favorites',
-      } as never);
+      });
 
       const result = await service.ensureDefaultFolder('user-123');
 
@@ -98,34 +95,20 @@ describe('BookmarkService', () => {
     });
 
     it('should create default folder if not exists', async () => {
-      (prisma.bookmarkFolder.findFirst as jest.Mock).mockResolvedValue(null);
-      (prisma.bookmarkFolder.create as jest.Mock).mockResolvedValue({
+      folderService.ensureDefaultFolder.mockResolvedValue({
         id: 'folder-123',
         name: 'Favorites',
-      } as never);
+      });
 
       const result = await service.ensureDefaultFolder('user-123');
 
       expect(result).toEqual({ id: 'folder-123', name: 'Favorites' });
-      expect(prisma.bookmarkFolder.create).toHaveBeenCalled();
     });
   });
 
   describe('quickFavorite', () => {
     it('should add item to favorites if not exists', async () => {
-      const mockTx = {
-        bookmarkFolder: {
-          findFirst: jest.fn().mockResolvedValue(mockFolder),
-        },
-        bookmark: {
-          findUnique: jest.fn().mockResolvedValue(null),
-          create: jest.fn().mockResolvedValue(mockBookmark),
-        },
-      };
-
-      (prisma.$transaction as jest.Mock).mockImplementation((callback) =>
-        callback(mockTx as never),
-      );
+      crudService.quickFavorite.mockResolvedValue(true);
 
       const result = await service.quickFavorite(
         'user-123',
@@ -137,19 +120,7 @@ describe('BookmarkService', () => {
     });
 
     it('should remove item from favorites if exists', async () => {
-      const mockTx = {
-        bookmarkFolder: {
-          findFirst: jest.fn().mockResolvedValue(mockFolder),
-        },
-        bookmark: {
-          findUnique: jest.fn().mockResolvedValue(mockBookmark),
-          delete: jest.fn().mockResolvedValue({}),
-        },
-      };
-
-      (prisma.$transaction as jest.Mock).mockImplementation((callback) =>
-        callback(mockTx as never),
-      );
+      crudService.quickFavorite.mockResolvedValue(false);
 
       const result = await service.quickFavorite(
         'user-123',
@@ -163,9 +134,7 @@ describe('BookmarkService', () => {
 
   describe('getUserFolders', () => {
     it('should return all user folders', async () => {
-      (prisma.bookmarkFolder.findMany as jest.Mock).mockResolvedValue([
-        mockFolder,
-      ] as never);
+      folderService.getUserFolders.mockResolvedValue([mockFolder]);
 
       const result = await service.getUserFolders('user-123');
 
@@ -176,12 +145,7 @@ describe('BookmarkService', () => {
 
   describe('createFolder', () => {
     it('should create a new folder', async () => {
-      (prisma.bookmarkFolder.aggregate as jest.Mock).mockResolvedValue({
-        _max: { sort_order: 0 },
-      } as never);
-      (prisma.bookmarkFolder.create as jest.Mock).mockResolvedValue(
-        mockFolder as never,
-      );
+      folderService.createFolder.mockResolvedValue(mockFolder);
 
       const result = await service.createFolder('user-123', {
         name: 'My Folder',
@@ -190,32 +154,25 @@ describe('BookmarkService', () => {
 
       expect(result).toBeDefined();
       expect(result.name).toBe('Favorites');
-      expect(prisma.bookmarkFolder.create).toHaveBeenCalled();
     });
   });
 
   describe('deleteFolder', () => {
     it('should delete a folder', async () => {
-      (prisma.bookmarkFolder.findFirst as jest.Mock).mockResolvedValue({
-        ...mockFolder,
-        is_default: false,
-      } as never);
-      (prisma.bookmarkFolder.delete as jest.Mock).mockResolvedValue(
-        {} as never,
-      );
+      folderService.deleteFolder.mockResolvedValue(undefined);
 
       await service.deleteFolder('user-123', 'folder-123');
 
-      expect(prisma.bookmarkFolder.delete).toHaveBeenCalledWith({
-        where: { id: 'folder-123' },
-      });
+      expect(folderService.deleteFolder).toHaveBeenCalledWith(
+        'user-123',
+        'folder-123',
+      );
     });
 
     it('should throw error when deleting default folder', async () => {
-      (prisma.bookmarkFolder.findFirst as jest.Mock).mockResolvedValue({
-        ...mockFolder,
-        is_default: true,
-      } as never);
+      folderService.deleteFolder.mockRejectedValue(
+        new ForbiddenException('Cannot delete the default folder'),
+      );
 
       await expect(
         service.deleteFolder('user-123', 'folder-123'),
@@ -225,7 +182,7 @@ describe('BookmarkService', () => {
 
   describe('getFavoriteCount', () => {
     it('should return favorite count', async () => {
-      (prisma.bookmark.count as jest.Mock).mockResolvedValue(5);
+      queryService.getFavoriteCount.mockResolvedValue(5);
 
       const result = await service.getFavoriteCount(
         BookmarkType.FORUM_POST,
@@ -238,10 +195,11 @@ describe('BookmarkService', () => {
 
   describe('getFavoriteCountsBatch', () => {
     it('should return favorite counts for multiple items', async () => {
-      (prisma.bookmark.groupBy as jest.Mock).mockResolvedValue([
-        { target_id: 'post-1', _count: { target_id: 5 } },
-        { target_id: 'post-2', _count: { target_id: 3 } },
-      ] as never);
+      const mockCounts = new Map([
+        ['post-1', 5],
+        ['post-2', 3],
+      ]);
+      queryService.getFavoriteCountsBatch.mockResolvedValue(mockCounts);
 
       const result = await service.getFavoriteCountsBatch(
         BookmarkType.FORUM_POST,

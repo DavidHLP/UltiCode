@@ -12,6 +12,9 @@ import { JudgeService } from './judge.service';
 import { JudgeProcessor } from './judge.processor';
 import { ContestModule } from '../contest/contest.module';
 import { NotificationModule } from '../notification/notification.module';
+import { SubmissionCrudService } from './services/submission-crud.service';
+import { SubmissionQueryService } from './services/submission-query.service';
+import { SubmissionExecutionService } from './services/submission-execution.service';
 
 @Module({
   imports: [
@@ -27,11 +30,14 @@ import { NotificationModule } from '../notification/notification.module';
     ContestSubmissionController,
   ],
   providers: [
-    SubmissionService,
-    ContestSubmissionService,
     PrismaService,
     JudgeService,
     JudgeProcessor,
+    SubmissionCrudService,
+    SubmissionQueryService,
+    SubmissionExecutionService,
+    SubmissionService,
+    ContestSubmissionService,
   ],
   exports: [SubmissionService, ContestSubmissionService],
 })

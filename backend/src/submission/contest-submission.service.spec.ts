@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { ContestSubmissionService } from './contest-submission.service';
 import { PrismaService } from '../prisma.service';
 import { SubmissionService } from './submission.service';
+import { SubmissionQueryService } from './services/submission-query.service';
 import { RankingService } from '../contest/ranking.service';
 
 describe('ContestSubmissionService', () => {
@@ -99,6 +100,11 @@ describe('ContestSubmissionService', () => {
           provide: SubmissionService,
           useValue: {
             create: jest.fn(),
+          },
+        },
+        {
+          provide: SubmissionQueryService,
+          useValue: {
             decorateSubmission: jest.fn().mockImplementation((sub) => sub),
           },
         },

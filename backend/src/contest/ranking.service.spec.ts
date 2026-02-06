@@ -1,10 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { RankingService } from './ranking.service';
 import { PrismaService } from '../prisma.service';
+import { RankingHelperService } from './services/ranking-helper.service';
+import { GlobalRankingQueryService } from './services/global-ranking-query.service';
+import { ContestRankingCalcService } from './services/contest-ranking-calc.service';
+import { ContestRankingQueryService } from './services/contest-ranking-query.service';
 
 describe('RankingService', () => {
   let service: RankingService;
-  let prisma: jest.Mocked<PrismaService>;
+  let globalRankingQuery: jest.Mocked<GlobalRankingQueryService>;
+  let contestRankingCalc: jest.Mocked<ContestRankingCalcService>;
+  let contestRankingQuery: jest.Mocked<ContestRankingQueryService>;
 
   const mockContest = {
     id: 'contest-123',
@@ -62,11 +68,60 @@ describe('RankingService', () => {
             $transaction: jest.fn((callback) => callback({})),
           },
         },
+        {
+          provide: RankingHelperService,
+          useValue: {
+            getContestConfig: jest.fn().mockResolvedValue({
+              penaltyPerWrong: 300,
+              scoringMode: 'SCORE' as const,
+              tieBreaker: 'LAST_SOLVE_TIME' as const,
+            }),
+            getFinishTime: jest.fn().mockReturnValue(null),
+            getTieBreakerValue: jest.fn().mockReturnValue(100),
+            isSameRank: jest.fn().mockReturnValue(false),
+          },
+        },
+        {
+          provide: GlobalRankingQueryService,
+          useValue: {
+            getGlobalRanking: jest.fn().mockResolvedValue({
+              items: [],
+              total: 0,
+              page: 1,
+              limit: 50,
+              totalPages: 0,
+            }),
+          },
+        },
+        {
+          provide: ContestRankingCalcService,
+          useValue: {
+            updateContestProblemResult: jest.fn().mockResolvedValue(undefined),
+            finalizeVirtualRanking: jest.fn().mockResolvedValue(undefined),
+            finalizeContestRanking: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ContestRankingQueryService,
+          useValue: {
+            getContestRanking: jest.fn().mockResolvedValue({
+              items: [],
+              total: 0,
+              page: 1,
+              limit: 50,
+              totalPages: 0,
+            }),
+            getLiveRanking: jest.fn().mockResolvedValue([]),
+            getUserContestHistory: jest.fn().mockResolvedValue([]),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<RankingService>(RankingService);
-    prisma = module.get(PrismaService);
+    globalRankingQuery = module.get(GlobalRankingQueryService);
+    contestRankingCalc = module.get(ContestRankingCalcService);
+    contestRankingQuery = module.get(ContestRankingQueryService);
   });
 
   it('should be defined', () => {
@@ -74,102 +129,183 @@ describe('RankingService', () => {
   });
 
   describe('getContestRanking', () => {
-    it('should return paginated contest rankings', async () => {
-      const mockRankings = [
-        {
-          id: 'rank-1',
-          rank: 1,
-          user_id: 'user-1',
-          total_score: 100,
-          total_penalty: 0,
-          solved_count: 3,
-          rating_before: 1500,
-          rating_after: 1550,
-          rating_change: 50,
-          is_virtual: false,
-          user: {
-            id: 'user-1',
+    it('should delegate to ContestRankingQueryService', async () => {
+      const mockResult = {
+        items: [
+          {
+            rank: 1,
+            userId: 'user-1',
             username: 'testuser',
             avatar: 'avatar.png',
+            totalScore: 100,
+            totalPenalty: 0,
+            finishTime: null,
+            totalAttempts: 0,
+            solvedCount: 3,
+            ratingBefore: 1500,
+            ratingAfter: 1550,
+            ratingChange: 50,
+            isVirtual: false,
+            problemResults: [],
           },
-          problemResults: [],
-        },
-      ];
+        ],
+        total: 1,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+      };
 
-      (prisma.contestRanking.findMany as jest.Mock).mockResolvedValue(
-        mockRankings as never,
+      (contestRankingQuery.getContestRanking as jest.Mock).mockResolvedValue(
+        mockResult,
       );
-      (prisma.contestRanking.count as jest.Mock).mockResolvedValue(1);
 
       const result = await service.getContestRanking('contest-123', {});
 
-      expect(result).toHaveProperty('items');
-      expect(result).toHaveProperty('total');
-      expect(result.items).toHaveLength(1);
+      expect(contestRankingQuery.getContestRanking).toHaveBeenCalledWith(
+        'contest-123',
+        {},
+      );
+      expect(result).toEqual(mockResult);
     });
   });
 
   describe('getGlobalRanking', () => {
-    it('should return paginated global rankings', async () => {
-      const mockRankings = [
-        {
-          global_rank: 1,
-          user_id: 'user-1',
-          username: 'testuser',
-          avatar: 'avatar.png',
-          country: 'US',
-          rating: 2500,
-          max_rating: 2600,
-          rating_title: 'GRANDMASTER',
-          max_rating_title: 'INTERNATIONAL_GRANDMASTER',
-          contests_attended: 50,
-          badge: null,
-        },
-      ];
+    it('should delegate to GlobalRankingQueryService', async () => {
+      const mockResult = {
+        items: [
+          {
+            rank: 1,
+            userId: 'user-1',
+            username: 'testuser',
+            avatar: 'avatar.png',
+            country: 'US',
+            rating: 2500,
+            maxRating: 2600,
+            ratingTitle: 'GRANDMASTER',
+            maxRatingTitle: 'INTERNATIONAL_GRANDMASTER',
+            contestsAttended: 50,
+            badge: null,
+          },
+        ],
+        total: 1,
+        page: 1,
+        limit: 50,
+        totalPages: 1,
+      };
 
-      (prisma.globalRanking.findMany as jest.Mock).mockResolvedValue(
-        mockRankings as never,
+      (globalRankingQuery.getGlobalRanking as jest.Mock).mockResolvedValue(
+        mockResult,
       );
-      (prisma.globalRanking.count as jest.Mock).mockResolvedValue(1);
 
       const result = await service.getGlobalRanking({});
 
-      expect(result).toHaveProperty('items');
-      expect(result).toHaveProperty('total');
-      expect(result.items).toHaveLength(1);
+      expect(globalRankingQuery.getGlobalRanking).toHaveBeenCalledWith({});
+      expect(result).toEqual(mockResult);
     });
   });
 
   describe('getUserContestHistory', () => {
-    it('should return user contest history', async () => {
-      const mockRankings = [
+    it('should delegate to ContestRankingQueryService', async () => {
+      const mockResult = [
         {
-          contest_id: 'contest-1',
+          contestId: 'contest-1',
+          contestTitle: 'Weekly Contest 1',
+          contestDate: new Date('2026-01-01'),
           rank: 5,
-          total_score: 80,
-          solved_count: 2,
-          rating_before: 1500,
-          rating_after: 1550,
-          rating_change: 50,
-          is_virtual: false,
-          contest: {
-            title: 'Weekly Contest 1',
-            start_time: new Date('2026-01-01'),
-            _count: {
-              rankings: 100,
-            },
-          },
+          totalParticipants: 100,
+          score: 80,
+          solvedCount: 2,
+          ratingBefore: 1500,
+          ratingAfter: 1550,
+          ratingChange: 50,
+          isVirtual: false,
         },
       ];
 
-      (prisma.contestRanking.findMany as jest.Mock).mockResolvedValue(
-        mockRankings as never,
-      );
+      (
+        contestRankingQuery.getUserContestHistory as jest.Mock
+      ).mockResolvedValue(mockResult);
 
       const result = await service.getUserContestHistory('user-123');
 
-      expect(result).toHaveLength(1);
-      expect(result[0].contestTitle).toBe('Weekly Contest 1');
+      expect(contestRankingQuery.getUserContestHistory).toHaveBeenCalledWith(
+        'user-123',
+      );
+      expect(result).toEqual(mockResult);
+    });
+  });
+
+  describe('updateContestProblemResult', () => {
+    it('should delegate to ContestRankingCalcService', async () => {
+      await service.updateContestProblemResult(
+        'participant-1',
+        'problem-1',
+        true,
+        100,
+        10,
+      );
+
+      expect(
+        contestRankingCalc.updateContestProblemResult,
+      ).toHaveBeenCalledWith(
+        'participant-1',
+        'problem-1',
+        true,
+        100,
+        10,
+        undefined,
+      );
+    });
+  });
+
+  describe('finalizeVirtualRanking', () => {
+    it('should delegate to ContestRankingCalcService', async () => {
+      await service.finalizeVirtualRanking('participant-1');
+
+      expect(contestRankingCalc.finalizeVirtualRanking).toHaveBeenCalledWith(
+        'participant-1',
+      );
+    });
+  });
+
+  describe('finalizeContestRanking', () => {
+    it('should delegate to ContestRankingCalcService', async () => {
+      await service.finalizeContestRanking('contest-1');
+
+      expect(contestRankingCalc.finalizeContestRanking).toHaveBeenCalledWith(
+        'contest-1',
+      );
+    });
+  });
+
+  describe('getLiveRanking', () => {
+    it('should delegate to ContestRankingQueryService', async () => {
+      const mockResult = [
+        {
+          rank: 1,
+          userId: 'user-1',
+          username: 'testuser',
+          avatar: 'avatar.png',
+          totalScore: 100,
+          totalPenalty: 0,
+          finishTime: null,
+          totalAttempts: 0,
+          solvedCount: 3,
+          problemResults: [],
+        },
+      ];
+
+      (contestRankingQuery.getLiveRanking as jest.Mock).mockResolvedValue(
+        mockResult,
+      );
+
+      const result = await service.getLiveRanking('contest-1', 50);
+
+      expect(contestRankingQuery.getLiveRanking).toHaveBeenCalledWith(
+        'contest-1',
+        50,
+      );
+      expect(result).toEqual(mockResult);
     });
   });
 });

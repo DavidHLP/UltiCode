@@ -19,7 +19,7 @@ import {
   ContestRankingQueryDto,
   GlobalRankingQueryDto,
 } from './dto';
-import type { ContestStats } from './contest.service';
+import type { ContestStats } from './services/contest-query.service';
 import { Locale } from '../i18n/i18n.decorator';
 import type { SupportedLocale } from '../i18n/i18n.constants';
 

@@ -2,16 +2,18 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SubmissionService } from './submission.service';
 import { PrismaService } from '../prisma.service';
 import { JudgeService } from './judge.service';
-import { Queue } from 'bullmq';
 import { I18nService } from '../i18n/i18n.service';
 import { NotFoundException } from '@nestjs/common';
 import { getQueueToken } from '@nestjs/bullmq';
+import { SubmissionCrudService } from './services/submission-crud.service';
+import { SubmissionQueryService } from './services/submission-query.service';
+import { SubmissionExecutionService } from './services/submission-execution.service';
 
 describe('SubmissionService', () => {
   let service: SubmissionService;
-  let prisma: jest.Mocked<PrismaService>;
-  let _judgeService: jest.Mocked<JudgeService>;
-  let judgeQueue: jest.Mocked<Queue>;
+  let crudService: jest.Mocked<SubmissionCrudService>;
+  let queryService: jest.Mocked<SubmissionQueryService>;
+  let executionService: jest.Mocked<SubmissionExecutionService>;
 
   const mockSubmission = {
     id: 'sub-123',
@@ -24,16 +26,6 @@ describe('SubmissionService', () => {
     memory: 50,
     test_details: null,
     created_at: new Date(),
-    user: {
-      id: 'user-123',
-      username: 'testuser',
-      avatar: 'avatar.png',
-    },
-    problem: {
-      id: 1,
-      title: 'Two Sum',
-      slug: 'two-sum',
-    },
   };
 
   beforeEach(async () => {
@@ -42,21 +34,7 @@ describe('SubmissionService', () => {
         SubmissionService,
         {
           provide: PrismaService,
-          useValue: {
-            submission: {
-              findMany: jest.fn(),
-              findFirst: jest.fn(),
-              findUnique: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
-            },
-            submissionStatus: {
-              findMany: jest.fn(),
-            },
-            problemExample: {
-              findMany: jest.fn(),
-            },
-          },
+          useValue: {},
         },
         {
           provide: JudgeService,
@@ -77,13 +55,46 @@ describe('SubmissionService', () => {
             applyTranslations: jest.fn().mockImplementation((obj) => obj),
           },
         },
+        {
+          provide: SubmissionCrudService,
+          useValue: {
+            create: jest.fn().mockResolvedValue(mockSubmission as any),
+            updateSubmissionAfterJudging: jest
+              .fn()
+              .mockResolvedValue(mockSubmission as any),
+          },
+        },
+        {
+          provide: SubmissionQueryService,
+          useValue: {
+            findAll: jest.fn().mockResolvedValue([mockSubmission as any]),
+            findBest: jest.fn().mockResolvedValue(mockSubmission as any),
+            findOne: jest.fn().mockResolvedValue(mockSubmission as any),
+            getProblemStatusMap: jest.fn().mockResolvedValue(new Map()),
+            getDailyActivity: jest.fn().mockResolvedValue([]),
+            getStatusDefinitions: jest.fn().mockResolvedValue([]),
+            getLatestRunResult: jest.fn().mockResolvedValue(null),
+            decorateSubmission: jest.fn().mockReturnValue(mockSubmission),
+          },
+        },
+        {
+          provide: SubmissionExecutionService,
+          useValue: {
+            run: jest.fn().mockResolvedValue({
+              id: 'run-123',
+              cases: [],
+              passed_cases: 0,
+              total_cases: 0,
+            } as any),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<SubmissionService>(SubmissionService);
-    prisma = module.get(PrismaService);
-    _judgeService = module.get(JudgeService);
-    judgeQueue = module.get(getQueueToken('judge_queue'));
+    crudService = module.get(SubmissionCrudService);
+    queryService = module.get(SubmissionQueryService);
+    executionService = module.get(SubmissionExecutionService);
   });
 
   it('should be defined', () => {
@@ -92,34 +103,74 @@ describe('SubmissionService', () => {
 
   describe('findAll', () => {
     it('should return array of submissions', async () => {
-      (prisma.submission.findMany as jest.Mock).mockResolvedValue([
-        mockSubmission,
-      ] as never);
+      queryService.findAll.mockResolvedValue([mockSubmission] as any);
 
       const result = await service.findAll();
 
       expect(result).toHaveLength(1);
-      expect(prisma.submission.findMany).toHaveBeenCalled();
+      expect(queryService.findAll).toHaveBeenCalled();
+    });
+  });
+
+  describe('findBest', () => {
+    it('should return best submission', async () => {
+      queryService.findBest.mockResolvedValue(mockSubmission as any);
+
+      const result = await service.findBest(1, 'user-123');
+
+      expect(result).toBeDefined();
+      expect(queryService.findBest).toHaveBeenCalledWith(1, 'user-123');
+    });
+  });
+
+  describe('getProblemStatusMap', () => {
+    it('should return problem status map', async () => {
+      const mockMap = new Map([
+        [1, { status: 'solved' as const, completed_time: new Date() }],
+      ]);
+      queryService.getProblemStatusMap.mockResolvedValue(mockMap as any);
+
+      const result = await service.getProblemStatusMap('user-123');
+
+      expect(result).toBeInstanceOf(Map);
+      expect(result.has(1)).toBe(true);
+    });
+  });
+
+  describe('getDailyActivity', () => {
+    it('should return daily activity', async () => {
+      queryService.getDailyActivity.mockResolvedValue(['2026-01-01']);
+
+      const result = await service.getDailyActivity('user-123', 2026);
+
+      expect(result).toEqual(['2026-01-01']);
+    });
+  });
+
+  describe('getStatusDefinitions', () => {
+    it('should return status definitions', async () => {
+      queryService.getStatusDefinitions.mockResolvedValue([] as any);
+
+      const result = await service.getStatusDefinitions();
+
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 
   describe('findOne', () => {
     it('should return a submission by id', async () => {
-      (prisma.submission.findUnique as jest.Mock).mockResolvedValue(
-        mockSubmission as never,
-      );
+      queryService.findOne.mockResolvedValue(mockSubmission as any);
 
       const result = await service.findOne('sub-123');
 
       expect(result).toBeDefined();
-      expect(prisma.submission.findUnique).toHaveBeenCalledWith({
-        where: { id: 'sub-123' },
-        include: expect.any(Object),
-      });
+      expect(queryService.findOne).toHaveBeenCalledWith('sub-123', undefined);
     });
 
     it('should throw NotFoundException for non-existent submission', async () => {
-      (prisma.submission.findUnique as jest.Mock).mockResolvedValue(null);
+      queryService.findOne.mockRejectedValue(
+        new NotFoundException('Submission not found'),
+      );
 
       await expect(service.findOne('non-existent')).rejects.toThrow(
         NotFoundException,
@@ -127,39 +178,35 @@ describe('SubmissionService', () => {
     });
   });
 
-  describe('getProblemStatusMap', () => {
-    it('should return problem status map', async () => {
-      const mockSubmissions = [
-        {
-          problem_id: BigInt(1),
-          status: 'Accepted',
-          created_at: new Date(),
-        },
-        {
-          problem_id: BigInt(2),
-          status: 'Wrong Answer',
-          created_at: new Date(),
-        },
-      ];
+  describe('getLatestRunResult', () => {
+    it('should return latest run result', async () => {
+      queryService.getLatestRunResult.mockResolvedValue({
+        id: 'run-123',
+        submissionId: 'sub-123',
+        problemId: 1,
+        userId: 'user-123',
+        verdict: 'Accepted',
+        runtime: '100 ms',
+        memory: '50 MB',
+        cases: [],
+        passed_cases: 0,
+        total_cases: 0,
+        error_message: null,
+      } as any);
 
-      (prisma.submission.findMany as jest.Mock).mockResolvedValue(
-        mockSubmissions as never,
+      const result = await service.getLatestRunResult(1, 'user-123');
+
+      expect(result).toBeDefined();
+      expect(queryService.getLatestRunResult).toHaveBeenCalledWith(
+        1,
+        'user-123',
       );
-
-      const result = await service.getProblemStatusMap('user-123');
-
-      expect(result).toBeInstanceOf(Map);
-      expect(result.has(1)).toBe(true);
-      expect(result.get(1)?.status).toBe('solved');
     });
   });
 
   describe('create', () => {
-    it('should create a new submission and add to queue', async () => {
-      (prisma.submission.create as jest.Mock).mockResolvedValue(
-        mockSubmission as never,
-      );
-      judgeQueue.add.mockResolvedValue('job' as never);
+    it('should create a new submission', async () => {
+      crudService.create.mockResolvedValue(mockSubmission as any);
 
       const result = await service.create('user-123', 1, {
         language: 'javascript',
@@ -167,18 +214,56 @@ describe('SubmissionService', () => {
       });
 
       expect(result).toBeDefined();
-      expect(prisma.submission.create).toHaveBeenCalled();
-      expect(judgeQueue.add).toHaveBeenCalled();
+      expect(crudService.create).toHaveBeenCalledWith('user-123', 1, {
+        language: 'javascript',
+        code: 'function test() {}',
+      });
     });
   });
 
-  describe('getStatusDefinitions', () => {
-    it('should return status definitions', async () => {
-      (prisma.submissionStatus.findMany as jest.Mock).mockResolvedValue([]);
+  describe('updateSubmissionAfterJudging', () => {
+    it('should update submission after judging', async () => {
+      const updatedSubmission = { ...mockSubmission, status: 'Accepted' };
+      crudService.updateSubmissionAfterJudging.mockResolvedValue(
+        updatedSubmission as any,
+      );
+      queryService.decorateSubmission.mockReturnValue(updatedSubmission as any);
 
-      const result = await service.getStatusDefinitions();
+      const result = await service.updateSubmissionAfterJudging('sub-123', {
+        verdict: 'Accepted',
+        runtime: 100,
+        memory: 50,
+        cases: [],
+      });
 
-      expect(Array.isArray(result)).toBe(true);
+      expect(result).toBeDefined();
+      expect(crudService.updateSubmissionAfterJudging).toHaveBeenCalled();
+    });
+  });
+
+  describe('run', () => {
+    it('should run code', async () => {
+      executionService.run.mockResolvedValue({
+        id: 'run-123',
+        submissionId: 'run-123',
+        problemId: 1,
+        userId: 'user-123',
+        verdict: 'Accepted',
+        runtime: '100 ms',
+        memory: '50 MB',
+        cases: [],
+        passed_cases: 0,
+        total_cases: 0,
+        error_message: null,
+      } as any);
+
+      const result = await service.run(1, {
+        language: 'javascript',
+        code: 'function test() {}',
+      });
+
+      expect(result).toBeDefined();
+      expect(executionService.run).toHaveBeenCalled();
     });
   });
 });

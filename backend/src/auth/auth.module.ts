@@ -19,12 +19,12 @@ import { PrismaService } from '../prisma.service';
 import { CsrfService } from './csrf.service';
 import { CsrfGuard } from './csrf.guard';
 import { RefreshTokenService } from './refresh-token.service';
+import { PasswordService } from './services/password.service';
+import { TokenService } from './services/token.service';
+import { CookieService } from './services/cookie.service';
+import { OAuthService } from './services/oauth.service';
 import Redis from 'ioredis';
 
-/**
- * Redis connection holder for cleanup on module destroy
- * This ensures the Redis connection is properly closed when the module is destroyed
- */
 @Injectable()
 class RedisConnectionHolder implements OnModuleDestroy {
   private readonly logger = new Logger(RedisConnectionHolder.name);
@@ -53,7 +53,6 @@ class RedisConnectionHolder implements OnModuleDestroy {
       },
     });
 
-    // Log connection events
     this.connection.on('connect', () => {
       this.logger.log(`[REDIS_CONNECT] Connection established`);
     });
@@ -105,19 +104,23 @@ class RedisConnectionHolder implements OnModuleDestroy {
     }),
   ],
   providers: [
-    AuthService,
-    AuthGuard,
-    TokenBlacklistService,
-    CsrfService,
-    CsrfGuard,
-    RefreshTokenService,
-    PrismaService,
     RedisConnectionHolder,
+    PrismaService,
     {
       provide: REDIS_CONNECTION,
       useFactory: (holder: RedisConnectionHolder) => holder.connection,
       inject: [RedisConnectionHolder],
     },
+    PasswordService,
+    TokenService,
+    CookieService,
+    OAuthService,
+    TokenBlacklistService,
+    CsrfService,
+    CsrfGuard,
+    RefreshTokenService,
+    AuthGuard,
+    AuthService,
   ],
   controllers: [AuthController],
   exports: [

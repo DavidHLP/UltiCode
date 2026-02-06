@@ -12,11 +12,8 @@ import { ContestAdminService } from './services/contest-admin.service';
 
 describe('ContestService', () => {
   let service: ContestService;
-  let prisma: jest.Mocked<PrismaService>;
-  let timingService: jest.Mocked<ContestTimingService>;
   let queryService: jest.Mocked<ContestQueryService>;
   let participationService: jest.Mocked<ContestParticipationService>;
-  let virtualService: jest.Mocked<ContestVirtualService>;
   let adminService: jest.Mocked<ContestAdminService>;
 
   const mockContest = {
@@ -90,7 +87,9 @@ describe('ContestService', () => {
         {
           provide: ContestTimingService,
           useValue: {
-            withTimingFields: jest.fn().mockImplementation((contest) => contest),
+            withTimingFields: jest
+              .fn()
+              .mockImplementation((contest) => contest),
             applyContestTranslations: jest
               .fn()
               .mockResolvedValue([mockContest] as never),
@@ -162,11 +161,8 @@ describe('ContestService', () => {
     }).compile();
 
     service = module.get<ContestService>(ContestService);
-    prisma = module.get(PrismaService);
-    timingService = module.get(ContestTimingService);
     queryService = module.get(ContestQueryService);
     participationService = module.get(ContestParticipationService);
-    virtualService = module.get(ContestVirtualService);
     adminService = module.get(ContestAdminService);
   });
 

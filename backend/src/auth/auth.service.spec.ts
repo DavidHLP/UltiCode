@@ -7,16 +7,22 @@ import { PrismaService } from '../prisma.service';
 import { TokenBlacklistService } from './token-blacklist.service';
 import { CsrfService } from './csrf.service';
 import { RefreshTokenService } from './refresh-token.service';
+import { PasswordService } from './services/password.service';
+import { TokenService } from './services/token.service';
+import { CookieService } from './services/cookie.service';
+import { OAuthService } from './services/oauth.service';
 import { RegisterDto } from './dto/register.dto';
 import { UserRole } from '../user/user.service';
 
 describe('AuthService', () => {
   let service: AuthService;
   let userService: jest.Mocked<UserService>;
-  let jwtService: jest.Mocked<JwtService>;
-  let tokenBlacklistService: jest.Mocked<TokenBlacklistService>;
+  let passwordService: jest.Mocked<PasswordService>;
+  let tokenService: jest.Mocked<TokenService>;
+  let cookieService: jest.Mocked<CookieService>;
+  let oauthService: jest.Mocked<OAuthService>;
   let refreshTokenService: jest.Mocked<RefreshTokenService>;
-  let prisma: jest.Mocked<PrismaService>;
+  let tokenBlacklistService: jest.Mocked<TokenBlacklistService>;
 
   const mockUser = {
     id: 'user-123',
@@ -107,11 +113,56 @@ describe('AuthService', () => {
           provide: PrismaService,
           useValue: {
             passwordReset: {
-              updateMany: jest.fn().mockResolvedValue({ count: 1 }) as any,
-              create: jest.fn().mockResolvedValue({}) as any,
-              findUnique: jest.fn().mockResolvedValue(null) as any,
-              update: jest.fn().mockResolvedValue({}) as any,
+              updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+              create: jest.fn().mockResolvedValue({}),
+              findUnique: jest.fn().mockResolvedValue(null),
+              update: jest.fn().mockResolvedValue({}),
             },
+          },
+        },
+        {
+          provide: PasswordService,
+          useValue: {
+            hashPassword: jest.fn().mockResolvedValue('hashed'),
+            verifyPassword: jest.fn().mockResolvedValue(true),
+            verifyCredentials: jest.fn().mockResolvedValue(mockUser),
+            forgotPassword: jest.fn().mockResolvedValue({
+              message:
+                'If an account exists with this email, a password reset link will be sent',
+            }),
+            resetPassword: jest.fn().mockResolvedValue({
+              message: 'Password has been reset successfully',
+            }),
+          },
+        },
+        {
+          provide: TokenService,
+          useValue: {
+            generateAccessToken: jest.fn().mockReturnValue('jwt-token'),
+            decodeToken: jest.fn().mockReturnValue({
+              exp: Math.floor(Date.now() / 1000) + 3600,
+              sub: 'user-123',
+            }),
+            getUserIdFromToken: jest.fn().mockReturnValue('user-123'),
+            getTokenExpiry: jest.fn().mockReturnValue(3600),
+            verifyToken: jest.fn().mockReturnValue({
+              exp: Math.floor(Date.now() / 1000) + 3600,
+              sub: 'user-123',
+            }),
+          },
+        },
+        {
+          provide: CookieService,
+          useValue: {
+            setAuthCookies: jest.fn(),
+            clearAuthCookies: jest.fn(),
+          },
+        },
+        {
+          provide: OAuthService,
+          useValue: {
+            githubLogin: jest.fn(),
+            githubCallback: jest.fn().mockResolvedValue(undefined),
           },
         },
       ],
@@ -119,10 +170,12 @@ describe('AuthService', () => {
 
     service = module.get<AuthService>(AuthService);
     userService = module.get(UserService);
-    jwtService = module.get(JwtService);
-    tokenBlacklistService = module.get(TokenBlacklistService);
+    passwordService = module.get(PasswordService);
+    tokenService = module.get(TokenService);
+    cookieService = module.get(CookieService);
+    oauthService = module.get(OAuthService);
     refreshTokenService = module.get(RefreshTokenService);
-    prisma = module.get(PrismaService);
+    tokenBlacklistService = module.get(TokenBlacklistService);
   });
 
   it('should be defined', () => {
@@ -131,9 +184,8 @@ describe('AuthService', () => {
 
   describe('signIn', () => {
     it('should return login response with valid credentials', async () => {
-      userService.findByUsername.mockResolvedValue(mockUser as any);
-      (service as any).verifyPassword = jest.fn().mockResolvedValue(true);
-      jwtService.sign.mockReturnValue('jwt-token');
+      passwordService.verifyCredentials.mockResolvedValue(mockUser);
+      tokenService.generateAccessToken.mockReturnValue('jwt-token');
 
       const res = mockResponse();
       const result = await service.signIn('testuser', 'password123', res);
@@ -145,11 +197,7 @@ describe('AuthService', () => {
         name: mockUser.name,
         role: mockUser.role,
       });
-      expect(res.cookie).toHaveBeenCalledWith(
-        'access_token',
-        'jwt-token',
-        expect.any(Object),
-      );
+      expect(cookieService.setAuthCookies).toHaveBeenCalled();
     });
   });
 
@@ -163,9 +211,9 @@ describe('AuthService', () => {
 
       userService.findByUsername.mockResolvedValue(null);
       userService.findByEmail.mockResolvedValue(null);
-      userService.create.mockResolvedValue(mockUser as any);
-      jwtService.sign.mockReturnValue('jwt-token');
-      (service as any).hashPassword = jest.fn().mockResolvedValue('hashed');
+      userService.create.mockResolvedValue(mockUser);
+      tokenService.generateAccessToken.mockReturnValue('jwt-token');
+      passwordService.hashPassword.mockResolvedValue('hashed');
 
       const res = mockResponse();
       const result = await service.register(registerDto, res);
@@ -183,10 +231,8 @@ describe('AuthService', () => {
   describe('logout', () => {
     it('should add token to blacklist and return success message', async () => {
       const logoutDto = { token: 'valid-jwt-token' };
-      jwtService.decode.mockReturnValue({
-        exp: Math.floor(Date.now() / 1000) + 3600,
-        sub: 'user-123',
-      });
+      tokenService.getTokenExpiry.mockReturnValue(3600);
+      tokenService.getUserIdFromToken.mockReturnValue('user-123');
 
       const res = mockResponse();
       const result = await service.logout(logoutDto, res);
@@ -210,11 +256,11 @@ describe('AuthService', () => {
 
   describe('forgotPassword', () => {
     it('should return message when user exists', async () => {
-      userService.findByEmail.mockResolvedValue(mockUser as any);
-      (prisma.passwordReset.updateMany as jest.Mock).mockResolvedValue({
-        count: 1,
+      userService.findByEmail.mockResolvedValue(mockUser);
+      passwordService.forgotPassword.mockResolvedValue({
+        message:
+          'If an account exists with this email, a password reset link will be sent',
       });
-      (prisma.passwordReset.create as jest.Mock).mockResolvedValue({} as never);
 
       const result = await service.forgotPassword('test@example.com');
 
@@ -224,6 +270,10 @@ describe('AuthService', () => {
 
     it('should return same message when user does not exist', async () => {
       userService.findByEmail.mockResolvedValue(null);
+      passwordService.forgotPassword.mockResolvedValue({
+        message:
+          'If an account exists with this email, a password reset link will be sent',
+      });
 
       const result = await service.forgotPassword('nonexistent@example.com');
 
@@ -239,17 +289,9 @@ describe('AuthService', () => {
         newPassword: 'newPassword123',
       };
 
-      (prisma.passwordReset.findUnique as jest.Mock).mockResolvedValue({
-        id: 'reset-123',
-        user_id: 'user-123',
-        token: 'valid-reset-token',
-        expires_at: new Date(Date.now() + 3600000),
-        used_at: null,
+      passwordService.resetPassword.mockResolvedValue({
+        message: 'Password has been reset successfully',
       });
-
-      userService.update.mockResolvedValue(mockUser as any);
-      (prisma.passwordReset.update as jest.Mock).mockResolvedValue({} as never);
-      (service as any).hashPassword = jest.fn().mockResolvedValue('new-hashed');
 
       const result = await service.resetPassword(resetPasswordDto);
 
@@ -267,36 +309,23 @@ describe('AuthService', () => {
 
       service.githubLogin(res);
 
-      expect(res.redirect).toHaveBeenCalled();
-      const redirectUrl = (res.redirect as jest.Mock).mock.calls[0][0];
-      expect(redirectUrl).toContain('github.com/login/oauth/authorize');
+      expect(oauthService.githubLogin).toHaveBeenCalledWith(res);
     });
   });
 
   describe('githubCallback', () => {
-    it('should create new user and redirect on first GitHub login', async () => {
+    it('should call oauth service', async () => {
       const res = mockResponse();
       res.redirect = jest.fn().mockReturnThis();
 
-      userService.findByEmail.mockResolvedValue(null);
-      userService.create.mockResolvedValue(mockUser as any);
-      jwtService.sign.mockReturnValue('github-jwt-token');
+      oauthService.githubCallback.mockResolvedValue(undefined);
 
       await service.githubCallback('github-code', res);
 
-      expect(res.redirect).toHaveBeenCalled();
-    });
-
-    it('should use existing user and redirect on subsequent GitHub login', async () => {
-      const res = mockResponse();
-      res.redirect = jest.fn().mockReturnThis();
-
-      userService.findByEmail.mockResolvedValue(mockUser as any);
-      jwtService.sign.mockReturnValue('github-jwt-token');
-
-      await service.githubCallback('github-code', res);
-
-      expect(res.redirect).toHaveBeenCalled();
+      expect(oauthService.githubCallback).toHaveBeenCalledWith(
+        'github-code',
+        res,
+      );
     });
   });
 });

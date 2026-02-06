@@ -2,12 +2,15 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { SolutionService } from './solution.service';
 import { PrismaService } from '../prisma.service';
 import { VoteService } from '../vote/vote.service';
-import { BadRequestException } from '@nestjs/common';
+import { SolutionCrudService } from './services/solution-crud.service';
+import { SolutionQueryService } from './services/solution-query.service';
+import { SolutionCommentService } from './services/solution-comment.service';
 
 describe('SolutionService', () => {
   let service: SolutionService;
-  let prisma: jest.Mocked<PrismaService>;
-  let voteService: jest.Mocked<VoteService>;
+  let crudService: jest.Mocked<SolutionCrudService>;
+  let queryService: jest.Mocked<SolutionQueryService>;
+  let commentService: jest.Mocked<SolutionCommentService>;
 
   const mockSolution = {
     id: 'solution-123',
@@ -20,18 +23,6 @@ describe('SolutionService', () => {
     tags: ['algorithms'],
     created_at: new Date(),
     views: 0,
-    author: {
-      id: 'user-123',
-      username: 'testuser',
-      name: 'Test User',
-      avatar: null,
-    },
-    comments: [],
-    problem: {
-      id: BigInt(1),
-      slug: 'two-sum',
-      title: 'Two Sum',
-    },
   };
 
   beforeEach(async () => {
@@ -40,64 +31,58 @@ describe('SolutionService', () => {
         SolutionService,
         {
           provide: PrismaService,
-          useValue: {
-            submission: {
-              findFirst: jest.fn(),
-            },
-            solution: {
-              findMany: jest.fn(),
-              findFirst: jest.fn(),
-              findUnique: jest.fn(),
-              create: jest.fn(),
-              update: jest.fn(),
-              delete: jest.fn(),
-              count: jest.fn(),
-            },
-            solutionComment: {
-              findMany: jest.fn(),
-              create: jest.fn(),
-              findUnique: jest.fn(),
-              update: jest.fn(),
-              delete: jest.fn(),
-            },
-            problem: {
-              update: jest.fn(),
-            },
-            edgeOperation: {
-              deleteMany: jest.fn(),
-            },
-            $transaction: jest.fn((callback) => {
-              const tx = {
-                solution: {
-                  create: jest.fn().mockResolvedValue({}),
-                  update: jest.fn().mockResolvedValue({}),
-                  delete: jest.fn().mockResolvedValue({}),
-                },
-                problem: {
-                  update: jest.fn().mockResolvedValue({}),
-                },
-                edgeOperation: {
-                  deleteMany: jest.fn().mockResolvedValue({}),
-                  create: jest.fn().mockResolvedValue({}),
-                },
-              };
-              return callback(tx as never);
-            }),
-          },
+          useValue: {},
         },
         {
           provide: VoteService,
           useValue: {
             getVoteCountsBatch: jest.fn().mockResolvedValue(new Map()),
             getUserVotesBatch: jest.fn().mockResolvedValue(new Map()),
+            getUserVote: jest.fn().mockResolvedValue(0),
+          },
+        },
+        {
+          provide: SolutionCrudService,
+          useValue: {
+            create: jest.fn().mockResolvedValue(mockSolution as any),
+            update: jest.fn().mockResolvedValue(mockSolution as any),
+            delete: jest.fn().mockResolvedValue({ success: true }),
+          },
+        },
+        {
+          provide: SolutionQueryService,
+          useValue: {
+            findOne: jest.fn().mockResolvedValue(mockSolution as any),
+            findByProblemId: jest.fn().mockResolvedValue({
+              items: [mockSolution],
+              total: 1,
+              sortOptions: [],
+            }),
+            findAllByUser: jest.fn().mockResolvedValue({
+              items: [mockSolution],
+              total: 1,
+              sortOptions: [],
+            }),
+          },
+        },
+        {
+          provide: SolutionCommentService,
+          useValue: {
+            findComments: jest.fn().mockResolvedValue([]),
+            createComment: jest
+              .fn()
+              .mockResolvedValue({ id: 'comment-123' } as any),
+            updateComment: jest.fn().mockResolvedValue({} as any),
+            deleteComment: jest.fn().mockResolvedValue({ success: true }),
           },
         },
       ],
     }).compile();
 
     service = module.get<SolutionService>(SolutionService);
-    prisma = module.get(PrismaService);
-    voteService = module.get(VoteService);
+    crudService = module.get(SolutionCrudService);
+    queryService = module.get(SolutionQueryService);
+    commentService = module.get(SolutionCommentService);
   });
 
   it('should be defined', () => {
@@ -106,29 +91,7 @@ describe('SolutionService', () => {
 
   describe('create', () => {
     it('should create a new solution', async () => {
-      (prisma.submission.findFirst as jest.Mock).mockResolvedValue({
-        status: 'Accepted',
-      } as never);
-      (prisma.solution.findFirst as jest.Mock).mockResolvedValue(null);
-      (prisma.$transaction as jest.Mock).mockImplementation(
-        async (callback) => {
-          const tx = {
-            solution: {
-              create: jest.fn().mockResolvedValue(mockSolution),
-              update: jest.fn().mockResolvedValue({}),
-              delete: jest.fn().mockResolvedValue({}),
-            },
-            problem: {
-              update: jest.fn().mockResolvedValue({}),
-            },
-            edgeOperation: {
-              deleteMany: jest.fn().mockResolvedValue({}),
-              create: jest.fn().mockResolvedValue({}),
-            },
-          };
-          return await callback(tx as never);
-        },
-      );
+      crudService.create.mockResolvedValue(mockSolution as any);
 
       const result = await service.create('1', 'user-123', {
         title: 'Two Sum Solution',
@@ -137,29 +100,21 @@ describe('SolutionService', () => {
       });
 
       expect(result).toBeDefined();
-      expect(prisma.$transaction).toHaveBeenCalled();
-    });
-
-    it('should throw BadRequestException when no accepted submission exists', async () => {
-      (prisma.submission.findFirst as jest.Mock).mockResolvedValue(null);
-
-      await expect(
-        service.create('1', 'user-123', {
-          title: 'Two Sum Solution',
-          content: 'This is my solution',
-          language: 'javascript',
-        }),
-      ).rejects.toThrow(BadRequestException);
+      expect(crudService.create).toHaveBeenCalledWith('1', 'user-123', {
+        title: 'Two Sum Solution',
+        content: 'This is my solution',
+        language: 'javascript',
+      });
     });
   });
 
   describe('findByProblemId', () => {
     it('should return solutions for a problem', async () => {
-      (prisma.solution.findMany as jest.Mock).mockResolvedValue([
-        mockSolution,
-      ] as never);
-      voteService.getVoteCountsBatch.mockResolvedValue(new Map());
-      voteService.getUserVotesBatch.mockResolvedValue(new Map());
+      queryService.findByProblemId.mockResolvedValue({
+        items: [mockSolution] as any,
+        total: 1,
+        sortOptions: [],
+      });
 
       const result = await service.findByProblemId('1', 'user-123');
 
@@ -168,78 +123,54 @@ describe('SolutionService', () => {
     });
   });
 
+  describe('findAllByUser', () => {
+    it('should return solutions for a user', async () => {
+      queryService.findAllByUser.mockResolvedValue({
+        items: [mockSolution] as any,
+        total: 1,
+        sortOptions: [],
+      });
+
+      const result = await service.findAllByUser('user-123');
+
+      expect(result).toHaveProperty('items');
+      expect(result.items).toHaveLength(1);
+    });
+  });
+
   describe('findOne', () => {
     it('should return a solution by id', async () => {
-      (prisma.solution.findUnique as jest.Mock).mockResolvedValue(
-        mockSolution as never,
-      );
-      voteService.getVoteCountsBatch.mockResolvedValue(
-        new Map([['solution-123', { likes: 5, dislikes: 0 }]]),
-      );
+      queryService.findOne.mockResolvedValue(mockSolution as any);
 
       const result = await service.findOne('solution-123');
 
       expect(result).toBeDefined();
-      expect(prisma.solution.findUnique).toHaveBeenCalledWith({
-        where: { id: 'solution-123' },
-        include: expect.any(Object),
-      });
-    });
-
-    it('should return null for non-existent solution', async () => {
-      (prisma.solution.findUnique as jest.Mock).mockResolvedValue(null);
-
-      const result = await service.findOne('non-existent');
-
-      expect(result).toBeNull();
+      expect(queryService.findOne).toHaveBeenCalledWith(
+        'solution-123',
+        undefined,
+      );
     });
   });
 
   describe('findComments', () => {
     it('should return comments for a solution', async () => {
-      const mockComments = [
-        {
-          id: 'comment-123',
-          solution_id: 'solution-123',
-          content: 'Great solution!',
-          parent_id: null,
-          created_at: new Date(),
-          author: {
-            id: 'user-456',
-            username: 'commenter',
-            avatar: 'avatar.png',
-          },
-        },
-      ];
-
-      (prisma.solutionComment.findMany as jest.Mock).mockResolvedValue(
-        mockComments as never,
-      );
-      voteService.getVoteCountsBatch.mockResolvedValue(new Map());
-      voteService.getUserVotesBatch.mockResolvedValue(new Map());
+      commentService.findComments.mockResolvedValue([]);
 
       const result = await service.findComments('solution-123');
 
-      expect(result).toHaveLength(1);
-      expect(result[0].body).toBe('Great solution!');
+      expect(result).toBeDefined();
+      expect(commentService.findComments).toHaveBeenCalledWith(
+        'solution-123',
+        undefined,
+      );
     });
   });
 
   describe('createComment', () => {
     it('should create a new comment', async () => {
-      const mockComment = {
+      commentService.createComment.mockResolvedValue({
         id: 'comment-123',
-        content: 'Great solution!',
-        author: {
-          id: 'user-456',
-          username: 'commenter',
-          avatar: 'avatar.png',
-        },
-      };
-
-      (prisma.solutionComment.create as jest.Mock).mockResolvedValue(
-        mockComment as never,
-      );
+      } as any);
 
       const result = await service.createComment(
         'solution-123',
@@ -251,23 +182,13 @@ describe('SolutionService', () => {
       );
 
       expect(result).toBeDefined();
-      expect(prisma.solutionComment.create).toHaveBeenCalled();
+      expect(commentService.createComment).toHaveBeenCalled();
     });
   });
 
   describe('delete', () => {
-    it('should delete a solution by owner', async () => {
-      (prisma.solution.findUnique as jest.Mock).mockResolvedValue({
-        ...mockSolution,
-        user_id: 'user-123',
-      } as never);
-      (prisma.solutionComment.findMany as jest.Mock).mockResolvedValue([]);
-      (prisma.solution.count as jest.Mock).mockResolvedValue(0);
-      (prisma.edgeOperation.deleteMany as jest.Mock).mockResolvedValue(
-        {} as never,
-      );
-      (prisma.solution.delete as jest.Mock).mockResolvedValue({} as never);
-      (prisma.problem.update as jest.Mock).mockResolvedValue({} as never);
+    it('should delete a solution', async () => {
+      crudService.delete.mockResolvedValue({ success: true });
 
       const result = await service.delete('solution-123', 'user-123');
 
@@ -276,14 +197,8 @@ describe('SolutionService', () => {
   });
 
   describe('update', () => {
-    it('should update a solution by owner', async () => {
-      (prisma.solution.findUnique as jest.Mock).mockResolvedValue({
-        ...mockSolution,
-        user_id: 'user-123',
-      } as never);
-      (prisma.solution.update as jest.Mock).mockResolvedValue(
-        mockSolution as never,
-      );
+    it('should update a solution', async () => {
+      crudService.update.mockResolvedValue(mockSolution as any);
 
       const result = await service.update('solution-123', 'user-123', {
         title: 'Updated Title',
@@ -293,7 +208,36 @@ describe('SolutionService', () => {
       });
 
       expect(result).toBeDefined();
-      expect(prisma.solution.update).toHaveBeenCalled();
+      expect(crudService.update).toHaveBeenCalled();
+    });
+  });
+
+  describe('updateComment', () => {
+    it('should update a comment', async () => {
+      commentService.updateComment.mockResolvedValue({} as any);
+
+      const result = await service.updateComment(
+        'comment-123',
+        'Updated content',
+        'user-123',
+      );
+
+      expect(result).toBeDefined();
+      expect(commentService.updateComment).toHaveBeenCalledWith(
+        'comment-123',
+        'Updated content',
+        'user-123',
+      );
+    });
+  });
+
+  describe('deleteComment', () => {
+    it('should delete a comment', async () => {
+      commentService.deleteComment.mockResolvedValue({ success: true });
+
+      const result = await service.deleteComment('comment-123', 'user-123');
+
+      expect(result).toEqual({ success: true });
     });
   });
 });

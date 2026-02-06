@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { SubmissionService } from './submission.service';
+import { SubmissionQueryService } from './services/submission-query.service';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { Submission } from '@prisma/client';
 import { RankingService } from '../contest/ranking.service'; // Import RankingService
@@ -15,6 +16,7 @@ export class ContestSubmissionService {
   constructor(
     private prisma: PrismaService,
     private submissionService: SubmissionService,
+    private queryService: SubmissionQueryService,
     private rankingService: RankingService, // Inject RankingService
   ) {}
 
@@ -289,7 +291,7 @@ export class ContestSubmissionService {
     });
 
     return submissions.map((cs) => {
-      const decoratedSubmission = this.submissionService.decorateSubmission(
+      const decoratedSubmission = this.queryService.decorateSubmission(
         cs.submission,
       );
 

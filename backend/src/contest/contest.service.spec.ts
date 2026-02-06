@@ -4,12 +4,20 @@ import { PrismaService } from '../prisma.service';
 import { I18nService } from '../i18n/i18n.service';
 import { RankingService } from './ranking.service';
 import { NotFoundException } from '@nestjs/common';
+import { ContestTimingService } from './services/contest-timing.service';
+import { ContestQueryService } from './services/contest-query.service';
+import { ContestParticipationService } from './services/contest-participation.service';
+import { ContestVirtualService } from './services/contest-virtual.service';
+import { ContestAdminService } from './services/contest-admin.service';
 
 describe('ContestService', () => {
   let service: ContestService;
   let prisma: jest.Mocked<PrismaService>;
-  let _i18nService: jest.Mocked<I18nService>;
-  let _rankingService: jest.Mocked<RankingService>;
+  let timingService: jest.Mocked<ContestTimingService>;
+  let queryService: jest.Mocked<ContestQueryService>;
+  let participationService: jest.Mocked<ContestParticipationService>;
+  let virtualService: jest.Mocked<ContestVirtualService>;
+  let adminService: jest.Mocked<ContestAdminService>;
 
   const mockContest = {
     id: 'contest-123',
@@ -70,6 +78,84 @@ describe('ContestService', () => {
           provide: RankingService,
           useValue: {
             finalizeVirtualRanking: jest.fn(),
+            getContestRanking: jest.fn().mockResolvedValue({
+              items: [],
+              total: 0,
+              page: 1,
+              limit: 50,
+              totalPages: 0,
+            }),
+          },
+        },
+        {
+          provide: ContestTimingService,
+          useValue: {
+            withTimingFields: jest.fn().mockImplementation((contest) => contest),
+            applyContestTranslations: jest
+              .fn()
+              .mockResolvedValue([mockContest] as never),
+          },
+        },
+        {
+          provide: ContestQueryService,
+          useValue: {
+            findAll: jest.fn().mockResolvedValue({
+              items: [mockContest],
+              total: 1,
+              page: 1,
+              limit: 10,
+            }),
+            findOne: jest.fn().mockResolvedValue(mockContest),
+            findUpcoming: jest.fn().mockResolvedValue([mockContest]),
+            findRunning: jest.fn().mockResolvedValue([mockContest]),
+            findPast: jest.fn().mockResolvedValue({
+              data: [mockContest],
+              total: 1,
+              page: 1,
+              limit: 10,
+            }),
+            getStats: jest.fn().mockResolvedValue({
+              total_contests: 10,
+              total_participants: 100,
+            }),
+          },
+        },
+        {
+          provide: ContestParticipationService,
+          useValue: {
+            registerForContest: jest.fn().mockResolvedValue(undefined),
+            unregisterFromContest: jest.fn().mockResolvedValue(undefined),
+            getParticipationStatus: jest.fn().mockResolvedValue({
+              isRegistered: false,
+              status: null,
+              participantId: null,
+              virtualSessionId: null,
+              startedAt: null,
+              finishedAt: null,
+              totalScore: 0,
+              totalPenalty: 0,
+            }),
+            getUserContests: jest.fn().mockResolvedValue({
+              participants: [{ ...mockContest, status: 'REGISTERED' }],
+              statusMap: {},
+            }),
+          },
+        },
+        {
+          provide: ContestVirtualService,
+          useValue: {
+            startVirtualContest: jest.fn().mockResolvedValue(mockContest),
+            getVirtualSession: jest.fn().mockResolvedValue(mockContest),
+            finishVirtualContest: jest.fn().mockResolvedValue(undefined),
+          },
+        },
+        {
+          provide: ContestAdminService,
+          useValue: {
+            createContest: jest.fn().mockResolvedValue(mockContest),
+            updateContest: jest.fn().mockResolvedValue(mockContest),
+            deleteContest: jest.fn().mockResolvedValue(undefined),
+            updateContestStatus: jest.fn().mockResolvedValue(mockContest),
           },
         },
       ],
@@ -77,8 +163,11 @@ describe('ContestService', () => {
 
     service = module.get<ContestService>(ContestService);
     prisma = module.get(PrismaService);
-    _i18nService = module.get(I18nService);
-    _rankingService = module.get(RankingService);
+    timingService = module.get(ContestTimingService);
+    queryService = module.get(ContestQueryService);
+    participationService = module.get(ContestParticipationService);
+    virtualService = module.get(ContestVirtualService);
+    adminService = module.get(ContestAdminService);
   });
 
   it('should be defined', () => {
@@ -86,42 +175,35 @@ describe('ContestService', () => {
   });
 
   describe('findAll', () => {
-    it('should return paginated contests', async () => {
-      (prisma.contest.findMany as jest.Mock).mockResolvedValue([
-        mockContest,
-      ] as never);
-      (prisma.contest.count as jest.Mock).mockResolvedValue(1);
+    it('should delegate to ContestQueryService', async () => {
+      const mockResult = {
+        items: [mockContest],
+        total: 1,
+        page: 1,
+        limit: 10,
+      };
+
+      (queryService.findAll as jest.Mock).mockResolvedValue(mockResult);
 
       const result = await service.findAll();
 
-      expect(result).toHaveProperty('items');
-      expect(result).toHaveProperty('total');
-      expect(result.items).toHaveLength(1);
+      expect(queryService.findAll).toHaveBeenCalledWith(undefined, 'zh-CN');
+      expect(result).toEqual(mockResult);
     });
   });
 
   describe('findOne', () => {
-    it('should return a contest with problems', async () => {
-      const contestWithProblems = {
-        ...mockContest,
-        problems: [],
-      };
-
-      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(
-        contestWithProblems as never,
-      );
+    it('should delegate to ContestQueryService', async () => {
+      (queryService.findOne as jest.Mock).mockResolvedValue(mockContest);
 
       const result = await service.findOne('contest-123');
 
-      expect(result).toBeDefined();
-      expect(prisma.contest.findUnique).toHaveBeenCalledWith({
-        where: { id: 'contest-123' },
-        include: expect.any(Object),
-      });
+      expect(queryService.findOne).toHaveBeenCalledWith('contest-123', 'zh-CN');
+      expect(result).toEqual(mockContest);
     });
 
     it('should throw NotFoundException when contest not found', async () => {
-      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(null);
+      (queryService.findOne as jest.Mock).mockResolvedValue(null);
 
       await expect(service.findOne('non-existent')).rejects.toThrow(
         NotFoundException,
@@ -130,73 +212,55 @@ describe('ContestService', () => {
   });
 
   describe('findUpcoming', () => {
-    it('should return upcoming contests', async () => {
-      (prisma.contest.findMany as jest.Mock).mockResolvedValue([
-        mockContest,
-      ] as never);
+    it('should delegate to ContestQueryService', async () => {
+      (queryService.findUpcoming as jest.Mock).mockResolvedValue([mockContest]);
 
       const result = await service.findUpcoming();
 
-      expect(result).toHaveLength(1);
-      expect(prisma.contest.findMany).toHaveBeenCalledWith({
-        where: { status: 'upcoming', is_visible: true },
-        orderBy: { start_time: 'asc' },
-      });
+      expect(queryService.findUpcoming).toHaveBeenCalledWith('zh-CN');
+      expect(result).toEqual([mockContest]);
     });
   });
 
   describe('findRunning', () => {
-    it('should return running contests', async () => {
-      const runningContest = { ...mockContest, status: 'running' };
-      (prisma.contest.findMany as jest.Mock).mockResolvedValue([
-        runningContest,
-      ] as never);
+    it('should delegate to ContestQueryService', async () => {
+      (queryService.findRunning as jest.Mock).mockResolvedValue([mockContest]);
 
       const result = await service.findRunning();
 
-      expect(result).toHaveLength(1);
-      expect(prisma.contest.findMany).toHaveBeenCalledWith({
-        where: { status: 'running', is_visible: true },
-        orderBy: { start_time: 'asc' },
-      });
+      expect(queryService.findRunning).toHaveBeenCalledWith('zh-CN');
+      expect(result).toEqual([mockContest]);
     });
   });
 
   describe('getStats', () => {
-    it('should return contest statistics', async () => {
-      (prisma.contest.count as jest.Mock).mockResolvedValue(10);
-      (prisma.contestParticipant.count as jest.Mock).mockResolvedValue(100);
+    it('should delegate to ContestQueryService', async () => {
+      const mockStats = {
+        total_contests: 10,
+        total_participants: 100,
+      };
+
+      (queryService.getStats as jest.Mock).mockResolvedValue(mockStats);
 
       const result = await service.getStats();
 
-      expect(result).toEqual({
-        total_contests: 10,
-        total_participants: 100,
-      });
+      expect(result).toEqual(mockStats);
     });
   });
 
   describe('registerForContest', () => {
-    it('should register user for contest', async () => {
-      (prisma.contest.findUnique as jest.Mock).mockResolvedValue(
-        mockContest as never,
-      );
-      (prisma.contestParticipant.findFirst as jest.Mock).mockResolvedValue(
-        null,
-      );
-      (prisma.contestParticipant.create as jest.Mock).mockResolvedValue(
-        {} as never,
-      );
-      (prisma.contest.update as jest.Mock).mockResolvedValue({} as never);
-
+    it('should delegate to ContestParticipationService', async () => {
       await service.registerForContest('contest-123', 'user-123');
 
-      expect(prisma.contestParticipant.create).toHaveBeenCalled();
+      expect(participationService.registerForContest).toHaveBeenCalledWith(
+        'contest-123',
+        'user-123',
+      );
     });
   });
 
   describe('createContest', () => {
-    it('should create a new contest', async () => {
+    it('should delegate to ContestAdminService', async () => {
       const createDto = {
         title: 'New Contest',
         slug: 'new-contest',
@@ -207,14 +271,15 @@ describe('ContestService', () => {
         problems: [],
       };
 
-      (prisma.contest.create as jest.Mock).mockResolvedValue(
-        mockContest as never,
-      );
+      (adminService.createContest as jest.Mock).mockResolvedValue(mockContest);
 
       const result = await service.createContest(createDto, 'user-123');
 
+      expect(adminService.createContest).toHaveBeenCalledWith(
+        createDto,
+        'user-123',
+      );
       expect(result).toEqual(mockContest);
-      expect(prisma.contest.create).toHaveBeenCalled();
     });
   });
 });

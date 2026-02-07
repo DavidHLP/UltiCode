@@ -11,13 +11,8 @@ import {
   ChartTooltipContent,
   componentToString,
 } from '@/components/ui/chart'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { useI18n } from 'vue-i18n'
 
 export interface ChartDataPoint {
   date: Date
@@ -38,6 +33,8 @@ const props = withDefaults(
     seriesKeys: () => ['mobile', 'desktop'],
   },
 )
+
+const { t } = useI18n()
 
 // Default chart data if not provided
 const defaultData: ChartDataPoint[] = [
@@ -172,19 +169,32 @@ const svgDefs = computed(() => {
   return gradients
 })
 
-const timeRange = ref('90d')
+// Time period selector (visual only initially)
+type TimePeriod = '7d' | '30d' | '90d' | 'all'
+const timePeriod = ref<TimePeriod>('90d')
+
+const timePeriods: { value: TimePeriod; label: string }[] = [
+  { value: '7d', label: 'dashboard.timePeriod.last7Days' },
+  { value: '30d', label: 'dashboard.timePeriod.last30Days' },
+  { value: '90d', label: 'dashboard.timePeriod.last90Days' },
+  { value: 'all', label: 'dashboard.timePeriod.allTime' },
+]
+
 const filterRange = computed(() => {
-  return chartData.value.filter((item) => {
+  const data = chartData.value
+  if (timePeriod.value === 'all') return data
+
+  const referenceDate = new Date('2024-06-30')
+  let daysToSubtract = 90
+  if (timePeriod.value === '30d') {
+    daysToSubtract = 30
+  } else if (timePeriod.value === '7d') {
+    daysToSubtract = 7
+  }
+  const startDate = new Date(referenceDate)
+  startDate.setDate(startDate.getDate() - daysToSubtract)
+  return data.filter((item) => {
     const date = new Date(item.date)
-    const referenceDate = new Date('2024-06-30')
-    let daysToSubtract = 90
-    if (timeRange.value === '30d') {
-      daysToSubtract = 30
-    } else if (timeRange.value === '7d') {
-      daysToSubtract = 7
-    }
-    const startDate = new Date(referenceDate)
-    startDate.setDate(startDate.getDate() - daysToSubtract)
     return date >= startDate
   })
 })
@@ -210,32 +220,34 @@ const getFillColors = () => {
 </script>
 
 <template>
-  <Card class="pt-0">
-    <CardHeader class="flex items-center gap-2 space-y-0 border-b py-5 sm:flex-row">
-      <div class="grid flex-1 gap-1">
-        <CardTitle>{{ props.title }}</CardTitle>
-        <CardDescription> {{ props.description }} </CardDescription>
+  <Card class="border-border/50 overflow-hidden">
+    <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
+      <div class="space-y-1">
+        <CardTitle class="tracking-tight">{{ props.title }}</CardTitle>
+        <CardDescription class="text-xs">{{ props.description }}</CardDescription>
       </div>
-      <Select v-model="timeRange">
-        <SelectTrigger
-          class="hidden w-[160px] rounded-lg sm:ml-auto sm:flex"
-          aria-label="Select a value"
+
+      <!-- Time period selector -->
+      <div class="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/30 p-1">
+        <Button
+          v-for="period in timePeriods"
+          :key="period.value"
+          :variant="timePeriod === period.value ? 'default' : 'ghost'"
+          :size="'sm'"
+          class="h-7 px-3 text-xs"
+          @click="timePeriod = period.value"
         >
-          <SelectValue placeholder="Last 3 months" />
-        </SelectTrigger>
-        <SelectContent class="rounded-xl">
-          <SelectItem value="90d" class="rounded-lg"> Last 3 months </SelectItem>
-          <SelectItem value="30d" class="rounded-lg"> Last 30 days </SelectItem>
-          <SelectItem value="7d" class="rounded-lg"> Last 7 days </SelectItem>
-        </SelectContent>
-      </Select>
+          {{ t(period.label) }}
+        </Button>
+      </div>
     </CardHeader>
-    <CardContent class="px-2 pt-4 sm:px-6 sm:pt-6 pb-4">
-      <ChartContainer :config="chartConfig" class="aspect-auto h-[250px] w-full" :cursor="false">
+
+    <CardContent class="px-2 pb-6 pt-0 sm:px-6">
+      <ChartContainer :config="chartConfig" class="aspect-auto h-[280px] w-full" :cursor="false">
         <VisXYContainer
           :data="filterRange"
           :svg-defs="svgDefs"
-          :margin="{ left: -40 }"
+          :margin="{ left: -10, right: 10, top: 10, bottom: 20 }"
           :y-domain="[0, 1200]"
         >
           <VisArea
@@ -244,7 +256,7 @@ const getFillColors = () => {
             :color="() => getFillColors()"
             :opacity="0.6"
           />
-          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="1" />
+          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="1.5" />
           <VisAxis
             type="x"
             :x="(d: Data) => d.date"

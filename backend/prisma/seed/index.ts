@@ -21,6 +21,28 @@ import {
   seedAdminUsers,
 } from './seed-permissions';
 
+// New seed system imports
+import { createSeedRunner } from './core/seed-runner';
+import {
+  createUsersSeeder,
+  createSubmissionStatusesSeeder,
+  createProblemTagsSeeder,
+  createProblemsSeeder,
+  createForumSeeder,
+  createContestsSeeder,
+  createSolutionsSeeder,
+  createProblemListsSeeder,
+  createSubmissionsSeeder,
+  createTranslationsSeeder,
+  createPermissionsSeeder,
+} from './modules';
+
+/**
+ * Feature flag to enable the new optimized seed system.
+ * Set USE_NEW_SEED=true to use the new system.
+ */
+const USE_NEW_SEED = process.env.USE_NEW_SEED === 'true';
+
 const prisma = new PrismaClient();
 
 /**
@@ -99,8 +121,47 @@ async function seedAll(): Promise<void> {
 
 async function main(): Promise<void> {
   try {
-    await clearAll();
-    await seedAll();
+    if (USE_NEW_SEED) {
+      // New optimized seed system
+      console.log('🚀 Using new optimized seed system...\n');
+
+      const runner = createSeedRunner(prisma, process.env.SEED_VERBOSE === 'true');
+
+      // Register all seeders in dependency order
+      runner.registerSeeders([
+        // L0 - No dependencies
+        createSubmissionStatusesSeeder,
+        createProblemTagsSeeder,
+        // L1 - Base entities
+        createUsersSeeder,
+        // L2 - Depends on L1
+        createProblemsSeeder,
+        createForumSeeder,
+        // L3 - Depends on L2
+        createContestsSeeder,
+        createSolutionsSeeder,
+        createProblemListsSeeder,
+        // L4 - Depends on L3
+        createSubmissionsSeeder,
+        // L5 - Final layer
+        createTranslationsSeeder,
+        createPermissionsSeeder,
+      ]);
+
+      const result = await runner.run({
+        clear: true,
+        verbose: process.env.SEED_VERBOSE === 'true',
+      });
+
+      if (!result.success) {
+        console.error('❌ Seed failed:', result.error);
+        process.exit(1);
+      }
+    } else {
+      // Legacy seed system
+      await clearAll();
+      await seedAll();
+    }
   } catch (error) {
     console.error('❌ Seed failed:', error);
     process.exit(1);

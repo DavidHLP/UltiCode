@@ -118,11 +118,11 @@ export class ProblemService {
       filteredProblems as ProblemWithRelations[];
     if (filteredProblems.length > 0) {
       // Translate problems using unified method
-      translatedProblems = (await this.i18nService.translateEntities(
+      translatedProblems = await this.i18nService.translateEntities(
         'PROBLEM',
         filteredProblems,
         locale,
-      )) as ProblemWithRelations[];
+      );
 
       // Get all unique tag IDs and translate them
       const tagIds = [
@@ -203,11 +203,11 @@ export class ProblemService {
     if (!problem) return null;
 
     // Apply problem title translations using unified method
-    let translatedProblem = (await this.i18nService.translateEntity(
+    let translatedProblem = await this.i18nService.translateEntity(
       'PROBLEM',
       problem,
       locale,
-    )) as ProblemWithRelations;
+    );
 
     // Apply detail translations
     if (translatedProblem.detail) {
@@ -261,9 +261,10 @@ export class ProblemService {
       const tagMap = new Map(translatedTags.map((t) => [t.id, t]));
 
       // Filter out relations without tags, then map translated tags
-      const validTagRelations = translatedProblem.tagRelations.filter(
-        (tr): tr is { tag: ProblemTag } => tr.tag !== null,
-      );
+      const isTagRelation = (tr: any): tr is { tag: ProblemTag } =>
+        tr?.tag !== null;
+      const validTagRelations =
+        translatedProblem.tagRelations.filter(isTagRelation);
 
       translatedProblem = {
         ...translatedProblem,
@@ -288,7 +289,7 @@ export class ProblemService {
       };
     }
 
-    return translatedProblem;
+    return translatedProblem as ProblemWithRelations;
   }
 
   async getRandom(): Promise<Problem | null> {

@@ -212,7 +212,10 @@ export class NotificationService {
       const notification = await this.prisma.notification.findUnique({
         where: { id },
       });
-      return this.mapNotification(notification!);
+      if (!notification) {
+        return null;
+      }
+      return this.mapNotification(notification);
     }
 
     // Check system announcement

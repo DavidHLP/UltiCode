@@ -97,7 +97,8 @@ const selectedLayout = computed({
               <DropdownMenuRadioGroup
                 :model-value="selectedLayout"
                 @update:model-value="
-                  (value: string) =>
+                  (value) =>
+                    value &&
                     emit(
                       'layout-change',
                       value as 'leet' | 'classic' | 'compact' | 'wide',

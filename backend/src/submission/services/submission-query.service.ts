@@ -218,15 +218,17 @@ export class SubmissionQueryService {
         return SUBMISSION_STATUS_DEFINITIONS;
       }
 
-      const statusIds = statuses.map((s) => s.key);
+      // SubmissionStatus uses 'key' as the ID field, not 'id'
+      // Use the original pattern for this special case
+      const statusKeys = statuses.map((s) => s.key);
       const translationsMap = await this.i18nService.getBatchTranslations(
         'SUBMISSION_STATUS',
-        statusIds,
+        statusKeys,
         locale,
       );
 
       return statuses.map((status) => {
-        const translations: Map<string, string> =
+        const translations =
           translationsMap.get(status.key) ?? new Map<string, string>();
         return this.i18nService.applyTranslations(
           status,

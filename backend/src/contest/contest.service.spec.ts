@@ -69,6 +69,16 @@ describe('ContestService', () => {
             getBatchTranslations: jest.fn().mockResolvedValue(new Map()),
             getTranslations: jest.fn().mockResolvedValue(new Map()),
             applyTranslations: jest.fn().mockImplementation((obj) => obj),
+            translateEntities: jest
+              .fn()
+              .mockImplementation((_entityType, entities, _locale) =>
+                Promise.resolve(entities),
+              ),
+            translateEntity: jest
+              .fn()
+              .mockImplementation((_entityType, entity, _locale) =>
+                Promise.resolve(entity),
+              ),
           },
         },
         {
@@ -90,9 +100,6 @@ describe('ContestService', () => {
             withTimingFields: jest
               .fn()
               .mockImplementation((contest) => contest),
-            applyContestTranslations: jest
-              .fn()
-              .mockResolvedValue([mockContest] as never),
           },
         },
         {

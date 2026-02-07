@@ -132,6 +132,9 @@ describe('ProblemService', () => {
       findFirst: jest.fn(),
       count: jest.fn(),
     },
+    problemTag: {
+      findMany: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -150,6 +153,16 @@ describe('ProblemService', () => {
             applyTranslations: jest
               .fn()
               .mockImplementation((obj, _trans, _fields) => obj),
+            translateEntities: jest
+              .fn()
+              .mockImplementation((_entityType, entities, _locale) =>
+                Promise.resolve(entities),
+              ),
+            translateEntity: jest
+              .fn()
+              .mockImplementation((_entityType, entity, _locale) =>
+                Promise.resolve(entity),
+              ),
           },
         },
         {
@@ -306,6 +319,12 @@ describe('ProblemService', () => {
           problemWithTag,
         ]);
         (prisma.problem.count as jest.Mock).mockResolvedValue(1);
+        (prisma.problemTag.findMany as jest.Mock).mockResolvedValue([
+          problemWithTag.tagRelations[0].tag,
+        ]);
+        (i18nService.translateEntities as jest.Mock).mockResolvedValue([
+          problemWithTag,
+        ]);
 
         const result = await service.findAll({ category: 'algorithms' });
 
@@ -399,21 +418,23 @@ describe('ProblemService', () => {
         (prisma.problem.findMany as jest.Mock).mockResolvedValue([mockProblem]);
         (prisma.problem.count as jest.Mock).mockResolvedValue(1);
 
-        const translationsMap = new Map([
-          ['1', new Map([['title', '两数之和']])],
+        const translatedProblem = {
+          ...mockProblem,
+          title: '两数之和',
+        };
+
+        (prisma.problemTag.findMany as jest.Mock).mockResolvedValue([]);
+        (i18nService.translateEntities as jest.Mock).mockResolvedValue([
+          translatedProblem,
         ]);
-        (i18nService.getBatchTranslations as jest.Mock).mockResolvedValue(
-          translationsMap,
-        );
 
         await service.findAll({}, 'en-US');
 
-        expect(i18nService.getBatchTranslations).toHaveBeenCalledWith(
+        expect(i18nService.translateEntities).toHaveBeenCalledWith(
           'PROBLEM',
-          [BigInt(1)],
+          [mockProblem],
           'en-US',
         );
-        expect(i18nService.applyTranslations).toHaveBeenCalled();
       });
 
       it('should translate problem tags', async () => {
@@ -441,19 +462,29 @@ describe('ProblemService', () => {
         ]);
         (prisma.problem.count as jest.Mock).mockResolvedValue(1);
 
-        const problemTranslationsMap = new Map([['1', new Map()]]);
-        const tagTranslationsMap = new Map([
-          ['tag-1', new Map([['label', '数组']])],
+        const translatedTag = {
+          id: 'tag-1',
+          label: '数组',
+          slug: 'array',
+          color: null,
+          description: null,
+          usage_count: 0,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+
+        (prisma.problemTag.findMany as jest.Mock).mockResolvedValue([
+          problemWithTag.tagRelations[0].tag,
         ]);
-        (i18nService.getBatchTranslations as jest.Mock)
-          .mockResolvedValueOnce(problemTranslationsMap)
-          .mockResolvedValueOnce(tagTranslationsMap);
+        (i18nService.translateEntities as jest.Mock)
+          .mockResolvedValueOnce([problemWithTag])
+          .mockResolvedValueOnce([translatedTag]);
 
         await service.findAll({}, 'zh-CN');
 
-        expect(i18nService.getBatchTranslations).toHaveBeenCalledWith(
+        expect(i18nService.translateEntities).toHaveBeenCalledWith(
           'PROBLEM_TAG',
-          ['tag-1'],
+          [problemWithTag.tagRelations[0].tag],
           'zh-CN',
         );
       });
@@ -462,9 +493,10 @@ describe('ProblemService', () => {
         (prisma.problem.findMany as jest.Mock).mockResolvedValue([mockProblem]);
         (prisma.problem.count as jest.Mock).mockResolvedValue(1);
 
-        (i18nService.getBatchTranslations as jest.Mock).mockResolvedValue(
-          new Map(),
-        );
+        (prisma.problemTag.findMany as jest.Mock).mockResolvedValue([]);
+        (i18nService.translateEntities as jest.Mock).mockResolvedValue([
+          mockProblem,
+        ]);
 
         const result = await service.findAll({}, 'zh-CN');
 
@@ -477,7 +509,7 @@ describe('ProblemService', () => {
 
         await service.findAll({}, 'zh-CN');
 
-        expect(i18nService.getBatchTranslations).not.toHaveBeenCalled();
+        expect(i18nService.translateEntities).not.toHaveBeenCalled();
       });
     });
 
@@ -584,23 +616,26 @@ describe('ProblemService', () => {
           mockProblemWithDetail,
         );
 
-        const titleTranslations = new Map([['title', '两数之和']]);
-        const detailTranslations = new Map([
-          ['summary', '给定一个整数数组...'],
-        ]);
+        const translatedProblem = {
+          ...mockProblemWithDetail,
+          title: '两数之和',
+          detail: {
+            ...mockProblemWithDetail.detail,
+            summary: '给定一个整数数组...',
+          },
+        };
 
-        (i18nService.getTranslations as jest.Mock)
-          .mockResolvedValueOnce(titleTranslations)
-          .mockResolvedValueOnce(detailTranslations);
+        (i18nService.translateEntity as jest.Mock)
+          .mockResolvedValueOnce(translatedProblem)
+          .mockResolvedValueOnce(translatedProblem.detail);
 
         await service.findOne('1', 'zh-CN');
 
-        expect(i18nService.getTranslations).toHaveBeenCalledWith(
+        expect(i18nService.translateEntity).toHaveBeenCalledWith(
           'PROBLEM',
-          BigInt(1),
+          mockProblemWithDetail,
           'zh-CN',
         );
-        expect(i18nService.applyTranslations).toHaveBeenCalled();
       });
 
       it('should translate tags for a single problem', async () => {
@@ -608,18 +643,29 @@ describe('ProblemService', () => {
           mockProblemWithDetail,
         );
 
-        const tagTranslationsMap = new Map([
-          ['tag-array', new Map([['label', '数组']])],
-        ]);
-        (i18nService.getBatchTranslations as jest.Mock).mockResolvedValue(
-          tagTranslationsMap,
+        const translatedTag = {
+          id: 'tag-array',
+          label: '数组',
+          slug: 'array',
+          color: null,
+          description: null,
+          usage_count: 0,
+          created_at: new Date(),
+          updated_at: new Date(),
+        };
+
+        (i18nService.translateEntity as jest.Mock).mockResolvedValue(
+          mockProblemWithDetail,
         );
+        (i18nService.translateEntities as jest.Mock).mockResolvedValue([
+          translatedTag,
+        ]);
 
         await service.findOne('1', 'zh-CN');
 
-        expect(i18nService.getBatchTranslations).toHaveBeenCalledWith(
+        expect(i18nService.translateEntities).toHaveBeenCalledWith(
           'PROBLEM_TAG',
-          ['tag-array'],
+          [mockProblemWithDetail.tagRelations[0].tag],
           'zh-CN',
         );
       });
@@ -629,18 +675,23 @@ describe('ProblemService', () => {
           mockProblemWithDetail,
         );
 
-        const exampleTranslationsMap = new Map([
-          ['ex-1', new Map([['explanation', '因为 nums[0] + nums[1] == 9']])],
-        ]);
-        (i18nService.getBatchTranslations as jest.Mock).mockResolvedValue(
-          exampleTranslationsMap,
+        const translatedExample = {
+          ...mockProblemWithDetail.examples[0],
+          explanation: '因为 nums[0] + nums[1] == 9',
+        };
+
+        (i18nService.translateEntity as jest.Mock).mockResolvedValue(
+          mockProblemWithDetail,
         );
+        (i18nService.translateEntities as jest.Mock).mockResolvedValue([
+          translatedExample,
+        ]);
 
         await service.findOne('1', 'zh-CN');
 
-        expect(i18nService.getBatchTranslations).toHaveBeenCalledWith(
+        expect(i18nService.translateEntities).toHaveBeenCalledWith(
           'PROBLEM_EXAMPLE',
-          ['ex-1'],
+          mockProblemWithDetail.examples,
           'zh-CN',
         );
       });
@@ -659,12 +710,15 @@ describe('ProblemService', () => {
           problemWithStringJson,
         );
 
-        (i18nService.getTranslations as jest.Mock).mockResolvedValue(
-          new Map([
-            ['constraints_json', '["1 <= nums.length <= 10^4"]'],
-            ['hints', '["Use a hash map"]'],
-          ]),
-        );
+        const translatedDetail = {
+          ...problemWithStringJson.detail,
+          constraints_json: '["1 <= nums.length <= 10^4"]' as any,
+          hints: '["Use a hash map"]' as any,
+        };
+
+        (i18nService.translateEntity as jest.Mock)
+          .mockResolvedValueOnce(problemWithStringJson)
+          .mockResolvedValueOnce(translatedDetail);
 
         const result = await service.findOne('1', 'en-US');
 
@@ -687,9 +741,14 @@ describe('ProblemService', () => {
           problemWithStringJson,
         );
 
-        (i18nService.getTranslations as jest.Mock).mockResolvedValue(
-          new Map([['constraints_json', 'invalid json']]),
-        );
+        const translatedDetail = {
+          ...problemWithStringJson.detail,
+          constraints_json: 'invalid json' as any,
+        };
+
+        (i18nService.translateEntity as jest.Mock)
+          .mockResolvedValueOnce(problemWithStringJson)
+          .mockResolvedValueOnce(translatedDetail);
 
         const result = await service.findOne('1', 'en-US');
 
@@ -901,7 +960,7 @@ describe('ProblemService', () => {
       (prisma.problem.findMany as jest.Mock).mockResolvedValue([mockProblem]);
       (prisma.problem.count as jest.Mock).mockResolvedValue(1);
 
-      (i18nService.getBatchTranslations as jest.Mock).mockRejectedValue(
+      (i18nService.translateEntities as jest.Mock).mockRejectedValue(
         new Error('Translation service error'),
       );
 

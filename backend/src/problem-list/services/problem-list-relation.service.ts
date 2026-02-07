@@ -6,11 +6,7 @@ import {
 import { PrismaService } from '../../prisma.service';
 import { SubmissionService } from '../../submission/submission.service';
 import { I18nService } from '../../i18n/i18n.service';
-import {
-  SupportedLocale,
-  DEFAULT_LOCALE,
-  TRANSLATABLE_ENTITIES,
-} from '../../i18n/i18n.constants';
+import { SupportedLocale, DEFAULT_LOCALE } from '../../i18n/i18n.constants';
 import { ProblemListSummary, ProblemListProblem, PrismaClient } from '../types';
 import { ProblemListStatsService } from './problem-list-stats.service';
 
@@ -278,22 +274,21 @@ export class ProblemListRelationService {
       : null;
 
     const problemIds = relations.map((r) => r.problem_id);
-    const problemTranslationsMap = await this.i18nService.getBatchTranslations(
+    const problems = relations.map((r) => r.problem);
+
+    const translatedProblems = await this.i18nService.translateEntities(
       'PROBLEM',
-      problemIds,
+      problems,
       locale,
+    );
+
+    const problemMap = new Map(
+      translatedProblems.map((p) => [String(p.id), p]),
     );
 
     return relations.map((rel) => {
       const problem = rel.problem;
-      const translations: Map<string, string> =
-        problemTranslationsMap.get(String(problem.id)) ??
-        new Map<string, string>();
-      const translatedProblem = this.i18nService.applyTranslations(
-        problem as unknown as Record<string, unknown>,
-        translations,
-        TRANSLATABLE_ENTITIES.PROBLEM.fields,
-      );
+      const translatedProblem = problemMap.get(String(problem.id)) ?? problem;
 
       const slug =
         (translatedProblem.slug as string | undefined) ?? problem.slug;
@@ -312,8 +307,8 @@ export class ProblemListRelationService {
         (translatedProblem.has_solution as boolean | undefined) ??
         problem.has_solution;
       const acceptanceRate =
-        (translatedProblem.acceptance_rate as number | undefined) ??
-        Number(problem.acceptance_rate);
+        (translatedProblem.acceptance_rate as unknown as number | undefined) ??
+        (problem.acceptance_rate as unknown as number);
 
       return {
         id: Number(translatedProblem.id),

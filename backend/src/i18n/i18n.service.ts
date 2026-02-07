@@ -155,6 +155,69 @@ export class I18nService {
   }
 
   /**
+   * Batch translate entity list -统一的批量翻译方法
+   * Encapsulates the pattern: getBatchTranslations + map + applyTranslations
+   * @param entityType 实体类型 (PROBLEM, CONTEST 等)
+   * @param entities 实体列表（必须有 id 字段）
+   * @param locale 目标语言
+   * @returns 翻译后的实体列表
+   */
+  async translateEntities<T extends { id: string | number | bigint }>(
+    entityType: TranslatableEntity,
+    entities: T[],
+    locale: SupportedLocale,
+  ): Promise<T[]> {
+    if (entities.length === 0) {
+      return entities;
+    }
+
+    const ids = entities.map((e) => e.id);
+    const translationsMap = await this.getBatchTranslations(
+      entityType,
+      ids,
+      locale,
+    );
+
+    const fields = TRANSLATABLE_ENTITIES[entityType].fields;
+
+    return entities.map((entity) => {
+      const translations =
+        translationsMap.get(String(entity.id)) ?? new Map<string, string>();
+      return this.applyTranslations(entity, translations, fields);
+    });
+  }
+
+  /**
+   * Translate a single entity - 统一的单个实体翻译方法
+   * Encapsulates the pattern: getTranslations + applyTranslations
+   * @param entityType 实体类型
+   * @param entity 实体对象
+   * @param locale 目标语言
+   * @returns 翻译后的实体
+   */
+  async translateEntity<T extends object>(
+    entityType: TranslatableEntity,
+    entity: T,
+    locale: SupportedLocale,
+  ): Promise<T> {
+    const fields = TRANSLATABLE_ENTITIES[entityType].fields;
+
+    // Check if entity has id field
+    const entityRecord = entity as Record<string, unknown>;
+    if ('id' in entityRecord) {
+      const translations = await this.getTranslations(
+        entityType,
+        entityRecord.id as string | number | bigint,
+        locale,
+      );
+      return this.applyTranslations(entity, translations, fields);
+    }
+
+    // If no id field, just return entity with empty translations
+    return this.applyTranslations(entity, new Map(), fields);
+  }
+
+  /**
    * Validate field name against translatable entity configuration
    * @param entityType Type of entity
    * @param fieldName Field name to validate

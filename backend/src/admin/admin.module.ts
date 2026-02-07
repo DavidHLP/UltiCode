@@ -1,4 +1,4 @@
-import { Module, Global } from '@nestjs/common';
+import { forwardRef, Module, Global } from '@nestjs/common';
 import { PermissionService } from './services/permission.service';
 import { AuditService } from './services/audit.service';
 import { AdminDashboardService } from './services/admin-dashboard.service';
@@ -31,7 +31,7 @@ import { ModerationService } from '../common/services/moderation.service';
 
 @Global()
 @Module({
-  imports: [UserModule, AuthModule],
+  imports: [forwardRef(() => UserModule), forwardRef(() => AuthModule)],
   controllers: [
     AdminUserController,
     AdminDashboardController,

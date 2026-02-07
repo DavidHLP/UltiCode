@@ -24,6 +24,7 @@ import { I18nModule } from './i18n/i18n.module';
 import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
 import { SubscriptionModule } from './subscription/subscription.module';
+import { CustomCacheModule } from './cache/cache.module';
 
 @Module({
   imports: [
@@ -73,6 +74,7 @@ import { SubscriptionModule } from './subscription/subscription.module';
     I18nModule,
     NotificationModule,
     SubscriptionModule,
+    CustomCacheModule,
   ],
   controllers: [AppController],
   providers: [

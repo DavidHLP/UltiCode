@@ -1,6 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import type { Problem, ProblemDetail, ProblemTag } from '@prisma/client';
+import type {
+  Problem,
+  ProblemDetail,
+  ProblemTag,
+  Prisma,
+  Difficulty,
+} from '@prisma/client';
 import { CATEGORY_TAG_MAP } from './constants';
 import { I18nService } from '../i18n/i18n.service';
 import { SupportedLocale, DEFAULT_LOCALE } from '../i18n/i18n.constants';
@@ -55,17 +61,36 @@ export class ProblemService {
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
+    // Build complete WHERE clause before querying to avoid in-memory filtering
+    const where: Prisma.ProblemWhereInput = {};
 
     if (filters.difficulty) {
-      where.difficulty = filters.difficulty;
+      where.difficulty = filters.difficulty as Difficulty;
     }
 
+    // Add category filter to WHERE clause using nested tagRelations
+    if (filters.category && filters.category !== 'all') {
+      const tagLabel = CATEGORY_TAG_MAP[filters.category];
+      if (tagLabel) {
+        where.tagRelations = {
+          some: {
+            tag: { label: tagLabel },
+          },
+        };
+      }
+    }
+
+    // Add search filter - handle ID search and title search
     if (filters.search) {
-      where.OR = [
-        { title: { contains: filters.search, mode: 'insensitive' as const } },
-        // For ID search, we need to handle it separately since id is BigInt
-      ];
+      if (!isNaN(Number(filters.search))) {
+        // ID search
+        where.id = BigInt(filters.search);
+      } else {
+        // Title search
+        where.title = {
+          contains: filters.search,
+        };
+      }
     }
 
     const [problems, total] = await Promise.all([
@@ -85,27 +110,8 @@ export class ProblemService {
       this.prisma.problem.count({ where }),
     ]);
 
-    // Filter by category after query (since it requires tag filtering)
-    let filteredProblems = problems;
-    if (filters.category && filters.category !== 'all') {
-      const tagLabel = CATEGORY_TAG_MAP[filters.category];
-      if (tagLabel) {
-        filteredProblems = problems.filter((problem) =>
-          problem.tagRelations?.some((tr) => tr.tag.label === tagLabel),
-        );
-      }
-    }
-
-    // Filter by search in ID (if search looks like a number)
-    if (filters.search && !isNaN(Number(filters.search))) {
-      const searchId = BigInt(filters.search);
-      filteredProblems = filteredProblems.filter((p) => p.id === searchId);
-    } else if (filters.search) {
-      // Title search is handled by Prisma's contains
-      filteredProblems = filteredProblems.filter((problem) =>
-        problem.title.toLowerCase().includes(filters.search!.toLowerCase()),
-      );
-    }
+    // No in-memory filtering needed - all filters applied at database level
+    const filteredProblems = problems;
 
     // Apply i18n translations
     let translatedProblems: ProblemWithRelations[] =

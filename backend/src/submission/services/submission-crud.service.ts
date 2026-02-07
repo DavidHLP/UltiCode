@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { Submission, Prisma } from '@prisma/client';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -6,12 +6,16 @@ import { Queue } from 'bullmq';
 import { JudgeJobData } from '../judge.processor';
 import { JudgeResult } from '../judge.service';
 import { v4 as uuid } from 'uuid';
+import { CacheService } from '../../cache/cache.service';
 
 @Injectable()
 export class SubmissionCrudService {
+  private readonly logger = new Logger(SubmissionCrudService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     @InjectQueue('judge_queue') private judgeQueue: Queue<JudgeJobData>,
+    private readonly cacheService: CacheService,
   ) {}
 
   async create(
@@ -37,6 +41,9 @@ export class SubmissionCrudService {
     });
 
     await this.judgeQueue.add('judge', { submissionId: newSubmissionId });
+
+    // Invalidate user stats cache
+    await this.invalidateUserStatsCache(userId);
 
     return created;
   }
@@ -66,6 +73,22 @@ export class SubmissionCrudService {
         },
       },
     });
+
+    // Invalidate user stats cache when submission is judged
+    await this.invalidateUserStatsCache(updated.user_id);
+
     return updated;
+  }
+
+  private async invalidateUserStatsCache(userId: string): Promise<void> {
+    try {
+      await this.cacheService.del(`user_stats:${userId}`);
+      this.logger.debug(`Invalidated user stats cache for user: ${userId}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to invalidate user stats cache for user ${userId}:`,
+        error,
+      );
+    }
   }
 }

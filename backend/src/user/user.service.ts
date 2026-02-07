@@ -10,6 +10,7 @@ import { UserRole } from '@prisma/client';
 import { AuditService } from '../admin/services/audit.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
+import { CacheService } from '../cache/cache.service';
 
 interface PaginationOptions {
   page?: number;
@@ -39,6 +40,7 @@ export class UserService {
   constructor(
     private prisma: PrismaService,
     @Optional() private auditService: AuditService,
+    private cacheService: CacheService,
   ) {}
 
   findAll(
@@ -118,16 +120,18 @@ export class UserService {
   async getProfileWithRank(id: string): Promise<UserWithRank | null> {
     const user = await this.prisma.user.findUnique({
       where: { id },
+      include: {
+        globalRanking: {
+          select: { global_rank: true },
+        },
+      },
     });
-    if (!user) return null;
 
-    const rankRecord = await this.prisma.globalRanking.findUnique({
-      where: { user_id: id },
-    });
+    if (!user) return null;
 
     return {
       ...user,
-      rank: rankRecord?.global_rank ?? null,
+      rank: user.globalRanking?.global_rank ?? null,
     };
   }
 
@@ -169,22 +173,48 @@ export class UserService {
   }
 
   async getUserStats(userId: string) {
-    // 1. Get solved problems count grouped by difficulty
-    const solvedSubmissions = await this.prisma.submission.findMany({
+    const cacheKey = `user_stats:${userId}`;
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // 1. Get solved problems count grouped by difficulty using database aggregation
+    const solvedByDifficulty = await this.prisma.problem.groupBy({
+      by: ['difficulty'],
       where: {
-        user_id: userId,
-        status: 'Accepted',
-      },
-      distinct: ['problem_id'], // Count unique problems
-      select: {
-        problem: {
-          select: {
-            difficulty: true,
+        submissions: {
+          some: {
+            user_id: userId,
+            status: 'Accepted',
           },
         },
-        created_at: true,
+      },
+      _count: {
+        id: true,
       },
     });
+
+    // Get total problem counts per difficulty (for progress calculation)
+    const [problemCounts, solvedSubmissionsForDates] = await Promise.all([
+      this.prisma.problem.groupBy({
+        by: ['difficulty'],
+        _count: {
+          id: true,
+        },
+      }),
+      // Fetch submission dates only for streak and heatmap calculation
+      this.prisma.submission.findMany({
+        where: {
+          user_id: userId,
+          status: 'Accepted',
+        },
+        distinct: ['problem_id'],
+        select: {
+          created_at: true,
+        },
+      }),
+    ]);
 
     const stats = {
       Easy: { count: 0, total: 0 },
@@ -192,19 +222,10 @@ export class UserService {
       Hard: { count: 0, total: 0 },
     };
 
-    solvedSubmissions.forEach((sub) => {
-      const diff = sub.problem.difficulty;
-      if (stats[diff]) {
-        stats[diff].count++;
+    solvedByDifficulty.forEach((group) => {
+      if (stats[group.difficulty]) {
+        stats[group.difficulty].count = group._count.id;
       }
-    });
-
-    // Get total counts per difficulty
-    const problemCounts = await this.prisma.problem.groupBy({
-      by: ['difficulty'],
-      _count: {
-        id: true,
-      },
     });
 
     problemCounts.forEach((group) => {
@@ -213,10 +234,11 @@ export class UserService {
       }
     });
 
-    // 2. Calculate Streak
-    // Get all accepted submissions dates, unique per day
+    // 2. Calculate Streak using database-aggregated dates
     const distinctDates = new Set(
-      solvedSubmissions.map((s) => s.created_at.toISOString().split('T')[0]),
+      solvedSubmissionsForDates.map(
+        (s) => s.created_at.toISOString().split('T')[0],
+      ),
     );
 
     let currentStreak = 0;
@@ -246,45 +268,43 @@ export class UserService {
       currentStreak = streak;
     }
 
-    // 3. Activity Heatmap Data (Last 365 days)
+    // 3. Activity Heatmap Data (Last 365 days) - use raw SQL for efficient grouping
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
-    // Map to daily counts
-    const dailyActivity = new Map<string, number>();
-
-    const activityRaw = await this.prisma.submission.findMany({
-      where: {
-        user_id: userId,
-        created_at: { gte: oneYearAgo },
-      },
-      select: { created_at: true },
-    });
-
-    activityRaw.forEach((sub) => {
-      const date = sub.created_at.toISOString().split('T')[0];
-      dailyActivity.set(date, (dailyActivity.get(date) || 0) + 1);
-    });
+    const heatmapRaw = await this.prisma.$queryRaw<
+      Array<{ date: string; count: bigint }>
+    >`
+      SELECT DATE(created_at) as date, COUNT(*) as count
+      FROM Submission
+      WHERE user_id = ${userId}
+        AND created_at >= ${oneYearAgo}
+      GROUP BY DATE(created_at)
+      ORDER BY date
+    `;
 
     const heatmapData: { date: string; level: number }[] = [];
-    // Convert map to array format expected by frontend
-    dailyActivity.forEach((count, date) => {
-      // Simple level logic: 0=0, 1-2=1, 3-5=2, 6-9=3, 10+=4
+    heatmapRaw.forEach((row) => {
+      const count = Number(row.count);
       let level = 0;
       if (count > 0) level = 1;
       if (count > 2) level = 2;
       if (count > 5) level = 3;
       if (count > 9) level = 4;
 
-      heatmapData.push({ date, level });
+      heatmapData.push({ date: row.date, level });
     });
 
-    return {
+    const result = {
       stats,
       streak: currentStreak,
-      totalSolved: solvedSubmissions.length,
+      totalSolved: solvedSubmissionsForDates.length,
       heatmap: heatmapData,
     };
+
+    // Cache for 5 minutes
+    await this.cacheService.set(cacheKey, result, 300);
+    return result;
   }
 
   async changePassword(

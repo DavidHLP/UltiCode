@@ -6,7 +6,7 @@ import { AdminModule } from '../admin/admin.module';
 import { PrismaService } from '../prisma.service';
 
 @Module({
-  imports: [forwardRef(() => AuthModule), AdminModule],
+  imports: [forwardRef(() => AuthModule), forwardRef(() => AdminModule)],
   controllers: [UserController],
   providers: [UserService, PrismaService],
   exports: [UserService],

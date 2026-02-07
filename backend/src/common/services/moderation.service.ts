@@ -8,7 +8,13 @@ import type {
   RestoreUpdateData,
 } from '../types/moderation.types';
 
-type PrismaModel = 'forumPost' | 'solution' | 'problem' | 'contest';
+type PrismaModel =
+  | 'forumPost'
+  | 'solution'
+  | 'problem'
+  | 'contest'
+  | 'forumComment'
+  | 'solutionComment';
 
 @Injectable()
 export class ModerationService {

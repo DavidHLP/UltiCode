@@ -5,14 +5,23 @@ import {
   type SolutionComment,
 } from '@prisma/client';
 import { PrismaService } from '../../prisma.service';
+import { ModerationService } from '../../common/services/moderation.service';
 import { CommentQueryDto, CommentType } from '../dto/comment.dto';
-import { AuditService } from './audit.service';
 
+/**
+ * AdminCommentService - 管理员评论管理
+ *
+ * 职责:
+ * - 查询和管理论坛评论和题解评论
+ * - 使用 ModerationService 处理标记、软删除等操作
+ *
+ * 通过 ModerationService 统一处理审核操作，减少代码重复
+ */
 @Injectable()
 export class AdminCommentService {
   constructor(
     private prisma: PrismaService,
-    private auditService: AuditService,
+    private moderationService: ModerationService,
   ) {}
 
   async findAll(query: CommentQueryDto) {
@@ -28,18 +37,13 @@ export class AdminCommentService {
     } = query;
     const skip = (page - 1) * limit;
 
-    const baseWhere: Prisma.ForumCommentWhereInput &
-      Prisma.SolutionCommentWhereInput = {};
+    // 使用 ModerationService 的默认过滤
+    const baseWhere = this.moderationService.applyDefaultModerationFilter<
+      Prisma.ForumCommentWhereInput & Prisma.SolutionCommentWhereInput
+    >({}, is_deleted);
 
     if (is_flagged !== undefined) {
       baseWhere.is_flagged = is_flagged;
-    }
-
-    if (is_deleted !== undefined) {
-      baseWhere.is_deleted = is_deleted;
-    } else {
-      // Default to not showing deleted unless requested
-      baseWhere.is_deleted = false;
     }
 
     const sortField: Prisma.ForumCommentScalarFieldEnum &
@@ -163,37 +167,18 @@ export class AdminCommentService {
     reason: string,
     adminId: string,
   ): Promise<ForumComment | SolutionComment> {
-    let comment: ForumComment | SolutionComment;
-    if (type === CommentType.FORUM) {
-      comment = await this.prisma.forumComment.update({
-        where: { id },
-        data: {
-          is_flagged: true,
-          flagged_reason: reason,
-          flagged_at: new Date(),
-        },
-      });
-    } else {
-      comment = await this.prisma.solutionComment.update({
-        where: { id },
-        data: {
-          is_flagged: true,
-          flagged_reason: reason,
-          flagged_at: new Date(),
-        },
-      });
-    }
+    const model =
+      type === CommentType.FORUM ? 'forumComment' : 'solutionComment';
+    const entityType =
+      type === CommentType.FORUM ? 'forum_comment' : 'solution_comment';
 
-    await this.auditService.log({
-      performerId: adminId,
-      action: 'FLAG_COMMENT',
-      entityType:
-        type === CommentType.FORUM ? 'forum_comment' : 'solution_comment',
-      entityId: id,
-      newValues: { reason },
-    });
-
-    return comment;
+    return this.moderationService.flag(
+      model,
+      id,
+      reason,
+      adminId,
+      entityType,
+    ) as Promise<ForumComment | SolutionComment>;
   }
 
   async unflag(
@@ -201,36 +186,17 @@ export class AdminCommentService {
     type: CommentType,
     adminId: string,
   ): Promise<ForumComment | SolutionComment> {
-    let comment: ForumComment | SolutionComment;
-    if (type === CommentType.FORUM) {
-      comment = await this.prisma.forumComment.update({
-        where: { id },
-        data: {
-          is_flagged: false,
-          flagged_reason: null,
-          flagged_at: null,
-        },
-      });
-    } else {
-      comment = await this.prisma.solutionComment.update({
-        where: { id },
-        data: {
-          is_flagged: false,
-          flagged_reason: null,
-          flagged_at: null,
-        },
-      });
-    }
+    const model =
+      type === CommentType.FORUM ? 'forumComment' : 'solutionComment';
+    const entityType =
+      type === CommentType.FORUM ? 'forum_comment' : 'solution_comment';
 
-    await this.auditService.log({
-      performerId: adminId,
-      action: 'UNFLAG_COMMENT',
-      entityType:
-        type === CommentType.FORUM ? 'forum_comment' : 'solution_comment',
-      entityId: id,
-    });
-
-    return comment;
+    return this.moderationService.unflag(
+      model,
+      id,
+      adminId,
+      entityType,
+    ) as Promise<ForumComment | SolutionComment>;
   }
 
   async softDelete(
@@ -238,35 +204,34 @@ export class AdminCommentService {
     type: CommentType,
     adminId: string,
   ): Promise<ForumComment | SolutionComment> {
-    let comment: ForumComment | SolutionComment;
-    if (type === CommentType.FORUM) {
-      comment = await this.prisma.forumComment.update({
-        where: { id },
-        data: {
-          is_deleted: true,
-          deleted_at: new Date(),
-          deleted_by: adminId,
-        },
-      });
-    } else {
-      comment = await this.prisma.solutionComment.update({
-        where: { id },
-        data: {
-          is_deleted: true,
-          deleted_at: new Date(),
-          deleted_by: adminId,
-        },
-      });
-    }
+    const model =
+      type === CommentType.FORUM ? 'forumComment' : 'solutionComment';
+    const entityType =
+      type === CommentType.FORUM ? 'forum_comment' : 'solution_comment';
 
-    await this.auditService.log({
-      performerId: adminId,
-      action: 'DELETE_COMMENT',
-      entityType:
-        type === CommentType.FORUM ? 'forum_comment' : 'solution_comment',
-      entityId: id,
-    });
+    return this.moderationService.softDelete(
+      model,
+      id,
+      adminId,
+      entityType,
+    ) as Promise<ForumComment | SolutionComment>;
+  }
 
-    return comment;
+  async restore(
+    id: string,
+    type: CommentType,
+    adminId: string,
+  ): Promise<ForumComment | SolutionComment> {
+    const model =
+      type === CommentType.FORUM ? 'forumComment' : 'solutionComment';
+    const entityType =
+      type === CommentType.FORUM ? 'forum_comment' : 'solution_comment';
+
+    return this.moderationService.restore(
+      model,
+      id,
+      adminId,
+      entityType,
+    ) as Promise<ForumComment | SolutionComment>;
   }
 }

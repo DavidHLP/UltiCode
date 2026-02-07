@@ -9,6 +9,7 @@ import {
 } from '@nestjs/common';
 import { ViewService } from './view.service';
 import { ViewTargetType } from '@prisma/client';
+import { RecordViewDto } from './dto/record-view.dto';
 import { ResponseInterceptor } from '../common/interceptors/response.interceptor';
 import { GlobalExceptionFilter } from '../common/filters/global-exception.filter';
 
@@ -19,13 +20,13 @@ export class ViewController {
   @UseInterceptors(ResponseInterceptor)
   @UseFilters(GlobalExceptionFilter)
   @Post()
-  async recordView(
-    @Body('targetType') targetType: ViewTargetType,
-    @Body('targetId') targetId: string,
-    @Body('userId') bodyUserId?: string,
-    @Ip() ip?: string,
-  ) {
-    return this.viewService.recordView(targetType, targetId, bodyUserId, ip);
+  async recordView(@Body() dto: RecordViewDto, @Ip() ip?: string) {
+    return this.viewService.recordView(
+      dto.targetType,
+      dto.targetId,
+      dto.userId,
+      ip,
+    );
   }
 
   @Post('solution/:id')

@@ -22,6 +22,8 @@ import { Public } from '../auth/auth.decorator';
 import type { Request } from 'express';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
+import { CreateForumCommentDto } from './dto/create-comment.dto';
+import { UpdateForumCommentDto } from './dto/update-comment.dto';
 
 interface AuthenticatedRequest extends Request {
   user: {
@@ -180,25 +182,30 @@ export class ForumController {
   @Post('posts/:id/comments')
   createComment(
     @Param('id') postId: string,
-    @Body() body: { body: string; parentId: string | null },
+    @Body() dto: CreateForumCommentDto,
     @Req() req: AuthenticatedRequest,
   ) {
     const user = req.user;
-    return this.forumService.createComment(postId, body.body, body.parentId, {
-      id: user.id,
-      username: user.username,
-      avatar: user.avatar,
-    });
+    return this.forumService.createComment(
+      postId,
+      dto.body,
+      dto.parentId ?? null,
+      {
+        id: user.id,
+        username: user.username,
+        avatar: user.avatar,
+      },
+    );
   }
 
   @UseGuards(AuthGuard)
   @Patch('comments/:id')
   updateComment(
     @Param('id') commentId: string,
-    @Body() body: { body: string },
+    @Body() dto: UpdateForumCommentDto,
     @Req() req: AuthenticatedRequest,
   ) {
-    return this.forumService.updateComment(commentId, body.body, req.user.id);
+    return this.forumService.updateComment(commentId, dto.body, req.user.id);
   }
 
   @UseGuards(AuthGuard)

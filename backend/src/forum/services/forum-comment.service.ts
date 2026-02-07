@@ -19,10 +19,7 @@ import { convertCommentToTypeOrmFormat } from '../types';
  */
 @Injectable()
 export class ForumCommentService extends BaseCommentService {
-  constructor(
-    prisma: PrismaService,
-    voteService: VoteService,
-  ) {
+  constructor(prisma: PrismaService, voteService: VoteService) {
     super(prisma, voteService);
   }
 

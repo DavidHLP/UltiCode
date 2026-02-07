@@ -102,6 +102,16 @@ describe('ProblemListService', () => {
   const mockI18nService = {
     getBatchTranslations: jest.fn().mockResolvedValue(new Map()),
     applyTranslations: jest.fn().mockReturnValue(mockProblem),
+    translateEntities: jest
+      .fn()
+      .mockImplementation((_entityType, entities, _locale) =>
+        Promise.resolve(entities),
+      ),
+    translateEntity: jest
+      .fn()
+      .mockImplementation((_entityType, entity, _locale) =>
+        Promise.resolve(entity),
+      ),
   };
 
   const mockBookmarkService = {

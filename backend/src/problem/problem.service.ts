@@ -112,13 +112,17 @@ export class ProblemService {
     }
 
     // Apply i18n translations
-    let translatedProblems = filteredProblems;
+    let translatedProblems: ProblemWithRelations[] =
+      filteredProblems as ProblemWithRelations[];
     if (filteredProblems.length > 0) {
-      const ids = filteredProblems.map((p) => p.id);
-      const problemTranslationsMap =
-        await this.i18nService.getBatchTranslations('PROBLEM', ids, locale);
+      // Translate problems using unified method
+      translatedProblems = (await this.i18nService.translateEntities(
+        'PROBLEM',
+        filteredProblems,
+        locale,
+      )) as ProblemWithRelations[];
 
-      // Get all unique tag IDs
+      // Get all unique tag IDs and translate them
       const tagIds = [
         ...new Set(
           filteredProblems.flatMap(
@@ -127,47 +131,41 @@ export class ProblemService {
           ),
         ),
       ];
-      const tagTranslationsMap: Map<
-        string,
-        Map<string, string>
-      > = tagIds.length > 0
-        ? await this.i18nService.getBatchTranslations(
-            'PROBLEM_TAG',
-            tagIds,
-            locale,
-          )
-        : new Map<string, Map<string, string>>();
 
-      translatedProblems = filteredProblems.map((problem) => {
-        const translations: Map<string, string> =
-          problemTranslationsMap.get(String(problem.id)) ??
-          new Map<string, string>();
-        const translatedProblem = this.i18nService.applyTranslations(
-          problem,
-          translations,
-          TRANSLATABLE_ENTITIES.PROBLEM.fields,
-        );
+      const allTags =
+        tagIds.length > 0
+          ? await this.prisma.problemTag.findMany({
+              where: { id: { in: tagIds } },
+            })
+          : [];
 
-        // Apply tag translations
-        if ((translatedProblem as ProblemWithRelations).tagRelations) {
-          (translatedProblem as ProblemWithRelations).tagRelations = (
-            translatedProblem as ProblemWithRelations
-          ).tagRelations!.map((tr) => {
+      const translatedTags =
+        tagIds.length > 0
+          ? await this.i18nService.translateEntities(
+              'PROBLEM_TAG',
+              allTags,
+              locale,
+            )
+          : [];
+
+      const tagMap = new Map(translatedTags.map((t) => [t.id, t]));
+
+      // Apply tag translations
+      translatedProblems = translatedProblems.map((problem) => {
+        if (!problem.tagRelations) {
+          return problem;
+        }
+        return {
+          ...problem,
+          tagRelations: problem.tagRelations.map((tr) => {
             if (!tr.tag) return tr;
-            const tagTranslations: Map<string, string> =
-              tagTranslationsMap.get(tr.tag.id) ?? new Map<string, string>();
+            const translatedTag = tagMap.get(tr.tag.id);
             return {
               ...tr,
-              tag: this.i18nService.applyTranslations(
-                tr.tag,
-                tagTranslations,
-                TRANSLATABLE_ENTITIES.PROBLEM_TAG.fields,
-              ),
+              tag: translatedTag ?? tr.tag,
             };
-          });
-        }
-
-        return translatedProblem;
+          }),
+        };
       });
     }
 
@@ -202,29 +200,19 @@ export class ProblemService {
 
     if (!problem) return null;
 
-    // Apply problem title translations
-    const problemTranslations = await this.i18nService.getTranslations(
+    // Apply problem title translations using unified method
+    let translatedProblem = (await this.i18nService.translateEntity(
       'PROBLEM',
-      problem.id,
-      locale,
-    );
-    let translatedProblem = this.i18nService.applyTranslations(
       problem,
-      problemTranslations,
-      TRANSLATABLE_ENTITIES.PROBLEM.fields,
-    ) as ProblemWithRelations;
+      locale,
+    )) as ProblemWithRelations;
 
     // Apply detail translations
     if (translatedProblem.detail) {
-      const detailTranslations = await this.i18nService.getTranslations(
+      const translatedDetail = await this.i18nService.translateEntity(
         'PROBLEM_DETAIL',
-        translatedProblem.detail.id,
-        locale,
-      );
-      const translatedDetail = this.i18nService.applyTranslations(
         translatedProblem.detail,
-        detailTranslations,
-        TRANSLATABLE_ENTITIES.PROBLEM_DETAIL.fields,
+        locale,
       );
 
       // Ensure JSON fields are parsed if they were translated (stringified)
@@ -256,54 +244,45 @@ export class ProblemService {
       };
     }
 
-    // Apply tag translations (batch)
+    // Apply tag translations using unified batch method
     if (translatedProblem.tagRelations?.length) {
-      const tagIds = translatedProblem.tagRelations
-        .map((tr) => tr.tag?.id)
-        .filter(Boolean);
-      const tagTranslationsMap = await this.i18nService.getBatchTranslations(
+      const tags = translatedProblem.tagRelations
+        .map((tr) => tr.tag)
+        .filter((tag): tag is ProblemTag => tag !== null);
+
+      const translatedTags = await this.i18nService.translateEntities(
         'PROBLEM_TAG',
-        tagIds,
+        tags,
         locale,
       );
+
+      const tagMap = new Map(translatedTags.map((t) => [t.id, t]));
+
+      // Filter out relations without tags, then map translated tags
+      const validTagRelations = translatedProblem.tagRelations.filter(
+        (tr): tr is { tag: ProblemTag } => tr.tag !== null,
+      );
+
       translatedProblem = {
         ...translatedProblem,
-        tagRelations: translatedProblem.tagRelations.map((tr) => {
-          if (!tr.tag) return tr;
-          const tagTrans: Map<string, string> =
-            tagTranslationsMap.get(tr.tag.id) ?? new Map<string, string>();
-          return {
-            ...tr,
-            tag: this.i18nService.applyTranslations(
-              tr.tag,
-              tagTrans,
-              TRANSLATABLE_ENTITIES.PROBLEM_TAG.fields,
-            ),
-          };
-        }),
+        tagRelations: validTagRelations.map((tr) => ({
+          ...tr,
+          tag: (tagMap.get(tr.tag.id) ?? tr.tag) as ProblemTag,
+        })),
       };
     }
 
-    // Apply example translations (batch)
+    // Apply example translations using unified batch method
     if (translatedProblem.examples?.length) {
-      const exampleIds = translatedProblem.examples.map((e) => e.id);
-      const exampleTranslationsMap =
-        await this.i18nService.getBatchTranslations(
-          'PROBLEM_EXAMPLE',
-          exampleIds,
-          locale,
-        );
+      const translatedExamples = await this.i18nService.translateEntities(
+        'PROBLEM_EXAMPLE',
+        translatedProblem.examples,
+        locale,
+      );
+
       translatedProblem = {
         ...translatedProblem,
-        examples: translatedProblem.examples.map((example) => {
-          const exampleTrans: Map<string, string> =
-            exampleTranslationsMap.get(example.id) ?? new Map<string, string>();
-          return this.i18nService.applyTranslations(
-            example,
-            exampleTrans,
-            TRANSLATABLE_ENTITIES.PROBLEM_EXAMPLE.fields,
-          );
-        }),
+        examples: translatedExamples,
       };
     }
 

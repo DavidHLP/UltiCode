@@ -4,11 +4,7 @@ import { PrismaService } from '../../prisma.service';
 import { ContestQueryDto } from '../dto';
 import { ContestTimingService } from './contest-timing.service';
 import { I18nService } from '../../i18n/i18n.service';
-import {
-  SupportedLocale,
-  DEFAULT_LOCALE,
-  TRANSLATABLE_ENTITIES,
-} from '../../i18n/i18n.constants';
+import { SupportedLocale, DEFAULT_LOCALE } from '../../i18n/i18n.constants';
 
 export interface ContestStats {
   total_participants: number;
@@ -48,8 +44,11 @@ export class ContestQueryService {
       this.prisma.contest.count({ where }),
     ]);
 
-    const translatedContests =
-      await this.timingService.applyContestTranslations(contests, locale);
+    const translatedContests = await this.i18nService.translateEntities(
+      'CONTEST',
+      contests,
+      locale,
+    );
 
     return {
       items: translatedContests.map((contest) =>
@@ -86,15 +85,10 @@ export class ContestQueryService {
       return null;
     }
 
-    const contestTranslations = await this.i18nService.getTranslations(
+    const translatedContest = await this.i18nService.translateEntity(
       'CONTEST',
-      contest.id,
-      locale,
-    );
-    const translatedContest = this.i18nService.applyTranslations(
       contest,
-      contestTranslations,
-      TRANSLATABLE_ENTITIES.CONTEST.fields,
+      locale,
     );
 
     if (contest.status === 'upcoming') {
@@ -105,25 +99,23 @@ export class ContestQueryService {
     }
 
     const problemIds = contest.problems.map((cp) => cp.problem_id);
-    const problemTranslationsMap: Map<
-      string,
-      Map<string, string>
-    > = problemIds.length > 0
-      ? await this.i18nService.getBatchTranslations(
-          'PROBLEM',
-          problemIds,
-          locale,
-        )
-      : new Map<string, Map<string, string>>();
+    const translatedProblems =
+      problemIds.length > 0
+        ? await this.i18nService.translateEntities(
+            'PROBLEM',
+            contest.problems.map((cp) => cp.problem),
+            locale,
+          )
+        : contest.problems.map((cp) => cp.problem);
+
+    const problemMap = new Map(
+      translatedProblems.map((p) => [String(p.id), p]),
+    );
 
     return this.timingService.withTimingFields({
       ...translatedContest,
       problems: translatedContest.problems.map((cp) => {
-        const problemTranslations: Map<string, string> =
-          problemTranslationsMap.get(String(cp.problem_id)) ??
-          new Map<string, string>();
-        const translatedTitle: string =
-          problemTranslations.get('title') ?? cp.problem.title;
+        const translatedProblem = problemMap.get(String(cp.problem_id));
         return {
           id: cp.id,
           problem_index: cp.problem_index,
@@ -132,7 +124,7 @@ export class ContestQueryService {
           solved_count: cp.solved_count,
           submission_count: cp.submission_count,
           problem_id: Number(cp.problem_id),
-          title: translatedTitle,
+          title: translatedProblem?.title ?? cp.problem.title,
           slug: cp.problem.slug,
           difficulty: cp.problem.difficulty,
           acceptanceRate: Number(cp.problem.acceptance_rate),
@@ -146,8 +138,11 @@ export class ContestQueryService {
       where: { status: 'upcoming', is_visible: true },
       orderBy: { start_time: 'asc' },
     });
-    const translatedContests =
-      await this.timingService.applyContestTranslations(contests, locale);
+    const translatedContests = await this.i18nService.translateEntities(
+      'CONTEST',
+      contests,
+      locale,
+    );
     return translatedContests.map((contest) =>
       this.timingService.withTimingFields(contest),
     );
@@ -158,8 +153,11 @@ export class ContestQueryService {
       where: { status: 'running', is_visible: true },
       orderBy: { start_time: 'asc' },
     });
-    const translatedContests =
-      await this.timingService.applyContestTranslations(contests, locale);
+    const translatedContests = await this.i18nService.translateEntities(
+      'CONTEST',
+      contests,
+      locale,
+    );
     return translatedContests.map((contest) =>
       this.timingService.withTimingFields(contest),
     );
@@ -184,7 +182,8 @@ export class ContestQueryService {
       }),
     ]);
 
-    const translatedData = await this.timingService.applyContestTranslations(
+    const translatedData = await this.i18nService.translateEntities(
+      'CONTEST',
       data,
       locale,
     );

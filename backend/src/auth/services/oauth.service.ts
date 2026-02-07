@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Response } from 'express';
 import { PrismaService } from '../../prisma.service';
 import { UserService } from '../../user/user.service';
@@ -12,6 +13,7 @@ import { randomUUID } from 'crypto';
 @Injectable()
 export class OAuthService {
   constructor(
+    private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
     private readonly userService: UserService,
     private readonly passwordService: PasswordService,
@@ -22,10 +24,14 @@ export class OAuthService {
   ) {}
 
   githubLogin(res: Response): void {
-    const clientId = process.env.GITHUB_CLIENT_ID || 'mock_client_id';
-    const redirectUri =
-      process.env.GITHUB_REDIRECT_URI ||
-      'http://localhost:4001/auth/github/callback';
+    const clientId = this.configService.get<string>(
+      'GITHUB_CLIENT_ID',
+      'mock_client_id',
+    );
+    const redirectUri = this.configService.get<string>(
+      'GITHUB_REDIRECT_URI',
+      'http://localhost:4001/auth/github/callback',
+    );
     const target = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${redirectUri}&scope=user:email`;
     res.redirect(target);
   }
@@ -65,7 +71,10 @@ export class OAuthService {
       refreshTokenRecord.token,
     );
 
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = this.configService.get<string>(
+      'FRONTEND_URL',
+      'http://localhost:5173',
+    );
     res.redirect(`${frontendUrl}/?csrf=${csrfToken}`);
   }
 }

@@ -1,10 +1,14 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../../prisma.service';
 import { ChartPeriod, ChartMetric } from '../dto/dashboard.dto';
 
 @Injectable()
 export class AdminDashboardService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: ConfigService,
+  ) {}
 
   /**
    * Get overall dashboard statistics
@@ -92,7 +96,7 @@ export class AdminDashboardService {
       forum: forumStats,
       system: {
         uptime,
-        version: process.env.npm_package_version || '1.0.0',
+        version: this.configService.get<string>('npm_package_version', '1.0.0'),
       },
     };
   }

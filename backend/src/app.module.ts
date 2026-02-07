@@ -1,8 +1,9 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { validateConfig } from './config/config.schema';
 // import { APP_GUARD } from '@nestjs/core';
 // import { ThrottlerGuard } from '@nestjs/throttler';
 import { AppController } from './app.controller';
@@ -31,6 +32,10 @@ import { CustomCacheModule } from './cache/cache.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      validate: (config: Record<string, unknown>) => {
+        validateConfig(config);
+        return config;
+      },
     }),
     ThrottlerModule.forRoot([
       {
@@ -50,12 +55,15 @@ import { CustomCacheModule } from './cache/cache.module';
       },
     ]),
     ScheduleModule.forRoot(),
-    BullModule.forRoot({
-      connection: {
-        host: process.env.REDIS_HOST || 'localhost',
-        port: parseInt(process.env.REDIS_PORT || '6379'),
-        password: process.env.REDIS_PASSWORD || '123456',
-      },
+    BullModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        connection: {
+          host: configService.get<string>('REDIS_HOST', 'localhost'),
+          port: configService.get<number>('REDIS_PORT', 6379),
+          password: configService.get<string>('REDIS_PASSWORD', ''),
+        },
+      }),
     }),
     AdminModule,
     UserModule,

@@ -31,10 +31,10 @@ class RedisConnectionHolder implements OnModuleDestroy {
   private readonly logger = new Logger(RedisConnectionHolder.name);
   public readonly connection: Redis;
 
-  constructor() {
-    const redisHost = process.env.REDIS_HOST || 'localhost';
-    const redisPort = parseInt(process.env.REDIS_PORT || '6379');
-    const redisPassword = process.env.REDIS_PASSWORD || '123456';
+  constructor(private configService: ConfigService) {
+    const redisHost = this.configService.get<string>('REDIS_HOST', 'localhost');
+    const redisPort = this.configService.get<number>('REDIS_PORT', 6379);
+    const redisPassword = this.configService.get<string>('REDIS_PASSWORD', '');
 
     this.logger.log(
       `[REDIS_CONNECT] Connecting to Redis at ${redisHost}:${redisPort}`,

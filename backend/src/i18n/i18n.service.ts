@@ -17,6 +17,23 @@ export class I18nService {
   constructor(private prisma: PrismaService) {}
 
   /**
+   * Safely parse a JSON field with fallback value
+   * @param value The value to parse (can be string or already parsed)
+   * @param fallback The fallback value if parsing fails
+   * @returns The parsed value or fallback
+   */
+  parseJsonField<T>(value: unknown, fallback: T): T {
+    if (typeof value === 'string') {
+      try {
+        return JSON.parse(value) as T;
+      } catch {
+        return fallback;
+      }
+    }
+    return (value as T) ?? fallback;
+  }
+
+  /**
    * Parse Accept-Language header and return best matching locale
    * @param header Accept-Language header value
    * @returns Best matching supported locale

@@ -4,16 +4,29 @@ import {
   ExceptionFilter,
   HttpException,
   HttpStatus,
+  Logger,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { BusinessException } from '../exceptions/business.exception';
 import { ErrorCode } from '../error-codes';
 
+interface RequestWithUser extends Request {
+  user?: { id: string };
+}
+
 @Catch()
 export class GlobalExceptionFilter implements ExceptionFilter {
+  private readonly logger = new Logger(GlobalExceptionFilter.name);
+
   catch(exception: unknown, host: ArgumentsHost) {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
+    const request = ctx.getRequest<RequestWithUser>();
+
+    const method = request.method;
+    const path = request.url;
+    const traceId = `t-${Date.now()}`;
+    const userId = request.user?.id || 'anonymous';
 
     let status: HttpStatus;
     let code: number;
@@ -21,21 +34,34 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     let errorKey: string | undefined;
 
     if (exception instanceof BusinessException) {
-      // Handle BusinessException with error codes
       status = exception.getStatus();
       code = exception.errorCode;
       message = exception.message;
       errorKey = exception.errorKey;
     } else if (exception instanceof HttpException) {
-      // Handle standard HttpException
       status = exception.getStatus();
       code = this.mapHttpStatusToErrorCode(status);
       message = exception.message;
     } else {
-      // Handle unknown exceptions
       status = HttpStatus.INTERNAL_SERVER_ERROR;
       code = ErrorCode.UNKNOWN_ERROR;
       message = 'Internal Server Error';
+    }
+
+    // Log errors with appropriate level based on status code
+    const statusCode =
+      typeof status === 'number'
+        ? status
+        : Number(HttpStatus.INTERNAL_SERVER_ERROR);
+    if (statusCode >= 500) {
+      this.logger.error(
+        `HTTP ${statusCode} | ${method} ${path} | traceId: ${traceId} | userId: ${userId} | ${message}`,
+        exception instanceof Error ? exception.stack : undefined,
+      );
+    } else if (statusCode >= 400) {
+      this.logger.warn(
+        `HTTP ${statusCode} | ${method} ${path} | traceId: ${traceId} | userId: ${userId} | ${message}`,
+      );
     }
 
     response.status(status).json({
@@ -43,7 +69,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       message,
       errorKey,
       data: null,
-      traceId: `t-${Date.now()}`,
+      traceId,
     });
   }
 

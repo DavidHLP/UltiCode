@@ -3,17 +3,28 @@ import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { AccountService } from '../services/account.service';
-import { UpdateProfileDto, ChangePasswordDto } from '../dto/account.dto';
+import { UserService } from '../../user/user.service';
+import { AuditService } from '../services/audit.service';
+import { UpdateProfileDto } from '../dto/account.dto';
+import { ChangePasswordDto } from '../../user/dto/change-password.dto';
 import type { User } from '../../user/user.service';
 
 @Controller('admin/account')
 @UseGuards(AuthGuard, CsrfGuard)
 export class AdminAccountController {
-  constructor(private readonly accountService: AccountService) {}
+  constructor(
+    private readonly accountService: AccountService,
+    private readonly userService: UserService,
+    private readonly auditService: AuditService,
+  ) {}
 
   @Get('profile')
   async getProfile(@CurrentAdmin() user: User) {
-    return this.accountService.getProfile(user.id);
+    const profile = await this.userService.findOne(user.id);
+    if (!profile) {
+      return null;
+    }
+    return profile;
   }
 
   @Patch('profile')
@@ -21,7 +32,40 @@ export class AdminAccountController {
     @CurrentAdmin() user: User,
     @Body() updateProfileDto: UpdateProfileDto,
   ) {
-    return this.accountService.updateProfile(user.id, updateProfileDto);
+    const oldUser = await this.userService.findOne(user.id);
+    if (!oldUser) {
+      return null;
+    }
+
+    // Update the user profile
+    const updatedUser = await this.userService.update(
+      user.id,
+      updateProfileDto,
+    );
+
+    // Log the change
+    await this.auditService.log({
+      performerId: user.id,
+      action: 'UPDATE_PROFILE',
+      entityType: 'USER',
+      entityId: user.id,
+      userId: user.id,
+      oldValues: {
+        name: oldUser.name,
+        email: oldUser.email,
+        avatar: oldUser.avatar,
+        bio: oldUser.bio,
+        company: oldUser.company,
+        github: oldUser.github,
+        website: oldUser.website,
+        location: oldUser.location,
+        twitter: oldUser.twitter,
+        preferred_language: oldUser.preferred_language,
+      },
+      newValues: updateProfileDto,
+    });
+
+    return updatedUser;
   }
 
   @Post('change-password')
@@ -29,7 +73,7 @@ export class AdminAccountController {
     @CurrentAdmin() user: User,
     @Body() changePasswordDto: ChangePasswordDto,
   ) {
-    return this.accountService.changePassword(user.id, changePasswordDto);
+    return this.userService.changePassword(user.id, changePasswordDto, user.id);
   }
 
   @Get('subscription')

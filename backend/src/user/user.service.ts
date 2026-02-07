@@ -1,7 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  Optional,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import type { User, Prisma } from '@prisma/client';
 import { UserRole } from '@prisma/client';
+import { AuditService } from '../admin/services/audit.service';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import * as bcrypt from 'bcrypt';
 
 interface PaginationOptions {
   page?: number;
@@ -28,7 +36,10 @@ export type UserWithRank = User & { rank: number | null };
 
 @Injectable()
 export class UserService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Optional() private auditService: AuditService,
+  ) {}
 
   findAll(
     where?: Prisma.UserWhereInput,
@@ -274,5 +285,51 @@ export class UserService {
       totalSolved: solvedSubmissions.length,
       heatmap: heatmapData,
     };
+  }
+
+  async changePassword(
+    userId: string,
+    changePasswordDto: ChangePasswordDto,
+    performerId?: string,
+  ): Promise<{ message: string }> {
+    const user = await this.findOne(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    if (!user.password) {
+      throw new BadRequestException('User has no password set');
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await bcrypt.compare(
+      changePasswordDto.currentPassword,
+      user.password,
+    );
+
+    if (!isCurrentPasswordValid) {
+      throw new BadRequestException('Current password is incorrect');
+    }
+
+    // Hash new password
+    const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
+
+    // Update password
+    await this.update(userId, {
+      password: hashedPassword,
+    });
+
+    // Log the password change if audit service is available
+    if (this.auditService) {
+      await this.auditService.log({
+        performerId: performerId || userId,
+        action: 'CHANGE_PASSWORD',
+        entityType: 'USER',
+        entityId: userId,
+        userId: userId,
+      });
+    }
+
+    return { message: 'Password changed successfully' };
   }
 }

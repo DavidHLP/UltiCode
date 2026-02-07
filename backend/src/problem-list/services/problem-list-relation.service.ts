@@ -273,7 +273,6 @@ export class ProblemListRelationService {
       ? await this.submissionService.getProblemStatusMap(userId, ids)
       : null;
 
-    const problemIds = relations.map((r) => r.problem_id);
     const problems = relations.map((r) => r.problem);
 
     const translatedProblems = await this.i18nService.translateEntities(

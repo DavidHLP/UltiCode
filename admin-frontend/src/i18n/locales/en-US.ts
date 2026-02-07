@@ -162,6 +162,41 @@ export default {
       dayAgo: '{count} day ago',
       dayAgo_plural: '{count} days ago',
     },
+
+    // Time period selector
+    timePeriod: {
+      last7Days: '7d',
+      last30Days: '30d',
+      last90Days: '90d',
+      allTime: 'All',
+    },
+
+    // Timeline
+    timeline: {
+      title: 'Activity Timeline',
+      description: 'Recent administrative actions',
+      viewAll: 'View All Activity',
+      activityTypes: {
+        LOGIN: 'Login',
+        CREATE: 'Created',
+        UPDATE: 'Updated',
+        DELETE: 'Deleted',
+        PUBLISH: 'Published',
+        UNPUBLISH: 'Unpublished',
+        FLAG: 'Flagged',
+        UNFLAG: 'Unflagged',
+        BAN: 'Banned',
+        UNBAN: 'Unbanned',
+        MODERATE: 'Moderated',
+        PIN: 'Pinned',
+        UNPIN: 'Unpinned',
+        LOCK: 'Locked',
+        UNLOCK: 'Unlocked',
+      },
+    },
+
+    // Last updated
+    lastUpdated: 'Last updated: {time}',
   },
 
   // Users

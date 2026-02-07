@@ -168,6 +168,41 @@ export default {
       dayAgo: '{count} 天前',
       dayAgo_plural: '{count} 天前',
     },
+
+    // 时间段选择器
+    timePeriod: {
+      last7Days: '7天',
+      last30Days: '30天',
+      last90Days: '90天',
+      allTime: '全部',
+    },
+
+    // 时间线
+    timeline: {
+      title: '活动时间线',
+      description: '最近的管理操作',
+      viewAll: '查看所有活动',
+      activityTypes: {
+        LOGIN: '登录',
+        CREATE: '创建',
+        UPDATE: '更新',
+        DELETE: '删除',
+        PUBLISH: '发布',
+        UNPUBLISH: '取消发布',
+        FLAG: '标记',
+        UNFLAG: '取消标记',
+        BAN: '封禁',
+        UNBAN: '解封',
+        MODERATE: '审核',
+        PIN: '置顶',
+        UNPIN: '取消置顶',
+        LOCK: '锁定',
+        UNLOCK: '解锁',
+      },
+    },
+
+    // 最后更新
+    lastUpdated: '最后更新：{time}',
   },
 
   // 用户

@@ -149,7 +149,7 @@ describe('NotificationService', () => {
       });
 
       expect(result).toBeDefined();
-      expect(result.isRead).toBe(true);
+      expect(result?.isRead).toBe(true);
     });
   });
 

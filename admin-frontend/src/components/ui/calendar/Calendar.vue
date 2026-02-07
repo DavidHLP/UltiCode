@@ -1,12 +1,12 @@
 <script lang="ts" setup>
 import type { CalendarRootEmits, CalendarRootProps, DateValue } from 'reka-ui'
-import type { HTMLAttributes, Ref } from 'vue'
+import type { HTMLAttributes, WritableComputedRef } from 'vue'
 import type { LayoutTypes } from '.'
 import { getLocalTimeZone, today } from '@internationalized/date'
-import { createReusableTemplate, reactiveOmit, useVModel } from '@vueuse/core'
+import { createReusableTemplate, reactiveOmit } from '@vueuse/core'
 import { CalendarRoot, useDateFormatter, useForwardPropsEmits } from 'reka-ui'
 import { createYear, createYearRange, toDate } from 'reka-ui/date'
-import { computed, toRaw } from 'vue'
+import { computed } from 'vue'
 import { cn } from '@/lib/utils'
 import { NativeSelect, NativeSelectOption } from '@/components/ui/native-select'
 import {
@@ -40,30 +40,21 @@ const emits = defineEmits<CalendarRootEmits>()
 
 const delegatedProps = reactiveOmit(props, 'class', 'layout', 'placeholder')
 
-const placeholder = useVModel(props, 'placeholder', emits, {
-  passive: true,
-  defaultValue: props.defaultPlaceholder ?? today(getLocalTimeZone()),
-}) as Ref<DateValue>
+const defaultPlaceholder = props.defaultPlaceholder ?? today(getLocalTimeZone())
+const placeholderModel = computed({
+  get: () => props.placeholder ?? defaultPlaceholder,
+  set: (value: DateValue) => emits('update:placeholder', value),
+}) as WritableComputedRef<DateValue>
 
 const formatter = useDateFormatter(props.locale ?? 'en')
 
 const yearRange = computed(() => {
+  const baseDate = props.placeholder ?? defaultPlaceholder
   return (
     props.yearRange ??
     createYearRange({
-      start:
-        props?.minValue ??
-        (toRaw(props.placeholder) ?? props.defaultPlaceholder ?? today(getLocalTimeZone())).cycle(
-          'year',
-          -100,
-        ),
-
-      end:
-        props?.maxValue ??
-        (toRaw(props.placeholder) ?? props.defaultPlaceholder ?? today(getLocalTimeZone())).cycle(
-          'year',
-          10,
-        ),
+      start: props?.minValue ?? (baseDate.cycle('year', -100) as DateValue),
+      end: props?.maxValue ?? (baseDate.cycle('year', 10) as DateValue),
     })
   )
 })
@@ -85,8 +76,11 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
           class="text-xs h-8 pr-6 pl-2 text-transparent relative"
           @change="
             (e: Event) => {
-              placeholder = placeholder.set({
-                month: Number((e?.target as any)?.value),
+              const target = e.target as HTMLSelectElement
+              const model = placeholderModel as unknown as WritableComputedRef<DateValue>
+              const current = model.value
+              model.value = current.set({
+                month: Number(target?.value),
               })
             }
           "
@@ -114,8 +108,11 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
           class="text-xs h-8 pr-6 pl-2 text-transparent relative"
           @change="
             (e: Event) => {
-              placeholder = placeholder.set({
-                year: Number((e?.target as any)?.value),
+              const target = e.target as HTMLSelectElement
+              const model = placeholderModel as unknown as WritableComputedRef<DateValue>
+              const current = model.value
+              model.value = current.set({
+                year: Number(target?.value),
               })
             }
           "

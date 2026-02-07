@@ -72,9 +72,10 @@ export class UserService {
 
     if (!user) return null;
 
+    const { globalRanking, ...userWithoutRanking } = user;
     return {
-      ...user,
-      rank: user.globalRanking?.global_rank ?? null,
+      ...userWithoutRanking,
+      rank: globalRanking?.global_rank ?? null,
     };
   }
 

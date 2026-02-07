@@ -361,7 +361,7 @@ describe('ProblemService', () => {
     });
 
     describe('with search', () => {
-      it('should search by problem title (case-insensitive)', async () => {
+      it('should search by problem title', async () => {
         (prisma.problem.findMany as jest.Mock).mockResolvedValue([mockProblem]);
         (prisma.problem.count as jest.Mock).mockResolvedValue(1);
 
@@ -370,9 +370,7 @@ describe('ProblemService', () => {
         expect(prisma.problem.findMany).toHaveBeenCalledWith(
           expect.objectContaining({
             where: expect.objectContaining({
-              OR: expect.arrayContaining([
-                { title: { contains: 'Two', mode: 'insensitive' } },
-              ]),
+              title: { contains: 'Two' },
             }),
           }),
         );

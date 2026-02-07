@@ -1,0 +1,4 @@
+. "$(dirname -- "$0")/_/husky.sh"
+
+echo "Running pre-commit checks..."
+pnpm exec lint-staged

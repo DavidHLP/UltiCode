@@ -227,6 +227,7 @@ model Contest {
   @@index([status, start_time])
   @@index([contest_type])
   @@index([slug])
+  @@index([status, is_visible, start_time])
   @@map("contests")
 }
 
@@ -269,6 +270,7 @@ model GlobalRanking {
 
   @@index([global_rank])
   @@index([rating])
+  @@index([country, global_rank])
   @@map("global_rankings")
 }
 
@@ -294,6 +296,7 @@ model ContestRanking {
   @@unique([contest_id, user_id, is_virtual])
   @@index([contest_id, rank])
   @@index([user_id])
+  @@index([contest_id, is_virtual, rank])
   @@map("contest_rankings")
 }
 
@@ -391,6 +394,7 @@ model ContestSubmission {
   @@index([contest_problem_id])
   @@index([participant_id], map: "contest_submissions_participant_id_fkey")
   @@index([submission_id], map: "contest_submissions_submission_id_fkey")
+  @@index([contest_id, participant_id, submitted_at])
   @@map("contest_submissions")
 }
 
@@ -425,6 +429,7 @@ model Notification {
 
   @@index([user_id, is_read, created_at])
   @@index([user_id, type])
+  @@index([user_id, category])
   @@map("notifications")
 }
 
@@ -807,6 +812,7 @@ model Submission {
   @@index([created_at])
   @@index([user_id, status, created_at])
   @@index([user_id], map: "submissions_user_id_fkey")
+  @@index([problem_id, user_id, status, runtime, memory])
   @@map("submissions")
 }
 

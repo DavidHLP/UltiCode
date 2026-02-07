@@ -1,22 +1,49 @@
-import {
-  Injectable,
-  NotFoundException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { VoteService } from '../../vote/vote.service';
-import { EdgeOperationTargetType } from '@prisma/client';
+import { BaseCommentService } from '../../common/services/base-comment.service';
+import { CommentEntityType } from '../../common/types/comment.types';
 import type { CreateSolutionCommentDto } from '../dto/create-solution-comment.dto';
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * SolutionCommentService - 题解评论管理
+ *
+ * 职责:
+ * - 创建、更新、删除题解评论
+ * - 获取题解评论列表（带投票信息）
+ *
+ * 继承自 BaseCommentService，复用投票相关通用功能
+ */
 @Injectable()
-export class SolutionCommentService {
-  constructor(
-    private readonly prisma: PrismaService,
-    private readonly voteService: VoteService,
-  ) {}
+export class SolutionCommentService extends BaseCommentService {
+  constructor(prisma: PrismaService, voteService: VoteService) {
+    super(prisma, voteService);
+  }
 
-  async findComments(solutionId: string, userId?: string) {
+  /**
+   * 获取题解的评论列表（带投票信息）
+   */
+  async findComments(
+    solutionId: string,
+    userId?: string,
+  ): Promise<
+    Array<{
+      id: string;
+      parentId: string | null;
+      body: string;
+      upvotes: number;
+      likes: number;
+      dislikes: number;
+      userVote: 0 | 1 | -1;
+      createdAt: Date;
+      author: {
+        id: string;
+        username: string;
+        avatar: string | null;
+      };
+    }>
+  > {
     const comments = await this.prisma.solutionComment.findMany({
       where: {
         solution_id: solutionId,
@@ -29,42 +56,37 @@ export class SolutionCommentService {
       },
     });
 
-    const commentIds = comments.map((c) => c.id);
-    const voteMap = await this.voteService.getVoteCountsBatch(
-      EdgeOperationTargetType.SOLUTION_COMMENT,
-      commentIds,
+    // 使用基类的投票增强方法
+    const enrichedComments = await this.enrichWithVotes(
+      comments.map((comment) => ({
+        id: comment.id,
+        createdAt: comment.created_at,
+      })),
+      CommentEntityType.SOLUTION,
+      userId,
     );
 
-    let userVoteMap = new Map<string, number>();
-    if (userId) {
-      userVoteMap = await this.voteService.getUserVotesBatch(
-        userId,
-        EdgeOperationTargetType.SOLUTION_COMMENT,
-        commentIds,
-      );
-    }
-
-    return comments.map((comment) => {
-      const votes = voteMap.get(comment.id) || { likes: 0, dislikes: 0 };
-      const userVote = userVoteMap.get(comment.id) || 0;
-      return {
-        id: comment.id,
-        parentId: comment.parent_id,
-        body: comment.content,
-        upvotes: votes.likes,
-        likes: votes.likes,
-        dislikes: votes.dislikes,
-        userVote: userVote as 0 | 1 | -1,
-        createdAt: comment.created_at,
-        author: {
-          id: comment.author.id,
-          username: comment.author.username,
-          avatar: comment.author.avatar,
-        },
-      };
-    });
+    // 合并评论内容
+    return comments.map((comment, index) => ({
+      id: comment.id,
+      parentId: comment.parent_id,
+      body: comment.content,
+      upvotes: enrichedComments[index].likes,
+      likes: enrichedComments[index].likes,
+      dislikes: enrichedComments[index].dislikes,
+      userVote: enrichedComments[index].userVote as 0 | 1 | -1,
+      createdAt: comment.created_at,
+      author: {
+        id: comment.author.id,
+        username: comment.author.username,
+        avatar: comment.author.avatar,
+      },
+    }));
   }
 
+  /**
+   * 创建评论
+   */
   async createComment(
     solutionId: string,
     dto: CreateSolutionCommentDto,
@@ -85,16 +107,17 @@ export class SolutionCommentService {
     });
   }
 
+  /**
+   * 更新评论
+   */
   async updateComment(commentId: string, content: string, userId: string) {
-    const comment = await this.prisma.solutionComment.findUnique({
-      where: { id: commentId },
-    });
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
-    if (comment.user_id !== userId) {
-      throw new ForbiddenException('You can only update your own comments');
-    }
+    // 使用基类的权限验证方法
+    await this.validateCommentOwnership(
+      commentId,
+      userId,
+      CommentEntityType.SOLUTION,
+      'user_id',
+    );
 
     return this.prisma.solutionComment.update({
       where: { id: commentId },
@@ -105,21 +128,22 @@ export class SolutionCommentService {
     });
   }
 
+  /**
+   * 删除评论
+   */
   async deleteComment(commentId: string, userId: string) {
-    const comment = await this.prisma.solutionComment.findUnique({
-      where: { id: commentId },
-    });
-    if (!comment) {
-      throw new NotFoundException('Comment not found');
-    }
-    if (comment.user_id !== userId) {
-      throw new ForbiddenException('You can only delete your own comments');
-    }
+    // 使用基类的权限验证方法
+    await this.validateCommentOwnership(
+      commentId,
+      userId,
+      CommentEntityType.SOLUTION,
+      'user_id',
+    );
 
     await this.prisma.$transaction(async (tx) => {
       await tx.edgeOperation.deleteMany({
         where: {
-          target_type: EdgeOperationTargetType.SOLUTION_COMMENT,
+          target_type: this.getVoteTargetType(CommentEntityType.SOLUTION),
           target_id: commentId,
         },
       });

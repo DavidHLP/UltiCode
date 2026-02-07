@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AdminCommentService } from './admin-comment.service';
 import { PrismaService } from '../../prisma.service';
 import { AuditService } from './audit.service';
+import { ModerationService } from '../../common/services/moderation.service';
 
 describe('AdminCommentService', () => {
   let service: AdminCommentService;
@@ -21,6 +22,13 @@ describe('AdminCommentService', () => {
               delete: jest.fn().mockResolvedValue({}),
               count: jest.fn().mockResolvedValue(0),
             },
+            solutionComment: {
+              findMany: jest.fn().mockResolvedValue([]),
+              findUnique: jest.fn().mockResolvedValue(null),
+              update: jest.fn().mockResolvedValue({}),
+              delete: jest.fn().mockResolvedValue({}),
+              count: jest.fn().mockResolvedValue(0),
+            },
           },
         },
         {
@@ -34,6 +42,16 @@ describe('AdminCommentService', () => {
               actionsByPerformer: [],
               topPerformers: [],
             }),
+          },
+        },
+        {
+          provide: ModerationService,
+          useValue: {
+            flag: jest.fn().mockResolvedValue({}),
+            unflag: jest.fn().mockResolvedValue({}),
+            softDelete: jest.fn().mockResolvedValue({}),
+            restore: jest.fn().mockResolvedValue({}),
+            applyDefaultModerationFilter: jest.fn().mockReturnValue({}),
           },
         },
       ],

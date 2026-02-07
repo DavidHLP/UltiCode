@@ -23,6 +23,19 @@ describe('UserService', () => {
   };
 
   const mockPrismaService = {
+    $transaction: jest.fn().mockImplementation((callback) => {
+      // Create a mock transaction client that has the same methods as prisma
+      const tx = {
+        user: {
+          findUnique: jest.fn().mockResolvedValue(mockUser),
+          update: jest.fn().mockResolvedValue(mockUser),
+        },
+        auditLog: {
+          create: jest.fn().mockResolvedValue({}),
+        },
+      };
+      return callback(tx);
+    }),
     user: {
       findMany: jest.fn(),
       findUnique: jest.fn(),

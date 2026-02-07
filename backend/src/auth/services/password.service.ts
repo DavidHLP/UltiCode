@@ -5,6 +5,7 @@ import { UserService } from '../../user/user.service';
 import { BusinessException } from '../../common/exceptions/business.exception';
 import { ErrorCode } from '../../common/error-codes';
 import { randomBytes } from 'crypto';
+import { Prisma } from '@prisma/client';
 
 @Injectable()
 export class PasswordService {
@@ -50,6 +51,7 @@ export class PasswordService {
   }
 
   async forgotPassword(email: string) {
+    // Check if user exists first (read operation, outside transaction)
     const user = await this.userService.findByEmail(email);
     if (!user) {
       return {
@@ -58,20 +60,25 @@ export class PasswordService {
       };
     }
 
-    await this.prisma.passwordReset.updateMany({
-      where: { user_id: user.id },
-      data: { used_at: new Date() },
-    });
+    // Use transaction to invalidate old tokens and create new one atomically
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      // Invalidate all existing reset tokens for this user
+      await tx.passwordReset.updateMany({
+        where: { user_id: user.id },
+        data: { used_at: new Date() },
+      });
 
-    const token = randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + this.PASSWORD_RESET_EXPIRY);
+      // Create new reset token
+      const token = randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + this.PASSWORD_RESET_EXPIRY);
 
-    await this.prisma.passwordReset.create({
-      data: {
-        user_id: user.id,
-        token,
-        expires_at: expiresAt,
-      },
+      await tx.passwordReset.create({
+        data: {
+          user_id: user.id,
+          token,
+          expires_at: expiresAt,
+        },
+      });
     });
 
     return {
@@ -81,39 +88,46 @@ export class PasswordService {
   }
 
   async resetPassword(token: string, newPassword: string) {
-    const resetRecord = await this.prisma.passwordReset.findUnique({
-      where: { token },
-    });
-
-    if (!resetRecord) {
-      throw new BusinessException(ErrorCode.AUTH_INVALID_RESET_TOKEN);
-    }
-
-    if (resetRecord.used_at) {
-      throw new BusinessException(ErrorCode.AUTH_RESET_TOKEN_ALREADY_USED);
-    }
-
-    if (new Date() > resetRecord.expires_at) {
-      throw new BusinessException(ErrorCode.AUTH_RESET_TOKEN_EXPIRED);
-    }
-
     const hashedPassword = await this.hashPassword(newPassword);
 
-    await this.userService.update(resetRecord.user_id, {
-      password: hashedPassword,
-    });
+    // Use transaction to atomically update password and mark token as used
+    await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+      const resetRecord = await tx.passwordReset.findUnique({
+        where: { token },
+      });
 
-    await this.prisma.passwordReset.update({
-      where: { id: resetRecord.id },
-      data: { used_at: new Date() },
-    });
+      if (!resetRecord) {
+        throw new BusinessException(ErrorCode.AUTH_INVALID_RESET_TOKEN);
+      }
 
-    await this.prisma.passwordReset.updateMany({
-      where: {
-        user_id: resetRecord.user_id,
-        id: { not: resetRecord.id },
-      },
-      data: { used_at: new Date() },
+      if (resetRecord.used_at) {
+        throw new BusinessException(ErrorCode.AUTH_RESET_TOKEN_ALREADY_USED);
+      }
+
+      if (new Date() > resetRecord.expires_at) {
+        throw new BusinessException(ErrorCode.AUTH_RESET_TOKEN_EXPIRED);
+      }
+
+      // Update password
+      await tx.user.update({
+        where: { id: resetRecord.user_id },
+        data: { password: hashedPassword },
+      });
+
+      // Mark this token as used
+      await tx.passwordReset.update({
+        where: { id: resetRecord.id },
+        data: { used_at: new Date() },
+      });
+
+      // Invalidate all other reset tokens for this user
+      await tx.passwordReset.updateMany({
+        where: {
+          user_id: resetRecord.user_id,
+          id: { not: resetRecord.id },
+        },
+        data: { used_at: new Date() },
+      });
     });
 
     return { message: 'Password has been reset successfully' };

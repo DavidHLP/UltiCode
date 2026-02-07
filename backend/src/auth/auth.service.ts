@@ -13,6 +13,7 @@ import { TokenService } from './services/token.service';
 import { CookieService } from './services/cookie.service';
 import { OAuthService } from './services/oauth.service';
 import { randomUUID } from 'crypto';
+import { Prisma } from '@prisma/client';
 
 export interface LoginResponse {
   user: {
@@ -175,39 +176,58 @@ export class AuthService {
     const fallbackAvatar = `https://api.dicebear.com/7.x/identicon/svg?seed=${encodeURIComponent(
       registerDto.username,
     )}`;
-    const newUser = await this.userService.create({
-      id,
-      username: registerDto.username,
-      email: registerDto.email,
-      name: registerDto.username,
-      avatar: registerDto.avatar || fallbackAvatar,
-      password: hashedPassword,
-    });
 
-    const accessToken = this.tokenService.generateAccessToken(
-      newUser.id,
-      newUser.username,
-      newUser.role,
+    // Use interactive transaction for atomic user + refresh token creation
+    const result = await this.prisma.$transaction(
+      async (tx: Prisma.TransactionClient) => {
+        // Create user within transaction
+        const newUser = await tx.user.create({
+          data: {
+            id,
+            username: registerDto.username,
+            email: registerDto.email,
+            name: registerDto.username,
+            avatar: registerDto.avatar || fallbackAvatar,
+            password: hashedPassword,
+          },
+        });
+
+        // Create refresh token within transaction
+        const refreshTokenRecord = await tx.refreshToken.create({
+          data: {
+            user_id: newUser.id,
+            token: this.refreshTokenService.generateToken(),
+            expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+          },
+        });
+
+        return { newUser, refreshTokenRecord };
+      },
     );
 
-    const refreshTokenRecord =
-      await this.refreshTokenService.createRefreshToken(newUser.id);
+    const accessToken = this.tokenService.generateAccessToken(
+      result.newUser.id,
+      result.newUser.username,
+      result.newUser.role,
+    );
 
-    const csrfToken = await this.csrfService.generateCsrfToken(newUser.id);
+    const csrfToken = await this.csrfService.generateCsrfToken(
+      result.newUser.id,
+    );
 
     this.cookieService.setAuthCookies(
       res,
       accessToken,
-      refreshTokenRecord.token,
+      result.refreshTokenRecord.token,
     );
 
     return {
       csrf_token: csrfToken,
       user: {
-        id: newUser.id,
-        username: newUser.username,
-        name: newUser.name || newUser.username,
-        role: newUser.role,
+        id: result.newUser.id,
+        username: result.newUser.username,
+        name: result.newUser.name || result.newUser.username,
+        role: result.newUser.role,
       },
     };
   }

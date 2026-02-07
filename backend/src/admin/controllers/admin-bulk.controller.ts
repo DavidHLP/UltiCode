@@ -7,6 +7,7 @@ import { RequirePermissions } from '../decorators/permissions.decorator';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { AuditService } from '../services/audit.service';
+import { ModerationService } from '../../common/services/moderation.service';
 import { PrismaService } from '../../prisma.service';
 import type { User } from '../../user/user.service';
 import { UserRole } from '../../user/user.service';
@@ -26,6 +27,7 @@ export class AdminBulkController {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private moderation: ModerationService,
   ) {}
 
   @Post('users/ban')
@@ -303,31 +305,35 @@ export class AdminBulkController {
 
     for (const id of ids) {
       try {
-        const updateData: Prisma.SolutionUpdateInput = {};
         switch (action) {
           case 'delete':
-            updateData.is_deleted = true;
-            updateData.deleted_at = new Date();
-            updateData.deleted_by = admin.id;
+            await this.moderation.softDelete(
+              'solution',
+              id,
+              admin.id,
+              'SOLUTION',
+            );
             break;
           case 'unflag':
-            updateData.is_flagged = false;
-            updateData.flagged_at = null;
-            updateData.flagged_reason = null;
+            await this.moderation.unflag('solution', id, admin.id, 'SOLUTION');
             break;
           case 'publish':
-            updateData.is_published = true;
-            updateData.published_at = new Date();
-            updateData.published_by = admin.id;
+            await this.prisma.solution.update({
+              where: { id: id },
+              data: {
+                is_published: true,
+                published_at: new Date(),
+                published_by: admin.id,
+              },
+            });
             break;
           case 'unpublish':
-            updateData.is_published = false;
+            await this.prisma.solution.update({
+              where: { id: id },
+              data: { is_published: false },
+            });
             break;
         }
-        await this.prisma.solution.update({
-          where: { id: id },
-          data: updateData,
-        });
         results.push({ id, success: true });
       } catch (_error) {
         results.push({ id, success: false, error: 'Failed to perform action' });
@@ -363,14 +369,12 @@ export class AdminBulkController {
         if (action === 'delete') {
           // Try as post
           try {
-            await this.prisma.forumPost.update({
-              where: { id: id },
-              data: {
-                is_deleted: true,
-                deleted_at: new Date(),
-                deleted_by: admin.id,
-              },
-            });
+            await this.moderation.softDelete(
+              'forumPost',
+              id,
+              admin.id,
+              'FORUM_POST',
+            );
             results.push({ id, success: true });
             continue;
           } catch {
@@ -389,14 +393,12 @@ export class AdminBulkController {
         } else if (action === 'unflag') {
           // Try as post
           try {
-            await this.prisma.forumPost.update({
-              where: { id: id },
-              data: {
-                is_flagged: false,
-                flagged_at: null,
-                flagged_reason: null,
-              },
-            });
+            await this.moderation.unflag(
+              'forumPost',
+              id,
+              admin.id,
+              'FORUM_POST',
+            );
             results.push({ id, success: true });
             continue;
           } catch {

@@ -3,6 +3,7 @@ import { AdminSolutionController } from './admin-solution.controller';
 import { PrismaService } from '../../prisma.service';
 import { AuditService } from '../services/audit.service';
 import { PermissionService } from '../services/permission.service';
+import { ModerationService } from '../../common/services/moderation.service';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -48,6 +49,15 @@ describe('AdminSolutionController', () => {
           provide: AuditService,
           useValue: {
             log: jest.fn(),
+          },
+        },
+        {
+          provide: ModerationService,
+          useValue: {
+            flag: jest.fn().mockResolvedValue({}),
+            unflag: jest.fn().mockResolvedValue({}),
+            softDelete: jest.fn().mockResolvedValue({}),
+            restore: jest.fn().mockResolvedValue({}),
           },
         },
         {

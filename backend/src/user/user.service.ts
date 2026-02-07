@@ -292,43 +292,51 @@ export class UserService {
     changePasswordDto: ChangePasswordDto,
     performerId?: string,
   ): Promise<{ message: string }> {
-    const user = await this.findOne(userId);
-    if (!user) {
-      throw new NotFoundException('User not found');
-    }
-
-    if (!user.password) {
-      throw new BadRequestException('User has no password set');
-    }
-
-    // Verify current password
-    const isCurrentPasswordValid = await bcrypt.compare(
-      changePasswordDto.currentPassword,
-      user.password,
-    );
-
-    if (!isCurrentPasswordValid) {
-      throw new BadRequestException('Current password is incorrect');
-    }
-
-    // Hash new password
     const hashedPassword = await bcrypt.hash(changePasswordDto.newPassword, 10);
 
-    // Update password
-    await this.update(userId, {
-      password: hashedPassword,
-    });
-
-    // Log the password change if audit service is available
-    if (this.auditService) {
-      await this.auditService.log({
-        performerId: performerId || userId,
-        action: 'CHANGE_PASSWORD',
-        entityType: 'USER',
-        entityId: userId,
-        userId: userId,
+    await this.prisma.$transaction(async (tx) => {
+      // Verify user exists and has password
+      const user = await tx.user.findUnique({
+        where: { id: userId },
       });
-    }
+
+      if (!user) {
+        throw new NotFoundException('User not found');
+      }
+
+      if (!user.password) {
+        throw new BadRequestException('User has no password set');
+      }
+
+      // Verify current password
+      const isCurrentPasswordValid = await bcrypt.compare(
+        changePasswordDto.currentPassword,
+        user.password,
+      );
+
+      if (!isCurrentPasswordValid) {
+        throw new BadRequestException('Current password is incorrect');
+      }
+
+      // Update password
+      await tx.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+      });
+
+      // Create audit log within transaction
+      if (this.auditService) {
+        await tx.auditLog.create({
+          data: {
+            performer_id: performerId || userId,
+            action: 'CHANGE_PASSWORD',
+            entity_type: 'USER',
+            entity_id: userId,
+            user_id: userId,
+          },
+        });
+      }
+    });
 
     return { message: 'Password changed successfully' };
   }

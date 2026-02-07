@@ -97,6 +97,7 @@ describe('AuthService', () => {
         {
           provide: RefreshTokenService,
           useValue: {
+            generateToken: jest.fn().mockReturnValue('refresh-token'),
             createRefreshToken: jest.fn().mockResolvedValue({
               token: 'refresh-token',
               user_id: 'user-123',
@@ -112,6 +113,32 @@ describe('AuthService', () => {
         {
           provide: PrismaService,
           useValue: {
+            $transaction: jest.fn().mockImplementation((callback) => {
+              // Create a mock transaction client that has the same methods as prisma
+              const tx = {
+                user: {
+                  create: jest.fn().mockResolvedValue(mockUser),
+                  update: jest.fn().mockResolvedValue(mockUser),
+                  findUnique: jest.fn().mockResolvedValue(mockUser),
+                },
+                refreshToken: {
+                  create: jest.fn().mockResolvedValue({
+                    token: 'refresh-token',
+                    user_id: 'user-123',
+                  }),
+                },
+                auditLog: {
+                  create: jest.fn().mockResolvedValue({}),
+                },
+                passwordReset: {
+                  updateMany: jest.fn().mockResolvedValue({ count: 1 }),
+                  create: jest.fn().mockResolvedValue({}),
+                  findUnique: jest.fn().mockResolvedValue(null),
+                  update: jest.fn().mockResolvedValue({}),
+                },
+              };
+              return callback(tx);
+            }),
             passwordReset: {
               updateMany: jest.fn().mockResolvedValue({ count: 1 }),
               create: jest.fn().mockResolvedValue({}),

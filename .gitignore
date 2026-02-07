@@ -47,6 +47,9 @@ lerna-debug.log*
 .temp
 .tmp
 
+# Git worktrees
+.worktrees/
+
 # Runtime data
 pids
 *.pid

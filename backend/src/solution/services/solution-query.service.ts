@@ -32,7 +32,7 @@ export class SolutionQueryService {
       where: { id },
       include: {
         author: true,
-        comments: true,
+        comments: { select: { id: true } },
         problem: true,
       },
     });
@@ -72,7 +72,7 @@ export class SolutionQueryService {
       },
       include: {
         author: true,
-        comments: true,
+        comments: { select: { id: true } },
         problem: true,
       },
       orderBy: {
@@ -124,7 +124,7 @@ export class SolutionQueryService {
       },
       include: {
         author: true,
-        comments: true,
+        comments: { select: { id: true } },
         problem: true,
       },
       orderBy: {
@@ -158,7 +158,7 @@ export class SolutionQueryService {
   private mapToFeedItem(
     solution: Solution & {
       author: User;
-      comments: SolutionComment[];
+      comments: SolutionComment[] | Array<{ id: string }>;
       problem?: Problem;
     },
     votes: { likes: number; dislikes: number },

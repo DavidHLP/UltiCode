@@ -1,8 +1,8 @@
 import { IsString, IsOptional, IsBoolean } from 'class-validator';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+import { ModeratedQueryDto } from '../../common/dto/moderation.dto';
 import { IsQueryBoolean } from '../../common/decorators/boolean-transform.decorator';
 
-export class ForumPostQueryDto extends PaginationDto {
+export class ForumPostQueryDto extends ModeratedQueryDto {
   @IsString()
   @IsOptional()
   search?: string;
@@ -18,11 +18,6 @@ export class ForumPostQueryDto extends PaginationDto {
   @IsQueryBoolean()
   @IsBoolean()
   @IsOptional()
-  is_flagged?: boolean;
-
-  @IsQueryBoolean()
-  @IsBoolean()
-  @IsOptional()
   is_pinned?: boolean;
 
   @IsQueryBoolean()
@@ -32,10 +27,10 @@ export class ForumPostQueryDto extends PaginationDto {
 
   @IsString()
   @IsOptional()
-  override sortBy?: string = 'created_at';
+  sortBy?: string = 'created_at';
 }
 
-export class ForumCommentQueryDto extends PaginationDto {
+export class ForumCommentQueryDto extends ModeratedQueryDto {
   @IsString()
   @IsOptional()
   search?: string;
@@ -47,11 +42,6 @@ export class ForumCommentQueryDto extends PaginationDto {
   @IsString()
   @IsOptional()
   authorId?: string;
-
-  @IsQueryBoolean()
-  @IsBoolean()
-  @IsOptional()
-  is_flagged?: boolean;
 }
 
 export class ModerationActionDto {

@@ -16,6 +16,7 @@ import { RequirePermissions } from '../decorators/permissions.decorator';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { AuditService } from '../services/audit.service';
+import { ModerationService } from '../../common/services/moderation.service';
 import { PrismaService } from '../../prisma.service';
 import type { User } from '../../user/user.service';
 import { UserRole } from '../../user/user.service';
@@ -33,6 +34,7 @@ export class AdminForumController {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private moderation: ModerationService,
   ) {}
 
   @Get('posts')
@@ -382,26 +384,13 @@ export class AdminForumController {
     @Body() body: { reason: string },
     @CurrentAdmin() admin: User,
   ) {
-    await this.prisma.forumPost.update({
-      where: { id: id },
-      data: {
-        is_flagged: true,
-        flagged_reason: body.reason,
-        flagged_at: new Date(),
-      },
-    });
-
-    await this.auditService.log({
-      performerId: admin.id,
-      action: 'FLAG_FORUM_POST',
-      entityType: 'FORUM_POST',
-      entityId: id,
-      newValues: {
-        is_flagged: true,
-        flagged_reason: body.reason,
-      },
-    });
-
+    await this.moderation.flag(
+      'forumPost',
+      id,
+      body.reason,
+      admin.id,
+      'FORUM_POST',
+    );
     return { message: 'Post flagged successfully' };
   }
 
@@ -412,25 +401,7 @@ export class AdminForumController {
     resource: PermissionResource.FORUM_POST,
   })
   async unflagPost(@Param('id') id: string, @CurrentAdmin() admin: User) {
-    await this.prisma.forumPost.update({
-      where: { id: id },
-      data: {
-        is_flagged: false,
-        flagged_reason: null,
-        flagged_at: null,
-      },
-    });
-
-    await this.auditService.log({
-      performerId: admin.id,
-      action: 'UNFLAG_FORUM_POST',
-      entityType: 'FORUM_POST',
-      entityId: id,
-      newValues: {
-        is_flagged: false,
-      },
-    });
-
+    await this.moderation.unflag('forumPost', id, admin.id, 'FORUM_POST');
     return { message: 'Post unflagged successfully' };
   }
 
@@ -441,22 +412,7 @@ export class AdminForumController {
     resource: PermissionResource.FORUM_POST,
   })
   async deletePost(@Param('id') id: string, @CurrentAdmin() admin: User) {
-    await this.prisma.forumPost.update({
-      where: { id: id },
-      data: {
-        is_deleted: true,
-        deleted_at: new Date(),
-        deleted_by: admin.id,
-      },
-    });
-
-    await this.auditService.log({
-      performerId: admin.id,
-      action: 'DELETE_FORUM_POST',
-      entityType: 'FORUM_POST',
-      entityId: id,
-    });
-
+    await this.moderation.softDelete('forumPost', id, admin.id, 'FORUM_POST');
     return { message: 'Post deleted successfully' };
   }
 

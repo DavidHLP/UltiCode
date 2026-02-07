@@ -16,6 +16,7 @@ import { RequirePermissions } from '../decorators/permissions.decorator';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { AuditService } from '../services/audit.service';
+import { ModerationService } from '../../common/services/moderation.service';
 import { PrismaService } from '../../prisma.service';
 import type { User } from '../../user/user.service';
 import { UserRole } from '../../user/user.service';
@@ -32,6 +33,7 @@ export class AdminSolutionController {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private moderation: ModerationService,
   ) {}
 
   @Get()
@@ -259,23 +261,18 @@ export class AdminSolutionController {
     @Body() flagDto: FlagSolutionDto,
     @CurrentAdmin() admin: User,
   ) {
-    const solution = await this.prisma.solution.update({
-      where: { id: id },
-      data: {
-        is_flagged: true,
-        flagged_at: new Date(),
-        flagged_reason: flagDto.reason,
-      },
-    });
-
-    await this.auditService.log({
-      performerId: admin.id,
-      action: 'FLAG_SOLUTION',
-      entityType: 'SOLUTION',
-      entityId: id,
-      newValues: { reason: flagDto.reason },
-    });
-
+    const solution = (await this.moderation.flag(
+      'solution',
+      id,
+      flagDto.reason,
+      admin.id,
+      'SOLUTION',
+    )) as {
+      id: bigint;
+      problem_id: bigint;
+      user_id: string;
+      [key: string]: unknown;
+    };
     return {
       ...solution,
       id: solution.id.toString(),
@@ -291,24 +288,17 @@ export class AdminSolutionController {
     resource: PermissionResource.SOLUTION,
   })
   async unflagSolution(@Param('id') id: string, @CurrentAdmin() admin: User) {
-    const solution = await this.prisma.solution.update({
-      where: { id: id },
-      data: {
-        is_flagged: false,
-        flagged_at: null,
-        flagged_reason: null,
-      },
-    });
-
-    await this.auditService.log({
-      performerId: admin.id,
-      action: 'UNFLAG_SOLUTION',
-      entityType: 'SOLUTION',
-      entityId: id,
-      oldValues: { is_flagged: true },
-      newValues: { is_flagged: false },
-    });
-
+    const solution = (await this.moderation.unflag(
+      'solution',
+      id,
+      admin.id,
+      'SOLUTION',
+    )) as {
+      id: bigint;
+      problem_id: bigint;
+      user_id: string;
+      [key: string]: unknown;
+    };
     return {
       ...solution,
       id: solution.id.toString(),
@@ -328,15 +318,7 @@ export class AdminSolutionController {
       where: { id: id },
     });
 
-    // Soft delete
-    await this.prisma.solution.update({
-      where: { id: id },
-      data: {
-        is_deleted: true,
-        deleted_at: new Date(),
-        deleted_by: admin.id,
-      },
-    });
+    await this.moderation.softDelete('solution', id, admin.id, 'SOLUTION');
 
     await this.auditService.log({
       performerId: admin.id,

@@ -60,7 +60,7 @@ describe('EdgeOperationsController', () => {
       const result = await controller.getInteractions(
         EdgeOperationTargetType.FORUM_POST,
         'post-123',
-        'user-123',
+        { userId: 'user-123' },
       );
 
       expect(result).toEqual(mockResponse);
@@ -86,6 +86,7 @@ describe('EdgeOperationsController', () => {
       const result = await controller.getInteractions(
         EdgeOperationTargetType.FORUM_POST,
         'post-123',
+        {},
       );
 
       expect(result).toEqual(mockResponse);

@@ -87,10 +87,7 @@ describe('SubmissionController', () => {
       submissionService.findAll.mockResolvedValue([mockSubmission] as never);
 
       const result = await submissionController.findAllByUser(
-        undefined,
-        undefined,
-        undefined,
-        undefined,
+        {},
         mockReq as any,
       );
 
@@ -101,10 +98,7 @@ describe('SubmissionController', () => {
       submissionService.findBest.mockResolvedValue(mockSubmission as never);
 
       const result = await submissionController.findAllByUser(
-        '1',
-        'true',
-        undefined,
-        undefined,
+        { problemId: 1, best: 'true' },
         mockReq as any,
       );
 
@@ -163,7 +157,7 @@ describe('SubmissionController', () => {
       submissionService.getDailyActivity.mockResolvedValue(mockActivity);
 
       const result = await submissionController.getDailyActivity(
-        '2026',
+        { year: 2026 },
         mockReq as any,
       );
 

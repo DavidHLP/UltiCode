@@ -13,6 +13,8 @@ import {
 } from '@nestjs/common';
 import { CreateSolutionCommentDto } from './dto/create-solution-comment.dto';
 import { CreateSolutionDto } from './dto/create-solution.dto';
+import { VoteSolutionDto } from './dto/vote-solution.dto';
+import { FindCommentsQueryDto } from './dto/solution-query.dto';
 
 import { SolutionService } from './solution.service';
 import type { SolutionFeedResponse } from './dto/solution-feed.dto';
@@ -78,8 +80,8 @@ export class GlobalSolutionController {
   }
 
   @Get(':id/comments')
-  findComments(@Param('id') id: string, @Query('userId') userId?: string) {
-    return this.solutionService.findComments(id, userId);
+  findComments(@Param('id') id: string, @Query() query: FindCommentsQueryDto) {
+    return this.solutionService.findComments(id, query.userId);
   }
 
   @Post(':id/comments')
@@ -100,7 +102,7 @@ export class GlobalSolutionController {
   @UseGuards(AuthGuard)
   voteSolution(
     @Param('id') id: string,
-    @Body('voteType') voteType: number,
+    @Body() dto: VoteSolutionDto,
     @Req() req: AuthenticatedRequest,
   ) {
     const user = req.user;
@@ -110,7 +112,7 @@ export class GlobalSolutionController {
     return this.voteService.vote(user.id, {
       targetType: EdgeOperationTargetType.SOLUTION,
       targetId: id,
-      voteType,
+      voteType: dto.voteType,
     });
   }
 
@@ -118,7 +120,7 @@ export class GlobalSolutionController {
   @UseGuards(AuthGuard)
   voteSolutionComment(
     @Param('id') id: string,
-    @Body('voteType') voteType: number,
+    @Body() dto: VoteSolutionDto,
     @Req() req: AuthenticatedRequest,
   ) {
     const user = req.user;
@@ -128,7 +130,7 @@ export class GlobalSolutionController {
     return this.voteService.vote(user.id, {
       targetType: EdgeOperationTargetType.SOLUTION_COMMENT,
       targetId: id,
-      voteType,
+      voteType: dto.voteType,
     });
   }
 

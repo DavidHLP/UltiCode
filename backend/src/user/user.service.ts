@@ -11,19 +11,11 @@ import { AuditService } from '../admin/services/audit.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
 import { CacheService } from '../cache/cache.service';
+import { transformWhereCondition } from './utils/prisma-query.utils';
 
 interface PaginationOptions {
   page?: number;
   limit?: number;
-}
-
-interface LikeObject {
-  constructor: { name: string };
-  parameter: string;
-}
-
-interface WhereCondition {
-  [key: string]: unknown;
 }
 
 // Re-export User type from Prisma for backward compatibility
@@ -47,33 +39,7 @@ export class UserService {
     where?: Prisma.UserWhereInput,
     options?: PaginationOptions,
   ): Promise<User[]> {
-    const prismaWhere: Prisma.UserWhereInput = {};
-    if (where) {
-      if (Array.isArray(where)) {
-        // Handle TypeORM OR conditions - convert to Prisma format
-        // For search queries with Like, we need to extract the actual values
-        const orConditions = where.map((w: WhereCondition) => {
-          const condition: WhereCondition = {};
-          for (const [key, value] of Object.entries(w)) {
-            // Handle TypeORM Like objects
-            if (
-              value &&
-              typeof value === 'object' &&
-              'constructor' in value &&
-              (value as LikeObject).constructor?.name === 'Like'
-            ) {
-              condition[key] = (value as LikeObject).parameter;
-            } else {
-              condition[key] = value;
-            }
-          }
-          return condition;
-        });
-        prismaWhere.OR = orConditions as Prisma.UserWhereInput['OR'];
-      } else {
-        Object.assign(prismaWhere, where);
-      }
-    }
+    const prismaWhere = transformWhereCondition(where);
 
     const prismaOptions: Prisma.UserFindManyArgs = { where: prismaWhere };
 
@@ -89,30 +55,7 @@ export class UserService {
   }
 
   async count(where?: Prisma.UserWhereInput): Promise<number> {
-    const prismaWhere: Prisma.UserWhereInput = {};
-    if (where) {
-      if (Array.isArray(where)) {
-        const orConditions = where.map((w: WhereCondition) => {
-          const condition: WhereCondition = {};
-          for (const [key, value] of Object.entries(w)) {
-            if (
-              value &&
-              typeof value === 'object' &&
-              'constructor' in value &&
-              (value as LikeObject).constructor?.name === 'Like'
-            ) {
-              condition[key] = (value as LikeObject).parameter;
-            } else {
-              condition[key] = value;
-            }
-          }
-          return condition;
-        });
-        prismaWhere.OR = orConditions as Prisma.UserWhereInput['OR'];
-      } else {
-        Object.assign(prismaWhere, where);
-      }
-    }
+    const prismaWhere = transformWhereCondition(where);
 
     return this.prisma.user.count({ where: prismaWhere });
   }

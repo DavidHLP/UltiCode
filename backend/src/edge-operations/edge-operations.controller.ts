@@ -10,6 +10,7 @@ import {
 } from '@nestjs/common';
 import { EdgeOperationsService } from './edge-operations.service';
 import { EdgeOperationDto } from './dto/edge-operation.dto';
+import { GetInteractionsQueryDto } from './dto/get-interactions-query.dto';
 import { AuthGuard } from '../auth/auth.guard';
 import type { Request } from 'express';
 import { EdgeOperationTargetType } from '@prisma/client';
@@ -26,12 +27,12 @@ export class EdgeOperationsController {
   async getInteractions(
     @Param('targetType') targetType: EdgeOperationTargetType,
     @Param('targetId') targetId: string,
-    @Query('userId') userId?: string,
+    @Query() query: GetInteractionsQueryDto,
   ) {
     return this.edgeOperationsService.getInteractions(
       targetType,
       targetId,
-      userId,
+      query.userId,
     );
   }
 

@@ -17,6 +17,11 @@ import { ContestSubmissionService } from './contest-submission.service';
 import { AuthGuard } from '../auth/auth.guard';
 import { CreateSubmissionDto } from './dto/create-submission.dto';
 import { RunSubmissionDto } from './dto/run-submission.dto';
+import {
+  GetDailyActivityQueryDto,
+  FindAllSubmissionsQueryDto,
+  ProblemSubmissionsQueryDto,
+} from './dto/submission-query.dto';
 import { Locale } from '../i18n/i18n.decorator';
 import type { SupportedLocale } from '../i18n/i18n.constants';
 
@@ -47,11 +52,11 @@ export class SubmissionController {
   @Get('calendar')
   @UseGuards(AuthGuard)
   async getDailyActivity(
-    @Query('year') year: string,
+    @Query() query: GetDailyActivityQueryDto,
     @Req() req: AuthenticatedRequest,
   ) {
     const userId = req.user.id;
-    const yearInt = year ? parseInt(year) : new Date().getFullYear();
+    const yearInt = query.year ?? new Date().getFullYear();
     return this.submissionService.getDailyActivity(userId, yearInt);
   }
 
@@ -64,21 +69,18 @@ export class SubmissionController {
   @Get()
   @UseGuards(AuthGuard)
   async findAllByUser(
-    @Query('problemId') problemId?: string,
-    @Query('best') best?: string,
-    @Query('skip') skip?: string,
-    @Query('take') take?: string,
+    @Query() query: FindAllSubmissionsQueryDto,
     @Req() req: AuthenticatedRequest,
   ) {
     const userId = req.user.id;
-    if (best === 'true' && problemId) {
-      return this.submissionService.findBest(parseInt(problemId), userId);
+    if (query.best === 'true' && query.problemId) {
+      return this.submissionService.findBest(query.problemId, userId);
     }
     return this.submissionService.findAll(
-      problemId ? parseInt(problemId) : null,
+      query.problemId ?? null,
       userId,
-      skip ? parseInt(skip) : 0,
-      take ? parseInt(take) : 10,
+      query.skip ?? 0,
+      query.take ?? 10,
     );
   }
 }
@@ -91,16 +93,15 @@ export class ProblemSubmissionController {
   @UseGuards(AuthGuard)
   async findAll(
     @Param('problemId', ParseIntPipe) problemId: number,
-    @Query('skip') skip?: string,
-    @Query('take') take?: string,
+    @Query() query: ProblemSubmissionsQueryDto,
     @Req() req: AuthenticatedRequest,
   ) {
     const userId = req.user.id;
     return this.submissionService.findAll(
       problemId,
       userId,
-      skip ? parseInt(skip) : 0,
-      take ? parseInt(take) : 10,
+      query.skip ?? 0,
+      query.take ?? 10,
     );
   }
 

@@ -17,6 +17,14 @@ import type {
 } from './types';
 import { Locale } from '../i18n/i18n.decorator';
 import type { SupportedLocale } from '../i18n/i18n.constants';
+import {
+  AddProblemToListDto,
+  BatchAddToListsDto,
+  SaveListDto,
+  MoveListToCategoryDto,
+  CreateCategoryDto,
+  UpdateCategoryDto,
+} from './dto/problem-list-management.dto';
 
 @Controller('problem-lists')
 export class ProblemListController {
@@ -96,9 +104,9 @@ export class ProblemListController {
   async addProblem(
     @Param('id') id: string,
     @Query('userId') userId: string,
-    @Body() body: { problemId: number },
+    @Body() dto: AddProblemToListDto,
   ): Promise<void> {
-    return this.problemListService.addProblem(id, userId, body.problemId);
+    return this.problemListService.addProblem(id, userId, dto.problemId);
   }
 
   @Delete(':id/problems/:problemId')
@@ -114,12 +122,12 @@ export class ProblemListController {
   async batchAddProblemToLists(
     @Param('problemId') problemId: number,
     @Query('userId') userId: string,
-    @Body() body: { listIds: string[] },
+    @Body() dto: BatchAddToListsDto,
   ): Promise<void> {
     return this.problemListService.batchAddProblemToLists(
       userId,
       problemId,
-      body.listIds,
+      dto.listIds,
     );
   }
 
@@ -127,12 +135,12 @@ export class ProblemListController {
   async batchRemoveProblemFromLists(
     @Param('problemId') problemId: number,
     @Query('userId') userId: string,
-    @Body() body: { listIds: string[] },
+    @Body() dto: BatchAddToListsDto,
   ): Promise<void> {
     return this.problemListService.batchRemoveProblemFromLists(
       userId,
       problemId,
-      body.listIds,
+      dto.listIds,
     );
   }
 
@@ -152,9 +160,9 @@ export class ProblemListController {
   async saveList(
     @Param('id') id: string,
     @Query('userId') userId: string,
-    @Body() body?: { categoryId?: string },
+    @Body() dto?: SaveListDto,
   ): Promise<void> {
-    return this.problemListService.saveList(userId, id, body?.categoryId);
+    return this.problemListService.saveList(userId, id, dto?.categoryId);
   }
 
   @Delete(':id/save')
@@ -169,12 +177,12 @@ export class ProblemListController {
   async moveListToCategory(
     @Param('id') id: string,
     @Query('userId') userId: string,
-    @Body() body: { categoryId: string | null },
+    @Body() dto: MoveListToCategoryDto,
   ): Promise<void> {
     return this.problemListService.moveListToCategory(
       userId,
       id,
-      body.categoryId,
+      dto.categoryId,
     );
   }
 
@@ -185,18 +193,18 @@ export class ProblemListController {
   @Post('categories')
   createCategory(
     @Query('userId') userId: string,
-    @Body() body: { name: string; sortOrder?: number },
+    @Body() dto: CreateCategoryDto,
   ): Promise<CategorySummary> {
-    return this.problemListService.createCategory(userId, body);
+    return this.problemListService.createCategory(userId, dto);
   }
 
   @Patch('categories/:categoryId')
   updateCategory(
     @Param('categoryId') categoryId: string,
     @Query('userId') userId: string,
-    @Body() body: { name?: string; sortOrder?: number },
+    @Body() dto: UpdateCategoryDto,
   ): Promise<CategorySummary> {
-    return this.problemListService.updateCategory(categoryId, userId, body);
+    return this.problemListService.updateCategory(categoryId, userId, dto);
   }
 
   @Delete('categories/:categoryId')

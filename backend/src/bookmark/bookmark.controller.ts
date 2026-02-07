@@ -19,6 +19,7 @@ import {
   UpdateBookmarkDto,
   ReorderFoldersDto,
 } from './dto/bookmark-item.dto';
+import { QuickFavoriteDto } from './dto/quick-favorite.dto';
 import { BookmarkType } from '@prisma/client';
 
 interface AuthenticatedRequest extends Request {
@@ -33,7 +34,7 @@ export class BookmarkController {
   @Post('quick')
   async quickFavorite(
     @Req() req: AuthenticatedRequest,
-    @Body() dto: { targetType: BookmarkType; targetId: string },
+    @Body() dto: QuickFavoriteDto,
   ) {
     const isSaved = await this.bookmarkService.quickFavorite(
       req.user.id,

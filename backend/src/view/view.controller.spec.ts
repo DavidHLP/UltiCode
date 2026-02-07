@@ -33,9 +33,11 @@ describe('ViewController', () => {
       viewService.recordView.mockResolvedValue({ counted: true } as never);
 
       const result = await controller.recordView(
-        ViewTargetType.SOLUTION,
-        'solution-123',
-        'user-123',
+        {
+          targetType: ViewTargetType.SOLUTION,
+          targetId: 'solution-123',
+          userId: 'user-123',
+        },
         '127.0.0.1',
       );
 

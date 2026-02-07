@@ -13,13 +13,13 @@ import {
 import { AuthGuard } from '../auth/auth.guard';
 import { RolesGuard } from '../admin/guards/roles.guard';
 import { RequireRoles } from '../admin/decorators/roles.decorator';
-import {
-  SubscriptionService,
-  SubscriptionPlan,
-  SubscriptionStatus,
-} from './subscription.service';
+import { SubscriptionService } from './subscription.service';
 import { UserService } from '../user/user.service';
 import { UserRole } from '../user/user.service';
+import {
+  CreateSubscriptionDto,
+  UpdateSubscriptionDto,
+} from './dto/subscription.dto';
 
 @Controller('admin/subscriptions')
 @UseGuards(AuthGuard, RolesGuard)
@@ -32,25 +32,17 @@ export class SubscriptionController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  async createSubscription(
-    @Body()
-    data: {
-      userId: string;
-      plan: SubscriptionPlan;
-      status?: SubscriptionStatus;
-      expiresAt?: string;
-    },
-  ) {
-    const user = await this.userService.findOne(data.userId);
+  async createSubscription(@Body() dto: CreateSubscriptionDto) {
+    const user = await this.userService.findOne(dto.userId);
     if (!user) {
       return { error: 'User not found', statusCode: 404 };
     }
 
     const subscription = await this.subscriptionService.createSubscription({
-      userId: data.userId,
-      plan: data.plan,
-      status: data.status,
-      expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+      userId: dto.userId,
+      plan: dto.plan,
+      status: dto.status,
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
     });
 
     return subscription;
@@ -66,15 +58,11 @@ export class SubscriptionController {
   @Patch(':id')
   async updateSubscription(
     @Param('id') id: string,
-    @Body()
-    data: {
-      status?: SubscriptionStatus;
-      expiresAt?: string;
-    },
+    @Body() dto: UpdateSubscriptionDto,
   ) {
     const subscription = await this.subscriptionService.updateSubscription(id, {
-      status: data.status,
-      expiresAt: data.expiresAt ? new Date(data.expiresAt) : undefined,
+      status: dto.status,
+      expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : undefined,
     });
 
     return subscription;

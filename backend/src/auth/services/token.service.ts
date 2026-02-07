@@ -41,9 +41,9 @@ export class TokenService {
 
   verifyToken(token: string): TokenPayload | null {
     try {
-      const decoded = this.jwtService.verify(token);
+      const decoded = this.jwtService.verify(token) as TokenPayload | null;
       if (decoded && typeof decoded === 'object') {
-        return decoded as TokenPayload;
+        return decoded;
       }
       return null;
     } catch {

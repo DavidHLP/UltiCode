@@ -3,11 +3,7 @@ import { PrismaService } from '../prisma.service';
 import type { Problem, ProblemDetail, ProblemTag } from '@prisma/client';
 import { CATEGORY_TAG_MAP } from './constants';
 import { I18nService } from '../i18n/i18n.service';
-import {
-  SupportedLocale,
-  DEFAULT_LOCALE,
-  TRANSLATABLE_ENTITIES,
-} from '../i18n/i18n.constants';
+import { SupportedLocale, DEFAULT_LOCALE } from '../i18n/i18n.constants';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { PaginatedResult } from '../contest/dto/ranking.dto';
 
@@ -267,7 +263,7 @@ export class ProblemService {
         ...translatedProblem,
         tagRelations: validTagRelations.map((tr) => ({
           ...tr,
-          tag: (tagMap.get(tr.tag.id) ?? tr.tag) as ProblemTag,
+          tag: tagMap.get(tr.tag.id) ?? tr.tag,
         })),
       };
     }

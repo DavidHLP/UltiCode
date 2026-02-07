@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { UserService } from './user.service';
 import { PrismaService } from '../prisma.service';
+import { CacheService } from '../cache/cache.service';
 
 describe('UserService', () => {
   let service: UserService;
@@ -36,6 +37,7 @@ describe('UserService', () => {
       };
       return callback(tx);
     }),
+    $queryRaw: jest.fn().mockResolvedValue([]),
     user: {
       findMany: jest.fn(),
       findUnique: jest.fn(),
@@ -63,6 +65,16 @@ describe('UserService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: CacheService,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+            delPattern: jest.fn(),
+            clear: jest.fn(),
+          },
         },
       ],
     }).compile();
@@ -113,11 +125,13 @@ describe('UserService', () => {
 
   describe('getProfileWithRank', () => {
     it('should return user with rank', async () => {
-      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUser);
-      (prisma.globalRanking.findUnique as jest.Mock).mockResolvedValue({
-        user_id: 'user-123',
-        global_rank: 42,
-      });
+      const mockUserWithRank = {
+        ...mockUser,
+        globalRanking: {
+          global_rank: 42,
+        },
+      };
+      (prisma.user.findUnique as jest.Mock).mockResolvedValue(mockUserWithRank);
 
       const result = await service.getProfileWithRank('user-123');
 

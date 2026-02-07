@@ -8,6 +8,7 @@ import { Response, Request } from 'express';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { AuthGuard } from './auth.guard';
+import { PermissionService } from '../admin/services/permission.service';
 
 describe('AuthController', () => {
   let controller: AuthController;
@@ -68,6 +69,12 @@ describe('AuthController', () => {
             githubCallback: jest.fn(),
             logout: jest.fn(),
             refreshTokens: jest.fn(),
+          },
+        },
+        {
+          provide: PermissionService,
+          useValue: {
+            getUserPermissions: jest.fn().mockResolvedValue([]),
           },
         },
       ],

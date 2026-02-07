@@ -21,10 +21,14 @@ import { AuthGuard } from './auth.guard';
 import { extractTokenFromHeader } from './auth.utils';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { User } from '../user/user.service';
+import { PermissionService } from '../admin/services/permission.service';
 
 @Controller('auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private permissionService: PermissionService,
+  ) {}
 
   @HttpCode(HttpStatus.OK)
   @Post('login')
@@ -104,7 +108,10 @@ export class AuthController {
 
   @Get('permissions')
   @UseGuards(AuthGuard)
-  getPermissions(@CurrentUser() user: User) {
-    return this.authService.getUserPermissions(user.role);
+  async getPermissions(@CurrentUser() user: User) {
+    const permissions = await this.permissionService.getUserPermissions(
+      user.id,
+    );
+    return permissions.map((p) => `${p.action}:${p.resource}`);
   }
 }

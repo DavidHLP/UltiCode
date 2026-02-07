@@ -23,6 +23,7 @@ import { PasswordService } from './services/password.service';
 import { TokenService } from './services/token.service';
 import { CookieService } from './services/cookie.service';
 import { OAuthService } from './services/oauth.service';
+import { AdminModule } from '../admin/admin.module';
 import Redis from 'ioredis';
 
 @Injectable()
@@ -83,6 +84,7 @@ class RedisConnectionHolder implements OnModuleDestroy {
 @Module({
   imports: [
     forwardRef(() => UserModule),
+    forwardRef(() => AdminModule),
     JwtModule.registerAsync({
       global: true,
       inject: [ConfigService],

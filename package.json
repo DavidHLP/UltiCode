@@ -55,12 +55,23 @@
         "@nestjs/swagger": "^11.2.5"
     },
     "lint-staged": {
-        "*.{ts,tsx,vue,js,jsx}": [
-            "eslint --fix",
-            "prettier --write"
+        "frontend/**/*.{ts,tsx,vue,js,jsx}": [
+            "cd frontend && pnpm lint --fix"
         ],
-        "*.{json,md,css,scss,less}": [
-            "prettier --write"
+        "frontend/**/*.{json,md,css,scss,less}": [
+            "cd frontend && pnpm format --write"
+        ],
+        "admin-frontend/**/*.{ts,tsx,vue,js,jsx}": [
+            "cd admin-frontend && pnpm lint --fix"
+        ],
+        "admin-frontend/**/*.{json,md,css,scss,less}": [
+            "cd admin-frontend && pnpm format --write"
+        ],
+        "backend/**/*.ts": [
+            "cd backend && pnpm lint --fix"
+        ],
+        "backend/**/*.{json,md}": [
+            "cd backend && pnpm format --write"
         ]
     },
     "pnpm": {

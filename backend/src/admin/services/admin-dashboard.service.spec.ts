@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AdminDashboardService } from './admin-dashboard.service';
 import { PrismaService } from '../../prisma.service';
+import { ConfigService } from '@nestjs/config';
 
 describe('AdminDashboardService', () => {
   let service: AdminDashboardService;
@@ -10,6 +11,12 @@ describe('AdminDashboardService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         AdminDashboardService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string, defaultValue?: unknown) => defaultValue),
+          },
+        },
         {
           provide: PrismaService,
           useValue: {

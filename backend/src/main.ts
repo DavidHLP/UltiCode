@@ -1,5 +1,6 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { ValidationPipe, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 
@@ -15,6 +16,8 @@ BigInt.prototype.toJSON = function (this: bigint) {
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const configService = app.get(ConfigService);
+  const logger = new Logger('Bootstrap');
 
   // Register cookie-parser middleware before CORS
   app.use(cookieParser());
@@ -36,6 +39,9 @@ async function bootstrap() {
     ],
     credentials: true,
   });
-  await app.listen(process.env.PORT ?? 9001);
+
+  const port = configService.get<number>('PORT', 9001);
+  await app.listen(port);
+  logger.log(`Application is running on: http://localhost:${port}`);
 }
 void bootstrap();

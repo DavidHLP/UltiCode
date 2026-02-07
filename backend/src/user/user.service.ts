@@ -11,7 +11,6 @@ import { AuditService } from '../admin/services/audit.service';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcrypt';
 import { CacheService } from '../cache/cache.service';
-import { transformWhereCondition } from './utils/prisma-query.utils';
 
 interface PaginationOptions {
   page?: number;
@@ -39,9 +38,7 @@ export class UserService {
     where?: Prisma.UserWhereInput,
     options?: PaginationOptions,
   ): Promise<User[]> {
-    const prismaWhere = transformWhereCondition(where);
-
-    const prismaOptions: Prisma.UserFindManyArgs = { where: prismaWhere };
+    const prismaOptions: Prisma.UserFindManyArgs = { where: where || {} };
 
     if (options?.page && options?.limit) {
       const skip = (options.page - 1) * options.limit;
@@ -55,9 +52,7 @@ export class UserService {
   }
 
   async count(where?: Prisma.UserWhereInput): Promise<number> {
-    const prismaWhere = transformWhereCondition(where);
-
-    return this.prisma.user.count({ where: prismaWhere });
+    return this.prisma.user.count({ where: where || {} });
   }
 
   async getProfileWithRank(id: string): Promise<UserWithRank | null> {

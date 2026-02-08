@@ -66,7 +66,7 @@ export class JudgeService {
       this.configService.get<string>('JUDGE_CONTAINER_ENABLED') === 'true';
     if (this.useDocker) {
       this.logger.log('Docker container sandbox is ENABLED for code execution');
-    } else {
+    } else if (process.env.NODE_ENV !== 'test') {
       this.logger.error(
         'SECURITY WARNING: Docker container sandbox is DISABLED. ' +
           'Using unsafe vm module. DO NOT deploy to production without enabling Docker containers.',

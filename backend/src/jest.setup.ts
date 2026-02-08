@@ -5,4 +5,12 @@ import * as path from 'path';
 // __dirname is the directory of this file (backend/src/jest.setup.ts)
 // .env is in backend/.env
 const envPath = path.resolve(__dirname, '../.env');
-dotenv.config({ path: envPath });
+
+// Suppress dotenv console output during tests
+const originalLog = console.log;
+console.log = () => {};
+try {
+  dotenv.config({ path: envPath });
+} finally {
+  console.log = originalLog;
+}

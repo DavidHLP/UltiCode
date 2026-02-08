@@ -9,6 +9,7 @@ import { I18nService } from '../../i18n/i18n.service';
 import { SupportedLocale, DEFAULT_LOCALE } from '../../i18n/i18n.constants';
 import { ProblemListSummary, ProblemListProblem, PrismaClient } from '../types';
 import { ProblemListStatsService } from './problem-list-stats.service';
+import { BigIntUtil } from '../../common/utils/bigint.util';
 
 @Injectable()
 export class ProblemListRelationService {
@@ -268,7 +269,7 @@ export class ProblemListRelationService {
       return [];
     }
 
-    const ids = relations.map((r) => Number(r.problem_id));
+    const ids = relations.map((r) => BigIntUtil.toString(r.problem_id));
     const statusMap = userId
       ? await this.submissionService.getProblemStatusMap(userId, ids)
       : null;
@@ -316,13 +317,14 @@ export class ProblemListRelationService {
         difficulty,
         acceptanceRate,
         status: statusMap
-          ? (statusMap.get(Number(translatedProblem.id))?.status ?? 'todo')
+          ? (statusMap.get(BigIntUtil.toString(translatedProblem.id))?.status ??
+            'todo')
           : status,
         isPremium,
         hasSolution,
         completedTime: statusMap
-          ? (statusMap.get(Number(translatedProblem.id))?.completed_time ??
-            null)
+          ? (statusMap.get(BigIntUtil.toString(translatedProblem.id))
+              ?.completed_time ?? null)
           : null,
         tags:
           (

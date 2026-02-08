@@ -1,4 +1,7 @@
 import { apiGet } from '@/utils/request'
+import { toast } from 'vue-sonner'
+import { i18n } from '@/i18n'
+import type { AuditValue } from '@/types/audit'
 
 export interface AuditLog {
   id: string
@@ -19,8 +22,8 @@ export interface AuditLog {
   action: string
   entity_type?: string
   entity_id?: string
-  old_values?: unknown
-  new_values?: unknown
+  old_values?: AuditValue
+  new_values?: AuditValue
   ip_address?: string
   user_agent?: string
 }
@@ -107,5 +110,7 @@ export const auditApi = {
     link.click()
     link.remove()
     window.URL.revokeObjectURL(url)
+
+    toast.success(i18n.global.t('apiToast.audit.exported'))
   },
 }

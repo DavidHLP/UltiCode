@@ -20,7 +20,7 @@ export class SubmissionCrudService {
 
   async create(
     userId: string,
-    problemId: number,
+    problemId: bigint,
     data: { language: string; code: string },
   ): Promise<Submission> {
     const newSubmissionId = uuid();

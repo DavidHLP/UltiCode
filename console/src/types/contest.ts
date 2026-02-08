@@ -265,6 +265,8 @@ export interface RatingHistoryEntry {
 // PAGINATED RESPONSE
 // ============================================================================
 
+// Console-specific PaginatedResult
+// Note: Console uses 'items' while shared types use 'data'
 export interface PaginatedResult<T> {
   items: T[];
   total: number;

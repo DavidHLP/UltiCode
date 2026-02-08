@@ -143,4 +143,29 @@ export default {
     memoryStorageFallback: "Language preference set for current page only",
     storageRecovered: "Language preference will now persist normally",
   },
+
+  // Validation
+  validation: {
+    username: {
+      required: "Username is required",
+      minLength: "Username must be at least 3 characters",
+      maxLength: "Username must be at most 20 characters",
+      format: "Username can only contain letters, numbers, and underscores",
+    },
+    email: {
+      required: "Email is required",
+      invalid: "Invalid email format",
+    },
+    password: {
+      required: "Password is required",
+      minLength: "Password must be at least 8 characters",
+      uppercase: "Password must contain at least one uppercase letter",
+      lowercase: "Password must contain at least one lowercase letter",
+      number: "Password must contain at least one number",
+    },
+    confirmPassword: {
+      required: "Please confirm your password",
+      mismatch: "Passwords do not match",
+    },
+  },
 } as const;

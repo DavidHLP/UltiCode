@@ -228,6 +228,8 @@ model Contest {
   @@index([contest_type])
   @@index([slug])
   @@index([status, is_visible, start_time])
+  @@index([is_deleted, created_at])
+  @@index([is_visible, is_deleted])
   @@map("contests")
 }
 
@@ -321,6 +323,7 @@ model ContestParticipant {
   problemResults     ContestProblemResult[]
   contestSubmissions ContestSubmission[]
 
+  @@unique([contest_id, user_id, is_virtual])
   @@unique([contest_id, user_id, virtual_session_id])
   @@index([user_id])
   @@index([contest_id, final_rank])
@@ -468,6 +471,8 @@ model ForumUser {
   avatar   String?        @db.VarChar(255)
   karma    Int            @default(0)
   id       String         @id @db.VarChar(40)
+  created_at DateTime     @default(now())
+  updated_at DateTime     @updatedAt
   comments ForumComment[]
   posts    ForumPost[]
 
@@ -538,6 +543,7 @@ model ForumComment {
   @@index([parent_id], map: "forum_comments_parent_id_fkey")
   @@index([post_id], map: "forum_comments_post_id_fkey")
   @@index([post_id, created_at])
+  @@index([is_deleted, created_at])
   @@map("forum_comments")
 }
 
@@ -756,6 +762,7 @@ model SolutionComment {
   @@index([solution_id], map: "solution_comments_solution_id_fkey")
   @@index([user_id], map: "solution_comments_user_id_fkey")
   @@index([solution_id, created_at])
+  @@index([is_deleted, created_at])
   @@map("solution_comments")
 }
 

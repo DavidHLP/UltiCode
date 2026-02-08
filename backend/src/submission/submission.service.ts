@@ -4,6 +4,7 @@ import { JudgeService, JudgeTestCase, JudgeResult } from './judge.service';
 import { SubmissionCrudService } from './services/submission-crud.service';
 import { SubmissionQueryService } from './services/submission-query.service';
 import { SubmissionExecutionService } from './services/submission-execution.service';
+import { BigIntUtil } from '../common/utils/bigint.util';
 
 @Injectable()
 export class SubmissionService {
@@ -16,7 +17,7 @@ export class SubmissionService {
   ) {}
 
   async findAll(
-    problemId?: number | null,
+    problemId?: bigint | string | number | null,
     userId?: string,
     skip?: number,
     take?: number,
@@ -24,11 +25,14 @@ export class SubmissionService {
     return this.queryService.findAll(problemId, userId, skip, take);
   }
 
-  async findBest(problemId: number, userId: string) {
+  async findBest(problemId: bigint | string | number, userId: string) {
     return this.queryService.findBest(problemId, userId);
   }
 
-  async getProblemStatusMap(userId: string, problemIds?: number[]) {
+  async getProblemStatusMap(
+    userId: string,
+    problemIds?: (string | number | bigint)[],
+  ) {
     return this.queryService.getProblemStatusMap(userId, problemIds);
   }
 
@@ -44,16 +48,20 @@ export class SubmissionService {
     return this.queryService.findOne(id, userId);
   }
 
-  async getLatestRunResult(problemId: number, userId?: string) {
+  async getLatestRunResult(
+    problemId: bigint | string | number,
+    userId?: string,
+  ) {
     return this.queryService.getLatestRunResult(problemId, userId);
   }
 
   async create(
     userId: string,
-    problemId: number,
+    problemId: bigint | string | number,
     data: { language: string; code: string },
   ) {
-    return this.crudService.create(userId, problemId, data);
+    const dbId = BigIntUtil.toBigInt(problemId);
+    return this.crudService.create(userId, dbId, data);
   }
 
   async updateSubmissionAfterJudging(
@@ -68,7 +76,7 @@ export class SubmissionService {
   }
 
   async run(
-    problemId: number,
+    problemId: bigint | string | number,
     data: {
       language: string;
       code: string;

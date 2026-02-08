@@ -136,14 +136,14 @@ describe('SubmissionService', () => {
   describe('getProblemStatusMap', () => {
     it('should return problem status map', async () => {
       const mockMap = new Map([
-        [1, { status: 'solved' as const, completed_time: new Date() }],
+        ['1', { status: 'solved' as const, completed_time: new Date() }],
       ]);
       queryService.getProblemStatusMap.mockResolvedValue(mockMap as any);
 
       const result = await service.getProblemStatusMap('user-123');
 
       expect(result).toBeInstanceOf(Map);
-      expect(result.has(1)).toBe(true);
+      expect(result.has('1')).toBe(true);
     });
   });
 
@@ -218,13 +218,13 @@ describe('SubmissionService', () => {
     it('should create a new submission', async () => {
       crudService.create.mockResolvedValue(mockSubmission as any);
 
-      const result = await service.create('user-123', 1, {
+      const result = await service.create('user-123', BigInt(1), {
         language: 'javascript',
         code: 'function test() {}',
       });
 
       expect(result).toBeDefined();
-      expect(crudService.create).toHaveBeenCalledWith('user-123', 1, {
+      expect(crudService.create).toHaveBeenCalledWith('user-123', BigInt(1), {
         language: 'javascript',
         code: 'function test() {}',
       });

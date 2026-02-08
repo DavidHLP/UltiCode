@@ -7,6 +7,7 @@ import i18n from "./i18n";
 import "./style.css";
 import "./assets/markdown.css";
 import VueDnDKitPlugin from "@vue-dnd-kit/core";
+import { setupGlobalErrorHandler } from "./plugins/error-handler";
 
 async function bootstrap() {
   const app = createApp(App);
@@ -15,6 +16,9 @@ async function bootstrap() {
   app.use(i18n);
   app.use(router);
   app.use(VueDnDKitPlugin);
+
+  // Setup global error handler
+  setupGlobalErrorHandler(app);
 
   // Set initial document language
   document.documentElement.lang = (

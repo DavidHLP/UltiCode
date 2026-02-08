@@ -2,43 +2,43 @@
     "name": "wedding-dress-system",
     "private": true,
     "scripts": {
-        "dev": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm run dev:frontend\" \"pnpm run dev:admin\" \"pnpm run dev:backend\"",
-        "dev:frontend": "pnpm --filter edit-markdown dev",
-        "dev:admin": "pnpm --filter admin-frontend dev",
+        "dev": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm run dev:console\" \"pnpm run dev:management\" \"pnpm run dev:backend\"",
+        "dev:console": "pnpm --filter console dev",
+        "dev:management": "pnpm --filter management dev",
         "dev:backend": "pnpm --filter nest-backend start:dev",
-        "build": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm run build:frontend\" \"pnpm run build:admin\" \"pnpm run build:backend\"",
-        "build:frontend": "pnpm --filter edit-markdown build",
-        "build:admin": "pnpm --filter admin-frontend build",
+        "build": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm run build:console\" \"pnpm run build:management\" \"pnpm run build:backend\"",
+        "build:console": "pnpm --filter console build",
+        "build:management": "pnpm --filter management build",
         "build:backend": "pnpm --filter nest-backend build",
-        "lint": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm run lint:frontend\" \"pnpm run lint:admin\" \"pnpm run lint:backend\"",
-        "lint:frontend": "pnpm --filter edit-markdown lint",
-        "lint:admin": "pnpm --filter admin-frontend lint",
+        "lint": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm run lint:console\" \"pnpm run lint:management\" \"pnpm run lint:backend\"",
+        "lint:console": "pnpm --filter console lint",
+        "lint:management": "pnpm --filter management lint",
         "lint:backend": "pnpm --filter nest-backend lint",
-        "lint:fix": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm --filter edit-markdown lint -- --fix\" \"pnpm --filter admin-frontend lint -- --fix\" \"pnpm --filter nest-backend lint -- --fix\"",
-        "format": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm run format:frontend\" \"pnpm run format:admin\" \"pnpm run format:backend\"",
-        "format:frontend": "pnpm --filter edit-markdown format",
-        "format:admin": "pnpm --filter admin-frontend format",
+        "lint:fix": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm --filter console lint -- --fix\" \"pnpm --filter management lint -- --fix\" \"pnpm --filter nest-backend lint -- --fix\"",
+        "format": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm run format:console\" \"pnpm run format:management\" \"pnpm run format:backend\"",
+        "format:console": "pnpm --filter console format",
+        "format:management": "pnpm --filter management format",
         "format:backend": "pnpm --filter nest-backend format",
-        "format:write": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm --filter edit-markdown format -- --write\" \"pnpm --filter admin-frontend format -- --write\" \"pnpm --filter nest-backend format -- --write\"",
-        "type-check": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm run type-check:frontend\" \"pnpm run type-check:admin\" \"pnpm run type-check:backend\"",
-        "type-check:frontend": "pnpm --filter edit-markdown type-check",
-        "type-check:admin": "pnpm --filter admin-frontend type-check",
+        "format:write": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm --filter console format -- --write\" \"pnpm --filter management format -- --write\" \"pnpm --filter nest-backend format -- --write\"",
+        "type-check": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm run type-check:console\" \"pnpm run type-check:management\" \"pnpm run type-check:backend\"",
+        "type-check:console": "pnpm --filter console type-check",
+        "type-check:management": "pnpm --filter management type-check",
         "type-check:backend": "pnpm --filter nest-backend type-check",
-        "test": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm run test:frontend\" \"pnpm run test:admin\" \"pnpm run test:backend\"",
-        "test:frontend": "pnpm --filter edit-markdown test",
-        "test:admin": "pnpm --filter admin-frontend test",
+        "test": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm run test:console\" \"pnpm run test:management\" \"pnpm run test:backend\"",
+        "test:console": "pnpm --filter console test",
+        "test:management": "pnpm --filter management test",
         "test:backend": "pnpm --filter nest-backend test",
-        "test:watch": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm run test:watch:frontend\" \"pnpm run test:watch:admin\" \"pnpm run test:watch:backend\"",
-        "test:watch:frontend": "pnpm --filter edit-markdown test:watch",
-        "test:watch:admin": "pnpm --filter admin-frontend test:watch",
+        "test:watch": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm run test:watch:console\" \"pnpm run test:watch:management\" \"pnpm run test:watch:backend\"",
+        "test:watch:console": "pnpm --filter console test:watch",
+        "test:watch:management": "pnpm --filter management test:watch",
         "test:watch:backend": "pnpm --filter nest-backend test:watch",
-        "test:cov": "concurrently -k -n FRONTEND,ADMIN,BACKEND -c auto \"pnpm run test:cov:frontend\" \"pnpm run test:cov:admin\" \"pnpm run test:cov:backend\"",
-        "test:cov:frontend": "pnpm --filter edit-markdown test:coverage",
-        "test:cov:admin": "pnpm --filter admin-frontend test:coverage",
+        "test:cov": "concurrently -k -n CONSOLE,MANAGEMENT,BACKEND -c auto \"pnpm run test:cov:console\" \"pnpm run test:cov:management\" \"pnpm run test:cov:backend\"",
+        "test:cov:console": "pnpm --filter console test:coverage",
+        "test:cov:management": "pnpm --filter management test:coverage",
         "test:cov:backend": "pnpm --filter nest-backend test:cov",
         "test:e2e": "pnpm --filter nest-backend test:e2e",
-        "start": "concurrently -k -n FRONTEND,BACKEND -c auto \"pnpm run start:frontend\" \"pnpm run start:backend\"",
-        "start:frontend": "pnpm --filter edit-markdown preview",
+        "start": "concurrently -k -n CONSOLE,BACKEND -c auto \"pnpm run start:console\" \"pnpm run start:backend\"",
+        "start:console": "pnpm --filter console preview",
         "start:backend": "pnpm --filter nest-backend start:prod",
         "prepare": "husky",
         "pre-commit": "lint-staged",
@@ -55,17 +55,17 @@
         "@nestjs/swagger": "^11.2.5"
     },
     "lint-staged": {
-        "frontend/**/*.{ts,tsx,vue,js,jsx}": [
-            "cd frontend && pnpm lint --fix"
+        "console/**/*.{ts,tsx,vue,js,jsx}": [
+            "cd console && pnpm lint --fix"
         ],
-        "frontend/**/*.{json,md,css,scss,less}": [
-            "cd frontend && pnpm format --write"
+        "console/**/*.{json,md,css,scss,less}": [
+            "cd console && pnpm format --write"
         ],
-        "admin-frontend/**/*.{ts,tsx,vue,js,jsx}": [
-            "cd admin-frontend && pnpm lint --fix"
+        "management/**/*.{ts,tsx,vue,js,jsx}": [
+            "cd management && pnpm lint --fix"
         ],
-        "admin-frontend/**/*.{json,md,css,scss,less}": [
-            "cd admin-frontend && pnpm format --write"
+        "management/**/*.{json,md,css,scss,less}": [
+            "cd management && pnpm format --write"
         ],
         "backend/**/*.ts": [
             "cd backend && pnpm lint --fix"

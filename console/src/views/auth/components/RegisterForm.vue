@@ -16,6 +16,9 @@ import { authApi } from "@/api/auth";
 import { setToken, setUserId } from "@/utils/auth";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
+import { useForm } from "vee-validate";
+import { toTypedSchema } from "@vee-validate/zod";
+import { registerSchema, type RegisterForm } from "@/validation/auth.schema";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -23,19 +26,25 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const router = useRouter();
-const username = ref("");
-const email = ref("");
-const password = ref("");
 const loading = ref(false);
 
-async function handleSubmit(e: Event) {
-  e.preventDefault();
+// Set up form validation
+const { handleSubmit, errors, defineField } = useForm({
+  validationSchema: toTypedSchema(registerSchema),
+});
+
+const [username] = defineField("username");
+const [email] = defineField("email");
+const [password] = defineField("password");
+const [confirmPassword] = defineField("confirmPassword");
+
+const onSubmit = handleSubmit(async (values: RegisterForm) => {
   loading.value = true;
   try {
     const res = await authApi.register({
-      username: username.value,
-      email: email.value,
-      password: password.value,
+      username: values.username,
+      email: values.email,
+      password: values.password,
     });
     setToken(res.access_token);
     setUserId(res.user.id);
@@ -47,7 +56,7 @@ async function handleSubmit(e: Event) {
   } finally {
     loading.value = false;
   }
-}
+});
 
 function handleGithubLogin() {
   window.location.href = `${import.meta.env.VITE_API_BASE_URL || "http://localhost:9001"}/auth/github`;
@@ -55,7 +64,7 @@ function handleGithubLogin() {
 </script>
 
 <template>
-  <form :class="cn('flex flex-col gap-6', props.class)" @submit="handleSubmit">
+  <form :class="cn('flex flex-col gap-6', props.class)" @submit="onSubmit">
     <FieldGroup>
       <div class="flex flex-col items-center gap-1 text-center">
         <h1 class="text-2xl font-bold">{{ t("auth.register.title") }}</h1>
@@ -73,8 +82,10 @@ function handleGithubLogin() {
           v-model="username"
           :placeholder="t('auth.register.usernamePlaceholder')"
           autocomplete="username"
-          required
         />
+        <div v-if="errors.username" class="text-sm text-destructive mt-1">
+          {{ t(errors.username) }}
+        </div>
       </Field>
       <Field>
         <FieldLabel for="email"> {{ t("auth.register.email") }} </FieldLabel>
@@ -84,8 +95,10 @@ function handleGithubLogin() {
           v-model="email"
           :placeholder="t('auth.register.emailPlaceholder')"
           autocomplete="email"
-          required
         />
+        <div v-if="errors.email" class="text-sm text-destructive mt-1">
+          {{ t(errors.email) }}
+        </div>
       </Field>
       <Field>
         <FieldLabel for="password">
@@ -97,8 +110,28 @@ function handleGithubLogin() {
           v-model="password"
           :placeholder="t('auth.register.passwordPlaceholder')"
           autocomplete="new-password"
-          required
         />
+        <div v-if="errors.password" class="text-sm text-destructive mt-1">
+          {{ t(errors.password) }}
+        </div>
+      </Field>
+      <Field>
+        <FieldLabel for="confirmPassword">
+          {{ t("auth.register.confirmPassword") }}
+        </FieldLabel>
+        <Input
+          id="confirmPassword"
+          type="password"
+          v-model="confirmPassword"
+          :placeholder="t('auth.register.confirmPasswordPlaceholder')"
+          autocomplete="new-password"
+        />
+        <div
+          v-if="errors.confirmPassword"
+          class="text-sm text-destructive mt-1"
+        >
+          {{ t(errors.confirmPassword) }}
+        </div>
       </Field>
       <Field>
         <Button type="submit" :disabled="loading">

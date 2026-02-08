@@ -81,7 +81,7 @@ export class JudgeProcessor extends WorkerHost {
       });
 
       // Perform judging
-      const judgeResult = this.judgeService.judge(
+      const judgeResult = await this.judgeService.judge(
         submission.language,
         submission.code,
         testCases,

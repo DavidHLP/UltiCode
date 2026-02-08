@@ -9,6 +9,7 @@ import { FindAllProblemsQueryDto, ProblemParamsDto } from './dto';
 import { AuthGuard } from '../auth/auth.guard';
 import { Public } from '../auth/auth.decorator';
 import { PaginatedResult } from '../contest/dto/ranking.dto';
+import { BigIntUtil } from '../common/utils/bigint.util';
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; role?: string };
@@ -46,7 +47,7 @@ export class ProblemController {
       return paginatedResult;
     }
     const problemIds = paginatedResult.items.map((problem) =>
-      Number(problem.id),
+      BigIntUtil.toString(problem.id),
     );
     if (problemIds.length === 0) {
       return paginatedResult;
@@ -58,7 +59,7 @@ export class ProblemController {
     return {
       ...paginatedResult,
       items: paginatedResult.items.map((problem) => {
-        const entry = statusMap.get(Number(problem.id));
+        const entry = statusMap.get(BigIntUtil.toString(problem.id));
         return {
           ...problem,
           status: entry?.status ?? 'todo',
@@ -113,9 +114,9 @@ export class ProblemController {
     // Add status tracking for full access
     const statusMap = await this.submissionService.getProblemStatusMap(
       effectiveUserId,
-      [Number((problem as Problem).id)],
+      [BigIntUtil.toString((problem as Problem).id)],
     );
-    const entry = statusMap.get(Number((problem as Problem).id));
+    const entry = statusMap.get(BigIntUtil.toString((problem as Problem).id));
     return {
       ...problem,
       status: entry?.status ?? 'todo',
@@ -129,12 +130,15 @@ export class ProblemController {
     @Param('id') id: string | number,
     @Query() query: ProblemParamsDto,
   ) {
-    return this.submissionService.getLatestRunResult(Number(id), query.userId);
+    return this.submissionService.getLatestRunResult(
+      BigIntUtil.toBigInt(id),
+      query.userId,
+    );
   }
 
   @Get(':id/adjacent')
   @Throttle({ short: { limit: 100, ttl: 60000 } })
   getAdjacent(@Param('id') id: string | number) {
-    return this.problemService.findAdjacent(Number(id));
+    return this.problemService.findAdjacent(BigIntUtil.toBigInt(id));
   }
 }

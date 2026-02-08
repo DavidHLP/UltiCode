@@ -1,11 +1,13 @@
 import { IsString, IsOptional, IsInt, Min, Max } from 'class-validator';
 import { Type } from 'class-transformer';
+import type { PaginationParams, SortParams } from '@ulticode/shared-types';
 
 /**
  * Base pagination DTO for query parameters
  * Provides standard pagination fields with validation
+ * Extends shared PaginationParams and SortParams for type consistency
  */
-export class PaginationDto {
+export class PaginationDto implements PaginationParams, SortParams {
   @Type(() => Number)
   @IsInt()
   @Min(1)
@@ -44,6 +46,8 @@ export class PaginationExportDto extends PaginationDto {
 /**
  * Standard paginated result interface
  * Used to return paginated data with metadata
+ * Note: Backend uses 'items' while shared types use 'data'
+ * This keeps backward compatibility within the backend
  */
 export interface PaginatedResult<T> {
   items: T[];
@@ -52,3 +56,6 @@ export interface PaginatedResult<T> {
   limit: number;
   totalPages: number;
 }
+
+// Re-export shared types for convenience
+export type { PaginationParams, SortParams } from '@ulticode/shared-types';

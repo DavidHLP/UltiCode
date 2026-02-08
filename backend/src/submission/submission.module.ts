@@ -15,6 +15,8 @@ import { NotificationModule } from '../notification/notification.module';
 import { SubmissionCrudService } from './services/submission-crud.service';
 import { SubmissionQueryService } from './services/submission-query.service';
 import { SubmissionExecutionService } from './services/submission-execution.service';
+import { DockerOrchestratorService } from './services/docker-orchestrator.service';
+import { ContainerPoolService } from './services/container-pool.service';
 
 @Module({
   imports: [
@@ -38,6 +40,8 @@ import { SubmissionExecutionService } from './services/submission-execution.serv
     SubmissionExecutionService,
     SubmissionService,
     ContestSubmissionService,
+    ContainerPoolService,
+    DockerOrchestratorService,
   ],
   exports: [SubmissionService, ContestSubmissionService],
 })

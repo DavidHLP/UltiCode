@@ -22,6 +22,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { getRoleBadgeVariant, getStatusIcon, getStatusBadge } from '@/lib/entities/user'
 import type { User } from '@/api/admin/users'
+import type { UserRole } from '@/constants/roles'
 import { formatDate } from '@/lib/format/date'
 
 export interface UserActions {
@@ -96,7 +97,7 @@ export function createColumns(
       accessorKey: 'role',
       header: () => t('users.columns.role'),
       cell: ({ row }) => {
-        const role = row.getValue('role') as string
+        const role = row.getValue('role') as UserRole
         const icon: Component = role === 'USER' ? IconUser : IconShield
         return h('div', { class: 'flex items-center gap-2' }, [
           h(icon, { class: 'h-4 w-4 text-muted-foreground' }),

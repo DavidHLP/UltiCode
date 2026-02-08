@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
 import { JudgeService, JudgeTestCase } from '../judge.service';
+import { BigIntUtil } from '../../common/utils/bigint.util';
 
 @Injectable()
 export class SubmissionExecutionService {
@@ -10,7 +11,7 @@ export class SubmissionExecutionService {
   ) {}
 
   async run(
-    problemId: number,
+    problemId: string | bigint | number,
     data: {
       language: string;
       code: string;
@@ -18,22 +19,23 @@ export class SubmissionExecutionService {
     },
     userId?: string,
   ) {
+    const dbId = BigIntUtil.toBigInt(problemId);
     const testCases =
       data.testCases && data.testCases.length > 0
         ? this.normalizeTestCases(data.testCases)
-        : await this.buildTestCasesFromExamples(problemId);
-    const judgeResult = this.judgeService.judge(
+        : await this.buildTestCasesFromExamples(dbId);
+    const judgeResult = await this.judgeService.judge(
       data.language,
       data.code,
       testCases,
     );
 
-    const runId = `run-${problemId}-${Date.now()}`;
+    const runId = `run-${dbId}-${Date.now()}`;
     const cases = judgeResult.cases.map((detail, index) => ({
       id: `${runId}-case-${index + 1}`,
       runId,
       submissionTestId: `${runId}-test-${index + 1}`,
-      testCaseId: testCases[index]?.id ?? `${problemId}-${index + 1}`,
+      testCaseId: testCases[index]?.id ?? `${dbId}-${index + 1}`,
       caseLabel: testCases[index]?.label ?? `Case ${index + 1}`,
       status: detail.status,
       runtime: `${detail.time} ms`,
@@ -47,7 +49,7 @@ export class SubmissionExecutionService {
     return {
       id: runId,
       submissionId: runId,
-      problemId,
+      problemId: dbId,
       userId: userId ?? 'anonymous',
       verdict: judgeResult.compileError ? 'Compile Error' : judgeResult.verdict,
       runtime: `${judgeResult.runtime} ms`,
@@ -78,7 +80,7 @@ export class SubmissionExecutionService {
   }
 
   private async buildTestCasesFromExamples(
-    problemId: number,
+    problemId: bigint,
   ): Promise<JudgeTestCase[]> {
     const examples = await this.prisma.problemExample.findMany({
       where: { problem_id: problemId },

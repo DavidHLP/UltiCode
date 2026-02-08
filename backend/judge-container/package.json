@@ -1,0 +1,22 @@
+{
+  "name": "ulticode-judge-container",
+  "version": "1.0.0",
+  "description": "Secure code execution container for UltiCode judge system",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsc && node dist/index.js"
+  },
+  "dependencies": {
+    "@types/node": "^22.10.7",
+    "express": "^4.21.2",
+    "typescript": "^5.7.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

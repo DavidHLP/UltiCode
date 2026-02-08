@@ -9,6 +9,15 @@ import {
 
 @Injectable()
 export class PermissionService {
+  private rolePermissionCache = new Map<
+    string,
+    Array<{
+      action: PermissionAction;
+      resource: PermissionResource;
+    }>
+  >();
+  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+
   constructor(private prisma: PrismaService) {}
 
   /**
@@ -29,10 +38,20 @@ export class PermissionService {
       return false;
     }
 
-    // Check role-based permissions first
-    const rolePerms = await this.prisma.rolePermission.findMany({
-      where: { role: user.role },
-    });
+    // Check cached role permissions
+    let rolePerms = this.rolePermissionCache.get(user.role);
+    if (!rolePerms) {
+      rolePerms = await this.prisma.rolePermission.findMany({
+        where: { role: user.role },
+        select: { action: true, resource: true },
+      });
+      this.rolePermissionCache.set(user.role, rolePerms);
+
+      // Clear cache after TTL
+      setTimeout(() => {
+        this.rolePermissionCache.delete(user.role);
+      }, this.CACHE_TTL);
+    }
 
     const hasRolePerm = rolePerms.some(
       (p) => p.action === action && p.resource === resource,
@@ -178,5 +197,12 @@ export class PermissionService {
         updated_by: updatedBy,
       },
     });
+  }
+
+  /**
+   * Clear cache when role permissions change
+   */
+  clearRoleCache(role: UserRole): void {
+    this.rolePermissionCache.delete(role);
   }
 }

@@ -1,5 +1,5 @@
 {
-  "name": "admin-frontend",
+  "name": "management",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -7,7 +7,7 @@
     "node": "^20.19.0 || >=22.12.0"
   },
   "scripts": {
-    "dev": "npm run lint && npm run type-check && npm run format && npm run test && vite",
+    "dev": "pnpm run lint && pnpm run type-check && pnpm run format && pnpm run test && vite",
     "build": "run-p type-check \"build-only {@}\" --",
     "preview": "vite preview",
     "build-only": "vite build",
@@ -20,6 +20,7 @@
   },
   "dependencies": {
     "@dnd-kit/abstract": "^0.1.21",
+    "@ulticode/shared-types": "workspace:*",
     "@dnd-kit/modifiers": "^9.0.0",
     "@tabler/icons-vue": "^3.36.1",
     "@tailwindcss/vite": "^4.1.18",

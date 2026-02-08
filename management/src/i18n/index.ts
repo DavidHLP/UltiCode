@@ -3,7 +3,7 @@ import { isRef } from 'vue'
 import zhCN from './locales/zh-CN'
 import enUS from './locales/en-US'
 
-// Support same locales as frontend - zh-CN first to match
+// Support same locales as console - zh-CN first to match
 export const SUPPORTED_LOCALES = ['zh-CN', 'en-US'] as const
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 

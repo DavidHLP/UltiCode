@@ -8,6 +8,7 @@ import {
   TRANSLATABLE_ENTITIES,
 } from '../../i18n/i18n.constants';
 import { SUBMISSION_STATUS_DEFINITIONS } from '../submission-statuses';
+import { BigIntUtil } from '../../common/utils/bigint.util';
 
 type ProblemStatusSummary = {
   status: 'solved' | 'attempted' | 'todo';
@@ -32,7 +33,7 @@ export class SubmissionQueryService {
   ) {}
 
   async findAll(
-    problemId?: number | null,
+    problemId?: bigint | string | number | null,
     userId?: string,
     skip: number = 0,
     take: number = 10,
@@ -40,7 +41,7 @@ export class SubmissionQueryService {
     const whereCondition: Prisma.SubmissionWhereInput = {};
 
     if (problemId) {
-      whereCondition.problem_id = problemId;
+      whereCondition.problem_id = BigIntUtil.toBigInt(problemId);
     }
 
     if (userId) {
@@ -75,12 +76,13 @@ export class SubmissionQueryService {
   }
 
   async findBest(
-    problemId: number,
+    problemId: bigint | string | number,
     userId: string,
   ): Promise<Submission | null> {
+    const dbId = BigIntUtil.toBigInt(problemId);
     const submission = await this.prisma.submission.findFirst({
       where: {
-        problem_id: problemId,
+        problem_id: dbId,
         user_id: userId,
         status: 'Accepted',
       },
@@ -134,14 +136,14 @@ export class SubmissionQueryService {
 
   async getProblemStatusMap(
     userId: string,
-    problemIds?: number[],
-  ): Promise<Map<number, ProblemStatusSummary>> {
+    problemIds?: (string | number | bigint)[],
+  ): Promise<Map<string, ProblemStatusSummary>> {
     const whereCondition: Prisma.SubmissionWhereInput = {
       user_id: userId,
     };
 
     if (problemIds && problemIds.length > 0) {
-      whereCondition.problem_id = { in: problemIds };
+      whereCondition.problem_id = { in: BigIntUtil.toBigIntArray(problemIds) };
     }
 
     const submissions = await this.prisma.submission.findMany({
@@ -156,10 +158,10 @@ export class SubmissionQueryService {
       },
     });
 
-    const statusMap = new Map<number, ProblemStatusSummary>();
+    const statusMap = new Map<string, ProblemStatusSummary>();
 
     for (const submission of submissions) {
-      const problemId = Number(submission.problem_id);
+      const problemId = BigIntUtil.toString(submission.problem_id);
       const existing = statusMap.get(problemId);
       const isAccepted = submission.status === 'Accepted';
 
@@ -245,10 +247,14 @@ export class SubmissionQueryService {
     }
   }
 
-  async getLatestRunResult(problemId: number, userId?: string) {
+  async getLatestRunResult(
+    problemId: bigint | string | number,
+    userId?: string,
+  ) {
+    const dbId = BigIntUtil.toBigInt(problemId);
     const submission = await this.prisma.submission.findFirst({
       where: {
-        problem_id: problemId,
+        problem_id: dbId,
         ...(userId ? { user_id: userId } : {}),
       },
       orderBy: {
@@ -268,7 +274,7 @@ export class SubmissionQueryService {
       id: `case-${index + 1}`,
       runId: `run-${submission.id}`,
       submissionTestId: `${submission.id}-${index + 1}`,
-      testCaseId: `${problemId}-${index + 1}`,
+      testCaseId: `${dbId}-${index + 1}`,
       caseLabel: `Case ${index + 1}`,
       status: detail.status ?? submission.status,
       runtime:
@@ -292,7 +298,7 @@ export class SubmissionQueryService {
     return {
       id: `run-${submission.id}`,
       submissionId: submission.id,
-      problemId,
+      problemId: dbId,
       userId: submission.user_id,
       verdict: submission.status,
       runtime: `${submission.runtime} ms`,

@@ -1,5 +1,6 @@
 import { apiGet, apiPatch, apiPost } from '@/utils/request'
 import { toast } from 'vue-sonner'
+import { i18n } from '@/i18n'
 
 export interface AccountProfile {
   id: string
@@ -54,13 +55,13 @@ export const accountApi = {
 
   async updateProfile(data: UpdateProfileDto): Promise<AccountProfile> {
     const response = await apiPatch<AccountProfile>('/admin/account/profile', data)
-    toast.success('Profile updated successfully')
+    toast.success(i18n.global.t('account.toast.saveSuccess'))
     return response
   },
 
   async changePassword(data: ChangePasswordDto): Promise<void> {
     await apiPost('/admin/account/change-password', data)
-    toast.success('Password changed successfully')
+    toast.success(i18n.global.t('account.toast.passwordSuccess'))
   },
 
   async getSubscription(): Promise<Subscription> {

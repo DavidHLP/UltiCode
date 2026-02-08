@@ -13,44 +13,46 @@ export class ContestParticipationService {
   constructor(private prisma: PrismaService) {}
 
   async registerForContest(contestId: string, userId: string): Promise<void> {
-    const contest = await this.prisma.contest.findUnique({
-      where: { id: contestId },
-    });
+    await this.prisma.$transaction(async (tx) => {
+      const contest = await tx.contest.findUnique({
+        where: { id: contestId },
+      });
 
-    if (!contest) {
-      throw new NotFoundException('Contest not found');
-    }
+      if (!contest) {
+        throw new NotFoundException('Contest not found');
+      }
 
-    if (contest.status !== 'upcoming') {
-      throw new BadRequestException('Can only register for upcoming contests');
-    }
+      if (contest.status !== 'upcoming') {
+        throw new BadRequestException(
+          'Can only register for upcoming contests',
+        );
+      }
 
-    const existing = await this.prisma.contestParticipant.findFirst({
-      where: {
-        contest_id: contestId,
-        user_id: userId,
-        is_virtual: false,
-      },
-    });
+      // Use create with unique constraint to prevent duplicate registrations
+      const participantId: string = uuid();
+      try {
+        await tx.contestParticipant.create({
+          data: {
+            id: participantId,
+            contest_id: contestId,
+            user_id: userId,
+            status: 'REGISTERED',
+            is_virtual: false,
+          },
+        });
+      } catch (error) {
+        // Handle unique constraint violation
+        const prismaError = error as { code?: string };
+        if (prismaError.code === 'P2002') {
+          throw new BadRequestException('Already registered for this contest');
+        }
+        throw error;
+      }
 
-    if (existing) {
-      throw new BadRequestException('Already registered for this contest');
-    }
-
-    const participantId: string = uuid();
-    await this.prisma.contestParticipant.create({
-      data: {
-        id: participantId,
-        contest_id: contestId,
-        user_id: userId,
-        status: 'REGISTERED',
-        is_virtual: false,
-      },
-    });
-
-    await this.prisma.contest.update({
-      where: { id: contestId },
-      data: { registered_count: { increment: 1 } },
+      await tx.contest.update({
+        where: { id: contestId },
+        data: { registered_count: { increment: 1 } },
+      });
     });
   }
 

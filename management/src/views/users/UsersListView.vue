@@ -10,6 +10,7 @@ import { Separator } from '@/components/ui/separator'
 import { useUsersStore } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/auth'
 import type { User } from '@/api/admin/users'
+import type { UserRole } from '@/constants/roles'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
@@ -94,7 +95,7 @@ const {
   },
   transformParams: ({ search, filters, page, limit }) => ({
     search,
-    role: filters.role === 'all' ? undefined : filters.role,
+    role: filters.role === 'all' ? undefined : (filters.role as UserRole),
     is_active:
       filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined,
     is_banned: filters.status === 'banned' ? true : undefined,

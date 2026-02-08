@@ -1,7 +1,8 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe, Logger } from '@nestjs/common';
+import { ValidationPipe, Logger, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { AppModule } from './app.module';
+import { GlobalExceptionFilter } from './common/filters/global-exception.filter';
 import cookieParser from 'cookie-parser';
 
 // Fix BigInt serialization
@@ -22,11 +23,24 @@ async function bootstrap() {
   // Register cookie-parser middleware before CORS
   app.use(cookieParser());
 
+  // Register global exception filter
+  app.useGlobalFilters(new GlobalExceptionFilter());
+
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
       whitelist: true,
       forbidNonWhitelisted: true,
+      exceptionFactory: (errors) => {
+        return new BadRequestException({
+          code: 'VALIDATION_ERROR',
+          message: 'Request validation failed',
+          errors: errors.map((error) => ({
+            field: error.property,
+            constraints: error.constraints,
+          })),
+        });
+      },
     }),
   );
 

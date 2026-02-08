@@ -52,6 +52,15 @@ const isActiveNav = (item: NavItem) => {
   }
   return false;
 };
+
+// Computed key for router-view to force component recreation when navigating between routes
+const cacheKey = computed(() => {
+  const metaCacheKey = route.meta.cacheKey;
+  if (typeof metaCacheKey === "function") {
+    return metaCacheKey(route);
+  }
+  return metaCacheKey || route.fullPath;
+});
 </script>
 
 <template>
@@ -109,7 +118,7 @@ const isActiveNav = (item: NavItem) => {
         </NavigationMenu>
       </header>
       <main class="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-        <router-view />
+        <router-view :key="cacheKey" />
       </main>
     </SidebarInset>
   </SidebarProvider>

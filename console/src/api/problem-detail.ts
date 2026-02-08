@@ -3,6 +3,7 @@ import type {
   ProblemLanguageOption,
   ProblemTestCase,
 } from "@/types/problem-detail";
+import type { DescriptionExample } from "@/types/problem-example";
 import { apiGet } from "@/utils/request";
 import { mapProblem } from "@/api/problem";
 
@@ -67,7 +68,9 @@ const mapExamplesToTestCases = (
     output: ex.outputText,
   }));
 
-const mapExamplesToDescription = (examples: BackendExample[]) =>
+const mapExamplesToDescription = (
+  examples: BackendExample[],
+): DescriptionExample[] =>
   examples.map((ex) => ({
     input: ex.inputText || "",
     output: ex.outputText || "",
@@ -122,5 +125,5 @@ export function mapProblemDetail(
     languages: mapLanguages(response.languages),
     testCases: examples.length > 0 ? mapExamplesToTestCases(examples) : [],
     examples: examples.length > 0 ? mapExamplesToDescription(examples) : [],
-  } as ProblemDetail;
+  };
 }

@@ -1,7 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { performance } from 'perf_hooks';
 import * as vm from 'vm';
 import ts from 'typescript';
+import { DockerOrchestratorService } from './services/docker-orchestrator.service';
 
 type JudgeStatus =
   | 'Accepted'
@@ -53,7 +55,83 @@ const FLOAT_TOLERANCE = 1e-6;
 
 @Injectable()
 export class JudgeService {
-  judge(
+  private readonly logger = new Logger(JudgeService.name);
+  private readonly useDocker: boolean;
+
+  constructor(
+    private readonly configService: ConfigService,
+    private readonly dockerOrchestrator: DockerOrchestratorService,
+  ) {
+    this.useDocker =
+      this.configService.get<string>('JUDGE_CONTAINER_ENABLED') === 'true';
+    if (this.useDocker) {
+      this.logger.log('Docker container sandbox is ENABLED for code execution');
+    } else {
+      this.logger.error(
+        'SECURITY WARNING: Docker container sandbox is DISABLED. ' +
+          'Using unsafe vm module. DO NOT deploy to production without enabling Docker containers.',
+      );
+    }
+  }
+
+  async judge(
+    language: string,
+    code: string,
+    testCases: JudgeTestCase[],
+  ): Promise<JudgeResult> {
+    // Use Docker sandbox if enabled, otherwise fall back to legacy vm module
+    if (this.useDocker) {
+      return this.judgeWithDocker(language, code, testCases);
+    }
+    // Legacy judge can remain sync for now, wrap in Promise for consistency
+    return Promise.resolve(this.legacyJudge(language, code, testCases));
+  }
+
+  /**
+   * Judge using Docker container sandbox (secure)
+   * This is the recommended method for production use.
+   */
+  private async judgeWithDocker(
+    language: string,
+    code: string,
+    testCases: JudgeTestCase[],
+  ): Promise<JudgeResult> {
+    try {
+      return await this.dockerOrchestrator.executeInSandbox(
+        code,
+        language,
+        testCases,
+        TIME_LIMIT_MS,
+      );
+    } catch (error) {
+      this.logger.error(
+        `Docker execution failed: ${error instanceof Error ? error.message : String(error)}`,
+        error instanceof Error ? error.stack : undefined,
+      );
+      return {
+        verdict: 'System Error',
+        runtime: 0,
+        memory: 0,
+        cases: testCases.map((tc) => ({
+          status: 'System Error',
+          time: 0,
+          memory: 0,
+          output: '',
+          expectedOutput: tc.output ?? '',
+          inputs: tc.inputs ?? [],
+          detail: error instanceof Error ? error.message : String(error),
+        })),
+      };
+    }
+  }
+
+  /**
+   * Judge using legacy vm module (INSECURE - for backward compatibility only)
+   * This method should only be used when JUDGE_CONTAINER_ENABLED=false
+   *
+   * @deprecated Use judgeWithDocker() for production
+   */
+  private legacyJudge(
     language: string,
     code: string,
     testCases: JudgeTestCase[],

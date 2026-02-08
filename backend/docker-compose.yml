@@ -1,3 +1,8 @@
+networks:
+  judge-network:
+    driver: bridge
+    internal: true
+
 services:
   mysql:
     image: mysql:9.1
@@ -22,6 +27,16 @@ services:
     command: redis-server --requirepass 123456
     volumes:
       - redis_data:/data
+
+  # Judge container builder service
+  # Run with: docker-compose --profile build up judge-builder
+  judge-builder:
+    build:
+      context: ./judge-container
+      dockerfile: Dockerfile
+    image: ulticode-judge:latest
+    profiles:
+      - build
 
 volumes:
   mysql_data:

@@ -12,6 +12,7 @@ import { I18nService } from '../i18n/i18n.service';
 import { SupportedLocale, DEFAULT_LOCALE } from '../i18n/i18n.constants';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { PaginatedResult } from '../contest/dto/ranking.dto';
+import { BigIntUtil } from '../common/utils/bigint.util';
 
 // Re-export Problem type from Prisma for backward compatibility
 export type { Problem } from '@prisma/client';
@@ -82,9 +83,12 @@ export class ProblemService {
 
     // Add search filter - handle ID search and title search
     if (filters.search) {
-      if (!isNaN(Number(filters.search))) {
-        // ID search
-        where.id = BigInt(filters.search);
+      const trimmedSearch = filters.search.trim();
+      // Check if it's a number (for ID search)
+      const numericValue = Number(trimmedSearch);
+      if (!isNaN(numericValue) && trimmedSearch === numericValue.toString()) {
+        // ID search - use BigIntUtil for proper BigInt conversion
+        where.id = BigIntUtil.toBigInt(trimmedSearch);
       } else {
         // Title search
         where.title = {
@@ -184,10 +188,16 @@ export class ProblemService {
     idOrSlug: string | number,
     locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<ProblemWithRelations | null> {
-    const isNumeric = typeof idOrSlug === 'number' || !isNaN(Number(idOrSlug));
+    const isNumeric =
+      typeof idOrSlug === 'number' ||
+      (typeof idOrSlug === 'string' &&
+        !isNaN(Number(idOrSlug)) &&
+        idOrSlug.trim() !== '');
 
     const problem = await this.prisma.problem.findFirst({
-      where: isNumeric ? { id: BigInt(idOrSlug) } : { slug: String(idOrSlug) },
+      where: isNumeric
+        ? { id: BigIntUtil.toBigInt(idOrSlug) }
+        : { slug: String(idOrSlug) },
       include: {
         detail: true,
         tagRelations: {
@@ -309,14 +319,15 @@ export class ProblemService {
   }
 
   async findAdjacent(
-    id: number,
+    id: bigint | string | number,
   ): Promise<{ prev: string | null; next: string | null }> {
+    const dbId = BigIntUtil.toBigInt(id);
     const prev = await this.prisma.problem.findUnique({
-      where: { id: BigInt(id - 1) },
+      where: { id: BigIntUtil.toBigInt(dbId - 1n) },
       select: { slug: true },
     });
     const next = await this.prisma.problem.findUnique({
-      where: { id: BigInt(id + 1) },
+      where: { id: BigIntUtil.toBigInt(dbId + 1n) },
       select: { slug: true },
     });
 

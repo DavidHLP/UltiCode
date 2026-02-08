@@ -140,4 +140,29 @@ export default {
     memoryStorageFallback: "语言偏好设置仅在当前页面有效",
     storageRecovered: "语言偏好设置现在可以正常保存",
   },
+
+  // Validation
+  validation: {
+    username: {
+      required: "用户名不能为空",
+      minLength: "用户名至少需要 3 个字符",
+      maxLength: "用户名最多 20 个字符",
+      format: "用户名只能包含字母、数字和下划线",
+    },
+    email: {
+      required: "邮箱不能为空",
+      invalid: "邮箱格式不正确",
+    },
+    password: {
+      required: "密码不能为空",
+      minLength: "密码至少需要 8 个字符",
+      uppercase: "密码必须包含至少一个大写字母",
+      lowercase: "密码必须包含至少一个小写字母",
+      number: "密码必须包含至少一个数字",
+    },
+    confirmPassword: {
+      required: "请确认密码",
+      mismatch: "两次输入的密码不一致",
+    },
+  },
 } as const;

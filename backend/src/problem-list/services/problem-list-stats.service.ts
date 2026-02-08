@@ -3,6 +3,7 @@ import { Prisma, BookmarkType } from '@prisma/client';
 import { PrismaService } from '../../prisma.service';
 import { SubmissionService } from '../../submission/submission.service';
 import { ProblemListSummary, ProblemListStats } from '../types';
+import { BigIntUtil } from '../../common/utils/bigint.util';
 
 const problemListTargetType = BookmarkType.PROBLEM_LIST;
 
@@ -128,7 +129,7 @@ export class ProblemListStatsService {
     const relations = await this.prisma.problemListProblemRelation.findMany();
 
     const problemIds = Array.from(
-      new Set(relations.map((rel) => Number(rel.problem_id))),
+      new Set(relations.map((rel) => rel.problem_id)),
     );
 
     const problems =
@@ -138,17 +139,20 @@ export class ProblemListStatsService {
           })
         : [];
 
-    const problemMap = new Map<number, (typeof problems)[0]>();
-    problems.forEach((problem) => problemMap.set(Number(problem.id), problem));
+    const problemMap = new Map<bigint, (typeof problems)[0]>();
+    problems.forEach((problem) => problemMap.set(problem.id, problem));
 
     const statusMap =
       userId && problemIds.length > 0
-        ? await this.submissionService.getProblemStatusMap(userId, problemIds)
+        ? await this.submissionService.getProblemStatusMap(
+            userId,
+            BigIntUtil.toStringArray(problemIds),
+          )
         : null;
 
-    const grouped = new Map<string, number[]>();
+    const grouped = new Map<string, bigint[]>();
     relations.forEach((rel) => {
-      const pid = Number(rel.problem_id);
+      const pid = rel.problem_id;
       if (!problemMap.has(pid)) return;
       const list = grouped.get(rel.list_id) ?? [];
       list.push(pid);
@@ -165,7 +169,7 @@ export class ProblemListStatsService {
         const problem = problemMap.get(id);
         if (!problem) return;
         const status = statusMap
-          ? (statusMap.get(id)?.status ?? 'todo')
+          ? (statusMap.get(BigIntUtil.toString(id))?.status ?? 'todo')
           : problem.status;
         if (status === 'solved') solvedCount += 1;
         else if (status === 'attempted') attemptedCount += 1;

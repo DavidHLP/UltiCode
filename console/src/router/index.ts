@@ -18,23 +18,30 @@ const forumRoutes: RouteRecordRaw = {
       name: "forum-popular",
       component: () => import("@/views/forum/ForumFeedView.vue"),
       props: { filter: "hot" },
+      meta: { cacheKey: "forum-popular" },
     },
     {
       path: "explore",
       name: "forum-explore",
       component: () => import("@/views/forum/ForumFeedView.vue"),
       props: { filter: "explore" },
+      meta: { cacheKey: "forum-explore" },
     },
     {
       path: "all",
       name: "forum-all",
       component: () => import("@/views/forum/ForumFeedView.vue"),
       props: { filter: "new" },
+      meta: { cacheKey: "forum-all" },
     },
     {
       path: "c/:category",
       name: "forum-category",
       component: () => import("@/views/forum/ForumFeedView.vue"),
+      meta: {
+        cacheKey: (route: { params: { category?: string } }) =>
+          `forum-category-${route.params.category}`,
+      },
     },
     {
       path: "detailed/:postId",
@@ -68,24 +75,28 @@ const contestRoutes: RouteRecordRaw = {
       name: "contest-past",
       component: () => import("@/views/contest/ContestView.vue"),
       props: { tab: "past" },
+      meta: { cacheKey: "contest-past" },
     },
     {
       path: "my",
       name: "contest-my",
       component: () => import("@/views/contest/ContestView.vue"),
       props: { tab: "my" },
+      meta: { cacheKey: "contest-my" },
     },
     {
       path: "global-ranking",
       name: "contest-global-ranking",
       component: () => import("@/views/contest/ContestView.vue"), // Reuse or create specific view
       props: { tab: "ranking" },
+      meta: { cacheKey: "contest-global-ranking" },
     },
     {
       path: "local-ranking",
       name: "contest-local-ranking",
       component: () => import("@/views/contest/ContestView.vue"), // Reuse or create specific view
       props: { tab: "ranking" },
+      meta: { cacheKey: "contest-local-ranking" },
     },
     {
       path: ":contestId",

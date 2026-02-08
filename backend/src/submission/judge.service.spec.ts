@@ -1,15 +1,46 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JudgeService } from './judge.service';
+import { ConfigService } from '@nestjs/config';
+import { DockerOrchestratorService } from './services/docker-orchestrator.service';
 
 describe('JudgeService', () => {
   let service: JudgeService;
 
+  const mockConfigService = {
+    get: jest.fn((key: string) => {
+      if (key === 'JUDGE_CONTAINER_ENABLED') {
+        return 'false'; // Default to legacy vm for these tests
+      }
+      return undefined;
+    }),
+  };
+
+  const mockDockerOrchestrator = {
+    executeInSandbox: jest.fn(),
+    checkImageExists: jest.fn(),
+    getPoolStats: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [JudgeService],
+      providers: [
+        JudgeService,
+        {
+          provide: ConfigService,
+          useValue: mockConfigService,
+        },
+        {
+          provide: DockerOrchestratorService,
+          useValue: mockDockerOrchestrator,
+        },
+      ],
     }).compile();
 
     service = module.get<JudgeService>(JudgeService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -29,43 +60,43 @@ describe('JudgeService', () => {
       },
     ];
 
-    it('should judge javascript code and return Accepted result', () => {
+    it('should judge javascript code and return Accepted result', async () => {
       const code = 'function solution(a, b) { return a + b; }';
 
-      const result = service.judge('javascript', code, testCases);
+      const result = await service.judge('javascript', code, testCases);
 
       expect(result.verdict).toBe('Accepted');
       expect(result.cases).toHaveLength(1);
       expect(result.cases[0].status).toBe('Accepted');
     });
 
-    it('should judge typescript code and return Accepted result', () => {
+    it('should judge typescript code and return Accepted result', async () => {
       const code =
         'function solution(a: number, b: number): number { return a + b; }';
 
-      const result = service.judge('typescript', code, testCases);
+      const result = await service.judge('typescript', code, testCases);
 
       expect(result.verdict).toBe('Accepted');
     });
 
-    it('should return Compile Error for unsupported language', () => {
+    it('should return Compile Error for unsupported language', async () => {
       const code = 'def solution(a, b): return a + b';
 
-      const result = service.judge('python', code, testCases);
+      const result = await service.judge('python', code, testCases);
 
       expect(result.verdict).toBe('Compile Error');
       expect(result.compileError).toContain('not supported');
     });
 
-    it('should return Wrong Answer for incorrect output', () => {
+    it('should return Wrong Answer for incorrect output', async () => {
       const code = 'function solution(a, b) { return a - b; }';
 
-      const result = service.judge('javascript', code, testCases);
+      const result = await service.judge('javascript', code, testCases);
 
       expect(result.verdict).toBe('Wrong Answer');
     });
 
-    it('should handle array inputs and outputs', () => {
+    it('should handle array inputs and outputs', async () => {
       const arrayTestCases = [
         {
           id: 'case-1',
@@ -76,12 +107,12 @@ describe('JudgeService', () => {
 
       const code = 'function solution(nums) { return nums; }';
 
-      const result = service.judge('javascript', code, arrayTestCases);
+      const result = await service.judge('javascript', code, arrayTestCases);
 
       expect(result.verdict).toBe('Accepted');
     });
 
-    it('should handle empty output test case', () => {
+    it('should handle empty output test case', async () => {
       const emptyTestCases = [
         {
           id: 'case-1',
@@ -92,7 +123,7 @@ describe('JudgeService', () => {
 
       const code = 'function solution(x) { return; }';
 
-      const result = service.judge('javascript', code, emptyTestCases);
+      const result = await service.judge('javascript', code, emptyTestCases);
 
       expect(result.verdict).toBe('Accepted');
     });

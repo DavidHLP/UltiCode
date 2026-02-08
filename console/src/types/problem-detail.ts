@@ -1,4 +1,5 @@
 import type { Problem } from "./problem";
+import type { DescriptionExample } from "./problem-example";
 
 export interface ProblemTestCaseInput {
   id?: string;
@@ -59,7 +60,7 @@ export interface ProblemCompany {
 
 export interface ProblemDetail extends Problem {
   content: string;
-  examples: unknown[];
+  examples: DescriptionExample[];
   constraints: string[];
   testCases?: ProblemTestCase[];
   languages: ProblemLanguageOption[];

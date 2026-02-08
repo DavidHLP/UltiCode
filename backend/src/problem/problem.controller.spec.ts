@@ -196,7 +196,7 @@ describe('ProblemController', () => {
     it('should use query.userId when provided', async () => {
       problemService.findAll.mockResolvedValue(mockPaginatedResult);
       submissionService.getProblemStatusMap.mockResolvedValue(
-        new Map([[1, { status: 'solved', completed_time: new Date() }]]),
+        new Map([['1', { status: 'solved', completed_time: new Date() }]]),
       );
 
       const query = new FindAllProblemsQueryDto();
@@ -205,7 +205,7 @@ describe('ProblemController', () => {
 
       expect(submissionService.getProblemStatusMap).toHaveBeenCalledWith(
         'custom-user-id',
-        [1],
+        ['1'],
       );
     });
 
@@ -219,7 +219,7 @@ describe('ProblemController', () => {
 
       expect(submissionService.getProblemStatusMap).toHaveBeenCalledWith(
         'req-user-id',
-        [1],
+        ['1'],
       );
     });
 
@@ -388,7 +388,7 @@ describe('ProblemController', () => {
     it('should return a problem by id', async () => {
       problemService.findOneWithPremiumCheck.mockResolvedValue(mockProblem);
       submissionService.getProblemStatusMap.mockResolvedValue(
-        new Map([[1, { status: 'todo', completed_time: null }]]),
+        new Map([['1', { status: 'todo', completed_time: null }]]),
       );
 
       const query = new ProblemParamsDto();
@@ -406,7 +406,7 @@ describe('ProblemController', () => {
     it('should return a problem by string id', async () => {
       problemService.findOneWithPremiumCheck.mockResolvedValue(mockProblem);
       submissionService.getProblemStatusMap.mockResolvedValue(
-        new Map([[1, { status: 'todo', completed_time: null }]]),
+        new Map([['1', { status: 'todo', completed_time: null }]]),
       );
 
       const query = new ProblemParamsDto();
@@ -424,7 +424,7 @@ describe('ProblemController', () => {
     it('should use query.userId when provided', async () => {
       problemService.findOneWithPremiumCheck.mockResolvedValue(mockProblem);
       submissionService.getProblemStatusMap.mockResolvedValue(
-        new Map([[1, { status: 'todo', completed_time: null }]]),
+        new Map([['1', { status: 'todo', completed_time: null }]]),
       );
 
       const query = new ProblemParamsDto();
@@ -442,7 +442,7 @@ describe('ProblemController', () => {
     it('should use req.user.id when query.userId not provided', async () => {
       problemService.findOneWithPremiumCheck.mockResolvedValue(mockProblem);
       submissionService.getProblemStatusMap.mockResolvedValue(
-        new Map([[1, { status: 'todo', completed_time: null }]]),
+        new Map([['1', { status: 'todo', completed_time: null }]]),
       );
 
       const query = new ProblemParamsDto();
@@ -600,7 +600,7 @@ describe('ProblemController', () => {
       const mockResults = {
         id: 'run-1',
         submissionId: 'sub-1',
-        problemId: 1,
+        problemId: BigInt(1),
         userId: 'user-123',
         verdict: 'Accepted',
         runtime: '100 ms',
@@ -618,7 +618,7 @@ describe('ProblemController', () => {
 
       expect(result).toEqual(mockResults);
       expect(submissionService.getLatestRunResult).toHaveBeenCalledWith(
-        1,
+        BigInt(1),
         undefined,
       );
     });
@@ -628,7 +628,7 @@ describe('ProblemController', () => {
       const mockResults = {
         id: 'run-2',
         submissionId: 'sub-2',
-        problemId: 2,
+        problemId: BigInt(2),
         userId: 'user-456',
         verdict: 'Wrong Answer',
         runtime: '150 ms',
@@ -648,7 +648,7 @@ describe('ProblemController', () => {
       const mockResults = {
         id: 'run-1',
         submissionId: 'sub-1',
-        problemId: 1,
+        problemId: BigInt(1),
         userId: 'custom-user-id',
         verdict: 'Accepted',
         runtime: '100 ms',
@@ -666,7 +666,7 @@ describe('ProblemController', () => {
       await controller.getProblemResults(1, query);
 
       expect(submissionService.getLatestRunResult).toHaveBeenCalledWith(
-        1,
+        BigInt(1),
         'custom-user-id',
       );
     });
@@ -716,7 +716,7 @@ describe('ProblemController', () => {
       const result = await controller.getAdjacent(2);
 
       expect(result).toEqual(adjacent);
-      expect(problemService.findAdjacent).toHaveBeenCalledWith(2);
+      expect(problemService.findAdjacent).toHaveBeenCalledWith(BigInt(2));
     });
 
     it('should handle numeric ID', async () => {

@@ -1,16 +1,18 @@
 import type { BadgeVariant } from '@/lib/entities/user'
+import { UserRole, type UserRole as UserRoleType } from '@/constants/roles'
 
 /**
  * Returns the badge variant for a user role
  */
-export function getRoleBadgeVariant(role: string): BadgeVariant {
+export function getRoleBadgeVariant(role: UserRoleType): BadgeVariant {
   switch (role) {
-    case 'SUPER_ADMIN':
+    case UserRole.SUPER_ADMIN:
       return 'destructive'
-    case 'ADMIN':
+    case UserRole.ADMIN:
       return 'default'
-    case 'MODERATOR':
+    case UserRole.MODERATOR:
       return 'secondary'
+    case UserRole.USER:
     default:
       return 'outline'
   }

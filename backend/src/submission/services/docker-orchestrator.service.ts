@@ -213,26 +213,8 @@ export class DockerOrchestratorService implements OnModuleDestroy {
     const chunks: Buffer[] = [];
 
     return new Promise((resolve, reject) => {
-      stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-      stream.on('error', reject);
-      stream.on('end', () => {
-        try {
-          const output = Buffer.concat(chunks).toString('utf8').trim();
-          // Handle both JSON response and error output
-          const lines = output
-            .split('\n')
-            .filter((line) => line.trim().length > 0);
-          const lastLine = lines[lines.length - 1] || output;
-          const response = JSON.parse(lastLine) as DockerExecuteResponse;
-          resolve(response);
-        } catch (_error) {
-          const rawOutput = Buffer.concat(chunks).toString('utf8').trim();
-          reject(new Error(`Failed to parse container response: ${rawOutput}`));
-        }
-      });
-
-      // Set timeout for execution
-      setTimeout(() => {
+      // Set timeout for execution - must be declared before listeners so we can clear it
+      const timeoutHandle = setTimeout(() => {
         stream.destroy();
         reject(
           new Error(
@@ -240,6 +222,34 @@ export class DockerOrchestratorService implements OnModuleDestroy {
           ),
         );
       }, this.config.timeout + 1000); // Add buffer for HTTP overhead
+
+      // Helper to clear timeout and resolve/reject
+      const finish = (callback: () => void) => {
+        clearTimeout(timeoutHandle);
+        callback();
+      };
+
+      stream.on('data', (chunk: Buffer) => chunks.push(chunk));
+      stream.on('error', (err) => finish(() => reject(err)));
+      stream.on('end', () => {
+        finish(() => {
+          try {
+            const output = Buffer.concat(chunks).toString('utf8').trim();
+            // Handle both JSON response and error output
+            const lines = output
+              .split('\n')
+              .filter((line) => line.trim().length > 0);
+            const lastLine = lines[lines.length - 1] || output;
+            const response = JSON.parse(lastLine) as DockerExecuteResponse;
+            resolve(response);
+          } catch (_error) {
+            const rawOutput = Buffer.concat(chunks).toString('utf8').trim();
+            reject(
+              new Error(`Failed to parse container response: ${rawOutput}`),
+            );
+          }
+        });
+      });
     });
   }
 

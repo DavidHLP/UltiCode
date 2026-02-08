@@ -43,8 +43,8 @@ import dompurify = require('dompurify');
 import { JSDOM } from 'jsdom';
 
 const window = new JSDOM('').window;
-
-const DOMPurify = dompurify(window as any);
+// @ts-expect-error - JSDOM window type is incompatible with dompurify WindowLike due to @types/trusted-types version conflict
+const DOMPurify = dompurify(window);
 
 // Map Prisma difficulty to frontend UPPERCASE format
 function mapDifficultyToFrontend(

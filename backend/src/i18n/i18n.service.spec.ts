@@ -18,6 +18,8 @@ describe('I18nService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         I18nService,
@@ -39,7 +41,6 @@ describe('I18nService', () => {
 
     // Replace the logger with our mock
     (service as any).logger = mockLogger;
-    jest.clearAllMocks();
   });
 
   it('should be defined', () => {
@@ -331,9 +332,15 @@ describe('I18nService', () => {
     });
 
     it('should throw ConflictException when skipDuplicates is false and duplicates exist', async () => {
-      (prisma.translation.findUnique as jest.Mock).mockResolvedValue({
-        id: 'existing-id',
-      });
+      // Mock findMany to return a duplicate that matches the first sample translation
+      (prisma.translation.findMany as jest.Mock).mockResolvedValue([
+        {
+          entity_type: 'PROBLEM',
+          entity_id: '1',
+          field_name: 'title',
+          locale: 'zh-CN',
+        },
+      ] as never);
 
       await expect(
         service.bulkUpsertTranslations(sampleTranslations, {

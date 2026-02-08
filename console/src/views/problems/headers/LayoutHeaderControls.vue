@@ -26,15 +26,16 @@ import type { ProblemDetail } from "@/types/problem-detail";
 import { RouterLink } from "vue-router";
 import { ProblemEdgeOperations } from "@/components/edge-operations";
 import { useI18n } from "vue-i18n";
+import type { ProblemLayout } from "@/hooks/problem-hooks";
 
 interface Props {
-  currentLayout: "leet" | "classic" | "compact" | "wide";
+  currentLayout: ProblemLayout;
   problem?: ProblemDetail | null;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<{
-  "layout-change": [layout: "leet" | "classic" | "compact" | "wide"];
+  "layout-change": [layout: ProblemLayout];
 }>();
 
 const { t } = useI18n();
@@ -66,7 +67,7 @@ const layoutOptions = computed(() => [
 const selectedLayout = computed({
   get: () => props.currentLayout,
   set: (value: string) => {
-    emit("layout-change", value as "leet" | "classic" | "compact" | "wide");
+    emit("layout-change", value as ProblemLayout);
   },
 });
 </script>
@@ -98,11 +99,7 @@ const selectedLayout = computed({
                 :model-value="selectedLayout"
                 @update:model-value="
                   (value) =>
-                    value &&
-                    emit(
-                      'layout-change',
-                      value as 'leet' | 'classic' | 'compact' | 'wide',
-                    )
+                    value && emit('layout-change', value as ProblemLayout)
                 "
               >
                 <div class="grid grid-cols-2 gap-4">

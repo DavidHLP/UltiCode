@@ -23,7 +23,8 @@
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
     "db:reset": "prisma migrate reset --force",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "generate:secrets": "ts-node scripts/generate-secrets.ts"
   },
   "prisma": {
     "seed": "ts-node prisma/seed/index.ts"

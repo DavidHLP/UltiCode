@@ -8,6 +8,32 @@ import { DockerOrchestratorService } from './docker-orchestrator.service';
 import { ContainerPoolService } from './container-pool.service';
 import { JudgeTestCase } from '../judge.service';
 
+// Mock Dockerode to prevent real Docker connections
+jest.mock('dockerode', () => {
+  return {
+    __esModule: true,
+    default: jest.fn().mockImplementation(() => ({
+      getContainer: jest.fn().mockReturnValue({
+        exec: jest.fn().mockResolvedValue({
+          start: jest.fn().mockResolvedValue({
+            on: jest.fn((event, callback) => {
+              if (event === 'end') {
+                // Simulate successful execution
+                setImmediate(() => callback());
+              }
+              return this;
+            }),
+          }),
+        }),
+        inspect: jest.fn().mockResolvedValue({
+          State: { Running: true },
+        }),
+      }),
+      listImages: jest.fn().mockResolvedValue([]),
+    })),
+  };
+});
+
 describe('DockerOrchestratorService', () => {
   let service: DockerOrchestratorService;
   let _configService: ConfigService;
@@ -33,6 +59,7 @@ describe('DockerOrchestratorService', () => {
   };
 
   beforeEach(async () => {
+    jest.clearAllMocks();
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         DockerOrchestratorService,
@@ -52,8 +79,11 @@ describe('DockerOrchestratorService', () => {
     _poolService = module.get<ContainerPoolService>(ContainerPoolService);
   });
 
-  afterEach(() => {
-    jest.clearAllMocks();
+  afterEach(async () => {
+    // Ensure service cleanup is called
+    if (service) {
+      await service.onModuleDestroy();
+    }
   });
 
   it('should be defined', () => {

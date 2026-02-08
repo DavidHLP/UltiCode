@@ -9,14 +9,22 @@ services:
     container_name: ulticode-mysql
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_DATABASE: ulticode
       MYSQL_USER: ulticode
-      MYSQL_PASSWORD: ulticode
+      MYSQL_PASSWORD: ${DB_PASSWORD:-ulticode}
     ports:
       - "23306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
 
   redis:
     image: redis:7-alpine
@@ -24,9 +32,17 @@ services:
     restart: unless-stopped
     ports:
       - "26379:6379"
-    command: redis-server --requirepass 123456
+    command: redis-server --requirepass ${REDIS_PASSWORD:-123456}
     volumes:
       - redis_data:/data
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
 
   # Judge container builder service
   # Run with: docker-compose --profile build up judge-builder

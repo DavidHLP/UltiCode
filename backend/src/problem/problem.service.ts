@@ -271,8 +271,9 @@ export class ProblemService {
       const tagMap = new Map(translatedTags.map((t) => [t.id, t]));
 
       // Filter out relations without tags, then map translated tags
-      const isTagRelation = (tr: any): tr is { tag: ProblemTag } =>
-        tr?.tag !== null;
+      type TagRelation = { tag: ProblemTag | null };
+      const isTagRelation = (tr: TagRelation): tr is { tag: ProblemTag } =>
+        tr.tag !== null;
       const validTagRelations =
         translatedProblem.tagRelations.filter(isTagRelation);
 

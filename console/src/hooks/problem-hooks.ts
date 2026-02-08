@@ -4,7 +4,13 @@ import type { SubmissionRecord } from "@/types/submission";
 import type { ProblemRunResult } from "@/types/test-results";
 import { createHookHub } from "./hookHub";
 
-export type ProblemLayout = "leet" | "classic" | "compact" | "wide";
+export type ProblemLayout =
+  | "leet"
+  | "classic"
+  | "compact"
+  | "wide"
+  | "stacked"
+  | "focus";
 
 export type ProblemHookMap = {
   "problem:view:mount": { slug?: string | null };

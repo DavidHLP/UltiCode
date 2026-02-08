@@ -278,6 +278,70 @@ service.interceptors.response.use(
       return Promise.reject(ApiError.fromAxiosError(error));
     }
 
+    // Show toast notifications for other errors (skip if skipErrorHandler is set)
+    const status = error.response?.status;
+    const responseData = error.response?.data as
+      | { message?: string }
+      | undefined;
+
+    if (
+      status &&
+      status !== 401 &&
+      status !== 403 &&
+      !config?.skipErrorHandler
+    ) {
+      // Dynamic import to avoid circular dependency
+      import("vue-sonner")
+        .then(({ toast }) => {
+          // Get i18n instance from global app if available
+          const i18n = (
+            window as unknown as {
+              __i18n?: {
+                t: (key: string, params?: Record<string, unknown>) => string;
+              };
+            }
+          ).__i18n;
+
+          switch (status) {
+            case 404:
+              toast.error(
+                responseData?.message ||
+                  i18n?.t("errors.notFound.message") ||
+                  "Resource not found",
+              );
+              break;
+            case 422:
+              toast.error(
+                responseData?.message ||
+                  i18n?.t("errors.validation.default") ||
+                  "Please check your input",
+              );
+              break;
+            case 429: {
+              const retryAfter = error.response?.headers["retry-after"];
+              const seconds = retryAfter ? String(retryAfter) : "60";
+              toast.error(
+                i18n?.t("errors.rateLimit.message", { seconds }) ||
+                  `Too many requests. Please wait ${seconds} seconds.`,
+              );
+              break;
+            }
+            case 500:
+            case 502:
+            case 503:
+              toast.error(
+                responseData?.message ||
+                  i18n?.t("errors.serverError.message") ||
+                  "Server error. Please try again later.",
+              );
+              break;
+          }
+        })
+        .catch(() => {
+          // Silently fail if vue-sonner is not available
+        });
+    }
+
     // Log other errors - skip auth errors
     if (isDevelopment && config?._metadata) {
       const status = error.response?.status;

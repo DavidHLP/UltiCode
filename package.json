@@ -56,22 +56,22 @@
     },
     "lint-staged": {
         "console/**/*.{ts,tsx,vue,js,jsx}": [
-            "cd console && pnpm lint --fix"
+            "pnpm --filter console lint --fix"
         ],
         "console/**/*.{json,md,css,scss,less}": [
-            "cd console && pnpm format --write"
+            "pnpm --filter console format --write"
         ],
         "management/**/*.{ts,tsx,vue,js,jsx}": [
-            "cd management && pnpm lint --fix"
+            "pnpm --filter management lint --fix"
         ],
         "management/**/*.{json,md,css,scss,less}": [
-            "cd management && pnpm format --write"
+            "pnpm --filter management format --write"
         ],
         "backend/**/*.ts": [
-            "cd backend && pnpm lint --fix"
+            "pnpm --filter nest-backend lint --fix"
         ],
         "backend/**/*.{json,md}": [
-            "cd backend && pnpm format --write"
+            "pnpm --filter nest-backend format --write"
         ]
     },
     "pnpm": {

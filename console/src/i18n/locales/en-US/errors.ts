@@ -6,9 +6,26 @@ export default {
     403: "Permission denied",
     404: "Resource not found",
     409: "Resource conflict",
+    422: "Please check your input",
+    429: "Too many requests. Please try again later.",
     500: "Internal server error",
+    502: "Server error. Please try again later.",
+    503: "Service temporarily unavailable",
     networkError: "Network connection failed",
     timeout: "Request timeout",
+  },
+  // Error toast messages
+  notFound: {
+    message: "Resource not found",
+  },
+  validation: {
+    default: "Please check your input",
+  },
+  rateLimit: {
+    message: "Too many requests. Please wait {seconds} seconds.",
+  },
+  serverError: {
+    message: "Server error. Please try again later.",
   },
 
   // Auth module errors (1xxxx)

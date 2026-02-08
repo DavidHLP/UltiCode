@@ -264,30 +264,36 @@ export class I18nService {
   ): Promise<string[]> {
     if (translations.length === 0) return [];
 
-    const duplicateIds: string[] = [];
+    // Build batch query conditions for optimized single query
+    const conditions = translations.map((t) => ({
+      entity_type: t.entityType,
+      entity_id: String(t.entityId),
+      field_name: t.fieldName,
+      locale: t.locale,
+    }));
 
-    // Check each translation for existence
-    for (const translation of translations) {
-      const existing = await this.prisma.translation.findUnique({
-        where: {
-          entity_type_entity_id_field_name_locale: {
-            entity_type: translation.entityType,
-            entity_id: String(translation.entityId),
-            field_name: translation.fieldName,
-            locale: translation.locale,
-          },
-        },
-        select: { id: true },
-      });
+    // Single query to get all existing records (N+1 fix)
+    const existingRecords = await this.prisma.translation.findMany({
+      where: { OR: conditions },
+      select: {
+        entity_type: true,
+        entity_id: true,
+        field_name: true,
+        locale: true,
+      },
+    });
 
-      if (existing) {
-        duplicateIds.push(
-          `${translation.entityType}#${translation.entityId}:${translation.fieldName}:${translation.locale}`,
-        );
-      }
-    }
+    // Create Set for O(1) lookup performance
+    const existingSet = new Set(
+      existingRecords.map(
+        (r) => `${r.entity_type}:${r.entity_id}:${r.field_name}:${r.locale}`,
+      ),
+    );
 
-    return duplicateIds;
+    // Return duplicates by checking against the set
+    return translations
+      .map((t) => `${t.entityType}:${t.entityId}:${t.fieldName}:${t.locale}`)
+      .filter((key) => existingSet.has(key));
   }
 
   /**
@@ -297,7 +303,7 @@ export class I18nService {
    * @throws ConflictException with user-friendly message
    */
   private handlePrismaError(
-    error: any,
+    error: unknown,
     translation: {
       entityType: TranslatableEntity;
       entityId: string | number | bigint;
@@ -305,15 +311,24 @@ export class I18nService {
       locale: SupportedLocale;
     },
   ): never {
-    if (
-      error instanceof Prisma.PrismaClientKnownRequestError &&
-      error.code === 'P2002'
-    ) {
-      throw new ConflictException(
-        `Translation already exists for ${translation.entityType}#${translation.entityId}, field: ${translation.fieldName}, locale: ${translation.locale}`,
-      );
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      switch (error.code) {
+        case 'P2002':
+          throw new ConflictException(
+            `Translation already exists for ${translation.entityType}#${translation.entityId}, field: ${translation.fieldName}, locale: ${translation.locale}`,
+          );
+        case 'P2025':
+          throw new ConflictException(
+            `Translation record not found for ${translation.entityType}#${translation.entityId}, field: ${translation.fieldName}, locale: ${translation.locale}`,
+          );
+        default:
+          throw new ConflictException('Database error occurred');
+      }
     }
-    throw error;
+    if (error instanceof Error) {
+      throw new ConflictException(error.message);
+    }
+    throw new ConflictException('Unknown error occurred');
   }
 
   /**

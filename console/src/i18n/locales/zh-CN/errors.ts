@@ -6,9 +6,26 @@ export default {
     403: "没有权限执行此操作",
     404: "请求的资源不存在",
     409: "资源冲突",
+    422: "请检查您的输入",
+    429: "请求过于频繁，请稍后重试",
     500: "服务器内部错误",
+    502: "服务器错误，请稍后重试",
+    503: "服务暂时不可用",
     networkError: "网络连接失败",
     timeout: "请求超时",
+  },
+  // Error toast messages
+  notFound: {
+    message: "请求的资源不存在",
+  },
+  validation: {
+    default: "请检查您的输入",
+  },
+  rateLimit: {
+    message: "请求过于频繁，请等待 {seconds} 秒后再试",
+  },
+  serverError: {
+    message: "服务器错误，请稍后重试",
   },
 
   // Auth module errors (1xxxx)

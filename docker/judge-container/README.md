@@ -15,7 +15,7 @@ Secure Docker container for executing user-submitted JavaScript/TypeScript code.
 ## Building
 
 ```bash
-cd backend/judge-container
+cd backend/docker/judge-container
 docker build -t ulticode-judge:latest .
 ```
 

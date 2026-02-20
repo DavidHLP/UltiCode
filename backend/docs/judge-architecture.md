@@ -119,7 +119,7 @@ The UltiCode Judge Service provides secure, isolated execution of user-submitted
 
 ### Judge Container
 
-**Location:** `backend/judge-container/`
+**Location:** `backend/docker/judge-container/`
 
 **Components:**
 - `Dockerfile` - Container image definition

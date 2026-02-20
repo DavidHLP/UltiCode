@@ -19,6 +19,7 @@
     "test:coverage": "vitest --coverage --passWithNoTests"
   },
   "dependencies": {
+    "@internationalized/date": "^3.10.0",
     "@dnd-kit/abstract": "^0.1.21",
     "@ulticode/shared-types": "workspace:*",
     "@dnd-kit/modifiers": "^9.0.0",

@@ -4,6 +4,10 @@ node_modules/
 **/node_modules/
 /build
 
+# npm lock files (use pnpm)
+package-lock.json
+**/package-lock.json
+
 # Logs
 logs
 *.log

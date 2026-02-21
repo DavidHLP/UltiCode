@@ -25,169 +25,6 @@ importers:
         specifier: ^15.2.11
         version: 15.5.2
 
-  admin-frontend:
-    dependencies:
-      '@dnd-kit/abstract':
-        specifier: ^0.1.21
-        version: 0.1.21
-      '@dnd-kit/modifiers':
-        specifier: ^9.0.0
-        version: 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
-      '@tabler/icons-vue':
-        specifier: ^3.36.1
-        version: 3.36.1(vue@3.5.27(typescript@5.9.3))
-      '@tailwindcss/vite':
-        specifier: ^4.1.18
-        version: 4.1.18(vite@7.3.1(@types/node@24.10.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2))
-      '@tanstack/vue-table':
-        specifier: ^8.21.3
-        version: 8.21.3(vue@3.5.27(typescript@5.9.3))
-      '@types/dompurify':
-        specifier: ^3.0.5
-        version: 3.2.0
-      '@types/markdown-it':
-        specifier: ^14.1.2
-        version: 14.1.2
-      '@unovis/ts':
-        specifier: ^1.6.2
-        version: 1.6.4
-      '@unovis/vue':
-        specifier: ^1.6.2
-        version: 1.6.4(@unovis/ts@1.6.4)(vue@3.5.27(typescript@5.9.3))
-      '@vee-validate/zod':
-        specifier: ^4.15.1
-        version: 4.15.1(vue@3.5.27(typescript@5.9.3))(zod@3.25.76)
-      '@vueuse/core':
-        specifier: ^14.1.0
-        version: 14.2.0(vue@3.5.27(typescript@5.9.3))
-      axios:
-        specifier: ^1.13.2
-        version: 1.13.4
-      class-variance-authority:
-        specifier: ^0.7.1
-        version: 0.7.1
-      clsx:
-        specifier: ^2.1.1
-        version: 2.1.1
-      date-fns:
-        specifier: ^4.1.0
-        version: 4.1.0
-      dnd-kit-vue:
-        specifier: ^0.0.2
-        version: 0.0.2(vue@3.5.27(typescript@5.9.3))
-      dompurify:
-        specifier: ^3.3.1
-        version: 3.3.1
-      embla-carousel-vue:
-        specifier: ^8.6.0
-        version: 8.6.0(vue@3.5.27(typescript@5.9.3))
-      highlight.js:
-        specifier: ^11.11.1
-        version: 11.11.1
-      lucide-vue-next:
-        specifier: ^0.562.0
-        version: 0.562.0(vue@3.5.27(typescript@5.9.3))
-      markdown-it:
-        specifier: ^14.1.0
-        version: 14.1.0
-      markdown-it-katex:
-        specifier: ^2.0.3
-        version: 2.0.3
-      pinia:
-        specifier: ^3.0.4
-        version: 3.0.4(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
-      reka-ui:
-        specifier: ^2.7.0
-        version: 2.8.0(vue@3.5.27(typescript@5.9.3))
-      tailwind-merge:
-        specifier: ^3.4.0
-        version: 3.4.0
-      tailwindcss:
-        specifier: ^4.1.18
-        version: 4.1.18
-      vaul-vue:
-        specifier: ^0.4.1
-        version: 0.4.1(reka-ui@2.8.0(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))
-      vee-validate:
-        specifier: ^4.15.1
-        version: 4.15.1(vue@3.5.27(typescript@5.9.3))
-      vue:
-        specifier: ^3.5.26
-        version: 3.5.27(typescript@5.9.3)
-      vue-i18n:
-        specifier: ^10.0.8
-        version: 10.0.8(vue@3.5.27(typescript@5.9.3))
-      vue-input-otp:
-        specifier: ^0.3.2
-        version: 0.3.2(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
-      vue-router:
-        specifier: ^4.6.4
-        version: 4.6.4(vue@3.5.27(typescript@5.9.3))
-      vue-sonner:
-        specifier: ^2.0.9
-        version: 2.0.9
-      zod:
-        specifier: ^3.25.76
-        version: 3.25.76
-    devDependencies:
-      '@tsconfig/node24':
-        specifier: ^24.0.3
-        version: 24.0.4
-      '@types/node':
-        specifier: ^24.10.4
-        version: 24.10.11
-      '@vitejs/plugin-vue':
-        specifier: ^6.0.3
-        version: 6.0.4(vite@7.3.1(@types/node@24.10.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
-      '@vitest/coverage-v8':
-        specifier: ^4.0.15
-        version: 4.0.18(vitest@4.0.18)
-      '@vitest/ui':
-        specifier: ^4.0.15
-        version: 4.0.18(vitest@4.0.18)
-      '@vue/eslint-config-prettier':
-        specifier: ^10.2.0
-        version: 10.2.0(@types/eslint@9.6.1)(eslint@9.39.2(jiti@2.6.1))(prettier@3.7.4)
-      '@vue/eslint-config-typescript':
-        specifier: ^14.6.0
-        version: 14.6.0(eslint-plugin-vue@10.6.2(@typescript-eslint/parser@8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(vue-eslint-parser@10.2.0(eslint@9.39.2(jiti@2.6.1))))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
-      '@vue/tsconfig':
-        specifier: ^0.8.1
-        version: 0.8.1(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
-      eslint:
-        specifier: ^9.39.0
-        version: 9.39.2(jiti@2.6.1)
-      eslint-plugin-vue:
-        specifier: ~10.6.2
-        version: 10.6.2(@typescript-eslint/parser@8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(vue-eslint-parser@10.2.0(eslint@9.39.2(jiti@2.6.1)))
-      jiti:
-        specifier: ^2.6.1
-        version: 2.6.1
-      npm-run-all2:
-        specifier: ^8.0.4
-        version: 8.0.4
-      prettier:
-        specifier: 3.7.4
-        version: 3.7.4
-      tw-animate-css:
-        specifier: ^1.4.0
-        version: 1.4.0
-      typescript:
-        specifier: ~5.9.3
-        version: 5.9.3
-      vite:
-        specifier: ^7.3.0
-        version: 7.3.1(@types/node@24.10.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2)
-      vite-plugin-vue-devtools:
-        specifier: ^8.0.5
-        version: 8.0.6(vite@7.3.1(@types/node@24.10.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
-      vitest:
-        specifier: ^4.0.15
-        version: 4.0.18(@types/node@24.10.11)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2)
-      vue-tsc:
-        specifier: ^3.2.1
-        version: 3.2.4(typescript@5.9.3)
-
   backend:
     dependencies:
       '@nestjs/bullmq':
@@ -348,7 +185,7 @@ importers:
         specifier: ^8.20.0
         version: 8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
 
-  frontend:
+  console:
     dependencies:
       '@internationalized/date':
         specifier: ^3.10.0
@@ -536,6 +373,172 @@ importers:
         version: 4.0.18(@types/node@22.19.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2)
       vue-tsc:
         specifier: ^3.1.5
+        version: 3.2.4(typescript@5.9.3)
+
+  management:
+    dependencies:
+      '@dnd-kit/abstract':
+        specifier: ^0.1.21
+        version: 0.1.21
+      '@dnd-kit/modifiers':
+        specifier: ^9.0.0
+        version: 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.4(react@19.2.4))(react@19.2.4))(react@19.2.4)
+      '@internationalized/date':
+        specifier: ^3.7.0
+        version: 3.11.0
+      '@tabler/icons-vue':
+        specifier: ^3.36.1
+        version: 3.36.1(vue@3.5.27(typescript@5.9.3))
+      '@tailwindcss/vite':
+        specifier: ^4.1.18
+        version: 4.1.18(vite@7.3.1(@types/node@24.10.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2))
+      '@tanstack/vue-table':
+        specifier: ^8.21.3
+        version: 8.21.3(vue@3.5.27(typescript@5.9.3))
+      '@types/dompurify':
+        specifier: ^3.0.5
+        version: 3.2.0
+      '@types/markdown-it':
+        specifier: ^14.1.2
+        version: 14.1.2
+      '@unovis/ts':
+        specifier: ^1.6.2
+        version: 1.6.4
+      '@unovis/vue':
+        specifier: ^1.6.2
+        version: 1.6.4(@unovis/ts@1.6.4)(vue@3.5.27(typescript@5.9.3))
+      '@vee-validate/zod':
+        specifier: ^4.15.1
+        version: 4.15.1(vue@3.5.27(typescript@5.9.3))(zod@3.25.76)
+      '@vueuse/core':
+        specifier: ^14.1.0
+        version: 14.2.0(vue@3.5.27(typescript@5.9.3))
+      axios:
+        specifier: ^1.13.2
+        version: 1.13.4
+      class-variance-authority:
+        specifier: ^0.7.1
+        version: 0.7.1
+      clsx:
+        specifier: ^2.1.1
+        version: 2.1.1
+      date-fns:
+        specifier: ^4.1.0
+        version: 4.1.0
+      dnd-kit-vue:
+        specifier: ^0.0.2
+        version: 0.0.2(vue@3.5.27(typescript@5.9.3))
+      dompurify:
+        specifier: ^3.3.1
+        version: 3.3.1
+      embla-carousel-vue:
+        specifier: ^8.6.0
+        version: 8.6.0(vue@3.5.27(typescript@5.9.3))
+      highlight.js:
+        specifier: ^11.11.1
+        version: 11.11.1
+      lucide-vue-next:
+        specifier: ^0.562.0
+        version: 0.562.0(vue@3.5.27(typescript@5.9.3))
+      markdown-it:
+        specifier: ^14.1.0
+        version: 14.1.0
+      markdown-it-katex:
+        specifier: ^2.0.3
+        version: 2.0.3
+      pinia:
+        specifier: ^3.0.4
+        version: 3.0.4(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+      reka-ui:
+        specifier: ^2.7.0
+        version: 2.8.0(vue@3.5.27(typescript@5.9.3))
+      tailwind-merge:
+        specifier: ^3.4.0
+        version: 3.4.0
+      tailwindcss:
+        specifier: ^4.1.18
+        version: 4.1.18
+      vaul-vue:
+        specifier: ^0.4.1
+        version: 0.4.1(reka-ui@2.8.0(vue@3.5.27(typescript@5.9.3)))(vue@3.5.27(typescript@5.9.3))
+      vee-validate:
+        specifier: ^4.15.1
+        version: 4.15.1(vue@3.5.27(typescript@5.9.3))
+      vue:
+        specifier: ^3.5.26
+        version: 3.5.27(typescript@5.9.3)
+      vue-i18n:
+        specifier: ^10.0.8
+        version: 10.0.8(vue@3.5.27(typescript@5.9.3))
+      vue-input-otp:
+        specifier: ^0.3.2
+        version: 0.3.2(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+      vue-router:
+        specifier: ^4.6.4
+        version: 4.6.4(vue@3.5.27(typescript@5.9.3))
+      vue-sonner:
+        specifier: ^2.0.9
+        version: 2.0.9
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@tsconfig/node24':
+        specifier: ^24.0.3
+        version: 24.0.4
+      '@types/node':
+        specifier: ^24.10.4
+        version: 24.10.11
+      '@vitejs/plugin-vue':
+        specifier: ^6.0.3
+        version: 6.0.4(vite@7.3.1(@types/node@24.10.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
+      '@vitest/coverage-v8':
+        specifier: ^4.0.15
+        version: 4.0.18(vitest@4.0.18)
+      '@vitest/ui':
+        specifier: ^4.0.15
+        version: 4.0.18(vitest@4.0.18)
+      '@vue/eslint-config-prettier':
+        specifier: ^10.2.0
+        version: 10.2.0(@types/eslint@9.6.1)(eslint@9.39.2(jiti@2.6.1))(prettier@3.7.4)
+      '@vue/eslint-config-typescript':
+        specifier: ^14.6.0
+        version: 14.6.0(eslint-plugin-vue@10.6.2(@typescript-eslint/parser@8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(vue-eslint-parser@10.2.0(eslint@9.39.2(jiti@2.6.1))))(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3)
+      '@vue/tsconfig':
+        specifier: ^0.8.1
+        version: 0.8.1(typescript@5.9.3)(vue@3.5.27(typescript@5.9.3))
+      eslint:
+        specifier: ^9.39.0
+        version: 9.39.2(jiti@2.6.1)
+      eslint-plugin-vue:
+        specifier: ~10.6.2
+        version: 10.6.2(@typescript-eslint/parser@8.54.0(eslint@9.39.2(jiti@2.6.1))(typescript@5.9.3))(eslint@9.39.2(jiti@2.6.1))(vue-eslint-parser@10.2.0(eslint@9.39.2(jiti@2.6.1)))
+      jiti:
+        specifier: ^2.6.1
+        version: 2.6.1
+      npm-run-all2:
+        specifier: ^8.0.4
+        version: 8.0.4
+      prettier:
+        specifier: 3.7.4
+        version: 3.7.4
+      tw-animate-css:
+        specifier: ^1.4.0
+        version: 1.4.0
+      typescript:
+        specifier: ~5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^7.3.0
+        version: 7.3.1(@types/node@24.10.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2)
+      vite-plugin-vue-devtools:
+        specifier: ^8.0.5
+        version: 8.0.6(vite@7.3.1(@types/node@24.10.11)(jiti@2.6.1)(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2))(vue@3.5.27(typescript@5.9.3))
+      vitest:
+        specifier: ^4.0.15
+        version: 4.0.18(@types/node@24.10.11)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2)
+      vue-tsc:
+        specifier: ^3.2.1
         version: 3.2.4(typescript@5.9.3)
 
 packages:
@@ -1950,8 +1953,8 @@ packages:
     peerDependencies:
       vue: '>=3.0.1'
 
-  '@tabler/icons@3.36.1':
-    resolution: {integrity: sha512-f4Jg3Fof/Vru5ioix/UO4GX+sdDsF9wQo47FbtvG+utIYYVQ/QVAC0QYgcBbAjQGfbdOh2CCf0BgiFOF9Ixtjw==}
+  '@tabler/icons@3.37.1':
+    resolution: {integrity: sha512-neLCWkuyNHEPXCyYu6nbN4S3g/59BTa4qyITAugYVpq1YzYNDOZooW7/vRWH98ZItXAudxdKU8muFT7y1PqzuA==}
 
   '@tailwindcss/node@4.1.18':
     resolution: {integrity: sha512-DoR7U1P7iYhw16qJ49fgXUlry1t4CpXeErJHnQ44JgTSKMaZUdf17cfn5mHchfJ4KRBZRFA/Coo+MUF5+gOaCQ==}
@@ -7933,10 +7936,10 @@ snapshots:
 
   '@tabler/icons-vue@3.36.1(vue@3.5.27(typescript@5.9.3))':
     dependencies:
-      '@tabler/icons': 3.36.1
+      '@tabler/icons': 3.37.1
       vue: 3.5.27(typescript@5.9.3)
 
-  '@tabler/icons@3.36.1': {}
+  '@tabler/icons@3.37.1': {}
 
   '@tailwindcss/node@4.1.18':
     dependencies:
@@ -8759,7 +8762,7 @@ snapshots:
       sirv: 3.0.2
       tinyglobby: 0.2.15
       tinyrainbow: 3.0.3
-      vitest: 4.0.18(@types/node@24.10.11)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2)
+      vitest: 4.0.18(@types/node@22.19.9)(@vitest/ui@4.0.18)(jiti@2.6.1)(jsdom@27.4.0(@noble/hashes@1.8.0))(lightningcss@1.30.2)(terser@5.46.0)(yaml@2.8.2)
 
   '@vitest/utils@4.0.18':
     dependencies:

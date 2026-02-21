@@ -15,6 +15,8 @@ import { NotificationModule } from '../notification/notification.module';
 import { SubmissionCrudService } from './services/submission-crud.service';
 import { SubmissionQueryService } from './services/submission-query.service';
 import { SubmissionExecutionService } from './services/submission-execution.service';
+import { SandboxModule } from './sandbox/sandbox.module';
+import { TestCaseModule } from '../test-case/test-case.module';
 
 @Module({
   imports: [
@@ -23,6 +25,8 @@ import { SubmissionExecutionService } from './services/submission-execution.serv
     }),
     ContestModule,
     NotificationModule,
+    SandboxModule,
+    TestCaseModule,
   ],
   controllers: [
     SubmissionController,

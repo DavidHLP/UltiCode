@@ -143,4 +143,31 @@ export default {
     memoryStorageFallback: "Language preference set for current page only",
     storageRecovered: "Language preference will now persist normally",
   },
+
+  // Network status
+  network: {
+    online: "Online",
+    offline: "You are currently offline",
+    offlineFor: "offline for {duration}",
+    reconnect: "Reconnect",
+    backOnline: "You are back online",
+    connectionLost: "Connection lost",
+    connectionRestored: "Connection restored",
+  },
+
+  // Error handling
+  error: {
+    title: "Something went wrong",
+    boundaryMessage: "An error occurred while rendering this component. Please try again.",
+    default: "An unexpected error occurred",
+    showDetails: "Show details",
+    hideDetails: "Hide details",
+    retryMessage: "Please try again or contact support if the problem persists.",
+    notFound: "Page not found",
+    forbidden: "Access denied",
+    unauthorized: "Please log in to continue",
+    serverError: "Server error. Please try again later.",
+    networkError: "Network error. Please check your connection.",
+    timeout: "Request timed out. Please try again.",
+  },
 } as const;

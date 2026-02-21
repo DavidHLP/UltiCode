@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  judge:
+    build:
+      context: .
+      dockerfile: judge/Dockerfile.judge
+    image: ulti-judge:latest
+    container_name: ulti-judge-test
+    command: ["bash", "-c", "echo 'Judge sandbox ready' && sleep infinity"]
+    read_only: false
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - judge-network
+
+  # Redis for BullMQ (if not using external Redis)
+  redis:
+    image: redis:7-alpine
+    container_name: ulti-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - judge-network
+
+networks:
+  judge-network:
+    driver: bridge

@@ -1,4 +1,3 @@
-. "$(dirname -- "$0")/_/husky.sh"
-
 echo "Running pre-commit checks..."
+export PATH="/home/davidhlp/.nvm/versions/node/v24.13.0/bin:$PATH"
 pnpm exec lint-staged

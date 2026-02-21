@@ -22,7 +22,7 @@ export class SubmissionExecutionService {
       data.testCases && data.testCases.length > 0
         ? this.normalizeTestCases(data.testCases)
         : await this.buildTestCasesFromExamples(problemId);
-    const judgeResult = this.judgeService.judge(
+    const judgeResult = await this.judgeService.judge(
       data.language,
       data.code,
       testCases,

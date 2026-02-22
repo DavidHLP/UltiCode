@@ -57,7 +57,9 @@ export class JudgeService implements OnModuleInit {
   async onModuleInit(): Promise<void> {
     try {
       this.sandbox = await this.sandboxFactory.getSandbox();
-      this.logger.log(`Judge service initialized with ${this.sandbox.getType()} sandbox`);
+      this.logger.log(
+        `Judge service initialized with ${this.sandbox.getType()} sandbox`,
+      );
     } catch (error) {
       this.logger.error(`Failed to initialize sandbox: ${error}`);
     }
@@ -105,7 +107,8 @@ export class JudgeService implements OnModuleInit {
           break;
         }
       } catch (error) {
-        const message = error instanceof Error ? error.message : 'Unknown error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         results.push({
           status: 'System Error',
           time: 0,
@@ -122,7 +125,9 @@ export class JudgeService implements OnModuleInit {
     }
 
     // Find compile error in results
-    const compileError = results.find((r) => r.status === 'Compile Error')?.detail;
+    const compileError = results.find(
+      (r) => r.status === 'Compile Error',
+    )?.detail;
 
     return {
       verdict,

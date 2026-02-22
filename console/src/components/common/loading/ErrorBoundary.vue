@@ -4,7 +4,6 @@ import { useI18n } from "vue-i18n";
 import { AlertTriangle, RefreshCw, Home, Bug } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { cn } from "@/lib/utils";
 
 const props = defineProps<{
   /** Fallback component to render on error */

@@ -69,7 +69,9 @@ export class JudgeProcessor extends WorkerHost {
 
       // Fallback to problem examples if no test cases exist
       if (testCases.length === 0) {
-        testCases = this.buildTestCasesFromExamples(submission.problem.examples);
+        testCases = this.buildTestCasesFromExamples(
+          submission.problem.examples,
+        );
       }
 
       // Perform judging
@@ -179,7 +181,8 @@ export class JudgeProcessor extends WorkerHost {
   }
 
   private async buildTestCasesFromTable(problemId: bigint) {
-    const dbTestCases = await this.testCaseService.getTestCasesForJudging(problemId);
+    const dbTestCases =
+      await this.testCaseService.getTestCasesForJudging(problemId);
 
     return dbTestCases.map((tc, index) => {
       let inputs: { name: string; value: string }[] = [];
@@ -207,7 +210,14 @@ export class JudgeProcessor extends WorkerHost {
     });
   }
 
-  private buildTestCasesFromExamples(examples: { id: string; example_order: number; inputs: unknown; output_text: string }[]) {
+  private buildTestCasesFromExamples(
+    examples: {
+      id: string;
+      example_order: number;
+      inputs: unknown;
+      output_text: string;
+    }[],
+  ) {
     return examples.map((example) => {
       const inputs = Array.isArray(example.inputs)
         ? (example.inputs as { name: string; value: string }[])

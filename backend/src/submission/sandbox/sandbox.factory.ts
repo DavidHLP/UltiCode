@@ -16,9 +16,14 @@ export class SandboxFactory {
     private dockerSandbox: DockerSandboxService,
     private vmSandbox: VmSandboxService,
   ) {
-    this.preferredType = this.configService.get<SandboxType>('SANDBOX_TYPE', 'docker');
-    this.primarySandbox = this.preferredType === 'docker' ? dockerSandbox : vmSandbox;
-    this.fallbackSandbox = this.preferredType === 'docker' ? vmSandbox : dockerSandbox;
+    this.preferredType = this.configService.get<SandboxType>(
+      'SANDBOX_TYPE',
+      'docker',
+    );
+    this.primarySandbox =
+      this.preferredType === 'docker' ? dockerSandbox : vmSandbox;
+    this.fallbackSandbox =
+      this.preferredType === 'docker' ? vmSandbox : dockerSandbox;
   }
 
   /**

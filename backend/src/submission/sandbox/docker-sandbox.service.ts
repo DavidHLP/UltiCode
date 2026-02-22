@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Docker from 'dockerode';
 import { promises as fs } from 'fs';
@@ -19,7 +24,9 @@ interface ContainerResult {
 }
 
 @Injectable()
-export class DockerSandboxService implements SandboxServiceInterface, OnModuleInit, OnModuleDestroy {
+export class DockerSandboxService
+  implements SandboxServiceInterface, OnModuleInit, OnModuleDestroy
+{
   private readonly logger = new Logger(DockerSandboxService.name);
   private docker: Docker;
   private containerImage: string;
@@ -28,9 +35,15 @@ export class DockerSandboxService implements SandboxServiceInterface, OnModuleIn
 
   constructor(private configService: ConfigService) {
     this.docker = new Docker({
-      socketPath: this.configService.get<string>('DOCKER_SOCKET', '/var/run/docker.sock'),
+      socketPath: this.configService.get<string>(
+        'DOCKER_SOCKET',
+        '/var/run/docker.sock',
+      ),
     });
-    this.containerImage = this.configService.get<string>('JUDGE_IMAGE', 'ulti-judge:latest');
+    this.containerImage = this.configService.get<string>(
+      'JUDGE_IMAGE',
+      'ulti-judge:latest',
+    );
   }
 
   async onModuleInit(): Promise<void> {
@@ -44,9 +57,13 @@ export class DockerSandboxService implements SandboxServiceInterface, OnModuleIn
       this.logger.log('Docker daemon is available');
 
       // Check if image exists, build if not
-      const images = await this.docker.listImages({ filters: JSON.stringify({ reference: [this.containerImage] }) });
+      const images = await this.docker.listImages({
+        filters: JSON.stringify({ reference: [this.containerImage] }),
+      });
       if (images.length === 0) {
-        this.logger.warn(`Docker image ${this.containerImage} not found. Please build it first.`);
+        this.logger.warn(
+          `Docker image ${this.containerImage} not found. Please build it first.`,
+        );
       }
     } catch (error) {
       this.logger.error(`Failed to initialize Docker sandbox: ${error}`);
@@ -95,7 +112,11 @@ export class DockerSandboxService implements SandboxServiceInterface, OnModuleIn
       await fs.mkdir(path.join(workDir, 'output'), { recursive: true });
 
       // Write code file
-      const codeFile = path.join(workDir, 'code', `solution${langConfig.extension}`);
+      const codeFile = path.join(
+        workDir,
+        'code',
+        `solution${langConfig.extension}`,
+      );
       await fs.writeFile(codeFile, code);
 
       // Write input file
@@ -351,8 +372,8 @@ export class DockerSandboxService implements SandboxServiceInterface, OnModuleIn
       return a.every((item, i) => this.deepEqual(item, b[i], tolerance));
     }
     if (a && b && typeof a === 'object' && typeof b === 'object') {
-      const keysA = Object.keys(a as object);
-      const keysB = Object.keys(b as object);
+      const keysA = Object.keys(a);
+      const keysB = Object.keys(b);
       if (keysA.length !== keysB.length) return false;
       return keysA.every((key) =>
         this.deepEqual(

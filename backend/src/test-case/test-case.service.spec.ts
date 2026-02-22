@@ -61,7 +61,9 @@ describe('TestCaseService', () => {
 
   describe('create', () => {
     it('should create a test case', async () => {
-      mockPrismaService.testCase.aggregate.mockResolvedValue({ _max: { test_order: null } });
+      mockPrismaService.testCase.aggregate.mockResolvedValue({
+        _max: { test_order: null },
+      });
       mockPrismaService.testCase.create.mockResolvedValue(mockTestCase);
 
       const result = await service.create(BigInt(1), {
@@ -81,8 +83,13 @@ describe('TestCaseService', () => {
     });
 
     it('should auto-increment test_order', async () => {
-      mockPrismaService.testCase.aggregate.mockResolvedValue({ _max: { test_order: 5 } });
-      mockPrismaService.testCase.create.mockResolvedValue({ ...mockTestCase, test_order: 6 });
+      mockPrismaService.testCase.aggregate.mockResolvedValue({
+        _max: { test_order: 5 },
+      });
+      mockPrismaService.testCase.create.mockResolvedValue({
+        ...mockTestCase,
+        test_order: 6,
+      });
 
       await service.create(BigInt(1), {
         input_text: 'input',
@@ -102,7 +109,10 @@ describe('TestCaseService', () => {
   describe('findAll', () => {
     it('should return paginated test cases', async () => {
       mockPrismaService.testCase.count.mockResolvedValue(2);
-      mockPrismaService.testCase.findMany.mockResolvedValue([mockTestCase, mockTestCase]);
+      mockPrismaService.testCase.findMany.mockResolvedValue([
+        mockTestCase,
+        mockTestCase,
+      ]);
 
       const result = await service.findAll(BigInt(1), { page: 1, limit: 20 });
 
@@ -173,7 +183,9 @@ describe('TestCaseService', () => {
 
   describe('bulkImport', () => {
     it('should import multiple test cases', async () => {
-      mockPrismaService.testCase.aggregate.mockResolvedValue({ _max: { test_order: null } });
+      mockPrismaService.testCase.aggregate.mockResolvedValue({
+        _max: { test_order: null },
+      });
       mockPrismaService.testCase.createMany.mockResolvedValue({ count: 3 });
 
       const result = await service.bulkImport(BigInt(1), {
@@ -189,7 +201,9 @@ describe('TestCaseService', () => {
 
     it('should replace existing test cases when flag is set', async () => {
       mockPrismaService.testCase.deleteMany.mockResolvedValue({ count: 2 });
-      mockPrismaService.testCase.aggregate.mockResolvedValue({ _max: { test_order: null } });
+      mockPrismaService.testCase.aggregate.mockResolvedValue({
+        _max: { test_order: null },
+      });
       mockPrismaService.testCase.createMany.mockResolvedValue({ count: 3 });
 
       await service.bulkImport(BigInt(1), {
@@ -207,7 +221,10 @@ describe('TestCaseService', () => {
 
   describe('export', () => {
     it('should export all test cases', async () => {
-      mockPrismaService.testCase.findMany.mockResolvedValue([mockTestCase, mockTestCase]);
+      mockPrismaService.testCase.findMany.mockResolvedValue([
+        mockTestCase,
+        mockTestCase,
+      ]);
 
       const result = await service.export(BigInt(1));
 
@@ -232,9 +249,9 @@ describe('TestCaseService', () => {
     it('should throw if test case not found', async () => {
       mockPrismaService.testCase.findMany.mockResolvedValue([{ id: '1' }]);
 
-      await expect(
-        service.reorder(BigInt(1), ['1', '2', '3']),
-      ).rejects.toThrow(NotFoundException);
+      await expect(service.reorder(BigInt(1), ['1', '2', '3'])).rejects.toThrow(
+        NotFoundException,
+      );
     });
   });
 });

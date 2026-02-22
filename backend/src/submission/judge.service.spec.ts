@@ -19,7 +19,9 @@ describe('JudgeService', () => {
     mockSandboxFactory = {
       getSandbox: jest.fn().mockResolvedValue(mockSandbox),
       getSandboxByType: jest.fn().mockReturnValue(mockSandbox),
-      checkAvailability: jest.fn().mockResolvedValue({ vm: true, docker: false }),
+      checkAvailability: jest
+        .fn()
+        .mockResolvedValue({ vm: true, docker: false }),
     } as unknown as jest.Mocked<SandboxFactory>;
 
     const module: TestingModule = await Test.createTestingModule({
@@ -70,7 +72,15 @@ describe('JudgeService', () => {
       );
 
       const code = 'function solution(a, b) { return a + b; }';
-      const testCases = [createTestCase([{ name: 'a', value: '1' }, { name: 'b', value: '2' }], '3')];
+      const testCases = [
+        createTestCase(
+          [
+            { name: 'a', value: '1' },
+            { name: 'b', value: '2' },
+          ],
+          '3',
+        ),
+      ];
 
       const result = await service.judge('javascript', code, testCases);
 
@@ -84,8 +94,17 @@ describe('JudgeService', () => {
         createResult('Accepted', { output: '3', expectedOutput: '3' }),
       );
 
-      const code = 'function solution(a: number, b: number): number { return a + b; }';
-      const testCases = [createTestCase([{ name: 'a', value: '1' }, { name: 'b', value: '2' }], '3')];
+      const code =
+        'function solution(a: number, b: number): number { return a + b; }';
+      const testCases = [
+        createTestCase(
+          [
+            { name: 'a', value: '1' },
+            { name: 'b', value: '2' },
+          ],
+          '3',
+        ),
+      ];
 
       const result = await service.judge('typescript', code, testCases);
 
@@ -101,7 +120,15 @@ describe('JudgeService', () => {
       );
 
       const code = 'def solution(a, b): return a + b';
-      const testCases = [createTestCase([{ name: 'a', value: '1' }, { name: 'b', value: '2' }], '3')];
+      const testCases = [
+        createTestCase(
+          [
+            { name: 'a', value: '1' },
+            { name: 'b', value: '2' },
+          ],
+          '3',
+        ),
+      ];
 
       const result = await service.judge('python', code, testCases);
 
@@ -115,7 +142,15 @@ describe('JudgeService', () => {
       );
 
       const code = 'function solution(a, b) { return a - b; }';
-      const testCases = [createTestCase([{ name: 'a', value: '1' }, { name: 'b', value: '2' }], '3')];
+      const testCases = [
+        createTestCase(
+          [
+            { name: 'a', value: '1' },
+            { name: 'b', value: '2' },
+          ],
+          '3',
+        ),
+      ];
 
       const result = await service.judge('javascript', code, testCases);
 
@@ -124,10 +159,15 @@ describe('JudgeService', () => {
 
     it('should handle array inputs and outputs', async () => {
       mockSandbox.execute.mockResolvedValueOnce(
-        createResult('Accepted', { output: '[1,2,3]', expectedOutput: '[1,2,3]' }),
+        createResult('Accepted', {
+          output: '[1,2,3]',
+          expectedOutput: '[1,2,3]',
+        }),
       );
 
-      const arrayTestCases = [createTestCase([{ name: 'nums', value: '[1, 2, 3]' }], '[1, 2, 3]')];
+      const arrayTestCases = [
+        createTestCase([{ name: 'nums', value: '[1, 2, 3]' }], '[1, 2, 3]'),
+      ];
       const code = 'function solution(nums) { return nums; }';
 
       const result = await service.judge('javascript', code, arrayTestCases);
@@ -150,13 +190,38 @@ describe('JudgeService', () => {
 
     it('should stop on first wrong answer and mark remaining as Pending', async () => {
       mockSandbox.execute
-        .mockResolvedValueOnce(createResult('Accepted', { output: '5', expectedOutput: '5' }))
-        .mockResolvedValueOnce(createResult('Wrong Answer', { output: '5', expectedOutput: '10' }));
+        .mockResolvedValueOnce(
+          createResult('Accepted', { output: '5', expectedOutput: '5' }),
+        )
+        .mockResolvedValueOnce(
+          createResult('Wrong Answer', { output: '5', expectedOutput: '10' }),
+        );
 
       const testCases = [
-        createTestCase([{ name: 'a', value: '2' }, { name: 'b', value: '3' }], '5', '1'),
-        createTestCase([{ name: 'a', value: '5' }, { name: 'b', value: '5' }], '10', '2'),
-        createTestCase([{ name: 'a', value: '1' }, { name: 'b', value: '1' }], '2', '3'),
+        createTestCase(
+          [
+            { name: 'a', value: '2' },
+            { name: 'b', value: '3' },
+          ],
+          '5',
+          '1',
+        ),
+        createTestCase(
+          [
+            { name: 'a', value: '5' },
+            { name: 'b', value: '5' },
+          ],
+          '10',
+          '2',
+        ),
+        createTestCase(
+          [
+            { name: 'a', value: '1' },
+            { name: 'b', value: '1' },
+          ],
+          '2',
+          '3',
+        ),
       ];
 
       const result = await service.judge('javascript', 'code', testCases);
@@ -177,7 +242,11 @@ describe('JudgeService', () => {
 
       const testCases = [createTestCase([], '5')];
 
-      const result = await service.judge('javascript', 'while(true){}', testCases);
+      const result = await service.judge(
+        'javascript',
+        'while(true){}',
+        testCases,
+      );
 
       expect(result.verdict).toBe('Time Limit Exceeded');
     });
@@ -198,9 +267,15 @@ describe('JudgeService', () => {
 
     it('should aggregate total runtime and max memory', async () => {
       mockSandbox.execute
-        .mockResolvedValueOnce(createResult('Accepted', { time: 100, memory: 10 }))
-        .mockResolvedValueOnce(createResult('Accepted', { time: 50, memory: 20 }))
-        .mockResolvedValueOnce(createResult('Accepted', { time: 75, memory: 15 }));
+        .mockResolvedValueOnce(
+          createResult('Accepted', { time: 100, memory: 10 }),
+        )
+        .mockResolvedValueOnce(
+          createResult('Accepted', { time: 50, memory: 20 }),
+        )
+        .mockResolvedValueOnce(
+          createResult('Accepted', { time: 75, memory: 15 }),
+        );
 
       const testCases = [
         createTestCase([], '1', '1'),

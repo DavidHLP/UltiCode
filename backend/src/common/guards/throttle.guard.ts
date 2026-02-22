@@ -1,6 +1,9 @@
 import { Injectable, ExecutionContext, Inject } from '@nestjs/common';
 import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
-import type { ThrottlerModuleOptions, ThrottlerStorage } from '@nestjs/throttler';
+import type {
+  ThrottlerModuleOptions,
+  ThrottlerStorage,
+} from '@nestjs/throttler';
 import { Reflector } from '@nestjs/core';
 
 export const THROTTLE_KEY = 'throttle_config';

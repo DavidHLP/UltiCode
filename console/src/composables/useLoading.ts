@@ -51,7 +51,8 @@ export function useLoading(options: UseLoadingOptions = {}) {
    * Get the current loading message (from the most recent operation)
    */
   const loadingMessage = computed(() => {
-    const latest = globalLoadingOperations.value.at(-1);
+    const operations = globalLoadingOperations.value;
+    const latest = operations.length > 0 ? operations[operations.length - 1] : undefined;
     return latest?.message || defaultMessage;
   });
 

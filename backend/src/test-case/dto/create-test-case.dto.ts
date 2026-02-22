@@ -1,4 +1,11 @@
-import { IsString, IsBoolean, IsOptional, IsInt, IsJSON, Min } from 'class-validator';
+import {
+  IsString,
+  IsBoolean,
+  IsOptional,
+  IsInt,
+  IsJSON,
+  Min,
+} from 'class-validator';
 
 export class CreateTestCaseDto {
   @IsBoolean()

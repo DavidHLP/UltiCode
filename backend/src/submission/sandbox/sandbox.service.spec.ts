@@ -71,7 +71,10 @@ describe('VmSandboxService', () => {
           return arr.slice().reverse();
         }
       `;
-      const testCase = createTestCase([{ name: 'arr', value: '[1,2,3]' }], '[3,2,1]');
+      const testCase = createTestCase(
+        [{ name: 'arr', value: '[1,2,3]' }],
+        '[3,2,1]',
+      );
 
       const result = await service.execute('javascript', code, testCase);
 
@@ -85,7 +88,10 @@ describe('VmSandboxService', () => {
           return 'Hello, ' + name;
         }
       `;
-      const testCase = createTestCase([{ name: 'name', value: '"World"' }], 'Hello, World');
+      const testCase = createTestCase(
+        [{ name: 'name', value: '"World"' }],
+        'Hello, World',
+      );
 
       const result = await service.execute('typescript', code, testCase);
 

@@ -140,7 +140,9 @@ export class TestCaseService {
       })),
     });
 
-    this.logger.log(`Bulk imported ${created.count} test cases for problem ${problemId}`);
+    this.logger.log(
+      `Bulk imported ${created.count} test cases for problem ${problemId}`,
+    );
 
     return { count: created.count };
   }

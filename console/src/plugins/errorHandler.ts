@@ -118,7 +118,6 @@ export function createErrorHandler(options: ErrorHandlerOptions = {}) {
     logToConsole = true,
     showToast = true,
     onError,
-    errorRoute = "/error",
   } = options;
 
   return {

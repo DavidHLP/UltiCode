@@ -191,7 +191,10 @@ export class SearchService implements OnModuleInit {
           description: (hit.summary as string) || '',
           url: `/problems/${hit.slug}`,
           highlights: formatted
-            ? { title: [formatted.title || ''], summary: [formatted.summary || ''] }
+            ? {
+                title: [formatted.title || ''],
+                summary: [formatted.summary || ''],
+              }
             : undefined,
         };
       case SearchIndex.USERS:
@@ -244,10 +247,7 @@ export class SearchService implements OnModuleInit {
         where: {
           is_published: true,
           is_deleted: false,
-          OR: [
-            { title: { contains: query } },
-            { slug: { contains: query } },
-          ],
+          OR: [{ title: { contains: query } }, { slug: { contains: query } }],
         },
         include: { detail: true, tagRelations: { include: { tag: true } } },
         take: limit,
@@ -258,10 +258,7 @@ export class SearchService implements OnModuleInit {
         where: {
           is_published: true,
           is_deleted: false,
-          OR: [
-            { title: { contains: query } },
-            { slug: { contains: query } },
-          ],
+          OR: [{ title: { contains: query } }, { slug: { contains: query } }],
         },
       });
 

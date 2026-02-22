@@ -29,6 +29,9 @@ import { CustomCacheModule } from './cache/cache.module';
 import { TestCaseModule } from './test-case/test-case.module';
 import { SearchModule } from './search/search.module';
 import { AchievementModule } from './achievement/achievement.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
+import { BackupModule } from './backup/backup.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -89,6 +92,9 @@ import { AchievementModule } from './achievement/achievement.module';
     TestCaseModule,
     SearchModule,
     AchievementModule,
+    MonitoringModule,
+    BackupModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [

@@ -4,7 +4,6 @@ import { useNetworkStatus } from "@/composables/useNetworkStatus";
 import { useI18n } from "vue-i18n";
 import { WifiOff, Wifi, RefreshCw } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 
 const props = defineProps<{
   /** Position of the indicator */

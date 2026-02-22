@@ -43,7 +43,13 @@ export class VmSandboxService implements SandboxServiceInterface {
     const inputs = testCase.inputs ?? [];
     const expectedOutput = testCase.output ?? '';
 
-    return this.executeInVM(code, normalizedLanguage, inputs, expectedOutput, timeLimit);
+    return this.executeInVM(
+      code,
+      normalizedLanguage,
+      inputs,
+      expectedOutput,
+      timeLimit,
+    );
   }
 
   private normalizeLanguage(language: string): string | null {
@@ -94,7 +100,10 @@ export class VmSandboxService implements SandboxServiceInterface {
           memory: 0,
           output: '',
           expectedOutput,
-          detail: error instanceof Error ? error.message : 'TypeScript compilation failed',
+          detail:
+            error instanceof Error
+              ? error.message
+              : 'TypeScript compilation failed',
           inputs,
         };
       }
@@ -159,7 +168,9 @@ export class VmSandboxService implements SandboxServiceInterface {
       const expectedValue = this.parseValue(expectedOutput);
 
       const isAccepted =
-        expectedOutput === '' ? true : this.deepEqual(outputValue, expectedValue);
+        expectedOutput === ''
+          ? true
+          : this.deepEqual(outputValue, expectedValue);
 
       return {
         status: isAccepted ? 'Accepted' : 'Wrong Answer',

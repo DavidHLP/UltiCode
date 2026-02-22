@@ -1,7 +1,12 @@
 import { JudgeTestCase, JudgeCaseResult } from '../judge.service';
 
 export interface ExecutionResult {
-  status: 'Success' | 'Time Limit Exceeded' | 'Memory Limit Exceeded' | 'Runtime Error' | 'Compile Error';
+  status:
+    | 'Success'
+    | 'Time Limit Exceeded'
+    | 'Memory Limit Exceeded'
+    | 'Runtime Error'
+    | 'Compile Error';
   output?: string;
   error?: string;
   time: number;

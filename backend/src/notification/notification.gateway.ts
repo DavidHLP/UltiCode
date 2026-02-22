@@ -53,8 +53,7 @@ export class NotificationGateway
     try {
       // Extract token from handshake auth or cookies
       const token =
-        client.handshake.auth?.token ||
-        this.extractTokenFromCookie(client);
+        client.handshake.auth?.token || this.extractTokenFromCookie(client);
 
       if (!token) {
         this.logger.warn(`Client ${client.id} connected without token`);
@@ -111,11 +110,7 @@ export class NotificationGateway
   }
 
   // Send notification to a specific user
-  sendToUser(
-    userId: string,
-    event: NotificationEvent,
-    data: unknown,
-  ): boolean {
+  sendToUser(userId: string, event: NotificationEvent, data: unknown): boolean {
     const room = `user:${userId}`;
     this.server.to(room).emit(event, {
       data,
@@ -188,9 +183,7 @@ export class NotificationGateway
     @MessageBody() contestId: string,
   ): void {
     client.join(`contest:${contestId}`);
-    this.logger.log(
-      `User ${client.userId} subscribed to contest ${contestId}`,
-    );
+    this.logger.log(`User ${client.userId} subscribed to contest ${contestId}`);
   }
 
   // Unsubscribe from contest updates

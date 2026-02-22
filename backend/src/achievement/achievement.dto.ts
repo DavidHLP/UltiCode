@@ -1,4 +1,11 @@
-import { IsString, IsOptional, IsInt, Min, IsBoolean, IsJSON } from 'class-validator';
+import {
+  IsString,
+  IsOptional,
+  IsInt,
+  Min,
+  IsBoolean,
+  IsJSON,
+} from 'class-validator';
 
 export class CreateAchievementDto {
   @IsString()

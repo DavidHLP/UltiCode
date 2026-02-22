@@ -299,4 +299,73 @@ export class UserService {
 
     return { message: 'Password changed successfully' };
   }
+
+  async getUserSkills(userId: string) {
+    const cacheKey = `user_skills:${userId}`;
+    const cached = await this.cacheService.get(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
+    // Get solved problems with their tags
+    const solvedProblemsWithTags = await this.prisma.problem.findMany({
+      where: {
+        submissions: {
+          some: {
+            user_id: userId,
+            status: 'Accepted',
+          },
+        },
+      },
+      include: {
+        tagRelations: {
+          include: {
+            tag: {
+              select: {
+                id: true,
+                label: true,
+                slug: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Aggregate skills by tag
+    const skillsMap = new Map<
+      string,
+      { tagName: string; tagSlug: string; count: number }
+    >();
+
+    for (const problem of solvedProblemsWithTags) {
+      for (const tagRelation of problem.tagRelations) {
+        const tag = tagRelation.tag;
+        const existing = skillsMap.get(tag.id);
+        if (existing) {
+          existing.count++;
+        } else {
+          skillsMap.set(tag.id, {
+            tagName: tag.label,
+            tagSlug: tag.slug || tag.id,
+            count: 1,
+          });
+        }
+      }
+    }
+
+    // Convert to array and sort by count
+    const skills = Array.from(skillsMap.values())
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 12); // Top 12 skills for the radar chart
+
+    const result = {
+      skills,
+      totalSolved: solvedProblemsWithTags.length,
+    };
+
+    // Cache for 5 minutes
+    await this.cacheService.set(cacheKey, result, 300);
+    return result;
+  }
 }

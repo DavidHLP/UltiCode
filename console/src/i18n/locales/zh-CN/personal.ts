@@ -109,6 +109,14 @@ export default {
     topPercent: "前 {percent}%",
   },
 
+  // Skills radar chart
+  skills: {
+    title: "技能分布",
+    subtitle: "您在各领域的解题能力分布。",
+    solvedByTag: "按标签解题数",
+    noSkills: "解决更多题目以查看您的技能分布！",
+  },
+
   // Submissions
   submissions: {
     title: "我的提交",

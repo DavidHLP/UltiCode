@@ -24,6 +24,17 @@ export interface UserStats {
   heatmap: { date: string; level: number }[];
 }
 
+export interface UserSkill {
+  tagName: string;
+  tagSlug: string;
+  count: number;
+}
+
+export interface UserSkills {
+  skills: UserSkill[];
+  totalSolved: number;
+}
+
 export async function fetchUserProfile(userId: string): Promise<UserProfile> {
   return apiGet<UserProfile>(`/users/${userId}`);
 }
@@ -37,4 +48,10 @@ export async function updateUserProfile(
 
 export async function fetchUserStats(userId: string): Promise<UserStats> {
   return apiGet<UserStats>(`/users/${userId}/stats`);
+}
+
+export async function fetchUserSkills(
+  userId: string,
+): Promise<UserSkills> {
+  return apiGet<UserSkills>(`/users/${userId}/skills`);
 }

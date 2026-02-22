@@ -29,11 +29,14 @@ import { onMounted, ref, computed } from "vue";
 import { RouterLink } from "vue-router";
 import ActivityHeatmap from "./components/ActivityHeatmap.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
+import SkillRadarChart from "./components/SkillRadarChart.vue";
 import {
   fetchUserProfile,
   fetchUserStats,
+  fetchUserSkills,
   type UserProfile,
   type UserStats,
+  type UserSkill,
 } from "@/api/user";
 import { fetchUserSubmissions } from "@/api/submission";
 import type { SubmissionRecord } from "@/types/submission";
@@ -45,6 +48,8 @@ const loading = ref(true);
 const user = ref<UserProfile | null>(null);
 const submissions = ref<SubmissionRecord[]>([]);
 const statsData = ref<UserStats | null>(null);
+const skillsData = ref<UserSkill[]>([]);
+const skillsLoading = ref(false);
 
 const stats = computed(() => {
   if (!statsData.value)
@@ -113,6 +118,19 @@ onMounted(async () => {
     user.value = userData;
     submissions.value = userSubmissions;
     statsData.value = userStats;
+
+    // Fetch skills data separately (non-blocking)
+    skillsLoading.value = true;
+    fetchUserSkills(userId)
+      .then((data) => {
+        skillsData.value = data.skills;
+      })
+      .catch((e) => {
+        console.error("Failed to load skills data", e);
+      })
+      .finally(() => {
+        skillsLoading.value = false;
+      });
   } catch (e) {
     console.error("Failed to load profile data", e);
   } finally {
@@ -449,6 +467,25 @@ onMounted(async () => {
           </CardHeader>
           <CardContent class="pt-2">
             <ActivityHeatmap :data="statsData?.heatmap" />
+          </CardContent>
+        </Card>
+
+        <!-- Skill Radar Chart -->
+        <Card class="rounded-2xl">
+          <CardHeader class="pb-2">
+            <CardTitle class="text-lg font-bold flex items-center gap-2">
+              <Target class="h-5 w-5 text-primary" />
+              {{ t("personal.skills.title") }}
+            </CardTitle>
+            <CardDescription>
+              {{ t("personal.skills.subtitle") }}
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="pt-2">
+            <SkillRadarChart
+              :skills="skillsData"
+              :loading="skillsLoading"
+            />
           </CardContent>
         </Card>
       </div>

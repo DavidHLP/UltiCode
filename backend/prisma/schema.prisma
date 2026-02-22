@@ -120,6 +120,8 @@ model Problem {
   @@index([title])
   @@index([is_published, is_deleted])
   @@index([is_flagged, is_deleted])
+  @@index([difficulty, is_published, is_deleted])
+  @@index([created_at])
   @@map("problems")
 }
 
@@ -872,6 +874,7 @@ model Submission {
   @@index([user_id, status, created_at])
   @@index([user_id], map: "submissions_user_id_fkey")
   @@index([problem_id, user_id, status, runtime, memory])
+  @@index([problem_id, created_at])
   @@map("submissions")
 }
 
@@ -1239,4 +1242,67 @@ model SystemAnnouncementRead {
 
   @@unique([user_id, announcement_id])
   @@map("system_announcement_reads")
+}
+
+enum BackupType {
+  FULL
+  PARTIAL
+}
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model Backup {
+  id          String       @id @default(uuid()) @db.VarChar(40)
+  filename    String       @db.VarChar(255)
+  size        BigInt       @default(0)
+  type        BackupType   @default(FULL)
+  status      BackupStatus @default(PENDING)
+  created_by  String       @db.VarChar(40)
+  created_at  DateTime     @default(now())
+  completed_at DateTime?
+  error       String?      @db.Text
+  metadata    Json?
+
+  @@index([status])
+  @@index([created_at])
+  @@map("backups")
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid()) @db.VarChar(40)
+  name      String   @unique @db.VarChar(255)
+  subject   String   @db.VarChar(255)
+  body      String   @db.Text
+  variables Json?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+model EmailLog {
+  id          String       @id @default(uuid()) @db.VarChar(40)
+  template_id String?      @db.VarChar(40)
+  recipient   String       @db.VarChar(255)
+  subject     String       @db.VarChar(255)
+  status      EmailStatus  @default(PENDING)
+  sent_at     DateTime?
+  error       String?      @db.Text
+  created_at  DateTime     @default(now())
+
+  @@index([status])
+  @@index([recipient])
+  @@index([created_at])
+  @@map("email_logs")
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
 }

@@ -63,6 +63,7 @@ model User {
   views                 View[]
   virtualSessions       VirtualContestSession[]
   notifications         Notification[]
+  userAchievements      UserAchievement[]
   notificationPreference NotificationPreference?
   permissions           UserPermission[]
   auditLogs             AuditLog[]              @relation("AuditLogUser")
@@ -112,12 +113,15 @@ model Problem {
   tagRelations         ProblemTagRelation[]
   solutions            Solution[]
   submissions          Submission[]
+  testCases            TestCase[]
 
   @@index([difficulty])
   @@index([slug])
   @@index([title])
   @@index([is_published, is_deleted])
   @@index([is_flagged, is_deleted])
+  @@index([difficulty, is_published, is_deleted])
+  @@index([created_at])
   @@map("problems")
 }
 
@@ -191,6 +195,26 @@ model ProblemExample {
 
   @@index([problem_id], map: "problem_examples_problem_id_fkey")
   @@map("problem_examples")
+}
+
+model TestCase {
+  id           String   @id @default(cuid())
+  problem_id   BigInt
+  is_sample    Boolean  @default(false)
+  is_hidden    Boolean  @default(true)
+  test_order   Int      @default(0)
+  input_text   String   @db.Text
+  output_text  String   @db.Text
+  explanation  String?  @db.Text
+  constraints  Json?
+  created_at   DateTime @default(now())
+  updated_at   DateTime @updatedAt
+
+  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@index([problem_id, test_order])
+  @@index([problem_id])
+  @@map("test_cases")
 }
 
 model Contest {
@@ -431,6 +455,43 @@ model Notification {
   @@index([user_id, type])
   @@index([user_id, category])
   @@map("notifications")
+}
+
+model Achievement {
+  id          String            @id @default(cuid())
+  key         String            @unique
+  name        String
+  description String
+  icon        String?
+  category    String
+  tier        Int               @default(1)
+  criteria    Json
+  points      Int               @default(0)
+  is_active   Boolean           @default(true)
+  created_at  DateTime          @default(now())
+  updated_at  DateTime          @updatedAt
+
+  userAchievements UserAchievement[]
+
+  @@index([category])
+  @@index([key])
+  @@map("achievements")
+}
+
+model UserAchievement {
+  id             String   @id @default(cuid())
+  user_id        String   @db.VarChar(40)
+  achievement_id String
+  earned_at      DateTime @default(now())
+  progress       Json?
+
+  user        User        @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  achievement Achievement @relation(fields: [achievement_id], references: [id], onDelete: Cascade)
+
+  @@unique([user_id, achievement_id])
+  @@index([user_id])
+  @@index([earned_at])
+  @@map("user_achievements")
 }
 
 model ForumCommunity {
@@ -813,6 +874,7 @@ model Submission {
   @@index([user_id, status, created_at])
   @@index([user_id], map: "submissions_user_id_fkey")
   @@index([problem_id, user_id, status, runtime, memory])
+  @@index([problem_id, created_at])
   @@map("submissions")
 }
 
@@ -1180,4 +1242,67 @@ model SystemAnnouncementRead {
 
   @@unique([user_id, announcement_id])
   @@map("system_announcement_reads")
+}
+
+enum BackupType {
+  FULL
+  PARTIAL
+}
+
+enum BackupStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  FAILED
+}
+
+model Backup {
+  id          String       @id @default(uuid()) @db.VarChar(40)
+  filename    String       @db.VarChar(255)
+  size        BigInt       @default(0)
+  type        BackupType   @default(FULL)
+  status      BackupStatus @default(PENDING)
+  created_by  String       @db.VarChar(40)
+  created_at  DateTime     @default(now())
+  completed_at DateTime?
+  error       String?      @db.Text
+  metadata    Json?
+
+  @@index([status])
+  @@index([created_at])
+  @@map("backups")
+}
+
+model EmailTemplate {
+  id        String   @id @default(uuid()) @db.VarChar(40)
+  name      String   @unique @db.VarChar(255)
+  subject   String   @db.VarChar(255)
+  body      String   @db.Text
+  variables Json?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("email_templates")
+}
+
+model EmailLog {
+  id          String       @id @default(uuid()) @db.VarChar(40)
+  template_id String?      @db.VarChar(40)
+  recipient   String       @db.VarChar(255)
+  subject     String       @db.VarChar(255)
+  status      EmailStatus  @default(PENDING)
+  sent_at     DateTime?
+  error       String?      @db.Text
+  created_at  DateTime     @default(now())
+
+  @@index([status])
+  @@index([recipient])
+  @@index([created_at])
+  @@map("email_logs")
+}
+
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
 }

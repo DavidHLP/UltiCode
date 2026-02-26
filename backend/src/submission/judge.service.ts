@@ -1,7 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { performance } from 'perf_hooks';
-import * as vm from 'vm';
-import ts from 'typescript';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { SandboxFactory } from './sandbox/sandbox.factory';
+import { SandboxServiceInterface } from './sandbox/sandbox.interface';
 
 type JudgeStatus =
   | 'Accepted'
@@ -48,89 +47,42 @@ export interface JudgeResult {
   compileError?: string;
 }
 
-const TIME_LIMIT_MS = 2000;
-const FLOAT_TOLERANCE = 1e-6;
-
 @Injectable()
-export class JudgeService {
-  judge(
+export class JudgeService implements OnModuleInit {
+  private readonly logger = new Logger(JudgeService.name);
+  private sandbox: SandboxServiceInterface | null = null;
+
+  constructor(private sandboxFactory: SandboxFactory) {}
+
+  async onModuleInit(): Promise<void> {
+    try {
+      this.sandbox = await this.sandboxFactory.getSandbox();
+      this.logger.log(
+        `Judge service initialized with ${this.sandbox.getType()} sandbox`,
+      );
+    } catch (error) {
+      this.logger.error(`Failed to initialize sandbox: ${error}`);
+    }
+  }
+
+  async judge(
     language: string,
     code: string,
     testCases: JudgeTestCase[],
-  ): JudgeResult {
-    const normalizedLanguage = this.normalizeLanguage(language);
-    if (!normalizedLanguage) {
-      return {
-        verdict: 'Compile Error',
-        runtime: 0,
-        memory: 0,
-        cases: [],
-        compileError: `Language ${language} is not supported.`,
-      };
+  ): Promise<JudgeResult> {
+    if (!this.sandbox) {
+      try {
+        this.sandbox = await this.sandboxFactory.getSandbox();
+      } catch (error) {
+        return {
+          verdict: 'System Error',
+          runtime: 0,
+          memory: 0,
+          cases: [],
+          compileError: 'Sandbox service is not available',
+        };
+      }
     }
-
-    const entryName = this.detectEntryFunctionName(code);
-    if (!entryName) {
-      return {
-        verdict: 'Compile Error',
-        runtime: 0,
-        memory: 0,
-        cases: [],
-        compileError: 'Unable to detect the entry function name.',
-      };
-    }
-
-    let compiledCode = code;
-    if (normalizedLanguage === 'typescript') {
-      compiledCode = ts.transpileModule(code, {
-        compilerOptions: {
-          target: ts.ScriptTarget.ES2020,
-          module: ts.ModuleKind.CommonJS,
-          strict: false,
-        },
-      }).outputText;
-    }
-
-    const context = vm.createContext({
-      console: {
-        log: () => undefined,
-        error: () => undefined,
-        warn: () => undefined,
-      },
-    });
-    context.globalThis = context;
-
-    const instrumentedCode = `${compiledCode}\n;globalThis.__entry = typeof ${entryName} !== 'undefined' ? ${entryName} : undefined;`;
-
-    try {
-      const setupScript = new vm.Script(instrumentedCode, {
-        filename: 'submission.js',
-      });
-      setupScript.runInContext(context, { timeout: TIME_LIMIT_MS });
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return {
-        verdict: 'Compile Error',
-        runtime: 0,
-        memory: 0,
-        cases: [],
-        compileError: message,
-      };
-    }
-
-    if (typeof context.__entry !== 'function') {
-      return {
-        verdict: 'Compile Error',
-        runtime: 0,
-        memory: 0,
-        cases: [],
-        compileError: `Entry function "${entryName}" was not found.`,
-      };
-    }
-
-    const invokeScript = new vm.Script('__entry(...__args)', {
-      filename: 'invoke.js',
-    });
 
     const results: JudgeCaseResult[] = [];
     let verdict: JudgeStatus = 'Accepted';
@@ -139,182 +91,58 @@ export class JudgeService {
 
     for (let index = 0; index < testCases.length; index += 1) {
       const testCase = testCases[index];
-      const inputs = testCase.inputs ?? [];
-      const args = inputs.map((input) => this.parseValue(input.value));
 
-      context.__args = args;
-      const start = performance.now();
       try {
-        const outputValue = invokeScript.runInContext(context, {
-          timeout: TIME_LIMIT_MS,
-        }) as unknown;
-        const elapsed = Math.max(1, Math.round(performance.now() - start));
-        const memory = this.currentMemoryMb();
-        const expectedOutput = testCase.output ?? '';
-        const expectedValue = this.parseValue(expectedOutput);
-        const outputText = this.formatValue(outputValue);
+        const result = await this.sandbox.execute(language, code, testCase);
 
-        const isAccepted =
-          expectedOutput === ''
-            ? true
-            : this.deepEqual(outputValue, expectedValue);
-
-        const status: JudgeStatus = isAccepted ? 'Accepted' : 'Wrong Answer';
-
-        results.push({
-          status,
-          time: elapsed,
-          memory,
-          output: outputText,
-          expectedOutput,
-          inputs,
-        });
-
-        totalRuntime += elapsed;
-        if (memory > maxMemory) {
-          maxMemory = memory;
+        results.push(result);
+        totalRuntime += result.time;
+        if (result.memory > maxMemory) {
+          maxMemory = result.memory;
         }
 
-        if (!isAccepted) {
-          verdict = status;
+        if (result.status !== 'Accepted') {
+          verdict = result.status;
           this.markPendingCases(results, testCases, index + 1);
           break;
         }
       } catch (error) {
-        const elapsed = Math.max(1, Math.round(performance.now() - start));
-        const memory = this.currentMemoryMb();
-        const message = error instanceof Error ? error.message : String(error);
-        const status: JudgeStatus = message.includes(
-          'Script execution timed out',
-        )
-          ? 'Time Limit Exceeded'
-          : 'Runtime Error';
+        const message =
+          error instanceof Error ? error.message : 'Unknown error';
         results.push({
-          status,
-          time: elapsed,
-          memory,
+          status: 'System Error',
+          time: 0,
+          memory: 0,
           output: '',
           expectedOutput: testCase.output ?? '',
           detail: message,
-          inputs,
+          inputs: testCase.inputs ?? [],
         });
-        totalRuntime += elapsed;
-        if (memory > maxMemory) {
-          maxMemory = memory;
-        }
-        verdict = status;
+        verdict = 'System Error';
         this.markPendingCases(results, testCases, index + 1);
         break;
       }
     }
+
+    // Find compile error in results
+    const compileError = results.find(
+      (r) => r.status === 'Compile Error',
+    )?.detail;
 
     return {
       verdict,
       runtime: totalRuntime,
       memory: maxMemory,
       cases: results,
+      compileError,
     };
-  }
-
-  private normalizeLanguage(language: string): string | null {
-    const normalized = (language || '').toLowerCase();
-    if (normalized === 'javascript' || normalized === 'js') {
-      return 'javascript';
-    }
-    if (normalized === 'typescript' || normalized === 'ts') {
-      return 'typescript';
-    }
-    return null;
-  }
-
-  private detectEntryFunctionName(code: string): string | null {
-    const patterns = [
-      /(?:export\s+default\s+|export\s+)?function\s+([A-Za-z_$][\w$]*)\s*\(/,
-      /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*function\s*\(/,
-      /\b(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s*)?\(?[\w\s,]*\)?\s*=>/,
-    ];
-
-    for (const pattern of patterns) {
-      const match = code.match(pattern);
-      if (match?.[1]) {
-        return match[1];
-      }
-    }
-    return null;
-  }
-
-  private parseValue(rawValue: string): unknown {
-    const trimmed = (rawValue ?? '').trim();
-    if (!trimmed) {
-      return '';
-    }
-    try {
-      return JSON.parse(trimmed);
-    } catch {
-      return trimmed;
-    }
-  }
-
-  private formatValue(value: unknown): string {
-    if (value === null) return 'null';
-    if (value === undefined) return 'undefined';
-    if (typeof value === 'string') return value;
-    if (typeof value === 'number' || typeof value === 'boolean') {
-      return String(value);
-    }
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return Object.prototype.toString.call(value) as string;
-    }
-  }
-
-  private deepEqual(a: unknown, b: unknown): boolean {
-    if (typeof a === 'number' && typeof b === 'number') {
-      return Math.abs(a - b) <= FLOAT_TOLERANCE;
-    }
-    if (Array.isArray(a) && Array.isArray(b)) {
-      if (a.length !== b.length) return false;
-      for (let i = 0; i < a.length; i += 1) {
-        if (!this.deepEqual(a[i], b[i])) return false;
-      }
-      return true;
-    }
-    if (
-      a &&
-      b &&
-      typeof a === 'object' &&
-      typeof b === 'object' &&
-      !Array.isArray(a) &&
-      !Array.isArray(b)
-    ) {
-      const keysA = Object.keys(a as Record<string, unknown>);
-      const keysB = Object.keys(b as Record<string, unknown>);
-      if (keysA.length !== keysB.length) return false;
-      for (const key of keysA) {
-        if (
-          !this.deepEqual(
-            (a as Record<string, unknown>)[key],
-            (b as Record<string, unknown>)[key],
-          )
-        ) {
-          return false;
-        }
-      }
-      return true;
-    }
-    return a === b;
-  }
-
-  private currentMemoryMb(): number {
-    return Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 10) / 10;
   }
 
   private markPendingCases(
     results: JudgeCaseResult[],
     testCases: JudgeTestCase[],
     startIndex: number,
-  ) {
+  ): void {
     for (let index = startIndex; index < testCases.length; index += 1) {
       const pendingCase = testCases[index];
       results.push({

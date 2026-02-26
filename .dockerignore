@@ -1,0 +1,65 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+dist
+**/dist
+.output
+.nuxt
+
+# Cache
+.pnpm-store
+.pnpm-debug.log
+.eslintcache
+*.tsbuildinfo
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs
+logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# Test coverage
+coverage
+**/coverage
+.nyc_output
+
+# Documentation
+*.md
+!README.md
+LICENSE
+
+# CI/CD
+.github
+.husky
+
+# Shell scripts (not needed in container)
+shell
+
+# Worktrees
+.worktrees
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore

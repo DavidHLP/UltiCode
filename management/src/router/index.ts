@@ -231,6 +231,27 @@ const router = createRouter({
           component: () => import('@/views/notifications/NotificationsListView.vue'),
           meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
         },
+        // System Monitoring
+        {
+          path: 'monitoring',
+          name: 'monitoring',
+          component: () => import('@/views/system/MonitoringView.vue'),
+          meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
+        },
+        // Backup & Recovery
+        {
+          path: 'backup',
+          name: 'backup',
+          component: () => import('@/views/system/BackupView.vue'),
+          meta: { permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+        },
+        // Email Management
+        {
+          path: 'email',
+          name: 'email',
+          component: () => import('@/views/system/EmailView.vue'),
+          meta: { permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+        },
         // Account
         {
           path: 'account',

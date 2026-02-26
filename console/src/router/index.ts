@@ -201,6 +201,17 @@ const personalRoutes: RouteRecordRaw = {
       name: "personal-notifications",
       component: () => import("@/views/personal/NotificationsView.vue"),
     },
+    {
+      path: "achievements",
+      name: "personal-achievements",
+      component: () =>
+        import("@/views/achievements/AchievementGalleryView.vue"),
+    },
+    {
+      path: "dashboard",
+      name: "personal-dashboard",
+      component: () => import("@/views/dashboard/PersonalDashboardView.vue"),
+    },
   ],
 };
 

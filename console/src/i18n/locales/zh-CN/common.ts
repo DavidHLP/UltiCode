@@ -140,4 +140,31 @@ export default {
     memoryStorageFallback: "语言偏好设置仅在当前页面有效",
     storageRecovered: "语言偏好设置现在可以正常保存",
   },
+
+  // Network status
+  network: {
+    online: "已连接",
+    offline: "您当前处于离线状态",
+    offlineFor: "离线 {duration}",
+    reconnect: "重新连接",
+    backOnline: "网络已恢复",
+    connectionLost: "连接已断开",
+    connectionRestored: "连接已恢复",
+  },
+
+  // Error handling
+  error: {
+    title: "出了点问题",
+    boundaryMessage: "渲染此组件时发生错误，请重试。",
+    default: "发生意外错误",
+    showDetails: "显示详情",
+    hideDetails: "隐藏详情",
+    retryMessage: "请重试，如果问题持续存在请联系支持。",
+    notFound: "页面未找到",
+    forbidden: "访问被拒绝",
+    unauthorized: "请登录以继续",
+    serverError: "服务器错误，请稍后重试。",
+    networkError: "网络错误，请检查您的连接。",
+    timeout: "请求超时，请重试。",
+  },
 } as const;

@@ -16,4 +16,19 @@ export default defineConfig({
   server: {
     port: 9003,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vue ecosystem
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          // UI libraries
+          'ui-vendor': ['reka-ui', 'lucide-vue-next', '@tabler/icons-vue'],
+          // Markdown
+          'markdown': ['markdown-it'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 })

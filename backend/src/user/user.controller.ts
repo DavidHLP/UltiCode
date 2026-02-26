@@ -52,4 +52,9 @@ export class UserController {
   getUserStats(@Param('id') id: string) {
     return this.userService.getUserStats(id);
   }
+
+  @Get(':id/skills')
+  getUserSkills(@Param('id') id: string) {
+    return this.userService.getUserSkills(id);
+  }
 }

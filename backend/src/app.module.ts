@@ -4,8 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { validateConfig } from './config/config.schema';
-// import { APP_GUARD } from '@nestjs/core';
-// import { ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
+import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
@@ -26,6 +26,12 @@ import { NotificationModule } from './notification/notification.module';
 import { AdminModule } from './admin/admin.module';
 import { SubscriptionModule } from './subscription/subscription.module';
 import { CustomCacheModule } from './cache/cache.module';
+import { TestCaseModule } from './test-case/test-case.module';
+import { SearchModule } from './search/search.module';
+import { AchievementModule } from './achievement/achievement.module';
+import { MonitoringModule } from './monitoring/monitoring.module';
+import { BackupModule } from './backup/backup.module';
+import { EmailModule } from './email/email.module';
 
 @Module({
   imports: [
@@ -83,15 +89,21 @@ import { CustomCacheModule } from './cache/cache.module';
     NotificationModule,
     SubscriptionModule,
     CustomCacheModule,
+    TestCaseModule,
+    SearchModule,
+    AchievementModule,
+    MonitoringModule,
+    BackupModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [
     AppService,
-    // Global rate limiting disabled - only auth endpoints have rate limits via @Throttle decorators
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: ThrottlerGuard,
-    // },
+    // Global rate limiting with custom throttler guard
+    {
+      provide: APP_GUARD,
+      useClass: CustomThrottlerGuard,
+    },
   ],
 })
 export class AppModule {}

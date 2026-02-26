@@ -5,9 +5,13 @@ import loader from "@monaco-editor/loader";
 const props = defineProps<{
   modelValue: string;
   language: string;
-  theme?: "vs-dark" | "vs-light";
+  theme?: "vs-dark" | "vs-light" | "hc-black";
   wordWrap?: boolean;
   minimap?: boolean;
+  fontSize?: number;
+  tabSize?: number;
+  lineNumbers?: "on" | "off" | "relative";
+  fontFamily?: string;
 }>();
 
 const emit = defineEmits<{
@@ -150,10 +154,15 @@ onMounted(async () => {
     language: props.language,
     automaticLayout: true,
     minimap: { enabled: Boolean(props.minimap) },
-    fontSize: 13,
-    lineNumbers: "on",
+    fontSize: props.fontSize ?? 14,
+    tabSize: props.tabSize ?? 2,
+    lineNumbers: props.lineNumbers ?? "on",
     wordWrap: props.wordWrap ? "on" : "off",
     theme: props.theme ?? "vs-dark",
+    fontFamily:
+      props.fontFamily ??
+      "JetBrains Mono, Menlo, Monaco, Courier New, monospace",
+    fontLigatures: true,
     // IntelliSense and Suggestion Options
     quickSuggestions: {
       other: true,
@@ -230,6 +239,38 @@ watch(
   (value) => {
     if (!editor) return;
     editor.updateOptions({ minimap: { enabled: Boolean(value) } });
+  },
+);
+
+watch(
+  () => props.fontSize,
+  (value) => {
+    if (!editor || value === undefined) return;
+    editor.updateOptions({ fontSize: value });
+  },
+);
+
+watch(
+  () => props.tabSize,
+  (value) => {
+    if (!editor || value === undefined) return;
+    editor.updateOptions({ tabSize: value });
+  },
+);
+
+watch(
+  () => props.lineNumbers,
+  (value) => {
+    if (!editor || value === undefined) return;
+    editor.updateOptions({ lineNumbers: value });
+  },
+);
+
+watch(
+  () => props.fontFamily,
+  (value) => {
+    if (!editor || value === undefined) return;
+    editor.updateOptions({ fontFamily: value });
   },
 );
 

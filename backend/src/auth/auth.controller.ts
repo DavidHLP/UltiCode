@@ -77,6 +77,18 @@ export class AuthController {
   }
 
   @HttpCode(HttpStatus.OK)
+  @Get('google')
+  googleLogin(@Res() res: Response) {
+    this.authService.googleLogin(res);
+  }
+
+  @HttpCode(HttpStatus.OK)
+  @Get('google/callback')
+  async googleCallback(@Query('code') code: string, @Res() res: Response) {
+    await this.authService.googleCallback(code, res);
+  }
+
+  @HttpCode(HttpStatus.OK)
   @Post('logout')
   @UseGuards(AuthGuard)
   async logout(@Req() req: Request, @Res() res: Response) {

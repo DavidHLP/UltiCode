@@ -212,6 +212,11 @@ const personalRoutes: RouteRecordRaw = {
       name: "personal-dashboard",
       component: () => import("@/views/dashboard/PersonalDashboardView.vue"),
     },
+    {
+      path: "subscription",
+      name: "personal-subscription",
+      component: () => import("@/views/personal/SubscriptionView.vue"),
+    },
   ],
 };
 

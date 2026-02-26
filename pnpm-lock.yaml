@@ -126,6 +126,9 @@ importers:
       socket.io:
         specifier: ^4.8.1
         version: 4.8.3
+      stripe:
+        specifier: ^20.4.0
+        version: 20.4.0(@types/node@22.19.9)
       typescript:
         specifier: ^5.7.3
         version: 5.9.3
@@ -172,6 +175,9 @@ importers:
       '@types/nodemailer':
         specifier: ^7.0.11
         version: 7.0.11
+      '@types/stripe':
+        specifier: ^8.0.417
+        version: 8.0.417(@types/node@22.19.9)
       '@types/supertest':
         specifier: ^6.0.2
         version: 6.0.3
@@ -2493,6 +2499,10 @@ packages:
 
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
+
+  '@types/stripe@8.0.417':
+    resolution: {integrity: sha512-PTuqskh9YKNENnOHGVJBm4sM0zE8B1jZw1JIskuGAPkMB+OH236QeN8scclhYGPA4nG6zTtPXgwpXdp+HPDTVw==}
+    deprecated: This is a stub types definition. stripe provides its own type definitions, so you do not need this installed.
 
   '@types/superagent@8.1.9':
     resolution: {integrity: sha512-pTVjI73witn+9ILmoJdajHGW2jkSaOzhiFYF1Rd3EQ94kymLqB9PjD9ISg7WaALC7+dCHT0FGe9T2LktLq/3GQ==}
@@ -6015,6 +6025,15 @@ packages:
     resolution: {integrity: sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==}
     engines: {node: '>=8'}
 
+  stripe@20.4.0:
+    resolution: {integrity: sha512-F/aN1IQ9vHmlyLNi3DkiIbyzQb6gyBG0uYFd/VrEVQSc9BLtlgknPUx0EvzZdBMRLFuRaPFIFd7Mxwtg7Pbwzw==}
+    engines: {node: '>=16'}
+    peerDependencies:
+      '@types/node': '>=16'
+    peerDependenciesMeta:
+      '@types/node':
+        optional: true
+
   striptags@3.2.0:
     resolution: {integrity: sha512-g45ZOGzHDMe2bdYMdIvdAfCQkCTDMGBazSw1ypMowwGIee7ZQ5dU0rBJ8Jqgl+jAKIv4dbeE1jscZq9wid1Tkw==}
 
@@ -8814,6 +8833,12 @@ snapshots:
       '@types/node': 18.19.130
 
   '@types/stack-utils@2.0.3': {}
+
+  '@types/stripe@8.0.417(@types/node@22.19.9)':
+    dependencies:
+      stripe: 20.4.0(@types/node@22.19.9)
+    transitivePeerDependencies:
+      - '@types/node'
 
   '@types/superagent@8.1.9':
     dependencies:
@@ -12913,6 +12938,10 @@ snapshots:
   strip-final-newline@3.0.0: {}
 
   strip-json-comments@3.1.1: {}
+
+  stripe@20.4.0(@types/node@22.19.9):
+    optionalDependencies:
+      '@types/node': 22.19.9
 
   striptags@3.2.0: {}
 

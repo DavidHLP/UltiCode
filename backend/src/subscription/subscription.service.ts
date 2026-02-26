@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { SubscriptionStatus as PrismaSubscriptionStatus } from '@prisma/client';
 
 export enum SubscriptionPlan {
   FREE = 'FREE',
@@ -7,12 +8,9 @@ export enum SubscriptionPlan {
   PREMIUM_YEARLY = 'PREMIUM_YEARLY',
 }
 
-export enum SubscriptionStatus {
-  ACTIVE = 'ACTIVE',
-  CANCELLED = 'CANCELLED',
-  EXPIRED = 'EXPIRED',
-  PENDING = 'PENDING',
-}
+// Re-export Prisma SubscriptionStatus for convenience
+export const SubscriptionStatus = PrismaSubscriptionStatus;
+export type SubscriptionStatus = PrismaSubscriptionStatus;
 
 export interface SubscriptionCheckResult {
   hasAccess: boolean;
@@ -41,7 +39,7 @@ export class SubscriptionService {
         hasAccess: true,
         subscription: {
           plan: 'ADMIN',
-          status: 'ACTIVE',
+          status: SubscriptionStatus.ACTIVE,
           expiresAt: null,
         },
       };
@@ -69,14 +67,14 @@ export class SubscriptionService {
       // Update status to expired
       await this.prisma.subscription.update({
         where: { id: subscription.id },
-        data: { status: 'EXPIRED' },
+        data: { status: SubscriptionStatus.EXPIRED },
       });
 
       return {
         hasAccess: false,
         subscription: {
           plan: subscription.plan,
-          status: 'EXPIRED',
+          status: SubscriptionStatus.EXPIRED,
           expiresAt: subscription.expires_at,
         },
       };
@@ -104,7 +102,7 @@ export class SubscriptionService {
     return this.prisma.subscription.findFirst({
       where: {
         user_id: userId,
-        status: 'ACTIVE',
+        status: SubscriptionStatus.ACTIVE,
       },
       orderBy: {
         created_at: 'desc',
@@ -125,7 +123,7 @@ export class SubscriptionService {
       data: {
         user_id: data.userId,
         plan: data.plan,
-        status: data.status || 'ACTIVE',
+        status: data.status || SubscriptionStatus.ACTIVE,
         expires_at: data.expiresAt,
       },
     });
@@ -159,7 +157,7 @@ export class SubscriptionService {
     return this.prisma.subscription.update({
       where: { id },
       data: {
-        status: 'CANCELLED',
+        status: SubscriptionStatus.CANCELLED,
         cancelled_at: new Date(),
       },
     });

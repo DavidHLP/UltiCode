@@ -1,0 +1,226 @@
+<template>
+  <div class="subscription-view">
+    <div class="subscription-header">
+      <h1 class="text-2xl font-bold">{{ t('personal.subscription.title') }}</h1>
+      <p class="text-muted-foreground mt-2">
+        {{ t('personal.subscription.subtitle') }}
+      </p>
+    </div>
+
+    <div v-if="loading" class="flex justify-center py-12">
+      <Loader2 class="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+
+    <template v-else>
+      <!-- Current subscription status -->
+      <Card v-if="currentSubscription" class="mb-8">
+        <CardHeader>
+          <CardTitle>{{ t('personal.subscription.currentPlan') }}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="flex items-center gap-2">
+                <Badge :variant="currentSubscription.hasAccess ? 'default' : 'secondary'">
+                  {{ currentSubscription.subscription?.plan || 'FREE' }}
+                </Badge>
+                <span class="text-sm text-muted-foreground">
+                  {{ currentSubscription.subscription?.status }}
+                </span>
+              </div>
+              <p v-if="currentSubscription.subscription?.expiresAt" class="text-sm text-muted-foreground mt-1">
+                {{ t('personal.subscription.expiresAt') }}: {{ formatDate(currentSubscription.subscription.expiresAt) }}
+              </p>
+            </div>
+            <div class="flex gap-2">
+              <Button
+                v-if="currentSubscription.hasAccess"
+                variant="outline"
+                @click="openBillingPortal"
+                :disabled="portalLoading"
+              >
+                <Settings v-if="!portalLoading" class="mr-2 h-4 w-4" />
+                <Loader2 v-else class="mr-2 h-4 w-4 animate-spin" />
+                {{ t('personal.subscription.manageBilling') }}
+              </Button>
+              <Button
+                v-else
+                @click="showPlans = true"
+              >
+                {{ t('personal.subscription.upgrade') }}
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <!-- Pricing plans -->
+      <div v-if="showPlans || !currentSubscription?.hasAccess">
+        <h2 class="text-xl font-semibold mb-4">{{ t('personal.subscription.choosePlan') }}</h2>
+        <div class="grid gap-6 md:grid-cols-2">
+          <Card
+            v-for="plan in plans"
+            :key="plan.id"
+            :class="{ 'border-primary': plan.id === 'PREMIUM_YEARLY' }"
+            class="relative overflow-hidden"
+          >
+            <div
+              v-if="plan.id === 'PREMIUM_YEARLY'"
+              class="absolute right-0 top-0 bg-primary px-3 py-1 text-xs text-primary-foreground"
+            >
+              {{ t('personal.subscription.bestValue') }}
+            </div>
+            <CardHeader>
+              <CardTitle>{{ plan.name }}</CardTitle>
+              <div class="mt-2">
+                <span class="text-3xl font-bold">${{ plan.price }}</span>
+                <span class="text-muted-foreground">/{{ plan.interval }}</span>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ul class="space-y-2">
+                <li v-for="feature in plan.features" :key="feature" class="flex items-start gap-2">
+                  <Check class="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                  <span class="text-sm">{{ feature }}</span>
+                </li>
+              </ul>
+              <Button
+                class="w-full mt-6"
+                :variant="plan.id === 'PREMIUM_YEARLY' ? 'default' : 'outline'"
+                @click="subscribe(plan.id === 'PREMIUM_YEARLY' ? 'yearly' : 'monthly')"
+                :disabled="checkoutLoading === plan.id"
+              >
+                <Loader2 v-if="checkoutLoading === plan.id" class="mr-2 h-4 w-4 animate-spin" />
+                {{ t('personal.subscription.subscribe') }}
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </template>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { ref, onMounted } from 'vue';
+import { useI18n } from 'vue-i18n';
+import { toast } from 'vue-sonner';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Check, Loader2, Settings } from 'lucide-vue-next';
+import { subscriptionApi } from '@/api/subscription';
+
+const { t } = useI18n();
+
+interface SubscriptionResult {
+  hasAccess: boolean;
+  subscription: {
+    plan: string;
+    status: string;
+    expiresAt: string | null;
+  } | null;
+}
+
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  currency: string;
+  interval: string;
+  features: string[];
+}
+
+const loading = ref(true);
+const showPlans = ref(false);
+const currentSubscription = ref<SubscriptionResult | null>(null);
+const plans = ref<Plan[]>([]);
+const checkoutLoading = ref<string | null>(null);
+const portalLoading = ref(false);
+
+onMounted(async () => {
+  await Promise.all([loadSubscription(), loadPlans()]);
+  loading.value = false;
+});
+
+async function loadSubscription() {
+  try {
+    currentSubscription.value = await subscriptionApi.getMySubscription();
+  } catch (error) {
+    console.error('Failed to load subscription:', error);
+  }
+}
+
+async function loadPlans() {
+  try {
+    const response = await subscriptionApi.getPlans();
+    plans.value = response.plans;
+  } catch (error) {
+    console.error('Failed to load plans:', error);
+  }
+}
+
+async function subscribe(planType: 'monthly' | 'yearly') {
+  const planId = planType === 'yearly' ? 'PREMIUM_YEARLY' : 'PREMIUM_MONTHLY';
+  checkoutLoading.value = planId;
+
+  try {
+    const baseUrl = window.location.origin;
+    const result = await subscriptionApi.createCheckout({
+      planType,
+      successUrl: `${baseUrl}/personal/subscription?success=true`,
+      cancelUrl: `${baseUrl}/personal/subscription?canceled=true`,
+    });
+
+    if (result.url) {
+      window.location.href = result.url;
+    }
+  } catch (error) {
+    toast.error(t('personal.subscription.error'), {
+      description: error instanceof Error ? error.message : t('personal.subscription.unknownError'),
+    });
+  } finally {
+    checkoutLoading.value = null;
+  }
+}
+
+async function openBillingPortal() {
+  portalLoading.value = true;
+
+  try {
+    const result = await subscriptionApi.createPortal({
+      returnUrl: window.location.href,
+    });
+
+    if (result.url) {
+      window.location.href = result.url;
+    }
+  } catch (error) {
+    toast.error(t('personal.subscription.error'), {
+      description: error instanceof Error ? error.message : t('personal.subscription.unknownError'),
+    });
+  } finally {
+    portalLoading.value = false;
+  }
+}
+
+function formatDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  });
+}
+</script>
+
+<style scoped>
+.subscription-view {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.subscription-header {
+  margin-bottom: 2rem;
+}
+</style>

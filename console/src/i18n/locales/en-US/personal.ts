@@ -323,6 +323,36 @@ export default {
     },
   },
 
+  // Subscription
+  subscription: {
+    title: "Subscription",
+    subtitle: "Manage your subscription and billing",
+    currentPlan: "Current Plan",
+    choosePlan: "Choose a Plan",
+    bestValue: "Best Value",
+    subscribe: "Subscribe",
+    expiresAt: "Expires at",
+    manageBilling: "Manage Billing",
+    cancel: "Cancel Subscription",
+    reactivate: "Reactivate",
+    error: "Error",
+    unknownError: "An unknown error occurred",
+    loading: "Loading...",
+    free: "Free",
+    premiumMonthly: "Premium Monthly",
+    premiumYearly: "Premium Yearly",
+    features: {
+      unlimitedSubmissions: "Unlimited problem submissions",
+      accessAllSets: "Access to all problem sets",
+      prioritySupport: "Priority support",
+      detailedSolutions: "Detailed solution explanations",
+      contestParticipation: "Contest participation",
+      twoMonthsFree: "2 months free (save 17%)",
+      earlyAccess: "Early access to new features",
+      exclusiveContests: "Exclusive contests",
+    },
+  },
+
   // Messages
   messages: {
     profileUpdated: "Profile updated",

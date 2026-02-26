@@ -8,20 +8,27 @@ datasource db {
 }
 
 model Subscription {
-  id           String             @id @default(uuid()) @db.VarChar(40)
-  user_id      String             @db.VarChar(40)
-  plan         SubscriptionPlan   @default(FREE)
-  status       SubscriptionStatus @default(ACTIVE)
-  started_at   DateTime           @default(now())
-  expires_at   DateTime?
-  cancelled_at DateTime?
-  created_at   DateTime           @default(now())
-  updated_at   DateTime           @updatedAt
+  id                    String             @id @default(uuid()) @db.VarChar(40)
+  user_id               String             @db.VarChar(40)
+  plan                  SubscriptionPlan   @default(FREE)
+  status                SubscriptionStatus @default(ACTIVE)
+  started_at            DateTime           @default(now())
+  expires_at            DateTime?
+  cancelled_at          DateTime?
+  // Stripe payment integration fields
+  stripe_customer_id    String?            @db.VarChar(255)
+  stripe_subscription_id String?           @db.VarChar(255)
+  stripe_price_id       String?            @db.VarChar(255)
+  stripe_current_period_end DateTime?
+  created_at            DateTime           @default(now())
+  updated_at            DateTime           @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@index([status])
+  @@index([stripe_customer_id])
+  @@index([stripe_subscription_id])
   @@map("subscriptions")
 }
 
@@ -104,6 +111,8 @@ model Problem {
   flag_reviewed_by     String?                      @db.VarChar(40)
   flag_reviewed_at     DateTime?
   flag_notes           String?                      @db.Text
+  created_at           DateTime                     @default(now())
+  updated_at           DateTime                     @updatedAt
   contestProblems      ContestProblem[]
   detail               ProblemDetail?
   examples             ProblemExample[]

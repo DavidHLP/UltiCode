@@ -26,16 +26,18 @@
 
 | 层级 | 完成度 | 主要问题 |
 |------|--------|----------|
-| 后端 (NestJS) | 85% | 支付未集成、邮件服务需配置 |
-| 控制台 (Vue3) | 80% | OAuth不完整、实时更新需完善 |
+| 后端 (NestJS) | 95% | 需配置OAuth/Email凭证 |
+| 控制台 (Vue3) | 90% | 实时更新需完善 |
 | 管理后台 (Vue3) | 85% | 缺少统一审核队列、高级分析 |
 
 ### 核心发现
 
 1. **~~沙箱系统~~** ✅ 已完成: Docker沙箱、VM沙箱、6种语言运行器全部实现
-2. **商业缺失**: 订阅系统缺少支付集成，无法实际收费
-3. **用户体验**: 缺少实时通知更新、OAuth登录不完整
-4. **运营工具**: 缺少统一的内容审核队列和高级分析报表
+2. **~~支付集成~~** ✅ 已完成: Stripe支付、Webhook、订阅管理
+3. **~~OAuth登录~~** ✅ 已完成: GitHub + Google OAuth
+4. **~~邮件服务~~** ✅ 已完成: SMTP邮件、7种模板
+5. **实时更新**: WebSocket基础设施存在，部分功能待完善
+6. **运营工具**: 缺少统一的内容审核队列和高级分析报表
 
 ---
 
@@ -121,27 +123,38 @@
 
 ---
 
-### 3. 邮件服务 [P1 - 重要]
+### 3. 邮件服务 [P1 - ✅ 已完成]
 
-**现状**: 服务文件存在，但无实际邮件提供商配置
+**现状**: 完整实现，支持SMTP和模板
 
-**位置**:
-- `backend/src/email/email.service.ts`
+**实现位置**:
+- `backend/src/email/email.service.ts` - 邮件服务
+- `backend/src/email/email.controller.ts` - 管理API
+- `backend/prisma/seed/data/email-templates.data.ts` - 默认模板
+- `backend/prisma/seed/modules/email-templates/` - 模板Seeder
 
-**缺失功能**:
-- [ ] SMTP/第三方邮件服务配置
-- [ ] 邮件模板系统
-- [ ] 批量邮件发送
-- [ ] 邮件队列 (BullMQ)
+**已实现功能**:
+- [x] SMTP 邮件发送
+- [x] 邮件模板系统 (数据库存储)
+- [x] 邮件日志记录
+- [x] 模板 CRUD API
 
-**邮件类型需求**:
-- 欢迎邮件
-- 密码重置
-- 邮箱验证
-- 订阅确认
-- 比赛提醒
+**默认模板**:
+- 欢迎邮件 (welcome)
+- 密码重置 (password-reset)
+- 邮箱验证 (email-verification)
+- 订阅确认 (subscription-confirmation)
+- 订阅取消 (subscription-cancelled)
+- 比赛提醒 (contest-reminder)
+- 成就解锁 (achievement-unlocked)
 
-**工作量估算**: 1 周
+**配置要求**:
+- SMTP_HOST
+- SMTP_PORT
+- SMTP_USER
+- SMTP_PASSWORD
+- SMTP_FROM
+- SMTP_FROM_NAME
 
 ---
 
@@ -350,13 +363,13 @@
 - `console/src/api/subscription.ts`
 - `console/src/views/personal/SubscriptionView.vue`
 
-#### Sprint 3: 邮件 + OAuth (进行中)
+#### Sprint 3: 邮件 + OAuth ✅ 已完成
 
-**任务**:
-- [ ] 邮件服务配置
-- [ ] 邮件模板
-- [ ] OAuth 前端完成
-- [ ] 测试所有认证流程
+**实现**:
+- [x] 邮件服务配置 (SMTP)
+- [x] 邮件模板 (7种默认模板)
+- [x] OAuth 前端完成 (GitHub + Google)
+- [x] OAuth 后端完成 (GitHub + Google 实际API调用)
 
 ---
 

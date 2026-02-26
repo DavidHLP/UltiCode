@@ -37,6 +37,7 @@ import { authApi } from "@/api/auth";
 import { isAuthenticated, removeToken, removeUserId } from "@/utils/auth";
 import { toast } from "vue-sonner";
 import { useNotificationStore } from "@/stores/notification";
+import { clearSessionFlag } from "@/stores/auth";
 
 const { user } = defineProps<{
   user: {
@@ -71,6 +72,7 @@ async function handleLogout() {
   } finally {
     removeToken();
     removeUserId();
+    clearSessionFlag();
     toast.success(t("auth.messages.logoutSuccess"));
     router.push("/login");
   }

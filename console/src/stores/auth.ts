@@ -4,6 +4,20 @@ import { apiGet } from "@/utils/request";
 import type { User } from "@/api/auth";
 import { clearCsrfToken } from "@/utils/csrf";
 
+const HAS_SESSION_KEY = "ulticode_has_session";
+
+function hasSessionFlag(): boolean {
+  return localStorage.getItem(HAS_SESSION_KEY) === "true";
+}
+
+export function setSessionFlag(): void {
+  localStorage.setItem(HAS_SESSION_KEY, "true");
+}
+
+export function clearSessionFlag(): void {
+  localStorage.removeItem(HAS_SESSION_KEY);
+}
+
 export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
   const permissions = ref<Set<string>>(new Set());
@@ -25,9 +39,10 @@ export const useAuthStore = defineStore("auth", () => {
       // Public frontend doesn't have permissions endpoint, so we skip it
       return userData;
     } catch {
-      // 401 is expected for unauthenticated users - no need to log
+      // 401 means no valid session - clear flag to prevent future unnecessary calls
       user.value = null;
       permissions.value.clear();
+      clearSessionFlag();
       return null;
     } finally {
       isLoading.value = false;
@@ -38,6 +53,12 @@ export const useAuthStore = defineStore("auth", () => {
     if (isInitialized.value) return;
 
     isInitialized.value = true;
+
+    // Skip API call if no session exists
+    if (!hasSessionFlag()) {
+      return;
+    }
+
     await fetchUser();
   }
 
@@ -45,6 +66,7 @@ export const useAuthStore = defineStore("auth", () => {
     user.value = null;
     permissions.value.clear();
     clearCsrfToken();
+    clearSessionFlag();
   }
 
   // Permission system - for future use or if admin features are added

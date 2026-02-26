@@ -6,6 +6,7 @@ import { JudgeService } from './judge.service';
 import { ContestSubmissionService } from './contest-submission.service';
 import { SubmissionService } from './submission.service'; // Import SubmissionService
 import { NotificationService } from '../notification/notification.service';
+import { TestCaseService } from '../test-case/test-case.service';
 import { NotificationCategory, NotificationType } from '@prisma/client';
 
 export interface JudgeJobData {
@@ -22,6 +23,7 @@ export class JudgeProcessor extends WorkerHost {
     private submissionService: SubmissionService, // Inject SubmissionService
     private contestSubmissionService: ContestSubmissionService,
     private notificationService: NotificationService,
+    private testCaseService: TestCaseService,
   ) {
     super();
   }
@@ -62,26 +64,18 @@ export class JudgeProcessor extends WorkerHost {
     });
 
     try {
-      // Build test cases from problem examples
-      const testCases = submission.problem.examples.map((example) => {
-        const inputs = Array.isArray(example.inputs)
-          ? (example.inputs as { name: string; value: string }[])
-          : [];
-        return {
-          id: example.id,
-          label: `Case ${example.example_order + 1}`,
-          inputs: inputs.map((input, inputIndex) => ({
-            id: `${example.id}-input-${inputIndex}`,
-            name: input.name,
-            value: input.value,
-            label: input.name,
-          })),
-          output: example.output_text,
-        };
-      });
+      // Try to get test cases from TestCase table first
+      let testCases = await this.buildTestCasesFromTable(submission.problem_id);
+
+      // Fallback to problem examples if no test cases exist
+      if (testCases.length === 0) {
+        testCases = this.buildTestCasesFromExamples(
+          submission.problem.examples,
+        );
+      }
 
       // Perform judging
-      const judgeResult = this.judgeService.judge(
+      const judgeResult = await this.judgeService.judge(
         submission.language,
         submission.code,
         testCases,
@@ -184,6 +178,62 @@ export class JudgeProcessor extends WorkerHost {
       });
       throw error; // Re-throw to mark job as failed
     }
+  }
+
+  private async buildTestCasesFromTable(problemId: bigint) {
+    const dbTestCases =
+      await this.testCaseService.getTestCasesForJudging(problemId);
+
+    return dbTestCases.map((tc, index) => {
+      let inputs: { name: string; value: string }[] = [];
+      try {
+        // Parse input_text as JSON array if possible
+        const parsed = JSON.parse(tc.input_text);
+        if (Array.isArray(parsed)) {
+          inputs = parsed.map((value, i) => ({
+            name: `arg${i}`,
+            value: typeof value === 'string' ? value : JSON.stringify(value),
+          }));
+        } else {
+          inputs = [{ name: 'input', value: tc.input_text }];
+        }
+      } catch {
+        inputs = [{ name: 'input', value: tc.input_text }];
+      }
+
+      return {
+        id: tc.id,
+        label: `Case ${index + 1}`,
+        inputs,
+        output: tc.output_text,
+      };
+    });
+  }
+
+  private buildTestCasesFromExamples(
+    examples: {
+      id: string;
+      example_order: number;
+      inputs: unknown;
+      output_text: string;
+    }[],
+  ) {
+    return examples.map((example) => {
+      const inputs = Array.isArray(example.inputs)
+        ? (example.inputs as { name: string; value: string }[])
+        : [];
+      return {
+        id: example.id,
+        label: `Case ${example.example_order + 1}`,
+        inputs: inputs.map((input, inputIndex) => ({
+          id: `${example.id}-input-${inputIndex}`,
+          name: input.name,
+          value: input.value,
+          label: input.name,
+        })),
+        output: example.output_text,
+      };
+    });
   }
 
   @OnWorkerEvent('completed')

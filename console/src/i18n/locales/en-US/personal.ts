@@ -115,6 +115,14 @@ export default {
     topPercent: "Top {percent}%",
   },
 
+  // Skills radar chart
+  skills: {
+    title: "Skill Distribution",
+    subtitle: "Your problem-solving strengths by topic area.",
+    solvedByTag: "Solved by Tag",
+    noSkills: "Solve more problems to see your skill distribution!",
+  },
+
   // Submissions
   submissions: {
     title: "My Submissions",

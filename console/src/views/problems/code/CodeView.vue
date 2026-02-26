@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { usePreferredDark } from "@vueuse/core";
 import { useCodeCache } from "@/composables/useCodeCache";
 import {
   DropdownMenu,
@@ -10,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import CodeEditor from "./components/CodeEditor.vue";
+import EditorToolbar from "@/components/editor/EditorToolbar.vue";
 import type { ProblemLanguageOption } from "@/types/problem-detail";
 import {
   AlignLeft,
@@ -22,6 +22,7 @@ import {
 } from "lucide-vue-next";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
+import { useEditorSettingsStore } from "@/stores/editorSettings";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -30,15 +31,13 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const prefersDark = usePreferredDark();
-const editorStore = useProblemEditorStore();
+const problemEditorStore = useProblemEditorStore();
+const editorSettingsStore = useEditorSettingsStore();
 
 const activeLanguageValue = ref(props.languages[0]?.value ?? "");
 const code = ref("");
 const editorContainer = ref<HTMLElement | null>(null);
 const editorRef = ref<InstanceType<typeof CodeEditor> | null>(null);
-const isWordWrapEnabled = ref(false);
-const isMinimapVisible = ref(false);
 const isFullscreen = ref(false);
 
 const languageMeta = computed(() =>
@@ -48,9 +47,20 @@ const languageMeta = computed(() =>
 const editorLanguage = computed(
   () => languageMeta.value?.value ?? "typescript",
 );
-const editorTheme = computed(() =>
-  prefersDark.value ? "vs-dark" : "vs-light",
+
+// Use persisted settings from store
+const editorTheme = computed(() => editorSettingsStore.settings.theme);
+const editorFontSize = computed(() => editorSettingsStore.settings.fontSize);
+const editorTabSize = computed(() => editorSettingsStore.settings.tabSize);
+const editorWordWrap = computed(() => editorSettingsStore.settings.wordWrap);
+const editorMinimap = computed(() => editorSettingsStore.settings.minimap);
+const editorLineNumbers = computed(
+  () => editorSettingsStore.settings.lineNumbers,
 );
+const editorFontFamily = computed(
+  () => editorSettingsStore.settings.fontFamily,
+);
+
 const activeLanguageLabel = computed(() => {
   if (languageMeta.value?.style) {
     return languageMeta.value.style === "typescript"
@@ -63,11 +73,15 @@ const starterCode = computed(() => languageMeta.value?.starterCode ?? "");
 const canReset = computed(() => code.value !== starterCode.value);
 
 const toggleWordWrap = () => {
-  isWordWrapEnabled.value = !isWordWrapEnabled.value;
+  editorSettingsStore.toggleWordWrap();
 };
 
 const toggleMinimap = () => {
-  isMinimapVisible.value = !isMinimapVisible.value;
+  editorSettingsStore.toggleMinimap();
+};
+
+const handleInsertTemplate = (templateCode: string) => {
+  code.value = templateCode;
 };
 
 const handleReset = () => {
@@ -123,7 +137,7 @@ watch(
       }
     }
     if (value) {
-      editorStore.setLanguage(value);
+      problemEditorStore.setLanguage(value);
     }
     if (previous !== undefined && value !== previous) {
       void problemHooks.emit("problem:code:language:change", {
@@ -138,7 +152,7 @@ watch(
 watch(
   () => code.value,
   (value) => {
-    editorStore.setCode(value);
+    problemEditorStore.setCode(value);
   },
   { immediate: true },
 );
@@ -187,7 +201,7 @@ watch(
             variant="ghost"
             size="icon"
             class="h-7 w-7"
-            :aria-pressed="isWordWrapEnabled"
+            :aria-pressed="editorWordWrap"
             :title="t('problem.layout.toggleWordWrap')"
             @click="toggleWordWrap"
           >
@@ -228,12 +242,18 @@ watch(
             variant="ghost"
             size="icon"
             class="h-7 w-7"
-            :aria-pressed="isMinimapVisible"
+            :aria-pressed="editorMinimap"
             :title="t('problem.layout.toggleMinimap')"
             @click="toggleMinimap"
           >
             <Scan class="h-3.5 w-3.5" />
           </Button>
+
+          <!-- Editor Settings Toolbar -->
+          <EditorToolbar
+            :language="editorLanguage"
+            @insert-template="handleInsertTemplate"
+          />
         </div>
       </div>
 
@@ -242,8 +262,12 @@ watch(
         v-model="code"
         :language="editorLanguage"
         :theme="editorTheme"
-        :word-wrap="isWordWrapEnabled"
-        :minimap="isMinimapVisible"
+        :font-size="editorFontSize"
+        :tab-size="editorTabSize"
+        :word-wrap="editorWordWrap"
+        :minimap="editorMinimap"
+        :line-numbers="editorLineNumbers"
+        :font-family="editorFontFamily"
         class="flex-1 min-h-0"
       />
     </main>

@@ -23,4 +23,22 @@ export default defineConfig({
   server: {
     port: 9002,
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Split Monaco Editor into its own chunk (large dependency)
+          'monaco-editor': ['monaco-editor'],
+          // Vue ecosystem
+          'vue-vendor': ['vue', 'vue-router', 'pinia'],
+          // UI libraries
+          'ui-vendor': ['reka-ui', 'lucide-vue-next', '@tabler/icons-vue'],
+          // Markdown and code highlighting
+          'markdown': ['markdown-it', 'highlight.js', 'katex'],
+        },
+      },
+    },
+    // Increase chunk size warning limit
+    chunkSizeWarningLimit: 1000,
+  },
 })

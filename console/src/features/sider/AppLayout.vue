@@ -13,6 +13,8 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
+import NotificationBadge from "@/components/notification/NotificationBadge.vue";
+import SearchBar from "@/components/search/SearchBar.vue";
 import type { RouteLocationRaw } from "vue-router";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -107,6 +109,10 @@ const isActiveNav = (item: NavItem) => {
           </NavigationMenuList>
           <NavigationMenuIndicator />
         </NavigationMenu>
+        <div class="ml-auto flex items-center gap-2">
+          <SearchBar />
+          <NotificationBadge />
+        </div>
       </header>
       <main class="flex flex-1 flex-col gap-4 p-4 lg:p-6">
         <router-view />

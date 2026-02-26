@@ -11,7 +11,11 @@ const props = defineProps<{
   /** Show detailed error information */
   showDetails?: boolean;
   /** Custom error handler */
-  onError?: (error: Error, instance: ComponentPublicInstance | null, info: string) => void;
+  onError?: (
+    error: Error,
+    instance: ComponentPublicInstance | null,
+    info: string,
+  ) => void;
   /** Additional CSS classes */
   class?: string;
 }>();
@@ -32,29 +36,31 @@ const errorInfo = ref<string>("");
 const showExpandedDetails = ref(false);
 
 // Capture errors from child components
-onErrorCaptured((error: Error, instance: ComponentPublicInstance | null, info: string) => {
-  hasError.value = true;
-  capturedError.value = error;
-  errorInfo.value = info;
+onErrorCaptured(
+  (error: Error, instance: ComponentPublicInstance | null, info: string) => {
+    hasError.value = true;
+    capturedError.value = error;
+    errorInfo.value = info;
 
-  // Call custom error handler
-  if (props.onError) {
-    props.onError(error, instance, info);
-  }
+    // Call custom error handler
+    if (props.onError) {
+      props.onError(error, instance, info);
+    }
 
-  // Emit error event
-  emit("error", error, instance, info);
+    // Emit error event
+    emit("error", error, instance, info);
 
-  // Log to console in development
-  if (import.meta.env.DEV) {
-    console.error("Error captured by ErrorBoundary:", error);
-    console.error("Component:", instance?.$options?.name || "Unknown");
-    console.error("Error info:", info);
-  }
+    // Log to console in development
+    if (import.meta.env.DEV) {
+      console.error("Error captured by ErrorBoundary:", error);
+      console.error("Component:", instance?.$options?.name || "Unknown");
+      console.error("Error info:", info);
+    }
 
-  // Return false to prevent the error from propagating
-  return false;
-});
+    // Return false to prevent the error from propagating
+    return false;
+  },
+);
 
 // Retry handler
 function handleRetry() {
@@ -126,12 +132,17 @@ import { computed } from "vue";
                 @click="toggleDetails"
               >
                 <Bug class="size-3 mr-1" />
-                {{ showExpandedDetails ? t("common.error.hideDetails") : t("common.error.showDetails") }}
+                {{
+                  showExpandedDetails
+                    ? t("common.error.hideDetails")
+                    : t("common.error.showDetails")
+                }}
               </Button>
               <pre
                 v-if="showExpandedDetails"
                 class="mt-2 p-2 bg-muted rounded text-xs overflow-auto max-h-[200px]"
-              >{{ displayStack }}</pre>
+                >{{ displayStack }}</pre
+              >
             </div>
           </template>
 

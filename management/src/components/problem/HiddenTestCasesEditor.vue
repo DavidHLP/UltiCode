@@ -76,9 +76,7 @@ const activeTestCase = computed(() => {
   return testCases.value.find((tc) => tc.id === activeId.value) ?? null
 })
 
-const sampleCount = computed(
-  () => testCases.value.filter((tc) => tc.is_sample).length,
-)
+const sampleCount = computed(() => testCases.value.filter((tc) => tc.is_sample).length)
 const hiddenCount = computed(
   () => testCases.value.filter((tc) => tc.is_hidden && !tc.is_sample).length,
 )
@@ -140,17 +138,10 @@ async function saveTestCase() {
   saving.value = true
   try {
     if (editingTestCase.value) {
-      await testCasesApi.updateTestCase(
-        props.problemId,
-        editingTestCase.value.id,
-        formData.value,
-      )
+      await testCasesApi.updateTestCase(props.problemId, editingTestCase.value.id, formData.value)
       toast.success(t('testCases.toast.updateSuccess'))
     } else {
-      const created = await testCasesApi.createTestCase(
-        props.problemId,
-        formData.value,
-      )
+      const created = await testCasesApi.createTestCase(props.problemId, formData.value)
       testCases.value.push(created)
       activeId.value = created.id
       toast.success(t('testCases.toast.createSuccess'))
@@ -302,9 +293,7 @@ async function importTestCases() {
       replace_existing: replaceExisting.value,
     })
 
-    toast.success(
-      t('testCases.toast.importSuccess', { count: testCasesToImport.length }),
-    )
+    toast.success(t('testCases.toast.importSuccess', { count: testCasesToImport.length }))
     importDialogOpen.value = false
     await loadTestCases()
     emit('change')
@@ -405,18 +394,10 @@ watch(
           <IconGripVertical class="h-4 w-4 text-muted-foreground cursor-grab" />
           <span class="text-sm font-medium flex-1">
             #{{ index + 1 }}
-            <Badge
-              v-if="testCase.is_sample"
-              variant="secondary"
-              class="ml-1 text-[10px]"
-            >
+            <Badge v-if="testCase.is_sample" variant="secondary" class="ml-1 text-[10px]">
               {{ t('testCases.sample') }}
             </Badge>
-            <Badge
-              v-if="testCase.is_hidden"
-              variant="outline"
-              class="ml-1 text-[10px]"
-            >
+            <Badge v-if="testCase.is_hidden" variant="outline" class="ml-1 text-[10px]">
               <IconEyeOff class="h-3 w-3 mr-0.5" />
               {{ t('testCases.hidden') }}
             </Badge>

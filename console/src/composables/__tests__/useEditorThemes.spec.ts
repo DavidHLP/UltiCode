@@ -155,7 +155,9 @@ describe("useEditorThemes", () => {
         },
       };
 
-      await applyThemeToMonaco(mockMonaco as unknown as typeof import("monaco-editor"));
+      await applyThemeToMonaco(
+        mockMonaco as unknown as typeof import("monaco-editor"),
+      );
 
       expect(mockMonaco.editor.setTheme).toHaveBeenCalledWith("vs-light");
     });

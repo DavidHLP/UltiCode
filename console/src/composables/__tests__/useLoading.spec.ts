@@ -91,7 +91,8 @@ describe("useLoading", () => {
 
   describe("stopAllLoading", () => {
     it("should stop all loading operations", () => {
-      const { isLoading, operations, startLoading, stopAllLoading } = useLoading();
+      const { isLoading, operations, startLoading, stopAllLoading } =
+        useLoading();
 
       startLoading("operation-1");
       startLoading("operation-2");
@@ -150,7 +151,9 @@ describe("useLoading", () => {
 
       const asyncFn = vi.fn().mockRejectedValue(new Error("Test error"));
 
-      await expect(withLoading("test-operation", asyncFn)).rejects.toThrow("Test error");
+      await expect(withLoading("test-operation", asyncFn)).rejects.toThrow(
+        "Test error",
+      );
 
       expect(isLoading.value).toBe(false);
     });
@@ -171,7 +174,9 @@ describe("useLoading", () => {
 
   describe("defaultMessage option", () => {
     it("should use custom default message", () => {
-      const { loadingMessage } = useLoading({ defaultMessage: "Custom default" });
+      const { loadingMessage } = useLoading({
+        defaultMessage: "Custom default",
+      });
 
       expect(loadingMessage.value).toBe("Custom default");
     });

@@ -20,7 +20,8 @@ const props = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { isLoading: globalIsLoading, loadingMessage: globalMessage } = useLoading();
+const { isLoading: globalIsLoading, loadingMessage: globalMessage } =
+  useLoading();
 
 // Use provided loading state or global state
 const isLoading = computed(() => {
@@ -73,10 +74,7 @@ const overlayZIndex = computed(() => props.zIndex ?? 50);
       >
         <div class="flex flex-col items-center gap-4">
           <Spinner :class="spinnerSizeClasses[spinnerSize ?? 'md']" />
-          <p
-            v-if="message"
-            class="text-sm text-muted-foreground animate-pulse"
-          >
+          <p v-if="message" class="text-sm text-muted-foreground animate-pulse">
             {{ message }}
           </p>
         </div>

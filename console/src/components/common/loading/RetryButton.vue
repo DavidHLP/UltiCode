@@ -35,7 +35,9 @@ const { t } = useI18n();
 
 // Compute button state
 const isDisabled = computed(() => {
-  return props.disabled || props.retrying || (props.countdown && props.countdown > 0);
+  return (
+    props.disabled || props.retrying || (props.countdown && props.countdown > 0)
+  );
 });
 
 // Compute button text
@@ -71,12 +73,7 @@ function handleClick() {
     :class="cn('gap-2', props.class)"
     @click="handleClick"
   >
-    <RefreshCw
-      :class="[
-        'size-4',
-        retrying && 'animate-spin',
-      ]"
-    />
+    <RefreshCw :class="['size-4', retrying && 'animate-spin']" />
     <slot>{{ buttonText }}</slot>
   </Button>
 </template>

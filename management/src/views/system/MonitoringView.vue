@@ -336,7 +336,9 @@ onUnmounted(() => {
               <div class="flex justify-between items-center">
                 <span class="text-muted-foreground">{{ t('monitoring.status.status') }}</span>
                 <Badge :variant="redisStats?.connected ? 'default' : 'destructive'">
-                  {{ redisStats?.connected ? t('monitoring.connected') : t('monitoring.disconnected') }}
+                  {{
+                    redisStats?.connected ? t('monitoring.connected') : t('monitoring.disconnected')
+                  }}
                 </Badge>
               </div>
               <div v-if="redisStats?.version" class="flex justify-between">

@@ -66,29 +66,20 @@ export interface BulkImportResponse {
 }
 
 export const testCasesApi = {
-  async getTestCases(
-    problemId: string,
-    params?: TestCaseQueryParams,
-  ): Promise<TestCasesResponse> {
-    const response = await apiGet<TestCasesResponse>(
-      `/admin/problems/${problemId}/test-cases`,
-      { params },
-    )
+  async getTestCases(problemId: string, params?: TestCaseQueryParams): Promise<TestCasesResponse> {
+    const response = await apiGet<TestCasesResponse>(`/admin/problems/${problemId}/test-cases`, {
+      params,
+    })
     return response
   },
 
   async getTestCase(problemId: string, testCaseId: string): Promise<TestCase> {
-    const response = await apiGet<TestCase>(
-      `/admin/problems/${problemId}/test-cases/${testCaseId}`,
-    )
+    const response = await apiGet<TestCase>(`/admin/problems/${problemId}/test-cases/${testCaseId}`)
     return response
   },
 
   async createTestCase(problemId: string, data: CreateTestCaseDto): Promise<TestCase> {
-    const response = await apiPost<TestCase>(
-      `/admin/problems/${problemId}/test-cases`,
-      data,
-    )
+    const response = await apiPost<TestCase>(`/admin/problems/${problemId}/test-cases`, data)
     return response
   },
 
@@ -109,9 +100,7 @@ export const testCasesApi = {
   },
 
   async exportTestCases(problemId: string): Promise<TestCase[]> {
-    const response = await apiGet<TestCase[]>(
-      `/admin/problems/${problemId}/test-cases/export`,
-    )
+    const response = await apiGet<TestCase[]>(`/admin/problems/${problemId}/test-cases/export`)
     return response
   },
 
@@ -134,10 +123,7 @@ export const testCasesApi = {
     return response
   },
 
-  async reorderTestCases(
-    problemId: string,
-    testCaseIds: string[],
-  ): Promise<{ success: boolean }> {
+  async reorderTestCases(problemId: string, testCaseIds: string[]): Promise<{ success: boolean }> {
     const response = await apiPut<{ success: boolean }>(
       `/admin/problems/${problemId}/test-cases/reorder`,
       { testCaseIds },

@@ -52,7 +52,8 @@ export function useLoading(options: UseLoadingOptions = {}) {
    */
   const loadingMessage = computed(() => {
     const operations = globalLoadingOperations.value;
-    const latest = operations.length > 0 ? operations[operations.length - 1] : undefined;
+    const latest =
+      operations.length > 0 ? operations[operations.length - 1] : undefined;
     return latest?.message || defaultMessage;
   });
 
@@ -81,7 +82,10 @@ export function useLoading(options: UseLoadingOptions = {}) {
       startedAt: Date.now(),
     };
 
-    globalLoadingOperations.value = [...globalLoadingOperations.value, operation];
+    globalLoadingOperations.value = [
+      ...globalLoadingOperations.value,
+      operation,
+    ];
     localOperations.value.add(operationId);
 
     // Set up timeout if configured
@@ -164,12 +168,15 @@ export function useLoading(options: UseLoadingOptions = {}) {
    * @param defaultMessage - Default message for this operation
    * @returns Wrapped function with loading state
    */
-  function createLoadingWrapper<T extends (...args: unknown[]) => Promise<unknown>>(
-    operationId: string,
-    defaultMessage?: string,
-  ) {
+  function createLoadingWrapper<
+    T extends (...args: unknown[]) => Promise<unknown>,
+  >(operationId: string, defaultMessage?: string) {
     return async (fn: T, message?: string): Promise<ReturnType<T>> => {
-      return withLoading(operationId, fn as () => Promise<ReturnType<T>>, message || defaultMessage) as Promise<ReturnType<T>>;
+      return withLoading(
+        operationId,
+        fn as () => Promise<ReturnType<T>>,
+        message || defaultMessage,
+      ) as Promise<ReturnType<T>>;
     };
   }
 
@@ -180,7 +187,9 @@ export function useLoading(options: UseLoadingOptions = {}) {
    * @returns Duration in milliseconds or 0 if not loading
    */
   function getLoadingDuration(operationId: string): number {
-    const operation = globalLoadingOperations.value.find((op) => op.id === operationId);
+    const operation = globalLoadingOperations.value.find(
+      (op) => op.id === operationId,
+    );
     return operation ? Date.now() - operation.startedAt : 0;
   }
 

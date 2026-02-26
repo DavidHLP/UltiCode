@@ -61,8 +61,7 @@ const groupedTemplates = computed(() => {
 
   return Object.entries(groups).map(([category, items]) => ({
     category,
-    label:
-      categories.value.find((c) => c.id === category)?.label ?? category,
+    label: categories.value.find((c) => c.id === category)?.label ?? category,
     items,
   }));
 });
@@ -116,7 +115,10 @@ watch(isOpen, (open) => {
           </div>
 
           <ScrollArea class="flex-1">
-            <div v-if="groupedTemplates.length === 0" class="p-4 text-center text-muted-foreground text-sm">
+            <div
+              v-if="groupedTemplates.length === 0"
+              class="p-4 text-center text-muted-foreground text-sm"
+            >
               No templates available for this language
             </div>
 
@@ -126,7 +128,9 @@ watch(isOpen, (open) => {
                 :key="group.category"
                 class="space-y-1"
               >
-                <h4 class="text-xs font-semibold text-muted-foreground px-2 py-1">
+                <h4
+                  class="text-xs font-semibold text-muted-foreground px-2 py-1"
+                >
                   {{ group.label }}
                 </h4>
                 <button
@@ -160,20 +164,23 @@ watch(isOpen, (open) => {
             <span class="text-sm font-medium">Preview</span>
           </div>
 
-          <div v-if="!selectedTemplate" class="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+          <div
+            v-if="!selectedTemplate"
+            class="flex-1 flex items-center justify-center text-muted-foreground text-sm"
+          >
             Select a template to preview
           </div>
 
           <ScrollArea v-else class="flex-1">
-            <pre class="p-3 text-xs font-mono bg-muted/30 overflow-x-auto">{{ selectedTemplate.code }}</pre>
+            <pre class="p-3 text-xs font-mono bg-muted/30 overflow-x-auto">{{
+              selectedTemplate.code
+            }}</pre>
           </ScrollArea>
         </div>
       </div>
 
       <div class="flex justify-end gap-2 mt-4">
-        <Button variant="outline" @click="isOpen = false">
-          Cancel
-        </Button>
+        <Button variant="outline" @click="isOpen = false"> Cancel </Button>
         <Button :disabled="!selectedTemplate" @click="handleInsert">
           <Plus class="h-4 w-4 mr-1" />
           Insert Template

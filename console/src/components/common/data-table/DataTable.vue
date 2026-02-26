@@ -83,10 +83,7 @@ watch(
     if (!props.virtualized || !props.hasMore || props.loading) return;
 
     const range = virtualizer.value.range;
-    if (
-      range &&
-      range.endIndex >= props.data.length - 5
-    ) {
+    if (range && range.endIndex >= props.data.length - 5) {
       emit("load-more");
     }
   },
@@ -115,11 +112,12 @@ const getItemAtIndex = (index: number): T => {
   // Virtualizer only provides valid indices, so this should never happen
   // but we add a fallback to satisfy TypeScript
   if (!item) {
-    throw new Error(`Invalid index ${index} for data array of length ${props.data.length}`);
+    throw new Error(
+      `Invalid index ${index} for data array of length ${props.data.length}`,
+    );
   }
   return item;
 };
-
 </script>
 
 <template>
@@ -155,7 +153,10 @@ const getItemAtIndex = (index: number): T => {
             <template v-if="hasColumnDefinitions">
               <TableRow
                 v-for="virtualRow in virtualItems"
-                :key="(getItemAtIndex(virtualRow.index) as Identifiable).id || virtualRow.index"
+                :key="
+                  (getItemAtIndex(virtualRow.index) as Identifiable).id ||
+                  virtualRow.index
+                "
                 class="odd:bg-muted/30 even:bg-background hover:bg-muted/50 cursor-pointer transition-colors"
                 :style="{
                   position: 'absolute',
@@ -179,7 +180,9 @@ const getItemAtIndex = (index: number): T => {
                     />
                   </template>
                   <template v-else>
-                    {{ getCellValue(getItemAtIndex(virtualRow.index), col.key) }}
+                    {{
+                      getCellValue(getItemAtIndex(virtualRow.index), col.key)
+                    }}
                   </template>
                 </TableCell>
               </TableRow>

@@ -482,10 +482,7 @@ onMounted(async () => {
             </CardDescription>
           </CardHeader>
           <CardContent class="pt-2">
-            <SkillRadarChart
-              :skills="skillsData"
-              :loading="skillsLoading"
-            />
+            <SkillRadarChart :skills="skillsData" :loading="skillsLoading" />
           </CardContent>
         </Card>
       </div>

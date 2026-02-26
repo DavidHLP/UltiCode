@@ -21,12 +21,13 @@ export interface RetryOptions {
 /**
  * Default retry options
  */
-const DEFAULT_OPTIONS: Required<Omit<RetryOptions, "shouldRetry" | "onRetry">> = {
-  maxRetries: 3,
-  initialDelay: 1000,
-  maxDelay: 30000,
-  backoffMultiplier: 2,
-};
+const DEFAULT_OPTIONS: Required<Omit<RetryOptions, "shouldRetry" | "onRetry">> =
+  {
+    maxRetries: 3,
+    initialDelay: 1000,
+    maxDelay: 30000,
+    backoffMultiplier: 2,
+  };
 
 /**
  * Calculate delay with exponential backoff
@@ -128,7 +129,8 @@ export function useRetry(options: RetryOptions = {}) {
    * @returns Result of the function
    */
   async function retry<T>(fn: () => Promise<T>): Promise<T> {
-    const { maxRetries, initialDelay, maxDelay, backoffMultiplier, onRetry } = mergedOptions;
+    const { maxRetries, initialDelay, maxDelay, backoffMultiplier, onRetry } =
+      mergedOptions;
 
     attemptCount.value = 0;
     isRetrying.value = false;
@@ -220,8 +222,8 @@ export function useRetry(options: RetryOptions = {}) {
   /**
    * Remaining retry attempts
    */
-  const remainingRetries = computed(
-    () => Math.max(0, mergedOptions.maxRetries - attemptCount.value + 1),
+  const remainingRetries = computed(() =>
+    Math.max(0, mergedOptions.maxRetries - attemptCount.value + 1),
   );
 
   return {

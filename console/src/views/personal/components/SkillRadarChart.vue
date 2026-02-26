@@ -47,7 +47,10 @@ const initChart = () => {
         color: "#fff",
       },
       formatter: (params: unknown) => {
-        const data = params as { value: number[]; indicator: { name: string }[] };
+        const data = params as {
+          value: number[];
+          indicator: { name: string }[];
+        };
         if (!data.value || !data.indicator) return "";
         return data.indicator
           .map((ind, idx) => `${ind.name}: ${data.value[idx]}`)
@@ -138,7 +141,10 @@ watch(
         class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
       ></div>
     </div>
-    <div v-else-if="!hasSkills" class="flex flex-col items-center justify-center h-[280px] text-center">
+    <div
+      v-else-if="!hasSkills"
+      class="flex flex-col items-center justify-center h-[280px] text-center"
+    >
       <p class="text-sm text-muted-foreground">
         {{ t("personal.skills.noSkills") }}
       </p>

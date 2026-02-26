@@ -17,12 +17,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from '@/components/ui/tabs'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   IconMail,
   IconFileText,
@@ -347,8 +342,8 @@ onMounted(() => {
                   <div>
                     <div class="font-medium">{{ log.subject }}</div>
                     <div class="text-sm text-muted-foreground">
-                      {{ t('email.to') }}: {{ log.recipient }} |
-                      {{ t('email.createdAt') }}: {{ formatDate(log.created_at) }}
+                      {{ t('email.to') }}: {{ log.recipient }} | {{ t('email.createdAt') }}:
+                      {{ formatDate(log.created_at) }}
                     </div>
                     <div v-if="log.error" class="text-sm text-red-500 mt-1">
                       {{ log.error }}
@@ -468,7 +463,10 @@ onMounted(() => {
           </div>
           <div>
             <Label>{{ t('email.form.subject') }}</Label>
-            <Input v-model="templateForm.subject" :placeholder="t('email.form.subjectPlaceholder')" />
+            <Input
+              v-model="templateForm.subject"
+              :placeholder="t('email.form.subjectPlaceholder')"
+            />
           </div>
           <div>
             <Label>{{ t('email.form.body') }}</Label>

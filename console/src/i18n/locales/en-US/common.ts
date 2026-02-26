@@ -158,11 +158,13 @@ export default {
   // Error handling
   error: {
     title: "Something went wrong",
-    boundaryMessage: "An error occurred while rendering this component. Please try again.",
+    boundaryMessage:
+      "An error occurred while rendering this component. Please try again.",
     default: "An unexpected error occurred",
     showDetails: "Show details",
     hideDetails: "Hide details",
-    retryMessage: "Please try again or contact support if the problem persists.",
+    retryMessage:
+      "Please try again or contact support if the problem persists.",
     notFound: "Page not found",
     forbidden: "Access denied",
     unauthorized: "Please log in to continue",

@@ -12,7 +12,11 @@ export interface ErrorHandlerOptions {
   /** Show toast notifications on error */
   showToast?: boolean;
   /** Callback when error occurs */
-  onError?: (error: Error, instance: ComponentPublicInstance | null, info: string) => void;
+  onError?: (
+    error: Error,
+    instance: ComponentPublicInstance | null,
+    info: string,
+  ) => void;
   /** Custom error page route */
   errorRoute?: string;
 }
@@ -114,11 +118,7 @@ async function showErrorToast(message: string): Promise<void> {
  * Create Vue error handler plugin
  */
 export function createErrorHandler(options: ErrorHandlerOptions = {}) {
-  const {
-    logToConsole = true,
-    showToast = true,
-    onError,
-  } = options;
+  const { logToConsole = true, showToast = true, onError } = options;
 
   return {
     install(app: App) {
@@ -128,7 +128,8 @@ export function createErrorHandler(options: ErrorHandlerOptions = {}) {
         instance: ComponentPublicInstance | null,
         info: string,
       ) => {
-        const error = err instanceof Error ? err : new Error(getErrorMessage(err));
+        const error =
+          err instanceof Error ? err : new Error(getErrorMessage(err));
 
         // Log the error
         logError(error, info);
@@ -151,7 +152,11 @@ export function createErrorHandler(options: ErrorHandlerOptions = {}) {
       };
 
       // Global warning handler
-      app.config.warnHandler = (msg: string, instance: ComponentPublicInstance | null, trace: string) => {
+      app.config.warnHandler = (
+        msg: string,
+        instance: ComponentPublicInstance | null,
+        trace: string,
+      ) => {
         if (logToConsole) {
           console.warn("Vue Warning:", msg);
           console.warn("Component:", instance?.$options?.name || "Unknown");
@@ -161,9 +166,10 @@ export function createErrorHandler(options: ErrorHandlerOptions = {}) {
 
       // Handle unhandled promise rejections
       window.addEventListener("unhandledrejection", (event) => {
-        const error = event.reason instanceof Error
-          ? event.reason
-          : new Error(getErrorMessage(event.reason));
+        const error =
+          event.reason instanceof Error
+            ? event.reason
+            : new Error(getErrorMessage(event.reason));
 
         logError(error);
 
@@ -185,9 +191,8 @@ export function createErrorHandler(options: ErrorHandlerOptions = {}) {
 
       // Handle global JavaScript errors
       window.addEventListener("error", (event) => {
-        const error = event.error instanceof Error
-          ? event.error
-          : new Error(event.message);
+        const error =
+          event.error instanceof Error ? event.error : new Error(event.message);
 
         logError(error);
 

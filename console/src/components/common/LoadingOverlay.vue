@@ -1,24 +1,24 @@
 <script setup lang="ts">
-import { computed } from 'vue'
-import { IconLoader2 } from '@tabler/icons-vue'
+import { computed } from "vue";
+import { IconLoader2 } from "@tabler/icons-vue";
 
 const props = withDefaults(
   defineProps<{
-    loading?: boolean
-    text?: string
-    fullscreen?: boolean
+    loading?: boolean;
+    text?: string;
+    fullscreen?: boolean;
   }>(),
   {
     loading: true,
-    text: 'Loading...',
+    text: "Loading...",
     fullscreen: false,
   },
-)
+);
 
 const containerClasses = computed(() => ({
-  'fixed inset-0 z-50': props.fullscreen,
-  'absolute inset-0': !props.fullscreen,
-}))
+  "fixed inset-0 z-50": props.fullscreen,
+  "absolute inset-0": !props.fullscreen,
+}));
 </script>
 
 <template>

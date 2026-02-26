@@ -36,39 +36,115 @@ const shortcuts: ShortcutItem[] = [
 
   // Navigation
   { keys: ["Ctrl", "G"], description: "Go to line", category: "Navigation" },
-  { keys: ["Ctrl", "P"], description: "Quick open file", category: "Navigation" },
-  { keys: ["Ctrl", "Shift", "O"], description: "Go to symbol", category: "Navigation" },
+  {
+    keys: ["Ctrl", "P"],
+    description: "Quick open file",
+    category: "Navigation",
+  },
+  {
+    keys: ["Ctrl", "Shift", "O"],
+    description: "Go to symbol",
+    category: "Navigation",
+  },
   { keys: ["Alt", "←"], description: "Go back", category: "Navigation" },
   { keys: ["Alt", "→"], description: "Go forward", category: "Navigation" },
 
   // Editing
-  { keys: ["Ctrl", "D"], description: "Select next occurrence", category: "Editing" },
-  { keys: ["Ctrl", "Shift", "K"], description: "Delete line", category: "Editing" },
+  {
+    keys: ["Ctrl", "D"],
+    description: "Select next occurrence",
+    category: "Editing",
+  },
+  {
+    keys: ["Ctrl", "Shift", "K"],
+    description: "Delete line",
+    category: "Editing",
+  },
   { keys: ["Alt", "↑"], description: "Move line up", category: "Editing" },
   { keys: ["Alt", "↓"], description: "Move line down", category: "Editing" },
-  { keys: ["Shift", "Alt", "↑"], description: "Copy line up", category: "Editing" },
-  { keys: ["Shift", "Alt", "↓"], description: "Copy line down", category: "Editing" },
-  { keys: ["Ctrl", "/"], description: "Toggle line comment", category: "Editing" },
-  { keys: ["Shift", "Alt", "A"], description: "Toggle block comment", category: "Editing" },
-  { keys: ["Ctrl", "Shift", "\\"], description: "Match bracket", category: "Editing" },
+  {
+    keys: ["Shift", "Alt", "↑"],
+    description: "Copy line up",
+    category: "Editing",
+  },
+  {
+    keys: ["Shift", "Alt", "↓"],
+    description: "Copy line down",
+    category: "Editing",
+  },
+  {
+    keys: ["Ctrl", "/"],
+    description: "Toggle line comment",
+    category: "Editing",
+  },
+  {
+    keys: ["Shift", "Alt", "A"],
+    description: "Toggle block comment",
+    category: "Editing",
+  },
+  {
+    keys: ["Ctrl", "Shift", "\\"],
+    description: "Match bracket",
+    category: "Editing",
+  },
 
   // Code Actions
-  { keys: ["Ctrl", "Space"], description: "Trigger suggestions", category: "Code Actions" },
-  { keys: ["Ctrl", "Shift", "Space"], description: "Parameter hints", category: "Code Actions" },
+  {
+    keys: ["Ctrl", "Space"],
+    description: "Trigger suggestions",
+    category: "Code Actions",
+  },
+  {
+    keys: ["Ctrl", "Shift", "Space"],
+    description: "Parameter hints",
+    category: "Code Actions",
+  },
   { keys: ["F12"], description: "Go to definition", category: "Code Actions" },
-  { keys: ["Shift", "F12"], description: "Find references", category: "Code Actions" },
+  {
+    keys: ["Shift", "F12"],
+    description: "Find references",
+    category: "Code Actions",
+  },
   { keys: ["F2"], description: "Rename symbol", category: "Code Actions" },
   { keys: ["Ctrl", "."], description: "Quick fix", category: "Code Actions" },
-  { keys: ["Shift", "Alt", "F"], description: "Format document", category: "Code Actions" },
-  { keys: ["Ctrl", "K", "Ctrl", "F"], description: "Format selection", category: "Code Actions" },
+  {
+    keys: ["Shift", "Alt", "F"],
+    description: "Format document",
+    category: "Code Actions",
+  },
+  {
+    keys: ["Ctrl", "K", "Ctrl", "F"],
+    description: "Format selection",
+    category: "Code Actions",
+  },
 
   // Selection
   { keys: ["Ctrl", "A"], description: "Select all", category: "Selection" },
-  { keys: ["Ctrl", "L"], description: "Select current line", category: "Selection" },
-  { keys: ["Ctrl", "Shift", "L"], description: "Select all occurrences", category: "Selection" },
-  { keys: ["Alt", "Click"], description: "Multi-cursor", category: "Selection" },
-  { keys: ["Ctrl", "Alt", "↑"], description: "Add cursor above", category: "Selection" },
-  { keys: ["Ctrl", "Alt", "↓"], description: "Add cursor below", category: "Selection" },
+  {
+    keys: ["Ctrl", "L"],
+    description: "Select current line",
+    category: "Selection",
+  },
+  {
+    keys: ["Ctrl", "Shift", "L"],
+    description: "Select all occurrences",
+    category: "Selection",
+  },
+  {
+    keys: ["Alt", "Click"],
+    description: "Multi-cursor",
+    category: "Selection",
+  },
+  {
+    keys: ["Ctrl", "Alt", "↑"],
+    description: "Add cursor above",
+    category: "Selection",
+  },
+  {
+    keys: ["Ctrl", "Alt", "↓"],
+    description: "Add cursor below",
+    category: "Selection",
+  },
 
   // View
   { keys: ["Ctrl", "+"], description: "Zoom in", category: "View" },
@@ -80,7 +156,11 @@ const shortcuts: ShortcutItem[] = [
   // Search
   { keys: ["Ctrl", "F"], description: "Find", category: "Search" },
   { keys: ["Ctrl", "H"], description: "Find and replace", category: "Search" },
-  { keys: ["Ctrl", "Shift", "F"], description: "Find in files", category: "Search" },
+  {
+    keys: ["Ctrl", "Shift", "F"],
+    description: "Find in files",
+    category: "Search",
+  },
   { keys: ["F3"], description: "Find next", category: "Search" },
   { keys: ["Shift", "F3"], description: "Find previous", category: "Search" },
 ];
@@ -104,7 +184,8 @@ const groupedShortcuts = computed(() => {
   }));
 });
 
-const isMac = typeof navigator !== "undefined" && /Mac/.test(navigator.platform);
+const isMac =
+  typeof navigator !== "undefined" && /Mac/.test(navigator.platform);
 
 const formatKey = (key: string): string => {
   if (!isMac) return key;

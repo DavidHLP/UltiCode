@@ -1,5 +1,8 @@
 import { computed } from "vue";
-import { useEditorSettingsStore, type EditorTheme } from "@/stores/editorSettings";
+import {
+  useEditorSettingsStore,
+  type EditorTheme,
+} from "@/stores/editorSettings";
 
 export interface ThemeOption {
   value: EditorTheme;
@@ -112,8 +115,7 @@ export function useEditorThemes() {
    * Check if current theme is dark
    */
   const isDarkTheme = computed(
-    () =>
-      currentTheme.value === "vs-dark" || currentTheme.value === "hc-black",
+    () => currentTheme.value === "vs-dark" || currentTheme.value === "hc-black",
   );
 
   return {

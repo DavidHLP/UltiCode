@@ -16,6 +16,7 @@ import { authApi } from "@/api/auth";
 import { setToken, setUserId } from "@/utils/auth";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
+import { setSessionFlag } from "@/stores/auth";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -39,6 +40,7 @@ async function handleSubmit(e: Event) {
     });
     setToken(res.access_token);
     setUserId(res.user.id);
+    setSessionFlag();
     toast.success(t("auth.messages.registerSuccess"));
     router.push("/");
   } catch (error) {

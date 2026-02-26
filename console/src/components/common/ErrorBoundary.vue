@@ -1,31 +1,31 @@
 <script setup lang="ts">
-import { ref, onErrorCaptured, type ComponentPublicInstance } from 'vue'
-import { Button } from '@/components/ui/button'
-import { IconAlertTriangle, IconRefresh } from '@tabler/icons-vue'
+import { ref, onErrorCaptured, type ComponentPublicInstance } from "vue";
+import { Button } from "@/components/ui/button";
+import { IconAlertTriangle, IconRefresh } from "@tabler/icons-vue";
 
 const emit = defineEmits<{
-  (e: 'error', error: Error): void
-}>()
+  (e: "error", error: Error): void;
+}>();
 
-const error = ref<Error | null>(null)
-const errorInfo = ref<string | null>(null)
+const error = ref<Error | null>(null);
+const errorInfo = ref<string | null>(null);
 
 onErrorCaptured(
   (err: Error, instance: ComponentPublicInstance | null, info: string) => {
-    error.value = err
-    errorInfo.value = info
-    emit('error', err)
-    return false // Prevent the error from propagating further
+    error.value = err;
+    errorInfo.value = info;
+    emit("error", err);
+    return false; // Prevent the error from propagating further
   },
-)
+);
 
 function retry() {
-  error.value = null
-  errorInfo.value = null
+  error.value = null;
+  errorInfo.value = null;
 }
 
 function reload() {
-  window.location.reload()
+  window.location.reload();
 }
 </script>
 
@@ -43,14 +43,18 @@ function reload() {
     <h2 class="text-xl font-semibold mb-2">Something went wrong</h2>
 
     <p class="text-muted-foreground mb-4 max-w-md">
-      {{ error.message || 'An unexpected error occurred. Please try again.' }}
+      {{ error.message || "An unexpected error occurred. Please try again." }}
     </p>
 
     <details v-if="errorInfo" class="mb-4 text-left w-full max-w-md">
-      <summary class="cursor-pointer text-sm text-muted-foreground hover:text-foreground">
+      <summary
+        class="cursor-pointer text-sm text-muted-foreground hover:text-foreground"
+      >
         View error details
       </summary>
-      <pre class="mt-2 p-4 bg-muted rounded-lg text-xs overflow-auto">{{ error.stack }}</pre>
+      <pre class="mt-2 p-4 bg-muted rounded-lg text-xs overflow-auto">{{
+        error.stack
+      }}</pre>
     </details>
 
     <div class="flex gap-2">

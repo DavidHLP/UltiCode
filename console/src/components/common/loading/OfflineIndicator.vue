@@ -24,7 +24,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
-const { isOnline, offline, formattedOfflineDuration, subscribe } = useNetworkStatus();
+const { isOnline, offline, formattedOfflineDuration, subscribe } =
+  useNetworkStatus();
 
 const isReconnecting = ref(false);
 const showOnlineNotification = ref(false);
@@ -82,7 +83,9 @@ const positionClasses = computed(() => {
 
 // Banner visibility
 const showOfflineBanner = computed(() => offline.value);
-const showOnlineBanner = computed(() => showOnlineNotification.value && isOnline.value);
+const showOnlineBanner = computed(
+  () => showOnlineNotification.value && isOnline.value,
+);
 </script>
 
 <template>
@@ -90,11 +93,15 @@ const showOnlineBanner = computed(() => showOnlineNotification.value && isOnline
     <!-- Offline Banner -->
     <Transition
       enter-active-class="transition-transform duration-300"
-      :enter-from-class="position === 'bottom' ? 'translate-y-full' : '-translate-y-full'"
+      :enter-from-class="
+        position === 'bottom' ? 'translate-y-full' : '-translate-y-full'
+      "
       enter-to-class="translate-y-0"
       leave-active-class="transition-transform duration-300"
       leave-from-class="translate-y-0"
-      :leave-to-class="position === 'bottom' ? 'translate-y-full' : '-translate-y-full'"
+      :leave-to-class="
+        position === 'bottom' ? 'translate-y-full' : '-translate-y-full'
+      "
     >
       <div
         v-if="showOfflineBanner"
@@ -114,7 +121,11 @@ const showOnlineBanner = computed(() => showOnlineNotification.value && isOnline
         <span class="text-sm font-medium">
           {{ t("common.network.offline") }}
           <span v-if="formattedOfflineDuration" class="opacity-80">
-            ({{ t("common.network.offlineFor", { duration: formattedOfflineDuration }) }})
+            ({{
+              t("common.network.offlineFor", {
+                duration: formattedOfflineDuration,
+              })
+            }})
           </span>
         </span>
         <Button
@@ -126,10 +137,7 @@ const showOnlineBanner = computed(() => showOnlineNotification.value && isOnline
           @click="handleReconnect"
         >
           <RefreshCw
-            :class="[
-              'size-3 mr-1',
-              isReconnecting && 'animate-spin',
-            ]"
+            :class="['size-3 mr-1', isReconnecting && 'animate-spin']"
           />
           {{ t("common.network.reconnect") }}
         </Button>
@@ -139,11 +147,15 @@ const showOnlineBanner = computed(() => showOnlineNotification.value && isOnline
     <!-- Back Online Banner -->
     <Transition
       enter-active-class="transition-transform duration-300"
-      :enter-from-class="position === 'bottom' ? 'translate-y-full' : '-translate-y-full'"
+      :enter-from-class="
+        position === 'bottom' ? 'translate-y-full' : '-translate-y-full'
+      "
       enter-to-class="translate-y-0"
       leave-active-class="transition-transform duration-300"
       leave-from-class="translate-y-0"
-      :leave-to-class="position === 'bottom' ? 'translate-y-full' : '-translate-y-full'"
+      :leave-to-class="
+        position === 'bottom' ? 'translate-y-full' : '-translate-y-full'
+      "
     >
       <div
         v-if="showOnlineBanner"

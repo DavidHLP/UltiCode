@@ -40,9 +40,7 @@ const restoring = ref(false)
 const deleting = ref(false)
 
 // Computed
-const completedBackups = computed(() =>
-  backups.value.filter((b) => b.status === 'COMPLETED'),
-)
+const completedBackups = computed(() => backups.value.filter((b) => b.status === 'COMPLETED'))
 
 const pendingBackups = computed(() =>
   backups.value.filter((b) => b.status === 'PENDING' || b.status === 'IN_PROGRESS'),
@@ -280,9 +278,9 @@ onMounted(() => {
               <div>
                 <div class="font-medium">{{ backup.filename }}</div>
                 <div class="text-sm text-muted-foreground">
-                  {{ t('backup.type') }}: {{ backup.type }} |
-                  {{ t('backup.size') }}: {{ formatBytes(backup.size) }} |
-                  {{ t('backup.createdAt') }}: {{ formatDate(backup.created_at) }}
+                  {{ t('backup.type') }}: {{ backup.type }} | {{ t('backup.size') }}:
+                  {{ formatBytes(backup.size) }} | {{ t('backup.createdAt') }}:
+                  {{ formatDate(backup.created_at) }}
                 </div>
               </div>
             </div>

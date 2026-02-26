@@ -159,7 +159,9 @@ onMounted(async () => {
     lineNumbers: props.lineNumbers ?? "on",
     wordWrap: props.wordWrap ? "on" : "off",
     theme: props.theme ?? "vs-dark",
-    fontFamily: props.fontFamily ?? "JetBrains Mono, Menlo, Monaco, Courier New, monospace",
+    fontFamily:
+      props.fontFamily ??
+      "JetBrains Mono, Menlo, Monaco, Courier New, monospace",
     fontLigatures: true,
     // IntelliSense and Suggestion Options
     quickSuggestions: {

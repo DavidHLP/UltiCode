@@ -1,5 +1,10 @@
 import { Injectable, ExecutionContext, Inject } from '@nestjs/common';
-import { ThrottlerGuard, ThrottlerException } from '@nestjs/throttler';
+import {
+  ThrottlerGuard,
+  ThrottlerException,
+  getOptionsToken,
+  getStorageToken,
+} from '@nestjs/throttler';
 import type {
   ThrottlerModuleOptions,
   ThrottlerStorage,
@@ -45,8 +50,8 @@ export const ThrottleAdmin = () => CustomThrottle(THROTTLE_CONFIGS.admin);
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
   constructor(
-    @Inject('THROTTLER_OPTIONS') options: ThrottlerModuleOptions,
-    @Inject('THROTTLER_STORAGE') storageService: ThrottlerStorage,
+    @Inject(getOptionsToken()) options: ThrottlerModuleOptions,
+    @Inject(getStorageToken()) storageService: ThrottlerStorage,
     reflector: Reflector,
   ) {
     super(options, storageService, reflector);

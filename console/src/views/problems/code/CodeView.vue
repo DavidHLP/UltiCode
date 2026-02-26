@@ -54,8 +54,12 @@ const editorFontSize = computed(() => editorSettingsStore.settings.fontSize);
 const editorTabSize = computed(() => editorSettingsStore.settings.tabSize);
 const editorWordWrap = computed(() => editorSettingsStore.settings.wordWrap);
 const editorMinimap = computed(() => editorSettingsStore.settings.minimap);
-const editorLineNumbers = computed(() => editorSettingsStore.settings.lineNumbers);
-const editorFontFamily = computed(() => editorSettingsStore.settings.fontFamily);
+const editorLineNumbers = computed(
+  () => editorSettingsStore.settings.lineNumbers,
+);
+const editorFontFamily = computed(
+  () => editorSettingsStore.settings.fontFamily,
+);
 
 const activeLanguageLabel = computed(() => {
   if (languageMeta.value?.style) {

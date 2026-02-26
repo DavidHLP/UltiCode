@@ -99,11 +99,7 @@ describe("useRetry", () => {
       await retry(fn);
 
       expect(onRetry).toHaveBeenCalledTimes(1);
-      expect(onRetry).toHaveBeenCalledWith(
-        expect.any(Error),
-        1,
-        10,
-      );
+      expect(onRetry).toHaveBeenCalledWith(expect.any(Error), 1, 10);
 
       vi.useFakeTimers();
     });
@@ -128,7 +124,8 @@ describe("useRetry", () => {
       const { retry } = useRetry({
         maxRetries: 3,
         initialDelay: 10,
-        shouldRetry: (error) => error instanceof Error && error.message.includes("retryable"),
+        shouldRetry: (error) =>
+          error instanceof Error && error.message.includes("retryable"),
       });
 
       const fn = vi
@@ -203,7 +200,10 @@ describe("retryWithBackoff", () => {
       .mockRejectedValueOnce(new Error("Error"))
       .mockResolvedValue("success");
 
-    const result = await retryWithBackoff(fn, { maxRetries: 1, initialDelay: 10 });
+    const result = await retryWithBackoff(fn, {
+      maxRetries: 1,
+      initialDelay: 10,
+    });
 
     expect(result).toBe("success");
     expect(fn).toHaveBeenCalledTimes(2);

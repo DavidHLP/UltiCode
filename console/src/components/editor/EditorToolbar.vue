@@ -73,7 +73,10 @@ const tabSize = computed({
 });
 
 const handleThemeChange = (theme: unknown) => {
-  if (typeof theme === 'string' && (theme === 'vs-dark' || theme === 'vs-light' || theme === 'hc-black')) {
+  if (
+    typeof theme === "string" &&
+    (theme === "vs-dark" || theme === "vs-light" || theme === "hc-black")
+  ) {
     settingsStore.setTheme(theme);
   }
 };
@@ -105,7 +108,10 @@ const handleResetSettings = () => {
       <DropdownMenuContent align="end" class="w-48">
         <DropdownMenuLabel>Theme</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <DropdownMenuRadioGroup :model-value="currentTheme" @update:model-value="handleThemeChange">
+        <DropdownMenuRadioGroup
+          :model-value="currentTheme"
+          @update:model-value="handleThemeChange"
+        >
           <DropdownMenuRadioItem
             v-for="theme in themeOptions"
             :key="theme.value"
@@ -114,7 +120,13 @@ const handleResetSettings = () => {
           >
             <div class="flex items-center gap-2">
               <component
-                :is="theme.value === 'vs-dark' ? Moon : theme.value === 'vs-light' ? Sun : Contrast"
+                :is="
+                  theme.value === 'vs-dark'
+                    ? Moon
+                    : theme.value === 'vs-light'
+                      ? Sun
+                      : Contrast
+                "
                 class="h-4 w-4"
               />
               <div>

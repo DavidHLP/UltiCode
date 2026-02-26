@@ -50,8 +50,6 @@ export async function fetchUserStats(userId: string): Promise<UserStats> {
   return apiGet<UserStats>(`/users/${userId}/stats`);
 }
 
-export async function fetchUserSkills(
-  userId: string,
-): Promise<UserSkills> {
+export async function fetchUserSkills(userId: string): Promise<UserSkills> {
   return apiGet<UserSkills>(`/users/${userId}/skills`);
 }

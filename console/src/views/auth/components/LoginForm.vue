@@ -16,6 +16,7 @@ import { useI18n } from "vue-i18n";
 import { authApi } from "@/api/auth";
 import { toast } from "vue-sonner";
 import { setCsrfToken } from "@/utils/csrf";
+import { setSessionFlag } from "@/stores/auth";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -64,6 +65,9 @@ async function handleSubmit(e: Event) {
     if (res.csrf_token) {
       setCsrfToken(res.csrf_token);
     }
+
+    // Set session flag to indicate user has an active session
+    setSessionFlag();
 
     toast.success(t("auth.messages.loginSuccess"));
     router.push("/");

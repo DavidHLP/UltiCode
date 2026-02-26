@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { ref } from "vue";
+import { ref, watch } from "vue";
 import type {
   NotificationItem,
   NotificationListResult,
@@ -13,6 +13,14 @@ import {
   clearNotifications,
   deleteNotification as apiDeleteNotification,
 } from "@/api/notification";
+import { useAuthStore } from "./auth";
+import {
+  getSocketManager,
+  NotificationEvent,
+  type NotificationPayload,
+  type SubmissionResultPayload,
+  type BadgeEarnedPayload,
+} from "@/lib/socket";
 
 export const useNotificationStore = defineStore("notification", () => {
   const notifications = ref<NotificationItem[]>([]);
@@ -22,6 +30,7 @@ export const useNotificationStore = defineStore("notification", () => {
   const totalPages = ref(1);
   const unreadCount = ref(0);
   const loading = ref(false);
+  const realtimeConnected = ref(false);
 
   async function loadNotifications(params: NotificationQuery = {}) {
     loading.value = true;
@@ -88,6 +97,76 @@ export const useNotificationStore = defineStore("notification", () => {
     }
   }
 
+  // Real-time notification handlers
+  function handleNewNotification(payload: NotificationPayload) {
+    // Add to beginning of notifications list
+    const newItem: NotificationItem = {
+      id: payload.id,
+      title: payload.title,
+      body: payload.body,
+      type: payload.type as NotificationItem["type"],
+      category: "system",
+      link: payload.link || null,
+      isRead: false,
+      readAt: null,
+      createdAt: payload.createdAt,
+    };
+    notifications.value = [newItem, ...notifications.value];
+    total.value += 1;
+    unreadCount.value += 1;
+  }
+
+  function handleSubmissionResult(payload: SubmissionResultPayload) {
+    // This can be used to trigger toast notifications or update UI
+    console.log("[Notification] Submission result:", payload);
+  }
+
+  function handleBadgeEarned(payload: BadgeEarnedPayload) {
+    console.log("[Notification] Badge earned:", payload);
+  }
+
+  // Setup WebSocket listeners when authenticated
+  function setupRealtimeListeners() {
+    const authStore = useAuthStore();
+    const socketManager = getSocketManager();
+
+    // Connection status tracking
+    socketManager.on("connection:status", (status: string) => {
+      realtimeConnected.value = status === "connected";
+    });
+
+    // Listen for notifications
+    socketManager.on(
+      NotificationEvent.SYSTEM_ANNOUNCEMENT,
+      handleNewNotification,
+    );
+    socketManager.on(
+      NotificationEvent.SUBMISSION_RESULT,
+      handleSubmissionResult,
+    );
+    socketManager.on(NotificationEvent.BADGE_EARNED, handleBadgeEarned);
+
+    // Connect if authenticated
+    if (authStore.isAuthenticated) {
+      socketManager.connect();
+    }
+
+    // Watch for auth changes
+    watch(
+      () => authStore.isAuthenticated,
+      (isAuth) => {
+        if (isAuth) {
+          socketManager.connect();
+        } else {
+          socketManager.disconnect();
+        }
+      },
+    );
+  }
+
+  // Initialize real-time listeners
+  setupRealtimeListeners();
+
   return {
     notifications,
     total,
@@ -96,6 +175,7 @@ export const useNotificationStore = defineStore("notification", () => {
     totalPages,
     unreadCount,
     loading,
+    realtimeConnected,
     loadNotifications,
     loadUnreadCount,
     markAsRead,

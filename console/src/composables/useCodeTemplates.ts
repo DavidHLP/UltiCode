@@ -437,15 +437,13 @@ export function useCodeTemplates() {
   const allTemplates = computed(() => TEMPLATES);
 
   const getTemplatesByLanguage = (language: SupportedLanguage) => {
-    return computed(() =>
-      TEMPLATES.filter((t) => t.language === language),
-    ).value;
+    return computed(() => TEMPLATES.filter((t) => t.language === language))
+      .value;
   };
 
   const getTemplatesByCategory = (category: CodeTemplate["category"]) => {
-    return computed(() =>
-      TEMPLATES.filter((t) => t.category === category),
-    ).value;
+    return computed(() => TEMPLATES.filter((t) => t.category === category))
+      .value;
   };
 
   const getTemplateById = (id: string) => {

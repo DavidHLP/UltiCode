@@ -194,36 +194,25 @@
 
 ## 前端业务缺陷
 
-### 1. OAuth 登录 [P1 - 重要]
+### 1. OAuth 登录 [P1 - ✅ 已完成]
 
-**现状**: 后端有 GitHub OAuth，前端缺少完整流程
+**现状**: GitHub 和 Google OAuth 都已实现
 
-**位置**:
-- `console/src/views/auth/LoginView.vue`
-- `console/src/views/auth/RegisterView.vue`
+**实现位置**:
+- `backend/src/auth/services/oauth.service.ts` - OAuth 服务 (GitHub + Google)
+- `backend/src/auth/auth.controller.ts` - OAuth 端点
+- `console/src/views/auth/components/LoginForm.vue` - OAuth 按钮
+- `console/src/views/auth/components/RegisterForm.vue` - OAuth 按钮
 
-**缺失功能**:
-- [ ] GitHub OAuth 按钮
-- [ ] Google OAuth 按钮
-- [ ] OAuth 回调处理
-- [ ] 账号关联
+**已实现功能**:
+- [x] GitHub OAuth 登录
+- [x] Google OAuth 登录
+- [x] OAuth 回调处理
+- [x] 自动用户创建和登录
 
-**实施建议**:
-```vue
-<!-- OAuthButton.vue -->
-<template>
-  <div class="oauth-buttons">
-    <Button @click="loginWithGitHub">
-      <GithubIcon />
-      {{ t('auth.continueWithGitHub') }}
-    </Button>
-    <Button @click="loginWithGoogle">
-      <GoogleIcon />
-      {{ t('auth.continueWithGoogle') }}
-    </Button>
-  </div>
-</template>
-```
+**配置要求**:
+- GITHUB_CLIENT_ID / GITHUB_CLIENT_SECRET
+- GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
 
 ---
 

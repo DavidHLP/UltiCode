@@ -192,6 +192,10 @@ export default {
     offlineReady: "应用已可离线使用",
     installPrompt: "安装应用以获得更好体验",
     install: "安装",
+    syncing: "同步中...",
+    syncComplete: "成功同步 {count} 个提交",
+    syncFailed: "同步提交失败",
+    queuedSubmissions: "{count} 个提交待同步",
   },
 
   // Dismiss button

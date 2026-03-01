@@ -197,6 +197,10 @@ export default {
     offlineReady: "App is ready to work offline",
     installPrompt: "Install app for a better experience",
     install: "Install",
+    syncing: "Syncing...",
+    syncComplete: "Successfully synced {count} submission(s)",
+    syncFailed: "Failed to sync submissions",
+    queuedSubmissions: "{count} submission(s) queued",
   },
 
   // Dismiss button

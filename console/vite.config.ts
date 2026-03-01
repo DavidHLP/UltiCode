@@ -15,7 +15,6 @@ export default defineConfig({
     tailwindcss(),
     vueDevTools(),
     Icons({ compiler: 'vue3', autoInstall: true }) as PluginOption,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     VitePWA({
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'robots.txt', 'apple-touch-icon.png'],
@@ -47,6 +46,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        maximumFileSizeToCacheInBytes: 7 * 1024 * 1024, // 7 MB for Monaco Editor
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -81,6 +81,7 @@ export default defineConfig({
       devOptions: {
         enabled: false, // Disable in dev for faster HMR
       },
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- VitePWA plugin types are complex
     }) as any,
   ],
   resolve: {

@@ -74,6 +74,44 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* ========================================
+     Precision Dashboard Design System
+     ======================================== */
+
+  /* Silver Gray Palette */
+  --silver-50: oklch(0.98 0.005 270);
+  --silver-100: oklch(0.95 0.008 270);
+  --silver-200: oklch(0.88 0.012 270);
+  --silver-300: oklch(0.75 0.015 270);
+  --silver-400: oklch(0.6 0.018 270);
+  --silver-500: oklch(0.45 0.02 270);
+  --silver-600: oklch(0.35 0.022 270);
+  --silver-700: oklch(0.25 0.02 270);
+  --silver-800: oklch(0.18 0.015 270);
+  --silver-900: oklch(0.12 0.01 270);
+
+  /* Accent Colors - Ice Blue Silver */
+  --accent-primary: oklch(0.7 0.025 250);
+  --accent-glow: oklch(0.75 0.04 250 / 0.15);
+
+  /* Status Colors */
+  --status-success: oklch(0.65 0.12 145);
+  --status-warning: oklch(0.7 0.15 85);
+  --status-error: oklch(0.6 0.18 25);
+
+  /* Border Styles */
+  --border-thin: 1px solid var(--silver-200);
+  --border-accent: 1px solid var(--accent-primary);
+
+  /* Shadow Styles */
+  --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.08);
+  --shadow-float-hover: 0 8px 30px -4px oklch(0 0 0 / 0.12);
+
+  /* Transition Timing */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .dark {
@@ -108,6 +146,35 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* ========================================
+     Precision Dashboard Design System - Dark
+     ======================================== */
+
+  /* Silver Gray Palette - Dark Mode */
+  --silver-50: oklch(0.18 0.01 270);
+  --silver-100: oklch(0.22 0.012 270);
+  --silver-200: oklch(0.3 0.015 270);
+  --silver-300: oklch(0.45 0.018 270);
+  --silver-400: oklch(0.58 0.02 270);
+  --silver-500: oklch(0.7 0.022 270);
+  --silver-600: oklch(0.78 0.02 270);
+  --silver-700: oklch(0.85 0.018 270);
+  --silver-800: oklch(0.92 0.012 270);
+  --silver-900: oklch(0.96 0.008 270);
+
+  /* Accent Colors - Dark Mode */
+  --accent-primary: oklch(0.65 0.035 250);
+  --accent-glow: oklch(0.7 0.05 250 / 0.2);
+
+  /* Status Colors - Dark Mode */
+  --status-success: oklch(0.6 0.14 145);
+  --status-warning: oklch(0.68 0.16 85);
+  --status-error: oklch(0.55 0.2 25);
+
+  /* Shadow Styles - Dark Mode */
+  --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.25);
+  --shadow-float-hover: 0 8px 30px -4px oklch(0 0 0 / 0.35);
 }
 
 @layer base {
@@ -313,4 +380,104 @@
   overflow: hidden;
   contain: content;
   touch-action: none;
+}
+
+/* ========================================
+   Precision Dashboard Typography
+   ======================================== */
+
+/* Import JetBrains Mono for data displays */
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+/* Data font utility - monospace for numbers and data */
+.font-data {
+  font-family: 'JetBrains Mono', 'SF Mono', 'Roboto Mono', ui-monospace, monospace;
+  font-feature-settings:
+    'tnum' on,
+    'lnum' on;
+}
+
+/* Precision number formatting */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    'tnum' on,
+    'lnum' on;
+}
+
+/* ========================================
+   Precision Dashboard Utilities
+   ======================================== */
+
+/* Precision card hover effect */
+.precision-card {
+  transition:
+    transform var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.precision-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-float-hover);
+}
+
+/* Silver border accent */
+.border-silver {
+  border-color: var(--silver-200);
+}
+
+.dark .border-silver {
+  border-color: var(--silver-300);
+}
+
+/* Float shadow */
+.shadow-float {
+  box-shadow: var(--shadow-float);
+}
+
+/* Subtle divider line */
+.precision-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--silver-200), transparent);
+}
+
+.dark .precision-divider {
+  background: linear-gradient(to right, transparent, var(--silver-300), transparent);
+}
+
+/* Timeline vertical line */
+.timeline-line {
+  position: relative;
+}
+
+.timeline-line::before {
+  content: '';
+  position: absolute;
+  left: 11px;
+  top: 24px;
+  bottom: 0;
+  width: 1px;
+  background: var(--silver-200);
+}
+
+.dark .timeline-line::before {
+  background: var(--silver-300);
+}
+
+/* Glow effect for accent elements */
+.glow-accent {
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+/* Status indicator colors */
+.status-success {
+  color: var(--status-success);
+}
+
+.status-warning {
+  color: var(--status-warning);
+}
+
+.status-error {
+  color: var(--status-error);
 }

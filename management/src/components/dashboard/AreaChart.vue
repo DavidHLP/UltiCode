@@ -1,16 +1,9 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import type { ChartConfig } from '@/components/ui/chart'
-import { VisArea, VisAxis, VisLine, VisXYContainer } from '@unovis/vue'
+import { VisAxis, VisLine, VisXYContainer, VisScatter } from '@unovis/vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  ChartContainer,
-  ChartCrosshair,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-  componentToString,
-} from '@/components/ui/chart'
+import { ChartContainer, ChartCrosshair, ChartTooltip } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { useI18n } from 'vue-i18n'
 
@@ -136,38 +129,15 @@ const chartData = computed(() => props.data || defaultData)
 const defaultConfig: ChartConfig = {
   mobile: {
     label: 'Mobile',
-    color: 'var(--primary)',
+    color: 'var(--accent-primary)',
   },
   desktop: {
     label: 'Desktop',
-    color: 'var(--primary)',
+    color: 'var(--silver-400)',
   },
 }
 
 const chartConfig = computed(() => props.config || defaultConfig)
-
-const svgDefs = computed(() => {
-  const keys = props.seriesKeys || ['mobile', 'desktop']
-  const gradients = keys
-    .map(
-      (key) => `
-    <linearGradient id="fill${key.charAt(0).toUpperCase() + key.slice(1)}" x1="0" y1="0" x2="0" y2="1">
-      <stop
-        offset="5%"
-        stop-color="var(--color-${key})"
-        stop-opacity="0.8"
-      />
-      <stop
-        offset="95%"
-        stop-color="var(--color-${key})"
-        stop-opacity="0.1"
-      />
-    </linearGradient>
-  `,
-    )
-    .join('')
-  return gradients
-})
 
 // Time period selector (visual only initially)
 type TimePeriod = '7d' | '30d' | '90d' | 'all'
@@ -210,31 +180,38 @@ const getYValues = (d: Data) => {
 const getColors = () => {
   return seriesKeys.value.map((key) => {
     const config = chartConfig.value[key as keyof typeof chartConfig.value]
-    return config?.color || 'var(--primary)'
+    return config?.color || 'var(--accent-primary)'
   })
-}
-
-const getFillColors = () => {
-  return seriesKeys.value.map((key) => `url(#fill${key.charAt(0).toUpperCase() + key.slice(1)})`)
 }
 </script>
 
 <template>
-  <Card class="border-border/50 overflow-hidden">
+  <Card
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] overflow-hidden shadow-float"
+  >
     <CardHeader class="flex flex-row items-center justify-between space-y-0 pb-4 px-6 pt-6">
       <div class="space-y-1">
-        <CardTitle class="tracking-tight">{{ props.title }}</CardTitle>
-        <CardDescription class="text-xs">{{ props.description }}</CardDescription>
+        <CardTitle class="text-lg font-medium tracking-tight">{{ props.title }}</CardTitle>
+        <CardDescription class="text-xs text-[var(--silver-400)]">{{
+          props.description
+        }}</CardDescription>
       </div>
 
-      <!-- Time period selector -->
-      <div class="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/30 p-1">
+      <!-- Time period selector - precision style -->
+      <div
+        class="flex items-center gap-0.5 rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-transparent p-0.5"
+      >
         <Button
           v-for="period in timePeriods"
           :key="period.value"
           :variant="timePeriod === period.value ? 'default' : 'ghost'"
           :size="'sm'"
-          class="h-7 px-3 text-xs"
+          class="h-6 px-2.5 text-xs rounded-sm font-data"
+          :class="
+            timePeriod === period.value
+              ? 'bg-foreground text-background'
+              : 'text-[var(--silver-400)] hover:text-foreground'
+          "
           @click="timePeriod = period.value"
         >
           {{ t(period.label) }}
@@ -246,17 +223,19 @@ const getFillColors = () => {
       <ChartContainer :config="chartConfig" class="aspect-auto h-[280px] w-full" :cursor="false">
         <VisXYContainer
           :data="filterRange"
-          :svg-defs="svgDefs"
           :margin="{ left: -10, right: 10, top: 10, bottom: 20 }"
-          :y-domain="[0, 1200]"
+          :y-domain="[0, 600]"
         >
-          <VisArea
+          <!-- Precision thin lines only, no fill -->
+          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="1.5" />
+          <!-- Small data points -->
+          <VisScatter
             :x="(d: Data) => d.date"
             :y="getYValues"
-            :color="() => getFillColors()"
-            :opacity="0.6"
+            :color="getColors"
+            :radius="3"
+            :stroke-width="1"
           />
-          <VisLine :x="(d: Data) => d.date" :y="getYValues" :color="getColors" :line-width="1.5" />
           <VisAxis
             type="x"
             :x="(d: Data) => d.date"
@@ -274,24 +253,44 @@ const getFillColors = () => {
               }
             "
           />
-          <VisAxis type="y" :num-ticks="3" :tick-line="false" :domain-line="false" />
+          <VisAxis
+            type="y"
+            :num-ticks="3"
+            :tick-line="false"
+            :domain-line="false"
+            :grid-line="true"
+            :grid-line-color="'var(--silver-200)'"
+            :tick-format="(d: number) => d.toString()"
+          />
           <ChartTooltip />
           <ChartCrosshair
             :template="
-              componentToString(chartConfig, ChartTooltipContent, {
-                labelFormatter: (d) => {
-                  return new Date(d).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
+              (d: any) => {
+                const date = new Date(d.x)
+                const dateStr = date.toLocaleDateString('en-US', {
+                  month: 'short',
+                  day: 'numeric',
+                })
+                const values = seriesKeys
+                  .map((key, i) => {
+                    const val = d.y[i]
+                    const config = chartConfig[key as keyof typeof chartConfig]
+                    return `<div style='display:flex;align-items:center;gap:6px;'>
+                    <span style='width:6px;height:6px;border-radius:50%;background:${getColors()[i]}'></span>
+                    <span style='font-family:JetBrains Mono,monospace;font-size:12px;'>${val}</span>
+                    <span style='color:var(--silver-400);font-size:11px;'>${config?.label || key}</span>
+                  </div>`
                   })
-                },
-              })
+                  .join('')
+                return `<div style='padding:8px 12px;'>
+                  <div style='font-size:11px;color:var(--silver-400);margin-bottom:6px;'>${dateStr}</div>
+                  ${values}
+                </div>`
+              }
             "
             :color="getColors()[0]"
           />
         </VisXYContainer>
-
-        <ChartLegendContent />
       </ChartContainer>
     </CardContent>
   </Card>

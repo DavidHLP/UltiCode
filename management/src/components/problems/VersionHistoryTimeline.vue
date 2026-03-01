@@ -61,7 +61,7 @@ async function loadVersions() {
 
   try {
     const response = await problemsApi.getProblemVersions(props.problemId)
-    versions.value = response.data
+    versions.value = response.versions
   } catch (err) {
     console.error('Failed to load versions:', err)
     error.value = t('problems.versionHistory.loadError')
@@ -80,7 +80,7 @@ async function confirmRestore() {
 
   restoring.value = true
   try {
-    await problemsApi.restoreProblemVersion(props.problemId, selectedVersion.value.id)
+    await problemsApi.rollbackToVersion(props.problemId, selectedVersion.value.id)
     toast.success(t('problems.versionHistory.restoreSuccess'))
     restoreDialogOpen.value = false
     emit('restored')
@@ -93,29 +93,33 @@ async function confirmRestore() {
   }
 }
 
-function getActionLabel(action: string) {
-  switch (action) {
-    case 'CREATE_PROBLEM':
+function getActionLabel(changeType: string) {
+  switch (changeType) {
+    case 'create':
       return t('problems.versionHistory.actions.created')
-    case 'UPDATE_PROBLEM':
+    case 'update':
       return t('problems.versionHistory.actions.updated')
+    case 'rollback':
+      return t('problems.versionHistory.action.RESTORE')
     default:
-      return action
+      return changeType
   }
 }
 
-function getActionIcon(action: string) {
-  switch (action) {
-    case 'CREATE_PROBLEM':
+function getActionIcon(changeType: string) {
+  switch (changeType) {
+    case 'create':
       return IconFileText
-    case 'UPDATE_PROBLEM':
+    case 'update':
       return IconRefresh
+    case 'rollback':
+      return IconRestore
     default:
       return IconHistory
   }
 }
 
-function formatTimestamp(timestamp: string) {
+function formatTimestamp(timestamp: Date | string) {
   const date = new Date(timestamp)
   const now = new Date()
   const diffMs = now.getTime() - date.getTime()
@@ -132,30 +136,11 @@ function formatTimestamp(timestamp: string) {
 }
 
 function getChangedFields(version: ProblemVersion): string[] {
-  if (!version.oldValues || !version.newValues) return []
-
-  const changes: string[] = []
-  const oldValues = version.oldValues as Record<string, unknown>
-  const newValues = version.newValues as Record<string, unknown>
-
-  const fieldsToCheck = [
-    'title',
-    'description',
-    'difficulty',
-    'status',
-    'is_premium',
-    'is_published',
-    'tags',
-    'languages',
-  ]
-
-  for (const field of fieldsToCheck) {
-    if (JSON.stringify(oldValues[field]) !== JSON.stringify(newValues[field])) {
-      changes.push(field)
-    }
-  }
-
-  return changes
+  // New API doesn't store oldValues/newValues directly
+  // Return empty array - the change summary will show what changed
+  if (!version.changeSummary) return []
+  // Extract field names from change summary if possible
+  return []
 }
 
 onMounted(() => {
@@ -232,7 +217,10 @@ function handleClose() {
               <div
                 class="h-4 w-4 rounded-full border-2 border-primary bg-background flex items-center justify-center"
               >
-                <component :is="getActionIcon(version.action)" class="h-2.5 w-2.5 text-primary" />
+                <component
+                  :is="getActionIcon(version.changeType)"
+                  class="h-2.5 w-2.5 text-primary"
+                />
               </div>
             </div>
 
@@ -242,7 +230,7 @@ function handleClose() {
               <div class="flex items-start justify-between gap-2">
                 <div class="flex items-center gap-2">
                   <Badge variant="outline" class="text-xs">
-                    {{ getActionLabel(version.action) }}
+                    {{ getActionLabel(version.changeType) }}
                   </Badge>
                   <div class="flex items-center gap-1 text-xs text-muted-foreground">
                     <IconClock class="h-3 w-3" />
@@ -251,7 +239,7 @@ function handleClose() {
                 </div>
 
                 <Button
-                  v-if="version.action === 'UPDATE_PROBLEM'"
+                  v-if="version.changeType !== 'create'"
                   variant="ghost"
                   size="sm"
                   class="h-7 text-xs"
@@ -265,11 +253,11 @@ function handleClose() {
               <!-- Performer -->
               <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <IconUser class="h-3 w-3" />
-                <span>{{ version.performer?.name || t('common.unknown') }}</span>
+                <span>{{ version.createdBy || t('common.unknown') }}</span>
               </div>
 
               <!-- Changed Fields -->
-              <div v-if="version.action === 'UPDATE_PROBLEM'" class="space-y-1.5">
+              <div v-if="version.changeType !== 'create'" class="space-y-1.5">
                 <div class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                   <IconArrowRight class="h-3 w-3" />
                   <span>{{ t('problems.versionHistory.changedFields') }}</span>
@@ -327,7 +315,7 @@ function handleClose() {
           <div class="flex items-center gap-2 text-sm">
             <IconUser class="h-4 w-4 text-muted-foreground" />
             <span class="text-muted-foreground">{{
-              selectedVersion.performer?.name || t('common.unknown')
+              selectedVersion.createdBy || t('common.unknown')
             }}</span>
           </div>
         </div>

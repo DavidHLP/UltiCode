@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
 import {
   Dialog,
   DialogContent,
@@ -14,6 +15,8 @@ import {
   type CodeTemplate,
 } from "@/composables/useCodeTemplates";
 import { FileCode, Plus } from "lucide-vue-next";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   open: boolean;
@@ -96,9 +99,9 @@ watch(isOpen, (open) => {
   <Dialog v-model:open="isOpen">
     <DialogContent class="max-w-4xl max-h-[80vh]">
       <DialogHeader>
-        <DialogTitle>Code Templates</DialogTitle>
+        <DialogTitle>{{ t("problem.editor.templates.title") }}</DialogTitle>
         <DialogDescription>
-          Select a template to insert into your code.
+          {{ t("problem.editor.templates.description") }}
         </DialogDescription>
       </DialogHeader>
 
@@ -109,7 +112,7 @@ watch(isOpen, (open) => {
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Search templates..."
+              :placeholder="t('problem.editor.templates.searchPlaceholder')"
               class="w-full px-3 py-1.5 text-sm bg-background border rounded-md outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -119,7 +122,7 @@ watch(isOpen, (open) => {
               v-if="groupedTemplates.length === 0"
               class="p-4 text-center text-muted-foreground text-sm"
             >
-              No templates available for this language
+              {{ t("problem.editor.templates.noTemplates") }}
             </div>
 
             <div v-else class="p-2 space-y-4">
@@ -161,14 +164,16 @@ watch(isOpen, (open) => {
         <!-- Template Preview -->
         <div class="border rounded-lg overflow-hidden flex flex-col">
           <div class="p-2 border-b bg-muted/50">
-            <span class="text-sm font-medium">Preview</span>
+            <span class="text-sm font-medium">{{
+              t("problem.editor.templates.preview")
+            }}</span>
           </div>
 
           <div
             v-if="!selectedTemplate"
             class="flex-1 flex items-center justify-center text-muted-foreground text-sm"
           >
-            Select a template to preview
+            {{ t("problem.editor.templates.selectToPreview") }}
           </div>
 
           <ScrollArea v-else class="flex-1">
@@ -180,10 +185,12 @@ watch(isOpen, (open) => {
       </div>
 
       <div class="flex justify-end gap-2 mt-4">
-        <Button variant="outline" @click="isOpen = false"> Cancel </Button>
+        <Button variant="outline" @click="isOpen = false">{{
+          t("common.actions.cancel")
+        }}</Button>
         <Button :disabled="!selectedTemplate" @click="handleInsert">
           <Plus class="h-4 w-4 mr-1" />
-          Insert Template
+          {{ t("problem.editor.templates.insert") }}
         </Button>
       </div>
     </DialogContent>

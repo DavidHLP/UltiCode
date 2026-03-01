@@ -28,6 +28,7 @@ import { useI18n } from "vue-i18n";
 const props = defineProps<{
   languages: ProblemLanguageOption[];
   starterNotes: string[];
+  problemKey: string;
 }>();
 
 const { t } = useI18n();
@@ -202,10 +203,11 @@ watch(
             size="icon"
             class="h-7 w-7"
             :aria-pressed="editorWordWrap"
+            :aria-label="t('problem.layout.toggleWordWrap')"
             :title="t('problem.layout.toggleWordWrap')"
             @click="toggleWordWrap"
           >
-            <AlignLeft class="h-3.5 w-3.5" />
+            <AlignLeft class="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -215,7 +217,7 @@ watch(
             :title="t('problem.layout.formatCode')"
             @click="handleFormat"
           >
-            <Wand2 class="h-3.5 w-3.5" />
+            <Wand2 class="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
@@ -226,27 +228,29 @@ watch(
             :title="t('problem.layout.resetCode')"
             @click="handleReset"
           >
-            <RotateCcw class="h-3.5 w-3.5" />
+            <RotateCcw class="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             class="h-7 w-7"
             :aria-pressed="isFullscreen"
+            :aria-label="t('problem.layout.toggleFullscreen')"
             :title="t('problem.layout.toggleFullscreen')"
             @click="handleFullscreenToggle"
           >
-            <Maximize2 class="h-3.5 w-3.5" />
+            <Maximize2 class="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
           <Button
             variant="ghost"
             size="icon"
             class="h-7 w-7"
             :aria-pressed="editorMinimap"
+            :aria-label="t('problem.layout.toggleMinimap')"
             :title="t('problem.layout.toggleMinimap')"
             @click="toggleMinimap"
           >
-            <Scan class="h-3.5 w-3.5" />
+            <Scan class="h-3.5 w-3.5" aria-hidden="true" />
           </Button>
 
           <!-- Editor Settings Toolbar -->

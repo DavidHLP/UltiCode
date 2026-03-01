@@ -250,4 +250,12 @@ export class AuthService {
   async githubCallback(code: string, res: Response) {
     return this.oauthService.githubCallback(code, res);
   }
+
+  googleLogin(res: Response) {
+    return this.oauthService.googleLogin(res);
+  }
+
+  async googleCallback(code: string, res: Response) {
+    return this.oauthService.googleCallback(code, res);
+  }
 }

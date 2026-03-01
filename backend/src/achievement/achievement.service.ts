@@ -8,7 +8,6 @@ import {
 } from './achievement.dto';
 import { Prisma } from '@prisma/client';
 import { NotificationGateway } from '../notification/notification.gateway';
-import { NotificationEvent } from '../notification/notification.events';
 
 // Predefined achievement criteria types
 export enum AchievementType {
@@ -20,6 +19,8 @@ export enum AchievementType {
   SOLUTIONS_WRITTEN = 'solutions_written',
   STREAK_DAYS = 'streak_days',
   RATING_MILESTONE = 'rating_milestone',
+  CONTEST_PLACED = 'contest_placed',
+  COMMUNITY_CONTRIBUTOR = 'community_contributor',
 }
 
 @Injectable()

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { computed, onBeforeUnmount, ref, inject } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, inject } from "vue";
 import { Play, CloudUpload, StickyNote } from "lucide-vue-next";
 import {
   HoverCard,
@@ -19,6 +19,8 @@ import { ToggleNotesKey } from "../problem-context";
 import { useProblemContext } from "../useProblemContext";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
 import { useI18n } from "vue-i18n";
+import { registerGlobalShortcut } from "@/composables/useGlobalShortcuts";
+import KeyboardShortcutsModal from "@/components/editor/KeyboardShortcutsModal.vue";
 
 const { requestRun } = useBottomPanelStore();
 const headerStore = useHeaderStore();
@@ -33,6 +35,7 @@ const isRunning = ref(false);
 const isSubmitting = ref(false);
 const runPulseKey = ref(0);
 const runTimer = ref<ReturnType<typeof setTimeout> | null>(null);
+const showShortcutsModal = ref(false);
 
 const handleRun = () => {
   requestRun();
@@ -82,10 +85,55 @@ async function handleSubmit() {
   }
 }
 
+// Register global keyboard shortcuts
+let unregisterFns: (() => void)[] = [];
+
+onMounted(() => {
+  // F5 - Run code
+  unregisterFns.push(
+    registerGlobalShortcut({
+      key: "F5",
+      handler: handleRun,
+    }),
+  );
+
+  // Ctrl+Enter - Submit code
+  unregisterFns.push(
+    registerGlobalShortcut({
+      key: "Enter",
+      ctrl: true,
+      handler: handleSubmit,
+    }),
+  );
+
+  // Ctrl+N - Toggle notes
+  unregisterFns.push(
+    registerGlobalShortcut({
+      key: "n",
+      ctrl: true,
+      handler: () => toggleNotes(),
+    }),
+  );
+
+  // Ctrl+/ - Show shortcuts
+  unregisterFns.push(
+    registerGlobalShortcut({
+      key: "/",
+      ctrl: true,
+      handler: () => {
+        showShortcutsModal.value = true;
+      },
+    }),
+  );
+});
+
 onBeforeUnmount(() => {
   if (runTimer.value) {
     clearTimeout(runTimer.value);
   }
+  // Unregister all shortcuts
+  unregisterFns.forEach((fn) => fn());
+  unregisterFns = [];
 });
 </script>
 
@@ -211,5 +259,8 @@ onBeforeUnmount(() => {
         </HoverCard>
       </div>
     </div>
+
+    <!-- Keyboard Shortcuts Modal -->
+    <KeyboardShortcutsModal v-model:open="showShortcutsModal" />
   </div>
 </template>

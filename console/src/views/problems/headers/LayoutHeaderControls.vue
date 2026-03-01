@@ -86,7 +86,7 @@ const selectedLayout = computed({
               :aria-label="t('problem.explorer.filters')"
               class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
             >
-              <Layout class="h-4 w-4" />
+              <Layout class="h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent class="w-96 p-4">
@@ -220,7 +220,7 @@ const selectedLayout = computed({
               :aria-label="t('personal.profile.title')"
               class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
             >
-              <User class="h-4 w-4" />
+              <User class="h-4 w-4" aria-hidden="true" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent class="w-56" align="end">
@@ -231,19 +231,19 @@ const selectedLayout = computed({
             <DropdownMenuGroup>
               <RouterLink to="/personal">
                 <DropdownMenuItem class="cursor-pointer">
-                  <User class="mr-2 h-4 w-4" />
+                  <User class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.profile.title") }}</span>
                 </DropdownMenuItem>
               </RouterLink>
               <RouterLink to="/personal/solutions">
                 <DropdownMenuItem class="cursor-pointer">
-                  <FileCode class="mr-2 h-4 w-4" />
+                  <FileCode class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.solutions.title") }}</span>
                 </DropdownMenuItem>
               </RouterLink>
               <RouterLink to="/personal/submissions">
                 <DropdownMenuItem class="cursor-pointer">
-                  <History class="mr-2 h-4 w-4" />
+                  <History class="mr-2 h-4 w-4" aria-hidden="true" />
                   <span>{{ t("personal.submissions.title") }}</span>
                 </DropdownMenuItem>
               </RouterLink>
@@ -251,13 +251,13 @@ const selectedLayout = computed({
             <DropdownMenuSeparator />
             <RouterLink to="/personal/account">
               <DropdownMenuItem class="cursor-pointer">
-                <Settings class="mr-2 h-4 w-4" />
+                <Settings class="mr-2 h-4 w-4" aria-hidden="true" />
                 <span>{{ t("personal.account.title") }}</span>
               </DropdownMenuItem>
             </RouterLink>
             <DropdownMenuSeparator />
             <DropdownMenuItem class="text-rose-600 cursor-pointer">
-              <LogOut class="mr-2 h-4 w-4" />
+              <LogOut class="mr-2 h-4 w-4" aria-hidden="true" />
               <span>{{ t("problem.layout.logout") }}</span>
             </DropdownMenuItem>
           </DropdownMenuContent>

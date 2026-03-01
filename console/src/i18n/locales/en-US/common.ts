@@ -1,4 +1,7 @@
 export default {
+  // Accessibility
+  skipToContent: "Skip to main content",
+
   // Common actions
   actions: {
     save: "Save",
@@ -172,4 +175,34 @@ export default {
     networkError: "Network error. Please check your connection.",
     timeout: "Request timed out. Please try again.",
   },
+
+  // Global search
+  search: {
+    placeholder: "Search problems, users, posts...",
+    noResults: 'No results found for "{query}"',
+    types: {
+      problem: "Problem",
+      user: "User",
+      post: "Post",
+      solution: "Solution",
+      contest: "Contest",
+    },
+  },
+
+  // PWA
+  pwa: {
+    updateAvailable: "Update available",
+    updateDescription: "A new version is ready to install.",
+    update: "Update",
+    offlineReady: "App is ready to work offline",
+    installPrompt: "Install app for a better experience",
+    install: "Install",
+    syncing: "Syncing...",
+    syncComplete: "Successfully synced {count} submission(s)",
+    syncFailed: "Failed to sync submissions",
+    queuedSubmissions: "{count} submission(s) queued",
+  },
+
+  // Dismiss button
+  dismiss: "Dismiss",
 } as const;

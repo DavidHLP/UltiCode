@@ -4,9 +4,12 @@ import { Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { JudgeService } from './judge.service';
 import { ContestSubmissionService } from './contest-submission.service';
-import { SubmissionService } from './submission.service'; // Import SubmissionService
+import { SubmissionService } from './submission.service';
 import { NotificationService } from '../notification/notification.service';
+import { NotificationGateway } from '../notification/notification.gateway';
+import { NotificationEvent } from '../notification/notification.events';
 import { TestCaseService } from '../test-case/test-case.service';
+import { AchievementTriggerService } from '../achievement/achievement-trigger.service';
 import { NotificationCategory, NotificationType } from '@prisma/client';
 
 export interface JudgeJobData {
@@ -20,10 +23,12 @@ export class JudgeProcessor extends WorkerHost {
   constructor(
     private prisma: PrismaService,
     private judgeService: JudgeService,
-    private submissionService: SubmissionService, // Inject SubmissionService
+    private submissionService: SubmissionService,
     private contestSubmissionService: ContestSubmissionService,
     private notificationService: NotificationService,
+    private notificationGateway: NotificationGateway,
     private testCaseService: TestCaseService,
+    private achievementTriggerService: AchievementTriggerService,
   ) {
     super();
   }
@@ -62,6 +67,18 @@ export class JudgeProcessor extends WorkerHost {
       where: { id: submission.id },
       data: { status: 'Judging' },
     });
+
+    // Send real-time notification that judging has started
+    this.notificationGateway.sendToUser(
+      submission.user_id,
+      NotificationEvent.SUBMISSION_STARTED,
+      {
+        submissionId: submission.id,
+        problemId: submission.problem_id.toString(),
+        problemSlug: submission.problem?.slug,
+        status: 'Judging',
+      },
+    );
 
     try {
       // Try to get test cases from TestCase table first
@@ -151,12 +168,40 @@ export class JudgeProcessor extends WorkerHost {
             language: updatedSubmission.language,
           },
         });
+
+        // Send real-time WebSocket notification with submission result
+        this.notificationGateway.sendSubmissionResult(
+          updatedSubmission.user_id,
+          {
+            submissionId: updatedSubmission.id,
+            problemId: submission.problem_id.toString(),
+            problemSlug: problemSlug || '',
+            status: updatedSubmission.status,
+            runtime: updatedSubmission.runtime,
+            memory: updatedSubmission.memory,
+          },
+        );
       } catch (error: unknown) {
         this.logger.warn(
           `Failed to create notification for submission ${updatedSubmission.id}: ${
             error instanceof Error ? error.message : 'Unknown error'
           }`,
         );
+      }
+
+      // Trigger achievement checks if submission is accepted
+      if (updatedSubmission.status === 'Accepted') {
+        // Don't await - run in background to not delay response
+        this.achievementTriggerService
+          .onSubmissionAccepted(
+            updatedSubmission.user_id,
+            submission.problem_id,
+          )
+          .catch((err) => {
+            this.logger.warn(
+              `Failed to trigger achievement check for submission ${updatedSubmission.id}: ${err}`,
+            );
+          });
       }
 
       return { status: updatedSubmission.status };
@@ -172,10 +217,21 @@ export class JudgeProcessor extends WorkerHost {
       await this.prisma.submission.update({
         where: { id: submission.id },
         data: {
-          status: 'System Error', // Or a more specific error like 'Judging Error'
+          status: 'System Error',
           notes: `Judging failed: ${errorMessage}`,
         },
       });
+
+      // Send real-time notification about the error
+      this.notificationGateway.sendSubmissionResult(submission.user_id, {
+        submissionId: submission.id,
+        problemId: submission.problem_id.toString(),
+        problemSlug: submission.problem?.slug || '',
+        status: 'System Error',
+        runtime: 0,
+        memory: 0,
+      });
+
       throw error; // Re-throw to mark job as failed
     }
   }

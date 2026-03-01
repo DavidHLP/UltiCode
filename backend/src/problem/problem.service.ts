@@ -12,6 +12,7 @@ import { I18nService } from '../i18n/i18n.service';
 import { SupportedLocale, DEFAULT_LOCALE } from '../i18n/i18n.constants';
 import { SubscriptionService } from '../subscription/subscription.service';
 import { PaginatedResult } from '../contest/dto/ranking.dto';
+import { CacheService } from '../cache/cache.service';
 
 // Re-export Problem type from Prisma for backward compatibility
 export type { Problem } from '@prisma/client';
@@ -41,10 +42,15 @@ export type ProblemWithRelations = Problem & {
 
 @Injectable()
 export class ProblemService {
+  /** Cache TTL in seconds */
+  private static readonly CACHE_TTL_PROBLEM = 300; // 5 minutes
+  private static readonly CACHE_TTL_LIST = 60; // 1 minute
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly i18nService: I18nService,
     private readonly subscriptionService: SubscriptionService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async findAll(
@@ -60,6 +66,18 @@ export class ProblemService {
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const skip = (page - 1) * limit;
+
+    // Generate cache key for this query
+    const cacheKey = `problems:list:${locale}:${filters.category || 'all'}:${filters.difficulty || 'all'}:${filters.search || 'none'}:${page}:${limit}`;
+
+    // Try to get from cache first (only for non-search queries)
+    if (!filters.search) {
+      const cached =
+        await this.cacheService.get<PaginatedResult<Problem>>(cacheKey);
+      if (cached) {
+        return cached;
+      }
+    }
 
     // Build complete WHERE clause before querying to avoid in-memory filtering
     const where: Prisma.ProblemWhereInput = {};
@@ -171,13 +189,24 @@ export class ProblemService {
       });
     }
 
-    return {
+    const result = {
       items: translatedProblems,
       total,
       page,
       limit,
       totalPages: Math.ceil(total / limit),
     };
+
+    // Cache the result (only for non-search queries)
+    if (!filters.search) {
+      await this.cacheService.set(
+        cacheKey,
+        result,
+        ProblemService.CACHE_TTL_LIST,
+      );
+    }
+
+    return result;
   }
 
   async findOne(
@@ -185,6 +214,13 @@ export class ProblemService {
     locale: SupportedLocale = DEFAULT_LOCALE,
   ): Promise<ProblemWithRelations | null> {
     const isNumeric = typeof idOrSlug === 'number' || !isNaN(Number(idOrSlug));
+
+    // Try to get from cache first
+    const cacheKey = `problem:${isNumeric ? idOrSlug : `slug:${idOrSlug}`}:${locale}`;
+    const cached = await this.cacheService.get<ProblemWithRelations>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     const problem = await this.prisma.problem.findFirst({
       where: isNumeric ? { id: BigInt(idOrSlug) } : { slug: String(idOrSlug) },
@@ -289,7 +325,15 @@ export class ProblemService {
       };
     }
 
-    return translatedProblem as ProblemWithRelations;
+    // Cache the result
+    const result = translatedProblem as ProblemWithRelations;
+    await this.cacheService.set(
+      cacheKey,
+      result,
+      ProblemService.CACHE_TTL_PROBLEM,
+    );
+
+    return result;
   }
 
   async getRandom(): Promise<Problem | null> {

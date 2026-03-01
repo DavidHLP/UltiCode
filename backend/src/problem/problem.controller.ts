@@ -1,4 +1,11 @@
 import { Controller, Get, Param, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { ProblemService, Problem } from './problem.service';
@@ -14,8 +21,10 @@ interface AuthenticatedRequest extends Request {
   user?: { id: string; role?: string };
 }
 
+@ApiTags('problems')
 @Controller('problems')
 @UseGuards(AuthGuard)
+@ApiBearerAuth()
 export class ProblemController {
   constructor(
     private readonly problemService: ProblemService,
@@ -24,6 +33,11 @@ export class ProblemController {
 
   @Get()
   @Public()
+  @ApiOperation({
+    summary: 'Get all problems',
+    description: 'Retrieve paginated list of problems with optional filters',
+  })
+  @ApiResponse({ status: 200, description: 'List of problems with pagination' })
   @Throttle({ short: { limit: 100, ttl: 60000 } })
   async findAll(
     @Query() query: FindAllProblemsQueryDto,
@@ -69,12 +83,29 @@ export class ProblemController {
   }
 
   @Get('random')
+  @ApiOperation({
+    summary: 'Get random problem',
+    description: 'Get a randomly selected problem',
+  })
+  @ApiResponse({ status: 200, description: 'Random problem' })
+  @ApiResponse({ status: 404, description: 'No problems available' })
   @Throttle({ short: { limit: 100, ttl: 60000 } })
   getRandom(): Promise<Problem | null> {
     return this.problemService.getRandom();
   }
 
   @Get(':id')
+  @ApiOperation({
+    summary: 'Get problem by ID',
+    description: 'Retrieve a specific problem with its details',
+  })
+  @ApiParam({ name: 'id', description: 'Problem ID or slug', type: String })
+  @ApiResponse({ status: 200, description: 'Problem details' })
+  @ApiResponse({ status: 404, description: 'Problem not found' })
+  @ApiResponse({
+    status: 403,
+    description: 'Premium problem - subscription required',
+  })
   @Throttle({ strict: { limit: 10, ttl: 60000 } })
   async findOne(
     @Param('id') id: string | number,

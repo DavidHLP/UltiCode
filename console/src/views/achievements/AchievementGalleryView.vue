@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from "vue";
+import { useI18n } from "vue-i18n";
 import { useAchievementStore } from "@/stores/achievement";
 import AchievementCard from "@/components/achievement/AchievementCard.vue";
 import UnlockToast from "@/components/achievement/UnlockToast.vue";
@@ -15,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-vue-next";
 
+const { t } = useI18n();
 const achievementStore = useAchievementStore();
 
 const selectedCategory = ref<string>("all");
@@ -25,13 +27,25 @@ const unlockedBadge = ref<{
   points: number;
 } | null>(null);
 
-const categories = [
-  { value: "all", label: "All", icon: Sparkles },
-  { value: "problem_solving", label: "Problem Solving", icon: Target },
-  { value: "consistency", label: "Consistency", icon: Flame },
-  { value: "contest", label: "Contest", icon: Medal },
-  { value: "community", label: "Community", icon: Users },
-];
+const categories = computed(() => [
+  { value: "all", label: t("achievement.categories.all"), icon: Sparkles },
+  {
+    value: "problem_solving",
+    label: t("achievement.categories.problemSolving"),
+    icon: Target,
+  },
+  {
+    value: "consistency",
+    label: t("achievement.categories.consistency"),
+    icon: Flame,
+  },
+  { value: "contest", label: t("achievement.categories.contest"), icon: Medal },
+  {
+    value: "community",
+    label: t("achievement.categories.community"),
+    icon: Users,
+  },
+]);
 
 const filteredAchievements = computed(() => {
   if (selectedCategory.value === "all") {
@@ -72,10 +86,11 @@ function handleUnlockClose() {
   <div class="container mx-auto max-w-4xl space-y-6 py-6">
     <!-- Header -->
     <div class="space-y-2">
-      <h1 class="text-3xl font-bold tracking-tight">Achievements</h1>
+      <h1 class="text-3xl font-bold tracking-tight">
+        {{ t("achievement.title") }}
+      </h1>
       <p class="text-muted-foreground">
-        Track your progress and earn badges as you solve problems, participate
-        in contests, and contribute to the community.
+        {{ t("achievement.description") }}
       </p>
     </div>
 
@@ -84,17 +99,23 @@ function handleUnlockClose() {
       <div class="rounded-lg border bg-card p-4 text-center">
         <Trophy class="mx-auto h-8 w-8 text-yellow-500" />
         <p class="mt-2 text-2xl font-bold">{{ stats.earned }}</p>
-        <p class="text-sm text-muted-foreground">Earned</p>
+        <p class="text-sm text-muted-foreground">
+          {{ t("achievement.earned") }}
+        </p>
       </div>
       <div class="rounded-lg border bg-card p-4 text-center">
         <Target class="mx-auto h-8 w-8 text-blue-500" />
         <p class="mt-2 text-2xl font-bold">{{ stats.total }}</p>
-        <p class="text-sm text-muted-foreground">Total</p>
+        <p class="text-sm text-muted-foreground">
+          {{ t("achievement.total") }}
+        </p>
       </div>
       <div class="rounded-lg border bg-card p-4 text-center">
         <Star class="mx-auto h-8 w-8 text-purple-500" />
         <p class="mt-2 text-2xl font-bold">{{ stats.points }}</p>
-        <p class="text-sm text-muted-foreground">Points</p>
+        <p class="text-sm text-muted-foreground">
+          {{ t("achievement.points") }}
+        </p>
       </div>
       <div class="rounded-lg border bg-card p-4 text-center">
         <div class="relative mx-auto h-8 w-8">
@@ -128,7 +149,9 @@ function handleUnlockClose() {
             {{ stats.percentage }}%
           </span>
         </div>
-        <p class="mt-2 text-sm text-muted-foreground">Complete</p>
+        <p class="mt-2 text-sm text-muted-foreground">
+          {{ t("achievement.complete") }}
+        </p>
       </div>
     </div>
 
@@ -171,9 +194,11 @@ function handleUnlockClose() {
           class="flex flex-col items-center justify-center py-12 text-center"
         >
           <Trophy class="h-16 w-16 text-muted-foreground/50" />
-          <h3 class="mt-4 text-lg font-medium">No achievements yet</h3>
+          <h3 class="mt-4 text-lg font-medium">
+            {{ t("achievement.empty.title") }}
+          </h3>
           <p class="mt-2 text-sm text-muted-foreground">
-            Start solving problems to earn your first badge!
+            {{ t("achievement.empty.description") }}
           </p>
         </div>
       </TabsContent>

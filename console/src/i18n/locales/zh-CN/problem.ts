@@ -44,6 +44,7 @@ export default {
     language: "语言",
     theme: "主题",
     fontSize: "字体大小",
+    tabSize: "缩进大小",
     run: "运行",
     submit: "提交",
     reset: "重置代码",
@@ -55,6 +56,22 @@ export default {
     input: "输入",
     expectedOutput: "预期输出",
     actualOutput: "实际输出",
+    codeTemplates: "代码模板",
+    resetToDefaults: "恢复默认设置",
+    // Toolbar tooltips
+    changeTheme: "更换主题",
+    fontSettings: "字体设置",
+    keyboardShortcuts: "键盘快捷键",
+    // Templates modal
+    templates: {
+      title: "代码模板",
+      description: "选择一个模板插入到您的代码中。",
+      searchPlaceholder: "搜索模板...",
+      noTemplates: "该语言暂无可用模板",
+      preview: "预览",
+      selectToPreview: "选择模板进行预览",
+      insert: "插入模板",
+    },
   },
 
   // Problem lists
@@ -296,6 +313,36 @@ export default {
     splitLeft: "向左拆分",
     splitRight: "向右拆分",
     addToGroup: "添加到组",
+  },
+
+  // Autosave
+  autosave: {
+    enabled: "自动保存已启用",
+    autoSaving: "自动保存中...",
+    saved: "已保存",
+    justNow: "刚刚",
+    minutesAgo: "{count} 分钟前",
+    hoursAgo: "{count} 小时前",
+    restored: "已从自动保存恢复",
+    restoreTitle: "恢复之前的代码？",
+    restoreDescription: "我们找到了您上次会未保存的代码。是否要恢复？",
+    keepRestored: "保留恢复的代码",
+    dismissRestore: "放弃",
+    startFresh: "重新开始",
+    clearSaved: "清除已保存代码",
+    clearSavedTooltip: "清除自动保存的代码并重置为初始代码",
+    tooltip: "您的代码会自动保存到浏览器存储中",
+  },
+
+  // Accessibility settings
+  accessibility: {
+    title: "无障碍设置",
+    reduceMotion: "减少动画",
+    reduceMotionDesc: "最小化动画和过渡效果",
+    highContrast: "高对比度",
+    highContrastDesc: "提高对比度以改善可见性",
+    keyboardNav: "键盘导航",
+    keyboardNavDesc: "使用键盘快捷键导航",
   },
 
   // Solutions in Problem Detail

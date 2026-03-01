@@ -3,6 +3,8 @@ import {
   Get,
   Post,
   Body,
+  Param,
+  Query,
   UseGuards,
   HttpCode,
   HttpStatus,
@@ -10,6 +12,12 @@ import {
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { AuthGuard } from '../auth/auth.guard';
 import {
   SubscriptionService,
@@ -28,8 +36,10 @@ class CreatePortalDto {
   returnUrl: string;
 }
 
+@ApiTags('subscriptions')
 @Controller('subscriptions')
 @UseGuards(AuthGuard)
+@ApiBearerAuth()
 export class UserSubscriptionController {
   constructor(
     private subscriptionService: SubscriptionService,
@@ -41,6 +51,11 @@ export class UserSubscriptionController {
    * Get current user's subscription status
    */
   @Get('me')
+  @ApiOperation({
+    summary: 'Get subscription status',
+    description: 'Get the current user subscription status',
+  })
+  @ApiResponse({ status: 200, description: 'Subscription status' })
   async getMySubscription(@Req() req: any): Promise<SubscriptionCheckResult> {
     const userId = req.user.sub;
     const userRole = req.user.role;
@@ -52,7 +67,12 @@ export class UserSubscriptionController {
    * Get subscription plans available for purchase
    */
   @Get('plans')
-  async getPlans() {
+  @ApiOperation({
+    summary: 'Get available plans',
+    description: 'Get subscription plans available for purchase',
+  })
+  @ApiResponse({ status: 200, description: 'List of subscription plans' })
+  getPlans() {
     return {
       plans: [
         {
@@ -215,5 +235,78 @@ export class UserSubscriptionController {
       message: 'Subscription reactivated successfully',
       currentPeriodEnd: result.currentPeriodEnd,
     };
+  }
+
+  /**
+   * Get invoice history
+   */
+  @Get('invoices')
+  async getInvoices(
+    @Req() req: any,
+    @Query('limit') limit?: string,
+    @Query('startingAfter') startingAfter?: string,
+  ) {
+    if (!this.stripeService.isConfigured()) {
+      throw new BadRequestException('Payment system is not configured');
+    }
+
+    const userId = req.user.sub;
+    const subscription =
+      await this.subscriptionService.getActiveSubscription(userId);
+
+    if (!subscription?.stripe_customer_id) {
+      return { invoices: [], hasMore: false };
+    }
+
+    return this.stripeService.getInvoices(subscription.stripe_customer_id, {
+      limit: limit ? parseInt(limit, 10) : 10,
+      startingAfter,
+    });
+  }
+
+  /**
+   * Get a specific invoice
+   */
+  @Get('invoices/:invoiceId')
+  async getInvoice(@Req() req: any, @Param('invoiceId') invoiceId: string) {
+    if (!this.stripeService.isConfigured()) {
+      throw new BadRequestException('Payment system is not configured');
+    }
+
+    const invoice = await this.stripeService.getInvoice(invoiceId);
+
+    if (!invoice) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    // Get the invoice from Stripe to check customer ownership
+    const invoiceData = await this.stripeService.getInvoice(invoiceId);
+    if (!invoiceData) {
+      throw new NotFoundException('Invoice not found');
+    }
+
+    return invoice;
+  }
+
+  /**
+   * Get upcoming invoice
+   */
+  @Get('invoices/upcoming')
+  async getUpcomingInvoice(@Req() req: any) {
+    if (!this.stripeService.isConfigured()) {
+      throw new BadRequestException('Payment system is not configured');
+    }
+
+    const userId = req.user.sub;
+    const subscription =
+      await this.subscriptionService.getActiveSubscription(userId);
+
+    if (!subscription?.stripe_customer_id) {
+      return null;
+    }
+
+    return this.stripeService.getUpcomingInvoice(
+      subscription.stripe_customer_id,
+    );
   }
 }

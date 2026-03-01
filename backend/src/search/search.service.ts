@@ -25,7 +25,7 @@ interface UserSearchDoc {
   bio?: string;
 }
 
-interface PostSearchDoc {
+interface _PostSearchDoc {
   id: string;
   title: string;
   content: string;
@@ -33,7 +33,7 @@ interface PostSearchDoc {
   authorName: string;
 }
 
-interface SolutionSearchDoc {
+interface _SolutionSearchDoc {
   id: string;
   title: string;
   content: string;
@@ -98,8 +98,12 @@ export class SearchService implements OnModuleInit {
     }
   }
 
-  private async configureIndex(index: Index, name: string): Promise<void> {
-    switch (name) {
+  private async configureIndex(
+    index: Index,
+    name: string | SearchIndex,
+  ): Promise<void> {
+    const indexName = name as SearchIndex;
+    switch (indexName) {
       case SearchIndex.PROBLEMS:
         await index.updateSearchableAttributes(['title', 'summary', 'tags']);
         await index.updateFilterableAttributes(['difficulty']);
@@ -189,7 +193,7 @@ export class SearchService implements OnModuleInit {
           type: index,
           title: (hit.title as string) || '',
           description: (hit.summary as string) || '',
-          url: `/problems/${hit.slug}`,
+          url: `/problems/${String(hit.slug)}`,
           highlights: formatted
             ? {
                 title: [formatted.title || ''],
@@ -203,7 +207,7 @@ export class SearchService implements OnModuleInit {
           type: index,
           title: (hit.username as string) || '',
           description: (hit.name as string) || '',
-          url: `/users/${hit.id}`,
+          url: `/users/${String(hit.id)}`,
         };
       case SearchIndex.POSTS:
         return {
@@ -211,7 +215,7 @@ export class SearchService implements OnModuleInit {
           type: index,
           title: (hit.title as string) || '',
           description: ((hit.content as string) || '').slice(0, 200),
-          url: `/forum/posts/${hit.id}`,
+          url: `/forum/posts/${String(hit.id)}`,
         };
       case SearchIndex.SOLUTIONS:
         return {
@@ -219,7 +223,7 @@ export class SearchService implements OnModuleInit {
           type: index,
           title: (hit.title as string) || '',
           description: ((hit.content as string) || '').slice(0, 200),
-          url: `/solutions/${hit.id}`,
+          url: `/solutions/${String(hit.id)}`,
         };
       default:
         return {

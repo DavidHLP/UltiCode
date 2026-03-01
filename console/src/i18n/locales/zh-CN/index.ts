@@ -10,6 +10,8 @@ import errors from "./errors";
 import bookmark from "./bookmark";
 import markdown from "./markdown";
 import solution from "./solution";
+import shortcuts from "./shortcuts";
+import achievement from "./achievement";
 
 export default {
   common,
@@ -24,4 +26,6 @@ export default {
   bookmark,
   markdown,
   solution,
+  shortcuts,
+  achievement,
 } as const;

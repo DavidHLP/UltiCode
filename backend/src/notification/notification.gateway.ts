@@ -17,6 +17,8 @@ import {
   ContestUpdatePayload,
   BadgeEarnedPayload,
   NotificationPayload,
+  CommunityPostPayload,
+  CommunityCommentPayload,
 } from './notification.events';
 
 interface AuthenticatedSocket extends Socket {
@@ -83,7 +85,7 @@ export class NotificationGateway
         message: 'Successfully connected to notification service',
         userId: client.userId,
       });
-    } catch (error) {
+    } catch {
       this.logger.error(`Authentication failed for client ${client.id}`);
       client.disconnect();
     }
@@ -156,6 +158,19 @@ export class NotificationGateway
       });
   }
 
+  // Broadcast to all users in a contest room
+  broadcastToContest(
+    contestId: string,
+    event: NotificationEvent,
+    data: Record<string, unknown>,
+  ): void {
+    this.server.to(`contest:${contestId}`).emit(event, {
+      ...data,
+      contestId,
+      timestamp: Date.now(),
+    });
+  }
+
   // Send badge earned notification
   sendBadgeEarned(userId: string, payload: BadgeEarnedPayload): void {
     this.sendToUser(userId, NotificationEvent.BADGE_EARNED, payload);
@@ -164,6 +179,48 @@ export class NotificationGateway
   // Send generic notification
   sendNotification(userId: string, payload: NotificationPayload): void {
     this.sendToUser(userId, NotificationEvent.SYSTEM_ANNOUNCEMENT, payload);
+  }
+
+  // Broadcast new post to community subscribers
+  broadcastNewPost(communityId: string, payload: CommunityPostPayload): void {
+    this.server
+      .to(`community:${communityId}`)
+      .emit(NotificationEvent.COMMUNITY_NEW_POST, {
+        ...payload,
+        timestamp: Date.now(),
+      });
+  }
+
+  // Send comment notification to post author
+  sendCommentNotification(
+    authorId: string,
+    payload: CommunityCommentPayload,
+  ): void {
+    this.sendToUser(authorId, NotificationEvent.COMMUNITY_NEW_COMMENT, payload);
+  }
+
+  // Subscribe to community updates
+  @SubscribeMessage('subscribe:community')
+  handleSubscribeCommunity(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() communityId: string,
+  ): void {
+    client.join(`community:${communityId}`);
+    this.logger.log(
+      `User ${client.userId} subscribed to community ${communityId}`,
+    );
+  }
+
+  // Unsubscribe from community updates
+  @SubscribeMessage('unsubscribe:community')
+  handleUnsubscribeCommunity(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() communityId: string,
+  ): void {
+    client.leave(`community:${communityId}`);
+    this.logger.log(
+      `User ${client.userId} unsubscribed from community ${communityId}`,
+    );
   }
 
   // Get online users count

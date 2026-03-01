@@ -30,6 +30,8 @@ import { RouterLink } from "vue-router";
 import ActivityHeatmap from "./components/ActivityHeatmap.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
 import SkillRadarChart from "./components/SkillRadarChart.vue";
+import SubmissionHistoryChart from "./components/SubmissionHistoryChart.vue";
+import LearningProgressChart from "./components/LearningProgressChart.vue";
 import {
   fetchUserProfile,
   fetchUserStats,
@@ -198,7 +200,7 @@ onMounted(async () => {
             </Avatar>
             <div
               class="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg border-4 border-background"
-              title="Premium Member"
+              :title="t('personal.profile.proMember')"
             >
               <Zap class="h-4 w-4 fill-current" />
             </div>
@@ -483,6 +485,38 @@ onMounted(async () => {
           </CardHeader>
           <CardContent class="pt-2">
             <SkillRadarChart :skills="skillsData" :loading="skillsLoading" />
+          </CardContent>
+        </Card>
+
+        <!-- Submission History Chart -->
+        <Card class="rounded-2xl">
+          <CardHeader class="pb-2">
+            <CardTitle class="text-lg font-bold flex items-center gap-2">
+              <GitCommit class="h-5 w-5 text-primary" />
+              {{ t("personal.history.title") }}
+            </CardTitle>
+            <CardDescription>
+              {{ t("personal.history.subtitle") }}
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="pt-2">
+            <SubmissionHistoryChart />
+          </CardContent>
+        </Card>
+
+        <!-- Learning Progress Chart -->
+        <Card class="rounded-2xl">
+          <CardHeader class="pb-2">
+            <CardTitle class="text-lg font-bold flex items-center gap-2">
+              <Target class="h-5 w-5 text-primary" />
+              {{ t("personal.learning.title") }}
+            </CardTitle>
+            <CardDescription>
+              {{ t("personal.learning.subtitle") }}
+            </CardDescription>
+          </CardHeader>
+          <CardContent class="pt-2">
+            <LearningProgressChart />
           </CardContent>
         </Card>
       </div>

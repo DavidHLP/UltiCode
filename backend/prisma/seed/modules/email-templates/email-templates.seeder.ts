@@ -1,10 +1,20 @@
 import { PrismaClient } from '@prisma/client';
 import { BaseSeeder } from '../base/base.seeder';
 import { emailTemplatesData } from '../../data/email-templates.data';
+import type { SeedContext } from '../../core/seed-context';
+import type { TransactionClient, SeedModuleResult, SeederMetadata } from '../../core/interfaces';
 
 export class EmailTemplatesSeeder extends BaseSeeder {
-  constructor(prisma: PrismaClient) {
-    super(prisma, 'email-templates');
+  readonly metadata: SeederMetadata = {
+    name: 'email-templates',
+    version: '1.0.0',
+    dependencies: [],
+    priority: 100,
+    description: 'Seeds default email templates for notifications',
+  };
+
+  constructor(prisma: PrismaClient, context: SeedContext) {
+    super(prisma, context);
   }
 
   async shouldSeed(): Promise<boolean> {
@@ -12,21 +22,30 @@ export class EmailTemplatesSeeder extends BaseSeeder {
     return count === 0;
   }
 
-  async seed(): Promise<void> {
-    this.logger.info('Seeding email templates...');
+  async seed(tx?: TransactionClient): Promise<SeedModuleResult> {
+    const startTime = Date.now();
+    const client = this.getClient(tx);
 
+    this.log('Seeding email templates...');
+
+    let count = 0;
     for (const template of emailTemplatesData) {
-      await this.prisma.emailTemplate.create({
+      await client.emailTemplate.create({
         data: template,
       });
+      count++;
     }
 
-    this.logger.success(`Created ${emailTemplatesData.length} email templates`);
+    this.log(`Created ${count} email templates`);
+
+    return this.createResult(count, startTime);
   }
 
-  async clean(): Promise<void> {
-    this.logger.info('Cleaning email templates...');
-    await this.prisma.emailTemplate.deleteMany();
-    this.logger.success('Email templates cleaned');
+  async clear(tx?: TransactionClient): Promise<void> {
+    const client = this.getClient(tx);
+
+    this.log('Cleaning email templates...');
+    await client.emailTemplate.deleteMany();
+    this.log('Email templates cleaned');
   }
 }

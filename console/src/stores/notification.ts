@@ -31,9 +31,11 @@ export const useNotificationStore = defineStore("notification", () => {
   const unreadCount = ref(0);
   const loading = ref(false);
   const realtimeConnected = ref(false);
+  const error = ref<string | null>(null);
 
   async function loadNotifications(params: NotificationQuery = {}) {
     loading.value = true;
+    error.value = null;
     try {
       const result: NotificationListResult = await fetchNotifications(params);
       notifications.value = result.items;
@@ -42,58 +44,99 @@ export const useNotificationStore = defineStore("notification", () => {
       limit.value = result.limit;
       totalPages.value = result.totalPages;
       return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load notifications";
+      throw err;
     } finally {
       loading.value = false;
     }
   }
 
   async function loadUnreadCount() {
-    const result = await fetchUnreadCount();
-    unreadCount.value = result.count;
-    return result.count;
+    error.value = null;
+    try {
+      const result = await fetchUnreadCount();
+      unreadCount.value = result.count;
+      return result.count;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load unread count";
+      throw err;
+    }
   }
 
   async function markAsRead(id: string, isRead: boolean = true) {
-    const updated = await updateNotificationRead(id, isRead);
-    const index = notifications.value.findIndex((item) => item.id === id);
-    if (index !== -1) {
-      notifications.value[index] = updated;
+    error.value = null;
+    try {
+      const updated = await updateNotificationRead(id, isRead);
+      const index = notifications.value.findIndex((item) => item.id === id);
+      if (index !== -1) {
+        notifications.value[index] = updated;
+      }
+      if (isRead) {
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+      } else {
+        unreadCount.value += 1;
+      }
+      return updated;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to update notification";
+      throw err;
     }
-    if (isRead) {
-      unreadCount.value = Math.max(0, unreadCount.value - 1);
-    } else {
-      unreadCount.value += 1;
-    }
-    return updated;
   }
 
   async function markAllRead() {
-    const result = await markAllNotificationsRead();
-    notifications.value = notifications.value.map((item) => ({
-      ...item,
-      isRead: true,
-      readAt: new Date().toISOString(),
-    }));
-    unreadCount.value = 0;
-    return result;
+    error.value = null;
+    try {
+      const result = await markAllNotificationsRead();
+      notifications.value = notifications.value.map((item) => ({
+        ...item,
+        isRead: true,
+        readAt: new Date().toISOString(),
+      }));
+      unreadCount.value = 0;
+      return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to mark all as read";
+      throw err;
+    }
   }
 
   async function clearAll() {
-    const result = await clearNotifications();
-    notifications.value = [];
-    total.value = 0;
-    totalPages.value = 1;
-    unreadCount.value = 0;
-    return result;
+    error.value = null;
+    try {
+      const result = await clearNotifications();
+      notifications.value = [];
+      total.value = 0;
+      totalPages.value = 1;
+      unreadCount.value = 0;
+      return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to clear notifications";
+      throw err;
+    }
   }
 
   async function removeNotification(id: string) {
-    const existing = notifications.value.find((item) => item.id === id);
-    await apiDeleteNotification(id);
-    notifications.value = notifications.value.filter((item) => item.id !== id);
-    total.value = Math.max(0, total.value - 1);
-    if (existing && !existing.isRead) {
-      unreadCount.value = Math.max(0, unreadCount.value - 1);
+    error.value = null;
+    try {
+      const existing = notifications.value.find((item) => item.id === id);
+      await apiDeleteNotification(id);
+      notifications.value = notifications.value.filter(
+        (item) => item.id !== id,
+      );
+      total.value = Math.max(0, total.value - 1);
+      if (existing && !existing.isRead) {
+        unreadCount.value = Math.max(0, unreadCount.value - 1);
+      }
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to delete notification";
+      throw err;
     }
   }
 
@@ -167,6 +210,10 @@ export const useNotificationStore = defineStore("notification", () => {
   // Initialize real-time listeners
   setupRealtimeListeners();
 
+  function clearError() {
+    error.value = null;
+  }
+
   return {
     notifications,
     total,
@@ -176,11 +223,13 @@ export const useNotificationStore = defineStore("notification", () => {
     unreadCount,
     loading,
     realtimeConnected,
+    error,
     loadNotifications,
     loadUnreadCount,
     markAsRead,
     markAllRead,
     clearAll,
     removeNotification,
+    clearError,
   };
 });

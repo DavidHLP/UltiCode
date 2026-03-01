@@ -7,36 +7,39 @@
  * - Service worker update controls
  */
 
-import { ref } from 'vue'
-import { setUpdateCallback, updateServiceWorker as updateSW } from '@/pwa-register'
+import { ref } from "vue";
+import {
+  setUpdateCallback,
+  updateServiceWorker as updateSW,
+} from "@/pwa-register";
 
 // Global state shared across all instances
-const isOfflineReady = ref(false)
-const needRefresh = ref(false)
-let reloadCallback: (() => void) | null = null
+const isOfflineReady = ref(false);
+const needRefresh = ref(false);
+let reloadCallback: (() => void) | null = null;
 
 // Set up the update callback once
-let initialized = false
+let initialized = false;
 
 function initializePWA(): void {
-  if (initialized) return
-  initialized = true
+  if (initialized) return;
+  initialized = true;
 
   setUpdateCallback((reload) => {
-    needRefresh.value = true
-    reloadCallback = reload
-  })
+    needRefresh.value = true;
+    reloadCallback = reload;
+  });
 }
 
 export interface UsePWAReturn {
   /** Whether the app is ready to work offline */
-  isOfflineReady: typeof isOfflineReady
+  isOfflineReady: typeof isOfflineReady;
   /** Whether a new version is available */
-  needRefresh: typeof needRefresh
+  needRefresh: typeof needRefresh;
   /** Update the service worker and reload the page */
-  updateServiceWorker: () => void
+  updateServiceWorker: () => void;
   /** Dismiss the update prompt */
-  close: () => void
+  close: () => void;
 }
 
 /**
@@ -44,25 +47,25 @@ export interface UsePWAReturn {
  */
 export function usePWA(): UsePWAReturn {
   // Initialize on first use
-  initializePWA()
+  initializePWA();
 
   /**
    * Update the service worker and reload the page
    */
   function handleUpdate(): void {
     if (reloadCallback) {
-      reloadCallback()
+      reloadCallback();
     } else {
-      updateSW(true)
+      updateSW(true);
     }
-    needRefresh.value = false
+    needRefresh.value = false;
   }
 
   /**
    * Dismiss the update prompt
    */
   function close(): void {
-    needRefresh.value = false
+    needRefresh.value = false;
   }
 
   return {
@@ -70,5 +73,5 @@ export function usePWA(): UsePWAReturn {
     needRefresh,
     updateServiceWorker: handleUpdate,
     close,
-  }
+  };
 }

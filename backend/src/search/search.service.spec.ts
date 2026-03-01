@@ -6,7 +6,7 @@ import { SearchIndex } from './dto/search-query.dto';
 
 describe('SearchService', () => {
   let service: SearchService;
-  let prisma: PrismaService;
+  let _prisma: PrismaService;
 
   const mockPrismaService = {
     problem: {
@@ -37,7 +37,7 @@ describe('SearchService', () => {
     }).compile();
 
     service = module.get<SearchService>(SearchService);
-    prisma = module.get<PrismaService>(PrismaService);
+    _prisma = module.get<PrismaService>(PrismaService);
   });
 
   it('should be defined', () => {
@@ -98,7 +98,7 @@ describe('SearchService', () => {
       mockPrismaService.user.findMany.mockClear();
       mockPrismaService.user.count.mockClear();
 
-      const result = await service.search({
+      const _result = await service.search({
         query: 'test',
         index: SearchIndex.PROBLEMS,
         page: 1,

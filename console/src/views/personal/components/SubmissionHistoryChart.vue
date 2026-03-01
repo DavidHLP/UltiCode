@@ -1,0 +1,229 @@
+<script setup lang="ts">
+import { ref, onMounted, watch, computed } from "vue";
+import * as echarts from "echarts";
+import { useI18n } from "vue-i18n";
+import { fetchSubmissionHistory } from "@/api/submission";
+import type { SubmissionHistory } from "@/api/submission";
+
+const { t } = useI18n();
+
+interface Props {
+  loading?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  loading: false,
+});
+
+const chartRef = ref<HTMLDivElement | null>(null);
+let chartInstance: echarts.ECharts | null = null;
+const historyData = ref<SubmissionHistory | null>(null);
+const dataLoading = ref(true);
+
+const hasData = computed(
+  () =>
+    historyData.value &&
+    (historyData.value.monthly.length > 0 ||
+      historyData.value.languages.length > 0),
+);
+
+const initChart = () => {
+  if (!chartRef.value || !hasData.value) return;
+
+  if (chartInstance) {
+    chartInstance.dispose();
+  }
+
+  chartInstance = echarts.init(chartRef.value, undefined, {
+    renderer: "canvas",
+  });
+
+  const months = historyData.value?.monthly.map((m) => m.month) || [];
+  const submissionCounts = historyData.value?.monthly.map((m) => m.count) || [];
+  const acceptedCounts =
+    historyData.value?.monthly.map((m) => m.accepted) || [];
+
+  const languages = historyData.value?.languages.map((l) => l.language) || [];
+  const languageCounts = historyData.value?.languages.map((l) => l.count) || [];
+
+  // Build series array
+  const series: echarts.SeriesOption[] = [
+    {
+      name: t("personal.history.totalSubmissions"),
+      type: "bar",
+      data: submissionCounts,
+      itemStyle: {
+        color: "hsl(var(--primary) / 0.6)",
+        borderRadius: [4, 4, 0, 0],
+      },
+      emphasis: {
+        itemStyle: {
+          color: "hsl(var(--primary))",
+        },
+      },
+    },
+    {
+      name: t("personal.history.accepted"),
+      type: "line",
+      data: acceptedCounts,
+      smooth: true,
+      symbol: "circle",
+      symbolSize: 6,
+      lineStyle: {
+        width: 2,
+        color: "hsl(var(--chart-2))",
+      },
+      itemStyle: {
+        color: "hsl(var(--chart-2))",
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: "hsl(var(--chart-2) / 0.3)" },
+          { offset: 1, color: "hsl(var(--chart-2) / 0.05)" },
+        ]),
+      },
+    },
+  ];
+
+  // Add pie chart for language distribution on the right side
+  if (languages.length > 0) {
+    series.push({
+      name: t("personal.history.languageDistribution"),
+      type: "pie",
+      radius: ["20%", "35%"],
+      center: ["85%", "40%"],
+      data: languages.map((lang, idx) => ({
+        name: lang,
+        value: languageCounts[idx],
+      })),
+      label: {
+        show: false,
+      },
+      emphasis: {
+        label: {
+          show: true,
+          fontSize: 10,
+          fontWeight: "bold",
+        },
+      },
+      itemStyle: {
+        borderRadius: 4,
+        borderColor: "hsl(var(--background))",
+        borderWidth: 2,
+      },
+    });
+  }
+
+  const option: echarts.EChartsOption = {
+    tooltip: {
+      trigger: "axis",
+      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      borderColor: "transparent",
+      textStyle: {
+        color: "#fff",
+      },
+    },
+    legend: {
+      data: [
+        t("personal.history.totalSubmissions"),
+        t("personal.history.accepted"),
+      ],
+      bottom: 0,
+      textStyle: {
+        color: "hsl(var(--muted-foreground))",
+        fontSize: 11,
+      },
+    },
+    grid: {
+      left: "3%",
+      right: "15%",
+      bottom: "15%",
+      top: "10%",
+      containLabel: true,
+    },
+    xAxis: {
+      type: "category",
+      data: months,
+      axisLine: {
+        lineStyle: {
+          color: "hsl(var(--border))",
+        },
+      },
+      axisLabel: {
+        color: "hsl(var(--muted-foreground))",
+        fontSize: 10,
+        rotate: 45,
+      },
+    },
+    yAxis: {
+      type: "value",
+      axisLine: {
+        lineStyle: {
+          color: "hsl(var(--border))",
+        },
+      },
+      axisLabel: {
+        color: "hsl(var(--muted-foreground))",
+        fontSize: 10,
+      },
+      splitLine: {
+        lineStyle: {
+          color: "hsl(var(--border))",
+          type: "dashed",
+        },
+      },
+    },
+    series,
+  };
+
+  chartInstance.setOption(option);
+};
+
+const handleResize = () => {
+  chartInstance?.resize();
+};
+
+const loadData = async () => {
+  dataLoading.value = true;
+  try {
+    historyData.value = await fetchSubmissionHistory();
+  } catch (e) {
+    console.error("Failed to load submission history", e);
+  } finally {
+    dataLoading.value = false;
+  }
+};
+
+onMounted(() => {
+  loadData();
+  window.addEventListener("resize", handleResize);
+});
+
+watch([hasData, dataLoading], () => {
+  if (hasData.value && !dataLoading.value) {
+    setTimeout(() => initChart(), 0);
+  }
+});
+</script>
+
+<template>
+  <div class="relative">
+    <div
+      v-if="props.loading || dataLoading"
+      class="flex items-center justify-center h-[300px]"
+    >
+      <div
+        class="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent"
+      ></div>
+    </div>
+    <div
+      v-else-if="!hasData"
+      class="flex flex-col items-center justify-center h-[300px] text-center"
+    >
+      <p class="text-sm text-muted-foreground">
+        {{ t("personal.history.noHistory") }}
+      </p>
+    </div>
+    <div v-else ref="chartRef" class="h-[300px] w-full"></div>
+  </div>
+</template>

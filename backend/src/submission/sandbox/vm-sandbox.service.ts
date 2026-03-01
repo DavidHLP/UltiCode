@@ -3,7 +3,6 @@ import {
   SandboxServiceInterface,
   SandboxType,
   SandboxConfig,
-  LANGUAGE_CONFIGS,
 } from './sandbox.interface';
 import { JudgeTestCase, JudgeCaseResult } from '../judge.service';
 import { performance } from 'perf_hooks';
@@ -20,7 +19,7 @@ export class VmSandboxService implements SandboxServiceInterface {
   private readonly logger = new Logger(VmSandboxService.name);
   private readonly timeLimitMs = 2000;
 
-  async execute(
+  execute(
     language: string,
     code: string,
     testCase: JudgeTestCase,
@@ -28,7 +27,7 @@ export class VmSandboxService implements SandboxServiceInterface {
   ): Promise<JudgeCaseResult> {
     const normalizedLanguage = this.normalizeLanguage(language);
     if (!normalizedLanguage) {
-      return {
+      return Promise.resolve({
         status: 'Compile Error',
         time: 0,
         memory: 0,
@@ -36,19 +35,21 @@ export class VmSandboxService implements SandboxServiceInterface {
         expectedOutput: testCase.output ?? '',
         detail: `Language ${language} is not supported in VM sandbox.`,
         inputs: testCase.inputs ?? [],
-      };
+      });
     }
 
     const timeLimit = config?.timeLimit ?? this.timeLimitMs;
     const inputs = testCase.inputs ?? [];
     const expectedOutput = testCase.output ?? '';
 
-    return this.executeInVM(
-      code,
-      normalizedLanguage,
-      inputs,
-      expectedOutput,
-      timeLimit,
+    return Promise.resolve(
+      this.executeInVM(
+        code,
+        normalizedLanguage,
+        inputs,
+        expectedOutput,
+        timeLimit,
+      ),
     );
   }
 
@@ -286,8 +287,8 @@ export class VmSandboxService implements SandboxServiceInterface {
     return Math.round((process.memoryUsage().heapUsed / 1024 / 1024) * 10) / 10;
   }
 
-  async isHealthy(): Promise<boolean> {
-    return true;
+  isHealthy(): Promise<boolean> {
+    return Promise.resolve(true);
   }
 
   getType(): SandboxType {

@@ -105,9 +105,7 @@ export class OAuthService {
           'FRONTEND_URL',
           'http://localhost:5173',
         );
-        return res.redirect(
-          `${frontendUrl}/login?error=oauth_failed`,
-        );
+        return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
       }
 
       // Fetch user info
@@ -146,9 +144,7 @@ export class OAuthService {
         'FRONTEND_URL',
         'http://localhost:5173',
       );
-      return res.redirect(
-        `${frontendUrl}/login?error=no_email`,
-      );
+      return res.redirect(`${frontendUrl}/login?error=no_email`);
     }
 
     let user = await this.userService.findByEmail(githubUser.email);
@@ -226,22 +222,19 @@ export class OAuthService {
       };
     } else {
       // Exchange code for access token
-      const tokenResponse = await fetch(
-        'https://oauth2.googleapis.com/token',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          body: new URLSearchParams({
-            client_id: clientId,
-            client_secret: clientSecret,
-            code,
-            redirect_uri: redirectUri,
-            grant_type: 'authorization_code',
-          }).toString(),
+      const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
         },
-      );
+        body: new URLSearchParams({
+          client_id: clientId,
+          client_secret: clientSecret,
+          code,
+          redirect_uri: redirectUri,
+          grant_type: 'authorization_code',
+        }).toString(),
+      });
 
       const tokenData = (await tokenResponse.json()) as {
         access_token?: string;
@@ -254,9 +247,7 @@ export class OAuthService {
           'FRONTEND_URL',
           'http://localhost:5173',
         );
-        return res.redirect(
-          `${frontendUrl}/login?error=oauth_failed`,
-        );
+        return res.redirect(`${frontendUrl}/login?error=oauth_failed`);
       }
 
       // Fetch user info
@@ -277,9 +268,7 @@ export class OAuthService {
         'FRONTEND_URL',
         'http://localhost:5173',
       );
-      return res.redirect(
-        `${frontendUrl}/login?error=no_email`,
-      );
+      return res.redirect(`${frontendUrl}/login?error=no_email`);
     }
 
     let user = await this.userService.findByEmail(googleUser.email);

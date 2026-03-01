@@ -4,6 +4,7 @@ import { ForumController } from './forum.controller';
 import { VoteModule } from '../vote/vote.module';
 import { AuthModule } from '../auth/auth.module';
 import { BookmarkModule } from '../bookmark/bookmark.module';
+import { NotificationModule } from '../notification/notification.module';
 import { PrismaService } from '../prisma.service';
 
 // 子服务
@@ -13,7 +14,7 @@ import { ForumPostService } from './services/forum-post.service';
 import { ForumCommunityService } from './services/forum-community.service';
 
 @Module({
-  imports: [VoteModule, AuthModule, BookmarkModule],
+  imports: [VoteModule, AuthModule, BookmarkModule, NotificationModule],
   providers: [
     PrismaService,
     // 基础服务（无依赖或依赖少）

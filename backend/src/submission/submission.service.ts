@@ -36,6 +36,14 @@ export class SubmissionService {
     return this.queryService.getDailyActivity(userId, year);
   }
 
+  async getSubmissionHistory(userId: string) {
+    return this.queryService.getSubmissionHistory(userId);
+  }
+
+  async getLearningProgress(userId: string) {
+    return this.queryService.getLearningProgress(userId);
+  }
+
   async getStatusDefinitions(locale?: 'zh-CN' | 'en-US') {
     return this.queryService.getStatusDefinitions(locale);
   }

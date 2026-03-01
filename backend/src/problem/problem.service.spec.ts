@@ -3,12 +3,14 @@ import { ProblemService } from './problem.service';
 import { PrismaService } from '../prisma.service';
 import { I18nService } from '../i18n/i18n.service';
 import { SubscriptionService } from '../subscription/subscription.service';
+import { CacheService } from '../cache/cache.service';
 
 describe('ProblemService', () => {
   let service: ProblemService;
   let prisma: jest.Mocked<PrismaService>;
   let i18nService: jest.Mocked<I18nService>;
   let subscriptionService: jest.Mocked<SubscriptionService>;
+  let _cacheService: jest.Mocked<CacheService>;
 
   const mockProblem = {
     id: BigInt(1),
@@ -174,6 +176,15 @@ describe('ProblemService', () => {
             }),
           },
         },
+        {
+          provide: CacheService,
+          useValue: {
+            get: jest.fn().mockResolvedValue(undefined),
+            set: jest.fn().mockResolvedValue(undefined),
+            del: jest.fn().mockResolvedValue(undefined),
+            delPattern: jest.fn().mockResolvedValue(undefined),
+          },
+        },
       ],
     }).compile();
 
@@ -181,6 +192,7 @@ describe('ProblemService', () => {
     prisma = module.get(PrismaService);
     i18nService = module.get(I18nService);
     subscriptionService = module.get(SubscriptionService);
+    _cacheService = module.get(CacheService);
   });
 
   it('should be defined', () => {

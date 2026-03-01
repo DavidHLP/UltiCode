@@ -7,6 +7,7 @@ import { ForumModerationService } from './services/forum-moderation.service';
 import { ForumCommentService } from './services/forum-comment.service';
 import { ForumPostService } from './services/forum-post.service';
 import { ForumCommunityService } from './services/forum-community.service';
+import { NotificationGateway } from '../notification/notification.gateway';
 
 describe('ForumService', () => {
   let service: ForumService;
@@ -142,6 +143,12 @@ describe('ForumService', () => {
     isInDefaultFolder: jest.fn().mockResolvedValue(false),
   };
 
+  const mockNotificationGateway = {
+    broadcastNewPost: jest.fn(),
+    sendCommentNotification: jest.fn(),
+    sendToUser: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -161,6 +168,10 @@ describe('ForumService', () => {
         {
           provide: BookmarkService,
           useValue: mockBookmarkService,
+        },
+        {
+          provide: NotificationGateway,
+          useValue: mockNotificationGateway,
         },
       ],
     }).compile();

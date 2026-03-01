@@ -26,7 +26,7 @@ describe('VmSandboxService', () => {
     expect(service).toBeDefined();
   });
 
-  it('should return vm as sandbox type', async () => {
+  it('should return vm as sandbox type', () => {
     expect(service.getType()).toBe('vm');
   });
 

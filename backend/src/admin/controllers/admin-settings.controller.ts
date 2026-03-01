@@ -11,7 +11,15 @@ import { AdminSettingsService } from '../services/settings.service';
 import type { User } from '../../user/user.service';
 import { UserRole } from '../../user/user.service';
 import { PermissionAction, PermissionResource } from '@prisma/client';
-import { SystemSettingsDto, MaintenanceModeDto } from '../dto/settings.dto';
+import {
+  SystemSettingsDto,
+  MaintenanceModeDto,
+  EmailSettingsDto,
+  RateLimitSettingsDto,
+  UploadSettingsDto,
+  FeatureToggleDto,
+  AllSettingsDto,
+} from '../dto/settings.dto';
 
 @Controller('admin/settings')
 @UseGuards(AuthGuard, PermissionsGuard, RolesGuard, CsrfGuard)
@@ -31,6 +39,56 @@ export class AdminSettingsController {
     return this.settingsService.getSettings();
   }
 
+  @Get('all')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async getAllSettings() {
+    return this.settingsService.getAllSettings();
+  }
+
+  @Get('email')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async getEmailSettings() {
+    return this.settingsService.getEmailSettings();
+  }
+
+  @Get('rate-limits')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async getRateLimitSettings() {
+    return this.settingsService.getRateLimitSettings();
+  }
+
+  @Get('uploads')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async getUploadSettings() {
+    return this.settingsService.getUploadSettings();
+  }
+
+  @Get('features')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async getFeatureToggles() {
+    return this.settingsService.getFeatureToggles();
+  }
+
   @Patch()
   @RequireRoles(UserRole.SUPER_ADMIN)
   @RequirePermissions({
@@ -38,10 +96,10 @@ export class AdminSettingsController {
     resource: PermissionResource.SYSTEM,
   })
   async updateSettings(
-    @Body() settingsDto: SystemSettingsDto,
+    @Body() settingsDto: AllSettingsDto,
     @CurrentAdmin() admin: User,
   ) {
-    const oldSettings = await this.settingsService.getSettings();
+    const oldSettings = await this.settingsService.getAllSettings();
     const updatedSettings =
       await this.settingsService.updateSettings(settingsDto);
 
@@ -56,6 +114,121 @@ export class AdminSettingsController {
 
     return {
       message: 'Settings updated successfully',
+      settings: updatedSettings,
+    };
+  }
+
+  @Patch('email')
+  @RequireRoles(UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async updateEmailSettings(
+    @Body() emailDto: EmailSettingsDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    const oldSettings = await this.settingsService.getEmailSettings();
+    const updatedSettings = await this.settingsService.updateSettings(emailDto);
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'UPDATE_EMAIL_SETTINGS',
+      entityType: 'SYSTEM',
+      entityId: 'system',
+      oldValues: oldSettings,
+      newValues: emailDto,
+    });
+
+    return {
+      message: 'Email settings updated successfully',
+      settings: updatedSettings,
+    };
+  }
+
+  @Patch('rate-limits')
+  @RequireRoles(UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async updateRateLimitSettings(
+    @Body() rateLimitDto: RateLimitSettingsDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    const oldSettings = await this.settingsService.getRateLimitSettings();
+    const updatedSettings =
+      await this.settingsService.updateSettings(rateLimitDto);
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'UPDATE_RATE_LIMIT_SETTINGS',
+      entityType: 'SYSTEM',
+      entityId: 'system',
+      oldValues: oldSettings,
+      newValues: rateLimitDto,
+    });
+
+    return {
+      message: 'Rate limit settings updated successfully',
+      settings: updatedSettings,
+    };
+  }
+
+  @Patch('uploads')
+  @RequireRoles(UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async updateUploadSettings(
+    @Body() uploadDto: UploadSettingsDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    const oldSettings = await this.settingsService.getUploadSettings();
+    const updatedSettings =
+      await this.settingsService.updateSettings(uploadDto);
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'UPDATE_UPLOAD_SETTINGS',
+      entityType: 'SYSTEM',
+      entityId: 'system',
+      oldValues: oldSettings,
+      newValues: uploadDto,
+    });
+
+    return {
+      message: 'Upload settings updated successfully',
+      settings: updatedSettings,
+    };
+  }
+
+  @Patch('features')
+  @RequireRoles(UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async updateFeatureToggles(
+    @Body() featureDto: FeatureToggleDto,
+    @CurrentAdmin() admin: User,
+  ) {
+    const oldSettings = await this.settingsService.getFeatureToggles();
+    const updatedSettings =
+      await this.settingsService.updateSettings(featureDto);
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'UPDATE_FEATURE_TOGGLES',
+      entityType: 'SYSTEM',
+      entityId: 'system',
+      oldValues: oldSettings,
+      newValues: featureDto,
+    });
+
+    return {
+      message: 'Feature toggles updated successfully',
       settings: updatedSettings,
     };
   }
@@ -113,5 +286,30 @@ export class AdminSettingsController {
     });
 
     return { message: 'Cache cleared successfully' };
+  }
+
+  @Post('reset')
+  @RequireRoles(UserRole.SUPER_ADMIN)
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.SYSTEM,
+  })
+  async resetToDefaults(@CurrentAdmin() admin: User) {
+    const oldSettings = await this.settingsService.getAllSettings();
+    const defaultSettings = await this.settingsService.resetToDefaults();
+
+    await this.auditService.log({
+      performerId: admin.id,
+      action: 'RESET_SETTINGS_TO_DEFAULTS',
+      entityType: 'SYSTEM',
+      entityId: 'system',
+      oldValues: oldSettings,
+      newValues: defaultSettings,
+    });
+
+    return {
+      message: 'Settings reset to defaults successfully',
+      settings: defaultSettings,
+    };
   }
 }

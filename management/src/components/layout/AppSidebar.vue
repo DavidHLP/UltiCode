@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import {
   IconCamera,
+  IconCode,
   IconDashboard,
   IconDatabase,
   IconFileAi,
@@ -21,6 +22,7 @@ import {
   IconTrophy,
   IconTags,
   IconBell,
+  IconChartBar,
 } from '@tabler/icons-vue'
 
 import NavDocuments from './NavDocuments.vue'
@@ -114,6 +116,15 @@ const navMain = computed(() => {
     })
   }
 
+  // Add Submissions if user has permission
+  if (authStore.hasPermission('READ', 'PROBLEM')) {
+    items.push({
+      title: t('nav.submissions'),
+      url: '/submissions',
+      icon: IconCode,
+    })
+  }
+
   // Add Forum if user has permission
   if (authStore.hasPermission('MODERATE', 'FORUM_POST')) {
     items.push({
@@ -150,6 +161,15 @@ const navMain = computed(() => {
       title: t('nav.auditLogs'),
       url: '/audit',
       icon: IconHistory,
+    })
+  }
+
+  // Add Analytics if user has permission
+  if (authStore.hasPermission('READ', 'SYSTEM')) {
+    items.push({
+      title: t('nav.analytics'),
+      url: '/analytics',
+      icon: IconChartBar,
     })
   }
 

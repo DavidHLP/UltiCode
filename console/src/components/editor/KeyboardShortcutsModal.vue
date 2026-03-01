@@ -7,6 +7,8 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { useI18n } from "vue-i18n";
+import { isModalOpen } from "@/composables/useGlobalShortcuts";
 
 const props = defineProps<{
   open: boolean;
@@ -16,153 +18,264 @@ const emit = defineEmits<{
   (e: "update:open", value: boolean): void;
 }>();
 
+const { t } = useI18n();
+
 const isOpen = computed({
   get: () => props.open,
-  set: (value) => emit("update:open", value),
+  set: (value) => {
+    isModalOpen.value = value;
+    emit("update:open", value);
+  },
 });
+
+// Sync with global state
+isModalOpen.value = props.open;
 
 interface ShortcutItem {
   keys: string[];
-  description: string;
+  descriptionKey: string;
   category: string;
 }
 
 const shortcuts: ShortcutItem[] = [
+  // UltiCode Specific
+  {
+    keys: ["Ctrl", "Enter"],
+    descriptionKey: "shortcuts.submitCode",
+    category: "UltiCode",
+  },
+  {
+    keys: ["F5"],
+    descriptionKey: "shortcuts.runCode",
+    category: "UltiCode",
+  },
+  {
+    keys: ["Ctrl", "N"],
+    descriptionKey: "shortcuts.toggleNotes",
+    category: "UltiCode",
+  },
+  {
+    keys: ["Ctrl", "Shift", "Enter"],
+    descriptionKey: "shortcuts.runTest",
+    category: "UltiCode",
+  },
+  {
+    keys: ["Ctrl", "/"],
+    descriptionKey: "shortcuts.showShortcuts",
+    category: "UltiCode",
+  },
+
   // General
-  { keys: ["Ctrl", "S"], description: "Save file", category: "General" },
-  { keys: ["Ctrl", "Z"], description: "Undo", category: "General" },
-  { keys: ["Ctrl", "Shift", "Z"], description: "Redo", category: "General" },
-  { keys: ["Ctrl", "Y"], description: "Redo (alternate)", category: "General" },
+  {
+    keys: ["Ctrl", "S"],
+    descriptionKey: "shortcuts.saveFile",
+    category: "general",
+  },
+  {
+    keys: ["Ctrl", "Z"],
+    descriptionKey: "shortcuts.undo",
+    category: "general",
+  },
+  {
+    keys: ["Ctrl", "Shift", "Z"],
+    descriptionKey: "shortcuts.redo",
+    category: "general",
+  },
+  {
+    keys: ["Ctrl", "Y"],
+    descriptionKey: "shortcuts.redoAlt",
+    category: "general",
+  },
 
   // Navigation
-  { keys: ["Ctrl", "G"], description: "Go to line", category: "Navigation" },
+  {
+    keys: ["Ctrl", "G"],
+    descriptionKey: "shortcuts.goToLine",
+    category: "navigation",
+  },
   {
     keys: ["Ctrl", "P"],
-    description: "Quick open file",
-    category: "Navigation",
+    descriptionKey: "shortcuts.quickOpen",
+    category: "navigation",
   },
   {
     keys: ["Ctrl", "Shift", "O"],
-    description: "Go to symbol",
-    category: "Navigation",
+    descriptionKey: "shortcuts.goToSymbol",
+    category: "navigation",
   },
-  { keys: ["Alt", "←"], description: "Go back", category: "Navigation" },
-  { keys: ["Alt", "→"], description: "Go forward", category: "Navigation" },
+  {
+    keys: ["Alt", "←"],
+    descriptionKey: "shortcuts.goBack",
+    category: "navigation",
+  },
+  {
+    keys: ["Alt", "→"],
+    descriptionKey: "shortcuts.goForward",
+    category: "navigation",
+  },
 
   // Editing
   {
     keys: ["Ctrl", "D"],
-    description: "Select next occurrence",
-    category: "Editing",
+    descriptionKey: "shortcuts.selectNext",
+    category: "editing",
   },
   {
     keys: ["Ctrl", "Shift", "K"],
-    description: "Delete line",
-    category: "Editing",
+    descriptionKey: "shortcuts.deleteLine",
+    category: "editing",
   },
-  { keys: ["Alt", "↑"], description: "Move line up", category: "Editing" },
-  { keys: ["Alt", "↓"], description: "Move line down", category: "Editing" },
+  {
+    keys: ["Alt", "↑"],
+    descriptionKey: "shortcuts.moveLineUp",
+    category: "editing",
+  },
+  {
+    keys: ["Alt", "↓"],
+    descriptionKey: "shortcuts.moveLineDown",
+    category: "editing",
+  },
   {
     keys: ["Shift", "Alt", "↑"],
-    description: "Copy line up",
-    category: "Editing",
+    descriptionKey: "shortcuts.copyLineUp",
+    category: "editing",
   },
   {
     keys: ["Shift", "Alt", "↓"],
-    description: "Copy line down",
-    category: "Editing",
+    descriptionKey: "shortcuts.copyLineDown",
+    category: "editing",
   },
   {
     keys: ["Ctrl", "/"],
-    description: "Toggle line comment",
-    category: "Editing",
+    descriptionKey: "shortcuts.toggleComment",
+    category: "editing",
   },
   {
     keys: ["Shift", "Alt", "A"],
-    description: "Toggle block comment",
-    category: "Editing",
+    descriptionKey: "shortcuts.toggleBlockComment",
+    category: "editing",
   },
   {
     keys: ["Ctrl", "Shift", "\\"],
-    description: "Match bracket",
-    category: "Editing",
+    descriptionKey: "shortcuts.matchBracket",
+    category: "editing",
   },
 
   // Code Actions
   {
     keys: ["Ctrl", "Space"],
-    description: "Trigger suggestions",
-    category: "Code Actions",
+    descriptionKey: "shortcuts.triggerSuggestions",
+    category: "codeActions",
   },
   {
     keys: ["Ctrl", "Shift", "Space"],
-    description: "Parameter hints",
-    category: "Code Actions",
+    descriptionKey: "shortcuts.parameterHints",
+    category: "codeActions",
   },
-  { keys: ["F12"], description: "Go to definition", category: "Code Actions" },
+  {
+    keys: ["F12"],
+    descriptionKey: "shortcuts.goToDefinition",
+    category: "codeActions",
+  },
   {
     keys: ["Shift", "F12"],
-    description: "Find references",
-    category: "Code Actions",
+    descriptionKey: "shortcuts.findReferences",
+    category: "codeActions",
   },
-  { keys: ["F2"], description: "Rename symbol", category: "Code Actions" },
-  { keys: ["Ctrl", "."], description: "Quick fix", category: "Code Actions" },
+  {
+    keys: ["F2"],
+    descriptionKey: "shortcuts.renameSymbol",
+    category: "codeActions",
+  },
+  {
+    keys: ["Ctrl", "."],
+    descriptionKey: "shortcuts.quickFix",
+    category: "codeActions",
+  },
   {
     keys: ["Shift", "Alt", "F"],
-    description: "Format document",
-    category: "Code Actions",
+    descriptionKey: "shortcuts.formatDocument",
+    category: "codeActions",
   },
   {
     keys: ["Ctrl", "K", "Ctrl", "F"],
-    description: "Format selection",
-    category: "Code Actions",
+    descriptionKey: "shortcuts.formatSelection",
+    category: "codeActions",
   },
 
   // Selection
-  { keys: ["Ctrl", "A"], description: "Select all", category: "Selection" },
+  {
+    keys: ["Ctrl", "A"],
+    descriptionKey: "shortcuts.selectAll",
+    category: "selection",
+  },
   {
     keys: ["Ctrl", "L"],
-    description: "Select current line",
-    category: "Selection",
+    descriptionKey: "shortcuts.selectLine",
+    category: "selection",
   },
   {
     keys: ["Ctrl", "Shift", "L"],
-    description: "Select all occurrences",
-    category: "Selection",
+    descriptionKey: "shortcuts.selectAllOccurrences",
+    category: "selection",
   },
   {
     keys: ["Alt", "Click"],
-    description: "Multi-cursor",
-    category: "Selection",
+    descriptionKey: "shortcuts.multiCursor",
+    category: "selection",
   },
   {
     keys: ["Ctrl", "Alt", "↑"],
-    description: "Add cursor above",
-    category: "Selection",
+    descriptionKey: "shortcuts.addCursorAbove",
+    category: "selection",
   },
   {
     keys: ["Ctrl", "Alt", "↓"],
-    description: "Add cursor below",
-    category: "Selection",
+    descriptionKey: "shortcuts.addCursorBelow",
+    category: "selection",
   },
 
   // View
-  { keys: ["Ctrl", "+"], description: "Zoom in", category: "View" },
-  { keys: ["Ctrl", "-"], description: "Zoom out", category: "View" },
-  { keys: ["Ctrl", "0"], description: "Reset zoom", category: "View" },
-  { keys: ["Ctrl", "B"], description: "Toggle sidebar", category: "View" },
-  { keys: ["Ctrl", "J"], description: "Toggle panel", category: "View" },
+  { keys: ["Ctrl", "+"], descriptionKey: "shortcuts.zoomIn", category: "view" },
+  {
+    keys: ["Ctrl", "-"],
+    descriptionKey: "shortcuts.zoomOut",
+    category: "view",
+  },
+  {
+    keys: ["Ctrl", "0"],
+    descriptionKey: "shortcuts.resetZoom",
+    category: "view",
+  },
+  {
+    keys: ["Ctrl", "B"],
+    descriptionKey: "shortcuts.toggleSidebar",
+    category: "view",
+  },
+  {
+    keys: ["Ctrl", "J"],
+    descriptionKey: "shortcuts.togglePanel",
+    category: "view",
+  },
 
   // Search
-  { keys: ["Ctrl", "F"], description: "Find", category: "Search" },
-  { keys: ["Ctrl", "H"], description: "Find and replace", category: "Search" },
+  { keys: ["Ctrl", "F"], descriptionKey: "shortcuts.find", category: "search" },
+  {
+    keys: ["Ctrl", "H"],
+    descriptionKey: "shortcuts.findReplace",
+    category: "search",
+  },
   {
     keys: ["Ctrl", "Shift", "F"],
-    description: "Find in files",
-    category: "Search",
+    descriptionKey: "shortcuts.findInFiles",
+    category: "search",
   },
-  { keys: ["F3"], description: "Find next", category: "Search" },
-  { keys: ["Shift", "F3"], description: "Find previous", category: "Search" },
+  { keys: ["F3"], descriptionKey: "shortcuts.findNext", category: "search" },
+  {
+    keys: ["Shift", "F3"],
+    descriptionKey: "shortcuts.findPrevious",
+    category: "search",
+  },
 ];
 
 const groupedShortcuts = computed(() => {
@@ -178,10 +291,25 @@ const groupedShortcuts = computed(() => {
     }
   }
 
-  return Object.entries(groups).map(([category, items]) => ({
-    category,
-    items,
-  }));
+  // Define category order
+  const categoryOrder = [
+    "UltiCode",
+    "general",
+    "navigation",
+    "editing",
+    "codeActions",
+    "selection",
+    "view",
+    "search",
+  ];
+
+  return categoryOrder
+    .filter((cat) => groups[cat])
+    .map((category) => ({
+      category,
+      categoryLabel: t(`shortcuts.categories.${category}`),
+      items: groups[category] ?? [],
+    }));
 });
 
 const isMac =
@@ -213,9 +341,9 @@ const formatKey = (key: string): string => {
   <Dialog v-model:open="isOpen">
     <DialogContent class="max-w-2xl max-h-[80vh] overflow-y-auto">
       <DialogHeader>
-        <DialogTitle>Keyboard Shortcuts</DialogTitle>
+        <DialogTitle>{{ t("shortcuts.title") }}</DialogTitle>
         <DialogDescription>
-          Use these shortcuts to work more efficiently in the code editor.
+          {{ t("shortcuts.description") }}
         </DialogDescription>
       </DialogHeader>
 
@@ -226,16 +354,16 @@ const formatKey = (key: string): string => {
           class="space-y-2"
         >
           <h3 class="text-sm font-semibold text-foreground border-b pb-1">
-            {{ group.category }}
+            {{ group.categoryLabel }}
           </h3>
           <div class="space-y-1">
             <div
               v-for="shortcut in group.items"
-              :key="shortcut.description"
+              :key="shortcut.descriptionKey"
               class="flex items-center justify-between py-1.5"
             >
               <span class="text-sm text-muted-foreground">
-                {{ shortcut.description }}
+                {{ t(shortcut.descriptionKey) }}
               </span>
               <div class="flex items-center gap-1">
                 <kbd

@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext, Inject } from '@nestjs/common';
+import { Injectable, ExecutionContext, Logger, Inject } from '@nestjs/common';
 import {
   ThrottlerGuard,
   ThrottlerException,
@@ -9,6 +9,7 @@ import type {
   ThrottlerModuleOptions,
   ThrottlerStorage,
 } from '@nestjs/throttler';
+import type { Response, Request } from 'express';
 import { Reflector } from '@nestjs/core';
 
 export const THROTTLE_KEY = 'throttle_config';
@@ -25,19 +26,29 @@ export const THROTTLE_CONFIGS = {
 // Type for throttle config
 type ThrottleConfigType = { limit: number; ttl: number };
 
-// Decorator for custom rate limits
-export const CustomThrottle = (config: ThrottleConfigType) => {
-  return (
+// Combined decorator that works as both class and method decorator
+
+export function CustomThrottle(config: ThrottleConfigType): any {
+  return function (
     target: unknown,
-    propertyKey: string,
-    descriptor: PropertyDescriptor,
-  ) => {
-    Reflect.defineMetadata(THROTTLE_KEY, config, descriptor.value);
-    return descriptor;
+    propertyKey?: string | symbol,
+    descriptor?: TypedPropertyDescriptor<unknown>,
+  ): TypedPropertyDescriptor<unknown> | void {
+    if (propertyKey !== undefined && descriptor !== undefined) {
+      // Used as method decorator: store metadata on the method
+      if (descriptor.value) {
+        Reflect.defineMetadata(THROTTLE_KEY, config, descriptor.value);
+      }
+      return descriptor;
+    } else {
+      // Used as class decorator: store metadata on the class constructor
+      Reflect.defineMetadata(THROTTLE_KEY, config, target as object);
+    }
   };
-};
+}
 
 // Pre-configured decorators
+/* eslint-disable @typescript-eslint/no-unsafe-return */
 export const ThrottleSubmission = () =>
   CustomThrottle(THROTTLE_CONFIGS.submission);
 
@@ -46,9 +57,12 @@ export const ThrottleSearch = () => CustomThrottle(THROTTLE_CONFIGS.search);
 export const ThrottleAuth = () => CustomThrottle(THROTTLE_CONFIGS.auth);
 
 export const ThrottleAdmin = () => CustomThrottle(THROTTLE_CONFIGS.admin);
+/* eslint-enable @typescript-eslint/no-unsafe-return */
 
 @Injectable()
 export class CustomThrottlerGuard extends ThrottlerGuard {
+  private readonly logger = new Logger(CustomThrottlerGuard.name);
+
   constructor(
     @Inject(getOptionsToken()) options: ThrottlerModuleOptions,
     @Inject(getStorageToken()) storageService: ThrottlerStorage,
@@ -57,10 +71,10 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     super(options, storageService, reflector);
   }
 
-  protected async getThrottlerLimit(
+  protected getThrottlerLimit(
     context: ExecutionContext,
     _throttlerName: string,
-  ): Promise<number> {
+  ): number {
     // Check for custom config on handler
     const handlerConfig = this.reflector.get<ThrottleConfigType>(
       THROTTLE_KEY,
@@ -85,10 +99,10 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     return THROTTLE_CONFIGS.global.limit;
   }
 
-  protected async getThrottlerTtl(
+  protected getThrottlerTtl(
     context: ExecutionContext,
     _throttlerName: string,
-  ): Promise<number> {
+  ): number {
     // Check for custom config on handler
     const handlerConfig = this.reflector.get<ThrottleConfigType>(
       THROTTLE_KEY,
@@ -119,8 +133,8 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
     } catch (error) {
       if (error instanceof ThrottlerException) {
         // Add custom headers for rate limit info
-        const response = context.switchToHttp().getResponse();
-        const req = context.switchToHttp().getRequest();
+        const response = context.switchToHttp().getResponse<Response>();
+        const req = context.switchToHttp().getRequest<Request>();
 
         // Get current rate limit info
         const handlerConfig = this.reflector.get<ThrottleConfigType>(
@@ -129,12 +143,15 @@ export class CustomThrottlerGuard extends ThrottlerGuard {
         );
         const config = handlerConfig ?? THROTTLE_CONFIGS.global;
 
-        response.setHeader('X-RateLimit-Limit', config.limit);
-        response.setHeader('X-RateLimit-Reset', Date.now() + config.ttl);
+        response.setHeader('X-RateLimit-Limit', String(config.limit));
+        response.setHeader(
+          'X-RateLimit-Reset',
+          String(Date.now() + config.ttl),
+        );
         response.setHeader('X-RateLimit-Remaining', '0');
 
         // Log rate limit hit
-        console.warn(
+        this.logger.warn(
           `Rate limit exceeded for ${req.method} ${req.url} from IP: ${req.ip}`,
         );
       }

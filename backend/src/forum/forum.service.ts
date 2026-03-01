@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
+import { NotificationGateway } from '../notification/notification.gateway';
 import {
   ForumPost,
   ForumComment,
@@ -30,6 +31,7 @@ export class ForumService {
     private readonly commentService: ForumCommentService,
     private readonly postService: ForumPostService,
     private readonly communityService: ForumCommunityService,
+    private readonly notificationGateway: NotificationGateway,
   ) {}
 
   // ========== 帖子操作 - 委托给 ForumPostService ==========
@@ -54,12 +56,30 @@ export class ForumService {
     },
     author: { id: string; username: string; avatar?: string | null },
   ): Promise<ForumPost> {
-    return this.postService.createPost(
+    const post = await this.postService.createPost(
       input,
       author,
       this.moderationService,
       this.communityService,
     );
+
+    // Broadcast new post notification to community subscribers
+    const community = await this.communityService.findOneCommunity(
+      input.communityId,
+    );
+    if (community.community) {
+      this.notificationGateway.broadcastNewPost(input.communityId, {
+        postId: post.id,
+        postTitle: post.title,
+        communityId: input.communityId,
+        communityName: community.community.name,
+        authorId: author.id,
+        authorName: author.username,
+        excerpt: post.excerpt || '',
+      });
+    }
+
+    return post;
   }
 
   async updatePost(
@@ -111,13 +131,33 @@ export class ForumService {
     parentId: string | null,
     author: { id: string; username: string; avatar?: string | null },
   ): Promise<ForumComment> {
-    return this.commentService.createComment(
+    const comment = await this.commentService.createComment(
       postId,
       body,
       parentId,
       author,
       this.moderationService,
     );
+
+    // Send notification to post author (if not the same as commenter)
+    const post = await this.prisma.forumPost.findUnique({
+      where: { id: postId },
+      include: { community: true },
+    });
+
+    if (post && post.user_id !== author.id) {
+      this.notificationGateway.sendCommentNotification(post.user_id, {
+        commentId: comment.id,
+        postId: postId,
+        postTitle: post.title,
+        communityId: post.community_id,
+        authorId: author.id,
+        authorName: author.username,
+        content: body.substring(0, 100), // Truncate for notification
+      });
+    }
+
+    return comment;
   }
 
   async updateComment(

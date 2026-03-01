@@ -10,6 +10,7 @@ export const useUserStatsStore = defineStore("userStats", () => {
   const loading = ref(false);
   const lastFetch = ref<number>(0);
   const cacheTTL = 5 * 60 * 1000; // 5 minutes
+  const error = ref<string | null>(null);
 
   // Computed properties
   const easyProgress = computed(() => {
@@ -74,11 +75,15 @@ export const useUserStatsStore = defineStore("userStats", () => {
     }
 
     loading.value = true;
+    error.value = null;
     try {
       const result = await userStatsApi.getStats(authStore.userId);
       stats.value = result;
       lastFetch.value = Date.now();
       return result;
+    } catch (err) {
+      error.value = err instanceof Error ? err.message : "Failed to load stats";
+      throw err;
     } finally {
       loading.value = false;
     }
@@ -93,21 +98,36 @@ export const useUserStatsStore = defineStore("userStats", () => {
     }
 
     loading.value = true;
+    error.value = null;
     try {
       const result = await userStatsApi.getSkills(authStore.userId);
       skills.value = result;
       return result;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load skills";
+      throw err;
     } finally {
       loading.value = false;
     }
   }
 
   async function initialize() {
-    await Promise.all([fetchStats(), fetchSkills()]);
+    error.value = null;
+    try {
+      await Promise.all([fetchStats(), fetchSkills()]);
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to initialize user stats";
+    }
   }
 
   function invalidateCache() {
     lastFetch.value = 0;
+  }
+
+  function clearError() {
+    error.value = null;
   }
 
   return {
@@ -115,6 +135,7 @@ export const useUserStatsStore = defineStore("userStats", () => {
     stats,
     skills,
     loading,
+    error,
 
     // Computed
     easyProgress,
@@ -127,5 +148,6 @@ export const useUserStatsStore = defineStore("userStats", () => {
     fetchSkills,
     initialize,
     invalidateCache,
+    clearError,
   };
 });

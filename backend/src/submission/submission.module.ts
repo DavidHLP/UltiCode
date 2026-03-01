@@ -17,6 +17,7 @@ import { SubmissionQueryService } from './services/submission-query.service';
 import { SubmissionExecutionService } from './services/submission-execution.service';
 import { SandboxModule } from './sandbox/sandbox.module';
 import { TestCaseModule } from '../test-case/test-case.module';
+import { AchievementModule } from '../achievement/achievement.module';
 
 @Module({
   imports: [
@@ -27,6 +28,7 @@ import { TestCaseModule } from '../test-case/test-case.module';
     NotificationModule,
     SandboxModule,
     TestCaseModule,
+    AchievementModule,
   ],
   controllers: [
     SubmissionController,

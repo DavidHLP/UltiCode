@@ -14,6 +14,11 @@ export enum NotificationEvent {
   CONTEST_STARTING = "contest:starting",
   CONTEST_ENDED = "contest:ended",
 
+  // Community events
+  COMMUNITY_NEW_POST = "community:new_post",
+  COMMUNITY_NEW_COMMENT = "community:new_comment",
+  COMMUNITY_POST_LIKED = "community:post_liked",
+
   // User interaction events
   MENTION_USER = "mention:user",
   REPLY_TO_POST = "post:reply",
@@ -59,6 +64,26 @@ export interface NotificationPayload {
   createdAt: string;
 }
 
+export interface CommunityPostPayload {
+  postId: string;
+  postTitle: string;
+  communityId: string;
+  communityName: string;
+  authorId: string;
+  authorName: string;
+  excerpt: string;
+}
+
+export interface CommunityCommentPayload {
+  commentId: string;
+  postId: string;
+  postTitle: string;
+  communityId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
+}
+
 export interface WebSocketMessage<T = unknown> {
   event: NotificationEvent;
   data: T;
@@ -89,6 +114,8 @@ interface SocketManager {
   emit: (event: string, data?: unknown) => void;
   subscribeToContest: (contestId: string) => void;
   unsubscribeFromContest: (contestId: string) => void;
+  subscribeToCommunity: (communityId: string) => void;
+  unsubscribeFromCommunity: (communityId: string) => void;
 }
 
 const API_BASE_URL =
@@ -207,6 +234,14 @@ function createSocketManager(): SocketManager {
     emit("unsubscribe:contest", contestId);
   };
 
+  const subscribeToCommunity = (communityId: string) => {
+    emit("subscribe:community", communityId);
+  };
+
+  const unsubscribeFromCommunity = (communityId: string) => {
+    emit("unsubscribe:community", communityId);
+  };
+
   return {
     get socket() {
       return socket;
@@ -221,6 +256,8 @@ function createSocketManager(): SocketManager {
     emit,
     subscribeToContest,
     unsubscribeFromContest,
+    subscribeToCommunity,
+    unsubscribeFromCommunity,
   };
 }
 

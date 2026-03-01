@@ -8,20 +8,27 @@ datasource db {
 }
 
 model Subscription {
-  id           String             @id @default(uuid()) @db.VarChar(40)
-  user_id      String             @db.VarChar(40)
-  plan         SubscriptionPlan   @default(FREE)
-  status       SubscriptionStatus @default(ACTIVE)
-  started_at   DateTime           @default(now())
-  expires_at   DateTime?
-  cancelled_at DateTime?
-  created_at   DateTime           @default(now())
-  updated_at   DateTime           @updatedAt
+  id                    String             @id @default(uuid()) @db.VarChar(40)
+  user_id               String             @db.VarChar(40)
+  plan                  SubscriptionPlan   @default(FREE)
+  status                SubscriptionStatus @default(ACTIVE)
+  started_at            DateTime           @default(now())
+  expires_at            DateTime?
+  cancelled_at          DateTime?
+  // Stripe payment integration fields
+  stripe_customer_id    String?            @db.VarChar(255)
+  stripe_subscription_id String?           @db.VarChar(255)
+  stripe_price_id       String?            @db.VarChar(255)
+  stripe_current_period_end DateTime?
+  created_at            DateTime           @default(now())
+  updated_at            DateTime           @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id])
   @@index([status])
+  @@index([stripe_customer_id])
+  @@index([stripe_subscription_id])
   @@map("subscriptions")
 }
 
@@ -104,6 +111,9 @@ model Problem {
   flag_reviewed_by     String?                      @db.VarChar(40)
   flag_reviewed_at     DateTime?
   flag_notes           String?                      @db.Text
+  created_at           DateTime                     @default(now())
+  updated_at           DateTime                     @default(now()) @updatedAt
+  version              Int                          @default(1)
   contestProblems      ContestProblem[]
   detail               ProblemDetail?
   examples             ProblemExample[]
@@ -114,6 +124,7 @@ model Problem {
   solutions            Solution[]
   submissions          Submission[]
   testCases            TestCase[]
+  versions             ProblemVersion[]
 
   @@index([difficulty])
   @@index([slug])
@@ -122,7 +133,37 @@ model Problem {
   @@index([is_flagged, is_deleted])
   @@index([difficulty, is_published, is_deleted])
   @@index([created_at])
+  @@index([version])
   @@map("problems")
+}
+
+model ProblemVersion {
+  id              String   @id @default(cuid())
+  problem_id      BigInt
+  version_number  Int
+  title           String   @db.VarChar(255)
+  slug            String   @db.VarChar(120)
+  difficulty      Difficulty
+  is_premium      Boolean  @default(false)
+  is_published    Boolean  @default(false)
+  summary         String?  @db.Text
+  content         String?  @db.Text
+  constraints     Json?
+  hints           Json?
+  examples        Json?
+  languages       Json?
+  tags            Json?
+  change_summary  String?  @db.VarChar(500)
+  change_type     String   @default("update") @db.VarChar(20) // create, update, rollback
+  created_at      DateTime @default(now())
+  created_by      String?  @db.VarChar(40)
+
+  problem         Problem  @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+
+  @@unique([problem_id, version_number])
+  @@index([problem_id])
+  @@index([created_at])
+  @@map("problem_versions")
 }
 
 model ProblemDetail {
@@ -865,9 +906,10 @@ model Submission {
   test_details       Json?
   memoryDistBinsMb   Json?
   runtimeDistBinsMs  Json?
-  contestSubmissions ContestSubmission[]
-  problem            Problem             @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-  user               User                @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  contestSubmissions  ContestSubmission[]
+  executionLogs      SandboxExecutionLog[]
+  problem            Problem              @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  user               User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([problem_id, user_id])
   @@index([created_at])
@@ -1305,4 +1347,60 @@ enum EmailStatus {
   PENDING
   SENT
   FAILED
+}
+
+// Sandbox Execution Monitoring
+model SandboxExecutionLog {
+  id              String              @id @default(uuid()) @db.VarChar(40)
+  execution_id    String              @unique @db.VarChar(40)
+  submission_id   String?             @db.VarChar(40)
+  language        String              @db.VarChar(20)
+  status          ExecutionStatus     @default(RUNNING)
+  time_ms         Int?
+  memory_bytes    Int?
+  exit_code       Int?
+  error_message   String?             @db.Text
+  container_id    String?             @db.VarChar(64)
+  started_at      DateTime            @default(now())
+  completed_at    DateTime?
+  created_at      DateTime            @default(now())
+
+  submission      Submission?         @relation(fields: [submission_id], references: [id])
+
+  @@index([status])
+  @@index([language])
+  @@index([started_at])
+  @@index([submission_id])
+  @@map("sandbox_execution_logs")
+}
+
+model SandboxMetrics {
+  id                   String    @id @default(uuid()) @db.VarChar(40)
+  date                 DateTime  @db.Date
+  total_executions     Int       @default(0)
+  successful           Int       @default(0)
+  timeouts             Int       @default(0)
+  memory_exceeded      Int       @default(0)
+  runtime_errors       Int       @default(0)
+  compile_errors       Int       @default(0)
+  system_errors        Int       @default(0)
+  avg_time_ms          Float?
+  max_time_ms          Int?
+  avg_memory_bytes     Float?
+  max_memory_bytes     Int?
+  created_at           DateTime  @default(now())
+  updated_at           DateTime  @updatedAt
+
+  @@unique([date])
+  @@map("sandbox_metrics")
+}
+
+enum ExecutionStatus {
+  RUNNING
+  COMPLETED
+  TIMEOUT
+  MEMORY_EXCEEDED
+  RUNTIME_ERROR
+  COMPILE_ERROR
+  SYSTEM_ERROR
 }

@@ -59,6 +59,9 @@ export const useContestStore = defineStore("contest", () => {
   const loadingContests = ref(false);
   const loadingRankings = ref(false);
 
+  // Error state
+  const error = ref<string | null>(null);
+
   // Countdown timers
   const countdownTimers = ref<Map<string, number>>(new Map());
 
@@ -88,6 +91,7 @@ export const useContestStore = defineStore("contest", () => {
 
   async function loadContests() {
     loadingContests.value = true;
+    error.value = null;
     try {
       const [upcoming, running] = await Promise.all([
         fetchUpcomingContests(),
@@ -95,6 +99,10 @@ export const useContestStore = defineStore("contest", () => {
       ]);
       upcomingContests.value = upcoming;
       runningContests.value = running;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load contests";
+      throw err;
     } finally {
       loadingContests.value = false;
     }
@@ -102,10 +110,15 @@ export const useContestStore = defineStore("contest", () => {
 
   async function loadPastContests(page: number = 1, limit: number = 10) {
     loadingContests.value = true;
+    error.value = null;
     try {
       const result = await fetchPastContests(page, limit);
       pastContests.value = result.data;
       pastContestsTotal.value = result.total;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load past contests";
+      throw err;
     } finally {
       loadingContests.value = false;
     }
@@ -113,8 +126,13 @@ export const useContestStore = defineStore("contest", () => {
 
   async function loadContestDetail(contestId: string) {
     loading.value = true;
+    error.value = null;
     try {
       currentContest.value = await fetchContestDetail(contestId);
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load contest details";
+      throw err;
     } finally {
       loading.value = false;
     }
@@ -122,9 +140,14 @@ export const useContestStore = defineStore("contest", () => {
 
   async function loadGlobalRankings() {
     loadingRankings.value = true;
+    error.value = null;
     try {
       const result = await fetchGlobalRankings({ page: 1, limit: 10 });
       globalRankings.value = result.items;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load rankings";
+      throw err;
     } finally {
       loadingRankings.value = false;
     }
@@ -135,38 +158,54 @@ export const useContestStore = defineStore("contest", () => {
   // =========================================================================
 
   async function registerForContest(contestId: string) {
-    await apiRegister(contestId);
-    // Refresh participation status
-    const status = await fetchParticipationStatus(contestId);
-    userParticipation.value.set(contestId, status);
+    error.value = null;
+    try {
+      await apiRegister(contestId);
+      // Refresh participation status
+      const status = await fetchParticipationStatus(contestId);
+      userParticipation.value.set(contestId, status);
 
-    // Update contest registered count in lists
-    const updateCount = (list: ContestListItem[]) => {
-      const contest = list.find((c) => c.id === contestId);
-      if (contest) {
-        contest.registered_count = (contest.registered_count || 0) + 1;
-      }
-    };
-    updateCount(upcomingContests.value);
+      // Update contest registered count in lists
+      const updateCount = (list: ContestListItem[]) => {
+        const contest = list.find((c) => c.id === contestId);
+        if (contest) {
+          contest.registered_count = (contest.registered_count || 0) + 1;
+        }
+      };
+      updateCount(upcomingContests.value);
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to register for contest";
+      throw err;
+    }
   }
 
   async function unregisterFromContest(contestId: string) {
-    await apiUnregister(contestId);
-    // Refresh participation status
-    const status = await fetchParticipationStatus(contestId);
-    userParticipation.value.set(contestId, status);
+    error.value = null;
+    try {
+      await apiUnregister(contestId);
+      // Refresh participation status
+      const status = await fetchParticipationStatus(contestId);
+      userParticipation.value.set(contestId, status);
 
-    // Update contest registered count in lists
-    const updateCount = (list: ContestListItem[]) => {
-      const contest = list.find((c) => c.id === contestId);
-      if (contest) {
-        contest.registered_count = Math.max(
-          0,
-          (contest.registered_count || 0) - 1,
-        );
-      }
-    };
-    updateCount(upcomingContests.value);
+      // Update contest registered count in lists
+      const updateCount = (list: ContestListItem[]) => {
+        const contest = list.find((c) => c.id === contestId);
+        if (contest) {
+          contest.registered_count = Math.max(
+            0,
+            (contest.registered_count || 0) - 1,
+          );
+        }
+      };
+      updateCount(upcomingContests.value);
+    } catch (err) {
+      error.value =
+        err instanceof Error
+          ? err.message
+          : "Failed to unregister from contest";
+      throw err;
+    }
   }
 
   async function loadParticipationStatus(contestId: string) {
@@ -193,9 +232,16 @@ export const useContestStore = defineStore("contest", () => {
   // =========================================================================
 
   async function startVirtualContest(contestId: string) {
-    const session = await apiStartVirtual(contestId);
-    virtualSession.value = session;
-    return session;
+    error.value = null;
+    try {
+      const session = await apiStartVirtual(contestId);
+      virtualSession.value = session;
+      return session;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to start virtual contest";
+      throw err;
+    }
   }
 
   async function loadVirtualSession(contestId: string) {
@@ -208,8 +254,15 @@ export const useContestStore = defineStore("contest", () => {
 
   async function finishVirtualContest(contestId: string) {
     if (!virtualSession.value?.id) return;
-    await apiFinishVirtual(contestId, virtualSession.value.id);
-    virtualSession.value = null;
+    error.value = null;
+    try {
+      await apiFinishVirtual(contestId, virtualSession.value.id);
+      virtualSession.value = null;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to finish virtual contest";
+      throw err;
+    }
   }
 
   // =========================================================================
@@ -217,22 +270,43 @@ export const useContestStore = defineStore("contest", () => {
   // =========================================================================
 
   async function loadUserContests() {
-    const [registered, participated, virtual] = await Promise.all([
-      apiFetchUserContests("registered"),
-      apiFetchUserContests("participated"),
-      apiFetchUserContests("virtual"),
-    ]);
-    registeredContests.value = registered;
-    participatedContests.value = participated;
-    virtualContests.value = virtual;
+    error.value = null;
+    try {
+      const [registered, participated, virtual] = await Promise.all([
+        apiFetchUserContests("registered"),
+        apiFetchUserContests("participated"),
+        apiFetchUserContests("virtual"),
+      ]);
+      registeredContests.value = registered;
+      participatedContests.value = participated;
+      virtualContests.value = virtual;
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load user contests";
+      throw err;
+    }
   }
 
   async function loadContestHistory() {
-    contestHistory.value = await fetchUserContestHistory();
+    error.value = null;
+    try {
+      contestHistory.value = await fetchUserContestHistory();
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load contest history";
+      throw err;
+    }
   }
 
   async function loadRatingHistory() {
-    ratingHistory.value = await fetchUserRatingHistory();
+    error.value = null;
+    try {
+      ratingHistory.value = await fetchUserRatingHistory();
+    } catch (err) {
+      error.value =
+        err instanceof Error ? err.message : "Failed to load rating history";
+      throw err;
+    }
   }
 
   // =========================================================================
@@ -270,6 +344,10 @@ export const useContestStore = defineStore("contest", () => {
   // RESET
   // =========================================================================
 
+  function clearError() {
+    error.value = null;
+  }
+
   function $reset() {
     upcomingContests.value = [];
     runningContests.value = [];
@@ -288,6 +366,7 @@ export const useContestStore = defineStore("contest", () => {
     loadingContests.value = false;
     loadingRankings.value = false;
     countdownTimers.value = new Map();
+    error.value = null;
   }
 
   return {
@@ -309,6 +388,7 @@ export const useContestStore = defineStore("contest", () => {
     loadingContests,
     loadingRankings,
     countdownTimers,
+    error,
 
     // Getters
     isRegistered,
@@ -332,6 +412,7 @@ export const useContestStore = defineStore("contest", () => {
     startCountdownTimer,
     stopCountdownTimer,
     getCountdown,
+    clearError,
     $reset,
   };
 });

@@ -14,10 +14,12 @@ import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
+import { ThrottleAdmin } from '../../common/guards/throttle.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
 import { AuditService } from '../services/audit.service';
+import { ProblemVersionService } from '../services/problem-version.service';
 import { PrismaService } from '../../prisma.service';
 import type { User } from '../../user/user.service';
 import { UserRole } from '../../user/user.service';
@@ -101,10 +103,12 @@ function sanitizeMarkdown(content: string): string {
 
 @Controller('admin/problems')
 @UseGuards(AuthGuard, PermissionsGuard, RolesGuard, CsrfGuard)
+@ThrottleAdmin()
 export class AdminProblemController {
   constructor(
     private prisma: PrismaService,
     private auditService: AuditService,
+    private versionService: ProblemVersionService,
   ) {}
 
   // Helper to fetch complete problem data with all relations
@@ -762,6 +766,35 @@ export class AdminProblemController {
       },
     });
 
+    // Create initial version snapshot
+    await this.versionService.createVersion({
+      problemId: id,
+      title: transformedProblem.title,
+      slug: transformedProblem.slug,
+      difficulty: prismaDifficulty,
+      isPremium: transformedProblem.is_premium,
+      isPublished: transformedProblem.is_published,
+      summary: transformedProblem.detail?.summary,
+      content: transformedProblem.detail?.content,
+      constraints: transformedProblem.detail?.constraints_json,
+      hints: transformedProblem.detail?.hints,
+      examples: transformedProblem.examples?.map((e) => ({
+        input: e.input,
+        output: e.output,
+        explanation: e.explanation ?? undefined,
+        order: e.order,
+      })),
+      languages: transformedProblem.languages?.map((l) => ({
+        label: l.language,
+        value: l.value,
+        starter_code: l.starter_code,
+      })),
+      tags: transformedProblem.tags?.map((t) => t.label),
+      changeSummary: 'Initial version',
+      changeType: 'create',
+      createdBy: admin.id,
+    });
+
     // Return complete problem data
     return transformedProblem;
   }
@@ -869,6 +902,35 @@ export class AdminProblemController {
         languages: newTransformedProblem.languages,
         tags: newTransformedProblem.tags,
       },
+    });
+
+    // Create version snapshot
+    await this.versionService.createVersion({
+      problemId,
+      title: newTransformedProblem.title,
+      slug: newTransformedProblem.slug,
+      difficulty: mapDifficultyToPrisma(newTransformedProblem.difficulty),
+      isPremium: newTransformedProblem.is_premium,
+      isPublished: newTransformedProblem.is_published,
+      summary: newTransformedProblem.detail?.summary,
+      content: newTransformedProblem.detail?.content,
+      constraints: newTransformedProblem.detail?.constraints_json,
+      hints: newTransformedProblem.detail?.hints,
+      examples: newTransformedProblem.examples?.map((e) => ({
+        input: e.input,
+        output: e.output,
+        explanation: e.explanation ?? undefined,
+        order: e.order,
+      })),
+      languages: newTransformedProblem.languages?.map((l) => ({
+        label: l.language,
+        value: l.value,
+        starter_code: l.starter_code,
+      })),
+      tags: newTransformedProblem.tags?.map((t) => t.label),
+      changeSummary: `Updated by ${admin.username || admin.id}`,
+      changeType: 'update',
+      createdBy: admin.id,
     });
 
     // Return complete problem data
@@ -1606,5 +1668,69 @@ export class AdminProblemController {
     // Return complete problem data
     const completeProblem = await this.getCompleteProblem(problemId);
     return this.transformProblemForFrontend(completeProblem);
+  }
+
+  @Post('flagged/batch-moderate')
+  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.MODERATOR)
+  @RequirePermissions({
+    action: PermissionAction.MODERATE,
+    resource: PermissionResource.PROBLEM,
+  })
+  async batchModerateProblems(
+    @Body()
+    batchDto: {
+      ids: string[];
+      status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED';
+      notes?: string;
+    },
+    @CurrentAdmin() admin: User,
+  ) {
+    const results: Array<{ id: string; success: boolean; error?: string }> = [];
+
+    for (const id of batchDto.ids) {
+      try {
+        const problemId = BigInt(id);
+
+        const updateData: Prisma.ProblemUpdateInput = {
+          flag_status: batchDto.status,
+          flag_reviewed_by: admin.id,
+          flag_reviewed_at: new Date(),
+        };
+
+        if (batchDto.notes !== undefined) {
+          updateData.flag_notes = batchDto.notes;
+        }
+
+        if (batchDto.status === 'RESOLVED' || batchDto.status === 'DISMISSED') {
+          updateData.is_flagged = false;
+        }
+
+        await this.prisma.problem.update({
+          where: { id: problemId },
+          data: updateData,
+        });
+
+        await this.auditService.log({
+          performerId: admin.id,
+          action: 'BATCH_MODERATE_PROBLEM',
+          entityType: 'PROBLEM',
+          entityId: id,
+          newValues: {
+            flag_status: batchDto.status,
+            flag_notes: batchDto.notes,
+          },
+        });
+
+        results.push({ id, success: true });
+      } catch (error) {
+        results.push({
+          id,
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      }
+    }
+
+    return { results };
   }
 }

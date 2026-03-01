@@ -1,6 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import cookieParser from 'cookie-parser';
 
@@ -39,6 +40,24 @@ async function bootstrap() {
     ],
     credentials: true,
   });
+
+  // Setup Swagger API Documentation
+  const swaggerConfig = new DocumentBuilder()
+    .setTitle('UltiCode API')
+    .setDescription(
+      'API documentation for UltiCode programming competition platform',
+    )
+    .setVersion('1.0')
+    .addBearerAuth()
+    .addCookieAuth('access_token')
+    .build();
+  const document = SwaggerModule.createDocument(app, swaggerConfig);
+  SwaggerModule.setup('api/docs', app, document, {
+    swaggerOptions: {
+      persistAuthorization: true,
+    },
+  });
+  logger.log('Swagger documentation available at: /api/docs');
 
   const port = configService.get<number>('PORT', 9001);
   await app.listen(port);

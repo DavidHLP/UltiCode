@@ -44,6 +44,7 @@ export default {
     language: "Language",
     theme: "Theme",
     fontSize: "Font Size",
+    tabSize: "Tab Size",
     run: "Run",
     submit: "Submit",
     reset: "Reset Code",
@@ -55,6 +56,22 @@ export default {
     input: "Input",
     expectedOutput: "Expected Output",
     actualOutput: "Actual Output",
+    codeTemplates: "Code Templates",
+    resetToDefaults: "Reset to Defaults",
+    // Toolbar tooltips
+    changeTheme: "Change theme",
+    fontSettings: "Font settings",
+    keyboardShortcuts: "Keyboard shortcuts",
+    // Templates modal
+    templates: {
+      title: "Code Templates",
+      description: "Select a template to insert into your code.",
+      searchPlaceholder: "Search templates...",
+      noTemplates: "No templates available for this language",
+      preview: "Preview",
+      selectToPreview: "Select a template to preview",
+      insert: "Insert Template",
+    },
   },
 
   // Problem lists
@@ -303,6 +320,36 @@ export default {
     splitLeft: "Split Left",
     splitRight: "Split Right",
     addToGroup: "Add to Group",
+  },
+
+  // Autosave
+  autosave: {
+    enabled: "Autosave enabled",
+    autoSaving: "Auto-saving...",
+    saved: "Saved",
+    justNow: "Just now",
+    minutesAgo: "{count} minutes ago",
+    hoursAgo: "{count} hours ago",
+    restored: "Restored from autosave",
+    restoreTitle: "Restore Previous Code?",
+    restoreDescription:
+      "We found unsaved code from your last session. Would you like to restore it?",
+    keepRestored: "Keep Restored Code",
+    dismissRestore: "Start Fresh",
+    clearSaved: "Clear saved code",
+    clearSavedTooltip: "Clear the autosaved code in reset to starter",
+    tooltip: "Your code is automatically saved to browser storage",
+  },
+
+  // Accessibility settings
+  accessibility: {
+    title: "Accessibility",
+    reduceMotion: "Reduce Motion",
+    reduceMotionDesc: "Minimize animations and transitions",
+    highContrast: "High Contrast",
+    highContrastDesc: "Increase contrast for better visibility",
+    keyboardNav: "Keyboard Navigation",
+    keyboardNavDesc: "Navigate using keyboard shortcuts",
   },
 
   // Solutions in Problem Detail

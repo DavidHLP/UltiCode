@@ -84,6 +84,14 @@ export const LANGUAGE_CONFIGS: Record<string, LanguageConfig> = {
     memoryLimit: '256m',
     runCommand: 'bash /sandbox/runners/run-go.sh',
   },
+  rust: {
+    id: 'rust',
+    name: 'Rust',
+    extension: '.rs',
+    timeLimit: 15000,
+    memoryLimit: '256m',
+    runCommand: 'bash /sandbox/runners/run-rust.sh',
+  },
 };
 
 export type SandboxType = 'docker' | 'vm';

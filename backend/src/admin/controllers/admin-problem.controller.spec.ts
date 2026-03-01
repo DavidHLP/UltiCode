@@ -14,6 +14,7 @@ jest.mock('jsdom', () => ({
 import { PrismaService } from '../../prisma.service';
 import { AuditService } from '../services/audit.service';
 import { PermissionService } from '../services/permission.service';
+import { ProblemVersionService } from '../services/problem-version.service';
 import { JwtService } from '@nestjs/jwt';
 import { Reflector, ModuleRef } from '@nestjs/core';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -97,6 +98,16 @@ describe('AdminProblemController', () => {
               update: jest.fn().mockResolvedValue({}),
               delete: jest.fn().mockResolvedValue({}),
             },
+          },
+        },
+        {
+          provide: ProblemVersionService,
+          useValue: {
+            createVersion: jest.fn().mockResolvedValue({}),
+            getVersionHistory: jest.fn().mockResolvedValue([]),
+            getVersion: jest.fn().mockResolvedValue(null),
+            restoreVersion: jest.fn().mockResolvedValue({}),
+            compareVersions: jest.fn().mockResolvedValue({}),
           },
         },
       ],

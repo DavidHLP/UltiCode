@@ -11,6 +11,13 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiParam,
+} from '@nestjs/swagger';
 import type { Request } from 'express';
 import { SubmissionService } from './submission.service';
 import { ContestSubmissionService } from './contest-submission.service';
@@ -30,12 +37,19 @@ interface AuthenticatedRequest extends Request {
   user: { id: string };
 }
 
+@ApiTags('submissions')
 @Controller('submissions')
+@ApiBearerAuth()
 export class SubmissionController {
   constructor(private readonly submissionService: SubmissionService) {}
 
   @Get('status/map')
   @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Get problem status map',
+    description: 'Get submission status for all problems',
+  })
+  @ApiResponse({ status: 200, description: 'Map of problem ID to status' })
   async getStatusMap(@Req() req: AuthenticatedRequest) {
     const userId = req.user.id;
     const map = await this.submissionService.getProblemStatusMap(userId);
@@ -44,6 +58,11 @@ export class SubmissionController {
   }
 
   @Get('statuses')
+  @ApiOperation({
+    summary: 'Get status definitions',
+    description: 'Get all submission status definitions',
+  })
+  @ApiResponse({ status: 200, description: 'List of status definitions' })
   async getStatuses(@Locale() locale?: string) {
     return this.submissionService.getStatusDefinitions(
       locale as SupportedLocale,
@@ -52,6 +71,11 @@ export class SubmissionController {
 
   @Get('calendar')
   @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Get daily activity',
+    description: 'Get submission activity calendar for a year',
+  })
+  @ApiResponse({ status: 200, description: 'Daily submission activity' })
   async getDailyActivity(
     @Query() query: GetDailyActivityQueryDto,
     @Req() req: AuthenticatedRequest,
@@ -61,14 +85,50 @@ export class SubmissionController {
     return this.submissionService.getDailyActivity(userId, yearInt);
   }
 
+  @Get('history')
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Get submission history',
+    description: 'Get user submission history',
+  })
+  @ApiResponse({ status: 200, description: 'Submission history' })
+  async getSubmissionHistory(@Req() req: AuthenticatedRequest) {
+    const userId = req.user.id;
+    return this.submissionService.getSubmissionHistory(userId);
+  }
+
+  @Get('learning-progress')
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Get learning progress',
+    description: 'Get user learning progress statistics',
+  })
+  @ApiResponse({ status: 200, description: 'Learning progress data' })
+  async getLearningProgress(@Req() req: AuthenticatedRequest) {
+    const userId = req.user.id;
+    return this.submissionService.getLearningProgress(userId);
+  }
+
   @Get(':id')
   @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Get submission by ID',
+    description: 'Retrieve a specific submission',
+  })
+  @ApiParam({ name: 'id', description: 'Submission ID', type: String })
+  @ApiResponse({ status: 200, description: 'Submission details' })
+  @ApiResponse({ status: 404, description: 'Submission not found' })
   async findOne(@Param('id') id: string, @Req() req: AuthenticatedRequest) {
     return this.submissionService.findOne(id, req.user.id);
   }
 
   @Get()
   @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Get user submissions',
+    description: 'Retrieve paginated submissions for the authenticated user',
+  })
+  @ApiResponse({ status: 200, description: 'List of submissions' })
   async findAllByUser(
     @Query() query: FindAllSubmissionsQueryDto,
     @Req() req: AuthenticatedRequest,

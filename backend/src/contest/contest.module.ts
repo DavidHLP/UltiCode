@@ -9,6 +9,7 @@ import { ContestController, RankingController } from './contest.controller';
 import { PrismaService } from '../prisma.service';
 import { I18nModule } from '../i18n/i18n.module';
 import { I18nService } from '../i18n/i18n.service';
+import { NotificationModule } from '../notification/notification.module';
 
 // Ranking sub-services
 import { RankingHelperService } from './services/ranking-helper.service';
@@ -29,6 +30,7 @@ import { ContestAdminService } from './services/contest-admin.service';
       name: 'contest',
     }),
     I18nModule,
+    NotificationModule,
   ],
   providers: [
     PrismaService,

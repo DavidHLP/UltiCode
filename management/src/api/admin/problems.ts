@@ -142,23 +142,67 @@ export interface BulkEditProblemDto {
 
 export interface ProblemVersion {
   id: string
-  action: string
-  performer: {
-    id: string
-    username: string
-    name: string
-    role: string
-  }
-  entityType: string
-  entityId: string
-  oldValues?: Record<string, unknown>
-  newValues?: Record<string, unknown>
-  createdAt: string
+  versionNumber: number
+  changeSummary: string | null
+  changeType: string
+  createdAt: Date
+  createdBy: string | null
+}
+
+export interface ProblemVersionDetail {
+  id: string
+  versionNumber: number
+  title: string
+  slug: string
+  difficulty: Difficulty
+  isPremium: boolean
+  isPublished: boolean
+  summary: string | null
+  content: string | null
+  constraints: string[] | null
+  hints: string[] | null
+  examples: Array<{
+    input: string
+    output: string
+    explanation?: string
+    order?: number
+  }> | null
+  languages: Array<{
+    label: string
+    value: string
+    starter_code: string
+  }> | null
+  tags: string[] | null
+  changeSummary: string | null
+  changeType: string
+  createdAt: Date
+  createdBy: string | null
+}
+
+export interface VersionDiff {
+  field: string
+  oldValue: unknown
+  newValue: unknown
+}
+
+export interface VersionWithDiff {
+  id: string
+  versionNumber: number
+  changeSummary: string | null
+  changeType: string
+  createdAt: Date
+  createdBy: string | null
+  diffs: VersionDiff[]
 }
 
 export interface VersionsResponse {
-  data: ProblemVersion[]
-  total: number
+  versions: ProblemVersion[]
+  pagination: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export interface ImportProblemDto {
@@ -260,13 +304,41 @@ export const problemsApi = {
     return response
   },
 
-  async getProblemVersions(id: string): Promise<VersionsResponse> {
-    const response = await apiGet<VersionsResponse>(`/admin/problems/${id}/versions`)
+  async getProblemVersions(
+    id: string,
+    params: { page?: number; limit?: number } = {},
+  ): Promise<VersionsResponse> {
+    const response = await apiGet<VersionsResponse>(`/admin/problems/${id}/versions`, { params })
     return response
   },
 
-  async restoreProblemVersion(id: string, versionId: string): Promise<Problem> {
-    const response = await apiPost<Problem>(`/admin/problems/${id}/versions/${versionId}/restore`)
+  async getProblemVersion(id: string, versionId: string): Promise<ProblemVersionDetail> {
+    const response = await apiGet<ProblemVersionDetail>(
+      `/admin/problems/${id}/versions/${versionId}`,
+    )
+    return response
+  },
+
+  async getVersionDiff(
+    id: string,
+    fromVersionId: string,
+    toVersionId: string,
+  ): Promise<VersionWithDiff> {
+    const response = await apiGet<VersionWithDiff>(
+      `/admin/problems/${id}/versions/${fromVersionId}/diff/${toVersionId}`,
+    )
+    return response
+  },
+
+  async rollbackToVersion(
+    id: string,
+    versionId: string,
+    reason?: string,
+  ): Promise<{ success: boolean; message: string }> {
+    const response = await apiPost<{ success: boolean; message: string }>(
+      `/admin/problems/${id}/versions/${versionId}/rollback`,
+      { reason },
+    )
     return response
   },
 
@@ -310,6 +382,19 @@ export const problemsApi = {
     status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
   }): Promise<ProblemsResponse> {
     const response = await apiGet<ProblemsResponse>('/admin/problems/flagged', { params })
+    return response
+  },
+
+  async batchModerateProblems(data: {
+    ids: string[]
+    status: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
+    notes?: string
+  }): Promise<{
+    results: Array<{ id: string; success: boolean; error?: string }>
+  }> {
+    const response = await apiPost<{
+      results: Array<{ id: string; success: boolean; error?: string }>
+    }>('/admin/problems/flagged/batch-moderate', data)
     return response
   },
 }

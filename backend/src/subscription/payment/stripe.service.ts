@@ -244,6 +244,152 @@ export class StripeService {
   }
 
   /**
+   * Get invoices for a customer
+   */
+  async getInvoices(
+    customerId: string,
+    options?: { limit?: number; startingAfter?: string },
+  ): Promise<{
+    invoices: Array<{
+      id: string;
+      number: string;
+      status: string;
+      amount: number;
+      currency: string;
+      createdAt: Date;
+      paidAt: Date | null;
+      invoicePdf: string | null;
+      hostedUrl: string | null;
+    }>;
+    hasMore: boolean;
+  }> {
+    if (!this.stripe) {
+      throw new Error('Stripe is not configured');
+    }
+
+    const invoices = await this.stripe.invoices.list({
+      customer: customerId,
+      limit: options?.limit || 10,
+      starting_after: options?.startingAfter,
+    });
+
+    return {
+      invoices: invoices.data.map((invoice) => ({
+        id: invoice.id,
+        number: invoice.number || '',
+        status: invoice.status || 'draft',
+        amount: invoice.amount_paid,
+        currency: invoice.currency.toUpperCase(),
+        createdAt: new Date(invoice.created * 1000),
+        paidAt: invoice.status_transitions?.paid_at
+          ? new Date(invoice.status_transitions.paid_at * 1000)
+          : null,
+        invoicePdf: invoice.invoice_pdf ?? null,
+        hostedUrl: invoice.hosted_invoice_url ?? null,
+      })),
+      hasMore: invoices.has_more,
+    };
+  }
+
+  /**
+   * Get a specific invoice by ID
+   */
+  async getInvoice(invoiceId: string): Promise<{
+    id: string;
+    number: string;
+    status: string;
+    amount: number;
+    currency: string;
+    createdAt: Date;
+    paidAt: Date | null;
+    invoicePdf: string | null;
+    hostedUrl: string | null;
+    lines: Array<{
+      description: string;
+      amount: number;
+      currency: string;
+      period: { start: Date; end: Date } | null;
+    }>;
+  } | null> {
+    if (!this.stripe) {
+      return null;
+    }
+
+    try {
+      const invoice = await this.stripe.invoices.retrieve(invoiceId);
+
+      return {
+        id: invoice.id,
+        number: invoice.number || '',
+        status: invoice.status || 'draft',
+        amount: invoice.amount_paid,
+        currency: invoice.currency.toUpperCase(),
+        createdAt: new Date(invoice.created * 1000),
+        paidAt: invoice.status_transitions?.paid_at
+          ? new Date(invoice.status_transitions.paid_at * 1000)
+          : null,
+        invoicePdf: invoice.invoice_pdf ?? null,
+        hostedUrl: invoice.hosted_invoice_url ?? null,
+        lines: invoice.lines.data.map((line) => ({
+          description: line.description || '',
+          amount: line.amount,
+          currency: line.currency.toUpperCase(),
+          period: line.period
+            ? {
+                start: new Date(line.period.start * 1000),
+                end: new Date(line.period.end * 1000),
+              }
+            : null,
+        })),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Get upcoming invoice for a subscription
+   */
+  async getUpcomingInvoice(customerId: string): Promise<{
+    amount: number;
+    currency: string;
+    nextPaymentAt: Date | null;
+  } | null> {
+    if (!this.stripe) {
+      return null;
+    }
+
+    try {
+      // Get the active subscription to determine next billing date
+      const subscriptions = await this.stripe.subscriptions.list({
+        customer: customerId,
+        status: 'active',
+        limit: 1,
+      });
+
+      const activeSub = subscriptions.data[0];
+      if (!activeSub) {
+        return null;
+      }
+
+      const currentPeriodEnd = (activeSub as any).current_period_end;
+
+      return {
+        amount: activeSub.items.data.reduce(
+          (sum, item) => sum + (item.price.unit_amount || 0),
+          0,
+        ),
+        currency: activeSub.currency?.toUpperCase() || 'USD',
+        nextPaymentAt: currentPeriodEnd
+          ? new Date(currentPeriodEnd * 1000)
+          : null,
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Handle webhook event from Stripe
    */
   async handleWebhookEvent(event: Stripe.Event): Promise<void> {

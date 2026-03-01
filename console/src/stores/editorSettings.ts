@@ -11,6 +11,10 @@ export interface EditorSettings {
   minimap: boolean;
   lineNumbers: "on" | "off" | "relative";
   fontFamily: string;
+  /** Accessibility: Reduce motion/animations */
+  reduceMotion: boolean;
+  /** Accessibility: High contrast mode */
+  highContrast: boolean;
 }
 
 const STORAGE_KEY = "ulticode-editor-settings";
@@ -23,6 +27,8 @@ const DEFAULT_SETTINGS: EditorSettings = {
   minimap: false,
   lineNumbers: "on",
   fontFamily: "JetBrains Mono, Menlo, Monaco, Courier New, monospace",
+  reduceMotion: false,
+  highContrast: false,
 };
 
 function loadFromStorage(): EditorSettings {
@@ -45,9 +51,20 @@ function loadFromStorage(): EditorSettings {
 
   // Try to detect system preference for theme
   const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+  // Detect system preference for reduced motion
+  const prefersReducedMotion = window.matchMedia(
+    "(prefers-reduced-motion: reduce)",
+  ).matches;
+  // Detect system preference for high contrast
+  const prefersHighContrast = window.matchMedia(
+    "(prefers-contrast: more)",
+  ).matches;
+
   return {
     ...DEFAULT_SETTINGS,
     theme: prefersDark ? "vs-dark" : "vs-light",
+    reduceMotion: prefersReducedMotion,
+    highContrast: prefersHighContrast,
   };
 }
 
@@ -120,6 +137,36 @@ export const useEditorSettingsStore = defineStore("editorSettings", () => {
     settings.value = { ...settings.value, fontFamily: font };
   };
 
+  // Accessibility: Reduce motion
+  const setReduceMotion = (enabled: boolean) => {
+    settings.value = { ...settings.value, reduceMotion: enabled };
+  };
+
+  const toggleReduceMotion = () => {
+    settings.value = {
+      ...settings.value,
+      reduceMotion: !settings.value.reduceMotion,
+    };
+  };
+
+  // Accessibility: High contrast
+  const setHighContrast = (enabled: boolean) => {
+    settings.value = { ...settings.value, highContrast: enabled };
+    // Also switch theme to hc-black when high contrast is enabled
+    if (enabled) {
+      settings.value = { ...settings.value, theme: "hc-black" };
+    }
+  };
+
+  const toggleHighContrast = () => {
+    const newValue = !settings.value.highContrast;
+    settings.value = {
+      ...settings.value,
+      highContrast: newValue,
+      theme: newValue ? "hc-black" : settings.value.theme,
+    };
+  };
+
   // Reset to defaults
   const resetToDefaults = () => {
     settings.value = { ...DEFAULT_SETTINGS };
@@ -141,6 +188,10 @@ export const useEditorSettingsStore = defineStore("editorSettings", () => {
     toggleMinimap,
     setLineNumbers,
     setFontFamily,
+    setReduceMotion,
+    toggleReduceMotion,
+    setHighContrast,
+    toggleHighContrast,
     resetToDefaults,
     updateSettings,
   };

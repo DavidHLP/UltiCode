@@ -3,6 +3,8 @@ import { ContestScoringMode, ContestTieBreaker, Prisma } from '@prisma/client';
 import { v4 as uuid } from 'uuid';
 import { PrismaService } from '../../prisma.service';
 import { RankingHelperService } from './ranking-helper.service';
+import { NotificationGateway } from '../../notification/notification.gateway';
+import { NotificationEvent } from '../../notification/notification.events';
 
 type SnapshotEntry = {
   problemId: number;
@@ -22,6 +24,7 @@ export class ContestRankingCalcService {
   constructor(
     private prisma: PrismaService,
     private helperService: RankingHelperService,
+    private notificationGateway: NotificationGateway,
   ) {}
 
   async updateContestProblemResult(
@@ -123,6 +126,60 @@ export class ContestRankingCalcService {
           total_penalty: totalPenalty,
         },
       });
+    }
+
+    // Broadcast ranking update to contest subscribers
+    await this.broadcastRankingUpdate(participant.contest_id, {
+      participantId,
+      userId: participant.user_id,
+      totalScore,
+      totalPenalty,
+      solvedCount: allResults.filter((r) => r.is_solved).length,
+    });
+  }
+
+  /**
+   * Broadcast ranking update to all users subscribed to a contest
+   */
+  private async broadcastRankingUpdate(
+    contestId: string,
+    data: {
+      participantId: string;
+      userId: string;
+      totalScore: number;
+      totalPenalty: number;
+      solvedCount: number;
+    },
+  ): Promise<void> {
+    try {
+      // Get participant info for the broadcast
+      const participant = await this.prisma.contestParticipant.findUnique({
+        where: { id: data.participantId },
+        include: {
+          user: {
+            select: { username: true, avatar: true },
+          },
+        },
+      });
+
+      if (!participant) return;
+
+      // Broadcast to all users subscribed to this contest
+      this.notificationGateway.broadcastToContest(
+        contestId,
+        NotificationEvent.CONTEST_RANKING_CHANGE,
+        {
+          participantId: data.participantId,
+          userId: data.userId,
+          username: participant.user.username,
+          avatar: participant.user.avatar,
+          totalScore: data.totalScore,
+          totalPenalty: data.totalPenalty,
+          solvedCount: data.solvedCount,
+        },
+      );
+    } catch {
+      // Silently ignore broadcast errors to not affect main flow
     }
   }
 

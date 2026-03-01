@@ -67,6 +67,7 @@ export default {
     premium: 'Premium',
     unpublished: 'Unpublished',
     deleteConfirm: 'Confirm Delete',
+    clearSelection: 'Clear Selection',
   },
 
   // Navigation
@@ -75,6 +76,7 @@ export default {
     users: 'Users',
     problems: 'Problems',
     contests: 'Contests',
+    submissions: 'Submissions',
     forum: 'Forum',
     settings: 'Settings',
     problemLists: 'Problem Lists',
@@ -84,6 +86,7 @@ export default {
     notifications: 'Notifications',
     auditLogs: 'Audit Logs',
     moderation: 'Moderation',
+    analytics: 'Analytics',
     getHelp: 'Get Help',
     search: 'Search',
     account: 'Account',
@@ -113,6 +116,84 @@ export default {
     success: 'Problem moderated successfully',
     error: 'Failed to moderate problem',
     loadError: 'Failed to load flagged problems',
+    // Batch moderation
+    selectAll: 'Select All',
+    selectedCount: '{count} selected',
+    batchResolve: 'Batch Resolve',
+    batchDismiss: 'Batch Dismiss',
+    batchModerateTitle: 'Batch Moderate Problems',
+    batchModerateDescription: 'You are about to update {count} problems.',
+    batchSuccess: 'Successfully moderated {count} problems',
+    batchPartial: 'Moderated {success} problems, {failed} failed',
+    batchError: 'Failed to batch moderate problems',
+    batchNotesPlaceholder: 'Add notes for all selected problems (optional)...',
+    newStatus: 'New Status',
+    apply: 'Apply',
+  },
+
+  // Analytics
+  analytics: {
+    title: 'Advanced Analytics',
+    description: 'Comprehensive reports and insights',
+    loadError: 'Failed to load analytics data',
+    tabs: {
+      userActivity: 'User Activity',
+      problemCompletion: 'Problem Completion',
+      contestParticipation: 'Contest Participation',
+      revenue: 'Revenue',
+      performance: 'Performance',
+    },
+    periods: {
+      '7days': 'Last 7 Days',
+      '30days': 'Last 30 Days',
+      '90days': 'Last 90 Days',
+      '1year': 'Last Year',
+    },
+    userActivity: {
+      dailyActiveUsers: 'Daily Active Users',
+      retention1d: '1-Day Retention',
+      retention7d: '7-Day Retention',
+      retention30d: '30-Day Retention',
+      activeUsersTrend: 'Active Users Trend',
+      peakHours: 'Peak Active Hours',
+      topUsers: 'Top Active Users',
+      logins: 'logins',
+    },
+    problemCompletion: {
+      totalAttempts: 'Total Attempts',
+      successfulAttempts: 'Successful Attempts',
+      completionRate: 'Completion Rate',
+      trendingProblems: 'Trending Problems',
+      byDifficulty: 'By Difficulty',
+      hardestProblems: 'Hardest Problems',
+      topTags: 'Top Tags by Completion',
+    },
+    contestParticipation: {
+      totalContests: 'Total Contests',
+      totalParticipants: 'Total Participants',
+      avgParticipants: 'Avg Participants',
+      virtualParticipation: 'Virtual Participation',
+      byType: 'By Contest Type',
+      topContests: 'Top Contests',
+    },
+    contestParticipants: 'participants',
+    revenue: {
+      mrr: 'Monthly Recurring Revenue',
+      arr: 'Annual Recurring Revenue',
+      subscribers: 'Active Subscribers',
+      conversionRate: 'Conversion Rate',
+      byPlan: 'Revenue by Plan',
+      metrics: 'Key Metrics',
+      arpu: 'Average Revenue Per User',
+      churnRate: 'Churn Rate',
+    },
+    performance: {
+      uptime: 'System Uptime',
+      throughput: 'Throughput',
+      errorRate: 'Error Rate',
+      memoryUsage: 'Memory Usage',
+      resourceUsage: 'Resource Usage',
+    },
   },
 
   // Dashboard
@@ -756,6 +837,7 @@ export default {
       description: 'View and manage version history of this problem',
       noVersions: 'No version history available',
       viewVersion: 'View version',
+      viewDetails: 'View details',
       restoreVersion: 'Restore this version',
       restoreTitle: 'Restore Version',
       restoreDescription:
@@ -768,10 +850,28 @@ export default {
       removed: 'Removed',
       changed: 'Changed',
       compareWith: 'Compare with',
+      compare: 'Compare with current version',
+      compareVersions: 'Compare Versions',
+      oldValue: 'Old Value',
+      newValue: 'New Value',
       currentVersion: 'Current Version',
       version: 'Version',
+      versionDetails: 'Version Details',
       performedBy: 'Performed by',
+      by: 'by',
       at: 'at',
+      loadError: 'Failed to load version history',
+      loadDetailError: 'Failed to load version details',
+      compareError: 'Failed to compare versions',
+      rollback: 'Rollback to this version',
+      rollbackTitle: 'Rollback to Version',
+      rollbackConfirm:
+        'Are you sure you want to rollback to version {version}? This will create a new version with the content from that version.',
+      rollbackReason: 'Reason (optional)',
+      rollbackReasonPlaceholder: 'Enter a reason for this rollback...',
+      rollbackButton: 'Rollback',
+      rollbackSuccess: 'Successfully rolled back to version {version}',
+      rollbackError: 'Failed to rollback to version',
       action: {
         CREATE: 'Created',
         UPDATE: 'Updated',
@@ -1470,11 +1570,21 @@ export default {
     title: 'System Settings',
     description: 'Manage global system configuration and preferences.',
 
+    // Tabs
+    tabs: {
+      general: 'General',
+      email: 'Email',
+      rateLimits: 'Rate Limits',
+      uploads: 'Uploads',
+      features: 'Features',
+    },
+
     // Toast messages
     toast: {
       loadFailed: 'Failed to load settings',
       saveFailed: 'Failed to save settings',
       clearCacheFailed: 'Failed to clear cache',
+      resetFailed: 'Failed to reset settings',
     },
 
     // General settings
@@ -1503,15 +1613,65 @@ export default {
     },
 
     // Email settings
-    emailSettings: {
-      category: 'Email',
+    email: {
+      title: 'Email Configuration',
+      description: 'Configure SMTP settings for sending emails.',
       smtpHost: 'SMTP Host',
       smtpPort: 'SMTP Port',
-      smtpSecure: 'Use SSL/TLS',
       smtpUser: 'SMTP Username',
-      smtpFrom: 'From Email',
+      smtpPassword: 'SMTP Password',
+      smtpFrom: 'From Email Address',
       smtpFromName: 'From Name',
-      testEmail: 'Send Test Email',
+      smtpSecure: 'Use TLS',
+      smtpSecureDescription: 'Enable TLS encryption for SMTP connection',
+    },
+
+    // Rate limits
+    rateLimits: {
+      title: 'Rate Limit Settings',
+      description: 'Configure rate limits for various operations.',
+      api: 'API Rate Limit',
+      apiDescription: 'Maximum API requests per minute per user',
+      submission: 'Submission Rate Limit',
+      submissionDescription: 'Maximum code submissions per minute',
+      auth: 'Authentication Rate Limit',
+      authDescription: 'Maximum login/register attempts per minute',
+      upload: 'Upload Rate Limit',
+      uploadDescription: 'Maximum file uploads per minute',
+    },
+
+    // Upload settings
+    uploads: {
+      title: 'Upload Settings',
+      description: 'Configure file upload limits and restrictions.',
+      maxSize: 'Maximum File Size',
+      maxSizeDescription: 'Enter size with unit (e.g., 10 MB, 1 GB)',
+      allowedTypes: 'Allowed File Types',
+      allowedTypesDescription: 'Comma-separated list of allowed file extensions',
+      maxFiles: 'Maximum Files per Upload',
+      maxFilesDescription: 'Maximum number of files in a single upload',
+    },
+
+    // Feature toggles
+    features: {
+      title: 'Feature Toggles',
+      description: 'Enable or disable platform features.',
+      contest: 'Contests',
+      contestDescription: 'Enable contest and competition features',
+      forum: 'Forum',
+      forumDescription: 'Enable community forum and discussions',
+      solutions: 'Solutions',
+      solutionsDescription: 'Enable solution sharing and viewing',
+      subscriptions: 'Subscriptions',
+      subscriptionsDescription: 'Enable premium subscription features',
+      achievements: 'Achievements',
+      achievementsDescription: 'Enable achievements and badges',
+      notifications: 'Notifications',
+      notificationsDescription: 'Enable push and email notifications',
+      bookmarks: 'Bookmarks',
+      bookmarksDescription: 'Enable problem bookmarking feature',
+      problemLists: 'Problem Lists',
+      problemListsDescription: 'Enable curated problem lists',
     },
 
     // System settings
@@ -1547,6 +1707,11 @@ export default {
       clearCache: 'Clear System Cache',
       saveChanges: 'Save Changes',
       saving: 'Saving...',
+      resetToDefaults: 'Reset to Defaults',
+      resetConfirmTitle: 'Reset Settings to Defaults?',
+      resetConfirmDescription:
+        'This will restore all settings to their default values. This action cannot be undone.',
+      resetConfirm: 'Reset',
     },
   },
 
@@ -2390,5 +2555,61 @@ export default {
       },
     },
     noSubscription: 'No active subscription',
+  },
+
+  // Submissions
+  submissions: {
+    title: 'Submissions',
+    description: 'Manage and review code submissions',
+    loadError: 'Failed to load submissions',
+    loadDetailError: 'Failed to load submission details',
+
+    // Statistics
+    totalSubmissions: 'Total Submissions',
+    last24h: '{count} in last 24h',
+    pending: 'Pending',
+    inQueue: 'In judge queue',
+    topLanguage: 'Top Language',
+    submissionsCount: '{count} submissions',
+    acceptedRate: 'Accepted Rate',
+    acceptedRateDesc: 'Percentage of accepted submissions',
+
+    // Filters
+    search: 'Search',
+    searchPlaceholder: 'Search by username or problem...',
+    status: 'Status',
+    allStatuses: 'All Statuses',
+    language: 'Language',
+    allLanguages: 'All Languages',
+
+    // Table
+    id: 'ID',
+    problem: 'Problem',
+    user: 'User',
+    runtime: 'Runtime',
+    memory: 'Memory',
+    submittedAt: 'Submitted',
+    noSubmissions: 'No submissions found',
+
+    // Detail
+    detail: 'Submission Details',
+    code: 'Code',
+    notes: 'Notes',
+
+    // Actions
+    rejudge: 'Rejudge',
+    rejudgeTitle: 'Rejudge Submission',
+    rejudgeDescription: 'This will re-run the judge process for this submission.',
+    rejudgeSuccess: 'Submission queued for rejudge',
+    rejudgeError: 'Failed to rejudge: {error}',
+
+    // Batch
+    selectedCount: '{count} submissions selected',
+    batchRejudge: 'Batch Rejudge',
+    batchRejudgeTitle: 'Batch Rejudge Submissions',
+    batchRejudgeDescription: 'You are about to rejudge {count} submissions.',
+    batchRejudgeSuccess: 'Successfully queued {count} submissions for rejudge',
+    batchRejudgePartial: '{success} queued, {failed} failed',
+    batchRejudgeError: 'Failed to batch rejudge submissions',
   },
 } as const

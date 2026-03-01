@@ -52,9 +52,10 @@ export class CacheInterceptor implements NestInterceptor {
 
     // If not in cache, execute handler and cache result
     return next.handle().pipe(
-      tap(async (response) => {
+      tap((response) => {
         if (response) {
-          await this.cacheManager.set(cacheKey, response, ttl * 1000);
+          // Fire and forget cache set
+          void this.cacheManager.set(cacheKey, response, ttl * 1000);
         }
       }),
     );

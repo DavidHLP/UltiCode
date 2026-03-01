@@ -6,6 +6,7 @@ import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -31,6 +32,7 @@ import {
   IconClock,
   IconEye,
   IconAlertTriangle,
+  IconChecks,
 } from '@tabler/icons-vue'
 import { problemsApi, type Problem } from '@/api/admin/problems'
 import { getFlagStatusBadgeVariant } from '@/lib/ui/status'
@@ -55,8 +57,16 @@ const moderationNotes = ref('')
 const moderationStatus = ref<FlagStatus>('REVIEWED')
 const moderating = ref(false)
 
+// Batch selection
+const selectedIds = ref<Set<string>>(new Set())
+const batchModerationDialogOpen = ref(false)
+const batchModerationStatus = ref<FlagStatus>('RESOLVED')
+const batchModerationNotes = ref('')
+const batchModerating = ref(false)
+
 async function loadFlaggedProblems() {
   loading.value = true
+  selectedIds.value.clear()
   try {
     const response = await problemsApi.getFlaggedProblems({
       page: currentPage.value,
@@ -76,8 +86,8 @@ async function loadFlaggedProblems() {
 
 function openModerationDialog(problem: Problem) {
   selectedProblem.value = problem
-  moderationNotes.value = ''
-  moderationStatus.value = 'REVIEWED'
+  moderationNotes.value = problem.flag_notes || ''
+  moderationStatus.value = (problem.flag_status as FlagStatus) || 'REVIEWED'
   moderationDialogOpen.value = true
 }
 
@@ -105,13 +115,66 @@ async function handleModeration() {
   }
 }
 
+// Batch operations
+function toggleSelection(id: string) {
+  if (selectedIds.value.has(id)) {
+    selectedIds.value.delete(id)
+  } else {
+    selectedIds.value.add(id)
+  }
+}
+
+function toggleSelectAll() {
+  if (selectedIds.value.size === flaggedProblems.value.length) {
+    selectedIds.value.clear()
+  } else {
+    flaggedProblems.value.forEach((p) => selectedIds.value.add(p.id))
+  }
+}
+
+function openBatchModerationDialog(status: FlagStatus) {
+  batchModerationStatus.value = status
+  batchModerationNotes.value = ''
+  batchModerationDialogOpen.value = true
+}
+
+async function handleBatchModeration() {
+  if (selectedIds.value.size === 0) return
+
+  batchModerating.value = true
+  try {
+    const result = await problemsApi.batchModerateProblems({
+      ids: Array.from(selectedIds.value),
+      status: batchModerationStatus.value,
+      notes: batchModerationNotes.value || undefined,
+    })
+
+    const successCount = result.results.filter((r) => r.success).length
+    const failCount = result.results.filter((r) => !r.success).length
+
+    if (failCount === 0) {
+      toast.success(t('moderation.batchSuccess', { count: successCount }))
+    } else {
+      toast.warning(t('moderation.batchPartial', { success: successCount, failed: failCount }))
+    }
+
+    batchModerationDialogOpen.value = false
+    selectedIds.value.clear()
+    await loadFlaggedProblems()
+  } catch (error) {
+    console.error('Failed to batch moderate:', error)
+    toast.error(t('moderation.batchError'))
+  } finally {
+    batchModerating.value = false
+  }
+}
+
 function viewProblem(problem: Problem) {
   router.push(`/admin/problems/${problem.id}`)
 }
 
 function getStatusBadgeVariant(status: FlagStatus | null) {
   if (!status) return 'default'
-  // Map moderation status to flag status
   const statusMap: Record<FlagStatus, 'PENDING' | 'RESOLVED'> = {
     PENDING: 'PENDING',
     REVIEWED: 'PENDING',
@@ -150,6 +213,12 @@ const filteredProblems = computed(() => {
   return flaggedProblems.value
 })
 
+const isAllSelected = computed(() => {
+  return flaggedProblems.value.length > 0 && selectedIds.value.size === flaggedProblems.value.length
+})
+
+const selectedCount = computed(() => selectedIds.value.size)
+
 onMounted(() => {
   loadFlaggedProblems()
 })
@@ -182,6 +251,29 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- Batch action bar -->
+    <div
+      v-if="selectedCount > 0"
+      class="flex items-center gap-4 p-4 bg-primary/10 rounded-lg border border-primary/20"
+    >
+      <span class="text-sm font-medium">
+        {{ t('moderation.selectedCount', { count: selectedCount }) }}
+      </span>
+      <div class="flex gap-2">
+        <Button variant="outline" size="sm" @click="openBatchModerationDialog('RESOLVED')">
+          <IconCheck class="h-4 w-4 mr-1" />
+          {{ t('moderation.batchResolve') }}
+        </Button>
+        <Button variant="outline" size="sm" @click="openBatchModerationDialog('DISMISSED')">
+          <IconX class="h-4 w-4 mr-1" />
+          {{ t('moderation.batchDismiss') }}
+        </Button>
+        <Button variant="ghost" size="sm" @click="selectedIds.clear()">
+          {{ t('common.clearSelection') }}
+        </Button>
+      </div>
+    </div>
+
     <div v-if="loading" class="flex items-center justify-center py-12">
       <div class="text-muted-foreground">{{ t('common.loading') }}</div>
     </div>
@@ -198,34 +290,54 @@ onMounted(() => {
     </div>
 
     <div v-else class="space-y-4">
+      <!-- Select all header -->
+      <div class="flex items-center gap-2 px-2">
+        <Checkbox
+          :checked="isAllSelected"
+          :indeterminate="selectedCount > 0 && !isAllSelected"
+          @update:checked="toggleSelectAll"
+        />
+        <span class="text-sm text-muted-foreground">{{ t('moderation.selectAll') }}</span>
+      </div>
+
       <Card
         v-for="problem in filteredProblems"
         :key="problem.id"
         class="hover:shadow-md transition-shadow"
+        :class="{
+          'ring-2 ring-primary': selectedIds.has(problem.id),
+        }"
       >
         <CardHeader>
           <div class="flex items-start justify-between">
-            <div class="flex-1">
-              <div class="flex items-center gap-2 mb-2">
-                <CardTitle class="text-xl">{{ problem.title }}</CardTitle>
-                <Badge :variant="getStatusBadgeVariant(problem.flag_status || null)">
-                  <component
-                    :is="getStatusIcon(problem.flag_status || null)"
-                    class="h-3 w-3 mr-1"
-                  />
-                  {{ t(`moderation.status${problem.flag_status || 'PENDING'}`) }}
-                </Badge>
-                <Badge v-if="problem.is_premium" variant="secondary">
-                  {{ t('common.premium') }}
-                </Badge>
-                <Badge v-if="!problem.is_published" variant="outline">
-                  {{ t('common.unpublished') }}
-                </Badge>
+            <div class="flex items-start gap-3 flex-1">
+              <Checkbox
+                :checked="selectedIds.has(problem.id)"
+                @update:checked="toggleSelection(problem.id)"
+                class="mt-1"
+              />
+              <div class="flex-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <CardTitle class="text-xl">{{ problem.title }}</CardTitle>
+                  <Badge :variant="getStatusBadgeVariant(problem.flag_status || null)">
+                    <component
+                      :is="getStatusIcon(problem.flag_status || null)"
+                      class="h-3 w-3 mr-1"
+                    />
+                    {{ t(`moderation.status${problem.flag_status || 'PENDING'}`) }}
+                  </Badge>
+                  <Badge v-if="problem.is_premium" variant="secondary">
+                    {{ t('common.premium') }}
+                  </Badge>
+                  <Badge v-if="!problem.is_published" variant="outline">
+                    {{ t('common.unpublished') }}
+                  </Badge>
+                </div>
+                <CardDescription class="text-sm">
+                  {{ problem.slug }} •
+                  {{ t(`common.difficulty.${problem.difficulty.toLowerCase()}`) }}
+                </CardDescription>
               </div>
-              <CardDescription class="text-sm">
-                {{ problem.slug }} •
-                {{ t(`common.difficulty.${problem.difficulty.toLowerCase()}`) }}
-              </CardDescription>
             </div>
             <div class="flex gap-2">
               <Button variant="outline" size="sm" @click="viewProblem(problem)">
@@ -296,6 +408,7 @@ onMounted(() => {
       </Button>
     </div>
 
+    <!-- Single moderation dialog -->
     <Dialog v-model:open="moderationDialogOpen">
       <DialogContent>
         <DialogHeader>
@@ -336,6 +449,64 @@ onMounted(() => {
           <Button :disabled="moderating" @click="handleModeration">
             <IconCheck v-if="!moderating" class="h-4 w-4 mr-1" />
             {{ moderating ? t('common.saving') : t('common.save') }}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Batch moderation dialog -->
+    <Dialog v-model:open="batchModerationDialogOpen">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            <div class="flex items-center gap-2">
+              <IconChecks class="h-5 w-5" />
+              {{ t('moderation.batchModerateTitle') }}
+            </div>
+          </DialogTitle>
+          <DialogDescription>
+            {{ t('moderation.batchModerateDescription', { count: selectedCount }) }}
+          </DialogDescription>
+        </DialogHeader>
+        <div class="space-y-4">
+          <div>
+            <Label>{{ t('moderation.newStatus') }}</Label>
+            <div class="mt-2 flex gap-2">
+              <Button
+                :variant="batchModerationStatus === 'RESOLVED' ? 'default' : 'outline'"
+                size="sm"
+                @click="batchModerationStatus = 'RESOLVED'"
+              >
+                <IconCheck class="h-4 w-4 mr-1" />
+                {{ t('moderation.statusResolved') }}
+              </Button>
+              <Button
+                :variant="batchModerationStatus === 'DISMISSED' ? 'default' : 'outline'"
+                size="sm"
+                @click="batchModerationStatus = 'DISMISSED'"
+              >
+                <IconX class="h-4 w-4 mr-1" />
+                {{ t('moderation.statusDismissed') }}
+              </Button>
+            </div>
+          </div>
+          <div>
+            <Label for="batch-notes">{{ t('moderation.notes') }}</Label>
+            <Textarea
+              id="batch-notes"
+              v-model="batchModerationNotes"
+              :placeholder="t('moderation.batchNotesPlaceholder')"
+              rows="3"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" @click="batchModerationDialogOpen = false">
+            {{ t('common.cancel') }}
+          </Button>
+          <Button :disabled="batchModerating" @click="handleBatchModeration">
+            <IconChecks v-if="!batchModerating" class="h-4 w-4 mr-1" />
+            {{ batchModerating ? t('common.saving') : t('moderation.apply') }}
           </Button>
         </DialogFooter>
       </DialogContent>

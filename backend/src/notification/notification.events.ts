@@ -10,6 +10,11 @@ export enum NotificationEvent {
   CONTEST_STARTING = 'contest:starting',
   CONTEST_ENDED = 'contest:ended',
 
+  // Community events
+  COMMUNITY_NEW_POST = 'community:new_post',
+  COMMUNITY_NEW_COMMENT = 'community:new_comment',
+  COMMUNITY_POST_LIKED = 'community:post_liked',
+
   // User interaction events
   MENTION_USER = 'mention:user',
   REPLY_TO_POST = 'post:reply',
@@ -53,6 +58,26 @@ export interface NotificationPayload {
   body: string;
   link?: string;
   createdAt: string;
+}
+
+export interface CommunityPostPayload {
+  postId: string;
+  postTitle: string;
+  communityId: string;
+  communityName: string;
+  authorId: string;
+  authorName: string;
+  excerpt: string;
+}
+
+export interface CommunityCommentPayload {
+  commentId: string;
+  postId: string;
+  postTitle: string;
+  communityId: string;
+  authorId: string;
+  authorName: string;
+  content: string;
 }
 
 export interface WebSocketAuthPayload {

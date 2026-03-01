@@ -31,7 +31,7 @@ export class MonitoringService {
     @InjectQueue('judge_queue') private judgeQueue: Queue,
   ) {}
 
-  async getSystemInfo(): Promise<SystemInfoDto> {
+  getSystemInfo(): SystemInfoDto {
     return {
       uptime: process.uptime(),
       nodeVersion: process.version,
@@ -43,7 +43,7 @@ export class MonitoringService {
     };
   }
 
-  async getResourceUsage(): Promise<ResourceUsageDto> {
+  getResourceUsage(): ResourceUsageDto {
     const memoryUsage = process.memoryUsage();
     const cpuUsage = process.cpuUsage();
 
@@ -134,7 +134,7 @@ export class MonitoringService {
   async getRedisStats(): Promise<RedisStatsDto> {
     try {
       // Try to get Redis info through cache manager
-      const startTime = Date.now();
+      const _startTime = Date.now();
 
       // Simple ping test
       await this.cacheManager.get('__health_check__');

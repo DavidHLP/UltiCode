@@ -68,6 +68,7 @@ export default {
     premium: '高级',
     unpublished: '未发布',
     deleteConfirm: '确认删除',
+    clearSelection: '清除选择',
   },
 
   // 导航
@@ -76,6 +77,7 @@ export default {
     users: '用户管理',
     problems: '题目管理',
     contests: '比赛管理',
+    submissions: '提交管理',
     forum: '论坛管理',
     settings: '系统设置',
     problemLists: '题目列表',
@@ -85,6 +87,7 @@ export default {
     notifications: '通知管理',
     auditLogs: '审计日志',
     moderation: '内容审核',
+    analytics: '数据分析',
     getHelp: '获取帮助',
     search: '搜索',
     account: '账户',
@@ -119,6 +122,84 @@ export default {
     unflagSuccess: '题目取消标记成功',
     flag: '标记',
     unflag: '取消标记',
+    // 批量审核
+    selectAll: '全选',
+    selectedCount: '已选择 {count} 个',
+    batchResolve: '批量解决',
+    batchDismiss: '批量驳回',
+    batchModerateTitle: '批量审核题目',
+    batchModerateDescription: '即将更新 {count} 个题目。',
+    batchSuccess: '成功审核 {count} 个题目',
+    batchPartial: '成功审核 {success} 个，失败 {failed} 个',
+    batchError: '批量审核失败',
+    batchNotesPlaceholder: '为所有选中题目添加备注（可选）...',
+    newStatus: '新状态',
+    apply: '应用',
+  },
+
+  // 分析报表
+  analytics: {
+    title: '高级分析报表',
+    description: '全面的报告和洞察',
+    loadError: '加载分析数据失败',
+    tabs: {
+      userActivity: '用户活跃度',
+      problemCompletion: '题目完成率',
+      contestParticipation: '比赛参与',
+      revenue: '收入分析',
+      performance: '性能指标',
+    },
+    periods: {
+      '7days': '最近7天',
+      '30days': '最近30天',
+      '90days': '最近90天',
+      '1year': '最近一年',
+    },
+    userActivity: {
+      dailyActiveUsers: '日活跃用户',
+      retention1d: '1日留存率',
+      retention7d: '7日留存率',
+      retention30d: '30日留存率',
+      activeUsersTrend: '活跃用户趋势',
+      peakHours: '高峰时段',
+      topUsers: '最活跃用户',
+      logins: '次登录',
+    },
+    problemCompletion: {
+      totalAttempts: '总提交数',
+      successfulAttempts: '成功提交数',
+      completionRate: '完成率',
+      trendingProblems: '热门题目',
+      byDifficulty: '按难度分布',
+      hardestProblems: '最难题目',
+      topTags: '热门标签完成率',
+    },
+    contestParticipation: {
+      totalContests: '总比赛数',
+      totalParticipants: '总参与人数',
+      avgParticipants: '平均参与人数',
+      virtualParticipation: '虚拟参与',
+      byType: '按比赛类型',
+      topContests: '热门比赛',
+    },
+    contestParticipants: '参与者',
+    revenue: {
+      mrr: '月度经常性收入',
+      arr: '年度经常性收入',
+      subscribers: '活跃订阅者',
+      conversionRate: '转化率',
+      byPlan: '按计划收入',
+      metrics: '关键指标',
+      arpu: '每用户平均收入',
+      churnRate: '流失率',
+    },
+    performance: {
+      uptime: '系统运行时间',
+      throughput: '吞吐量',
+      errorRate: '错误率',
+      memoryUsage: '内存使用',
+      resourceUsage: '资源使用',
+    },
   },
 
   // 仪表板
@@ -753,6 +834,7 @@ export default {
       description: '查看和管理此题目的版本历史',
       noVersions: '暂无版本历史',
       viewVersion: '查看版本',
+      viewDetails: '查看详情',
       restoreVersion: '恢复此版本',
       restoreTitle: '恢复版本',
       restoreDescription: '确定要恢复此版本吗？当前版本将保存为新版本。',
@@ -764,10 +846,27 @@ export default {
       removed: '已删除',
       changed: '已更改',
       compareWith: '与...比较',
+      compare: '与当前版本比较',
+      compareVersions: '比较版本',
+      oldValue: '旧值',
+      newValue: '新值',
       currentVersion: '当前版本',
       version: '版本',
+      versionDetails: '版本详情',
       performedBy: '操作者',
+      by: '由',
       at: '于',
+      loadError: '加载版本历史失败',
+      loadDetailError: '加载版本详情失败',
+      compareError: '比较版本失败',
+      rollback: '回滚到此版本',
+      rollbackTitle: '回滚到版本',
+      rollbackConfirm: '确定要回滚到版本 {version} 吗？这将创建一个新版本，内容来自该版本。',
+      rollbackReason: '原因（可选）',
+      rollbackReasonPlaceholder: '输入回滚原因...',
+      rollbackButton: '回滚',
+      rollbackSuccess: '成功回滚到版本 {version}',
+      rollbackError: '回滚版本失败',
       action: {
         CREATE: '创建',
         UPDATE: '更新',
@@ -1212,14 +1311,24 @@ export default {
 
   // 设置
   settings: {
-    title: '设置',
+    title: '系统设置',
     description: '管理系统全局配置和偏好。',
+
+    // 标签页
+    tabs: {
+      general: '基本',
+      email: '邮件',
+      rateLimits: '速率限制',
+      uploads: '上传',
+      features: '功能开关',
+    },
 
     // 提示消息
     toast: {
       loadFailed: '加载设置失败',
       saveFailed: '保存设置失败',
       clearCacheFailed: '清除缓存失败',
+      resetFailed: '重置设置失败',
     },
 
     // 通用设置
@@ -1248,15 +1357,65 @@ export default {
     },
 
     // 邮件设置
-    emailSettings: {
-      category: '邮件',
+    email: {
+      title: '邮件配置',
+      description: '配置 SMTP 邮件发送设置。',
       smtpHost: 'SMTP 主机',
       smtpPort: 'SMTP 端口',
-      smtpSecure: '使用 SSL/TLS',
       smtpUser: 'SMTP 用户名',
-      smtpFrom: '发件邮箱',
+      smtpPassword: 'SMTP 密码',
+      smtpFrom: '发件邮箱地址',
       smtpFromName: '发件人名称',
-      testEmail: '发送测试邮件',
+      smtpSecure: '使用 TLS',
+      smtpSecureDescription: '为 SMTP 连接启用 TLS 加密',
+    },
+
+    // 速率限制
+    rateLimits: {
+      title: '速率限制设置',
+      description: '配置各项操作的速率限制。',
+      api: 'API 速率限制',
+      apiDescription: '每用户每分钟最大 API 请求数',
+      submission: '提交速率限制',
+      submissionDescription: '每分钟最大代码提交数',
+      auth: '认证速率限制',
+      authDescription: '每分钟最大登录/注册尝试数',
+      upload: '上传速率限制',
+      uploadDescription: '每分钟最大文件上传数',
+    },
+
+    // 上传设置
+    uploads: {
+      title: '上传设置',
+      description: '配置文件上传限制和约束。',
+      maxSize: '最大文件大小',
+      maxSizeDescription: '输入带单位的文件大小（如：10 MB、1 GB）',
+      allowedTypes: '允许的文件类型',
+      allowedTypesDescription: '用逗号分隔的允许文件扩展名列表',
+      maxFiles: '单次上传最大文件数',
+      maxFilesDescription: '单次上传中允许的最大文件数量',
+    },
+
+    // 功能开关
+    features: {
+      title: '功能开关',
+      description: '启用或禁用平台功能。',
+      contest: '比赛功能',
+      contestDescription: '启用比赛和竞赛功能',
+      forum: '论坛',
+      forumDescription: '启用社区论坛和讨论功能',
+      solutions: '题解',
+      solutionsDescription: '启用题解分享和查看功能',
+      subscriptions: '订阅',
+      subscriptionsDescription: '启用高级订阅功能',
+      achievements: '成就系统',
+      achievementsDescription: '启用成就和徽章功能',
+      notifications: '通知',
+      notificationsDescription: '启用推送和邮件通知功能',
+      bookmarks: '收藏',
+      bookmarksDescription: '启用题目收藏功能',
+      problemLists: '题目列表',
+      problemListsDescription: '启用精选题目列表功能',
     },
 
     // 基本设置
@@ -1283,6 +1442,7 @@ export default {
       description: '控制站点可用性。',
       maintenanceMode: '维护模式',
       maintenanceModeDescription: '启用后仅管理员可访问站点。',
+      maintenanceMessage: '维护消息',
     },
 
     // 操作
@@ -1291,6 +1451,10 @@ export default {
       clearCache: '清除系统缓存',
       saveChanges: '保存更改',
       saving: '保存中...',
+      resetToDefaults: '恢复默认设置',
+      resetConfirmTitle: '确认恢复默认设置？',
+      resetConfirmDescription: '这将把所有设置恢复为默认值，此操作无法撤销。',
+      resetConfirm: '确认重置',
     },
   },
 
@@ -2122,5 +2286,61 @@ export default {
       },
     },
     noSubscription: '无活跃订阅',
+  },
+
+  // 提交管理
+  submissions: {
+    title: '提交管理',
+    description: '管理和审核代码提交',
+    loadError: '加载提交记录失败',
+    loadDetailError: '加载提交详情失败',
+
+    // 统计
+    totalSubmissions: '总提交数',
+    last24h: '过去24小时 {count} 条',
+    pending: '等待中',
+    inQueue: '在判题队列中',
+    topLanguage: '最热门语言',
+    submissionsCount: '{count} 条提交',
+    acceptedRate: '通过率',
+    acceptedRateDesc: '已通过提交的百分比',
+
+    // 筛选
+    search: '搜索',
+    searchPlaceholder: '按用户名或题目搜索...',
+    status: '状态',
+    allStatuses: '全部状态',
+    language: '语言',
+    allLanguages: '全部语言',
+
+    // 表格
+    id: 'ID',
+    problem: '题目',
+    user: '用户',
+    runtime: '运行时间',
+    memory: '内存',
+    submittedAt: '提交时间',
+    noSubmissions: '暂无提交记录',
+
+    // 详情
+    detail: '提交详情',
+    code: '代码',
+    notes: '备注',
+
+    // 操作
+    rejudge: '重新判题',
+    rejudgeTitle: '重新判题',
+    rejudgeDescription: '这将重新运行此提交的判题过程。',
+    rejudgeSuccess: '已加入重新判题队列',
+    rejudgeError: '重新判题失败: {error}',
+
+    // 批量操作
+    selectedCount: '已选择 {count} 条提交',
+    batchRejudge: '批量重新判题',
+    batchRejudgeTitle: '批量重新判题',
+    batchRejudgeDescription: '您将要重新判题 {count} 条提交。',
+    batchRejudgeSuccess: '已将 {count} 条提交加入重新判题队列',
+    batchRejudgePartial: '{success} 条成功，{failed} 条失败',
+    batchRejudgeError: '批量重新判题失败',
   },
 } as const

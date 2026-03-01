@@ -3,6 +3,8 @@ import {
   Logger,
   OnModuleInit,
   OnModuleDestroy,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import Docker from 'dockerode';
@@ -16,13 +18,36 @@ import {
   LANGUAGE_CONFIGS,
 } from './sandbox.interface';
 import { JudgeTestCase, JudgeCaseResult } from '../judge.service';
+import { SandboxMonitoringService } from './sandbox-monitoring.service';
 
+/** Result from running a container */
 interface ContainerResult {
   stdout: string;
   stderr: string;
   exitCode: number;
 }
 
+/**
+ * Docker-based sandbox service for secure code execution.
+ *
+ * This service provides isolated code execution using Docker containers.
+ * Each code submission runs in a fresh container with strict resource limits
+ * (CPU, memory, time) to prevent malicious code from affecting the host system.
+ *
+ * ## Architecture
+ * - Uses the official Docker API via dockerode
+ * - Containers run with restricted permissions (no network, limited resources)
+ * - Code and test cases are mounted as temporary files
+ * - Supports 7 languages: JavaScript, TypeScript, Python, Java, C++, Go, Rust
+ *
+ * ## Resource Limits
+ * - Time: 5-15 seconds per test case (language dependent)
+ * - Memory: 256-512MB per container
+ * - CPU: 1 core limit
+ *
+ * @see {@link SandboxServiceInterface} for the public API
+ * @see {@link LANGUAGE_CONFIGS} for supported languages
+ */
 @Injectable()
 export class DockerSandboxService
   implements SandboxServiceInterface, OnModuleInit, OnModuleDestroy
@@ -33,7 +58,11 @@ export class DockerSandboxService
   private readonly tempDir = '/tmp/ulti-sandbox';
   private activeContainers = new Map<string, Docker.Container>();
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    @Inject(forwardRef(() => SandboxMonitoringService))
+    private monitoringService: SandboxMonitoringService,
+  ) {
     this.docker = new Docker({
       socketPath: this.configService.get<string>(
         'DOCKER_SOCKET',
@@ -46,6 +75,12 @@ export class DockerSandboxService
     );
   }
 
+  /**
+   * Initializes the sandbox on module load.
+   *
+   * Creates the temp directory, verifies Docker connectivity,
+   * and checks that the judge image is available.
+   */
   async onModuleInit(): Promise<void> {
     try {
       // Ensure temp directory exists
@@ -70,6 +105,11 @@ export class DockerSandboxService
     }
   }
 
+  /**
+   * Cleans up resources when the module is destroyed.
+   *
+   * Stops and removes any active containers to prevent resource leaks.
+   */
   async onModuleDestroy(): Promise<void> {
     // Clean up any active containers
     for (const [id, container] of this.activeContainers) {
@@ -83,6 +123,22 @@ export class DockerSandboxService
     }
   }
 
+  /**
+   * Executes code against a test case in an isolated Docker container.
+   *
+   * This method:
+   * 1. Validates the language configuration
+   * 2. Creates temporary files for code and input
+   * 3. Spawns a Docker container with resource limits
+   * 4. Captures the output and measures resource usage
+   * 5. Cleans up resources after execution
+   *
+   * @param language - The programming language (e.g., 'python', 'javascript')
+   * @param code - The source code to execute
+   * @param testCase - Test case with input and expected output
+   * @param config - Optional resource limit overrides
+   * @returns The execution result with status, output, time, and memory
+   */
   async execute(
     language: string,
     code: string,
@@ -104,6 +160,12 @@ export class DockerSandboxService
 
     const executionId = uuidv4();
     const workDir = path.join(this.tempDir, executionId);
+
+    // Start monitoring log
+    await this.monitoringService.startExecution({
+      executionId,
+      language: langConfig.id,
+    });
 
     try {
       // Create working directory
@@ -130,17 +192,39 @@ export class DockerSandboxService
       const timeLimit = config?.timeLimit ?? langConfig.timeLimit;
       const memoryLimit = config?.memoryLimit ?? langConfig.memoryLimit;
 
+      const startTime = Date.now();
       const result = await this.runContainer(
         workDir,
         langConfig.runCommand,
         timeLimit,
         memoryLimit,
+        executionId,
       );
+      const executionTime = Date.now() - startTime;
 
       // Parse result
-      return this.parseResult(result, testCase, timeLimit);
+      const judgeResult = this.parseResult(result, testCase, timeLimit);
+
+      // Complete monitoring log
+      const monitoringStatus = this.mapToMonitoringStatus(judgeResult.status);
+      await this.monitoringService.completeExecution(executionId, {
+        status: monitoringStatus,
+        timeMs: judgeResult.time || executionTime,
+        memoryBytes: judgeResult.memory * 1024 * 1024, // Convert MB to bytes
+        exitCode: result.exitCode,
+        errorMessage: judgeResult.detail,
+      });
+
+      return judgeResult;
     } catch (error) {
       this.logger.error(`Execution failed for ${executionId}: ${error}`);
+
+      // Record error in monitoring
+      await this.monitoringService.recordError(
+        executionId,
+        error instanceof Error ? error : String(error),
+      );
+
       return {
         status: 'System Error',
         time: 0,
@@ -160,11 +244,47 @@ export class DockerSandboxService
     }
   }
 
+  private mapToMonitoringStatus(
+    status: JudgeCaseResult['status'],
+  ):
+    | 'COMPLETED'
+    | 'TIMEOUT'
+    | 'MEMORY_EXCEEDED'
+    | 'RUNTIME_ERROR'
+    | 'COMPILE_ERROR'
+    | 'SYSTEM_ERROR' {
+    const statusMap: Partial<
+      Record<
+        JudgeCaseResult['status'],
+        | 'COMPLETED'
+        | 'TIMEOUT'
+        | 'MEMORY_EXCEEDED'
+        | 'RUNTIME_ERROR'
+        | 'COMPILE_ERROR'
+        | 'SYSTEM_ERROR'
+      >
+    > = {
+      Accepted: 'COMPLETED',
+      'Wrong Answer': 'COMPLETED',
+      'Time Limit Exceeded': 'TIMEOUT',
+      'Memory Limit Exceeded': 'MEMORY_EXCEEDED',
+      'Output Limit Exceeded': 'MEMORY_EXCEEDED',
+      'Runtime Error': 'RUNTIME_ERROR',
+      'Compile Error': 'COMPILE_ERROR',
+      'Presentation Error': 'COMPLETED',
+      'System Error': 'SYSTEM_ERROR',
+      Judging: 'COMPLETED',
+      Pending: 'COMPLETED',
+    };
+    return statusMap[status] ?? 'SYSTEM_ERROR';
+  }
+
   private async runContainer(
     workDir: string,
     runCommand: string,
     timeLimit: number,
     memoryLimit: string,
+    executionId: string,
   ): Promise<ContainerResult> {
     const containerName = `judge-${path.basename(workDir)}`;
 
@@ -198,6 +318,12 @@ export class DockerSandboxService
 
     this.activeContainers.set(container.id, container);
 
+    // Update execution log with container ID
+    await this.monitoringService.updateContainerId(
+      executionId,
+      container.id.substring(0, 12),
+    );
+
     try {
       // Start container
       await container.start();
@@ -218,17 +344,15 @@ export class DockerSandboxService
     }
   }
 
-  private async waitForContainer(
+  private waitForContainer(
     container: Docker.Container,
     timeoutMs: number,
   ): Promise<ContainerResult> {
     return new Promise((resolve, reject) => {
-      const timeout = setTimeout(async () => {
-        try {
-          await container.stop();
-        } catch {
+      const timeout = setTimeout(() => {
+        container.stop().catch(() => {
           // Ignore stop errors
-        }
+        });
         resolve({
           stdout: '',
           stderr: 'Execution timed out',
@@ -236,28 +360,31 @@ export class DockerSandboxService
         });
       }, timeoutMs);
 
-      container.wait(async (err, data) => {
+      container.wait((err, data) => {
         clearTimeout(timeout);
         if (err) {
-          reject(err);
+          reject(err instanceof Error ? err : new Error(String(err)));
           return;
         }
 
-        try {
-          const logs = await container.logs({
+        container
+          .logs({
             stdout: true,
             stderr: true,
-          });
-          const logString = logs.toString('utf-8').replace(/^\x00+/gm, '');
+          })
+          .then((logs) => {
+            // eslint-disable-next-line no-control-regex
+            const logString = logs.toString('utf-8').replace(/^\x00+/gm, '');
 
-          resolve({
-            stdout: logString,
-            stderr: '',
-            exitCode: data?.StatusCode ?? 0,
+            resolve({
+              stdout: logString,
+              stderr: '',
+              exitCode: data?.StatusCode ?? 0,
+            });
+          })
+          .catch((error) => {
+            reject(error instanceof Error ? error : new Error(String(error)));
           });
-        } catch (error) {
-          reject(error);
-        }
       });
     });
   }

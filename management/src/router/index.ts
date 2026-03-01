@@ -21,6 +21,12 @@ const router = createRouter({
           component: () => import('@/views/dashboard/DashboardView.vue'),
         },
         {
+          path: 'analytics',
+          name: 'analytics',
+          component: () => import('@/views/analytics/AnalyticsView.vue'),
+          meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
+        },
+        {
           path: 'users',
           name: 'users',
           component: () => import('@/views/users/UsersListView.vue'),
@@ -216,6 +222,13 @@ const router = createRouter({
           name: 'contest-detail',
           component: () => import('@/views/contests/ContestDetailView.vue'),
           meta: { permission: { action: 'READ', resource: 'CONTEST' } },
+        },
+        // Submissions
+        {
+          path: 'submissions',
+          name: 'submissions',
+          component: () => import('@/views/submissions/SubmissionsView.vue'),
+          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
         },
         // Settings
         {

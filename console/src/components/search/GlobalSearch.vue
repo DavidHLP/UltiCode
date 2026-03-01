@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, onMounted, onUnmounted, computed } from "vue";
+import { useI18n } from "vue-i18n";
 import { useSearch } from "@/composables/useSearch";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,8 @@ import {
   ArrowRight,
 } from "lucide-vue-next";
 import { cn } from "@/lib/utils";
+
+const { t } = useI18n();
 
 const props = defineProps<{
   open?: boolean;
@@ -162,7 +165,7 @@ onUnmounted(() => {
           ref="inputRef"
           :model-value="query"
           type="text"
-          placeholder="Search problems, users, posts..."
+          :placeholder="t('common.search.placeholder')"
           class="border-0 focus-visible:ring-0"
           @input="handleInputChange"
         />
@@ -244,7 +247,7 @@ onUnmounted(() => {
         >
           <Search class="h-12 w-12 text-muted-foreground/50" />
           <p class="mt-4 text-sm text-muted-foreground">
-            No results found for "{{ query }}"
+            {{ t("common.search.noResults", { query }) }}
           </p>
         </div>
 

@@ -5,18 +5,34 @@ import { ContestQueryDto } from '../dto';
 import { ContestTimingService } from './contest-timing.service';
 import { I18nService } from '../../i18n/i18n.service';
 import { SupportedLocale, DEFAULT_LOCALE } from '../../i18n/i18n.constants';
+import { CacheService } from '../../cache/cache.service';
 
 export interface ContestStats {
   total_participants: number;
   total_contests: number;
 }
 
+export interface ContestWithTiming {
+  id: string;
+  title: string;
+  slug: string;
+  status: string;
+  start_time: Date;
+  end_time: Date;
+  [key: string]: unknown;
+}
+
 @Injectable()
 export class ContestQueryService {
+  /** Cache TTL constants */
+  private static readonly CACHE_TTL_CONTEST = 120; // 2 minutes
+  private static readonly CACHE_TTL_LIST = 60; // 1 minute
+
   constructor(
     private prisma: PrismaService,
     private readonly timingService: ContestTimingService,
     private readonly i18nService: I18nService,
+    private readonly cacheService: CacheService,
   ) {}
 
   async findAll(
@@ -27,6 +43,13 @@ export class ContestQueryService {
     const limit = Number(query?.limit || 10);
     const { status, type } = query || {};
     const skip = (page - 1) * limit;
+
+    // Try cache first
+    const cacheKey = `contests:list:${locale}:${status || 'all'}:${type || 'all'}:${page}:${limit}`;
+    const cached = await this.cacheService.get<typeof result>(cacheKey);
+    if (cached) {
+      return cached;
+    }
 
     const where = {
       is_visible: true,
@@ -50,7 +73,7 @@ export class ContestQueryService {
       locale,
     );
 
-    return {
+    const result = {
       items: translatedContests.map((contest) =>
         this.timingService.withTimingFields(contest),
       ),
@@ -58,9 +81,28 @@ export class ContestQueryService {
       page,
       limit,
     };
+
+    // Cache the result
+    await this.cacheService.set(
+      cacheKey,
+      result,
+      ContestQueryService.CACHE_TTL_LIST,
+    );
+
+    return result;
   }
 
   async findOne(id: string, locale: SupportedLocale = DEFAULT_LOCALE) {
+    // Try cache first
+    const cacheKey = `contest:${id}:${locale}`;
+    const cached =
+      await this.cacheService.get<
+        ReturnType<typeof this.timingService.withTimingFields>
+      >(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const contest = await this.prisma.contest.findUnique({
       where: { id },
       include: {
@@ -92,10 +134,16 @@ export class ContestQueryService {
     );
 
     if (contest.status === 'upcoming') {
-      return this.timingService.withTimingFields({
+      const result = this.timingService.withTimingFields({
         ...translatedContest,
         problems: [],
       });
+      await this.cacheService.set(
+        cacheKey,
+        result,
+        ContestQueryService.CACHE_TTL_CONTEST,
+      );
+      return result;
     }
 
     const problemIds = contest.problems.map((cp) => cp.problem_id);
@@ -112,7 +160,7 @@ export class ContestQueryService {
       translatedProblems.map((p) => [String(p.id), p]),
     );
 
-    return this.timingService.withTimingFields({
+    const result = this.timingService.withTimingFields({
       ...translatedContest,
       problems: translatedContest.problems.map((cp) => {
         const translatedProblem = problemMap.get(String(cp.problem_id));
@@ -131,9 +179,24 @@ export class ContestQueryService {
         };
       }),
     });
+
+    await this.cacheService.set(
+      cacheKey,
+      result,
+      ContestQueryService.CACHE_TTL_CONTEST,
+    );
+    return result;
   }
 
-  async findUpcoming(locale: SupportedLocale = DEFAULT_LOCALE) {
+  async findUpcoming(
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<ContestWithTiming[]> {
+    const cacheKey = `contests:upcoming:${locale}`;
+    const cached = await this.cacheService.get<ContestWithTiming[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const contests = await this.prisma.contest.findMany({
       where: { status: 'upcoming', is_visible: true },
       orderBy: { start_time: 'asc' },
@@ -143,12 +206,26 @@ export class ContestQueryService {
       contests,
       locale,
     );
-    return translatedContests.map((contest) =>
+    const result = translatedContests.map((contest) =>
       this.timingService.withTimingFields(contest),
+    ) as ContestWithTiming[];
+    await this.cacheService.set(
+      cacheKey,
+      result,
+      ContestQueryService.CACHE_TTL_LIST,
     );
+    return result;
   }
 
-  async findRunning(locale: SupportedLocale = DEFAULT_LOCALE) {
+  async findRunning(
+    locale: SupportedLocale = DEFAULT_LOCALE,
+  ): Promise<ContestWithTiming[]> {
+    const cacheKey = `contests:running:${locale}`;
+    const cached = await this.cacheService.get<ContestWithTiming[]>(cacheKey);
+    if (cached) {
+      return cached;
+    }
+
     const contests = await this.prisma.contest.findMany({
       where: { status: 'running', is_visible: true },
       orderBy: { start_time: 'asc' },
@@ -158,9 +235,15 @@ export class ContestQueryService {
       contests,
       locale,
     );
-    return translatedContests.map((contest) =>
+    const result = translatedContests.map((contest) =>
       this.timingService.withTimingFields(contest),
+    ) as ContestWithTiming[];
+    await this.cacheService.set(
+      cacheKey,
+      result,
+      ContestQueryService.CACHE_TTL_LIST,
     );
+    return result;
   }
 
   async findPast(

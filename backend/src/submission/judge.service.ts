@@ -73,7 +73,7 @@ export class JudgeService implements OnModuleInit {
     if (!this.sandbox) {
       try {
         this.sandbox = await this.sandboxFactory.getSandbox();
-      } catch (error) {
+      } catch (_error) {
         return {
           verdict: 'System Error',
           runtime: 0,

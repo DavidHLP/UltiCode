@@ -51,8 +51,11 @@ import {
 import { PanelComponentMapKey } from "@/features/layout/panels/panel-context";
 import { useProblemContext } from "./useProblemContext";
 import { useI18n } from "vue-i18n";
+import { useBreakpoints } from "@/composables/useBreakpoints";
+import MobileProblemLayout from "./components/MobileProblemLayout.vue";
 
 const { t } = useI18n();
+const { isMobile } = useBreakpoints();
 const isSidePanelOpen = ref(false);
 const toggleSidePanel = () => {
   isSidePanelOpen.value = !isSidePanelOpen.value;
@@ -163,6 +166,7 @@ const ConnectedCodeView = defineComponent({
             key: problem.value.id,
             languages: problem.value.languages,
             starterNotes: problem.value.starterNotes ?? [],
+            problemKey: problem.value.slug,
           })
         : h(
             "div",
@@ -611,6 +615,13 @@ onUnmounted(() => {
 
 <template>
   <div class="h-screen flex flex-col bg-[#f0f0f0] antialiased">
+    <!-- Skip to main content link for screen readers -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
+    >
+      {{ t("common.skipToContent") }}
+    </a>
     <Sheet v-model:open="isSidePanelOpen">
       <SheetContent side="left" class="p-0 w-[400px] sm:w-[540px]">
         <SheetHeader class="sr-only">
@@ -668,10 +679,17 @@ onUnmounted(() => {
       </div>
     </header>
 
-    <!-- Dynamic layout area -->
-    <main class="flex-1 min-h-0 overflow-hidden w-full p-4 pt-0">
+    <!-- Dynamic layout area - Mobile uses stacked tabs, Desktop uses split panes -->
+    <main
+      id="main-content"
+      class="flex-1 min-h-0 overflow-hidden w-full p-4 pt-0"
+      role="main"
+    >
+      <!-- Mobile: Tab-based layout -->
+      <MobileProblemLayout v-if="isMobile" />
+      <!-- Desktop: Split pane layout -->
       <LayoutTree
-        v-if="layoutConfig"
+        v-else-if="layoutConfig"
         :layout="layoutConfig"
         class="h-full w-full"
       />

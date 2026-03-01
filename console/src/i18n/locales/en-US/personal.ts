@@ -123,6 +123,26 @@ export default {
     noSkills: "Solve more problems to see your skill distribution!",
   },
 
+  // Submission history chart
+  history: {
+    title: "Submission History",
+    subtitle: "Your submission activity and language usage over the past year.",
+    totalSubmissions: "Total Submissions",
+    accepted: "Accepted",
+    languageDistribution: "Languages",
+    noHistory: "Start submitting code to see your progress chart!",
+  },
+
+  // Learning progress chart
+  learning: {
+    title: "Learning Progress",
+    subtitle: "Track your weekly problem-solving journey and time investment.",
+    problemsSolved: "Problems Solved",
+    timeSpent: "Time Spent",
+    hours: "Hours",
+    noProgress: "Start solving problems to see your learning progress!",
+  },
+
   // Submissions
   submissions: {
     title: "My Submissions",
@@ -323,6 +343,42 @@ export default {
     },
   },
 
+  // Subscription
+  subscription: {
+    title: "Subscription",
+    subtitle: "Manage your subscription and billing",
+    currentPlan: "Current Plan",
+    choosePlan: "Choose a Plan",
+    bestValue: "Best Value",
+    subscribe: "Subscribe",
+    upgrade: "Upgrade",
+    expiresAt: "Expires at",
+    manageBilling: "Manage Billing",
+    cancel: "Cancel Subscription",
+    reactivate: "Reactivate",
+    error: "Error",
+    unknownError: "An unknown error occurred",
+    loading: "Loading...",
+    free: "Free",
+    premiumMonthly: "Premium Monthly",
+    premiumYearly: "Premium Yearly",
+    nextBilling: "Next Billing",
+    nextPaymentAt: "Next payment on",
+    invoiceHistory: "Invoice History",
+    loadMore: "Load More",
+    downloadInvoice: "Download Invoice",
+    features: {
+      unlimitedSubmissions: "Unlimited problem submissions",
+      accessAllSets: "Access to all problem sets",
+      prioritySupport: "Priority support",
+      detailedSolutions: "Detailed solution explanations",
+      contestParticipation: "Contest participation",
+      twoMonthsFree: "2 months free (save 17%)",
+      earlyAccess: "Early access to new features",
+      exclusiveContests: "Exclusive contests",
+    },
+  },
+
   // Messages
   messages: {
     profileUpdated: "Profile updated",
@@ -336,5 +392,33 @@ export default {
     notificationsCleared: "Notifications cleared",
     notificationsMarkedRead: "All notifications marked as read",
     notificationsUpdated: "Notification preferences updated",
+  },
+
+  // Dashboard
+  dashboard: {
+    title: "Dashboard",
+    welcomeBack: "Welcome back, {name}! Here's your progress overview.",
+    stats: {
+      problemsSolved: "Problems Solved",
+      ofTotal: "of {total} total",
+      currentStreak: "Current Streak",
+      days: "days",
+      completion: "Completion",
+      problemsCompleted: "problems completed",
+      skillsMastered: "Skills Mastered",
+      uniqueTopics: "unique topics",
+    },
+    progress: {
+      title: "Problem Solving Progress",
+    },
+    heatmap: {
+      title: "Activity Heatmap",
+    },
+    skills: {
+      title: "Skill Radar",
+    },
+    activity: {
+      title: "Recent Activity",
+    },
   },
 } as const;

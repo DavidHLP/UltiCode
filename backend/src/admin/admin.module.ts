@@ -1,11 +1,16 @@
 import { forwardRef, Module, Global } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { PermissionService } from './services/permission.service';
 import { AuditService } from './services/audit.service';
 import { AdminDashboardService } from './services/admin-dashboard.service';
+import { AdminAnalyticsService } from './services/admin-analytics.service';
+import { AdminSubmissionService } from './services/admin-submission.service';
 import { PermissionsGuard } from './guards/permissions.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { AdminUserController } from './controllers/admin-user.controller';
 import { AdminDashboardController } from './controllers/admin-dashboard.controller';
+import { AdminAnalyticsController } from './controllers/admin-analytics.controller';
+import { AdminSubmissionController } from './controllers/admin-submission.controller';
 import { AdminAuditController } from './controllers/admin-audit.controller';
 import { AdminProblemController } from './controllers/admin-problem.controller';
 import { AdminSolutionController } from './controllers/admin-solution.controller';
@@ -14,6 +19,7 @@ import { AdminForumController } from './controllers/admin-forum.controller';
 import { AdminCommentController } from './controllers/admin-comment.controller';
 import { AdminSettingsController } from './controllers/admin-settings.controller';
 import { AdminBulkController } from './controllers/admin-bulk.controller';
+import { AdminMonitoringController } from './controllers/admin-monitoring.controller';
 import { PrismaService } from '../prisma.service';
 import { UserModule } from '../user/user.module';
 import { AuthModule } from '../auth/auth.module';
@@ -28,13 +34,23 @@ import { AdminNotificationController } from './controllers/admin-notification.co
 import { AdminNotificationService } from './services/admin-notification.service';
 import { AdminAccountController } from './controllers/admin-account.controller';
 import { ModerationService } from '../common/services/moderation.service';
+import { ProblemVersionService } from './services/problem-version.service';
+import { AdminProblemVersionController } from './controllers/admin-problem-version.controller';
 
 @Global()
 @Module({
-  imports: [forwardRef(() => UserModule), forwardRef(() => AuthModule)],
+  imports: [
+    forwardRef(() => UserModule),
+    forwardRef(() => AuthModule),
+    BullModule.registerQueue({
+      name: 'judge_queue',
+    }),
+  ],
   controllers: [
     AdminUserController,
     AdminDashboardController,
+    AdminAnalyticsController,
+    AdminSubmissionController,
     AdminAuditController,
     AdminProblemController,
     AdminProblemListController,
@@ -47,17 +63,22 @@ import { ModerationService } from '../common/services/moderation.service';
     AdminTagController,
     AdminNotificationController,
     AdminAccountController,
+    AdminProblemVersionController,
+    AdminMonitoringController,
   ],
   providers: [
     PermissionService,
     AuditService,
     AdminDashboardService,
+    AdminAnalyticsService,
+    AdminSubmissionService,
     AdminCommentService,
     AdminSettingsService,
     AdminTagService,
     AdminNotificationService,
     AccountService,
     ModerationService,
+    ProblemVersionService,
     PermissionsGuard,
     RolesGuard,
     PrismaService,

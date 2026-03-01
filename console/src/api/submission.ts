@@ -129,3 +129,52 @@ export async function fetchDailyActivity(year?: number): Promise<string[]> {
   const query = params.toString();
   return apiGet<string[]>(`/submissions/calendar${query ? `?${query}` : ""}`);
 }
+
+export interface MonthlySubmission {
+  month: string;
+  count: number;
+  accepted: number;
+}
+
+export interface LanguageSubmission {
+  language: string;
+  count: number;
+}
+
+export interface SubmissionHistory {
+  monthly: MonthlySubmission[];
+  languages: LanguageSubmission[];
+  totalSubmissions: number;
+  totalAccepted: number;
+  acceptanceRate: number;
+}
+
+export async function fetchSubmissionHistory(): Promise<SubmissionHistory> {
+  return apiGet<SubmissionHistory>("/submissions/history");
+}
+
+export interface WeeklyProgress {
+  week: string;
+  solved: number;
+  timeSpent: number; // in hours
+}
+
+export interface DifficultyProgress {
+  difficulty: string;
+  count: number;
+  avgTime: number;
+}
+
+export interface LearningProgress {
+  weeklyProgress: WeeklyProgress[];
+  difficultyProgress: DifficultyProgress[];
+  totalProblems: number;
+  totalTimeHours: number;
+  avgTimePerProblem: number;
+  currentStreak: number;
+  longestStreak: number;
+}
+
+export async function fetchLearningProgress(): Promise<LearningProgress> {
+  return apiGet<LearningProgress>("/submissions/learning-progress");
+}

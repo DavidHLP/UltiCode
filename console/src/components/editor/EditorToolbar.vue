@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue";
+import { useI18n } from "vue-i18n";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -29,7 +30,10 @@ import {
 } from "lucide-vue-next";
 import KeyboardShortcutsModal from "./KeyboardShortcutsModal.vue";
 import CodeTemplatesModal from "./CodeTemplatesModal.vue";
+import AccessibilitySettings from "./AccessibilitySettings.vue";
 import type { CodeTemplate } from "@/composables/useCodeTemplates";
+
+const { t } = useI18n();
 
 defineProps<{
   language: string;
@@ -100,13 +104,14 @@ const handleResetSettings = () => {
           variant="ghost"
           size="icon"
           class="h-7 w-7"
-          title="Change theme"
+          :aria-label="$t('problem.editor.theme')"
+          :title="t('problem.editor.changeTheme')"
         >
-          <component :is="themeIcon" class="h-3.5 w-3.5" />
+          <component :is="themeIcon" class="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" class="w-48">
-        <DropdownMenuLabel>Theme</DropdownMenuLabel>
+        <DropdownMenuLabel>{{ t("problem.editor.theme") }}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuRadioGroup
           :model-value="currentTheme"
@@ -148,16 +153,19 @@ const handleResetSettings = () => {
           variant="ghost"
           size="icon"
           class="h-7 w-7"
-          title="Font settings"
+          :aria-label="$t('problem.editor.fontSize')"
+          :title="t('problem.editor.fontSettings')"
         >
-          <Type class="h-3.5 w-3.5" />
+          <Type class="h-3.5 w-3.5" aria-hidden="true" />
         </Button>
       </PopoverTrigger>
       <PopoverContent align="end" class="w-64">
         <div class="space-y-4">
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-sm font-medium">Font Size</label>
+              <label class="text-sm font-medium">{{
+                t("problem.editor.fontSize")
+              }}</label>
               <span class="text-sm text-muted-foreground">
                 {{ fontSize[0] }}px
               </span>
@@ -172,7 +180,9 @@ const handleResetSettings = () => {
           </div>
 
           <div class="space-y-2">
-            <label class="text-sm font-medium">Tab Size</label>
+            <label class="text-sm font-medium">{{
+              t("problem.editor.tabSize")
+            }}</label>
             <div class="flex gap-1">
               <Button
                 v-for="size in [2, 4, 8]"
@@ -191,10 +201,11 @@ const handleResetSettings = () => {
             variant="outline"
             size="sm"
             class="w-full"
+            :aria-label="$t('problem.editor.resetToDefaults')"
             @click="handleResetSettings"
           >
-            <RotateCcw class="h-3.5 w-3.5 mr-1" />
-            Reset to Defaults
+            <RotateCcw class="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+            {{ t("problem.editor.resetToDefaults") }}
           </Button>
         </div>
       </PopoverContent>
@@ -205,10 +216,11 @@ const handleResetSettings = () => {
       variant="ghost"
       size="icon"
       class="h-7 w-7"
-      title="Code templates"
+      :aria-label="$t('problem.editor.codeTemplates')"
+      :title="t('problem.editor.codeTemplates')"
       @click="showTemplates = true"
     >
-      <Code2 class="h-3.5 w-3.5" />
+      <Code2 class="h-3.5 w-3.5" aria-hidden="true" />
     </Button>
 
     <!-- Keyboard Shortcuts -->
@@ -216,11 +228,15 @@ const handleResetSettings = () => {
       variant="ghost"
       size="icon"
       class="h-7 w-7"
-      title="Keyboard shortcuts"
+      :aria-label="$t('problem.shortcuts.title')"
+      :title="t('problem.editor.keyboardShortcuts')"
       @click="showShortcuts = true"
     >
-      <Keyboard class="h-3.5 w-3.5" />
+      <Keyboard class="h-3.5 w-3.5" aria-hidden="true" />
     </Button>
+
+    <!-- Accessibility Settings -->
+    <AccessibilitySettings />
 
     <!-- Modals -->
     <KeyboardShortcutsModal v-model:open="showShortcuts" />

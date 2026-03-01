@@ -117,6 +117,26 @@ export default {
     noSkills: "解决更多题目以查看您的技能分布！",
   },
 
+  // Submission history chart
+  history: {
+    title: "提交历史",
+    subtitle: "过去一年的提交活动和语言使用情况。",
+    totalSubmissions: "总提交数",
+    accepted: "已通过",
+    languageDistribution: "编程语言",
+    noHistory: "开始提交代码以查看您的进度图表！",
+  },
+
+  // Learning progress chart
+  learning: {
+    title: "学习进度",
+    subtitle: "追踪您每周的解题历程和时间投入。",
+    problemsSolved: "已解决问题",
+    timeSpent: "投入时间",
+    hours: "小时",
+    noProgress: "开始解决问题以查看您的学习进度！",
+  },
+
   // Submissions
   submissions: {
     title: "我的提交",
@@ -317,5 +337,69 @@ export default {
     notificationsCleared: "通知已清空",
     notificationsMarkedRead: "通知已全部标为已读",
     notificationsUpdated: "通知偏好已更新",
+  },
+
+  // Dashboard
+  dashboard: {
+    title: "仪表盘",
+    welcomeBack: "欢迎回来，{name}！这是您的进度概览。",
+    stats: {
+      problemsSolved: "已解决问题",
+      ofTotal: "共 {total} 题",
+      currentStreak: "当前连续",
+      days: "天",
+      completion: "完成度",
+      problemsCompleted: "已完成题目",
+      skillsMastered: "已掌握技能",
+      uniqueTopics: "个主题",
+    },
+    progress: {
+      title: "解题进度",
+    },
+    heatmap: {
+      title: "活动热力图",
+    },
+    skills: {
+      title: "技能雷达",
+    },
+    activity: {
+      title: "最近活动",
+    },
+  },
+
+  // Subscription
+  subscription: {
+    title: "订阅",
+    subtitle: "管理您的订阅和账单",
+    currentPlan: "当前计划",
+    choosePlan: "选择计划",
+    bestValue: "最优惠",
+    subscribe: "订阅",
+    upgrade: "升级",
+    expiresAt: "到期时间",
+    manageBilling: "管理账单",
+    cancel: "取消订阅",
+    reactivate: "重新激活",
+    error: "错误",
+    unknownError: "发生未知错误",
+    loading: "加载中...",
+    free: "免费版",
+    premiumMonthly: "高级版月付",
+    premiumYearly: "高级版年付",
+    nextBilling: "下次账单",
+    nextPaymentAt: "下次付款日期",
+    invoiceHistory: "发票历史",
+    loadMore: "加载更多",
+    downloadInvoice: "下载发票",
+    features: {
+      unlimitedSubmissions: "无限题目提交",
+      accessAllSets: "访问所有题单",
+      prioritySupport: "优先客服支持",
+      detailedSolutions: "详细题解说明",
+      contestParticipation: "参赛资格",
+      twoMonthsFree: "免费2个月（省17%）",
+      earlyAccess: "抢先体验新功能",
+      exclusiveContests: "专属比赛",
+    },
   },
 } as const;

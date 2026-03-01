@@ -22,11 +22,7 @@ export interface QueuedSubmission {
   queuedAt: Date
 }
 
-interface SubmissionQueueDB extends IDBPDatabase {
-  createObjectStore(name: string, options?: IDBObjectStoreParameters): IDBObjectStore
-}
-
-let dbPromise: Promise<IDBPDatabase<SubmissionQueueDB>> | null = null
+let dbPromise: Promise<IDBPDatabase<unknown>> | null = null
 
 /**
  * Initialize the submission queue database
@@ -34,7 +30,7 @@ let dbPromise: Promise<IDBPDatabase<SubmissionQueueDB>> | null = null
  */
 export async function initSubmitQueue(): Promise<void> {
   if (!dbPromise) {
-    dbPromise = openDB<SubmissionQueueDB>(DB_NAME, DB_VERSION, {
+    dbPromise = openDB<unknown>(DB_NAME, DB_VERSION, {
       upgrade(db) {
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'id' })
@@ -49,7 +45,7 @@ export async function initSubmitQueue(): Promise<void> {
 /**
  * Get the database instance, initializing if necessary
  */
-async function getDB(): Promise<IDBPDatabase<SubmissionQueueDB>> {
+async function getDB(): Promise<IDBPDatabase<unknown>> {
   if (!dbPromise) {
     await initSubmitQueue()
   }

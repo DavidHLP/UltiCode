@@ -1,4 +1,7 @@
 export default {
+  // Accessibility
+  skipToContent: "跳转到主要内容",
+
   // Common actions
   actions: {
     save: "保存",
@@ -167,4 +170,30 @@ export default {
     networkError: "网络错误，请检查您的连接。",
     timeout: "请求超时，请重试。",
   },
+
+  // Global search
+  search: {
+    placeholder: "搜索题目、用户、帖子...",
+    noResults: '未找到 "{query}" 的相关结果',
+    types: {
+      problem: "题目",
+      user: "用户",
+      post: "帖子",
+      solution: "题解",
+      contest: "比赛",
+    },
+  },
+
+  // PWA
+  pwa: {
+    updateAvailable: "有新版本可用",
+    updateDescription: "新版本已准备就绪，点击更新。",
+    update: "更新",
+    offlineReady: "应用已可离线使用",
+    installPrompt: "安装应用以获得更好体验",
+    install: "安装",
+  },
+
+  // Dismiss button
+  dismiss: "关闭",
 } as const;

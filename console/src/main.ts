@@ -8,6 +8,9 @@ import "./style.css";
 import "./assets/markdown.css";
 import VueDnDKitPlugin from "@vue-dnd-kit/core";
 
+// Import PWA registration (this registers the service worker)
+import "@/pwa-register";
+
 async function bootstrap() {
   const app = createApp(App);
 

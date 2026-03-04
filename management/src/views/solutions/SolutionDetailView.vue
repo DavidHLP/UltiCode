@@ -5,10 +5,8 @@ import { useI18n } from 'vue-i18n'
 import { useSolutionsStore } from '@/stores/admin/solutions'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { ArrowLeft, Flag, Eye, FileText, Trash, User } from 'lucide-vue-next'
+import { ArrowLeft, Flag, Eye, Trash, FileText, User } from 'lucide-vue-next'
 import { toast } from 'vue-sonner'
 import DescriptionDisplay from './components/DescriptionDisplay.vue'
 import CodeDisplay from './components/CodeDisplay.vue'
@@ -37,9 +35,13 @@ const currentView = computed(() => {
   return 'description'
 })
 
-function handleTabChange(value: string | number) {
-  const view = value as string
-  const routeName = `solution-view-${view}`
+const tabs = computed(() => [
+  { value: 'description', label: t('solutions.tabs.description') },
+  { value: 'code', label: t('solutions.tabs.code') },
+])
+
+function handleTabChange(value: string) {
+  const routeName = `solution-view-${value}`
   router.push({ name: routeName, params: { id: solutionId.value } })
 }
 
@@ -76,133 +78,166 @@ async function handleDeleteSolution(id: string | number) {
 async function handleFlagSolution(id: string | number, reason?: string) {
   await solutionsStore.flagSolution(String(id), { reason: reason || '' })
 }
+
+function back() {
+  router.push({ name: 'solutions' })
+}
 </script>
 
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-background flex flex-col">
-    <!-- Header -->
-    <header class="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
+    <!-- Terminal Header -->
+    <header
+      class="sticky top-0 z-10 bg-[var(--card)]/95 backdrop-blur border-b border-[var(--silver-200)]"
+    >
       <div class="flex items-center justify-between h-14 px-4 lg:px-6">
-        <!-- Left: Back & Title -->
-        <div class="flex items-center gap-4 min-w-0">
+        <div class="flex items-center gap-4">
           <Button
             variant="ghost"
             size="icon"
-            class="h-8 w-8 text-muted-foreground -ml-2"
-            @click="router.push({ name: 'solutions' })"
+            class="h-8 w-8 text-[var(--silver-400)] -ml-2 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]"
+            @click="back"
           >
             <ArrowLeft :size="18" />
           </Button>
-
-          <div v-if="solution" class="flex items-center gap-3 min-w-0">
-            <h1 class="text-sm font-semibold truncate">{{ solution.title }}</h1>
-            <div class="hidden sm:flex items-center gap-2">
-              <Badge
-                v-if="solution.is_flagged"
-                variant="destructive"
-                class="text-[10px] px-1.5 py-0 h-5"
-              >
-                {{ t('solutions.status.flagged') }}
-              </Badge>
-              <Badge
-                v-if="!solution.is_published"
-                variant="secondary"
-                class="text-[10px] px-1.5 py-0 h-5"
-              >
-                {{ t('solutions.status.unpublished') }}
-              </Badge>
-              <Badge variant="outline" class="text-[10px] px-1.5 py-0 h-5 flex gap-1">
-                <User :size="10" />
-                {{ solution.author.username }}
-              </Badge>
-            </div>
-          </div>
+          <span class="terminal-prompt">solution</span>
+          <span class="terminal-cursor" />
+          <h1 v-if="solution" class="text-sm font-semibold text-[var(--foreground)]">
+            {{ solution.title }}
+          </h1>
           <Skeleton v-else class="h-5 w-32" />
         </div>
 
-        <!-- Center: Tabs (Desktop) -->
-        <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
-          <Tabs :model-value="currentView" @update:model-value="handleTabChange">
-            <TabsList class="h-9">
-              <TabsTrigger value="description" class="text-xs h-7 px-3">{{
-                t('solutions.tabs.description')
-              }}</TabsTrigger>
-              <TabsTrigger value="code" class="text-xs h-7 px-3">{{
-                t('solutions.tabs.code')
-              }}</TabsTrigger>
-            </TabsList>
-          </Tabs>
-        </div>
-
-        <!-- Right: Actions -->
+        <!-- Actions -->
         <div v-if="solution" class="flex items-center gap-2">
           <template v-if="canUpdateSolution">
             <Button
               v-if="solution.is_flagged"
-              variant="outline"
+              variant="terminal"
               size="sm"
-              class="h-8 gap-1.5 hidden sm:flex text-emerald-600 hover:text-emerald-700"
+              class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
               @click="unflagSolution"
             >
-              <Eye :size="14" />
-              <span>{{ t('solutions.actions.unflag') }}</span>
+              <Eye :size="14" class="mr-1.5" />
+              <span class="uppercase tracking-wider">{{ t('solutions.actions.unflag') }}</span>
             </Button>
             <Button
               v-else
-              variant="outline"
+              variant="terminal"
               size="sm"
-              class="h-8 gap-1.5 hidden sm:flex text-amber-600 hover:text-amber-700"
+              class="h-8 font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[oklch(0.75_0.15_85/0.1)]"
               @click="flagDialogOpen = true"
             >
-              <Flag :size="14" />
-              <span>{{ t('solutions.actions.flag') }}</span>
+              <Flag :size="14" class="mr-1.5" />
+              <span class="uppercase tracking-wider">{{ t('solutions.actions.flag') }}</span>
             </Button>
           </template>
 
           <Button
             v-if="canDeleteSolution"
-            variant="ghost"
-            size="icon"
-            class="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            variant="terminal"
+            size="sm"
+            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
             @click="deleteDialogOpen = true"
           >
-            <Trash :size="16" />
+            <Trash :size="14" class="mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('solutions.actions.delete') }}</span>
           </Button>
         </div>
       </div>
 
-      <!-- Mobile Tabs (Below Header) -->
-      <div class="md:hidden border-t p-1 bg-muted/10">
-        <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
-          <TabsList class="w-full h-9">
-            <TabsTrigger value="description" class="flex-1 text-xs h-7">{{
-              t('solutions.tabs.description')
-            }}</TabsTrigger>
-            <TabsTrigger value="code" class="flex-1 text-xs h-7">{{
-              t('solutions.tabs.code')
-            }}</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <!-- Status Ticker -->
+      <div
+        v-if="solution"
+        class="px-4 lg:px-6 py-2.5 border-t border-[var(--silver-200)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-6 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="terminal-label">status:</span>
+            <span
+              v-if="solution.is_flagged"
+              class="font-data text-[var(--terminal-amber)] uppercase"
+            >
+              flagged
+            </span>
+            <span
+              v-else-if="solution.is_published"
+              class="font-data text-[var(--terminal-green)] uppercase"
+            >
+              published
+            </span>
+            <span v-else class="font-data text-[var(--silver-400)] uppercase"> unpublished </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="terminal-label">author:</span>
+            <div class="flex items-center gap-1">
+              <User :size="10" class="text-[var(--terminal-cyan)]" />
+              <span class="font-data text-[var(--terminal-cyan)]">{{
+                solution.author.username
+              }}</span>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="terminal-label">views:</span>
+            <span class="font-data text-[var(--silver-400)] tabular-nums">{{
+              solution.views.toLocaleString()
+            }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Terminal Tabs Navigation -->
+      <div class="border-b border-[var(--silver-200)] bg-[var(--card)]">
+        <div class="px-4 lg:px-6 flex gap-1">
+          <button
+            v-for="tab in tabs"
+            :key="tab.value"
+            :class="[
+              'px-4 py-3 font-data text-xs uppercase tracking-[0.05em] border-b-2 transition-colors cursor-pointer',
+              currentView === tab.value
+                ? 'border-[var(--accent-electric)] text-[var(--foreground)]'
+                : 'border-transparent text-[var(--silver-400)] hover:text-[var(--silver-600)] dark:hover:text-[var(--silver-300)]',
+            ]"
+            @click="handleTabChange(tab.value)"
+          >
+            <span v-if="currentView === tab.value" class="text-[var(--accent-electric)]">//</span>
+            {{ tab.label }}
+          </button>
+        </div>
       </div>
     </header>
 
     <!-- Main Content -->
-    <main class="flex-1 w-full max-w-[1600px] mx-auto p-4 lg:p-6 lg:pt-8">
+    <main class="flex-1 w-full max-w-5xl mx-auto p-4 lg:p-6 lg:pt-8">
       <!-- Error State -->
       <div
         v-if="solutionsStore.error"
         class="flex flex-col items-center justify-center py-24 text-center"
       >
-        <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-          <FileText :size="24" class="text-muted-foreground" />
+        <div
+          class="w-12 h-12 rounded-full border-2 border-[var(--terminal-red)] flex items-center justify-center mb-3"
+        >
+          <FileText :size="24" class="text-[var(--terminal-red)]" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">{{ t('solutions.error.loadingSolution') }}</h2>
-        <p class="text-xs text-muted-foreground mb-4">{{ solutionsStore.error }}</p>
+        <h2 class="text-sm font-semibold mb-1 text-[var(--foreground)]">
+          {{ t('solutions.error.loadingSolution') }}
+        </h2>
+        <p class="text-xs font-data text-[var(--silver-400)] mb-4">{{ solutionsStore.error }}</p>
         <div class="flex gap-2">
-          <Button variant="outline" size="sm" @click="router.push({ name: 'solutions' })">
+          <Button
+            variant="terminal"
+            size="sm"
+            class="font-data text-xs border-[var(--silver-300)]"
+            @click="back"
+          >
             {{ t('solutions.error.back') }}
           </Button>
-          <Button size="sm" @click="solutionsStore.fetchSolution(solutionId)">
+          <Button
+            variant="terminal"
+            size="sm"
+            class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)]"
+            @click="solutionsStore.fetchSolution(solutionId)"
+          >
             {{ t('solutions.error.retry') }}
           </Button>
         </div>
@@ -210,15 +245,9 @@ async function handleFlagSolution(id: string | number, reason?: string) {
 
       <!-- Loading State -->
       <div v-else-if="isInitialLoad || solutionsStore.loading" class="space-y-6">
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div class="lg:col-span-8 space-y-4">
-            <Skeleton class="h-12 w-3/4 rounded-lg" />
-            <Skeleton class="h-64 w-full rounded-xl" />
-          </div>
-          <div class="lg:col-span-4 space-y-4">
-            <Skeleton class="h-32 w-full rounded-xl" />
-            <Skeleton class="h-32 w-full rounded-xl" />
-          </div>
+        <div class="space-y-4">
+          <Skeleton class="h-12 w-1/3 rounded-lg" />
+          <Skeleton class="h-64 w-full rounded-xl" />
         </div>
       </div>
 
@@ -227,14 +256,23 @@ async function handleFlagSolution(id: string | number, reason?: string) {
         v-else-if="!solution"
         class="flex flex-col items-center justify-center py-24 text-center"
       >
-        <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-          <FileText :size="24" class="text-muted-foreground" />
+        <div
+          class="w-12 h-12 rounded-full border-2 border-[var(--terminal-amber)] flex items-center justify-center mb-3"
+        >
+          <FileText :size="24" class="text-[var(--terminal-amber)]" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">{{ t('solutions.error.solutionNotFound') }}</h2>
-        <p class="text-xs text-muted-foreground mb-4">
+        <h2 class="text-sm font-semibold mb-1 text-[var(--foreground)]">
+          {{ t('solutions.error.solutionNotFound') }}
+        </h2>
+        <p class="text-xs font-data text-[var(--silver-400)] mb-4">
           {{ t('solutions.error.notFoundDescription') }}
         </p>
-        <Button variant="outline" size="sm" @click="router.push({ name: 'solutions' })">
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)]"
+          @click="back"
+        >
           {{ t('solutions.error.backToSolutions') }}
         </Button>
       </div>

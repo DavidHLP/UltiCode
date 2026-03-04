@@ -9,10 +9,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Field,
@@ -118,159 +115,221 @@ async function handleSubmit() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[600px]">
-      <DialogHeader>
-        <DialogTitle>{{ t('notifications.dialog.createTitle') }}</DialogTitle>
-        <DialogDescription>{{ t('notifications.dialog.createDescription') }}</DialogDescription>
-      </DialogHeader>
+    <DialogContent class="sm:max-w-[600px] terminal-card p-0 overflow-hidden">
+      <!-- Terminal Header -->
+      <div class="terminal-card-header flex items-center justify-between">
+        <span class="font-data text-sm uppercase tracking-wider">{{
+          t('notifications.dialog.createTitle')
+        }}</span>
+      </div>
 
-      <form @submit.prevent="handleSubmit">
-        <div
-          v-if="error"
-          class="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md"
-        >
-          {{ error }}
-        </div>
+      <!-- Content -->
+      <div class="p-4">
+        <p class="text-sm text-[var(--silver-500)] mb-4">
+          {{ t('notifications.dialog.createDescription') }}
+        </p>
 
-        <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
-          <FieldSet>
-            <FieldLegend>{{ t('notifications.form.messageContent') }}</FieldLegend>
-            <FieldDescription>{{
-              t('notifications.form.messageContentDescription')
-            }}</FieldDescription>
-            <FieldGroup>
-              <Field>
-                <FieldLabel for="notification-title">{{
-                  t('notifications.form.notificationTitle')
-                }}</FieldLabel>
-                <Input
-                  id="notification-title"
-                  v-model="form.title"
-                  type="text"
-                  required
-                  :disabled="loading"
-                  :placeholder="t('notifications.form.notificationTitlePlaceholder')"
-                />
-              </Field>
+        <form @submit.prevent="handleSubmit">
+          <!-- Error Block - Terminal Style -->
+          <div
+            v-if="error"
+            class="mb-4 p-3 border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] text-sm"
+          >
+            <span class="font-data text-[var(--terminal-red)]">&gt; ERROR: </span>
+            <span class="text-[var(--foreground)]">{{ error }}</span>
+          </div>
 
-              <Field>
-                <FieldLabel for="notification-content">{{
-                  t('notifications.form.notificationContent')
-                }}</FieldLabel>
-                <Textarea
-                  id="notification-content"
-                  v-model="form.content"
-                  required
-                  :disabled="loading"
-                  :placeholder="t('notifications.form.notificationContentPlaceholder')"
-                  rows="4"
-                />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-
-          <FieldSeparator />
-
-          <FieldSet>
-            <FieldLegend>{{ t('notifications.form.classification') }}</FieldLegend>
-            <FieldDescription>{{
-              t('notifications.form.classificationDescription')
-            }}</FieldDescription>
-            <FieldGroup>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
+            <FieldSet>
+              <FieldLegend class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]">{{
+                t('notifications.form.messageContent')
+              }}</FieldLegend>
+              <FieldDescription class="text-[var(--silver-500)]">{{
+                t('notifications.form.messageContentDescription')
+              }}</FieldDescription>
+              <FieldGroup class="mt-3">
                 <Field>
-                  <FieldLabel for="notification-type">{{
-                    t('notifications.form.type')
+                  <FieldLabel for="notification-title" class="terminal-label">{{
+                    t('notifications.form.notificationTitle')
                   }}</FieldLabel>
-                  <Select v-model="form.type" :disabled="loading">
-                    <SelectTrigger id="notification-type">
-                      <SelectValue :placeholder="t('notifications.form.selectType')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem v-for="type in NotificationType" :key="type" :value="type">
-                        {{ type }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="notification-title"
+                    v-model="form.title"
+                    type="text"
+                    required
+                    :disabled="loading"
+                    :placeholder="t('notifications.form.notificationTitlePlaceholder')"
+                    class="terminal-input font-data text-sm"
+                  />
                 </Field>
 
                 <Field>
-                  <FieldLabel for="notification-category">{{
-                    t('notifications.form.category')
+                  <FieldLabel for="notification-content" class="terminal-label">{{
+                    t('notifications.form.notificationContent')
                   }}</FieldLabel>
-                  <Select v-model="form.category" :disabled="loading">
-                    <SelectTrigger id="notification-category">
-                      <SelectValue :placeholder="t('notifications.form.selectCategory')" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem
-                        v-for="category in NotificationCategory"
-                        :key="category"
-                        :value="category"
+                  <Textarea
+                    id="notification-content"
+                    v-model="form.content"
+                    required
+                    :disabled="loading"
+                    :placeholder="t('notifications.form.notificationContentPlaceholder')"
+                    rows="4"
+                    class="terminal-input font-data text-sm min-h-[100px] resize-y"
+                  />
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+
+            <FieldSeparator class="border-[var(--silver-200)] dark:border-[var(--silver-300)]" />
+
+            <FieldSet>
+              <FieldLegend class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]">{{
+                t('notifications.form.classification')
+              }}</FieldLegend>
+              <FieldDescription class="text-[var(--silver-500)]">{{
+                t('notifications.form.classificationDescription')
+              }}</FieldDescription>
+              <FieldGroup class="mt-3">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field>
+                    <FieldLabel for="notification-type" class="terminal-label">{{
+                      t('notifications.form.type')
+                    }}</FieldLabel>
+                    <Select v-model="form.type" :disabled="loading">
+                      <SelectTrigger
+                        id="notification-type"
+                        class="terminal-input font-data text-sm"
                       >
-                        {{ category }}
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                        <SelectValue :placeholder="t('notifications.form.selectType')" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem
+                          v-for="type in NotificationType"
+                          :key="type"
+                          :value="type"
+                          class="font-data"
+                        >
+                          {{ type }}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+
+                  <Field>
+                    <FieldLabel for="notification-category" class="terminal-label">{{
+                      t('notifications.form.category')
+                    }}</FieldLabel>
+                    <Select v-model="form.category" :disabled="loading">
+                      <SelectTrigger
+                        id="notification-category"
+                        class="terminal-input font-data text-sm"
+                      >
+                        <SelectValue :placeholder="t('notifications.form.selectCategory')" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem
+                          v-for="category in NotificationCategory"
+                          :key="category"
+                          :value="category"
+                          class="font-data"
+                        >
+                          {{ category }}
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </Field>
+                </div>
+              </FieldGroup>
+            </FieldSet>
+
+            <FieldSeparator class="border-[var(--silver-200)] dark:border-[var(--silver-300)]" />
+
+            <FieldSet>
+              <FieldLegend class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]">{{
+                t('notifications.form.targetAudience')
+              }}</FieldLegend>
+              <FieldDescription class="text-[var(--silver-500)]">{{
+                t('notifications.form.targetAudienceDescription')
+              }}</FieldDescription>
+              <FieldGroup class="mt-3">
+                <Field>
+                  <RadioGroup
+                    v-model="form.target"
+                    class="flex flex-col space-y-2"
+                  >
+                    <div
+                      class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
+                      :class="{
+                        'border-[var(--terminal-cyan)] bg-[oklch(0.65_0.15_200/0.08)]':
+                          form.target === NotificationTarget.ALL,
+                      }"
+                    >
+                      <RadioGroupItem :value="NotificationTarget.ALL" id="target-all" />
+                      <FieldLabel for="target-all" class="font-normal cursor-pointer">
+                        {{ t('notifications.form.allUsers') }}
+                      </FieldLabel>
+                    </div>
+                    <div
+                      class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
+                      :class="{
+                        'border-[var(--terminal-cyan)] bg-[oklch(0.65_0.15_200/0.08)]':
+                          form.target === NotificationTarget.USERS,
+                      }"
+                    >
+                      <RadioGroupItem :value="NotificationTarget.USERS" id="target-users" />
+                      <FieldLabel for="target-users" class="font-normal cursor-pointer">
+                        {{ t('notifications.form.specificUsers') }}
+                      </FieldLabel>
+                    </div>
+                  </RadioGroup>
                 </Field>
-              </div>
-            </FieldGroup>
-          </FieldSet>
 
-          <FieldSeparator />
+                <Field v-if="form.target === NotificationTarget.USERS">
+                  <FieldLabel for="notification-userIds" class="terminal-label">{{
+                    t('notifications.form.userIds')
+                  }}</FieldLabel>
+                  <Textarea
+                    id="notification-userIds"
+                    v-model="form.userIds"
+                    :disabled="loading"
+                    :placeholder="t('notifications.form.userIdsPlaceholder')"
+                    rows="2"
+                    class="terminal-input font-data text-sm"
+                  />
+                </Field>
+              </FieldGroup>
+            </FieldSet>
+          </FieldGroup>
 
-          <FieldSet>
-            <FieldLegend>{{ t('notifications.form.targetAudience') }}</FieldLegend>
-            <FieldDescription>{{
-              t('notifications.form.targetAudienceDescription')
-            }}</FieldDescription>
-            <FieldGroup>
-              <Field>
-                <RadioGroup v-model="form.target" class="flex flex-col space-y-2">
-                  <div class="flex items-center space-x-3">
-                    <RadioGroupItem :value="NotificationTarget.ALL" id="target-all" />
-                    <FieldLabel for="target-all" class="font-normal cursor-pointer">
-                      {{ t('notifications.form.allUsers') }}
-                    </FieldLabel>
-                  </div>
-                  <div class="flex items-center space-x-3">
-                    <RadioGroupItem :value="NotificationTarget.USERS" id="target-users" />
-                    <FieldLabel for="target-users" class="font-normal cursor-pointer">
-                      {{ t('notifications.form.specificUsers') }}
-                    </FieldLabel>
-                  </div>
-                </RadioGroup>
-              </Field>
-
-              <Field v-if="form.target === NotificationTarget.USERS">
-                <FieldLabel for="notification-userIds">{{
-                  t('notifications.form.userIds')
-                }}</FieldLabel>
-                <Textarea
-                  id="notification-userIds"
-                  v-model="form.userIds"
-                  :disabled="loading"
-                  :placeholder="t('notifications.form.userIdsPlaceholder')"
-                  rows="2"
-                />
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-        </FieldGroup>
-
-        <DialogFooter class="mt-6">
-          <Button type="button" variant="outline" @click="emit('update:open', false)">
-            {{ t('common.cancel') }}
-          </Button>
-          <Button type="submit" :disabled="loading">
-            {{
-              loading
-                ? t('notifications.dialog.sending')
-                : t('notifications.dialog.sendNotification')
-            }}
-          </Button>
-        </DialogFooter>
-      </form>
+          <!-- Footer Buttons - Terminal Style -->
+          <DialogFooter class="mt-6 flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="terminal"
+              size="sm"
+              class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--silver-400)]"
+              @click="emit('update:open', false)"
+            >
+              {{ t('common.cancel') }}
+            </Button>
+            <Button
+              type="submit"
+              variant="terminal"
+              size="sm"
+              class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[oklch(0.65_0.15_250/0.1)]"
+              :disabled="loading"
+            >
+              <span v-if="loading" class="flex items-center gap-2">
+                <span class="animate-spin">⟳</span>
+                {{ t('notifications.dialog.sending') }}
+              </span>
+              <span v-else>
+                {{ t('notifications.dialog.sendNotification') }}
+              </span>
+            </Button>
+          </DialogFooter>
+        </form>
+      </div>
     </DialogContent>
   </Dialog>
 </template>

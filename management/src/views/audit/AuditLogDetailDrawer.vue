@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { IconDatabase, IconUser, IconTerminal, IconEye, IconClock } from '@tabler/icons-vue'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import type { AuditLog } from '@/api/admin/audit'
 import {
   formatJson,
-  getActionBadgeVariant,
+  getActionBadgeClass,
   getActionIcon,
   getActionIconColor,
   getEntityTypeIcon,
@@ -37,9 +36,13 @@ const emit = defineEmits<{
     not-found-text="Select a log entry to view details"
   >
     <template #content="{ entity }">
-      <!-- Header Info -->
-      <div class="flex items-start gap-4">
-        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted shadow-sm">
+      <!-- Header Info - Terminal Style -->
+      <div
+        class="flex items-start gap-4 p-4 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
+        <div
+          class="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--terminal-cyan)] bg-[oklch(0.65_0.15_200/0.1)]"
+        >
           <component
             :is="getActionIcon(entity.action)"
             class="h-6 w-6"
@@ -47,39 +50,43 @@ const emit = defineEmits<{
           />
         </div>
         <div class="flex flex-col gap-1">
-          <h3 class="text-lg font-semibold leading-none tracking-tight">
+          <h3 class="text-lg font-data font-semibold tracking-tight">
             {{ entity.action }}
           </h3>
-          <p class="text-sm text-muted-foreground flex items-center gap-1">
+          <p class="text-sm text-[var(--silver-500)] flex items-center gap-1">
             <IconClock class="h-3.5 w-3.5" />
-            {{ new Date(entity.created_at).toLocaleString() }}
+            <span class="font-data tabular-nums">{{
+              new Date(entity.created_at).toLocaleString()
+            }}</span>
           </p>
           <div class="flex flex-wrap gap-2 mt-1">
-            <Badge :variant="getActionBadgeVariant(entity.action)">
+            <span :class="['terminal-badge', getActionBadgeClass(entity.action)]">
               {{ entity.action }}
-            </Badge>
-            <Badge variant="outline" class="font-mono"> ID: {{ entity.id.slice(0, 8) }} </Badge>
+            </span>
+            <span class="terminal-badge terminal-badge-info">ID: {{ entity.id.slice(0, 8) }}</span>
           </div>
         </div>
       </div>
 
       <Separator />
 
-      <!-- Context Grid -->
+      <!-- Context Grid - Terminal Style -->
       <div class="grid grid-cols-2 gap-6">
         <div class="space-y-4">
-          <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+          <span class="terminal-label text-xs uppercase tracking-wider">
             {{ t('audit.columns.performer') }}
-          </h4>
+          </span>
           <div class="flex items-center gap-3">
-            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
-              <IconUser class="h-4 w-4 text-muted-foreground" />
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+            >
+              <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
             </div>
             <div class="flex flex-col">
-              <span class="text-sm font-medium">
+              <span class="text-sm font-medium font-data">
                 {{ entity.performer?.username || 'System' }}
               </span>
-              <span class="text-xs text-muted-foreground">
+              <span class="text-xs text-[var(--silver-500)]">
                 {{ entity.performer?.role || 'SYSTEM' }}
               </span>
             </div>
@@ -87,21 +94,21 @@ const emit = defineEmits<{
         </div>
 
         <div class="space-y-4">
-          <h4 class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-            Target Entity
-          </h4>
+          <span class="terminal-label text-xs uppercase tracking-wider"> Target Entity </span>
           <div class="flex items-center gap-3">
-            <div class="flex h-8 w-8 items-center justify-center rounded-full bg-muted">
+            <div
+              class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+            >
               <component
                 :is="getEntityTypeIcon(entity.entity_type)"
-                class="h-4 w-4 text-muted-foreground"
+                class="h-4 w-4 text-[var(--silver-500)]"
               />
             </div>
             <div class="flex flex-col">
               <span class="text-sm font-medium">
                 {{ entity.entity_type || 'N/A' }}
               </span>
-              <span class="text-xs text-muted-foreground font-mono">
+              <span class="text-xs text-[var(--silver-500)] font-data">
                 {{ entity.entity_id?.slice(0, 8) || 'N/A' }}
               </span>
             </div>
@@ -109,21 +116,24 @@ const emit = defineEmits<{
         </div>
       </div>
 
+      <!-- Request Context - Terminal Style -->
       <div
         v-if="entity.ip_address || entity.user_agent"
-        class="rounded-lg bg-muted/50 p-3 space-y-2 border"
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] p-3 space-y-2"
       >
         <div v-if="entity.ip_address" class="flex items-center justify-between text-sm">
-          <span class="text-muted-foreground flex items-center gap-2">
+          <span class="text-[var(--silver-500)] flex items-center gap-2">
             <IconTerminal class="h-3.5 w-3.5" /> {{ t('audit.columns.ip') }}
           </span>
-          <span class="font-mono">{{ entity.ip_address }}</span>
+          <span class="font-data text-[var(--terminal-cyan)]">{{ entity.ip_address }}</span>
         </div>
         <div v-if="entity.user_agent" class="flex flex-col gap-1 text-sm">
-          <span class="text-muted-foreground flex items-center gap-2">
+          <span class="text-[var(--silver-500)] flex items-center gap-2">
             <IconEye class="h-3.5 w-3.5" /> User Agent
           </span>
-          <span class="text-xs text-muted-foreground break-all bg-background p-2 rounded border">
+          <span
+            class="text-xs text-[var(--silver-400)] break-all bg-[var(--card)] p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] font-data"
+          >
             {{ entity.user_agent }}
           </span>
         </div>
@@ -131,30 +141,28 @@ const emit = defineEmits<{
 
       <Separator />
 
-      <!-- Changes -->
+      <!-- Changes - Terminal Style -->
       <div class="space-y-4">
-        <h4 class="text-sm font-medium leading-none flex items-center gap-2">
-          <IconDatabase class="h-4 w-4" />
+        <h4 class="text-sm font-medium leading-none flex items-center gap-2 font-data">
+          <IconDatabase class="h-4 w-4 text-[var(--terminal-cyan)]" />
           Data Changes
         </h4>
 
         <div
           v-if="!entity.old_values && !entity.new_values"
-          class="text-sm text-muted-foreground italic pl-6"
+          class="text-sm text-[var(--silver-500)] italic pl-6 font-data"
         >
-          No data changes recorded.
+          &gt; No data changes recorded.
         </div>
 
         <div v-else class="grid gap-4">
           <div v-if="entity.old_values" class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                Previous State
-              </span>
-            </div>
-            <div class="relative rounded-md border bg-muted/30">
-              <ScrollArea class="h-[200px] w-full rounded-md">
-                <pre class="p-4 text-xs font-mono leading-relaxed">{{
+            <span class="terminal-label text-xs uppercase tracking-wider"> Previous State </span>
+            <div
+              class="relative rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+            >
+              <ScrollArea class="h-[200px] w-full rounded">
+                <pre class="p-4 text-xs font-data leading-relaxed text-[var(--terminal-cyan)]">{{
                   formatJson(entity.old_values)
                 }}</pre>
               </ScrollArea>
@@ -162,14 +170,12 @@ const emit = defineEmits<{
           </div>
 
           <div v-if="entity.new_values" class="space-y-2">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                New State
-              </span>
-            </div>
-            <div class="relative rounded-md border bg-muted/30">
-              <ScrollArea class="h-[200px] w-full rounded-md">
-                <pre class="p-4 text-xs font-mono leading-relaxed">{{
+            <span class="terminal-label text-xs uppercase tracking-wider"> New State </span>
+            <div
+              class="relative rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+            >
+              <ScrollArea class="h-[200px] w-full rounded">
+                <pre class="p-4 text-xs font-data leading-relaxed text-[var(--terminal-green)]">{{
                   formatJson(entity.new_values)
                 }}</pre>
               </ScrollArea>

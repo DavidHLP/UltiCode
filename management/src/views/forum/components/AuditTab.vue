@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { TerminalBadge } from '@/components/ui/terminal'
 import {
   IconCalendar,
   IconFlag,
@@ -26,56 +25,47 @@ const actionConfig = computed(() => ({
   PIN_FORUM_POST: {
     label: t('forum.auditActions.PIN_FORUM_POST'),
     icon: IconPin,
-    variant: 'default' as const,
-    color: 'text-blue-500',
+    variant: 'info' as const,
   },
   UNPIN_FORUM_POST: {
     label: t('forum.auditActions.UNPIN_FORUM_POST'),
     icon: IconPin,
-    variant: 'secondary' as const,
-    color: 'text-gray-500',
+    variant: 'default' as const,
   },
   LOCK_FORUM_POST: {
     label: t('forum.auditActions.LOCK_FORUM_POST'),
     icon: IconLock,
-    variant: 'default' as const,
-    color: 'text-amber-500',
+    variant: 'warning' as const,
   },
   UNLOCK_FORUM_POST: {
     label: t('forum.auditActions.UNLOCK_FORUM_POST'),
     icon: IconLock,
-    variant: 'secondary' as const,
-    color: 'text-gray-500',
+    variant: 'default' as const,
   },
   DELETE_FORUM_POST: {
     label: t('forum.auditActions.DELETE_FORUM_POST'),
     icon: IconTrash,
-    variant: 'destructive' as const,
-    color: 'text-red-500',
+    variant: 'error' as const,
   },
   FLAG_FORUM_POST: {
     label: t('forum.auditActions.FLAG_FORUM_POST'),
     icon: IconFlag,
-    variant: 'destructive' as const,
-    color: 'text-red-500',
+    variant: 'error' as const,
   },
   UNFLAG_FORUM_POST: {
     label: t('forum.auditActions.UNFLAG_FORUM_POST'),
     icon: IconFlag,
-    variant: 'secondary' as const,
-    color: 'text-green-500',
+    variant: 'success' as const,
   },
   BULK_DELETE_FORUM: {
     label: t('forum.auditActions.BULK_DELETE_FORUM'),
     icon: IconTrash,
-    variant: 'destructive' as const,
-    color: 'text-red-500',
+    variant: 'error' as const,
   },
   BULK_PIN_FORUM: {
     label: t('forum.auditActions.BULK_PIN_FORUM'),
     icon: IconPin,
-    variant: 'default' as const,
-    color: 'text-blue-500',
+    variant: 'info' as const,
   },
 }))
 
@@ -84,8 +74,7 @@ function getActionConfig(action: string) {
     actionConfig.value[action as keyof typeof actionConfig.value] || {
       label: t('forum.auditActions.' + action) || action,
       icon: IconActivity,
-      variant: 'outline' as const,
-      color: 'text-gray-500',
+      variant: 'default' as const,
     }
   )
 }
@@ -110,82 +99,136 @@ function getChangesText(entry: AuditEntry): string | null {
 
 <template>
   <div class="space-y-4">
+    <!-- Terminal Header -->
+    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]">
+      <div
+        class="px-4 py-3 flex items-center gap-3 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+      >
+        <div class="flex items-center gap-2">
+          <span class="terminal-prompt text-sm">audit</span>
+          <span class="terminal-cursor" />
+        </div>
+        <IconShield class="h-4 w-4 text-[var(--terminal-cyan)]" />
+        <h3 class="text-sm font-medium text-[var(--foreground)]">{{ t('forum.tabs.audit') }}</h3>
+      </div>
+      <div class="px-4 py-2 bg-[var(--surface-sunken)]">
+        <span class="font-data text-xs text-[var(--silver-400)]">
+          &gt; {{ t('forum.audit.description') }}
+        </span>
+      </div>
+    </div>
+
     <!-- Loading State -->
-    <div v-if="loading" class="space-y-4">
-      <Card v-for="i in 3" :key="i">
-        <CardContent class="p-4">
-          <div class="flex items-start gap-4">
-            <Skeleton class="h-10 w-10 rounded-full" />
-            <div class="flex-1 space-y-2">
-              <Skeleton class="h-4 w-32" />
-              <Skeleton class="h-3 w-48" />
-              <Skeleton class="h-3 w-24" />
-            </div>
+    <div v-if="loading" class="space-y-3">
+      <div
+        v-for="i in 3"
+        :key="i"
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--card)]"
+      >
+        <div class="flex items-start gap-4">
+          <Skeleton class="h-10 w-10 rounded-sm" />
+          <div class="flex-1 space-y-2">
+            <Skeleton class="h-4 w-32 rounded-sm" />
+            <Skeleton class="h-3 w-48 rounded-sm" />
+            <Skeleton class="h-3 w-24 rounded-sm" />
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
 
     <!-- Empty State -->
-    <Card v-else-if="auditHistory.length === 0">
-      <CardContent class="p-8 text-center">
-        <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mx-auto mb-3">
-          <IconShield class="h-5 w-5 text-muted-foreground" />
-        </div>
-        <p class="text-sm text-muted-foreground">{{ t('forum.audit.noAuditHistory') }}</p>
-      </CardContent>
-    </Card>
+    <div
+      v-else-if="auditHistory.length === 0"
+      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-8 text-center bg-[var(--card)]"
+    >
+      <div
+        class="w-10 h-10 border border-[var(--silver-300)] flex items-center justify-center mx-auto mb-3"
+      >
+        <IconShield class="h-5 w-5 text-[var(--silver-400)]" />
+      </div>
+      <p class="font-data text-xs text-[var(--silver-400)]">
+        &gt; {{ t('forum.audit.noAuditHistory') }}
+      </p>
+    </div>
 
     <!-- Audit Timeline -->
     <div v-else class="space-y-3">
-      <Card v-for="entry in auditHistory" :key="entry.id" class="overflow-hidden">
-        <CardContent class="p-4">
-          <div class="flex items-start gap-4">
-            <!-- Action Icon -->
-            <div
-              class="h-10 w-10 rounded-full bg-muted flex items-center justify-center flex-shrink-0"
-            >
+      <div
+        v-for="entry in auditHistory"
+        :key="entry.id"
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] overflow-hidden"
+      >
+        <!-- Header with action badge -->
+        <div
+          class="px-4 py-3 flex items-center justify-between border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        >
+          <div class="flex items-center gap-3">
+            <div class="h-8 w-8 border border-[var(--silver-300)] flex items-center justify-center">
               <component
                 :is="getActionConfig(entry.action).icon"
-                :class="['h-5 w-5', getActionConfig(entry.action).color]"
+                :class="[
+                  'h-4 w-4',
+                  getActionConfig(entry.action).variant === 'error' && 'text-[var(--terminal-red)]',
+                  getActionConfig(entry.action).variant === 'warning' &&
+                    'text-[var(--terminal-amber)]',
+                  getActionConfig(entry.action).variant === 'success' &&
+                    'text-[var(--terminal-green)]',
+                  getActionConfig(entry.action).variant === 'info' && 'text-[var(--terminal-cyan)]',
+                  getActionConfig(entry.action).variant === 'default' && 'text-[var(--silver-400)]',
+                ]"
               />
             </div>
-
-            <!-- Content -->
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 flex-wrap mb-1">
-                <span class="font-medium text-sm">{{ entry.performer.username }}</span>
-                <span class="text-muted-foreground text-xs">{{ t('forum.audit.performed') }}</span>
-                <Badge :variant="getActionConfig(entry.action).variant" class="text-xs">
-                  {{ getActionConfig(entry.action).label }}
-                </Badge>
-              </div>
-
-              <div class="text-xs text-muted-foreground flex items-center gap-1 mb-2">
-                <IconCalendar class="h-3 w-3" />
-                {{ formatDate(entry.created_at) }}
-              </div>
-
-              <!-- Changes -->
-              <div
-                v-if="getChangesText(entry)"
-                class="mt-2 p-2 rounded bg-muted/50 text-xs font-mono whitespace-pre-wrap overflow-x-auto"
-              >
-                {{ getChangesText(entry) }}
-              </div>
-
-              <!-- Additional Info -->
-              <div
-                v-if="entry.ipAddress || entry.userAgent"
-                class="mt-2 text-xs text-muted-foreground"
-              >
-                <div v-if="entry.ipAddress">{{ t('forum.audit.ip') }} {{ entry.ipAddress }}</div>
-                <div v-if="entry.userAgent" class="truncate">{{ entry.userAgent }}</div>
-              </div>
+            <div class="flex items-center gap-2">
+              <span class="font-data text-sm text-[var(--foreground)]">{{
+                entry.performer.username
+              }}</span>
+              <span class="font-data text-xs text-[var(--silver-400)]">{{
+                t('forum.audit.performed')
+              }}</span>
             </div>
           </div>
-        </CardContent>
-      </Card>
+          <TerminalBadge
+            :variant="getActionConfig(entry.action).variant"
+            :label="getActionConfig(entry.action).label"
+          />
+        </div>
+
+        <!-- Content -->
+        <div class="p-4">
+          <!-- Timestamp -->
+          <div class="flex items-center gap-2 mb-3">
+            <IconCalendar class="h-3.5 w-3.5 text-[var(--silver-400)]" />
+            <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
+              {{ formatDate(entry.created_at) }}
+            </span>
+          </div>
+
+          <!-- Changes -->
+          <div
+            v-if="getChangesText(entry)"
+            class="border border-[var(--silver-300)] p-3 bg-[var(--surface-sunken)]"
+          >
+            <pre
+              class="font-data text-xs text-[var(--silver-400)] whitespace-pre-wrap overflow-x-auto"
+              >{{ getChangesText(entry) }}</pre
+            >
+          </div>
+
+          <!-- Additional Info -->
+          <div
+            v-if="entry.ipAddress || entry.userAgent"
+            class="mt-3 text-xs text-[var(--silver-400)]"
+          >
+            <div v-if="entry.ipAddress" class="flex items-center gap-2">
+              <span class="terminal-label">ip:</span>
+              <span class="font-data">{{ entry.ipAddress }}</span>
+            </div>
+            <div v-if="entry.userAgent" class="font-data truncate mt-1">
+              {{ entry.userAgent }}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>

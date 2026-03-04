@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { toast } from 'vue-sonner'
 import { useI18n } from 'vue-i18n'
-import { IconPlus, IconTrash } from '@tabler/icons-vue'
+import { IconPlus, IconTrash, IconTrophy } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 
 import { useContestsStore } from '@/stores/admin/contests'
 import { useAuthStore } from '@/stores/auth'
@@ -36,9 +35,28 @@ const detailDrawerOpen = ref(false)
 const bulkActionLoading = ref(false)
 const selectedRows = ref<Contest[]>([])
 
+// Animation state for staggered reveal
+const isLoaded = ref(false)
+
+onMounted(() => {
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+})
+
 const canCreate = computed(() => authStore.hasPermission('CREATE', 'CONTEST'))
 const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'CONTEST'))
 const canDelete = computed(() => authStore.hasPermission('DELETE', 'CONTEST'))
+
+// Stats for terminal ticker
+const stats = computed(() => {
+  const contests = contestsStore.contests
+  const total = contestsStore.total
+  const running = contests.filter((c) => c.status === 'RUNNING').length
+  const upcoming = contests.filter((c) => c.status === 'UPCOMING').length
+  const finished = contests.filter((c) => c.status === 'FINISHED').length
+  return { total, running, upcoming, finished }
+})
 
 const toolbarFilters = computed<Filter[]>(() => [
   {
@@ -160,74 +178,158 @@ async function handleDeleteContest(id: string | number) {
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+  <div class="relative flex flex-col gap-0 overflow-auto">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="terminal-prompt text-base">contests</span>
+            <span class="terminal-cursor" />
+          </div>
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('contests.title') }}
+          </h1>
+        </div>
+        <Button
+          v-if="canCreate"
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          @click="wizardOpen = true"
+        >
+          <IconPlus class="h-4 w-4 mr-1.5" />
+          <span class="uppercase tracking-wider">{{ t('contests.createContest') }}</span>
+        </Button>
+      </div>
+
+      <!-- Stats Ticker -->
+      <div
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">running:</span>
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.running
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">upcoming:</span>
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.upcoming
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">finished:</span>
+          <span class="font-data text-sm text-[var(--silver-400)] tabular-nums">{{
+            stats.finished
+          }}</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+          <IconTrophy class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">contest management</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Action Bar - Terminal Style -->
     <div
       v-if="selectedRows.length > 0"
-      class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
+      :class="[
+        'mx-4 lg:mx-6 mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+        'animate-in fade-in slide-in-from-top-2 duration-200',
+      ]"
     >
-      <div class="flex items-center gap-3">
-        <span class="text-sm font-medium">{{
-          t('contests.selected', { count: selectedRows.length })
-        }}</span>
-        <Separator orientation="vertical" class="h-4" />
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="font-data text-sm text-[var(--terminal-amber)]">
+            &gt; SELECTED:{{ selectedRows.length }}
+          </span>
+        </div>
+        <div class="h-4 w-px bg-[var(--silver-300)]" />
         <div class="flex items-center gap-2">
           <Button
             v-if="canDelete"
-            variant="destructive"
+            variant="terminal"
             size="sm"
-            class="h-8 text-xs"
+            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
             @click="handleBulkDelete"
             :disabled="bulkActionLoading"
           >
-            <IconTrash class="h-3.5 w-3.5 mr-1" />
-            {{ t('contests.actions.bulkDelete') }}
+            <IconTrash class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('contests.actions.bulkDelete') }}</span>
           </Button>
         </div>
       </div>
-      <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
-        {{ t('contests.clearSelection') }}
+      <Button
+        variant="terminal"
+        size="sm"
+        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        @click="selectedRows = []"
+      >
+        [ESC] {{ t('contests.clearSelection') }}
       </Button>
     </div>
 
-    <DataTable
-      :columns="columns"
-      :data="data"
-      :pagination="tablePagination"
-      :row-count="total"
-      :loading="loading"
-      v-model:selected-rows="selectedRows"
-      @update:pagination="tablePagination = $event"
-    >
-      <template #toolbar-left>
-        <DataTableToolbar
-          :search-model-value="searchQuery"
-          @update:search-model-value="searchQuery = $event"
-          :search-placeholder="t('contests.searchPlaceholder')"
-          :filters="toolbarFilters"
-          @update:filter="
-            (index, value) =>
-              index === 0 ? (statusFilter = String(value)) : (typeFilter = String(value))
-          "
-          :loading="loading"
-          :on-refresh="loadContests"
-        />
-      </template>
+    <!-- Main Content Area -->
+    <div class="flex-1 px-4 lg:px-6 py-4">
+      <DataTable
+        :columns="columns"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
+        v-model:selected-rows="selectedRows"
+        @update:pagination="tablePagination = $event"
+        class="terminal-table"
+      >
+        <template #toolbar-left>
+          <DataTableToolbar
+            :search-model-value="searchQuery"
+            @update:search-model-value="searchQuery = $event"
+            :search-placeholder="t('contests.searchPlaceholder')"
+            :filters="toolbarFilters"
+            @update:filter="
+              (index, value) =>
+                index === 0 ? (statusFilter = String(value)) : (typeFilter = String(value))
+            "
+            :loading="loading"
+            :on-refresh="loadContests"
+          />
+        </template>
+      </DataTable>
 
-      <template #extra-actions>
-        <Button v-if="canCreate" variant="outline" size="sm" @click="wizardOpen = true">
-          <IconPlus />
-          <span class="hidden lg:inline">{{ t('contests.createContest') }}</span>
+      <!-- Error state - Terminal Style -->
+      <div
+        v-if="error"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+      >
+        <div class="flex items-center gap-3">
+          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+        </div>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+          @click="loadContests()"
+        >
+          {{ t('common.retry') }}
         </Button>
-      </template>
-    </DataTable>
-
-    <!-- Error state -->
-    <div
-      v-if="error"
-      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-    >
-      <span class="text-destructive">{{ error }}</span>
-      <Button variant="outline" size="sm" @click="loadContests()">{{ t('common.retry') }}</Button>
+      </div>
     </div>
   </div>
 

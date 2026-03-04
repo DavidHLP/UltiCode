@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconBan, IconCircleXFilled, IconPlus } from '@tabler/icons-vue'
+import { IconBan, IconCircleXFilled, IconPlus, IconUsers, IconTrash } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 
 import { useUsersStore } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/auth'
@@ -18,6 +17,8 @@ import UserEditDialog from './UserEditDialog.vue'
 import UserCreateDialog from './UserCreateDialog.vue'
 import UserDetailDrawer from './UserDetailDrawer.vue'
 import UserResetPasswordDialog from './UserResetPasswordDialog.vue'
+// Terminal UI components available for future use
+// import { TerminalBadge, DataBlock } from '@/components/ui/terminal'
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns } from './columns'
 
@@ -38,9 +39,27 @@ const banDialogOpen = ref(false)
 
 const bulkActionLoading = ref(false)
 
+// Animation state for staggered reveal
+const isLoaded = ref(false)
+
+onMounted(() => {
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+})
+
 const canCreateUser = computed(() => authStore.hasPermission('CREATE', 'USER'))
 const canModerateUser = computed(() => authStore.hasPermission('MODERATE', 'USER'))
 const canDeleteUser = computed(() => authStore.hasPermission('DELETE', 'USER'))
+
+// Stats for terminal ticker
+const stats = computed(() => {
+  const users = usersStore.users
+  const total = usersStore.total
+  const active = users.filter((u) => u.is_active && !u.is_banned).length
+  const banned = users.filter((u) => u.is_banned).length
+  return { total, active, banned }
+})
 
 const toolbarFilters = computed<Filter[]>(() => [
   {
@@ -196,94 +215,172 @@ async function handleBulkDelete() {
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
+  <div class="relative flex flex-col gap-0 overflow-auto">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="terminal-prompt text-base">users</span>
+            <span class="terminal-cursor" />
+          </div>
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('users.title') }}
+          </h1>
+        </div>
+        <Button
+          v-if="canCreateUser"
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          @click="createDialogOpen = true"
+        >
+          <IconPlus class="h-4 w-4 mr-1.5" />
+          <span class="uppercase tracking-wider">{{ t('users.addUser') }}</span>
+        </Button>
+      </div>
+
+      <!-- Stats Ticker -->
+      <div
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">active:</span>
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.active
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">banned:</span>
+          <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
+            stats.banned
+          }}</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+          <IconUsers class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">user management</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Action Bar - Terminal Style -->
     <div
       v-if="selectedRows.length > 0"
-      class="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 p-2 px-4 animate-in fade-in slide-in-from-top-2"
+      :class="[
+        'mx-4 lg:mx-6 mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+        'animate-in fade-in slide-in-from-top-2 duration-200',
+      ]"
     >
-      <div class="flex items-center gap-3">
-        <span class="text-sm font-medium">{{
-          t('users.selected', { count: selectedRows.length })
-        }}</span>
-        <Separator orientation="vertical" class="h-4" />
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="font-data text-sm text-[var(--terminal-amber)]">
+            &gt; SELECTED:{{ selectedRows.length }}
+          </span>
+        </div>
+        <div class="h-4 w-px bg-[var(--silver-300)]" />
         <div class="flex items-center gap-2">
           <Button
-            variant="outline"
+            variant="terminal"
             size="sm"
-            class="h-8 text-xs"
+            class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-amber)] hover:text-[var(--terminal-amber)]"
             @click="handleBulkBan"
             :disabled="bulkActionLoading"
           >
-            <IconBan class="h-3.5 w-3.5 mr-1" />
-            {{ t('users.bulkActions.bulkBan') }}
+            <IconBan class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('users.bulkActions.bulkBan') }}</span>
           </Button>
           <Button
-            variant="outline"
+            variant="terminal"
             size="sm"
-            class="h-8 text-xs"
+            class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
             @click="handleBulkUnban"
             :disabled="bulkActionLoading"
           >
-            <IconCircleXFilled class="h-3.5 w-3.5 mr-1" />
-            {{ t('users.bulkActions.bulkUnban') }}
+            <IconCircleXFilled class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('users.bulkActions.bulkUnban') }}</span>
           </Button>
           <Button
             v-if="canDeleteUser"
-            variant="destructive"
+            variant="terminal"
             size="sm"
-            class="h-8 text-xs"
+            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
             @click="handleBulkDelete"
             :disabled="bulkActionLoading"
           >
-            <IconBan class="h-3.5 w-3.5 mr-1" />
-            {{ t('users.bulkActions.bulkDelete') }}
+            <IconTrash class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('users.bulkActions.bulkDelete') }}</span>
           </Button>
         </div>
       </div>
-      <Button variant="ghost" size="sm" class="h-8 text-xs" @click="selectedRows = []">
-        {{ t('users.clearSelection') }}
+      <Button
+        variant="terminal"
+        size="sm"
+        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        @click="selectedRows = []"
+      >
+        [ESC] {{ t('users.clearSelection') }}
       </Button>
     </div>
 
-    <DataTable
-      :columns="columns"
-      :data="data"
-      :pagination="tablePagination"
-      :row-count="total"
-      :loading="loading"
-      v-model:selected-rows="selectedRows"
-      @update:pagination="tablePagination = $event"
-    >
-      <template #toolbar-left>
-        <DataTableToolbar
-          :search-model-value="searchQuery"
-          @update:search-model-value="searchQuery = $event"
-          :search-placeholder="t('users.searchPlaceholder')"
-          :filters="toolbarFilters"
-          @update:filter="
-            (index, value) =>
-              index === 0 ? (roleFilter = String(value)) : (statusFilter = String(value))
-          "
-          :loading="loading"
-          :on-refresh="loadUsers"
-        />
-      </template>
+    <!-- Main Content Area -->
+    <div class="flex-1 px-4 lg:px-6 py-4">
+      <DataTable
+        :columns="columns"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
+        v-model:selected-rows="selectedRows"
+        @update:pagination="tablePagination = $event"
+        class="terminal-table"
+      >
+        <template #toolbar-left>
+          <DataTableToolbar
+            :search-model-value="searchQuery"
+            @update:search-model-value="searchQuery = $event"
+            :search-placeholder="t('users.searchPlaceholder')"
+            :filters="toolbarFilters"
+            @update:filter="
+              (index, value) =>
+                index === 0 ? (roleFilter = String(value)) : (statusFilter = String(value))
+            "
+            :loading="loading"
+            :on-refresh="loadUsers"
+          />
+        </template>
+      </DataTable>
 
-      <template #extra-actions>
-        <Button v-if="canCreateUser" variant="outline" size="sm" @click="createDialogOpen = true">
-          <IconPlus />
-          <span class="hidden lg:inline">{{ t('users.addUser') }}</span>
+      <!-- Error state - Terminal Style -->
+      <div
+        v-if="error"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+      >
+        <div class="flex items-center gap-3">
+          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+        </div>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+          @click="loadUsers()"
+        >
+          {{ t('common.retry') }}
         </Button>
-      </template>
-    </DataTable>
-
-    <!-- Error state -->
-    <div
-      v-if="error"
-      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-    >
-      <span class="text-destructive">{{ error }}</span>
-      <Button variant="outline" size="sm" @click="loadUsers()">{{ t('common.retry') }}</Button>
+      </div>
     </div>
   </div>
 

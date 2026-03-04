@@ -2,9 +2,6 @@
 import type { Component } from 'vue'
 import { IconTrendingDown, IconTrendingUp, IconMinus } from '@tabler/icons-vue'
 
-import { Badge } from '@/components/ui/badge'
-import { CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-
 export interface StatItem {
   title: string
   value: string
@@ -30,65 +27,85 @@ const getTrendIcon = (trend: string) => {
   }
 }
 
-const getTrendColor = (trend: string) => {
+const getTrendStyles = (trend: string) => {
   switch (trend) {
     case 'up':
-      return 'text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800/50'
+      return {
+        icon: 'text-[var(--status-success)]',
+        badge:
+          'border-[var(--status-success)]/30 bg-[var(--status-success)]/10 text-[var(--status-success)]',
+      }
     case 'down':
-      return 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/30 border-red-200 dark:border-red-800/50'
+      return {
+        icon: 'text-[var(--status-error)]',
+        badge:
+          'border-[var(--status-error)]/30 bg-[var(--status-error)]/10 text-[var(--status-error)]',
+      }
     default:
-      return 'text-muted-foreground bg-muted/50'
+      return {
+        icon: 'text-[var(--silver-400)]',
+        badge: 'border-[var(--silver-300)]/30 bg-[var(--silver-100)] text-[var(--silver-500)]',
+      }
   }
 }
 </script>
 
 <template>
-  <div class="grid grid-cols-1 gap-6 px-4 lg:px-6 md:grid-cols-2 lg:grid-cols-4">
+  <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
     <component
       :is="stat.href ? 'a' : 'div'"
       v-for="(stat, index) in stats"
       :key="index"
       :href="stat.href"
-      class="group relative overflow-hidden rounded-xl border border-border/50 bg-gradient-to-br from-card to-card/50 p-6 shadow-sm transition-all hover:shadow-md hover:-translate-y-0.5"
+      class="group relative overflow-hidden rounded-lg border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-card p-5 shadow-float precision-card"
       :class="{ 'cursor-pointer': stat.href }"
     >
-      <!-- Background icon -->
+      <!-- Background decoration icon -->
       <div
         v-if="stat.icon"
-        class="absolute -bottom-2 -right-2 h-24 w-24 opacity-5 transition-transform group-hover:scale-110 group-hover:rotate-3"
+        class="absolute -bottom-3 -right-3 h-20 w-20 opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-300"
       >
-        <component :is="stat.icon" class="h-full w-full" />
+        <component :is="stat.icon" class="h-full w-full" stroke-width="1" />
       </div>
 
       <!-- Card content -->
-      <CardHeader class="p-0 space-y-2">
-        <CardDescription class="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          {{ stat.title }}
-        </CardDescription>
-        <CardTitle class="text-3xl font-bold tabular-nums tracking-tight">
-          {{ stat.value }}
-        </CardTitle>
-
-        <!-- Trend badge -->
-        <Badge
-          variant="outline"
-          class="w-fit text-xs font-medium px-2 py-0.5 h-6"
-          :class="getTrendColor(stat.trend)"
+      <div class="relative z-10 space-y-3">
+        <!-- Title -->
+        <p
+          class="text-xs font-medium uppercase tracking-widest text-[var(--silver-400)] dark:text-[var(--silver-500)]"
         >
-          <component :is="getTrendIcon(stat.trend)" class="mr-1 h-3 w-3" />
-          {{ stat.change }}
-        </Badge>
-      </CardHeader>
+          {{ stat.title }}
+        </p>
 
-      <!-- Description -->
-      <p class="text-sm text-muted-foreground mt-2">
-        {{ stat.description }}
-      </p>
+        <!-- Value and trend -->
+        <div class="flex items-baseline gap-3">
+          <span class="text-3xl font-medium font-data tabular-nums tracking-tight text-foreground">
+            {{ stat.value }}
+          </span>
 
-      <!-- Subtle border accent -->
-      <div
-        class="absolute inset-x-0 bottom-0 h-0.5 bg-gradient-to-r from-transparent via-primary/20 to-transparent opacity-0 transition-opacity group-hover:opacity-100"
-      ></div>
+          <!-- Trend badge -->
+          <span
+            class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded border"
+            :class="getTrendStyles(stat.trend).badge"
+          >
+            <component
+              :is="getTrendIcon(stat.trend)"
+              class="h-3 w-3"
+              :class="getTrendStyles(stat.trend).icon"
+              stroke-width="1.5"
+            />
+            {{ stat.change }}
+          </span>
+        </div>
+
+        <!-- Divider -->
+        <div class="precision-divider"></div>
+
+        <!-- Description -->
+        <p class="text-xs text-[var(--silver-400)] dark:text-[var(--silver-500)]">
+          {{ stat.description }}
+        </p>
+      </div>
     </component>
   </div>
 </template>

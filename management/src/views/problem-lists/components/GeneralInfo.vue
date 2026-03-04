@@ -16,7 +16,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select,
   SelectContent,
@@ -99,105 +99,177 @@ const bannerThemes = [
 <template>
   <div class="space-y-6 max-w-2xl">
     <form @submit="form.handleSubmit(onSubmit)" class="space-y-6">
-      <FormField v-slot="{ componentField }" name="name">
-        <FormItem>
-          <FormLabel>{{ t('problemLists.form.name') }}</FormLabel>
-          <FormControl>
-            <Input v-bind="componentField" :placeholder="t('problemLists.form.namePlaceholder')" />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
+      <!-- Basic Information Section -->
+      <div class="space-y-4">
+        <div class="terminal-comment">// Basic Information</div>
 
-      <FormField v-slot="{ componentField }" name="description">
-        <FormItem>
-          <FormLabel>{{ t('problemLists.form.description') }}</FormLabel>
-          <FormControl>
-            <Textarea
-              v-bind="componentField"
-              :placeholder="t('problemLists.form.descriptionPlaceholder')"
-              class="h-32"
-            />
-          </FormControl>
-          <FormMessage />
-        </FormItem>
-      </FormField>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <FormField v-slot="{ value, handleChange }" name="is_public">
-          <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
-            <div class="space-y-0.5">
-              <FormLabel class="text-base">{{ t('problemLists.form.isPublic') }}</FormLabel>
-              <FormDescription>{{ t('problemLists.form.isPublicDescription') }}</FormDescription>
-            </div>
-            <FormControl>
-              <Switch :checked="value" @update:checked="handleChange" />
-            </FormControl>
-          </FormItem>
-        </FormField>
-
-        <FormField v-slot="{ value, handleChange }" name="is_featured">
-          <FormItem class="flex flex-row items-center justify-between rounded-lg border p-4">
-            <div class="space-y-0.5">
-              <FormLabel class="text-base">{{ t('problemLists.form.isFeatured') }}</FormLabel>
-              <FormDescription>{{ t('problemLists.form.isFeaturedDescription') }}</FormDescription>
-            </div>
-            <FormControl>
-              <Switch :checked="value" @update:checked="handleChange" />
-            </FormControl>
-          </FormItem>
-        </FormField>
-      </div>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6" v-if="form.values.is_featured">
-        <FormField v-slot="{ componentField }" name="banner_tag">
+        <FormField v-slot="{ componentField }" name="name">
           <FormItem>
-            <FormLabel>{{ t('problemLists.form.bannerTag') }}</FormLabel>
+            <FormLabel class="terminal-label">{{ t('problemLists.form.name') }}</FormLabel>
             <FormControl>
               <Input
                 v-bind="componentField"
-                :placeholder="t('problemLists.form.bannerTagPlaceholder')"
+                :placeholder="t('problemLists.form.namePlaceholder')"
+                class="terminal-input h-9"
               />
             </FormControl>
-            <FormDescription>{{ t('problemLists.form.bannerTagDescription') }}</FormDescription>
-            <FormMessage />
+            <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
           </FormItem>
         </FormField>
 
-        <FormField v-slot="{ componentField }" name="banner_theme">
+        <FormField v-slot="{ componentField }" name="description">
           <FormItem>
-            <FormLabel>{{ t('problemLists.form.bannerTheme') }}</FormLabel>
-            <Select v-bind="componentField">
-              <FormControl>
-                <SelectTrigger>
-                  <SelectValue :placeholder="t('problemLists.form.bannerThemePlaceholder')" />
-                </SelectTrigger>
-              </FormControl>
-              <SelectContent>
-                <SelectItem v-for="theme in bannerThemes" :key="theme.value" :value="theme.value">
-                  {{ theme.label }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        </FormField>
-
-        <FormField v-slot="{ componentField }" name="banner_order">
-          <FormItem>
-            <FormLabel>{{ t('problemLists.form.sortOrder') }}</FormLabel>
+            <FormLabel class="terminal-label">{{ t('problemLists.form.description') }}</FormLabel>
             <FormControl>
-              <Input type="number" v-bind="componentField" />
+              <Textarea
+                v-bind="componentField"
+                :placeholder="t('problemLists.form.descriptionPlaceholder')"
+                class="terminal-input min-h-[100px]"
+              />
             </FormControl>
-            <FormDescription>{{ t('problemLists.form.sortOrderDescription') }}</FormDescription>
-            <FormMessage />
+            <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
           </FormItem>
         </FormField>
       </div>
 
+      <div class="terminal-separator" />
+
+      <!-- Visibility & Featured Section -->
+      <div class="space-y-4">
+        <div class="terminal-comment">// Visibility & Featured</div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField v-slot="{ value, handleChange }" name="is_public">
+            <FormItem>
+              <FormLabel class="terminal-label">{{ t('problemLists.form.isPublic') }}</FormLabel>
+              <div
+                class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] rounded-md bg-[var(--surface-sunken)]"
+              >
+                <Checkbox
+                  :checked="value"
+                  @update:checked="handleChange"
+                  class="data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
+                />
+                <label class="font-data text-xs">
+                  <span
+                    :class="value ? 'text-[var(--terminal-green)]' : 'text-[var(--silver-400)]'"
+                  >
+                    {{ value ? 'PUBLIC' : 'PRIVATE' }}
+                  </span>
+                </label>
+              </div>
+              <FormDescription class="text-xs text-[var(--silver-400)]">
+                {{ t('problemLists.form.isPublicDescription') }}
+              </FormDescription>
+            </FormItem>
+          </FormField>
+
+          <FormField v-slot="{ value, handleChange }" name="is_featured">
+            <FormItem>
+              <FormLabel class="terminal-label">{{ t('problemLists.form.isFeatured') }}</FormLabel>
+              <div
+                class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] rounded-md bg-[var(--surface-sunken)]"
+              >
+                <Checkbox
+                  :checked="value"
+                  @update:checked="handleChange"
+                  class="data-[state=checked]:bg-[var(--terminal-amber)] data-[state=checked]:border-[var(--terminal-amber)]"
+                />
+                <label class="font-data text-xs">
+                  <span
+                    :class="value ? 'text-[var(--terminal-amber)]' : 'text-[var(--silver-400)]'"
+                  >
+                    {{ value ? 'FEATURED' : 'STANDARD' }}
+                  </span>
+                </label>
+              </div>
+              <FormDescription class="text-xs text-[var(--silver-400)]">
+                {{ t('problemLists.form.isFeaturedDescription') }}
+              </FormDescription>
+            </FormItem>
+          </FormField>
+        </div>
+      </div>
+
+      <!-- Banner Settings Section (conditionally visible) -->
+      <template v-if="form.values.is_featured">
+        <div class="terminal-separator" />
+
+        <div class="space-y-4">
+          <div class="terminal-comment">// Banner Settings</div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <FormField v-slot="{ componentField }" name="banner_tag">
+              <FormItem>
+                <FormLabel class="terminal-label">{{ t('problemLists.form.bannerTag') }}</FormLabel>
+                <FormControl>
+                  <Input
+                    v-bind="componentField"
+                    :placeholder="t('problemLists.form.bannerTagPlaceholder')"
+                    class="terminal-input h-9"
+                  />
+                </FormControl>
+                <FormDescription class="text-xs text-[var(--silver-400)]">
+                  {{ t('problemLists.form.bannerTagDescription') }}
+                </FormDescription>
+                <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="banner_theme">
+              <FormItem>
+                <FormLabel class="terminal-label">{{
+                  t('problemLists.form.bannerTheme')
+                }}</FormLabel>
+                <Select v-bind="componentField">
+                  <FormControl>
+                    <SelectTrigger class="terminal-input h-9 font-data text-xs">
+                      <SelectValue :placeholder="t('problemLists.form.bannerThemePlaceholder')" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    <SelectItem
+                      v-for="theme in bannerThemes"
+                      :key="theme.value"
+                      :value="theme.value"
+                      class="font-data text-xs"
+                    >
+                      {{ theme.label }}
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
+              </FormItem>
+            </FormField>
+
+            <FormField v-slot="{ componentField }" name="banner_order">
+              <FormItem>
+                <FormLabel class="terminal-label">{{ t('problemLists.form.sortOrder') }}</FormLabel>
+                <FormControl>
+                  <Input type="number" v-bind="componentField" class="terminal-input h-9" />
+                </FormControl>
+                <FormDescription class="text-xs text-[var(--silver-400)]">
+                  {{ t('problemLists.form.sortOrderDescription') }}
+                </FormDescription>
+                <FormMessage class="font-data text-xs text-[var(--terminal-red)]" />
+              </FormItem>
+            </FormField>
+          </div>
+        </div>
+      </template>
+
+      <div class="terminal-separator" />
+
+      <!-- Submit Button -->
       <div class="flex justify-end gap-2">
-        <Button type="submit" :disabled="loading">
-          {{ loading ? t('problemLists.form.saving') : t('problemLists.form.saveChanges') }}
+        <Button
+          type="submit"
+          :disabled="loading"
+          variant="terminal"
+          class="font-data text-xs bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90"
+        >
+          <span v-if="loading" class="animate-pulse">{{ t('problemLists.form.saving') }}</span>
+          <span v-else>{{ t('problemLists.form.saveChanges') }}</span>
         </Button>
       </div>
     </form>

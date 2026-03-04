@@ -1,11 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import {
   Select,
   SelectContent,
@@ -13,16 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import {
-  IconUsers,
-  IconFileText,
-  IconTrophy,
-  IconCreditCard,
-  IconServer,
-  IconRefresh,
-  IconTrendingUp,
-  IconTrendingDown,
-} from '@tabler/icons-vue'
+import { IconRefresh } from '@tabler/icons-vue'
 import {
   analyticsApi,
   type UserActivityReport,
@@ -31,6 +19,19 @@ import {
   type RevenueReport,
   type PerformanceReport,
 } from '@/api/admin/analytics'
+import {
+  AnalyticsNav,
+  AnalyticsMetricCard,
+  AnalyticsBarList,
+  AnalyticsTagCloud,
+  AnalyticsHeatmap,
+} from '@/components/analytics'
+import type { MetricData } from '@/components/analytics'
+import type { BarListItem } from '@/components/analytics'
+import type { TagItem } from '@/components/analytics'
+import type { HeatmapCell, HeatmapRow, HeatmapColumn } from '@/components/analytics'
+import AreaChart from '@/components/dashboard/AreaChart.vue'
+import type { ChartDataPoint } from '@/components/dashboard/AreaChart.vue'
 
 const { t } = useI18n()
 
@@ -51,21 +52,339 @@ const contestParticipationReport = ref<ContestParticipationReport | null>(null)
 const revenueReport = ref<RevenueReport | null>(null)
 const performanceReport = ref<PerformanceReport | null>(null)
 
-const tabConfig = [
-  { value: 'user_activity' as ReportTab, label: t('analytics.tabs.userActivity'), icon: IconUsers },
-  {
-    value: 'problem_completion' as ReportTab,
-    label: t('analytics.tabs.problemCompletion'),
-    icon: IconFileText,
-  },
-  {
-    value: 'contest_participation' as ReportTab,
-    label: t('analytics.tabs.contestParticipation'),
-    icon: IconTrophy,
-  },
-  { value: 'revenue' as ReportTab, label: t('analytics.tabs.revenue'), icon: IconCreditCard },
-  { value: 'performance' as ReportTab, label: t('analytics.tabs.performance'), icon: IconServer },
-]
+// Current time display
+const currentTime = ref(new Date())
+const formattedTime = computed(() => {
+  return currentTime.value.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+})
+
+const formattedDate = computed(() => {
+  return currentTime.value.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+})
+
+// Update time every minute
+onMounted(() => {
+  setInterval(() => {
+    currentTime.value = new Date()
+  }, 60000)
+})
+
+// Format utilities
+function formatNumber(num: number): string {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
+  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
+  return num.toFixed(0)
+}
+
+function formatPercent(num: number): string {
+  return num.toFixed(1) + '%'
+}
+
+function formatCurrency(num: number): string {
+  return '$' + num.toFixed(2)
+}
+
+function formatUptime(seconds: number): string {
+  const d = Math.floor(seconds / 86400)
+  const h = Math.floor((seconds % 86400) / 3600)
+  return `${d}d ${h}h`
+}
+
+// User Activity computed data
+const userActivityMetrics = computed<MetricData[]>(() => {
+  if (!userActivityReport.value) return []
+  const report = userActivityReport.value
+  return [
+    {
+      title: t('analytics.userActivity.dailyActiveUsers'),
+      value: formatNumber(report.activeUsersDaily.slice(-1)[0]?.count || 0),
+      trend: 'up',
+      change: '+' + (report.activeUsersDaily.slice(-1)[0]?.count || 0),
+    },
+    {
+      title: t('analytics.userActivity.retention1d'),
+      value: formatPercent(report.userRetention.day1),
+      trend: report.userRetention.day1 > 50 ? 'up' : 'down',
+      change:
+        report.userRetention.day1 > 50
+          ? t('analytics.status.good')
+          : t('analytics.status.needsWork'),
+    },
+    {
+      title: t('analytics.userActivity.retention7d'),
+      value: formatPercent(report.userRetention.day7),
+      trend: report.userRetention.day7 > 30 ? 'up' : 'neutral',
+      change:
+        report.userRetention.day7 > 30 ? t('analytics.status.good') : t('analytics.status.average'),
+    },
+    {
+      title: t('analytics.userActivity.retention30d'),
+      value: formatPercent(report.userRetention.day30),
+      trend: report.userRetention.day30 > 10 ? 'up' : 'neutral',
+      change:
+        report.userRetention.day30 > 10
+          ? t('analytics.status.good')
+          : t('analytics.status.average'),
+    },
+  ]
+})
+
+const userActivityChartData = computed<ChartDataPoint[]>(() => {
+  if (!userActivityReport.value) return []
+  return userActivityReport.value.activeUsersDaily.map((item) => ({
+    date: new Date(item.date),
+    users: item.count,
+  }))
+})
+
+const userActivityBarItems = computed<BarListItem[]>(() => {
+  if (!userActivityReport.value) return []
+  return userActivityReport.value.topActiveUsers.map((user) => ({
+    id: user.userId,
+    label: user.username,
+    value: user.loginCount,
+    subtitle: t('analytics.userActivity.logins', { count: user.loginCount }),
+  }))
+})
+
+const userActivityHeatmapData = computed(() => {
+  if (!userActivityReport.value) return { cells: [], rows: [], columns: [] }
+  const hours = userActivityReport.value.peakActiveHours
+  const cells: HeatmapCell[] = hours.map((h) => ({
+    x: h.hour % 6,
+    y: Math.floor(h.hour / 6),
+    value: h.count,
+    label: `${h.hour}:00`,
+  }))
+  const rows: HeatmapRow[] = [0, 1, 2, 3].map((r) => ({
+    label: `${r * 6}:00-${(r + 1) * 6}:00`,
+  }))
+  const columns: HeatmapColumn[] = [0, 1, 2, 3, 4, 5].map((c) => ({
+    label: `${c}`,
+  }))
+  return { cells, rows, columns }
+})
+
+// Problem Completion computed data
+const problemCompletionMetrics = computed<MetricData[]>(() => {
+  if (!problemCompletionReport.value) return []
+  const report = problemCompletionReport.value
+  return [
+    {
+      title: t('analytics.problemCompletion.totalAttempts'),
+      value: formatNumber(report.totalAttempts),
+      trend: 'neutral',
+    },
+    {
+      title: t('analytics.problemCompletion.successfulAttempts'),
+      value: formatNumber(report.successfulAttempts),
+      trend: 'up',
+      change: '+' + formatNumber(report.successfulAttempts),
+    },
+    {
+      title: t('analytics.problemCompletion.completionRate'),
+      value: formatPercent(report.overallCompletionRate),
+      trend: report.overallCompletionRate > 30 ? 'up' : 'down',
+      change:
+        report.overallCompletionRate > 30
+          ? t('analytics.status.good')
+          : t('analytics.status.needsWork'),
+    },
+    {
+      title: t('analytics.problemCompletion.trendingProblems'),
+      value: report.trendingProblems.length,
+      trend: 'neutral',
+    },
+  ]
+})
+
+const problemDifficultyBarItems = computed<BarListItem[]>(() => {
+  if (!problemCompletionReport.value) return []
+  const difficultyColors: Record<string, string> = {
+    EASY: 'var(--status-success)',
+    MEDIUM: 'var(--status-warning)',
+    HARD: 'var(--status-error)',
+  }
+  return problemCompletionReport.value.byDifficulty.map((item) => ({
+    id: item.difficulty,
+    label: item.difficulty,
+    value: item.rate,
+    color: difficultyColors[item.difficulty] || 'var(--accent-primary)',
+    subtitle: `${item.completed}/${item.total} ${t('analytics.problemCompletion.completed')}`,
+  }))
+})
+
+const problemHardestBarItems = computed<BarListItem[]>(() => {
+  if (!problemCompletionReport.value) return []
+  return problemCompletionReport.value.hardestProblems.map((problem) => ({
+    id: problem.problemId,
+    label: problem.title,
+    value: problem.completionRate,
+    color: 'var(--status-error)',
+    subtitle: problem.difficulty,
+  }))
+})
+
+const problemTagItems = computed<TagItem[]>(() => {
+  if (!problemCompletionReport.value) return []
+  return problemCompletionReport.value.byTag.map((tag) => ({
+    id: tag.tagId,
+    label: tag.label,
+    value: tag.rate,
+    count: tag.total,
+  }))
+})
+
+// Contest Participation computed data
+const contestParticipationMetrics = computed<MetricData[]>(() => {
+  if (!contestParticipationReport.value) return []
+  const report = contestParticipationReport.value
+  return [
+    {
+      title: t('analytics.contestParticipation.totalContests'),
+      value: report.totalContests,
+      trend: 'neutral',
+    },
+    {
+      title: t('analytics.contestParticipation.totalParticipants'),
+      value: formatNumber(report.totalParticipants),
+      trend: 'up',
+      change: '+' + formatNumber(report.totalParticipants),
+    },
+    {
+      title: t('analytics.contestParticipation.avgParticipants'),
+      value: report.averageParticipantsPerContest.toFixed(1),
+      trend: 'neutral',
+      suffix: t('analytics.perContest'),
+    },
+    {
+      title: t('analytics.contestParticipation.virtualParticipation'),
+      value: report.virtualParticipation.total,
+      trend: 'neutral',
+    },
+  ]
+})
+
+const contestTypeBarItems = computed<BarListItem[]>(() => {
+  if (!contestParticipationReport.value) return []
+  return contestParticipationReport.value.byType.map((item) => ({
+    id: item.type,
+    label: item.type,
+    value: item.avgParticipants,
+    subtitle: `${item.count} ${t('analytics.contestParticipation.contests')}`,
+  }))
+})
+
+const contestTopBarItems = computed<BarListItem[]>(() => {
+  if (!contestParticipationReport.value) return []
+  return contestParticipationReport.value.topContests.map((contest) => ({
+    id: contest.contestId,
+    label: contest.title,
+    value: contest.participants,
+    subtitle: `${contest.participants} ${t('analytics.contestParticipants')}`,
+  }))
+})
+
+// Revenue computed data
+const revenueMetrics = computed<MetricData[]>(() => {
+  if (!revenueReport.value) return []
+  const report = revenueReport.value
+  return [
+    {
+      title: t('analytics.revenue.mrr'),
+      value: formatCurrency(report.mrr),
+      trend: 'up',
+      prefix: '$',
+    },
+    {
+      title: t('analytics.revenue.arr'),
+      value: formatCurrency(report.arr),
+      trend: 'up',
+      prefix: '$',
+    },
+    {
+      title: t('analytics.revenue.subscribers'),
+      value: report.subscriberCount,
+      trend: 'neutral',
+    },
+    {
+      title: t('analytics.revenue.conversionRate'),
+      value: formatPercent(report.conversionRate),
+      trend: report.conversionRate > 5 ? 'up' : 'neutral',
+      change:
+        report.conversionRate > 5 ? t('analytics.status.good') : t('analytics.status.average'),
+    },
+  ]
+})
+
+const revenuePlanBarItems = computed<BarListItem[]>(() => {
+  if (!revenueReport.value) return []
+  return revenueReport.value.byPlan.map((item) => ({
+    id: item.plan,
+    label: item.plan,
+    value: item.revenue,
+    subtitle: `${item.subscribers} ${t('analytics.revenue.subscribers')}`,
+  }))
+})
+
+// Performance computed data
+const performanceMetrics = computed<MetricData[]>(() => {
+  if (!performanceReport.value) return []
+  const report = performanceReport.value
+  return [
+    {
+      title: t('analytics.performance.uptime'),
+      value: formatUptime(report.systemUptime),
+      trend: report.systemUptime > 86400 * 7 ? 'up' : 'neutral',
+      change:
+        report.systemUptime > 86400 * 7
+          ? t('analytics.status.excellent')
+          : t('analytics.status.good'),
+    },
+    {
+      title: t('analytics.performance.throughput'),
+      value: formatNumber(report.throughput),
+      trend: 'neutral',
+      suffix: '/24h',
+    },
+    {
+      title: t('analytics.performance.errorRate'),
+      value: formatPercent(report.errorRate),
+      trend: report.errorRate > 1 ? 'down' : 'up',
+      change:
+        report.errorRate > 1
+          ? t('analytics.status.needsAttention')
+          : t('analytics.status.excellent'),
+    },
+    {
+      title: t('analytics.performance.memoryUsage'),
+      value: formatPercent(report.resourceUsage.memory),
+      trend: report.resourceUsage.memory > 80 ? 'down' : 'neutral',
+      change:
+        report.resourceUsage.memory > 80
+          ? t('analytics.status.high')
+          : t('analytics.status.normal'),
+    },
+  ]
+})
+
+const performanceEndpointBarItems = computed<BarListItem[]>(() => {
+  if (!performanceReport.value) return []
+  return performanceReport.value.slowestEndpoints.map((endpoint) => ({
+    id: endpoint.endpoint,
+    label: endpoint.endpoint,
+    value: endpoint.averageTime,
+    subtitle: `${endpoint.requestCount} ${t('analytics.performance.requests')}`,
+  }))
+})
 
 async function loadReport() {
   loading.value = true
@@ -99,26 +418,6 @@ async function loadReport() {
   }
 }
 
-function formatNumber(num: number): string {
-  if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M'
-  if (num >= 1000) return (num / 1000).toFixed(1) + 'K'
-  return num.toFixed(0)
-}
-
-function formatPercent(num: number): string {
-  return num.toFixed(1) + '%'
-}
-
-function formatCurrency(num: number): string {
-  return '$' + num.toFixed(2)
-}
-
-function formatUptime(seconds: number): string {
-  const d = Math.floor(seconds / 86400)
-  const h = Math.floor((seconds % 86400) / 3600)
-  return `${d}d ${h}h`
-}
-
 watch([activeTab, days], () => {
   loadReport()
 })
@@ -129,15 +428,31 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('analytics.title') }}</h1>
-        <p class="text-muted-foreground mt-1">{{ t('analytics.description') }}</p>
+  <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 min-h-screen bg-background">
+    <!-- Precision Header -->
+    <header
+      class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+    >
+      <div class="space-y-1">
+        <h1 class="text-2xl font-medium tracking-tight text-foreground">
+          {{ t('analytics.title') }}
+        </h1>
+        <p class="text-sm text-[var(--silver-500)]">
+          {{ t('analytics.description') }}
+        </p>
       </div>
+
+      <!-- Time display and controls -->
       <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="text-[var(--silver-400)]">{{ formattedDate }}</span>
+          <span class="text-lg font-data tabular-nums text-foreground">{{ formattedTime }}</span>
+        </div>
+
         <Select v-model="days">
-          <SelectTrigger class="w-[150px]">
+          <SelectTrigger
+            class="w-[130px] h-8 text-xs border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -147,562 +462,340 @@ onMounted(() => {
             <SelectItem value="365">{{ t('analytics.periods.1year') }}</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm" @click="loadReport" :disabled="loading">
-          <IconRefresh class="h-4 w-4 mr-1" :class="{ 'animate-spin': loading }" />
+
+        <Button
+          variant="outline"
+          size="sm"
+          @click="loadReport"
+          :disabled="loading"
+          class="h-8 border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+        >
+          <IconRefresh class="h-3.5 w-3.5 mr-1" :class="{ 'animate-spin': loading }" />
           {{ t('common.refresh') }}
         </Button>
       </div>
-    </div>
+    </header>
 
-    <Tabs v-model="activeTab">
-      <TabsList class="grid w-full grid-cols-5">
-        <TabsTrigger v-for="tab in tabConfig" :key="tab.value" :value="tab.value">
-          <component :is="tab.icon" class="h-4 w-4 mr-2" />
-          {{ tab.label }}
-        </TabsTrigger>
-      </TabsList>
-
-      <!-- User Activity -->
-      <TabsContent value="user_activity" class="space-y-4">
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="text-muted-foreground">{{ t('common.loading') }}</div>
+    <!-- Main Layout: Sidebar + Content -->
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Sidebar Navigation -->
+      <aside class="lg:w-56 shrink-0">
+        <div class="sticky top-6">
+          <AnalyticsNav v-model:active-item="activeTab" />
         </div>
-        <template v-else-if="userActivityReport">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.userActivity.dailyActiveUsers')
-                }}</CardDescription>
-                <CardTitle class="text-2xl">
-                  {{ formatNumber(userActivityReport.activeUsersDaily.slice(-1)[0]?.count || 0) }}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.userActivity.retention1d') }}</CardDescription>
-                <CardTitle class="text-2xl flex items-center gap-2">
-                  {{ formatPercent(userActivityReport.userRetention.day1) }}
-                  <IconTrendingUp
-                    v-if="userActivityReport.userRetention.day1 > 50"
-                    class="h-5 w-5 text-green-500"
-                  />
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.userActivity.retention7d') }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  formatPercent(userActivityReport.userRetention.day7)
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.userActivity.retention30d') }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  formatPercent(userActivityReport.userRetention.day30)
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
+      </aside>
+
+      <!-- Content Area -->
+      <main class="flex-1 min-w-0">
+        <!-- Loading State -->
+        <div v-if="loading" class="flex items-center justify-center py-12">
+          <div class="flex items-center gap-3 text-[var(--silver-400)]">
+            <div
+              class="h-4 w-4 border-2 border-[var(--silver-300)] border-t-foreground rounded-full animate-spin"
+            ></div>
+            <span>{{ t('common.loading') }}</span>
+          </div>
+        </div>
+
+        <!-- User Activity Report -->
+        <div v-else-if="activeTab === 'user_activity' && userActivityReport" class="space-y-5">
+          <!-- Metric Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <AnalyticsMetricCard
+              v-for="(metric, index) in userActivityMetrics"
+              :key="index"
+              :metric="metric"
+            />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{{ t('analytics.userActivity.activeUsersTrend') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="space-y-2">
-                  <div
-                    v-for="(item, idx) in userActivityReport.activeUsersDaily.slice(-7)"
-                    :key="idx"
-                    class="flex items-center justify-between"
-                  >
-                    <span class="text-sm text-muted-foreground">{{ item.date }}</span>
-                    <div class="flex items-center gap-2">
-                      <div class="w-32 h-2 bg-muted rounded overflow-hidden">
-                        <div
-                          class="h-full bg-primary"
-                          :style="{ width: Math.min(100, item.count / 10) + '%' }"
-                        />
-                      </div>
-                      <span class="text-sm font-medium w-12 text-right">{{ item.count }}</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <!-- Charts Row -->
+          <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+            <!-- Main Chart -->
+            <div class="lg:col-span-2">
+              <AreaChart
+                :title="t('analytics.userActivity.activeUsersTrend')"
+                :description="t('analytics.userActivity.activeUsersTrendDesc')"
+                :data="userActivityChartData"
+                :series-keys="['users']"
+                :config="{ users: { label: 'Active Users', color: 'var(--accent-primary)' } }"
+              />
+            </div>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>{{ t('analytics.userActivity.peakHours') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="grid grid-cols-6 gap-1">
-                  <div
-                    v-for="(item, idx) in userActivityReport.peakActiveHours"
-                    :key="idx"
-                    class="flex flex-col items-center p-1 rounded"
-                    :class="{ 'bg-primary/10': item.count > 0 }"
-                  >
-                    <span class="text-xs text-muted-foreground">{{ item.hour }}:00</span>
-                    <span class="text-xs font-medium">{{ item.count }}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+            <!-- Heatmap -->
+            <div class="lg:col-span-1">
+              <AnalyticsHeatmap
+                :title="t('analytics.userActivity.peakHours')"
+                :description="t('analytics.userActivity.peakHoursDesc')"
+                :data="userActivityHeatmapData.cells"
+                :rows="userActivityHeatmapData.rows"
+                :columns="userActivityHeatmapData.columns"
+                :cell-size="24"
+              />
+            </div>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{{ t('analytics.userActivity.topUsers') }}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="space-y-2">
+          <!-- Top Users List -->
+          <AnalyticsBarList
+            :title="t('analytics.userActivity.topUsers')"
+            :description="t('analytics.userActivity.topUsersDesc')"
+            :items="userActivityBarItems"
+            :limit="10"
+          />
+        </div>
+
+        <!-- Problem Completion Report -->
+        <div
+          v-else-if="activeTab === 'problem_completion' && problemCompletionReport"
+          class="space-y-5"
+        >
+          <!-- Metric Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <AnalyticsMetricCard
+              v-for="(metric, index) in problemCompletionMetrics"
+              :key="index"
+              :metric="metric"
+            />
+          </div>
+
+          <!-- Difficulty & Hardest Problems -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <AnalyticsBarList
+              :title="t('analytics.problemCompletion.byDifficulty')"
+              :description="t('analytics.problemCompletion.byDifficultyDesc')"
+              :items="problemDifficultyBarItems"
+              :show-percentage="true"
+              :limit="5"
+            />
+            <AnalyticsBarList
+              :title="t('analytics.problemCompletion.hardestProblems')"
+              :description="t('analytics.problemCompletion.hardestProblemsDesc')"
+              :items="problemHardestBarItems"
+              :show-percentage="true"
+              :limit="5"
+            />
+          </div>
+
+          <!-- Tag Cloud -->
+          <AnalyticsTagCloud
+            :title="t('analytics.problemCompletion.topTags')"
+            :description="t('analytics.problemCompletion.topTagsDesc')"
+            :tags="problemTagItems"
+            :value-format="'percent'"
+            :limit="20"
+          />
+        </div>
+
+        <!-- Contest Participation Report -->
+        <div
+          v-else-if="activeTab === 'contest_participation' && contestParticipationReport"
+          class="space-y-5"
+        >
+          <!-- Metric Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <AnalyticsMetricCard
+              v-for="(metric, index) in contestParticipationMetrics"
+              :key="index"
+              :metric="metric"
+            />
+          </div>
+
+          <!-- Type & Top Contests -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <AnalyticsBarList
+              :title="t('analytics.contestParticipation.byType')"
+              :description="t('analytics.contestParticipation.byTypeDesc')"
+              :items="contestTypeBarItems"
+              :limit="10"
+            />
+            <AnalyticsBarList
+              :title="t('analytics.contestParticipation.topContests')"
+              :description="t('analytics.contestParticipation.topContestsDesc')"
+              :items="contestTopBarItems"
+              :limit="10"
+            />
+          </div>
+        </div>
+
+        <!-- Revenue Report -->
+        <div v-else-if="activeTab === 'revenue' && revenueReport" class="space-y-5">
+          <!-- Metric Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <AnalyticsMetricCard
+              v-for="(metric, index) in revenueMetrics"
+              :key="index"
+              :metric="metric"
+            />
+          </div>
+
+          <!-- Plan Distribution -->
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <AnalyticsBarList
+              :title="t('analytics.revenue.byPlan')"
+              :description="t('analytics.revenue.byPlanDesc')"
+              :items="revenuePlanBarItems"
+              :limit="10"
+            />
+
+            <!-- Key Metrics Card -->
+            <div
+              class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-lg bg-card shadow-float p-5"
+            >
+              <h3 class="text-base font-medium tracking-tight mb-4">
+                {{ t('analytics.revenue.metrics') }}
+              </h3>
+              <div class="space-y-4">
                 <div
-                  v-for="(user, idx) in userActivityReport.topActiveUsers"
-                  :key="user.userId"
-                  class="flex items-center justify-between p-2 rounded hover:bg-muted/50"
+                  class="flex items-center justify-between py-2 border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
                 >
-                  <div class="flex items-center gap-3">
-                    <Badge variant="outline">{{ idx + 1 }}</Badge>
-                    <span class="font-medium">{{ user.username }}</span>
-                  </div>
-                  <div class="flex items-center gap-4 text-sm text-muted-foreground">
-                    <span>{{ user.loginCount }} {{ t('analytics.userActivity.logins') }}</span>
-                    <span>{{ new Date(user.lastActive).toLocaleDateString() }}</span>
-                  </div>
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.revenue.arpu')
+                  }}</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatCurrency(revenueReport.arpu)
+                  }}</span>
+                </div>
+                <div
+                  class="flex items-center justify-between py-2 border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
+                >
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.revenue.churnRate')
+                  }}</span>
+                  <span
+                    class="font-data tabular-nums font-medium"
+                    :class="
+                      revenueReport.churnRate > 5
+                        ? 'text-[var(--status-error)]'
+                        : 'text-[var(--status-success)]'
+                    "
+                  >
+                    {{ formatPercent(revenueReport.churnRate) }}
+                  </span>
+                </div>
+                <div class="flex items-center justify-between py-2">
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.revenue.totalRevenue')
+                  }}</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatCurrency(revenueReport.totalRevenue)
+                  }}</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </template>
-      </TabsContent>
-
-      <!-- Problem Completion -->
-      <TabsContent value="problem_completion" class="space-y-4">
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="text-muted-foreground">{{ t('common.loading') }}</div>
+            </div>
+          </div>
         </div>
-        <template v-else-if="problemCompletionReport">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.problemCompletion.totalAttempts')
-                }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  formatNumber(problemCompletionReport.totalAttempts)
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.problemCompletion.successfulAttempts')
-                }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  formatNumber(problemCompletionReport.successfulAttempts)
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.problemCompletion.completionRate')
-                }}</CardDescription>
-                <CardTitle class="text-2xl flex items-center gap-2">
-                  {{ formatPercent(problemCompletionReport.overallCompletionRate) }}
-                  <IconTrendingUp
-                    v-if="problemCompletionReport.overallCompletionRate > 30"
-                    class="h-5 w-5 text-green-500"
-                  />
-                  <IconTrendingDown v-else class="h-5 w-5 text-red-500" />
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.problemCompletion.trendingProblems')
-                }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  problemCompletionReport.trendingProblems.length
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
+
+        <!-- Performance Report -->
+        <div v-else-if="activeTab === 'performance' && performanceReport" class="space-y-5">
+          <!-- Metric Cards -->
+          <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <AnalyticsMetricCard
+              v-for="(metric, index) in performanceMetrics"
+              :key="index"
+              :metric="metric"
+            />
           </div>
 
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{{ t('analytics.problemCompletion.byDifficulty') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="space-y-3">
-                  <div
-                    v-for="item in problemCompletionReport.byDifficulty"
-                    :key="item.difficulty"
-                    class="space-y-1"
-                  >
-                    <div class="flex items-center justify-between">
-                      <span class="text-sm font-medium">{{ item.difficulty }}</span>
-                      <span class="text-sm text-muted-foreground">{{
-                        formatPercent(item.rate)
-                      }}</span>
-                    </div>
-                    <div class="w-full h-2 bg-muted rounded overflow-hidden">
-                      <div
-                        class="h-full"
-                        :class="{
-                          'bg-green-500': item.difficulty === 'EASY',
-                          'bg-yellow-500': item.difficulty === 'MEDIUM',
-                          'bg-red-500': item.difficulty === 'HARD',
-                        }"
-                        :style="{ width: item.rate + '%' }"
-                      />
-                    </div>
-                  </div>
+          <!-- Resource Usage -->
+          <div
+            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-lg bg-card shadow-float p-5"
+          >
+            <h3 class="text-base font-medium tracking-tight mb-4">
+              {{ t('analytics.performance.resourceUsage') }}
+            </h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <!-- CPU -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-[var(--silver-500)]">CPU</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatPercent(performanceReport.resourceUsage.cpu)
+                  }}</span>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{{ t('analytics.problemCompletion.hardestProblems') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="space-y-2">
-                  <div
-                    v-for="problem in problemCompletionReport.hardestProblems"
-                    :key="problem.problemId"
-                    class="flex items-center justify-between p-2 rounded hover:bg-muted/50"
-                  >
-                    <div>
-                      <p class="font-medium text-sm">{{ problem.title }}</p>
-                      <p class="text-xs text-muted-foreground">{{ problem.difficulty }}</p>
-                    </div>
-                    <Badge variant="destructive">{{ formatPercent(problem.completionRate) }}</Badge>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{{ t('analytics.problemCompletion.topTags') }}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="flex flex-wrap gap-2">
-                <Badge
-                  v-for="tag in problemCompletionReport.byTag.slice(0, 15)"
-                  :key="tag.tagId"
-                  variant="outline"
-                  class="py-1"
+                <div
+                  class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
                 >
-                  {{ tag.label }} ({{ formatPercent(tag.rate) }})
-                </Badge>
-              </div>
-            </CardContent>
-          </Card>
-        </template>
-      </TabsContent>
-
-      <!-- Contest Participation -->
-      <TabsContent value="contest_participation" class="space-y-4">
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="text-muted-foreground">{{ t('common.loading') }}</div>
-        </div>
-        <template v-else-if="contestParticipationReport">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.contestParticipation.totalContests')
-                }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  contestParticipationReport.totalContests
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.contestParticipation.totalParticipants')
-                }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  formatNumber(contestParticipationReport.totalParticipants)
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.contestParticipation.avgParticipants')
-                }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  contestParticipationReport.averageParticipantsPerContest.toFixed(1)
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{
-                  t('analytics.contestParticipation.virtualParticipation')
-                }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  contestParticipationReport.virtualParticipation.total
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{{ t('analytics.contestParticipation.byType') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="space-y-3">
                   <div
-                    v-for="item in contestParticipationReport.byType"
-                    :key="item.type"
-                    class="flex items-center justify-between"
-                  >
-                    <div class="flex items-center gap-2">
-                      <Badge variant="outline">{{ item.type }}</Badge>
-                      <span class="text-sm text-muted-foreground">{{ item.count }} contests</span>
-                    </div>
-                    <span class="font-medium">{{ item.avgParticipants.toFixed(1) }} avg</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{{ t('analytics.contestParticipation.topContests') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="space-y-2">
-                  <div
-                    v-for="contest in contestParticipationReport.topContests"
-                    :key="contest.contestId"
-                    class="flex items-center justify-between p-2 rounded hover:bg-muted/50"
-                  >
-                    <span class="font-medium text-sm truncate max-w-[200px]">{{
-                      contest.title
-                    }}</span>
-                    <Badge
-                      >{{ contest.participants }} {{ t('analytics.contestParticipants') }}</Badge
-                    >
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </template>
-      </TabsContent>
-
-      <!-- Revenue -->
-      <TabsContent value="revenue" class="space-y-4">
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="text-muted-foreground">{{ t('common.loading') }}</div>
-        </div>
-        <template v-else-if="revenueReport">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.revenue.mrr') }}</CardDescription>
-                <CardTitle class="text-2xl">{{ formatCurrency(revenueReport.mrr) }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.revenue.arr') }}</CardDescription>
-                <CardTitle class="text-2xl">{{ formatCurrency(revenueReport.arr) }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.revenue.subscribers') }}</CardDescription>
-                <CardTitle class="text-2xl">{{ revenueReport.subscriberCount }}</CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.revenue.conversionRate') }}</CardDescription>
-                <CardTitle class="text-2xl flex items-center gap-2">
-                  {{ formatPercent(revenueReport.conversionRate) }}
-                  <IconTrendingUp
-                    v-if="revenueReport.conversionRate > 5"
-                    class="h-5 w-5 text-green-500"
+                    class="h-full rounded-full transition-all duration-500"
+                    :class="
+                      performanceReport.resourceUsage.cpu > 80
+                        ? 'bg-[var(--status-error)]'
+                        : performanceReport.resourceUsage.cpu > 60
+                          ? 'bg-[var(--status-warning)]'
+                          : 'bg-[var(--accent-primary)]'
+                    "
+                    :style="{ width: performanceReport.resourceUsage.cpu + '%' }"
                   />
-                </CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{{ t('analytics.revenue.byPlan') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="space-y-3">
-                  <div
-                    v-for="item in revenueReport.byPlan"
-                    :key="item.plan"
-                    class="flex items-center justify-between"
-                  >
-                    <div>
-                      <p class="font-medium">{{ item.plan }}</p>
-                      <p class="text-sm text-muted-foreground">
-                        {{ item.subscribers }} subscribers
-                      </p>
-                    </div>
-                    <span class="text-lg font-semibold">{{ formatCurrency(item.revenue) }}/mo</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>{{ t('analytics.revenue.metrics') }}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div class="space-y-4">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-muted-foreground">{{
-                      t('analytics.revenue.arpu')
-                    }}</span>
-                    <span class="font-medium">{{ formatCurrency(revenueReport.arpu) }}</span>
-                  </div>
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-muted-foreground">{{
-                      t('analytics.revenue.churnRate')
-                    }}</span>
-                    <span
-                      class="font-medium"
-                      :class="revenueReport.churnRate > 5 ? 'text-red-500' : 'text-green-500'"
-                    >
-                      {{ formatPercent(revenueReport.churnRate) }}
-                    </span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </template>
-      </TabsContent>
-
-      <!-- Performance -->
-      <TabsContent value="performance" class="space-y-4">
-        <div v-if="loading" class="flex items-center justify-center py-12">
-          <div class="text-muted-foreground">{{ t('common.loading') }}</div>
-        </div>
-        <template v-else-if="performanceReport">
-          <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.performance.uptime') }}</CardDescription>
-                <CardTitle class="text-2xl flex items-center gap-2">
-                  {{ formatUptime(performanceReport.systemUptime) }}
-                  <IconTrendingUp
-                    v-if="performanceReport.systemUptime > 86400 * 7"
-                    class="h-5 w-5 text-green-500"
-                  />
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.performance.throughput') }}</CardDescription>
-                <CardTitle class="text-2xl"
-                  >{{ performanceReport.throughput
-                  }}<span class="text-sm font-normal">/24h</span></CardTitle
-                >
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.performance.errorRate') }}</CardDescription>
-                <CardTitle
-                  class="text-2xl"
-                  :class="performanceReport.errorRate > 1 ? 'text-red-500' : 'text-green-500'"
-                >
-                  {{ formatPercent(performanceReport.errorRate) }}
-                </CardTitle>
-              </CardHeader>
-            </Card>
-            <Card>
-              <CardHeader class="pb-2">
-                <CardDescription>{{ t('analytics.performance.memoryUsage') }}</CardDescription>
-                <CardTitle class="text-2xl">{{
-                  formatPercent(performanceReport.resourceUsage.memory)
-                }}</CardTitle>
-              </CardHeader>
-            </Card>
-          </div>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{{ t('analytics.performance.resourceUsage') }}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div class="grid grid-cols-3 gap-6">
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-muted-foreground">CPU</span>
-                    <span class="font-medium">{{
-                      formatPercent(performanceReport.resourceUsage.cpu)
-                    }}</span>
-                  </div>
-                  <div class="w-full h-2 bg-muted rounded overflow-hidden">
-                    <div
-                      class="h-full bg-blue-500"
-                      :style="{ width: performanceReport.resourceUsage.cpu + '%' }"
-                    />
-                  </div>
-                </div>
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-muted-foreground">Memory</span>
-                    <span class="font-medium">{{
-                      formatPercent(performanceReport.resourceUsage.memory)
-                    }}</span>
-                  </div>
-                  <div class="w-full h-2 bg-muted rounded overflow-hidden">
-                    <div
-                      class="h-full bg-green-500"
-                      :style="{ width: performanceReport.resourceUsage.memory + '%' }"
-                    />
-                  </div>
-                </div>
-                <div class="space-y-2">
-                  <div class="flex items-center justify-between">
-                    <span class="text-sm text-muted-foreground">Disk</span>
-                    <span class="font-medium">{{
-                      formatPercent(performanceReport.resourceUsage.disk)
-                    }}</span>
-                  </div>
-                  <div class="w-full h-2 bg-muted rounded overflow-hidden">
-                    <div
-                      class="h-full bg-yellow-500"
-                      :style="{ width: performanceReport.resourceUsage.disk + '%' }"
-                    />
-                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </template>
-      </TabsContent>
-    </Tabs>
+
+              <!-- Memory -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-[var(--silver-500)]">Memory</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatPercent(performanceReport.resourceUsage.memory)
+                  }}</span>
+                </div>
+                <div
+                  class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+                >
+                  <div
+                    class="h-full rounded-full transition-all duration-500"
+                    :class="
+                      performanceReport.resourceUsage.memory > 80
+                        ? 'bg-[var(--status-error)]'
+                        : performanceReport.resourceUsage.memory > 60
+                          ? 'bg-[var(--status-warning)]'
+                          : 'bg-[var(--status-success)]'
+                    "
+                    :style="{ width: performanceReport.resourceUsage.memory + '%' }"
+                  />
+                </div>
+              </div>
+
+              <!-- Disk -->
+              <div class="space-y-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-sm text-[var(--silver-500)]">Disk</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatPercent(performanceReport.resourceUsage.disk)
+                  }}</span>
+                </div>
+                <div
+                  class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+                >
+                  <div
+                    class="h-full rounded-full transition-all duration-500"
+                    :class="
+                      performanceReport.resourceUsage.disk > 80
+                        ? 'bg-[var(--status-error)]'
+                        : performanceReport.resourceUsage.disk > 60
+                          ? 'bg-[var(--status-warning)]'
+                          : 'bg-[var(--status-warning)]'
+                    "
+                    :style="{ width: performanceReport.resourceUsage.disk + '%' }"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Slowest Endpoints -->
+          <AnalyticsBarList
+            :title="t('analytics.performance.slowestEndpoints')"
+            :description="t('analytics.performance.slowestEndpointsDesc')"
+            :items="performanceEndpointBarItems"
+            :limit="10"
+          />
+        </div>
+
+        <!-- No Data State -->
+        <div v-else-if="!loading" class="flex items-center justify-center py-12">
+          <div class="text-center">
+            <p class="text-[var(--silver-400)]">{{ t('analytics.noData') }}</p>
+          </div>
+        </div>
+      </main>
+    </div>
   </div>
 </template>

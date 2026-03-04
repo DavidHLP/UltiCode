@@ -3,9 +3,7 @@ import { ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useContestsStore } from '@/stores/admin/contests'
 import { useI18n } from 'vue-i18n'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
 import {
   IconCalendar,
   IconClock,
@@ -16,7 +14,7 @@ import {
   IconExternalLink,
 } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
-import { getContestStatusBadgeVariant, getContestTypeBadgeVariant } from '@/lib/ui/status'
+import { DataBlock } from '@/components/ui/terminal'
 
 const props = defineProps<{
   open: boolean
@@ -25,6 +23,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
+  success: []
 }>()
 
 const router = useRouter()
@@ -56,6 +55,36 @@ function navigateToDetail() {
   emit('update:open', false)
   router.push({ name: 'contest-detail', params: { id: props.contestId } })
 }
+
+// Get status badge styling
+function getStatusStyle(status: string): { class: string; label: string } {
+  const styles: Record<string, { class: string; label: string }> = {
+    RUNNING: {
+      class: 'terminal-badge-success animate-pulse-subtle',
+      label: 'RUNNING',
+    },
+    UPCOMING: {
+      class: 'terminal-badge-warning',
+      label: 'UPCOMING',
+    },
+    FINISHED: {
+      class:
+        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
+      label: 'FINISHED',
+    },
+  }
+  return styles[status] ?? { class: 'terminal-badge', label: status }
+}
+
+// Get type badge styling
+function getTypeStyle(type: string) {
+  const styles: Record<string, string> = {
+    IOI: 'terminal-badge-info',
+    ICPC: 'terminal-badge-info',
+    CUSTOM: 'terminal-badge-warning',
+  }
+  return styles[type] || 'terminal-badge'
+}
 </script>
 
 <template>
@@ -70,153 +99,201 @@ function navigateToDetail() {
     :not-found-text="t('contests.drawer.contestNotFound')"
   >
     <template #headerActions>
-      <Button variant="outline" size="sm" @click="navigateToDetail">
-        <IconExternalLink class="h-4 w-4 mr-1" />
-        {{ t('contests.drawer.fullView') }}
+      <Button
+        variant="terminal"
+        size="sm"
+        class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+        @click="navigateToDetail"
+      >
+        <IconExternalLink class="h-4 w-4 mr-1.5" />
+        <span class="uppercase tracking-wider">{{ t('contests.drawer.fullView') }}</span>
       </Button>
     </template>
 
     <template #content="{ entity }">
-      <!-- Contest Header -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div
-            class="h-16 w-16 rounded-xl bg-primary/10 flex items-center justify-center text-primary"
-          >
-            <IconTrophy class="h-8 w-8" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <h3 class="text-xl font-semibold leading-none">
-              {{ entity.title }}
-            </h3>
-            <p class="text-sm text-muted-foreground font-mono">
-              {{ entity.slug }}
-            </p>
-            <div class="flex flex-wrap gap-2 mt-1">
-              <Badge :variant="getContestTypeBadgeVariant(entity.contest_type)">
-                {{ t(`contests.type.${entity.contest_type}`) }}
-              </Badge>
-              <Badge :variant="getContestStatusBadgeVariant(entity.status)">
-                {{ t(`contests.status.${entity.status.toLowerCase()}`) }}
-              </Badge>
-              <Badge v-if="entity.is_visible" variant="outline">
-                <IconEye class="h-3 w-3 mr-1" />
-                {{ t('contests.drawer.published') }}
-              </Badge>
-              <Badge v-else variant="secondary">
-                <IconEyeOff class="h-3 w-3 mr-1" />
-                {{ t('contests.detail.hidden') }}
-              </Badge>
+      <!-- Contest Header - Terminal Style -->
+      <div
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <!-- Header Bar -->
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">contest_profile</span>
+        </div>
+
+        <div class="p-4">
+          <div class="flex items-start gap-4">
+            <!-- Icon -->
+            <div
+              class="h-16 w-16 border flex items-center justify-center bg-[var(--silver-100)] dark:bg-[var(--silver-800)] border-[var(--silver-200)] dark:border-[var(--silver-600)] text-[var(--accent-electric)]"
+            >
+              <IconTrophy class="h-8 w-8" />
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-medium text-lg truncate">{{ entity.title }}</span>
+              </div>
+              <div class="font-data text-xs text-[var(--silver-400)] mb-2">
+                {{ entity.slug }}
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span :class="['terminal-badge', getTypeStyle(entity.contest_type)]">
+                  {{ t(`contests.type.${entity.contest_type}`) }}
+                </span>
+                <span :class="['terminal-badge', getStatusStyle(entity.status).class]">
+                  {{ getStatusStyle(entity.status).label }}
+                </span>
+                <span
+                  v-if="entity.is_visible"
+                  class="terminal-badge bg-[oklch(0.7_0.15_145/0.15)] text-[var(--terminal-green)] border border-[oklch(0.7_0.15_145/0.4)]"
+                >
+                  <IconEye class="h-3 w-3 mr-1" />
+                  {{ t('contests.drawer.published') }}
+                </span>
+                <span
+                  v-else
+                  class="terminal-badge bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]"
+                >
+                  <IconEyeOff class="h-3 w-3 mr-1" />
+                  {{ t('contests.detail.hidden') }}
+                </span>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
-      <Separator />
+      <!-- Statistics - Terminal Style -->
+      <div
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">statistics</span>
+        </div>
 
-      <!-- Statistics -->
-      <div class="space-y-4">
-        <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-          {{ t('contests.drawer.statistics') }}
-        </h4>
-        <div class="grid grid-cols-2 gap-4">
-          <div
-            class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
-          >
-            <IconTrophy class="h-8 w-8 text-yellow-500 mb-2" />
-            <span class="text-2xl font-bold">{{ entity.problems?.length || 0 }}</span>
-            <span class="text-xs text-muted-foreground uppercase">{{
-              t('contests.drawer.problems')
-            }}</span>
-          </div>
-          <div
-            class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
-          >
-            <IconUsers class="h-8 w-8 text-blue-500 mb-2" />
-            <span class="text-2xl font-bold">{{ entity.participant_count || 0 }}</span>
-            <span class="text-xs text-muted-foreground uppercase">{{
-              t('contests.drawer.participants')
-            }}</span>
+        <div class="p-4">
+          <div class="grid grid-cols-2 gap-3">
+            <div
+              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            >
+              <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)]" />
+              <div>
+                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                  {{ entity.problems?.length || 0 }}
+                </div>
+                <div class="terminal-label">{{ t('contests.drawer.problems') }}</div>
+              </div>
+            </div>
+            <div
+              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            >
+              <IconUsers class="h-5 w-5 text-[var(--terminal-cyan)]" />
+              <div>
+                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                  {{ entity.participant_count || 0 }}
+                </div>
+                <div class="terminal-label">{{ t('contests.drawer.participants') }}</div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <Separator />
+      <!-- Schedule Info - Terminal Style -->
+      <div
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">schedule</span>
+        </div>
 
-      <!-- Details Grid -->
-      <div class="grid gap-6">
-        <div class="space-y-4">
-          <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            {{ t('contests.drawer.schedule') }}
-          </h4>
+        <div class="p-4">
           <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <p class="text-sm font-medium flex items-center gap-2">
-                <IconCalendar class="h-4 w-4 text-muted-foreground" />
-                {{ t('contests.drawer.start') }}
-              </p>
-              <p class="text-sm text-muted-foreground pl-6">
-                {{ new Date(entity.start_time).toLocaleString() }}
-              </p>
-            </div>
-            <div class="space-y-1">
-              <p class="text-sm font-medium flex items-center gap-2">
-                <IconClock class="h-4 w-4 text-muted-foreground" />
-                {{ t('contests.drawer.duration') }}
-              </p>
-              <p class="text-sm text-muted-foreground pl-6">
-                {{ entity.duration_minutes }} {{ t('common.minutes') }}
-              </p>
-            </div>
+            <DataBlock :label="t('contests.drawer.start')">
+              <div class="flex items-center gap-2">
+                <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
+                <span class="font-data text-sm tabular-nums">
+                  {{ new Date(entity.start_time).toLocaleString() }}
+                </span>
+              </div>
+            </DataBlock>
+            <DataBlock :label="t('contests.drawer.duration')">
+              <div class="flex items-center gap-2">
+                <IconClock class="h-4 w-4 text-[var(--silver-400)]" />
+                <span class="font-data text-sm tabular-nums">
+                  {{ entity.duration_minutes }} {{ t('common.minutes') }}
+                </span>
+              </div>
+            </DataBlock>
           </div>
         </div>
+      </div>
 
-        <div v-if="entity.description" class="space-y-4">
-          <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            {{ t('contests.drawer.description') }}
-          </h4>
-          <p class="text-sm text-muted-foreground whitespace-pre-wrap">
+      <!-- Description - Terminal Style -->
+      <div
+        v-if="entity.description"
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">description</span>
+        </div>
+
+        <div class="p-4">
+          <p class="text-sm text-[var(--silver-400)] whitespace-pre-wrap font-data">
             {{ entity.description }}
           </p>
         </div>
+      </div>
 
-        <!-- Problems List Preview -->
-        <div v-if="entity.problems?.length" class="space-y-4">
-          <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            {{
-              t('contests.drawer.problemsCount', {
-                count: entity.problems.length,
-              })
-            }}
-          </h4>
-          <div class="space-y-2">
-            <div
-              v-for="cp in entity.problems.slice(0, 5)"
-              :key="cp.id"
-              class="flex items-center justify-between rounded-lg border p-3"
-            >
-              <div class="flex items-center gap-3">
-                <span class="font-mono text-sm font-medium text-muted-foreground">
-                  {{ cp.problem_index }}
-                </span>
-                <div>
-                  <p class="text-sm font-medium">{{ cp.problem.title }}</p>
-                  <p class="text-xs text-muted-foreground">{{ cp.problem.slug }}</p>
-                </div>
+      <!-- Problems Preview - Terminal Style -->
+      <div
+        v-if="entity.problems?.length"
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment"> problems [{{ entity.problems.length }}] </span>
+        </div>
+
+        <div class="p-4 space-y-2">
+          <div
+            v-for="(cp, index) in entity.problems.slice(0, 5)"
+            :key="cp.id"
+            class="flex items-center justify-between border border-[var(--silver-200)] dark:border-[var(--silver-700)] p-3 bg-[var(--surface-sunken)]"
+          >
+            <div class="flex items-center gap-3">
+              <span class="font-data text-xs text-[var(--silver-400)] w-6">
+                {{ String(index + 1).padStart(2, '0') }}
+              </span>
+              <span class="font-data text-xs text-[var(--accent-electric)] w-8">
+                {{ cp.problem_index }}
+              </span>
+              <div>
+                <p class="text-sm font-medium">{{ cp.problem.title }}</p>
+                <p class="font-data text-xs text-[var(--silver-400)]">{{ cp.problem.slug }}</p>
               </div>
-              <Badge variant="outline">{{ cp.score }} {{ t('contests.drawer.pts') }}</Badge>
             </div>
-            <p
-              v-if="entity.problems.length > 5"
-              class="text-xs text-muted-foreground text-center pt-2"
+            <span
+              class="font-data text-xs text-[var(--terminal-cyan)] border border-[var(--silver-200)] px-2 py-0.5"
             >
-              {{
-                t('contests.drawer.moreProblems', {
-                  count: entity.problems.length - 5,
-                })
-              }}
-            </p>
+              {{ cp.score }} {{ t('contests.drawer.pts') }}
+            </span>
           </div>
+          <p
+            v-if="entity.problems.length > 5"
+            class="font-data text-xs text-[var(--silver-400)] text-center pt-2"
+          >
+            + {{ entity.problems.length - 5 }} more problems
+          </p>
         </div>
       </div>
     </template>

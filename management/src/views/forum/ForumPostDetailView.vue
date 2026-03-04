@@ -5,19 +5,19 @@ import { useI18n } from 'vue-i18n'
 import { useForumStore } from '@/stores/admin/forum'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { TerminalBadge } from '@/components/ui/terminal'
 import {
-  ArrowLeft,
-  Flag,
-  Lock,
-  Pin,
-  Trash,
-  FileText,
-  MessageSquare,
-  History,
-} from 'lucide-vue-next'
+  IconArrowLeft,
+  IconFlag,
+  IconLock,
+  IconPin,
+  IconTrash,
+  IconFileText,
+  IconMessage,
+  IconHistory,
+} from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
 import OverviewDisplay from './components/OverviewDisplay.vue'
 import CommentsTab from './components/CommentsTab.vue'
@@ -34,6 +34,15 @@ const isInitialLoad = ref(true)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
 const auditLoading = ref(false)
+
+// Animation state for staggered reveal
+const isLoaded = ref(false)
+
+onMounted(() => {
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+})
 
 const postId = computed(() => route.params.id as string)
 const post = computed(() => forumStore.currentPost)
@@ -144,44 +153,35 @@ async function handleFlagPost(id: string | number, reason?: string) {
 
 <template>
   <div class="min-h-[calc(100vh-4rem)] bg-background flex flex-col">
-    <!-- Header -->
-    <header class="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
-      <div class="flex items-center justify-between h-14 px-4 lg:px-6">
+    <!-- Terminal Header -->
+    <header
+      :class="[
+        'sticky top-0 z-10 bg-[var(--card)] border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <!-- Left: Back & Title -->
         <div class="flex items-center gap-4 min-w-0">
           <Button
-            variant="ghost"
-            size="icon"
-            class="h-8 w-8 text-muted-foreground -ml-2"
+            variant="terminal"
+            size="sm"
+            class="h-8 w-8 p-0 border-[var(--silver-300)] hover:border-[var(--silver-400)]"
             @click="router.push({ name: 'forum-posts' })"
           >
-            <ArrowLeft :size="18" />
+            <IconArrowLeft class="h-4 w-4" />
           </Button>
 
           <div v-if="post" class="flex items-center gap-3 min-w-0">
-            <h1 class="text-sm font-semibold truncate">{{ post.title }}</h1>
-            <div class="hidden sm:flex items-center gap-2">
-              <Badge v-if="post.is_pinned" variant="default" class="text-[10px] px-1.5 py-0 h-5">
-                {{ t('forum.status.pinned') }}
-              </Badge>
-              <Badge v-if="post.is_locked" variant="secondary" class="text-[10px] px-1.5 py-0 h-5">
-                {{ t('forum.status.locked') }}
-              </Badge>
-              <Badge
-                v-if="post.is_flagged"
-                variant="destructive"
-                class="text-[10px] px-1.5 py-0 h-5"
-              >
-                {{ t('forum.status.flagged') }}
-              </Badge>
-              <Badge
-                v-if="post.is_deleted"
-                variant="destructive"
-                class="text-[10px] px-1.5 py-0 h-5"
-              >
-                {{ t('forum.status.deleted') }}
-              </Badge>
+            <div class="flex items-center gap-2">
+              <span class="terminal-prompt text-sm">post</span>
+              <span class="terminal-cursor" />
             </div>
+            <h1 class="text-base font-medium text-[var(--foreground)] truncate">
+              {{ post.title }}
+            </h1>
           </div>
           <Skeleton v-else class="h-5 w-32" />
         </div>
@@ -189,96 +189,145 @@ async function handleFlagPost(id: string | number, reason?: string) {
         <!-- Center: Tabs (Desktop) -->
         <div class="absolute left-1/2 -translate-x-1/2 hidden md:block">
           <Tabs :model-value="currentView" @update:model-value="handleTabChange">
-            <TabsList class="h-9">
-              <TabsTrigger value="overview" class="text-xs h-7 px-3">
-                <FileText :size="14" class="mr-1" />
+            <TabsList class="h-9 border border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+              <TabsTrigger
+                value="overview"
+                class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
+              >
+                <span class="text-[var(--silver-500)] mr-1">01</span>
+                <IconFileText :size="14" class="mr-1" />
                 {{ t('forum.tabs.overview') }}
               </TabsTrigger>
-              <TabsTrigger value="comments" class="text-xs h-7 px-3">
-                <MessageSquare :size="14" class="mr-1" />
+              <TabsTrigger
+                value="comments"
+                class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
+              >
+                <span class="text-[var(--silver-500)] mr-1">02</span>
+                <IconMessage :size="14" class="mr-1" />
                 {{ t('forum.tabs.comments') }}
               </TabsTrigger>
-              <TabsTrigger value="audit" class="text-xs h-7 px-3">
-                <History :size="14" class="mr-1" />
+              <TabsTrigger
+                value="audit"
+                class="text-xs h-7 px-3 font-data data-[state=active]:bg-[var(--surface-sunken)]"
+              >
+                <span class="text-[var(--silver-500)] mr-1">03</span>
+                <IconHistory :size="14" class="mr-1" />
                 {{ t('forum.tabs.audit') }}
               </TabsTrigger>
             </TabsList>
           </Tabs>
         </div>
 
-        <!-- Right: Actions -->
-        <div v-if="post" class="flex items-center gap-2">
+        <!-- Right: Actions & Status -->
+        <div v-if="post" class="flex items-center gap-3">
+          <!-- Status Badges -->
+          <div class="hidden sm:flex items-center gap-2">
+            <TerminalBadge v-if="post.is_pinned" variant="info" :label="t('forum.status.pinned')" />
+            <TerminalBadge
+              v-if="post.is_locked"
+              variant="warning"
+              :label="t('forum.status.locked')"
+            />
+            <TerminalBadge
+              v-if="post.is_flagged"
+              variant="error"
+              pulse
+              :label="t('forum.status.flagged')"
+            />
+            <TerminalBadge
+              v-if="post.is_deleted"
+              variant="error"
+              :label="t('forum.status.deleted')"
+            />
+          </div>
+
+          <!-- Action Buttons -->
           <template v-if="canModerate">
             <Button
-              variant="outline"
+              variant="terminal"
               size="sm"
-              class="h-8 gap-1.5 hidden sm:flex"
+              class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-cyan)] hover:text-[var(--terminal-cyan)]"
               @click="togglePin"
             >
-              <Pin :size="14" />
-              <span>{{ post.is_pinned ? t('forum.actions.unpin') : t('forum.actions.pin') }}</span>
+              <IconPin class="h-3.5 w-3.5 mr-1.5" />
+              <span class="uppercase tracking-wider">{{
+                post.is_pinned ? t('forum.actions.unpin') : t('forum.actions.pin')
+              }}</span>
             </Button>
 
             <Button
-              variant="outline"
+              variant="terminal"
               size="sm"
-              class="h-8 gap-1.5 hidden sm:flex"
+              class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-amber)] hover:text-[var(--terminal-amber)]"
               @click="toggleLock"
             >
-              <Lock :size="14" />
-              <span>{{
+              <IconLock class="h-3.5 w-3.5 mr-1.5" />
+              <span class="uppercase tracking-wider">{{
                 post.is_locked ? t('forum.actions.unlock') : t('forum.actions.lock')
               }}</span>
             </Button>
 
             <Button
               v-if="post.is_flagged"
-              variant="outline"
+              variant="terminal"
               size="sm"
-              class="h-8 gap-1.5 hidden sm:flex text-emerald-600 hover:text-emerald-700"
+              class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
               @click="unflagPost"
             >
-              <Flag :size="14" />
-              <span>{{ t('forum.actions.unflag') }}</span>
+              <IconFlag class="h-3.5 w-3.5 mr-1.5" />
+              <span class="uppercase tracking-wider">{{ t('forum.actions.unflag') }}</span>
             </Button>
             <Button
               v-else
-              variant="outline"
+              variant="terminal"
               size="sm"
-              class="h-8 gap-1.5 hidden sm:flex text-amber-600 hover:text-amber-700"
+              class="h-8 font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[oklch(0.75_0.15_85/0.1)]"
               @click="flagDialogOpen = true"
             >
-              <Flag :size="14" />
-              <span>{{ t('forum.actions.flag') }}</span>
+              <IconFlag class="h-3.5 w-3.5 mr-1.5" />
+              <span class="uppercase tracking-wider">{{ t('forum.actions.flag') }}</span>
             </Button>
           </template>
 
           <Button
             v-if="canDelete"
-            variant="ghost"
-            size="icon"
-            class="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+            variant="terminal"
+            size="sm"
+            class="h-8 w-8 p-0 border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
             @click="deleteDialogOpen = true"
           >
-            <Trash :size="16" />
+            <IconTrash class="h-4 w-4" />
           </Button>
         </div>
       </div>
 
       <!-- Mobile Tabs (Below Header) -->
-      <div class="md:hidden border-t p-1 bg-muted/10">
+      <div
+        class="md:hidden border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] p-1 bg-[var(--surface-sunken)]"
+      >
         <Tabs :model-value="currentView" @update:model-value="handleTabChange" class="w-full">
-          <TabsList class="w-full h-9">
-            <TabsTrigger value="overview" class="flex-1 text-xs h-7">
-              <FileText :size="14" class="mr-1" />
+          <TabsList
+            class="w-full h-9 border border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+          >
+            <TabsTrigger
+              value="overview"
+              class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
+            >
+              <span class="text-[var(--silver-500)] mr-1">01</span>
               {{ t('forum.tabs.overview') }}
             </TabsTrigger>
-            <TabsTrigger value="comments" class="flex-1 text-xs h-7">
-              <MessageSquare :size="14" class="mr-1" />
+            <TabsTrigger
+              value="comments"
+              class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
+            >
+              <span class="text-[var(--silver-500)] mr-1">02</span>
               {{ t('forum.tabs.comments') }}
             </TabsTrigger>
-            <TabsTrigger value="audit" class="flex-1 text-xs h-7">
-              <History :size="14" class="mr-1" />
+            <TabsTrigger
+              value="audit"
+              class="flex-1 text-xs h-7 font-data data-[state=active]:bg-[var(--card)]"
+            >
+              <span class="text-[var(--silver-500)] mr-1">03</span>
               {{ t('forum.tabs.audit') }}
             </TabsTrigger>
           </TabsList>
@@ -293,16 +342,30 @@ async function handleFlagPost(id: string | number, reason?: string) {
         v-if="forumStore.postError"
         class="flex flex-col items-center justify-center py-24 text-center"
       >
-        <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-          <FileText :size="24" class="text-muted-foreground" />
+        <div
+          class="w-12 h-12 border border-[var(--terminal-red)] flex items-center justify-center mb-3"
+        >
+          <IconFileText :size="24" class="text-[var(--terminal-red)]" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">{{ t('forum.error.loadingPost') }}</h2>
-        <p class="text-xs text-muted-foreground mb-4">{{ forumStore.postError }}</p>
+        <h2 class="text-sm font-semibold mb-1 font-data">{{ t('forum.error.loadingPost') }}</h2>
+        <p class="text-xs text-[var(--silver-400)] mb-4 font-data">{{ forumStore.postError }}</p>
         <div class="flex gap-2">
-          <Button variant="outline" size="sm" @click="router.push({ name: 'forum-posts' })">
+          <Button
+            variant="terminal"
+            size="sm"
+            class="font-data text-xs border-[var(--silver-300)]"
+            @click="router.push({ name: 'forum-posts' })"
+          >
             {{ t('forum.error.back') }}
           </Button>
-          <Button size="sm" @click="loadData">{{ t('forum.error.retry') }}</Button>
+          <Button
+            variant="terminal"
+            size="sm"
+            class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)]"
+            @click="loadData"
+          >
+            {{ t('forum.error.retry') }}
+          </Button>
         </div>
       </div>
 
@@ -310,26 +373,33 @@ async function handleFlagPost(id: string | number, reason?: string) {
       <div v-else-if="isInitialLoad || forumStore.postLoading" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-8 space-y-4">
-            <Skeleton class="h-12 w-3/4 rounded-lg" />
-            <Skeleton class="h-64 w-full rounded-xl" />
+            <Skeleton class="h-12 w-3/4 rounded-sm" />
+            <Skeleton class="h-64 w-full rounded-sm" />
           </div>
           <div class="lg:col-span-4 space-y-4">
-            <Skeleton class="h-32 w-full rounded-xl" />
-            <Skeleton class="h-32 w-full rounded-xl" />
+            <Skeleton class="h-32 w-full rounded-sm" />
+            <Skeleton class="h-32 w-full rounded-sm" />
           </div>
         </div>
       </div>
 
       <!-- Not Found State -->
       <div v-else-if="!post" class="flex flex-col items-center justify-center py-24 text-center">
-        <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-          <FileText :size="24" class="text-muted-foreground" />
+        <div
+          class="w-12 h-12 border border-[var(--silver-300)] flex items-center justify-center mb-3"
+        >
+          <IconFileText :size="24" class="text-[var(--silver-400)]" />
         </div>
-        <h2 class="text-sm font-semibold mb-1">{{ t('forum.error.postNotFound') }}</h2>
-        <p class="text-xs text-muted-foreground mb-4">
+        <h2 class="text-sm font-semibold mb-1 font-data">{{ t('forum.error.postNotFound') }}</h2>
+        <p class="text-xs text-[var(--silver-400)] mb-4">
           {{ t('forum.error.notFoundDescription') }}
         </p>
-        <Button variant="outline" size="sm" @click="router.push({ name: 'forum-posts' })">
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)]"
+          @click="router.push({ name: 'forum-posts' })"
+        >
           {{ t('forum.error.backToForumPosts') }}
         </Button>
       </div>

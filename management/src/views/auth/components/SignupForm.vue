@@ -1,16 +1,18 @@
 <script setup lang="ts">
+/**
+ * SignupForm - 注册表单
+ *
+ * 使用新的 AuthInput/AuthButton 组件
+ * 保留 GitHub OAuth
+ */
 import type { HTMLAttributes } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import {
-  Field,
-  FieldDescription,
-  FieldGroup,
-  FieldLabel,
-  FieldSeparator,
-} from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import AuthInput from './AuthInput.vue'
+import AuthButton from './AuthButton.vue'
+import AuthDivider from './AuthDivider.vue'
+import OAuthButton from './OAuthButton.vue'
+import { ArrowRight } from 'lucide-vue-next'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -20,51 +22,122 @@ const { t } = useI18n()
 </script>
 
 <template>
-  <form :class="cn('flex flex-col gap-6', props.class)">
-    <FieldGroup>
-      <div class="flex flex-col items-center gap-1 text-center">
-        <h1 class="text-2xl font-bold">{{ t('auth.signup.title') }}</h1>
-        <p class="text-muted-foreground text-sm text-balance">
-          {{ t('auth.signup.subtitle') }}
-        </p>
-      </div>
-      <Field>
-        <FieldLabel for="name">{{ t('auth.signup.fullName') }}</FieldLabel>
-        <Input id="name" type="text" :placeholder="t('auth.signup.fullNamePlaceholder')" required />
-      </Field>
-      <Field>
-        <FieldLabel for="email">{{ t('auth.signup.email') }}</FieldLabel>
-        <Input id="email" type="email" :placeholder="t('auth.signup.emailPlaceholder')" required />
-        <FieldDescription>{{ t('auth.signup.emailDescription') }}</FieldDescription>
-      </Field>
-      <Field>
-        <FieldLabel for="password">{{ t('auth.signup.password') }}</FieldLabel>
-        <Input id="password" type="password" required />
-        <FieldDescription>{{ t('auth.signup.passwordDescription') }}</FieldDescription>
-      </Field>
-      <Field>
-        <FieldLabel for="confirm-password">{{ t('auth.signup.confirmPassword') }}</FieldLabel>
-        <Input id="confirm-password" type="password" required />
-        <FieldDescription>{{ t('auth.signup.confirmPasswordDescription') }}</FieldDescription>
-      </Field>
-      <Field>
-        <Button type="submit">{{ t('auth.signup.submit') }}</Button>
-      </Field>
-      <FieldSeparator>{{ t('auth.signup.orContinueWith') }}</FieldSeparator>
-      <Field>
-        <Button variant="outline" type="button">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <path
-              d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
-              fill="currentColor"
-            />
-          </svg>
-          {{ t('auth.signup.github') }}
-        </Button>
-        <FieldDescription class="px-6 text-center">
-          {{ t('auth.signup.alreadyHaveAccount') }} <a href="#">{{ t('auth.signup.signIn') }}</a>
-        </FieldDescription>
-      </Field>
-    </FieldGroup>
+  <form :class="cn('signup-form', props.class)">
+    <!-- Header -->
+    <div class="signup-form__header">
+      <h1 class="signup-form__title">{{ t('auth.signup.title') }}</h1>
+      <p class="signup-form__subtitle">{{ t('auth.signup.subtitle') }}</p>
+    </div>
+
+    <!-- Name Field -->
+    <AuthInput
+      :label="t('auth.signup.fullName')"
+      type="text"
+      :placeholder="t('auth.signup.fullNamePlaceholder')"
+    />
+
+    <!-- Email Field -->
+    <AuthInput
+      :label="t('auth.signup.email')"
+      type="email"
+      :placeholder="t('auth.signup.emailPlaceholder')"
+    />
+
+    <!-- Password Field -->
+    <AuthInput :label="t('auth.signup.password')" type="password" />
+
+    <!-- Confirm Password Field -->
+    <AuthInput :label="t('auth.signup.confirmPassword')" type="password" />
+
+    <!-- Submit Button -->
+    <AuthButton class="signup-form__submit">
+      <span>{{ t('auth.signup.submit') }}</span>
+      <ArrowRight class="signup-form__submit-icon" />
+    </AuthButton>
+
+    <!-- Divider -->
+    <AuthDivider />
+
+    <!-- GitHub OAuth -->
+    <OAuthButton>{{ t('auth.signup.github') }}</OAuthButton>
+
+    <!-- Sign In Link -->
+    <div class="signup-form__footer">
+      <span>{{ t('auth.signup.alreadyHaveAccount') }}</span>
+      <RouterLink to="/login" class="signup-form__link">{{ t('auth.signup.signIn') }}</RouterLink>
+    </div>
   </form>
 </template>
+
+<style scoped>
+.signup-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+/* Header */
+.signup-form__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--silver-100);
+}
+
+.dark .signup-form__header {
+  border-bottom-color: var(--silver-300);
+}
+
+.signup-form__title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--foreground);
+  line-height: 1.1;
+}
+
+.signup-form__subtitle {
+  font-size: 0.875rem;
+  color: var(--silver-500);
+}
+
+/* Submit Button */
+.signup-form__submit {
+  margin-top: 0.5rem;
+}
+
+.signup-form__submit-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+
+/* Footer */
+.signup-form__footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--silver-100);
+  font-size: 0.875rem;
+  color: var(--silver-500);
+}
+
+.dark .signup-form__footer {
+  border-top-color: var(--silver-300);
+}
+
+.signup-form__link {
+  color: var(--accent-primary);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity var(--transition-fast);
+}
+
+.signup-form__link:hover {
+  opacity: 0.8;
+  text-decoration: underline;
+}
+</style>

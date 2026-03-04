@@ -1,52 +1,18 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Separator } from '@/components/ui/separator'
-import { IconCalendar, IconUser, IconEye, IconTag, IconFileText } from '@tabler/icons-vue'
 import type { Solution } from '@/api/admin/solutions'
 import DescriptionMarkdown from '@/components/problems/DescriptionMarkdown.vue'
 import { formatDate } from '@/lib/format/date'
-import ContentWithSidebarLayout from '@/components/shared/ContentWithSidebarLayout.vue'
-import MetadataCard, { type MetadataItem } from '@/components/shared/MetadataCard.vue'
-import TagsCard from '@/components/shared/TagsCard.vue'
+import { IconFileText } from '@tabler/icons-vue'
+import DataBlock from '@/components/ui/terminal/DataBlock.vue'
+import TerminalBadge from '@/components/ui/terminal/TerminalBadge.vue'
 
 const props = defineProps<{
   solution: Solution
 }>()
 
 const { t } = useI18n()
-
-const metadataItems = computed<MetadataItem[]>(() => [
-  {
-    label: t('solutions.detail.author'),
-    value: `${props.solution.author.username} (${props.solution.author.name})`,
-    icon: IconUser,
-  },
-  {
-    label: t('solutions.detail.problemDifficulty'),
-    value: props.solution.problem?.difficulty.toLowerCase() || 'unknown',
-  },
-  {
-    label: t('solutions.detail.views'),
-    value: props.solution.views.toLocaleString(),
-    icon: IconEye,
-  },
-  {
-    label: t('solutions.detail.language'),
-    value: props.solution.language,
-    icon: IconTag,
-  },
-  {
-    label: t('solutions.detail.created'),
-    value: formatDate(props.solution.created_at),
-    icon: IconCalendar,
-  },
-  {
-    label: t('solutions.detail.updated'),
-    value: formatDate(props.solution.updated_at),
-    icon: IconCalendar,
-  },
-])
 
 const solutionContent = computed(() => ({
   content: props.solution.content,
@@ -57,15 +23,19 @@ const solutionContent = computed(() => ({
 </script>
 
 <template>
-  <ContentWithSidebarLayout>
-    <template #main-content>
-      <div class="rounded-xl border bg-card p-6 shadow-sm">
+  <div class="space-y-4">
+    <!-- Main content card -->
+    <div class="border border-[var(--silver-200)] bg-[var(--card)]">
+      <div class="border-b border-[var(--silver-200)] px-4 py-2 bg-[var(--surface-sunken)]">
+        <span class="terminal-comment">description</span>
+      </div>
+      <div class="p-6">
         <div class="flex flex-col gap-4 mb-6">
           <div class="space-y-1">
-            <h1 class="text-2xl font-bold tracking-tight">
+            <h1 class="text-2xl font-bold tracking-tight text-[var(--foreground)]">
               {{ solution.title }}
             </h1>
-            <div class="flex items-center gap-2 text-muted-foreground text-sm font-mono">
+            <div class="flex items-center gap-2 text-[var(--silver-400)] text-sm font-data">
               <IconFileText class="h-4 w-4" />
               <span>{{
                 t('solutions.detail.solutionFor', { problem: solution.problem?.title })
@@ -74,30 +44,69 @@ const solutionContent = computed(() => ({
           </div>
         </div>
 
-        <Separator class="mb-6" />
-
         <div v-if="solution.content" class="prose prose-sm dark:prose-invert max-w-none">
           <DescriptionMarkdown :description="solutionContent" />
         </div>
-        <div v-else class="text-center py-12 text-muted-foreground italic">
+        <div v-else class="text-center py-12 text-[var(--silver-400)] italic font-data">
           {{ t('solutions.detail.noDescriptionContent') }}
         </div>
 
-        <div v-if="solution.summary" class="mt-8 p-4 bg-muted/30 rounded-lg">
-          <h3 class="font-semibold text-sm mb-2">{{ t('solutions.detail.summary') }}</h3>
-          <p class="text-sm text-muted-foreground">{{ solution.summary }}</p>
+        <div
+          v-if="solution.summary"
+          class="mt-8 p-4 bg-[var(--surface-sunken)] border border-[var(--silver-200)]"
+        >
+          <div class="border-b border-[var(--silver-200)] px-4 py-2">
+            <span class="terminal-comment">// summary</span>
+          </div>
+          <div class="p-4">
+            <p class="text-sm text-[var(--silver-600)]">{{ solution.summary }}</p>
+          </div>
         </div>
       </div>
-    </template>
+    </div>
 
-    <template #sidebar>
-      <MetadataCard :title="t('solutions.detail.metadata')" :metadata="metadataItems" />
+    <!-- Meta section with DataBlock -->
+    <div class="border border-[var(--silver-200)] bg-[var(--card)]">
+      <div class="border-b border-[var(--silver-200)] px-4 py-2 bg-[var(--surface-sunken)]">
+        <span class="terminal-comment">metadata</span>
+      </div>
+      <div class="p-4 grid grid-cols-2 md:grid-cols-3 gap-4">
+        <DataBlock
+          v-if="solution.author"
+          :label="t('solutions.detail.author')"
+          :value="`${solution.author.username} (${solution.author.name})`"
+        />
+        <DataBlock
+          :label="t('solutions.detail.problemDifficulty')"
+          :value="solution.problem?.difficulty?.toLowerCase() || 'unknown'"
+        />
+        <DataBlock :label="t('solutions.detail.views')" :value="solution.views.toLocaleString()" />
+        <DataBlock :label="t('solutions.detail.language')" :value="solution.language" />
+        <DataBlock
+          :label="t('solutions.detail.created')"
+          :value="formatDate(solution.created_at)"
+        />
+        <DataBlock
+          :label="t('solutions.detail.updated')"
+          :value="formatDate(solution.updated_at)"
+        />
+      </div>
+    </div>
 
-      <TagsCard
-        v-if="solution.tags?.length"
-        :title="t('solutions.detail.tags')"
-        :tags="solution.tags"
-      />
-    </template>
-  </ContentWithSidebarLayout>
+    <!-- Tags section -->
+    <div v-if="solution.tags?.length" class="border border-[var(--silver-200)] bg-[var(--card)]">
+      <div class="border-b border-[var(--silver-200)] px-4 py-2 bg-[var(--surface-sunken)]">
+        <span class="terminal-comment">tags</span>
+      </div>
+      <div class="p-4 flex flex-wrap gap-2">
+        <TerminalBadge
+          v-for="(tag, index) in solution.tags"
+          :key="index"
+          variant="default"
+          :label="tag"
+          class="text-[10px] px-1.5 h-5"
+        />
+      </div>
+    </div>
+  </div>
 </template>

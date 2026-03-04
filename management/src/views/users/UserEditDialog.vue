@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { IconArrowRight, IconLoader2 } from '@tabler/icons-vue'
 import { useUsersStore } from '@/stores/admin/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,20 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-  FieldLegend,
-  FieldDescription,
-  FieldSeparator,
-} from '@/components/ui/field'
 import {
   Select,
   SelectContent,
@@ -28,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -107,98 +101,145 @@ async function handleSubmit() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[600px]">
-      <DialogHeader>
-        <DialogTitle>Edit User</DialogTitle>
-        <DialogDescription>
-          Make changes to the user profile here. Click save when you're done.
-        </DialogDescription>
+    <DialogContent
+      class="sm:max-w-[560px] border-[var(--silver-200)] dark:border-[var(--silver-700)] rounded-none p-0 gap-0"
+    >
+      <!-- Terminal Header -->
+      <DialogHeader class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4">
+        <div class="flex items-center gap-3">
+          <span class="terminal-prompt text-sm">edit_user</span>
+          <DialogTitle class="text-lg font-medium tracking-tight">{{
+            t('users.editUser')
+          }}</DialogTitle>
+        </div>
+        <p class="terminal-comment mt-1">{{ t('users.editDescription') }}</p>
       </DialogHeader>
 
-      <div v-if="loading" class="flex items-center justify-center p-8">
-        <span class="text-muted-foreground">Loading user details...</span>
+      <!-- Loading State -->
+      <div v-if="loading" class="flex items-center justify-center p-12">
+        <div class="flex items-center gap-3">
+          <IconLoader2 class="h-4 w-4 animate-spin text-[var(--accent-electric)]" />
+          <span class="font-data text-sm text-[var(--silver-400)]">Loading user data...</span>
+        </div>
       </div>
 
+      <!-- Form -->
       <form v-else @submit.prevent="handleSubmit">
+        <!-- Error Banner -->
         <div
           v-if="error"
-          class="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md"
+          class="mx-4 mt-4 p-3 border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] flex items-center gap-2"
         >
-          {{ error }}
+          <span class="font-data text-xs text-[var(--terminal-red)]">> ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
 
-        <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
-          <FieldSet>
-            <FieldLegend>General Information</FieldLegend>
-            <FieldDescription>Update the user's personal details.</FieldDescription>
-            <FieldGroup>
-              <Field>
-                <FieldLabel for="edit-name">Full Name</FieldLabel>
-                <Input id="edit-name" v-model="form.name" type="text" required :disabled="saving" />
-              </Field>
-
+        <div class="max-h-[50vh] overflow-y-auto p-4 space-y-6">
+          <!-- Section: General Information -->
+          <div>
+            <div class="terminal-comment mb-3">// General Information</div>
+            <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field>
-                  <FieldLabel for="edit-username">Username</FieldLabel>
+                <div class="space-y-1.5">
+                  <label class="terminal-label block">{{ t('users.form.fullName') }}</label>
                   <Input
-                    id="edit-username"
+                    v-model="form.name"
+                    type="text"
+                    required
+                    :disabled="saving"
+                    class="terminal-input h-9"
+                  />
+                </div>
+
+                <div class="space-y-1.5">
+                  <label class="terminal-label block">{{ t('users.form.username') }}</label>
+                  <Input
                     v-model="form.username"
                     type="text"
                     required
                     :disabled="saving"
+                    class="terminal-input h-9 font-data"
                   />
-                </Field>
-
-                <Field>
-                  <FieldLabel for="edit-email">Email</FieldLabel>
-                  <Input id="edit-email" v-model="form.email" type="email" :disabled="saving" />
-                </Field>
-              </div>
-            </FieldGroup>
-          </FieldSet>
-
-          <FieldSeparator />
-
-          <FieldSet>
-            <FieldLegend>Access Control</FieldLegend>
-            <FieldDescription>Manage user role and account status.</FieldDescription>
-            <FieldGroup>
-              <Field>
-                <FieldLabel for="edit-role">Role</FieldLabel>
-                <Select v-model="form.role" :disabled="saving">
-                  <SelectTrigger id="edit-role">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="USER">User</SelectItem>
-                    <SelectItem value="MODERATOR">Moderator</SelectItem>
-                    <SelectItem value="ADMIN">Admin</SelectItem>
-                    <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </Field>
-
-              <Field orientation="horizontal">
-                <Checkbox id="edit-is_active" v-model:checked="form.is_active" :disabled="saving" />
-                <div class="flex flex-col gap-1">
-                  <FieldLabel for="edit-is_active" class="font-normal cursor-pointer">
-                    Active Account
-                  </FieldLabel>
-                  <FieldDescription>
-                    Disable to prevent the user from logging in.
-                  </FieldDescription>
                 </div>
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-        </FieldGroup>
+              </div>
 
-        <DialogFooter class="mt-6">
-          <Button type="button" variant="outline" @click="emit('update:open', false)">
-            Cancel
+              <div class="space-y-1.5">
+                <label class="terminal-label block">{{ t('users.form.email') }}</label>
+                <Input
+                  v-model="form.email"
+                  type="email"
+                  :disabled="saving"
+                  class="terminal-input h-9 font-data"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Double-line Separator -->
+          <div class="terminal-separator" />
+
+          <!-- Section: Access Control -->
+          <div>
+            <div class="terminal-comment mb-3">// Access Control</div>
+            <div class="space-y-4">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="space-y-1.5">
+                  <label class="terminal-label block">{{ t('users.form.role') }}</label>
+                  <Select v-model="form.role" :disabled="saving">
+                    <SelectTrigger class="terminal-input h-9 font-data">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="USER" class="font-data">USER</SelectItem>
+                      <SelectItem value="MODERATOR" class="font-data">MODERATOR</SelectItem>
+                      <SelectItem value="ADMIN" class="font-data">ADMIN</SelectItem>
+                      <SelectItem value="SUPER_ADMIN" class="font-data">SUPER_ADMIN</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div class="space-y-1.5">
+                  <label class="terminal-label block">{{ t('users.form.status') }}</label>
+                  <div
+                    class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+                  >
+                    <Checkbox
+                      id="edit-is_active"
+                      v-model:checked="form.is_active"
+                      :disabled="saving"
+                      class="border-[var(--silver-400)] data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
+                    />
+                    <label for="edit-is_active" class="font-data text-xs cursor-pointer">
+                      {{ form.is_active ? 'ACTIVE' : 'INACTIVE' }}
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <DialogFooter
+          class="border-t border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4 gap-3"
+        >
+          <Button
+            type="button"
+            variant="terminal"
+            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--silver-400)]"
+            @click="emit('update:open', false)"
+          >
+            {{ t('common.cancel') }}
           </Button>
-          <Button type="submit" :disabled="saving">
-            {{ saving ? 'Saving...' : 'Save Changes' }}
+          <Button
+            type="submit"
+            variant="terminal"
+            :disabled="saving"
+            class="font-data text-xs bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90"
+          >
+            <IconLoader2 v-if="saving" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            <IconArrowRight v-else class="h-3.5 w-3.5 mr-1.5" />
+            {{ saving ? t('users.form.saving') : t('users.form.saveChanges') }}
           </Button>
         </DialogFooter>
       </form>

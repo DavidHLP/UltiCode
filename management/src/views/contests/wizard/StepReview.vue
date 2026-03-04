@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { Badge } from '@/components/ui/badge'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 const props = defineProps<{
   formData: {
@@ -28,112 +26,143 @@ const formattedDate = computed(() => {
   if (!props.formData.start_time) return t('contests.scheduleStep.notSet')
   return new Date(props.formData.start_time).toLocaleString()
 })
+
+// Get difficulty styling
+function getDifficultyStyle(difficulty: string) {
+  const styles: Record<string, string> = {
+    Easy: 'terminal-badge-success',
+    Medium: 'terminal-badge-warning',
+    Hard: 'terminal-badge-error',
+  }
+  return styles[difficulty] || 'terminal-badge'
+}
+
+// Get type styling
+function getTypeStyle(type: string) {
+  const styles: Record<string, string> = {
+    IOI: 'terminal-badge-info',
+    ICPC: 'terminal-badge-info',
+    PUBLIC: 'terminal-badge-success',
+    PRIVATE: 'terminal-badge-warning',
+    VIRTUAL: 'terminal-badge-info',
+  }
+  return styles[type] || 'terminal-badge'
+}
 </script>
 
 <template>
   <div class="space-y-6">
-    <div class="grid gap-4 md:grid-cols-2">
-      <Card>
-        <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('contests.reviewStep.basicInfo') }}
-          </CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2">
-          <div>
-            <span class="text-xs text-muted-foreground">{{ t('contests.basics.title') }}:</span>
-            <p class="font-medium">{{ formData.title }}</p>
-          </div>
-          <div>
-            <span class="text-xs text-muted-foreground">{{ t('contests.basics.slug') }}:</span>
-            <p class="font-mono text-sm">{{ formData.slug }}</p>
-          </div>
-          <div>
-            <span class="text-xs text-muted-foreground">{{ t('contests.basics.type') }}:</span>
-            <p>
-              <Badge variant="outline">{{ t(`contests.type.${formData.type}`) }}</Badge>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader class="pb-2">
-          <CardTitle class="text-sm font-medium text-muted-foreground">
-            {{ t('contests.reviewStep.schedule') }}
-          </CardTitle>
-        </CardHeader>
-        <CardContent class="space-y-2">
-          <div>
-            <span class="text-xs text-muted-foreground"
-              >{{ t('contests.reviewStep.startTime') }}:</span
-            >
-            <p class="font-medium">{{ formattedDate }}</p>
-          </div>
-          <div>
-            <span class="text-xs text-muted-foreground"
-              >{{ t('contests.reviewStep.duration') }}:</span
-            >
-            <p class="font-medium">{{ formData.duration }} {{ t('common.minutes') }}</p>
-          </div>
-          <div>
-            <span class="text-xs text-muted-foreground"
-              >{{ t('contests.reviewStep.visibility') }}:</span
-            >
-            <p>
-              <Badge :variant="formData.is_published ? 'default' : 'secondary'">
-                {{
-                  formData.is_published
-                    ? t('contests.reviewStep.published')
-                    : t('contests.reviewStep.draft')
-                }}
-              </Badge>
-            </p>
-          </div>
-        </CardContent>
-      </Card>
+    <!-- Section Header -->
+    <div class="flex items-center gap-2 mb-4">
+      <span class="terminal-prompt text-sm">review</span>
+      <span class="terminal-cursor" />
     </div>
 
-    <Card>
-      <CardHeader class="pb-2">
-        <CardTitle class="text-sm font-medium text-muted-foreground">
+    <div class="grid gap-4 md:grid-cols-2">
+      <!-- Basic Info Card - Terminal Style -->
+      <div
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">{{ t('contests.reviewStep.basicInfo') }}</span>
+        </div>
+        <div class="p-4 space-y-3">
+          <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
+            <span class="terminal-label">{{ t('contests.basics.title') }}</span>
+            <p class="font-medium text-sm text-[var(--foreground)]">{{ formData.title }}</p>
+          </div>
+          <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
+            <span class="terminal-label">{{ t('contests.basics.slug') }}</span>
+            <p class="font-data text-sm text-[var(--terminal-cyan)]">{{ formData.slug }}</p>
+          </div>
+          <div>
+            <span class="terminal-label">{{ t('contests.basics.type') }}</span>
+            <p>
+              <span :class="['terminal-badge text-[10px]', getTypeStyle(formData.type)]">
+                {{ formData.type }}
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Schedule Card - Terminal Style -->
+      <div
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">{{ t('contests.reviewStep.schedule') }}</span>
+        </div>
+        <div class="p-4 space-y-3">
+          <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
+            <span class="terminal-label">{{ t('contests.reviewStep.startTime') }}</span>
+            <p class="font-data text-sm tabular-nums text-[var(--foreground)]">
+              {{ formattedDate }}
+            </p>
+          </div>
+          <div class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] pb-2">
+            <span class="terminal-label">{{ t('contests.reviewStep.duration') }}</span>
+            <p class="font-data text-sm tabular-nums text-[var(--foreground)]">
+              {{ formData.duration }} {{ t('common.minutes') }}
+            </p>
+          </div>
+          <div>
+            <span class="terminal-label">{{ t('contests.reviewStep.visibility') }}</span>
+            <p>
+              <span v-if="formData.is_published" class="terminal-badge-success text-[10px]">
+                PUBLISHED
+              </span>
+              <span v-else class="terminal-badge text-[10px]">DRAFT</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Problems Card - Terminal Style -->
+    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]">
+      <div
+        class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+      >
+        <span class="terminal-comment">
           {{
             t('contests.reviewStep.problemsCount', {
               count: formData.selectedProblems?.length || 0,
             })
           }}
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+        </span>
+      </div>
+      <div class="p-4">
         <div class="space-y-2">
           <div
             v-for="(problem, index) in formData.selectedProblems || []"
             :key="problem.id"
-            class="flex items-center justify-between text-sm py-1"
+            class="flex items-center justify-between border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] py-2 last:border-0"
           >
-            <div class="flex items-center gap-2">
-              <span class="font-mono text-muted-foreground w-4">
+            <div class="flex items-center gap-3">
+              <span class="font-data text-xs text-[var(--accent-electric)] w-6">
                 {{ String.fromCharCode(65 + index) }}
               </span>
-              <span>{{ problem.title }}</span>
+              <span class="font-medium text-sm text-[var(--foreground)]">{{ problem.title }}</span>
+              <span :class="['terminal-badge text-[10px]', getDifficultyStyle(problem.difficulty)]">
+                {{ problem.difficulty?.toUpperCase() }}
+              </span>
             </div>
-            <div class="flex items-center gap-4">
-              <Badge variant="outline" class="text-[10px] capitalize">
-                {{ problem.difficulty?.toLowerCase() }}
-              </Badge>
-              <span class="text-muted-foreground w-12 text-right">
-                {{ problem.score }} {{ t('contests.drawer.pts') }}</span
-              >
-            </div>
+            <span
+              class="font-data text-xs text-[var(--terminal-cyan)] tabular-nums w-16 text-right"
+            >
+              {{ problem.score }} {{ t('contests.drawer.pts') }}
+            </span>
           </div>
-          <div
-            v-if="!formData.selectedProblems?.length"
-            class="text-sm text-muted-foreground italic"
-          >
-            {{ t('contests.reviewStep.noProblemsSelected') }}
+          <div v-if="!formData.selectedProblems?.length" class="py-4 text-center">
+            <span class="terminal-comment">{{ t('contests.reviewStep.noProblemsSelected') }}</span>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   </div>
 </template>

@@ -5,10 +5,15 @@ import { useI18n } from 'vue-i18n'
 import { useContestsStore } from '@/stores/admin/contests'
 import { useAuthStore } from '@/stores/auth'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { IconArrowLeft, IconPlayerPlay, IconPlayerStop, IconTrash } from '@tabler/icons-vue'
+import {
+  IconArrowLeft,
+  IconPlayerPlay,
+  IconPlayerStop,
+  IconTrash,
+  IconTrophy,
+} from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
 import ContestProblemPicker from './components/ContestProblemPicker.vue'
 import ContestOverviewTab from './components/ContestOverviewTab.vue'
@@ -29,6 +34,7 @@ const rankings = computed(() => contestsStore.currentRankings)
 const loading = ref(true)
 const problemPickerOpen = ref(false)
 const activeTab = ref('overview')
+const isLoaded = ref(false)
 
 const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'CONTEST'))
 const canDelete = computed(() => authStore.hasPermission('DELETE', 'CONTEST'))
@@ -37,6 +43,9 @@ onMounted(async () => {
   if (contestId.value) {
     await loadData()
   }
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
 })
 
 async function loadData() {
@@ -88,7 +97,7 @@ async function handleAddProblem(problem: { id: string }) {
   try {
     await contestsStore.addProblem(contestId.value, {
       problem_id: problem.id,
-      score: 100, // Default, maybe add dialog to set score later
+      score: 100,
     })
     toast.success(t('contests.toast.problemAdded'))
     problemPickerOpen.value = false
@@ -100,12 +109,8 @@ async function handleAddProblem(problem: { id: string }) {
 async function handleRemoveProblem(problemId: string) {
   if (!confirm(t('contests.confirmation.removeProblem'))) return
   try {
-    // ProblemId here refers to the problem entity ID, not the join table ID in some contexts,
-    // but API expects problem_id (BigInt in backend).
-    // Wait, backend delete expects :problemId which is the BigInt of problem.
     await contestsStore.removeProblem(contestId.value, problemId)
     toast.success(t('contests.toast.problemRemoved'))
-    // Optimistic update or refetch done by store
   } catch {
     toast.error(t('contests.toast.failedToRemoveProblem'))
   }
@@ -117,87 +122,163 @@ function handleTabChange(value: string | number) {
     contestsStore.fetchRankings(contestId.value)
   }
 }
+
+// Get status badge styling
+function getStatusStyle(status: string): { class: string; label: string } {
+  const styles: Record<string, { class: string; label: string }> = {
+    RUNNING: {
+      class: 'terminal-badge-success animate-pulse-subtle',
+      label: 'RUNNING',
+    },
+    UPCOMING: {
+      class: 'terminal-badge-warning',
+      label: 'UPCOMING',
+    },
+    FINISHED: {
+      class:
+        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
+      label: 'FINISHED',
+    },
+  }
+  return styles[status] ?? { class: 'terminal-badge', label: status }
+}
+
+// Get type badge styling
+function getTypeStyle(type: string) {
+  const styles: Record<string, string> = {
+    IOI: 'terminal-badge-info',
+    ICPC: 'terminal-badge-info',
+    CUSTOM: 'terminal-badge-warning',
+  }
+  return styles[type] || 'terminal-badge'
+}
 </script>
 
 <template>
   <div class="flex flex-col min-h-[calc(100vh-4rem)]">
-    <!-- Header -->
-    <header class="sticky top-0 z-10 bg-background/95 backdrop-blur border-b">
-      <div class="flex items-center justify-between h-14 px-4 lg:px-6">
-        <div class="flex items-center gap-4">
-          <Button variant="ghost" size="icon" @click="router.push({ name: 'contests' })">
-            <IconArrowLeft class="h-4 w-4" />
-          </Button>
-          <div v-if="loading && !contest" class="space-y-1">
-            <Skeleton class="h-4 w-32" />
-          </div>
-          <div v-else-if="contest" class="flex items-center gap-3">
-            <h1 class="font-semibold text-sm">{{ contest.title }}</h1>
-            <Badge variant="outline" class="uppercase text-[10px]">
-              {{ contest.contest_type }}
-            </Badge>
-            <Badge
-              :variant="
-                contest.status === 'RUNNING'
-                  ? 'default'
-                  : contest.status === 'FINISHED'
-                    ? 'secondary'
-                    : 'outline'
-              "
-              class="capitalize text-[10px]"
+    <!-- Terminal Header -->
+    <header
+      :class="[
+        'sticky top-0 z-10 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <div class="px-4 lg:px-6 py-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-4">
+            <Button
+              variant="terminal"
+              size="icon"
+              class="h-8 w-8 border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
+              @click="router.push({ name: 'contests' })"
             >
-              {{ t(`contests.status.${contest.status.toLowerCase()}`) }}
-            </Badge>
-          </div>
-        </div>
+              <IconArrowLeft class="h-4 w-4" />
+            </Button>
 
-        <div class="flex items-center gap-2">
-          <template v-if="contest && canUpdate">
+            <div v-if="loading && !contest" class="space-y-2">
+              <Skeleton class="h-4 w-48" />
+              <Skeleton class="h-3 w-32" />
+            </div>
+
+            <div v-else-if="contest" class="flex items-center gap-3">
+              <div
+                class="h-10 w-10 border flex items-center justify-center bg-[var(--silver-100)] dark:bg-[var(--silver-800)] border-[var(--silver-200)] dark:border-[var(--silver-600)] text-[var(--accent-electric)]"
+              >
+                <IconTrophy class="h-5 w-5" />
+              </div>
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="terminal-prompt text-sm">contest</span>
+                  <h1 class="font-medium text-sm text-[var(--foreground)]">{{ contest.title }}</h1>
+                </div>
+                <div class="flex items-center gap-2 mt-1">
+                  <span :class="['terminal-badge text-[10px]', getTypeStyle(contest.contest_type)]">
+                    {{ t(`contests.type.${contest.contest_type}`) }}
+                  </span>
+                  <span
+                    :class="['terminal-badge text-[10px]', getStatusStyle(contest.status).class]"
+                  >
+                    {{ getStatusStyle(contest.status).label }}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2">
+            <template v-if="contest && canUpdate">
+              <Button
+                v-if="contest.status === 'UPCOMING'"
+                variant="terminal"
+                size="sm"
+                class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+                @click="handleStart"
+              >
+                <IconPlayerPlay class="mr-1.5 h-3.5 w-3.5" />
+                <span class="uppercase tracking-wider">{{ t('contests.detail.start') }}</span>
+              </Button>
+              <Button
+                v-if="contest.status === 'RUNNING'"
+                variant="terminal"
+                size="sm"
+                class="font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[oklch(0.75_0.15_85/0.1)]"
+                @click="handleEnd"
+              >
+                <IconPlayerStop class="mr-1.5 h-3.5 w-3.5" />
+                <span class="uppercase tracking-wider">{{ t('contests.detail.end') }}</span>
+              </Button>
+            </template>
             <Button
-              v-if="contest.status === 'UPCOMING'"
+              v-if="canDelete"
+              variant="terminal"
               size="sm"
-              variant="outline"
-              @click="handleStart"
+              class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+              @click="handleDelete"
             >
-              <IconPlayerPlay class="mr-2 h-3.5 w-3.5" />
-              {{ t('contests.detail.start') }}
+              <IconTrash class="mr-1.5 h-3.5 w-3.5" />
+              <span class="uppercase tracking-wider">{{ t('contests.actions.delete') }}</span>
             </Button>
-            <Button
-              v-if="contest.status === 'RUNNING'"
-              size="sm"
-              variant="destructive"
-              @click="handleEnd"
-            >
-              <IconPlayerStop class="mr-2 h-3.5 w-3.5" />
-              {{ t('contests.detail.end') }}
-            </Button>
-          </template>
-          <Button
-            v-if="canDelete"
-            variant="ghost"
-            size="icon"
-            class="text-destructive"
-            @click="handleDelete"
-          >
-            <IconTrash class="h-4 w-4" />
-          </Button>
+          </div>
         </div>
       </div>
     </header>
 
     <main class="flex-1 p-4 lg:p-6 max-w-[1200px] mx-auto w-full">
       <div v-if="loading && !contest" class="space-y-6">
-        <Skeleton class="h-48 w-full rounded-xl" />
-        <Skeleton class="h-96 w-full rounded-xl" />
+        <Skeleton class="h-48 w-full border border-[var(--silver-200)]" />
+        <Skeleton class="h-96 w-full border border-[var(--silver-200)]" />
       </div>
 
       <template v-else-if="contest">
         <Tabs :model-value="activeTab" @update:model-value="handleTabChange" class="space-y-6">
-          <TabsList>
-            <TabsTrigger value="overview">{{ t('contests.detail.overview') }}</TabsTrigger>
-            <TabsTrigger value="problems">{{ t('contests.detail.problems') }}</TabsTrigger>
-            <TabsTrigger value="participants">{{ t('contests.detail.participants') }}</TabsTrigger>
-            <TabsTrigger value="rankings">{{ t('contests.detail.rankings') }}</TabsTrigger>
+          <TabsList
+            class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-1"
+          >
+            <TabsTrigger
+              value="overview"
+              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)]"
+            >
+              {{ t('contests.detail.overview') }}
+            </TabsTrigger>
+            <TabsTrigger
+              value="problems"
+              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)]"
+            >
+              {{ t('contests.detail.problems') }}
+            </TabsTrigger>
+            <TabsTrigger
+              value="participants"
+              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)]"
+            >
+              {{ t('contests.detail.participants') }}
+            </TabsTrigger>
+            <TabsTrigger
+              value="rankings"
+              class="font-data text-xs uppercase tracking-wider data-[state=active]:bg-[var(--card)] data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)]"
+            >
+              {{ t('contests.detail.rankings') }}
+            </TabsTrigger>
           </TabsList>
 
           <!-- Overview Tab -->
@@ -227,11 +308,19 @@ function handleTabChange(value: string | number) {
         </Tabs>
       </template>
 
-      <div v-else class="flex flex-col items-center justify-center h-64 text-muted-foreground">
-        <p>{{ t('contests.detail.contestNotFound') }}</p>
-        <Button variant="link" @click="router.push({ name: 'contests' })">{{
-          t('contests.detail.backToList')
-        }}</Button>
+      <div
+        v-else
+        class="flex flex-col items-center justify-center h-64 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <span class="terminal-comment mb-4">{{ t('contests.detail.contestNotFound') }}</span>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)]"
+          @click="router.push({ name: 'contests' })"
+        >
+          {{ t('contests.detail.backToList') }}
+        </Button>
       </div>
 
       <ContestProblemPicker

@@ -16,6 +16,15 @@ export const buttonVariants = cva(
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent/50',
         link: 'text-primary underline-offset-4 hover:underline',
+        // Terminal Precision variants
+        terminal:
+          'border border-[var(--silver-300)] bg-transparent font-data text-xs uppercase tracking-wider text-[var(--silver-600)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] dark:border-[var(--silver-300)] dark:text-[var(--silver-400)] dark:hover:border-[var(--accent-electric)] dark:hover:text-[var(--accent-electric)] transition-colors rounded-none shadow-none',
+        terminal_primary:
+          'bg-[var(--accent-electric)] text-white font-data text-xs uppercase tracking-wider hover:bg-[var(--accent-electric)]/90 dark:hover:bg-[var(--accent-electric)]/80 rounded-none shadow-none',
+        terminal_danger:
+          'border border-[var(--terminal-red)] bg-transparent text-[var(--terminal-red)] font-data text-xs uppercase tracking-wider hover:bg-[oklch(0.6_0.2_25/0.1)] dark:hover:bg-[oklch(0.58_0.18_25/0.15)] rounded-none shadow-none',
+        terminal_ghost:
+          'font-data text-xs uppercase tracking-wider text-[var(--silver-500)] hover:text-[var(--foreground)] hover:bg-transparent dark:text-[var(--silver-400)] dark:hover:text-[var(--foreground)] rounded-none shadow-none',
       },
       size: {
         default: 'h-9 px-4 py-2 has-[>svg]:px-3',
@@ -24,6 +33,10 @@ export const buttonVariants = cva(
         icon: 'size-9',
         'icon-sm': 'size-8',
         'icon-lg': 'size-10',
+        // Terminal sizes
+        terminal: 'h-8 px-3 py-1.5',
+        terminal_sm: 'h-7 px-2.5 py-1 text-[10px]',
+        terminal_lg: 'h-9 px-4 py-2',
       },
     },
     defaultVariants: {

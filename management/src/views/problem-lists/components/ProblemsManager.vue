@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Table,
@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/table'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { IconPlus, IconTrash } from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
 import ContestProblemPicker from '@/views/contests/components/ContestProblemPicker.vue'
@@ -94,73 +93,136 @@ async function saveProblems() {
     loading.value = false
   }
 }
+
+// Terminal-style difficulty badge
+function getDifficultyStyle(difficulty: string): string {
+  const styles: Record<string, string> = {
+    easy: 'bg-[oklch(0.7_0.15_145/0.15)] border-[oklch(0.7_0.15_145/0.4)] text-[var(--terminal-green)]',
+    medium:
+      'bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]',
+    hard: 'bg-[oklch(0.6_0.2_25/0.15)] border-[oklch(0.6_0.2_25/0.4)] text-[var(--terminal-red)]',
+  }
+  return (
+    styles[difficulty?.toLowerCase()] ||
+    'bg-[var(--silver-100)] border-[var(--silver-300)] text-[var(--silver-500)]'
+  )
+}
+
+function renderDifficultyBadge(difficulty: string) {
+  return h(
+    'span',
+    {
+      class: [
+        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+        'px-2 py-0.5 border rounded-sm',
+        getDifficultyStyle(difficulty),
+      ].join(' '),
+    },
+    difficulty?.toLowerCase() || 'unknown',
+  )
+}
 </script>
 
 <template>
   <div class="space-y-4">
-    <div class="flex justify-between items-center">
-      <h3 class="text-lg font-medium">{{ t('problemLists.problemsManager.title') }}</h3>
+    <!-- Header -->
+    <div class="flex justify-between items-center pb-4 border-b border-[var(--silver-200)]">
+      <div class="flex items-center gap-3">
+        <span class="terminal-comment">manage problems</span>
+        <span class="font-data text-xs text-[var(--terminal-cyan)]">
+          {{ problems.length }} problems
+        </span>
+      </div>
       <div class="flex gap-2">
-        <Button size="sm" variant="outline" @click="pickerOpen = true">
-          <IconPlus class="mr-2 h-4 w-4" />
-          {{ t('problemLists.problemsManager.addProblem') }}
+        <Button variant="terminal" size="sm" class="font-data text-xs" @click="pickerOpen = true">
+          <IconPlus class="mr-1.5 h-3.5 w-3.5" />
+          ADD PROBLEM
         </Button>
-        <Button size="sm" @click="saveProblems" :disabled="!isDirty || loading">
-          {{
-            loading
-              ? t('problemLists.problemsManager.saving')
-              : t('problemLists.problemsManager.saveChanges')
-          }}
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90"
+          :disabled="!isDirty || loading"
+          @click="saveProblems"
+        >
+          <span v-if="loading" class="animate-pulse">{{
+            t('problemLists.problemsManager.saving')
+          }}</span>
+          <span v-else>{{ t('problemLists.problemsManager.saveChanges') }}</span>
         </Button>
       </div>
     </div>
 
-    <div class="border rounded-md">
+    <!-- Table -->
+    <div class="border border-[var(--silver-200)] rounded-md">
       <Table>
         <TableHeader>
-          <TableRow>
-            <TableHead class="w-[80px]">{{ t('problemLists.problemsManager.order') }}</TableHead>
-            <TableHead>{{ t('problemLists.problemsManager.problem') }}</TableHead>
-            <TableHead>{{ t('problemLists.problemsManager.difficulty') }}</TableHead>
-            <TableHead class="w-[50px]"></TableHead>
+          <TableRow class="hover:bg-transparent">
+            <TableHead class="terminal-column w-[80px]">
+              <span
+                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+              >
+                {{ t('problemLists.problemsManager.order') }}
+              </span>
+            </TableHead>
+            <TableHead class="terminal-column">
+              <span
+                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+              >
+                {{ t('problemLists.problemsManager.problem') }}
+              </span>
+            </TableHead>
+            <TableHead class="terminal-column">
+              <span
+                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+              >
+                {{ t('problemLists.problemsManager.difficulty') }}
+              </span>
+            </TableHead>
+            <TableHead class="terminal-column w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="problem in problems" :key="problem.id">
+          <TableRow
+            v-for="problem in problems"
+            :key="problem.id"
+            class="border-[var(--silver-200)] hover:bg-[var(--surface-sunken)]"
+          >
             <TableCell>
               <Input
                 type="number"
-                class="w-16 h-8"
+                class="terminal-input w-16 h-8 font-data text-xs tabular-nums"
                 :model-value="problem.sort_order"
                 @update:model-value="updateSortOrder(problem.id, Number($event))"
               />
             </TableCell>
             <TableCell>
-              <div class="flex flex-col">
-                <span class="font-medium">{{ problem.title }}</span>
-                <span class="text-xs text-muted-foreground">{{ problem.slug }}</span>
+              <div class="flex flex-col gap-0.5 py-1">
+                <span class="font-medium text-sm text-[var(--foreground)]">{{
+                  problem.title
+                }}</span>
+                <span class="font-data text-xs text-[var(--silver-400)]">{{ problem.slug }}</span>
               </div>
             </TableCell>
             <TableCell>
-              <Badge variant="outline" class="capitalize">
-                {{ problem.difficulty?.toLowerCase() }}
-              </Badge>
+              <component :is="renderDifficultyBadge(problem.difficulty)" />
             </TableCell>
             <TableCell>
               <Button
                 size="icon"
                 variant="ghost"
-                class="h-8 w-8 text-destructive"
+                class="h-8 w-8 hover:bg-[oklch(0.6_0.2_25/0.15)]"
                 @click="removeProblem(problem.id)"
               >
-                <IconTrash class="h-4 w-4" />
+                <IconTrash class="h-4 w-4 text-[var(--terminal-red)]" />
               </Button>
             </TableCell>
           </TableRow>
 
+          <!-- Empty State -->
           <TableRow v-if="problems.length === 0">
-            <TableCell colspan="4" class="h-24 text-center text-muted-foreground">
-              {{ t('problemLists.problemsManager.noProblems') }}
+            <TableCell colspan="4" class="h-24 text-center">
+              <span class="terminal-comment">no problems added</span>
             </TableCell>
           </TableRow>
         </TableBody>

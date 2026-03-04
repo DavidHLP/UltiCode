@@ -7,43 +7,110 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { IconTrophy, IconMedal } from '@tabler/icons-vue'
 import type { ContestRanking } from '@/api/admin/contests'
 
 defineProps<{
   rankings: ContestRanking[]
 }>()
+
+// Get rank styling
+function getRankStyle(rank: number) {
+  if (rank === 1) return 'text-[var(--terminal-amber)]'
+  if (rank === 2) return 'text-[var(--silver-400)]'
+  if (rank === 3) return 'text-[oklch(0.6_0.1_35)]'
+  return 'text-[var(--foreground)]'
+}
+
+// Get rank icon
+function getRankIcon(rank: number) {
+  if (rank === 1) return IconTrophy
+  if (rank <= 3) return IconMedal
+  return null
+}
 </script>
 
 <template>
-  <div class="border rounded-md">
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead class="w-[60px]">{{ $t('contests.detail.rank') }}</TableHead>
-          <TableHead>{{ $t('contests.detail.user') }}</TableHead>
-          <TableHead class="text-right">{{ $t('contests.detail.score') }}</TableHead>
-          <TableHead class="text-right">{{ $t('contests.detail.penalty') }}</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        <TableRow v-for="(r, i) in rankings" :key="r.id">
-          <TableCell class="font-medium">#{{ i + 1 }}</TableCell>
-          <TableCell>
-            <div class="flex items-center gap-2">
-              <span>{{ r.user.username }}</span>
-            </div>
-          </TableCell>
-          <TableCell class="text-right font-medium">{{ r.total_score }}</TableCell>
-          <TableCell class="text-right text-muted-foreground">
-            {{ r.total_penalty }}
-          </TableCell>
-        </TableRow>
-        <TableRow v-if="!rankings.length">
-          <TableCell colspan="4" class="h-24 text-center text-muted-foreground">
-            {{ $t('contests.detail.noRankingsYet') }}
-          </TableCell>
-        </TableRow>
-      </TableBody>
-    </Table>
+  <div class="space-y-4">
+    <!-- Header -->
+    <div class="flex items-center gap-2">
+      <span class="terminal-prompt text-sm">rankings</span>
+      <span class="terminal-comment text-xs">[{{ rankings.length }}]</span>
+    </div>
+
+    <!-- Table - Terminal Style -->
+    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+      <Table class="terminal-table">
+        <TableHeader>
+          <TableRow
+            class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+          >
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[60px]"
+            >
+              {{ $t('contests.detail.rank') }}
+            </TableHead>
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+            >
+              {{ $t('contests.detail.user') }}
+            </TableHead>
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[100px] text-right"
+            >
+              {{ $t('contests.detail.score') }}
+            </TableHead>
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[100px] text-right"
+            >
+              {{ $t('contests.detail.penalty') }}
+            </TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow
+            v-for="(r, i) in rankings"
+            :key="r.id"
+            :class="[
+              'border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]',
+              i < 3 ? 'bg-[var(--surface-sunken)]' : '',
+            ]"
+          >
+            <TableCell>
+              <div class="flex items-center gap-2">
+                <component
+                  :is="getRankIcon(i + 1)"
+                  v-if="getRankIcon(i + 1)"
+                  :class="['h-4 w-4', getRankStyle(i + 1)]"
+                />
+                <span :class="['font-data text-sm font-bold tabular-nums', getRankStyle(i + 1)]">
+                  #{{ i + 1 }}
+                </span>
+              </div>
+            </TableCell>
+            <TableCell>
+              <span class="font-medium text-sm text-[var(--foreground)]">{{
+                r.user.username
+              }}</span>
+            </TableCell>
+            <TableCell class="text-right">
+              <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums font-bold">
+                {{ r.total_score }}
+              </span>
+            </TableCell>
+            <TableCell class="text-right">
+              <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
+                {{ r.total_penalty }}
+              </span>
+            </TableCell>
+          </TableRow>
+          <TableRow v-if="!rankings.length">
+            <TableCell colspan="4" class="h-24 text-center">
+              <span class="terminal-comment">{{ $t('contests.detail.noRankingsYet') }}</span>
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
+    </div>
   </div>
 </template>

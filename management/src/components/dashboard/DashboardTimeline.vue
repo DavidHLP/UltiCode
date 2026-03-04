@@ -1,23 +1,7 @@
 <script setup lang="ts">
-import type { Component } from 'vue'
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  IconLogin,
-  IconPlus,
-  IconEdit,
-  IconTrash,
-  IconUpload,
-  IconFlag,
-  IconBan,
-  IconShield,
-  IconLock,
-  IconLockOpen,
-  IconPin,
-  IconPinnedOff,
-} from '@tabler/icons-vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
 
 export interface TimelineActivity {
   id: string | number
@@ -33,46 +17,25 @@ const props = defineProps<{
 
 const { t } = useI18n()
 
-const getIconForActivity = (action: string) => {
-  const actionMap: Record<string, Component> = {
-    LOGIN: IconLogin,
-    CREATE: IconPlus,
-    UPDATE: IconEdit,
-    DELETE: IconTrash,
-    PUBLISH: IconUpload,
-    UNPUBLISH: IconUpload,
-    FLAG: IconFlag,
-    UNFLAG: IconFlag,
-    BAN: IconBan,
-    UNBAN: IconBan,
-    MODERATE: IconShield,
-    PIN: IconPin,
-    UNPIN: IconPinnedOff,
-    LOCK: IconLock,
-    UNLOCK: IconLockOpen,
-  }
-  return actionMap[action] || IconEdit
-}
-
 const getIconColor = (action: string) => {
   const colorMap: Record<string, string> = {
-    LOGIN: 'text-blue-500 dark:text-blue-400',
-    CREATE: 'text-green-500 dark:text-green-400',
-    UPDATE: 'text-orange-500 dark:text-orange-400',
-    DELETE: 'text-red-500 dark:text-red-400',
-    PUBLISH: 'text-green-500 dark:text-green-400',
-    UNPUBLISH: 'text-yellow-500 dark:text-yellow-400',
-    FLAG: 'text-red-500 dark:text-red-400',
-    UNFLAG: 'text-green-500 dark:text-green-400',
-    BAN: 'text-red-600 dark:text-red-400',
-    UNBAN: 'text-green-500 dark:text-green-400',
-    MODERATE: 'text-purple-500 dark:text-purple-400',
-    PIN: 'text-blue-500 dark:text-blue-400',
-    UNPIN: 'text-gray-500 dark:text-gray-400',
-    LOCK: 'text-yellow-600 dark:text-yellow-400',
-    UNLOCK: 'text-green-500 dark:text-green-400',
+    LOGIN: 'var(--accent-primary)',
+    CREATE: 'var(--status-success)',
+    UPDATE: 'var(--status-warning)',
+    DELETE: 'var(--status-error)',
+    PUBLISH: 'var(--status-success)',
+    UNPUBLISH: 'var(--status-warning)',
+    FLAG: 'var(--status-error)',
+    UNFLAG: 'var(--status-success)',
+    BAN: 'var(--status-error)',
+    UNBAN: 'var(--status-success)',
+    MODERATE: 'var(--accent-primary)',
+    PIN: 'var(--accent-primary)',
+    UNPIN: 'var(--silver-400)',
+    LOCK: 'var(--status-warning)',
+    UNLOCK: 'var(--status-success)',
   }
-  return colorMap[action] || 'text-muted-foreground'
+  return colorMap[action] || 'var(--silver-400)'
 }
 
 const getActivityLabel = (action: string): string => {
@@ -86,66 +49,79 @@ const displayActivities = computed(() => {
 </script>
 
 <template>
-  <Card class="border-border/50">
-    <CardHeader class="pb-3">
+  <Card
+    class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] shadow-float h-full"
+  >
+    <CardHeader class="pb-2 pt-5 px-5">
       <div class="flex items-center justify-between">
         <div>
-          <CardTitle class="tracking-tight">{{ t('dashboard.timeline.title') }}</CardTitle>
-          <CardDescription class="text-xs mt-1">
+          <CardTitle class="text-base font-medium tracking-tight">{{
+            t('dashboard.timeline.title')
+          }}</CardTitle>
+          <CardDescription class="text-xs text-[var(--silver-400)] mt-1">
             {{ t('dashboard.timeline.description') }}
           </CardDescription>
         </div>
       </div>
     </CardHeader>
-    <CardContent class="pt-2">
+    <CardContent class="pt-2 px-5 pb-5">
       <div
         v-if="displayActivities.length === 0"
-        class="text-center py-8 text-muted-foreground text-sm"
+        class="text-center py-8 text-[var(--silver-400)] text-sm"
       >
         {{ t('dashboard.recentActivity.noActivity') }}
       </div>
-      <div v-else class="relative">
-        <!-- Vertical timeline line -->
-        <div class="absolute left-[15px] top-2 bottom-2 w-px bg-border/50"></div>
-
+      <div v-else class="relative timeline-line">
         <!-- Timeline items -->
-        <div class="space-y-4">
+        <div class="space-y-0">
           <div
-            v-for="activity in displayActivities"
+            v-for="(activity, index) in displayActivities"
             :key="activity.id"
-            class="relative flex items-start gap-3 group cursor-pointer"
+            class="relative flex items-start gap-3 py-3 group cursor-default"
+            :class="{ 'pb-0': index === displayActivities.length - 1 }"
           >
-            <!-- Timeline dot with icon -->
+            <!-- Timeline node with icon -->
             <div
-              class="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border-2 border-border bg-background shadow-sm transition-all group-hover:scale-110 group-hover:shadow-md"
+              class="relative z-10 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border transition-all duration-200"
+              :style="{
+                borderColor: getIconColor(activity.action),
+                backgroundColor: 'transparent',
+              }"
             >
-              <component
-                :is="getIconForActivity(activity.action)"
-                class="h-4 w-4"
-                :class="getIconColor(activity.action)"
-              />
+              <div
+                class="h-2 w-2 rounded-full transition-all duration-200 group-hover:scale-125"
+                :style="{ backgroundColor: getIconColor(activity.action) }"
+              ></div>
+              <!-- Hover glow effect -->
+              <div
+                class="absolute inset-0 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                :style="{
+                  boxShadow: `0 0 8px 2px ${getIconColor(activity.action)}40`,
+                }"
+              ></div>
             </div>
 
             <!-- Activity content -->
-            <div class="flex-1 min-w-0 pb-1">
-              <div class="flex items-start justify-between gap-2">
-                <div class="space-y-0.5">
-                  <p class="text-sm font-medium leading-none truncate">
-                    <Badge
-                      variant="outline"
-                      class="text-xs px-1.5 py-0 h-5 mr-1.5 border-border/50"
-                    >
-                      {{ getActivityLabel(activity.action as string) }}
-                    </Badge>
-                    <span class="text-muted-foreground">{{ activity.user }}</span>
-                    <span class="text-xs text-muted-foreground mx-1">→</span>
-                    <span class="font-medium">{{ activity.target }}</span>
-                  </p>
-                </div>
-                <span class="text-xs text-muted-foreground whitespace-nowrap shrink-0">
-                  {{ activity.time }}
-                </span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-2">
+                <p class="text-sm leading-none truncate">
+                  <span
+                    class="text-xs font-medium px-1.5 py-0.5 rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] mr-1.5"
+                    :style="{
+                      color: getIconColor(activity.action),
+                      borderColor: getIconColor(activity.action) + '40',
+                    }"
+                  >
+                    {{ getActivityLabel(activity.action as string) }}
+                  </span>
+                  <span class="text-[var(--silver-500)]">{{ activity.user }}</span>
+                  <span class="text-[var(--silver-300)] mx-1">→</span>
+                  <span class="font-medium text-foreground">{{ activity.target }}</span>
+                </p>
               </div>
+              <p class="text-xs text-[var(--silver-400)] mt-1 font-data tabular-nums">
+                {{ activity.time }}
+              </p>
             </div>
           </div>
         </div>

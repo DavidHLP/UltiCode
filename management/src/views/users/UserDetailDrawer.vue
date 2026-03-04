@@ -1,22 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useUsersStore } from '@/stores/admin/users'
-import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Separator } from '@/components/ui/separator'
-import {
-  IconMail,
-  IconCalendar,
-  IconUser,
-  IconShield,
-  IconBan,
-  IconClock,
-  IconTrophy,
-  IconFlame,
-} from '@tabler/icons-vue'
-import { Progress } from '@/components/ui/progress'
+import { IconMail, IconTrophy, IconFlame } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
-import { getRoleBadgeVariant } from '@/lib/entities/user'
+import { DataBlock } from '@/components/ui/terminal'
 
 const props = defineProps<{
   open: boolean
@@ -25,6 +13,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
+  success: []
 }>()
 
 const usersStore = useUsersStore()
@@ -48,6 +37,61 @@ watch(
     }
   },
 )
+
+// ASCII-style progress bar
+function renderAsciiProgress(
+  count: number,
+  total: number,
+  width = 20,
+): { filled: string; empty: string; percent: number } {
+  const percent = total > 0 ? Math.round((count / total) * 100) : 0
+  const filledCount = Math.round((percent / 100) * width)
+  const filled = '█'.repeat(filledCount)
+  const empty = '░'.repeat(width - filledCount)
+  return { filled, empty, percent }
+}
+
+// Get status badge styling
+function getStatusStyle(entity: { is_banned: boolean; is_active: boolean }) {
+  if (entity.is_banned) {
+    return {
+      class: 'terminal-badge-error animate-pulse-subtle',
+      label: 'BANNED',
+    }
+  }
+  if (!entity.is_active) {
+    return {
+      class:
+        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
+      label: 'INACTIVE',
+    }
+  }
+  return {
+    class: 'terminal-badge-success animate-pulse-subtle',
+    label: 'ACTIVE',
+  }
+}
+
+// Get role styling
+function getRoleStyle(role: string) {
+  const styles: Record<string, string> = {
+    SUPER_ADMIN: 'terminal-badge-info',
+    ADMIN: 'terminal-badge-info',
+    MODERATOR: 'terminal-badge-warning',
+    USER: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
+  }
+  return styles[role] || styles.USER
+}
+
+// Get difficulty color
+function getDifficultyColor(diff: string): string {
+  const colors: Record<string, string> = {
+    Easy: 'text-[var(--terminal-green)]',
+    Medium: 'text-[var(--terminal-amber)]',
+    Hard: 'text-[var(--terminal-red)]',
+  }
+  return colors[diff] || 'text-[var(--silver-400)]'
+}
 </script>
 
 <template>
@@ -62,153 +106,178 @@ watch(
     not-found-text="User not found"
   >
     <template #content="{ entity }">
-      <!-- Profile Header -->
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <Avatar class="h-20 w-20 border-2 border-background shadow-sm">
-            <AvatarImage :src="entity.avatar ?? ''" :alt="entity.username" />
-            <AvatarFallback class="text-xl">
-              {{ entity.name?.[0] || entity.username[0] }}
-            </AvatarFallback>
-          </Avatar>
-          <div class="flex flex-col gap-1">
-            <h3 class="text-xl font-semibold leading-none">
-              {{ entity.name || entity.username }}
-            </h3>
-            <p class="text-sm text-muted-foreground flex items-center gap-1">
-              <IconMail class="h-3.5 w-3.5" />
-              {{ entity.email || 'No email provided' }}
-            </p>
-            <div class="flex flex-wrap gap-2 mt-1">
-              <Badge :variant="getRoleBadgeVariant(entity.role)">
-                {{ entity.role.replace('_', ' ') }}
-              </Badge>
-              <Badge v-if="entity.is_banned" variant="destructive">Banned</Badge>
-              <Badge v-else-if="!entity.is_active" variant="secondary">Inactive</Badge>
-              <Badge v-else variant="default">Active</Badge>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <Separator />
-
-      <!-- User Statistics -->
-      <div v-if="entity.stats" class="space-y-4">
-        <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-          Performance Overview
-        </h4>
-        <div class="grid grid-cols-2 gap-4">
-          <div
-            class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
-          >
-            <IconTrophy class="h-8 w-8 text-yellow-500 mb-2" />
-            <span class="text-2xl font-bold">{{ entity.stats.totalSolved }}</span>
-            <span class="text-xs text-muted-foreground uppercase">Problems Solved</span>
-          </div>
-          <div
-            class="rounded-lg border bg-card p-4 flex flex-col items-center justify-center text-center"
-          >
-            <IconFlame class="h-8 w-8 text-orange-500 mb-2" />
-            <span class="text-2xl font-bold">{{ entity.stats.streak }}</span>
-            <span class="text-xs text-muted-foreground uppercase">Day Streak</span>
-          </div>
-        </div>
-
-        <div class="space-y-3 mt-4">
-          <div v-for="(data, diff) in entity.stats.stats" :key="diff" class="space-y-1.5">
-            <div class="flex items-center justify-between text-xs">
-              <span class="font-medium">{{ diff }}</span>
-              <span class="text-muted-foreground">{{ data.count }}/{{ data.total }}</span>
-            </div>
-            <Progress
-              :value="data.total > 0 ? (data.count / data.total) * 100 : 0"
-              class="h-1.5"
-              :class="{
-                'bg-emerald-100': diff === 'Easy',
-                'bg-amber-100': diff === 'Medium',
-                'bg-rose-100': diff === 'Hard',
-              }"
-              :indicator-class="
-                diff === 'Easy'
-                  ? 'bg-emerald-500'
-                  : diff === 'Medium'
-                    ? 'bg-amber-500'
-                    : 'bg-rose-500'
-              "
-            />
-          </div>
-        </div>
-      </div>
-
-      <Separator v-if="entity.stats" />
-
-      <!-- Details Grid -->
-      <div class="grid gap-6">
-        <div class="space-y-4">
-          <h4 class="text-sm font-medium text-muted-foreground uppercase tracking-wider">
-            Account Information
-          </h4>
-          <div class="grid grid-cols-2 gap-4">
-            <div class="space-y-1">
-              <p class="text-sm font-medium flex items-center gap-2">
-                <IconUser class="h-4 w-4 text-muted-foreground" />
-                Username
-              </p>
-              <p class="text-sm text-muted-foreground pl-6">
-                {{ entity.username }}
-              </p>
-            </div>
-            <div class="space-y-1">
-              <p class="text-sm font-medium flex items-center gap-2">
-                <IconShield class="h-4 w-4 text-muted-foreground" />
-                Role
-              </p>
-              <p class="text-sm text-muted-foreground pl-6">
-                {{ entity.role }}
-              </p>
-            </div>
-            <div class="space-y-1">
-              <p class="text-sm font-medium flex items-center gap-2">
-                <IconCalendar class="h-4 w-4 text-muted-foreground" />
-                Joined At
-              </p>
-              <p class="text-sm text-muted-foreground pl-6">
-                {{ new Date(entity.joined_at).toLocaleDateString() }}
-              </p>
-            </div>
-            <div class="space-y-1">
-              <p class="text-sm font-medium flex items-center gap-2">
-                <IconClock class="h-4 w-4 text-muted-foreground" />
-                Last Login
-              </p>
-              <p class="text-sm text-muted-foreground pl-6">
-                {{
-                  entity.last_login_at ? new Date(entity.last_login_at).toLocaleString() : 'Never'
-                }}
-              </p>
-            </div>
-          </div>
-        </div>
-
+      <!-- Profile Header - Terminal Style -->
+      <div
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <!-- Header Bar -->
         <div
-          v-if="entity.is_banned"
-          class="space-y-4 rounded-lg border border-destructive/20 bg-destructive/5 p-4"
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
         >
-          <h4 class="text-sm font-medium text-destructive flex items-center gap-2">
-            <IconBan class="h-4 w-4" />
-            Ban Information
-          </h4>
-          <div class="space-y-2">
-            <p class="text-sm font-medium">Reason:</p>
-            <p class="text-sm text-muted-foreground italic">
-              {{ entity.ban_reason || 'No reason provided' }}
-            </p>
-            <p class="text-xs text-muted-foreground">
-              Banned on:
-              {{ entity.banned_at ? new Date(entity.banned_at).toLocaleString() : 'Unknown' }}
-            </p>
+          <span class="terminal-comment">user_profile</span>
+        </div>
+
+        <div class="p-4">
+          <div class="flex items-start gap-4">
+            <!-- Avatar with status ring -->
+            <div
+              :class="[
+                'relative',
+                entity.is_banned
+                  ? 'ring-2 ring-[var(--terminal-red)] ring-offset-2 ring-offset-background'
+                  : entity.is_active
+                    ? 'ring-2 ring-[var(--terminal-green)] ring-offset-2 ring-offset-background'
+                    : '',
+              ]"
+            >
+              <Avatar class="h-16 w-16 rounded-sm">
+                <AvatarImage :src="entity.avatar ?? ''" :alt="entity.username" />
+                <AvatarFallback
+                  class="font-data text-lg bg-[var(--silver-100)] dark:bg-[var(--silver-800)]"
+                >
+                  {{ entity.name?.[0] || entity.username[0] }}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="font-medium text-lg truncate">{{
+                  entity.name || entity.username
+                }}</span>
+              </div>
+              <div class="flex items-center gap-1.5 text-sm text-[var(--silver-400)] mb-2">
+                <IconMail class="h-3.5 w-3.5" />
+                <span class="font-data text-xs truncate">{{ entity.email || 'no-email' }}</span>
+              </div>
+              <div class="flex flex-wrap gap-2">
+                <span :class="['terminal-badge', getRoleStyle(entity.role)]">
+                  {{ entity.role.replace('_', ' ') }}
+                </span>
+                <span :class="['terminal-badge', getStatusStyle(entity).class]">
+                  {{ getStatusStyle(entity).label }}
+                </span>
+              </div>
+            </div>
           </div>
+        </div>
+      </div>
+
+      <!-- Performance Stats - Terminal Style -->
+      <div
+        v-if="entity.stats"
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">performance_stats</span>
+        </div>
+
+        <div class="p-4 space-y-4">
+          <!-- Summary Stats -->
+          <div class="grid grid-cols-2 gap-3">
+            <div
+              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            >
+              <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)]" />
+              <div>
+                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                  {{ entity.stats.totalSolved }}
+                </div>
+                <div class="terminal-label">Solved</div>
+              </div>
+            </div>
+            <div
+              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            >
+              <IconFlame class="h-5 w-5 text-[var(--terminal-red)]" />
+              <div>
+                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                  {{ entity.stats.streak }}
+                </div>
+                <div class="terminal-label">Streak</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ASCII Progress Bars -->
+          <div class="space-y-3">
+            <div v-for="(data, diff) in entity.stats.stats" :key="diff" class="space-y-1">
+              <div class="flex items-center justify-between">
+                <span class="font-data text-xs" :class="getDifficultyColor(diff as string)">{{
+                  diff
+                }}</span>
+                <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
+                  {{ data.count }}/{{ data.total }}
+                </span>
+              </div>
+              <div class="ascii-progress">
+                <span :class="getDifficultyColor(diff as string)">{{
+                  renderAsciiProgress(data.count, data.total).filled
+                }}</span>
+                <span class="ascii-progress-track">{{
+                  renderAsciiProgress(data.count, data.total).empty
+                }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Account Information - Terminal Style -->
+      <div
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">account_info</span>
+        </div>
+
+        <div class="p-4">
+          <div class="grid grid-cols-2 gap-4">
+            <DataBlock :label="$t('users.columns.username')" :value="entity.username" />
+            <DataBlock :label="$t('users.columns.role')">
+              <span :class="['terminal-badge', getRoleStyle(entity.role)]">
+                {{ entity.role.replace('_', ' ') }}
+              </span>
+            </DataBlock>
+            <DataBlock :label="$t('users.columns.joined')">
+              <span class="font-data text-sm tabular-nums">
+                {{ new Date(entity.joined_at).toLocaleDateString() }}
+              </span>
+            </DataBlock>
+            <DataBlock :label="$t('users.columns.lastLogin')">
+              <span v-if="entity.last_login_at" class="font-data text-sm tabular-nums">
+                {{ new Date(entity.last_login_at).toLocaleDateString() }}
+              </span>
+              <span v-else class="text-[var(--silver-400)] italic">Never</span>
+            </DataBlock>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ban Information -->
+      <div
+        v-if="entity.is_banned"
+        class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)]"
+      >
+        <div class="border-b border-[var(--terminal-red)] px-4 py-2 bg-[oklch(0.6_0.2_25/0.12)]">
+          <span class="terminal-comment text-[var(--terminal-red)]">ban_info</span>
+        </div>
+
+        <div class="p-4 space-y-3">
+          <DataBlock :label="$t('users.form.banReason')">
+            <span class="text-sm italic text-[var(--foreground)]">
+              {{ entity.ban_reason || 'No reason provided' }}
+            </span>
+          </DataBlock>
+          <DataBlock :label="$t('users.columns.bannedAt')">
+            <span class="font-data text-sm tabular-nums text-[var(--terminal-red)]">
+              {{ entity.banned_at ? new Date(entity.banned_at).toLocaleString() : 'Unknown' }}
+            </span>
+          </DataBlock>
         </div>
       </div>
     </template>

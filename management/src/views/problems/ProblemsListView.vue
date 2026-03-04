@@ -20,13 +20,13 @@ import {
   IconLoader,
   IconPencil,
   IconPlus,
-  IconRefresh,
   IconSparkles,
   IconTrophy,
   IconTrash,
   IconX,
   IconDownload,
   IconUpload,
+  IconDatabase,
 } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
@@ -91,9 +91,22 @@ const bulkActionType = ref<'publish' | 'unpublish' | 'delete' | 'restore'>('publ
 const bulkActionLoading = ref(false)
 const bulkEditDialogOpen = ref(false)
 
+// Animation state for staggered reveal
+const isLoaded = ref(false)
+
 const canCreateProblem = computed(() => authStore.hasPermission('CREATE', 'PROBLEM'))
 const canUpdateProblem = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM'))
 const canDeleteProblem = computed(() => authStore.hasPermission('DELETE', 'PROBLEM'))
+
+// Stats for terminal ticker
+const stats = computed(() => {
+  const problems = problemsStore.problems
+  const total = problemsStore.total
+  const published = problems.filter((p) => p.is_published).length
+  const draft = problems.filter((p) => !p.is_published).length
+  const flagged = problems.filter((p) => p.is_flagged).length
+  return { total, published, draft, flagged }
+})
 
 const toolbarFilters = computed<Filter[]>(() => [
   {
@@ -189,7 +202,12 @@ watch(
 )
 
 // Load on mount
-onMounted(() => loadProblems())
+onMounted(() => {
+  loadProblems()
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+})
 
 // URL synchronization - debounced to avoid excessive updates
 const debouncedUpdateUrl = useDebounceFn(() => {
@@ -916,139 +934,253 @@ const columns: ColumnDef<Problem>[] = [
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-    <DataTable
-      :columns="columns"
-      :data="data"
-      :pagination="tablePagination"
-      :row-count="total"
-      :loading="loading"
-      :selected-rows="selectedRows"
-      @update:pagination="tablePagination = $event"
-      @update:selected-rows="selectedRows = $event"
+  <div class="relative flex flex-col gap-0 overflow-auto">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
     >
-      <template #toolbar-left>
-        <DataTableToolbar
-          :search-model-value="searchQuery"
-          @update:search-model-value="searchQuery = $event"
-          :search-placeholder="t('problems.searchPlaceholder')"
-          search-width="min-w-[150px] w-full lg:w-[250px]"
-          :filters="toolbarFilters"
-          @update:filter="
-            (index, value) => {
-              if (index === 0) difficultyFilter = String(value)
-              else if (index === 1) statusFilter = String(value)
-              else publishedFilter = String(value)
-            }
-          "
-          :loading="loading"
-          :on-refresh="loadProblems"
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="terminal-prompt text-base">problems</span>
+            <span class="terminal-cursor" />
+          </div>
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('problems.title') }}
+          </h1>
+        </div>
+        <Button
+          v-if="canCreateProblem"
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
+          @click="router.push({ name: 'problem-create' })"
         >
-          <template #extra-actions>
-            <Select v-model="sortBy">
-              <SelectTrigger class="h-8 w-[150px]">
-                <SelectValue :placeholder="t('problems.sort.title')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="default">{{ t('problems.sort.default') }}</SelectItem>
-                <SelectItem value="title">{{ t('problems.sort.titleAsc') }}</SelectItem>
-                <SelectItem value="difficulty">{{ t('problems.sort.difficultyAsc') }}</SelectItem>
-                <SelectItem value="created_at">{{ t('problems.sort.createdDesc') }}</SelectItem>
-                <SelectItem value="updated_at">{{ t('problems.sort.updatedDesc') }}</SelectItem>
-                <SelectItem value="submission_count">{{
-                  t('problems.sort.submissionsDesc')
-                }}</SelectItem>
-              </SelectContent>
-            </Select>
+          <IconPlus class="h-4 w-4 mr-1.5" />
+          <span class="uppercase tracking-wider">{{ t('problems.addProblem') }}</span>
+        </Button>
+      </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-8 w-8"
-              @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
-              :title="t('common.sort')"
-            >
-              <IconTrophy class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
-            </Button>
+      <!-- Stats Ticker -->
+      <div
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">published:</span>
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.published
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">draft:</span>
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.draft
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">flagged:</span>
+          <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
+            stats.flagged
+          }}</span>
+        </div>
+        <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
+          <IconDatabase class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">problem management</span>
+        </div>
+      </div>
+    </div>
 
-            <DropdownMenu v-if="selectedRows.length > 0">
+    <!-- Bulk Action Bar - Terminal Style -->
+    <div
+      v-if="selectedRows.length > 0"
+      :class="[
+        'mx-4 lg:mx-6 mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+        'animate-in fade-in slide-in-from-top-2 duration-200',
+      ]"
+    >
+      <div class="flex items-center gap-3">
+        <span class="font-data text-xs text-[var(--terminal-amber)] uppercase tracking-wider">
+          {{ selectedRows.length }} selected
+        </span>
+        <div class="h-4 w-px bg-[var(--silver-300)]" />
+        <div class="flex items-center gap-1">
+          <Button
+            variant="terminal"
+            size="sm"
+            class="h-7 font-data text-[10px] border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.15)]"
+            @click="handleBulkAction('publish')"
+          >
+            <IconEye class="h-3 w-3 mr-1" />
+            Publish
+          </Button>
+          <Button
+            variant="terminal"
+            size="sm"
+            class="h-7 font-data text-[10px] border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[oklch(0.75_0.15_85/0.15)]"
+            @click="handleBulkAction('unpublish')"
+          >
+            <IconEyeOff class="h-3 w-3 mr-1" />
+            Unpublish
+          </Button>
+          <Button
+            variant="terminal"
+            size="sm"
+            class="h-7 font-data text-[10px] border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]"
+            @click="handleBulkAction('delete')"
+          >
+            <IconTrash class="h-3 w-3 mr-1" />
+            Delete
+          </Button>
+          <Button
+            variant="terminal"
+            size="sm"
+            class="h-7 font-data text-[10px] border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[oklch(0.65_0.15_250/0.15)]"
+            @click="bulkEditDialogOpen = true"
+          >
+            <IconPencil class="h-3 w-3 mr-1" />
+            Edit
+          </Button>
+        </div>
+      </div>
+      <Button
+        variant="ghost"
+        size="sm"
+        class="h-7 w-7 p-0 text-[var(--silver-500)]"
+        @click="selectedRows = []"
+      >
+        <IconX class="h-4 w-4" />
+      </Button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 px-4 lg:px-6 py-4">
+      <DataTable
+        class="terminal-table"
+        :columns="columns"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
+        :selected-rows="selectedRows"
+        @update:pagination="tablePagination = $event"
+        @update:selected-rows="selectedRows = $event"
+      >
+        <template #toolbar-left>
+          <DataTableToolbar
+            :search-model-value="searchQuery"
+            @update:search-model-value="searchQuery = $event"
+            :search-placeholder="t('problems.searchPlaceholder')"
+            search-width="min-w-[150px] w-full lg:w-[250px]"
+            :filters="toolbarFilters"
+            @update:filter="
+              (index, value) => {
+                if (index === 0) difficultyFilter = String(value)
+                else if (index === 1) statusFilter = String(value)
+                else publishedFilter = String(value)
+              }
+            "
+            :loading="loading"
+            :on-refresh="loadProblems"
+          >
+            <template #extra-actions>
+              <Select v-model="sortBy">
+                <SelectTrigger class="h-8 w-[150px] font-data text-xs">
+                  <SelectValue :placeholder="t('problems.sort.title')" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="default">{{ t('problems.sort.default') }}</SelectItem>
+                  <SelectItem value="title">{{ t('problems.sort.titleAsc') }}</SelectItem>
+                  <SelectItem value="difficulty">{{ t('problems.sort.difficultyAsc') }}</SelectItem>
+                  <SelectItem value="created_at">{{ t('problems.sort.createdDesc') }}</SelectItem>
+                  <SelectItem value="updated_at">{{ t('problems.sort.updatedDesc') }}</SelectItem>
+                  <SelectItem value="submission_count">{{
+                    t('problems.sort.submissionsDesc')
+                  }}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                class="h-8 w-8"
+                @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                :title="t('common.sort')"
+              >
+                <IconTrophy class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
+              </Button>
+            </template>
+          </DataTableToolbar>
+        </template>
+
+        <template #extra-actions>
+          <div class="flex items-center gap-2">
+            <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button variant="outline" size="sm" class="h-8 gap-1.5">
-                  <span>{{ t('problems.bulk.selected', { count: selectedRows.length }) }}</span>
+                <Button
+                  variant="terminal"
+                  size="sm"
+                  class="h-8 font-data text-xs border-[var(--silver-300)]"
+                >
+                  <IconDownload class="h-4 w-4 mr-1.5" />
+                  <span class="hidden sm:inline uppercase tracking-wider">{{
+                    t('problems.export.title')
+                  }}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem @click="handleBulkAction('publish')">
-                  <IconEye class="mr-2 h-4 w-4 text-emerald-600" />
-                  <span>{{ t('problems.bulk.publish') }}</span>
+                <DropdownMenuItem @click="exportProblems('json')">
+                  {{ t('problems.export.json') }}
                 </DropdownMenuItem>
-                <DropdownMenuItem @click="handleBulkAction('unpublish')">
-                  <IconEyeOff class="mr-2 h-4 w-4 text-amber-600" />
-                  <span>{{ t('problems.bulk.unpublish') }}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem @click="handleBulkAction('delete')">
-                  <IconTrash class="mr-2 h-4 w-4 text-destructive" />
-                  <span>{{ t('problems.bulk.delete') }}</span>
-                </DropdownMenuItem>
-                <DropdownMenuItem @click="handleBulkAction('restore')">
-                  <IconRefresh class="mr-2 h-4 w-4 text-blue-600" />
-                  <span>{{ t('problems.bulk.restore') }}</span>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem @click="bulkEditDialogOpen = true">
-                  <IconPencil class="mr-2 h-4 w-4" />
-                  <span>{{ t('problems.bulkEdit.edit') }}</span>
+                <DropdownMenuItem @click="exportProblems('csv')">
+                  {{ t('problems.export.csv') }}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-          </template>
-        </DataTableToolbar>
-      </template>
 
-      <template #extra-actions>
-        <div class="flex items-center gap-2">
-          <DropdownMenu>
-            <DropdownMenuTrigger as-child>
-              <Button variant="outline" size="sm" class="h-8 gap-1.5">
-                <IconDownload class="h-4 w-4" />
-                <span class="hidden sm:inline">{{ t('problems.export.title') }}</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem @click="exportProblems('json')">
-                {{ t('problems.export.json') }}
-              </DropdownMenuItem>
-              <DropdownMenuItem @click="exportProblems('csv')">
-                {{ t('problems.export.csv') }}
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            <Button
+              variant="terminal"
+              size="sm"
+              class="h-8 font-data text-xs border-[var(--silver-300)]"
+              @click="importDialogOpen = true"
+            >
+              <IconUpload class="h-4 w-4 mr-1.5" />
+              <span class="hidden sm:inline uppercase tracking-wider">{{
+                t('problems.import.title')
+              }}</span>
+            </Button>
+          </div>
+        </template>
+      </DataTable>
 
-          <Button variant="outline" size="sm" class="h-8 gap-1.5" @click="importDialogOpen = true">
-            <IconUpload class="h-4 w-4" />
-            <span class="hidden sm:inline">{{ t('problems.import.title') }}</span>
-          </Button>
-
-          <Button
-            v-if="canCreateProblem"
-            size="sm"
-            class="h-8"
-            @click="router.push({ name: 'problem-create' })"
-          >
-            <IconPlus class="mr-2 h-4 w-4" />
-            <span>{{ t('problems.addProblem') }}</span>
-          </Button>
+      <!-- Error State - Terminal Style -->
+      <div
+        v-if="error"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] dark:bg-[oklch(0.6_0.2_25/0.15)] p-4"
+      >
+        <div class="flex items-center gap-3">
+          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
-      </template>
-    </DataTable>
-
-    <!-- Error state -->
-    <div
-      v-if="error"
-      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-    >
-      <span class="text-destructive">{{ error }}</span>
-      <Button variant="outline" size="sm" @click="loadProblems()">{{ t('common.retry') }}</Button>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]"
+          @click="loadProblems()"
+        >
+          {{ t('common.retry') }}
+        </Button>
+      </div>
     </div>
   </div>
 

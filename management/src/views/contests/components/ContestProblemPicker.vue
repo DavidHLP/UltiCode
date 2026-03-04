@@ -17,7 +17,6 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Plus, Loader2 } from 'lucide-vue-next'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { useDebounceFn } from '@vueuse/core'
@@ -56,12 +55,16 @@ function handleInput(e: Event) {
 
 function handleSelect(problem: { id: string; title: string; difficulty: string; slug: string }) {
   emit('select', problem)
-  // Don't close automatically to allow selecting multiple?
-  // Or close if single select. For now, let parent decide or keep open.
-  // Actually, UI pattern usually is select -> close or list -> add button
-  // Let's assume this is a picker that stays open until closed or select logic.
-  // But standard CommandItem click usually implies selection.
-  // We'll just emit select.
+}
+
+// Get difficulty styling
+function getDifficultyStyle(difficulty: string) {
+  const styles: Record<string, string> = {
+    Easy: 'terminal-badge-success',
+    Medium: 'terminal-badge-warning',
+    Hard: 'terminal-badge-error',
+  }
+  return styles[difficulty] || 'terminal-badge'
 }
 
 // Initial fetch
@@ -70,45 +73,76 @@ debouncedSearch('')
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="p-0 overflow-hidden max-w-2xl">
-      <DialogHeader class="px-6 pt-6 pb-2">
-        <DialogTitle>{{ t('contests.problemPicker.title') }}</DialogTitle>
-        <DialogDescription>{{ t('contests.problemPicker.description') }}</DialogDescription>
+    <DialogContent
+      class="p-0 overflow-hidden max-w-2xl border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+    >
+      <DialogHeader
+        class="px-6 pt-6 pb-2 border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+      >
+        <DialogTitle class="font-data text-sm uppercase tracking-wider">
+          {{ t('contests.problemPicker.title') }}
+        </DialogTitle>
+        <DialogDescription class="terminal-comment">
+          {{ t('contests.problemPicker.description') }}
+        </DialogDescription>
       </DialogHeader>
-      <div class="px-4 pb-4">
-        <Command class="border rounded-md">
+
+      <div class="p-4">
+        <Command
+          class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+        >
           <CommandInput
             :placeholder="t('contests.problemPicker.searchPlaceholder')"
             :value="searchQuery"
+            class="font-data text-xs"
             @input="handleInput"
           />
           <CommandList class="max-h-[300px] overflow-y-auto">
             <CommandEmpty v-if="problemsStore.loading" class="py-6 flex justify-center">
-              <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
+              <Loader2 class="h-6 w-6 animate-spin text-[var(--silver-400)]" />
             </CommandEmpty>
-            <CommandEmpty
-              v-else-if="filteredProblems.length === 0"
-              class="py-6 text-center text-sm text-muted-foreground"
-            >
-              {{ t('contests.problemPicker.noProblemsFound') }}
+            <CommandEmpty v-else-if="filteredProblems.length === 0" class="py-6 text-center">
+              <span class="terminal-comment">{{
+                t('contests.problemPicker.noProblemsFound')
+              }}</span>
             </CommandEmpty>
-            <CommandGroup v-else :heading="t('contests.problemPicker.problems')">
+            <CommandGroup v-else>
+              <div
+                class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-3 py-2 bg-[var(--surface-sunken)]"
+              >
+                <span class="terminal-label">{{ t('contests.problemPicker.problems') }}</span>
+              </div>
               <CommandItem
-                v-for="problem in filteredProblems"
+                v-for="(problem, index) in filteredProblems"
                 :key="problem.id"
                 :value="problem.title"
                 @select="() => handleSelect(problem)"
-                class="flex items-center justify-between p-2 cursor-pointer hover:bg-accent"
+                class="flex items-center justify-between p-3 cursor-pointer border-b border-[var(--silver-100)] dark:border-[var(--silver-800)] hover:bg-[var(--surface-sunken)]"
               >
-                <div class="flex items-center gap-2">
-                  <span class="font-medium">{{ problem.title }}</span>
-                  <span class="text-xs text-muted-foreground">({{ problem.slug }})</span>
-                  <Badge variant="outline" class="text-[10px] capitalize">
-                    {{ problem.difficulty.toLowerCase() }}
-                  </Badge>
+                <div class="flex items-center gap-3">
+                  <span class="font-data text-xs text-[var(--silver-400)] w-6">
+                    {{ String(index + 1).padStart(2, '0') }}
+                  </span>
+                  <div class="flex flex-col gap-0.5">
+                    <span class="font-medium text-sm text-[var(--foreground)]">{{
+                      problem.title
+                    }}</span>
+                    <span class="font-data text-xs text-[var(--silver-400)]">{{
+                      problem.slug
+                    }}</span>
+                  </div>
+                  <span
+                    :class="['terminal-badge text-[10px]', getDifficultyStyle(problem.difficulty)]"
+                  >
+                    {{ problem.difficulty.toUpperCase() }}
+                  </span>
                 </div>
-                <Button size="sm" variant="ghost" class="h-6 w-6 p-0">
-                  <Plus class="h-4 w-4" />
+                <Button
+                  size="sm"
+                  variant="terminal"
+                  class="h-6 w-6 p-0 border-[var(--terminal-green)] text-[var(--terminal-green)]"
+                >
+                  <Plus class="h-3 w-3" />
                 </Button>
               </CommandItem>
             </CommandGroup>

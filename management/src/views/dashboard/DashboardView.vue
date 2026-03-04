@@ -10,8 +10,7 @@ import DashboardTimeline, {
   type TimelineActivity,
 } from '@/components/dashboard/DashboardTimeline.vue'
 import type { ChartDataPoint } from '@/components/dashboard/AreaChart.vue'
-import { Badge } from '@/components/ui/badge'
-import { IconShieldCheck, IconUsers, IconFileText, IconTrophy, IconFlag } from '@tabler/icons-vue'
+import { IconUsers, IconFileText, IconTrophy, IconFlag } from '@tabler/icons-vue'
 import { ChartMetric, ChartPeriod } from '@/api/admin/dashboard'
 
 const { t } = useI18n()
@@ -20,6 +19,31 @@ const dashboardStore = useDashboardStore()
 const auditStore = useAuditStore()
 
 const loading = ref(true)
+
+// Current time display
+const currentTime = ref(new Date())
+const formattedTime = computed(() => {
+  return currentTime.value.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  })
+})
+
+const formattedDate = computed(() => {
+  return currentTime.value.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  })
+})
+
+// Update time every minute
+onMounted(() => {
+  setInterval(() => {
+    currentTime.value = new Date()
+  }, 60000)
+})
 
 // Computed stats from API data
 const stats = computed<StatItem[]>(() => {
@@ -141,63 +165,70 @@ onMounted(() => loadData())
 </script>
 
 <template>
-  <div class="flex flex-col gap-6 py-6 px-4 lg:px-6 min-h-screen">
-    <!-- Header Section -->
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+  <div class="flex flex-col gap-6 py-6 px-4 lg:px-8 min-h-screen bg-background">
+    <!-- Precision Header -->
+    <header
+      class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+    >
       <div class="space-y-1">
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('dashboard.title') }}</h1>
-        <div class="flex items-center gap-2 text-sm">
-          <span class="text-muted-foreground">
+        <h1 class="text-2xl font-medium tracking-tight text-foreground">
+          {{ t('dashboard.title') }}
+        </h1>
+        <div class="flex items-center gap-3 text-sm">
+          <span class="text-[var(--silver-500)]">
             {{ t('dashboard.welcome') }},
             <span class="font-medium text-foreground">{{ authStore.userName }}</span>
           </span>
-          <Badge
-            variant="secondary"
-            class="gap-1.5 py-0.5 px-2 text-xs font-medium border-primary/20 bg-primary/5 text-primary"
+          <!-- Role badge with silver border -->
+          <span
+            class="inline-flex items-center gap-1.5 px-2 py-0.5 text-xs font-medium rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[var(--silver-500)] dark:text-[var(--silver-400)]"
           >
-            <IconShieldCheck class="h-3 w-3" />
             {{ authStore.userRole }}
-          </Badge>
+          </span>
         </div>
       </div>
 
-      <div class="flex items-center gap-3 text-sm text-muted-foreground">
-        <span>{{ t('dashboard.lastUpdated', { time: t('dashboard.timeAgo.justNow') }) }}</span>
+      <!-- Time display with monospace font -->
+      <div class="flex items-center gap-4 text-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-[var(--silver-400)]">{{ formattedDate }}</span>
+          <span class="text-lg font-data tabular-nums text-foreground">{{ formattedTime }}</span>
+        </div>
       </div>
-    </div>
+    </header>
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center py-12">
-      <div class="text-muted-foreground">{{ t('dashboard.loading') }}</div>
+      <div class="flex items-center gap-3 text-[var(--silver-400)]">
+        <div
+          class="h-4 w-4 border-2 border-[var(--silver-300)] border-t-foreground rounded-full animate-spin"
+        ></div>
+        <span>{{ t('dashboard.loading') }}</span>
+      </div>
     </div>
 
     <!-- Bento Grid Layout -->
-    <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-6">
-      <!-- Header spans full width -->
-      <!-- (Already handled by flex container above) -->
-
-      <!-- Stat Cards - each takes 1 column on large screens -->
+    <div v-else class="grid grid-cols-1 lg:grid-cols-4 gap-5">
+      <!-- Stat Cards Row - Full width -->
       <div class="col-span-full">
         <StatCards :stats="stats" />
       </div>
 
-      <!-- Chart - takes 3 columns (66%) -->
+      <!-- Main Chart - 3 columns (75%) -->
       <div class="lg:col-span-3">
         <AreaChart
           :title="t('dashboard.chart.userRegistrationTrend')"
           :description="t('dashboard.chart.dailyRegistrations')"
           :data="chartData"
           :series-keys="['users']"
-          :config="{ users: { label: 'Users', color: 'var(--primary)' } }"
+          :config="{ users: { label: 'Users', color: 'var(--accent-primary)' } }"
         />
       </div>
 
-      <!-- Action Center - takes 1 column (33%) -->
+      <!-- Activity Timeline - 1 column (25%) -->
       <div class="lg:col-span-1">
         <DashboardTimeline :activities="timelineActivities" />
       </div>
-
-      <!-- Timeline could also go here as full width if needed -->
     </div>
   </div>
 </template>

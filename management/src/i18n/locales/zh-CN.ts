@@ -142,6 +142,25 @@ export default {
     title: '高级分析报表',
     description: '全面的报告和洞察',
     loadError: '加载分析数据失败',
+    noData: '该报告暂无数据',
+    // Navigation labels
+    nav: {
+      userActivity: '用户活跃度',
+      problemCompletion: '题目',
+      contestParticipation: '比赛',
+      revenue: '收入',
+      performance: '性能',
+    },
+    // Status labels
+    status: {
+      good: '良好',
+      excellent: '优秀',
+      average: '一般',
+      needsWork: '待改进',
+      needsAttention: '需要关注',
+      high: '较高',
+      normal: '正常',
+    },
     tabs: {
       userActivity: '用户活跃度',
       problemCompletion: '题目完成率',
@@ -155,32 +174,43 @@ export default {
       '90days': '最近90天',
       '1year': '最近一年',
     },
+    perContest: '每场比赛',
     userActivity: {
       dailyActiveUsers: '日活跃用户',
       retention1d: '1日留存率',
       retention7d: '7日留存率',
       retention30d: '30日留存率',
       activeUsersTrend: '活跃用户趋势',
-      peakHours: '高峰时段',
+      activeUsersTrendDesc: '所选期间的日活跃用户数',
+      peakHours: '高峰活跃时段',
+      peakHoursDesc: '用户活跃度按小时分布',
       topUsers: '最活跃用户',
-      logins: '次登录',
+      topUsersDesc: '登录次数最多的用户',
+      logins: '{count} 次登录',
     },
     problemCompletion: {
       totalAttempts: '总提交数',
       successfulAttempts: '成功提交数',
       completionRate: '完成率',
       trendingProblems: '热门题目',
-      byDifficulty: '按难度分布',
+      byDifficulty: '按难度完成率',
+      byDifficultyDesc: '按题目难度的成功率分布',
       hardestProblems: '最难题目',
+      hardestProblemsDesc: '完成率最低的题目',
       topTags: '热门标签完成率',
+      topTagsDesc: '最受欢迎标签及其完成率',
+      completed: '已完成',
     },
     contestParticipation: {
       totalContests: '总比赛数',
       totalParticipants: '总参与人数',
       avgParticipants: '平均参与人数',
       virtualParticipation: '虚拟参与',
-      byType: '按比赛类型',
-      topContests: '热门比赛',
+      byType: '按类型参与',
+      byTypeDesc: '按比赛类型的平均参与人数',
+      topContests: '最受欢迎比赛',
+      topContestsDesc: '参与人数最多的比赛',
+      contests: '场比赛',
     },
     contestParticipants: '参与者',
     revenue: {
@@ -189,9 +219,11 @@ export default {
       subscribers: '活跃订阅者',
       conversionRate: '转化率',
       byPlan: '按计划收入',
+      byPlanDesc: '按订阅计划的月收入分布',
       metrics: '关键指标',
       arpu: '每用户平均收入',
       churnRate: '流失率',
+      totalRevenue: '总收入',
     },
     performance: {
       uptime: '系统运行时间',
@@ -199,6 +231,9 @@ export default {
       errorRate: '错误率',
       memoryUsage: '内存使用',
       resourceUsage: '资源使用',
+      slowestEndpoints: '最慢端点',
+      slowestEndpointsDesc: '响应时间最长的 API 端点',
+      requests: '次请求',
     },
   },
 
@@ -319,7 +354,15 @@ export default {
       role: '角色',
       joined: '加入时间',
       lastLogin: '最后登录',
+      username: '用户名',
+      bannedAt: '封禁时间',
     },
+
+    // 对话框标题
+    editUser: '编辑用户',
+    createUser: '创建用户',
+    editDescription: '在此修改用户资料，完成后点击保存。',
+    createDescription: '添加新用户到系统，完成后点击创建。',
 
     // 批量操作
     bulkActions: {
@@ -353,15 +396,27 @@ export default {
       username: '用户名',
       email: '邮箱',
       displayName: '显示名称',
+      fullName: '姓名',
+      fullNamePlaceholder: '张三',
+      usernamePlaceholder: 'zhangsan',
+      emailPlaceholder: 'zhangsan@example.com',
       role: '角色',
+      status: '状态',
       password: '密码',
       confirmPassword: '确认密码',
+      newPassword: '新密码',
+      newPasswordPlaceholder: '输入新密码',
       isActive: '活跃状态',
       isBanned: '封禁状态',
       banReason: '封禁原因',
       banReasonPlaceholder: '违反条款...',
       banExpiresAt: '封禁到期时间',
       avatar: '头像 URL',
+      targetUser: '目标用户',
+      saving: '保存中...',
+      creating: '创建中...',
+      saveChanges: '保存更改',
+      createUser: '创建用户',
     },
 
     // 操作
@@ -372,6 +427,7 @@ export default {
       resetPasswordAction: '重置密码',
       resetting: '重置中...',
       resetPasswordDescription: '为 {username} 设置新密码。',
+      resetPasswordWarning: '这将立即更改用户密码。请确保安全地传达新密码。',
       banUser: '封禁用户',
       banUserDescription: '请提供封禁 {username} 的原因。',
       confirmBan: '确认封禁',
@@ -1943,7 +1999,21 @@ export default {
       flaggedSuccessfully: '帖子已成功标记',
       failedToFlag: '标记帖子失败',
       reasonRequired: '请提供标记原因',
+      bulkPinnedSuccessfully: '帖子已批量置顶',
+      bulkLockedSuccessfully: '帖子已批量锁定',
+      bulkUnflaggedSuccessfully: '帖子已批量取消标记',
+      bulkDeletedSuccessfully: '帖子已批量删除',
     },
+
+    // 批量操作
+    bulkActions: {
+      bulkPin: '批量置顶',
+      bulkLock: '批量锁定',
+      bulkUnflag: '批量取消标记',
+      bulkDelete: '批量删除',
+    },
+
+    clearSelection: '清除选择',
 
     // 错误状态
     error: {
@@ -2031,7 +2101,20 @@ export default {
       flaggedSuccessfully: '评论已成功标记',
       failedToFlag: '标记评论失败',
       reasonRequired: '请提供标记原因',
+      bulkUnflaggedSuccessfully: '评论已批量取消标记',
+      bulkDeletedSuccessfully: '评论已批量删除',
+      failedToBulkUnflag: '批量取消标记评论失败',
+      failedToBulkDelete: '批量删除评论失败',
     },
+
+    // 批量操作
+    bulkActions: {
+      bulkUnflag: '批量取消标记',
+      bulkDelete: '批量删除',
+    },
+
+    clearSelection: '清除选择',
+    deleteConfirm: '确定要删除 {count} 条评论吗？此操作不可撤销。',
   },
 
   // 认证
@@ -2048,6 +2131,7 @@ export default {
       submitting: '登录中...',
       invalidCredentials: '用户名或密码无效',
       loginFailed: '登录失败。请重试。',
+      continueWithGithub: '使用 GitHub 登录',
       demoAccounts: '演示账号',
       demoAccountsTitle: '使用以下凭据：',
       demoAdmin: '• admin / admin123 (超级管理员)',

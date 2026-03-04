@@ -1,30 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import type { ColumnDef } from '@tanstack/vue-table'
-import {
-  IconDotsVertical,
-  IconEye,
-  IconEyeOff,
-  IconPencil,
-  IconPlus,
-  IconRefresh,
-  IconStar,
-  IconStarFilled,
-  IconTrash,
-  IconX,
-} from '@tabler/icons-vue'
+import { IconPlus, IconRefresh, IconX } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
 import {
   Select,
   SelectContent,
@@ -39,6 +20,7 @@ import type { ProblemList } from '@/api/admin/problem-lists'
 import DataTable from '@/components/table/DataTable.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
+import { createColumns } from './columns'
 
 const router = useRouter()
 const { t } = useI18n()
@@ -92,6 +74,13 @@ const {
   autoLoad: true,
 })
 
+// Stats for terminal ticker
+const stats = computed(() => ({
+  total: store.total,
+  featured: store.lists.filter((l) => l.is_featured).length,
+  public: store.lists.filter((l) => l.is_public).length,
+}))
+
 function editList(id: string) {
   router.push({ name: 'problem-list-edit', params: { id } })
 }
@@ -106,232 +95,146 @@ async function handleDelete(id: string | number) {
   await store.deleteList(String(id))
 }
 
-const columns: ColumnDef<ProblemList>[] = [
-  {
-    accessorKey: 'name',
-    header: () => t('problemLists.columns.name'),
-    cell: ({ row }) => {
-      const list = row.original
-      return h('div', { class: 'flex flex-col' }, [
-        h('span', { class: 'font-medium text-sm' }, list.name),
-        h(
-          'span',
-          { class: 'text-muted-foreground text-xs line-clamp-1' },
-          list.description || t('common.noData'),
-        ),
-      ])
-    },
-  },
-  {
-    accessorKey: 'is_featured',
-    header: () => t('problemLists.columns.featured'),
-    cell: ({ row }) => {
-      const isFeatured = row.getValue('is_featured') as boolean
-      return isFeatured
-        ? h(IconStarFilled, { class: 'h-4 w-4 text-yellow-500' })
-        : h(IconStar, { class: 'h-4 w-4 text-muted-foreground opacity-20' })
-    },
-  },
-  {
-    accessorKey: 'is_public',
-    header: () => t('problemLists.columns.visibility'),
-    cell: ({ row }) => {
-      const isPublic = row.getValue('is_public') as boolean
-      return h(
-        Badge,
-        { variant: isPublic ? 'default' : 'secondary' },
-        {
-          default: () => [
-            isPublic
-              ? h(IconEye, { class: 'mr-1 h-3 w-3' })
-              : h(IconEyeOff, { class: 'mr-1 h-3 w-3' }),
-            isPublic ? t('problemLists.filters.public') : t('problemLists.filters.private'),
-          ],
-        },
-      )
-    },
-  },
-  {
-    accessorKey: 'problem_count',
-    header: () => t('problemLists.columns.problems'),
-    cell: ({ row }) => {
-      const count = row.original.problem_count || 0
-      return h(
-        'span',
-        { class: 'text-muted-foreground text-sm tabular-nums' },
-        count.toLocaleString(),
-      )
-    },
-  },
-  {
-    accessorKey: 'banner_order',
-    header: () => t('problemLists.columns.order'),
-    cell: ({ row }) => {
-      const order = row.original.banner_order
-      return h('span', { class: 'text-muted-foreground text-sm tabular-nums' }, order)
-    },
-  },
-  {
-    accessorKey: 'updated_at',
-    header: () => t('common.updated'),
-    cell: ({ row }) => {
-      const date = new Date(row.getValue('updated_at') as string)
-      return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
-    },
-  },
-  {
-    id: 'actions',
-    header: () => t('common.actions'),
-    cell: ({ row }) => {
-      const list = row.original
-      return h(
-        DropdownMenu,
-        {},
-        {
-          default: () => [
-            h(
-              DropdownMenuTrigger,
-              { asChild: true },
-              {
-                default: () =>
-                  h(
-                    Button,
-                    { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                    {
-                      default: () => [
-                        h('span', { class: 'sr-only' }, t('common.open')),
-                        h(IconDotsVertical, { class: 'h-4 w-4' }),
-                      ],
-                    },
-                  ),
-              },
-            ),
-            h(
-              DropdownMenuContent,
-              { align: 'end' },
-              {
-                default: () => [
-                  canUpdate.value
-                    ? h(
-                        DropdownMenuItem,
-                        { onClick: () => editList(list.id) },
-                        {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2' }, [
-                              h(IconPencil, { class: 'h-4 w-4' }),
-                              t('common.edit'),
-                            ]),
-                        },
-                      )
-                    : null,
-                  canDelete.value
-                    ? h(
-                        DropdownMenuItem,
-                        { onClick: () => confirmDelete(list) },
-                        {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                              h(IconTrash, { class: 'h-4 w-4' }),
-                              t('common.delete'),
-                            ]),
-                        },
-                      )
-                    : null,
-                ],
-              },
-            ),
-          ],
-        },
-      )
-    },
-  },
-]
+const columns = createColumns(
+  t,
+  { editList, deleteList: confirmDelete },
+  () => canUpdate.value,
+  () => canDelete.value,
+)
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-    <DataTable
-      :columns="columns"
-      :data="data"
-      :pagination="tablePagination"
-      :row-count="total"
-      :loading="loading"
-      @update:pagination="tablePagination = $event"
-    >
-      <template #toolbar-left>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <Input
-            v-model="searchQuery"
-            :placeholder="t('problemLists.searchPlaceholder')"
-            class="h-8 min-w-[150px] w-full lg:w-[250px]"
-          >
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconX class="h-3 w-3" />
-              </button>
-            </template>
-          </Input>
-
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-            <Select v-model="featuredFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('problemLists.filters.type')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('problemLists.filters.allTypes') }}</SelectItem>
-                <SelectItem value="featured">{{ t('problemLists.filters.featured') }}</SelectItem>
-                <SelectItem value="standard">{{ t('problemLists.filters.standard') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select v-model="visibilityFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('problemLists.filters.visibility')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('problemLists.filters.allVisibility') }}</SelectItem>
-                <SelectItem value="public">{{ t('problemLists.filters.public') }}</SelectItem>
-                <SelectItem value="private">{{ t('problemLists.filters.private') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-8 w-8"
-              @click="loadLists()"
-              :title="t('common.refresh')"
-            >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
-            </Button>
-          </div>
+  <div class="relative flex flex-col overflow-auto">
+    <!-- Terminal Header -->
+    <div class="border-b border-[var(--silver-200)] bg-[var(--card)]">
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <span class="terminal-prompt">problem_lists</span>
+          <span class="terminal-cursor" />
+          <h1 class="text-base font-semibold text-[var(--foreground)]">
+            {{ t('problemLists.title') }}
+          </h1>
         </div>
-      </template>
-
-      <template #extra-actions>
         <Button
           v-if="canCreate"
-          size="sm"
-          class="h-8"
+          variant="terminal"
+          class="font-data text-xs"
           @click="router.push({ name: 'problem-list-create' })"
         >
-          <IconPlus class="mr-2 h-4 w-4" />
-          <span>{{ t('problemLists.addList') }}</span>
+          <IconPlus class="mr-1.5 h-3.5 w-3.5" />
+          CREATE
         </Button>
-      </template>
-    </DataTable>
+      </div>
 
-    <!-- Error state -->
-    <div
-      v-if="error"
-      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-    >
-      <span class="text-destructive">{{ error }}</span>
-      <Button variant="outline" size="sm" @click="loadLists()">{{ t('common.retry') }}</Button>
+      <!-- Stats Ticker -->
+      <div
+        class="px-4 lg:px-6 py-2.5 border-t border-[var(--silver-200)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-6 text-xs">
+          <div class="flex items-center gap-2">
+            <span class="terminal-label">total:</span>
+            <span class="font-data text-[var(--terminal-cyan)]">{{ stats.total }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="terminal-label">featured:</span>
+            <span class="font-data text-[var(--terminal-amber)]">{{ stats.featured }}</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="terminal-label">public:</span>
+            <span class="font-data text-[var(--terminal-green)]">{{ stats.public }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="flex-1 px-4 lg:px-6 py-4">
+      <!-- Error State -->
+      <div
+        v-if="error"
+        class="mb-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] px-4 py-3"
+      >
+        <div class="flex items-center gap-2">
+          <span class="font-data text-xs text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]"
+          @click="loadLists()"
+        >
+          {{ t('common.retry') }}
+        </Button>
+      </div>
+
+      <!-- Data Table -->
+      <DataTable
+        :columns="columns"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
+        @update:pagination="tablePagination = $event"
+      >
+        <template #toolbar-left>
+          <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+            <Input
+              v-model="searchQuery"
+              :placeholder="t('problemLists.searchPlaceholder')"
+              class="terminal-input h-8 min-w-[150px] w-full lg:w-[250px]"
+            >
+              <template #trailing>
+                <button
+                  v-if="searchQuery"
+                  @click="searchQuery = ''"
+                  class="rounded-sm opacity-70 hover:opacity-100"
+                >
+                  <IconX class="h-3 w-3" />
+                </button>
+              </template>
+            </Input>
+
+            <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+              <Select v-model="featuredFilter">
+                <SelectTrigger class="terminal-input h-8 w-[130px] font-data text-xs">
+                  <SelectValue :placeholder="t('problemLists.filters.type')" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{{ t('problemLists.filters.allTypes') }}</SelectItem>
+                  <SelectItem value="featured">{{ t('problemLists.filters.featured') }}</SelectItem>
+                  <SelectItem value="standard">{{ t('problemLists.filters.standard') }}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Select v-model="visibilityFilter">
+                <SelectTrigger class="terminal-input h-8 w-[130px] font-data text-xs">
+                  <SelectValue :placeholder="t('problemLists.filters.visibility')" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{{ t('problemLists.filters.allVisibility') }}</SelectItem>
+                  <SelectItem value="public">{{ t('problemLists.filters.public') }}</SelectItem>
+                  <SelectItem value="private">{{ t('problemLists.filters.private') }}</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                class="h-8 w-8 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]"
+                @click="loadLists()"
+                :title="t('common.refresh')"
+              >
+                <IconRefresh
+                  class="h-3.5 w-3.5 text-[var(--silver-400)]"
+                  :class="{ 'animate-spin': loading }"
+                />
+              </Button>
+            </div>
+          </div>
+        </template>
+      </DataTable>
     </div>
   </div>
 

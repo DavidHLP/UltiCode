@@ -1,13 +1,22 @@
 <script setup lang="ts">
+/**
+ * LoginForm - 登录表单
+ *
+ * 使用新的 AuthInput/AuthButton 组件
+ * 移除演示账号功能
+ * 添加 GitHub OAuth
+ */
 import type { HTMLAttributes } from 'vue'
 import { ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth'
-import { Button } from '@/components/ui/button'
-import { Field, FieldGroup, FieldLabel, FieldSeparator } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
+import AuthInput from './AuthInput.vue'
+import AuthButton from './AuthButton.vue'
+import AuthDivider from './AuthDivider.vue'
+import OAuthButton from './OAuthButton.vue'
+import { ArrowRight } from 'lucide-vue-next'
 
 const props = defineProps<{
   class?: HTMLAttributes['class']
@@ -51,56 +60,118 @@ async function handleSubmit(event: Event) {
 </script>
 
 <template>
-  <form :class="cn('flex flex-col gap-6', props.class)" @submit="handleSubmit">
-    <FieldGroup>
-      <div class="flex flex-col items-center gap-1 text-center">
-        <h1 class="text-2xl font-semibold tracking-tight">{{ t('auth.login.title') }}</h1>
-        <p class="text-muted-foreground text-sm text-balance">
-          {{ t('auth.login.subtitle') }}
-        </p>
-      </div>
-      <Field v-if="error">
-        <div class="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-600">
-          {{ error }}
-        </div>
-      </Field>
-      <Field>
-        <FieldLabel for="username">{{ t('auth.login.username') }}</FieldLabel>
-        <Input
-          id="username"
-          v-model="username"
-          type="text"
-          autocomplete="username"
-          :placeholder="t('auth.login.usernamePlaceholder')"
-          required
-          :disabled="loading"
-        />
-      </Field>
-      <Field>
-        <FieldLabel for="password">{{ t('auth.login.password') }}</FieldLabel>
-        <Input
-          id="password"
-          v-model="password"
-          type="password"
-          autocomplete="current-password"
-          :placeholder="t('auth.login.passwordPlaceholder')"
-          required
-          :disabled="loading"
-        />
-      </Field>
-      <Field>
-        <Button type="submit" class="w-full" :disabled="loading">
-          {{ loading ? t('auth.login.submitting') : t('auth.login.submit') }}
-        </Button>
-      </Field>
-      <FieldSeparator>{{ t('auth.login.demoAccounts') }}</FieldSeparator>
-      <Field>
-        <div class="space-y-1 text-sm text-muted-foreground">
-          <p class="font-medium">{{ t('auth.login.demoAccountsTitle') }}</p>
-          <p>{{ t('auth.login.demoAdmin') }}</p>
-          <p>{{ t('auth.login.demoModerator') }}</p>
-        </div>
-      </Field>
-    </FieldGroup>
+  <form :class="cn('login-form', props.class)" @submit="handleSubmit">
+    <!-- Header -->
+    <div class="login-form__header">
+      <h1 class="login-form__title">{{ t('auth.login.title') }}</h1>
+      <p class="login-form__subtitle">{{ t('auth.login.subtitle') }}</p>
+    </div>
+
+    <!-- Error Alert -->
+    <div v-if="error" class="login-form__error">
+      <span class="login-form__error-prefix">[ERROR]</span>
+      <span>{{ error }}</span>
+    </div>
+
+    <!-- Username Field -->
+    <AuthInput
+      v-model="username"
+      :label="t('auth.login.username')"
+      type="text"
+      autocomplete="username"
+      :placeholder="t('auth.login.usernamePlaceholder')"
+      :disabled="loading"
+    />
+
+    <!-- Password Field -->
+    <AuthInput
+      v-model="password"
+      :label="t('auth.login.password')"
+      type="password"
+      autocomplete="current-password"
+      :placeholder="t('auth.login.passwordPlaceholder')"
+      :disabled="loading"
+    />
+
+    <!-- Submit Button -->
+    <AuthButton :loading="loading" class="login-form__submit">
+      <span>{{ loading ? t('auth.login.submitting') : t('auth.login.submit') }}</span>
+      <ArrowRight v-if="!loading" class="login-form__submit-icon" />
+    </AuthButton>
+
+    <!-- Divider -->
+    <AuthDivider />
+
+    <!-- GitHub OAuth -->
+    <OAuthButton>{{ t('auth.login.continueWithGithub') }}</OAuthButton>
   </form>
 </template>
+
+<style scoped>
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Header */
+.login-form__header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--silver-100);
+}
+
+.dark .login-form__header {
+  border-bottom-color: var(--silver-300);
+}
+
+.login-form__title {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--foreground);
+  line-height: 1.1;
+}
+
+.login-form__subtitle {
+  font-size: 0.875rem;
+  color: var(--silver-500);
+}
+
+/* Error Alert */
+.login-form__error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border-left: 3px solid oklch(0.6 0.18 25);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+  background: oklch(0.6 0.18 25 / 0.08);
+  color: var(--status-error);
+  font-size: 0.875rem;
+  font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
+}
+
+.dark .login-form__error {
+  background: oklch(0.55 0.2 25 / 0.15);
+  border-left-color: oklch(0.55 0.2 25);
+}
+
+.login-form__error-prefix {
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* Submit Button */
+.login-form__submit {
+  margin-top: 0.5rem;
+}
+
+.login-form__submit-icon {
+  width: 1.125rem;
+  height: 1.125rem;
+}
+</style>

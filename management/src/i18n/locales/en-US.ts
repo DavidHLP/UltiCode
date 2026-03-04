@@ -136,6 +136,25 @@ export default {
     title: 'Advanced Analytics',
     description: 'Comprehensive reports and insights',
     loadError: 'Failed to load analytics data',
+    noData: 'No data available for this report',
+    // Navigation labels
+    nav: {
+      userActivity: 'User Activity',
+      problemCompletion: 'Problems',
+      contestParticipation: 'Contests',
+      revenue: 'Revenue',
+      performance: 'Performance',
+    },
+    // Status labels
+    status: {
+      good: 'Good',
+      excellent: 'Excellent',
+      average: 'Average',
+      needsWork: 'Needs Work',
+      needsAttention: 'Needs Attention',
+      high: 'High',
+      normal: 'Normal',
+    },
     tabs: {
       userActivity: 'User Activity',
       problemCompletion: 'Problem Completion',
@@ -149,32 +168,43 @@ export default {
       '90days': 'Last 90 Days',
       '1year': 'Last Year',
     },
+    perContest: 'per contest',
     userActivity: {
       dailyActiveUsers: 'Daily Active Users',
       retention1d: '1-Day Retention',
       retention7d: '7-Day Retention',
       retention30d: '30-Day Retention',
       activeUsersTrend: 'Active Users Trend',
-      peakHours: 'Peak Active Hours',
-      topUsers: 'Top Active Users',
-      logins: 'logins',
+      activeUsersTrendDesc: 'Daily active users over the selected period',
+      peakHours: 'Peak Activity Hours',
+      peakHoursDesc: 'User activity distribution by hour of day',
+      topUsers: 'Most Active Users',
+      topUsersDesc: 'Users with highest login activity',
+      logins: '{count} logins',
     },
     problemCompletion: {
       totalAttempts: 'Total Attempts',
       successfulAttempts: 'Successful Attempts',
       completionRate: 'Completion Rate',
       trendingProblems: 'Trending Problems',
-      byDifficulty: 'By Difficulty',
+      byDifficulty: 'Completion by Difficulty',
+      byDifficultyDesc: 'Success rate breakdown by problem difficulty',
       hardestProblems: 'Hardest Problems',
+      hardestProblemsDesc: 'Problems with lowest completion rates',
       topTags: 'Top Tags by Completion',
+      topTagsDesc: 'Most popular tags with their completion rates',
+      completed: 'completed',
     },
     contestParticipation: {
       totalContests: 'Total Contests',
       totalParticipants: 'Total Participants',
       avgParticipants: 'Avg Participants',
       virtualParticipation: 'Virtual Participation',
-      byType: 'By Contest Type',
-      topContests: 'Top Contests',
+      byType: 'Participation by Type',
+      byTypeDesc: 'Average participants by contest type',
+      topContests: 'Most Popular Contests',
+      topContestsDesc: 'Contests with highest participation',
+      contests: 'contests',
     },
     contestParticipants: 'participants',
     revenue: {
@@ -183,9 +213,11 @@ export default {
       subscribers: 'Active Subscribers',
       conversionRate: 'Conversion Rate',
       byPlan: 'Revenue by Plan',
+      byPlanDesc: 'Monthly revenue breakdown by subscription plan',
       metrics: 'Key Metrics',
       arpu: 'Average Revenue Per User',
       churnRate: 'Churn Rate',
+      totalRevenue: 'Total Revenue',
     },
     performance: {
       uptime: 'System Uptime',
@@ -193,6 +225,9 @@ export default {
       errorRate: 'Error Rate',
       memoryUsage: 'Memory Usage',
       resourceUsage: 'Resource Usage',
+      slowestEndpoints: 'Slowest Endpoints',
+      slowestEndpointsDesc: 'API endpoints with highest response times',
+      requests: 'requests',
     },
   },
 
@@ -313,7 +348,15 @@ export default {
       role: 'Role',
       joined: 'Joined',
       lastLogin: 'Last Login',
+      username: 'Username',
+      bannedAt: 'Banned At',
     },
+
+    // Dialog titles
+    editUser: 'Edit User',
+    createUser: 'Create User',
+    editDescription: "Make changes to the user profile here. Click save when you're done.",
+    createDescription: "Add a new user to the system. Click create when you're done.",
 
     // Bulk actions
     bulkActions: {
@@ -350,7 +393,12 @@ export default {
       username: 'Username',
       email: 'Email',
       displayName: 'Display Name',
+      fullName: 'Full Name',
+      fullNamePlaceholder: 'John Doe',
+      usernamePlaceholder: 'johndoe',
+      emailPlaceholder: 'john@example.com',
       role: 'Role',
+      status: 'Status',
       password: 'Password',
       confirmPassword: 'Confirm Password',
       newPassword: 'New Password',
@@ -361,6 +409,11 @@ export default {
       banReasonPlaceholder: 'Violation of terms...',
       banExpiresAt: 'Ban Expires At',
       avatar: 'Avatar URL',
+      targetUser: 'Target User',
+      saving: 'Saving...',
+      creating: 'Creating...',
+      saveChanges: 'Save Changes',
+      createUser: 'Create User',
     },
 
     // Actions
@@ -371,6 +424,8 @@ export default {
       resetPasswordAction: 'Reset Password',
       resetting: 'Resetting...',
       resetPasswordDescription: 'Set a new password for {username}.',
+      resetPasswordWarning:
+        "This will immediately change the user's password. Make sure to communicate the new password securely.",
       banUser: 'Ban User',
       banUserDescription: 'Please provide a reason for banning {username}.',
       confirmBan: 'Confirm Ban',
@@ -2207,7 +2262,21 @@ export default {
       flaggedSuccessfully: 'Post flagged successfully',
       failedToFlag: 'Failed to flag post',
       reasonRequired: 'Please provide a reason for flagging',
+      bulkPinnedSuccessfully: 'Posts pinned successfully',
+      bulkLockedSuccessfully: 'Posts locked successfully',
+      bulkUnflaggedSuccessfully: 'Posts unflagged successfully',
+      bulkDeletedSuccessfully: 'Posts deleted successfully',
     },
+
+    // Bulk actions
+    bulkActions: {
+      bulkPin: 'Bulk Pin',
+      bulkLock: 'Bulk Lock',
+      bulkUnflag: 'Bulk Unflag',
+      bulkDelete: 'Bulk Delete',
+    },
+
+    clearSelection: 'Clear Selection',
 
     // Error states
     error: {
@@ -2298,7 +2367,21 @@ export default {
       flaggedSuccessfully: 'Comment flagged successfully',
       failedToFlag: 'Failed to flag comment',
       reasonRequired: 'Please provide a reason for flagging',
+      bulkUnflaggedSuccessfully: 'Comments unflagged successfully',
+      bulkDeletedSuccessfully: 'Comments deleted successfully',
+      failedToBulkUnflag: 'Failed to unflag comments',
+      failedToBulkDelete: 'Failed to delete comments',
     },
+
+    // Bulk actions
+    bulkActions: {
+      bulkUnflag: 'Bulk Unflag',
+      bulkDelete: 'Bulk Delete',
+    },
+
+    clearSelection: 'Clear Selection',
+    deleteConfirm:
+      'Are you sure you want to delete {count} comments? This action cannot be undone.',
   },
 
   // Auth
@@ -2315,6 +2398,7 @@ export default {
       submitting: 'Signing in...',
       invalidCredentials: 'Invalid username or password',
       loginFailed: 'Login failed. Please try again.',
+      continueWithGithub: 'Continue with GitHub',
       demoAccounts: 'Demo Accounts',
       demoAccountsTitle: 'Use these credentials:',
       demoAdmin: '• admin / admin123 (Super Admin)',

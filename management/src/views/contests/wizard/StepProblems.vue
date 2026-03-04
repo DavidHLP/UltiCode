@@ -11,7 +11,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import { IconPlus, IconTrash } from '@tabler/icons-vue'
 import ContestProblemPicker from '../components/ContestProblemPicker.vue'
 
@@ -41,7 +40,7 @@ function addProblem(problem: { id: string; title: string; slug: string; difficul
 
   const newProblem = {
     ...problem,
-    score: 100, // Default score
+    score: 100,
   }
 
   emit('update:formData', {
@@ -66,50 +65,97 @@ function updateScore(problemId: string, score: number) {
     selectedProblems: currentProblems.map((p) => (p.id === problemId ? { ...p, score } : p)),
   })
 }
+
+// Get difficulty styling
+function getDifficultyStyle(difficulty: string) {
+  const styles: Record<string, string> = {
+    Easy: 'terminal-badge-success',
+    Medium: 'terminal-badge-warning',
+    Hard: 'terminal-badge-error',
+  }
+  return styles[difficulty] || 'terminal-badge'
+}
 </script>
 
 <template>
   <div class="space-y-4">
+    <!-- Section Header -->
     <div class="flex justify-between items-center">
-      <h3 class="text-sm font-medium">{{ t('contests.problemsStep.contestProblems') }}</h3>
-      <Button size="sm" variant="outline" @click="pickerOpen = true">
-        <IconPlus class="mr-2 h-4 w-4" />
-        {{ t('contests.problemsStep.addProblem') }}
+      <div class="flex items-center gap-2">
+        <span class="terminal-comment">problems_config</span>
+        <span class="terminal-label">[{{ formData.selectedProblems?.length || 0 }}]</span>
+      </div>
+      <Button
+        size="sm"
+        variant="terminal"
+        class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
+        @click="pickerOpen = true"
+      >
+        <IconPlus class="mr-1.5 h-3.5 w-3.5" />
+        <span class="uppercase tracking-wider">{{ t('contests.problemsStep.addProblem') }}</span>
       </Button>
     </div>
 
-    <div class="border rounded-md">
-      <Table>
+    <!-- Table - Terminal Style -->
+    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+      <Table class="terminal-table">
         <TableHeader>
-          <TableRow>
-            <TableHead class="w-[50px]">{{ t('contests.problemsStep.index') }}</TableHead>
-            <TableHead>{{ t('contests.problemsStep.title') }}</TableHead>
-            <TableHead>{{ t('contests.problemsStep.difficulty') }}</TableHead>
-            <TableHead class="w-[100px]">{{ t('contests.problemsStep.score') }}</TableHead>
-            <TableHead class="w-[50px]"></TableHead>
+          <TableRow
+            class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+          >
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[50px]"
+            >
+              #
+            </TableHead>
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+            >
+              {{ t('contests.problemsStep.title') }}
+            </TableHead>
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+            >
+              {{ t('contests.problemsStep.difficulty') }}
+            </TableHead>
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[100px]"
+            >
+              {{ t('contests.problemsStep.score') }}
+            </TableHead>
+            <TableHead
+              class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)] w-[50px]"
+            >
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          <TableRow v-for="(problem, index) in formData.selectedProblems || []" :key="problem.id">
-            <TableCell class="font-medium">
+          <TableRow
+            v-for="(problem, index) in formData.selectedProblems || []"
+            :key="problem.id"
+            class="border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
+          >
+            <TableCell class="font-data text-xs text-[var(--accent-electric)]">
               {{ String.fromCharCode(65 + index) }}
             </TableCell>
             <TableCell>
-              <div class="flex flex-col">
-                <span class="font-medium">{{ problem.title }}</span>
-                <span class="text-xs text-muted-foreground">{{ problem.slug }}</span>
+              <div class="flex flex-col gap-0.5">
+                <span class="font-medium text-sm text-[var(--foreground)]">{{
+                  problem.title
+                }}</span>
+                <span class="font-data text-xs text-[var(--silver-400)]">{{ problem.slug }}</span>
               </div>
             </TableCell>
             <TableCell>
-              <Badge variant="outline" class="capitalize">
-                {{ problem.difficulty?.toLowerCase() }}
-              </Badge>
+              <span :class="['terminal-badge text-[10px]', getDifficultyStyle(problem.difficulty)]">
+                {{ problem.difficulty?.toUpperCase() }}
+              </span>
             </TableCell>
             <TableCell>
               <Input
                 type="number"
                 min="0"
-                class="h-8 w-20"
+                class="h-8 w-20 font-data text-xs border-[var(--silver-200)] dark:border-[var(--silver-700)] focus:border-[var(--accent-electric)]"
                 :model-value="problem.score"
                 @update:model-value="updateScore(problem.id, Number($event))"
               />
@@ -118,7 +164,7 @@ function updateScore(problemId: string, score: number) {
               <Button
                 size="icon"
                 variant="ghost"
-                class="h-8 w-8 text-destructive"
+                class="h-8 w-8 text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
                 @click="removeProblem(problem.id)"
               >
                 <IconTrash class="h-4 w-4" />
@@ -126,8 +172,10 @@ function updateScore(problemId: string, score: number) {
             </TableCell>
           </TableRow>
           <TableRow v-if="!formData.selectedProblems?.length">
-            <TableCell colspan="5" class="h-24 text-center text-muted-foreground">
-              {{ t('contests.problemsStep.noProblemsSelected') }}
+            <TableCell colspan="5" class="h-24 text-center">
+              <span class="terminal-comment">{{
+                t('contests.problemsStep.noProblemsSelected')
+              }}</span>
             </TableCell>
           </TableRow>
         </TableBody>

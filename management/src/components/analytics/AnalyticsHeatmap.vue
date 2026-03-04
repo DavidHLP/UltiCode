@@ -116,7 +116,8 @@ function handleMouseLeave() {
         <div class="inline-flex flex-col">
           <!-- Column labels -->
           <div v-if="showLabels && columns" class="flex mb-1">
-            <div class="w-12 shrink-0" /> <!-- Spacer for row labels -->
+            <div class="w-12 shrink-0" />
+            <!-- Spacer for row labels -->
             <div
               v-for="(col, index) in columns"
               :key="index"
@@ -167,7 +168,9 @@ function handleMouseLeave() {
           </div>
 
           <!-- Legend -->
-          <div class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)]">
+          <div
+            class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+          >
             <span class="text-[10px] text-[var(--silver-400)]">Less</span>
             <div class="flex gap-0.5">
               <div

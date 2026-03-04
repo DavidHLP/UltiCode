@@ -69,7 +69,10 @@ function formatValue(value: number): string {
       </CardDescription>
     </CardHeader>
     <CardContent class="px-5 pb-5" :class="{ 'pt-5': !title }">
-      <div v-if="displayTags.length === 0" class="text-center py-8 text-[var(--silver-400)] text-sm">
+      <div
+        v-if="displayTags.length === 0"
+        class="text-center py-8 text-[var(--silver-400)] text-sm"
+      >
         {{ $t('common.noData') }}
       </div>
       <div v-else class="flex flex-wrap gap-2">

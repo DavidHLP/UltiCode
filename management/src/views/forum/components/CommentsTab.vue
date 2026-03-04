@@ -13,7 +13,6 @@ import {
   IconUser,
 } from '@tabler/icons-vue'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
@@ -45,6 +44,15 @@ const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
 
 const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_COMMENT'))
+
+// Stats for terminal ticker
+const stats = computed(() => {
+  const comments = commentsStore.comments
+  const total = commentsStore.total
+  const flagged = comments.filter((c) => c.is_flagged).length
+  const deleted = comments.filter((c) => c.is_deleted).length
+  return { total, flagged, deleted }
+})
 
 onMounted(() => loadComments())
 
@@ -102,6 +110,65 @@ async function unflagComment(comment: Comment) {
   }
 }
 
+// Terminal-style status badge renderer
+function renderStatusBadge(comment: Comment) {
+  if (comment.is_deleted) {
+    return h(
+      'span',
+      {
+        class: [
+          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+          'px-2 py-0.5 border rounded-sm',
+          'bg-[oklch(0.6_0.2_25/0.15)]',
+          'border-[oklch(0.6_0.2_25/0.4)]',
+          'text-[var(--terminal-red)]',
+        ].join(' '),
+      },
+      'DELETED',
+    )
+  }
+
+  if (comment.is_flagged) {
+    return h(
+      'div',
+      { class: 'flex items-center gap-2' },
+      h(
+        'span',
+        {
+          class: [
+            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+            'px-2 py-0.5 border rounded-sm',
+            'bg-[oklch(0.6_0.2_25/0.15)]',
+            'border-[oklch(0.6_0.2_25/0.4)]',
+            'text-[var(--terminal-red)]',
+            'animate-pulse-subtle',
+          ].join(' '),
+        },
+        'FLAGGED',
+      ),
+    )
+  }
+
+  return h('div', { class: 'flex items-center gap-2' }, [
+    h('span', {
+      class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-green)] animate-pulse-subtle',
+    }),
+    h(
+      'span',
+      {
+        class: [
+          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+          'px-2 py-0.5 border rounded-sm',
+          'bg-[oklch(0.7_0.15_145/0.15)]',
+          'border-[oklch(0.7_0.15_145/0.4)]',
+          'text-[var(--terminal-green)]',
+        ].join(' '),
+      },
+      'ACTIVE',
+    ),
+  ])
+}
+
 const columns: ColumnDef<Comment>[] = [
   {
     id: 'select',
@@ -113,68 +180,96 @@ const columns: ColumnDef<Comment>[] = [
         'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
           table.toggleAllPageRowsSelected(!!value),
         'aria-label': t('table.selectAll'),
+        class:
+          'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
       }),
     cell: ({ row }) =>
       h(Checkbox, {
         modelValue: row.getIsSelected(),
         'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
         'aria-label': t('common.select'),
+        class:
+          'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
       }),
     enableSorting: false,
     enableHiding: false,
   },
   {
+    id: 'row_num',
+    header: () => '#',
+    cell: ({ row, table }) => {
+      const pageIndex = table.getState().pagination.pageIndex
+      const pageSize = table.getState().pagination.pageSize
+      const rowNum = pageIndex * pageSize + row.index + 1
+      return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+    },
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
     accessorKey: 'content',
-    header: () => t('comments.columns.comment'),
+    header: () =>
+      h(
+        'span',
+        { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+        t('comments.columns.comment'),
+      ),
     cell: ({ row }) => {
       const comment = row.original
       const truncated =
         comment.content.length > 150 ? comment.content.slice(0, 150) + '...' : comment.content
 
-      return h('div', { class: 'flex flex-col gap-2' }, [
-        h('span', { class: 'text-sm' }, truncated),
-        h('div', { class: 'flex items-center gap-1 text-xs text-muted-foreground' }, [
+      return h('div', { class: 'flex flex-col gap-1.5 py-1' }, [
+        h('span', { class: 'text-sm text-[var(--foreground)]' }, truncated),
+        h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--silver-400)]' }, [
           h(IconUser, { class: 'h-3 w-3' }),
-          h('span', {}, comment.author?.username || t('forum.overview.unknown')),
+          h(
+            'span',
+            { class: 'font-data' },
+            comment.author?.username || t('forum.overview.unknown'),
+          ),
         ]),
       ])
     },
   },
   {
     accessorKey: 'created_at',
-    header: () => t('comments.columns.created'),
+    header: () =>
+      h(
+        'span',
+        { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+        t('comments.columns.created'),
+      ),
     cell: ({ row }) => {
       const date = new Date(row.getValue('created_at') as string)
-      return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
+      return h(
+        'span',
+        { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
+        date.toLocaleDateString(),
+      )
     },
   },
   {
     accessorKey: 'is_flagged',
-    header: () => t('comments.columns.status'),
+    header: () =>
+      h(
+        'span',
+        { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+        t('comments.columns.status'),
+      ),
     cell: ({ row }) => {
-      const isFlagged = row.getValue('is_flagged') as boolean
-      const isDeleted = row.original.is_deleted
-
-      if (isDeleted) {
-        return h(Badge, { variant: 'destructive' }, () => [
-          h(IconTrash, { class: 'mr-1 h-3 w-3' }),
-          t('comments.status.deleted'),
-        ])
-      }
-
-      if (isFlagged) {
-        return h(Badge, { variant: 'destructive' }, () => [
-          h(IconFlag, { class: 'mr-1 h-3 w-3' }),
-          t('comments.status.flagged'),
-        ])
-      }
-
-      return h(Badge, { variant: 'secondary' }, () => t('comments.status.active'))
+      const comment = row.original
+      return renderStatusBadge(comment)
     },
   },
   {
     id: 'actions',
-    header: () => t('common.actions'),
+    header: () =>
+      h(
+        'span',
+        { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+        t('common.actions'),
+      ),
     cell: ({ row }) => {
       const comment = row.original
       if (!canModerate.value) return null
@@ -191,11 +286,16 @@ const columns: ColumnDef<Comment>[] = [
                 default: () =>
                   h(
                     Button,
-                    { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
+                    {
+                      variant: 'ghost',
+                      size: 'icon',
+                      class:
+                        'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+                    },
                     {
                       default: () => [
                         h('span', { class: 'sr-only' }, t('common.open')),
-                        h(IconDotsVertical, { class: 'h-4 w-4' }),
+                        h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
                       ],
                     },
                   ),
@@ -203,41 +303,67 @@ const columns: ColumnDef<Comment>[] = [
             ),
             h(
               DropdownMenuContent,
-              { align: 'end' },
+              {
+                align: 'end',
+                class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+              },
               {
                 default: () => [
                   comment.is_flagged
                     ? h(
                         DropdownMenuItem,
-                        { onClick: () => unflagComment(comment) },
+                        {
+                          onClick: () => unflagComment(comment),
+                          class: 'font-data text-xs cursor-pointer',
+                        },
                         {
                           default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
-                              h(IconCheck, { class: 'h-4 w-4' }),
-                              t('comments.actions.unflag'),
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                              h(
+                                'span',
+                                { class: 'text-[var(--terminal-green)]' },
+                                t('comments.actions.unflag'),
+                              ),
                             ]),
                         },
                       )
                     : h(
                         DropdownMenuItem,
-                        { onClick: () => openFlagDialog(comment) },
+                        {
+                          onClick: () => openFlagDialog(comment),
+                          class: 'font-data text-xs cursor-pointer',
+                        },
                         {
                           default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
-                              h(IconFlag, { class: 'h-4 w-4' }),
-                              t('comments.actions.flag'),
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              h(IconFlag, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
+                              h(
+                                'span',
+                                { class: 'text-[var(--terminal-amber)]' },
+                                t('comments.actions.flag'),
+                              ),
                             ]),
                         },
                       ),
-                  h(DropdownMenuSeparator, {}),
+                  h(DropdownMenuSeparator, {
+                    class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+                  }),
                   h(
                     DropdownMenuItem,
-                    { onClick: () => confirmDelete(comment) },
+                    {
+                      onClick: () => confirmDelete(comment),
+                      class: 'font-data text-xs cursor-pointer',
+                    },
                     {
                       default: () =>
-                        h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                          h(IconTrash, { class: 'h-4 w-4' }),
-                          t('comments.actions.delete'),
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                          h(
+                            'span',
+                            { class: 'text-[var(--terminal-red)]' },
+                            t('comments.actions.delete'),
+                          ),
                         ]),
                     },
                   ),
@@ -254,21 +380,54 @@ const columns: ColumnDef<Comment>[] = [
 
 <template>
   <div class="space-y-4">
-    <!-- Header with Refresh -->
-    <div class="flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <IconMessage class="h-5 w-5 text-muted-foreground" />
-        <h3 class="text-lg font-semibold">{{ t('forum.comments.postComments') }}</h3>
-      </div>
-      <Button
-        variant="ghost"
-        size="icon"
-        class="h-8 w-8"
-        @click="loadComments"
-        :title="t('common.refresh')"
+    <!-- Terminal Header -->
+    <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]">
+      <!-- Title Row -->
+      <div
+        class="px-4 py-3 flex items-center justify-between border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]"
       >
-        <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': commentsStore.loading }" />
-      </Button>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <span class="terminal-prompt text-sm">comments</span>
+            <span class="terminal-cursor" />
+          </div>
+          <IconMessage class="h-4 w-4 text-[var(--terminal-cyan)]" />
+          <h3 class="text-sm font-medium text-[var(--foreground)]">
+            {{ t('forum.comments.postComments') }}
+          </h3>
+        </div>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="h-7 w-7 p-0 border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
+          @click="loadComments"
+          :title="t('common.refresh')"
+        >
+          <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': commentsStore.loading }" />
+        </Button>
+      </div>
+
+      <!-- Stats Ticker -->
+      <div class="px-4 py-2 flex items-center gap-4 bg-[var(--surface-sunken)]">
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="font-data text-xs text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">flagged:</span>
+          <span class="font-data text-xs text-[var(--terminal-red)] tabular-nums">{{
+            stats.flagged
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">deleted:</span>
+          <span class="font-data text-xs text-[var(--terminal-red)] tabular-nums">{{
+            stats.deleted
+          }}</span>
+        </div>
+      </div>
     </div>
 
     <!-- Comments Table -->
@@ -279,24 +438,41 @@ const columns: ColumnDef<Comment>[] = [
       :row-count="commentsStore.total"
       :loading="commentsStore.loading"
       @update:pagination="tablePagination = $event"
+      class="terminal-table"
     />
 
-    <!-- Error state -->
+    <!-- Error state - Terminal Style -->
     <div
       v-if="commentsStore.error"
-      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+      class="flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
     >
-      <span class="text-destructive">{{ commentsStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadComments">{{ t('common.retry') }}</Button>
+      <div class="flex items-center gap-3">
+        <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+        <span class="text-sm text-[var(--foreground)]">{{ commentsStore.error }}</span>
+      </div>
+      <Button
+        variant="terminal"
+        size="sm"
+        class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+        @click="loadComments"
+      >
+        {{ t('common.retry') }}
+      </Button>
     </div>
 
-    <!-- Empty state -->
+    <!-- Empty state - Terminal Style -->
     <div
       v-if="!commentsStore.loading && commentsStore.comments.length === 0 && !commentsStore.error"
-      class="text-center py-8"
+      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-8 text-center bg-[var(--card)]"
     >
-      <IconMessage class="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-      <p class="text-sm text-muted-foreground">{{ t('forum.comments.noCommentsFound') }}</p>
+      <div
+        class="w-10 h-10 border border-[var(--silver-300)] flex items-center justify-center mx-auto mb-3"
+      >
+        <IconMessage class="h-5 w-5 text-[var(--silver-400)]" />
+      </div>
+      <p class="font-data text-xs text-[var(--silver-400)]">
+        &gt; {{ t('forum.comments.noCommentsFound') }}
+      </p>
     </div>
 
     <!-- Dialogs -->

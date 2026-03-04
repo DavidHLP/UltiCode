@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { IconArrowRight, IconLoader2 } from '@tabler/icons-vue'
 import { useUsersStore } from '@/stores/admin/users'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -7,20 +9,10 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  Field,
-  FieldGroup,
-  FieldLabel,
-  FieldSet,
-  FieldLegend,
-  FieldDescription,
-  FieldSeparator,
-} from '@/components/ui/field'
 import {
   Select,
   SelectContent,
@@ -28,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -53,7 +47,6 @@ const defaultForm = {
 
 const form = ref({ ...defaultForm })
 
-// Reset form when dialog opens
 watch(
   () => props.open,
   (isOpen) => {
@@ -92,126 +85,152 @@ async function handleSubmit() {
 
 <template>
   <Dialog :open="open" @update:open="emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[600px]">
-      <DialogHeader>
-        <DialogTitle>Create User</DialogTitle>
-        <DialogDescription>
-          Add a new user to the system. Click create when you're done.
-        </DialogDescription>
+    <DialogContent
+      class="sm:max-w-[560px] border-[var(--silver-200)] dark:border-[var(--silver-700)] rounded-none p-0 gap-0"
+    >
+      <!-- Terminal Header -->
+      <DialogHeader class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4">
+        <div class="flex items-center gap-3">
+          <span class="terminal-prompt text-sm">create_user</span>
+          <DialogTitle class="text-lg font-medium tracking-tight">{{
+            t('users.createUser')
+          }}</DialogTitle>
+        </div>
+        <p class="terminal-comment mt-1">{{ t('users.createDescription') }}</p>
       </DialogHeader>
 
+      <!-- Form -->
       <form @submit.prevent="handleSubmit">
+        <!-- Error Banner -->
         <div
           v-if="error"
-          class="mb-4 p-3 text-sm text-red-600 bg-red-50 border border-red-200 rounded-md"
+          class="mx-4 mt-4 p-3 border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] flex items-center gap-2"
         >
-          {{ error }}
+          <span class="font-data text-xs text-[var(--terminal-red)]">> ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
 
-        <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
-          <FieldSet>
-            <FieldLegend>General Information</FieldLegend>
-            <FieldDescription>Basic personal details for the new user.</FieldDescription>
-            <FieldGroup>
-              <Field>
-                <FieldLabel for="create-name">Full Name</FieldLabel>
+        <div class="max-h-[50vh] overflow-y-auto p-4 space-y-6">
+          <!-- Section: General Information -->
+          <div>
+            <div class="terminal-comment mb-3">// General Information</div>
+            <div class="space-y-4">
+              <div class="space-y-1.5">
+                <label class="terminal-label block">{{ t('users.form.fullName') }}</label>
                 <Input
-                  id="create-name"
                   v-model="form.name"
                   type="text"
                   required
                   :disabled="loading"
-                  placeholder="John Doe"
+                  class="terminal-input h-9"
+                  :placeholder="t('users.form.fullNamePlaceholder')"
                 />
-              </Field>
+              </div>
 
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field>
-                  <FieldLabel for="create-username">Username</FieldLabel>
+                <div class="space-y-1.5">
+                  <label class="terminal-label block">{{ t('users.form.username') }}</label>
                   <Input
-                    id="create-username"
                     v-model="form.username"
                     type="text"
                     required
                     :disabled="loading"
-                    placeholder="johndoe"
+                    class="terminal-input h-9 font-data"
+                    :placeholder="t('users.form.usernamePlaceholder')"
                   />
-                </Field>
+                </div>
 
-                <Field>
-                  <FieldLabel for="create-email">Email</FieldLabel>
+                <div class="space-y-1.5">
+                  <label class="terminal-label block">{{ t('users.form.email') }}</label>
                   <Input
-                    id="create-email"
                     v-model="form.email"
                     type="email"
                     required
                     :disabled="loading"
-                    placeholder="john@example.com"
+                    class="terminal-input h-9 font-data"
+                    :placeholder="t('users.form.emailPlaceholder')"
                   />
-                </Field>
+                </div>
               </div>
-            </FieldGroup>
-          </FieldSet>
+            </div>
+          </div>
 
-          <FieldSeparator />
+          <!-- Double-line Separator -->
+          <div class="terminal-separator" />
 
-          <FieldSet>
-            <FieldLegend>Security & Access</FieldLegend>
-            <FieldDescription>
-              Configure authentication credentials and permissions.
-            </FieldDescription>
-            <FieldGroup>
+          <!-- Section: Security & Access -->
+          <div>
+            <div class="terminal-comment mb-3">// Security & Access</div>
+            <div class="space-y-4">
               <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field>
-                  <FieldLabel for="create-password">Password</FieldLabel>
+                <div class="space-y-1.5">
+                  <label class="terminal-label block">{{ t('users.form.password') }}</label>
                   <Input
-                    id="create-password"
                     v-model="form.password"
                     type="password"
                     required
                     :disabled="loading"
+                    class="terminal-input h-9 font-data"
                   />
-                </Field>
+                </div>
 
-                <Field>
-                  <FieldLabel for="create-role">Role</FieldLabel>
+                <div class="space-y-1.5">
+                  <label class="terminal-label block">{{ t('users.form.role') }}</label>
                   <Select v-model="form.role" :disabled="loading">
-                    <SelectTrigger id="create-role">
+                    <SelectTrigger class="terminal-input h-9 font-data">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USER">User</SelectItem>
-                      <SelectItem value="MODERATOR">Moderator</SelectItem>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
-                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
+                      <SelectItem value="USER" class="font-data">USER</SelectItem>
+                      <SelectItem value="MODERATOR" class="font-data">MODERATOR</SelectItem>
+                      <SelectItem value="ADMIN" class="font-data">ADMIN</SelectItem>
+                      <SelectItem value="SUPER_ADMIN" class="font-data">SUPER_ADMIN</SelectItem>
                     </SelectContent>
                   </Select>
-                </Field>
+                </div>
               </div>
 
-              <Field orientation="horizontal">
-                <Checkbox
-                  id="create-is_active"
-                  v-model:checked="form.is_active"
-                  :disabled="loading"
-                />
-                <div class="flex flex-col gap-1">
-                  <FieldLabel for="create-is_active" class="font-normal cursor-pointer">
-                    Active Account
-                  </FieldLabel>
-                  <FieldDescription> Inactive users cannot log in to the system. </FieldDescription>
+              <div class="space-y-1.5">
+                <label class="terminal-label block">{{ t('users.form.status') }}</label>
+                <div
+                  class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+                >
+                  <Checkbox
+                    id="create-is_active"
+                    v-model:checked="form.is_active"
+                    :disabled="loading"
+                    class="border-[var(--silver-400)] data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
+                  />
+                  <label for="create-is_active" class="font-data text-xs cursor-pointer">
+                    {{ form.is_active ? 'ACTIVE' : 'INACTIVE' }}
+                  </label>
                 </div>
-              </Field>
-            </FieldGroup>
-          </FieldSet>
-        </FieldGroup>
+              </div>
+            </div>
+          </div>
+        </div>
 
-        <DialogFooter class="mt-6">
-          <Button type="button" variant="outline" @click="emit('update:open', false)">
-            Cancel
+        <!-- Footer -->
+        <DialogFooter
+          class="border-t border-[var(--silver-200)] dark:border-[var(--silver-700)] p-4 gap-3"
+        >
+          <Button
+            type="button"
+            variant="terminal"
+            class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--silver-400)]"
+            @click="emit('update:open', false)"
+          >
+            {{ t('common.cancel') }}
           </Button>
-          <Button type="submit" :disabled="loading">
-            {{ loading ? 'Creating...' : 'Create User' }}
+          <Button
+            type="submit"
+            variant="terminal"
+            :disabled="loading"
+            class="font-data text-xs bg-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/90"
+          >
+            <IconLoader2 v-if="loading" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
+            <IconArrowRight v-else class="h-3.5 w-3.5 mr-1.5" />
+            {{ loading ? t('users.form.creating') : t('users.form.createUser') }}
           </Button>
         </DialogFooter>
       </form>

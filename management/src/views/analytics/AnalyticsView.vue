@@ -113,19 +113,26 @@ const userActivityMetrics = computed<MetricData[]>(() => {
       title: t('analytics.userActivity.retention1d'),
       value: formatPercent(report.userRetention.day1),
       trend: report.userRetention.day1 > 50 ? 'up' : 'down',
-      change: report.userRetention.day1 > 50 ? t('analytics.status.good') : t('analytics.status.needsWork'),
+      change:
+        report.userRetention.day1 > 50
+          ? t('analytics.status.good')
+          : t('analytics.status.needsWork'),
     },
     {
       title: t('analytics.userActivity.retention7d'),
       value: formatPercent(report.userRetention.day7),
       trend: report.userRetention.day7 > 30 ? 'up' : 'neutral',
-      change: report.userRetention.day7 > 30 ? t('analytics.status.good') : t('analytics.status.average'),
+      change:
+        report.userRetention.day7 > 30 ? t('analytics.status.good') : t('analytics.status.average'),
     },
     {
       title: t('analytics.userActivity.retention30d'),
       value: formatPercent(report.userRetention.day30),
       trend: report.userRetention.day30 > 10 ? 'up' : 'neutral',
-      change: report.userRetention.day30 > 10 ? t('analytics.status.good') : t('analytics.status.average'),
+      change:
+        report.userRetention.day30 > 10
+          ? t('analytics.status.good')
+          : t('analytics.status.average'),
     },
   ]
 })
@@ -186,7 +193,10 @@ const problemCompletionMetrics = computed<MetricData[]>(() => {
       title: t('analytics.problemCompletion.completionRate'),
       value: formatPercent(report.overallCompletionRate),
       trend: report.overallCompletionRate > 30 ? 'up' : 'down',
-      change: report.overallCompletionRate > 30 ? t('analytics.status.good') : t('analytics.status.needsWork'),
+      change:
+        report.overallCompletionRate > 30
+          ? t('analytics.status.good')
+          : t('analytics.status.needsWork'),
     },
     {
       title: t('analytics.problemCompletion.trendingProblems'),
@@ -309,7 +319,8 @@ const revenueMetrics = computed<MetricData[]>(() => {
       title: t('analytics.revenue.conversionRate'),
       value: formatPercent(report.conversionRate),
       trend: report.conversionRate > 5 ? 'up' : 'neutral',
-      change: report.conversionRate > 5 ? t('analytics.status.good') : t('analytics.status.average'),
+      change:
+        report.conversionRate > 5 ? t('analytics.status.good') : t('analytics.status.average'),
     },
   ]
 })
@@ -333,7 +344,10 @@ const performanceMetrics = computed<MetricData[]>(() => {
       title: t('analytics.performance.uptime'),
       value: formatUptime(report.systemUptime),
       trend: report.systemUptime > 86400 * 7 ? 'up' : 'neutral',
-      change: report.systemUptime > 86400 * 7 ? t('analytics.status.excellent') : t('analytics.status.good'),
+      change:
+        report.systemUptime > 86400 * 7
+          ? t('analytics.status.excellent')
+          : t('analytics.status.good'),
     },
     {
       title: t('analytics.performance.throughput'),
@@ -345,13 +359,19 @@ const performanceMetrics = computed<MetricData[]>(() => {
       title: t('analytics.performance.errorRate'),
       value: formatPercent(report.errorRate),
       trend: report.errorRate > 1 ? 'down' : 'up',
-      change: report.errorRate > 1 ? t('analytics.status.needsAttention') : t('analytics.status.excellent'),
+      change:
+        report.errorRate > 1
+          ? t('analytics.status.needsAttention')
+          : t('analytics.status.excellent'),
     },
     {
       title: t('analytics.performance.memoryUsage'),
       value: formatPercent(report.resourceUsage.memory),
       trend: report.resourceUsage.memory > 80 ? 'down' : 'neutral',
-      change: report.resourceUsage.memory > 80 ? t('analytics.status.high') : t('analytics.status.normal'),
+      change:
+        report.resourceUsage.memory > 80
+          ? t('analytics.status.high')
+          : t('analytics.status.normal'),
     },
   ]
 })
@@ -374,10 +394,14 @@ async function loadReport() {
         userActivityReport.value = await analyticsApi.getUserActivity({ days: days.value })
         break
       case 'problem_completion':
-        problemCompletionReport.value = await analyticsApi.getProblemCompletion({ days: days.value })
+        problemCompletionReport.value = await analyticsApi.getProblemCompletion({
+          days: days.value,
+        })
         break
       case 'contest_participation':
-        contestParticipationReport.value = await analyticsApi.getContestParticipation({ days: days.value })
+        contestParticipationReport.value = await analyticsApi.getContestParticipation({
+          days: days.value,
+        })
         break
       case 'revenue':
         revenueReport.value = await analyticsApi.getRevenue({ days: days.value })
@@ -426,7 +450,9 @@ onMounted(() => {
         </div>
 
         <Select v-model="days">
-          <SelectTrigger class="w-[130px] h-8 text-xs border-[var(--silver-200)] dark:border-[var(--silver-300)]">
+          <SelectTrigger
+            class="w-[130px] h-8 text-xs border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -518,7 +544,10 @@ onMounted(() => {
         </div>
 
         <!-- Problem Completion Report -->
-        <div v-else-if="activeTab === 'problem_completion' && problemCompletionReport" class="space-y-5">
+        <div
+          v-else-if="activeTab === 'problem_completion' && problemCompletionReport"
+          class="space-y-5"
+        >
           <!-- Metric Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <AnalyticsMetricCard
@@ -557,7 +586,10 @@ onMounted(() => {
         </div>
 
         <!-- Contest Participation Report -->
-        <div v-else-if="activeTab === 'contest_participation' && contestParticipationReport" class="space-y-5">
+        <div
+          v-else-if="activeTab === 'contest_participation' && contestParticipationReport"
+          class="space-y-5"
+        >
           <!-- Metric Cards -->
           <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <AnalyticsMetricCard
@@ -612,22 +644,40 @@ onMounted(() => {
                 {{ t('analytics.revenue.metrics') }}
               </h3>
               <div class="space-y-4">
-                <div class="flex items-center justify-between py-2 border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]">
-                  <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.revenue.arpu') }}</span>
-                  <span class="font-data tabular-nums font-medium">{{ formatCurrency(revenueReport.arpu) }}</span>
+                <div
+                  class="flex items-center justify-between py-2 border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
+                >
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.revenue.arpu')
+                  }}</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatCurrency(revenueReport.arpu)
+                  }}</span>
                 </div>
-                <div class="flex items-center justify-between py-2 border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]">
-                  <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.revenue.churnRate') }}</span>
+                <div
+                  class="flex items-center justify-between py-2 border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
+                >
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.revenue.churnRate')
+                  }}</span>
                   <span
                     class="font-data tabular-nums font-medium"
-                    :class="revenueReport.churnRate > 5 ? 'text-[var(--status-error)]' : 'text-[var(--status-success)]'"
+                    :class="
+                      revenueReport.churnRate > 5
+                        ? 'text-[var(--status-error)]'
+                        : 'text-[var(--status-success)]'
+                    "
                   >
                     {{ formatPercent(revenueReport.churnRate) }}
                   </span>
                 </div>
                 <div class="flex items-center justify-between py-2">
-                  <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.revenue.totalRevenue') }}</span>
-                  <span class="font-data tabular-nums font-medium">{{ formatCurrency(revenueReport.totalRevenue) }}</span>
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.revenue.totalRevenue')
+                  }}</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatCurrency(revenueReport.totalRevenue)
+                  }}</span>
                 </div>
               </div>
             </div>
@@ -657,12 +707,22 @@ onMounted(() => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-[var(--silver-500)]">CPU</span>
-                  <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.cpu) }}</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatPercent(performanceReport.resourceUsage.cpu)
+                  }}</span>
                 </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+                <div
+                  class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+                >
                   <div
                     class="h-full rounded-full transition-all duration-500"
-                    :class="performanceReport.resourceUsage.cpu > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.cpu > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--accent-primary)]'"
+                    :class="
+                      performanceReport.resourceUsage.cpu > 80
+                        ? 'bg-[var(--status-error)]'
+                        : performanceReport.resourceUsage.cpu > 60
+                          ? 'bg-[var(--status-warning)]'
+                          : 'bg-[var(--accent-primary)]'
+                    "
                     :style="{ width: performanceReport.resourceUsage.cpu + '%' }"
                   />
                 </div>
@@ -672,12 +732,22 @@ onMounted(() => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-[var(--silver-500)]">Memory</span>
-                  <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.memory) }}</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatPercent(performanceReport.resourceUsage.memory)
+                  }}</span>
                 </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+                <div
+                  class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+                >
                   <div
                     class="h-full rounded-full transition-all duration-500"
-                    :class="performanceReport.resourceUsage.memory > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.memory > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-success)]'"
+                    :class="
+                      performanceReport.resourceUsage.memory > 80
+                        ? 'bg-[var(--status-error)]'
+                        : performanceReport.resourceUsage.memory > 60
+                          ? 'bg-[var(--status-warning)]'
+                          : 'bg-[var(--status-success)]'
+                    "
                     :style="{ width: performanceReport.resourceUsage.memory + '%' }"
                   />
                 </div>
@@ -687,12 +757,22 @@ onMounted(() => {
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
                   <span class="text-sm text-[var(--silver-500)]">Disk</span>
-                  <span class="font-data tabular-nums font-medium">{{ formatPercent(performanceReport.resourceUsage.disk) }}</span>
+                  <span class="font-data tabular-nums font-medium">{{
+                    formatPercent(performanceReport.resourceUsage.disk)
+                  }}</span>
                 </div>
-                <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+                <div
+                  class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+                >
                   <div
                     class="h-full rounded-full transition-all duration-500"
-                    :class="performanceReport.resourceUsage.disk > 80 ? 'bg-[var(--status-error)]' : performanceReport.resourceUsage.disk > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-warning)]'"
+                    :class="
+                      performanceReport.resourceUsage.disk > 80
+                        ? 'bg-[var(--status-error)]'
+                        : performanceReport.resourceUsage.disk > 60
+                          ? 'bg-[var(--status-warning)]'
+                          : 'bg-[var(--status-warning)]'
+                    "
                     :style="{ width: performanceReport.resourceUsage.disk + '%' }"
                   />
                 </div>

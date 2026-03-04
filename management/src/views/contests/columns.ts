@@ -3,7 +3,6 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconCalendar,
   IconCircleCheckFilled,
-  IconCircleXFilled,
   IconClock,
   IconDotsVertical,
   IconEye,
@@ -15,7 +14,6 @@ import {
   IconUsers,
 } from '@tabler/icons-vue'
 
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,7 +24,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import type { Contest } from '@/api/admin/contests'
-import { getContestTypeBadgeVariant } from '@/lib/entities/contest'
 import { formatDate } from '@/lib/format/date'
 
 export interface ContestActions {
@@ -34,6 +31,111 @@ export interface ContestActions {
   startContest: (contest: Contest) => void
   endContest: (contest: Contest) => void
   startDeleteContest: (contest: Contest) => void
+}
+
+// Terminal-style type badge renderer
+function renderTypeBadge(type: string, t: (key: string) => string) {
+  const typeStyles: Record<string, { bg: string; border: string; text: string }> = {
+    IOI: {
+      bg: 'bg-[oklch(0.7_0.12_195/0.15)]',
+      border: 'border-[oklch(0.7_0.12_195/0.4)]',
+      text: 'text-[var(--terminal-cyan)]',
+    },
+    ICPC: {
+      bg: 'bg-[oklch(0.65_0.15_250/0.15)]',
+      border: 'border-[oklch(0.65_0.15_250/0.4)]',
+      text: 'text-[var(--accent-electric)]',
+    },
+    CUSTOM: {
+      bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
+      border: 'border-[oklch(0.75_0.15_85/0.4)]',
+      text: 'text-[var(--terminal-amber)]',
+    },
+  }
+
+  const defaultStyle = {
+    bg: 'bg-[var(--silver-100)]',
+    border: 'border-[var(--silver-300)]',
+    text: 'text-[var(--silver-600)]',
+  }
+  const style = typeStyles[type] ?? defaultStyle
+
+  return h(
+    'span',
+    {
+      class: [
+        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+        'px-2 py-0.5 border rounded-sm',
+        style.bg,
+        style.border,
+        style.text,
+      ].join(' '),
+    },
+    t(`contests.type.${type}`),
+  )
+}
+
+// Terminal-style status badge renderer with icon
+function renderStatusBadge(
+  status: string,
+  t: (key: string, params?: Record<string, unknown>) => string,
+) {
+  const statusConfig: Record<
+    string,
+    { bg: string; border: string; text: string; icon: ReturnType<typeof h>; pulse?: boolean }
+  > = {
+    RUNNING: {
+      bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
+      border: 'border-[oklch(0.7_0.15_145/0.4)]',
+      text: 'text-[var(--terminal-green)]',
+      icon: h(IconCircleCheckFilled, { class: 'h-3.5 w-3.5' }),
+      pulse: true,
+    },
+    FINISHED: {
+      bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
+      border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
+      text: 'text-[var(--silver-500)]',
+      icon: h(IconCircleCheckFilled, { class: 'h-3.5 w-3.5' }),
+    },
+    UPCOMING: {
+      bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
+      border: 'border-[oklch(0.75_0.15_85/0.4)]',
+      text: 'text-[var(--terminal-amber)]',
+      icon: h(IconLoader, { class: 'h-3.5 w-3.5 animate-spin' }),
+    },
+  }
+
+  const defaultConfig = {
+    bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
+    border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
+    text: 'text-[var(--silver-500)]',
+    icon: h(IconLoader, { class: 'h-3.5 w-3.5 animate-spin' }),
+    pulse: false,
+  }
+  const config = statusConfig[status] ?? defaultConfig
+
+  return h('div', { class: 'flex items-center gap-2' }, [
+    h('span', {
+      class: [
+        'w-1.5 h-1.5 rounded-full',
+        config.pulse ? 'bg-[var(--terminal-green)] animate-pulse-subtle' : 'bg-current opacity-50',
+      ].join(' '),
+    }),
+    h(
+      'span',
+      {
+        class: [
+          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+          'px-2 py-0.5 border rounded-sm',
+          'inline-flex items-center gap-1.5',
+          config.bg,
+          config.border,
+          config.text,
+        ].join(' '),
+      },
+      [config.icon, t(`contests.status.${status.toLowerCase()}`)],
+    ),
+  ])
 }
 
 export function createColumns(
@@ -53,81 +155,117 @@ export function createColumns(
           'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
             table.toggleAllPageRowsSelected(!!value),
           'aria-label': 'Select all',
+          class:
+            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
         }),
       cell: ({ row }) =>
         h(Checkbox, {
           modelValue: row.getIsSelected(),
           'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
           'aria-label': 'Select row',
+          class:
+            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
         }),
       enableSorting: false,
       enableHiding: false,
     },
     {
+      id: 'row_num',
+      header: () => '#',
+      cell: ({ row, table }) => {
+        const pageIndex = table.getState().pagination.pageIndex
+        const pageSize = table.getState().pagination.pageSize
+        const rowNum = pageIndex * pageSize + row.index + 1
+        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
       accessorKey: 'title',
-      header: () => t('contests.columns.contest'),
+      header: () =>
+        h(
+          'span',
+          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          t('contests.columns.contest'),
+        ),
       cell: ({ row }) => {
         const contest = row.original
-        return h('div', { class: 'flex items-center gap-3' }, [
+        return h('div', { class: 'flex items-center gap-3 py-1' }, [
           h(
             'div',
             {
-              class:
-                'h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center text-primary',
+              class: [
+                'h-9 w-9 border flex items-center justify-center',
+                'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
+                'border-[var(--silver-200)] dark:border-[var(--silver-600)]',
+                'text-[var(--accent-electric)]',
+              ].join(' '),
             },
             [h(IconTrophy, { class: 'h-4 w-4' })],
           ),
-          h('div', { class: 'flex flex-col' }, [
+          h('div', { class: 'flex flex-col gap-0.5' }, [
             h(
               'span',
               {
-                class: 'font-medium text-sm cursor-pointer hover:underline',
+                class:
+                  'font-medium text-sm text-[var(--foreground)] cursor-pointer hover:text-[var(--accent-electric)] transition-colors',
                 onClick: () => actions.viewContest(contest),
               },
               contest.title,
             ),
-            h('span', { class: 'text-muted-foreground text-xs' }, contest.slug),
+            h('span', { class: 'font-data text-xs text-[var(--silver-400)]' }, contest.slug),
           ]),
         ])
       },
     },
     {
       accessorKey: 'contest_type',
-      header: () => t('contests.columns.type'),
+      header: () =>
+        h(
+          'span',
+          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          t('contests.columns.type'),
+        ),
       cell: ({ row }) => {
         const type = row.original.contest_type
-        return h('div', { class: 'flex items-center gap-2' }, [
-          h(Badge, { variant: getContestTypeBadgeVariant(type) }, () => t(`contests.type.${type}`)),
-        ])
+        return renderTypeBadge(type, t)
       },
     },
     {
       accessorKey: 'status',
-      header: () => t('contests.columns.status'),
+      header: () =>
+        h(
+          'span',
+          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          t('contests.columns.status'),
+        ),
       cell: ({ row }) => {
         const status = row.original.status
-        return h('div', { class: 'flex items-center gap-2' }, [
-          getStatusIcon(status),
-          getStatusBadge(status, t),
-        ])
+        return renderStatusBadge(status, t)
       },
     },
     {
       accessorKey: 'start_time',
-      header: () => t('contests.columns.schedule'),
+      header: () =>
+        h(
+          'span',
+          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          t('contests.columns.schedule'),
+        ),
       cell: ({ row }) => {
         const contest = row.original
         const startDate = formatDate(contest.start_time)
-        return h('div', { class: 'flex flex-col text-sm' }, [
-          h('div', { class: 'flex items-center gap-1.5 text-muted-foreground' }, [
+        return h('div', { class: 'flex flex-col gap-1' }, [
+          h('div', { class: 'flex items-center gap-1.5 text-[var(--silver-400)]' }, [
             h(IconCalendar, { class: 'h-3.5 w-3.5' }),
-            h('span', {}, startDate),
+            h('span', { class: 'font-data text-xs tabular-nums' }, startDate),
           ]),
-          h('div', { class: 'flex items-center gap-1.5 text-muted-foreground' }, [
+          h('div', { class: 'flex items-center gap-1.5 text-[var(--silver-400)]' }, [
             h(IconClock, { class: 'h-3.5 w-3.5' }),
             h(
               'span',
-              {},
+              { class: 'font-data text-xs tabular-nums' },
               t('contests.scheduleStep.minutes', { minutes: contest.duration_minutes }),
             ),
           ]),
@@ -136,48 +274,37 @@ export function createColumns(
     },
     {
       accessorKey: 'participant_count',
-      header: () => t('contests.columns.participants'),
+      header: () =>
+        h(
+          'span',
+          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          t('contests.columns.participants'),
+        ),
       cell: ({ row }) => {
-        return h('div', { class: 'flex items-center gap-2 text-muted-foreground text-sm' }, [
+        return h('div', { class: 'flex items-center gap-2 text-[var(--silver-400)]' }, [
           h(IconUsers, { class: 'h-4 w-4' }),
-          h('span', {}, row.original.participant_count || 0),
+          h(
+            'span',
+            { class: 'font-data text-sm tabular-nums' },
+            row.original.participant_count || 0,
+          ),
         ])
       },
     },
     {
       id: 'actions',
-      header: () => t('contests.columns.actions'),
+      header: () =>
+        h(
+          'span',
+          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          t('contests.columns.actions'),
+        ),
       cell: ({ row }) => {
         const contest = row.original
         return createActionsDropdown(t, contest, actions, canUpdate, canDelete)
       },
     },
   ]
-}
-
-function getStatusIcon(status: string) {
-  switch (status) {
-    case 'RUNNING':
-      return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-emerald-500' })
-    case 'FINISHED':
-      return h(IconCircleXFilled, { class: 'h-4 w-4 text-muted-foreground' })
-    default:
-      return h(IconLoader, { class: 'h-4 w-4 animate-spin text-blue-500' })
-  }
-}
-
-function getStatusBadge(
-  status: string,
-  t: (key: string, params?: Record<string, unknown>) => string,
-) {
-  switch (status) {
-    case 'RUNNING':
-      return h(Badge, { variant: 'default' }, () => t('contests.status.running'))
-    case 'FINISHED':
-      return h(Badge, { variant: 'secondary' }, () => t('contests.status.finished'))
-    default:
-      return h(Badge, { variant: 'outline' }, () => t('contests.status.upcoming'))
-  }
 }
 
 function createActionsDropdown(
@@ -199,11 +326,16 @@ function createActionsDropdown(
             default: () =>
               h(
                 Button,
-                { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
+                {
+                  variant: 'ghost',
+                  size: 'icon',
+                  class:
+                    'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+                },
                 {
                   default: () => [
                     h('span', { class: 'sr-only' }, 'Open menu'),
-                    h(IconDotsVertical, { class: 'h-4 w-4' }),
+                    h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
                   ],
                 },
               ),
@@ -211,29 +343,42 @@ function createActionsDropdown(
         ),
         h(
           DropdownMenuContent,
-          { align: 'end' },
+          {
+            align: 'end',
+            class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+          },
           {
             default: () => [
               h(
                 DropdownMenuItem,
-                { onClick: () => actions.viewContest(contest) },
+                {
+                  onClick: () => actions.viewContest(contest),
+                  class: 'font-data text-xs cursor-pointer',
+                },
                 {
                   default: () =>
                     h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconEye, { class: 'h-4 w-4' }),
-                      t('contests.actions.viewDetails'),
+                      h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                      h('span', t('contests.actions.viewDetails')),
                     ]),
                 },
               ),
               canUpdate() && contest.status === 'UPCOMING'
                 ? h(
                     DropdownMenuItem,
-                    { onClick: () => actions.startContest(contest) },
+                    {
+                      onClick: () => actions.startContest(contest),
+                      class: 'font-data text-xs cursor-pointer',
+                    },
                     {
                       default: () =>
-                        h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
-                          h(IconPlayerPlay, { class: 'h-4 w-4' }),
-                          t('contests.actions.startContest'),
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconPlayerPlay, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                          h(
+                            'span',
+                            { class: 'text-[var(--terminal-green)]' },
+                            t('contests.actions.startContest'),
+                          ),
                         ]),
                     },
                   )
@@ -241,26 +386,42 @@ function createActionsDropdown(
               canUpdate() && contest.status === 'RUNNING'
                 ? h(
                     DropdownMenuItem,
-                    { onClick: () => actions.endContest(contest) },
+                    {
+                      onClick: () => actions.endContest(contest),
+                      class: 'font-data text-xs cursor-pointer',
+                    },
                     {
                       default: () =>
-                        h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
-                          h(IconPlayerStop, { class: 'h-4 w-4' }),
-                          t('contests.actions.endContest'),
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconPlayerStop, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
+                          h(
+                            'span',
+                            { class: 'text-[var(--terminal-amber)]' },
+                            t('contests.actions.endContest'),
+                          ),
                         ]),
                     },
                   )
                 : null,
-              h(DropdownMenuSeparator, {}),
+              h(DropdownMenuSeparator, {
+                class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+              }),
               canDelete()
                 ? h(
                     DropdownMenuItem,
-                    { onClick: () => actions.startDeleteContest(contest) },
+                    {
+                      onClick: () => actions.startDeleteContest(contest),
+                      class: 'font-data text-xs cursor-pointer',
+                    },
                     {
                       default: () =>
-                        h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                          h(IconTrash, { class: 'h-4 w-4' }),
-                          t('contests.actions.delete'),
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                          h(
+                            'span',
+                            { class: 'text-[var(--terminal-red)]' },
+                            t('contests.actions.delete'),
+                          ),
                         ]),
                     },
                   )

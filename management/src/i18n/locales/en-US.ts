@@ -348,7 +348,15 @@ export default {
       role: 'Role',
       joined: 'Joined',
       lastLogin: 'Last Login',
+      username: 'Username',
+      bannedAt: 'Banned At',
     },
+
+    // Dialog titles
+    editUser: 'Edit User',
+    createUser: 'Create User',
+    editDescription: "Make changes to the user profile here. Click save when you're done.",
+    createDescription: "Add a new user to the system. Click create when you're done.",
 
     // Bulk actions
     bulkActions: {
@@ -385,7 +393,12 @@ export default {
       username: 'Username',
       email: 'Email',
       displayName: 'Display Name',
+      fullName: 'Full Name',
+      fullNamePlaceholder: 'John Doe',
+      usernamePlaceholder: 'johndoe',
+      emailPlaceholder: 'john@example.com',
       role: 'Role',
+      status: 'Status',
       password: 'Password',
       confirmPassword: 'Confirm Password',
       newPassword: 'New Password',
@@ -396,6 +409,11 @@ export default {
       banReasonPlaceholder: 'Violation of terms...',
       banExpiresAt: 'Ban Expires At',
       avatar: 'Avatar URL',
+      targetUser: 'Target User',
+      saving: 'Saving...',
+      creating: 'Creating...',
+      saveChanges: 'Save Changes',
+      createUser: 'Create User',
     },
 
     // Actions
@@ -406,6 +424,8 @@ export default {
       resetPasswordAction: 'Reset Password',
       resetting: 'Resetting...',
       resetPasswordDescription: 'Set a new password for {username}.',
+      resetPasswordWarning:
+        "This will immediately change the user's password. Make sure to communicate the new password securely.",
       banUser: 'Ban User',
       banUserDescription: 'Please provide a reason for banning {username}.',
       confirmBan: 'Confirm Ban',
@@ -2242,7 +2262,21 @@ export default {
       flaggedSuccessfully: 'Post flagged successfully',
       failedToFlag: 'Failed to flag post',
       reasonRequired: 'Please provide a reason for flagging',
+      bulkPinnedSuccessfully: 'Posts pinned successfully',
+      bulkLockedSuccessfully: 'Posts locked successfully',
+      bulkUnflaggedSuccessfully: 'Posts unflagged successfully',
+      bulkDeletedSuccessfully: 'Posts deleted successfully',
     },
+
+    // Bulk actions
+    bulkActions: {
+      bulkPin: 'Bulk Pin',
+      bulkLock: 'Bulk Lock',
+      bulkUnflag: 'Bulk Unflag',
+      bulkDelete: 'Bulk Delete',
+    },
+
+    clearSelection: 'Clear Selection',
 
     // Error states
     error: {
@@ -2333,7 +2367,21 @@ export default {
       flaggedSuccessfully: 'Comment flagged successfully',
       failedToFlag: 'Failed to flag comment',
       reasonRequired: 'Please provide a reason for flagging',
+      bulkUnflaggedSuccessfully: 'Comments unflagged successfully',
+      bulkDeletedSuccessfully: 'Comments deleted successfully',
+      failedToBulkUnflag: 'Failed to unflag comments',
+      failedToBulkDelete: 'Failed to delete comments',
     },
+
+    // Bulk actions
+    bulkActions: {
+      bulkUnflag: 'Bulk Unflag',
+      bulkDelete: 'Bulk Delete',
+    },
+
+    clearSelection: 'Clear Selection',
+    deleteConfirm:
+      'Are you sure you want to delete {count} comments? This action cannot be undone.',
   },
 
   // Auth
@@ -2350,6 +2398,7 @@ export default {
       submitting: 'Signing in...',
       invalidCredentials: 'Invalid username or password',
       loginFailed: 'Login failed. Please try again.',
+      continueWithGithub: 'Continue with GitHub',
       demoAccounts: 'Demo Accounts',
       demoAccountsTitle: 'Use these credentials:',
       demoAdmin: '• admin / admin123 (Super Admin)',

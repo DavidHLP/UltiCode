@@ -1,44 +1,20 @@
 <script setup lang="ts">
-import { ref, computed, h } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
-import type { ColumnDef } from '@tanstack/vue-table'
 import { toast } from 'vue-sonner'
-import {
-  IconCheck,
-  IconDotsVertical,
-  IconFlag,
-  IconRefresh,
-  IconTrash,
-  IconX,
-  IconUser,
-} from '@tabler/icons-vue'
+import { IconCheck, IconMessage, IconTrash } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+
 import { useCommentsStore } from '@/stores/admin/comments'
 import { useAuthStore } from '@/stores/auth'
 import type { Comment, CommentType } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
-import { getCommentStatusBadge, getCommentTypeIcon } from '@/lib/entities/comment'
+import { createColumns } from './columns'
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
@@ -53,12 +29,56 @@ const selectedCommentContent = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
 
+const bulkActionLoading = ref(false)
+
+// Animation state for staggered reveal
+const isLoaded = ref(false)
+
+onMounted(() => {
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+})
+
 const canModerateForum = computed(() => authStore.hasPermission('MODERATE', 'FORUM_COMMENT'))
 const canModerateSolution = computed(() => authStore.hasPermission('MODERATE', 'SOLUTION_COMMENT'))
+
+// Stats for terminal ticker
+const stats = computed(() => {
+  const comments = commentsStore.comments
+  const total = commentsStore.total
+  const flagged = comments.filter((c) => c.is_flagged).length
+  const forumCount = comments.filter((c) => c.type === 'forum').length
+  const solutionCount = comments.filter((c) => c.type === 'solution').length
+  return { total, flagged, forumCount, solutionCount }
+})
+
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: typeFilter.value,
+    placeholder: t('comments.filters.type'),
+    options: [
+      { value: 'all', label: t('comments.filters.allTypes') },
+      { value: 'forum', label: t('comments.type.forum') },
+      { value: 'solution', label: t('comments.type.solution') },
+    ],
+  },
+  {
+    modelValue: flaggedFilter.value,
+    placeholder: t('comments.filters.flagStatus'),
+    width: 'w-[140px]',
+    options: [
+      { value: 'all', label: t('comments.filters.all') },
+      { value: 'flagged', label: t('comments.filters.flagged') },
+      { value: 'clean', label: t('comments.filters.clean') },
+    ],
+  },
+])
 
 const {
   searchQuery,
   tablePagination,
+  selectedRows,
   loading,
   data,
   total,
@@ -129,231 +149,233 @@ function canModerate(comment: Comment) {
   return false
 }
 
-const columns: ColumnDef<Comment>[] = [
+const columns = createColumns(
+  t,
   {
-    id: 'select',
-    header: ({ table }) =>
-      h(Checkbox, {
-        modelValue:
-          table.getIsAllPageRowsSelected() ||
-          (table.getIsSomePageRowsSelected() && 'indeterminate'),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
-          table.toggleAllPageRowsSelected(!!value),
-        'aria-label': t('table.selectAll'),
-      }),
-    cell: ({ row }) =>
-      h(Checkbox, {
-        modelValue: row.getIsSelected(),
-        'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
-        'aria-label': t('common.select'),
-      }),
-    enableSorting: false,
-    enableHiding: false,
+    unflagComment,
+    openFlagDialog,
+    confirmDelete,
   },
-  {
-    accessorKey: 'content',
-    header: () => t('comments.columns.comment'),
-    cell: ({ row }) => {
-      const comment = row.original
-      const truncated =
-        comment.content.length > 100 ? comment.content.slice(0, 100) + '...' : comment.content
+  canModerate,
+)
 
-      return h('div', { class: 'flex flex-col gap-1' }, [
-        h('span', { class: 'font-medium text-sm' }, truncated),
-        h('div', { class: 'flex items-center gap-1 text-xs text-muted-foreground' }, [
-          getCommentTypeIcon(comment.type),
-          h('span', {}, comment.parentTitle || t('comments.type.unknown')),
-        ]),
-      ])
-    },
-  },
-  {
-    accessorKey: 'author',
-    header: () => t('comments.columns.author'),
-    cell: ({ row }) => {
-      const author = row.original.author
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(IconUser, { class: 'h-3 w-3 text-muted-foreground' }),
-        h('span', { class: 'text-sm' }, author?.username || t('comments.status.unknown')),
-      ])
-    },
-  },
-  {
-    accessorKey: 'type',
-    header: () => t('comments.columns.type'),
-    cell: ({ row }) => {
-      const type = row.getValue('type') as CommentType
-      return h(Badge, { variant: 'outline' }, () => t('comments.type.' + type))
-    },
-  },
-  {
-    accessorKey: 'is_flagged',
-    header: () => t('comments.columns.status'),
-    cell: ({ row }) => {
-      const comment = row.original
-      return getCommentStatusBadge(comment.is_flagged, comment.is_deleted, t)
-    },
-  },
-  {
-    accessorKey: 'created_at',
-    header: () => t('comments.columns.created'),
-    cell: ({ row }) => {
-      const date = new Date(row.getValue('created_at') as string)
-      return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
-    },
-  },
-  {
-    id: 'actions',
-    header: () => t('comments.columns.actions'),
-    cell: ({ row }) => {
-      const comment = row.original
-      if (!canModerate(comment)) return null
+async function handleBulkUnflag() {
+  if (selectedRows.value.length === 0) return
 
-      return h(
-        DropdownMenu,
-        {},
-        {
-          default: () => [
-            h(
-              DropdownMenuTrigger,
-              { asChild: true },
-              {
-                default: () =>
-                  h(
-                    Button,
-                    { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                    {
-                      default: () => [
-                        h('span', { class: 'sr-only' }, t('common.actions')),
-                        h(IconDotsVertical, { class: 'h-4 w-4' }),
-                      ],
-                    },
-                  ),
-              },
-            ),
-            h(
-              DropdownMenuContent,
-              { align: 'end' },
-              {
-                default: () => [
-                  comment.is_flagged
-                    ? h(
-                        DropdownMenuItem,
-                        { onClick: () => unflagComment(comment) },
-                        {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [
-                              h(IconCheck, { class: 'h-4 w-4' }),
-                              t('comments.actions.unflag'),
-                            ]),
-                        },
-                      )
-                    : h(
-                        DropdownMenuItem,
-                        { onClick: () => openFlagDialog(comment) },
-                        {
-                          default: () =>
-                            h('div', { class: 'flex items-center gap-2 text-amber-600' }, [
-                              h(IconFlag, { class: 'h-4 w-4' }),
-                              t('comments.actions.flag'),
-                            ]),
-                        },
-                      ),
-                  h(DropdownMenuSeparator, {}),
-                  h(
-                    DropdownMenuItem,
-                    { onClick: () => confirmDelete(comment) },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2 text-destructive' }, [
-                          h(IconTrash, { class: 'h-4 w-4' }),
-                          t('comments.actions.delete'),
-                        ]),
-                    },
-                  ),
-                ],
-              },
-            ),
-          ],
-        },
-      )
+  // Group by type for API call
+  const byType = selectedRows.value.reduce(
+    (acc, r) => {
+      if (!acc[r.type]) acc[r.type] = []
+      acc[r.type].push(r.id)
+      return acc
     },
-  },
-]
+    {} as Record<CommentType, string[]>,
+  )
+
+  bulkActionLoading.value = true
+  try {
+    await Promise.all(
+      Object.entries(byType).map(([type, ids]) =>
+        commentsStore.bulkAction({ ids, type: type as CommentType, action: 'unflag' }),
+      ),
+    )
+    await loadComments()
+    selectedRows.value = []
+    toast.success(t('comments.toast.bulkUnflaggedSuccessfully'))
+  } catch {
+    toast.error(t('comments.toast.failedToBulkUnflag'))
+  } finally {
+    bulkActionLoading.value = false
+  }
+}
+
+async function handleBulkDelete() {
+  if (selectedRows.value.length === 0) return
+  const count = selectedRows.value.length
+  if (!confirm(t('comments.deleteConfirm', { count }))) return
+
+  // Group by type for API call
+  const byType = selectedRows.value.reduce(
+    (acc, r) => {
+      if (!acc[r.type]) acc[r.type] = []
+      acc[r.type].push(r.id)
+      return acc
+    },
+    {} as Record<CommentType, string[]>,
+  )
+
+  bulkActionLoading.value = true
+  try {
+    await Promise.all(
+      Object.entries(byType).map(([type, ids]) =>
+        commentsStore.bulkAction({ ids, type: type as CommentType, action: 'delete' }),
+      ),
+    )
+    await loadComments()
+    selectedRows.value = []
+    toast.success(t('comments.toast.bulkDeletedSuccessfully'))
+  } catch {
+    toast.error(t('comments.toast.failedToBulkDelete'))
+  } finally {
+    bulkActionLoading.value = false
+  }
+}
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-    <DataTable
-      :columns="columns"
-      :data="data"
-      :pagination="tablePagination"
-      :row-count="total"
-      :loading="loading"
-      @update:pagination="tablePagination = $event"
-    >
-      <template #toolbar-left>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <Input
-            v-model="searchQuery"
-            :placeholder="t('comments.searchPlaceholder')"
-            class="h-8 min-w-[150px] w-full lg:w-[250px]"
-          >
-            <template #trailing>
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
-              >
-                <IconX class="h-3 w-3" />
-              </button>
-            </template>
-          </Input>
-
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-            <Select v-model="typeFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('comments.filters.type')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('comments.filters.allTypes') }}</SelectItem>
-                <SelectItem value="forum">{{ t('comments.type.forum') }}</SelectItem>
-                <SelectItem value="solution">{{ t('comments.type.solution') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select v-model="flaggedFilter">
-              <SelectTrigger class="h-8 w-[130px]">
-                <SelectValue :placeholder="t('comments.filters.flagStatus')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('comments.filters.all') }}</SelectItem>
-                <SelectItem value="flagged">{{ t('comments.filters.flagged') }}</SelectItem>
-                <SelectItem value="clean">{{ t('comments.filters.clean') }}</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-8 w-8"
-              @click="loadComments()"
-              :title="t('common.refresh')"
-            >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
-            </Button>
-          </div>
-        </div>
-      </template>
-    </DataTable>
-
-    <!-- Error state -->
+  <div class="relative flex flex-col gap-0 overflow-auto">
+    <!-- Terminal Header -->
     <div
-      v-if="error"
-      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
     >
-      <span class="text-destructive">{{ error }}</span>
-      <Button variant="outline" size="sm" @click="loadComments()">{{ t('common.retry') }}</Button>
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="terminal-prompt text-base">comments</span>
+            <span class="terminal-cursor" />
+          </div>
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('comments.title') }}
+          </h1>
+        </div>
+      </div>
+
+      <!-- Stats Ticker -->
+      <div
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">flagged:</span>
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.flagged
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">forum:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.forumCount
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">solution:</span>
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.solutionCount
+          }}</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+          <IconMessage class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">comment moderation</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bulk Action Bar - Terminal Style -->
+    <div
+      v-if="selectedRows.length > 0"
+      :class="[
+        'mx-4 lg:mx-6 mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+        'animate-in fade-in slide-in-from-top-2 duration-200',
+      ]"
+    >
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="font-data text-sm text-[var(--terminal-amber)]">
+            &gt; SELECTED:{{ selectedRows.length }}
+          </span>
+        </div>
+        <div class="h-4 w-px bg-[var(--silver-300)]" />
+        <div class="flex items-center gap-2">
+          <Button
+            variant="terminal"
+            size="sm"
+            class="h-8 font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
+            @click="handleBulkUnflag"
+            :disabled="bulkActionLoading"
+          >
+            <IconCheck class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('comments.bulkActions.bulkUnflag') }}</span>
+          </Button>
+          <Button
+            variant="terminal"
+            size="sm"
+            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+            @click="handleBulkDelete"
+            :disabled="bulkActionLoading"
+          >
+            <IconTrash class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('comments.bulkActions.bulkDelete') }}</span>
+          </Button>
+        </div>
+      </div>
+      <Button
+        variant="terminal"
+        size="sm"
+        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        @click="selectedRows = []"
+      >
+        [ESC] {{ t('comments.clearSelection') }}
+      </Button>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 px-4 lg:px-6 py-4">
+      <DataTable
+        :columns="columns"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
+        v-model:selected-rows="selectedRows"
+        @update:pagination="tablePagination = $event"
+        class="terminal-table"
+      >
+        <template #toolbar-left>
+          <DataTableToolbar
+            :search-model-value="searchQuery"
+            @update:search-model-value="searchQuery = $event"
+            :search-placeholder="t('comments.searchPlaceholder')"
+            :filters="toolbarFilters"
+            @update:filter="
+              (index, value) =>
+                index === 0
+                  ? (typeFilter = value as CommentType | 'all')
+                  : (flaggedFilter = String(value))
+            "
+            :loading="loading"
+            :on-refresh="loadComments"
+          />
+        </template>
+      </DataTable>
+
+      <!-- Error state - Terminal Style -->
+      <div
+        v-if="error"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+      >
+        <div class="flex items-center gap-3">
+          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+        </div>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+          @click="loadComments()"
+        >
+          {{ t('common.retry') }}
+        </Button>
+      </div>
     </div>
   </div>
 

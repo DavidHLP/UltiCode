@@ -3,15 +3,29 @@ import type { HTMLAttributes } from 'vue'
 import { AvatarRoot } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
-const props = defineProps<{
-  class?: HTMLAttributes['class']
-}>()
+const props = withDefaults(
+  defineProps<{
+    class?: HTMLAttributes['class']
+    shape?: 'circle' | 'square'
+  }>(),
+  {
+    shape: 'circle',
+  },
+)
 </script>
 
 <template>
   <AvatarRoot
     data-slot="avatar"
-    :class="cn('relative flex size-8 shrink-0 overflow-hidden rounded-full', props.class)"
+    :data-shape="shape"
+    :class="
+      cn(
+        'relative flex size-8 shrink-0 overflow-hidden',
+        shape === 'circle' && 'rounded-full',
+        shape === 'square' && 'rounded-sm',
+        props.class,
+      )
+    "
   >
     <slot />
   </AvatarRoot>

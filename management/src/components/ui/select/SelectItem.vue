@@ -6,9 +6,16 @@ import { Check } from 'lucide-vue-next'
 import { SelectItem, SelectItemIndicator, SelectItemText, useForwardProps } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
-const props = defineProps<SelectItemProps & { class?: HTMLAttributes['class'] }>()
+const props = withDefaults(
+  defineProps<
+    SelectItemProps & { class?: HTMLAttributes['class']; variant?: 'default' | 'terminal' }
+  >(),
+  {
+    variant: 'default',
+  },
+)
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class', 'variant')
 
 const forwardedProps = useForwardProps(delegatedProps)
 </script>
@@ -16,10 +23,19 @@ const forwardedProps = useForwardProps(delegatedProps)
 <template>
   <SelectItem
     data-slot="select-item"
+    :data-variant="variant"
     v-bind="forwardedProps"
     :class="
       cn(
-        'focus:bg-accent focus:text-accent-foreground [&_svg:not([class*=\'text-\'])]:text-muted-foreground relative flex w-full cursor-default items-center gap-2 rounded-sm py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2',
+        'relative flex w-full cursor-default items-center gap-2 py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-[disabled]:pointer-events-none data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2',
+        // Default variant
+        variant === 'default' && [
+          'focus:bg-accent focus:text-accent-foreground [&_svg:not([class*=\'text-\'])]:text-muted-foreground rounded-sm',
+        ],
+        // Terminal variant
+        variant === 'terminal' && [
+          'focus:bg-[var(--silver-100)] dark:focus:bg-[var(--silver-100)] focus:text-[var(--foreground)] [&_svg:not([class*=\'text-\'])]:text-[var(--silver-400)] font-data text-xs rounded-none',
+        ],
         props.class,
       )
     "

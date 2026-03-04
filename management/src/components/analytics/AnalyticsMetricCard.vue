@@ -105,10 +105,7 @@ const sizeClasses = {
         >
           {{ props.metric.value }}
         </span>
-        <span
-          v-if="props.metric.suffix"
-          class="font-normal text-[var(--silver-400)] text-sm"
-        >
+        <span v-if="props.metric.suffix" class="font-normal text-[var(--silver-400)] text-sm">
           {{ props.metric.suffix }}
         </span>
       </div>

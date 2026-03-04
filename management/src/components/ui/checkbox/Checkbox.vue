@@ -6,10 +6,17 @@ import { Check } from 'lucide-vue-next'
 import { CheckboxIndicator, CheckboxRoot, useForwardPropsEmits } from 'reka-ui'
 import { cn } from '@/lib/utils'
 
-const props = defineProps<CheckboxRootProps & { class?: HTMLAttributes['class'] }>()
+const props = withDefaults(
+  defineProps<
+    CheckboxRootProps & { class?: HTMLAttributes['class']; variant?: 'default' | 'terminal' }
+  >(),
+  {
+    variant: 'default',
+  },
+)
 const emits = defineEmits<CheckboxRootEmits>()
 
-const delegatedProps = reactiveOmit(props, 'class')
+const delegatedProps = reactiveOmit(props, 'class', 'variant')
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
@@ -18,10 +25,19 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
   <CheckboxRoot
     v-slot="slotProps"
     data-slot="checkbox"
+    :data-variant="variant"
     v-bind="forwarded"
     :class="
       cn(
-        'peer border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive size-4 shrink-0 rounded-[4px] border shadow-xs transition-shadow outline-none focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50',
+        'peer size-4 shrink-0 border transition-shadow outline-none disabled:cursor-not-allowed disabled:opacity-50',
+        // Default variant
+        variant === 'default' && [
+          'border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive rounded-[4px] shadow-xs focus-visible:ring-[3px]',
+        ],
+        // Terminal variant
+        variant === 'terminal' && [
+          'border-[var(--silver-300)] dark:border-[var(--silver-400)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:text-white data-[state=checked]:border-[var(--accent-electric)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] rounded-none shadow-none focus-visible:ring-[2px]',
+        ],
         props.class,
       )
     "

@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Stepper, StepperItem, StepperTrigger, StepperSeparator } from '@/components/ui/stepper'
 import { toast } from 'vue-sonner'
-import { IconLoader } from '@tabler/icons-vue'
+import { IconLoader, IconArrowLeft, IconArrowRight, IconCheck } from '@tabler/icons-vue'
 import { useContestsStore } from '@/stores/admin/contests'
 import { ContestType } from '@/api/admin/contests'
 
@@ -67,7 +67,6 @@ const isStepValid = computed(() => {
     case 2:
       return !!formData.value.start_time && formData.value.duration > 0
     case 3:
-      // Can allow empty problems? Let's say yes for draft.
       return true
     case 4:
       return true
@@ -100,15 +99,6 @@ async function handleSubmit() {
       duration: formData.value.duration,
       is_published: formData.value.is_published,
       problem_ids: formData.value.selectedProblems.map((p) => p.id),
-      // Note: Score per problem isn't supported in standard CreateContestDto based on my plan
-      // Wait, backend supports it separately or implicitly?
-      // Check backend: backend creates contest, then loops problem_ids to add ContestProblem with default score 100.
-      // My plan said ContestProblemDto has score. But CreateContestDto only has problem_ids string[].
-      // So custom scores won't be saved in one go unless I update the backend or do multiple calls.
-      // For now, let's stick to creating, and if scores are custom, we might need a follow-up call.
-      // Actually, looking at backend controller: create() takes problem_ids array of strings. It sets score to 100 hardcoded.
-      // If we want custom scores, we should probably update them after creation or update the backend.
-      // Let's stick to default 100 for now or enhance later.
     })
 
     toast.success(t('contests.toast.createdSuccessfully'))
@@ -138,13 +128,23 @@ async function handleSubmit() {
 
 <template>
   <Dialog :open="props.open" @update:open="emit('update:open', $event)">
-    <DialogContent class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0">
-      <DialogHeader class="px-6 py-4 border-b">
-        <DialogTitle>{{ t('contests.wizard.createContest') }}</DialogTitle>
+    <DialogContent
+      class="max-w-3xl h-[80vh] flex flex-col p-0 gap-0 border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+    >
+      <!-- Header - Terminal Style -->
+      <DialogHeader
+        class="px-6 py-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-3">
+          <span class="terminal-prompt text-sm">create</span>
+          <DialogTitle class="font-data text-sm uppercase tracking-wider">
+            {{ t('contests.wizard.createContest') }}
+          </DialogTitle>
+        </div>
       </DialogHeader>
 
       <div class="flex-1 overflow-y-auto px-6 py-4">
-        <!-- Stepper Header -->
+        <!-- Stepper Header - Terminal Style -->
         <div class="mb-8">
           <Stepper v-model="currentStep" class="flex w-full items-start gap-2">
             <StepperItem
@@ -154,16 +154,28 @@ async function handleSubmit() {
               class="relative flex flex-col items-center justify-center gap-2"
             >
               <StepperTrigger
-                class="h-8 w-8 rounded-full border-2 text-xs font-semibold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=completed]:bg-primary data-[state=completed]:text-primary-foreground"
+                :class="[
+                  'h-8 w-8 border-2 text-xs font-data font-semibold flex items-center justify-center',
+                  'border-[var(--silver-300)] text-[var(--silver-400)]',
+                  'data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] data-[state=active]:bg-[oklch(0.65_0.15_250/0.1)]',
+                  'data-[state=completed]:border-[var(--terminal-green)] data-[state=completed]:text-[var(--terminal-green)] data-[state=completed]:bg-[oklch(0.7_0.15_145/0.1)]',
+                ]"
               >
                 {{ step.step }}
               </StepperTrigger>
-              <span class="text-xs font-medium">{{
-                t(`contests.wizard.${step.title.toLowerCase()}`)
-              }}</span>
+              <span
+                :class="[
+                  'text-xs font-data uppercase tracking-wider',
+                  currentStep === step.step
+                    ? 'text-[var(--accent-electric)]'
+                    : 'text-[var(--silver-400)]',
+                ]"
+              >
+                {{ t(`contests.wizard.${step.title.toLowerCase()}`) }}
+              </span>
               <StepperSeparator
                 v-if="step.step !== steps.length"
-                class="absolute left-[calc(50%+20px)] top-4 w-[calc(100%-40px)]"
+                class="absolute left-[calc(50%+20px)] top-4 w-[calc(100%-40px)] h-0.5 bg-[var(--silver-200)] data-[state=completed]:bg-[var(--terminal-green)]"
               />
             </StepperItem>
           </Stepper>
@@ -181,15 +193,41 @@ async function handleSubmit() {
         </div>
       </div>
 
-      <DialogFooter class="px-6 py-4 border-t bg-muted/20">
-        <Button variant="outline" @click="prevStep" :disabled="currentStep === 1 || loading">
+      <!-- Footer - Terminal Style -->
+      <DialogFooter
+        class="px-6 py-4 border-t border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+      >
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)]"
+          @click="prevStep"
+          :disabled="currentStep === 1 || loading"
+        >
+          <IconArrowLeft class="mr-1.5 h-3.5 w-3.5" />
           {{ t('contests.wizard.previous') }}
         </Button>
-        <Button v-if="currentStep < steps.length" @click="nextStep" :disabled="!isStepValid">
+        <Button
+          v-if="currentStep < steps.length"
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[oklch(0.65_0.15_250/0.1)]"
+          @click="nextStep"
+          :disabled="!isStepValid"
+        >
           {{ t('contests.wizard.next') }}
+          <IconArrowRight class="ml-1.5 h-3.5 w-3.5" />
         </Button>
-        <Button v-else @click="handleSubmit" :disabled="!isStepValid || loading">
-          <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
+        <Button
+          v-else
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+          @click="handleSubmit"
+          :disabled="!isStepValid || loading"
+        >
+          <IconLoader v-if="loading" class="mr-1.5 h-3.5 w-3.5 animate-spin" />
+          <IconCheck v-else class="mr-1.5 h-3.5 w-3.5" />
           {{ t('contests.wizard.submit') }}
         </Button>
       </DialogFooter>

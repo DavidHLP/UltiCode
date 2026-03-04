@@ -58,7 +58,10 @@ function formatNumber(num: number): string {
       </CardDescription>
     </CardHeader>
     <CardContent class="px-5 pb-5" :class="{ 'pt-5': !title }">
-      <div v-if="displayItems.length === 0" class="text-center py-8 text-[var(--silver-400)] text-sm">
+      <div
+        v-if="displayItems.length === 0"
+        class="text-center py-8 text-[var(--silver-400)] text-sm"
+      >
         {{ $t('common.noData') }}
       </div>
       <div v-else class="space-y-3">
@@ -88,7 +91,9 @@ function formatNumber(num: number): string {
             </div>
 
             <!-- Progress bar -->
-            <div class="relative h-1.5 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+            <div
+              class="relative h-1.5 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+            >
               <div
                 class="absolute inset-y-0 left-0 rounded-full transition-all duration-500 ease-out"
                 :style="{
@@ -99,10 +104,7 @@ function formatNumber(num: number): string {
             </div>
 
             <!-- Subtitle if provided -->
-            <p
-              v-if="item.subtitle"
-              class="text-xs text-[var(--silver-400)] mt-1 truncate"
-            >
+            <p v-if="item.subtitle" class="text-xs text-[var(--silver-400)] mt-1 truncate">
               {{ item.subtitle }}
             </p>
           </div>

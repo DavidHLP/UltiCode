@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import {
   solutionsApi,
   type Solution,
@@ -14,6 +14,11 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
   const loading = ref(false)
   const error = ref<string | null>(null)
   const currentSolution = ref<Solution | null>(null)
+
+  // Computed stats for terminal ticker
+  const totalCount = computed(() => total.value)
+  const flaggedCount = computed(() => solutions.value.filter((s) => s.is_flagged).length)
+  const publishedCount = computed(() => solutions.value.filter((s) => s.is_published).length)
 
   async function fetchSolutions(params: SolutionQueryParams = {}) {
     loading.value = true
@@ -187,6 +192,11 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
     loading,
     error,
     currentSolution,
+    // Computed stats
+    totalCount,
+    flaggedCount,
+    publishedCount,
+    // Actions
     fetchSolutions,
     fetchFlaggedSolutions,
     fetchSolution,

@@ -33,7 +33,7 @@ function selectItem(id: string) {
 <template>
   <nav class="flex flex-col gap-1">
     <button
-      v-for="item in (items || defaultItems)"
+      v-for="item in items || defaultItems"
       :key="item.id"
       @click="selectItem(item.id)"
       class="group relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all duration-200"

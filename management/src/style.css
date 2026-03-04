@@ -481,3 +481,395 @@
 .status-error {
   color: var(--status-error);
 }
+
+/* ========================================
+   Terminal Precision Design System
+   ======================================== */
+
+:root {
+  /* Terminal Colors */
+  --terminal-green: oklch(0.7 0.15 145);
+  --terminal-amber: oklch(0.75 0.15 85);
+  --terminal-red: oklch(0.6 0.2 25);
+  --terminal-cyan: oklch(0.7 0.12 195);
+
+  /* Electric Blue Accent */
+  --accent-electric: oklch(0.65 0.15 250);
+  --accent-electric-glow: oklch(0.7 0.2 250 / 0.15);
+
+  /* Surface Layers */
+  --surface-elevated: oklch(0.99 0.003 270);
+  --surface-sunken: oklch(0.97 0.005 270);
+
+  /* Terminal Timing */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 200ms;
+  --duration-normal: 350ms;
+}
+
+/* ========================================
+   Terminal Animations
+   ======================================== */
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes scan-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes subtle-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes terminal-typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Staggered animation utility */
+.animate-stagger > * {
+  animation: slide-up-fade var(--duration-normal) var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+.animate-stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.animate-stagger > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.animate-stagger > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.animate-stagger > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.animate-stagger > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.animate-stagger > *:nth-child(6) {
+  animation-delay: 250ms;
+}
+.animate-stagger > *:nth-child(7) {
+  animation-delay: 300ms;
+}
+.animate-stagger > *:nth-child(8) {
+  animation-delay: 350ms;
+}
+.animate-stagger > *:nth-child(9) {
+  animation-delay: 400ms;
+}
+.animate-stagger > *:nth-child(10) {
+  animation-delay: 450ms;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-stagger > *,
+  .terminal-cursor,
+  .animate-scan,
+  .animate-pulse-subtle {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* ========================================
+   Terminal Typography Utilities
+   ======================================== */
+
+/* Terminal prompt styling */
+.terminal-prompt {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 14px;
+  color: var(--accent-electric);
+}
+
+.terminal-prompt::before {
+  content: '> ';
+  color: var(--terminal-green);
+}
+
+/* Terminal cursor */
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--accent-electric);
+  animation: cursor-blink 1s step-end infinite;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+}
+
+/* Section label - uppercase monospace */
+.terminal-label {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted-foreground);
+}
+
+/* Comment-style header */
+.terminal-comment {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--silver-400);
+  font-style: italic;
+}
+
+.terminal-comment::before {
+  content: '// ';
+}
+
+/* Status badge */
+.terminal-badge {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+
+/* Data block key-value */
+.terminal-kv-key {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--silver-500);
+}
+
+.terminal-kv-value {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 14px;
+  font-feature-settings:
+    'tnum' on,
+    'lnum' on;
+}
+
+/* ========================================
+   Terminal Card Styling
+   ======================================== */
+
+.terminal-card {
+  border-radius: 0;
+  border: 1px solid var(--silver-200);
+  background: var(--card);
+}
+
+.dark .terminal-card {
+  border-color: var(--silver-300);
+}
+
+.terminal-card-header {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--silver-200);
+  background: var(--silver-50);
+  color: var(--silver-600);
+}
+
+.dark .terminal-card-header {
+  border-color: var(--silver-300);
+  background: var(--silver-100);
+  color: var(--silver-500);
+}
+
+/* Double-line separator */
+.terminal-separator {
+  height: 3px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--silver-200) 0px,
+    var(--silver-200) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  margin: 16px 0;
+}
+
+.dark .terminal-separator {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--silver-300) 0px,
+    var(--silver-300) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+/* Terminal input styling */
+.terminal-input {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 14px;
+  border-radius: 0;
+  border: 1px solid var(--silver-200);
+  background: var(--surface-sunken);
+}
+
+.dark .terminal-input {
+  border-color: var(--silver-300);
+}
+
+.terminal-input:focus {
+  outline: none;
+  border-color: var(--accent-electric);
+  box-shadow: 0 0 0 2px var(--accent-electric-glow);
+}
+
+/* ========================================
+   Terminal Status Colors
+   ======================================== */
+
+.terminal-success {
+  color: var(--terminal-green);
+}
+
+.terminal-warning {
+  color: var(--terminal-amber);
+}
+
+.terminal-error {
+  color: var(--terminal-red);
+}
+
+.terminal-info {
+  color: var(--terminal-cyan);
+}
+
+.terminal-badge-success {
+  background: oklch(0.7 0.15 145 / 0.15);
+  color: var(--terminal-green);
+  border: 1px solid oklch(0.7 0.15 145 / 0.3);
+}
+
+.terminal-badge-warning {
+  background: oklch(0.75 0.15 85 / 0.15);
+  color: var(--terminal-amber);
+  border: 1px solid oklch(0.75 0.15 85 / 0.3);
+}
+
+.terminal-badge-error {
+  background: oklch(0.6 0.2 25 / 0.15);
+  color: var(--terminal-red);
+  border: 1px solid oklch(0.6 0.2 25 / 0.3);
+}
+
+.terminal-badge-info {
+  background: oklch(0.7 0.12 195 / 0.15);
+  color: var(--terminal-cyan);
+  border: 1px solid oklch(0.7 0.12 195 / 0.3);
+}
+
+/* Pulse animation for active states */
+.animate-pulse-subtle {
+  animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+/* Scan reveal animation */
+.animate-scan {
+  animation: scan-reveal 0.6s var(--ease-out-expo) forwards;
+}
+
+/* ========================================
+   ASCII-Style Progress Bars
+   ======================================== */
+
+.ascii-progress {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  white-space: pre;
+  letter-spacing: 0;
+}
+
+.ascii-progress-track {
+  color: var(--silver-300);
+}
+
+.dark .ascii-progress-track {
+  color: var(--silver-400);
+}
+
+.ascii-progress-fill {
+  color: var(--accent-electric);
+}
+
+/* ========================================
+   Terminal Table Enhancements
+   ======================================== */
+
+.terminal-table-row {
+  transition: background-color var(--duration-fast) ease;
+}
+
+.terminal-table-row:hover {
+  background: var(--surface-sunken);
+}
+
+/* Row number column */
+.terminal-row-num {
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--silver-400);
+  text-align: right;
+  user-select: none;
+  width: 40px;
+}
+
+/* ========================================
+   Dark Mode Terminal Adjustments
+   ======================================== */
+
+.dark {
+  --terminal-green: oklch(0.65 0.14 145);
+  --terminal-amber: oklch(0.7 0.14 85);
+  --terminal-red: oklch(0.58 0.18 25);
+  --terminal-cyan: oklch(0.65 0.11 195);
+  --accent-electric: oklch(0.6 0.18 250);
+  --accent-electric-glow: oklch(0.65 0.22 250 / 0.2);
+  --surface-elevated: oklch(0.22 0.008 270);
+  --surface-sunken: oklch(0.17 0.01 270);
+}

@@ -39,6 +39,33 @@ export function getActionBadgeVariant(
   return 'outline'
 }
 
+/**
+ * Get terminal badge class based on action type
+ * @param action - The action string to determine badge style
+ * @returns Terminal badge class name
+ */
+export function getActionBadgeClass(action: string): string {
+  const actionUpper = action.toUpperCase()
+  if (
+    actionUpper.includes('CREATE') ||
+    actionUpper.includes('GRANT') ||
+    actionUpper.includes('PUBLISH')
+  ) {
+    return 'terminal-badge-success' // green
+  }
+  if (actionUpper.includes('UPDATE') || actionUpper.includes('UNBAN')) {
+    return 'terminal-badge-info' // cyan
+  }
+  if (
+    actionUpper.includes('DELETE') ||
+    actionUpper.includes('BAN') ||
+    actionUpper.includes('REVOKE')
+  ) {
+    return 'terminal-badge-error' // red
+  }
+  return 'terminal-badge-info'
+}
+
 export function getActionIcon(action: string) {
   const actionUpper = action.toUpperCase()
   if (actionUpper.includes('CREATE') || actionUpper.includes('GRANT')) {
@@ -59,26 +86,31 @@ export function getActionIcon(action: string) {
   return IconInfoCircle
 }
 
-export function getActionIconColor(action: string) {
+/**
+ * Get terminal color class based on action type
+ * @param action - The action string to determine color style
+ * @returns Terminal color class name
+ */
+export function getActionIconColor(action: string): string {
   const actionUpper = action.toUpperCase()
   if (
     actionUpper.includes('CREATE') ||
     actionUpper.includes('GRANT') ||
     actionUpper.includes('PUBLISH')
   ) {
-    return 'text-emerald-500'
+    return 'text-[var(--terminal-green)]'
   }
   if (actionUpper.includes('UPDATE')) {
-    return 'text-blue-500'
+    return 'text-[var(--terminal-cyan)]'
   }
   if (
     actionUpper.includes('DELETE') ||
     actionUpper.includes('BAN') ||
     actionUpper.includes('REVOKE')
   ) {
-    return 'text-red-500'
+    return 'text-[var(--terminal-red)]'
   }
-  return 'text-muted-foreground'
+  return 'text-[var(--silver-500)]'
 }
 
 export function getEntityTypeIcon(entityType: string | undefined) {

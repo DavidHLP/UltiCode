@@ -1,13 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, h, watch } from 'vue'
+import { ref, computed, onMounted, h, watch } from 'vue'
 import { watchDebounced } from '@vueuse/core'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { IconDotsVertical, IconInfoCircle, IconRefresh, IconX } from '@tabler/icons-vue'
+import {
+  IconDotsVertical,
+  IconInfoCircle,
+  IconRefresh,
+  IconX,
+  IconDatabase,
+} from '@tabler/icons-vue'
 import { useI18n } from 'vue-i18n'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,12 +31,7 @@ import type { AuditLog } from '@/api/admin/audit'
 
 import DataTable from '@/components/table/DataTable.vue'
 import AuditLogDetailDrawer from './AuditLogDetailDrawer.vue'
-import {
-  getActionBadgeVariant,
-  getActionIcon,
-  getActionIconColor,
-  getEntityTypeIcon,
-} from './utils'
+import { getActionIcon, getActionIconColor, getActionBadgeClass, getEntityTypeIcon } from './utils'
 
 const { t } = useI18n()
 const auditStore = useAuditStore()
@@ -44,7 +44,28 @@ const tablePagination = ref({ pageIndex: 0, pageSize: 50 })
 const selectedLog = ref<AuditLog | null>(null)
 const detailsDrawerOpen = ref(false)
 
-onMounted(() => loadLogs())
+// Animation state for staggered reveal
+const isLoaded = ref(false)
+
+onMounted(() => {
+  loadLogs()
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+})
+
+// Stats for terminal ticker
+const stats = computed(() => {
+  const logs = auditStore.logs
+  return {
+    total: auditStore.total,
+    create: logs.filter((l) => l.action.includes('CREATE')).length,
+    update: logs.filter((l) => l.action.includes('UPDATE')).length,
+    delete: logs.filter(
+      (l) => l.action.includes('DELETE') || l.action.includes('BAN'),
+    ).length,
+  }
+})
 
 async function loadLogs() {
   await auditStore.fetchLogs({
@@ -92,7 +113,7 @@ const columns: ColumnDef<AuditLog>[] = [
       const date = new Date(row.getValue('created_at') as Date)
       return h(
         'span',
-        { class: 'text-muted-foreground text-sm tabular-nums' },
+        { class: 'font-data text-sm text-[var(--silver-500)] tabular-nums' },
         date.toLocaleString(),
       )
     },
@@ -104,9 +125,10 @@ const columns: ColumnDef<AuditLog>[] = [
       const action = row.getValue('action') as string
       const icon = getActionIcon(action)
       const color = getActionIconColor(action)
+      const badgeClass = getActionBadgeClass(action)
       return h('div', { class: 'flex items-center gap-2' }, [
         h(icon, { class: `h-4 w-4 ${color}` }),
-        h(Badge, { variant: getActionBadgeVariant(action) }, () => action),
+        h('span', { class: `terminal-badge ${badgeClass}` }, action),
       ])
     },
   },
@@ -118,15 +140,15 @@ const columns: ColumnDef<AuditLog>[] = [
       const entityId = row.original.entity_id
       const icon = getEntityTypeIcon(entityType)
       if (!entityType) {
-        return h('span', { class: 'text-muted-foreground text-sm' }, '—')
+        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
       }
       return h('div', { class: 'flex items-center gap-2' }, [
-        h(icon, { class: 'h-4 w-4 text-muted-foreground' }),
+        h(icon, { class: 'h-4 w-4 text-[var(--silver-500)]' }),
         h('div', { class: 'flex flex-col' }, [
           h('span', { class: 'text-sm font-medium' }, entityType),
           h(
             'span',
-            { class: 'text-muted-foreground text-xs font-mono' },
+            { class: 'text-[var(--silver-500)] text-xs font-data' },
             entityId?.slice(0, 8) || 'N/A',
           ),
         ]),
@@ -139,11 +161,13 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const performer = row.original.performer
       if (!performer) {
-        return h('span', { class: 'text-muted-foreground text-sm' }, 'System')
+        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, 'System')
       }
       return h('div', { class: 'flex flex-col' }, [
         h('span', { class: 'text-sm font-medium' }, performer.username),
-        h(Badge, { variant: 'outline', class: 'w-fit text-xs scale-90 origin-left' }, () =>
+        h(
+          'span',
+          { class: 'terminal-badge terminal-badge-info w-fit text-xs scale-90 origin-left' },
           performer.role.replace('_', ' '),
         ),
       ])
@@ -155,7 +179,7 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const user = row.original.user
       if (!user) {
-        return h('span', { class: 'text-muted-foreground text-sm' }, '—')
+        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
       }
       return h('div', { class: 'flex items-center gap-2' }, [
         h('span', { class: 'text-sm' }, user.username),
@@ -168,10 +192,10 @@ const columns: ColumnDef<AuditLog>[] = [
     cell: ({ row }) => {
       const ip = row.original.ip_address
       if (!ip) {
-        return h('span', { class: 'text-muted-foreground text-sm' }, '—')
+        return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
       }
       return h('div', { class: 'flex flex-col max-w-[150px]' }, [
-        h('span', { class: 'text-sm font-mono truncate' }, ip),
+        h('span', { class: 'text-sm font-data truncate' }, ip),
       ])
     },
   },
@@ -230,36 +254,92 @@ const columns: ColumnDef<AuditLog>[] = [
 </script>
 
 <template>
-  <div class="relative flex flex-col gap-4 overflow-auto px-4 lg:px-6">
-    <DataTable
-      :columns="columns"
-      :data="auditStore.logs"
-      :pagination="tablePagination"
-      :row-count="auditStore.total"
-      :loading="auditStore.loading"
-      @update:pagination="tablePagination = $event"
+  <div class="relative flex flex-col gap-0 overflow-auto">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
     >
-      <template #toolbar-left>
-        <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-          <Input
-            v-model="searchQuery"
-            :placeholder="t('audit.searchPlaceholder')"
-            class="h-8 min-w-[150px] w-full lg:w-[250px]"
-          >
-            <template #trailing>
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2">
+            <span class="terminal-prompt text-base">audit-logs</span>
+            <span class="terminal-cursor" />
+          </div>
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('audit.title') }}
+          </h1>
+        </div>
+      </div>
+
+      <!-- Stats Ticker -->
+      <div
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">create:</span>
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.create
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">update:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.update
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">delete:</span>
+          <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
+            stats.delete
+          }}</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+          <IconDatabase class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">system audit trail</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-1 px-4 lg:px-6 py-4">
+      <DataTable
+        :columns="columns"
+        :data="auditStore.logs"
+        :pagination="tablePagination"
+        :row-count="auditStore.total"
+        :loading="auditStore.loading"
+        @update:pagination="tablePagination = $event"
+        class="terminal-table"
+      >
+        <template #toolbar-left>
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <Input
+                v-model="searchQuery"
+                :placeholder="t('audit.searchPlaceholder')"
+                class="terminal-input min-w-[200px] w-[260px] font-data text-sm"
+              />
               <button
                 v-if="searchQuery"
                 @click="searchQuery = ''"
-                class="rounded-sm opacity-70 hover:opacity-100"
+                class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm opacity-70 hover:opacity-100 text-[var(--silver-500)]"
               >
-                <IconX class="h-3 w-3" />
+                <IconX class="h-4 w-4" />
               </button>
-            </template>
-          </Input>
-
-          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
+            </div>
             <Select v-model="actionFilter">
-              <SelectTrigger class="h-8 w-[150px]">
+              <SelectTrigger class="terminal-input w-[160px] font-data text-xs uppercase tracking-wider">
                 <SelectValue :placeholder="t('audit.filters.allActions')" />
               </SelectTrigger>
               <SelectContent>
@@ -273,9 +353,8 @@ const columns: ColumnDef<AuditLog>[] = [
                 <SelectItem value="REVOKE_PERMISSION">Revoke Permission</SelectItem>
               </SelectContent>
             </Select>
-
             <Select v-model="entityTypeFilter">
-              <SelectTrigger class="h-8 w-[140px]">
+              <SelectTrigger class="terminal-input w-[150px] font-data text-xs uppercase tracking-wider">
                 <SelectValue placeholder="All Entities" />
               </SelectTrigger>
               <SelectContent>
@@ -287,28 +366,37 @@ const columns: ColumnDef<AuditLog>[] = [
                 <SelectItem value="FORUM_POST">Forum Post</SelectItem>
               </SelectContent>
             </Select>
-
             <Button
-              variant="ghost"
+              variant="terminal"
               size="icon"
-              class="h-8 w-8"
+              class="h-9 w-9 border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
               @click="loadLogs()"
               :title="t('common.refresh')"
             >
-              <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': auditStore.loading }" />
+              <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': auditStore.loading }" />
             </Button>
           </div>
-        </div>
-      </template>
-    </DataTable>
+        </template>
+      </DataTable>
 
-    <!-- Error state -->
-    <div
-      v-if="auditStore.error"
-      class="flex items-center justify-between rounded-lg border border-destructive/50 bg-destructive/10 p-4"
-    >
-      <span class="text-destructive">{{ auditStore.error }}</span>
-      <Button variant="outline" size="sm" @click="loadLogs()">{{ t('common.retry') }}</Button>
+      <!-- Error state - Terminal Style -->
+      <div
+        v-if="auditStore.error"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+      >
+        <div class="flex items-center gap-3">
+          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ auditStore.error }}</span>
+        </div>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+          @click="loadLogs()"
+        >
+          {{ t('common.retry') }}
+        </Button>
+      </div>
     </div>
 
     <AuditLogDetailDrawer v-model:open="detailsDrawerOpen" :log="selectedLog" />

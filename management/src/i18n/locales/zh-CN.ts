@@ -354,7 +354,15 @@ export default {
       role: '角色',
       joined: '加入时间',
       lastLogin: '最后登录',
+      username: '用户名',
+      bannedAt: '封禁时间',
     },
+
+    // 对话框标题
+    editUser: '编辑用户',
+    createUser: '创建用户',
+    editDescription: '在此修改用户资料，完成后点击保存。',
+    createDescription: '添加新用户到系统，完成后点击创建。',
 
     // 批量操作
     bulkActions: {
@@ -388,15 +396,27 @@ export default {
       username: '用户名',
       email: '邮箱',
       displayName: '显示名称',
+      fullName: '姓名',
+      fullNamePlaceholder: '张三',
+      usernamePlaceholder: 'zhangsan',
+      emailPlaceholder: 'zhangsan@example.com',
       role: '角色',
+      status: '状态',
       password: '密码',
       confirmPassword: '确认密码',
+      newPassword: '新密码',
+      newPasswordPlaceholder: '输入新密码',
       isActive: '活跃状态',
       isBanned: '封禁状态',
       banReason: '封禁原因',
       banReasonPlaceholder: '违反条款...',
       banExpiresAt: '封禁到期时间',
       avatar: '头像 URL',
+      targetUser: '目标用户',
+      saving: '保存中...',
+      creating: '创建中...',
+      saveChanges: '保存更改',
+      createUser: '创建用户',
     },
 
     // 操作
@@ -407,6 +427,7 @@ export default {
       resetPasswordAction: '重置密码',
       resetting: '重置中...',
       resetPasswordDescription: '为 {username} 设置新密码。',
+      resetPasswordWarning: '这将立即更改用户密码。请确保安全地传达新密码。',
       banUser: '封禁用户',
       banUserDescription: '请提供封禁 {username} 的原因。',
       confirmBan: '确认封禁',
@@ -1978,7 +1999,21 @@ export default {
       flaggedSuccessfully: '帖子已成功标记',
       failedToFlag: '标记帖子失败',
       reasonRequired: '请提供标记原因',
+      bulkPinnedSuccessfully: '帖子已批量置顶',
+      bulkLockedSuccessfully: '帖子已批量锁定',
+      bulkUnflaggedSuccessfully: '帖子已批量取消标记',
+      bulkDeletedSuccessfully: '帖子已批量删除',
     },
+
+    // 批量操作
+    bulkActions: {
+      bulkPin: '批量置顶',
+      bulkLock: '批量锁定',
+      bulkUnflag: '批量取消标记',
+      bulkDelete: '批量删除',
+    },
+
+    clearSelection: '清除选择',
 
     // 错误状态
     error: {
@@ -2066,7 +2101,20 @@ export default {
       flaggedSuccessfully: '评论已成功标记',
       failedToFlag: '标记评论失败',
       reasonRequired: '请提供标记原因',
+      bulkUnflaggedSuccessfully: '评论已批量取消标记',
+      bulkDeletedSuccessfully: '评论已批量删除',
+      failedToBulkUnflag: '批量取消标记评论失败',
+      failedToBulkDelete: '批量删除评论失败',
     },
+
+    // 批量操作
+    bulkActions: {
+      bulkUnflag: '批量取消标记',
+      bulkDelete: '批量删除',
+    },
+
+    clearSelection: '清除选择',
+    deleteConfirm: '确定要删除 {count} 条评论吗？此操作不可撤销。',
   },
 
   // 认证
@@ -2083,6 +2131,7 @@ export default {
       submitting: '登录中...',
       invalidCredentials: '用户名或密码无效',
       loginFailed: '登录失败。请重试。',
+      continueWithGithub: '使用 GitHub 登录',
       demoAccounts: '演示账号',
       demoAccountsTitle: '使用以下凭据：',
       demoAdmin: '• admin / admin123 (超级管理员)',

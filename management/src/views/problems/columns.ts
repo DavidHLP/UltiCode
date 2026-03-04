@@ -20,7 +20,6 @@ import {
   IconX,
 } from '@tabler/icons-vue'
 
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,7 +33,7 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu'
 import { Difficulty, type Problem } from '@/api/admin/problems'
-import { getDifficultyBadgeVariant, getDifficultyColor } from '@/lib/entities/problem'
+import { getDifficultyColor } from '@/lib/entities/problem'
 import { formatDate } from '@/lib/format/date'
 
 export interface ProblemActions {
@@ -81,19 +80,30 @@ export function createColumns(
           'onUpdate:modelValue': (value: boolean | 'indeterminate') =>
             table.toggleAllPageRowsSelected(!!value),
           'aria-label': 'Select all',
+          class:
+            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
         }),
       cell: ({ row }) =>
         h(Checkbox, {
           modelValue: row.getIsSelected(),
           'onUpdate:modelValue': (value: boolean | 'indeterminate') => row.toggleSelected(!!value),
           'aria-label': 'Select row',
+          class:
+            'border-[var(--silver-300)] data-[state=checked]:bg-[var(--accent-electric)] data-[state=checked]:border-[var(--accent-electric)]',
         }),
       enableSorting: false,
       enableHiding: false,
     },
     {
       accessorKey: 'id',
-      header: () => t('problems.columns.id'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('problems.columns.id'),
+        ),
       cell: ({ row }) => {
         const id = row.getValue('id') as string
         return h('span', { class: 'text-muted-foreground text-xs font-mono' }, id.slice(0, 8))
@@ -101,7 +111,14 @@ export function createColumns(
     },
     {
       accessorKey: 'title',
-      header: () => t('problems.columns.problem'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('problems.columns.problem'),
+        ),
       cell: ({ row }) => {
         const problem = row.original
         return h('div', { class: 'flex flex-col' }, [
@@ -112,14 +129,31 @@ export function createColumns(
     },
     {
       accessorKey: 'difficulty',
-      header: () => t('problems.columns.difficulty'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('problems.columns.difficulty'),
+        ),
       cell: ({ row }) => {
         const difficulty = row.getValue('difficulty') as Difficulty
         const icon = getDifficultyIcon(difficulty)
         const color = getDifficultyColor(difficulty)
+        const styles: Record<Difficulty, string> = {
+          EASY: 'bg-[oklch(0.7_0.15_145/0.15)] border-[oklch(0.7_0.15_145/0.4)] text-[var(--terminal-green)]',
+          MEDIUM:
+            'bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]',
+          HARD: 'bg-[oklch(0.6_0.2_25/0.15)] border-[oklch(0.6_0.2_25/0.4)] text-[var(--terminal-red)]',
+        }
         return h('div', { class: 'flex items-center gap-2' }, [
           h(icon, { class: `h-4 w-4 ${color}` }),
-          h(Badge, { variant: getDifficultyBadgeVariant(difficulty) }, () =>
+          h(
+            'span',
+            {
+              class: `font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm ${styles[difficulty]}`,
+            },
             t(`problems.difficulty.${difficulty}`),
           ),
         ])
@@ -127,119 +161,176 @@ export function createColumns(
     },
     {
       accessorKey: 'status',
-      header: () => t('common.status'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('common.status'),
+        ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string
         const isSolved = status === 'solved'
         const isAttempted = status === 'attempted'
         const icon = isSolved ? IconCircleCheckFilled : undefined
-        const variant = isSolved
-          ? ('default' as const)
-          : isAttempted
-            ? ('secondary' as const)
-            : ('outline' as const)
         const label = t(
           `problems.status.${isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'}`,
         )
+        const statusStyles = isSolved
+          ? 'bg-[oklch(0.7_0.15_145/0.15)] border-[oklch(0.7_0.15_145/0.4)] text-[var(--terminal-green)]'
+          : isAttempted
+            ? 'bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]'
+            : 'bg-[var(--silver-100)] dark:bg-[var(--silver-100)] border-[var(--silver-300)] text-[var(--silver-500)]'
         return h('div', { class: 'flex items-center gap-2' }, [
           icon
-            ? h(icon, { class: 'h-4 w-4 text-emerald-500' })
+            ? h(icon, { class: 'h-4 w-4 text-[var(--terminal-green)]' })
             : h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' }),
-          h(Badge, { variant }, () => label),
+          h(
+            'span',
+            {
+              class: `font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm ${statusStyles}`,
+            },
+            label,
+          ),
         ])
       },
     },
     {
       accessorKey: 'is_published',
-      header: () => t('problems.columns.published'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('problems.columns.published'),
+        ),
       cell: ({ row }) => {
         const isPublished = row.getValue('is_published') as boolean
         const isDeleted = row.original.is_deleted
         if (isDeleted) {
-          return h(
-            Badge,
-            { variant: 'destructive' },
-            {
-              default: () => [h(IconX, { class: 'mr-1 h-3 w-3' }), t('problems.published.deleted')],
-            },
-          )
+          const classes =
+            'font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.6_0.2_25/0.15)] border-[oklch(0.6_0.2_25/0.4)] text-[var(--terminal-red)]'
+          return h('span', { class: `inline-flex items-center gap-1 ${classes}` }, [
+            h(IconX, { class: 'h-3 w-3' }),
+            t('problems.published.deleted'),
+          ])
         }
-        return h(
-          Badge,
-          { variant: isPublished ? 'default' : 'secondary' },
-          {
-            default: () => [
-              isPublished
-                ? h(IconCheck, { class: 'mr-1 h-3 w-3' })
-                : h(IconEyeOff, { class: 'mr-1 h-3 w-3' }),
-              isPublished ? t('problems.published.published') : t('problems.published.draft'),
-            ],
-          },
-        )
+        const classes = isPublished
+          ? 'font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.7_0.15_145/0.15)] border-[oklch(0.7_0.15_145/0.4)] text-[var(--terminal-green)]'
+          : 'font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm bg-[var(--silver-100)] dark:bg-[var(--silver-100)] border-[var(--silver-300)] text-[var(--silver-500)]'
+        return h('span', { class: `inline-flex items-center gap-1 ${classes}` }, [
+          isPublished ? h(IconCheck, { class: 'h-3 w-3' }) : h(IconEyeOff, { class: 'h-3 w-3' }),
+          isPublished ? t('problems.published.published') : t('problems.published.draft'),
+        ])
       },
     },
     {
       accessorKey: 'is_flagged',
-      header: () => t('problems.columns.flagged'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('problems.columns.flagged'),
+        ),
       cell: ({ row }) => {
         const isFlagged = row.original.is_flagged
         if (!isFlagged) {
-          return h('span', { class: 'text-muted-foreground text-sm' }, '—')
+          return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '—')
         }
-        return h(
-          Badge,
-          { variant: 'destructive', class: 'gap-1' },
-          {
-            default: () => [
-              h(IconAlertTriangle, { class: 'h-3 w-3' }),
-              t('moderation.statusPending'),
-            ],
-          },
-        )
+        const classes =
+          'font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.6_0.2_25/0.15)] border-[oklch(0.6_0.2_25/0.4)] text-[var(--terminal-red)] animate-pulse-subtle'
+        return h('span', { class: `inline-flex items-center gap-1 ${classes}` }, [
+          h(IconAlertTriangle, { class: 'h-3 w-3' }),
+          t('moderation.statusPending'),
+        ])
       },
     },
     {
       accessorKey: 'submission_count',
-      header: () => t('problems.columns.submissions'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('problems.columns.submissions'),
+        ),
       cell: ({ row }) => {
         const count = row.original.submission_count || 0
         return h(
           'span',
-          { class: 'text-muted-foreground text-sm tabular-nums' },
+          {
+            class:
+              'font-data text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)] tabular-nums',
+          },
           count.toLocaleString(),
         )
       },
     },
     {
       accessorKey: 'tags',
-      header: () => t('problems.columns.tags'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('problems.columns.tags'),
+        ),
       cell: ({ row }) => {
         const tags = row.original.tags || []
         if (tags.length === 0) {
-          return h('span', { class: 'text-muted-foreground text-sm' }, '—')
+          return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '—')
         }
         return h(
           'div',
           { class: 'flex items-center gap-1 flex-wrap' },
-          tags
-            .slice(0, 3)
-            .map((tag) =>
-              h(Badge, { variant: 'outline', class: 'text-xs' }, { default: () => tag.label }),
+          tags.slice(0, 3).map((tag) =>
+            h(
+              'span',
+              {
+                class:
+                  'font-data text-[10px] uppercase px-1.5 py-0.5 border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-[var(--silver-600)] dark:text-[var(--silver-400)] rounded-sm',
+              },
+              tag.label,
             ),
+          ),
         )
       },
     },
     {
       accessorKey: 'created_at',
-      header: () => t('common.created'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('common.created'),
+        ),
       cell: ({ row }) => {
         const date = row.getValue('created_at') as string
-        return h('span', { class: 'text-muted-foreground text-sm' }, formatDate(date))
+        return h(
+          'span',
+          { class: 'font-data text-xs text-[var(--silver-600)] dark:text-[var(--silver-400)]' },
+          formatDate(date),
+        )
       },
     },
     {
       id: 'actions',
-      header: () => t('common.actions'),
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('common.actions'),
+        ),
       cell: ({ row }) => {
         const problem = row.original
         return createActionsDropdown(t, problem, actions, canUpdateProblem, canDeleteProblem)

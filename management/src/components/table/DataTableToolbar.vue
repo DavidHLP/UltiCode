@@ -51,15 +51,18 @@ function updateFilter(index: number, value: string | number) {
       :model-value="searchModelValue"
       @update:model-value="updateSearch"
       :placeholder="searchPlaceholder"
-      :class="searchWidth || 'min-w-[200px] w-[260px]'"
+      :class="[
+        'h-8 font-data text-xs border-[var(--silver-300)] focus:border-[var(--accent-electric)]',
+        searchWidth || 'min-w-[150px] w-full lg:w-[250px]',
+      ]"
     >
       <template #trailing>
         <button
           v-if="searchModelValue"
           @click="updateSearch('')"
-          class="rounded-sm opacity-70 hover:opacity-100"
+          class="opacity-70 hover:opacity-100 text-[var(--silver-500)]"
         >
-          <IconCircleXFilled class="h-4 w-4" />
+          <IconCircleXFilled class="h-3.5 w-3.5" />
         </button>
       </template>
     </Input>
@@ -70,7 +73,12 @@ function updateFilter(index: number, value: string | number) {
       :model-value="filter.modelValue"
       @update:model-value="(value) => updateFilter(index, value as string)"
     >
-      <SelectTrigger :class="filter.width || 'w-[160px]'">
+      <SelectTrigger
+        :class="[
+          'h-8 font-data text-xs border-[var(--silver-300)] focus:border-[var(--accent-electric)]',
+          filter.width || 'w-[140px]',
+        ]"
+      >
         <SelectValue :placeholder="filter.placeholder" />
       </SelectTrigger>
       <SelectContent>
@@ -82,12 +90,13 @@ function updateFilter(index: number, value: string | number) {
 
     <Button
       v-if="onRefresh"
-      variant="outline"
+      variant="terminal"
       size="icon"
+      class="h-8 w-8 border-[var(--silver-300)]"
       @click="onRefresh"
       :title="$t('common.refresh')"
     >
-      <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
+      <IconRefresh class="h-3.5 w-3.5" :class="{ 'animate-spin': loading }" />
     </Button>
 
     <slot name="extra-actions" />

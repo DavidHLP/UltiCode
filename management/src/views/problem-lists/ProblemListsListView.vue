@@ -149,7 +149,7 @@ const columns = createColumns(
     </div>
 
     <!-- Main Content -->
-    <div class="flex-1 px-4 lg:px-6 py-4">
+    <div class="flex-1 py-4">
       <!-- Error State -->
       <div
         v-if="error"

@@ -37,11 +37,14 @@ RUN useradd -m -s /bin/bash judge
 WORKDIR /sandbox
 
 # Create directories for code execution
-RUN mkdir -p /sandbox/code /sandbox/input /sandbox/output /sandbox/runners \
+RUN mkdir -p /sandbox/code /sandbox/input /sandbox/output /sandbox/runners
+
+# Install TypeScript for JavaScript/TypeScript runner
+RUN npm init -y && npm install typescript --save \
     && chown -R judge:judge /sandbox
 
-# Copy runner scripts
-COPY runners/ /sandbox/runners/
+# Copy runner scripts (context is backend directory)
+COPY judge/runners/ /sandbox/runners/
 RUN chmod +x /sandbox/runners/*.sh /sandbox/runners/*.py /sandbox/runners/*.js 2>/dev/null || true
 
 # Switch to non-root user

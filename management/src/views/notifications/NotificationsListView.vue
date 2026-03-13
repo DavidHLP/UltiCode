@@ -80,8 +80,7 @@ const filteredData = computed(() => {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(
       (a) =>
-        a.title.toLowerCase().includes(query) ||
-        a.creator.username.toLowerCase().includes(query),
+        a.title.toLowerCase().includes(query) || a.creator.username.toLowerCase().includes(query),
     )
   }
 
@@ -298,7 +297,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 px-4 lg:px-6 py-4">
+    <div class="flex-1 py-4">
       <DataTable
         :columns="columns"
         :data="filteredData"

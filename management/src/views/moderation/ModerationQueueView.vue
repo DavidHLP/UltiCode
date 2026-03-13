@@ -362,7 +362,7 @@ const selectedCount = computed(() => selectedIds.value.size)
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 px-4 lg:px-6 py-4">
+    <div class="flex-1 py-4">
       <!-- Loading State -->
       <div
         v-if="loading"

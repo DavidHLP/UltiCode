@@ -18,7 +18,6 @@ import {
   ApiBearerAuth,
   ApiCookieAuth,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
@@ -46,7 +45,6 @@ export class AuthController {
   })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async signIn(@Body() signInDto: SignInDto, @Res() res: Response) {
     const result = await this.authService.signIn(
       signInDto.username,
@@ -67,7 +65,6 @@ export class AuthController {
     status: 400,
     description: 'Invalid input or user already exists',
   })
-  @Throttle({ default: { limit: 3, ttl: 300000 } })
   async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
     const result = await this.authService.register(registerDto, res);
     return res.json(result);
@@ -83,7 +80,6 @@ export class AuthController {
     status: 200,
     description: 'Reset email sent if account exists',
   })
-  @Throttle({ default: { limit: 3, ttl: 300000 } })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
@@ -96,7 +92,6 @@ export class AuthController {
   })
   @ApiResponse({ status: 200, description: 'Password reset successful' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
-  @Throttle({ default: { limit: 10, ttl: 300000 } })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }

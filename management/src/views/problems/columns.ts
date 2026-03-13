@@ -1,9 +1,7 @@
-import { h, type Component } from 'vue'
+import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconAlertTriangle,
-  IconCheck,
-  IconCircleCheckFilled,
   IconDotsVertical,
   IconEye,
   IconEyeOff,
@@ -12,12 +10,8 @@ import {
   IconFlagOff,
   IconFlask,
   IconBrackets,
-  IconLoader,
   IconPencil,
-  IconSparkles,
-  IconTrophy,
   IconTrash,
-  IconX,
 } from '@tabler/icons-vue'
 
 import { Checkbox } from '@/components/ui/checkbox'
@@ -33,7 +27,6 @@ import {
   DropdownMenuSubContent,
 } from '@/components/ui/dropdown-menu'
 import { Difficulty, type Problem } from '@/api/admin/problems'
-import { getDifficultyColor } from '@/lib/entities/problem'
 import { formatDate } from '@/lib/format/date'
 
 export interface ProblemActions {
@@ -50,17 +43,167 @@ export interface ProblemActions {
   confirmDelete: (problem: Problem) => void
 }
 
-function getDifficultyIcon(difficulty: Difficulty): Component {
-  switch (difficulty) {
-    case 'EASY':
-      return IconCheck
-    case 'MEDIUM':
-      return IconSparkles
-    case 'HARD':
-      return IconTrophy
-    default:
-      return IconFile
+// Terminal-style difficulty badge renderer (matches role badge style)
+function renderDifficultyBadge(difficulty: Difficulty, t: (key: string) => string) {
+  const difficultyStyles: Record<Difficulty, { bg: string; border: string; text: string }> = {
+    EASY: {
+      bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
+      border: 'border-[oklch(0.7_0.15_145/0.4)]',
+      text: 'text-[var(--terminal-green)]',
+    },
+    MEDIUM: {
+      bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
+      border: 'border-[oklch(0.75_0.15_85/0.4)]',
+      text: 'text-[var(--terminal-amber)]',
+    },
+    HARD: {
+      bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
+      border: 'border-[oklch(0.6_0.2_25/0.4)]',
+      text: 'text-[var(--terminal-red)]',
+    },
   }
+
+  const style = difficultyStyles[difficulty]
+
+  return h('div', { class: 'flex items-center gap-2' }, [
+    h('span', {
+      class: ['w-1.5 h-1.5 rounded-full', style.text.replace('text-', 'bg-')].join(' '),
+    }),
+    h(
+      'span',
+      {
+        class: [
+          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+          'px-2 py-0.5 border',
+          style.bg,
+          style.border,
+          style.text,
+        ].join(' '),
+      },
+      t(`problems.difficulty.${difficulty}`),
+    ),
+  ])
+}
+
+// Terminal-style published status badge renderer (matches role badge style)
+function renderPublishedBadge(
+  isPublished: boolean,
+  isDeleted: boolean,
+  t: (key: string) => string,
+) {
+  if (isDeleted) {
+    return h(
+      'span',
+      {
+        class: [
+          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+          'px-2 py-0.5 border',
+          'bg-[oklch(0.6_0.2_25/0.15)]',
+          'border-[oklch(0.6_0.2_25/0.4)]',
+          'text-[var(--terminal-red)]',
+        ].join(' '),
+      },
+      t('problems.published.deleted'),
+    )
+  }
+
+  if (isPublished) {
+    return h('div', { class: 'flex items-center gap-2' }, [
+      h('span', {
+        class: 'w-1.5 h-1.5 bg-[var(--terminal-green)] animate-pulse-subtle',
+      }),
+      h(
+        'span',
+        {
+          class: [
+            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+            'px-2 py-0.5 border',
+            'bg-[oklch(0.7_0.15_145/0.15)]',
+            'border-[oklch(0.7_0.15_145/0.4)]',
+            'text-[var(--terminal-green)]',
+          ].join(' '),
+        },
+        t('problems.published.published'),
+      ),
+    ])
+  }
+
+  return h(
+    'span',
+    {
+      class: [
+        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+        'px-2 py-0.5 border',
+        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
+        'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
+        'text-[var(--silver-500)]',
+      ].join(' '),
+    },
+    t('problems.published.draft'),
+  )
+}
+
+// Terminal-style problem status badge renderer (matches role badge style)
+function renderProblemStatusBadge(status: string, t: (key: string) => string) {
+  const isSolved = status === 'solved'
+  const isAttempted = status === 'attempted'
+  const label = t(`problems.status.${isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'}`)
+
+  if (isSolved) {
+    return h('div', { class: 'flex items-center gap-2' }, [
+      h('span', {
+        class: 'w-1.5 h-1.5 bg-[var(--terminal-green)] animate-pulse-subtle',
+      }),
+      h(
+        'span',
+        {
+          class: [
+            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+            'px-2 py-0.5 border',
+            'bg-[oklch(0.7_0.15_145/0.15)]',
+            'border-[oklch(0.7_0.15_145/0.4)]',
+            'text-[var(--terminal-green)]',
+          ].join(' '),
+        },
+        label,
+      ),
+    ])
+  }
+
+  if (isAttempted) {
+    return h('div', { class: 'flex items-center gap-2' }, [
+      h('span', {
+        class: 'w-1.5 h-1.5 bg-[var(--terminal-amber)]',
+      }),
+      h(
+        'span',
+        {
+          class: [
+            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+            'px-2 py-0.5 border',
+            'bg-[oklch(0.75_0.15_85/0.15)]',
+            'border-[oklch(0.75_0.15_85/0.4)]',
+            'text-[var(--terminal-amber)]',
+          ].join(' '),
+        },
+        label,
+      ),
+    ])
+  }
+
+  return h(
+    'span',
+    {
+      class: [
+        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
+        'px-2 py-0.5 border',
+        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
+        'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
+        'text-[var(--silver-500)]',
+      ].join(' '),
+    },
+    label,
+  )
 }
 
 export function createColumns(
@@ -139,24 +282,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const difficulty = row.getValue('difficulty') as Difficulty
-        const icon = getDifficultyIcon(difficulty)
-        const color = getDifficultyColor(difficulty)
-        const styles: Record<Difficulty, string> = {
-          EASY: 'bg-[oklch(0.7_0.15_145/0.15)] border-[oklch(0.7_0.15_145/0.4)] text-[var(--terminal-green)]',
-          MEDIUM:
-            'bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]',
-          HARD: 'bg-[oklch(0.6_0.2_25/0.15)] border-[oklch(0.6_0.2_25/0.4)] text-[var(--terminal-red)]',
-        }
-        return h('div', { class: 'flex items-center gap-2' }, [
-          h(icon, { class: `h-4 w-4 ${color}` }),
-          h(
-            'span',
-            {
-              class: `font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm ${styles[difficulty]}`,
-            },
-            t(`problems.difficulty.${difficulty}`),
-          ),
-        ])
+        return renderDifficultyBadge(difficulty, t)
       },
     },
     {
@@ -171,29 +297,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const status = row.getValue('status') as string
-        const isSolved = status === 'solved'
-        const isAttempted = status === 'attempted'
-        const icon = isSolved ? IconCircleCheckFilled : undefined
-        const label = t(
-          `problems.status.${isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'}`,
-        )
-        const statusStyles = isSolved
-          ? 'bg-[oklch(0.7_0.15_145/0.15)] border-[oklch(0.7_0.15_145/0.4)] text-[var(--terminal-green)]'
-          : isAttempted
-            ? 'bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]'
-            : 'bg-[var(--silver-100)] dark:bg-[var(--silver-100)] border-[var(--silver-300)] text-[var(--silver-500)]'
-        return h('div', { class: 'flex items-center gap-2' }, [
-          icon
-            ? h(icon, { class: 'h-4 w-4 text-[var(--terminal-green)]' })
-            : h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' }),
-          h(
-            'span',
-            {
-              class: `font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm ${statusStyles}`,
-            },
-            label,
-          ),
-        ])
+        return renderProblemStatusBadge(status, t)
       },
     },
     {
@@ -209,21 +313,7 @@ export function createColumns(
       cell: ({ row }) => {
         const isPublished = row.getValue('is_published') as boolean
         const isDeleted = row.original.is_deleted
-        if (isDeleted) {
-          const classes =
-            'font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.6_0.2_25/0.15)] border-[oklch(0.6_0.2_25/0.4)] text-[var(--terminal-red)]'
-          return h('span', { class: `inline-flex items-center gap-1 ${classes}` }, [
-            h(IconX, { class: 'h-3 w-3' }),
-            t('problems.published.deleted'),
-          ])
-        }
-        const classes = isPublished
-          ? 'font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.7_0.15_145/0.15)] border-[oklch(0.7_0.15_145/0.4)] text-[var(--terminal-green)]'
-          : 'font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm bg-[var(--silver-100)] dark:bg-[var(--silver-100)] border-[var(--silver-300)] text-[var(--silver-500)]'
-        return h('span', { class: `inline-flex items-center gap-1 ${classes}` }, [
-          isPublished ? h(IconCheck, { class: 'h-3 w-3' }) : h(IconEyeOff, { class: 'h-3 w-3' }),
-          isPublished ? t('problems.published.published') : t('problems.published.draft'),
-        ])
+        return renderPublishedBadge(isPublished, isDeleted, t)
       },
     },
     {

@@ -6,7 +6,6 @@ import {
   ApiBearerAuth,
   ApiParam,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import type { Request } from 'express';
 import { ProblemService, Problem } from './problem.service';
 import { SubmissionService } from '../submission/submission.service';
@@ -38,7 +37,6 @@ export class ProblemController {
     description: 'Retrieve paginated list of problems with optional filters',
   })
   @ApiResponse({ status: 200, description: 'List of problems with pagination' })
-  @Throttle({ short: { limit: 100, ttl: 60000 } })
   async findAll(
     @Query() query: FindAllProblemsQueryDto,
     @Req() req?: AuthenticatedRequest,
@@ -89,7 +87,6 @@ export class ProblemController {
   })
   @ApiResponse({ status: 200, description: 'Random problem' })
   @ApiResponse({ status: 404, description: 'No problems available' })
-  @Throttle({ short: { limit: 100, ttl: 60000 } })
   getRandom(): Promise<Problem | null> {
     return this.problemService.getRandom();
   }
@@ -106,7 +103,6 @@ export class ProblemController {
     status: 403,
     description: 'Premium problem - subscription required',
   })
-  @Throttle({ strict: { limit: 10, ttl: 60000 } })
   async findOne(
     @Param('id') id: string | number,
     @Query() query: ProblemParamsDto,
@@ -155,7 +151,6 @@ export class ProblemController {
   }
 
   @Get(':id/results')
-  @Throttle({ strict: { limit: 10, ttl: 60000 } })
   getProblemResults(
     @Param('id') id: string | number,
     @Query() query: ProblemParamsDto,
@@ -164,7 +159,6 @@ export class ProblemController {
   }
 
   @Get(':id/adjacent')
-  @Throttle({ short: { limit: 100, ttl: 60000 } })
   getAdjacent(@Param('id') id: string | number) {
     return this.problemService.findAdjacent(Number(id));
   }

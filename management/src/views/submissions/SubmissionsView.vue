@@ -467,7 +467,7 @@ onMounted(() => {
     <!-- Table - Terminal Style -->
     <div
       :class="[
-        'flex-1 px-4 lg:px-6 py-4',
+        'flex-1 py-4',
         'transition-all duration-500 delay-200',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"

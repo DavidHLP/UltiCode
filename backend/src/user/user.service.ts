@@ -215,7 +215,7 @@ export class UserService {
       Array<{ date: string; count: bigint }>
     >`
       SELECT DATE(created_at) as date, COUNT(*) as count
-      FROM Submission
+      FROM submissions
       WHERE user_id = ${userId}
         AND created_at >= ${oneYearAgo}
       GROUP BY DATE(created_at)

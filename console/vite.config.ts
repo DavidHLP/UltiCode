@@ -1,6 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
-import { defineConfig, type PluginOption } from 'vite'
+import { defineConfig, searchForWorkspaceRoot, type PluginOption } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 import vueDevTools from 'vite-plugin-vue-devtools'
@@ -91,6 +91,11 @@ export default defineConfig({
   },
   server: {
     port: 9002,
+    fs: {
+      // Allow serving files from workspace root for pnpm monorepo
+      // This enables access to .pnpm directory for font files (e.g., KaTeX)
+      allow: [searchForWorkspaceRoot(process.cwd())],
+    },
   },
   build: {
     rollupOptions: {

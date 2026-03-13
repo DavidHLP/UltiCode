@@ -376,6 +376,8 @@ moderation: {
   newStatus: '新状态',
   searchPlaceholder: '搜索题目...',
   allDifficulties: '全部难度',
+  batchNotesPlaceholder: '为所有选中题目添加备注（可选）...',
+  apply: '应用',
 },
 ```
 
@@ -401,6 +403,8 @@ moderation: {
   newStatus: 'New Status',
   searchPlaceholder: 'Search problems...',
   allDifficulties: 'All Difficulties',
+  batchNotesPlaceholder: 'Add notes for all selected problems (optional)...',
+  apply: 'Apply',
 },
 ```
 
@@ -413,14 +417,14 @@ git commit -m "feat(i18n): add moderation queue redesign keys"
 
 ---
 
-## Chunk 3: Main View Refactor
+## Chunk 3: Main View Refactor - Part 1 (Script Setup)
 
-### Task 3: Refactor ModerationQueueView.vue
+### Task 3a: Update imports and state
 
 **Files:**
 - Modify: `management/src/views/moderation/ModerationQueueView.vue`
 
-- [ ] **Step 1: Update imports and remove unused ones**
+- [ ] **Step 1: Update imports section**
 
 Replace the imports section with:
 

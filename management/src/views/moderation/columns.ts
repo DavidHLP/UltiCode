@@ -127,6 +127,12 @@ function truncateText(text: string, maxLength: number): string {
   return text.slice(0, maxLength) + '...'
 }
 
+/**
+ * Creates column definitions for the moderation queue DataTable.
+ * @param t - Translation function from useI18n
+ * @param actions - Action handlers for moderation operations
+ * @returns Array of column definitions for @tanstack/vue-table
+ */
 export function createColumns(
   t: (key: string) => string,
   actions: ModerationActions,
@@ -253,8 +259,8 @@ export function createColumns(
         const date = row.original.flag_reported_at
         return h(
           'span',
-          { class: 'font-data text-xs text-[var(--silver-600)] dark:text-[var(--silver-400)]' },
-          formatDate(date as unknown as string),
+          { class: 'text-sm text-[var(--silver-500)] font-data' },
+          date ? formatDate(date) : '—',
         )
       },
     },
@@ -276,7 +282,8 @@ export function createColumns(
             {
               variant: 'ghost',
               size: 'icon',
-              class: 'h-8 w-8 p-0 text-[var(--terminal-green)] hover:text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.15)]',
+              class:
+                'h-8 w-8 p-0 text-[var(--terminal-green)] hover:text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.15)]',
               onClick: () => actions.quickResolve(problem.id),
               title: t('moderation.quickResolve'),
             },
@@ -289,7 +296,8 @@ export function createColumns(
             {
               variant: 'ghost',
               size: 'icon',
-              class: 'h-8 w-8 p-0 text-[var(--terminal-red)] hover:text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]',
+              class:
+                'h-8 w-8 p-0 text-[var(--terminal-red)] hover:text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]',
               onClick: () => actions.quickDismiss(problem.id),
               title: t('moderation.quickDismiss'),
             },

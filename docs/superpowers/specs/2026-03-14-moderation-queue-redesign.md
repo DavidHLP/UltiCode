@@ -175,6 +175,141 @@ Existing API endpoints (no changes needed):
 7. Quick actions work without opening drawer
 8. Pagination works correctly
 
+## Data Types
+
+### FlaggedProblem Interface
+
+Uses existing `Problem` type from `@/api/admin/problems`. Required fields:
+- `id`: string
+- `title`: string
+- `slug`: string
+- `difficulty`: 'EASY' | 'MEDIUM' | 'HARD'
+- `flag_status`: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED' | null
+- `flag_reason`: string | null
+- `flag_reported_by`: string | null (username)
+- `flag_reported_at`: Date | null
+- `flag_notes`: string | null
+- `flag_reviewed_by`: string | null
+- `flag_reviewed_at`: Date | null
+
+### ModerationActions Interface
+
+```typescript
+interface ModerationActions {
+  viewProblem: (id: string) => void
+  openDrawer: (problem: Problem) => void
+  quickResolve: (id: string) => void
+  quickDismiss: (id: string) => void
+}
+```
+
+## i18n Keys Required
+
+Add to `management/src/locales/zh-CN/moderation.json`:
+
+```json
+{
+  "drawerTitle": "审核详情",
+  "drawerDescription": "查看举报信息并进行审核",
+  "problemDetails": "题目详情",
+  "flagInfo": "举报信息",
+  "moderationActions": "审核操作",
+  "newStatus": "新状态",
+  "quickResolve": "快速解决",
+  "quickDismiss": "快速驳回",
+  "flagReason": "举报原因",
+  "reportedBy": "举报人",
+  "reportedAt": "举报时间",
+  "reviewNotes": "审核备注",
+  "noNotes": "暂无审核备注"
+}
+```
+
+## Stats Ticker
+
+Stats should come from API response, not computed from current page data:
+
+```typescript
+// API should return counts in response
+interface FlaggedProblemsResponse {
+  data: Problem[]
+  total: number
+  totalPages: number
+  counts: {
+    pending: number
+    reviewed: number
+    resolved: number
+    dismissed: number
+  }
+}
+```
+
+If API doesn't support counts, label as "on this page":
+```
+total: 11 (all)  pending: 5 (page)  reviewed: 2 (page)
+```
+
+## Detail Drawer Implementation
+
+Use `BaseDetailDrawer` component as wrapper:
+
+```vue
+<BaseDetailDrawer
+  v-model:open="drawerOpen"
+  :entity="selectedProblem"
+  :loading="drawerLoading"
+  :title="t('moderation.drawerTitle')"
+>
+  <template #content="{ entity }">
+    <!-- Problem details section -->
+    <!-- Flag info section -->
+    <!-- Moderation form section -->
+  </template>
+</BaseDetailDrawer>
+```
+
+Data is passed from the row (not fetched separately). Set `drawerLoading` to false immediately since data is already available.
+
+## Quick Actions Rendering
+
+Use inline icon buttons for quick actions (more visible for moderation workflow):
+
+```typescript
+// In actions column cell
+h('div', { class: 'flex items-center gap-1' }, [
+  h(Button, {
+    variant: 'terminal',
+    size: 'icon',
+    class: 'h-7 w-7 border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]',
+    onClick: () => actions.quickResolve(problem.id),
+    title: t('moderation.quickResolve')
+  }, () => h(IconCheck, { class: 'h-3.5 w-3.5' })),
+
+  h(Button, {
+    variant: 'terminal',
+    size: 'icon',
+    class: 'h-7 w-7 border-[var(--silver-300)] hover:border-[var(--terminal-red)] hover:text-[var(--terminal-red)]',
+    onClick: () => actions.quickDismiss(problem.id),
+    title: t('moderation.quickDismiss')
+  }, () => h(IconX, { class: 'h-3.5 w-3.5' })),
+
+  h(Button, {
+    variant: 'terminal',
+    size: 'icon',
+    class: 'h-7 w-7 border-[var(--silver-300)] hover:border-[var(--terminal-cyan)] hover:text-[var(--terminal-cyan)]',
+    onClick: () => actions.openDrawer(problem),
+    title: t('common.view')
+  }, () => h(IconEye, { class: 'h-3.5 w-3.5' })),
+])
+```
+
+## Edge Cases
+
+1. **Problem deleted while viewing**: Show empty state with message "该题目已被删除"
+2. **Concurrent moderation**: API should handle conflicts; show toast if item was already moderated
+3. **Empty flag_reason**: Display "—" placeholder
+4. **Null flag_reported_by**: Display "未知用户"
+
 ## Out of Scope
 
 - Real-time updates (polling/websockets)

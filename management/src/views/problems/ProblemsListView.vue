@@ -944,7 +944,7 @@ const columns: ColumnDef<Problem>[] = [
       ]"
     >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
             <span class="terminal-prompt text-base">problems</span>
@@ -968,7 +968,7 @@ const columns: ColumnDef<Problem>[] = [
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">total:</span>
@@ -1005,7 +1005,7 @@ const columns: ColumnDef<Problem>[] = [
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mx-4 lg:mx-6 mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >

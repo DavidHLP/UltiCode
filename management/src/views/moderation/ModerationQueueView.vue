@@ -245,7 +245,7 @@ const selectedCount = computed(() => selectedIds.value.size)
 
 <template>
   <div class="relative flex flex-col gap-0 overflow-auto">
-    <!-- Terminal Header -->
+    {{ t('moderation.terminal.header') }}
     <div
       :class="[
         'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
@@ -253,8 +253,8 @@ const selectedCount = computed(() => selectedIds.value.size)
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
-      <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      {{ t('moderation.terminal.header') }}
+      <div class="py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
           <div class="flex items-center gap-2">
             <span class="terminal-prompt text-base">moderation</span>
@@ -280,9 +280,9 @@ const selectedCount = computed(() => selectedIds.value.size)
         </Select>
       </div>
 
-      <!-- Stats Ticker -->
+      {{ t('moderation.terminal.statsTicker') }}
       <div
-        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+        class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">total:</span>
@@ -319,14 +319,14 @@ const selectedCount = computed(() => selectedIds.value.size)
     <div
       v-if="selectedCount > 0"
       :class="[
-        'mx-4 lg:mx-6 mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
           <span class="font-data text-sm text-[var(--terminal-amber)]">
-            &gt; SELECTED:{{ selectedCount }}
+            &gt; {{ t('moderation.terminal.selected') }}:{{ selectedCount }}
           </span>
         </div>
         <div class="h-4 w-px bg-[var(--silver-300)]" />
@@ -369,7 +369,7 @@ const selectedCount = computed(() => selectedIds.value.size)
         class="flex items-center justify-center py-12 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-3">
-          <span class="font-data text-sm text-[var(--terminal-cyan)]">&gt; LOADING...</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)]">&gt; {{ t('moderation.terminal.loading') }}</span>
         </div>
       </div>
 
@@ -383,7 +383,7 @@ const selectedCount = computed(() => selectedIds.value.size)
             <IconFlagOff class="h-8 w-8" />
           </div>
           <div class="text-center">
-            <span class="font-data text-sm text-[var(--silver-500)]"> &gt; NO_FLAGGED_ITEMS </span>
+            <span class="font-data text-sm text-[var(--silver-500)]"> &gt; {{ t('moderation.terminal.noFlaggedItems') }} </span>
             <p class="text-sm text-[var(--silver-400)] mt-2 max-w-md">
               {{ t('moderation.noFlaggedDescription') }}
             </p>
@@ -552,7 +552,7 @@ const selectedCount = computed(() => selectedIds.value.size)
           :disabled="currentPage === 1"
           @click="handlePreviousPage"
         >
-          &lt; PREV
+          &lt; {{ t('moderation.terminal.prev') }}
         </Button>
         <span class="font-data text-sm text-[var(--foreground)] tabular-nums">
           {{ String(currentPage).padStart(2, '0') }}/{{ String(totalPages).padStart(2, '0') }}
@@ -564,7 +564,7 @@ const selectedCount = computed(() => selectedIds.value.size)
           :disabled="currentPage === totalPages"
           @click="handleNextPage"
         >
-          NEXT &gt;
+          {{ t('moderation.terminal.next') }} &gt;
         </Button>
       </div>
     </div>

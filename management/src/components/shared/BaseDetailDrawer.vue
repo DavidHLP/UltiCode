@@ -57,9 +57,7 @@ defineSlots<{
       <!-- Loading State -->
       <div v-if="loading" class="flex h-full items-center justify-center p-8">
         <div class="flex flex-col items-center gap-2">
-          <div
-            class="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
-          ></div>
+          <div class="h-8 w-8 animate-spin border-4 border-primary border-t-transparent"></div>
           <p class="text-sm text-muted-foreground">{{ loadingText }}</p>
         </div>
       </div>

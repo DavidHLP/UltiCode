@@ -27,15 +27,6 @@ const router = useRouter();
 const email = ref("");
 const password = ref("");
 const loading = ref(false);
-const isDev = import.meta.env.DEV;
-
-// Fill test credentials in development mode
-function fillTestCredentials() {
-  if (import.meta.env.DEV) {
-    email.value = import.meta.env.VITE_TEST_USERNAME || "";
-    password.value = import.meta.env.VITE_TEST_PASSWORD || "";
-  }
-}
 
 async function handleSubmit(e: Event) {
   e.preventDefault();
@@ -129,17 +120,6 @@ function handleGoogleLogin() {
       <Field>
         <Button type="submit" :disabled="loading">
           {{ loading ? t("auth.login.submitting") : t("auth.login.submit") }}
-        </Button>
-      </Field>
-      <!-- Development-only test credential button -->
-      <Field v-if="isDev">
-        <Button
-          type="button"
-          variant="outline"
-          class="text-xs"
-          @click="fillTestCredentials"
-        >
-          Fill Test Credentials
         </Button>
       </Field>
       <FieldSeparator>{{ t("auth.login.orContinueWith") }}</FieldSeparator>

@@ -196,6 +196,7 @@ export class DockerSandboxService
       const result = await this.runContainer(
         workDir,
         langConfig.runCommand,
+        langConfig.extension,
         timeLimit,
         memoryLimit,
         executionId,
@@ -282,6 +283,7 @@ export class DockerSandboxService
   private async runContainer(
     workDir: string,
     runCommand: string,
+    extension: string,
     timeLimit: number,
     memoryLimit: string,
     executionId: string,
@@ -297,7 +299,7 @@ export class DockerSandboxService
         `TIME_LIMIT_MS=${timeLimit}`,
         `MEMORY_LIMIT=${memoryLimit}`,
         `INPUT_FILE=/sandbox/input/args.json`,
-        `CODE_FILE=/sandbox/code/solution.*`,
+        `CODE_FILE=/sandbox/code/solution${extension}`,
       ],
       HostConfig: {
         Binds: [
@@ -373,8 +375,10 @@ export class DockerSandboxService
             stderr: true,
           })
           .then((logs) => {
-            // eslint-disable-next-line no-control-regex
-            const logString = logs.toString('utf-8').replace(/^\x00+/gm, '');
+            // Docker uses multiplexed stream format: 8-byte header + payload
+            // Header: 1 byte stream type (1=stdout, 2=stderr) + 3 bytes padding + 4 bytes size
+            // We need to strip these headers to get clean output
+            const logString = this.parseDockerLogs(logs);
 
             resolve({
               stdout: logString,
@@ -541,6 +545,54 @@ export class DockerSandboxService
       default:
         return value;
     }
+  }
+
+  /**
+   * Parse Docker multiplexed log stream.
+   *
+   * Docker logs use a multiplexed stream format where each frame has:
+   * - 1 byte: stream type (1=stdout, 2=stderr)
+   * - 3 bytes: padding (zeros)
+   * - 4 bytes: payload size (big-endian uint32)
+   * - N bytes: actual payload
+   *
+   * @param logs - Raw log buffer from Docker
+   * @returns Clean string with headers stripped
+   */
+  private parseDockerLogs(logs: Buffer): string {
+    const result: string[] = [];
+    let offset = 0;
+
+    while (offset < logs.length) {
+      // Need at least 8 bytes for the header
+      if (offset + 8 > logs.length) {
+        break;
+      }
+
+      // Read header
+      const streamType = logs[offset];
+      // Skip 3 padding bytes
+      const size = logs.readUInt32BE(offset + 4);
+
+      // Move past header
+      offset += 8;
+
+      // Read payload
+      if (offset + size > logs.length) {
+        // Incomplete frame, take what we have
+        result.push(logs.toString('utf-8', offset));
+        break;
+      }
+
+      if (size > 0) {
+        const payload = logs.toString('utf-8', offset, offset + size);
+        result.push(payload);
+      }
+
+      offset += size;
+    }
+
+    return result.join('');
   }
 
   async isHealthy(): Promise<boolean> {

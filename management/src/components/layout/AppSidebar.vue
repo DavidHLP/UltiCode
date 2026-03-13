@@ -3,11 +3,8 @@ import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import {
-  IconCamera,
   IconCode,
   IconDashboard,
-  IconDatabase,
-  IconFileAi,
   IconFileDescription,
   IconHelp,
   IconInnerShadowTop,
@@ -25,7 +22,6 @@ import {
   IconChartBar,
 } from '@tabler/icons-vue'
 
-import NavDocuments from './NavDocuments.vue'
 import NavMain from './NavMain.vue'
 import NavSecondary from './NavSecondary.vue'
 import NavUser from './NavUser.vue'
@@ -201,74 +197,6 @@ const navSecondary = computed(() => {
 
   return items
 })
-
-const data = {
-  navClouds: [
-    {
-      title: 'Capture',
-      icon: IconCamera,
-      isActive: true,
-      url: '#',
-      items: [
-        {
-          title: 'Active Proposals',
-          url: '#',
-        },
-        {
-          title: 'Archived',
-          url: '#',
-        },
-      ],
-    },
-    {
-      title: 'Proposal',
-      icon: IconFileDescription,
-      url: '#',
-      items: [
-        {
-          title: 'Active Proposals',
-          url: '#',
-        },
-        {
-          title: 'Archived',
-          url: '#',
-        },
-      ],
-    },
-    {
-      title: 'Prompts',
-      icon: IconFileAi,
-      url: '#',
-      items: [
-        {
-          title: 'Active Proposals',
-          url: '#',
-        },
-        {
-          title: 'Archived',
-          url: '#',
-        },
-      ],
-    },
-  ],
-  documents: [
-    {
-      name: 'Data Library',
-      url: '#',
-      icon: IconDatabase,
-    },
-    {
-      name: 'Reports',
-      url: '#',
-      icon: IconReport,
-    },
-    {
-      name: 'Word Assistant',
-      url: '#',
-      icon: IconFileDescription,
-    },
-  ],
-}
 </script>
 
 <template>
@@ -287,7 +215,6 @@ const data = {
     </SidebarHeader>
     <SidebarContent>
       <NavMain :items="navMain" />
-      <NavDocuments :items="data.documents" />
       <NavSecondary :items="navSecondary" class="mt-auto" />
     </SidebarContent>
     <SidebarFooter>

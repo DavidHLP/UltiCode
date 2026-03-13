@@ -19,30 +19,31 @@ const router = createRouter({
           path: '',
           name: 'dashboard',
           component: () => import('@/views/dashboard/DashboardView.vue'),
+          meta: { title: '仪表盘' },
         },
         {
           path: 'analytics',
           name: 'analytics',
           component: () => import('@/views/analytics/AnalyticsView.vue'),
-          meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
+          meta: { title: '数据分析', permission: { action: 'READ', resource: 'SYSTEM' } },
         },
         {
           path: 'users',
           name: 'users',
           component: () => import('@/views/users/UsersListView.vue'),
-          meta: { permission: { action: 'READ', resource: 'USER' } },
+          meta: { title: '用户管理', permission: { action: 'READ', resource: 'USER' } },
         },
         {
           path: 'audit',
           name: 'audit',
           component: () => import('@/views/audit/AuditLogsView.vue'),
-          meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
+          meta: { title: '审计日志', permission: { action: 'READ', resource: 'SYSTEM' } },
         },
         {
           path: 'problems',
           name: 'problems',
           component: () => import('@/views/problems/ProblemsListView.vue'),
-          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+          meta: { title: '题目管理', permission: { action: 'READ', resource: 'PROBLEM' } },
         },
         // Problem detail views (with tabs)
         {
@@ -53,32 +54,32 @@ const router = createRouter({
           path: 'problems/:id/description',
           name: 'problem-view-description',
           component: () => import('@/views/problems/ProblemDetailView.vue'),
-          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+          meta: { title: '问题详情', permission: { action: 'READ', resource: 'PROBLEM' } },
         },
         {
           path: 'problems/:id/code',
           name: 'problem-view-code',
           component: () => import('@/views/problems/ProblemDetailView.vue'),
-          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+          meta: { title: '问题详情', permission: { action: 'READ', resource: 'PROBLEM' } },
         },
         {
           path: 'problems/:id/cases',
           name: 'problem-view-cases',
           component: () => import('@/views/problems/ProblemDetailView.vue'),
-          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+          meta: { title: '问题详情', permission: { action: 'READ', resource: 'PROBLEM' } },
         },
         {
           path: 'problems/:id/audit',
           name: 'problem-view-audit',
           component: () => import('@/views/problems/ProblemDetailView.vue'),
-          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+          meta: { title: '问题详情', permission: { action: 'READ', resource: 'PROBLEM' } },
         },
         // Problem edit views (split into 3 views)
         {
           path: 'problems/create',
           name: 'problem-create',
           component: () => import('@/views/problems/ProblemCreateView.vue'),
-          meta: { permission: { action: 'CREATE', resource: 'PROBLEM' } },
+          meta: { title: '创建问题', permission: { action: 'CREATE', resource: 'PROBLEM' } },
         },
         {
           path: 'problems/:id/edit',
@@ -88,19 +89,19 @@ const router = createRouter({
           path: 'problems/:id/edit/description',
           name: 'problem-edit-description',
           component: () => import('@/views/problems/edit/EditDescriptionView.vue'),
-          meta: { permission: { action: 'UPDATE', resource: 'PROBLEM' } },
+          meta: { title: '编辑问题', permission: { action: 'UPDATE', resource: 'PROBLEM' } },
         },
         {
           path: 'problems/:id/edit/code',
           name: 'problem-edit-code',
           component: () => import('@/views/problems/edit/EditCodeView.vue'),
-          meta: { permission: { action: 'UPDATE', resource: 'PROBLEM' } },
+          meta: { title: '编辑问题', permission: { action: 'UPDATE', resource: 'PROBLEM' } },
         },
         {
           path: 'problems/:id/edit/cases',
           name: 'problem-edit-cases',
           component: () => import('@/views/problems/edit/EditCasesView.vue'),
-          meta: { permission: { action: 'UPDATE', resource: 'PROBLEM' } },
+          meta: { title: '编辑问题', permission: { action: 'UPDATE', resource: 'PROBLEM' } },
         },
         // Legacy route name for backward compatibility (aliases to redirect)
         {
@@ -113,33 +114,33 @@ const router = createRouter({
           path: 'moderation',
           name: 'moderation',
           component: () => import('@/views/moderation/ModerationQueueView.vue'),
-          meta: { permission: { action: 'MODERATE', resource: 'PROBLEM' } },
+          meta: { title: '内容审核', permission: { action: 'MODERATE', resource: 'PROBLEM' } },
         },
         // Problem Lists
         {
           path: 'problem-lists',
           name: 'problem-lists',
           component: () => import('@/views/problem-lists/ProblemListsListView.vue'),
-          meta: { permission: { action: 'READ', resource: 'PROBLEM_LIST' } },
+          meta: { title: '题单管理', permission: { action: 'READ', resource: 'PROBLEM_LIST' } },
         },
         {
           path: 'problem-lists/create',
           name: 'problem-list-create',
           component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
-          meta: { permission: { action: 'CREATE', resource: 'PROBLEM_LIST' } },
+          meta: { title: '创建题单', permission: { action: 'CREATE', resource: 'PROBLEM_LIST' } },
         },
         {
           path: 'problem-lists/:id/edit',
           name: 'problem-list-edit',
           component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
-          meta: { permission: { action: 'UPDATE', resource: 'PROBLEM_LIST' } },
+          meta: { title: '编辑题单', permission: { action: 'UPDATE', resource: 'PROBLEM_LIST' } },
         },
         // Solutions
         {
           path: 'solutions',
           name: 'solutions',
           component: () => import('@/views/solutions/SolutionsListView.vue'),
-          meta: { permission: { action: 'READ', resource: 'SOLUTION' } },
+          meta: { title: '题解管理', permission: { action: 'READ', resource: 'SOLUTION' } },
         },
         {
           path: 'solutions/:id',
@@ -149,13 +150,13 @@ const router = createRouter({
           path: 'solutions/:id/description',
           name: 'solution-view-description',
           component: () => import('@/views/solutions/SolutionDetailView.vue'),
-          meta: { permission: { action: 'READ', resource: 'SOLUTION' } },
+          meta: { title: '题解详情', permission: { action: 'READ', resource: 'SOLUTION' } },
         },
         {
           path: 'solutions/:id/code',
           name: 'solution-view-code',
           component: () => import('@/views/solutions/SolutionDetailView.vue'),
-          meta: { permission: { action: 'READ', resource: 'SOLUTION' } },
+          meta: { title: '题解详情', permission: { action: 'READ', resource: 'SOLUTION' } },
         },
         // Comments
         {
@@ -163,6 +164,7 @@ const router = createRouter({
           name: 'comments',
           component: () => import('@/views/comments/CommentsListView.vue'),
           meta: {
+            title: '评论管理',
             permission: [
               { action: 'MODERATE', resource: 'FORUM_COMMENT' },
               { action: 'MODERATE', resource: 'SOLUTION_COMMENT' },
@@ -174,7 +176,7 @@ const router = createRouter({
           path: 'tags',
           name: 'tags',
           component: () => import('@/views/tags/TagsListView.vue'),
-          meta: { permission: { action: 'READ', resource: 'TAG' } },
+          meta: { title: '标签管理', permission: { action: 'READ', resource: 'TAG' } },
         },
         // Forum
         {
@@ -185,7 +187,7 @@ const router = createRouter({
           path: 'forum/posts',
           name: 'forum-posts',
           component: () => import('@/views/forum/ForumPostsListView.vue'),
-          meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
+          meta: { title: '论坛帖子', permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
         },
         // Forum post detail views (with tabs)
         {
@@ -196,86 +198,88 @@ const router = createRouter({
           path: 'forum/posts/:id/overview',
           name: 'forum-post-detail-overview',
           component: () => import('@/views/forum/ForumPostDetailView.vue'),
-          meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
+          meta: { title: '帖子详情', permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
         },
         {
           path: 'forum/posts/:id/comments',
           name: 'forum-post-detail-comments',
           component: () => import('@/views/forum/ForumPostDetailView.vue'),
-          meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
+          meta: { title: '帖子详情', permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
         },
         {
           path: 'forum/posts/:id/audit',
           name: 'forum-post-detail-audit',
           component: () => import('@/views/forum/ForumPostDetailView.vue'),
-          meta: { permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
+          meta: { title: '帖子详情', permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
         },
         // Contests
         {
           path: 'contests',
           name: 'contests',
           component: () => import('@/views/contests/ContestsListView.vue'),
-          meta: { permission: { action: 'READ', resource: 'CONTEST' } },
+          meta: { title: '比赛管理', permission: { action: 'READ', resource: 'CONTEST' } },
         },
         {
           path: 'contests/:id',
           name: 'contest-detail',
           component: () => import('@/views/contests/ContestDetailView.vue'),
-          meta: { permission: { action: 'READ', resource: 'CONTEST' } },
+          meta: { title: '比赛详情', permission: { action: 'READ', resource: 'CONTEST' } },
         },
         // Submissions
         {
           path: 'submissions',
           name: 'submissions',
           component: () => import('@/views/submissions/SubmissionsView.vue'),
-          meta: { permission: { action: 'READ', resource: 'PROBLEM' } },
+          meta: { title: '提交记录', permission: { action: 'READ', resource: 'PROBLEM' } },
         },
         // Settings
         {
           path: 'settings',
           name: 'settings',
           component: () => import('@/views/settings/SettingsView.vue'),
-          meta: { permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+          meta: { title: '系统设置', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
         },
         // Notifications
         {
           path: 'notifications',
           name: 'notifications',
           component: () => import('@/views/notifications/NotificationsListView.vue'),
-          meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
+          meta: { title: '通知管理', permission: { action: 'READ', resource: 'SYSTEM' } },
         },
         // System Monitoring
         {
           path: 'monitoring',
           name: 'monitoring',
           component: () => import('@/views/system/MonitoringView.vue'),
-          meta: { permission: { action: 'READ', resource: 'SYSTEM' } },
+          meta: { title: '系统监控', permission: { action: 'READ', resource: 'SYSTEM' } },
         },
         // Backup & Recovery
         {
           path: 'backup',
           name: 'backup',
           component: () => import('@/views/system/BackupView.vue'),
-          meta: { permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+          meta: { title: '备份恢复', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
         },
         // Email Management
         {
           path: 'email',
           name: 'email',
           component: () => import('@/views/system/EmailView.vue'),
-          meta: { permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+          meta: { title: '邮件管理', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
         },
         // Account
         {
           path: 'account',
           name: 'account',
           component: () => import('@/views/account/AccountView.vue'),
+          meta: { title: '账户设置' },
         },
         // Billing
         {
           path: 'billing',
           name: 'billing',
           component: () => import('@/views/billing/BillingView.vue'),
+          meta: { title: '计费管理' },
         },
       ],
     },

@@ -3,6 +3,10 @@ import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
 import { setCsrfToken, clearCsrfToken } from '@/utils/csrf'
 
+// Key for storing auth state indicator in localStorage
+// Since cookies are httpOnly, we need this to avoid unnecessary /auth/me calls
+const AUTH_HAS_CREDENTIALS_KEY = 'auth_has_credentials'
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const permissions = ref<Set<string>>(new Set())
@@ -19,6 +23,8 @@ export const useAuthStore = defineStore('auth', () => {
       if (loginResponse.csrf_token) {
         setCsrfToken(loginResponse.csrf_token)
       }
+      // Mark that we have auth credentials (httpOnly cookies were set by backend)
+      localStorage.setItem(AUTH_HAS_CREDENTIALS_KEY, 'true')
       // Login response returns partial user data, fetch full user data
       await fetchUser()
       return true
@@ -37,6 +43,8 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       permissions.value.clear()
       clearCsrfToken()
+      // Clear auth credentials flag
+      localStorage.removeItem(AUTH_HAS_CREDENTIALS_KEY)
     }
   }
 
@@ -59,6 +67,8 @@ export const useAuthStore = defineStore('auth', () => {
       return userData
     } catch {
       // 401 is expected for unauthenticated users - no need to log
+      // Clear credentials flag since auth failed (cookie expired or invalid)
+      localStorage.removeItem(AUTH_HAS_CREDENTIALS_KEY)
       user.value = null
       permissions.value.clear()
       return null
@@ -69,7 +79,13 @@ export const useAuthStore = defineStore('auth', () => {
     if (isInitialized.value) return
 
     isInitialized.value = true
-    await fetchUser()
+
+    // Only attempt to fetch user if we have credentials flag set
+    // This prevents unnecessary /auth/me calls that would trigger rate limiting
+    const hasCredentials = localStorage.getItem(AUTH_HAS_CREDENTIALS_KEY) === 'true'
+    if (hasCredentials) {
+      await fetchUser()
+    }
   }
 
   function hasPermission(action: string, resource: string): boolean {

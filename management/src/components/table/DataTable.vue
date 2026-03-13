@@ -159,7 +159,7 @@ watch(
 
 <template>
   <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between px-1">
+    <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <slot name="toolbar-left" :table="table" />
       </div>
@@ -169,11 +169,17 @@ watch(
 
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button variant="outline" size="sm">
-              <IconLayoutColumns />
-              <span class="hidden lg:inline">{{ t('table.customizeColumns') }}</span>
-              <span class="lg:hidden">{{ t('table.columns') }}</span>
-              <IconChevronDown />
+            <Button
+              variant="terminal"
+              size="sm"
+              class="h-8 font-data text-xs border-[var(--silver-300)]"
+            >
+              <IconLayoutColumns class="h-3.5 w-3.5" />
+              <span class="hidden lg:inline uppercase tracking-wider">{{
+                t('table.customizeColumns')
+              }}</span>
+              <span class="lg:hidden uppercase tracking-wider">{{ t('table.columns') }}</span>
+              <IconChevronDown class="h-3.5 w-3.5" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="w-56">
@@ -205,11 +211,11 @@ watch(
 
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="overflow-hidden rounded-lg border"
+      class="overflow-hidden border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
     >
       <DragDropProvider :modifiers="[RestrictToVerticalAxis]">
         <Table>
-          <TableHeader class="bg-muted sticky top-0 z-10">
+          <TableHeader class="bg-[var(--surface-sunken)] sticky top-0 z-10">
             <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
               <TableHead
                 v-for="header in headerGroup.headers"
@@ -244,7 +250,10 @@ watch(
         </Table>
       </DragDropProvider>
     </div>
-    <div v-else-if="!loading" class="flex h-96 items-center justify-center rounded-lg border">
+    <div
+      v-else-if="!loading"
+      class="flex h-96 items-center justify-center border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
+    >
       <slot name="empty">
         <Empty class="border-none">
           <EmptyMedia variant="icon">
@@ -261,17 +270,25 @@ watch(
     </div>
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="flex items-center justify-between px-2"
+      class="flex items-center justify-between px-4 lg:px-6 py-3 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
     >
-      <div class="text-muted-foreground hidden flex-1 text-sm lg:flex">
-        {{ table.getFilteredSelectedRowModel().rows.length }} {{ t('table.of') }}
-        {{ table.getFilteredRowModel().rows.length }} {{ t('table.rowsSelected') }}.
+      <div
+        class="hidden flex-1 text-sm lg:flex items-center gap-2 font-data text-xs text-[var(--silver-500)]"
+      >
+        <span class="text-[var(--terminal-cyan)] tabular-nums">{{
+          table.getFilteredSelectedRowModel().rows.length
+        }}</span>
+        <span>{{ t('table.of') }}</span>
+        <span class="tabular-nums">{{ table.getFilteredRowModel().rows.length }}</span>
+        <span>{{ t('table.rowsSelected') }}</span>
       </div>
-      <div class="flex w-full items-center gap-8 lg:w-fit">
+      <div class="flex w-full items-center gap-6 lg:w-fit">
         <div class="hidden items-center gap-2 lg:flex">
-          <Label for="rows-per-page" class="text-sm font-medium">{{
-            t('table.rowsPerPage')
-          }}</Label>
+          <Label
+            for="rows-per-page"
+            class="text-xs font-data text-[var(--silver-500)] uppercase tracking-wider"
+            >{{ t('table.rowsPerPage') }}</Label
+          >
           <Select
             :disabled="loading"
             :model-value="`${table.getState().pagination.pageSize}`"
@@ -281,7 +298,11 @@ watch(
               }
             "
           >
-            <SelectTrigger id="rows-per-page" size="sm" class="w-20">
+            <SelectTrigger
+              id="rows-per-page"
+              size="sm"
+              class="w-20 h-7 font-data text-xs border-[var(--silver-300)]"
+            >
               <SelectValue :placeholder="`${table.getState().pagination.pageSize}`" />
             </SelectTrigger>
             <SelectContent side="top">
@@ -295,43 +316,49 @@ watch(
             </SelectContent>
           </Select>
         </div>
-        <div class="flex w-fit items-center justify-center text-sm font-medium">
-          {{ t('table.page') }} {{ table.getState().pagination.pageIndex + 1 }} {{ t('table.of') }}
-          {{ table.getPageCount() }}
+        <div
+          class="flex w-fit items-center justify-center text-xs font-data text-[var(--silver-500)]"
+        >
+          <span>{{ t('table.page') }}</span>
+          <span class="mx-1.5 text-[var(--terminal-cyan)] tabular-nums">{{
+            table.getState().pagination.pageIndex + 1
+          }}</span>
+          <span>{{ t('table.of') }}</span>
+          <span class="ml-1.5 tabular-nums">{{ table.getPageCount() }}</span>
         </div>
-        <div class="ml-auto flex items-center gap-2 lg:ml-0">
+        <div class="ml-auto flex items-center gap-1.5 lg:ml-0">
           <Button
-            variant="outline"
-            class="hidden h-8 w-8 p-0 lg:flex"
+            variant="terminal"
+            class="hidden h-7 w-7 p-0 lg:flex border-[var(--silver-300)]"
             :disabled="loading || !table.getCanPreviousPage()"
             @click="table.setPageIndex(0)"
           >
             <span class="sr-only">{{ t('table.goToFirstPage') }}</span>
-            <IconChevronsLeft />
+            <IconChevronsLeft class="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="outline"
-            class="size-8"
+            variant="terminal"
+            class="h-7 w-7 p-0 border-[var(--silver-300)]"
             size="icon"
             :disabled="loading || !table.getCanPreviousPage()"
             @click="table.previousPage()"
           >
             <span class="sr-only">{{ t('table.goToPreviousPage') }}</span>
-            <IconChevronLeft />
+            <IconChevronLeft class="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="outline"
-            class="size-8"
+            variant="terminal"
+            class="h-7 w-7 p-0 border-[var(--silver-300)]"
             size="icon"
             :disabled="loading || !table.getCanNextPage()"
             @click="table.nextPage()"
           >
             <span class="sr-only">{{ t('table.goToNextPage') }}</span>
-            <IconChevronRight />
+            <IconChevronRight class="h-3.5 w-3.5" />
           </Button>
           <Button
-            variant="outline"
-            class="hidden size-8 lg:flex"
+            variant="terminal"
+            class="hidden h-7 w-7 p-0 lg:flex border-[var(--silver-300)]"
             size="icon"
             :disabled="loading || !table.getCanNextPage()"
             @click="table.setPageIndex(table.getPageCount() - 1)"

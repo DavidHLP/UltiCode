@@ -32,7 +32,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
         'peer size-4 shrink-0 border transition-shadow outline-none disabled:cursor-not-allowed disabled:opacity-50',
         // Default variant
         variant === 'default' && [
-          'border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive rounded-[4px] shadow-xs focus-visible:ring-[3px]',
+          'border-input data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground data-[state=checked]:border-primary focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive shadow-xs focus-visible:ring-[3px]',
         ],
         // Terminal variant
         variant === 'terminal' && [

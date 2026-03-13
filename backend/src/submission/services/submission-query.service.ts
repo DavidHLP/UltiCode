@@ -228,7 +228,7 @@ export class SubmissionQueryService {
         DATE_FORMAT(created_at, '%Y-%m') as month,
         COUNT(*) as count,
         SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) as accepted
-      FROM submission
+      FROM submissions
       WHERE user_id = ${userId}
         AND created_at >= ${twelveMonthsAgo}
       GROUP BY DATE_FORMAT(created_at, '%Y-%m')
@@ -351,7 +351,7 @@ export class SubmissionQueryService {
         DATE_FORMAT(created_at, '%Y-%u') as week,
         COUNT(DISTINCT CASE WHEN status = 'Accepted' THEN problem_id END) as solved,
         SUM(COALESCE(runtime, 0)) as total_time
-      FROM submission
+      FROM submissions
       WHERE user_id = ${userId}
         AND created_at >= ${twelveWeeksAgo}
       GROUP BY DATE_FORMAT(created_at, '%Y-%u')
@@ -366,8 +366,8 @@ export class SubmissionQueryService {
         p.difficulty,
         COUNT(DISTINCT s.problem_id) as count,
         AVG(s.runtime) as avg_time
-      FROM submission s
-      JOIN problem p ON s.problem_id = p.id
+      FROM submissions s
+      JOIN problems p ON s.problem_id = p.id
       WHERE s.user_id = ${userId}
         AND s.status = 'Accepted'
       GROUP BY p.difficulty

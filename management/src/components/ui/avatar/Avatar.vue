@@ -21,8 +21,8 @@ const props = withDefaults(
     :class="
       cn(
         'relative flex size-8 shrink-0 overflow-hidden',
-        shape === 'circle' && 'rounded-full',
-        shape === 'square' && 'rounded-sm',
+        shape === 'circle' && '',
+        shape === 'square' && '',
         props.class,
       )
     "

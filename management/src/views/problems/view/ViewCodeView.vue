@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { onMounted, computed } from 'vue'
+import { onMounted, computed, ref } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
+import { IconCode } from '@tabler/icons-vue'
 import { useProblemsStore } from '@/stores/admin/problems'
 import CodeDisplay from '../components/CodeDisplay.vue'
 
 const route = useRoute()
 const { t } = useI18n()
 const problemsStore = useProblemsStore()
+
+const isLoaded = ref(false)
 
 const problemId = computed(() => route.params.id as string)
 const problem = computed(() => problemsStore.currentProblem)
@@ -16,35 +19,53 @@ onMounted(async () => {
   if (problemId.value && !problem.value) {
     await problemsStore.fetchProblem(problemId.value)
   }
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
 })
 </script>
 
 <template>
-  <div v-if="problem" class="space-y-4">
-    <!-- Breadcrumbs -->
-    <div class="flex items-center gap-2 text-sm text-muted-foreground">
-      <router-link :to="{ name: 'problems' }" class="hover:text-foreground transition-colors">
-        {{ t('problems.title') }}
-      </router-link>
-      <span>/</span>
-      <router-link
-        :to="{ name: 'problem-view-description', params: { id: problemId } }"
-        class="hover:text-foreground transition-colors"
-      >
-        {{ problem.title }}
-      </router-link>
-      <span>/</span>
-      <span class="text-foreground">{{ t('problems.tabs.code') }}</span>
+  <div class="relative flex flex-col gap-0 overflow-auto">
+    <!-- Terminal Header (only visible on mobile or when not in parent view) -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] lg:hidden',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Info Ticker -->
+      <div class="px-4 lg:px-6 py-2.5 flex items-center gap-6 bg-[var(--surface-sunken)]">
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">view:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)]">code</span>
+        </div>
+        <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
+          <IconCode class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">language templates</span>
+        </div>
+      </div>
     </div>
 
-    <CodeDisplay :languages="problem.languages" />
-  </div>
+    <!-- Main Content -->
+    <div class="flex-1 py-4">
+      <div v-if="problem" class="space-y-4">
+        <CodeDisplay :languages="problem.languages" />
+      </div>
 
-  <!-- Loading State -->
-  <div v-else class="text-center py-12">
-    <div
-      class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
-    ></div>
-    <p class="mt-2 text-muted-foreground">{{ t('problems.view.loading') }}</p>
+      <!-- Loading State - Terminal Style -->
+      <div v-else class="flex flex-col items-center justify-center py-24 text-center">
+        <div
+          class="w-12 h-12 rounded-full bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] flex items-center justify-center mb-3"
+        >
+          <div
+            class="h-6 w-6 animate-spin rounded-full border-2 border-[var(--accent-electric)] border-t-transparent"
+          ></div>
+        </div>
+        <h2 class="text-sm font-medium mb-1 font-data">{{ t('problems.view.loading') }}</h2>
+        <p class="text-xs text-[var(--silver-500)] font-data">// fetching problem data...</p>
+      </div>
+    </div>
   </div>
 </template>

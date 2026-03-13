@@ -1064,7 +1064,7 @@ const columns: ColumnDef<Problem>[] = [
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 px-4 lg:px-6 py-4">
+    <div class="flex-1 py-4">
       <DataTable
         class="terminal-table"
         :columns="columns"

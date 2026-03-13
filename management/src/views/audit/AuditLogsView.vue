@@ -61,9 +61,7 @@ const stats = computed(() => {
     total: auditStore.total,
     create: logs.filter((l) => l.action.includes('CREATE')).length,
     update: logs.filter((l) => l.action.includes('UPDATE')).length,
-    delete: logs.filter(
-      (l) => l.action.includes('DELETE') || l.action.includes('BAN'),
-    ).length,
+    delete: logs.filter((l) => l.action.includes('DELETE') || l.action.includes('BAN')).length,
   }
 })
 
@@ -312,7 +310,7 @@ const columns: ColumnDef<AuditLog>[] = [
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 px-4 lg:px-6 py-4">
+    <div class="flex-1 py-4">
       <DataTable
         :columns="columns"
         :data="auditStore.logs"
@@ -339,7 +337,9 @@ const columns: ColumnDef<AuditLog>[] = [
               </button>
             </div>
             <Select v-model="actionFilter">
-              <SelectTrigger class="terminal-input w-[160px] font-data text-xs uppercase tracking-wider">
+              <SelectTrigger
+                class="terminal-input w-[160px] font-data text-xs uppercase tracking-wider"
+              >
                 <SelectValue :placeholder="t('audit.filters.allActions')" />
               </SelectTrigger>
               <SelectContent>
@@ -354,7 +354,9 @@ const columns: ColumnDef<AuditLog>[] = [
               </SelectContent>
             </Select>
             <Select v-model="entityTypeFilter">
-              <SelectTrigger class="terminal-input w-[150px] font-data text-xs uppercase tracking-wider">
+              <SelectTrigger
+                class="terminal-input w-[150px] font-data text-xs uppercase tracking-wider"
+              >
                 <SelectValue placeholder="All Entities" />
               </SelectTrigger>
               <SelectContent>

@@ -16,7 +16,9 @@ interface BackendExample {
   explanation: string;
   inputs?: BackendExampleInput[];
   inputText?: string;
+  input_text?: string;
   outputText?: string;
+  output_text?: string;
 }
 
 interface BackendProblemDetail {
@@ -64,13 +66,13 @@ const mapExamplesToTestCases = (
           label: input.name,
         }))
       : [],
-    output: ex.outputText,
+    output: ex.outputText ?? ex.output_text,
   }));
 
 const mapExamplesToDescription = (examples: BackendExample[]) =>
   examples.map((ex) => ({
-    input: ex.inputText || "",
-    output: ex.outputText || "",
+    input: ex.inputText ?? ex.input_text ?? "",
+    output: ex.outputText ?? ex.output_text ?? "",
     explanation: ex.explanation,
   }));
 

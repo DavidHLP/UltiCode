@@ -42,7 +42,7 @@ const variantClasses: Record<BadgeVariant, string> = {
   >
     <span
       v-if="pulse"
-      class="w-1.5 h-1.5 rounded-full"
+      class="w-1.5 h-1.5"
       :class="
         cn(
           variant === 'success' && 'bg-[var(--terminal-green)]',

@@ -31,7 +31,6 @@ import {
 } from './dto/submission-query.dto';
 import { Locale } from '../i18n/i18n.decorator';
 import type { SupportedLocale } from '../i18n/i18n.constants';
-import { ThrottleSubmission } from '../common/guards/throttle.guard';
 
 interface AuthenticatedRequest extends Request {
   user: { id: string };
@@ -178,7 +177,6 @@ export class ProblemSubmissionController {
 
   @Post('run')
   @UseGuards(AuthGuard)
-  @ThrottleSubmission()
   async run(
     @Param('problemId', ParseIntPipe) problemId: number,
     @Body() dto: RunSubmissionDto,
@@ -189,7 +187,6 @@ export class ProblemSubmissionController {
 
   @Post()
   @UseGuards(AuthGuard)
-  @ThrottleSubmission()
   async create(
     @Param('problemId', ParseIntPipe) problemId: number,
     @Body() dto: CreateSubmissionDto,
@@ -226,7 +223,6 @@ export class ContestSubmissionController {
 
   @Post()
   @UseGuards(AuthGuard)
-  @ThrottleSubmission()
   async submitInContest(
     @Param('contestId') contestId: string,
     @Param('problemId', ParseIntPipe) problemId: number,

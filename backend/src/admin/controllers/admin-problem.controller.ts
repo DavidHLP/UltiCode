@@ -14,7 +14,6 @@ import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
 import { RolesGuard } from '../guards/roles.guard';
-import { ThrottleAdmin } from '../../common/guards/throttle.guard';
 import { RequirePermissions } from '../decorators/permissions.decorator';
 import { RequireRoles } from '../decorators/roles.decorator';
 import { CurrentAdmin } from '../decorators/current-admin.decorator';
@@ -103,7 +102,6 @@ function sanitizeMarkdown(content: string): string {
 
 @Controller('admin/problems')
 @UseGuards(AuthGuard, PermissionsGuard, RolesGuard, CsrfGuard)
-@ThrottleAdmin()
 export class AdminProblemController {
   constructor(
     private prisma: PrismaService,

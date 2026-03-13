@@ -129,6 +129,20 @@ export default {
     batchNotesPlaceholder: 'Add notes for all selected problems (optional)...',
     newStatus: 'New Status',
     apply: 'Apply',
+    // Redesign keys
+    columns: {
+      problem: 'Problem',
+    },
+    quickResolve: 'Quick Resolve',
+    quickDismiss: 'Quick Dismiss',
+    unknownReporter: 'Unknown',
+    drawerTitle: 'Moderation Details',
+    drawerDescription: 'View flag information and moderate',
+    problemDetails: 'Problem Details',
+    flagInfo: 'Flag Information',
+    moderationActions: 'Moderation Actions',
+    searchPlaceholder: 'Search problems...',
+    allDifficulties: 'All Difficulties',
   },
 
   // Analytics

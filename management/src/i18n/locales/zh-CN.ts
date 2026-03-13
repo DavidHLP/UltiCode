@@ -135,6 +135,20 @@ export default {
     batchNotesPlaceholder: '为所有选中题目添加备注（可选）...',
     newStatus: '新状态',
     apply: '应用',
+    // Redesign keys
+    columns: {
+      problem: '题目',
+    },
+    quickResolve: '快速解决',
+    quickDismiss: '快速驳回',
+    unknownReporter: '未知用户',
+    drawerTitle: '审核详情',
+    drawerDescription: '查看举报信息并进行审核',
+    problemDetails: '题目详情',
+    flagInfo: '举报信息',
+    moderationActions: '审核操作',
+    searchPlaceholder: '搜索题目...',
+    allDifficulties: '全部难度',
   },
 
   // 分析报表

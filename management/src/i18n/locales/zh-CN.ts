@@ -149,6 +149,19 @@ export default {
     moderationActions: '审核操作',
     searchPlaceholder: '搜索题目...',
     allDifficulties: '全部难度',
+
+    // 终端样式
+    terminal: {
+      loading: '加载中...',
+      selected: '已选择',
+      noFlaggedItems: '无被标记项目',
+      flagReason: '标记原因',
+      moderationNotes: '审核备注',
+      prev: '上一页',
+      next: '下一页',
+      header: '终端头部',
+      statsTicker: '统计标记',
+    },
   },
 
   // 分析报表

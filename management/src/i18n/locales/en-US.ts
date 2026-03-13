@@ -143,6 +143,19 @@ export default {
     moderationActions: 'Moderation Actions',
     searchPlaceholder: 'Search problems...',
     allDifficulties: 'All Difficulties',
+
+    // Terminal style
+    terminal: {
+      loading: 'LOADING...',
+      selected: 'SELECTED',
+      noFlaggedItems: 'NO_FLAGGED_ITEMS',
+      flagReason: 'FLAG_REASON',
+      moderationNotes: 'MODERATION_NOTES',
+      prev: 'PREV',
+      next: 'NEXT',
+      header: 'Terminal Header',
+      statsTicker: 'Stats Ticker',
+    },
   },
 
   // Analytics

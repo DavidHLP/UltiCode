@@ -11,10 +11,7 @@ import {
   clearSubmissionStatuses,
   seedSubmissionStatuses,
 } from './seed-submission-statuses';
-import {
-  clearTranslations,
-  seedTranslations,
-} from './seed-translations';
+import { clearTranslations, seedTranslations } from './seed-translations';
 import {
   clearPermissions,
   seedRolePermissions,
@@ -35,6 +32,7 @@ import {
   createSubmissionsSeeder,
   createTranslationsSeeder,
   createPermissionsSeeder,
+  createFlaggedProblemsSeeder,
 } from './modules';
 
 /**
@@ -125,7 +123,10 @@ async function main(): Promise<void> {
       // New optimized seed system
       console.log('🚀 Using new optimized seed system...\n');
 
-      const runner = createSeedRunner(prisma, process.env.SEED_VERBOSE === 'true');
+      const runner = createSeedRunner(
+        prisma,
+        process.env.SEED_VERBOSE === 'true',
+      );
 
       // Register all seeders in dependency order
       runner.registerSeeders([
@@ -141,6 +142,7 @@ async function main(): Promise<void> {
         createContestsSeeder,
         createSolutionsSeeder,
         createProblemListsSeeder,
+        createFlaggedProblemsSeeder,
         // L4 - Depends on L3
         createSubmissionsSeeder,
         // L5 - Final layer

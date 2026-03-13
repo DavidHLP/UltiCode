@@ -3,7 +3,10 @@ export { BaseSeeder, createSeederExport } from './base/base.seeder';
 export type { SeederFactory } from './base/base.seeder';
 
 // L0 - No dependencies
-export { SubmissionStatusesSeeder, createSubmissionStatusesSeeder } from './submission-statuses';
+export {
+  SubmissionStatusesSeeder,
+  createSubmissionStatusesSeeder,
+} from './submission-statuses';
 export { ProblemTagsSeeder, createProblemTagsSeeder } from './problem-tags';
 
 // L1 - Base entities
@@ -17,6 +20,10 @@ export { ForumSeeder, createForumSeeder } from './forum';
 export { ContestsSeeder, createContestsSeeder } from './contests';
 export { SolutionsSeeder, createSolutionsSeeder } from './solutions';
 export { ProblemListsSeeder, createProblemListsSeeder } from './problem-lists';
+export {
+  FlaggedProblemsSeeder,
+  createFlaggedProblemsSeeder,
+} from './flagged-problems';
 
 // L4 - Depends on L3
 export { SubmissionsSeeder, createSubmissionsSeeder } from './submissions';

@@ -13,6 +13,9 @@ export default {
     pastSubtitle: "Join virtual contests to prepare for the ranking contest",
     partner: "Contest Partner",
     noContests: "No contests available",
+    noContestsHint: "There are no contests running right now. Check back later!",
+    noUpcomingHint: "No upcoming contests scheduled yet. Stay tuned!",
+    noFinishedHint: "No finished contests yet. Participate in contests to see your history here.",
     viewAll: "View All",
     live: "Live Contests",
     liveSubtitle:
@@ -137,6 +140,16 @@ export default {
     ratingChange: "Rating Change",
     globalRanking: "Global",
     localRanking: "Local Ranking",
+    frozen: "Rankings are frozen during the final minutes",
+    noRankings: "No rankings available",
+    live: "Live",
+    connecting: "Connecting...",
+  },
+
+  // First Solve
+  firstSolve: {
+    title: "First Solve!",
+    solved: "solved the problem first!",
   },
 
   // Rating
@@ -186,6 +199,10 @@ export default {
     calculating: "Calculating...",
     registrationOpen: "Registration Open",
     registrationClosed: "Registration Closed",
+    draft: "Draft",
+    published: "Published",
+    freezing: "Freezing",
+    archived: "Archived",
   },
 
   // Time

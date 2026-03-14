@@ -60,14 +60,13 @@ const contestRoutes: RouteRecordRaw = {
   children: [
     {
       path: "",
-      name: "contest-home",
-      component: () => import("@/views/contest/ContestView.vue"),
+      name: "contest-list",
+      component: () => import("@/views/contest/ContestListView.vue"),
     },
     {
       path: "past",
       name: "contest-past",
-      component: () => import("@/views/contest/ContestView.vue"),
-      props: { tab: "past" },
+      component: () => import("@/views/contest/ContestListView.vue"),
     },
     {
       path: "my",
@@ -78,17 +77,17 @@ const contestRoutes: RouteRecordRaw = {
     {
       path: "global-ranking",
       name: "contest-global-ranking",
-      component: () => import("@/views/contest/ContestView.vue"), // Reuse or create specific view
+      component: () => import("@/views/contest/ContestView.vue"),
       props: { tab: "ranking" },
     },
     {
       path: "local-ranking",
       name: "contest-local-ranking",
-      component: () => import("@/views/contest/ContestView.vue"), // Reuse or create specific view
+      component: () => import("@/views/contest/ContestView.vue"),
       props: { tab: "ranking" },
     },
     {
-      path: ":contestId",
+      path: ":slug",
       name: "contest-detail",
       component: () => import("@/views/contest/detailed/ContestDetailView.vue"),
     },

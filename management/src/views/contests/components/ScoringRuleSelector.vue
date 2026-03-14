@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { IconPlus, IconLoader, IconCalculator } from '@tabler/icons-vue'
@@ -13,7 +13,11 @@ import {
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { scoringRulesApi, type ScoringRule, type CreateScoringRuleDto } from '@/api/admin/scoring-rules'
+import {
+  scoringRulesApi,
+  type ScoringRule,
+  type CreateScoringRuleDto,
+} from '@/api/admin/scoring-rules'
 
 const props = defineProps<{
   modelValue?: string
@@ -196,7 +200,9 @@ function cancelCreateNew() {
             </SelectItem>
           </SelectContent>
         </Select>
-        <span class="terminal-comment text-xs">{{ t('contests.scoringRule.selectDescription') }}</span>
+        <span class="terminal-comment text-xs">{{
+          t('contests.scoringRule.selectDescription')
+        }}</span>
       </div>
 
       <!-- Selected Rule Details -->
@@ -224,37 +230,49 @@ function cancelCreateNew() {
           </p>
           <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.baseScorePerProblem') }}</span>
+              <span class="terminal-label text-[10px]">{{
+                t('scoringRules.form.baseScorePerProblem')
+              }}</span>
               <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
                 {{ selectedRule.base_score_per_problem }}
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.timeBonusPerMinute') }}</span>
+              <span class="terminal-label text-[10px]">{{
+                t('scoringRules.form.timeBonusPerMinute')
+              }}</span>
               <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
                 {{ selectedRule.time_bonus_per_minute }}
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.wrongAnswerPenalty') }}</span>
+              <span class="terminal-label text-[10px]">{{
+                t('scoringRules.form.wrongAnswerPenalty')
+              }}</span>
               <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
                 -{{ selectedRule.wrong_answer_penalty }}
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.timeLimitPenalty') }}</span>
+              <span class="terminal-label text-[10px]">{{
+                t('scoringRules.form.timeLimitPenalty')
+              }}</span>
               <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
                 -{{ selectedRule.time_limit_penalty }}
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.firstSolveBonus') }}</span>
+              <span class="terminal-label text-[10px]">{{
+                t('scoringRules.form.firstSolveBonus')
+              }}</span>
               <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
                 +{{ selectedRule.first_solve_bonus }}
               </p>
             </div>
             <div class="space-y-1">
-              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.fullScoreBonus') }}</span>
+              <span class="terminal-label text-[10px]">{{
+                t('scoringRules.form.fullScoreBonus')
+              }}</span>
               <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
                 +{{ selectedRule.full_score_bonus }}
               </p>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useI18n } from 'vue-i18n'
 import ScoringRuleSelector from '../components/ScoringRuleSelector.vue'
 
 const props = defineProps<{
@@ -12,8 +11,6 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'update:formData', value: unknown): void
 }>()
-
-const { t } = useI18n()
 
 function updateField(field: string, value: string) {
   emit('update:formData', {

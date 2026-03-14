@@ -5,7 +5,7 @@
  * Shows a celebratory notification when a participant achieves first solve
  * on a problem. Auto-dismisses after 5 seconds.
  */
-import { ref, watch, onMounted, onUnmounted } from "vue";
+import { ref, watch, onUnmounted } from "vue";
 import { useI18n } from "vue-i18n";
 import { Trophy, X } from "lucide-vue-next";
 import type { FirstSolvePayload } from "@/composables/contest";
@@ -36,7 +36,7 @@ watch(
     if (newNotification) {
       showNotification();
     }
-  }
+  },
 );
 
 function showNotification() {
@@ -108,7 +108,9 @@ onUnmounted(() => {
         <div class="p-4 flex items-start gap-3">
           <!-- Trophy icon -->
           <div class="shrink-0">
-            <div class="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center">
+            <div
+              class="h-10 w-10 bg-white/20 rounded-full flex items-center justify-center"
+            >
               <Trophy class="h-5 w-5 text-white" />
             </div>
           </div>
@@ -116,7 +118,9 @@ onUnmounted(() => {
           <!-- Text content -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="text-white font-bold text-sm uppercase tracking-wide">
+              <span
+                class="text-white font-bold text-sm uppercase tracking-wide"
+              >
                 {{ t("contest.firstSolve.title", "First Solve!") }}
               </span>
               <span class="text-white/80 text-xs font-medium">

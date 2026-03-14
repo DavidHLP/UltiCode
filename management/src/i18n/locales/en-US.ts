@@ -1430,6 +1430,89 @@ export default {
     },
   },
 
+  // Scoring Rules
+  scoringRules: {
+    title: 'Scoring Rules',
+    listTitle: 'Scoring Rule Management',
+    createRule: 'Create Rule',
+    searchPlaceholder: 'Search scoring rules...',
+    showInactive: 'Show Inactive',
+    loadError: 'Failed to load scoring rules',
+    emptyTitle: 'No Scoring Rules',
+    emptyDescription: 'Create a scoring rule to define how contest scores are calculated.',
+
+    // Table columns
+    columns: {
+      name: 'Rule',
+      baseScore: 'Base Score',
+      timeBonus: 'Time Bonus',
+      wrongPenalty: 'Wrong Penalty',
+      firstSolveBonus: 'First Solve Bonus',
+      actions: 'Actions',
+    },
+
+    // Badges
+    badges: {
+      default: 'Default',
+      inactive: 'Inactive',
+    },
+
+    // Actions
+    actions: {
+      setDefault: 'Set as Default',
+      edit: 'Edit',
+      delete: 'Delete',
+      noActionsAvailable: 'No actions available',
+    },
+
+    // Form
+    form: {
+      createTitle: 'Create Scoring Rule',
+      editTitle: 'Edit Scoring Rule',
+      createDescription: 'Define a new scoring rule for contests.',
+      editDescription: 'Update the scoring rule settings.',
+      name: 'Name',
+      namePlaceholder: 'Standard Weekly Contest Rule',
+      nameRequired: 'Name is required',
+      nameTooLong: 'Name must be less than 100 characters',
+      description: 'Description',
+      descriptionPlaceholder: 'Description of the scoring rule...',
+      descriptionTooLong: 'Description must be less than 500 characters',
+      baseScorePerProblem: 'Base Score per Problem',
+      timeBonusPerMinute: 'Time Bonus per Minute',
+      wrongAnswerPenalty: 'Wrong Answer Penalty (seconds)',
+      timeLimitPenalty: 'Time Limit Penalty',
+      firstSolveBonus: 'First Solve Bonus',
+      fullScoreBonus: 'Full Score Bonus',
+      mustBeNonNegative: 'Must be non-negative',
+      isDefault: 'Set as Default',
+      isDefaultDescription: 'This rule will be used by default for new contests',
+      saveChanges: 'Save Changes',
+      createRule: 'Create Rule',
+    },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Scoring Rule',
+      description: 'Are you sure you want to delete {name}? This action cannot be undone.',
+      thisRule: 'this rule',
+      confirm: 'Delete Rule',
+      cancel: 'Cancel',
+    },
+
+    // Toast messages
+    toast: {
+      createdSuccessfully: 'Scoring rule created successfully',
+      failedToCreate: 'Failed to create scoring rule',
+      updatedSuccessfully: 'Scoring rule updated successfully',
+      failedToUpdate: 'Failed to update scoring rule',
+      deletedSuccessfully: 'Scoring rule deleted successfully',
+      failedToDelete: 'Failed to delete scoring rule',
+      setDefaultSuccess: 'Default rule updated successfully',
+      failedToSetDefault: 'Failed to set default rule',
+    },
+  },
+
   // Notifications
   notifications: {
     title: 'Notifications',

@@ -225,6 +225,13 @@ const router = createRouter({
           component: () => import('@/views/contests/ContestDetailView.vue'),
           meta: { title: '比赛详情', permission: { action: 'READ', resource: 'CONTEST' } },
         },
+        // Scoring Rules
+        {
+          path: 'scoring-rules',
+          name: 'scoring-rules',
+          component: () => import('@/views/contests/ScoringRulesView.vue'),
+          meta: { title: '评分规则', permission: { action: 'READ', resource: 'CONTEST' } },
+        },
         // Submissions
         {
           path: 'submissions',

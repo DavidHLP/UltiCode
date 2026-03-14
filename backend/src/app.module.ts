@@ -76,7 +76,7 @@ import { RecommendationModule } from './recommendation/recommendation.module';
     MonitoringModule,
     BackupModule,
     EmailModule,
-    RecommendationModule,
+    RecommendationModule.forRoot(),
   ],
   controllers: [AppController],
   providers: [AppService],

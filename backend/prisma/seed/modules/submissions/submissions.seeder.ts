@@ -27,7 +27,13 @@ export class SubmissionsSeeder extends BaseSeeder {
 
   async clear(tx?: TransactionClient): Promise<void> {
     const client = this.getClient(tx) as PrismaClient;
-    await client.submission.deleteMany();
+    // Only delete submissions created by this seeder (IDs starting with 'sub-')
+    // Don't delete recommendation submissions (IDs starting with 'rec-')
+    await client.submission.deleteMany({
+      where: {
+        id: { startsWith: 'sub-' },
+      },
+    });
   }
 
   async seed(tx?: TransactionClient): Promise<SeedModuleResult> {
@@ -48,7 +54,12 @@ export class SubmissionsSeeder extends BaseSeeder {
       }
     }
 
-    return this.createResult(inserted, startTime, { submissions: inserted }, errors);
+    return this.createResult(
+      inserted,
+      startTime,
+      { submissions: inserted },
+      errors,
+    );
   }
 }
 

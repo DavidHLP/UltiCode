@@ -65,6 +65,15 @@ export default {
     logout: "退出登录",
   },
 
+  // Recommendation sidebar
+  recommendation: {
+    types: "推荐类型",
+    daily: "每日推荐",
+    weakPoints: "薄弱点强化",
+    challenge: "挑战模式",
+    similar: "相似题目",
+  },
+
   // Problem lists in sidebar
   problemLists: {
     newList: "新建题单",

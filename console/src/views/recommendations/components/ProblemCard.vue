@@ -1,31 +1,39 @@
 <!-- console/src/views/recommendations/components/ProblemCard.vue -->
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import type { RecommendItem } from '@/types/recommendation'
+import { computed } from "vue";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import type { RecommendItem } from "@/types/recommendation";
 
 const props = defineProps<{
-  item: RecommendItem
-}>()
+  item: RecommendItem;
+}>();
 
 const difficultyVariant = computed(() => {
   switch (props.item.difficulty.toLowerCase()) {
-    case 'easy': return 'default'
-    case 'medium': return 'secondary'
-    case 'hard': return 'destructive'
-    default: return 'outline'
+    case "easy":
+      return "default";
+    case "medium":
+      return "secondary";
+    case "hard":
+      return "destructive";
+    default:
+      return "outline";
   }
-})
+});
 
 const difficultyClass = computed(() => {
   switch (props.item.difficulty.toLowerCase()) {
-    case 'easy': return 'text-green-600'
-    case 'medium': return 'text-yellow-600'
-    case 'hard': return 'text-red-600'
-    default: return ''
+    case "easy":
+      return "text-green-600";
+    case "medium":
+      return "text-yellow-600";
+    case "hard":
+      return "text-red-600";
+    default:
+      return "";
   }
-})
+});
 </script>
 
 <template>

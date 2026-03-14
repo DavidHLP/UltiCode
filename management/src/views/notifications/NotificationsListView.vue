@@ -2,12 +2,7 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
-import {
-  IconPlus,
-  IconTrash,
-  IconDotsVertical,
-  IconBell,
-} from '@tabler/icons-vue'
+import { IconPlus, IconTrash, IconDotsVertical, IconBell } from '@tabler/icons-vue'
 import { format } from 'date-fns'
 
 import { Button } from '@/components/ui/button'

@@ -4,8 +4,7 @@ import { RecommendationConfig } from './recommendation.interface';
 /**
  * Options for configuring the recommendation module
  */
-export interface RecommendationModuleOptions
-  extends Partial<RecommendationConfig> {
+export interface RecommendationModuleOptions extends Partial<RecommendationConfig> {
   /**
    * Whether the module should be globally available
    * @default true
@@ -16,8 +15,10 @@ export interface RecommendationModuleOptions
 /**
  * Asynchronous options for the recommendation module
  */
-export interface RecommendationModuleAsyncOptions
-  extends Pick<ModuleMetadata, 'imports'> {
+export interface RecommendationModuleAsyncOptions extends Pick<
+  ModuleMetadata,
+  'imports'
+> {
   /**
    * Whether the module should be globally available
    * @default true

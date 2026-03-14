@@ -135,6 +135,42 @@ export default {
     batchNotesPlaceholder: '为所有选中题目添加备注（可选）...',
     newStatus: '新状态',
     apply: '应用',
+    // Redesign keys
+    columns: {
+      problem: '题目',
+    },
+    quickResolve: '快速解决',
+    quickDismiss: '快速驳回',
+    unknownReporter: '未知用户',
+    drawerTitle: '审核详情',
+    drawerDescription: '查看举报信息并进行审核',
+    problemDetails: '题目详情',
+    flagInfo: '举报信息',
+    moderationActions: '审核操作',
+    searchPlaceholder: '搜索题目...',
+    allDifficulties: '全部难度',
+
+    // 终端样式
+    terminal: {
+      loading: '加载中...',
+      selected: '已选择',
+      noFlaggedItems: '无被标记项目',
+      flagReason: '标记原因',
+      moderationNotes: '审核备注',
+      prev: '上一页',
+      next: '下一页',
+      header: '终端头部',
+      statsTicker: '统计标记',
+      // 统计标签
+      total: '总数',
+      pending: '待处理',
+      reviewed: '已审核',
+      resolved: '已解决',
+      contentModeration: '内容审核',
+      // 终端块标签
+      flagReasonLabel: '标记原因',
+      moderationNotesLabel: '审核备注',
+    },
   },
 
   // 分析报表
@@ -1031,6 +1067,7 @@ export default {
     // 向导
     wizard: {
       basics: '基本信息',
+      scoring: '评分规则',
       schedule: '时间安排',
       problems: '题目选择',
       review: '确认信息',
@@ -1038,6 +1075,14 @@ export default {
       next: '下一步',
       submit: '创建比赛',
       createContest: '创建比赛',
+    },
+
+    // 评分规则步骤
+    scoringRule: {
+      selectRule: '评分规则',
+      selectPlaceholder: '选择评分规则...',
+      selectDescription: '选择此比赛的积分计算方式。',
+      createNew: '创建新规则',
     },
 
     // 基本信息步骤
@@ -1089,6 +1134,7 @@ export default {
       noProblemsSelected: '尚未选择题目。',
       published: '已发布',
       draft: '草稿',
+      defaultScoringRule: '使用默认规则',
     },
 
     // 题目选择器
@@ -1188,6 +1234,89 @@ export default {
       deleteThis: '确定要删除此比赛吗？此操作无法撤销。',
       bulkDelete: '确定要删除 {count} 个比赛吗？此操作不可撤销。',
       removeProblem: '要从比赛中移除此题目吗？',
+    },
+  },
+
+  // 评分规则
+  scoringRules: {
+    title: '评分规则',
+    listTitle: '评分规则管理',
+    createRule: '创建规则',
+    searchPlaceholder: '搜索评分规则...',
+    showInactive: '显示已停用',
+    loadError: '加载评分规则失败',
+    emptyTitle: '暂无评分规则',
+    emptyDescription: '创建评分规则以定义比赛得分计算方式。',
+
+    // 表格列
+    columns: {
+      name: '规则',
+      baseScore: '基础分',
+      timeBonus: '时间奖励',
+      wrongPenalty: '错误惩罚',
+      firstSolveBonus: '首杀奖励',
+      actions: '操作',
+    },
+
+    // 徽章
+    badges: {
+      default: '默认',
+      inactive: '已停用',
+    },
+
+    // 操作
+    actions: {
+      setDefault: '设为默认',
+      edit: '编辑',
+      delete: '删除',
+      noActionsAvailable: '无可用操作',
+    },
+
+    // 表单
+    form: {
+      createTitle: '创建评分规则',
+      editTitle: '编辑评分规则',
+      createDescription: '定义新的比赛评分规则。',
+      editDescription: '更新评分规则设置。',
+      name: '名称',
+      namePlaceholder: '标准周赛规则',
+      nameRequired: '名称为必填项',
+      nameTooLong: '名称不能超过100个字符',
+      description: '描述',
+      descriptionPlaceholder: '评分规则描述...',
+      descriptionTooLong: '描述不能超过500个字符',
+      baseScorePerProblem: '每题基础分',
+      timeBonusPerMinute: '每分钟时间奖励',
+      wrongAnswerPenalty: '错误答案惩罚（秒）',
+      timeLimitPenalty: '超时惩罚',
+      firstSolveBonus: '首杀奖励',
+      fullScoreBonus: '满分奖励',
+      mustBeNonNegative: '必须为非负数',
+      isDefault: '设为默认',
+      isDefaultDescription: '此规则将作为新比赛的默认规则',
+      saveChanges: '保存更改',
+      createRule: '创建规则',
+    },
+
+    // 删除对话框
+    delete: {
+      title: '删除评分规则',
+      description: '确定要删除 {name} 吗？此操作无法撤销。',
+      thisRule: '此规则',
+      confirm: '删除规则',
+      cancel: '取消',
+    },
+
+    // 提示消息
+    toast: {
+      createdSuccessfully: '评分规则创建成功',
+      failedToCreate: '创建评分规则失败',
+      updatedSuccessfully: '评分规则更新成功',
+      failedToUpdate: '更新评分规则失败',
+      deletedSuccessfully: '评分规则删除成功',
+      failedToDelete: '删除评分规则失败',
+      setDefaultSuccess: '默认规则设置成功',
+      failedToSetDefault: '设置默认规则失败',
     },
   },
 

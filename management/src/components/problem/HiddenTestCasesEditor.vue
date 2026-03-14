@@ -502,11 +502,11 @@ watch(
         <div class="space-y-4 py-4">
           <div class="flex items-center gap-6">
             <div class="flex items-center gap-2">
-              <Switch v-model:checked="formData.is_sample" id="is_sample" />
+              <Switch v-model="formData.is_sample" id="is_sample" />
               <Label for="is_sample" class="text-sm">{{ t('testCases.isSample') }}</Label>
             </div>
             <div class="flex items-center gap-2">
-              <Switch v-model:checked="formData.is_hidden" id="is_hidden" />
+              <Switch v-model="formData.is_hidden" id="is_hidden" />
               <Label for="is_hidden" class="text-sm">{{ t('testCases.isHidden') }}</Label>
             </div>
           </div>
@@ -579,7 +579,7 @@ watch(
           </div>
 
           <div class="flex items-center gap-2">
-            <Checkbox v-model:checked="replaceExisting" id="replace_existing" />
+            <Checkbox v-model="replaceExisting" id="replace_existing" />
             <Label for="replace_existing" class="text-sm">
               {{ t('testCases.replaceExisting') }}
             </Label>

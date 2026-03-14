@@ -2,16 +2,51 @@
 // ENUMS
 // ============================================================================
 
-export type ContestStatus = "upcoming" | "running" | "finished";
-export type ContestType = "weekly" | "biweekly" | "special";
+/**
+ * Contest type classification
+ */
+export enum ContestType {
+  WEEKLY = "WEEKLY",
+  BIWEEKLY = "BIWEEKLY",
+  MONTHLY = "MONTHLY",
+  THEMED = "THEMED",
+  CORPORATE = "CORPORATE",
+  CAMPUS = "CAMPUS",
+}
+
+/**
+ * Contest lifecycle status
+ */
+export enum ContestStatus {
+  DRAFT = "DRAFT",
+  PUBLISHED = "PUBLISHED",
+  REGISTERING = "REGISTERING",
+  UPCOMING = "UPCOMING",
+  ONGOING = "ONGOING",
+  RUNNING = "RUNNING",
+  FREEZING = "FREEZING",
+  FINISHED = "FINISHED",
+  ARCHIVED = "ARCHIVED",
+}
+
+/**
+ * Participant status in a contest
+ */
+export enum ParticipantStatus {
+  REGISTERED = "REGISTERED",
+  CHECKED_IN = "CHECKED_IN",
+  STARTED = "STARTED",
+  PARTICIPATING = "PARTICIPATING",
+  FINISHED = "FINISHED",
+  DISQUALIFIED = "DISQUALIFIED",
+}
+
 export type ContestScoringMode = "SCORE" | "ICPC";
 export type ContestTieBreaker = "LAST_SOLVE_TIME" | "TOTAL_ATTEMPTS" | "NONE";
-export type ContestParticipantStatus =
-  | "REGISTERED"
-  | "STARTED"
-  | "FINISHED"
-  | "DISQUALIFIED";
 export type VirtualContestStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
+
+// Legacy type aliases for backward compatibility
+export type ContestParticipantStatus = ParticipantStatus;
 
 // Codeforces-style rating titles
 export type RatingTitle =
@@ -97,10 +132,10 @@ export interface ContestListItem {
   id: string;
   title: string;
   slug: string;
-  contest_type: ContestType;
+  contest_type: ContestType | string;
   start_time: string;
   duration_minutes: number;
-  status: ContestStatus;
+  status: ContestStatus | string;
   penalty_per_wrong?: number;
   scoring_mode?: ContestScoringMode;
   tie_breaker?: ContestTieBreaker;
@@ -115,7 +150,7 @@ export interface ContestListItem {
   // Aliases for frontend compatibility
   startTime?: string;
   endTime?: string;
-  type?: ContestType;
+  type?: ContestType | string;
   isRated?: boolean;
   durationMinutes?: number;
   registeredCount?: number;
@@ -159,7 +194,7 @@ export interface ContestDetail extends ContestListItem {
 
 export interface ParticipationStatus {
   isRegistered: boolean;
-  status: ContestParticipantStatus | null;
+  status: ParticipantStatus | string | null;
   participantId: string | null;
   virtualSessionId: string | null;
   startedAt: string | null;
@@ -280,4 +315,162 @@ export interface PaginatedResult<T> {
 export interface ContestStats {
   total_participants: number;
   total_contests: number;
+}
+
+// ============================================================================
+// CONTEST INTERFACES (Full definitions)
+// ============================================================================
+
+/**
+ * Full contest interface with all properties
+ */
+export interface Contest {
+  id: string;
+  title: string;
+  slug: string;
+  description?: string;
+  rules?: string;
+  coverImage?: string;
+  type: ContestType;
+  status: ContestStatus;
+  startTime: string;
+  endTime: string;
+  durationMinutes: number;
+  isRated: boolean;
+  isPublic: boolean;
+  scoringMode: ContestScoringMode;
+  tieBreaker: ContestTieBreaker;
+  penaltyPerWrong: number;
+  freezeDurationMinutes?: number;
+  maxParticipants?: number;
+  checkInRequired: boolean;
+  checkInStartMinutes: number;
+  checkInEndMinutes: number;
+  virtualEnabled: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/**
+ * Contest problem with full details
+ */
+export interface ContestProblem {
+  id: string;
+  contestId: string;
+  problemId: string; // string because JSON doesn't support bigint
+  problemIndex: string;
+  score: number;
+  penaltyPerWrong: number;
+  order: number;
+  // Problem details
+  title: string;
+  slug: string;
+  difficulty: string;
+  solvedCount: number;
+  submissionCount: number;
+}
+
+/**
+ * Contest participant details
+ */
+export interface ContestParticipant {
+  id: string;
+  contestId: string;
+  userId: string;
+  status: ParticipantStatus;
+  checkedInAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  totalScore: number;
+  totalPenalty: number;
+  isVirtual: boolean;
+  registeredAt: string;
+  user?: {
+    id: string;
+    username: string;
+    avatar?: string;
+  };
+}
+
+/**
+ * Ranking entry for display
+ */
+export interface RankingEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  avatar?: string;
+  country?: string;
+  totalScore: number;
+  totalPenalty: number;
+  solvedCount: number;
+  finishTime?: number;
+  ratingBefore: number;
+  ratingAfter: number;
+  ratingChange: number;
+  isVirtual: boolean;
+  problemResults: ProblemResult[];
+}
+
+/**
+ * Problem result in ranking
+ */
+export interface ProblemResult {
+  problemIndex: string;
+  problemId: string;
+  isSolved: boolean;
+  score: number;
+  attempts: number;
+  wrongAttempts: number;
+  solveTime?: number;
+  penaltyTime: number;
+  firstSolve?: boolean;
+}
+
+/**
+ * First solve notification for real-time updates
+ */
+export interface FirstSolveNotification {
+  contestId: string;
+  problemIndex: string;
+  problemId: string;
+  userId: string;
+  username: string;
+  solvedAt: string;
+  solveTime: number;
+}
+
+/**
+ * Contest announcement
+ */
+export interface ContestAnnouncement {
+  id: string;
+  contestId: string;
+  title: string;
+  content: string;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author?: {
+    id: string;
+    username: string;
+  };
+}
+
+/**
+ * Filters for contest listing
+ */
+export interface ContestFilters {
+  status?: ContestStatus | ContestStatus[];
+  type?: ContestType | ContestType[];
+  isRated?: boolean;
+  isPublic?: boolean;
+  search?: string;
+  startDateFrom?: string;
+  startDateTo?: string;
+  page?: number;
+  limit?: number;
+  sortBy?: "startTime" | "createdAt" | "title";
+  sortOrder?: "asc" | "desc";
 }

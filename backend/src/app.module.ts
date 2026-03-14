@@ -2,10 +2,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { validateConfig } from './config/config.schema';
-import { APP_GUARD } from '@nestjs/core';
-import { CustomThrottlerGuard } from './common/guards/throttle.guard';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { UserModule } from './user/user.module';
@@ -32,6 +29,7 @@ import { AchievementModule } from './achievement/achievement.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { BackupModule } from './backup/backup.module';
 import { EmailModule } from './email/email.module';
+import { RecommendationModule } from './recommendation/recommendation.module';
 
 @Module({
   imports: [
@@ -43,23 +41,6 @@ import { EmailModule } from './email/email.module';
         return config;
       },
     }),
-    ThrottlerModule.forRoot([
-      {
-        name: 'global',
-        ttl: 60000, // 60 seconds
-        limit: 1000, // 1000 requests per minute (~16 req/sec) - suitable for SPA with parallel requests
-      },
-      {
-        name: 'strict',
-        ttl: 60000, // 60 seconds
-        limit: 10, // 10 requests per minute for sensitive endpoints
-      },
-      {
-        name: 'very-strict',
-        ttl: 300000, // 5 minutes
-        limit: 5, // 5 requests per 5 minutes for auth endpoints
-      },
-    ]),
     ScheduleModule.forRoot(),
     BullModule.forRootAsync({
       inject: [ConfigService],
@@ -95,15 +76,9 @@ import { EmailModule } from './email/email.module';
     MonitoringModule,
     BackupModule,
     EmailModule,
+    RecommendationModule,
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    // Global rate limiting with custom throttler guard
-    {
-      provide: APP_GUARD,
-      useClass: CustomThrottlerGuard,
-    },
-  ],
+  providers: [AppService],
 })
 export class AppModule {}

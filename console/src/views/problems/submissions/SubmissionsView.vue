@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted } from "vue";
 import SubmissionsListView from "./SubmissionsListView.vue";
 import SubmissionsDetail from "./SubmissionsDetail.vue";
 import type {
@@ -11,12 +11,11 @@ import {
   fetchSubmissionStatuses,
 } from "@/api/submission";
 import { fetchContestProblemSubmissions } from "@/api/contest";
-import {
-  fetchCurrentUserId,
-  isAuthenticated as checkAuthenticated,
-} from "@/utils/auth";
+import { fetchCurrentUserId } from "@/utils/auth";
+import { useAuthStore } from "@/stores/auth";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useErrorHandler } from "@/composables/useErrorHandler";
+import { useSocket } from "@/composables/useSocket";
 
 const props = defineProps<{
   problemId: number;
@@ -24,6 +23,8 @@ const props = defineProps<{
 }>();
 
 const { handleError } = useErrorHandler();
+const { onSubmissionResult } = useSocket();
+const authStore = useAuthStore();
 
 const submissions = ref<SubmissionRecord[]>([]);
 const isLoading = ref(true);
@@ -47,7 +48,7 @@ const statusMetaByKey = computed<Record<string, SubmissionStatusMeta>>(() => {
   );
 });
 
-const isAuthenticated = computed(() => checkAuthenticated());
+const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 const loadStatusMeta = async () => {
   if (statusMeta.value.length) return;
@@ -65,7 +66,7 @@ const loadStatusMeta = async () => {
 };
 
 const loadSubmissions = async () => {
-  if (!checkAuthenticated()) {
+  if (!authStore.isAuthenticated) {
     isLoading.value = false;
     submissions.value = [];
     return;
@@ -111,6 +112,26 @@ watch(
   },
   { immediate: true },
 );
+
+// WebSocket: Listen for submission results and refresh list
+let unsubscribe: (() => void) | null = null;
+
+onMounted(() => {
+  unsubscribe = onSubmissionResult(async (data) => {
+    // Only refresh if the result is for the current problem
+    if (String(props.problemId) === data.problemId) {
+      // Refresh the submissions list to get the updated result
+      await loadSubmissions();
+    }
+  });
+});
+
+onUnmounted(() => {
+  if (unsubscribe) {
+    unsubscribe();
+    unsubscribe = null;
+  }
+});
 
 const handleSelect = (submission: SubmissionRecord) => {
   selectedSubmissionId.value = submission.id;

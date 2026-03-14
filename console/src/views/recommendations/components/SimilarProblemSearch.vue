@@ -1,9 +1,9 @@
 <!-- console/src/views/recommendations/components/SimilarProblemSearch.vue -->
 <script setup lang="ts">
-import { ref, watch } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useDebounceFn } from '@vueuse/core'
-import { searchProblems } from '@/api/problem'
+import { ref, watch } from "vue";
+import { useI18n } from "vue-i18n";
+import { useDebounceFn } from "@vueuse/core";
+import { searchProblems } from "@/api/problem";
 import {
   Combobox,
   ComboboxAnchor,
@@ -11,44 +11,44 @@ import {
   ComboboxList,
   ComboboxItem,
   ComboboxEmpty,
-} from '@/components/ui/combobox'
-import type { Problem } from '@/types/problem'
+} from "@/components/ui/combobox";
+import type { Problem } from "@/types/problem";
 
 const emit = defineEmits<{
-  select: [problemId: number]
-}>()
+  select: [problemId: number];
+}>();
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const searchQuery = ref('')
-const searchResults = ref<Problem[]>([])
-const selectedProblem = ref<Problem | null>(null)
-const isSearching = ref(false)
+const searchQuery = ref("");
+const searchResults = ref<Problem[]>([]);
+const selectedProblem = ref<Problem | null>(null);
+const isSearching = ref(false);
 
 // Search problems with debounce
 const debouncedSearch = useDebounceFn(async (query: string) => {
   if (query.length < 2) {
-    searchResults.value = []
-    return
+    searchResults.value = [];
+    return;
   }
 
-  isSearching.value = true
+  isSearching.value = true;
   try {
-    searchResults.value = await searchProblems(query)
+    searchResults.value = await searchProblems(query);
   } finally {
-    isSearching.value = false
+    isSearching.value = false;
   }
-}, 300)
+}, 300);
 
 // Watch search input changes
-watch(searchQuery, debouncedSearch)
+watch(searchQuery, debouncedSearch);
 
 // Watch selection changes
 watch(selectedProblem, (problem) => {
   if (problem) {
-    emit('select', problem.id)
+    emit("select", problem.id);
   }
-})
+});
 </script>
 
 <template>
@@ -62,7 +62,7 @@ watch(selectedProblem, (problem) => {
       </ComboboxAnchor>
       <ComboboxList>
         <ComboboxEmpty>
-          {{ isSearching ? '...' : t('recommendation.search.noResults') }}
+          {{ isSearching ? "..." : t("recommendation.search.noResults") }}
         </ComboboxEmpty>
         <ComboboxItem
           v-for="problem in searchResults"

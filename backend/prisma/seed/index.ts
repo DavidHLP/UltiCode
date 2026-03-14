@@ -34,6 +34,7 @@ import {
   createPermissionsSeeder,
   createFlaggedProblemsSeeder,
   createNotificationsSeeder,
+  createRecommendationSeeder,
 } from './modules';
 
 /**
@@ -146,6 +147,8 @@ async function main(): Promise<void> {
         createFlaggedProblemsSeeder,
         // L4 - Depends on L3
         createSubmissionsSeeder,
+        // L4.5 - Recommendation data (depends on Problems, Users)
+        createRecommendationSeeder,
         // L5 - Final layer
         createTranslationsSeeder,
         createPermissionsSeeder,

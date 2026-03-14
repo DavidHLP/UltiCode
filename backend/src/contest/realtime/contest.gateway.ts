@@ -9,7 +9,6 @@ import {
   WsException,
 } from '@nestjs/websockets';
 import { Logger, Inject, forwardRef } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Server, Socket } from 'socket.io';
 import { TokenBlacklistService } from '../../auth/token-blacklist.service';
@@ -122,7 +121,12 @@ export interface SubmissionResultPayload {
 @WebSocketGateway({
   namespace: '/contest',
   cors: {
-    origin: true,
+    origin: [
+      'http://localhost:9002',
+      'http://localhost:9003',
+      process.env.FRONTEND_URL,
+      process.env.ADMIN_URL,
+    ].filter(Boolean),
     credentials: true,
   },
   transports: ['websocket', 'polling'],
@@ -137,7 +141,6 @@ export class ContestGateway
 
   constructor(
     private readonly jwtService: JwtService,
-    private readonly configService: ConfigService,
     @Inject(forwardRef(() => TokenBlacklistService))
     private readonly tokenBlacklistService: TokenBlacklistService,
     @Inject(forwardRef(() => UserService))
@@ -235,6 +238,14 @@ export class ContestGateway
       });
     }
 
+    if (!this.isValidContestId(contestId)) {
+      throw new WsException({
+        success: false,
+        error: 'INVALID_CONTEST_ID',
+        message: 'Invalid contest ID format',
+      });
+    }
+
     const roomName = this.getContestRoomName(contestId);
     await client.join(roomName);
 
@@ -262,6 +273,14 @@ export class ContestGateway
         success: false,
         error: 'UNAUTHORIZED',
         message: 'You must be authenticated',
+      });
+    }
+
+    if (!this.isValidContestId(contestId)) {
+      throw new WsException({
+        success: false,
+        error: 'INVALID_CONTEST_ID',
+        message: 'Invalid contest ID format',
       });
     }
 
@@ -422,6 +441,15 @@ export class ContestGateway
       return authHeader.slice(7);
     }
 
+    // Try cookie extraction
+    const cookie = client.handshake.headers.cookie;
+    if (cookie) {
+      const tokenMatch = cookie.match(/access_token=([^;]+)/);
+      if (tokenMatch) {
+        return tokenMatch[1];
+      }
+    }
+
     // Try query parameter (for fallback)
     const queryToken = client.handshake.query?.token;
     if (typeof queryToken === 'string') {
@@ -429,6 +457,15 @@ export class ContestGateway
     }
 
     return null;
+  }
+
+  /**
+   * Validate contest ID format (UUID)
+   */
+  private isValidContestId(contestId: string): boolean {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return uuidRegex.test(contestId);
   }
 
   /**

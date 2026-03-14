@@ -32,7 +32,6 @@ const emit = defineEmits<{
 
 const { t } = useI18n();
 const timeRemaining = ref(0);
-const hasStarted = ref(false);
 let intervalId: number | null = null;
 const previousTimeRemaining = ref(0);
 
@@ -71,24 +70,30 @@ const formattedTime = computed(() => {
     if (props.compact) {
       parts.push(`${days.value}d`);
     } else {
-      parts.push(t("contest.time.countdown_full", {
-        d: days.value,
-        h: hours.value.toString().padStart(2, "0"),
-        m: minutes.value.toString().padStart(2, "0"),
-        s: seconds.value.toString().padStart(2, "0"),
-      }));
+      parts.push(
+        t("contest.time.countdown_full", {
+          d: days.value,
+          h: hours.value.toString().padStart(2, "0"),
+          m: minutes.value.toString().padStart(2, "0"),
+          s: seconds.value.toString().padStart(2, "0"),
+        }),
+      );
       return parts[0];
     }
   }
 
   if (props.compact) {
-    parts.push(`${hours.value.toString().padStart(2, "0")}:${minutes.value.toString().padStart(2, "0")}:${seconds.value.toString().padStart(2, "0")}`);
+    parts.push(
+      `${hours.value.toString().padStart(2, "0")}:${minutes.value.toString().padStart(2, "0")}:${seconds.value.toString().padStart(2, "0")}`,
+    );
   } else if (days.value === 0) {
-    parts.push(t("contest.time.countdown_short", {
-      h: hours.value.toString().padStart(2, "0"),
-      m: minutes.value.toString().padStart(2, "0"),
-      s: seconds.value.toString().padStart(2, "0"),
-    }));
+    parts.push(
+      t("contest.time.countdown_short", {
+        h: hours.value.toString().padStart(2, "0"),
+        m: minutes.value.toString().padStart(2, "0"),
+        s: seconds.value.toString().padStart(2, "0"),
+      }),
+    );
   }
 
   return parts.join(" ");
@@ -104,9 +109,10 @@ const timerColor = computed(() => {
 
 function updateTimer() {
   const now = Date.now();
-  const target = typeof props.targetTime === "string"
-    ? new Date(props.targetTime).getTime()
-    : props.targetTime.getTime();
+  const target =
+    typeof props.targetTime === "string"
+      ? new Date(props.targetTime).getTime()
+      : props.targetTime.getTime();
 
   previousTimeRemaining.value = timeRemaining.value;
   timeRemaining.value = Math.max(0, Math.floor((target - now) / 1000));
@@ -127,7 +133,7 @@ watch(
   () => {
     updateTimer();
   },
-  { immediate: true }
+  { immediate: true },
 );
 
 onMounted(() => {

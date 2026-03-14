@@ -16,7 +16,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { cn } from '@/lib/utils'
 
 export interface RankingEntry {
   id: string
@@ -240,10 +239,7 @@ const displayProblemLabels = computed(() => {
 
           <!-- Empty state -->
           <TableRow v-if="rankings.length === 0">
-            <TableCell
-              :colspan="5 + displayProblemLabels.length"
-              class="h-24 text-center"
-            >
+            <TableCell :colspan="5 + displayProblemLabels.length" class="h-24 text-center">
               <span class="text-[var(--silver-400)] text-sm">No rankings available yet</span>
             </TableCell>
           </TableRow>

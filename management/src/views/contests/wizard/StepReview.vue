@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IconCalculator } from '@tabler/icons-vue'
 import { scoringRulesApi, type ScoringRule } from '@/api/admin/scoring-rules'
@@ -163,7 +163,9 @@ function getTypeStyle(type: string) {
           <div v-else-if="scoringRule" class="space-y-3">
             <div class="flex items-center gap-2">
               <IconCalculator class="h-4 w-4 text-[var(--accent-electric)]" />
-              <span class="font-medium text-sm text-[var(--foreground)]">{{ scoringRule.name }}</span>
+              <span class="font-medium text-sm text-[var(--foreground)]">{{
+                scoringRule.name
+              }}</span>
               <span
                 v-if="scoringRule.is_default"
                 class="terminal-badge-success text-[10px] px-1.5 py-0.5"
@@ -173,17 +175,27 @@ function getTypeStyle(type: string) {
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
               <div>
-                <span class="terminal-label text-[10px]">{{ t('scoringRules.form.baseScorePerProblem') }}</span>
-                <p class="font-data text-[var(--terminal-cyan)] tabular-nums">{{ scoringRule.base_score_per_problem }}</p>
+                <span class="terminal-label text-[10px]">{{
+                  t('scoringRules.form.baseScorePerProblem')
+                }}</span>
+                <p class="font-data text-[var(--terminal-cyan)] tabular-nums">
+                  {{ scoringRule.base_score_per_problem }}
+                </p>
               </div>
               <div>
-                <span class="terminal-label text-[10px]">{{ t('scoringRules.form.wrongAnswerPenalty') }}</span>
-                <p class="font-data text-[var(--terminal-red)] tabular-nums">-{{ scoringRule.wrong_answer_penalty }}</p>
+                <span class="terminal-label text-[10px]">{{
+                  t('scoringRules.form.wrongAnswerPenalty')
+                }}</span>
+                <p class="font-data text-[var(--terminal-red)] tabular-nums">
+                  -{{ scoringRule.wrong_answer_penalty }}
+                </p>
               </div>
             </div>
           </div>
           <div v-else class="py-2">
-            <span class="terminal-comment text-xs">{{ t('contests.reviewStep.defaultScoringRule') }}</span>
+            <span class="terminal-comment text-xs">{{
+              t('contests.reviewStep.defaultScoringRule')
+            }}</span>
           </div>
         </div>
       </div>

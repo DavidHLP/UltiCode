@@ -6,7 +6,7 @@ import { Sparkles, Target, Flame, GitBranch } from 'lucide-vue-next'
 import { cn } from '@/lib/utils'
 import type { RecommendType } from '@/types/recommendation'
 
-const props = defineProps<{
+defineProps<{
   modelValue: RecommendType
 }>()
 

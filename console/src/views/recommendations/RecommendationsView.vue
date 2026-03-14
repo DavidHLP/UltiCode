@@ -1,6 +1,6 @@
 <!-- console/src/views/recommendations/RecommendationsView.vue -->
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useRecommendationStore } from '@/stores/recommendation'

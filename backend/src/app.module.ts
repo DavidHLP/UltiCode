@@ -29,6 +29,7 @@ import { AchievementModule } from './achievement/achievement.module';
 import { MonitoringModule } from './monitoring/monitoring.module';
 import { BackupModule } from './backup/backup.module';
 import { EmailModule } from './email/email.module';
+import { RecommendationModule } from './recommendation/recommendation.module';
 
 @Module({
   imports: [
@@ -75,6 +76,7 @@ import { EmailModule } from './email/email.module';
     MonitoringModule,
     BackupModule,
     EmailModule,
+    RecommendationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

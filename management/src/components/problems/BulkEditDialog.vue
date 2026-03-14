@@ -150,7 +150,7 @@ function handleOpenChange(open: boolean) {
               {{ t('problems.bulkEdit.premiumHint') }}
             </span>
           </Label>
-          <Switch id="premium" v-model:checked="isPremium" />
+          <Switch id="premium" v-model="isPremium" />
         </div>
       </div>
 

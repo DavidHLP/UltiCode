@@ -432,7 +432,7 @@ defineExpose({
                 <Label class="text-base cursor-pointer">Premium</Label>
                 <p class="text-xs text-muted-foreground">Only for premium users</p>
               </div>
-              <Checkbox v-model:checked="formData.is_premium" />
+              <Checkbox v-model="formData.is_premium" />
             </div>
 
             <div
@@ -443,7 +443,7 @@ defineExpose({
                 <Label class="text-base cursor-pointer">Published</Label>
                 <p class="text-xs text-muted-foreground">Visible to all users</p>
               </div>
-              <Checkbox v-model:checked="formData.is_published" />
+              <Checkbox v-model="formData.is_published" />
             </div>
           </div>
 

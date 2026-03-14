@@ -266,17 +266,19 @@ const getColors = () => {
           <ChartCrosshair
             :template="
               (d: any) => {
+                if (!d || !d.y) return ''
                 const date = new Date(d.x)
                 const dateStr = date.toLocaleDateString('en-US', {
                   month: 'short',
                   day: 'numeric',
                 })
+                const colors = getColors()
                 const values = seriesKeys
                   .map((key, i) => {
-                    const val = d.y[i]
+                    const val = d.y[i] ?? 0
                     const config = chartConfig[key as keyof typeof chartConfig]
                     return `<div style='display:flex;align-items:center;gap:6px;'>
-                    <span style='width:6px;height:6px;border-radius:50%;background:${getColors()[i]}'></span>
+                    <span style='width:6px;height:6px;border-radius:50%;background:${colors[i]}'></span>
                     <span style='font-family:JetBrains Mono,monospace;font-size:12px;'>${val}</span>
                     <span style='color:var(--silver-400);font-size:11px;'>${config?.label || key}</span>
                   </div>`

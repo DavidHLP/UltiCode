@@ -1,9 +1,23 @@
 import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { IconAlertTriangle, IconCheck, IconClock, IconEye, IconX } from '@tabler/icons-vue'
+import {
+  IconAlertTriangle,
+  IconCheck,
+  IconClock,
+  IconDotsVertical,
+  IconEye,
+  IconX,
+} from '@tabler/icons-vue'
 
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { Difficulty, type Problem } from '@/api/admin/problems'
 import { formatDate } from '@/lib/format/date'
 
@@ -141,6 +155,8 @@ export function createColumns(
     {
       id: 'select',
       size: 40,
+      minSize: 40,
+      maxSize: 40,
       header: ({ table }) =>
         h(Checkbox, {
           modelValue:
@@ -164,7 +180,20 @@ export function createColumns(
       enableHiding: false,
     },
     {
+      id: 'row_num',
+      header: () => '#',
+      cell: ({ row, table }) => {
+        const pageIndex = table.getState().pagination.pageIndex
+        const pageSize = table.getState().pagination.pageSize
+        const rowNum = pageIndex * pageSize + row.index + 1
+        return h('span', { class: 'terminal-row-num' }, String(rowNum).padStart(2, '0'))
+      },
+      enableSorting: false,
+      enableHiding: false,
+    },
+    {
       accessorKey: 'title',
+      minSize: 180,
       header: () =>
         h(
           'span',
@@ -175,15 +204,18 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const problem = row.original
-        return h('div', { class: 'flex flex-col gap-1' }, [
-          h('span', { class: 'font-medium text-sm' }, problem.title),
-          h('span', { class: 'text-muted-foreground text-xs' }, problem.slug),
+        return h('div', { class: 'flex flex-col gap-1 py-1' }, [
+          h('span', { class: 'font-medium text-sm truncate' }, problem.title),
+          h('span', { class: 'text-muted-foreground text-xs truncate' }, problem.slug),
           renderDifficultyBadge(problem.difficulty, t),
         ])
       },
     },
     {
       accessorKey: 'flag_status',
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
       header: () =>
         h(
           'span',
@@ -199,6 +231,7 @@ export function createColumns(
     },
     {
       accessorKey: 'flag_reason',
+      minSize: 150,
       header: () =>
         h(
           'span',
@@ -212,11 +245,11 @@ export function createColumns(
         if (!reason) {
           return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '-')
         }
-        const truncated = truncateText(reason, 60)
+        const truncated = truncateText(reason, 30)
         return h(
           'span',
           {
-            class: 'text-sm text-muted-foreground truncate max-w-[200px]',
+            class: 'text-sm text-muted-foreground block truncate',
             title: reason,
           },
           truncated,
@@ -225,6 +258,9 @@ export function createColumns(
     },
     {
       accessorKey: 'flag_reported_by',
+      size: 100,
+      minSize: 80,
+      maxSize: 120,
       header: () =>
         h(
           'span',
@@ -242,11 +278,14 @@ export function createColumns(
             t('moderation.unknownReporter'),
           )
         }
-        return h('span', { class: 'text-sm text-muted-foreground' }, reportedBy)
+        return h('span', { class: 'text-sm text-muted-foreground truncate block' }, reportedBy)
       },
     },
     {
       accessorKey: 'flag_reported_at',
+      size: 100,
+      minSize: 80,
+      maxSize: 120,
       header: () =>
         h(
           'span',
@@ -259,7 +298,7 @@ export function createColumns(
         const date = row.original.flag_reported_at
         return h(
           'span',
-          { class: 'text-sm text-[var(--silver-500)] font-data' },
+          { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
           date ? formatDate(date) : '—',
         )
       },
@@ -276,50 +315,109 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const problem = row.original
-        return h('div', { class: 'flex items-center gap-1' }, [
-          h(
-            Button,
-            {
-              variant: 'ghost',
-              size: 'icon',
-              class:
-                'h-8 w-8 p-0 text-[var(--terminal-green)] hover:text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.15)]',
-              onClick: () => actions.quickResolve(problem.id),
-              title: t('moderation.quickResolve'),
-            },
-            {
-              default: () => h(IconCheck, { class: 'h-4 w-4' }),
-            },
-          ),
-          h(
-            Button,
-            {
-              variant: 'ghost',
-              size: 'icon',
-              class:
-                'h-8 w-8 p-0 text-[var(--terminal-red)] hover:text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]',
-              onClick: () => actions.quickDismiss(problem.id),
-              title: t('moderation.quickDismiss'),
-            },
-            {
-              default: () => h(IconX, { class: 'h-4 w-4' }),
-            },
-          ),
-          h(
-            Button,
-            {
-              variant: 'ghost',
-              size: 'icon',
-              class: 'h-8 w-8 p-0',
-              onClick: () => actions.viewProblem(problem.id),
-              title: t('common.view'),
-            },
-            {
-              default: () => h(IconEye, { class: 'h-4 w-4' }),
-            },
-          ),
-        ])
+        return createActionsDropdown(t, problem, actions)
       },
     },
   ]
+}
+
+function createActionsDropdown(
+  t: (key: string) => string,
+  problem: Problem,
+  actions: ModerationActions,
+) {
+  return h(
+    DropdownMenu,
+    {},
+    {
+      default: () => [
+        h(
+          DropdownMenuTrigger,
+          { asChild: true },
+          {
+            default: () =>
+              h(
+                Button,
+                {
+                  variant: 'ghost',
+                  size: 'icon',
+                  class:
+                    'h-8 w-8 p-0 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]',
+                },
+                {
+                  default: () => [
+                    h('span', { class: 'sr-only' }, 'Open menu'),
+                    h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
+                  ],
+                },
+              ),
+          },
+        ),
+        h(
+          DropdownMenuContent,
+          {
+            align: 'end',
+            class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
+          },
+          {
+            default: () => [
+              h(
+                DropdownMenuItem,
+                {
+                  onClick: () => actions.openDrawer(problem),
+                  class: 'font-data text-xs cursor-pointer',
+                },
+                {
+                  default: () =>
+                    h('div', { class: 'flex items-center gap-2' }, [
+                      h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                      h('span', t('common.view')),
+                    ]),
+                },
+              ),
+              h(DropdownMenuSeparator, {
+                class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+              }),
+              h(
+                DropdownMenuItem,
+                {
+                  onClick: () => actions.quickResolve(problem.id),
+                  class: 'font-data text-xs cursor-pointer',
+                },
+                {
+                  default: () =>
+                    h('div', { class: 'flex items-center gap-2' }, [
+                      h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                      h(
+                        'span',
+                        { class: 'text-[var(--terminal-green)]' },
+                        t('moderation.quickResolve'),
+                      ),
+                    ]),
+                },
+              ),
+              h(
+                DropdownMenuItem,
+                {
+                  onClick: () => actions.quickDismiss(problem.id),
+                  class: 'font-data text-xs cursor-pointer',
+                },
+                {
+                  default: () =>
+                    h('div', { class: 'flex items-center gap-2' }, [
+                      h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                      h(
+                        'span',
+                        { class: 'text-[var(--terminal-red)]' },
+                        t('moderation.quickDismiss'),
+                      ),
+                    ]),
+                },
+              ),
+            ],
+          },
+        ),
+      ],
+    },
+  )
 }

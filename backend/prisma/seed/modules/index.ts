@@ -31,3 +31,7 @@ export { SubmissionsSeeder, createSubmissionsSeeder } from './submissions';
 // L5 - Depends on content
 export { TranslationsSeeder, createTranslationsSeeder } from './translations';
 export { PermissionsSeeder, createPermissionsSeeder } from './permissions';
+export {
+  NotificationsSeeder,
+  createNotificationsSeeder,
+} from './notifications';

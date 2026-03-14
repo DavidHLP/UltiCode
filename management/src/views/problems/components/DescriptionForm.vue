@@ -255,7 +255,7 @@ defineExpose({
                   {{ t('problems.descriptionForm.premiumDescription') }}
                 </p>
               </div>
-              <Checkbox v-model:checked="formData.is_premium" />
+              <Checkbox v-model="formData.is_premium" />
             </div>
 
             <div
@@ -270,7 +270,7 @@ defineExpose({
                   {{ t('problems.descriptionForm.publishedDescription') }}
                 </p>
               </div>
-              <Checkbox v-model:checked="formData.is_published" />
+              <Checkbox v-model="formData.is_published" />
             </div>
           </div>
 

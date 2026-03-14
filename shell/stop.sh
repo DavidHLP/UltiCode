@@ -92,7 +92,7 @@ if [ "$SKIP_CONFIRM" = false ]; then
     info "Console (port $CONSOLE_PORT)"
     info "Management (port $MANAGEMENT_PORT)"
     info "Backend (port $BACKEND_PORT)"
-    [ "$SKIP_DOCKER" = false ] && { info "MySQL Docker"; info "Redis Docker"; }
+    [ "$SKIP_DOCKER" = false ] && { info "MySQL Docker"; info "Redis Docker"; info "Nacos Docker"; }
     echo ""
     read -p "  Confirm? (y/N): " -n 1 -r
     echo ""
@@ -132,11 +132,11 @@ log "${B}:: Docker${R} ${D}─────────────────�
 
 if [ "$SKIP_DOCKER" = true ]; then
     info "Skipping (--skip-docker)"
-elif docker ps 2>/dev/null | grep -qE "ulticode-(mysql|redis)"; then
+elif docker ps 2>/dev/null | grep -qE "ulticode-(mysql|redis|nacos)"; then
     step "Stopping containers..."
     cd backend && docker compose down && cd ..
     ok "Containers stopped"
-    STOPPED+=("MySQL" "Redis")
+    STOPPED+=("MySQL" "Redis" "Nacos")
 else
     info "No containers running"
 fi
@@ -174,6 +174,7 @@ port_used $CONSOLE_PORT && ((RUNNING++)) || true
 port_used $MANAGEMENT_PORT && ((RUNNING++)) || true
 docker ps 2>/dev/null | grep -q "ulticode-mysql" && ((RUNNING++)) || true
 docker ps 2>/dev/null | grep -q "ulticode-redis" && ((RUNNING++)) || true
+docker ps 2>/dev/null | grep -q "ulticode-nacos" && ((RUNNING++)) || true
 
 if [ $RUNNING -gt 0 ]; then
     echo -e "  ${Y}${B}! $RUNNING service(s) still running${R}"

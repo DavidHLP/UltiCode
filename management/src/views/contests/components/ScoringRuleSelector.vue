@@ -1,0 +1,389 @@
+<script setup lang="ts">
+import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { toast } from 'vue-sonner'
+import { IconPlus, IconLoader, IconCalculator } from '@tabler/icons-vue'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { scoringRulesApi, type ScoringRule, type CreateScoringRuleDto } from '@/api/admin/scoring-rules'
+
+const props = defineProps<{
+  modelValue?: string
+}>()
+
+const emit = defineEmits<{
+  (e: 'update:modelValue', value: string): void
+}>()
+
+const { t } = useI18n()
+
+const scoringRules = ref<ScoringRule[]>([])
+const loading = ref(false)
+const creatingNew = ref(false)
+const createLoading = ref(false)
+
+// New rule form data
+const newRuleForm = ref({
+  name: '',
+  description: '',
+  base_score_per_problem: 100,
+  time_bonus_per_minute: 1,
+  wrong_answer_penalty: 5,
+  time_limit_penalty: 0,
+  first_solve_bonus: 10,
+  full_score_bonus: 0,
+})
+
+// Fetch scoring rules on mount
+async function fetchScoringRules() {
+  loading.value = true
+  try {
+    scoringRules.value = await scoringRulesApi.getAll(false)
+    // If no value is set and there are rules, select the default one
+    if (!props.modelValue && scoringRules.value.length > 0) {
+      const defaultRule = scoringRules.value.find((r) => r.is_default)
+      if (defaultRule) {
+        emit('update:modelValue', defaultRule.id)
+      } else if (scoringRules.value[0]) {
+        emit('update:modelValue', scoringRules.value[0].id)
+      }
+    }
+  } catch (error) {
+    toast.error(t('scoringRules.loadError'))
+    console.error(error)
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(fetchScoringRules)
+
+// Get selected rule details
+const selectedRule = computed(() => {
+  return scoringRules.value.find((r) => r.id === props.modelValue)
+})
+
+// Handle selection change
+function handleSelectionChange(value: string) {
+  if (value === '__create_new__') {
+    creatingNew.value = true
+    return
+  }
+  emit('update:modelValue', value)
+}
+
+// Handle create new rule
+async function handleCreateRule() {
+  if (!newRuleForm.value.name.trim()) {
+    toast.error(t('scoringRules.form.nameRequired'))
+    return
+  }
+
+  createLoading.value = true
+  try {
+    const dto: CreateScoringRuleDto = {
+      name: newRuleForm.value.name,
+      description: newRuleForm.value.description || undefined,
+      base_score_per_problem: newRuleForm.value.base_score_per_problem,
+      time_bonus_per_minute: newRuleForm.value.time_bonus_per_minute,
+      wrong_answer_penalty: newRuleForm.value.wrong_answer_penalty,
+      time_limit_penalty: newRuleForm.value.time_limit_penalty,
+      first_solve_bonus: newRuleForm.value.first_solve_bonus,
+      full_score_bonus: newRuleForm.value.full_score_bonus,
+    }
+
+    const newRule = await scoringRulesApi.create(dto)
+    scoringRules.value.push(newRule)
+    emit('update:modelValue', newRule.id)
+    creatingNew.value = false
+
+    // Reset form
+    newRuleForm.value = {
+      name: '',
+      description: '',
+      base_score_per_problem: 100,
+      time_bonus_per_minute: 1,
+      wrong_answer_penalty: 5,
+      time_limit_penalty: 0,
+      first_solve_bonus: 10,
+      full_score_bonus: 0,
+    }
+
+    toast.success(t('scoringRules.toast.createdSuccessfully'))
+  } catch (error) {
+    toast.error(t('scoringRules.toast.failedToCreate'))
+    console.error(error)
+  } finally {
+    createLoading.value = false
+  }
+}
+
+// Cancel create new
+function cancelCreateNew() {
+  creatingNew.value = false
+  newRuleForm.value = {
+    name: '',
+    description: '',
+    base_score_per_problem: 100,
+    time_bonus_per_minute: 1,
+    wrong_answer_penalty: 5,
+    time_limit_penalty: 0,
+    first_solve_bonus: 10,
+    full_score_bonus: 0,
+  }
+}
+</script>
+
+<template>
+  <div class="space-y-6">
+    <!-- Section Header -->
+    <div class="flex items-center gap-2 mb-4">
+      <span class="terminal-comment">scoring_rule</span>
+    </div>
+
+    <!-- Loading state -->
+    <div v-if="loading" class="flex items-center justify-center py-8">
+      <IconLoader class="h-6 w-6 animate-spin text-[var(--accent-electric)]" />
+      <span class="ml-2 terminal-comment">{{ t('common.loading') }}</span>
+    </div>
+
+    <!-- Selector -->
+    <div v-else-if="!creatingNew" class="space-y-4">
+      <div class="space-y-2">
+        <label class="terminal-label">{{ t('contests.scoringRule.selectRule') }}</label>
+        <Select
+          :model-value="modelValue"
+          @update:model-value="handleSelectionChange($event as string)"
+        >
+          <SelectTrigger
+            class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm"
+          >
+            <SelectValue :placeholder="t('contests.scoringRule.selectPlaceholder')" />
+          </SelectTrigger>
+          <SelectContent class="border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+            <SelectItem
+              v-for="rule in scoringRules"
+              :key="rule.id"
+              :value="rule.id"
+              class="font-data text-xs cursor-pointer"
+            >
+              <div class="flex items-center gap-2">
+                <span>{{ rule.name }}</span>
+                <span
+                  v-if="rule.is_default"
+                  class="terminal-badge-success text-[10px] px-1.5 py-0.5"
+                >
+                  {{ t('scoringRules.badges.default') }}
+                </span>
+              </div>
+            </SelectItem>
+            <SelectItem
+              value="__create_new__"
+              class="font-data text-xs cursor-pointer text-[var(--accent-electric)]"
+            >
+              <div class="flex items-center gap-2">
+                <IconPlus class="h-3.5 w-3.5" />
+                <span>{{ t('contests.scoringRule.createNew') }}</span>
+              </div>
+            </SelectItem>
+          </SelectContent>
+        </Select>
+        <span class="terminal-comment text-xs">{{ t('contests.scoringRule.selectDescription') }}</span>
+      </div>
+
+      <!-- Selected Rule Details -->
+      <div
+        v-if="selectedRule"
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <div class="flex items-center gap-2">
+            <IconCalculator class="h-4 w-4 text-[var(--accent-electric)]" />
+            <span class="terminal-comment">{{ selectedRule.name }}</span>
+            <span
+              v-if="selectedRule.is_default"
+              class="terminal-badge-success text-[10px] px-1.5 py-0.5"
+            >
+              {{ t('scoringRules.badges.default') }}
+            </span>
+          </div>
+        </div>
+        <div class="p-4">
+          <p v-if="selectedRule.description" class="text-sm text-[var(--foreground)] mb-4">
+            {{ selectedRule.description }}
+          </p>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div class="space-y-1">
+              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.baseScorePerProblem') }}</span>
+              <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
+                {{ selectedRule.base_score_per_problem }}
+              </p>
+            </div>
+            <div class="space-y-1">
+              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.timeBonusPerMinute') }}</span>
+              <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
+                {{ selectedRule.time_bonus_per_minute }}
+              </p>
+            </div>
+            <div class="space-y-1">
+              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.wrongAnswerPenalty') }}</span>
+              <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
+                -{{ selectedRule.wrong_answer_penalty }}
+              </p>
+            </div>
+            <div class="space-y-1">
+              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.timeLimitPenalty') }}</span>
+              <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
+                -{{ selectedRule.time_limit_penalty }}
+              </p>
+            </div>
+            <div class="space-y-1">
+              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.firstSolveBonus') }}</span>
+              <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
+                +{{ selectedRule.first_solve_bonus }}
+              </p>
+            </div>
+            <div class="space-y-1">
+              <span class="terminal-label text-[10px]">{{ t('scoringRules.form.fullScoreBonus') }}</span>
+              <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
+                +{{ selectedRule.full_score_bonus }}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Create New Rule Form -->
+    <div v-else class="space-y-4">
+      <div class="border border-[var(--accent-electric)] bg-[oklch(0.65_0.15_250/0.05)] p-4">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <IconPlus class="h-4 w-4 text-[var(--accent-electric)]" />
+            <span class="terminal-comment">{{ t('contests.scoringRule.createNew') }}</span>
+          </div>
+          <Button
+            variant="terminal"
+            size="sm"
+            class="font-data text-xs border-[var(--silver-300)]"
+            @click="cancelCreateNew"
+          >
+            {{ t('common.cancel') }}
+          </Button>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Name -->
+          <div class="space-y-2">
+            <label class="terminal-label">{{ t('scoringRules.form.name') }}</label>
+            <Input
+              v-model="newRuleForm.name"
+              :placeholder="t('scoringRules.form.namePlaceholder')"
+              class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+            />
+          </div>
+
+          <!-- Description -->
+          <div class="space-y-2">
+            <label class="terminal-label">{{ t('scoringRules.form.description') }}</label>
+            <Textarea
+              v-model="newRuleForm.description"
+              :placeholder="t('scoringRules.form.descriptionPlaceholder')"
+              rows="2"
+              class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)] resize-none"
+            />
+          </div>
+
+          <!-- Score Parameters -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <label class="terminal-label">{{ t('scoringRules.form.baseScorePerProblem') }}</label>
+              <Input
+                v-model.number="newRuleForm.base_score_per_problem"
+                type="number"
+                min="0"
+                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="terminal-label">{{ t('scoringRules.form.timeBonusPerMinute') }}</label>
+              <Input
+                v-model.number="newRuleForm.time_bonus_per_minute"
+                type="number"
+                min="0"
+                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <label class="terminal-label">{{ t('scoringRules.form.wrongAnswerPenalty') }}</label>
+              <Input
+                v-model.number="newRuleForm.wrong_answer_penalty"
+                type="number"
+                min="0"
+                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="terminal-label">{{ t('scoringRules.form.timeLimitPenalty') }}</label>
+              <Input
+                v-model.number="newRuleForm.time_limit_penalty"
+                type="number"
+                min="0"
+                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="space-y-2">
+              <label class="terminal-label">{{ t('scoringRules.form.firstSolveBonus') }}</label>
+              <Input
+                v-model.number="newRuleForm.first_solve_bonus"
+                type="number"
+                min="0"
+                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+              />
+            </div>
+            <div class="space-y-2">
+              <label class="terminal-label">{{ t('scoringRules.form.fullScoreBonus') }}</label>
+              <Input
+                v-model.number="newRuleForm.full_score_bonus"
+                type="number"
+                min="0"
+                class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
+              />
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="flex justify-end pt-2">
+            <Button
+              variant="terminal"
+              size="sm"
+              class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+              :disabled="createLoading || !newRuleForm.name.trim()"
+              @click="handleCreateRule"
+            >
+              <IconLoader v-if="createLoading" class="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              <IconPlus v-else class="mr-1.5 h-3.5 w-3.5" />
+              {{ t('scoringRules.form.createRule') }}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

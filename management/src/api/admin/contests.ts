@@ -99,6 +99,7 @@ export interface CreateContestDto {
   duration: number
   is_published?: boolean
   problem_ids?: string[]
+  scoring_rule_id?: string
 }
 
 export interface UpdateContestDto {

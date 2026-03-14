@@ -1067,6 +1067,7 @@ export default {
     // 向导
     wizard: {
       basics: '基本信息',
+      scoring: '评分规则',
       schedule: '时间安排',
       problems: '题目选择',
       review: '确认信息',
@@ -1074,6 +1075,14 @@ export default {
       next: '下一步',
       submit: '创建比赛',
       createContest: '创建比赛',
+    },
+
+    // 评分规则步骤
+    scoringRule: {
+      selectRule: '评分规则',
+      selectPlaceholder: '选择评分规则...',
+      selectDescription: '选择此比赛的积分计算方式。',
+      createNew: '创建新规则',
     },
 
     // 基本信息步骤
@@ -1125,6 +1134,7 @@ export default {
       noProblemsSelected: '尚未选择题目。',
       published: '已发布',
       draft: '草稿',
+      defaultScoringRule: '使用默认规则',
     },
 
     // 题目选择器

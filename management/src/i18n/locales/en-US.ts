@@ -1269,6 +1269,7 @@ export default {
     // Wizard
     wizard: {
       basics: 'Basics',
+      scoring: 'Scoring',
       schedule: 'Schedule',
       problems: 'Problems',
       review: 'Review',
@@ -1276,6 +1277,14 @@ export default {
       next: 'Next',
       submit: 'Create Contest',
       createContest: 'Create Contest',
+    },
+
+    // Scoring Rule step
+    scoringRule: {
+      selectRule: 'Scoring Rule',
+      selectPlaceholder: 'Select a scoring rule...',
+      selectDescription: 'Choose how scores are calculated for this contest.',
+      createNew: 'Create New Rule',
     },
 
     // Basic Info step
@@ -1328,6 +1337,7 @@ export default {
       noProblemsSelected: 'No problems selected.',
       published: 'Published',
       draft: 'Draft',
+      defaultScoringRule: 'Using default rule',
     },
 
     // Problem picker

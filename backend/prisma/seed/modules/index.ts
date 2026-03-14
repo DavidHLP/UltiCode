@@ -35,3 +35,9 @@ export {
   NotificationsSeeder,
   createNotificationsSeeder,
 } from './notifications';
+
+// L6 - Recommendation data (depends on Problems, Users)
+export {
+  RecommendationSeeder,
+  createRecommendationSeeder,
+} from './recommendation';

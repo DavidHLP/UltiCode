@@ -65,6 +65,15 @@ export default {
     logout: "Log out",
   },
 
+  // Recommendation sidebar
+  recommendation: {
+    types: "Recommendation Types",
+    daily: "Daily Practice",
+    weakPoints: "Weak Points",
+    challenge: "Challenge Mode",
+    similar: "Similar Problems",
+  },
+
   // Problem lists in sidebar
   problemLists: {
     newList: "New List",

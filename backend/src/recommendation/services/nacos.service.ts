@@ -1,6 +1,14 @@
-import { Injectable, Logger, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnModuleInit,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { NacosServiceInstance, RecommendationConfig } from '../interfaces/recommendation.interface';
+import {
+  NacosServiceInstance,
+  RecommendationConfig,
+} from '../interfaces/recommendation.interface';
 
 /**
  * Nacos naming client for service discovery
@@ -15,25 +23,37 @@ export class NacosNamingService implements OnModuleInit, OnModuleDestroy {
 
   constructor(private readonly configService: ConfigService) {
     this.config = {
-      enabled: this.configService.get<string>('RECOMMENDATION_ENABLED', 'true') === 'true',
+      enabled:
+        this.configService.get<string>('RECOMMENDATION_ENABLED', 'true') ===
+        'true',
       nacosServerAddr: this.configService.get<string>(
         'NACOS_SERVER_ADDR',
         'localhost:28848',
       ),
-      nacosNamespace: this.configService.get<string>('NACOS_NAMESPACE', 'public'),
-      nacosGroup: this.configService.get<string>('NACOS_GROUP', 'DEFAULT_GROUP'),
+      nacosNamespace: this.configService.get<string>(
+        'NACOS_NAMESPACE',
+        'public',
+      ),
+      nacosGroup: this.configService.get<string>(
+        'NACOS_GROUP',
+        'DEFAULT_GROUP',
+      ),
       serviceName: this.configService.get<string>(
         'RECOMMENDATION_SERVICE_NAME',
         'recommend-web',
       ),
       timeout: this.configService.get<number>('RECOMMENDATION_TIMEOUT', 5000),
-      fallbackUrl: this.configService.get<string>('RECOMMENDATION_FALLBACK_URL'),
+      fallbackUrl: this.configService.get<string>(
+        'RECOMMENDATION_FALLBACK_URL',
+      ),
     };
   }
 
   async onModuleInit(): Promise<void> {
     if (!this.config.enabled) {
-      this.logger.log('Recommendation service is disabled, skipping Nacos initialization');
+      this.logger.log(
+        'Recommendation service is disabled, skipping Nacos initialization',
+      );
       return;
     }
 
@@ -69,7 +89,10 @@ export class NacosNamingService implements OnModuleInit, OnModuleDestroy {
 
       this.nacosClient = new NacosNamingClient({
         serverList: this.config.nacosServerAddr,
-        namespace: this.config.nacosNamespace === 'public' ? 'public' : this.config.nacosNamespace,
+        namespace:
+          this.config.nacosNamespace === 'public'
+            ? 'public'
+            : this.config.nacosNamespace,
         logger: console,
       });
 
@@ -79,7 +102,8 @@ export class NacosNamingService implements OnModuleInit, OnModuleDestroy {
         `Nacos client initialized successfully, connected to ${this.config.nacosServerAddr}`,
       );
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Failed to initialize Nacos client: ${errorMessage}`);
       throw error;
     }
@@ -107,17 +131,22 @@ export class NacosNamingService implements OnModuleInit, OnModuleDestroy {
       );
 
       if (!instances || instances.length === 0) {
-        this.logger.warn(`No instances found for service: ${this.config.serviceName}`);
+        this.logger.warn(
+          `No instances found for service: ${this.config.serviceName}`,
+        );
         return null;
       }
 
       // Filter healthy instances
       const healthyInstances = instances.filter(
-        (instance: NacosServiceInstance) => instance.healthy && instance.enabled,
+        (instance: NacosServiceInstance) =>
+          instance.healthy && instance.enabled,
       );
 
       if (healthyInstances.length === 0) {
-        this.logger.warn(`No healthy instances for service: ${this.config.serviceName}`);
+        this.logger.warn(
+          `No healthy instances for service: ${this.config.serviceName}`,
+        );
         return null;
       }
 
@@ -131,7 +160,8 @@ export class NacosNamingService implements OnModuleInit, OnModuleDestroy {
 
       return selected;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
       this.logger.error(`Error getting healthy instance: ${errorMessage}`);
       return null;
     }
@@ -150,7 +180,9 @@ export class NacosNamingService implements OnModuleInit, OnModuleDestroy {
 
     const instance = await this.getHealthyInstance();
     if (!instance) {
-      this.logger.warn('No healthy instance available and no fallback URL configured');
+      this.logger.warn(
+        'No healthy instance available and no fallback URL configured',
+      );
       return null;
     }
 

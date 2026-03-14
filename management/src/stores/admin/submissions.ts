@@ -3,7 +3,6 @@ import { ref, computed } from 'vue'
 import {
   submissionsApi,
   type SubmissionListItem,
-  type SubmissionDetail,
   type SubmissionStatistics,
   type StatusOption,
   type SubmissionQueryParams,
@@ -30,7 +29,8 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     const statsData = statistics.value
     if (!statsData) return { total: 0, pending: 0, topLanguage: '-', acceptedRate: '0' }
     const acceptedCount = statsData.byStatus.find((s) => s.status === 'ACCEPTED')?.count || 0
-    const acceptedRate = statsData.total > 0 ? ((acceptedCount / statsData.total) * 100).toFixed(1) : '0'
+    const acceptedRate =
+      statsData.total > 0 ? ((acceptedCount / statsData.total) * 100).toFixed(1) : '0'
     return {
       total: statsData.total,
       pending: statsData.pending,

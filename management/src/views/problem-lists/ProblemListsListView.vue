@@ -212,9 +212,7 @@ const columns = createColumns(
             :filters="toolbarFilters"
             @update:filter="
               (index, value) =>
-                index === 0
-                  ? (featuredFilter = String(value))
-                  : (visibilityFilter = String(value))
+                index === 0 ? (featuredFilter = String(value)) : (visibilityFilter = String(value))
             "
             :loading="loading"
             :on-refresh="loadLists"

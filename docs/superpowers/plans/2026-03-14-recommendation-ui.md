@@ -773,7 +773,7 @@ const navItems: { key: RecommendType; label: string; icon: typeof Sparkles }[] =
 ]
 
 function navigate(key: RecommendType) {
-  emit('update:modelValue', key)
+  // 导航由路由处理，不需要 emit（父组件使用 computed 属性）
   router.push({ name: `recommendations-${key}` })
 }
 </script>
@@ -834,6 +834,7 @@ import {
   ComboboxTrigger,
   ComboboxContent,
   ComboboxItem,
+  ComboboxEmpty,
 } from '@/components/ui/combobox'
 
 const selectedTags = defineModel<string[]>({ default: () => [] })
@@ -857,10 +858,13 @@ const availableTags = ref<string[]>([
     <Combobox v-model="selectedTags" multiple>
       <ComboboxAnchor>
         <ComboboxTrigger class="w-[200px]">
-          {{ t('recommendation.filter.tags') }}
+          {{ selectedTags.length > 0 ? selectedTags.join(', ') : t('recommendation.filter.tags') }}
         </ComboboxTrigger>
       </ComboboxAnchor>
       <ComboboxContent>
+        <ComboboxEmpty>
+          {{ t('recommendation.search.noResults') }}
+        </ComboboxEmpty>
         <ComboboxItem
           v-for="tag in availableTags"
           :key="tag"
@@ -905,6 +909,7 @@ git commit -m "feat(console): add TagFilter component"
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useDebounceFn } from '@vueuse/core'
 import { searchProblems } from '@/api/problem'
 import type { Problem } from '@/types/problem'
 import {
@@ -927,8 +932,8 @@ const searchResults = ref<Problem[]>([])
 const selectedProblem = ref<Problem | null>(null)
 const isSearching = ref(false)
 
-// 搜索题目
-async function handleSearch(query: string) {
+// 搜索题目（带防抖）
+const debouncedSearch = useDebounceFn(async (query: string) => {
   if (query.length < 2) {
     searchResults.value = []
     return
@@ -940,7 +945,10 @@ async function handleSearch(query: string) {
   } finally {
     isSearching.value = false
   }
-}
+}, 300)
+
+// 监听搜索输入变化
+watch(searchQuery, debouncedSearch)
 
 // 监听选择变化
 watch(selectedProblem, (problem) => {
@@ -957,7 +965,6 @@ watch(selectedProblem, (problem) => {
         <ComboboxInput
           v-model="searchQuery"
           :placeholder="t('recommendation.search.placeholder')"
-          @update:model-value="handleSearch"
         />
       </ComboboxAnchor>
       <ComboboxContent>
@@ -1078,8 +1085,8 @@ function handleProblemSelect(problemId: number) {
 
 <template>
   <div class="flex gap-6">
-    <!-- 左侧导航 -->
-    <RecommendationNav v-model="currentType" />
+    <!-- 左侧导航 (currentType 是 computed，所以只用 :model-value，不用 v-model) -->
+    <RecommendationNav :model-value="currentType" />
 
     <!-- 右侧内容区 -->
     <div class="flex-1">

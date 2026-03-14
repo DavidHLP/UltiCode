@@ -220,6 +220,39 @@ const personalRoutes: RouteRecordRaw = {
   ],
 };
 
+// Recommendation routes
+const recommendationRoutes: RouteRecordRaw = {
+  path: "/recommendations",
+  component: () => import("@/features/sider/AppLayout.vue"),
+  meta: { requiresAuth: true },
+  children: [
+    {
+      path: "",
+      redirect: { name: "recommendations-daily" },
+    },
+    {
+      path: "daily",
+      name: "recommendations-daily",
+      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+    },
+    {
+      path: "weak-points",
+      name: "recommendations-weak-points",
+      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+    },
+    {
+      path: "challenge",
+      name: "recommendations-challenge",
+      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+    },
+    {
+      path: "similar",
+      name: "recommendations-similar",
+      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+    },
+  ],
+};
+
 // Mark create routes as requiring auth
 solutionCreateRoute.meta = { requiresAuth: true };
 solutionCreateFromSubmissionRoute.meta = { requiresAuth: true };
@@ -261,6 +294,7 @@ const router = createRouter({
       component: () => import("../views/auth/ResetPasswordView.vue"),
     },
     personalRoutes,
+    recommendationRoutes,
   ],
 });
 

@@ -85,7 +85,7 @@ const visiblePages = computed(() => {
         @click="
           router.push({
             name: 'contest-detail',
-            params: { contestId: contest.id },
+            params: { slug: contest.slug },
           })
         "
       >

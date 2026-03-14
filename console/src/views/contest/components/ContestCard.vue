@@ -31,8 +31,12 @@ const contestType = computed(() => {
   return t(`contest.types.${type}`, type);
 });
 
-const startTime = computed(() => props.contest.start_time || props.contest.startTime || "");
-const endTime = computed(() => props.contest.end_time || props.contest.endTime || "");
+const startTime = computed(
+  () => props.contest.start_time || props.contest.startTime || "",
+);
+const endTime = computed(
+  () => props.contest.end_time || props.contest.endTime || "",
+);
 const duration = computed(() => {
   if (startTime.value && endTime.value) {
     return getDurationMinutes(startTime.value, endTime.value);
@@ -41,27 +45,27 @@ const duration = computed(() => {
 });
 
 const participantCount = computed(
-  () => props.contest.participant_count || props.contest.participantCount || 0
+  () => props.contest.participant_count || props.contest.participantCount || 0,
 );
 const registeredCount = computed(
-  () => props.contest.registered_count || props.contest.registeredCount || 0
+  () => props.contest.registered_count || props.contest.registeredCount || 0,
 );
 const isRated = computed(
-  () => props.contest.is_rated ?? props.contest.isRated ?? false
+  () => props.contest.is_rated ?? props.contest.isRated ?? false,
 );
 
 const contestStatus = computed(() => props.contest.status || "UPCOMING");
 
 // Determine if contest is live
 const isLive = computed(() =>
-  ["ONGOING", "RUNNING"].includes(contestStatus.value as string)
+  ["ONGOING", "RUNNING"].includes(contestStatus.value as string),
 );
 
 // Navigate to contest detail
 function goToContest() {
   router.push({
     name: "contest-detail",
-    params: { contestId: props.contest.id },
+    params: { slug: props.contest.slug },
   });
 }
 
@@ -82,10 +86,7 @@ const cardClasses = computed(() => {
 </script>
 
 <template>
-  <Card
-    :class="cardClasses"
-    @click="goToContest"
-  >
+  <Card :class="cardClasses" @click="goToContest">
     <CardContent class="p-5">
       <div class="space-y-4">
         <!-- Header: Title and Status -->
@@ -98,10 +99,7 @@ const cardClasses = computed(() => {
               {{ contest.title }}
             </h3>
           </div>
-          <ContestStatusBadge
-            :status="contestStatus"
-            size="sm"
-          />
+          <ContestStatusBadge :status="contestStatus" size="sm" />
         </div>
 
         <!-- Info Row -->

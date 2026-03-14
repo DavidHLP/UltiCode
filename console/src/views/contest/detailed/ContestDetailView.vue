@@ -39,7 +39,7 @@ import { formatPenaltyTime } from "@/utils/date";
 const route = useRoute();
 const contestStore = useContestStore();
 const { t } = useI18n();
-const contestId = route.params.contestId as string;
+const contestId = route.params.slug as string;
 
 const contest = computed(() => contestStore.currentContest);
 const rankings = ref<ContestRankingEntry[]>([]);

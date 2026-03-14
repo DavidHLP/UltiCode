@@ -93,18 +93,13 @@ export class ContestQueryService {
   }
 
   async findOne(id: string, locale: SupportedLocale = DEFAULT_LOCALE) {
-    // Try cache first
-    const cacheKey = `contest:${id}:${locale}`;
-    const cached =
-      await this.cacheService.get<
-        ReturnType<typeof this.timingService.withTimingFields>
-      >(cacheKey);
-    if (cached) {
-      return cached;
-    }
+    // Try cache first (use the actual contest ID if found)
+    let cacheKey = `contest:${id}:${locale}`;
 
-    const contest = await this.prisma.contest.findUnique({
-      where: { id },
+    const contest = await this.prisma.contest.findFirst({
+      where: {
+        OR: [{ id }, { slug: id }],
+      },
       include: {
         problems: {
           include: {
@@ -133,6 +128,8 @@ export class ContestQueryService {
       locale,
     );
 
+    // Update cache key to use actual contest ID
+    cacheKey = `contest:${contest.id}:${locale}`;
     if (contest.status === 'upcoming') {
       const result = this.timingService.withTimingFields({
         ...translatedContest,

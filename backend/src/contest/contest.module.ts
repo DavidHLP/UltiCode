@@ -35,6 +35,10 @@ import { RealtimeService } from './realtime/realtime.service';
 import { AntiCheatService } from './anticheat/anticheat.service';
 import { AntiCheatController } from './anticheat/anticheat.controller';
 
+// Analytics
+import { AnalyticsService } from './analytics/analytics.service';
+import { AnalyticsController } from './analytics/analytics.controller';
+
 @Module({
   imports: [
     BullModule.registerQueue({
@@ -71,12 +75,15 @@ import { AntiCheatController } from './anticheat/anticheat.controller';
     ContestProcessor,
     // Anti-cheat
     AntiCheatService,
+    // Analytics
+    AnalyticsService,
   ],
   controllers: [
     ContestController,
     RankingController,
     ScoringRuleController,
     AntiCheatController,
+    AnalyticsController,
   ],
   exports: [
     ContestService,

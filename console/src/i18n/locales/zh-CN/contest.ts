@@ -12,6 +12,9 @@ export default {
     pastSubtitle: "参加虚拟竞赛，为排名赛做准备",
     partner: "竞赛伙伴",
     noContests: "暂无比赛",
+    noContestsHint: "当前没有正在进行的比赛，请稍后再来查看！",
+    noUpcomingHint: "暂无即将开始的比赛，敬请期待！",
+    noFinishedHint: "暂无已结束的比赛，参与比赛后可以在此查看您的历史记录。",
     viewAll: "查看全部",
     live: "正在进行的比赛",
     liveSubtitle: "在倒计时中竞争，攀登实时排行榜。",
@@ -133,6 +136,16 @@ export default {
     ratingChange: "Rating 变化",
     globalRanking: "全球",
     localRanking: "本地排名",
+    frozen: "排行榜在最后几分钟已冻结",
+    noRankings: "暂无排名数据",
+    live: "实时",
+    connecting: "连接中...",
+  },
+
+  // First Solve
+  firstSolve: {
+    title: "首位解答！",
+    solved: "率先解决了这道题！",
   },
 
   // Rating
@@ -180,6 +193,10 @@ export default {
     calculating: "计算中...",
     registrationOpen: "报名中",
     registrationClosed: "报名已截止",
+    draft: "草稿",
+    published: "已发布",
+    freezing: "封榜中",
+    archived: "已归档",
   },
 
   // Time

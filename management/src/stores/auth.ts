@@ -63,6 +63,10 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const userData = await authApi.getCurrentUser()
       user.value = userData
+      // Store CSRF token if returned (handles page refresh case)
+      if (userData.csrf_token) {
+        setCsrfToken(userData.csrf_token)
+      }
       await loadPermissions()
       return userData
     } catch {

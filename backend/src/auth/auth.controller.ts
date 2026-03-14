@@ -28,6 +28,7 @@ import { extractTokenFromHeader } from './auth.utils';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { User } from '../user/user.service';
 import { PermissionService } from '../admin/services/permission.service';
+import { CsrfService } from './csrf.service';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -35,6 +36,7 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private permissionService: PermissionService,
+    private csrfService: CsrfService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -190,12 +192,19 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get current user',
-    description: 'Get the authenticated user profile',
+    description: 'Get the authenticated user profile with CSRF token',
   })
-  @ApiResponse({ status: 200, description: 'Current user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user profile with CSRF token',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getCurrentUser(@CurrentUser() user: User): User {
-    return user;
+  async getCurrentUser(
+    @CurrentUser() user: User,
+  ): Promise<User & { csrf_token: string }> {
+    // Generate a new CSRF token for the user (handles page refresh case)
+    const csrfToken = await this.csrfService.generateCsrfToken(user.id);
+    return { ...user, csrf_token: csrfToken };
   }
 
   @Get('permissions')

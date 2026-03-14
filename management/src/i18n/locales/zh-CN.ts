@@ -161,6 +161,15 @@ export default {
       next: '下一页',
       header: '终端头部',
       statsTicker: '统计标记',
+      // 统计标签
+      total: '总数',
+      pending: '待处理',
+      reviewed: '已审核',
+      resolved: '已解决',
+      contentModeration: '内容审核',
+      // 终端块标签
+      flagReasonLabel: '标记原因',
+      moderationNotesLabel: '审核备注',
     },
   },
 

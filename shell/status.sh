@@ -10,6 +10,10 @@ MANAGEMENT_PORT=9003
 BACKEND_PORT=9001
 MYSQL_PORT=23306
 REDIS_PORT=26379
+NACOS_PORT=28848
+NACOS_CONSOLE_PORT=28080
+RECOMMEND_WEB_PORT=28081
+RECOMMEND_PROVIDER_PORT=20881
 
 # Colors
 RESET='\033[0m'
@@ -130,6 +134,39 @@ else
     fi
 fi
 
+# Nacos
+if docker ps | grep -q "ulticode-nacos"; then
+    print_status "ok" "Nacos       running on port ${NACOS_PORT} (console: ${NACOS_CONSOLE_PORT})"
+else
+    if docker ps -a | grep -q "ulticode-nacos"; then
+        print_status "warn" "Nacos       container exists but not running"
+    else
+        print_status "info" "Nacos       container not created"
+    fi
+fi
+
+# Recommend Web
+if docker ps | grep -q "ulticode-recommend-web"; then
+    print_status "ok" "Recommend   running on port ${RECOMMEND_WEB_PORT} (REST API)"
+else
+    if docker ps -a | grep -q "ulticode-recommend-web"; then
+        print_status "warn" "Recommend   container exists but not running"
+    else
+        print_status "info" "Recommend   container not created"
+    fi
+fi
+
+# Recommend Provider (Dubbo)
+if docker ps | grep -q "ulticode-recommend-provider"; then
+    print_status "ok" "Rec-Provider running on port ${RECOMMEND_PROVIDER_PORT} (Dubbo RPC)"
+else
+    if docker ps -a | grep -q "ulticode-recommend-provider"; then
+        print_status "warn" "Rec-Provider container exists but not running"
+    else
+        print_status "info" "Rec-Provider container not created"
+    fi
+fi
+
 # Summary
 echo ""
 RUNNING_COUNT=0
@@ -138,8 +175,10 @@ is_port_in_use $CONSOLE_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 is_port_in_use $MANAGEMENT_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 docker ps | grep -q "ulticode-mysql" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 docker ps | grep -q "ulticode-redis" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
+docker ps | grep -q "ulticode-nacos" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
+docker ps | grep -q "ulticode-recommend-web" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 
-TOTAL_SERVICES=5
+TOTAL_SERVICES=7
 
 echo -e "  ${BOLD}Summary:${RESET} ${RUNNING_COUNT}/${TOTAL_SERVICES} services running"
 echo ""
@@ -151,6 +190,8 @@ if [ $RUNNING_COUNT -eq $TOTAL_SERVICES ]; then
     echo -e "    ${CYAN}Console${RESET}     http://localhost:${CONSOLE_PORT}"
     echo -e "    ${CYAN}Management${RESET}  http://localhost:${MANAGEMENT_PORT}"
     echo -e "    ${CYAN}Backend${RESET}     http://localhost:${BACKEND_PORT}"
+    echo -e "    ${CYAN}Nacos${RESET}       http://localhost:${NACOS_CONSOLE_PORT}/nacos"
+    echo -e "    ${CYAN}Recommend${RESET}   http://localhost:${RECOMMEND_WEB_PORT}"
 elif [ $RUNNING_COUNT -eq 0 ]; then
     echo -e "  ${RED}${CROSS}${RESET} ${BOLD}All services stopped${RESET}"
     echo ""

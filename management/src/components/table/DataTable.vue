@@ -215,6 +215,20 @@ watch(
     >
       <DragDropProvider :modifiers="[RestrictToVerticalAxis]">
         <Table>
+          <colgroup>
+            <col
+              v-for="column in table.getVisibleFlatColumns()"
+              :key="column.id"
+              :style="{
+                width:
+                  column.columnDef.size !== undefined ? `${column.columnDef.size}px` : undefined,
+                minWidth:
+                  column.columnDef.minSize !== undefined ? `${column.columnDef.minSize}px` : undefined,
+                maxWidth:
+                  column.columnDef.maxSize !== undefined ? `${column.columnDef.maxSize}px` : undefined,
+              }"
+            />
+          </colgroup>
           <TableHeader class="bg-[var(--surface-sunken)] sticky top-0 z-10">
             <TableRow v-for="headerGroup in table.getHeaderGroups()" :key="headerGroup.id">
               <TableHead

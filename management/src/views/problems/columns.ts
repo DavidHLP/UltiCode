@@ -215,6 +215,9 @@ export function createColumns(
   return [
     {
       id: 'select',
+      size: 40,
+      minSize: 40,
+      maxSize: 40,
       header: ({ table }) =>
         h(Checkbox, {
           modelValue:
@@ -239,6 +242,9 @@ export function createColumns(
     },
     {
       accessorKey: 'id',
+      size: 60,
+      minSize: 50,
+      maxSize: 80,
       header: () =>
         h(
           'span',
@@ -254,6 +260,7 @@ export function createColumns(
     },
     {
       accessorKey: 'title',
+      minSize: 200,
       header: () =>
         h(
           'span',
@@ -272,6 +279,9 @@ export function createColumns(
     },
     {
       accessorKey: 'difficulty',
+      size: 80,
+      minSize: 70,
+      maxSize: 90,
       header: () =>
         h(
           'span',
@@ -287,6 +297,9 @@ export function createColumns(
     },
     {
       accessorKey: 'status',
+      size: 80,
+      minSize: 70,
+      maxSize: 90,
       header: () =>
         h(
           'span',
@@ -302,6 +315,9 @@ export function createColumns(
     },
     {
       accessorKey: 'is_published',
+      size: 80,
+      minSize: 70,
+      maxSize: 90,
       header: () =>
         h(
           'span',
@@ -318,6 +334,9 @@ export function createColumns(
     },
     {
       accessorKey: 'is_flagged',
+      size: 70,
+      minSize: 60,
+      maxSize: 80,
       header: () =>
         h(
           'span',
@@ -341,6 +360,9 @@ export function createColumns(
     },
     {
       accessorKey: 'submission_count',
+      size: 60,
+      minSize: 50,
+      maxSize: 70,
       header: () =>
         h(
           'span',
@@ -363,6 +385,9 @@ export function createColumns(
     },
     {
       accessorKey: 'tags',
+      size: 120,
+      minSize: 80,
+      maxSize: 150,
       header: () =>
         h(
           'span',
@@ -394,6 +419,9 @@ export function createColumns(
     },
     {
       accessorKey: 'created_at',
+      size: 90,
+      minSize: 70,
+      maxSize: 100,
       header: () =>
         h(
           'span',
@@ -413,6 +441,9 @@ export function createColumns(
     },
     {
       id: 'actions',
+      size: 50,
+      minSize: 40,
+      maxSize: 60,
       header: () =>
         h(
           'span',

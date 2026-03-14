@@ -1,23 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { IconPlus, IconRefresh, IconX } from '@tabler/icons-vue'
+import { IconPlus, IconList } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
 import { useAuthStore } from '@/stores/auth'
 import type { ProblemList } from '@/api/admin/problem-lists'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 import { createColumns } from './columns'
@@ -38,9 +31,19 @@ const canCreate = computed(() => authStore.hasPermission('CREATE', 'PROBLEM_LIST
 const canUpdate = computed(() => authStore.hasPermission('UPDATE', 'PROBLEM_LIST'))
 const canDelete = computed(() => authStore.hasPermission('DELETE', 'PROBLEM_LIST'))
 
+// Animation state for staggered reveal
+const isLoaded = ref(false)
+
+onMounted(() => {
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+})
+
 const {
   searchQuery,
   tablePagination,
+  selectedRows,
   loading,
   data,
   total,
@@ -81,6 +84,30 @@ const stats = computed(() => ({
   public: store.lists.filter((l) => l.is_public).length,
 }))
 
+// Toolbar filters for DataTableToolbar
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: featuredFilter.value,
+    placeholder: t('problemLists.filters.type'),
+    width: 'w-[130px]',
+    options: [
+      { value: 'all', label: t('problemLists.filters.allTypes') },
+      { value: 'featured', label: t('problemLists.filters.featured') },
+      { value: 'standard', label: t('problemLists.filters.standard') },
+    ],
+  },
+  {
+    modelValue: visibilityFilter.value,
+    placeholder: t('problemLists.filters.visibility'),
+    width: 'w-[130px]',
+    options: [
+      { value: 'all', label: t('problemLists.filters.allVisibility') },
+      { value: 'public', label: t('problemLists.filters.public') },
+      { value: 'private', label: t('problemLists.filters.private') },
+    ],
+  },
+])
+
 function editList(id: string) {
   router.push({ name: 'problem-list-edit', params: { id } })
 }
@@ -104,137 +131,115 @@ const columns = createColumns(
 </script>
 
 <template>
-  <div class="relative flex flex-col overflow-auto">
+  <div class="relative flex flex-col gap-0 overflow-auto">
     <!-- Terminal Header -->
-    <div class="border-b border-[var(--silver-200)] bg-[var(--card)]">
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
       <!-- Title Row -->
-      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+      <div class="py-4 flex items-center justify-between">
         <div class="flex items-center gap-4">
-          <span class="terminal-prompt">problem_lists</span>
-          <span class="terminal-cursor" />
-          <h1 class="text-base font-semibold text-[var(--foreground)]">
+          <div class="flex items-center gap-2">
+            <span class="terminal-prompt text-base">problem_lists</span>
+            <span class="terminal-cursor" />
+          </div>
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
             {{ t('problemLists.title') }}
           </h1>
         </div>
         <Button
           v-if="canCreate"
           variant="terminal"
-          class="font-data text-xs"
+          size="sm"
+          class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
           @click="router.push({ name: 'problem-list-create' })"
         >
-          <IconPlus class="mr-1.5 h-3.5 w-3.5" />
-          CREATE
+          <IconPlus class="h-4 w-4 mr-1.5" />
+          <span class="uppercase tracking-wider">{{ t('problemLists.addList') }}</span>
         </Button>
       </div>
 
       <!-- Stats Ticker -->
       <div
-        class="px-4 lg:px-6 py-2.5 border-t border-[var(--silver-200)] bg-[var(--surface-sunken)]"
+        class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
-        <div class="flex items-center gap-6 text-xs">
-          <div class="flex items-center gap-2">
-            <span class="terminal-label">total:</span>
-            <span class="font-data text-[var(--terminal-cyan)]">{{ stats.total }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="terminal-label">featured:</span>
-            <span class="font-data text-[var(--terminal-amber)]">{{ stats.featured }}</span>
-          </div>
-          <div class="flex items-center gap-2">
-            <span class="terminal-label">public:</span>
-            <span class="font-data text-[var(--terminal-green)]">{{ stats.public }}</span>
-          </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">featured:</span>
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.featured
+          }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">public:</span>
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.public
+          }}</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+          <IconList class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">problem list management</span>
         </div>
       </div>
     </div>
 
-    <!-- Main Content -->
+    <!-- Main Content Area -->
     <div class="flex-1 py-4">
-      <!-- Error State -->
-      <div
-        v-if="error"
-        class="mb-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] px-4 py-3"
-      >
-        <div class="flex items-center gap-2">
-          <span class="font-data text-xs text-[var(--terminal-red)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]"
-          @click="loadLists()"
-        >
-          {{ t('common.retry') }}
-        </Button>
-      </div>
-
-      <!-- Data Table -->
       <DataTable
         :columns="columns"
         :data="data"
         :pagination="tablePagination"
         :row-count="total"
         :loading="loading"
+        v-model:selected-rows="selectedRows"
         @update:pagination="tablePagination = $event"
+        class="terminal-table"
       >
         <template #toolbar-left>
-          <div class="flex flex-wrap items-center gap-2 w-full lg:w-auto">
-            <Input
-              v-model="searchQuery"
-              :placeholder="t('problemLists.searchPlaceholder')"
-              class="terminal-input h-8 min-w-[150px] w-full lg:w-[250px]"
-            >
-              <template #trailing>
-                <button
-                  v-if="searchQuery"
-                  @click="searchQuery = ''"
-                  class="rounded-sm opacity-70 hover:opacity-100"
-                >
-                  <IconX class="h-3 w-3" />
-                </button>
-              </template>
-            </Input>
-
-            <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0">
-              <Select v-model="featuredFilter">
-                <SelectTrigger class="terminal-input h-8 w-[130px] font-data text-xs">
-                  <SelectValue :placeholder="t('problemLists.filters.type')" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{{ t('problemLists.filters.allTypes') }}</SelectItem>
-                  <SelectItem value="featured">{{ t('problemLists.filters.featured') }}</SelectItem>
-                  <SelectItem value="standard">{{ t('problemLists.filters.standard') }}</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Select v-model="visibilityFilter">
-                <SelectTrigger class="terminal-input h-8 w-[130px] font-data text-xs">
-                  <SelectValue :placeholder="t('problemLists.filters.visibility')" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{{ t('problemLists.filters.allVisibility') }}</SelectItem>
-                  <SelectItem value="public">{{ t('problemLists.filters.public') }}</SelectItem>
-                  <SelectItem value="private">{{ t('problemLists.filters.private') }}</SelectItem>
-                </SelectContent>
-              </Select>
-
-              <Button
-                variant="ghost"
-                size="icon"
-                class="h-8 w-8 hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-800)]"
-                @click="loadLists()"
-                :title="t('common.refresh')"
-              >
-                <IconRefresh
-                  class="h-3.5 w-3.5 text-[var(--silver-400)]"
-                  :class="{ 'animate-spin': loading }"
-                />
-              </Button>
-            </div>
-          </div>
+          <DataTableToolbar
+            :search-model-value="searchQuery"
+            @update:search-model-value="searchQuery = $event"
+            :search-placeholder="t('problemLists.searchPlaceholder')"
+            :filters="toolbarFilters"
+            @update:filter="
+              (index, value) =>
+                index === 0
+                  ? (featuredFilter = String(value))
+                  : (visibilityFilter = String(value))
+            "
+            :loading="loading"
+            :on-refresh="loadLists"
+          />
         </template>
       </DataTable>
+
+      <!-- Error state - Terminal Style -->
+      <div
+        v-if="error"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+      >
+        <div class="flex items-center gap-3">
+          <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
+        </div>
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+          @click="loadLists()"
+        >
+          {{ t('common.retry') }}
+        </Button>
+      </div>
     </div>
   </div>
 

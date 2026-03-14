@@ -16,6 +16,7 @@ MANAGEMENT_PORT=9003
 BACKEND_PORT=9001
 MYSQL_PORT=23306
 REDIS_PORT=26379
+NACOS_PORT=28848
 
 # Timeouts (seconds)
 BACKEND_TIMEOUT=60
@@ -131,14 +132,15 @@ if [ "$SKIP_DOCKER" = false ]; then
     if docker ps 2>/dev/null | grep -q "ulticode-mysql"; then
         info "MySQL already running"
     else
-        step "Starting MySQL & Redis..."
-        cd backend && docker compose up -d mysql redis && cd ..
+        step "Starting MySQL, Redis & Nacos..."
+        cd backend && docker compose up -d mysql redis nacos && cd ..
 
         spin_wait "MySQL ready" \
             "docker exec ulticode-mysql mysqladmin ping -h localhost -u root -proot --silent" \
             $MYSQL_TIMEOUT
 
         docker ps 2>/dev/null | grep -q "ulticode-redis" && ok "Redis running"
+        docker ps 2>/dev/null | grep -q "ulticode-nacos" && ok "Nacos running"
     fi
 else
     log ""
@@ -224,6 +226,7 @@ port_used $MANAGEMENT_PORT && ok "Management http://localhost:$MANAGEMENT_PORT" 
 if [ "$SKIP_DOCKER" = false ]; then
     docker ps 2>/dev/null | grep -q "ulticode-mysql" && ok "MySQL   localhost:$MYSQL_PORT" || { err "MySQL not running"; ALL_OK=false; }
     docker ps 2>/dev/null | grep -q "ulticode-redis" && ok "Redis   localhost:$REDIS_PORT" || { err "Redis not running"; ALL_OK=false; }
+    docker ps 2>/dev/null | grep -q "ulticode-nacos" && ok "Nacos   localhost:$NACOS_PORT (console: 28080)" || { err "Nacos not running"; ALL_OK=false; }
 fi
 
 log ""

@@ -33,6 +33,7 @@ import {
   createTranslationsSeeder,
   createPermissionsSeeder,
   createFlaggedProblemsSeeder,
+  createNotificationsSeeder,
 } from './modules';
 
 /**
@@ -148,6 +149,7 @@ async function main(): Promise<void> {
         // L5 - Final layer
         createTranslationsSeeder,
         createPermissionsSeeder,
+        createNotificationsSeeder,
       ]);
 
       const result = await runner.run({

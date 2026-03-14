@@ -17,6 +17,7 @@ import { authApi } from "@/api/auth";
 import { toast } from "vue-sonner";
 import { setCsrfToken } from "@/utils/csrf";
 import { setSessionFlag } from "@/stores/auth";
+import { setUserId } from "@/utils/auth";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -59,6 +60,9 @@ async function handleSubmit(e: Event) {
 
     // Set session flag to indicate user has an active session
     setSessionFlag();
+
+    // Store user ID for components that still use fetchCurrentUserId()
+    setUserId(res.user.id);
 
     toast.success(t("auth.messages.loginSuccess"));
     router.push("/");

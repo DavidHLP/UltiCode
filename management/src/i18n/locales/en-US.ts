@@ -155,6 +155,15 @@ export default {
       next: 'NEXT',
       header: 'Terminal Header',
       statsTicker: 'Stats Ticker',
+      // Statistics labels
+      total: 'TOTAL',
+      pending: 'PENDING',
+      reviewed: 'REVIEWED',
+      resolved: 'RESOLVED',
+      contentModeration: 'CONTENT MODERATION',
+      // Terminal block labels
+      flagReasonLabel: 'FLAG_REASON',
+      moderationNotesLabel: 'MODERATION_NOTES',
     },
   },
 

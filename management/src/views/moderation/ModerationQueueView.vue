@@ -321,79 +321,56 @@ function clearSelection() {
       </div>
     </div>
 
-    <!-- Toolbar Section -->
-    <div
-      :class="[
-        'px-4 py-3 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
-        'transition-all duration-500 delay-100',
-        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
-      ]"
-    >
-      <div class="flex items-center justify-between gap-4 flex-wrap">
-        <DataTableToolbar
-          v-model:search-model-value="searchQuery"
-          :search-placeholder="t('moderation.searchPlaceholder')"
-          :filters="filters"
-          :loading="loading"
-          :on-refresh="handleRefresh"
-          @update:filter="handleFilterUpdate"
-        />
-
-        <!-- Extra toolbar actions slot -->
-        <template v-if="selectedRows.length > 0">
-          <div class="flex items-center gap-2">
-            <Button
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
-              @click="openBatchDialog('RESOLVED')"
-            >
-              <IconCheck class="h-3.5 w-3.5 mr-1.5" />
-              <span class="uppercase tracking-wider">{{ t('moderation.batchResolve') }}</span>
-            </Button>
-            <Button
-              variant="terminal"
-              size="sm"
-              class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
-              @click="openBatchDialog('DISMISSED')"
-            >
-              <IconX class="h-3.5 w-3.5 mr-1.5" />
-              <span class="uppercase tracking-wider">{{ t('moderation.batchDismiss') }}</span>
-            </Button>
-          </div>
-        </template>
-      </div>
-    </div>
-
-    <!-- Batch Actions Bar -->
+    <!-- Batch Actions Bar - Terminal Style -->
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'px-4 py-2 border-b border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)]',
+        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
-      <div class="flex items-center justify-between">
-        <div class="flex items-center gap-4">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
           <span class="font-data text-sm text-[var(--terminal-amber)]">
             &gt; {{ t('moderation.terminal.selected') }}:{{ selectedRows.length }}
           </span>
         </div>
-        <Button
-          variant="terminal"
-          size="sm"
-          class="h-7 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
-          @click="clearSelection"
-        >
-          [ESC] {{ t('common.clearSelection') }}
-        </Button>
+        <div class="h-4 w-px bg-[var(--silver-300)]" />
+        <div class="flex items-center gap-2">
+          <Button
+            variant="terminal"
+            size="sm"
+            class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+            @click="openBatchDialog('RESOLVED')"
+          >
+            <IconCheck class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('moderation.batchResolve') }}</span>
+          </Button>
+          <Button
+            variant="terminal"
+            size="sm"
+            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+            @click="openBatchDialog('DISMISSED')"
+          >
+            <IconX class="h-3.5 w-3.5 mr-1.5" />
+            <span class="uppercase tracking-wider">{{ t('moderation.batchDismiss') }}</span>
+          </Button>
+        </div>
       </div>
+      <Button
+        variant="terminal"
+        size="sm"
+        class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
+        @click="clearSelection"
+      >
+        [ESC] {{ t('common.clearSelection') }}
+      </Button>
     </div>
 
     <!-- Main Content - DataTable -->
     <div
       :class="[
-        'flex-1 p-4',
+        'flex-1 py-4',
         'transition-all duration-500 delay-200',
         isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
       ]"
@@ -408,7 +385,20 @@ function clearSelection() {
         @update:pagination="pagination = $event"
         :empty-title="t('moderation.emptyTitle')"
         :empty-description="t('moderation.emptyDescription')"
-      />
+        class="terminal-table"
+      >
+        <template #toolbar-left>
+          <DataTableToolbar
+            v-model:search-model-value="searchQuery"
+            :search-placeholder="t('moderation.searchPlaceholder')"
+            :filters="filters"
+            :loading="loading"
+            :on-refresh="handleRefresh"
+            @update:filter="handleFilterUpdate"
+          />
+        </template>
+
+      </DataTable>
     </div>
 
     <!-- Detail Drawer -->

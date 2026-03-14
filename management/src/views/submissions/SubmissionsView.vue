@@ -377,9 +377,7 @@ const columns = createColumns(t, {
       <div v-else-if="selectedSubmission" class="space-y-4 py-4">
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <Label class="terminal-label text-[var(--silver-500)]">{{
-              t('submissions.id')
-            }}</Label>
+            <Label class="terminal-label text-[var(--silver-500)]">{{ t('submissions.id') }}</Label>
             <p class="font-data text-sm text-[var(--terminal-cyan)] mt-1">
               {{ selectedSubmission.id }}
             </p>
@@ -404,9 +402,7 @@ const columns = createColumns(t, {
           </div>
         </div>
         <div>
-          <Label class="terminal-label text-[var(--silver-500)]">{{
-            t('submissions.code')
-          }}</Label>
+          <Label class="terminal-label text-[var(--silver-500)]">{{ t('submissions.code') }}</Label>
           <pre
             class="mt-2 p-4 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] overflow-x-auto text-sm font-mono terminal-code-block"
           ><code>{{ selectedSubmission.code }}</code></pre>

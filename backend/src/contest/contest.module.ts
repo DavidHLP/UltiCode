@@ -27,6 +27,10 @@ import { ContestParticipationService } from './services/contest-participation.se
 import { ContestVirtualService } from './services/contest-virtual.service';
 import { ContestAdminService } from './services/contest-admin.service';
 
+// Realtime WebSocket
+import { ContestGateway } from './realtime/contest.gateway';
+import { RealtimeService } from './realtime/realtime.service';
+
 @Module({
   imports: [
     BullModule.registerQueue({
@@ -38,6 +42,9 @@ import { ContestAdminService } from './services/contest-admin.service';
   providers: [
     PrismaService,
     I18nService,
+    // Realtime WebSocket
+    ContestGateway,
+    RealtimeService,
     // Contest sub-services - dependency order
     ContestTimingService,
     ContestAdminService,
@@ -66,6 +73,7 @@ import { ContestAdminService } from './services/contest-admin.service';
     RatingService,
     ScoringRuleService,
     ScoringService,
+    RealtimeService,
   ],
 })
 export class ContestModule {}

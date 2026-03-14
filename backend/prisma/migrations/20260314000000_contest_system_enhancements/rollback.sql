@@ -3,17 +3,18 @@
 -- ============================================
 
 -- 3.4 Remove constraint for contest_analytics
-ALTER TABLE `contest_analytics` DROP FOREIGN KEY `contest_analytics_contest_id_fkey`;
+ALTER TABLE `contest_analytics` DROP FOREIGN KEY IF EXISTS `contest_analytics_contest_id_fkey`;
 
 -- 3.3 Remove constraint for contest_announcements
-ALTER TABLE `contest_announcements` DROP FOREIGN KEY `contest_announcements_contest_id_fkey`;
+ALTER TABLE `contest_announcements` DROP FOREIGN KEY IF EXISTS `contest_announcements_contest_id_fkey`;
 
 -- 3.2 Remove constraints for first_solve_records
-ALTER TABLE `first_solve_records` DROP FOREIGN KEY `first_solve_records_user_id_fkey`;
-ALTER TABLE `first_solve_records` DROP FOREIGN KEY `first_solve_records_contest_id_fkey`;
+ALTER TABLE `first_solve_records` DROP FOREIGN KEY IF EXISTS `first_solve_records_user_id_fkey`;
+ALTER TABLE `first_solve_records` DROP FOREIGN KEY IF EXISTS `first_solve_records_contest_id_fkey`;
+ALTER TABLE `first_solve_records` DROP FOREIGN KEY IF EXISTS `first_solve_records_problem_id_fkey`;
 
 -- 3.1 Remove constraint for contests
-ALTER TABLE `contests` DROP FOREIGN KEY `contests_scoring_rule_id_fkey`;
+ALTER TABLE `contests` DROP FOREIGN KEY IF EXISTS `contests_scoring_rule_id_fkey`;
 
 -- ============================================
 -- Phase 2: Drop new columns from extended tables

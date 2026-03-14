@@ -136,7 +136,9 @@ ALTER TABLE `first_solve_records`
   ADD CONSTRAINT `first_solve_records_contest_id_fkey`
   FOREIGN KEY (`contest_id`) REFERENCES `contests`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `first_solve_records_user_id_fkey`
-  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE;
+  FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  ADD CONSTRAINT `first_solve_records_problem_id_fkey`
+  FOREIGN KEY (`problem_id`) REFERENCES `problems`(`id`) ON DELETE CASCADE;
 
 -- 3.3 Add foreign keys for contest_announcements
 ALTER TABLE `contest_announcements`

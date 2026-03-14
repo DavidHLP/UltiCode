@@ -1,4 +1,26 @@
 services:
+  nacos:
+    image: nacos/nacos-server:latest
+    container_name: ulticode-nacos
+    restart: unless-stopped
+    environment:
+      MODE: standalone
+      NACOS_AUTH_TOKEN: SecretKey012345678901234567890123456789012345678901234567890123456789
+      NACOS_AUTH_IDENTITY_KEY: serverIdentity
+      NACOS_AUTH_IDENTITY_VALUE: security
+    ports:
+      - "28080:8080"
+      - "28848:8848"
+      - "29848:9848"
+    volumes:
+      - nacos_logs:/home/nacos/logs
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/v1/console/health/liveness"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   mysql:
     image: mysql:9.1
     container_name: ulticode-mysql
@@ -23,6 +45,59 @@ services:
     volumes:
       - redis_data:/data
 
+  recommend-provider:
+    image: openjdk:17-jdk-slim
+    container_name: ulticode-recommend-provider
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      NACOS_HOST: nacos
+      NACOS_PORT: 8848
+      JAVA_OPTS: "-Xms256m -Xmx512m"
+    ports:
+      - "20881:20881"
+    volumes:
+      - ../recommendation/recommend-provider/target/recommend-provider-1.0.0-SNAPSHOT.jar:/app/app.jar:ro
+    command: >
+      sh -c "java $$JAVA_OPTS -jar app.jar"
+    depends_on:
+      nacos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8081/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  recommend-web:
+    image: openjdk:17-jdk-slim
+    container_name: ulticode-recommend-web
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      NACOS_HOST: nacos
+      NACOS_PORT: 8848
+      JAVA_OPTS: "-Xms128m -Xmx256m"
+    ports:
+      - "28081:8080"
+    volumes:
+      - ../recommendation/recommend-web/target/recommend-web-1.0.0-SNAPSHOT.jar:/app/app.jar:ro
+    command: >
+      sh -c "java $$JAVA_OPTS -jar app.jar"
+    depends_on:
+      nacos:
+        condition: service_healthy
+      recommend-provider:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/api/recommend/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
 volumes:
+  nacos_logs:
   mysql_data:
   redis_data:

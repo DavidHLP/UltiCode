@@ -17,6 +17,7 @@ import { authApi } from "@/api/auth";
 import { toast } from "vue-sonner";
 import { setCsrfToken } from "@/utils/csrf";
 import { setSessionFlag } from "@/stores/auth";
+import { setUserId } from "@/utils/auth";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -27,15 +28,6 @@ const router = useRouter();
 const email = ref("");
 const password = ref("");
 const loading = ref(false);
-const isDev = import.meta.env.DEV;
-
-// Fill test credentials in development mode
-function fillTestCredentials() {
-  if (import.meta.env.DEV) {
-    email.value = import.meta.env.VITE_TEST_USERNAME || "";
-    password.value = import.meta.env.VITE_TEST_PASSWORD || "";
-  }
-}
 
 async function handleSubmit(e: Event) {
   e.preventDefault();
@@ -68,6 +60,9 @@ async function handleSubmit(e: Event) {
 
     // Set session flag to indicate user has an active session
     setSessionFlag();
+
+    // Store user ID for components that still use fetchCurrentUserId()
+    setUserId(res.user.id);
 
     toast.success(t("auth.messages.loginSuccess"));
     router.push("/");
@@ -129,17 +124,6 @@ function handleGoogleLogin() {
       <Field>
         <Button type="submit" :disabled="loading">
           {{ loading ? t("auth.login.submitting") : t("auth.login.submit") }}
-        </Button>
-      </Field>
-      <!-- Development-only test credential button -->
-      <Field v-if="isDev">
-        <Button
-          type="button"
-          variant="outline"
-          class="text-xs"
-          @click="fillTestCredentials"
-        >
-          Fill Test Credentials
         </Button>
       </Field>
       <FieldSeparator>{{ t("auth.login.orContinueWith") }}</FieldSeparator>

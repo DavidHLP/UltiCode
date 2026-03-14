@@ -116,7 +116,7 @@ onMounted(() => {
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 px-4 lg:px-6 py-4 space-y-6">
+    <div class="flex-1 py-4 space-y-6">
       <!-- Filters - Terminal Style -->
       <div
         class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]"
@@ -200,7 +200,9 @@ onMounted(() => {
       <!-- Stats Overview - Terminal Style -->
       <div v-else-if="stats" class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Total Actions -->
-        <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-4">
+        <div
+          class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-4"
+        >
           <div class="terminal-label text-xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('auditReport.totalActions') }}
           </div>
@@ -214,7 +216,9 @@ onMounted(() => {
         </div>
 
         <!-- Unique Entities -->
-        <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-4">
+        <div
+          class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-4"
+        >
           <div class="terminal-label text-xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('auditReport.uniqueEntities') }}
           </div>
@@ -228,7 +232,9 @@ onMounted(() => {
         </div>
 
         <!-- Active Performers -->
-        <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-4">
+        <div
+          class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] p-4"
+        >
           <div class="terminal-label text-xs uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('auditReport.activePerformers') }}
           </div>

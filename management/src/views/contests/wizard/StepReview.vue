@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { IconCalculator } from '@tabler/icons-vue'
+import { scoringRulesApi, type ScoringRule } from '@/api/admin/scoring-rules'
 
 const props = defineProps<{
   formData: {
     title: string
     slug: string
     type: string
+    scoring_rule_id?: string
     start_time: string
     duration: number
     is_published: boolean
@@ -21,6 +24,28 @@ const props = defineProps<{
 }>()
 
 const { t } = useI18n()
+
+const scoringRule = ref<ScoringRule | null>(null)
+const loadingRule = ref(false)
+
+// Fetch scoring rule details when scoring_rule_id changes
+async function fetchScoringRule() {
+  if (!props.formData.scoring_rule_id) {
+    scoringRule.value = null
+    return
+  }
+
+  loadingRule.value = true
+  try {
+    scoringRule.value = await scoringRulesApi.getById(props.formData.scoring_rule_id)
+  } catch {
+    scoringRule.value = null
+  } finally {
+    loadingRule.value = false
+  }
+}
+
+watch(() => props.formData.scoring_rule_id, fetchScoringRule, { immediate: true })
 
 const formattedDate = computed(() => {
   if (!props.formData.start_time) return t('contests.scheduleStep.notSet')
@@ -58,7 +83,7 @@ function getTypeStyle(type: string) {
       <span class="terminal-cursor" />
     </div>
 
-    <div class="grid gap-4 md:grid-cols-2">
+    <div class="grid gap-4 md:grid-cols-3">
       <!-- Basic Info Card - Terminal Style -->
       <div
         class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
@@ -118,6 +143,47 @@ function getTypeStyle(type: string) {
               </span>
               <span v-else class="terminal-badge text-[10px]">DRAFT</span>
             </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Scoring Rule Card - Terminal Style -->
+      <div
+        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
+      >
+        <div
+          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
+        >
+          <span class="terminal-comment">{{ t('contests.scoringRule.selectRule') }}</span>
+        </div>
+        <div class="p-4 space-y-3">
+          <div v-if="loadingRule" class="py-2">
+            <span class="terminal-comment text-xs">{{ t('common.loading') }}</span>
+          </div>
+          <div v-else-if="scoringRule" class="space-y-3">
+            <div class="flex items-center gap-2">
+              <IconCalculator class="h-4 w-4 text-[var(--accent-electric)]" />
+              <span class="font-medium text-sm text-[var(--foreground)]">{{ scoringRule.name }}</span>
+              <span
+                v-if="scoringRule.is_default"
+                class="terminal-badge-success text-[10px] px-1.5 py-0.5"
+              >
+                {{ t('scoringRules.badges.default') }}
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-xs">
+              <div>
+                <span class="terminal-label text-[10px]">{{ t('scoringRules.form.baseScorePerProblem') }}</span>
+                <p class="font-data text-[var(--terminal-cyan)] tabular-nums">{{ scoringRule.base_score_per_problem }}</p>
+              </div>
+              <div>
+                <span class="terminal-label text-[10px]">{{ t('scoringRules.form.wrongAnswerPenalty') }}</span>
+                <p class="font-data text-[var(--terminal-red)] tabular-nums">-{{ scoringRule.wrong_answer_penalty }}</p>
+              </div>
+            </div>
+          </div>
+          <div v-else class="py-2">
+            <span class="terminal-comment text-xs">{{ t('contests.reviewStep.defaultScoringRule') }}</span>
           </div>
         </div>
       </div>

@@ -16,6 +16,7 @@ import { useContestsStore } from '@/stores/admin/contests'
 import { ContestType } from '@/api/admin/contests'
 
 import StepBasicInfo from './StepBasicInfo.vue'
+import StepScoringRule from './StepScoringRule.vue'
 import StepSchedule from './StepSchedule.vue'
 import StepProblems from './StepProblems.vue'
 import StepReview from './StepReview.vue'
@@ -36,9 +37,10 @@ const loading = ref(false)
 
 const steps = [
   { step: 1, title: 'Basics', component: StepBasicInfo },
-  { step: 2, title: 'Schedule', component: StepSchedule },
-  { step: 3, title: 'Problems', component: StepProblems },
-  { step: 4, title: 'Review', component: StepReview },
+  { step: 2, title: 'Scoring', component: StepScoringRule },
+  { step: 3, title: 'Schedule', component: StepSchedule },
+  { step: 4, title: 'Problems', component: StepProblems },
+  { step: 5, title: 'Review', component: StepReview },
 ] as const
 
 const formData = ref({
@@ -46,6 +48,7 @@ const formData = ref({
   slug: '',
   description: '',
   type: ContestType.PUBLIC,
+  scoring_rule_id: '',
   start_time: '',
   duration: 120,
   is_published: false,
@@ -65,10 +68,12 @@ const isStepValid = computed(() => {
     case 1:
       return !!formData.value.title && !!formData.value.slug
     case 2:
-      return !!formData.value.start_time && formData.value.duration > 0
+      return true // Scoring rule selection is optional (will use default)
     case 3:
-      return true
+      return !!formData.value.start_time && formData.value.duration > 0
     case 4:
+      return true
+    case 5:
       return true
     default:
       return false
@@ -99,6 +104,7 @@ async function handleSubmit() {
       duration: formData.value.duration,
       is_published: formData.value.is_published,
       problem_ids: formData.value.selectedProblems.map((p) => p.id),
+      scoring_rule_id: formData.value.scoring_rule_id || undefined,
     })
 
     toast.success(t('contests.toast.createdSuccessfully'))
@@ -111,6 +117,7 @@ async function handleSubmit() {
       slug: '',
       description: '',
       type: ContestType.PUBLIC,
+      scoring_rule_id: '',
       start_time: '',
       duration: 120,
       is_published: false,

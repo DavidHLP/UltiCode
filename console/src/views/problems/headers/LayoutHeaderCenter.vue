@@ -74,9 +74,9 @@ async function handleSubmit() {
           code: currentCode,
         });
     toast.success(`${t("problem.editor.submit")} ${res.status}!`);
-    // Navigate to submissions tab
+    // Navigate to submissions tab (header ID 3 = Submissions in problem-info group)
     headerStore.setActiveGroup("problem-info");
-    headerStore.setActiveHeader("problem-info", 4);
+    headerStore.setActiveHeader("problem-info", 3);
   } catch (e) {
     toast.error(t("problem.problemList.messages.saveFailed"));
     console.error(e);

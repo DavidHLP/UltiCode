@@ -26,6 +26,7 @@ export interface User {
   is_active: boolean
   is_banned: boolean
   joined_at: string
+  csrf_token?: string
 }
 
 export const authApi = {

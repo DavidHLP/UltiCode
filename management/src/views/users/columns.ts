@@ -68,7 +68,7 @@ function renderRoleBadge(role: string) {
     {
       class: [
         'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-        'px-2 py-0.5 border rounded-sm',
+        'px-2 py-0.5 border',
         style.bg,
         style.border,
         style.text,
@@ -89,7 +89,7 @@ function renderStatusBadge(user: User) {
         {
           class: [
             'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border rounded-sm',
+            'px-2 py-0.5 border',
             'bg-[oklch(0.6_0.2_25/0.15)]',
             'border-[oklch(0.6_0.2_25/0.4)]',
             'text-[var(--terminal-red)]',
@@ -107,7 +107,7 @@ function renderStatusBadge(user: User) {
       {
         class: [
           'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
+          'px-2 py-0.5 border',
           'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
           'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
           'text-[var(--silver-500)]',
@@ -119,14 +119,14 @@ function renderStatusBadge(user: User) {
 
   return h('div', { class: 'flex items-center gap-2' }, [
     h('span', {
-      class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-green)] animate-pulse-subtle',
+      class: 'w-1.5 h-1.5 bg-[var(--terminal-green)] animate-pulse-subtle',
     }),
     h(
       'span',
       {
         class: [
           'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
+          'px-2 py-0.5 border',
           'bg-[oklch(0.7_0.15_145/0.15)]',
           'border-[oklch(0.7_0.15_145/0.4)]',
           'text-[var(--terminal-green)]',
@@ -217,7 +217,7 @@ export function createColumns(
             [
               h(
                 Avatar,
-                { class: 'h-10 w-10 rounded-sm' },
+                { class: 'h-10 w-10' },
                 {
                   default: () => [
                     h(AvatarImage, { src: user.avatar ?? '' }),

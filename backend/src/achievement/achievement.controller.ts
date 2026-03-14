@@ -17,7 +17,6 @@ import {
   AchievementQueryDto,
 } from './achievement.dto';
 import { AuthGuard } from '../auth/auth.guard';
-import { ThrottleAdmin } from '../common/guards/throttle.guard';
 
 interface AuthenticatedRequest {
   user: { id: string };
@@ -29,7 +28,6 @@ export class AdminAchievementController {
   constructor(private readonly achievementService: AchievementService) {}
 
   @Post()
-  @ThrottleAdmin()
   create(@Body() dto: CreateAchievementDto) {
     return this.achievementService.create(dto);
   }
@@ -45,19 +43,16 @@ export class AdminAchievementController {
   }
 
   @Put(':id')
-  @ThrottleAdmin()
   update(@Param('id') id: string, @Body() dto: UpdateAchievementDto) {
     return this.achievementService.update(id, dto);
   }
 
   @Delete(':id')
-  @ThrottleAdmin()
   remove(@Param('id') id: string) {
     return this.achievementService.remove(id);
   }
 
   @Post('seed')
-  @ThrottleAdmin()
   seedDefaults() {
     return this.achievementService.seedDefaultAchievements();
   }

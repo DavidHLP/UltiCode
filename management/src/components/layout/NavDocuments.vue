@@ -47,13 +47,13 @@ const { isMobile } = useSidebar()
         </SidebarMenuButton>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <SidebarMenuAction show-on-hover class="data-[state=open]:bg-accent rounded-sm">
+            <SidebarMenuAction show-on-hover class="data-[state=open]:bg-accent">
               <IconDots />
               <span class="sr-only">More</span>
             </SidebarMenuAction>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            class="w-24 rounded-lg"
+            class="w-24"
             :side="isMobile ? 'bottom' : 'right'"
             :align="isMobile ? 'end' : 'start'"
           >

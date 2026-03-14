@@ -41,7 +41,7 @@ const navItems = computed<NavItem[]>(() => [
   },
   {
     label: t("sidebar.contest.contestSection"),
-    to: { name: "contest-home" },
+    to: { name: "contest-list" },
   },
   {
     label: t("recommendation.title"),

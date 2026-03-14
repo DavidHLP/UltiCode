@@ -79,9 +79,9 @@ export class RealtimeService {
    */
   async pushFirstSolve(
     contestId: string,
-    problemId: string,
-    problemTitle: string,
+    problemIndex: string,
     userId: string,
+    timeSpent: number,
   ): Promise<void> {
     if (!isFeatureEnabled('ENABLE_FIRST_SOLVE_NOTIFICATIONS')) {
       return;
@@ -100,17 +100,35 @@ export class RealtimeService {
         return;
       }
 
+      // Get problem info from contest problem mapping
+      const contestProblem = await this.prisma.contestProblem.findFirst({
+        where: {
+          contest_id: contestId,
+          problem_index: problemIndex,
+        },
+        include: {
+          problem: { select: { id: true, title: true } },
+        },
+      });
+
+      if (!contestProblem) {
+        this.logger.warn(
+          `Contest problem not found for contest ${contestId}, index ${problemIndex}`,
+        );
+        return;
+      }
+
       this.gateway.emitFirstSolve(contestId, {
         contestId,
-        problemId,
-        problemTitle,
+        problemId: String(contestProblem.problem.id),
+        problemTitle: contestProblem.problem.title,
         userId,
         username: user.username,
         solvedAt: new Date(),
       });
 
       this.logger.log(
-        `Pushed first solve notification: ${user.username} solved ${problemTitle}`,
+        `Pushed first solve notification: ${user.username} solved ${contestProblem.problem.title} in ${timeSpent}s`,
       );
     } catch (error) {
       this.logger.error('Failed to push first solve notification:', error);
@@ -166,27 +184,24 @@ export class RealtimeService {
   /**
    * Push submission result to a specific user
    */
-  pushSubmissionResult(
-    userId: string,
-    data: {
-      submissionId: string;
-      contestId: string;
-      problemId: string;
-      status: string;
-      score: number;
-      timeUsed?: number;
-      memoryUsed?: number;
-    },
-  ): void {
-    this.gateway.emitSubmissionResult(userId, {
+  pushSubmissionResult(data: {
+    contestId: string;
+    userId: string;
+    problemIndex: string;
+    submissionId: string;
+    status: string;
+    score: number;
+    timeSpent: number;
+    isFirstSolve: boolean;
+  }): void {
+    this.gateway.emitSubmissionResult(data.userId, {
       submissionId: data.submissionId,
       contestId: data.contestId,
-      problemId: data.problemId,
-      userId,
+      problemId: data.problemIndex,
+      userId: data.userId,
       status: data.status,
       score: data.score,
-      timeUsed: data.timeUsed,
-      memoryUsed: data.memoryUsed,
+      timeUsed: data.timeSpent,
       judgedAt: new Date(),
     });
   }

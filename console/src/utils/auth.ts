@@ -5,6 +5,7 @@
 
 const TOKEN_KEY = "ulticode_token";
 const USER_ID_KEY = "ulticode_user_id";
+const HAS_SESSION_KEY = "ulticode_has_session";
 
 /**
  * @deprecated Tokens are now stored in httpOnly cookies
@@ -52,14 +53,29 @@ export function fetchCurrentUserId(): string | null {
 
 /**
  * Check if user is authenticated
- * Note: This is a basic client-side check.
- * For reliable authentication status, make an API call.
+ * Uses the session flag set during login to determine auth status.
+ * For reliable authentication status, use auth store's isAuthenticated computed.
  *
- * @returns true if authentication data exists, false otherwise
+ * @returns true if session flag exists, false otherwise
  */
 export function isAuthenticated(): boolean {
-  // Check for either localStorage token (legacy) or make API call
-  return !!getToken();
+  // Check for session flag (set during login/registration)
+  // This is the new authentication method using httpOnly cookies
+  return localStorage.getItem(HAS_SESSION_KEY) === "true";
+}
+
+/**
+ * Set the session flag to indicate user has an active session
+ */
+export function setSessionFlag(): void {
+  localStorage.setItem(HAS_SESSION_KEY, "true");
+}
+
+/**
+ * Clear the session flag
+ */
+export function clearSessionFlag(): void {
+  localStorage.removeItem(HAS_SESSION_KEY);
 }
 
 /**

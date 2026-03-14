@@ -104,6 +104,8 @@ export default {
     explanation: "Explanation",
     soon: "Soon",
     guest: "Guest",
+    admin: "Admin",
+    new: "New",
   },
 
   // Pagination

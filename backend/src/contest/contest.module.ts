@@ -10,6 +10,10 @@ import { PrismaService } from '../prisma.service';
 import { I18nModule } from '../i18n/i18n.module';
 import { I18nService } from '../i18n/i18n.service';
 import { NotificationModule } from '../notification/notification.module';
+import { CustomCacheModule } from '../cache/cache.module';
+import { ScoringRuleService } from './services/scoring-rule.service';
+import { ScoringService } from './scoring/scoring.service';
+import { ScoringRuleController } from './admin/scoring-rule.controller';
 
 // Ranking sub-services
 import { RankingHelperService } from './services/ranking-helper.service';
@@ -24,6 +28,18 @@ import { ContestParticipationService } from './services/contest-participation.se
 import { ContestVirtualService } from './services/contest-virtual.service';
 import { ContestAdminService } from './services/contest-admin.service';
 
+// Realtime WebSocket
+import { ContestGateway } from './realtime/contest.gateway';
+import { RealtimeService } from './realtime/realtime.service';
+
+// Anti-cheat
+import { AntiCheatService } from './anticheat/anticheat.service';
+import { AntiCheatController } from './anticheat/anticheat.controller';
+
+// Analytics
+import { AnalyticsService } from './analytics/analytics.service';
+import { AnalyticsController } from './analytics/analytics.controller';
+
 @Module({
   imports: [
     BullModule.registerQueue({
@@ -31,10 +47,14 @@ import { ContestAdminService } from './services/contest-admin.service';
     }),
     I18nModule,
     NotificationModule,
+    CustomCacheModule,
   ],
   providers: [
     PrismaService,
     I18nService,
+    // Realtime WebSocket
+    ContestGateway,
+    RealtimeService,
     // Contest sub-services - dependency order
     ContestTimingService,
     ContestAdminService,
@@ -46,14 +66,34 @@ import { ContestAdminService } from './services/contest-admin.service';
     GlobalRankingQueryService,
     ContestRankingCalcService,
     ContestRankingQueryService,
+    // Scoring services
+    ScoringRuleService,
+    ScoringService,
     // Main services
     ContestService,
     RankingService,
     RatingService,
     ContestSchedulerService,
     ContestProcessor,
+    // Anti-cheat
+    AntiCheatService,
+    // Analytics
+    AnalyticsService,
   ],
-  controllers: [ContestController, RankingController],
-  exports: [ContestService, RankingService, RatingService],
+  controllers: [
+    ContestController,
+    RankingController,
+    ScoringRuleController,
+    AntiCheatController,
+    AnalyticsController,
+  ],
+  exports: [
+    ContestService,
+    RankingService,
+    RatingService,
+    ScoringRuleService,
+    ScoringService,
+    RealtimeService,
+  ],
 })
 export class ContestModule {}

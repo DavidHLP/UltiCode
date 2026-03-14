@@ -6,11 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-} from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import {
   Field,
   FieldGroup,
@@ -141,9 +137,10 @@ async function handleSubmit() {
 
           <FieldGroup class="max-h-[60vh] overflow-y-auto px-1">
             <FieldSet>
-              <FieldLegend class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]">{{
-                t('notifications.form.messageContent')
-              }}</FieldLegend>
+              <FieldLegend
+                class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]"
+                >{{ t('notifications.form.messageContent') }}</FieldLegend
+              >
               <FieldDescription class="text-[var(--silver-500)]">{{
                 t('notifications.form.messageContentDescription')
               }}</FieldDescription>
@@ -183,9 +180,10 @@ async function handleSubmit() {
             <FieldSeparator class="border-[var(--silver-200)] dark:border-[var(--silver-300)]" />
 
             <FieldSet>
-              <FieldLegend class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]">{{
-                t('notifications.form.classification')
-              }}</FieldLegend>
+              <FieldLegend
+                class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]"
+                >{{ t('notifications.form.classification') }}</FieldLegend
+              >
               <FieldDescription class="text-[var(--silver-500)]">{{
                 t('notifications.form.classificationDescription')
               }}</FieldDescription>
@@ -245,18 +243,16 @@ async function handleSubmit() {
             <FieldSeparator class="border-[var(--silver-200)] dark:border-[var(--silver-300)]" />
 
             <FieldSet>
-              <FieldLegend class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]">{{
-                t('notifications.form.targetAudience')
-              }}</FieldLegend>
+              <FieldLegend
+                class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]"
+                >{{ t('notifications.form.targetAudience') }}</FieldLegend
+              >
               <FieldDescription class="text-[var(--silver-500)]">{{
                 t('notifications.form.targetAudienceDescription')
               }}</FieldDescription>
               <FieldGroup class="mt-3">
                 <Field>
-                  <RadioGroup
-                    v-model="form.target"
-                    class="flex flex-col space-y-2"
-                  >
+                  <RadioGroup v-model="form.target" class="flex flex-col space-y-2">
                     <div
                       class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
                       :class="{

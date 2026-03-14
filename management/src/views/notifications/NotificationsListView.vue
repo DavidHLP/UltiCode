@@ -6,14 +6,11 @@ import {
   IconPlus,
   IconTrash,
   IconDotsVertical,
-  IconRefresh,
-  IconCircleXFilled,
   IconBell,
 } from '@tabler/icons-vue'
 import { format } from 'date-fns'
 
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -21,17 +18,11 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { useNotificationsStore } from '@/stores/admin/notifications'
 import { NotificationType, type SystemAnnouncement } from '@/api/admin/notifications'
 
 import DataTable from '@/components/table/DataTable.vue'
+import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import NotificationCreateDialog from './NotificationCreateDialog.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 
@@ -72,6 +63,19 @@ const stats = computed(() => {
   }
 })
 
+// Toolbar filters for DataTableToolbar
+const toolbarFilters = computed<Filter[]>(() => [
+  {
+    modelValue: typeFilter.value,
+    placeholder: t('notifications.allTypes'),
+    width: 'w-[160px]',
+    options: [
+      { value: 'all', label: t('notifications.allTypes') },
+      ...Object.values(NotificationType).map((type) => ({ value: type, label: type })),
+    ],
+  },
+])
+
 // Filtered data based on search and type filter
 const filteredData = computed(() => {
   let result = store.announcements
@@ -80,8 +84,7 @@ const filteredData = computed(() => {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(
       (a) =>
-        a.title.toLowerCase().includes(query) ||
-        a.creator.username.toLowerCase().includes(query),
+        a.title.toLowerCase().includes(query) || a.creator.username.toLowerCase().includes(query),
     )
   }
 
@@ -298,7 +301,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     </div>
 
     <!-- Main Content Area -->
-    <div class="flex-1 px-4 lg:px-6 py-4">
+    <div class="flex-1 py-4">
       <DataTable
         :columns="columns"
         :data="filteredData"
@@ -306,44 +309,15 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
         class="terminal-table"
       >
         <template #toolbar-left>
-          <div class="flex items-center gap-3">
-            <div class="relative">
-              <Input
-                v-model="searchQuery"
-                :placeholder="t('notifications.searchPlaceholder')"
-                class="terminal-input min-w-[200px] w-[260px] font-data text-sm"
-              />
-              <button
-                v-if="searchQuery"
-                @click="searchQuery = ''"
-                class="absolute right-2 top-1/2 -translate-y-1/2 rounded-sm opacity-70 hover:opacity-100 text-[var(--silver-500)]"
-              >
-                <IconCircleXFilled class="h-4 w-4" />
-              </button>
-            </div>
-            <Select v-model="typeFilter">
-              <SelectTrigger
-                class="terminal-input w-[160px] font-data text-xs uppercase tracking-wider"
-              >
-                <SelectValue :placeholder="t('notifications.allTypes')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{{ t('notifications.allTypes') }}</SelectItem>
-                <SelectItem v-for="type in NotificationType" :key="type" :value="type">
-                  {{ type }}
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              variant="terminal"
-              size="icon"
-              class="h-9 w-9 border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
-              @click="store.fetchAnnouncements()"
-              :title="t('notifications.refresh')"
-            >
-              <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': store.isLoading }" />
-            </Button>
-          </div>
+          <DataTableToolbar
+            :search-model-value="searchQuery"
+            @update:search-model-value="searchQuery = $event"
+            :search-placeholder="t('notifications.searchPlaceholder')"
+            :filters="toolbarFilters"
+            @update:filter="(index, value) => (typeFilter = String(value))"
+            :loading="store.isLoading"
+            :on-refresh="() => store.fetchAnnouncements()"
+          />
         </template>
       </DataTable>
 

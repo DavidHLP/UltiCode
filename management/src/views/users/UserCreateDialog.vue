@@ -197,7 +197,7 @@ async function handleSubmit() {
                 >
                   <Checkbox
                     id="create-is_active"
-                    v-model:checked="form.is_active"
+                    v-model="form.is_active"
                     :disabled="loading"
                     class="border-[var(--silver-400)] data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
                   />

@@ -1,21 +1,68 @@
 #!/bin/bash
 
-set -e
+# ============================================================
+# UltiCode Start Script - Simple & Reliable
+# Usage: ./start.sh [-y] [--skip-docker] [--skip-install]
+# ============================================================
 
-# Get script directory (supports symlinks)
+# Don't use set -e - we handle errors explicitly for better reliability
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Load environment variables from .env file (safe for special characters)
-load_env_file() {
-    local env_file=$1
+# ============== Configuration ==============
+CONSOLE_PORT=9002
+MANAGEMENT_PORT=9003
+BACKEND_PORT=9001
+MYSQL_PORT=23306
+REDIS_PORT=26379
+NACOS_PORT=28848
+
+# Timeouts (seconds)
+BACKEND_TIMEOUT=60
+FRONTEND_TIMEOUT=30
+MYSQL_TIMEOUT=60
+
+# ============== Colors & Symbols ==============
+R='\033[0m' G='\033[32m' Y='\033[33m' C='\033[36m' D='\033[2m' B='\033[1m'
+CHECK="✓" CROSS="✗" ARROW="→"
+
+# ============== Helper Functions ==============
+log() { echo -e "  $1"; }
+ok() { log "${G}${CHECK}${R} $1"; }
+err() { log "${Y}${CROSS}${R} $1"; }
+info() { log "${D}•${R} $1"; }
+step() { log "${C}${ARROW}${R} $1"; }
+
+spin_wait() {
+    local msg=$1 check_cmd=$2 timeout=$3
+    local i=0 spinner='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    printf "  ${C}${ARROW}${R} ${msg}..."
+    while [ $i -lt $timeout ]; do
+        if eval "$check_cmd" >/dev/null 2>&1; then
+            printf "\r  ${G}${CHECK}${R} ${msg}    \n"
+            return 0
+        fi
+        printf "\r  ${spinner:$((i % 10)):1} ${msg}... ($((i+1))s/${timeout}s)"
+        sleep 1
+        ((i++)) || true
+    done
+    printf "\r  ${Y}!${R} ${msg} timeout    \n"
+    return 1
+}
+
+port_used() { lsof -i :$1 >/dev/null 2>&1; }
+get_pid() { lsof -ti :$1 2>/dev/null || echo ""; }
+
+# ============== Load Environment ==============
+load_env() {
+    local env_file="$PROJECT_ROOT/backend/.env"
     if [ -f "$env_file" ]; then
         while IFS= read -r line || [ -n "$line" ]; do
             # Skip empty lines and comments
             [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
             # Only process lines containing =
             if [[ "$line" == *"="* ]]; then
-                # Extract key and value
                 local key="${line%%=*}"
                 local value="${line#*=}"
                 # Remove surrounding quotes if present
@@ -29,351 +76,169 @@ load_env_file() {
         done < "$env_file"
     fi
 }
-load_env_file "$PROJECT_ROOT/backend/.env"
+load_env
 
-# Configuration
-CONSOLE_PORT=9002
-MANAGEMENT_PORT=9003
-BACKEND_PORT=9001
-MYSQL_PORT=23306
-REDIS_PORT=26379
-
-HEALTH_CHECK_MAX_RETRIES=30
-HEALTH_CHECK_INTERVAL=2
-
-# Colors
-RESET='\033[0m'
-GREEN='\033[32m'
-RED='\033[31m'
-YELLOW='\033[33m'
-CYAN='\033[36m'
-WHITE='\033[37m'
-DIM='\033[2m'
-BOLD='\033[1m'
-GREEN_BG='\033[42m'
-YELLOW_BG='\033[43m'
-
-# Symbols
-CHECK="✓"
-CROSS="✗"
-ARROW="→"
-DOT="•"
-SPINNER=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
-
-# Get spinner frame
-get_spinner() {
-    local frame=$((${1} % 10))
-    printf "%s" "${SPINNER[$frame]}"
-}
-
-# Print banner
-print_banner() {
-    echo ""
-    echo -e "${CYAN}${BOLD}"
-    echo "   _   _ _   _ _   _ _   _ ___ ___  ___ ___  ___  "
-    echo "  | | | | | | | | | | \\ | |_ _/ _ \\/ __/ __|| _ \\ "
-    echo "  | |_| | |_| | | | |  \\| || | (_) | (_| _| |   / "
-    echo "   \\___/ \\___/|_| |_|_|\\_|___|\\___/ \\___|___|_|_\\ "
-    echo -e "${RESET}"
-    echo -e "  ${DIM}UltiCode Development Environment${RESET}"
-    echo ""
-}
-
-# Print status line
-print_status() {
-    local status=$1
-    local message=$2
-    case $status in
-        "ok")    echo -e "  ${GREEN}${CHECK}${RESET} ${message}" ;;
-        "error") echo -e "  ${RED}${CROSS}${RESET} ${message}" ;;
-        "warn")  echo -e "  ${YELLOW}!${RESET} ${message}" ;;
-        "info")  echo -e "  ${DIM}${DOT}${RESET} ${message}" ;;
-        "step")  echo -e "  ${CYAN}${ARROW}${RESET} ${message}" ;;
-    esac
-}
-
-# Print section header
-print_section() {
-    local title=$1
-    echo ""
-    echo -e "  ${BOLD}${WHITE}:: ${title}${RESET}"
-    echo -e "  ${DIM}────────────────────────────────────────${RESET}"
-}
-
-# Print service box
-print_service_box() {
-    echo ""
-    echo -e "  ${GREEN_BG}${WHITE} RUNNING ${RESET}"
-    echo ""
-    echo -e "  ${BOLD}Console${RESET}     http://localhost:${CONSOLE_PORT}"
-    echo -e "  ${BOLD}Management${RESET}  http://localhost:${MANAGEMENT_PORT}"
-    echo -e "  ${BOLD}Backend${RESET}     http://localhost:${BACKEND_PORT}"
-    echo -e "  ${BOLD}MySQL${RESET}       localhost:${MYSQL_PORT}"
-    echo -e "  ${BOLD}Redis${RESET}       localhost:${REDIS_PORT}"
-    echo ""
-}
-
-# Port check
-is_port_in_use() {
-    lsof -i :$1 >/dev/null 2>&1
-}
-
-get_pid_on_port() {
-    lsof -ti :$1 2>/dev/null || echo ""
-}
-
-# Main
-cd "$PROJECT_ROOT"
-print_banner
-
-# Parse arguments
+# ============== Parse Arguments ==============
+SKIP_CONFIRM=false
 SKIP_DOCKER=false
 SKIP_INSTALL=false
 
 for arg in "$@"; do
     case $arg in
-        --skip-docker) SKIP_DOCKER=true; shift ;;
-        --skip-install) SKIP_INSTALL=true; shift ;;
+        -y|--yes) SKIP_CONFIRM=true ;;
+        --skip-docker) SKIP_DOCKER=true ;;
+        --skip-install) SKIP_INSTALL=true ;;
     esac
 done
 
-# Step 1: Check ports
-print_section "Checking Ports"
-check_port() {
-    local port=$1 name=$2
-    if is_port_in_use $port; then
-        local pid=$(get_pid_on_port $port)
-        print_status "warn" "${name} port ${port} is in use (PID: ${pid})"
-        read -p "       Continue? (y/N): " -n 1 -r
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            print_status "error" "Startup cancelled"
-            exit 1
+# ============== Banner ==============
+echo ""
+echo -e "${C}${B}"
+echo "   _   _ _   _ _   _ _   _ ___ ___  ___ ___  ___  "
+echo "  | | | | | | | | | | \\ | |_ _/ _ \\/ __/ __|| _ \\ "
+echo "  | |_| | |_| | | | |  \\| || | (_) | (_| _| |   / "
+echo "   \\___/ \\___/|_| |_|_|\\_|___|\\___/ \\___|___|_|_\\ "
+echo -e "${R}"
+echo -e "  ${D}Starting Development Environment${R}"
+echo ""
+
+cd "$PROJECT_ROOT"
+
+# ============== Step 1: Check Ports ==============
+log "${B}:: Check Ports${R} ${D}────────────────────────${R}"
+
+for svc in "Console:$CONSOLE_PORT" "Management:$MANAGEMENT_PORT" "Backend:$BACKEND_PORT"; do
+    name="${svc%:*}" port="${svc#*:}"
+    if port_used $port; then
+        pid=$(get_pid $port)
+        if [ "$SKIP_CONFIRM" = true ]; then
+            info "$name already running on port $port (PID: $pid)"
+        else
+            log "${Y}!${R} $name port $port in use (PID: $pid)"
+            read -p "       Continue? (y/N): " -n 1 -r
+            echo
+            [[ ! $REPLY =~ ^[Yy]$ ]] && { err "Cancelled"; exit 1; }
         fi
     else
-        print_status "ok" "${name} port ${port} available"
+        ok "$name port $port available"
     fi
-}
-check_port $CONSOLE_PORT "Console"
-check_port $MANAGEMENT_PORT "Management"
-check_port $BACKEND_PORT "Backend"
+done
 
-# Step 2: Docker services
+# ============== Step 2: Docker Services ==============
 if [ "$SKIP_DOCKER" = false ]; then
-    print_section "Docker Services (MySQL & Redis)"
+    log ""
+    log "${B}:: Docker Services${R} ${D}────────────────${R}"
 
-    if docker ps | grep -q "ulticode-mysql"; then
-        print_status "info" "MySQL container already running"
+    if docker ps 2>/dev/null | grep -q "ulticode-mysql"; then
+        info "MySQL already running"
     else
-        print_status "step" "Starting Docker containers..."
-        cd backend
-        docker compose up -d mysql redis
-        cd ..
+        step "Starting MySQL, Redis & Nacos..."
+        cd backend && docker compose up -d mysql redis nacos && cd ..
 
-        printf "  "
-        for i in {1..30}; do
-            if docker exec ulticode-mysql mysqladmin ping -h localhost -u root -proot --silent 2>/dev/null; then
-                echo -e "\r  ${GREEN}${CHECK}${RESET} MySQL started successfully    "
-                break
-            fi
-            if [ $i -eq 30 ]; then
-                echo -e "\r  ${RED}${CROSS}${RESET} MySQL startup timeout (30s)    "
-                exit 1
-            fi
-            printf "\r  %s Waiting for MySQL... (%ds/30s)" "$(get_spinner $i)" "$i"
-            sleep 2
-        done
-    fi
+        spin_wait "MySQL ready" \
+            "docker exec ulticode-mysql mysqladmin ping -h localhost -u root -proot --silent" \
+            $MYSQL_TIMEOUT
 
-    if docker ps | grep -q "ulticode-redis"; then
-        print_status "ok" "Redis running"
-    else
-        print_status "warn" "Redis not running"
+        docker ps 2>/dev/null | grep -q "ulticode-redis" && ok "Redis running"
+        docker ps 2>/dev/null | grep -q "ulticode-nacos" && ok "Nacos running"
     fi
 else
-    print_section "Docker Services"
-    print_status "info" "Skipping Docker services (--skip-docker)"
+    log ""
+    log "${B}:: Docker Services${R} ${D}────────────────${R}"
+    info "Skipping (--skip-docker)"
 fi
 
-# Step 3: Install dependencies
+# ============== Step 3: Dependencies ==============
 if [ "$SKIP_INSTALL" = false ]; then
-    print_section "Dependencies"
-    if [ ! -d "node_modules" ]; then
-        print_status "step" "Installing root dependencies..."
-        pnpm install
-        print_status "ok" "Root dependencies installed"
+    log ""
+    log "${B}:: Dependencies${R} ${D}──────────────────${R}"
+    if [ -d "node_modules" ]; then
+        info "Already installed"
     else
-        print_status "info" "Root dependencies already installed"
+        step "Installing root dependencies..."
+        pnpm install && ok "Dependencies installed"
     fi
 fi
 
-# Step 4: Backend
-print_section "Backend Service"
-if is_port_in_use $BACKEND_PORT; then
-    print_status "info" "Backend already running on port ${BACKEND_PORT}"
+# ============== Step 4: Backend ==============
+log ""
+log "${B}:: Backend${R} ${D}──────────────────────${R}"
+
+if port_used $BACKEND_PORT; then
+    info "Already running on port $BACKEND_PORT"
 else
     cd backend
-
-    # Generate Prisma client
-    print_status "step" "Generating Prisma client..."
     pnpm run prisma:generate >/dev/null 2>&1 || true
+    rm -f nohup.out 2>/dev/null
 
-    # Rotate logs
-    if [ -f "/tmp/ulticode-backend.log" ] && [ $(stat -c%s /tmp/ulticode-backend.log 2>/dev/null || echo 0) -gt 10485760 ]; then
-        mv /tmp/ulticode-backend.log /tmp/ulticode-backend.log.old
-    fi
-
-    # Start backend with watch mode (skip lint, test, db:reset for faster startup)
     nohup npx nest start --watch >/tmp/ulticode-backend.log 2>&1 &
     BACKEND_PID=$!
     cd ..
 
-    print_status "step" "Starting backend (PID: ${BACKEND_PID})"
-
-    printf "  "
-    health_retries=0
-    while [ $health_retries -lt $HEALTH_CHECK_MAX_RETRIES ]; do
-        if curl -s -f "http://localhost:$BACKEND_PORT" -o /dev/null 2>&1; then
-            echo -e "\r  ${GREEN}${CHECK}${RESET} Backend ready                 "
-            break
-        fi
-        health_retries=$((health_retries + 1))
-        printf "\r  %s Health check... (%ds)" "$(get_spinner $health_retries)" "$((health_retries * HEALTH_CHECK_INTERVAL))"
-        sleep $HEALTH_CHECK_INTERVAL
-    done
-
-    if [ $health_retries -ge $HEALTH_CHECK_MAX_RETRIES ]; then
-        print_status "warn" "Health check timeout, process may still be starting"
-        echo -e "       ${DIM}tail -f /tmp/ulticode-backend.log${RESET}"
-    fi
+    spin_wait "Backend ready" "curl -sf http://localhost:$BACKEND_PORT" $BACKEND_TIMEOUT || {
+        info "Check: tail -f /tmp/ulticode-backend.log"
+    }
 fi
 
-# Step 5: Console
-print_section "Console Service"
-if is_port_in_use $CONSOLE_PORT; then
-    print_status "info" "Console already running on port ${CONSOLE_PORT}"
+# ============== Step 5: Console ==============
+log ""
+log "${B}:: Console${R} ${D}──────────────────────${R}"
+
+if port_used $CONSOLE_PORT; then
+    info "Already running on port $CONSOLE_PORT"
 else
-    cd console
-
-    # Rotate logs
-    if [ -f "/tmp/ulticode-console.log" ] && [ $(stat -c%s /tmp/ulticode-console.log 2>/dev/null || echo 0) -gt 10485760 ]; then
-        mv /tmp/ulticode-console.log /tmp/ulticode-console.log.old
-    fi
-
+    cd console && rm -f nohup.out 2>/dev/null
     nohup pnpm run dev >/tmp/ulticode-console.log 2>&1 &
     CONSOLE_PID=$!
     cd ..
 
-    print_status "step" "Starting console (PID: ${CONSOLE_PID})"
-
-    printf "  "
-    for i in {1..15}; do
-        if is_port_in_use $CONSOLE_PORT; then
-            echo -e "\r  ${GREEN}${CHECK}${RESET} Console ready                "
-            break
-        fi
-        printf "\r  %s Waiting for console... (%ds/15s)" "$(get_spinner $i)" "$i"
-        sleep 1
-    done
-
-    if ! is_port_in_use $CONSOLE_PORT; then
-        print_status "warn" "Console may still be starting"
-        echo -e "       ${DIM}tail -f /tmp/ulticode-console.log${RESET}"
-    fi
+    spin_wait "Console ready" "port_used $CONSOLE_PORT" $FRONTEND_TIMEOUT || {
+        info "Check: tail -f /tmp/ulticode-console.log"
+    }
 fi
 
-# Step 6: Management
-print_section "Management Service"
-if is_port_in_use $MANAGEMENT_PORT; then
-    print_status "info" "Management already running on port ${MANAGEMENT_PORT}"
+# ============== Step 6: Management ==============
+log ""
+log "${B}:: Management${R} ${D}──────────────────${R}"
+
+if port_used $MANAGEMENT_PORT; then
+    info "Already running on port $MANAGEMENT_PORT"
 else
-    cd management
-
-    # Rotate logs
-    if [ -f "/tmp/ulticode-management.log" ] && [ $(stat -c%s /tmp/ulticode-management.log 2>/dev/null || echo 0) -gt 10485760 ]; then
-        mv /tmp/ulticode-management.log /tmp/ulticode-management.log.old
-    fi
-
+    cd management && rm -f nohup.out 2>/dev/null
     nohup pnpm run dev >/tmp/ulticode-management.log 2>&1 &
     MANAGEMENT_PID=$!
     cd ..
 
-    print_status "step" "Starting management (PID: ${MANAGEMENT_PID})"
-
-    printf "  "
-    for i in {1..15}; do
-        if is_port_in_use $MANAGEMENT_PORT; then
-            echo -e "\r  ${GREEN}${CHECK}${RESET} Management ready             "
-            break
-        fi
-        printf "\r  %s Waiting for management... (%ds/15s)" "$(get_spinner $i)" "$i"
-        sleep 1
-    done
-
-    if ! is_port_in_use $MANAGEMENT_PORT; then
-        print_status "warn" "Management may still be starting"
-        echo -e "       ${DIM}tail -f /tmp/ulticode-management.log${RESET}"
-    fi
+    spin_wait "Management ready" "port_used $MANAGEMENT_PORT" $FRONTEND_TIMEOUT || {
+        info "Check: tail -f /tmp/ulticode-management.log"
+    }
 fi
 
-# Step 7: Verification
-print_section "Status Verification"
-ALL_READY=true
+# ============== Summary ==============
+log ""
+log "${B}:: Status${R} ${D}────────────────────────${R}"
 
-if is_port_in_use $BACKEND_PORT; then
-    print_status "ok" "Backend running on port ${BACKEND_PORT}"
-else
-    print_status "error" "Backend not responding"
-    ALL_READY=false
-fi
-
-if is_port_in_use $CONSOLE_PORT; then
-    print_status "ok" "Console running on port ${CONSOLE_PORT}"
-else
-    print_status "error" "Console not responding"
-    ALL_READY=false
-fi
-
-if is_port_in_use $MANAGEMENT_PORT; then
-    print_status "ok" "Management running on port ${MANAGEMENT_PORT}"
-else
-    print_status "error" "Management not responding"
-    ALL_READY=false
-fi
+ALL_OK=true
+port_used $BACKEND_PORT && ok "Backend  http://localhost:$BACKEND_PORT" || { err "Backend not responding"; ALL_OK=false; }
+port_used $CONSOLE_PORT && ok "Console  http://localhost:$CONSOLE_PORT" || { err "Console not responding"; ALL_OK=false; }
+port_used $MANAGEMENT_PORT && ok "Management http://localhost:$MANAGEMENT_PORT" || { err "Management not responding"; ALL_OK=false; }
 
 if [ "$SKIP_DOCKER" = false ]; then
-    if docker ps | grep -q "ulticode-mysql"; then
-        print_status "ok" "MySQL running"
-    else
-        print_status "error" "MySQL not running"
-        ALL_READY=false
-    fi
-
-    if docker ps | grep -q "ulticode-redis"; then
-        print_status "ok" "Redis running"
-    else
-        print_status "error" "Redis not running"
-        ALL_READY=false
-    fi
+    docker ps 2>/dev/null | grep -q "ulticode-mysql" && ok "MySQL   localhost:$MYSQL_PORT" || { err "MySQL not running"; ALL_OK=false; }
+    docker ps 2>/dev/null | grep -q "ulticode-redis" && ok "Redis   localhost:$REDIS_PORT" || { err "Redis not running"; ALL_OK=false; }
+    docker ps 2>/dev/null | grep -q "ulticode-nacos" && ok "Nacos   localhost:$NACOS_PORT (console: 28080)" || { err "Nacos not running"; ALL_OK=false; }
 fi
 
-# Summary
-if [ "$ALL_READY" = true ]; then
-    print_service_box
-    echo -e "  ${DIM}Logs:${RESET}"
-    echo -e "    ${DIM}tail -f /tmp/ulticode-backend.log${RESET}"
-    echo -e "    ${DIM}tail -f /tmp/ulticode-console.log${RESET}"
-    echo -e "    ${DIM}tail -f /tmp/ulticode-management.log${RESET}"
-    echo ""
-    echo -e "  ${DIM}Stop:  ./shell/stop.sh${RESET}"
+log ""
+if [ "$ALL_OK" = true ]; then
+    echo -e "  ${G}${B}✓ All services running${R}"
+    log ""
+    log "${D}Logs: tail -f /tmp/ulticode-{backend,console,management}.log${R}"
+    log "${D}Stop: ./shell/stop.sh${R}"
 else
-    echo ""
-    echo -e "  ${YELLOW_BG} PARTIAL START ${RESET}"
-    echo ""
-    echo -e "  Some services failed to start. Check logs:"
-    echo -e "    ${DIM}tail -f /tmp/ulticode-backend.log${RESET}"
-    echo -e "    ${DIM}tail -f /tmp/ulticode-console.log${RESET}"
-    echo -e "    ${DIM}tail -f /tmp/ulticode-management.log${RESET}"
+    echo -e "  ${Y}${B}! Some services may still be starting${R}"
+    log ""
+    log "${D}Check logs: tail -f /tmp/ulticode-{backend,console,management}.log${R}"
 fi
 
 echo ""

@@ -129,6 +129,42 @@ export default {
     batchNotesPlaceholder: 'Add notes for all selected problems (optional)...',
     newStatus: 'New Status',
     apply: 'Apply',
+    // Redesign keys
+    columns: {
+      problem: 'Problem',
+    },
+    quickResolve: 'Quick Resolve',
+    quickDismiss: 'Quick Dismiss',
+    unknownReporter: 'Unknown',
+    drawerTitle: 'Moderation Details',
+    drawerDescription: 'View flag information and moderate',
+    problemDetails: 'Problem Details',
+    flagInfo: 'Flag Information',
+    moderationActions: 'Moderation Actions',
+    searchPlaceholder: 'Search problems...',
+    allDifficulties: 'All Difficulties',
+
+    // Terminal style
+    terminal: {
+      loading: 'LOADING...',
+      selected: 'SELECTED',
+      noFlaggedItems: 'NO_FLAGGED_ITEMS',
+      flagReason: 'FLAG_REASON',
+      moderationNotes: 'MODERATION_NOTES',
+      prev: 'PREV',
+      next: 'NEXT',
+      header: 'Terminal Header',
+      statsTicker: 'Stats Ticker',
+      // Statistics labels
+      total: 'TOTAL',
+      pending: 'PENDING',
+      reviewed: 'REVIEWED',
+      resolved: 'RESOLVED',
+      contentModeration: 'CONTENT MODERATION',
+      // Terminal block labels
+      flagReasonLabel: 'FLAG_REASON',
+      moderationNotesLabel: 'MODERATION_NOTES',
+    },
   },
 
   // Analytics
@@ -1233,6 +1269,7 @@ export default {
     // Wizard
     wizard: {
       basics: 'Basics',
+      scoring: 'Scoring',
       schedule: 'Schedule',
       problems: 'Problems',
       review: 'Review',
@@ -1240,6 +1277,14 @@ export default {
       next: 'Next',
       submit: 'Create Contest',
       createContest: 'Create Contest',
+    },
+
+    // Scoring Rule step
+    scoringRule: {
+      selectRule: 'Scoring Rule',
+      selectPlaceholder: 'Select a scoring rule...',
+      selectDescription: 'Choose how scores are calculated for this contest.',
+      createNew: 'Create New Rule',
     },
 
     // Basic Info step
@@ -1292,6 +1337,7 @@ export default {
       noProblemsSelected: 'No problems selected.',
       published: 'Published',
       draft: 'Draft',
+      defaultScoringRule: 'Using default rule',
     },
 
     // Problem picker
@@ -1391,6 +1437,89 @@ export default {
       deleteThis: 'Are you sure you want to delete this contest? This action cannot be undone.',
       bulkDelete: 'Are you sure you want to delete {count} contests? This action is IRREVERSIBLE.',
       removeProblem: 'Remove this problem from the contest?',
+    },
+  },
+
+  // Scoring Rules
+  scoringRules: {
+    title: 'Scoring Rules',
+    listTitle: 'Scoring Rule Management',
+    createRule: 'Create Rule',
+    searchPlaceholder: 'Search scoring rules...',
+    showInactive: 'Show Inactive',
+    loadError: 'Failed to load scoring rules',
+    emptyTitle: 'No Scoring Rules',
+    emptyDescription: 'Create a scoring rule to define how contest scores are calculated.',
+
+    // Table columns
+    columns: {
+      name: 'Rule',
+      baseScore: 'Base Score',
+      timeBonus: 'Time Bonus',
+      wrongPenalty: 'Wrong Penalty',
+      firstSolveBonus: 'First Solve Bonus',
+      actions: 'Actions',
+    },
+
+    // Badges
+    badges: {
+      default: 'Default',
+      inactive: 'Inactive',
+    },
+
+    // Actions
+    actions: {
+      setDefault: 'Set as Default',
+      edit: 'Edit',
+      delete: 'Delete',
+      noActionsAvailable: 'No actions available',
+    },
+
+    // Form
+    form: {
+      createTitle: 'Create Scoring Rule',
+      editTitle: 'Edit Scoring Rule',
+      createDescription: 'Define a new scoring rule for contests.',
+      editDescription: 'Update the scoring rule settings.',
+      name: 'Name',
+      namePlaceholder: 'Standard Weekly Contest Rule',
+      nameRequired: 'Name is required',
+      nameTooLong: 'Name must be less than 100 characters',
+      description: 'Description',
+      descriptionPlaceholder: 'Description of the scoring rule...',
+      descriptionTooLong: 'Description must be less than 500 characters',
+      baseScorePerProblem: 'Base Score per Problem',
+      timeBonusPerMinute: 'Time Bonus per Minute',
+      wrongAnswerPenalty: 'Wrong Answer Penalty (seconds)',
+      timeLimitPenalty: 'Time Limit Penalty',
+      firstSolveBonus: 'First Solve Bonus',
+      fullScoreBonus: 'Full Score Bonus',
+      mustBeNonNegative: 'Must be non-negative',
+      isDefault: 'Set as Default',
+      isDefaultDescription: 'This rule will be used by default for new contests',
+      saveChanges: 'Save Changes',
+      createRule: 'Create Rule',
+    },
+
+    // Delete dialog
+    delete: {
+      title: 'Delete Scoring Rule',
+      description: 'Are you sure you want to delete {name}? This action cannot be undone.',
+      thisRule: 'this rule',
+      confirm: 'Delete Rule',
+      cancel: 'Cancel',
+    },
+
+    // Toast messages
+    toast: {
+      createdSuccessfully: 'Scoring rule created successfully',
+      failedToCreate: 'Failed to create scoring rule',
+      updatedSuccessfully: 'Scoring rule updated successfully',
+      failedToUpdate: 'Failed to update scoring rule',
+      deletedSuccessfully: 'Scoring rule deleted successfully',
+      failedToDelete: 'Failed to delete scoring rule',
+      setDefaultSuccess: 'Default rule updated successfully',
+      failedToSetDefault: 'Failed to set default rule',
     },
   },
 

@@ -1,6 +1,6 @@
 import { fileURLToPath, URL } from 'node:url'
 
-import { defineConfig } from 'vite'
+import { defineConfig, searchForWorkspaceRoot } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueDevTools from 'vite-plugin-vue-devtools'
 import tailwindcss from '@tailwindcss/vite'
@@ -15,6 +15,11 @@ export default defineConfig({
   },
   server: {
     port: 9003,
+    fs: {
+      // Allow serving files from workspace root for pnpm monorepo
+      // This enables access to .pnpm directory for font files (e.g., KaTeX)
+      allow: [searchForWorkspaceRoot(process.cwd())],
+    },
   },
   build: {
     rollupOptions: {
@@ -25,7 +30,7 @@ export default defineConfig({
           // UI libraries
           'ui-vendor': ['reka-ui', 'lucide-vue-next', '@tabler/icons-vue'],
           // Markdown
-          'markdown': ['markdown-it'],
+          markdown: ['markdown-it'],
         },
       },
     },

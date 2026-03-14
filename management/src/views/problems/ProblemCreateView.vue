@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
+import { IconArrowLeft, IconDatabase } from '@tabler/icons-vue'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { Button } from '@/components/ui/button'
 import ProblemForm from './components/ProblemForm.vue'
@@ -13,6 +14,13 @@ const { t } = useI18n()
 const problemsStore = useProblemsStore()
 
 const formRef = ref<InstanceType<typeof ProblemForm>>()
+const isLoaded = ref(false)
+
+onMounted(() => {
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+})
 
 async function handleSubmit(data: ProblemFormData) {
   try {
@@ -38,23 +46,69 @@ async function handleSubmit(data: ProblemFormData) {
 </script>
 
 <template>
-  <div class="flex flex-col gap-4">
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-3xl font-bold tracking-tight">{{ t('problems.create.title') }}</h1>
-        <p class="text-muted-foreground">{{ t('problems.create.description') }}</p>
+  <div class="relative flex flex-col gap-0 overflow-auto">
+    <!-- Terminal Header -->
+    <div
+      :class="[
+        'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
+        'transition-all duration-500',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+      ]"
+    >
+      <!-- Title Row -->
+      <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
+        <div class="flex items-center gap-4">
+          <Button
+            variant="terminal"
+            size="icon"
+            class="h-8 w-8 border-[var(--silver-300)]"
+            @click="router.push({ name: 'problems' })"
+          >
+            <IconArrowLeft class="h-4 w-4" />
+          </Button>
+          <div class="h-4 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
+          <div class="flex items-center gap-2">
+            <span class="terminal-prompt text-base">problems</span>
+            <span class="terminal-cursor" />
+          </div>
+          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+            {{ t('problems.create.title') }}
+          </h1>
+        </div>
       </div>
-      <Button variant="outline" @click="router.push({ name: 'problems' })">{{
-        t('common.cancel')
-      }}</Button>
+
+      <!-- Info Ticker -->
+      <div
+        class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">action:</span>
+          <span class="font-data text-sm text-[var(--accent-electric)]">CREATE</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="terminal-label text-[var(--silver-500)]">mode:</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)]">new problem</span>
+        </div>
+        <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
+          <IconDatabase class="h-4 w-4" />
+          <span class="text-xs font-data uppercase tracking-wider">problem creation</span>
+        </div>
+      </div>
     </div>
 
-    <ProblemForm ref="formRef" @submit="handleSubmit">
-      <template #cancel>
-        <Button variant="outline" @click="router.push({ name: 'problems' })">{{
-          t('common.cancel')
-        }}</Button>
-      </template>
-    </ProblemForm>
+    <!-- Main Content -->
+    <div class="flex-1 py-4">
+      <ProblemForm ref="formRef" @submit="handleSubmit">
+        <template #cancel>
+          <Button
+            variant="terminal"
+            class="font-data text-xs border-[var(--silver-300)]"
+            @click="router.push({ name: 'problems' })"
+          >
+            <span class="uppercase tracking-wider">{{ t('common.cancel') }}</span>
+          </Button>
+        </template>
+      </ProblemForm>
+    </div>
   </div>
 </template>

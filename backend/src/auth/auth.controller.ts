@@ -18,7 +18,6 @@ import {
   ApiBearerAuth,
   ApiCookieAuth,
 } from '@nestjs/swagger';
-import { Throttle } from '@nestjs/throttler';
 import type { Response } from 'express';
 import { AuthService } from './auth.service';
 import { SignInDto } from './dto/sign-in.dto';
@@ -29,6 +28,7 @@ import { extractTokenFromHeader } from './auth.utils';
 import { CurrentUser } from './decorators/current-user.decorator';
 import type { User } from '../user/user.service';
 import { PermissionService } from '../admin/services/permission.service';
+import { CsrfService } from './csrf.service';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -36,6 +36,7 @@ export class AuthController {
   constructor(
     private authService: AuthService,
     private permissionService: PermissionService,
+    private csrfService: CsrfService,
   ) {}
 
   @HttpCode(HttpStatus.OK)
@@ -46,7 +47,6 @@ export class AuthController {
   })
   @ApiResponse({ status: 200, description: 'Login successful' })
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
-  @Throttle({ default: { limit: 5, ttl: 60000 } })
   async signIn(@Body() signInDto: SignInDto, @Res() res: Response) {
     const result = await this.authService.signIn(
       signInDto.username,
@@ -67,7 +67,6 @@ export class AuthController {
     status: 400,
     description: 'Invalid input or user already exists',
   })
-  @Throttle({ default: { limit: 3, ttl: 300000 } })
   async register(@Body() registerDto: RegisterDto, @Res() res: Response) {
     const result = await this.authService.register(registerDto, res);
     return res.json(result);
@@ -83,7 +82,6 @@ export class AuthController {
     status: 200,
     description: 'Reset email sent if account exists',
   })
-  @Throttle({ default: { limit: 3, ttl: 300000 } })
   async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
     return this.authService.forgotPassword(forgotPasswordDto.email);
   }
@@ -96,7 +94,6 @@ export class AuthController {
   })
   @ApiResponse({ status: 200, description: 'Password reset successful' })
   @ApiResponse({ status: 400, description: 'Invalid or expired token' })
-  @Throttle({ default: { limit: 10, ttl: 300000 } })
   async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
     return this.authService.resetPassword(resetPasswordDto);
   }
@@ -195,12 +192,19 @@ export class AuthController {
   @ApiBearerAuth()
   @ApiOperation({
     summary: 'Get current user',
-    description: 'Get the authenticated user profile',
+    description: 'Get the authenticated user profile with CSRF token',
   })
-  @ApiResponse({ status: 200, description: 'Current user profile' })
+  @ApiResponse({
+    status: 200,
+    description: 'Current user profile with CSRF token',
+  })
   @ApiResponse({ status: 401, description: 'Unauthorized' })
-  getCurrentUser(@CurrentUser() user: User): User {
-    return user;
+  async getCurrentUser(
+    @CurrentUser() user: User,
+  ): Promise<User & { csrf_token: string }> {
+    // Generate a new CSRF token for the user (handles page refresh case)
+    const csrfToken = await this.csrfService.generateCsrfToken(user.id);
+    return { ...user, csrf_token: csrfToken };
   }
 
   @Get('permissions')

@@ -60,14 +60,13 @@ const contestRoutes: RouteRecordRaw = {
   children: [
     {
       path: "",
-      name: "contest-home",
-      component: () => import("@/views/contest/ContestView.vue"),
+      name: "contest-list",
+      component: () => import("@/views/contest/ContestListView.vue"),
     },
     {
       path: "past",
       name: "contest-past",
-      component: () => import("@/views/contest/ContestView.vue"),
-      props: { tab: "past" },
+      component: () => import("@/views/contest/ContestListView.vue"),
     },
     {
       path: "my",
@@ -78,17 +77,17 @@ const contestRoutes: RouteRecordRaw = {
     {
       path: "global-ranking",
       name: "contest-global-ranking",
-      component: () => import("@/views/contest/ContestView.vue"), // Reuse or create specific view
+      component: () => import("@/views/contest/ContestView.vue"),
       props: { tab: "ranking" },
     },
     {
       path: "local-ranking",
       name: "contest-local-ranking",
-      component: () => import("@/views/contest/ContestView.vue"), // Reuse or create specific view
+      component: () => import("@/views/contest/ContestView.vue"),
       props: { tab: "ranking" },
     },
     {
-      path: ":contestId",
+      path: ":slug",
       name: "contest-detail",
       component: () => import("@/views/contest/detailed/ContestDetailView.vue"),
     },
@@ -220,6 +219,39 @@ const personalRoutes: RouteRecordRaw = {
   ],
 };
 
+// Recommendation routes
+const recommendationRoutes: RouteRecordRaw = {
+  path: "/recommendations",
+  component: () => import("@/features/sider/AppLayout.vue"),
+  meta: { requiresAuth: true },
+  children: [
+    {
+      path: "",
+      redirect: { name: "recommendations-daily" },
+    },
+    {
+      path: "daily",
+      name: "recommendations-daily",
+      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+    },
+    {
+      path: "weak-points",
+      name: "recommendations-weak-points",
+      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+    },
+    {
+      path: "challenge",
+      name: "recommendations-challenge",
+      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+    },
+    {
+      path: "similar",
+      name: "recommendations-similar",
+      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+    },
+  ],
+};
+
 // Mark create routes as requiring auth
 solutionCreateRoute.meta = { requiresAuth: true };
 solutionCreateFromSubmissionRoute.meta = { requiresAuth: true };
@@ -261,6 +293,7 @@ const router = createRouter({
       component: () => import("../views/auth/ResetPasswordView.vue"),
     },
     personalRoutes,
+    recommendationRoutes,
   ],
 });
 

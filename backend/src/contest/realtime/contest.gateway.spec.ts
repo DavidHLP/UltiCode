@@ -1,6 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { Socket } from 'socket.io';
 import { ContestGateway } from './contest.gateway';
 import { TokenBlacklistService } from '../../auth/token-blacklist.service';
@@ -28,6 +27,9 @@ describe('ContestGateway', () => {
     email: 'test@example.com',
     role: 'user',
   };
+
+  // Valid UUID for testing
+  const validContestId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
 
   const createMockSocket = (overrides: Partial<Socket> = {}): Socket => {
     return {
@@ -57,12 +59,6 @@ describe('ContestGateway', () => {
           useValue: {
             verifyAsync: jest.fn(),
             decode: jest.fn(),
-          },
-        },
-        {
-          provide: ConfigService,
-          useValue: {
-            get: jest.fn().mockReturnValue('test-secret-key-min-32-chars-long'),
           },
         },
         {
@@ -175,6 +171,30 @@ describe('ContestGateway', () => {
 
       expect(client.disconnect).toHaveBeenCalledWith(true);
     });
+
+    it('should allow connection with valid token in cookie', async () => {
+      const client = createMockSocket({
+        handshake: {
+          auth: {},
+          headers: {
+            cookie: 'access_token=cookie-token; other=value',
+          },
+          query: {},
+        },
+      });
+
+      jwtService.verifyAsync.mockResolvedValue({
+        sub: 'user-1',
+        username: 'testuser',
+        role: 'user',
+      });
+
+      await gateway.handleConnection(client);
+
+      expect(jwtService.verifyAsync).toHaveBeenCalledWith('cookie-token');
+      expect(client.data.userId).toBe('user-1');
+      expect(client.data.username).toBe('testuser');
+    });
   });
 
   describe('handleDisconnect', () => {
@@ -194,13 +214,13 @@ describe('ContestGateway', () => {
       client.data.userId = 'user-1';
       client.data.username = 'testuser';
 
-      const result = await gateway.handleJoinContest(client, 'contest-1');
+      const result = await gateway.handleJoinContest(client, validContestId);
 
-      expect(client.join).toHaveBeenCalledWith('contest:contest-1');
+      expect(client.join).toHaveBeenCalledWith(`contest:${validContestId}`);
       expect(result).toEqual({
         success: true,
-        contestId: 'contest-1',
-        message: 'Successfully joined contest contest-1',
+        contestId: validContestId,
+        message: `Successfully joined contest ${validContestId}`,
       });
     });
 
@@ -209,8 +229,18 @@ describe('ContestGateway', () => {
       // No userId set
 
       await expect(
-        gateway.handleJoinContest(client, 'contest-1'),
+        gateway.handleJoinContest(client, validContestId),
       ).rejects.toThrow('You must be authenticated to join a contest');
+    });
+
+    it('should reject join with invalid contest ID format', async () => {
+      const client = createMockSocket();
+      client.data.userId = 'user-1';
+      client.data.username = 'testuser';
+
+      await expect(
+        gateway.handleJoinContest(client, 'invalid-id'),
+      ).rejects.toThrow('Invalid contest ID format');
     });
   });
 
@@ -218,15 +248,15 @@ describe('ContestGateway', () => {
     it('should allow user to leave contest room', async () => {
       const client = createMockSocket();
       client.data.userId = 'user-1';
-      client.rooms = new Set(['contest:contest-1']);
+      client.rooms = new Set([`contest:${validContestId}`]);
 
-      const result = await gateway.handleLeaveContest(client, 'contest-1');
+      const result = await gateway.handleLeaveContest(client, validContestId);
 
-      expect(client.leave).toHaveBeenCalledWith('contest:contest-1');
+      expect(client.leave).toHaveBeenCalledWith(`contest:${validContestId}`);
       expect(result).toEqual({
         success: true,
-        contestId: 'contest-1',
-        message: 'Successfully left contest contest-1',
+        contestId: validContestId,
+        message: `Successfully left contest ${validContestId}`,
       });
     });
 
@@ -235,13 +265,22 @@ describe('ContestGateway', () => {
       client.data.userId = 'user-1';
       client.rooms = new Set();
 
-      const result = await gateway.handleLeaveContest(client, 'contest-1');
+      const result = await gateway.handleLeaveContest(client, validContestId);
 
       expect(result).toEqual({
         success: true,
-        contestId: 'contest-1',
-        message: 'You were not in contest contest-1',
+        contestId: validContestId,
+        message: `You were not in contest ${validContestId}`,
       });
+    });
+
+    it('should reject leave with invalid contest ID format', async () => {
+      const client = createMockSocket();
+      client.data.userId = 'user-1';
+
+      await expect(
+        gateway.handleLeaveContest(client, 'invalid-id'),
+      ).rejects.toThrow('Invalid contest ID format');
     });
   });
 
@@ -256,16 +295,28 @@ describe('ContestGateway', () => {
       } as any;
 
       const rankingData = {
-        contestId: 'contest-1',
+        contestId: validContestId,
         rankings: [
-          { rank: 1, userId: 'user-1', score: 100 },
-          { rank: 2, userId: 'user-2', score: 90 },
+          {
+            rank: 1,
+            userId: 'user-1',
+            username: 'user1',
+            score: 100,
+            solvedCount: 5,
+          },
+          {
+            rank: 2,
+            userId: 'user-2',
+            username: 'user2',
+            score: 90,
+            solvedCount: 4,
+          },
         ],
       };
 
-      gateway.emitRankingUpdate('contest-1', rankingData);
+      gateway.emitRankingUpdate(validContestId, rankingData);
 
-      expect(mockTo).toHaveBeenCalledWith('contest:contest-1');
+      expect(mockTo).toHaveBeenCalledWith(`contest:${validContestId}`);
       // The gateway adds updatedAt automatically, so we check for partial match
       expect(mockEmit).toHaveBeenCalledWith(
         'ranking_update',
@@ -287,12 +338,12 @@ describe('ContestGateway', () => {
 
       const providedDate = new Date('2024-01-01T00:00:00Z');
       const rankingData = {
-        contestId: 'contest-1',
+        contestId: validContestId,
         rankings: [],
         updatedAt: providedDate,
       };
 
-      gateway.emitRankingUpdate('contest-1', rankingData);
+      gateway.emitRankingUpdate(validContestId, rankingData);
 
       expect(mockEmit).toHaveBeenCalledWith(
         'ranking_update',
@@ -314,16 +365,17 @@ describe('ContestGateway', () => {
       } as any;
 
       const firstSolveData = {
-        contestId: 'contest-1',
+        contestId: validContestId,
         problemId: 'problem-1',
+        problemTitle: 'Test Problem',
         userId: 'user-1',
         username: 'testuser',
         solvedAt: new Date(),
       };
 
-      gateway.emitFirstSolve('contest-1', firstSolveData);
+      gateway.emitFirstSolve(validContestId, firstSolveData);
 
-      expect(mockTo).toHaveBeenCalledWith('contest:contest-1');
+      expect(mockTo).toHaveBeenCalledWith(`contest:${validContestId}`);
       expect(mockEmit).toHaveBeenCalledWith('first_solve', firstSolveData);
     });
   });
@@ -340,15 +392,15 @@ describe('ContestGateway', () => {
 
       const announcementData = {
         id: 'announcement-1',
-        contestId: 'contest-1',
+        contestId: validContestId,
         title: 'Test Announcement',
         content: 'This is a test',
         createdAt: new Date(),
       };
 
-      gateway.emitAnnouncement('contest-1', announcementData);
+      gateway.emitAnnouncement(validContestId, announcementData);
 
-      expect(mockTo).toHaveBeenCalledWith('contest:contest-1');
+      expect(mockTo).toHaveBeenCalledWith(`contest:${validContestId}`);
       expect(mockEmit).toHaveBeenCalledWith('announcement', announcementData);
     });
   });
@@ -364,15 +416,15 @@ describe('ContestGateway', () => {
       } as any;
 
       const statusData = {
-        contestId: 'contest-1',
-        status: 'running',
+        contestId: validContestId,
+        status: 'running' as const,
         startedAt: new Date(),
         endsAt: new Date(Date.now() + 3600000),
       };
 
-      gateway.emitContestStatus('contest-1', statusData);
+      gateway.emitContestStatus(validContestId, statusData);
 
-      expect(mockTo).toHaveBeenCalledWith('contest:contest-1');
+      expect(mockTo).toHaveBeenCalledWith(`contest:${validContestId}`);
       expect(mockEmit).toHaveBeenCalledWith('contest_status', statusData);
     });
   });
@@ -389,11 +441,12 @@ describe('ContestGateway', () => {
 
       const submissionData = {
         submissionId: 'submission-1',
-        contestId: 'contest-1',
+        contestId: validContestId,
         problemId: 'problem-1',
         userId: 'user-1',
         status: 'accepted',
         score: 100,
+        judgedAt: new Date(),
       };
 
       gateway.emitSubmissionResult('user-1', submissionData);
@@ -449,7 +502,7 @@ describe('ContestGateway', () => {
         },
       } as any;
 
-      const count = gateway.getContestRoomSize('contest-1');
+      const count = gateway.getContestRoomSize(validContestId);
 
       expect(count).toBe(0);
     });
@@ -457,7 +510,7 @@ describe('ContestGateway', () => {
     it('should return correct room size', () => {
       const roomSet = new Set(['socket-1', 'socket-2', 'socket-3']);
       const rooms = new Map();
-      rooms.set('contest:contest-1', roomSet);
+      rooms.set(`contest:${validContestId}`, roomSet);
 
       const mockAdapter = {
         rooms,
@@ -469,7 +522,7 @@ describe('ContestGateway', () => {
         },
       } as any;
 
-      const count = gateway.getContestRoomSize('contest-1');
+      const count = gateway.getContestRoomSize(validContestId);
 
       expect(count).toBe(3);
     });

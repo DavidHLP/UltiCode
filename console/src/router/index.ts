@@ -233,22 +233,26 @@ const recommendationRoutes: RouteRecordRaw = {
     {
       path: "daily",
       name: "recommendations-daily",
-      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+      component: () =>
+        import("@/views/recommendations/RecommendationsView.vue"),
     },
     {
       path: "weak-points",
       name: "recommendations-weak-points",
-      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+      component: () =>
+        import("@/views/recommendations/RecommendationsView.vue"),
     },
     {
       path: "challenge",
       name: "recommendations-challenge",
-      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+      component: () =>
+        import("@/views/recommendations/RecommendationsView.vue"),
     },
     {
       path: "similar",
       name: "recommendations-similar",
-      component: () => import("@/views/recommendations/RecommendationsView.vue"),
+      component: () =>
+        import("@/views/recommendations/RecommendationsView.vue"),
     },
   ],
 };

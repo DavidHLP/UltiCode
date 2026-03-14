@@ -132,9 +132,13 @@ const debouncedSearch = useDebounceFn(() => {
 }, 300)
 
 // Watch pagination changes
-watch(pagination, () => {
-  loadFlaggedProblems()
-}, { deep: true })
+watch(
+  pagination,
+  () => {
+    loadFlaggedProblems()
+  },
+  { deep: true },
+)
 
 // Watch search query
 watch(searchQuery, () => {
@@ -291,32 +295,42 @@ function clearSelection() {
         class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.total') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.total') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.pending') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.pending') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
             stats.pending
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.reviewed') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.reviewed') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.reviewed
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.resolved') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.resolved') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.resolved
           }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconShield class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('moderation.terminal.contentModeration') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('moderation.terminal.contentModeration')
+          }}</span>
         </div>
       </div>
     </div>
@@ -397,7 +411,6 @@ function clearSelection() {
             @update:filter="handleFilterUpdate"
           />
         </template>
-
       </DataTable>
     </div>
 
@@ -429,7 +442,9 @@ function clearSelection() {
       <template #content="{ entity }">
         <!-- Problem Info -->
         <div class="space-y-4">
-          <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]">
+          <div
+            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+          >
             <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
               {{ t('moderation.columns.problem') }}
             </p>
@@ -465,7 +480,9 @@ function clearSelection() {
             <div class="flex items-start gap-2">
               <IconAlertTriangle class="h-5 w-5 text-[var(--terminal-red)] flex-shrink-0 mt-0.5" />
               <div class="flex-1">
-                <p class="text-xs font-data text-[var(--terminal-red)] uppercase tracking-wider mb-1">
+                <p
+                  class="text-xs font-data text-[var(--terminal-red)] uppercase tracking-wider mb-1"
+                >
                   &gt; {{ t('moderation.terminal.flagReasonLabel') }}
                 </p>
                 <p class="text-sm text-[var(--foreground)]">{{ entity.flag_reason }}</p>
@@ -491,18 +508,26 @@ function clearSelection() {
           </div>
 
           <!-- Reporter Info -->
-          <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]">
+          <div
+            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+          >
             <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-3">
               {{ t('moderation.reportInfo') }}
             </p>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
                 <span class="text-[var(--silver-500)]">{{ t('common.reportedBy') }}:</span>
-                <span class="font-data">{{ entity.flag_reported_by || t('moderation.unknownReporter') }}</span>
+                <span class="font-data">{{
+                  entity.flag_reported_by || t('moderation.unknownReporter')
+                }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-[var(--silver-500)]">{{ t('common.reportedAt') }}:</span>
-                <span class="font-data">{{ entity.flag_reported_at ? new Date(entity.flag_reported_at).toLocaleDateString() : '—' }}</span>
+                <span class="font-data">{{
+                  entity.flag_reported_at
+                    ? new Date(entity.flag_reported_at).toLocaleDateString()
+                    : '—'
+                }}</span>
               </div>
             </div>
           </div>

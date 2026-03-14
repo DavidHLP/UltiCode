@@ -223,9 +223,13 @@ watch(
                 width:
                   column.columnDef.size !== undefined ? `${column.columnDef.size}px` : undefined,
                 minWidth:
-                  column.columnDef.minSize !== undefined ? `${column.columnDef.minSize}px` : undefined,
+                  column.columnDef.minSize !== undefined
+                    ? `${column.columnDef.minSize}px`
+                    : undefined,
                 maxWidth:
-                  column.columnDef.maxSize !== undefined ? `${column.columnDef.maxSize}px` : undefined,
+                  column.columnDef.maxSize !== undefined
+                    ? `${column.columnDef.maxSize}px`
+                    : undefined,
               }"
             />
           </colgroup>

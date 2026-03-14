@@ -47,7 +47,7 @@ const isProblemContext = computed(() => route.path.startsWith("/problemset"));
 const isContestContext = computed(() => route.path.startsWith("/contest"));
 const isPersonalContext = computed(() => route.path.startsWith("/personal"));
 const isRecommendationContext = computed(() =>
-  route.path.startsWith("/recommendations")
+  route.path.startsWith("/recommendations"),
 );
 
 const currentSidebarData = computed(() => {

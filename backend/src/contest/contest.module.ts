@@ -10,6 +10,9 @@ import { PrismaService } from '../prisma.service';
 import { I18nModule } from '../i18n/i18n.module';
 import { I18nService } from '../i18n/i18n.service';
 import { NotificationModule } from '../notification/notification.module';
+import { ScoringRuleService } from './services/scoring-rule.service';
+import { ScoringService } from './scoring/scoring.service';
+import { ScoringRuleController } from './admin/scoring-rule.controller';
 
 // Ranking sub-services
 import { RankingHelperService } from './services/ranking-helper.service';
@@ -46,6 +49,9 @@ import { ContestAdminService } from './services/contest-admin.service';
     GlobalRankingQueryService,
     ContestRankingCalcService,
     ContestRankingQueryService,
+    // Scoring services
+    ScoringRuleService,
+    ScoringService,
     // Main services
     ContestService,
     RankingService,
@@ -53,7 +59,13 @@ import { ContestAdminService } from './services/contest-admin.service';
     ContestSchedulerService,
     ContestProcessor,
   ],
-  controllers: [ContestController, RankingController],
-  exports: [ContestService, RankingService, RatingService],
+  controllers: [ContestController, RankingController, ScoringRuleController],
+  exports: [
+    ContestService,
+    RankingService,
+    RatingService,
+    ScoringRuleService,
+    ScoringService,
+  ],
 })
 export class ContestModule {}

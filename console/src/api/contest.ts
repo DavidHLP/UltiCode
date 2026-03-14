@@ -12,6 +12,10 @@ import type {
   UserContestHistory,
   RatingHistoryEntry,
   PaginatedResult,
+  ContestFilters,
+  ContestAnnouncement,
+  RankingEntry,
+  ContestProblem,
 } from "@/types/contest";
 import type { SubmissionRecord } from "@/types/submission";
 
@@ -367,4 +371,164 @@ export async function fetchContestProblemSubmissions(
     `/contest/${contestId}/problems/${problemId}/submissions`,
   );
   return data.map((item) => mapSubmission(item) as ContestSubmissionResult);
+}
+
+// ============================================================================
+// NEW API METHODS (Task 4.1)
+// ============================================================================
+
+/**
+ * Get contests list with optional filters
+ */
+export async function getContests(
+  filters?: ContestFilters,
+): Promise<PaginatedResult<ContestListItem>> {
+  const params = new URLSearchParams();
+
+  if (filters) {
+    if (filters.status) {
+      const statuses = Array.isArray(filters.status)
+        ? filters.status
+        : [filters.status];
+      statuses.forEach((s) => params.append("status", s));
+    }
+    if (filters.type) {
+      const types = Array.isArray(filters.type)
+        ? filters.type
+        : [filters.type];
+      types.forEach((t) => params.append("type", t));
+    }
+    if (filters.isRated !== undefined) {
+      params.append("isRated", String(filters.isRated));
+    }
+    if (filters.isPublic !== undefined) {
+      params.append("isPublic", String(filters.isPublic));
+    }
+    if (filters.search) {
+      params.append("search", filters.search);
+    }
+    if (filters.startDateFrom) {
+      params.append("startDateFrom", filters.startDateFrom);
+    }
+    if (filters.startDateTo) {
+      params.append("startDateTo", filters.startDateTo);
+    }
+    if (filters.page !== undefined) {
+      params.append("page", String(filters.page));
+    }
+    if (filters.limit !== undefined) {
+      params.append("limit", String(filters.limit));
+    }
+    if (filters.sortBy) {
+      params.append("sortBy", filters.sortBy);
+    }
+    if (filters.sortOrder) {
+      params.append("sortOrder", filters.sortOrder);
+    }
+  }
+
+  const queryString = params.toString();
+  const url = queryString ? `/contest?${queryString}` : "/contest";
+
+  const result = await apiGet<PaginatedResult<ContestListItem>>(url);
+  return {
+    ...result,
+    items: (result.items || []).map(mapContestListItem),
+  };
+}
+
+/**
+ * Get contest details by slug
+ */
+export async function getContest(slug: string): Promise<ContestDetail> {
+  return fetchContestDetail(slug);
+}
+
+/**
+ * Get contest problems by slug
+ */
+export async function getContestProblems(
+  slug: string,
+): Promise<ContestProblem[]> {
+  const data = await apiGet<unknown[]>(`/contest/${slug}/problems`);
+  return (data || []).map((item) => {
+    const problem = item as Record<string, unknown>;
+    return {
+      ...problem,
+      problemId: String(problem.problem_id ?? problem.problemId ?? ""),
+    } as ContestProblem;
+  });
+}
+
+/**
+ * Get contest announcements
+ */
+export async function getAnnouncements(
+  slug: string,
+): Promise<ContestAnnouncement[]> {
+  return apiGet<ContestAnnouncement[]>(`/contest/${slug}/announcements`);
+}
+
+/**
+ * Get contest ranking with options
+ */
+export async function getRanking(
+  slug: string,
+  options?: { page?: number; limit?: number; includeVirtual?: boolean },
+): Promise<PaginatedResult<RankingEntry>> {
+  const { page = 1, limit = 50, includeVirtual = true } = options || {};
+  return apiGet<PaginatedResult<RankingEntry>>(
+    `/contest/${slug}/ranking?page=${page}&limit=${limit}&include_virtual=${includeVirtual}`,
+  );
+}
+
+/**
+ * Get user ranking in a contest
+ */
+export async function getUserRanking(
+  slug: string,
+  userId: string,
+): Promise<RankingEntry | null> {
+  return apiGet<RankingEntry | null>(`/contest/${slug}/ranking/user/${userId}`);
+}
+
+/**
+ * Register for a contest
+ */
+export async function register(slug: string): Promise<void> {
+  return registerForContest(slug);
+}
+
+/**
+ * Check in for a contest
+ */
+export async function checkIn(slug: string): Promise<void> {
+  return apiPost<void>(`/contest/${slug}/check-in`);
+}
+
+/**
+ * Withdraw from a contest
+ */
+export async function withdraw(slug: string): Promise<void> {
+  return unregisterFromContest(slug);
+}
+
+/**
+ * Get my participation status in a contest
+ */
+export async function getMyParticipation(
+  slug: string,
+): Promise<ParticipationStatus> {
+  return fetchParticipationStatus(slug);
+}
+
+/**
+ * End virtual contest
+ */
+export async function endVirtualContest(slug: string): Promise<void> {
+  const session = await fetchVirtualSession(slug);
+  if (session) {
+    return finishVirtualContest(slug, session.id);
+  }
+  throw new Error("No active virtual contest session");
 }

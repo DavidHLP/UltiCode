@@ -8,20 +8,20 @@ datasource db {
 }
 
 model Subscription {
-  id                    String             @id @default(uuid()) @db.VarChar(40)
-  user_id               String             @db.VarChar(40)
-  plan                  SubscriptionPlan   @default(FREE)
-  status                SubscriptionStatus @default(ACTIVE)
-  started_at            DateTime           @default(now())
-  expires_at            DateTime?
-  cancelled_at          DateTime?
+  id                        String             @id @default(uuid()) @db.VarChar(40)
+  user_id                   String             @db.VarChar(40)
+  plan                      SubscriptionPlan   @default(FREE)
+  status                    SubscriptionStatus @default(ACTIVE)
+  started_at                DateTime           @default(now())
+  expires_at                DateTime?
+  cancelled_at              DateTime?
   // Stripe payment integration fields
-  stripe_customer_id    String?            @db.VarChar(255)
-  stripe_subscription_id String?           @db.VarChar(255)
-  stripe_price_id       String?            @db.VarChar(255)
+  stripe_customer_id        String?            @db.VarChar(255)
+  stripe_subscription_id    String?            @db.VarChar(255)
+  stripe_price_id           String?            @db.VarChar(255)
   stripe_current_period_end DateTime?
-  created_at            DateTime           @default(now())
-  updated_at            DateTime           @updatedAt
+  created_at                DateTime           @default(now())
+  updated_at                DateTime           @updatedAt
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -33,52 +33,53 @@ model Subscription {
 }
 
 model User {
-  id                    String                  @id @db.VarChar(40)
-  username              String                  @unique @db.VarChar(120)
-  name                  String?                 @db.VarChar(120)
-  email                 String?                 @db.VarChar(255)
-  avatar                String?                 @db.VarChar(255)
-  password              String?                 @db.VarChar(255)
-  bio                   String?                 @db.Text
-  company               String?                 @db.VarChar(255)
-  github                String?                 @db.VarChar(255)
-  joined_at             DateTime                @default(now())
-  location              String?                 @db.VarChar(255)
-  twitter               String?                 @db.VarChar(255)
-  website               String?                 @db.VarChar(255)
-  preferred_language    String?                 @db.VarChar(50)
-  role                  UserRole                @default(USER)
-  is_active             Boolean                 @default(true)
-  is_banned             Boolean                 @default(false)
-  banned_until          DateTime?
-  banned_reason         String?                 @db.Text
-  last_login_at         DateTime?
-  created_by            String?                 @db.VarChar(40)
-  updated_by            String?                 @db.VarChar(40)
-  bookmarkFolders       BookmarkFolder[]
-  contestParticipants   ContestParticipant[]
-  contestProblemResults ContestProblemResult[]
-  contestRankings       ContestRanking[]
-  edgeOperations        EdgeOperation[]
-  globalRanking         GlobalRanking?
-  problemNotes          ProblemNote[]
-  refreshTokens         RefreshToken[]
-  solutionComments      SolutionComment[]
-  solutions             Solution[]
-  submissions           Submission[]
-  subscriptions         Subscription[]
-  views                 View[]
-  virtualSessions       VirtualContestSession[]
-  notifications         Notification[]
-  userAchievements      UserAchievement[]
-  notificationPreference NotificationPreference?
-  permissions           UserPermission[]
-  auditLogs             AuditLog[]              @relation("AuditLogUser")
-  performedAudits       AuditLog[]              @relation("AuditLogPerformer")
-  systemAnnouncements      SystemAnnouncement[]
-  systemAnnouncementReads  SystemAnnouncementRead[]
-  createdTranslations      Translation[]            @relation("TranslationCreator")
-  updatedTranslations      Translation[]            @relation("TranslationUpdater")
+  id                      String                   @id @db.VarChar(40)
+  username                String                   @unique @db.VarChar(120)
+  name                    String?                  @db.VarChar(120)
+  email                   String?                  @db.VarChar(255)
+  avatar                  String?                  @db.VarChar(255)
+  password                String?                  @db.VarChar(255)
+  bio                     String?                  @db.Text
+  company                 String?                  @db.VarChar(255)
+  github                  String?                  @db.VarChar(255)
+  joined_at               DateTime                 @default(now())
+  location                String?                  @db.VarChar(255)
+  twitter                 String?                  @db.VarChar(255)
+  website                 String?                  @db.VarChar(255)
+  preferred_language      String?                  @db.VarChar(50)
+  role                    UserRole                 @default(USER)
+  is_active               Boolean                  @default(true)
+  is_banned               Boolean                  @default(false)
+  banned_until            DateTime?
+  banned_reason           String?                  @db.Text
+  last_login_at           DateTime?
+  created_by              String?                  @db.VarChar(40)
+  updated_by              String?                  @db.VarChar(40)
+  bookmarkFolders         BookmarkFolder[]
+  contestParticipants     ContestParticipant[]
+  contestProblemResults   ContestProblemResult[]
+  contestRankings         ContestRanking[]
+  edgeOperations          EdgeOperation[]
+  globalRanking           GlobalRanking?
+  problemNotes            ProblemNote[]
+  refreshTokens           RefreshToken[]
+  solutionComments        SolutionComment[]
+  solutions               Solution[]
+  submissions             Submission[]
+  subscriptions           Subscription[]
+  views                   View[]
+  virtualSessions         VirtualContestSession[]
+  notifications           Notification[]
+  userAchievements        UserAchievement[]
+  notificationPreference  NotificationPreference?
+  permissions             UserPermission[]
+  auditLogs               AuditLog[]               @relation("AuditLogUser")
+  performedAudits         AuditLog[]               @relation("AuditLogPerformer")
+  systemAnnouncements     SystemAnnouncement[]
+  systemAnnouncementReads SystemAnnouncementRead[]
+  createdTranslations     Translation[]            @relation("TranslationCreator")
+  updatedTranslations     Translation[]            @relation("TranslationUpdater")
+  firstSolveRecords       FirstSolveRecord[]
 
   @@index([role])
   @@index([is_active, is_banned])
@@ -125,6 +126,7 @@ model Problem {
   submissions          Submission[]
   testCases            TestCase[]
   versions             ProblemVersion[]
+  firstSolveRecords    FirstSolveRecord[]
 
   @@index([difficulty])
   @@index([slug])
@@ -138,27 +140,27 @@ model Problem {
 }
 
 model ProblemVersion {
-  id              String   @id @default(cuid())
-  problem_id      BigInt
-  version_number  Int
-  title           String   @db.VarChar(255)
-  slug            String   @db.VarChar(120)
-  difficulty      Difficulty
-  is_premium      Boolean  @default(false)
-  is_published    Boolean  @default(false)
-  summary         String?  @db.Text
-  content         String?  @db.Text
-  constraints     Json?
-  hints           Json?
-  examples        Json?
-  languages       Json?
-  tags            Json?
-  change_summary  String?  @db.VarChar(500)
-  change_type     String   @default("update") @db.VarChar(20) // create, update, rollback
-  created_at      DateTime @default(now())
-  created_by      String?  @db.VarChar(40)
+  id             String     @id @default(cuid())
+  problem_id     BigInt
+  version_number Int
+  title          String     @db.VarChar(255)
+  slug           String     @db.VarChar(120)
+  difficulty     Difficulty
+  is_premium     Boolean    @default(false)
+  is_published   Boolean    @default(false)
+  summary        String?    @db.Text
+  content        String?    @db.Text
+  constraints    Json?
+  hints          Json?
+  examples       Json?
+  languages      Json?
+  tags           Json?
+  change_summary String?    @db.VarChar(500)
+  change_type    String     @default("update") @db.VarChar(20) // create, update, rollback
+  created_at     DateTime   @default(now())
+  created_by     String?    @db.VarChar(40)
 
-  problem         Problem  @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
 
   @@unique([problem_id, version_number])
   @@index([problem_id])
@@ -190,10 +192,10 @@ model ProblemTag {
   id               String               @id @db.VarChar(40)
   label            String               @db.VarChar(120)
   slug             String?              @unique @db.VarChar(120) // Added for consistency
-  color            String?              @db.VarChar(20)          // Added for UI
-  description      String?              @db.Text                 // Added for info
-  usage_count      Int                  @default(0)              // Added for stats
-  created_at       DateTime             @default(now())          // Added for audit
+  color            String?              @db.VarChar(20) // Added for UI
+  description      String?              @db.Text // Added for info
+  usage_count      Int                  @default(0) // Added for stats
+  created_at       DateTime             @default(now()) // Added for audit
   updated_at       DateTime             @default(now()) @updatedAt // Added for audit, temporary default for migration
   problemRelations ProblemTagRelation[]
 
@@ -239,17 +241,17 @@ model ProblemExample {
 }
 
 model TestCase {
-  id           String   @id @default(cuid())
-  problem_id   BigInt
-  is_sample    Boolean  @default(false)
-  is_hidden    Boolean  @default(true)
-  test_order   Int      @default(0)
-  input_text   String   @db.Text
-  output_text  String   @db.Text
-  explanation  String?  @db.Text
-  constraints  Json?
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id          String   @id @default(cuid())
+  problem_id  BigInt
+  is_sample   Boolean  @default(false)
+  is_hidden   Boolean  @default(true)
+  test_order  Int      @default(0)
+  input_text  String   @db.Text
+  output_text String   @db.Text
+  explanation String?  @db.Text
+  constraints Json?
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
   problem Problem @relation(fields: [problem_id], references: [id], onDelete: Cascade)
 
@@ -258,41 +260,77 @@ model TestCase {
   @@map("test_cases")
 }
 
+model ContestScoringRule {
+  id          String  @id @default(uuid()) @db.VarChar(40)
+  name        String  @db.VarChar(100)
+  description String? @db.Text
+
+  base_score_per_problem Int @default(100)
+  time_bonus_per_minute  Int @default(1)
+  wrong_answer_penalty   Int @default(5)
+  time_limit_penalty     Int @default(0)
+  first_solve_bonus      Int @default(10)
+  full_score_bonus       Int @default(0)
+
+  is_default Boolean @default(false)
+  is_active  Boolean @default(true)
+
+  contests Contest[]
+
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  @@map("contest_scoring_rules")
+}
+
 model Contest {
-  id                 String                 @id @db.VarChar(40)
-  title              String                 @db.VarChar(120)
-  slug               String                 @db.VarChar(120)
+  id                 String                  @id @db.VarChar(40)
+  title              String                  @db.VarChar(120)
+  slug               String                  @db.VarChar(120)
   contest_type       ContestType
   start_time         DateTime
+  end_time           DateTime?
   duration_minutes   Int
+  registration_start DateTime?
+  registration_end   DateTime?
+  freeze_time        DateTime?
   status             ContestStatus
-  penalty_per_wrong  Int                    @default(300)
-  scoring_mode       ContestScoringMode     @default(SCORE)
-  tie_breaker        ContestTieBreaker      @default(LAST_SOLVE_TIME)
-  registered_count   Int                    @default(0)
-  participant_count  Int                    @default(0)
-  is_rated           Boolean                @default(true)
-  description        String?                @db.Text
-  cover_image        String?                @db.VarChar(255)
-  created_at         DateTime               @default(now())
-  created_by         String?                @db.VarChar(40)
-  is_visible         Boolean                @default(true)
-  rules              String?                @db.Text
-  updated_at         DateTime               @updatedAt
-  is_deleted         Boolean                @default(false)
+  penalty_per_wrong  Int                     @default(300)
+  scoring_mode       ContestScoringMode      @default(SCORE)
+  tie_breaker        ContestTieBreaker       @default(LAST_SOLVE_TIME)
+  is_virtual         Boolean                 @default(false)
+  max_participants   Int?
+  registered_count   Int                     @default(0)
+  participant_count  Int                     @default(0)
+  submission_count   Int                     @default(0)
+  is_rated           Boolean                 @default(true)
+  scoring_rule_id    String?                 @db.VarChar(40)
+  description        String?                 @db.Text
+  cover_image        String?                 @db.VarChar(255)
+  created_at         DateTime                @default(now())
+  created_by         String?                 @db.VarChar(40)
+  is_visible         Boolean                 @default(true)
+  rules              String?                 @db.Text
+  updated_at         DateTime                @updatedAt
+  is_deleted         Boolean                 @default(false)
   deleted_at         DateTime?
-  deleted_by         String?                @db.VarChar(40)
+  deleted_by         String?                 @db.VarChar(40)
+  scoring_rule       ContestScoringRule?     @relation(fields: [scoring_rule_id], references: [id])
   participants       ContestParticipant[]
   problemResults     ContestProblemResult[]
   problems           ContestProblem[]
   rankings           ContestRanking[]
   contestSubmissions ContestSubmission[]
   virtualSessions    VirtualContestSession[]
+  announcements      ContestAnnouncement[]
+  firstSolveRecords  FirstSolveRecord[]
+  analytics          ContestAnalytics?
 
   @@index([status, start_time])
   @@index([contest_type])
   @@index([slug])
   @@index([status, is_visible, start_time])
+  @@index([scoring_rule_id])
   @@map("contests")
 }
 
@@ -301,7 +339,10 @@ model ContestProblem {
   contest_id         String                 @db.VarChar(40)
   problem_id         BigInt
   problem_index      String                 @db.VarChar(10)
+  label              String?                @db.VarChar(10)
   score              Int                    @default(0)
+  base_score         Int                    @default(100)
+  time_bonus         Int                    @default(0)
   penalty_per_wrong  Int?
   solved_count       Int                    @default(0)
   submission_count   Int                    @default(0)
@@ -348,6 +389,7 @@ model ContestRanking {
   rating_after           Int                    @default(1500)
   rating_change          Int                    @default(0)
   is_virtual             Boolean                @default(false)
+  is_frozen              Boolean                @default(false)
   solved_count           Int                    @default(0)
   total_penalty          Int                    @default(0)
   total_score            Int                    @default(0)
@@ -373,11 +415,14 @@ model ContestParticipant {
   registered_at      DateTime                 @default(now())
   started_at         DateTime?
   finished_at        DateTime?
+  checked_in_at      DateTime?
   is_virtual         Boolean                  @default(false)
   final_rank         Int?
   total_penalty      Int                      @default(0)
   total_score        Int                      @default(0)
+  total_time         Int                      @default(0)
   total_attempts     Int                      @default(0)
+  attempt_count      Int                      @default(0)
   last_solve_time    Int?
   virtual_session_id String?                  @db.VarChar(40)
   contest            Contest                  @relation(fields: [contest_id], references: [id], onDelete: Cascade)
@@ -403,6 +448,9 @@ model ContestProblemResult {
   ranking_id         String?            @db.VarChar(40)
   is_solved          Boolean            @default(false)
   score              Int                @default(0)
+  time_spent         Int                @default(0)
+  time_bonus         Int                @default(0)
+  is_first_solve     Boolean            @default(false)
   attempts           Int                @default(0)
   first_solve_time   Int?
   penalty_time       Int                @default(0)
@@ -463,34 +511,85 @@ model ContestSubmission {
   @@map("contest_submissions")
 }
 
+model FirstSolveRecord {
+  id         String   @id @default(uuid()) @db.VarChar(40)
+  contest_id String   @db.VarChar(40)
+  problem_id BigInt
+  user_id    String   @db.VarChar(40)
+  solved_at  DateTime @default(now())
+  time_spent Int
+
+  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+  problem Problem @relation(fields: [problem_id], references: [id])
+  user    User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@unique([contest_id, problem_id])
+  @@index([contest_id])
+  @@map("first_solve_records")
+}
+
+model ContestAnnouncement {
+  id         String   @id @default(uuid()) @db.VarChar(40)
+  contest_id String   @db.VarChar(40)
+  title      String   @db.VarChar(200)
+  content    String   @db.Text
+  created_at DateTime @default(now())
+  is_pinned  Boolean  @default(false)
+
+  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+
+  @@index([contest_id, created_at])
+  @@map("contest_announcements")
+}
+
+model ContestAnalytics {
+  id         String @id @default(uuid()) @db.VarChar(40)
+  contest_id String @unique @db.VarChar(40)
+
+  total_registered   Int   @default(0)
+  total_participated Int   @default(0)
+  completion_rate    Float @default(0)
+
+  problem_stats      Json?
+  score_distribution Json?
+  time_distribution  Json?
+  top_users          Json?
+
+  generated_at DateTime @default(now())
+
+  contest Contest @relation(fields: [contest_id], references: [id], onDelete: Cascade)
+
+  @@map("contest_analytics")
+}
+
 model NotificationPreference {
-  id             String   @id @default(uuid()) @db.VarChar(40)
-  user_id        String   @unique @db.VarChar(40)
-  communication  Boolean  @default(true)
-  marketing      Boolean  @default(false)
-  security       Boolean  @default(true)
-  system         Boolean  @default(true)
-  created_at     DateTime @default(now())
-  updated_at     DateTime @updatedAt
-  user           User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id            String   @id @default(uuid()) @db.VarChar(40)
+  user_id       String   @unique @db.VarChar(40)
+  communication Boolean  @default(true)
+  marketing     Boolean  @default(false)
+  security      Boolean  @default(true)
+  system        Boolean  @default(true)
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+  user          User     @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
 }
 
 model Notification {
-  id          String               @id @default(uuid()) @db.VarChar(40)
-  user_id     String               @db.VarChar(40)
-  type        NotificationType
-  category    NotificationCategory
-  title       String               @db.VarChar(255)
-  body        String               @db.Text
-  link        String?              @db.VarChar(255)
-  metadata    Json?
-  is_read     Boolean              @default(false)
-  read_at     DateTime?
-  created_at  DateTime             @default(now())
-  updated_at  DateTime             @updatedAt
-  user        User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id         String               @id @default(uuid()) @db.VarChar(40)
+  user_id    String               @db.VarChar(40)
+  type       NotificationType
+  category   NotificationCategory
+  title      String               @db.VarChar(255)
+  body       String               @db.Text
+  link       String?              @db.VarChar(255)
+  metadata   Json?
+  is_read    Boolean              @default(false)
+  read_at    DateTime?
+  created_at DateTime             @default(now())
+  updated_at DateTime             @updatedAt
+  user       User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([user_id, is_read, created_at])
   @@index([user_id, type])
@@ -499,18 +598,18 @@ model Notification {
 }
 
 model Achievement {
-  id          String            @id @default(cuid())
-  key         String            @unique
+  id          String   @id @default(cuid())
+  key         String   @unique
   name        String
   description String
   icon        String?
   category    String
-  tier        Int               @default(1)
+  tier        Int      @default(1)
   criteria    Json
-  points      Int               @default(0)
-  is_active   Boolean           @default(true)
-  created_at  DateTime          @default(now())
-  updated_at  DateTime          @updatedAt
+  points      Int      @default(0)
+  is_active   Boolean  @default(true)
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
 
   userAchievements UserAchievement[]
 
@@ -615,26 +714,26 @@ model ForumPost {
 }
 
 model ForumComment {
-  id         String         @id @db.VarChar(40)
-  post_id    String         @db.VarChar(40)
-  parent_id  String?        @db.VarChar(40)
-  author_id  String         @db.VarChar(40)
-  body       String         @db.Text
-  markdown   String?        @db.Text
-  created_at DateTime
-  edited_at  DateTime?
-  is_pinned  Boolean        @default(false)
-  is_locked  Boolean        @default(false)
-  author     ForumUser      @relation(fields: [author_id], references: [id], onDelete: Cascade)
-  parent     ForumComment?  @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
-  replies    ForumComment[] @relation("CommentReplies")
-  post       ForumPost      @relation(fields: [post_id], references: [id], onDelete: Cascade)
-  is_flagged     Boolean   @default(false)
-  flagged_reason String?   @db.Text
+  id             String         @id @db.VarChar(40)
+  post_id        String         @db.VarChar(40)
+  parent_id      String?        @db.VarChar(40)
+  author_id      String         @db.VarChar(40)
+  body           String         @db.Text
+  markdown       String?        @db.Text
+  created_at     DateTime
+  edited_at      DateTime?
+  is_pinned      Boolean        @default(false)
+  is_locked      Boolean        @default(false)
+  author         ForumUser      @relation(fields: [author_id], references: [id], onDelete: Cascade)
+  parent         ForumComment?  @relation("CommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies        ForumComment[] @relation("CommentReplies")
+  post           ForumPost      @relation(fields: [post_id], references: [id], onDelete: Cascade)
+  is_flagged     Boolean        @default(false)
+  flagged_reason String?        @db.Text
   flagged_at     DateTime?
-  is_deleted     Boolean   @default(false)
+  is_deleted     Boolean        @default(false)
   deleted_at     DateTime?
-  deleted_by     String?   @db.VarChar(40)
+  deleted_by     String?        @db.VarChar(40)
 
   @@index([author_id], map: "forum_comments_author_id_fkey")
   @@index([parent_id], map: "forum_comments_parent_id_fkey")
@@ -802,29 +901,29 @@ model Bookmark {
 }
 
 model Solution {
-  id         String            @id @db.VarChar(40)
-  problem_id BigInt
-  user_id    String            @db.VarChar(40)
-  title      String            @db.VarChar(255)
-  content    String            @db.Text
-  summary    String?           @db.Text
-  language   String            @db.VarChar(50)
-  tags       Json?
-  views        Int               @default(0)
-  created_at   DateTime          @default(now())
-  updated_at   DateTime          @updatedAt
-  is_published Boolean           @default(true)
-  published_at DateTime?
-  published_by String?           @db.VarChar(40)
-  is_flagged   Boolean           @default(false)
-  flagged_reason String?         @db.Text
-  flagged_at   DateTime?
-  is_deleted   Boolean           @default(false)
-  deleted_at   DateTime?
-  deleted_by   String?           @db.VarChar(40)
-  comments     SolutionComment[]
-  problem      Problem           @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-  author     User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id             String            @id @db.VarChar(40)
+  problem_id     BigInt
+  user_id        String            @db.VarChar(40)
+  title          String            @db.VarChar(255)
+  content        String            @db.Text
+  summary        String?           @db.Text
+  language       String            @db.VarChar(50)
+  tags           Json?
+  views          Int               @default(0)
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @updatedAt
+  is_published   Boolean           @default(true)
+  published_at   DateTime?
+  published_by   String?           @db.VarChar(40)
+  is_flagged     Boolean           @default(false)
+  flagged_reason String?           @db.Text
+  flagged_at     DateTime?
+  is_deleted     Boolean           @default(false)
+  deleted_at     DateTime?
+  deleted_by     String?           @db.VarChar(40)
+  comments       SolutionComment[]
+  problem        Problem           @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  author         User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([problem_id], map: "solutions_problem_id_fkey")
   @@index([user_id], map: "solutions_user_id_fkey")
@@ -836,23 +935,23 @@ model Solution {
 }
 
 model SolutionComment {
-  id          String            @id @db.VarChar(40)
-  solution_id String            @db.VarChar(40)
-  parent_id   String?           @db.VarChar(40)
-  user_id     String            @db.VarChar(40)
-  content     String            @db.Text
-  created_at  DateTime          @default(now())
-  updated_at  DateTime          @updatedAt
-  parent      SolutionComment?  @relation("SolutionCommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
-  replies     SolutionComment[] @relation("SolutionCommentReplies")
-  solution    Solution          @relation(fields: [solution_id], references: [id], onDelete: Cascade)
-  author      User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  is_flagged     Boolean   @default(false)
-  flagged_reason String?   @db.Text
+  id             String            @id @db.VarChar(40)
+  solution_id    String            @db.VarChar(40)
+  parent_id      String?           @db.VarChar(40)
+  user_id        String            @db.VarChar(40)
+  content        String            @db.Text
+  created_at     DateTime          @default(now())
+  updated_at     DateTime          @updatedAt
+  parent         SolutionComment?  @relation("SolutionCommentReplies", fields: [parent_id], references: [id], onDelete: Cascade)
+  replies        SolutionComment[] @relation("SolutionCommentReplies")
+  solution       Solution          @relation(fields: [solution_id], references: [id], onDelete: Cascade)
+  author         User              @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  is_flagged     Boolean           @default(false)
+  flagged_reason String?           @db.Text
   flagged_at     DateTime?
-  is_deleted     Boolean   @default(false)
+  is_deleted     Boolean           @default(false)
   deleted_at     DateTime?
-  deleted_by     String?   @db.VarChar(40)
+  deleted_by     String?           @db.VarChar(40)
 
   @@index([parent_id], map: "solution_comments_parent_id_fkey")
   @@index([solution_id], map: "solution_comments_solution_id_fkey")
@@ -891,25 +990,25 @@ model ProblemNote {
 }
 
 model Submission {
-  id                 String              @id @db.VarChar(40)
+  id                 String                @id @db.VarChar(40)
   problem_id         BigInt
-  user_id            String              @db.VarChar(40)
-  language           String              @db.VarChar(50)
-  code               String              @db.Text
-  status             String              @db.VarChar(40)
+  user_id            String                @db.VarChar(40)
+  language           String                @db.VarChar(50)
+  code               String                @db.Text
+  status             String                @db.VarChar(40)
   runtime            Int
   memory             Float
-  notes              String?             @db.Text
-  created_at         DateTime            @default(now())
+  notes              String?               @db.Text
+  created_at         DateTime              @default(now())
   runtime_percentile Float?
   memory_percentile  Float?
   test_details       Json?
   memoryDistBinsMb   Json?
   runtimeDistBinsMs  Json?
-  contestSubmissions  ContestSubmission[]
+  contestSubmissions ContestSubmission[]
   executionLogs      SandboxExecutionLog[]
-  problem            Problem              @relation(fields: [problem_id], references: [id], onDelete: Cascade)
-  user               User                 @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  problem            Problem               @relation(fields: [problem_id], references: [id], onDelete: Cascade)
+  user               User                  @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@index([problem_id, user_id])
   @@index([created_at])
@@ -1151,8 +1250,8 @@ model Translation {
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 
-  creator     User?    @relation("TranslationCreator", fields: [created_by], references: [id])
-  updater     User?    @relation("TranslationUpdater", fields: [updated_by], references: [id])
+  creator User? @relation("TranslationCreator", fields: [created_by], references: [id])
+  updater User? @relation("TranslationUpdater", fields: [updated_by], references: [id])
 
   @@unique([entity_type, entity_id, field_name, locale])
   @@index([entity_type, entity_id, locale])
@@ -1167,12 +1266,12 @@ model Translation {
 // ============================================================================
 
 model PasswordReset {
-  id         String   @id @default(uuid()) @db.VarChar(40)
-  user_id    String   @db.VarChar(40)
-  token      String   @unique @db.VarChar(255)
+  id         String    @id @default(uuid()) @db.VarChar(40)
+  user_id    String    @db.VarChar(40)
+  token      String    @unique @db.VarChar(255)
   expires_at DateTime
   used_at    DateTime?
-  created_at DateTime @default(now())
+  created_at DateTime  @default(now())
 
   @@index([token])
   @@index([user_id])
@@ -1181,14 +1280,14 @@ model PasswordReset {
 }
 
 model RefreshToken {
-  id           String   @id @default(uuid()) @db.VarChar(40)
-  user_id      String   @db.VarChar(40)
-  token        String   @unique @db.VarChar(255)
-  expires_at   DateTime
-  created_at   DateTime @default(now())
-  rotated_at   DateTime?
-  revoked_at   DateTime?
-  is_revoked   Boolean  @default(false)
+  id         String    @id @default(uuid()) @db.VarChar(40)
+  user_id    String    @db.VarChar(40)
+  token      String    @unique @db.VarChar(255)
+  expires_at DateTime
+  created_at DateTime  @default(now())
+  rotated_at DateTime?
+  revoked_at DateTime?
+  is_revoked Boolean   @default(false)
 
   user User @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
@@ -1199,14 +1298,14 @@ model RefreshToken {
 }
 
 model UserPermission {
-  id          String             @id @default(uuid()) @db.VarChar(40)
-  user_id     String             @db.VarChar(40)
-  action      PermissionAction
-  resource    PermissionResource
-  granted_by  String             @db.VarChar(40)
-  granted_at  DateTime           @default(now())
-  expires_at  DateTime?
-  user        User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  id         String             @id @default(uuid()) @db.VarChar(40)
+  user_id    String             @db.VarChar(40)
+  action     PermissionAction
+  resource   PermissionResource
+  granted_by String             @db.VarChar(40)
+  granted_at DateTime           @default(now())
+  expires_at DateTime?
+  user       User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, action, resource])
   @@index([user_id])
@@ -1214,11 +1313,11 @@ model UserPermission {
 }
 
 model RolePermission {
-  id          String             @id @default(uuid()) @db.VarChar(40)
-  role        UserRole
-  action      PermissionAction
-  resource    PermissionResource
-  created_at  DateTime           @default(now())
+  id         String             @id @default(uuid()) @db.VarChar(40)
+  role       UserRole
+  action     PermissionAction
+  resource   PermissionResource
+  created_at DateTime           @default(now())
 
   @@unique([role, action, resource])
   @@index([role])
@@ -1226,20 +1325,20 @@ model RolePermission {
 }
 
 model AuditLog {
-  id            String          @id @default(uuid()) @db.VarChar(40)
-  performer_id  String          @db.VarChar(40)
-  user_id       String?         @db.VarChar(40)
-  action        String          @db.VarChar(100)
-  entity_type   String          @db.VarChar(50)
-  entity_id     String          @db.VarChar(50)
-  old_values    Json?
-  new_values    Json?
-  ip_address    String?         @db.VarChar(45)
-  user_agent    String?         @db.VarChar(255)
-  created_at    DateTime        @default(now())
+  id           String   @id @default(uuid()) @db.VarChar(40)
+  performer_id String   @db.VarChar(40)
+  user_id      String?  @db.VarChar(40)
+  action       String   @db.VarChar(100)
+  entity_type  String   @db.VarChar(50)
+  entity_id    String   @db.VarChar(50)
+  old_values   Json?
+  new_values   Json?
+  ip_address   String?  @db.VarChar(45)
+  user_agent   String?  @db.VarChar(255)
+  created_at   DateTime @default(now())
 
-  performer     User            @relation("AuditLogPerformer", fields: [performer_id], references: [id])
-  user          User?           @relation("AuditLogUser", fields: [user_id], references: [id])
+  performer User  @relation("AuditLogPerformer", fields: [performer_id], references: [id])
+  user      User? @relation("AuditLogUser", fields: [user_id], references: [id])
 
   @@index([performer_id])
   @@index([user_id])
@@ -1258,29 +1357,29 @@ model SystemSetting {
 }
 
 model SystemAnnouncement {
-  id          String   @id @default(uuid()) @db.VarChar(40)
-  title       String   @db.VarChar(255)
-  content     String   @db.Text
-  type        NotificationType
-  created_by  String   @db.VarChar(40)
-  created_at  DateTime @default(now())
-  updated_at  DateTime @updatedAt
+  id         String           @id @default(uuid()) @db.VarChar(40)
+  title      String           @db.VarChar(255)
+  content    String           @db.Text
+  type       NotificationType
+  created_by String           @db.VarChar(40)
+  created_at DateTime         @default(now())
+  updated_at DateTime         @updatedAt
 
-  creator     User     @relation(fields: [created_by], references: [id])
-  reads       SystemAnnouncementRead[]
+  creator User                     @relation(fields: [created_by], references: [id])
+  reads   SystemAnnouncementRead[]
 
   @@map("system_announcements")
 }
 
 model SystemAnnouncementRead {
-  id              String             @id @default(uuid()) @db.VarChar(40)
-  user_id         String             @db.VarChar(40)
-  announcement_id String             @db.VarChar(40)
-  is_read         Boolean            @default(true)
-  read_at         DateTime?          @default(now())
+  id              String    @id @default(uuid()) @db.VarChar(40)
+  user_id         String    @db.VarChar(40)
+  announcement_id String    @db.VarChar(40)
+  is_read         Boolean   @default(true)
+  read_at         DateTime? @default(now())
 
-  user            User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
-  announcement    SystemAnnouncement @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  announcement SystemAnnouncement @relation(fields: [announcement_id], references: [id], onDelete: Cascade)
 
   @@unique([user_id, announcement_id])
   @@map("system_announcement_reads")
@@ -1299,16 +1398,16 @@ enum BackupStatus {
 }
 
 model Backup {
-  id          String       @id @default(uuid()) @db.VarChar(40)
-  filename    String       @db.VarChar(255)
-  size        BigInt       @default(0)
-  type        BackupType   @default(FULL)
-  status      BackupStatus @default(PENDING)
-  created_by  String       @db.VarChar(40)
-  created_at  DateTime     @default(now())
+  id           String       @id @default(uuid()) @db.VarChar(40)
+  filename     String       @db.VarChar(255)
+  size         BigInt       @default(0)
+  type         BackupType   @default(FULL)
+  status       BackupStatus @default(PENDING)
+  created_by   String       @db.VarChar(40)
+  created_at   DateTime     @default(now())
   completed_at DateTime?
-  error       String?      @db.Text
-  metadata    Json?
+  error        String?      @db.Text
+  metadata     Json?
 
   @@index([status])
   @@index([created_at])
@@ -1316,11 +1415,11 @@ model Backup {
 }
 
 model EmailTemplate {
-  id        String   @id @default(uuid()) @db.VarChar(40)
-  name      String   @unique @db.VarChar(255)
-  subject   String   @db.VarChar(255)
-  body      String   @db.Text
-  variables Json?
+  id         String   @id @default(uuid()) @db.VarChar(40)
+  name       String   @unique @db.VarChar(255)
+  subject    String   @db.VarChar(255)
+  body       String   @db.Text
+  variables  Json?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 
@@ -1328,14 +1427,14 @@ model EmailTemplate {
 }
 
 model EmailLog {
-  id          String       @id @default(uuid()) @db.VarChar(40)
-  template_id String?      @db.VarChar(40)
-  recipient   String       @db.VarChar(255)
-  subject     String       @db.VarChar(255)
-  status      EmailStatus  @default(PENDING)
+  id          String      @id @default(uuid()) @db.VarChar(40)
+  template_id String?     @db.VarChar(40)
+  recipient   String      @db.VarChar(255)
+  subject     String      @db.VarChar(255)
+  status      EmailStatus @default(PENDING)
   sent_at     DateTime?
-  error       String?      @db.Text
-  created_at  DateTime     @default(now())
+  error       String?     @db.Text
+  created_at  DateTime    @default(now())
 
   @@index([status])
   @@index([recipient])
@@ -1351,21 +1450,21 @@ enum EmailStatus {
 
 // Sandbox Execution Monitoring
 model SandboxExecutionLog {
-  id              String              @id @default(uuid()) @db.VarChar(40)
-  execution_id    String              @unique @db.VarChar(40)
-  submission_id   String?             @db.VarChar(40)
-  language        String              @db.VarChar(20)
-  status          ExecutionStatus     @default(RUNNING)
-  time_ms         Int?
-  memory_bytes    Int?
-  exit_code       Int?
-  error_message   String?             @db.Text
-  container_id    String?             @db.VarChar(64)
-  started_at      DateTime            @default(now())
-  completed_at    DateTime?
-  created_at      DateTime            @default(now())
+  id            String          @id @default(uuid()) @db.VarChar(40)
+  execution_id  String          @unique @db.VarChar(40)
+  submission_id String?         @db.VarChar(40)
+  language      String          @db.VarChar(20)
+  status        ExecutionStatus @default(RUNNING)
+  time_ms       Int?
+  memory_bytes  Int?
+  exit_code     Int?
+  error_message String?         @db.Text
+  container_id  String?         @db.VarChar(64)
+  started_at    DateTime        @default(now())
+  completed_at  DateTime?
+  created_at    DateTime        @default(now())
 
-  submission      Submission?         @relation(fields: [submission_id], references: [id])
+  submission Submission? @relation(fields: [submission_id], references: [id])
 
   @@index([status])
   @@index([language])
@@ -1375,21 +1474,21 @@ model SandboxExecutionLog {
 }
 
 model SandboxMetrics {
-  id                   String    @id @default(uuid()) @db.VarChar(40)
-  date                 DateTime  @db.Date
-  total_executions     Int       @default(0)
-  successful           Int       @default(0)
-  timeouts             Int       @default(0)
-  memory_exceeded      Int       @default(0)
-  runtime_errors       Int       @default(0)
-  compile_errors       Int       @default(0)
-  system_errors        Int       @default(0)
-  avg_time_ms          Float?
-  max_time_ms          Int?
-  avg_memory_bytes     Float?
-  max_memory_bytes     Int?
-  created_at           DateTime  @default(now())
-  updated_at           DateTime  @updatedAt
+  id               String   @id @default(uuid()) @db.VarChar(40)
+  date             DateTime @db.Date
+  total_executions Int      @default(0)
+  successful       Int      @default(0)
+  timeouts         Int      @default(0)
+  memory_exceeded  Int      @default(0)
+  runtime_errors   Int      @default(0)
+  compile_errors   Int      @default(0)
+  system_errors    Int      @default(0)
+  avg_time_ms      Float?
+  max_time_ms      Int?
+  avg_memory_bytes Float?
+  max_memory_bytes Int?
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
 
   @@unique([date])
   @@map("sandbox_metrics")

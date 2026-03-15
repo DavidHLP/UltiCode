@@ -11,6 +11,7 @@ import {
   HttpStatus,
   Req,
 } from '@nestjs/common';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import {
   ApiTags,
   ApiOperation,
@@ -33,6 +34,7 @@ interface RequestWithOptionalUser extends Request {
 
 @ApiTags('recommendations')
 @Controller('recommendations')
+@UseGuards(ThrottlerGuard)
 export class RecommendationController {
   constructor(private readonly recommendationService: RecommendationService) {}
 
@@ -40,6 +42,7 @@ export class RecommendationController {
    * Get personalized recommendations based on request parameters
    */
   @Post()
+  @Throttle({ default: { limit: 30, ttl: 60000 } })
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
   @HttpCode(HttpStatus.OK)
@@ -128,6 +131,7 @@ export class RecommendationController {
    * Get similar problems to a given problem
    */
   @Get('similar/:problemId')
+  @Throttle({ default: { limit: 10, ttl: 60000 } })
   @UseGuards(OptionalJwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Get problems similar to a specific problem' })

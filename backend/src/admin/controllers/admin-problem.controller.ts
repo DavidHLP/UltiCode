@@ -9,7 +9,9 @@ import {
   Query,
   UseGuards,
   Res,
+  NotFoundException,
 } from '@nestjs/common';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AuthGuard } from '../../auth/auth.guard';
 import { CsrfGuard } from '../../auth/csrf.guard';
 import { PermissionsGuard } from '../guards/permissions.guard';
@@ -39,6 +41,12 @@ import {
   ExportProblemsQueryDto,
   ExportFormat,
 } from '../dto/problem.dto';
+import {
+  ProblemCasesResponseDto,
+  ProblemCodeResponseDto,
+  ProblemDescriptionResponseDto,
+  ProblemHeaderResponseDto,
+} from '../dto/problem-tab-responses.dto';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 import dompurify = require('dompurify');
 import { JSDOM } from 'jsdom';
@@ -612,6 +620,124 @@ export class AdminProblemController {
         data: exportData,
       });
     }
+  }
+
+  @Get(':id/header')
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  @ApiOperation({ summary: 'Get problem header data' })
+  @ApiResponse({ status: 200, description: 'Problem header data' })
+  @ApiResponse({ status: 404, description: 'Problem not found' })
+  async getHeader(@Param('id') id: string): Promise<ProblemHeaderResponseDto> {
+    const problem = await this.prisma.problem.findUnique({
+      where: { id: BigInt(id) },
+      select: {
+        id: true,
+        title: true,
+        slug: true,
+        difficulty: true,
+        status: true,
+        is_premium: true,
+        is_published: true,
+        published_at: true,
+      },
+    });
+
+    if (!problem) {
+      throw new NotFoundException('Problem not found');
+    }
+
+    return {
+      id: problem.id.toString(),
+      title: problem.title,
+      slug: problem.slug,
+      difficulty: mapDifficultyToFrontend(problem.difficulty),
+      status: problem.status,
+      is_premium: problem.is_premium,
+      is_published: problem.is_published,
+      published_at: problem.published_at,
+    };
+  }
+
+  @Get(':id/code')
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  @ApiOperation({ summary: 'Get problem code templates' })
+  @ApiResponse({ status: 200, description: 'Problem code templates' })
+  @ApiResponse({ status: 404, description: 'Problem not found' })
+  async getCode(@Param('id') id: string): Promise<ProblemCodeResponseDto> {
+    const problem = await this.prisma.problem.findUnique({
+      where: { id: BigInt(id) },
+      select: {
+        id: true,
+        languages: true,
+      },
+    });
+
+    if (!problem) {
+      throw new NotFoundException('Problem not found');
+    }
+
+    return {
+      id: problem.id.toString(),
+      languages: problem.languages.map((lang) => ({
+        id: lang.id,
+        language: lang.label,
+        value: lang.value,
+        style: lang.style ?? undefined,
+        starter_code: lang.starter_code,
+      })),
+    };
+  }
+
+  @Get(':id/cases')
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  @ApiOperation({ summary: 'Get problem test cases data' })
+  @ApiResponse({ status: 200, description: 'Problem test cases data' })
+  @ApiResponse({ status: 404, description: 'Problem not found' })
+  async getCases(@Param('id') id: string): Promise<ProblemCasesResponseDto> {
+    const problem = await this.prisma.problem.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        detail: { select: { constraints_json: true, hints: true } },
+        tagRelations: { include: { tag: true } },
+        examples: { orderBy: { example_order: 'asc' } },
+      },
+    });
+
+    if (!problem) {
+      throw new NotFoundException('Problem not found');
+    }
+
+    return {
+      id: problem.id.toString(),
+      examples: problem.examples.map((ex) => ({
+        id: ex.id,
+        input: ex.input_text,
+        output: ex.output_text,
+        explanation: ex.explanation ?? undefined,
+        order: ex.example_order,
+      })),
+      detail: problem.detail
+        ? {
+            constraints_json: problem.detail.constraints_json as
+              | string[]
+              | undefined,
+            hints: problem.detail.hints as string[] | undefined,
+          }
+        : undefined,
+      tags: problem.tagRelations.map((tr) => ({
+        id: tr.tag.id,
+        label: tr.tag.label,
+      })),
+    };
   }
 
   @Get(':id')

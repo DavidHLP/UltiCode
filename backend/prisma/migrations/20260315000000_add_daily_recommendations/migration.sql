@@ -1,0 +1,29 @@
+-- CreateEnum
+CREATE TYPE "RecommendScenario" AS ENUM ('DAILY', 'SIMILAR', 'WEAK_POINT', 'CHALLENGE');
+
+-- CreateTable
+CREATE TABLE "DailyRecommendation" (
+    "id" VARCHAR(191) NOT NULL,
+    "user_id" VARCHAR(191) NOT NULL,
+    "problem_id" INTEGER NOT NULL,
+    "problem_slug" VARCHAR(191) NOT NULL,
+    "problem_title" VARCHAR(191) NOT NULL,
+    "difficulty" VARCHAR(191) NOT NULL,
+    "score" DECIMAL(65,30) NOT NULL,
+    "tags" JSON NOT NULL DEFAULT '[]',
+    "reason" VARCHAR(191) NOT NULL,
+    "scenario" "RecommendScenario" NOT NULL DEFAULT 'DAILY',
+    "created_at" DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updated_at" DATETIME(3) NOT NULL,
+
+    CONSTRAINT "DailyRecommendation_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "DailyRecommendation_user_id_problem_id_scenario_key" UNIQUE ("user_id", "problem_id", "scenario")
+);
+
+-- AddForeignKey
+ALTER TABLE "DailyRecommendation" ADD CONSTRAINT "DailyRecommendation_user_id_fkey" FOREIGN KEY ("user_id") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddIndex
+CREATE INDEX "DailyRecommendation_user_id_idx" ON "DailyRecommendation"("user_id");
+CREATE INDEX "DailyRecommendation_scenario_idx" ON "DailyRecommendation"("scenario");
+CREATE INDEX "DailyRecommendation_created_at_idx" ON "DailyRecommendation"("created_at");

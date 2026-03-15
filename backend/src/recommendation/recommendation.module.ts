@@ -3,6 +3,8 @@ import { HttpModule } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { RecommendationController } from './recommendation.controller';
 import { RecommendationService } from './services/recommendation.service';
+import { RecommendationCacheService } from './services/recommendation-cache.service';
+import { RecommendationScheduler } from './recommendation.scheduler';
 import { NacosNamingService } from './services/nacos.service';
 import {
   RecommendationModuleAsyncOptions,
@@ -75,8 +77,17 @@ export class RecommendationModule {
         ConfigModule,
       ],
       controllers: [RecommendationController],
-      providers: [NacosNamingService, RecommendationService],
-      exports: [RecommendationService, NacosNamingService],
+      providers: [
+        NacosNamingService,
+        RecommendationService,
+        RecommendationCacheService,
+        RecommendationScheduler,
+      ],
+      exports: [
+        RecommendationService,
+        NacosNamingService,
+        RecommendationCacheService,
+      ],
       global: true,
     };
   }

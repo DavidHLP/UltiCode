@@ -774,7 +774,6 @@ export class AdminProblemController {
       detail: problem.detail
         ? {
             summary: problem.detail.summary,
-            content: problem.detail.content,
             constraints_json: problem.detail.constraints_json as
               | string[]
               | undefined,

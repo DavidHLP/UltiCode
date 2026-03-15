@@ -740,6 +740,64 @@ export class AdminProblemController {
     };
   }
 
+  @Get(':id/description')
+  @RequirePermissions({
+    action: PermissionAction.READ,
+    resource: PermissionResource.PROBLEM,
+  })
+  @ApiOperation({ summary: 'Get problem description data' })
+  @ApiResponse({ status: 200, description: 'Problem description data' })
+  @ApiResponse({ status: 404, description: 'Problem not found' })
+  async getDescription(
+    @Param('id') id: string,
+  ): Promise<ProblemDescriptionResponseDto> {
+    const problem = await this.prisma.problem.findUnique({
+      where: { id: BigInt(id) },
+      include: {
+        detail: true,
+        tagRelations: { include: { tag: true } },
+        examples: { orderBy: { example_order: 'asc' } },
+      },
+    });
+
+    if (!problem) {
+      throw new NotFoundException('Problem not found');
+    }
+
+    return {
+      id: problem.id.toString(),
+      title: problem.title,
+      slug: problem.slug,
+      difficulty: mapDifficultyToFrontend(problem.difficulty),
+      is_premium: problem.is_premium,
+      is_published: problem.is_published,
+      detail: problem.detail
+        ? {
+            summary: problem.detail.summary,
+            content: problem.detail.content,
+            constraints_json: problem.detail.constraints_json as
+              | string[]
+              | undefined,
+            hints: problem.detail.hints as string[] | undefined,
+          }
+        : undefined,
+      tags: problem.tagRelations.map((tr) => ({
+        id: tr.tag.id,
+        label: tr.tag.label,
+      })),
+      examples: problem.examples.map((ex) => ({
+        id: ex.id,
+        input: ex.input_text,
+        output: ex.output_text,
+        explanation: ex.explanation ?? undefined,
+        order: ex.example_order,
+      })),
+      created_at: problem.published_at || new Date(),
+      updated_at: problem.detail?.updated_at || new Date(),
+      published_at: problem.published_at ?? undefined,
+    };
+  }
+
   @Get(':id')
   @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
   @RequirePermissions({

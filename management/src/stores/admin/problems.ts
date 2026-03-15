@@ -180,7 +180,6 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   async function fetchProblem(id: string, forceRefresh = false): Promise<Problem | null> {
     // Skip fetching if we already have this problem loaded and not forcing refresh
     if (!forceRefresh && loadedProblemId.value === id && currentProblem.value) {
-      console.log('[ProblemsStore] Using cached problem data for id:', id)
       return currentProblem.value
     }
 
@@ -188,9 +187,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
 
     try {
-      console.log('[ProblemsStore] Fetching problem with id:', id)
       const problem = await problemsApi.getProblem(id)
-      console.log('[ProblemsStore] Received problem data:', problem)
       currentProblem.value = problem
       loadedProblemId.value = id
 

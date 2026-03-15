@@ -1,10 +1,18 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ScoringService } from './scoring.service';
 import { PrismaService } from '../../prisma.service';
+import { CacheService } from '../../cache/cache.service';
 
 describe('ScoringService', () => {
   let service: ScoringService;
   let prisma: jest.Mocked<PrismaService>;
+  let cacheService: jest.Mocked<CacheService>;
+
+  const createMockCacheService = () => ({
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
+  });
 
   const mockRule = {
     id: 'rule-1',
@@ -78,8 +86,15 @@ describe('ScoringService', () => {
     jest.resetModules();
 
     // Re-import modules after reset using require
-    const { ScoringService: FreshScoringService } = require('./scoring.service');
-    const { PrismaService: FreshPrismaService } = require('../../prisma.service');
+    const {
+      ScoringService: FreshScoringService,
+    } = require('./scoring.service');
+    const {
+      PrismaService: FreshPrismaService,
+    } = require('../../prisma.service');
+    const {
+      CacheService: FreshCacheService,
+    } = require('../../cache/cache.service');
 
     const mockPrisma = {
       contest: {
@@ -99,10 +114,13 @@ describe('ScoringService', () => {
       $transaction: jest.fn((fn: any) => fn(mockPrisma)),
     };
 
+    const mockCache = createMockCacheService();
+
     return Test.createTestingModule({
       providers: [
         FreshScoringService,
         { provide: FreshPrismaService, useValue: mockPrisma },
+        { provide: FreshCacheService, useValue: mockCache },
       ],
     })
       .compile()
@@ -113,6 +131,7 @@ describe('ScoringService', () => {
         return {
           service: module.get<ScoringService>(FreshScoringService),
           prisma: module.get(FreshPrismaService),
+          cache: module.get(FreshCacheService),
         };
       });
   }
@@ -136,15 +155,19 @@ describe('ScoringService', () => {
       $transaction: jest.fn((fn) => fn(mockPrisma)),
     };
 
+    const mockCache = createMockCacheService();
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ScoringService,
         { provide: PrismaService, useValue: mockPrisma },
+        { provide: CacheService, useValue: mockCache },
       ],
     }).compile();
 
     service = module.get<ScoringService>(ScoringService);
     prisma = module.get(PrismaService);
+    cacheService = module.get(CacheService);
   });
 
   describe('calculateProblemScore', () => {
@@ -385,12 +408,12 @@ describe('ScoringService', () => {
       (prismaWithFlag.contest.findUnique as jest.Mock).mockResolvedValue(
         mockContest as any,
       );
-      (prismaWithFlag.contestSubmission.findMany as jest.Mock).mockResolvedValue(
-        mockSubmissions as any,
-      );
-      (prismaWithFlag.contestParticipant.findMany as jest.Mock).mockResolvedValue(
-        mockParticipants as any,
-      );
+      (
+        prismaWithFlag.contestSubmission.findMany as jest.Mock
+      ).mockResolvedValue(mockSubmissions as any);
+      (
+        prismaWithFlag.contestParticipant.findMany as jest.Mock
+      ).mockResolvedValue(mockParticipants as any);
       (prismaWithFlag.contestParticipant.update as jest.Mock).mockResolvedValue(
         {} as any,
       );

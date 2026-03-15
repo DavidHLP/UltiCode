@@ -104,6 +104,8 @@ export default {
     explanation: "解释",
     soon: "敬请期待",
     guest: "访客",
+    admin: "管理员",
+    new: "新",
   },
 
   // Pagination

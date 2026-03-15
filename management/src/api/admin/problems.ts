@@ -75,6 +75,66 @@ export interface ProblemLanguage {
   starter_code: string
 }
 
+// ========== Tab-specific Types ==========
+
+export interface HeaderData {
+  id: string
+  title: string
+  slug: string
+  difficulty: 'EASY' | 'MEDIUM' | 'HARD'
+  status: ProblemStatus
+  is_premium: boolean
+  is_published: boolean
+  published_at?: Date
+}
+
+export interface DescriptionData {
+  id: string
+  title: string
+  slug: string
+  difficulty: string
+  is_premium: boolean
+  is_published: boolean
+  detail?: {
+    summary?: string
+    content?: string
+    constraints_json?: string[]
+    hints?: string[]
+  }
+  tags: Array<{ id: string; label: string }>
+  examples?: ProblemExample[]
+  created_at: Date
+  updated_at: Date
+  published_at?: Date
+}
+
+export interface CodeData {
+  id: string
+  languages?: Array<{
+    id: string
+    language: string
+    value: string
+    style?: string
+    starter_code: string
+  }>
+}
+
+export interface CasesData {
+  id: string
+  examples?: Array<{
+    id: string
+    input: string
+    output: string
+    explanation?: string
+    order: number
+  }>
+  detail?: {
+    constraints_json?: string[]
+    hints?: string[]
+  }
+  tags?: Array<{ id: string; label: string }>
+}
+
 export interface ProblemQueryParams {
   search?: string
   difficulty?: Difficulty
@@ -396,5 +456,23 @@ export const problemsApi = {
       results: Array<{ id: string; success: boolean; error?: string }>
     }>('/admin/problems/flagged/batch-moderate', data)
     return response
+  },
+
+  // ========== Tab-specific APIs ==========
+
+  async getHeader(id: string, signal?: AbortSignal): Promise<HeaderData> {
+    return apiGet<HeaderData>(`/admin/problems/${id}/header`, { signal })
+  },
+
+  async getDescription(id: string, signal?: AbortSignal): Promise<DescriptionData> {
+    return apiGet<DescriptionData>(`/admin/problems/${id}/description`, { signal })
+  },
+
+  async getCode(id: string, signal?: AbortSignal): Promise<CodeData> {
+    return apiGet<CodeData>(`/admin/problems/${id}/code`, { signal })
+  },
+
+  async getCases(id: string, signal?: AbortSignal): Promise<CasesData> {
+    return apiGet<CasesData>(`/admin/problems/${id}/cases`, { signal })
   },
 }

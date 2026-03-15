@@ -66,6 +66,8 @@ Expected: 显示已安装的版本
   dailyRecommendations DailyRecommendation[]
 ```
 
+**注意**: User 模型使用 `is_active` (Boolean) 字段表示用户状态，不是 `status`。
+
 - [ ] **Step 2: 在 Problem 模型中添加关系字段**
 
 找到 `model Problem` 的末尾（在 `@@map` 之前），添加:
@@ -752,10 +754,13 @@ export class RecommendationScheduler {
     };
 
     try {
-      // 1. Get all active users
+      // 1. Get all active users (exclude inactive and banned users)
       const users = await this.prisma.user.findMany({
         select: { id: true },
-        where: { status: 'active' },
+        where: {
+          is_active: true,
+          is_banned: false,
+        },
       });
 
       result.totalUsers = users.length;
@@ -916,29 +921,31 @@ Read: `backend/src/recommendation/recommendation.module.ts`
 
 - [ ] **Step 2: 添加新依赖到 forRoot 方法**
 
+**重要**: 保留现有的 `register()` 和 `registerAsync()` 方法不变。
+
 找到 `forRoot()` 方法，修改 imports 和 providers:
 
 ```typescript
 // backend/src/recommendation/recommendation.module.ts
-import { Module, DynamicModule, Global } from '@nestjs/common';
-import { HttpModule } from '@nestjs/axios';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { RecommendationController } from './recommendation.controller';
-import { RecommendationService } from './services/recommendation.service';
-import { NacosNamingService } from './services/nacos.service';
+// 添加新的导入:
 import { RecommendationCacheService } from './services/recommendation-cache.service';
 import { RecommendationScheduler } from './recommendation.scheduler';
 import { CacheModule } from '../cache/cache.module';
 import { ThrottlerModule } from '@nestjs/throttler';
-import {
-  RecommendationModuleAsyncOptions,
-  RecommendationModuleOptions,
-} from './interfaces/recommendation-module-options.interface';
 
+// 然后修改 forRoot() 方法:
 @Global()
 @Module({})
 export class RecommendationModule {
-  // ... keep existing register() and registerAsync() methods ...
+  // 保留现有的 register() 方法不变
+  static register(options: RecommendationModuleOptions): DynamicModule {
+    // ... 现有代码保持不变 ...
+  }
+
+  // 保留现有的 registerAsync() 方法不变
+  static registerAsync(options: RecommendationModuleAsyncOptions): DynamicModule {
+    // ... 现有代码保持不变 ...
+  }
 
   /**
    * Register the recommendation module using environment variables
@@ -1012,6 +1019,13 @@ git commit -m "feat(recommendation): integrate cache service and scheduler into 
 
 ```typescript
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+// 注意: UseGuards 已从 @nestjs/common 导入（检查是否已存在）
+```
+
+**重要**: `UseGuards` 装饰器应该从 `@nestjs/common` 导入，不是从 `@nestjs/throttler`。检查现有导入，如果不存在则添加:
+
+```typescript
+import { UseGuards } from '@nestjs/common'; // 如果尚未导入
 ```
 
 - [ ] **Step 2: 添加类级别守卫**

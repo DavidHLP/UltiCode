@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma.service';
+import { CacheService } from '../../cache/cache.service';
 import { isFeatureEnabled } from '../../common/config/feature-flags.config';
 import type {
   ContestProblem,
@@ -36,11 +37,18 @@ export interface RankingEntry {
   penalty: number;
 }
 
+/** Cache key prefix for contest rankings */
+const RANKING_CACHE_PREFIX = 'contest';
+const RANKING_CACHE_TTL_SECONDS = 5;
+
 @Injectable()
 export class ScoringService {
   private readonly logger = new Logger(ScoringService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cacheService: CacheService,
+  ) {}
 
   /**
    * Calculate score for a single submission
@@ -248,13 +256,37 @@ export class ScoringService {
       }
     });
 
+    // Invalidate cache after successful update
+    await this.invalidateRankingCache(contestId);
+
     this.logger.log(
       `Updated rankings for contest ${contestId}: ${sortedParticipants.length} participants`,
     );
   }
 
   /**
-   * Get ranking snapshot for a contest
+   * Build cache key for contest ranking
+   * @param contestId - The contest ID
+   * @returns Cache key string
+   */
+  private buildRankingCacheKey(contestId: string): string {
+    return `${RANKING_CACHE_PREFIX}:${contestId}:ranking`;
+  }
+
+  /**
+   * Invalidate ranking cache for a contest
+   * Call this when rankings are updated to ensure fresh data on next request
+   * @param contestId - The contest ID to invalidate cache for
+   */
+  async invalidateRankingCache(contestId: string): Promise<void> {
+    const cacheKey = this.buildRankingCacheKey(contestId);
+    await this.cacheService.del(cacheKey);
+    this.logger.debug(`Invalidated ranking cache for contest ${contestId}`);
+  }
+
+  /**
+   * Get ranking snapshot for a contest with caching
+   * Results are cached for 5 seconds during contests to reduce database load
    * @param contestId - The contest ID
    * @param limit - Maximum number of entries to return (default: 100)
    * @returns Array of ranking entries
@@ -263,6 +295,18 @@ export class ScoringService {
     contestId: string,
     limit: number = 100,
   ): Promise<RankingEntry[]> {
+    const cacheKey = this.buildRankingCacheKey(contestId);
+
+    // Try to get from cache first
+    const cached = await this.cacheService.get<RankingEntry[]>(cacheKey);
+    if (cached) {
+      this.logger.debug(
+        `Cache hit for ranking snapshot of contest ${contestId}`,
+      );
+      return cached.slice(0, limit);
+    }
+
+    // Fetch from database if not cached
     const participants = await this.prisma.contestParticipant.findMany({
       where: {
         contest_id: contestId,
@@ -277,7 +321,7 @@ export class ScoringService {
       },
     });
 
-    return participants.map((p) => ({
+    const rankings: RankingEntry[] = participants.map((p) => ({
       rank: p.final_rank,
       userId: p.user_id,
       username: p.user.username,
@@ -286,5 +330,13 @@ export class ScoringService {
       time: p.total_time,
       penalty: p.total_penalty,
     }));
+
+    // Cache the results with TTL
+    await this.cacheService.set(cacheKey, rankings, RANKING_CACHE_TTL_SECONDS);
+    this.logger.debug(
+      `Cached ranking snapshot for contest ${contestId} (TTL: ${RANKING_CACHE_TTL_SECONDS}s)`,
+    );
+
+    return rankings;
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { ContestGateway } from './contest.gateway';
 import { PrismaService } from '../../prisma.service';
 import { isFeatureEnabled } from '../../common/config/feature-flags.config';
@@ -15,32 +15,95 @@ interface RankingItem {
   penalty: number;
 }
 
+/** Throttle interval for ranking updates (1 second) */
+const RANKING_THROTTLE_MS = 1000;
+
 /**
  * Real-time service for pushing contest updates via WebSocket
  *
  * Wraps ContestGateway to provide higher-level methods for:
- * - Pushing ranking updates
+ * - Pushing ranking updates (throttled to max once per second)
  * - First solve notifications
  * - Announcements
  * - Contest status changes
  * - Submission results
  */
 @Injectable()
-export class RealtimeService {
+export class RealtimeService implements OnModuleDestroy {
   private readonly logger = new Logger(RealtimeService.name);
+
+  /** Track last push time per contest for throttling */
+  private readonly lastRankingPushTime = new Map<string, number>();
+
+  /** Pending ranking updates that need to be pushed */
+  private readonly pendingRankingUpdates = new Map<string, boolean>();
+
+  /** Throttle timers for deferred pushes */
+  private readonly throttleTimers = new Map<string, NodeJS.Timeout>();
 
   constructor(
     private readonly gateway: ContestGateway,
     private readonly prisma: PrismaService,
   ) {}
 
+  onModuleDestroy() {
+    // Clear all timers on module destroy
+    for (const timer of this.throttleTimers.values()) {
+      clearTimeout(timer);
+    }
+    this.throttleTimers.clear();
+    this.lastRankingPushTime.clear();
+    this.pendingRankingUpdates.clear();
+  }
+
   /**
    * Push ranking update to all connected clients in a contest room
+   * Throttled to max once per second per contest to prevent overwhelming clients
    */
   async pushRankingUpdate(contestId: string): Promise<void> {
     if (!isFeatureEnabled('ENABLE_REALTIME_RANKING')) {
       return;
     }
+
+    const now = Date.now();
+    const lastPush = this.lastRankingPushTime.get(contestId) ?? 0;
+    const timeSinceLastPush = now - lastPush;
+
+    // If we pushed recently, defer this update
+    if (timeSinceLastPush < RANKING_THROTTLE_MS) {
+      // Mark that there's a pending update
+      this.pendingRankingUpdates.set(contestId, true);
+
+      // Set up a timer to push the deferred update if not already set
+      if (!this.throttleTimers.has(contestId)) {
+        const delay = RANKING_THROTTLE_MS - timeSinceLastPush;
+        const timer = setTimeout(() => {
+          this.throttleTimers.delete(contestId);
+          if (this.pendingRankingUpdates.get(contestId)) {
+            this.pendingRankingUpdates.delete(contestId);
+            // Push the deferred update (no await - fire and forget)
+            this.doPushRankingUpdate(contestId).catch((err) => {
+              this.logger.error(
+                `Failed to push deferred ranking update for contest ${contestId}:`,
+                err,
+              );
+            });
+          }
+        }, delay);
+        this.throttleTimers.set(contestId, timer);
+      }
+      return;
+    }
+
+    // Enough time has passed, push immediately
+    await this.doPushRankingUpdate(contestId);
+  }
+
+  /**
+   * Internal method to actually perform the ranking push
+   */
+  private async doPushRankingUpdate(contestId: string): Promise<void> {
+    this.lastRankingPushTime.set(contestId, Date.now());
 
     try {
       const contestRankings = await this.prisma.contestRanking.findMany({

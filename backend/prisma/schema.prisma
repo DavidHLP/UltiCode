@@ -80,6 +80,8 @@ model User {
   createdTranslations     Translation[]            @relation("TranslationCreator")
   updatedTranslations     Translation[]            @relation("TranslationUpdater")
   firstSolveRecords       FirstSolveRecord[]
+  // Daily recommendations relation
+  dailyRecommendations DailyRecommendation[]
 
   @@index([role])
   @@index([is_active, is_banned])
@@ -127,6 +129,8 @@ model Problem {
   testCases            TestCase[]
   versions             ProblemVersion[]
   firstSolveRecords    FirstSolveRecord[]
+  // Daily recommendations relation
+  dailyRecommendations DailyRecommendation[]
 
   @@index([difficulty])
   @@index([slug])
@@ -1504,4 +1508,24 @@ enum ExecutionStatus {
   RUNTIME_ERROR
   COMPILE_ERROR
   SYSTEM_ERROR
+}
+
+// Daily recommendation records for pre-computed recommendations
+model DailyRecommendation {
+  id            String   @id @default(uuid()) @db.VarChar(40)
+  user_id       String   @db.VarChar(40)
+  problem_id    BigInt
+  scenario      String   @db.VarChar(20) // DAILY, WEAK_POINT, CHALLENGE
+  score         Float
+  reason        String   @db.VarChar(500)
+  tags          Json
+  generated_at  DateTime @default(now())
+  created_at    DateTime @default(now())
+
+  user     User    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  problem  Problem @relation(fields: [problem_id], references: [id])
+
+  @@index([user_id, scenario, generated_at])
+  @@index([generated_at])
+  @@map("daily_recommendations")
 }

@@ -7,8 +7,6 @@ import {
   type CreateProblemDto,
   type UpdateProblemDto,
   type BulkProblemActionDto,
-  type ProblemExample,
-  type ProblemLanguage,
   type HeaderData,
   type DescriptionData,
   type CodeData,
@@ -49,6 +47,31 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   const currentProblem = ref<Problem | null>(null)
   const loadedProblemId = ref<string | null>(null)
 
+  // ========== AbortController Helpers ==========
+
+  function getAbortController(key: string): AbortController {
+    let controller = abortControllers.value.get(key)
+    if (controller) {
+      controller.abort()
+    }
+    controller = new AbortController()
+    abortControllers.value.set(key, controller)
+    return controller
+  }
+
+  function abortAllRequests() {
+    abortControllers.value.forEach((controller) => controller.abort())
+    abortControllers.value.clear()
+  }
+
+  function extractErrorMessage(err: unknown): string {
+    return (
+      (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+      (err as Error)?.message ||
+      'An error occurred'
+    )
+  }
+
   // ==================== List Operations ====================
 
   async function fetchProblems(params: ProblemQueryParams = {}) {
@@ -59,142 +82,96 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       problems.value = response.data
       total.value = response.total
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch problems'
+      error.value = extractErrorMessage(err)
       console.error('Failed to fetch problems:', err)
     } finally {
       loading.value = false
     }
   }
 
-  // ==================== Tab-specific Data Fetching ====================
+  // ========== Tab Fetch Functions ==========
 
-  /**
-   * Clear all cached data when switching to a different problem
-   */
-  function clearTabData() {
-    tabData.value = {
-      description: null,
-      code: null,
-      cases: null,
+  async function fetchHeader(id: string): Promise<HeaderData | null> {
+    const controller = getAbortController('header')
+    headerLoading.value = true
+    headerError.value = null
+
+    try {
+      const data = await problemsApi.getHeader(id, controller.signal)
+      headerData.value = data
+      return data
+    } catch (err: unknown) {
+      if ((err as Error).name === 'AbortError') {
+        return null
+      }
+      headerError.value = extractErrorMessage(err)
+      console.error('[ProblemsStore] Failed to fetch header:', err)
+      return null
+    } finally {
+      headerLoading.value = false
     }
   }
 
-  /**
-   * Fetch description tab data (always fetch fresh data from backend)
-   */
-  async function fetchDescriptionData(id: string): Promise<DescriptionData | null> {
-    tabLoading.value.description = true
-    error.value = null
+  async function fetchDescription(id: string): Promise<DescriptionData | null> {
+    const controller = getAbortController('description')
+    descriptionLoading.value = true
+    descriptionError.value = null
 
     try {
-      console.log('[ProblemsStore] Fetching description data for id:', id)
-      const problem = await problemsApi.getProblem(id)
-      console.log('[ProblemsStore] Received problem data:', problem)
-
-      const descriptionData: DescriptionData = {
-        id: problem.id,
-        title: problem.title,
-        slug: problem.slug,
-        difficulty: problem.difficulty,
-        status: problem.status,
-        is_premium: problem.is_premium,
-        is_published: problem.is_published,
-        created_at: problem.created_at,
-        updated_at: problem.updated_at,
-        published_at: problem.published_at,
-        detail: problem.detail,
-        tags: problem.tags,
-        examples: problem.examples,
-      }
-
-      // Update current tab data
-      tabData.value.description = descriptionData
-      currentProblem.value = problem
-      loadedProblemId.value = id
-
-      return descriptionData
+      const data = await problemsApi.getDescription(id, controller.signal)
+      descriptionData.value = data
+      return data
     } catch (err: unknown) {
-      const errorMessage =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch problem description'
-      error.value = errorMessage
-      console.error('[ProblemsStore] Failed to fetch description data:', err)
+      if ((err as Error).name === 'AbortError') {
+        return null
+      }
+      descriptionError.value = extractErrorMessage(err)
+      console.error('[ProblemsStore] Failed to fetch description:', err)
       return null
     } finally {
-      tabLoading.value.description = false
+      descriptionLoading.value = false
     }
   }
 
-  /**
-   * Fetch code tab data (always fetch fresh data from backend)
-   */
-  async function fetchCodeData(id: string): Promise<CodeData | null> {
-    tabLoading.value.code = true
-    error.value = null
+  async function fetchCode(id: string): Promise<CodeData | null> {
+    const controller = getAbortController('code')
+    codeLoading.value = true
+    codeError.value = null
 
     try {
-      console.log('[ProblemsStore] Fetching code data for id:', id)
-      const problem = await problemsApi.getProblem(id)
-
-      const codeData: CodeData = {
-        id: problem.id,
-        languages: problem.languages,
-      }
-
-      // Update current tab data
-      tabData.value.code = codeData
-
-      return codeData
+      const data = await problemsApi.getCode(id, controller.signal)
+      codeData.value = data
+      return data
     } catch (err: unknown) {
-      const errorMessage =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch problem code data'
-      error.value = errorMessage
-      console.error('[ProblemsStore] Failed to fetch code data:', err)
+      if ((err as Error).name === 'AbortError') {
+        return null
+      }
+      codeError.value = extractErrorMessage(err)
+      console.error('[ProblemsStore] Failed to fetch code:', err)
       return null
     } finally {
-      tabLoading.value.code = false
+      codeLoading.value = false
     }
   }
 
-  /**
-   * Fetch cases tab data (always fetch fresh data from backend)
-   */
-  async function fetchCasesData(id: string): Promise<CasesData | null> {
-    tabLoading.value.cases = true
-    error.value = null
+  async function fetchCases(id: string): Promise<CasesData | null> {
+    const controller = getAbortController('cases')
+    casesLoading.value = true
+    casesError.value = null
 
     try {
-      console.log('[ProblemsStore] Fetching cases data for id:', id)
-      const problem = await problemsApi.getProblem(id)
-
-      const casesData: CasesData = {
-        id: problem.id,
-        examples: problem.examples,
-        detail: problem.detail
-          ? {
-              constraints_json: problem.detail.constraints_json,
-              hints: problem.detail.hints,
-            }
-          : undefined,
-        tags: problem.tags,
-      }
-
-      // Update current tab data
-      tabData.value.cases = casesData
-
-      return casesData
+      const data = await problemsApi.getCases(id, controller.signal)
+      casesData.value = data
+      return data
     } catch (err: unknown) {
-      const errorMessage =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch problem cases data'
-      error.value = errorMessage
-      console.error('[ProblemsStore] Failed to fetch cases data:', err)
+      if ((err as Error).name === 'AbortError') {
+        return null
+      }
+      casesError.value = extractErrorMessage(err)
+      console.error('[ProblemsStore] Failed to fetch cases:', err)
       return null
     } finally {
-      tabLoading.value.cases = false
+      casesLoading.value = false
     }
   }
 
@@ -217,44 +194,9 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       currentProblem.value = problem
       loadedProblemId.value = id
 
-      // Also populate tab caches
-      tabData.value.description = {
-        id: problem.id,
-        title: problem.title,
-        slug: problem.slug,
-        difficulty: problem.difficulty,
-        status: problem.status,
-        is_premium: problem.is_premium,
-        is_published: problem.is_published,
-        created_at: problem.created_at,
-        updated_at: problem.updated_at,
-        published_at: problem.published_at,
-        detail: problem.detail,
-        tags: problem.tags,
-        examples: problem.examples,
-      }
-      tabData.value.code = {
-        id: problem.id,
-        languages: problem.languages,
-      }
-      tabData.value.cases = {
-        id: problem.id,
-        examples: problem.examples,
-        detail: problem.detail
-          ? {
-              constraints_json: problem.detail.constraints_json,
-              hints: problem.detail.hints,
-            }
-          : undefined,
-        tags: problem.tags,
-      }
-
       return problem
     } catch (err: unknown) {
-      const errorMessage =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to fetch problem'
-      error.value = errorMessage
+      error.value = extractErrorMessage(err)
       console.error('[ProblemsStore] Failed to fetch problem:', err)
       console.error('[ProblemsStore] Error details:', {
         id,
@@ -277,9 +219,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       const problem = await problemsApi.createProblem(data)
       return problem
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to create problem'
+      error.value = extractErrorMessage(err)
       console.error('Failed to create problem:', err)
       throw err
     } finally {
@@ -302,12 +242,10 @@ export const useProblemsStore = defineStore('adminProblems', () => {
         currentProblem.value = problem
       }
       // Clear tab cache to force refresh on next visit
-      clearTabData()
+      clearCurrentProblem()
       return problem
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to update problem'
+      error.value = extractErrorMessage(err)
       console.error('Failed to update problem:', err)
       throw err
     } finally {
@@ -320,22 +258,18 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
     try {
       await problemsApi.deleteProblem(id)
-      // Remove from local list
-      const index = problems.value.findIndex((p) => p.id === id)
-      if (index !== -1) {
-        problems.value.splice(index, 1)
-        total.value--
+      // Remove from local list (immutable)
+      const previousLength = problems.value.length
+      problems.value = problems.value.filter((p) => p.id !== id)
+      if (problems.value.length !== previousLength) {
+        total.value = total.value - 1
       }
       // Clear currentProblem and tab data if it matches
       if (currentProblem.value?.id === id) {
-        currentProblem.value = null
-        loadedProblemId.value = null
-        clearTabData()
+        clearCurrentProblem()
       }
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to delete problem'
+      error.value = extractErrorMessage(err)
       console.error('Failed to delete problem:', err)
       throw err
     } finally {
@@ -359,9 +293,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       }
       return problem
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to publish problem'
+      error.value = extractErrorMessage(err)
       console.error('Failed to publish problem:', err)
       throw err
     } finally {
@@ -385,9 +317,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       }
       return problem
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to unpublish problem'
+      error.value = extractErrorMessage(err)
       console.error('Failed to unpublish problem:', err)
       throw err
     } finally {
@@ -421,13 +351,11 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       }
 
       // Clear tab cache to force refresh on next visit
-      clearTabData()
+      clearCurrentProblem()
 
       return problem
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to update problem'
+      error.value = extractErrorMessage(err)
       console.error('Failed to update problem:', err)
       throw err
     } finally {
@@ -442,9 +370,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       await problemsApi.bulkAction(data)
       await fetchProblems()
     } catch (err: unknown) {
-      error.value =
-        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-        'Failed to perform bulk action'
+      error.value = extractErrorMessage(err)
       console.error('Failed to perform bulk action:', err)
       throw err
     } finally {
@@ -459,9 +385,19 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   }
 
   function clearCurrentProblem() {
+    // Clear new flat state
+    headerData.value = null
+    headerError.value = null
+    descriptionData.value = null
+    descriptionError.value = null
+    codeData.value = null
+    codeError.value = null
+    casesData.value = null
+    casesError.value = null
+
+    // Clear legacy state
     currentProblem.value = null
     loadedProblemId.value = null
-    clearTabData()
   }
 
   function reset() {
@@ -469,9 +405,23 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     total.value = 0
     loading.value = false
     error.value = null
+
+    // Clear new flat state
+    headerData.value = null
+    headerError.value = null
+    descriptionData.value = null
+    descriptionError.value = null
+    codeData.value = null
+    codeError.value = null
+    casesData.value = null
+    casesError.value = null
+
+    // Clear legacy state
     currentProblem.value = null
     loadedProblemId.value = null
-    clearTabData()
+
+    // Abort all pending requests
+    abortAllRequests()
   }
 
   return {
@@ -481,15 +431,28 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     loading,
     error,
     currentProblem,
-    tabLoading,
-    tabData,
+
+    // New flat state
+    headerData,
+    headerLoading,
+    headerError,
+    descriptionData,
+    descriptionLoading,
+    descriptionError,
+    codeData,
+    codeLoading,
+    codeError,
+    casesData,
+    casesLoading,
+    casesError,
 
     // Actions
     fetchProblems,
     fetchProblem,
-    fetchDescriptionData,
-    fetchCodeData,
-    fetchCasesData,
+    fetchHeader,
+    fetchDescription,
+    fetchCode,
+    fetchCases,
     createProblem,
     updateProblem,
     updateProblemWithPublish,
@@ -499,7 +462,8 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     bulkAction,
     clearError,
     clearCurrentProblem,
-    clearTabData,
+    clearTabData: clearCurrentProblem, // Alias for backward compatibility
+    abortAllRequests,
     reset,
   }
 })

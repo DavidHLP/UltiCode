@@ -34,7 +34,7 @@ const { t } = useI18n();
 const timeRemaining = ref(0);
 const hasStarted = ref(false);
 let intervalId: number | null = null;
-let previousTimeRemaining = ref(0);
+const previousTimeRemaining = ref(0);
 
 // Computed time components
 const days = computed(() => Math.floor(timeRemaining.value / 86400));

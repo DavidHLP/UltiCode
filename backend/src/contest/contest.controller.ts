@@ -186,6 +186,7 @@ export class ContestController {
 // =========================================================================
 
 @Controller('rankings')
+@UseGuards(AuthGuard)
 export class RankingController {
   constructor(
     private readonly rankingService: RankingService,
@@ -198,12 +199,26 @@ export class RankingController {
   }
 
   @Get('user/:userId')
-  getUserContestHistory(@Param('userId') userId: string) {
+  getUserContestHistory(
+    @Param('userId') userId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    // Users can only view their own history
+    if (req.user.id !== userId) {
+      throw new Error("Unauthorized to view other user's contest history");
+    }
     return this.rankingService.getUserContestHistory(userId);
   }
 
   @Get('user/:userId/rating-history')
-  getUserRatingHistory(@Param('userId') userId: string) {
+  getUserRatingHistory(
+    @Param('userId') userId: string,
+    @Req() req: RequestWithUser,
+  ) {
+    // Users can only view their own history
+    if (req.user.id !== userId) {
+      throw new Error("Unauthorized to view other user's rating history");
+    }
     return this.ratingService.getUserRatingHistory(userId);
   }
 }

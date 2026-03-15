@@ -434,6 +434,7 @@ model ContestParticipant {
   @@unique([contest_id, user_id, virtual_session_id])
   @@index([user_id])
   @@index([contest_id, final_rank])
+  @@index([contest_id, status])
   @@index([user_id, status, is_virtual])
   @@index([virtual_session_id], map: "contest_participants_virtual_session_id_fkey")
   @@map("contest_participants")
@@ -508,6 +509,7 @@ model ContestSubmission {
   @@index([participant_id], map: "contest_submissions_participant_id_fkey")
   @@index([submission_id], map: "contest_submissions_submission_id_fkey")
   @@index([contest_id, participant_id, submitted_at])
+  @@index([contest_id, contest_problem_id, submitted_at])
   @@map("contest_submissions")
 }
 

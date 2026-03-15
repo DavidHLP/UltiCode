@@ -10,6 +10,7 @@ import { PrismaService } from '../prisma.service';
 import { I18nModule } from '../i18n/i18n.module';
 import { I18nService } from '../i18n/i18n.service';
 import { NotificationModule } from '../notification/notification.module';
+import { CustomCacheModule } from '../cache/cache.module';
 import { ScoringRuleService } from './services/scoring-rule.service';
 import { ScoringService } from './scoring/scoring.service';
 import { ScoringRuleController } from './admin/scoring-rule.controller';
@@ -46,6 +47,7 @@ import { AnalyticsController } from './analytics/analytics.controller';
     }),
     I18nModule,
     NotificationModule,
+    CustomCacheModule,
   ],
   providers: [
     PrismaService,

@@ -252,16 +252,28 @@ service.interceptors.response.use(
       }
     }
 
-    // Handle authentication errors (401/403)
+    // Handle authentication errors
     // Cookies are httpOnly - cannot be removed by JavaScript
     // Backend will handle cookie clearing on logout
-    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-      // Redirect to login page
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login'
+    if (error.response) {
+      if (error.response.status === 401) {
+        // Unauthorized - redirect to login page
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login'
+        }
+        return Promise.reject(ApiError.fromAxiosError(error))
       }
-      // Silent handling for 401/403 - expected for unauthenticated users
-      return Promise.reject(ApiError.fromAxiosError(error))
+      // 403 Forbidden - user is authenticated but lacks permission
+      // Don't redirect, let the component handle the error gracefully
+      if (error.response.status === 403) {
+        if (isDevelopment && config?._metadata) {
+          console.warn(`[API Forbidden] ${config._metadata.requestId}`, {
+            url: config.url,
+            message: 'Permission denied',
+          })
+        }
+        return Promise.reject(ApiError.fromAxiosError(error))
+      }
     }
 
     // Log other errors - skip auth errors
@@ -287,8 +299,15 @@ service.interceptors.response.use(
  * HTTP Methods with full type safety
  */
 
-export async function apiGet<T = unknown>(path: string, init?: RequestConfig): Promise<T> {
-  return service.get<T, T>(path, { ...init })
+export async function apiGet<T = unknown>(
+  path: string,
+  init?: RequestConfig & { signal?: AbortSignal },
+): Promise<T> {
+  const { signal, ...axiosConfig } = (init || {}) as RequestConfig & { signal?: AbortSignal }
+  return service.get<T, T>(path, {
+    ...axiosConfig,
+    signal,
+  })
 }
 
 export async function apiPost<T = unknown>(

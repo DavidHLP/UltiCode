@@ -593,7 +593,15 @@ onMounted(() => {
 
 ## 6. 配置
 
-### 6.1 环境变量
+### 6.1 依赖安装
+
+```bash
+# 安装速率限制依赖
+cd backend
+pnpm add @nestjs/throttler
+```
+
+### 6.2 环境变量
 
 ```bash
 # backend/.env
@@ -604,18 +612,23 @@ RECOMMENDATION_TIMEOUT=5000
 RECOMMENDATION_CACHE_TTL=86400  # 24 hours in SECONDS
 ```
 
-### 6.2 模块更新
+### 6.3 模块更新
 
 ```typescript
 // recommendation/recommendation.module.ts
 import { RecommendationCacheService } from './services/recommendation-cache.service';
 import { RecommendationScheduler } from './recommendation.scheduler';
 import { CacheModule } from '../cache/cache.module';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 @Module({
   imports: [
     // ... 现有 imports
     CacheModule,
+    ThrottlerModule.forRoot([{
+      ttl: 60000,    // 时间窗口: 60秒
+      limit: 60,     // 默认限制: 60次/分钟
+    }]),
   ],
   controllers: [RecommendationController],
   providers: [
@@ -712,6 +725,7 @@ private validateRecommendationResponse(data: unknown): RecommendResult | null {
 
 ## 10. 部署检查清单
 
+- [ ] 安装依赖: `pnpm --filter nest-backend add @nestjs/throttler`
 - [ ] Java 推荐服务运行在 8080 端口
 - [ ] Redis 服务可用
 - [ ] 数据库迁移已执行: `pnpm prisma:migrate dev --name add_daily_recommendations`

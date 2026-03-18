@@ -83,6 +83,19 @@ model User {
   // Daily recommendations relation
   dailyRecommendations DailyRecommendation[]
 
+  // Moderation relations
+  reports_submitted     Report[]                   @relation("ReportReporter")
+  moderation_queue_author ModerationQueue[]         @relation("ModerationQueueAuthor")
+  moderation_assigned   ModerationQueue[]          @relation("ModerationQueueAssignee")
+  moderation_reviewed   ModerationQueue[]          @relation("ModerationQueueReviewer")
+  moderation_actions    ModerationAction[]         @relation("ModerationActionPerformer")
+  warnings              UserWarning[]              @relation("UserWarningRecipient")
+  bans_received         UserBan[]                  @relation("UserBanRecipient")
+  bans_issued           UserBan[]                  @relation("UserBanIssuer")
+  unbans_issued         UserBan[]                  @relation("UserBanUnbannedBy")
+  appeals_submitted     Appeal[]                   @relation("AppealAppellant")
+  appeals_reviewed      Appeal[]                   @relation("AppealReviewer")
+
   @@index([role])
   @@index([is_active, is_banned])
   @@index([is_active, last_login_at])
@@ -1528,4 +1541,266 @@ model DailyRecommendation {
   @@index([user_id, scenario, generated_at])
   @@index([generated_at])
   @@map("daily_recommendations")
+}
+
+// ============================================================================
+// MODERATION SYSTEM
+// ============================================================================
+
+enum ReportCategory {
+  SPAM
+  HARASSMENT
+  HATE_SPEECH
+  VIOLENCE
+  SEXUAL_CONTENT
+  MISINFORMATION
+  WRONG_ANSWER
+  COPYRIGHT
+  OTHER
+}
+
+enum ModerationActionType {
+  DELETED
+  HIDDEN
+  RESTORED
+  WARNED
+  TEMP_BANNED
+  PERM_BANNED
+  DISMISSED
+  RESOLVED
+  APPEAL_PENDING
+  APPEAL_APPROVED
+  APPEAL_REJECTED
+}
+
+enum ModerationStatus {
+  PENDING
+  UNDER_REVIEW
+  RESOLVED
+  DISMISSED
+  APPEAL_PENDING
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  RESOLVED
+  DISMISSED
+}
+
+enum AppealStatus {
+  PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+model Report {
+  id          String        @id @default(cuid())
+
+  // Reporter
+  reporter_id String        @db.VarChar(40)
+  reporter    User          @relation("ReportReporter", fields: [reporter_id], references: [id], onDelete: Cascade)
+
+  // What's being reported
+  entity_type String        @db.VarChar(50) // "forum_post", "forum_comment", "solution", "solution_comment", "problem"
+  entity_id   String        @db.VarChar(50)
+
+  // Report details
+  category    ReportCategory
+  reason      String?       @db.Text
+  evidence    String?       @db.Text // Links, screenshots, additional context
+
+  // Status
+  status      ReportStatus  @default(PENDING)
+
+  // Moderation linkage
+  queue_id    String?       @db.VarChar(40)
+
+  // Timestamps
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+
+  @@index([entity_type, entity_id])
+  @@index([reporter_id])
+  @@index([status])
+  @@index([category])
+  @@map("reports")
+}
+
+model ModerationQueue {
+  id               String              @id @default(cuid())
+
+  // Entity reference
+  entity_type      String              @db.VarChar(50) // "forum_post", "forum_comment", "solution", "solution_comment", "problem"
+  entity_id        String              @db.VarChar(50)
+
+  // Author of reported content
+  author_id        String              @db.VarChar(40)
+  author           User                @relation("ModerationQueueAuthor", fields: [author_id], references: [id], onDelete: Cascade)
+
+  // Priority & Status
+  priority         Int                 @default(0) // Higher = more urgent
+  status           ModerationStatus    @default(PENDING)
+
+  // Aggregated report info
+  report_count     Int                 @default(0)
+  primary_category ReportCategory?
+
+  // Current assignment
+  assigned_to_id   String?             @db.VarChar(40)
+  assigned_to      User?               @relation("ModerationQueueAssignee", fields: [assigned_to_id], references: [id])
+  assigned_at      DateTime?
+
+  // Review
+  reviewed_by_id   String?             @db.VarChar(40)
+  reviewed_by      User?               @relation("ModerationQueueReviewer", fields: [reviewed_by_id], references: [id])
+  reviewed_at      DateTime?
+
+  // Resolution
+  resolution       ModerationActionType?
+  resolution_note  String?             @db.Text
+
+  // Timestamps
+  created_at       DateTime            @default(now())
+  updated_at       DateTime            @updatedAt
+  resolved_at      DateTime?
+
+  // Relations
+  actions          ModerationAction[]
+  appeals          Appeal[]
+
+  @@unique([entity_type, entity_id])
+  @@index([status])
+  @@index([assigned_to_id])
+  @@index([priority])
+  @@index([author_id])
+  @@map("moderation_queue")
+}
+
+model ModerationAction {
+  id              String               @id @default(cuid())
+
+  // Queue item
+  queue_id        String               @db.VarChar(40)
+  queue           ModerationQueue      @relation(fields: [queue_id], references: [id], onDelete: Cascade)
+
+  // Action details
+  action          ModerationActionType
+
+  // Who performed it
+  performed_by_id String               @db.VarChar(40)
+  performed_by    User                 @relation("ModerationActionPerformer", fields: [performed_by_id], references: [id])
+
+  // Additional context
+  note            String?              @db.Text
+  duration_days   Int?                 // For temporary bans
+
+  // Timestamp
+  created_at      DateTime             @default(now())
+
+  @@index([queue_id])
+  @@index([performed_by_id])
+  @@index([action])
+  @@map("moderation_actions")
+}
+
+model UserWarning {
+  id               String        @id @default(cuid())
+
+  // User warned
+  user_id          String        @db.VarChar(40)
+  user             User          @relation("UserWarningRecipient", fields: [user_id], references: [id], onDelete: Cascade)
+
+  // Related moderation
+  queue_id         String?       @db.VarChar(40)
+  action_id        String?       @db.VarChar(40)
+
+  // Warning details
+  reason           String        @db.Text
+  category         ReportCategory
+
+  // Acknowledgment
+  acknowledged_at  DateTime?
+
+  // Timestamps
+  created_at       DateTime      @default(now())
+  expires_at       DateTime?     // Warning may expire after N days
+
+  @@index([user_id])
+  @@index([created_at])
+  @@map("user_warnings")
+}
+
+model UserBan {
+  id              String        @id @default(cuid())
+
+  // User banned
+  user_id         String        @db.VarChar(40)
+  user            User          @relation("UserBanRecipient", fields: [user_id], references: [id], onDelete: Cascade)
+
+  // Ban details
+  is_permanent    Boolean       @default(false)
+  reason          String        @db.Text
+  category        ReportCategory?
+
+  // Related moderation
+  queue_id        String?       @db.VarChar(40)
+  action_id       String?       @db.VarChar(40)
+
+  // Banned by
+  banned_by_id    String        @db.VarChar(40)
+  banned_by       User          @relation("UserBanIssuer", fields: [banned_by_id], references: [id])
+
+  // Duration (for temporary bans)
+  started_at      DateTime      @default(now())
+  ends_at         DateTime?
+
+  // Unban
+  unbanned_at     DateTime?
+  unbanned_by_id  String?       @db.VarChar(40)
+  unbanned_by     User?         @relation("UserBanUnbannedBy", fields: [unbanned_by_id], references: [id])
+  unban_reason    String?       @db.Text
+
+  // Timestamps
+  created_at      DateTime      @default(now())
+  updated_at      DateTime      @updatedAt
+
+  @@index([user_id])
+  @@index([ends_at])
+  @@map("user_bans")
+}
+
+model Appeal {
+  id              String          @id @default(cuid())
+
+  // Related queue item
+  queue_id        String          @db.VarChar(40)
+  queue           ModerationQueue @relation(fields: [queue_id], references: [id], onDelete: Cascade)
+
+  // Appellant
+  appellant_id    String          @db.VarChar(40)
+  appellant       User            @relation("AppealAppellant", fields: [appellant_id], references: [id], onDelete: Cascade)
+
+  // Appeal details
+  reason          String          @db.Text
+  evidence        String?         @db.Text
+
+  // Status
+  status          AppealStatus    @default(PENDING)
+
+  // Review
+  reviewed_by_id  String?         @db.VarChar(40)
+  reviewed_by     User?           @relation("AppealReviewer", fields: [reviewed_by_id], references: [id])
+  reviewed_at     DateTime?
+  response        String?         @db.Text
+
+  // Timestamps
+  created_at      DateTime        @default(now())
+  updated_at      DateTime        @updatedAt
+
+  @@index([queue_id])
+  @@index([appellant_id])
+  @@index([status])
+  @@map("appeals")
 }

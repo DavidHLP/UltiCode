@@ -92,10 +92,10 @@ const {
     error: computed(() => solutionsStore.error),
     fetch: (params) => solutionsStore.fetchSolutions(params),
   },
-  filters: {
+  filters: () => ({
     flaggedFilter: flaggedFilter.value,
     publishedFilter: publishedFilter.value,
-  },
+  }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     is_flagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',

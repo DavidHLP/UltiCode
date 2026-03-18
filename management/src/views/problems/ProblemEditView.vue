@@ -1,25 +1,43 @@
 <script setup lang="ts">
-import { onMounted } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { useI18n } from 'vue-i18n'
+import EditDescriptionView from './edit/EditDescriptionView.vue'
+import EditCodeView from './edit/EditCodeView.vue'
+import EditCasesView from './edit/EditCasesView.vue'
 
 const route = useRoute()
 const router = useRouter()
-const { t } = useI18n()
 
+// Valid tab values for edit mode
+const VALID_TABS = ['description', 'code', 'cases'] as const
+type TabType = (typeof VALID_TABS)[number]
+
+const problemId = computed(() => route.params.id as string)
+
+// Determine current tab from route
+const currentTab = computed<TabType>(() => {
+  const tab = route.params.tab as string
+  if (VALID_TABS.includes(tab as TabType)) {
+    return tab as TabType
+  }
+  return 'description'
+})
+
+// Redirect to default tab if no tab specified
 onMounted(() => {
-  // Redirect to the description edit view
-  router.replace({ name: 'problem-edit-description', params: { id: route.params.id } })
+  if (!route.params.tab) {
+    router.replace({
+      name: 'problem-edit',
+      params: { id: problemId.value, tab: 'description' },
+    })
+  }
 })
 </script>
 
 <template>
-  <div class="flex items-center justify-center py-12">
-    <div class="text-center">
-      <div
-        class="inline-block h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent"
-      ></div>
-      <p class="mt-2 text-muted-foreground">{{ t('common.loading') }}</p>
-    </div>
-  </div>
+  <!-- Render the appropriate edit view based on current tab -->
+  <!-- Each edit view has its own header and layout -->
+  <EditDescriptionView v-if="currentTab === 'description'" />
+  <EditCodeView v-else-if="currentTab === 'code'" />
+  <EditCasesView v-else-if="currentTab === 'cases'" />
 </template>

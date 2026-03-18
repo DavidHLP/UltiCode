@@ -14,6 +14,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONSOLE_PORT=9002
 MANAGEMENT_PORT=9003
 BACKEND_PORT=9001
+RECOMMEND_WEB_PORT=9004
+RECOMMEND_PROVIDER_PORT=9005
 
 # ============== Colors & Symbols ==============
 R='\033[0m' G='\033[32m' Y='\033[33m' C='\033[36m' D='\033[2m' B='\033[1m' BLUE_BG='\033[44m' WHITE='\033[37m'
@@ -32,7 +34,7 @@ spin_wait_stop() {
     local i=0 spinner='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     printf "  ${C}${ARROW}${R} ${msg}..."
     while [ $i -lt $timeout ]; do
-        if ! port_used $BACKEND_PORT && ! port_used $CONSOLE_PORT && ! port_used $MANAGEMENT_PORT; then
+        if ! port_used $BACKEND_PORT && ! port_used $CONSOLE_PORT && ! port_used $MANAGEMENT_PORT && ! port_used $RECOMMEND_WEB_PORT && ! port_used $RECOMMEND_PROVIDER_PORT; then
             printf "\r  ${G}${CHECK}${R} ${msg}    \n"
             return 0
         fi
@@ -98,6 +100,8 @@ pkill -9 -f "nest start" 2>/dev/null || true
 pkill -9 -f "node.*backend" 2>/dev/null || true
 pkill -9 -f "vite" 2>/dev/null || true
 pkill -9 -f "pnpm.*dev" 2>/dev/null || true
+pkill -9 -f "recommend-web" 2>/dev/null || true
+pkill -9 -f "recommend-provider" 2>/dev/null || true
 
 rm -f /tmp/ulticode-*.log 2>/dev/null
 rm -f nohup.out backend/nohup.out console/nohup.out management/nohup.out 2>/dev/null

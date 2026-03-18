@@ -14,6 +14,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONSOLE_PORT=9002
 MANAGEMENT_PORT=9003
 BACKEND_PORT=9001
+RECOMMEND_WEB_PORT=9004
+RECOMMEND_PROVIDER_DUBBO_PORT=20881
 MYSQL_PORT=23306
 REDIS_PORT=26379
 NACOS_PORT=28848
@@ -22,6 +24,7 @@ NACOS_PORT=28848
 BACKEND_TIMEOUT=60
 FRONTEND_TIMEOUT=30
 MYSQL_TIMEOUT=60
+RECOMMEND_TIMEOUT=90
 
 # ============== Colors & Symbols ==============
 R='\033[0m' G='\033[32m' Y='\033[33m' C='\033[36m' D='\033[2m' B='\033[1m'
@@ -107,7 +110,7 @@ cd "$PROJECT_ROOT"
 # ============== Step 1: Check Ports ==============
 log "${B}:: Check Ports${R} ${D}────────────────────────${R}"
 
-for svc in "Console:$CONSOLE_PORT" "Management:$MANAGEMENT_PORT" "Backend:$BACKEND_PORT"; do
+for svc in "Console:$CONSOLE_PORT" "Management:$MANAGEMENT_PORT" "Backend:$BACKEND_PORT" "Recommend-Web:$RECOMMEND_WEB_PORT" "Recommend-Provider:$RECOMMEND_PROVIDER_DUBBO_PORT"; do
     name="${svc%:*}" port="${svc#*:}"
     if port_used $port; then
         pid=$(get_pid $port)
@@ -214,6 +217,62 @@ else
     }
 fi
 
+# ============== Step 7: Recommendation Service ==============
+log ""
+log "${B}:: Recommendation Service${R} ${D}────────${R}"
+
+# Check if recommendation directory exists
+if [ ! -d "recommendation" ]; then
+    info "Recommendation service not found, skipping"
+else
+    # Check Java
+    if ! command -v java &>/dev/null; then
+        err "Java not found, skipping recommendation service"
+    elif ! command -v mvn &>/dev/null; then
+        err "Maven not found, skipping recommendation service"
+    else
+        cd recommendation
+
+        # Start Provider first (Dubbo service)
+        if port_used $RECOMMEND_PROVIDER_DUBBO_PORT; then
+            info "Recommend-Provider already running on Dubbo port $RECOMMEND_PROVIDER_DUBBO_PORT"
+        else
+            step "Starting Recommend-Provider..."
+            rm -f /tmp/ulticode-recommend-provider.log 2>/dev/null
+            export NACOS_HOST=localhost
+            export NACOS_PORT=$NACOS_PORT
+            nohup mvn -pl recommend-provider spring-boot:run \
+                -Dspring-boot.run.arguments="--dubbo.registry.address=nacos://localhost:$NACOS_PORT" \
+                >/tmp/ulticode-recommend-provider.log 2>&1 &
+            RECOMMEND_PROVIDER_PID=$!
+
+            spin_wait "Provider ready" "port_used $RECOMMEND_PROVIDER_DUBBO_PORT" $RECOMMEND_TIMEOUT || {
+                info "Check: tail -f /tmp/ulticode-recommend-provider.log"
+            }
+        fi
+
+        # Start Web (HTTP API)
+        if port_used $RECOMMEND_WEB_PORT; then
+            info "Recommend-Web already running on port $RECOMMEND_WEB_PORT"
+        else
+            step "Starting Recommend-Web..."
+            rm -f /tmp/ulticode-recommend-web.log 2>/dev/null
+            export NACOS_HOST=localhost
+            export NACOS_PORT=$NACOS_PORT
+            nohup mvn -pl recommend-web spring-boot:run \
+                -Dspring-boot.run.arguments="--server.port=$RECOMMEND_WEB_PORT --dubbo.registry.address=nacos://localhost:$NACOS_PORT" \
+                >/tmp/ulticode-recommend-web.log 2>&1 &
+            RECOMMEND_WEB_PID=$!
+
+            spin_wait "Web ready" "port_used $RECOMMEND_WEB_PORT" $RECOMMEND_TIMEOUT || {
+                info "Check: tail -f /tmp/ulticode-recommend-web.log"
+            }
+        fi
+
+        cd ..
+    fi
+fi
+
 # ============== Summary ==============
 log ""
 log "${B}:: Status${R} ${D}────────────────────────${R}"
@@ -222,6 +281,8 @@ ALL_OK=true
 port_used $BACKEND_PORT && ok "Backend  http://localhost:$BACKEND_PORT" || { err "Backend not responding"; ALL_OK=false; }
 port_used $CONSOLE_PORT && ok "Console  http://localhost:$CONSOLE_PORT" || { err "Console not responding"; ALL_OK=false; }
 port_used $MANAGEMENT_PORT && ok "Management http://localhost:$MANAGEMENT_PORT" || { err "Management not responding"; ALL_OK=false; }
+port_used $RECOMMEND_WEB_PORT && ok "Recommend-Web http://localhost:$RECOMMEND_WEB_PORT" || { err "Recommend-Web not responding"; ALL_OK=false; }
+port_used $RECOMMEND_PROVIDER_DUBBO_PORT && ok "Recommend-Provider localhost:$RECOMMEND_PROVIDER_DUBBO_PORT (Dubbo)" || { err "Recommend-Provider not responding"; ALL_OK=false; }
 
 if [ "$SKIP_DOCKER" = false ]; then
     docker ps 2>/dev/null | grep -q "ulticode-mysql" && ok "MySQL   localhost:$MYSQL_PORT" || { err "MySQL not running"; ALL_OK=false; }
@@ -233,12 +294,12 @@ log ""
 if [ "$ALL_OK" = true ]; then
     echo -e "  ${G}${B}✓ All services running${R}"
     log ""
-    log "${D}Logs: tail -f /tmp/ulticode-{backend,console,management}.log${R}"
+    log "${D}Logs: tail -f /tmp/ulticode-{backend,console,management,recommend-*}.log${R}"
     log "${D}Stop: ./shell/stop.sh${R}"
 else
     echo -e "  ${Y}${B}! Some services may still be starting${R}"
     log ""
-    log "${D}Check logs: tail -f /tmp/ulticode-{backend,console,management}.log${R}"
+    log "${D}Check logs: tail -f /tmp/ulticode-{backend,console,management,recommend-*}.log${R}"
 fi
 
 echo ""

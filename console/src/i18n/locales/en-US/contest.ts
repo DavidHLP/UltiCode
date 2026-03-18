@@ -13,9 +13,11 @@ export default {
     pastSubtitle: "Join virtual contests to prepare for the ranking contest",
     partner: "Contest Partner",
     noContests: "No contests available",
-    noContestsHint: "There are no contests running right now. Check back later!",
+    noContestsHint:
+      "There are no contests running right now. Check back later!",
     noUpcomingHint: "No upcoming contests scheduled yet. Stay tuned!",
-    noFinishedHint: "No finished contests yet. Participate in contests to see your history here.",
+    noFinishedHint:
+      "No finished contests yet. Participate in contests to see your history here.",
     viewAll: "View All",
     live: "Live Contests",
     liveSubtitle:

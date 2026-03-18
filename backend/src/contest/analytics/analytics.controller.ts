@@ -1,11 +1,4 @@
-import {
-  Controller,
-  Get,
-  Param,
-  Query,
-  UseGuards,
-  Req,
-} from '@nestjs/common';
+import { Controller, Get, Param, Query, UseGuards, Req } from '@nestjs/common';
 import { Request } from 'express';
 import { AnalyticsService } from './analytics.service';
 import { AuthGuard } from '../../auth/auth.guard';
@@ -34,7 +27,8 @@ export class AnalyticsController {
   ) {
     // If refresh is requested, generate new report
     if (refresh === 'true') {
-      const report = await this.analyticsService.generateContestReport(contestId);
+      const report =
+        await this.analyticsService.generateContestReport(contestId);
       return report;
     }
 

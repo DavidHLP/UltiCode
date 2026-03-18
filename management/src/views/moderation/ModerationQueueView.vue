@@ -8,14 +8,8 @@ import type { PaginationState } from '@tanstack/vue-table'
 
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -32,68 +26,96 @@ import {
   IconX,
   IconChecks,
   IconAlertTriangle,
+  IconUser,
+  IconTrash,
+  IconEyeOff,
+  IconAlertCircle,
+  IconClock,
+  IconBan,
 } from '@tabler/icons-vue'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 
-import { problemsApi, type Problem, Difficulty } from '@/api/admin/problems'
-import { createColumns, type ModerationActions, type FlagStatus } from './columns'
+import { useModerationStore } from '@/stores/admin/moderation'
+import {
+  type ModerationQueueItem,
+  ModerationStatus,
+  ReportCategory,
+  ModerationActionType,
+  type ModeratableEntityType,
+} from '@/api/admin/moderation'
+import { createColumns, type ModerationActions } from './columns'
 
 const { t } = useI18n()
 const router = useRouter()
+const store = useModerationStore()
 
 const isLoaded = ref(false)
-const flaggedProblems = ref<Problem[]>([])
-const loading = ref(false)
-const total = ref(0)
-const totalPages = ref(0)
-
 const pagination = ref<PaginationState>({ pageIndex: 0, pageSize: 20 })
 const searchQuery = ref('')
-const statusFilter = ref<FlagStatus | 'all'>('all')
-const difficultyFilter = ref<Difficulty | 'all'>('all')
-const selectedRows = ref<Problem[]>([])
 
+// Filters
+const statusFilter = ref<ModerationStatus | 'all'>('all')
+const categoryFilter = ref<ReportCategory | 'all'>('all')
+const entityTypeFilter = ref<ModeratableEntityType | 'all'>('all')
+
+const selectedRows = ref<ModerationQueueItem[]>([])
+
+// Detail drawer state
 const drawerOpen = ref(false)
-const selectedProblem = ref<Problem | null>(null)
-const drawerStatus = ref<FlagStatus>('REVIEWED')
-const drawerNotes = ref('')
+const selectedQueueItem = ref<ModerationQueueItem | null>(null)
+const drawerAction = ref<ModerationActionType>(ModerationActionType.RESOLVED)
+const drawerNote = ref('')
+const drawerDurationDays = ref<number | undefined>(undefined)
 const saving = ref(false)
 
+// Batch dialog state
 const batchDialogOpen = ref(false)
-const batchStatus = ref<FlagStatus>('RESOLVED')
-const batchNotes = ref('')
+const batchAction = ref<ModerationActionType>(ModerationActionType.RESOLVED)
+const batchNote = ref('')
 const batchSaving = ref(false)
 
 onMounted(() => {
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
-  loadFlaggedProblems()
+  loadData()
+  store.fetchStats()
 })
 
 // Stats for terminal ticker
 const stats = computed(() => ({
-  total: total.value,
-  pending: flaggedProblems.value.filter((p) => p.flag_status === 'PENDING').length,
-  reviewed: flaggedProblems.value.filter((p) => p.flag_status === 'REVIEWED').length,
-  resolved: flaggedProblems.value.filter((p) => p.flag_status === 'RESOLVED').length,
+  total: store.queueTotal,
+  pending: store.stats?.total_pending ?? 0,
+  underReview: store.stats?.total_under_review ?? 0,
+  resolved: store.stats?.total_resolved ?? 0,
 }))
 
 // Table columns with actions
 const columns = computed(() => {
   const actions: ModerationActions = {
-    viewProblem: (id) => router.push(`/admin/problems/${id}`),
-    openDrawer: (problem) => {
-      selectedProblem.value = problem
-      drawerStatus.value = (problem.flag_status as FlagStatus) || 'REVIEWED'
-      drawerNotes.value = problem.flag_notes || ''
+    viewEntity: (item) => {
+      // Navigate to the appropriate entity detail page
+      const routes: Record<ModeratableEntityType, string> = {
+        forum_post: `/admin/forum/posts/${item.entity_id}`,
+        forum_comment: `/admin/forum/comments/${item.entity_id}`,
+        solution: `/admin/solutions/${item.entity_id}`,
+        solution_comment: `/admin/solutions/${item.entity_id}`,
+        problem: `/admin/problems/${item.entity_id}`,
+      }
+      router.push(routes[item.entity_type])
+    },
+    openDrawer: (item) => {
+      selectedQueueItem.value = item
+      drawerAction.value = ModerationActionType.RESOLVED
+      drawerNote.value = ''
+      drawerDurationDays.value = undefined
       drawerOpen.value = true
     },
-    quickResolve: (id) => handleQuickAction(id, 'RESOLVED'),
-    quickDismiss: (id) => handleQuickAction(id, 'DISMISSED'),
+    quickAction: (id, action) => handleQuickAction(id, action),
+    claimItem: (id) => handleClaim(id),
   }
   return createColumns(t, actions)
 })
@@ -102,24 +124,44 @@ const columns = computed(() => {
 const filters = computed<Filter[]>(() => [
   {
     modelValue: statusFilter.value,
-    placeholder: t('moderation.filterStatus'),
+    placeholder: t('moderation.status.title'),
     options: [
-      { value: 'all', label: t('moderation.allStatuses') },
-      { value: 'PENDING', label: t('moderation.statusPending') },
-      { value: 'REVIEWED', label: t('moderation.statusReviewed') },
-      { value: 'RESOLVED', label: t('moderation.statusResolved') },
-      { value: 'DISMISSED', label: t('moderation.statusDismissed') },
+      { value: 'all', label: t('moderation.status.all') },
+      { value: ModerationStatus.PENDING, label: t('moderation.status.PENDING') },
+      { value: ModerationStatus.UNDER_REVIEW, label: t('moderation.status.UNDER_REVIEW') },
+      { value: ModerationStatus.RESOLVED, label: t('moderation.status.RESOLVED') },
+      { value: ModerationStatus.DISMISSED, label: t('moderation.status.DISMISSED') },
+      { value: ModerationStatus.APPEAL_PENDING, label: t('moderation.status.APPEAL_PENDING') },
     ],
     width: 'w-[160px]',
   },
   {
-    modelValue: difficultyFilter.value,
-    placeholder: t('common.difficulty.label'),
+    modelValue: categoryFilter.value,
+    placeholder: t('moderation.categories.title'),
     options: [
-      { value: 'all', label: t('common.all') },
-      { value: 'EASY', label: t('common.difficulty.easy') },
-      { value: 'MEDIUM', label: t('common.difficulty.medium') },
-      { value: 'HARD', label: t('common.difficulty.hard') },
+      { value: 'all', label: t('moderation.categories.all') },
+      { value: ReportCategory.SPAM, label: t('moderation.categories.SPAM') },
+      { value: ReportCategory.HARASSMENT, label: t('moderation.categories.HARASSMENT') },
+      { value: ReportCategory.HATE_SPEECH, label: t('moderation.categories.HATE_SPEECH') },
+      { value: ReportCategory.VIOLENCE, label: t('moderation.categories.VIOLENCE') },
+      { value: ReportCategory.SEXUAL_CONTENT, label: t('moderation.categories.SEXUAL_CONTENT') },
+      { value: ReportCategory.MISINFORMATION, label: t('moderation.categories.MISINFORMATION') },
+      { value: ReportCategory.WRONG_ANSWER, label: t('moderation.categories.WRONG_ANSWER') },
+      { value: ReportCategory.COPYRIGHT, label: t('moderation.categories.COPYRIGHT') },
+      { value: ReportCategory.OTHER, label: t('moderation.categories.OTHER') },
+    ],
+    width: 'w-[160px]',
+  },
+  {
+    modelValue: entityTypeFilter.value,
+    placeholder: t('moderation.entityTypes.title'),
+    options: [
+      { value: 'all', label: t('moderation.entityTypes.all') },
+      { value: 'forum_post', label: t('moderation.entityTypes.forum_post') },
+      { value: 'forum_comment', label: t('moderation.entityTypes.forum_comment') },
+      { value: 'solution', label: t('moderation.entityTypes.solution') },
+      { value: 'solution_comment', label: t('moderation.entityTypes.solution_comment') },
+      { value: 'problem', label: t('moderation.entityTypes.problem') },
     ],
     width: 'w-[140px]',
   },
@@ -128,14 +170,14 @@ const filters = computed<Filter[]>(() => [
 // Debounced search
 const debouncedSearch = useDebounceFn(() => {
   pagination.value.pageIndex = 0
-  loadFlaggedProblems()
+  loadData()
 }, 300)
 
 // Watch pagination changes
 watch(
   pagination,
   () => {
-    loadFlaggedProblems()
+    loadData()
   },
   { deep: true },
 )
@@ -146,96 +188,95 @@ watch(searchQuery, () => {
 })
 
 // Watch filters
-watch([statusFilter, difficultyFilter], () => {
+watch([statusFilter, categoryFilter, entityTypeFilter], () => {
   pagination.value.pageIndex = 0
-  loadFlaggedProblems()
+  loadData()
 })
 
-async function loadFlaggedProblems() {
-  loading.value = true
+async function loadData() {
+  await store.fetchQueue({
+    page: pagination.value.pageIndex + 1,
+    limit: pagination.value.pageSize,
+    status: statusFilter.value === 'all' ? undefined : statusFilter.value,
+    primary_category: categoryFilter.value === 'all' ? undefined : categoryFilter.value,
+    entity_type: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
+  })
+}
+
+async function handleQuickAction(id: string, action: ModerationActionType) {
   try {
-    const response = await problemsApi.getFlaggedProblems({
-      page: pagination.value.pageIndex + 1,
-      limit: pagination.value.pageSize,
-      status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-    })
-    flaggedProblems.value = response.data
-    total.value = response.total
-    totalPages.value = response.totalPages
+    await store.performAction(id, { action })
+    toast.success(t('moderation.toast.actionCompleted'))
   } catch (error) {
-    console.error('Failed to load flagged problems:', error)
-    toast.error(t('moderation.loadError'))
-  } finally {
-    loading.value = false
+    console.error('Failed to perform action:', error)
+    toast.error(t('moderation.toast.error'))
   }
 }
 
-async function handleQuickAction(id: string, status: FlagStatus) {
+async function handleClaim(id: string) {
   try {
-    await problemsApi.moderateProblem(id, { status })
-    toast.success(t('moderation.success'))
-    await loadFlaggedProblems()
+    await store.claimItem(id)
+    toast.success(t('moderation.toast.claimed'))
   } catch (error) {
-    console.error('Failed to moderate problem:', error)
-    toast.error(t('moderation.error'))
+    console.error('Failed to claim item:', error)
+    toast.error(t('moderation.toast.error'))
   }
 }
 
 async function handleDrawerSave() {
-  if (!selectedProblem.value) return
+  if (!selectedQueueItem.value) return
 
   saving.value = true
   try {
-    await problemsApi.moderateProblem(selectedProblem.value.id, {
-      status: drawerStatus.value,
-      notes: drawerNotes.value || undefined,
+    await store.performAction(selectedQueueItem.value.id, {
+      action: drawerAction.value,
+      note: drawerNote.value || undefined,
+      duration_days: drawerDurationDays.value,
     })
 
-    toast.success(t('moderation.success'))
+    toast.success(t('moderation.toast.success'))
     drawerOpen.value = false
-    selectedProblem.value = null
-    drawerNotes.value = ''
-    await loadFlaggedProblems()
+    selectedQueueItem.value = null
+    drawerNote.value = ''
   } catch (error) {
-    console.error('Failed to moderate problem:', error)
-    toast.error(t('moderation.error'))
+    console.error('Failed to perform action:', error)
+    toast.error(t('moderation.toast.error'))
   } finally {
     saving.value = false
   }
 }
 
-function openBatchDialog(status: FlagStatus) {
-  batchStatus.value = status
-  batchNotes.value = ''
+function openBatchDialog(action: ModerationActionType) {
+  batchAction.value = action
+  batchNote.value = ''
   batchDialogOpen.value = true
 }
 
-async function handleBatchModerate() {
+async function handleBatchAction() {
   if (selectedRows.value.length === 0) return
 
   batchSaving.value = true
   try {
-    const result = await problemsApi.batchModerateProblems({
-      ids: selectedRows.value.map((p) => p.id),
-      status: batchStatus.value,
-      notes: batchNotes.value || undefined,
+    const result = await store.batchAction({
+      queue_ids: selectedRows.value.map((item) => item.id),
+      action: batchAction.value,
+      note: batchNote.value || undefined,
     })
 
     const successCount = result.results.filter((r) => r.success).length
     const failCount = result.results.filter((r) => !r.success).length
 
     if (failCount === 0) {
-      toast.success(t('moderation.batchSuccess', { count: successCount }))
+      toast.success(t('moderation.toast.batchCompleted'))
     } else {
-      toast.warning(t('moderation.batchPartial', { success: successCount, failed: failCount }))
+      toast.warning(`${successCount} succeeded, ${failCount} failed`)
     }
 
     batchDialogOpen.value = false
     selectedRows.value = []
-    await loadFlaggedProblems()
   } catch (error) {
-    console.error('Failed to batch moderate:', error)
-    toast.error(t('moderation.batchError'))
+    console.error('Failed to perform batch action:', error)
+    toast.error(t('moderation.toast.error'))
   } finally {
     batchSaving.value = false
   }
@@ -243,19 +284,79 @@ async function handleBatchModerate() {
 
 function handleFilterUpdate(index: number, value: string | number) {
   if (index === 0) {
-    statusFilter.value = value as FlagStatus | 'all'
+    statusFilter.value = value as ModerationStatus | 'all'
   } else if (index === 1) {
-    difficultyFilter.value = value as Difficulty | 'all'
+    categoryFilter.value = value as ReportCategory | 'all'
+  } else if (index === 2) {
+    entityTypeFilter.value = value as ModeratableEntityType | 'all'
   }
 }
 
 function handleRefresh() {
-  loadFlaggedProblems()
+  loadData()
+  store.fetchStats(true)
 }
 
 function clearSelection() {
   selectedRows.value = []
 }
+
+// Action type options for the drawer
+const actionOptions = computed(() => [
+  {
+    value: ModerationActionType.DISMISSED,
+    label: t('moderation.actions.DISMISSED'),
+    icon: IconX,
+    color: 'text-[var(--terminal-red)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.RESOLVED,
+    label: t('moderation.actions.RESOLVED'),
+    icon: IconCheck,
+    color: 'text-[var(--terminal-green)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.DELETED,
+    label: t('moderation.actions.DELETED'),
+    icon: IconTrash,
+    color: 'text-[var(--terminal-red)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.HIDDEN,
+    label: t('moderation.actions.HIDDEN'),
+    icon: IconEyeOff,
+    color: 'text-[var(--terminal-amber)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.WARNED,
+    label: t('moderation.actions.WARNED'),
+    icon: IconAlertCircle,
+    color: 'text-[var(--terminal-amber)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.TEMP_BANNED,
+    label: t('moderation.actions.TEMP_BANNED'),
+    icon: IconClock,
+    color: 'text-[var(--terminal-amber)]',
+    requiresDuration: true,
+  },
+  {
+    value: ModerationActionType.PERM_BANNED,
+    label: t('moderation.actions.PERM_BANNED'),
+    icon: IconBan,
+    color: 'text-[var(--terminal-red)]',
+    requiresDuration: false,
+  },
+])
+
+const selectedActionOption = computed(() =>
+  actionOptions.value.find((opt) => opt.value === drawerAction.value),
+)
 </script>
 
 <template>
@@ -275,7 +376,7 @@ function clearSelection() {
             <span class="terminal-cursor" />
           </div>
           <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
-            {{ t('moderation.title') }}
+            {{ t('moderation.queue.title') }}
           </h1>
         </div>
         <Button
@@ -283,9 +384,9 @@ function clearSelection() {
           size="sm"
           class="h-8 font-data text-xs border-[var(--silver-300)]"
           @click="handleRefresh"
-          :disabled="loading"
+          :disabled="store.queueLoading"
         >
-          <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': loading }]" />
+          <IconRefresh :class="['h-3.5 w-3.5', { 'animate-spin': store.queueLoading }]" />
           <span class="uppercase tracking-wider hidden sm:inline">{{ t('common.refresh') }}</span>
         </Button>
       </div>
@@ -312,10 +413,10 @@ function clearSelection() {
         </div>
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]"
-            >{{ t('moderation.terminal.reviewed') }}:</span
+            >{{ t('moderation.terminal.underReview') }}:</span
           >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
-            stats.reviewed
+            stats.underReview
           }}</span>
         </div>
         <div class="flex items-center gap-2">
@@ -328,9 +429,7 @@ function clearSelection() {
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconShield class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{
-            t('moderation.terminal.contentModeration')
-          }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">CONTENT MODERATION</span>
         </div>
       </div>
     </div>
@@ -346,7 +445,7 @@ function clearSelection() {
       <div class="flex items-center gap-4">
         <div class="flex items-center gap-2">
           <span class="font-data text-sm text-[var(--terminal-amber)]">
-            &gt; {{ t('moderation.terminal.selected') }}:{{ selectedRows.length }}
+            &gt; {{ t('moderation.queue.selectedCount', { count: selectedRows.length }) }}
           </span>
         </div>
         <div class="h-4 w-px bg-[var(--silver-300)]" />
@@ -355,7 +454,7 @@ function clearSelection() {
             variant="terminal"
             size="sm"
             class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
-            @click="openBatchDialog('RESOLVED')"
+            @click="openBatchDialog(ModerationActionType.RESOLVED)"
           >
             <IconCheck class="h-3.5 w-3.5 mr-1.5" />
             <span class="uppercase tracking-wider">{{ t('moderation.batchResolve') }}</span>
@@ -364,7 +463,7 @@ function clearSelection() {
             variant="terminal"
             size="sm"
             class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
-            @click="openBatchDialog('DISMISSED')"
+            @click="openBatchDialog(ModerationActionType.DISMISSED)"
           >
             <IconX class="h-3.5 w-3.5 mr-1.5" />
             <span class="uppercase tracking-wider">{{ t('moderation.batchDismiss') }}</span>
@@ -391,14 +490,14 @@ function clearSelection() {
     >
       <DataTable
         :columns="columns"
-        :data="flaggedProblems"
+        :data="store.queueItems"
         :pagination="pagination"
-        :row-count="total"
-        :loading="loading"
+        :row-count="store.queueTotal"
+        :loading="store.queueLoading"
         v-model:selected-rows="selectedRows"
         @update:pagination="pagination = $event"
-        :empty-title="t('moderation.emptyTitle')"
-        :empty-description="t('moderation.emptyDescription')"
+        :empty-title="t('moderation.queue.emptyTitle')"
+        :empty-description="t('moderation.queue.emptyDescription')"
         class="terminal-table"
       >
         <template #toolbar-left>
@@ -406,7 +505,7 @@ function clearSelection() {
             v-model:search-model-value="searchQuery"
             :search-placeholder="t('moderation.searchPlaceholder')"
             :filters="filters"
-            :loading="loading"
+            :loading="store.queueLoading"
             :on-refresh="handleRefresh"
             @update:filter="handleFilterUpdate"
           />
@@ -417,10 +516,10 @@ function clearSelection() {
     <!-- Detail Drawer -->
     <BaseDetailDrawer
       v-model:open="drawerOpen"
-      :entity="selectedProblem"
+      :entity="selectedQueueItem"
       :loading="saving"
       :title="t('moderation.drawerTitle')"
-      :description="t('moderation.drawerDescription')"
+      :description="t('moderation.queue.description')"
       :loading-text="t('common.saving')"
       :not-found-text="t('moderation.notFound')"
       width="w-[400px] sm:w-[540px]"
@@ -435,107 +534,132 @@ function clearSelection() {
         >
           <IconLoader2 v-if="saving" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
           <IconCheck v-else class="h-3.5 w-3.5 mr-1.5" />
-          <span class="uppercase tracking-wider">{{ t('common.save') }}</span>
+          <span class="uppercase tracking-wider">{{ t('moderation.actionPanel.confirmAction') }}</span>
         </Button>
       </template>
 
       <template #content="{ entity }">
-        <!-- Problem Info -->
         <div class="space-y-4">
+          <!-- Entity Info -->
           <div
             class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
           >
             <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
-              {{ t('moderation.columns.problem') }}
+              {{ t('moderation.detail.entityInfo') }}
             </p>
-            <p class="font-medium text-sm">{{ entity.title }}</p>
-            <p class="text-xs text-[var(--silver-500)] font-data mt-1">{{ entity.slug }}</p>
-          </div>
-
-          <!-- Status -->
-          <div>
-            <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
-              {{ t('moderation.status') }}
-            </Label>
-            <Select v-model="drawerStatus" class="mt-2">
-              <SelectTrigger
-                class="h-9 font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent"
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PENDING">{{ t('moderation.statusPending') }}</SelectItem>
-                <SelectItem value="REVIEWED">{{ t('moderation.statusReviewed') }}</SelectItem>
-                <SelectItem value="RESOLVED">{{ t('moderation.statusResolved') }}</SelectItem>
-                <SelectItem value="DISMISSED">{{ t('moderation.statusDismissed') }}</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <!-- Current Flag Reason -->
-          <div
-            v-if="entity.flag_reason"
-            class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
-          >
-            <div class="flex items-start gap-2">
-              <IconAlertTriangle class="h-5 w-5 text-[var(--terminal-red)] flex-shrink-0 mt-0.5" />
-              <div class="flex-1">
-                <p
-                  class="text-xs font-data text-[var(--terminal-red)] uppercase tracking-wider mb-1"
-                >
-                  &gt; {{ t('moderation.terminal.flagReasonLabel') }}
-                </p>
-                <p class="text-sm text-[var(--foreground)]">{{ entity.flag_reason }}</p>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between">
+                <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entityType') }}:</span>
+                <span class="font-data">{{ entity.entity_type }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entity') }}:</span>
+                <span class="font-data text-xs truncate max-w-[200px]">{{ entity.entity_id }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[var(--silver-500)]">{{ t('moderation.queue.priority') }}:</span>
+                <span class="font-data">{{ entity.priority }}</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-[var(--silver-500)]">{{ t('moderation.queue.reportCount') }}:</span>
+                <span class="font-data">{{ entity.report_count }}</span>
               </div>
             </div>
           </div>
 
-          <!-- Notes -->
+          <!-- Action Selection -->
           <div>
+            <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+              {{ t('moderation.actionPanel.selectAction') }}
+            </Label>
+            <div class="mt-2 grid grid-cols-2 gap-2">
+              <Button
+                v-for="option in actionOptions"
+                :key="option.value"
+                :variant="drawerAction === option.value ? 'default' : 'terminal'"
+                :class="[
+                  'h-9 font-data text-xs justify-start',
+                  drawerAction === option.value
+                    ? `border-current ${option.color} bg-current/10`
+                    : 'border-[var(--silver-300)] hover:border-current',
+                ]"
+                size="sm"
+                @click="drawerAction = option.value"
+              >
+                <component :is="option.icon" :class="['h-3.5 w-3.5 mr-2', option.color]" />
+                {{ option.label }}
+              </Button>
+            </div>
+          </div>
+
+          <!-- Duration (for temporary ban) -->
+          <div v-if="selectedActionOption?.requiresDuration">
             <Label
-              for="drawer-notes"
+              for="duration-days"
               class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
             >
-              {{ t('moderation.notes') }}
+              {{ t('moderation.actionPanel.durationLabel') }}
+            </Label>
+            <Input
+              id="duration-days"
+              v-model.number="drawerDurationDays"
+              type="number"
+              min="1"
+              max="365"
+              :placeholder="t('moderation.actionPanel.durationPlaceholder')"
+              class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent"
+            />
+          </div>
+
+          <!-- Note -->
+          <div>
+            <Label
+              for="drawer-note"
+              class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+            >
+              {{ t('moderation.actionPanel.addNote') }}
             </Label>
             <Textarea
-              id="drawer-notes"
-              v-model="drawerNotes"
-              :placeholder="t('moderation.notesPlaceholder')"
+              id="drawer-note"
+              v-model="drawerNote"
+              :placeholder="t('moderation.actionPanel.notePlaceholder')"
               rows="4"
               class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]"
             />
           </div>
 
-          <!-- Reporter Info -->
+          <!-- Warning -->
           <div
+            class="border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] p-3"
+          >
+            <div class="flex items-start gap-2">
+              <IconAlertTriangle class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5" />
+              <p class="text-xs text-[var(--terminal-amber)]">
+                {{ t('moderation.actionPanel.warning') }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Assigned To -->
+          <div
+            v-if="entity.assigned_to"
             class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
           >
-            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-3">
-              {{ t('moderation.reportInfo') }}
+            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
+              {{ t('moderation.queue.assignedTo') }}
             </p>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]">{{ t('common.reportedBy') }}:</span>
-                <span class="font-data">{{
-                  entity.flag_reported_by || t('moderation.unknownReporter')
-                }}</span>
-              </div>
-              <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]">{{ t('common.reportedAt') }}:</span>
-                <span class="font-data">{{
-                  entity.flag_reported_at
-                    ? new Date(entity.flag_reported_at).toLocaleDateString()
-                    : '—'
-                }}</span>
-              </div>
+            <div class="flex items-center gap-2">
+              <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
+              <span class="text-sm">
+                {{ entity.assigned_to.display_name || entity.assigned_to.username }}
+              </span>
             </div>
           </div>
         </div>
       </template>
     </BaseDetailDrawer>
 
-    <!-- Batch Moderation Dialog -->
+    <!-- Batch Action Dialog -->
     <Dialog v-model:open="batchDialogOpen">
       <DialogContent class="terminal-card border-[var(--silver-300)]">
         <DialogHeader
@@ -545,45 +669,48 @@ function clearSelection() {
             class="flex items-center gap-2 font-data text-sm uppercase tracking-wider text-[var(--terminal-amber)]"
           >
             <IconChecks class="h-4 w-4" />
-            &gt; {{ t('moderation.batchModerateTitle') }}
+            &gt; {{ t('moderation.dialogs.confirmBatchTitle') }}
           </DialogTitle>
           <DialogDescription class="font-data text-xs text-[var(--silver-400)]">
-            {{ t('moderation.batchModerateDescription', { count: selectedRows.length }) }}
+            {{ t('moderation.dialogs.confirmBatchMessage', {
+              count: selectedRows.length,
+              action: batchAction === ModerationActionType.RESOLVED ? t('moderation.actions.RESOLVED').toLowerCase() : t('moderation.actions.DISMISSED').toLowerCase()
+            }) }}
           </DialogDescription>
         </DialogHeader>
         <div class="space-y-4 pt-4">
           <div>
             <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
-              {{ t('moderation.newStatus') }}
+              {{ t('moderation.actionPanel.selectAction') }}
             </Label>
             <div class="mt-2 flex gap-2">
               <Button
-                :variant="batchStatus === 'RESOLVED' ? 'default' : 'terminal'"
+                :variant="batchAction === ModerationActionType.RESOLVED ? 'default' : 'terminal'"
                 :class="[
                   'h-9 font-data text-xs',
-                  batchStatus === 'RESOLVED'
+                  batchAction === ModerationActionType.RESOLVED
                     ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] bg-[oklch(0.7_0.15_145/0.1)]'
                     : 'border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]',
                 ]"
                 size="sm"
-                @click="batchStatus = 'RESOLVED'"
+                @click="batchAction = ModerationActionType.RESOLVED"
               >
                 <IconCheck class="h-3.5 w-3.5 mr-1.5" />
-                {{ t('moderation.statusResolved') }}
+                {{ t('moderation.actions.RESOLVED') }}
               </Button>
               <Button
-                :variant="batchStatus === 'DISMISSED' ? 'default' : 'terminal'"
+                :variant="batchAction === ModerationActionType.DISMISSED ? 'default' : 'terminal'"
                 :class="[
                   'h-9 font-data text-xs',
-                  batchStatus === 'DISMISSED'
+                  batchAction === ModerationActionType.DISMISSED
                     ? 'border-[var(--terminal-red)] text-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.1)]'
                     : 'border-[var(--silver-300)] hover:border-[var(--terminal-red)] hover:text-[var(--terminal-red)]',
                 ]"
                 size="sm"
-                @click="batchStatus = 'DISMISSED'"
+                @click="batchAction = ModerationActionType.DISMISSED"
               >
                 <IconX class="h-3.5 w-3.5 mr-1.5" />
-                {{ t('moderation.statusDismissed') }}
+                {{ t('moderation.actions.DISMISSED') }}
               </Button>
             </div>
           </div>
@@ -592,12 +719,12 @@ function clearSelection() {
               for="batch-notes"
               class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
             >
-              {{ t('moderation.notes') }}
+              {{ t('moderation.actionPanel.addNote') }}
             </Label>
             <Textarea
               id="batch-notes"
-              v-model="batchNotes"
-              :placeholder="t('moderation.batchNotesPlaceholder')"
+              v-model="batchNote"
+              :placeholder="t('moderation.actionPanel.notePlaceholder')"
               rows="3"
               class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]"
             />
@@ -610,18 +737,18 @@ function clearSelection() {
             class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--silver-500)]"
             @click="batchDialogOpen = false"
           >
-            {{ t('common.cancel') }}
+            {{ t('moderation.dialogs.cancel') }}
           </Button>
           <Button
             variant="terminal"
             size="sm"
             class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
             :disabled="batchSaving"
-            @click="handleBatchModerate"
+            @click="handleBatchAction"
           >
             <IconLoader2 v-if="batchSaving" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
             <IconChecks v-else class="h-3.5 w-3.5 mr-1.5" />
-            {{ batchSaving ? t('common.saving') : t('moderation.apply') }}
+            {{ batchSaving ? t('common.saving') : t('moderation.dialogs.confirm') }}
           </Button>
         </DialogFooter>
       </DialogContent>

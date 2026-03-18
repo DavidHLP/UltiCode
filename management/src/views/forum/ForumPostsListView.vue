@@ -121,12 +121,12 @@ const {
     error: computed(() => forumStore.postsError),
     fetch: (params) => forumStore.fetchPosts(params),
   },
-  filters: {
+  filters: () => ({
     communityFilter: communityFilter.value,
     flaggedFilter: flaggedFilter.value,
     pinnedFilter: pinnedFilter.value,
     lockedFilter: lockedFilter.value,
-  },
+  }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     communityId: filters.communityFilter === 'all' ? undefined : filters.communityFilter,

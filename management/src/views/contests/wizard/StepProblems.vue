@@ -86,6 +86,7 @@ function getDifficultyStyle(difficulty: string) {
         <span class="terminal-label">[{{ formData.selectedProblems?.length || 0 }}]</span>
       </div>
       <Button
+        type="button"
         size="sm"
         variant="terminal"
         class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]"
@@ -162,6 +163,7 @@ function getDifficultyStyle(difficulty: string) {
             </TableCell>
             <TableCell>
               <Button
+                type="button"
                 size="icon"
                 variant="ghost"
                 class="h-8 w-8 text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"

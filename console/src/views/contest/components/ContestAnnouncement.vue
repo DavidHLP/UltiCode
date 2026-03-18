@@ -29,7 +29,9 @@ const formattedDate = computed(() => {
 });
 
 const authorName = computed(() => {
-  return props.announcement.author?.username || t("common.labels.admin", "Admin");
+  return (
+    props.announcement.author?.username || t("common.labels.admin", "Admin")
+  );
 });
 </script>
 
@@ -51,20 +53,13 @@ const authorName = computed(() => {
           />
 
           <!-- New badge -->
-          <Badge
-            v-if="isNew"
-            variant="default"
-            class="shrink-0"
-          >
+          <Badge v-if="isNew" variant="default" class="shrink-0">
             {{ t("common.labels.new", "New") }}
           </Badge>
 
           <!-- Title -->
           <CardTitle
-            :class="[
-              'truncate',
-              { 'text-base': !compact, 'text-sm': compact },
-            ]"
+            :class="['truncate', { 'text-base': !compact, 'text-sm': compact }]"
           >
             {{ announcement.title }}
           </CardTitle>

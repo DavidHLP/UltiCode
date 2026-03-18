@@ -87,7 +87,8 @@ export const CONTEST_ERRORS = {
   },
 } as const;
 
-export type ContestErrorCode = (typeof CONTEST_ERRORS)[keyof typeof CONTEST_ERRORS]['code'];
+export type ContestErrorCode =
+  (typeof CONTEST_ERRORS)[keyof typeof CONTEST_ERRORS]['code'];
 
 /**
  * Get error info by code

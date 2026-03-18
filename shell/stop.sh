@@ -12,6 +12,8 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONSOLE_PORT=9002
 MANAGEMENT_PORT=9003
 BACKEND_PORT=9001
+RECOMMEND_WEB_PORT=9004
+RECOMMEND_PROVIDER_PORT=9005
 
 # ============== Colors & Symbols ==============
 R='\033[0m' G='\033[32m' Y='\033[33m' C='\033[36m' D='\033[2m' B='\033[1m' RED_BG='\033[41m' WHITE='\033[37m'
@@ -92,6 +94,8 @@ if [ "$SKIP_CONFIRM" = false ]; then
     info "Console (port $CONSOLE_PORT)"
     info "Management (port $MANAGEMENT_PORT)"
     info "Backend (port $BACKEND_PORT)"
+    info "Recommend-Web (port $RECOMMEND_WEB_PORT)"
+    info "Recommend-Provider (port $RECOMMEND_PROVIDER_PORT)"
     [ "$SKIP_DOCKER" = false ] && { info "MySQL Docker"; info "Redis Docker"; info "Nacos Docker"; }
     echo ""
     read -p "  Confirm? (y/N): " -n 1 -r
@@ -125,6 +129,20 @@ if port_used $BACKEND_PORT; then
 else
     info "Backend not running"
 fi
+
+# ============== Recommendation Services ==============
+log ""
+log "${B}:: Recommendation${R} ${D}──────────────────${R}"
+
+# Stop Web first (depends on Provider)
+stop_port $RECOMMEND_WEB_PORT "Recommend-Web" && STOPPED+=("Recommend-Web")
+
+log ""
+stop_port $RECOMMEND_PROVIDER_PORT "Recommend-Provider" && STOPPED+=("Recommend-Provider")
+
+# Kill any lingering Java processes for recommendation
+pkill -9 -f "recommend-web" 2>/dev/null || true
+pkill -9 -f "recommend-provider" 2>/dev/null || true
 
 # ============== Docker Services ==============
 log ""
@@ -172,6 +190,8 @@ RUNNING=0
 port_used $BACKEND_PORT && ((RUNNING++)) || true
 port_used $CONSOLE_PORT && ((RUNNING++)) || true
 port_used $MANAGEMENT_PORT && ((RUNNING++)) || true
+port_used $RECOMMEND_WEB_PORT && ((RUNNING++)) || true
+port_used $RECOMMEND_PROVIDER_PORT && ((RUNNING++)) || true
 docker ps 2>/dev/null | grep -q "ulticode-mysql" && ((RUNNING++)) || true
 docker ps 2>/dev/null | grep -q "ulticode-redis" && ((RUNNING++)) || true
 docker ps 2>/dev/null | grep -q "ulticode-nacos" && ((RUNNING++)) || true

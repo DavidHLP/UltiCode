@@ -46,8 +46,8 @@ function getStatusBadge(status: string) {
   return variants[status] || "secondary";
 }
 
-function navigateToContest(contestId: string) {
-  router.push({ name: "contest-detail", params: { contestId } });
+function navigateToContest(slug: string) {
+  router.push({ name: "contest-detail", params: { slug } });
 }
 </script>
 

@@ -40,8 +40,7 @@ const currentView = computed(() => {
 
 function handleTabChange(value: string | number) {
   const view = value as string
-  const routeName = `problem-view-${view}`
-  router.push({ name: routeName, params: { id: problemId.value } })
+  router.push({ name: 'problem-detail', params: { id: problemId.value, tab: view } })
 }
 
 onMounted(async () => {
@@ -74,13 +73,17 @@ async function togglePublish() {
 }
 
 function editProblem() {
-  // Navigate to the edit view corresponding to current view
-  const editRoutes: Record<string, string> = {
-    code: 'problem-edit-code',
-    cases: 'problem-edit-cases',
-    description: 'problem-edit-description',
+  // Map current view to valid edit tab (audit has no edit view, default to description)
+  const editTabs: Record<string, string> = {
+    code: 'code',
+    cases: 'cases',
+    description: 'description',
+    audit: 'description',
   }
-  router.push({ name: editRoutes[currentView.value], params: { id: problemId.value } })
+  router.push({
+    name: 'problem-edit',
+    params: { id: problemId.value, tab: editTabs[currentView.value] },
+  })
 }
 
 async function handleVersionRestored() {

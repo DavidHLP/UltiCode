@@ -1,11 +1,13 @@
 import { Module, DynamicModule, Global } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ThrottlerModule } from '@nestjs/throttler';
 import { RecommendationController } from './recommendation.controller';
 import { RecommendationService } from './services/recommendation.service';
 import { RecommendationCacheService } from './services/recommendation-cache.service';
 import { RecommendationScheduler } from './recommendation.scheduler';
 import { NacosNamingService } from './services/nacos.service';
+import { PrismaService } from '../prisma.service';
 import {
   RecommendationModuleAsyncOptions,
   RecommendationModuleOptions,
@@ -75,9 +77,27 @@ export class RecommendationModule {
           }),
         }),
         ConfigModule,
+        ThrottlerModule.forRoot([
+          {
+            name: 'short',
+            ttl: 1000,
+            limit: 3,
+          },
+          {
+            name: 'medium',
+            ttl: 10000,
+            limit: 20,
+          },
+          {
+            name: 'long',
+            ttl: 60000,
+            limit: 100,
+          },
+        ]),
       ],
       controllers: [RecommendationController],
       providers: [
+        PrismaService,
         NacosNamingService,
         RecommendationService,
         RecommendationCacheService,

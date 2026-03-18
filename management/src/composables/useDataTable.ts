@@ -1,4 +1,13 @@
-import { ref, shallowRef, watch, type Ref, type ComputedRef, computed } from 'vue'
+import {
+  ref,
+  shallowRef,
+  watch,
+  type Ref,
+  type ComputedRef,
+  computed,
+  toValue,
+  type MaybeRefOrGetter,
+} from 'vue'
 import { watchDebounced } from '@vueuse/core'
 
 export interface PaginationState {
@@ -15,7 +24,7 @@ export interface UseDataTableOptions<TData, TFilters, TParams> {
     error: Ref<string | null>
     fetch: (params: TParams) => Promise<void>
   }
-  filters?: TFilters
+  filters?: MaybeRefOrGetter<TFilters>
   transformParams: (params: {
     search: string | undefined
     filters: TFilters
@@ -44,7 +53,7 @@ export function useDataTable<
 >(options: UseDataTableOptions<TData, TFilters, TParams>): UseDataTableReturn<TData> {
   const {
     store,
-    filters = {} as TFilters,
+    filters = {} as MaybeRefOrGetter<TFilters>,
     transformParams,
     debounceMs = 500,
     autoLoad = false,
@@ -61,9 +70,10 @@ export function useDataTable<
   const error = computed(() => store.error.value || null)
 
   const loadEntities = async () => {
+    const currentFilters = toValue(filters)
     const params = transformParams({
       search: searchQuery.value || undefined,
-      filters,
+      filters: currentFilters,
       page: tablePagination.value.pageIndex + 1,
       limit: tablePagination.value.pageSize,
     })
@@ -80,17 +90,15 @@ export function useDataTable<
     { debounce: debounceMs },
   )
 
-  // Watch filters and reset page
-  if (filters) {
-    watch(
-      () => filters,
-      () => {
-        tablePagination.value.pageIndex = 0
-        loadEntities()
-      },
-      { deep: true },
-    )
-  }
+  // Watch filters and reset page - use getter to support reactive refs
+  watch(
+    () => toValue(filters),
+    () => {
+      tablePagination.value.pageIndex = 0
+      loadEntities()
+    },
+    { deep: true },
+  )
 
   // Watch pagination changes
   watch(

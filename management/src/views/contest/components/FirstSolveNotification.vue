@@ -128,9 +128,7 @@ onUnmounted(() => {
           <div
             class="flex-shrink-0 w-10 h-10 rounded-full bg-[oklch(0.75_0.15_85/0.3)] flex items-center justify-center"
           >
-            <IconTrophy
-              class="h-5 w-5 text-[var(--terminal-amber)] animate-bounce-subtle"
-            />
+            <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)] animate-bounce-subtle" />
           </div>
 
           <!-- Content -->

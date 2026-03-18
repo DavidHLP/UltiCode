@@ -97,4 +97,26 @@ export class AdminProblemVersionController {
       message: `Successfully rolled back to version ${versionId}`,
     };
   }
+
+  @Post('create-initial')
+  @RequirePermissions({
+    action: PermissionAction.UPDATE,
+    resource: PermissionResource.PROBLEM,
+  })
+  async createInitialVersion(
+    @Param('problemId') problemId: string,
+    @CurrentAdmin() admin: User,
+  ) {
+    const created = await this.versionService.createInitialVersion(
+      BigInt(problemId),
+      admin.id,
+    );
+
+    return {
+      success: created,
+      message: created
+        ? 'Initial version snapshot created successfully'
+        : 'Problem already has version history',
+    };
+  }
 }

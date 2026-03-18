@@ -10,7 +10,6 @@ import {
   IconFlagOff,
   IconFlask,
   IconBrackets,
-  IconPencil,
   IconTrash,
 } from '@tabler/icons-vue'
 
@@ -33,12 +32,10 @@ export interface ProblemActions {
   viewProblem: (id: string) => void
   viewProblemCode: (id: string) => void
   viewProblemCases: (id: string) => void
-  editProblem: (id: string) => void
-  editProblemCode: (id: string) => void
-  editProblemCases: (id: string) => void
+  viewFlagInfo: (problem: Problem) => void
   publishProblem: (id: string) => void
   unpublishProblem: (id: string) => void
-  flagProblem: (id: string) => void
+  flagProblem: (problem: Problem) => void
   unflagProblem: (id: string) => void
   confirmDelete: (problem: Problem) => void
 }
@@ -346,16 +343,47 @@ export function createColumns(
           t('problems.columns.flagged'),
         ),
       cell: ({ row }) => {
-        const isFlagged = row.original.is_flagged
+        const problem = row.original
+        const isFlagged = problem.is_flagged
         if (!isFlagged) {
           return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '—')
         }
-        const classes =
-          'font-data text-[11px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.6_0.2_25/0.15)] border-[oklch(0.6_0.2_25/0.4)] text-[var(--terminal-red)] animate-pulse-subtle'
-        return h('span', { class: `inline-flex items-center gap-1 ${classes}` }, [
-          h(IconAlertTriangle, { class: 'h-3 w-3' }),
-          t('moderation.statusPending'),
-        ])
+
+        const flagStatus: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED' =
+          problem.flag_status || 'PENDING'
+
+        // Status-based color for the flag icon
+        const statusColors: Record<'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED', string> = {
+          PENDING: 'text-[var(--terminal-red)]',
+          REVIEWED: 'text-[var(--terminal-amber)]',
+          RESOLVED: 'text-[var(--terminal-green)]',
+          DISMISSED: 'text-[var(--silver-500)]',
+        }
+
+        const colorClass = statusColors[flagStatus] ?? statusColors.PENDING
+        const statusKey = `moderation.status${flagStatus.charAt(0) + flagStatus.slice(1).toLowerCase()}`
+
+        return h(
+          'div',
+          {
+            class: 'flex items-center gap-1',
+            title: `${t(statusKey)}${problem.flag_reason ? `: ${problem.flag_reason}` : ''}`,
+          },
+          [
+            h(IconFlag, {
+              class: [
+                'h-4 w-4',
+                colorClass,
+                flagStatus === 'PENDING' ? 'animate-pulse-subtle' : '',
+              ].join(' '),
+            }),
+            h(
+              'span',
+              { class: ['font-data text-[10px] uppercase', colorClass].join(' ') },
+              t(statusKey).slice(0, 3),
+            ),
+          ],
+        )
       },
     },
     {
@@ -543,71 +571,28 @@ function createActionsDropdown(
                                 ]),
                             },
                           ),
+                          // Flag Info - only show when problem is flagged
+                          problem.is_flagged
+                            ? h(
+                                DropdownMenuItem,
+                                { onClick: () => actions.viewFlagInfo(problem) },
+                                {
+                                  default: () =>
+                                    h('div', { class: 'flex items-center gap-2' }, [
+                                      h(IconAlertTriangle, {
+                                        class: 'h-4 w-4 text-[var(--terminal-amber)]',
+                                      }),
+                                      t('problems.actions.viewFlagInfo'),
+                                    ]),
+                                },
+                              )
+                            : null,
                         ],
                       },
                     ),
                   ],
                 },
               ),
-              // Edit Sub-menu
-              canUpdateProblem()
-                ? h(
-                    DropdownMenuSub,
-                    {},
-                    {
-                      default: () => [
-                        h(
-                          DropdownMenuSubTrigger,
-                          { class: 'gap-2' },
-                          {
-                            default: () => [h(IconPencil, { class: 'h-4 w-4' }), t('common.edit')],
-                          },
-                        ),
-                        h(
-                          DropdownMenuSubContent,
-                          {},
-                          {
-                            default: () => [
-                              h(
-                                DropdownMenuItem,
-                                { onClick: () => actions.editProblem(problem.id) },
-                                {
-                                  default: () =>
-                                    h('div', { class: 'flex items-center gap-2' }, [
-                                      h(IconFile, { class: 'h-4 w-4' }),
-                                      t('problems.tabs.description'),
-                                    ]),
-                                },
-                              ),
-                              h(
-                                DropdownMenuItem,
-                                { onClick: () => actions.editProblemCode(problem.id) },
-                                {
-                                  default: () =>
-                                    h('div', { class: 'flex items-center gap-2' }, [
-                                      h(IconBrackets, { class: 'h-4 w-4' }),
-                                      t('problems.tabs.code'),
-                                    ]),
-                                },
-                              ),
-                              h(
-                                DropdownMenuItem,
-                                { onClick: () => actions.editProblemCases(problem.id) },
-                                {
-                                  default: () =>
-                                    h('div', { class: 'flex items-center gap-2' }, [
-                                      h(IconFlask, { class: 'h-4 w-4' }),
-                                      t('problems.tabs.testCases'),
-                                    ]),
-                                },
-                              ),
-                            ],
-                          },
-                        ),
-                      ],
-                    },
-                  )
-                : null,
               h(DropdownMenuSeparator, {}),
               // Flag/Unflag action
               canUpdateProblem()
@@ -617,7 +602,7 @@ function createActionsDropdown(
                       onClick: () =>
                         problem.is_flagged
                           ? actions.unflagProblem(problem.id)
-                          : actions.flagProblem(problem.id),
+                          : actions.flagProblem(problem),
                     },
                     {
                       default: () =>

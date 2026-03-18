@@ -61,10 +61,10 @@ const {
     error: computed(() => store.error),
     fetch: (params) => store.fetchLists(params),
   },
-  filters: {
+  filters: () => ({
     featuredFilter: featuredFilter.value,
     visibilityFilter: visibilityFilter.value,
-  },
+  }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     is_featured:

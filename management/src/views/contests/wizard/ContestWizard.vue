@@ -36,11 +36,11 @@ const currentStep = ref(1)
 const loading = ref(false)
 
 const steps = [
-  { step: 1, title: 'Basics', component: StepBasicInfo },
-  { step: 2, title: 'Scoring', component: StepScoringRule },
-  { step: 3, title: 'Schedule', component: StepSchedule },
-  { step: 4, title: 'Problems', component: StepProblems },
-  { step: 5, title: 'Review', component: StepReview },
+  { step: 1, title: 'Basics' },
+  { step: 2, title: 'Scoring' },
+  { step: 3, title: 'Schedule' },
+  { step: 4, title: 'Problems' },
+  { step: 5, title: 'Review' },
 ] as const
 
 const formData = ref({
@@ -60,8 +60,6 @@ const formData = ref({
     score?: number
   }[],
 })
-
-const currentStepItem = computed(() => steps[currentStep.value - 1])
 
 const isStepValid = computed(() => {
   switch (currentStep.value) {
@@ -92,15 +90,41 @@ function prevStep() {
   }
 }
 
+/**
+ * Convert datetime-local format (YYYY-MM-DDTHH:MM) to ISO 8601 format
+ * Returns null if the date is invalid
+ */
+function toISO8601(datetimeLocal: string): string | null {
+  if (!datetimeLocal) return null
+
+  // Parse the datetime-local format
+  const date = new Date(datetimeLocal)
+
+  // Check if the date is valid
+  if (isNaN(date.getTime())) {
+    return null
+  }
+
+  return date.toISOString()
+}
+
 async function handleSubmit() {
   loading.value = true
   try {
+    // Convert start_time to ISO 8601 format
+    const startTimeISO = toISO8601(formData.value.start_time)
+    if (!startTimeISO) {
+      toast.error(t('contests.toast.invalidStartTime'))
+      loading.value = false
+      return
+    }
+
     await contestsStore.createContest({
       slug: formData.value.slug,
       title: formData.value.title,
       description: formData.value.description,
       type: formData.value.type,
-      start_time: formData.value.start_time,
+      start_time: startTimeISO,
       duration: formData.value.duration,
       is_published: formData.value.is_published,
       problem_ids: formData.value.selectedProblems.map((p) => p.id),
@@ -190,13 +214,11 @@ async function handleSubmit() {
 
         <!-- Step Content -->
         <div class="mt-4">
-          <keep-alive>
-            <component
-              v-if="currentStepItem"
-              :is="currentStepItem.component"
-              v-model:formData="formData"
-            />
-          </keep-alive>
+          <StepBasicInfo v-show="currentStep === 1" v-model:formData="formData" />
+          <StepScoringRule v-show="currentStep === 2" v-model:formData="formData" />
+          <StepSchedule v-show="currentStep === 3" v-model:formData="formData" />
+          <StepProblems v-show="currentStep === 4" v-model:formData="formData" />
+          <StepReview v-show="currentStep === 5" v-model:formData="formData" />
         </div>
       </div>
 
@@ -205,6 +227,7 @@ async function handleSubmit() {
         class="px-6 py-4 border-t border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
       >
         <Button
+          type="button"
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--silver-300)]"
@@ -216,6 +239,7 @@ async function handleSubmit() {
         </Button>
         <Button
           v-if="currentStep < steps.length"
+          type="button"
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[oklch(0.65_0.15_250/0.1)]"
@@ -227,6 +251,7 @@ async function handleSubmit() {
         </Button>
         <Button
           v-else
+          type="button"
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"

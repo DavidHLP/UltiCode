@@ -1,0 +1,48 @@
+export default {
+  // 表格工具栏
+  customizeColumns: '自定义列',
+  columns: '列',
+  rowsPerPage: '每页行数',
+  page: '页',
+  of: '/',
+  rowsSelected: '行已选择',
+  goToFirstPage: '跳转到第一页',
+  goToPreviousPage: '上一页',
+  goToNextPage: '下一页',
+  goToLastPage: '跳转到最后一页',
+
+  // 空状态
+  emptyTitle: '没有数据',
+  emptyDescription: '当前没有可显示的数据',
+
+  // 列名映射 - 通用列
+  columnNames: {
+    username: '用户名',
+    role: '角色',
+    status: '状态',
+    joined_at: '注册时间',
+    last_login_at: '最后登录',
+    actions: '操作',
+    id: 'ID',
+    name: '名称',
+    title: '标题',
+    description: '描述',
+    type: '类型',
+    created: '创建时间',
+    updated: '更新时间',
+    email: '邮箱',
+    is_active: '激活状态',
+    is_banned: '封禁状态',
+    submissions: '提交数',
+    solutions: '题解数',
+    difficulty: '难度',
+    tags: '标签',
+    category: '分类',
+    visibility: '可见性',
+    author: '作者',
+    start_time: '开始时间',
+    end_time: '结束时间',
+    duration: '时长',
+    participants: '参与者',
+  },
+} as const

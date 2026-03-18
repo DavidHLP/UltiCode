@@ -81,9 +81,9 @@ const {
     error: computed(() => tagsStore.error),
     fetch: (params) => tagsStore.fetchTags(params),
   },
-  filters: {
+  filters: () => ({
     tagType: tagTypeFilter.value,
-  },
+  }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     type: filters.tagType,

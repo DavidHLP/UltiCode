@@ -1,35 +1,42 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import {
-  IconHistory,
-  IconRefresh,
-  IconRestore,
-  IconArrowRight,
-  IconClock,
-  IconUser,
-  IconFileText,
-  IconX,
-  IconLoader,
-} from '@tabler/icons-vue'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { Separator } from '@/components/ui/separator'
-import { problemsApi, type ProblemVersion } from '@/api/admin/problems'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Textarea } from '@/components/ui/textarea'
+import { Skeleton } from '@/components/ui/skeleton'
+import { IconHistory, IconEye, IconRotateClockwise, IconGitCompare, IconX } from '@tabler/icons-vue'
+import {
+  problemsApi,
+  type ProblemVersion,
+  type ProblemVersionDetail,
+  type VersionWithDiff,
+} from '@/api/admin/problems'
+import { formatDate } from '@/lib/format/date'
+
+const { t } = useI18n()
 
 interface Props {
-  problemId: string
   open: boolean
+  problemId: string
 }
 
 const props = defineProps<Props>()
@@ -38,299 +45,441 @@ const emit = defineEmits<{
   restored: []
 }>()
 
-const { t } = useI18n()
-
-const versions = ref<ProblemVersion[]>([])
+// State
 const loading = ref(false)
-const error = ref<string | null>(null)
-const selectedVersion = ref<ProblemVersion | null>(null)
-const restoreDialogOpen = ref(false)
-const restoring = ref(false)
+const versions = ref<ProblemVersion[]>([])
+const pagination = ref({ total: 0, page: 1, limit: 20, totalPages: 0 })
+const selectedVersion = ref<ProblemVersionDetail | null>(null)
+const versionDetailLoading = ref(false)
+const compareMode = ref(false)
+const compareFrom = ref<string | null>(null)
+const compareTo = ref<string | null>(null)
+const diffResult = ref<VersionWithDiff | null>(null)
+const diffLoading = ref(false)
+const rollbackDialogOpen = ref(false)
+const rollbackTarget = ref<ProblemVersion | null>(null)
+const rollbackReason = ref('')
+const rollbackLoading = ref(false)
+const createInitialLoading = ref(false)
 
-const sortedVersions = computed(() => {
-  return [...versions.value].sort((a, b) => {
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  })
+// Computed
+const isOpen = computed({
+  get: () => props.open,
+  set: (value) => emit('update:open', value),
 })
 
+const hasVersions = computed(() => (versions.value?.length ?? 0) > 0)
+
+// Methods
 async function loadVersions() {
   if (!props.problemId) return
 
   loading.value = true
-  error.value = null
-
   try {
-    const response = await problemsApi.getProblemVersions(props.problemId)
-    versions.value = response.versions
-  } catch (err) {
-    console.error('Failed to load versions:', err)
-    error.value = t('problems.versionHistory.loadError')
+    const response = await problemsApi.getProblemVersions(props.problemId, {
+      page: pagination.value.page,
+      limit: pagination.value.limit,
+    })
+    versions.value = response.versions ?? []
+    pagination.value = response.pagination ?? { total: 0, page: 1, limit: 20, totalPages: 0 }
+  } catch (error) {
+    console.error('Failed to load version history:', error)
+    toast.error(t('problems.versionHistory.loadError'))
   } finally {
     loading.value = false
   }
 }
 
-function openRestoreDialog(version: ProblemVersion) {
-  selectedVersion.value = version
-  restoreDialogOpen.value = true
-}
-
-async function confirmRestore() {
-  if (!selectedVersion.value || !props.problemId) return
-
-  restoring.value = true
+async function viewVersionDetail(version: ProblemVersion) {
+  versionDetailLoading.value = true
   try {
-    await problemsApi.rollbackToVersion(props.problemId, selectedVersion.value.id)
-    toast.success(t('problems.versionHistory.restoreSuccess'))
-    restoreDialogOpen.value = false
-    emit('restored')
-    emit('update:open', false)
-  } catch (err) {
-    console.error('Failed to restore version:', err)
-    toast.error(t('problems.versionHistory.restoreError'))
+    const detail = await problemsApi.getProblemVersion(props.problemId, version.id)
+    selectedVersion.value = detail
+  } catch (error) {
+    console.error('Failed to load version detail:', error)
+    toast.error(t('problems.versionHistory.loadDetailError'))
   } finally {
-    restoring.value = false
+    versionDetailLoading.value = false
   }
 }
 
-function getActionLabel(changeType: string) {
-  switch (changeType) {
-    case 'create':
-      return t('problems.versionHistory.actions.created')
-    case 'update':
-      return t('problems.versionHistory.actions.updated')
-    case 'rollback':
-      return t('problems.versionHistory.action.RESTORE')
-    default:
-      return changeType
+function startCompare(versionId: string) {
+  if (!compareFrom.value) {
+    compareFrom.value = versionId
+    compareMode.value = true
+  } else if (compareFrom.value !== versionId) {
+    compareTo.value = versionId
+    executeCompare()
   }
 }
 
-function getActionIcon(changeType: string) {
-  switch (changeType) {
-    case 'create':
-      return IconFileText
-    case 'update':
-      return IconRefresh
-    case 'rollback':
-      return IconRestore
-    default:
-      return IconHistory
+function cancelCompare() {
+  compareMode.value = false
+  compareFrom.value = null
+  compareTo.value = null
+  diffResult.value = null
+}
+
+async function executeCompare() {
+  if (!compareFrom.value || !compareTo.value) return
+
+  diffLoading.value = true
+  try {
+    const diff = await problemsApi.getVersionDiff(
+      props.problemId,
+      compareFrom.value,
+      compareTo.value,
+    )
+    diffResult.value = diff
+  } catch (error) {
+    console.error('Failed to compare versions:', error)
+    toast.error(t('problems.versionHistory.compareError'))
+  } finally {
+    diffLoading.value = false
   }
 }
 
-function formatTimestamp(timestamp: Date | string) {
-  const date = new Date(timestamp)
-  const now = new Date()
-  const diffMs = now.getTime() - date.getTime()
-  const diffMins = Math.floor(diffMs / 60000)
-  const diffHours = Math.floor(diffMs / 3600000)
-  const diffDays = Math.floor(diffMs / 86400000)
-
-  if (diffMins < 1) return t('common.justNow')
-  if (diffMins < 60) return t('common.minutesAgo', { count: diffMins })
-  if (diffHours < 24) return t('common.hoursAgo', { count: diffHours })
-  if (diffDays < 7) return t('common.daysAgo', { count: diffDays })
-
-  return date.toLocaleDateString()
+function confirmRollback(version: ProblemVersion) {
+  rollbackTarget.value = version
+  rollbackReason.value = ''
+  rollbackDialogOpen.value = true
 }
 
-function getChangedFields(version: ProblemVersion): string[] {
-  // New API doesn't store oldValues/newValues directly
-  // Return empty array - the change summary will show what changed
-  if (!version.changeSummary) return []
-  // Extract field names from change summary if possible
-  return []
-}
+async function executeRollback() {
+  if (!rollbackTarget.value) return
 
-onMounted(() => {
-  if (props.open) {
+  rollbackLoading.value = true
+  try {
+    await problemsApi.rollbackToVersion(
+      props.problemId,
+      rollbackTarget.value.id,
+      rollbackReason.value || undefined,
+    )
+    toast.success(
+      t('problems.versionHistory.rollbackSuccess', { version: rollbackTarget.value.versionNumber }),
+    )
+    rollbackDialogOpen.value = false
+    rollbackTarget.value = null
+    rollbackReason.value = ''
     loadVersions()
+    emit('restored')
+  } catch (error) {
+    console.error('Failed to rollback:', error)
+    toast.error(t('problems.versionHistory.rollbackError'))
+  } finally {
+    rollbackLoading.value = false
   }
-})
-
-function handleClose() {
-  emit('update:open', false)
 }
+
+async function createInitialSnapshot() {
+  createInitialLoading.value = true
+  try {
+    const result = await problemsApi.createInitialVersion(props.problemId)
+    if (result.success) {
+      toast.success(t('problems.versionHistory.createInitialSuccess'))
+      loadVersions()
+      emit('restored')
+    } else {
+      toast.info(t('problems.versionHistory.alreadyHasVersions'))
+    }
+  } catch (error) {
+    console.error('Failed to create initial version:', error)
+    toast.error(t('problems.versionHistory.createInitialError'))
+  } finally {
+    createInitialLoading.value = false
+  }
+}
+
+function getChangeTypeStyle(type: string): { bg: string; border: string; text: string } {
+  const defaultStyle = {
+    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
+    border: 'border-[oklch(0.75_0.15_85/0.4)]',
+    text: 'text-[var(--terminal-amber)]',
+  }
+  const styles: Record<string, { bg: string; border: string; text: string }> = {
+    create: {
+      bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
+      border: 'border-[oklch(0.7_0.15_145/0.4)]',
+      text: 'text-[var(--terminal-green)]',
+    },
+    update: defaultStyle,
+    rollback: {
+      bg: 'bg-[oklch(0.65_0.2_250/0.15)]',
+      border: 'border-[oklch(0.65_0.2_250/0.4)]',
+      text: 'text-[var(--accent-electric)]',
+    },
+  }
+  return styles[type] ?? defaultStyle
+}
+
+function formatFieldName(field: string): string {
+  return field.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase())
+}
+
+// Watch
+watch(
+  () => props.open,
+  (open) => {
+    if (open) {
+      loadVersions()
+    } else {
+      // Reset state when dialog closes
+      selectedVersion.value = null
+      cancelCompare()
+    }
+  },
+)
 </script>
 
 <template>
-  <Dialog :open="open" @update:open="handleClose">
-    <DialogContent class="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col">
+  <Dialog v-model:open="isOpen">
+    <DialogContent class="sm:max-w-2xl max-h-[85vh] overflow-hidden flex flex-col">
       <DialogHeader>
-        <div class="flex items-center gap-2">
-          <IconHistory class="h-5 w-5 text-muted-foreground" />
-          <DialogTitle>{{ t('problems.versionHistory.title') }}</DialogTitle>
-        </div>
+        <DialogTitle class="flex items-center gap-2">
+          <IconHistory class="h-5 w-5" />
+          {{ t('problems.versionHistory.title') }}
+        </DialogTitle>
         <DialogDescription>
           {{ t('problems.versionHistory.description') }}
         </DialogDescription>
       </DialogHeader>
 
-      <!-- Content -->
       <div class="flex-1 overflow-y-auto -mx-6 px-6">
-        <!-- Loading State -->
-        <div v-if="loading" class="space-y-4 py-4">
-          <div v-for="i in 3" :key="i" class="space-y-2">
-            <Skeleton class="h-4 w-32" />
-            <Skeleton class="h-16 w-full" />
+        <!-- Compare Mode Banner -->
+        <div
+          v-if="compareMode"
+          class="mb-4 p-3 rounded-lg border border-[var(--accent-electric)] bg-[oklch(0.65_0.2_250/0.1)]"
+        >
+          <div class="flex items-center justify-between">
+            <span class="text-sm text-[var(--accent-electric)]">
+              {{ t('problems.versionHistory.compareWith') }}: Version {{ compareFrom }}
+            </span>
+            <Button variant="ghost" size="sm" @click="cancelCompare">
+              <IconX class="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
-        <!-- Error State -->
-        <div v-else-if="error" class="flex flex-col items-center justify-center py-12 text-center">
-          <IconX class="h-10 w-10 text-destructive mb-3" />
-          <p class="text-sm text-muted-foreground mb-4">{{ error }}</p>
-          <Button variant="outline" size="sm" @click="loadVersions">
-            <IconRefresh class="mr-2 h-4 w-4" />
-            {{ t('common.retry') }}
-          </Button>
+        <!-- Loading State -->
+        <div v-if="loading" class="space-y-3">
+          <Skeleton v-for="i in 5" :key="i" class="h-16 w-full rounded-lg" />
         </div>
 
         <!-- Empty State -->
         <div
-          v-else-if="sortedVersions.length === 0"
+          v-else-if="!hasVersions"
           class="flex flex-col items-center justify-center py-12 text-center"
         >
-          <IconHistory class="h-10 w-10 text-muted-foreground mb-3" />
-          <p class="text-sm text-muted-foreground">
+          <div class="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+            <IconHistory class="h-6 w-6 text-muted-foreground" />
+          </div>
+          <p class="text-sm text-muted-foreground mb-4">
             {{ t('problems.versionHistory.noVersions') }}
           </p>
+          <Button
+            variant="outline"
+            size="sm"
+            :disabled="createInitialLoading"
+            @click="createInitialSnapshot"
+          >
+            <IconRotateClockwise class="h-4 w-4 mr-2" />
+            {{
+              createInitialLoading
+                ? t('common.loading')
+                : t('problems.versionHistory.createInitial')
+            }}
+          </Button>
         </div>
 
         <!-- Version List -->
-        <div v-else class="py-4 space-y-4">
+        <div v-else class="space-y-2">
           <div
-            v-for="(version, index) in sortedVersions"
+            v-for="version in versions"
             :key="version.id"
-            class="relative pl-6 pb-4"
-            :class="{ 'pb-0': index === sortedVersions.length - 1 }"
+            class="group p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+            :class="{
+              'border-[var(--accent-electric)]': compareFrom === version.id,
+            }"
           >
-            <!-- Timeline Line -->
-            <div
-              v-if="index !== sortedVersions.length - 1"
-              class="absolute left-[7px] top-8 bottom-0 w-0.5 bg-border"
-            />
-
-            <!-- Timeline Dot -->
-            <div class="absolute left-0 top-1.5">
-              <div
-                class="h-4 w-4 rounded-full border-2 border-primary bg-background flex items-center justify-center"
-              >
-                <component
-                  :is="getActionIcon(version.changeType)"
-                  class="h-2.5 w-2.5 text-primary"
-                />
-              </div>
-            </div>
-
-            <!-- Version Content -->
-            <div class="space-y-2">
-              <!-- Header -->
-              <div class="flex items-start justify-between gap-2">
+            <div class="flex items-start justify-between gap-4">
+              <div class="flex items-start gap-3">
+                <!-- Version Number -->
                 <div class="flex items-center gap-2">
-                  <Badge variant="outline" class="text-xs">
-                    {{ getActionLabel(version.changeType) }}
+                  <Badge variant="outline" class="font-mono text-xs">
+                    v{{ version.versionNumber }}
                   </Badge>
-                  <div class="flex items-center gap-1 text-xs text-muted-foreground">
-                    <IconClock class="h-3 w-3" />
-                    <span>{{ formatTimestamp(version.createdAt) }}</span>
-                  </div>
+                  <Badge
+                    variant="outline"
+                    :class="[
+                      'font-data text-[10px] uppercase',
+                      getChangeTypeStyle(version.changeType).bg,
+                      getChangeTypeStyle(version.changeType).border,
+                      getChangeTypeStyle(version.changeType).text,
+                    ]"
+                  >
+                    {{
+                      t(
+                        `problems.versionHistory.action.${version.changeType.toUpperCase()}`,
+                        version.changeType,
+                      )
+                    }}
+                  </Badge>
                 </div>
 
+                <!-- Version Info -->
+                <div class="flex-1 min-w-0">
+                  <p v-if="version.changeSummary" class="text-sm truncate">
+                    {{ version.changeSummary }}
+                  </p>
+                  <p class="text-xs text-muted-foreground mt-1">
+                    {{ formatDate(version.createdAt) }}
+                    <span v-if="version.createdBy">
+                      {{ t('problems.versionHistory.by') }} {{ version.createdBy }}
+                    </span>
+                  </p>
+                </div>
+              </div>
+
+              <!-- Actions -->
+              <div
+                class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              >
                 <Button
-                  v-if="version.changeType !== 'create'"
                   variant="ghost"
-                  size="sm"
-                  class="h-7 text-xs"
-                  @click="openRestoreDialog(version)"
+                  size="icon"
+                  class="h-8 w-8"
+                  @click="viewVersionDetail(version)"
                 >
-                  <IconRestore class="mr-1 h-3 w-3" />
-                  {{ t('problems.versionHistory.restore') }}
+                  <IconEye class="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-8 w-8"
+                  :class="{ 'text-[var(--accent-electric)]': compareFrom === version.id }"
+                  @click="startCompare(version.id)"
+                >
+                  <IconGitCompare class="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="h-8 w-8 text-[var(--terminal-amber)]"
+                  @click="confirmRollback(version)"
+                >
+                  <IconRotateClockwise class="h-4 w-4" />
                 </Button>
               </div>
+            </div>
+          </div>
+        </div>
 
-              <!-- Performer -->
-              <div class="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <IconUser class="h-3 w-3" />
-                <span>{{ version.createdBy || t('common.unknown') }}</span>
-              </div>
+        <!-- Version Detail Panel -->
+        <div v-if="selectedVersion" class="mt-4 p-4 rounded-lg border bg-muted/30">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-medium text-sm">
+              {{ t('problems.versionHistory.versionDetails') }} - v{{
+                selectedVersion.versionNumber
+              }}
+            </h4>
+            <Button variant="ghost" size="sm" @click="selectedVersion = null">
+              <IconX class="h-4 w-4" />
+            </Button>
+          </div>
+          <div class="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span class="text-muted-foreground">Title:</span>
+              <span class="ml-2">{{ selectedVersion.title }}</span>
+            </div>
+            <div>
+              <span class="text-muted-foreground">Slug:</span>
+              <span class="ml-2 font-mono">{{ selectedVersion.slug }}</span>
+            </div>
+            <div>
+              <span class="text-muted-foreground">Difficulty:</span>
+              <span class="ml-2">{{ selectedVersion.difficulty }}</span>
+            </div>
+            <div>
+              <span class="text-muted-foreground">Premium:</span>
+              <span class="ml-2">{{ selectedVersion.isPremium ? 'Yes' : 'No' }}</span>
+            </div>
+          </div>
+        </div>
 
-              <!-- Changed Fields -->
-              <div v-if="version.changeType !== 'create'" class="space-y-1.5">
-                <div class="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                  <IconArrowRight class="h-3 w-3" />
-                  <span>{{ t('problems.versionHistory.changedFields') }}</span>
-                </div>
-                <div class="flex flex-wrap gap-1">
-                  <Badge
-                    v-for="field in getChangedFields(version)"
-                    :key="field"
-                    variant="secondary"
-                    class="text-xs"
+        <!-- Diff Result Panel -->
+        <div v-if="diffResult" class="mt-4 p-4 rounded-lg border bg-muted/30">
+          <div class="flex items-center justify-between mb-3">
+            <h4 class="font-medium text-sm">
+              {{ t('problems.versionHistory.compareVersions') }}
+            </h4>
+            <Button variant="ghost" size="sm" @click="diffResult = null">
+              <IconX class="h-4 w-4" />
+            </Button>
+          </div>
+
+          <div v-if="diffResult.diffs.length === 0" class="text-sm text-muted-foreground">
+            {{ t('problems.versionHistory.noChanges') }}
+          </div>
+
+          <div v-else class="space-y-2">
+            <div
+              v-for="(diff, index) in diffResult.diffs"
+              :key="index"
+              class="p-3 rounded border bg-card"
+            >
+              <p class="font-medium text-sm mb-2">{{ formatFieldName(diff.field) }}</p>
+              <div class="grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p class="text-muted-foreground mb-1">
+                    {{ t('problems.versionHistory.oldValue') }}:
+                  </p>
+                  <pre
+                    class="p-2 rounded bg-red-50 dark:bg-red-950/30 text-red-600 dark:text-red-400 overflow-x-auto"
+                    >{{ JSON.stringify(diff.oldValue, null, 2) }}</pre
                   >
-                    {{ field }}
-                  </Badge>
-                  <span
-                    v-if="getChangedFields(version).length === 0"
-                    class="text-xs text-muted-foreground"
+                </div>
+                <div>
+                  <p class="text-muted-foreground mb-1">
+                    {{ t('problems.versionHistory.newValue') }}:
+                  </p>
+                  <pre
+                    class="p-2 rounded bg-green-50 dark:bg-green-950/30 text-green-600 dark:text-green-400 overflow-x-auto"
+                    >{{ JSON.stringify(diff.newValue, null, 2) }}</pre
                   >
-                    {{ t('problems.versionHistory.noChanges') }}
-                  </span>
                 </div>
               </div>
-
-              <!-- Separator -->
-              <Separator v-if="index !== sortedVersions.length - 1" class="my-4" />
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Footer -->
-      <DialogFooter class="border-t pt-4">
-        <Button variant="outline" @click="handleClose">
-          {{ t('common.close') }}
-        </Button>
-      </DialogFooter>
     </DialogContent>
-
-    <!-- Restore Confirmation Dialog -->
-    <Dialog v-model:open="restoreDialogOpen">
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{{ t('problems.versionHistory.restoreConfirmTitle') }}</DialogTitle>
-          <DialogDescription>
-            {{ t('problems.versionHistory.restoreConfirmDescription') }}
-          </DialogDescription>
-        </DialogHeader>
-
-        <div v-if="selectedVersion" class="space-y-2 py-4">
-          <div class="flex items-center gap-2 text-sm">
-            <IconClock class="h-4 w-4 text-muted-foreground" />
-            <span class="text-muted-foreground">{{
-              formatTimestamp(selectedVersion.createdAt)
-            }}</span>
-          </div>
-          <div class="flex items-center gap-2 text-sm">
-            <IconUser class="h-4 w-4 text-muted-foreground" />
-            <span class="text-muted-foreground">{{
-              selectedVersion.createdBy || t('common.unknown')
-            }}</span>
-          </div>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" @click="restoreDialogOpen = false">
-            {{ t('common.cancel') }}
-          </Button>
-          <Button variant="destructive" :disabled="restoring" @click="confirmRestore">
-            <IconLoader v-if="restoring" class="mr-2 h-4 w-4 animate-spin" />
-            <IconRestore v-else class="mr-2 h-4 w-4" />
-            {{ t('problems.versionHistory.restore') }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
   </Dialog>
+
+  <!-- Rollback Confirmation Dialog -->
+  <AlertDialog v-model:open="rollbackDialogOpen">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle>{{ t('problems.versionHistory.rollbackTitle') }}</AlertDialogTitle>
+        <AlertDialogDescription>
+          {{
+            t('problems.versionHistory.rollbackConfirm', { version: rollbackTarget?.versionNumber })
+          }}
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <div class="py-4">
+        <Textarea
+          v-model="rollbackReason"
+          :placeholder="t('problems.versionHistory.rollbackReasonPlaceholder')"
+          rows="3"
+        />
+      </div>
+      <AlertDialogFooter>
+        <AlertDialogCancel>{{ t('common.cancel') }}</AlertDialogCancel>
+        <AlertDialogAction :disabled="rollbackLoading" @click="executeRollback">
+          <IconRotateClockwise class="h-4 w-4 mr-2" />
+          {{ t('problems.versionHistory.rollbackButton') }}
+        </AlertDialogAction>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>

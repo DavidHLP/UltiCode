@@ -1,0 +1,304 @@
+<script setup lang="ts">
+import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import {
+  IconCheck,
+  IconX,
+  IconTrash,
+  IconEyeOff,
+  IconAlertCircle,
+  IconClock,
+  IconBan,
+  IconRefresh,
+  IconScale,
+  IconAlertTriangle,
+} from '@tabler/icons-vue'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Textarea } from '@/components/ui/textarea'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  ModerationActionType,
+  type ModerationQueueItem,
+} from '@/api/admin/moderation'
+
+interface Props {
+  item: ModerationQueueItem
+  loading?: boolean
+}
+
+const props = defineProps<Props>()
+const emit = defineEmits<{
+  performAction: [action: ModerationActionType, note?: string, durationDays?: number]
+}>()
+
+const { t } = useI18n()
+
+const selectedAction = ref<ModerationActionType>(ModerationActionType.RESOLVED)
+const note = ref('')
+const durationDays = ref<number | undefined>(undefined)
+
+// Reset form when item changes
+watch(
+  () => props.item?.id,
+  () => {
+    selectedAction.value = ModerationActionType.RESOLVED
+    note.value = ''
+    durationDays.value = undefined
+  },
+)
+
+const actionOptions = computed(() => [
+  {
+    value: ModerationActionType.DISMISSED,
+    label: t('moderation.actions.DISMISSED'),
+    description: t('moderation.actionDescriptions.DISMISSED'),
+    icon: IconX,
+    color: 'text-[var(--terminal-red)]',
+    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
+    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.RESOLVED,
+    label: t('moderation.actions.RESOLVED'),
+    description: t('moderation.actionDescriptions.RESOLVED'),
+    icon: IconCheck,
+    color: 'text-[var(--terminal-green)]',
+    bgColor: 'bg-[oklch(0.7_0.15_145/0.15)]',
+    borderColor: 'border-[oklch(0.7_0.15_145/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.DELETED,
+    label: t('moderation.actions.DELETED'),
+    description: t('moderation.actionDescriptions.DELETED'),
+    icon: IconTrash,
+    color: 'text-[var(--terminal-red)]',
+    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
+    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.HIDDEN,
+    label: t('moderation.actions.HIDDEN'),
+    description: t('moderation.actionDescriptions.HIDDEN'),
+    icon: IconEyeOff,
+    color: 'text-[var(--terminal-amber)]',
+    bgColor: 'bg-[oklch(0.75_0.15_85/0.15)]',
+    borderColor: 'border-[oklch(0.75_0.15_85/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.RESTORED,
+    label: t('moderation.actions.RESTORED'),
+    description: t('moderation.actionDescriptions.RESTORED'),
+    icon: IconRefresh,
+    color: 'text-[var(--terminal-green)]',
+    bgColor: 'bg-[oklch(0.7_0.15_145/0.15)]',
+    borderColor: 'border-[oklch(0.7_0.15_145/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.WARNED,
+    label: t('moderation.actions.WARNED'),
+    description: t('moderation.actionDescriptions.WARNED'),
+    icon: IconAlertCircle,
+    color: 'text-[var(--terminal-amber)]',
+    bgColor: 'bg-[oklch(0.75_0.15_85/0.15)]',
+    borderColor: 'border-[oklch(0.75_0.15_85/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.TEMP_BANNED,
+    label: t('moderation.actions.TEMP_BANNED'),
+    description: t('moderation.actionDescriptions.TEMP_BANNED'),
+    icon: IconClock,
+    color: 'text-[var(--terminal-amber)]',
+    bgColor: 'bg-[oklch(0.75_0.15_85/0.15)]',
+    borderColor: 'border-[oklch(0.75_0.15_85/0.4)]',
+    requiresDuration: true,
+  },
+  {
+    value: ModerationActionType.PERM_BANNED,
+    label: t('moderation.actions.PERM_BANNED'),
+    description: t('moderation.actionDescriptions.PERM_BANNED'),
+    icon: IconBan,
+    color: 'text-[var(--terminal-red)]',
+    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
+    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.APPEAL_PENDING,
+    label: t('moderation.actions.APPEAL_PENDING'),
+    description: t('moderation.actionDescriptions.APPEAL_PENDING'),
+    icon: IconScale,
+    color: 'text-[var(--terminal-purple)]',
+    bgColor: 'bg-[oklch(0.7_0.12_280/0.15)]',
+    borderColor: 'border-[oklch(0.7_0.12_280/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.APPEAL_APPROVED,
+    label: t('moderation.actions.APPEAL_APPROVED'),
+    description: t('moderation.actionDescriptions.APPEAL_APPROVED'),
+    icon: IconCheck,
+    color: 'text-[var(--terminal-green)]',
+    bgColor: 'bg-[oklch(0.7_0.15_145/0.15)]',
+    borderColor: 'border-[oklch(0.7_0.15_145/0.4)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.APPEAL_REJECTED,
+    label: t('moderation.actions.APPEAL_REJECTED'),
+    description: t('moderation.actionDescriptions.APPEAL_REJECTED'),
+    icon: IconX,
+    color: 'text-[var(--terminal-red)]',
+    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
+    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    requiresDuration: false,
+  },
+])
+
+const selectedOption = computed(() =>
+  actionOptions.value.find((opt) => opt.value === selectedAction.value),
+)
+
+const canSubmit = computed(() => {
+  if (selectedOption.value?.requiresDuration && !durationDays.value) {
+    return false
+  }
+  return true
+})
+
+function handleSubmit() {
+  if (!canSubmit.value || props.loading) return
+  emit(
+    'performAction',
+    selectedAction.value,
+    note.value || undefined,
+    durationDays.value,
+  )
+}
+</script>
+
+<template>
+  <Card class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+    <CardHeader class="pb-3">
+      <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
+        <IconAlertCircle class="h-4 w-4 text-[var(--terminal-amber)]" />
+        <span class="text-[var(--silver-500)]">{{ t('moderation.actionPanel.title') }}</span>
+      </CardTitle>
+    </CardHeader>
+    <CardContent class="space-y-4">
+      <!-- Action Selection -->
+      <div class="space-y-2">
+        <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+          {{ t('moderation.actionPanel.selectAction') }}
+        </Label>
+        <div class="grid grid-cols-2 gap-2">
+          <button
+            v-for="option in actionOptions"
+            :key="option.value"
+            :class="[
+              'flex items-center gap-2 p-2 border text-left transition-all',
+              'hover:border-current hover:bg-current/5',
+              selectedAction === option.value
+                ? [option.borderColor, option.bgColor, 'border-2']
+                : 'border-[var(--silver-300)]',
+            ]"
+            @click="selectedAction = option.value"
+          >
+            <component :is="option.icon" :class="['h-4 w-4 flex-shrink-0', option.color]" />
+            <span :class="['text-xs font-data', option.color]">
+              {{ option.label }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Selected Action Description -->
+      <div
+        v-if="selectedOption"
+        :class="[
+          'p-3 border',
+          selectedOption.borderColor,
+          selectedOption.bgColor,
+        ]"
+      >
+        <p class="text-xs text-[var(--foreground)]">
+          {{ selectedOption.description }}
+        </p>
+      </div>
+
+      <!-- Duration (for temporary bans) -->
+      <div v-if="selectedOption?.requiresDuration" class="space-y-2">
+        <Label
+          for="duration-days"
+          class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+        >
+          {{ t('moderation.actionPanel.durationLabel') }}
+        </Label>
+        <div class="flex items-center gap-2">
+          <Input
+            id="duration-days"
+            v-model.number="durationDays"
+            type="number"
+            min="1"
+            max="365"
+            :placeholder="t('moderation.actionPanel.durationPlaceholder')"
+            class="font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent"
+          />
+          <span class="text-xs text-[var(--silver-500)]">days</span>
+        </div>
+      </div>
+
+      <!-- Note -->
+      <div class="space-y-2">
+        <Label
+          for="action-note"
+          class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+        >
+          {{ t('moderation.actionPanel.addNote') }}
+        </Label>
+        <Textarea
+          id="action-note"
+          v-model="note"
+          :placeholder="t('moderation.actionPanel.notePlaceholder')"
+          rows="3"
+          class="font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]"
+        />
+      </div>
+
+      <!-- Warning -->
+      <div
+        class="flex items-start gap-2 p-3 border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)]"
+      >
+        <IconAlertTriangle class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5" />
+        <p class="text-xs text-[var(--terminal-amber)]">
+          {{ t('moderation.actionPanel.warning') }}
+        </p>
+      </div>
+
+      <!-- Submit Button -->
+      <Button
+        :class="[
+          'w-full h-10 font-data text-xs uppercase tracking-wider',
+          selectedOption?.borderColor,
+          selectedOption?.color,
+          selectedOption?.bgColor,
+          'hover:brightness-110',
+        ]"
+        :disabled="!canSubmit || loading"
+        @click="handleSubmit"
+      >
+        <IconCheck v-if="!loading" class="h-4 w-4 mr-2" />
+        <IconAlertCircle v-else class="h-4 w-4 mr-2 animate-pulse" />
+        {{ loading ? t('moderation.actionPanel.confirming') : t('moderation.actionPanel.confirmAction') }}
+      </Button>
+    </CardContent>
+  </Card>
+</template>

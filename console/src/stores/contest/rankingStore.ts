@@ -52,7 +52,8 @@ export const useRankingStore = defineStore("ranking", () => {
       const result = await getRanking(slug, options);
       rankings.value = result.items;
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load ranking";
+      error.value =
+        err instanceof Error ? err.message : "Failed to load ranking";
       throw err;
     } finally {
       loading.value = false;

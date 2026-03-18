@@ -6,7 +6,12 @@ import {
   UseGuards,
   NotFoundException,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiBearerAuth, ApiQuery } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiBearerAuth,
+  ApiQuery,
+} from '@nestjs/swagger';
 import { AntiCheatService } from './anticheat.service';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
@@ -81,16 +86,22 @@ export class AntiCheatController {
   ) {
     const parsedMinTime = minTime ? parseInt(minTime, 10) : undefined;
 
-    if (parsedMinTime !== undefined && (isNaN(parsedMinTime) || parsedMinTime < 0)) {
+    if (
+      parsedMinTime !== undefined &&
+      (isNaN(parsedMinTime) || parsedMinTime < 0)
+    ) {
       return {
         error: 'Invalid minTime. Must be a positive number.',
         time_anomalies: [],
       };
     }
 
-    const timeAnomalies = await this.antiCheatService.checkTimeAnomaly(contestId, {
-      minTime: parsedMinTime,
-    });
+    const timeAnomalies = await this.antiCheatService.checkTimeAnomaly(
+      contestId,
+      {
+        minTime: parsedMinTime,
+      },
+    );
 
     return {
       contest_id: contestId,

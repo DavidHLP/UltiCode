@@ -97,14 +97,38 @@ describe("useContestSocket", () => {
       connect();
 
       // Check that event listeners are registered
-      expect(mockSocket.on).toHaveBeenCalledWith("connect", expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith("disconnect", expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith("connect_error", expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith("ranking_update", expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith("first_solve", expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith("announcement", expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith("contest_status", expect.any(Function));
-      expect(mockSocket.on).toHaveBeenCalledWith("submission_result", expect.any(Function));
+      expect(mockSocket.on).toHaveBeenCalledWith(
+        "connect",
+        expect.any(Function),
+      );
+      expect(mockSocket.on).toHaveBeenCalledWith(
+        "disconnect",
+        expect.any(Function),
+      );
+      expect(mockSocket.on).toHaveBeenCalledWith(
+        "connect_error",
+        expect.any(Function),
+      );
+      expect(mockSocket.on).toHaveBeenCalledWith(
+        "ranking_update",
+        expect.any(Function),
+      );
+      expect(mockSocket.on).toHaveBeenCalledWith(
+        "first_solve",
+        expect.any(Function),
+      );
+      expect(mockSocket.on).toHaveBeenCalledWith(
+        "announcement",
+        expect.any(Function),
+      );
+      expect(mockSocket.on).toHaveBeenCalledWith(
+        "contest_status",
+        expect.any(Function),
+      );
+      expect(mockSocket.on).toHaveBeenCalledWith(
+        "submission_result",
+        expect.any(Function),
+      );
     });
 
     it("should disconnect socket on disconnect call", () => {

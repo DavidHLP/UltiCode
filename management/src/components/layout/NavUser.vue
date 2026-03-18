@@ -67,6 +67,7 @@ async function handleLogout() {
         <DropdownMenuTrigger as-child>
           <SidebarMenuButton
             size="lg"
+            tooltip="User Menu"
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
             <Avatar class="h-8 w-8 grayscale">

@@ -93,6 +93,7 @@ export interface DescriptionData {
   title: string
   slug: string
   difficulty: string
+  status: string
   is_premium: boolean
   is_published: boolean
   detail?: {
@@ -398,6 +399,13 @@ export const problemsApi = {
     const response = await apiPost<{ success: boolean; message: string }>(
       `/admin/problems/${id}/versions/${versionId}/rollback`,
       { reason },
+    )
+    return response
+  },
+
+  async createInitialVersion(id: string): Promise<{ success: boolean; message: string }> {
+    const response = await apiPost<{ success: boolean; message: string }>(
+      `/admin/problems/${id}/versions/create-initial`,
     )
     return response
   },

@@ -1,18 +1,19 @@
-import type enUS from './locales/en-US'
+import type zhCN from './locales/zh-CN'
 
-export type MessageSchema = typeof enUS
+// Type for the message schema based on zh-CN locale
+export type MessageSchema = typeof zhCN
 
+// Supported locales
 export const SUPPORTED_LOCALES = ['zh-CN', 'en-US'] as const
 export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
 
-export const DEFAULT_LOCALE: SupportedLocale = 'zh-CN'
-export const FALLBACK_LOCALE: SupportedLocale = 'zh-CN'
-
+// Locale configuration
 export interface LocaleConfig {
   code: SupportedLocale
   name: string
   nativeName: string
   dir: 'ltr' | 'rtl'
+  flag?: string
 }
 
 export const LOCALE_CONFIGS: Record<SupportedLocale, LocaleConfig> = {
@@ -21,11 +22,34 @@ export const LOCALE_CONFIGS: Record<SupportedLocale, LocaleConfig> = {
     name: 'Chinese (Simplified)',
     nativeName: '简体中文',
     dir: 'ltr',
+    flag: '🇨🇳',
   },
   'en-US': {
     code: 'en-US',
     name: 'English (US)',
     nativeName: 'English',
     dir: 'ltr',
+    flag: '🇺🇸',
   },
 }
+
+// Default and fallback locale
+export const DEFAULT_LOCALE: SupportedLocale = 'zh-CN'
+export const FALLBACK_LOCALE: SupportedLocale = 'zh-CN'
+export const LOCALE_HEADER_KEY = 'x-locale'
+
+// i18n utility types
+export type TranslationKey = keyof MessageSchema
+export type NestedKey<T, K extends string> = K extends `${infer First}.${infer Rest}`
+  ? First extends keyof T
+    ? NestedKey<T[First], Rest>
+    : never
+  : K extends keyof T
+    ? T[K]
+    : never
+
+// Type-safe translation function
+export type TranslateFn = <K extends string>(
+  key: K,
+  ...args: unknown[]
+) => NestedKey<MessageSchema, K> extends string ? string : never

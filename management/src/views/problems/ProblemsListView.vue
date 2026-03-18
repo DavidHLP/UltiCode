@@ -60,6 +60,7 @@ import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import ProblemImportDialog from '@/components/problems/ProblemImportDialog.vue'
 import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
 import BulkEditDialog from '@/components/problems/BulkEditDialog.vue'
+import FlagInfoDialog from '@/components/problems/FlagInfoDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
 import { getDifficultyBadgeVariant, getDifficultyColor } from '@/lib/entities/problem'
 
@@ -83,6 +84,11 @@ const sortOrder = ref<'asc' | 'desc'>((route.query.sortOrder as 'asc' | 'desc') 
 const selectedProblemId = ref<string | null>(null)
 const selectedProblemTitle = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
+const flagDialogOpen = ref(false)
+const selectedProblemForFlag = ref<string | null>(null)
+const selectedProblemForFlagTitle = ref<string | null>(null)
+const flagInfoDialogOpen = ref(false)
+const selectedProblemForFlagInfo = ref<Problem | null>(null)
 const importing = ref(false)
 const importDialogOpen = ref(false)
 const selectedRows = ref<Problem[]>([])
@@ -166,10 +172,10 @@ const {
     error: computed(() => problemsStore.error),
     fetch: (params) => problemsStore.fetchProblems(params),
   },
-  filters: {
+  filters: () => ({
     sortBy: sortBy.value,
     sortOrder: sortOrder.value,
-  },
+  }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     difficulty:
@@ -271,27 +277,15 @@ watch(
 )
 
 function viewProblem(id: string) {
-  router.push({ name: 'problem-view-description', params: { id } })
+  router.push({ name: 'problem-detail', params: { id } })
 }
 
 function viewProblemCode(id: string) {
-  router.push({ name: 'problem-view-code', params: { id } })
+  router.push({ name: 'problem-detail', params: { id, tab: 'code' } })
 }
 
 function viewProblemCases(id: string) {
-  router.push({ name: 'problem-view-cases', params: { id } })
-}
-
-function editProblem(id: string) {
-  router.push({ name: 'problem-edit-description', params: { id } })
-}
-
-function editProblemCode(id: string) {
-  router.push({ name: 'problem-edit-code', params: { id } })
-}
-
-function editProblemCases(id: string) {
-  router.push({ name: 'problem-edit-cases', params: { id } })
+  router.push({ name: 'problem-detail', params: { id, tab: 'cases' } })
 }
 
 function confirmDelete(problem: Problem) {
@@ -403,16 +397,26 @@ async function unpublishProblem(id: string) {
   }
 }
 
-async function flagProblem(id: string) {
+function openFlagDialog(problem: Problem) {
+  selectedProblemForFlag.value = problem.id
+  selectedProblemForFlagTitle.value = problem.title
+  flagDialogOpen.value = true
+}
+
+function viewFlagInfo(problem: Problem) {
+  selectedProblemForFlagInfo.value = problem
+  flagInfoDialogOpen.value = true
+}
+
+async function handleFlagProblem(id: string | number, reason?: string) {
   try {
-    const reason = prompt(t('moderation.reasonPrompt'))
-    if (!reason) return
-    await problemsApi.flagProblem(id, reason)
+    await problemsApi.flagProblem(String(id), reason || '')
     toast.success(t('moderation.flagSuccess'))
     await loadProblems()
   } catch (error) {
     const ctx = getErrorContext(error, t('problems.actions.flag'))
     toast.error(ctx.message, { description: ctx.suggestion })
+    throw error
   }
 }
 
@@ -651,19 +655,45 @@ const columns: ColumnDef<Problem>[] = [
     accessorKey: 'is_flagged',
     header: () => t('problems.columns.flagged'),
     cell: ({ row }) => {
-      const isFlagged = row.original.is_flagged
+      const problem = row.original
+      const isFlagged = problem.is_flagged
       if (!isFlagged) {
-        return h('span', { class: 'text-muted-foreground text-sm' }, '—')
+        return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '—')
       }
+
+      const flagStatus: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED' =
+        problem.flag_status || 'PENDING'
+
+      const statusColors: Record<'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED', string> = {
+        PENDING: 'text-[var(--terminal-red)]',
+        REVIEWED: 'text-[var(--terminal-amber)]',
+        RESOLVED: 'text-[var(--terminal-green)]',
+        DISMISSED: 'text-[var(--silver-500)]',
+      }
+
+      const colorClass = statusColors[flagStatus] ?? statusColors.PENDING
+      const statusKey = `moderation.status${flagStatus.charAt(0).toUpperCase() + flagStatus.slice(1).toLowerCase()}`
+
       return h(
-        Badge,
-        { variant: 'destructive', class: 'gap-1' },
+        'div',
         {
-          default: () => [
-            h(IconAlertTriangle, { class: 'h-3 w-3' }),
-            t('moderation.statusPending'),
-          ],
+          class: 'flex items-center gap-1',
+          title: `${t(statusKey)}${problem.flag_reason ? `: ${problem.flag_reason}` : ''}`,
         },
+        [
+          h(IconFlag, {
+            class: [
+              'h-4 w-4',
+              colorClass,
+              flagStatus === 'PENDING' ? 'animate-pulse-subtle' : '',
+            ].join(' '),
+          }),
+          h(
+            'span',
+            { class: ['font-data text-[10px] uppercase', colorClass].join(' ') },
+            t(statusKey).slice(0, 3),
+          ),
+        ],
       )
     },
   },
@@ -793,74 +823,28 @@ const columns: ColumnDef<Problem>[] = [
                                     ]),
                                 },
                               ),
+                              // Flag Info - only show when problem is flagged
+                              problem.is_flagged
+                                ? h(
+                                    DropdownMenuItem,
+                                    { onClick: () => viewFlagInfo(problem) },
+                                    {
+                                      default: () =>
+                                        h('div', { class: 'flex items-center gap-2' }, [
+                                          h(IconAlertTriangle, {
+                                            class: 'h-4 w-4 text-[var(--terminal-amber)]',
+                                          }),
+                                          t('problems.actions.viewFlagInfo'),
+                                        ]),
+                                    },
+                                  )
+                                : null,
                             ],
                           },
                         ),
                       ],
                     },
                   ),
-                  // Edit Sub-menu
-                  canUpdateProblem.value
-                    ? h(
-                        DropdownMenuSub,
-                        {},
-                        {
-                          default: () => [
-                            h(
-                              DropdownMenuSubTrigger,
-                              { class: 'gap-2' },
-                              {
-                                default: () => [
-                                  h(IconPencil, { class: 'h-4 w-4' }),
-                                  t('common.edit'),
-                                ],
-                              },
-                            ),
-                            h(
-                              DropdownMenuSubContent,
-                              {},
-                              {
-                                default: () => [
-                                  h(
-                                    DropdownMenuItem,
-                                    { onClick: () => editProblem(problem.id) },
-                                    {
-                                      default: () =>
-                                        h('div', { class: 'flex items-center gap-2' }, [
-                                          h(IconFile, { class: 'h-4 w-4' }),
-                                          t('problems.tabs.description'),
-                                        ]),
-                                    },
-                                  ),
-                                  h(
-                                    DropdownMenuItem,
-                                    { onClick: () => editProblemCode(problem.id) },
-                                    {
-                                      default: () =>
-                                        h('div', { class: 'flex items-center gap-2' }, [
-                                          h(IconBrackets, { class: 'h-4 w-4' }),
-                                          t('problems.tabs.code'),
-                                        ]),
-                                    },
-                                  ),
-                                  h(
-                                    DropdownMenuItem,
-                                    { onClick: () => editProblemCases(problem.id) },
-                                    {
-                                      default: () =>
-                                        h('div', { class: 'flex items-center gap-2' }, [
-                                          h(IconFlask, { class: 'h-4 w-4' }),
-                                          t('problems.tabs.testCases'),
-                                        ]),
-                                    },
-                                  ),
-                                ],
-                              },
-                            ),
-                          ],
-                        },
-                      )
-                    : null,
                   h(DropdownMenuSeparator, {}),
                   // Flag/Unflag action
                   canUpdateProblem.value
@@ -870,7 +854,7 @@ const columns: ColumnDef<Problem>[] = [
                           onClick: () =>
                             problem.is_flagged
                               ? unflagProblem(problem.id)
-                              : flagProblem(problem.id),
+                              : openFlagDialog(problem),
                         },
                         {
                           default: () =>
@@ -1203,6 +1187,25 @@ const columns: ColumnDef<Problem>[] = [
     @success="loadProblems"
   />
 
+  <EntityActionDialog
+    v-model:open="flagDialogOpen"
+    :entity-id="selectedProblemForFlag"
+    :entity-title="selectedProblemForFlagTitle"
+    action="flag"
+    :title="t('moderation.flagProblem')"
+    :description="
+      t('moderation.flagDescription', {
+        title: selectedProblemForFlagTitle || t('problems.dialog.delete.thisProblem'),
+      })
+    "
+    :confirm-label="t('moderation.flag')"
+    :cancel-label="t('common.cancel')"
+    :success-label="t('moderation.flagSuccess')"
+    :error-label="t('moderation.flagError')"
+    :on-action="handleFlagProblem"
+    @success="loadProblems"
+  />
+
   <ProblemImportDialog v-model:open="importDialogOpen" @imported="handleImported" />
 
   <BulkActionDialog
@@ -1217,4 +1220,6 @@ const columns: ColumnDef<Problem>[] = [
     :problems="selectedRows"
     @edited="handleBulkEdited"
   />
+
+  <FlagInfoDialog v-model:open="flagInfoDialogOpen" :problem="selectedProblemForFlagInfo" />
 </template>

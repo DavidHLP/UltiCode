@@ -393,9 +393,7 @@ export async function getContests(
       statuses.forEach((s) => params.append("status", s));
     }
     if (filters.type) {
-      const types = Array.isArray(filters.type)
-        ? filters.type
-        : [filters.type];
+      const types = Array.isArray(filters.type) ? filters.type : [filters.type];
       types.forEach((t) => params.append("type", t));
     }
     if (filters.isRated !== undefined) {

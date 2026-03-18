@@ -252,50 +252,6 @@ function getTypeStyle(type: string) {
           </p>
         </div>
       </div>
-
-      <!-- Problems Preview - Terminal Style -->
-      <div
-        v-if="entity.problems?.length"
-        class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)]"
-      >
-        <div
-          class="border-b border-[var(--silver-200)] dark:border-[var(--silver-700)] px-4 py-2 bg-[var(--surface-sunken)]"
-        >
-          <span class="terminal-comment"> problems [{{ entity.problems.length }}] </span>
-        </div>
-
-        <div class="p-4 space-y-2">
-          <div
-            v-for="(cp, index) in entity.problems.slice(0, 5)"
-            :key="cp.id"
-            class="flex items-center justify-between border border-[var(--silver-200)] dark:border-[var(--silver-700)] p-3 bg-[var(--surface-sunken)]"
-          >
-            <div class="flex items-center gap-3">
-              <span class="font-data text-xs text-[var(--silver-400)] w-6">
-                {{ String(index + 1).padStart(2, '0') }}
-              </span>
-              <span class="font-data text-xs text-[var(--accent-electric)] w-8">
-                {{ cp.problem_index }}
-              </span>
-              <div>
-                <p class="text-sm font-medium">{{ cp.problem.title }}</p>
-                <p class="font-data text-xs text-[var(--silver-400)]">{{ cp.problem.slug }}</p>
-              </div>
-            </div>
-            <span
-              class="font-data text-xs text-[var(--terminal-cyan)] border border-[var(--silver-200)] px-2 py-0.5"
-            >
-              {{ cp.score }} {{ t('contests.drawer.pts') }}
-            </span>
-          </div>
-          <p
-            v-if="entity.problems.length > 5"
-            class="font-data text-xs text-[var(--silver-400)] text-center pt-2"
-          >
-            + {{ entity.problems.length - 5 }} more problems
-          </p>
-        </div>
-      </div>
     </template>
   </BaseDetailDrawer>
 </template>

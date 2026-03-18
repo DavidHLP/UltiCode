@@ -2,11 +2,20 @@ import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconAlertTriangle,
+  IconAlertCircle,
   IconCheck,
   IconClock,
+  IconCode,
   IconDotsVertical,
   IconEye,
+  IconFileText,
+  IconMessage,
+  IconMessages,
+  IconScale,
   IconX,
+  IconTournament,
+  IconFlag,
+  IconUser,
 } from '@tabler/icons-vue'
 
 import { Checkbox } from '@/components/ui/checkbox'
@@ -18,21 +27,25 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Difficulty, type Problem } from '@/api/admin/problems'
+import {
+  type ModerationQueueItem,
+  type ModerationStatus,
+  type ReportCategory,
+  type ModeratableEntityType,
+  ModerationActionType,
+} from '@/api/admin/moderation'
 import { formatDate } from '@/lib/format/date'
 
-export type FlagStatus = 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
-
 export interface ModerationActions {
-  viewProblem: (id: string) => void
-  openDrawer: (problem: Problem) => void
-  quickResolve: (id: string) => void
-  quickDismiss: (id: string) => void
+  viewEntity: (item: ModerationQueueItem) => void
+  openDrawer: (item: ModerationQueueItem) => void
+  quickAction: (id: string, action: ModerationActionType) => void
+  claimItem: (id: string) => void
 }
 
-// Status badge styles (terminal-style)
+// ========== Status Styles ==========
 const statusStyles: Record<
-  FlagStatus,
+  ModerationStatus,
   { bg: string; border: string; text: string; icon: typeof IconAlertTriangle }
 > = {
   PENDING: {
@@ -41,7 +54,7 @@ const statusStyles: Record<
     text: 'text-[var(--terminal-amber)]',
     icon: IconAlertTriangle,
   },
-  REVIEWED: {
+  UNDER_REVIEW: {
     bg: 'bg-[oklch(0.7_0.12_200/0.15)]',
     border: 'border-[oklch(0.7_0.12_200/0.4)]',
     text: 'text-[var(--terminal-cyan)]',
@@ -59,37 +72,77 @@ const statusStyles: Record<
     text: 'text-[var(--terminal-red)]',
     icon: IconX,
   },
-}
-
-// Difficulty badge styles (matching existing ProblemsListView)
-const difficultyStyles: Record<Difficulty, { bg: string; border: string; text: string }> = {
-  EASY: {
-    bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-    border: 'border-[oklch(0.7_0.15_145/0.4)]',
-    text: 'text-[var(--terminal-green)]',
-  },
-  MEDIUM: {
-    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    border: 'border-[oklch(0.75_0.15_85/0.4)]',
-    text: 'text-[var(--terminal-amber)]',
-  },
-  HARD: {
-    bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    border: 'border-[oklch(0.6_0.2_25/0.4)]',
-    text: 'text-[var(--terminal-red)]',
+  APPEAL_PENDING: {
+    bg: 'bg-[oklch(0.7_0.12_280/0.15)]',
+    border: 'border-[oklch(0.7_0.12_280/0.4)]',
+    text: 'text-[var(--terminal-purple)]',
+    icon: IconScale,
   },
 }
 
-// Status i18n key mapping
-const statusI18nKeys: Record<FlagStatus, string> = {
-  PENDING: 'moderation.statusPending',
-  REVIEWED: 'moderation.statusReviewed',
-  RESOLVED: 'moderation.statusResolved',
-  DISMISSED: 'moderation.statusDismissed',
+// ========== Entity Type Styles ==========
+const entityTypeStyles: Record<
+  ModeratableEntityType,
+  { icon: typeof IconFileText; color: string; label: string }
+> = {
+  forum_post: {
+    icon: IconMessages,
+    color: 'text-[var(--terminal-cyan)]',
+    label: 'moderation.entityTypes.forum_post',
+  },
+  forum_comment: {
+    icon: IconMessage,
+    color: 'text-[var(--terminal-cyan)]',
+    label: 'moderation.entityTypes.forum_comment',
+  },
+  solution: {
+    icon: IconCode,
+    color: 'text-[var(--terminal-green)]',
+    label: 'moderation.entityTypes.solution',
+  },
+  solution_comment: {
+    icon: IconMessage,
+    color: 'text-[var(--terminal-green)]',
+    label: 'moderation.entityTypes.solution_comment',
+  },
+  problem: {
+    icon: IconFileText,
+    color: 'text-[var(--terminal-amber)]',
+    label: 'moderation.entityTypes.problem',
+  },
 }
 
-// Terminal-style status badge renderer
-function renderStatusBadge(status: FlagStatus, t: (key: string) => string) {
+// ========== Category Styles ==========
+const categoryStyles: Record<
+  ReportCategory,
+  { color: string; icon: typeof IconAlertTriangle }
+> = {
+  SPAM: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
+  HARASSMENT: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
+  HATE_SPEECH: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
+  VIOLENCE: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
+  SEXUAL_CONTENT: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
+  MISINFORMATION: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
+  WRONG_ANSWER: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
+  COPYRIGHT: { color: 'text-[var(--terminal-purple)]', icon: IconAlertCircle },
+  OTHER: { color: 'text-[var(--silver-500)]', icon: IconAlertCircle },
+}
+
+// ========== Priority Styles ==========
+function getPriorityStyle(priority: number): { color: string; label: string } {
+  if (priority >= 8) {
+    return { color: 'text-[var(--terminal-red)]', label: 'critical' }
+  } else if (priority >= 5) {
+    return { color: 'text-[var(--terminal-amber)]', label: 'high' }
+  } else if (priority >= 3) {
+    return { color: 'text-[var(--terminal-cyan)]', label: 'medium' }
+  }
+  return { color: 'text-[var(--silver-500)]', label: 'low' }
+}
+
+// ========== Renderers ==========
+
+function renderStatusBadge(status: ModerationStatus, t: (key: string) => string) {
   const style = statusStyles[status]
   const Icon = style.icon
 
@@ -106,38 +159,94 @@ function renderStatusBadge(status: FlagStatus, t: (key: string) => string) {
           style.text,
         ].join(' '),
       },
-      t(statusI18nKeys[status]),
+      t(`moderation.status.${status}`),
     ),
   ])
 }
 
-// Terminal-style difficulty badge renderer (matches role badge style)
-function renderDifficultyBadge(difficulty: Difficulty, t: (key: string) => string) {
-  const style = difficultyStyles[difficulty]
+function renderEntityTypeBadge(
+  entityType: ModeratableEntityType,
+  t: (key: string) => string,
+) {
+  const style = entityTypeStyles[entityType]
+  const Icon = style.icon
 
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h('span', {
-      class: ['w-1.5 h-1.5 rounded-full', style.text.replace('text-', 'bg-')].join(' '),
-    }),
+  return h('div', { class: 'flex items-center gap-1.5' }, [
+    h(Icon, { class: ['h-3.5 w-3.5', style.color] }),
     h(
       'span',
       {
         class: [
           'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border',
-          style.bg,
-          style.border,
-          style.text,
+          style.color,
         ].join(' '),
       },
-      t(`common.difficulty.${difficulty.toLowerCase()}`),
+      t(style.label),
     ),
   ])
 }
 
-// Truncate text helper
+function renderCategoryBadge(category: ReportCategory, t: (key: string) => string) {
+  const style = categoryStyles[category]
+  const Icon = style.icon
+
+  return h('div', { class: 'flex items-center gap-1.5' }, [
+    h(Icon, { class: ['h-3 w-3', style.color] }),
+    h(
+      'span',
+      {
+        class: [
+          'font-data text-[10px] uppercase tracking-[0.05em]',
+          style.color,
+        ].join(' '),
+      },
+      t(`moderation.categories.${category}`),
+    ),
+  ])
+}
+
+function renderPriorityBadge(priority: number) {
+  const style = getPriorityStyle(priority)
+  return h('div', { class: 'flex items-center gap-1.5' }, [
+    h(IconFlag, { class: ['h-3 w-3', style.color] }),
+    h(
+      'span',
+      {
+        class: [
+          'font-data text-[10px] uppercase tracking-[0.05em]',
+          style.color,
+        ].join(' '),
+      },
+      priority,
+    ),
+  ])
+}
+
+function renderAssignedUser(
+  assignedTo: ModerationQueueItem['assigned_to'],
+  t: (key: string) => string,
+) {
+  if (!assignedTo) {
+    return h(
+      'span',
+      { class: 'font-data text-xs text-[var(--silver-400)] italic' },
+      t('moderation.queue.unassigned'),
+    )
+  }
+  return h('div', { class: 'flex items-center gap-2' }, [
+    h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--silver-500)]' }),
+    h(
+      'span',
+      { class: 'text-sm text-[var(--foreground)] truncate' },
+      assignedTo.display_name || assignedTo.username,
+    ),
+  ])
+}
+
+// ========== Helper Functions ==========
+
 function truncateText(text: string, maxLength: number): string {
-  if (text.length <= maxLength) return text
+  if (!text || text.length <= maxLength) return text
   return text.slice(0, maxLength) + '...'
 }
 
@@ -150,8 +259,9 @@ function truncateText(text: string, maxLength: number): string {
 export function createColumns(
   t: (key: string) => string,
   actions: ModerationActions,
-): ColumnDef<Problem>[] {
+): ColumnDef<ModerationQueueItem>[] {
   return [
+    // Selection column
     {
       id: 'select',
       size: 40,
@@ -179,6 +289,7 @@ export function createColumns(
       enableSorting: false,
       enableHiding: false,
     },
+    // Row number column
     {
       id: 'row_num',
       header: () => '#',
@@ -191,28 +302,9 @@ export function createColumns(
       enableSorting: false,
       enableHiding: false,
     },
+    // Entity type column
     {
-      accessorKey: 'title',
-      minSize: 180,
-      header: () =>
-        h(
-          'span',
-          {
-            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
-          },
-          t('moderation.columns.problem'),
-        ),
-      cell: ({ row }) => {
-        const problem = row.original
-        return h('div', { class: 'flex flex-col gap-1 py-1' }, [
-          h('span', { class: 'font-medium text-sm truncate' }, problem.title),
-          h('span', { class: 'text-muted-foreground text-xs truncate' }, problem.slug),
-          renderDifficultyBadge(problem.difficulty, t),
-        ])
-      },
-    },
-    {
-      accessorKey: 'flag_status',
+      accessorKey: 'entity_type',
       size: 120,
       minSize: 100,
       maxSize: 140,
@@ -222,67 +314,150 @@ export function createColumns(
           {
             class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
           },
-          t('common.status'),
+          t('moderation.columns.entityType'),
         ),
       cell: ({ row }) => {
-        const status = (row.getValue('flag_status') as FlagStatus) || 'PENDING'
+        const entityType = row.original.entity_type as ModeratableEntityType
+        return renderEntityTypeBadge(entityType, t)
+      },
+    },
+    // Entity ID / Title column
+    {
+      id: 'entity',
+      minSize: 180,
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('moderation.columns.entity'),
+        ),
+      cell: ({ row }) => {
+        const item = row.original
+        return h('div', { class: 'flex flex-col gap-1 py-1' }, [
+          h(
+            'span',
+            {
+              class: 'font-medium text-sm truncate',
+              title: item.entity_id,
+            },
+            truncateText(item.entity_id, 24),
+          ),
+          h(
+            'span',
+            { class: 'text-muted-foreground text-xs truncate' },
+            truncateText(item.entity_id, 32),
+          ),
+        ])
+      },
+    },
+    // Category column
+    {
+      accessorKey: 'primary_category',
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('moderation.columns.category'),
+        ),
+      cell: ({ row }) => {
+        const category = row.original.primary_category as ReportCategory
+        return renderCategoryBadge(category, t)
+      },
+    },
+    // Status column
+    {
+      accessorKey: 'status',
+      size: 130,
+      minSize: 110,
+      maxSize: 150,
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('moderation.columns.status'),
+        ),
+      cell: ({ row }) => {
+        const status = row.original.status as ModerationStatus
         return renderStatusBadge(status, t)
       },
     },
+    // Priority column
     {
-      accessorKey: 'flag_reason',
-      minSize: 150,
+      accessorKey: 'priority',
+      size: 70,
+      minSize: 60,
+      maxSize: 80,
       header: () =>
         h(
           'span',
           {
             class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
           },
-          t('moderation.flagReason'),
+          t('moderation.columns.priority'),
         ),
       cell: ({ row }) => {
-        const reason = row.original.flag_reason
-        if (!reason) {
-          return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '-')
-        }
-        const truncated = truncateText(reason, 30)
+        const priority = row.original.priority
+        return renderPriorityBadge(priority)
+      },
+    },
+    // Report count column
+    {
+      accessorKey: 'report_count',
+      size: 70,
+      minSize: 60,
+      maxSize: 80,
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('moderation.columns.reports'),
+        ),
+      cell: ({ row }) => {
+        const count = row.original.report_count
         return h(
           'span',
           {
-            class: 'text-sm text-muted-foreground block truncate',
-            title: reason,
+            class: [
+              'font-data text-xs tabular-nums',
+              count >= 3 ? 'text-[var(--terminal-red)]' : 'text-[var(--silver-400)]',
+            ].join(' '),
           },
-          truncated,
+          count,
         )
       },
     },
+    // Assigned to column
     {
-      accessorKey: 'flag_reported_by',
-      size: 100,
-      minSize: 80,
-      maxSize: 120,
+      accessorKey: 'assigned_to',
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
       header: () =>
         h(
           'span',
           {
             class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
           },
-          t('common.reportedBy'),
+          t('moderation.columns.assignedTo'),
         ),
       cell: ({ row }) => {
-        const reportedBy = row.original.flag_reported_by
-        if (!reportedBy) {
-          return h(
-            'span',
-            { class: 'font-data text-xs text-[var(--silver-400)] italic' },
-            t('moderation.unknownReporter'),
-          )
-        }
-        return h('span', { class: 'text-sm text-muted-foreground truncate block' }, reportedBy)
+        return renderAssignedUser(row.original.assigned_to, t)
       },
     },
+    // Created at column
     {
-      accessorKey: 'flag_reported_at',
+      accessorKey: 'created_at',
       size: 100,
       minSize: 80,
       maxSize: 120,
@@ -292,10 +467,10 @@ export function createColumns(
           {
             class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
           },
-          t('common.reportedAt'),
+          t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
-        const date = row.original.flag_reported_at
+        const date = row.original.created_at
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
@@ -303,6 +478,7 @@ export function createColumns(
         )
       },
     },
+    // Actions column
     {
       id: 'actions',
       header: () =>
@@ -311,11 +487,11 @@ export function createColumns(
           {
             class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
           },
-          t('common.actions'),
+          t('moderation.columns.actions'),
         ),
       cell: ({ row }) => {
-        const problem = row.original
-        return createActionsDropdown(t, problem, actions)
+        const item = row.original
+        return createActionsDropdown(t, item, actions)
       },
     },
   ]
@@ -323,9 +499,14 @@ export function createColumns(
 
 function createActionsDropdown(
   t: (key: string) => string,
-  problem: Problem,
+  item: ModerationQueueItem,
   actions: ModerationActions,
 ) {
+  const isPending = item.status === 'PENDING'
+  const isUnderReview = item.status === 'UNDER_REVIEW'
+  const canClaim = !item.assigned_to_id
+  const canAction = isPending || isUnderReview
+
   return h(
     DropdownMenu,
     {},
@@ -361,60 +542,89 @@ function createActionsDropdown(
           },
           {
             default: () => [
+              // View Details
               h(
                 DropdownMenuItem,
                 {
-                  onClick: () => actions.openDrawer(problem),
+                  onClick: () => actions.openDrawer(item),
                   class: 'font-data text-xs cursor-pointer',
                 },
                 {
                   default: () =>
                     h('div', { class: 'flex items-center gap-2' }, [
                       h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                      h('span', t('common.view')),
+                      h('span', t('moderation.queue.viewDetails')),
                     ]),
                 },
               ),
-              h(DropdownMenuSeparator, {
-                class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-              }),
+              // View Entity
               h(
                 DropdownMenuItem,
                 {
-                  onClick: () => actions.quickResolve(problem.id),
+                  onClick: () => actions.viewEntity(item),
                   class: 'font-data text-xs cursor-pointer',
                 },
                 {
                   default: () =>
                     h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                      h(
-                        'span',
-                        { class: 'text-[var(--terminal-green)]' },
-                        t('moderation.quickResolve'),
-                      ),
+                      h(IconTournament, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
+                      h('span', t('moderation.queue.viewEntity')),
                     ]),
                 },
               ),
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.quickDismiss(problem.id),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                      h(
-                        'span',
-                        { class: 'text-[var(--terminal-red)]' },
-                        t('moderation.quickDismiss'),
-                      ),
-                    ]),
-                },
-              ),
-            ],
+              // Claim (if not assigned)
+              canClaim
+                ? h(
+                    DropdownMenuItem,
+                    {
+                      onClick: () => actions.claimItem(item.id),
+                      class: 'font-data text-xs cursor-pointer',
+                    },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconUser, { class: 'h-4 w-4 text-[var(--terminal-purple)]' }),
+                          h('span', t('moderation.queue.claimItem')),
+                        ]),
+                    },
+                  )
+                : null,
+              // Separator
+              canAction ? h(DropdownMenuSeparator, { class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]' }) : null,
+              // Quick Actions
+              canAction
+                ? h(
+                    DropdownMenuItem,
+                    {
+                      onClick: () => actions.quickAction(item.id, ModerationActionType.RESOLVED),
+                      class: 'font-data text-xs cursor-pointer',
+                    },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                          h('span', { class: 'text-[var(--terminal-green)]' }, t('moderation.quickResolve')),
+                        ]),
+                    },
+                  )
+                : null,
+              canAction
+                ? h(
+                    DropdownMenuItem,
+                    {
+                      onClick: () => actions.quickAction(item.id, ModerationActionType.DISMISSED),
+                      class: 'font-data text-xs cursor-pointer',
+                    },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                          h('span', { class: 'text-[var(--terminal-red)]' }, t('moderation.quickDismiss')),
+                        ]),
+                    },
+                  )
+                : null,
+            ].filter(Boolean),
           },
         ),
       ],

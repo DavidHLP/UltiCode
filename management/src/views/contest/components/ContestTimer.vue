@@ -142,10 +142,7 @@ watch(isFinished, (finished, wasFinished) => {
 <template>
   <div
     :class="
-      cn(
-        'inline-flex items-center gap-2',
-        variant === 'default' ? 'flex-wrap' : 'flex-nowrap',
-      )
+      cn('inline-flex items-center gap-2', variant === 'default' ? 'flex-wrap' : 'flex-nowrap')
     "
   >
     <!-- Icon -->

@@ -33,7 +33,10 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar'
+
+const { toggleSidebar } = useSidebar()
 
 const { t } = useI18n()
 const authStore = useAuthStore()
@@ -200,15 +203,19 @@ const navSecondary = computed(() => {
 </script>
 
 <template>
-  <Sidebar collapsible="offcanvas">
+  <Sidebar collapsible="icon">
     <SidebarHeader>
       <SidebarMenu>
         <SidebarMenuItem>
-          <SidebarMenuButton as-child class="data-[slot=sidebar-menu-button]:!p-1.5">
-            <a href="#">
-              <IconInnerShadowTop class="!size-5" />
-              <span class="text-base font-semibold">Acme Inc.</span>
-            </a>
+          <SidebarMenuButton
+            :tooltip="t('nav.brandName')"
+            as-child
+            class="data-[slot=sidebar-menu-button]:!p-1.5"
+          >
+            <button type="button" @click="toggleSidebar">
+              <IconInnerShadowTop class="size-4" />
+              <span class="text-base font-semibold">{{ t('nav.brandName') }}</span>
+            </button>
           </SidebarMenuButton>
         </SidebarMenuItem>
       </SidebarMenu>

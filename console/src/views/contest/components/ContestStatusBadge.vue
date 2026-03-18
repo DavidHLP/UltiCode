@@ -49,32 +49,38 @@ const statusConfig = computed((): StatusConfig => {
     REGISTERING: {
       variant: "outline",
       label: t("contest.status.registrationOpen", "Registration Open"),
-      customClass: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+      customClass:
+        "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
     },
     UPCOMING: {
       variant: "outline",
       label: t("contest.status.upcoming", "Upcoming"),
-      customClass: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+      customClass:
+        "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
     },
     ONGOING: {
       variant: "outline",
       label: t("contest.status.running", "Running"),
-      customClass: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+      customClass:
+        "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     },
     RUNNING: {
       variant: "outline",
       label: t("contest.status.running", "Running"),
-      customClass: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+      customClass:
+        "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
     },
     FREEZING: {
       variant: "outline",
       label: t("contest.status.freezing", "Freezing"),
-      customClass: "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+      customClass:
+        "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
     },
     FINISHED: {
       variant: "outline",
       label: t("contest.status.finished", "Finished"),
-      customClass: "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700",
+      customClass:
+        "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700",
     },
     ARCHIVED: {
       variant: "secondary",

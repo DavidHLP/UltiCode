@@ -51,6 +51,10 @@ export class CreateContestDto {
   @IsString({ each: true })
   @IsOptional()
   problem_ids?: string[];
+
+  @IsString()
+  @IsOptional()
+  scoring_rule_id?: string;
 }
 
 export class UpdateContestDto {

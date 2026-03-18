@@ -183,6 +183,16 @@ const headerClass = computed(() => {
   return 'text-destructive'
 })
 
+const confirmButtonVariant = computed(() => {
+  if (isFlagAction.value) {
+    return 'default' as const
+  }
+  if (props.action === 'unban') {
+    return 'default' as const
+  }
+  return 'destructive' as const
+})
+
 const confirmButtonClass = computed(() => {
   if (isFlagAction.value) {
     return 'bg-amber-600 hover:bg-amber-700 text-white'
@@ -190,7 +200,7 @@ const confirmButtonClass = computed(() => {
   if (props.action === 'unban') {
     return 'bg-emerald-600 hover:bg-emerald-700 text-white'
   }
-  return 'destructive'
+  return ''
 })
 </script>
 
@@ -235,7 +245,8 @@ const confirmButtonClass = computed(() => {
           {{ defaultCancelLabel }}
         </Button>
         <Button
-          :[confirmButtonClass]="true"
+          :variant="confirmButtonVariant"
+          :class="confirmButtonClass || undefined"
           @click="handleAction"
           :disabled="loading || (showReasonInput && !reason.trim())"
         >

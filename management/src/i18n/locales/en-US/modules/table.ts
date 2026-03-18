@@ -1,0 +1,48 @@
+export default {
+  // Table toolbar
+  customizeColumns: 'Customize Columns',
+  columns: 'Columns',
+  rowsPerPage: 'Rows per page',
+  page: 'Page',
+  of: 'of',
+  rowsSelected: 'rows selected',
+  goToFirstPage: 'Go to first page',
+  goToPreviousPage: 'Previous page',
+  goToNextPage: 'Next page',
+  goToLastPage: 'Go to last page',
+
+  // Empty state
+  emptyTitle: 'No data',
+  emptyDescription: 'There is no data to display',
+
+  // Column name mappings - Common columns
+  columnNames: {
+    username: 'Username',
+    role: 'Role',
+    status: 'Status',
+    joined_at: 'Joined',
+    last_login_at: 'Last Login',
+    actions: 'Actions',
+    id: 'ID',
+    name: 'Name',
+    title: 'Title',
+    description: 'Description',
+    type: 'Type',
+    created: 'Created',
+    updated: 'Updated',
+    email: 'Email',
+    is_active: 'Active',
+    is_banned: 'Banned',
+    submissions: 'Submissions',
+    solutions: 'Solutions',
+    difficulty: 'Difficulty',
+    tags: 'Tags',
+    category: 'Category',
+    visibility: 'Visibility',
+    author: 'Author',
+    start_time: 'Start Time',
+    end_time: 'End Time',
+    duration: 'Duration',
+    participants: 'Participants',
+  },
+} as const

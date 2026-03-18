@@ -16,8 +16,7 @@ export const FEATURE_FLAGS = {
   /**
    * Enable first-solve notifications
    */
-  ENABLE_FIRST_SOLVE_NOTIFICATIONS:
-    process.env.FEATURE_FIRST_SOLVE !== 'false',
+  ENABLE_FIRST_SOLVE_NOTIFICATIONS: process.env.FEATURE_FIRST_SOLVE !== 'false',
 
   /**
    * Enable anti-cheat detection

@@ -1,0 +1,246 @@
+<script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+import {
+  IconX,
+  IconUser,
+  IconFlag,
+  IconClock,
+  IconAlertTriangle,
+} from '@tabler/icons-vue'
+
+import { Button } from '@/components/ui/button'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import { Separator } from '@/components/ui/separator'
+import { Badge } from '@/components/ui/badge'
+import {
+  type ModerationQueueItem,
+  type ModerationStatus,
+  type ReportCategory,
+  ModerationActionType,
+} from '@/api/admin/moderation'
+
+import EntityPreviewCard from './EntityPreviewCard.vue'
+import ActionHistoryTimeline from './ActionHistoryTimeline.vue'
+import ModerationActionPanel from './ModerationActionPanel.vue'
+
+interface Props {
+  open: boolean
+  item: ModerationQueueItem | null
+  loading?: boolean
+}
+
+defineProps<Props>()
+const emit = defineEmits<{
+  'update:open': [value: boolean]
+  performAction: [action: ModerationActionType, note?: string, durationDays?: number]
+  viewEntity: []
+}>()
+
+const { t } = useI18n()
+
+const statusColors: Record<ModerationStatus, string> = {
+  PENDING: 'bg-[oklch(0.75_0.15_85/0.15)] text-[var(--terminal-amber)] border-[oklch(0.75_0.15_85/0.4)]',
+  UNDER_REVIEW: 'bg-[oklch(0.7_0.12_200/0.15)] text-[var(--terminal-cyan)] border-[oklch(0.7_0.12_200/0.4)]',
+  RESOLVED: 'bg-[oklch(0.7_0.15_145/0.15)] text-[var(--terminal-green)] border-[oklch(0.7_0.15_145/0.4)]',
+  DISMISSED: 'bg-[oklch(0.6_0.2_25/0.15)] text-[var(--terminal-red)] border-[oklch(0.6_0.2_25/0.4)]',
+  APPEAL_PENDING: 'bg-[oklch(0.7_0.12_280/0.15)] text-[var(--terminal-purple)] border-[oklch(0.7_0.12_280/0.4)]',
+}
+
+const categoryColors: Record<ReportCategory, string> = {
+  SPAM: 'text-[var(--terminal-amber)]',
+  HARASSMENT: 'text-[var(--terminal-red)]',
+  HATE_SPEECH: 'text-[var(--terminal-red)]',
+  VIOLENCE: 'text-[var(--terminal-red)]',
+  SEXUAL_CONTENT: 'text-[var(--terminal-red)]',
+  MISINFORMATION: 'text-[var(--terminal-amber)]',
+  WRONG_ANSWER: 'text-[var(--terminal-amber)]',
+  COPYRIGHT: 'text-[var(--terminal-purple)]',
+  OTHER: 'text-[var(--silver-500)]',
+}
+
+function formatDate(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date
+  return d.toLocaleDateString() + ' ' + d.toLocaleTimeString()
+}
+
+function getPriorityLabel(priority: number): string {
+  if (priority >= 8) return 'Critical'
+  if (priority >= 5) return 'High'
+  if (priority >= 3) return 'Medium'
+  return 'Low'
+}
+
+function getPriorityColor(priority: number): string {
+  if (priority >= 8) return 'text-[var(--terminal-red)]'
+  if (priority >= 5) return 'text-[var(--terminal-amber)]'
+  if (priority >= 3) return 'text-[var(--terminal-cyan)]'
+  return 'text-[var(--silver-500)]'
+}
+
+function handlePerformAction(action: ModerationActionType, note?: string, durationDays?: number) {
+  emit('performAction', action, note, durationDays)
+}
+</script>
+
+<template>
+  <Sheet :open="open" @update:open="emit('update:open', $event)">
+    <SheetContent
+      class="w-full sm:max-w-[600px] p-0 flex flex-col border-l border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--background)]"
+    >
+      <!-- Header -->
+      <SheetHeader class="p-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+        <div class="flex items-center justify-between">
+          <SheetTitle class="flex items-center gap-2 text-lg font-data">
+            <IconFlag class="h-5 w-5 text-[var(--terminal-amber)]" />
+            <span>{{ t('moderation.detail.title') }}</span>
+          </SheetTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            class="h-8 w-8"
+            @click="emit('update:open', false)"
+          >
+            <IconX class="h-4 w-4" />
+          </Button>
+        </div>
+        <SheetDescription v-if="item" class="text-sm text-[var(--silver-500)]">
+          {{ t('moderation.queue.description') }}
+        </SheetDescription>
+      </SheetHeader>
+
+      <!-- Content -->
+      <div v-if="item" class="flex-1 overflow-y-auto">
+        <!-- Status & Priority Bar -->
+        <div class="p-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <Badge
+                :class="[
+                  'font-data text-xs uppercase tracking-wider border',
+                  statusColors[item.status],
+                ]"
+              >
+                {{ t(`moderation.status.${item.status}`) }}
+              </Badge>
+              <div class="flex items-center gap-1.5">
+                <IconFlag :class="['h-3.5 w-3.5', getPriorityColor(item.priority)]" />
+                <span :class="['text-xs font-data', getPriorityColor(item.priority)]">
+                  {{ getPriorityLabel(item.priority) }} ({{ item.priority }})
+                </span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-[var(--silver-500)]">
+              <IconClock class="h-3.5 w-3.5" />
+              <span class="font-data tabular-nums">{{ formatDate(item.created_at) }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="p-4 space-y-4">
+          <!-- Entity Preview -->
+          <EntityPreviewCard
+            :entity-type="item.entity_type"
+            :entity-id="item.entity_id"
+            :title="item.entity_id"
+            @view-entity="emit('viewEntity')"
+          />
+
+          <!-- Category & Reports Count -->
+          <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+                {{ t('moderation.columns.category') }}:
+              </span>
+              <span :class="['text-sm font-data', categoryColors[item.primary_category]]">
+                {{ t(`moderation.categories.${item.primary_category}`) }}
+              </span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+                {{ t('moderation.queue.reportCount') }}:
+              </span>
+              <span
+                :class="[
+                  'text-sm font-data tabular-nums',
+                  item.report_count >= 3 ? 'text-[var(--terminal-red)]' : 'text-[var(--foreground)]',
+                ]"
+              >
+                {{ item.report_count }}
+              </span>
+            </div>
+          </div>
+
+          <!-- Assigned To -->
+          <div v-if="item.assigned_to" class="flex items-center gap-2 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+            <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
+            <span class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+              {{ t('moderation.queue.assignedTo') }}:
+            </span>
+            <span class="text-sm">
+              {{ item.assigned_to.display_name || item.assigned_to.username }}
+            </span>
+          </div>
+
+          <!-- Reports Section -->
+          <div v-if="item.reports && item.reports.length > 0" class="space-y-2">
+            <h3 class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
+              {{ t('moderation.detail.reportsTitle', { count: item.reports.length }) }}
+            </h3>
+            <div class="space-y-2">
+              <div
+                v-for="report in item.reports.slice(0, 3)"
+                :key="report.id"
+                class="p-3 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+              >
+                <div class="flex items-center justify-between mb-2">
+                  <span class="text-xs font-data text-[var(--silver-500)]">
+                    {{ report.reporter?.display_name || report.reporter?.username || t('moderation.unknownReporter') }}
+                  </span>
+                  <span class="text-xs font-data text-[var(--silver-400)] tabular-nums">
+                    {{ formatDate(report.created_at) }}
+                  </span>
+                </div>
+                <p v-if="report.reason" class="text-sm">{{ report.reason }}</p>
+                <p v-if="report.evidence" class="text-xs text-[var(--silver-500)] mt-1">
+                  {{ t('moderation.detail.evidence') }}: {{ report.evidence }}
+                </p>
+              </div>
+              <p
+                v-if="item.reports.length > 3"
+                class="text-xs text-center text-[var(--silver-400)]"
+              >
+                +{{ item.reports.length - 3 }} more reports
+              </p>
+            </div>
+          </div>
+
+          <Separator class="my-4 bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
+
+          <!-- Action History -->
+          <ActionHistoryTimeline
+            :actions="item.actions || []"
+            :loading="false"
+          />
+
+          <Separator class="my-4 bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
+
+          <!-- Action Panel -->
+          <ModerationActionPanel
+            :item="item"
+            :loading="loading"
+            @perform-action="handlePerformAction"
+          />
+        </div>
+      </div>
+
+      <!-- Loading State -->
+      <div v-else class="flex-1 flex items-center justify-center">
+        <div class="text-center">
+          <IconAlertTriangle class="h-8 w-8 text-[var(--silver-400)] mx-auto mb-2" />
+          <p class="text-sm text-[var(--silver-400)]">{{ t('moderation.notFound') }}</p>
+        </div>
+      </div>
+    </SheetContent>
+  </Sheet>
+</template>

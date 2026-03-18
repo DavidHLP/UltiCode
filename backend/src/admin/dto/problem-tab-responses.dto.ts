@@ -79,6 +79,9 @@ export class ProblemDescriptionResponseDto {
   @ApiProperty()
   difficulty: string;
 
+  @ApiProperty({ enum: ['solved', 'attempted', 'todo'] })
+  status: string;
+
   @ApiProperty()
   is_premium: boolean;
 

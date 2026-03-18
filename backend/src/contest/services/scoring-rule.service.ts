@@ -36,7 +36,9 @@ export class ScoringRuleService {
     });
 
     if (!rule) {
-      throw new NotFoundException(CONTEST_ERRORS.SCORING_RULE_NOT_FOUND.message);
+      throw new NotFoundException(
+        CONTEST_ERRORS.SCORING_RULE_NOT_FOUND.message,
+      );
     }
 
     return rule;

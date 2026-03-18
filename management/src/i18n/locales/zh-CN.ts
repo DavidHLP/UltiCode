@@ -69,10 +69,13 @@ export default {
     unpublished: '未发布',
     deleteConfirm: '确认删除',
     clearSelection: '清除选择',
+    reasonLabel: '标记原因',
+    reasonPlaceholder: '请提供标记原因...',
   },
 
   // 导航
   nav: {
+    brandName: 'UltiCode',
     dashboard: '仪表板',
     users: '用户管理',
     problems: '题目管理',
@@ -107,6 +110,8 @@ export default {
     statusDismissed: '已驳回',
     noFlagged: '无被标记的题目',
     noFlaggedDescription: '目前没有需要审核的被标记题目。',
+    emptyTitle: '无被标记内容',
+    emptyDescription: '目前没有需要审核的内容。',
     flagReason: '标记原因',
     moderationNotes: '审核备注',
     moderate: '审核',
@@ -122,6 +127,11 @@ export default {
     unflagSuccess: '题目取消标记成功',
     flag: '标记',
     unflag: '取消标记',
+    // Flag dialog
+    flagProblem: '标记题目',
+    flagDescription:
+      '标记 "{title}" 以进行审核。这将标记该题目需要管理员关注，请提供标记原因以便审核人员了解情况。',
+    flagError: '标记题目失败',
     // 批量审核
     selectAll: '全选',
     selectedCount: '已选择 {count} 个',
@@ -558,6 +568,21 @@ export default {
       viewDescription: '题目描述',
       viewCode: '代码模板',
       viewCases: '测试用例',
+      viewFlagInfo: '标记信息',
+    },
+
+    // 标记信息
+    flagInfo: {
+      title: '标记信息',
+      status: '状态',
+      reason: '原因',
+      reportedBy: '报告人',
+      reportedAt: '报告时间',
+      reviewedBy: '审核人',
+      reviewedAt: '审核时间',
+      notes: '备注',
+      noReason: '未提供原因',
+      noNotes: '无备注',
     },
 
     // 提示消息
@@ -964,7 +989,12 @@ export default {
         UPDATE: '更新',
         DELETE: '删除',
         RESTORE: '恢复',
+        ROLLBACK: '回滚',
       },
+      createInitial: '创建初始快照',
+      createInitialSuccess: '初始版本快照创建成功',
+      createInitialError: '创建初始快照失败',
+      alreadyHasVersions: '该题目已有版本历史记录',
     },
 
     // 内容审核
@@ -994,6 +1024,9 @@ export default {
       unflagSuccess: '题目取消标记成功',
       flag: '标记',
       unflag: '取消标记',
+      flagProblem: '标记题目',
+      flagDescription: '标记 "{title}" 以进行审核。这将标记该题目需要管理员关注。',
+      flagError: '标记题目失败',
     },
   },
 
@@ -1654,6 +1687,23 @@ export default {
     errorLoading: '加载列表出错',
     generalInfo: '基本信息',
     problems: '题目',
+
+    // 区块
+    sections: {
+      basicInfo: '基本信息',
+      visibilityFeatured: '可见性与精选',
+      bannerSettings: '横幅设置',
+    },
+
+    // 状态
+    status: {
+      visibility: '可见性',
+      public: '公开',
+      private: '私有',
+      problems: '题目数',
+      status: '状态',
+      featured: '精选',
+    },
 
     // 表格列
     columns: {
@@ -2404,6 +2454,115 @@ export default {
     goToPreviousPage: '转到上一页',
     goToNextPage: '转到下一页',
     goToLastPage: '转到最后一页',
+    // 列名翻译 - 用于列可见性下拉菜单
+    columnNames: {
+      username: '用户名',
+      role: '角色',
+      status: '状态',
+      joined_at: '加入时间',
+      last_login_at: '最后登录',
+      title: '标题',
+      name: '名称',
+      email: '邮箱',
+      created_at: '创建时间',
+      updated_at: '更新时间',
+      difficulty: '难度',
+      problem: '题目',
+      contest: '比赛',
+      type: '类型',
+      schedule: '时间安排',
+      participants: '参赛人数',
+      views: '浏览量',
+      author: '作者',
+      content: '内容',
+      score: '分数',
+      rank: '排名',
+      penalty: '罚时',
+      user: '用户',
+      id: 'ID',
+      slug: '标识符',
+      description: '描述',
+      tags: '标签',
+      language: '语言',
+      runtime: '运行时间',
+      memory: '内存',
+      submitted_at: '提交时间',
+      published: '发布状态',
+      flagged: '已标记',
+      submissions: '提交数',
+      visibility: '可见性',
+      featured: '精选',
+      problems: '题目数',
+      order: '顺序',
+      color: '颜色',
+      usage: '使用量',
+      label: '标签',
+      solution: '题解',
+      stats: '统计',
+      comment: '评论',
+      priority: '优先级',
+      action: '操作',
+      performer: '操作者',
+      target: '目标',
+      entity_type: '实体类型',
+      ip: 'IP 地址',
+      base_score: '基础分',
+      time_bonus: '时间奖励',
+      wrong_penalty: '错误惩罚',
+      first_solve_bonus: '首杀奖励',
+      is_default: '默认',
+      is_active: '活跃',
+      // 题目列
+      is_published: '已发布',
+      is_flagged: '已标记',
+      submission_count: '提交数',
+      is_premium: '高级',
+      // 比赛列
+      start_time: '开始时间',
+      end_time: '结束时间',
+      duration: '时长',
+      // 用户列
+      is_banned: '已封禁',
+      avatar: '头像',
+      bio: '简介',
+      company: '公司',
+      location: '位置',
+      website: '网站',
+      // 标记/举报列
+      flag_status: '标记状态',
+      flag_reason: '标记原因',
+      flag_reported_by: '举报人',
+      flag_reported_at: '举报时间',
+      // 其他列
+      category: '分类',
+      actions: '操作',
+      is_hidden: '隐藏',
+      is_sample: '示例',
+      input: '输入',
+      output: '输出',
+      explanation: '说明',
+      // 题目列表列
+      is_featured: '精选',
+      is_public: '公开',
+      problem_count: '题目数量',
+      banner_order: '横幅顺序',
+      banner_tag: '横幅标签',
+      banner_theme: '横幅主题',
+      sort_order: '排序顺序',
+      // 比赛列
+      contest_type: '比赛类型',
+      participant_count: '参赛人数',
+      contest_status: '比赛状态',
+      // 提交/题解列
+      problemTitle: '题目名称',
+      createdAt: '创建时间',
+      updatedAt: '更新时间',
+      // 其他列
+      creator: '创建者',
+      ip_address: 'IP 地址',
+      verdict: '判定结果',
+      time: '时间',
+    },
   },
 
   // 对话框标签

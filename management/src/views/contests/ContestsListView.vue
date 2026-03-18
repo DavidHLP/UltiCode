@@ -65,9 +65,9 @@ const toolbarFilters = computed<Filter[]>(() => [
     width: 'w-[140px]',
     options: [
       { value: 'all', label: t('contests.filters.allStatus') },
-      { value: 'NOT_STARTED', label: t('contests.filters.status.notStarted') },
-      { value: 'ONGOING', label: t('contests.filters.status.ongoing') },
-      { value: 'FINISHED', label: t('contests.filters.status.finished') },
+      { value: 'upcoming', label: t('contests.filters.status.upcoming') },
+      { value: 'running', label: t('contests.filters.status.running') },
+      { value: 'finished', label: t('contests.filters.status.finished') },
     ],
   },
   {
@@ -76,9 +76,9 @@ const toolbarFilters = computed<Filter[]>(() => [
     width: 'w-[140px]',
     options: [
       { value: 'all', label: t('contests.filters.allTypes') },
-      { value: 'IOI', label: t('contests.filters.type.ioi') },
-      { value: 'ICPC', label: t('contests.filters.type.icpc') },
-      { value: 'CUSTOM', label: t('contests.filters.type.custom') },
+      { value: 'PUBLIC', label: t('contests.filters.type.public') },
+      { value: 'PRIVATE', label: t('contests.filters.type.private') },
+      { value: 'VIRTUAL', label: t('contests.filters.type.virtual') },
     ],
   },
 ])
@@ -102,10 +102,10 @@ const {
     error: computed(() => contestsStore.error),
     fetch: (params) => contestsStore.fetchContests(params),
   },
-  filters: {
+  filters: () => ({
     statusFilter: statusFilter.value,
     typeFilter: typeFilter.value,
-  },
+  }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     status: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
@@ -200,6 +200,7 @@ async function handleDeleteContest(id: string | number) {
         </div>
         <Button
           v-if="canCreate"
+          type="button"
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--silver-300)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)] transition-colors"
@@ -263,6 +264,7 @@ async function handleDeleteContest(id: string | number) {
         <div class="flex items-center gap-2">
           <Button
             v-if="canDelete"
+            type="button"
             variant="terminal"
             size="sm"
             class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
@@ -275,6 +277,7 @@ async function handleDeleteContest(id: string | number) {
         </div>
       </div>
       <Button
+        type="button"
         variant="terminal"
         size="sm"
         class="h-8 font-data text-xs text-[var(--silver-500)] hover:text-[var(--foreground)]"
@@ -322,6 +325,7 @@ async function handleDeleteContest(id: string | number) {
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
+          type="button"
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"

@@ -12,8 +12,8 @@ MYSQL_PORT=23306
 REDIS_PORT=26379
 NACOS_PORT=28848
 NACOS_CONSOLE_PORT=28080
-RECOMMEND_WEB_PORT=28081
-RECOMMEND_PROVIDER_PORT=20881
+RECOMMEND_WEB_PORT=9004
+RECOMMEND_PROVIDER_PORT=9005
 
 # Colors
 RESET='\033[0m'
@@ -145,26 +145,20 @@ else
     fi
 fi
 
-# Recommend Web
-if docker ps | grep -q "ulticode-recommend-web"; then
-    print_status "ok" "Recommend   running on port ${RECOMMEND_WEB_PORT} (REST API)"
+# Recommend Web (Java process)
+if is_port_in_use $RECOMMEND_WEB_PORT; then
+    pid=$(get_pid_on_port $RECOMMEND_WEB_PORT)
+    print_status "ok" "Recommend-Web running on port ${RECOMMEND_WEB_PORT} (PID: ${pid})"
 else
-    if docker ps -a | grep -q "ulticode-recommend-web"; then
-        print_status "warn" "Recommend   container exists but not running"
-    else
-        print_status "info" "Recommend   container not created"
-    fi
+    print_status "info" "Recommend-Web not running"
 fi
 
-# Recommend Provider (Dubbo)
-if docker ps | grep -q "ulticode-recommend-provider"; then
-    print_status "ok" "Rec-Provider running on port ${RECOMMEND_PROVIDER_PORT} (Dubbo RPC)"
+# Recommend Provider (Dubbo - Java process)
+if is_port_in_use $RECOMMEND_PROVIDER_PORT; then
+    pid=$(get_pid_on_port $RECOMMEND_PROVIDER_PORT)
+    print_status "ok" "Rec-Provider running on port ${RECOMMEND_PROVIDER_PORT} (PID: ${pid})"
 else
-    if docker ps -a | grep -q "ulticode-recommend-provider"; then
-        print_status "warn" "Rec-Provider container exists but not running"
-    else
-        print_status "info" "Rec-Provider container not created"
-    fi
+    print_status "info" "Rec-Provider not running"
 fi
 
 # Summary
@@ -173,12 +167,13 @@ RUNNING_COUNT=0
 is_port_in_use $BACKEND_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 is_port_in_use $CONSOLE_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 is_port_in_use $MANAGEMENT_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
+is_port_in_use $RECOMMEND_WEB_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
+is_port_in_use $RECOMMEND_PROVIDER_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 docker ps | grep -q "ulticode-mysql" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 docker ps | grep -q "ulticode-redis" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 docker ps | grep -q "ulticode-nacos" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
-docker ps | grep -q "ulticode-recommend-web" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
 
-TOTAL_SERVICES=7
+TOTAL_SERVICES=8
 
 echo -e "  ${BOLD}Summary:${RESET} ${RUNNING_COUNT}/${TOTAL_SERVICES} services running"
 echo ""
@@ -187,11 +182,11 @@ if [ $RUNNING_COUNT -eq $TOTAL_SERVICES ]; then
     echo -e "  ${GREEN_BG}${WHITE} ALL SYSTEMS GO ${RESET}"
     echo ""
     echo -e "  ${BOLD}Quick Access:${RESET}"
-    echo -e "    ${CYAN}Console${RESET}     http://localhost:${CONSOLE_PORT}"
-    echo -e "    ${CYAN}Management${RESET}  http://localhost:${MANAGEMENT_PORT}"
-    echo -e "    ${CYAN}Backend${RESET}     http://localhost:${BACKEND_PORT}"
-    echo -e "    ${CYAN}Nacos${RESET}       http://localhost:${NACOS_CONSOLE_PORT}/nacos"
-    echo -e "    ${CYAN}Recommend${RESET}   http://localhost:${RECOMMEND_WEB_PORT}"
+    echo -e "    ${CYAN}Console${RESET}        http://localhost:${CONSOLE_PORT}"
+    echo -e "    ${CYAN}Management${RESET}     http://localhost:${MANAGEMENT_PORT}"
+    echo -e "    ${CYAN}Backend${RESET}        http://localhost:${BACKEND_PORT}"
+    echo -e "    ${CYAN}Recommend-Web${RESET}  http://localhost:${RECOMMEND_WEB_PORT}"
+    echo -e "    ${CYAN}Nacos${RESET}          http://localhost:${NACOS_CONSOLE_PORT}/nacos"
 elif [ $RUNNING_COUNT -eq 0 ]; then
     echo -e "  ${RED}${CROSS}${RESET} ${BOLD}All services stopped${RESET}"
     echo ""

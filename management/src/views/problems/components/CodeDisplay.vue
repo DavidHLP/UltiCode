@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue'
 import CodeViewer from '@/components/shared/CodeViewer.vue'
 
 interface ProblemLanguage {
@@ -15,11 +16,14 @@ interface Props {
 
 const props = defineProps<Props>()
 
-const languageOptions = (props.languages || []).map((lang) => ({
-  id: lang.id,
-  language: lang.language,
-  code: lang.starter_code,
-}))
+// Use computed to make languageOptions reactive
+const languageOptions = computed(() =>
+  (props.languages || []).map((lang) => ({
+    id: lang.id,
+    language: lang.language,
+    code: lang.starter_code,
+  })),
+)
 </script>
 
 <template>

@@ -496,6 +496,76 @@ export class ProblemVersionService {
   }
 
   /**
+   * Create initial version snapshot for a problem that has no version history
+   * Useful for migrating existing problems to the version system
+   */
+  async createInitialVersion(
+    problemId: bigint,
+    createdBy?: string,
+  ): Promise<boolean> {
+    // Check if problem already has versions
+    const existingVersions = await this.prisma.problemVersion.count({
+      where: { problem_id: problemId },
+    });
+
+    if (existingVersions > 0) {
+      return false; // Already has versions
+    }
+
+    // Get complete problem data
+    const problem = await this.prisma.problem.findUnique({
+      where: { id: problemId },
+      include: {
+        detail: true,
+        tagRelations: { include: { tag: true } },
+        examples: { orderBy: { example_order: 'asc' } },
+        languages: true,
+      },
+    });
+
+    if (!problem) {
+      throw new NotFoundException(`Problem ${problemId} not found`);
+    }
+
+    // Create initial version snapshot
+    await this.prisma.problemVersion.create({
+      data: {
+        problem_id: problemId,
+        version_number: problem.version,
+        title: problem.title,
+        slug: problem.slug,
+        difficulty: problem.difficulty,
+        is_premium: problem.is_premium,
+        is_published: problem.is_published,
+        summary: problem.detail?.summary,
+        content: problem.detail?.summary, // Use summary as content (same field in frontend transform)
+        constraints: problem.detail?.constraints_json as string[] | undefined,
+        hints: problem.detail?.hints as string[] | undefined,
+        examples: problem.examples.map((e) => ({
+          input: e.input_text,
+          output: e.output_text,
+          explanation: e.explanation ?? undefined,
+          order: e.example_order,
+        })),
+        languages: problem.languages.map((l) => ({
+          label: l.label,
+          value: l.value,
+          starter_code: l.starter_code,
+        })),
+        tags: problem.tagRelations.map((t) => t.tag.label),
+        change_summary: 'Initial version snapshot',
+        change_type: 'create',
+        created_by: createdBy,
+      },
+    });
+
+    this.logger.log(
+      `Created initial version snapshot for problem ${problemId}`,
+    );
+    return true;
+  }
+
+  /**
    * Delete old versions (cleanup)
    */
   async cleanupOldVersions(

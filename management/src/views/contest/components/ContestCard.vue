@@ -145,7 +145,9 @@ function handleRegister(event: Event) {
       </p>
 
       <!-- Footer: Schedule, Participants, Actions -->
-      <div class="flex items-center justify-between pt-2 border-t border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+      <div
+        class="flex items-center justify-between pt-2 border-t border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+      >
         <!-- Schedule and Participants -->
         <div class="flex items-center gap-4">
           <!-- Start time -->

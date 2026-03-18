@@ -1,296 +1,329 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+
+/**
+ * Route naming convention:
+ * - List views: `{resource}` (e.g., 'problems', 'users')
+ * - Create views: `{resource}-create` (e.g., 'problem-create')
+ * - Detail views: `{resource}-detail` (e.g., 'problem-detail')
+ * - Edit views: `{resource}-edit` (e.g., 'problem-edit')
+ *
+ * For views with tabs, use query params or path segments:
+ * - `/problems/:id?tab=description` or `/problems/:id/description`
+ */
+
+const routes: RouteRecordRaw[] = [
+  // ==================== Auth ====================
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import('@/views/auth/LoginView.vue'),
+    meta: { requiresAuth: false },
+  },
+
+  // ==================== Main App ====================
+  {
+    path: '/',
+    component: () => import('@/components/layout/MainLayout.vue'),
+    meta: { requiresAuth: true },
+    children: [
+      // Dashboard
+      {
+        path: '',
+        name: 'dashboard',
+        component: () => import('@/views/dashboard/DashboardView.vue'),
+        meta: { titleKey: 'nav.dashboard' },
+      },
+
+      // ==================== Users ====================
+      {
+        path: 'users',
+        name: 'users',
+        component: () => import('@/views/users/UsersListView.vue'),
+        meta: { titleKey: 'nav.users', permission: { action: 'READ', resource: 'USER' } },
+      },
+
+      // ==================== Audit Logs ====================
+      {
+        path: 'audit',
+        name: 'audit',
+        component: () => import('@/views/audit/AuditLogsView.vue'),
+        meta: { titleKey: 'nav.auditLogs', permission: { action: 'READ', resource: 'SYSTEM' } },
+      },
+
+      // ==================== Analytics ====================
+      {
+        path: 'analytics',
+        name: 'analytics',
+        component: () => import('@/views/analytics/AnalyticsView.vue'),
+        meta: { titleKey: 'nav.analytics', permission: { action: 'READ', resource: 'SYSTEM' } },
+      },
+
+      // ==================== Problems ====================
+      {
+        path: 'problems',
+        name: 'problems',
+        component: () => import('@/views/problems/ProblemsListView.vue'),
+        meta: { titleKey: 'nav.problems', permission: { action: 'READ', resource: 'PROBLEM' } },
+      },
+      {
+        path: 'problems/create',
+        name: 'problem-create',
+        component: () => import('@/views/problems/ProblemCreateView.vue'),
+        meta: {
+          titleKey: 'problems.createTitle',
+          permission: { action: 'CREATE', resource: 'PROBLEM' },
+        },
+      },
+      // Problem detail view (handles all tabs via route detection)
+      {
+        path: 'problems/:id/:tab?',
+        name: 'problem-detail',
+        component: () => import('@/views/problems/ProblemDetailView.vue'),
+        meta: {
+          titleKey: 'problems.detailTitle',
+          permission: { action: 'READ', resource: 'PROBLEM' },
+        },
+        props: true,
+      },
+      // Problem edit views
+      {
+        path: 'problems/:id/edit/:tab?',
+        name: 'problem-edit',
+        component: () => import('@/views/problems/ProblemEditView.vue'),
+        meta: {
+          titleKey: 'problems.editTitle',
+          permission: { action: 'UPDATE', resource: 'PROBLEM' },
+        },
+        props: true,
+      },
+
+      // ==================== Moderation ====================
+      {
+        path: 'moderation',
+        name: 'moderation',
+        component: () => import('@/views/moderation/ModerationQueueView.vue'),
+        meta: {
+          titleKey: 'nav.moderation',
+          permission: { action: 'MODERATE', resource: 'PROBLEM' },
+        },
+      },
+      {
+        path: 'moderation/dashboard',
+        name: 'moderation-dashboard',
+        component: () => import('@/views/moderation/ModerationDashboardView.vue'),
+        meta: {
+          titleKey: 'moderation.stats.title',
+          permission: { action: 'MODERATE', resource: 'PROBLEM' },
+        },
+      },
+      {
+        path: 'moderation/reports',
+        name: 'moderation-reports',
+        component: () => import('@/views/moderation/ReportsView.vue'),
+        meta: {
+          titleKey: 'moderation.reports.title',
+          permission: { action: 'MODERATE', resource: 'PROBLEM' },
+        },
+      },
+      {
+        path: 'moderation/appeals',
+        name: 'moderation-appeals',
+        component: () => import('@/views/moderation/AppealsView.vue'),
+        meta: {
+          titleKey: 'moderation.appeals.title',
+          permission: { action: 'MODERATE', resource: 'PROBLEM' },
+        },
+      },
+
+      // ==================== Problem Lists ====================
+      {
+        path: 'problem-lists',
+        name: 'problem-lists',
+        component: () => import('@/views/problem-lists/ProblemListsListView.vue'),
+        meta: {
+          titleKey: 'nav.problemLists',
+          permission: { action: 'READ', resource: 'PROBLEM_LIST' },
+        },
+      },
+      {
+        path: 'problem-lists/create',
+        name: 'problem-list-create',
+        component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
+        meta: {
+          titleKey: 'problemLists.createTitle',
+          permission: { action: 'CREATE', resource: 'PROBLEM_LIST' },
+        },
+      },
+      {
+        path: 'problem-lists/:id/edit',
+        name: 'problem-list-edit',
+        component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
+        meta: {
+          titleKey: 'problemLists.editTitle',
+          permission: { action: 'UPDATE', resource: 'PROBLEM_LIST' },
+        },
+        props: true,
+      },
+
+      // ==================== Solutions ====================
+      {
+        path: 'solutions',
+        name: 'solutions',
+        component: () => import('@/views/solutions/SolutionsListView.vue'),
+        meta: { titleKey: 'nav.solutions', permission: { action: 'READ', resource: 'SOLUTION' } },
+      },
+      // Solution detail view (handles all tabs via route detection)
+      {
+        path: 'solutions/:id/:tab?',
+        name: 'solution-detail',
+        component: () => import('@/views/solutions/SolutionDetailView.vue'),
+        meta: {
+          titleKey: 'solutions.detailTitle',
+          permission: { action: 'READ', resource: 'SOLUTION' },
+        },
+        props: true,
+      },
+
+      // ==================== Comments ====================
+      {
+        path: 'comments',
+        name: 'comments',
+        component: () => import('@/views/comments/CommentsListView.vue'),
+        meta: {
+          titleKey: 'nav.comments',
+          permission: [
+            { action: 'MODERATE', resource: 'FORUM_COMMENT' },
+            { action: 'MODERATE', resource: 'SOLUTION_COMMENT' },
+          ],
+        },
+      },
+
+      // ==================== Tags ====================
+      {
+        path: 'tags',
+        name: 'tags',
+        component: () => import('@/views/tags/TagsListView.vue'),
+        meta: { titleKey: 'nav.tags', permission: { action: 'READ', resource: 'TAG' } },
+      },
+
+      // ==================== Forum ====================
+      {
+        path: 'forum',
+        redirect: 'forum/posts',
+      },
+      {
+        path: 'forum/posts',
+        name: 'forum-posts',
+        component: () => import('@/views/forum/ForumPostsListView.vue'),
+        meta: {
+          titleKey: 'forum.postsTitle',
+          permission: { action: 'MODERATE', resource: 'FORUM_POST' },
+        },
+      },
+      // Forum post detail view (handles all tabs via route detection)
+      {
+        path: 'forum/posts/:id/:tab?',
+        name: 'forum-post-detail',
+        component: () => import('@/views/forum/ForumPostDetailView.vue'),
+        meta: {
+          titleKey: 'forum.detailTitle',
+          permission: { action: 'MODERATE', resource: 'FORUM_POST' },
+        },
+        props: true,
+      },
+
+      // ==================== Contests ====================
+      {
+        path: 'contests',
+        name: 'contests',
+        component: () => import('@/views/contests/ContestsListView.vue'),
+        meta: { titleKey: 'nav.contests', permission: { action: 'READ', resource: 'CONTEST' } },
+      },
+      {
+        path: 'contests/:id',
+        name: 'contest-detail',
+        component: () => import('@/views/contests/ContestDetailView.vue'),
+        meta: {
+          titleKey: 'contests.detailTitle',
+          permission: { action: 'READ', resource: 'CONTEST' },
+        },
+        props: true,
+      },
+      {
+        path: 'scoring-rules',
+        name: 'scoring-rules',
+        component: () => import('@/views/contests/ScoringRulesView.vue'),
+        meta: {
+          titleKey: 'contests.scoringRules',
+          permission: { action: 'READ', resource: 'CONTEST' },
+        },
+      },
+
+      // ==================== Submissions ====================
+      {
+        path: 'submissions',
+        name: 'submissions',
+        component: () => import('@/views/submissions/SubmissionsView.vue'),
+        meta: { titleKey: 'nav.submissions', permission: { action: 'READ', resource: 'PROBLEM' } },
+      },
+
+      // ==================== Settings ====================
+      {
+        path: 'settings',
+        name: 'settings',
+        component: () => import('@/views/settings/SettingsView.vue'),
+        meta: { titleKey: 'nav.settings', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+      },
+
+      // ==================== Notifications ====================
+      {
+        path: 'notifications',
+        name: 'notifications',
+        component: () => import('@/views/notifications/NotificationsListView.vue'),
+        meta: { titleKey: 'nav.notifications', permission: { action: 'READ', resource: 'SYSTEM' } },
+      },
+
+      // ==================== System ====================
+      {
+        path: 'monitoring',
+        name: 'monitoring',
+        component: () => import('@/views/system/MonitoringView.vue'),
+        meta: { titleKey: 'nav.monitoring', permission: { action: 'READ', resource: 'SYSTEM' } },
+      },
+      {
+        path: 'backup',
+        name: 'backup',
+        component: () => import('@/views/system/BackupView.vue'),
+        meta: { titleKey: 'nav.backup', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+      },
+      {
+        path: 'email',
+        name: 'email',
+        component: () => import('@/views/system/EmailView.vue'),
+        meta: { titleKey: 'nav.email', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+      },
+
+      // ==================== Account ====================
+      {
+        path: 'account',
+        name: 'account',
+        component: () => import('@/views/account/AccountView.vue'),
+        meta: { titleKey: 'nav.account' },
+      },
+      {
+        path: 'billing',
+        name: 'billing',
+        component: () => import('@/views/billing/BillingView.vue'),
+        meta: { titleKey: 'nav.billing' },
+      },
+    ],
+  },
+]
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
-  routes: [
-    {
-      path: '/login',
-      name: 'login',
-      component: () => import('@/views/auth/LoginView.vue'),
-      meta: { requiresAuth: false },
-    },
-    {
-      path: '/',
-      component: () => import('@/components/layout/MainLayout.vue'),
-      meta: { requiresAuth: true },
-      children: [
-        {
-          path: '',
-          name: 'dashboard',
-          component: () => import('@/views/dashboard/DashboardView.vue'),
-          meta: { title: '仪表盘' },
-        },
-        {
-          path: 'analytics',
-          name: 'analytics',
-          component: () => import('@/views/analytics/AnalyticsView.vue'),
-          meta: { title: '数据分析', permission: { action: 'READ', resource: 'SYSTEM' } },
-        },
-        {
-          path: 'users',
-          name: 'users',
-          component: () => import('@/views/users/UsersListView.vue'),
-          meta: { title: '用户管理', permission: { action: 'READ', resource: 'USER' } },
-        },
-        {
-          path: 'audit',
-          name: 'audit',
-          component: () => import('@/views/audit/AuditLogsView.vue'),
-          meta: { title: '审计日志', permission: { action: 'READ', resource: 'SYSTEM' } },
-        },
-        {
-          path: 'problems',
-          name: 'problems',
-          component: () => import('@/views/problems/ProblemsListView.vue'),
-          meta: { title: '题目管理', permission: { action: 'READ', resource: 'PROBLEM' } },
-        },
-        // Problem detail views (with tabs)
-        {
-          path: 'problems/:id',
-          redirect: (to) => ({ name: 'problem-view-description', params: { id: to.params.id } }),
-        },
-        {
-          path: 'problems/:id/description',
-          name: 'problem-view-description',
-          component: () => import('@/views/problems/ProblemDetailView.vue'),
-          meta: { title: '问题详情', permission: { action: 'READ', resource: 'PROBLEM' } },
-        },
-        {
-          path: 'problems/:id/code',
-          name: 'problem-view-code',
-          component: () => import('@/views/problems/ProblemDetailView.vue'),
-          meta: { title: '问题详情', permission: { action: 'READ', resource: 'PROBLEM' } },
-        },
-        {
-          path: 'problems/:id/cases',
-          name: 'problem-view-cases',
-          component: () => import('@/views/problems/ProblemDetailView.vue'),
-          meta: { title: '问题详情', permission: { action: 'READ', resource: 'PROBLEM' } },
-        },
-        {
-          path: 'problems/:id/audit',
-          name: 'problem-view-audit',
-          component: () => import('@/views/problems/ProblemDetailView.vue'),
-          meta: { title: '问题详情', permission: { action: 'READ', resource: 'PROBLEM' } },
-        },
-        // Problem edit views (split into 3 views)
-        {
-          path: 'problems/create',
-          name: 'problem-create',
-          component: () => import('@/views/problems/ProblemCreateView.vue'),
-          meta: { title: '创建问题', permission: { action: 'CREATE', resource: 'PROBLEM' } },
-        },
-        {
-          path: 'problems/:id/edit',
-          redirect: (to) => ({ name: 'problem-edit-description', params: { id: to.params.id } }),
-        },
-        {
-          path: 'problems/:id/edit/description',
-          name: 'problem-edit-description',
-          component: () => import('@/views/problems/edit/EditDescriptionView.vue'),
-          meta: { title: '编辑问题', permission: { action: 'UPDATE', resource: 'PROBLEM' } },
-        },
-        {
-          path: 'problems/:id/edit/code',
-          name: 'problem-edit-code',
-          component: () => import('@/views/problems/edit/EditCodeView.vue'),
-          meta: { title: '编辑问题', permission: { action: 'UPDATE', resource: 'PROBLEM' } },
-        },
-        {
-          path: 'problems/:id/edit/cases',
-          name: 'problem-edit-cases',
-          component: () => import('@/views/problems/edit/EditCasesView.vue'),
-          meta: { title: '编辑问题', permission: { action: 'UPDATE', resource: 'PROBLEM' } },
-        },
-        // Legacy route name for backward compatibility (aliases to redirect)
-        {
-          path: 'problems/:id/edit/legacy',
-          name: 'problem-edit',
-          redirect: (to) => ({ name: 'problem-edit-description', params: { id: to.params.id } }),
-        },
-        // Moderation
-        {
-          path: 'moderation',
-          name: 'moderation',
-          component: () => import('@/views/moderation/ModerationQueueView.vue'),
-          meta: { title: '内容审核', permission: { action: 'MODERATE', resource: 'PROBLEM' } },
-        },
-        // Problem Lists
-        {
-          path: 'problem-lists',
-          name: 'problem-lists',
-          component: () => import('@/views/problem-lists/ProblemListsListView.vue'),
-          meta: { title: '题单管理', permission: { action: 'READ', resource: 'PROBLEM_LIST' } },
-        },
-        {
-          path: 'problem-lists/create',
-          name: 'problem-list-create',
-          component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
-          meta: { title: '创建题单', permission: { action: 'CREATE', resource: 'PROBLEM_LIST' } },
-        },
-        {
-          path: 'problem-lists/:id/edit',
-          name: 'problem-list-edit',
-          component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
-          meta: { title: '编辑题单', permission: { action: 'UPDATE', resource: 'PROBLEM_LIST' } },
-        },
-        // Solutions
-        {
-          path: 'solutions',
-          name: 'solutions',
-          component: () => import('@/views/solutions/SolutionsListView.vue'),
-          meta: { title: '题解管理', permission: { action: 'READ', resource: 'SOLUTION' } },
-        },
-        {
-          path: 'solutions/:id',
-          redirect: (to) => ({ name: 'solution-view-description', params: { id: to.params.id } }),
-        },
-        {
-          path: 'solutions/:id/description',
-          name: 'solution-view-description',
-          component: () => import('@/views/solutions/SolutionDetailView.vue'),
-          meta: { title: '题解详情', permission: { action: 'READ', resource: 'SOLUTION' } },
-        },
-        {
-          path: 'solutions/:id/code',
-          name: 'solution-view-code',
-          component: () => import('@/views/solutions/SolutionDetailView.vue'),
-          meta: { title: '题解详情', permission: { action: 'READ', resource: 'SOLUTION' } },
-        },
-        // Comments
-        {
-          path: 'comments',
-          name: 'comments',
-          component: () => import('@/views/comments/CommentsListView.vue'),
-          meta: {
-            title: '评论管理',
-            permission: [
-              { action: 'MODERATE', resource: 'FORUM_COMMENT' },
-              { action: 'MODERATE', resource: 'SOLUTION_COMMENT' },
-            ],
-          },
-        },
-        // Tags
-        {
-          path: 'tags',
-          name: 'tags',
-          component: () => import('@/views/tags/TagsListView.vue'),
-          meta: { title: '标签管理', permission: { action: 'READ', resource: 'TAG' } },
-        },
-        // Forum
-        {
-          path: 'forum',
-          redirect: 'forum/posts',
-        },
-        {
-          path: 'forum/posts',
-          name: 'forum-posts',
-          component: () => import('@/views/forum/ForumPostsListView.vue'),
-          meta: { title: '论坛帖子', permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
-        },
-        // Forum post detail views (with tabs)
-        {
-          path: 'forum/posts/:id',
-          redirect: (to) => ({ name: 'forum-post-detail-overview', params: { id: to.params.id } }),
-        },
-        {
-          path: 'forum/posts/:id/overview',
-          name: 'forum-post-detail-overview',
-          component: () => import('@/views/forum/ForumPostDetailView.vue'),
-          meta: { title: '帖子详情', permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
-        },
-        {
-          path: 'forum/posts/:id/comments',
-          name: 'forum-post-detail-comments',
-          component: () => import('@/views/forum/ForumPostDetailView.vue'),
-          meta: { title: '帖子详情', permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
-        },
-        {
-          path: 'forum/posts/:id/audit',
-          name: 'forum-post-detail-audit',
-          component: () => import('@/views/forum/ForumPostDetailView.vue'),
-          meta: { title: '帖子详情', permission: { action: 'MODERATE', resource: 'FORUM_POST' } },
-        },
-        // Contests
-        {
-          path: 'contests',
-          name: 'contests',
-          component: () => import('@/views/contests/ContestsListView.vue'),
-          meta: { title: '比赛管理', permission: { action: 'READ', resource: 'CONTEST' } },
-        },
-        {
-          path: 'contests/:id',
-          name: 'contest-detail',
-          component: () => import('@/views/contests/ContestDetailView.vue'),
-          meta: { title: '比赛详情', permission: { action: 'READ', resource: 'CONTEST' } },
-        },
-        // Scoring Rules
-        {
-          path: 'scoring-rules',
-          name: 'scoring-rules',
-          component: () => import('@/views/contests/ScoringRulesView.vue'),
-          meta: { title: '评分规则', permission: { action: 'READ', resource: 'CONTEST' } },
-        },
-        // Submissions
-        {
-          path: 'submissions',
-          name: 'submissions',
-          component: () => import('@/views/submissions/SubmissionsView.vue'),
-          meta: { title: '提交记录', permission: { action: 'READ', resource: 'PROBLEM' } },
-        },
-        // Settings
-        {
-          path: 'settings',
-          name: 'settings',
-          component: () => import('@/views/settings/SettingsView.vue'),
-          meta: { title: '系统设置', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
-        },
-        // Notifications
-        {
-          path: 'notifications',
-          name: 'notifications',
-          component: () => import('@/views/notifications/NotificationsListView.vue'),
-          meta: { title: '通知管理', permission: { action: 'READ', resource: 'SYSTEM' } },
-        },
-        // System Monitoring
-        {
-          path: 'monitoring',
-          name: 'monitoring',
-          component: () => import('@/views/system/MonitoringView.vue'),
-          meta: { title: '系统监控', permission: { action: 'READ', resource: 'SYSTEM' } },
-        },
-        // Backup & Recovery
-        {
-          path: 'backup',
-          name: 'backup',
-          component: () => import('@/views/system/BackupView.vue'),
-          meta: { title: '备份恢复', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
-        },
-        // Email Management
-        {
-          path: 'email',
-          name: 'email',
-          component: () => import('@/views/system/EmailView.vue'),
-          meta: { title: '邮件管理', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
-        },
-        // Account
-        {
-          path: 'account',
-          name: 'account',
-          component: () => import('@/views/account/AccountView.vue'),
-          meta: { title: '账户设置' },
-        },
-        // Billing
-        {
-          path: 'billing',
-          name: 'billing',
-          component: () => import('@/views/billing/BillingView.vue'),
-          meta: { title: '计费管理' },
-        },
-      ],
-    },
-  ],
+  routes,
 })
 
 // Navigation guard for authentication and permissions
@@ -305,7 +338,6 @@ router.beforeEach(async (to, from, next) => {
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth !== false)
 
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Redirect to login with return url
     return next({
       name: 'login',
       query: { redirect: to.fullPath },
@@ -318,13 +350,11 @@ router.beforeEach(async (to, from, next) => {
       ? to.meta.permission
       : [to.meta.permission]
 
-    // Check if user has ANY of the required permissions
     const hasAnyPermission = permissions.some((p: { action: string; resource: string }) =>
       authStore.hasPermission(p.action, p.resource),
     )
 
     if (!hasAnyPermission) {
-      // Redirect to dashboard if insufficient permissions
       return next({ name: 'dashboard' })
     }
   }
@@ -337,7 +367,7 @@ router.beforeEach(async (to, from, next) => {
     }
   }
 
-  // If already authenticated and trying to access login, redirect to dashboard
+  // Redirect authenticated users away from login
   if (to.name === 'login' && authStore.isAuthenticated) {
     return next({ name: 'dashboard' })
   }

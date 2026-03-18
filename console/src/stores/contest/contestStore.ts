@@ -105,9 +105,8 @@ export const useContestStore = defineStore("contest", () => {
     loading.value = true;
     error.value = null;
     try {
-      const result: PaginatedResult<ContestListItem> = await getContests(
-        filters,
-      );
+      const result: PaginatedResult<ContestListItem> =
+        await getContests(filters);
       contests.value = result.items;
       meta.value = {
         total: result.total,
@@ -116,7 +115,8 @@ export const useContestStore = defineStore("contest", () => {
         totalPages: result.totalPages,
       };
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load contests";
+      error.value =
+        err instanceof Error ? err.message : "Failed to load contests";
       throw err;
     } finally {
       loading.value = false;
@@ -132,7 +132,8 @@ export const useContestStore = defineStore("contest", () => {
     try {
       currentContest.value = await getContest(slug);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load contest";
+      error.value =
+        err instanceof Error ? err.message : "Failed to load contest";
       throw err;
     } finally {
       loading.value = false;
@@ -148,7 +149,8 @@ export const useContestStore = defineStore("contest", () => {
     try {
       currentProblems.value = await getContestProblems(slug);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : "Failed to load problems";
+      error.value =
+        err instanceof Error ? err.message : "Failed to load problems";
       throw err;
     } finally {
       loading.value = false;

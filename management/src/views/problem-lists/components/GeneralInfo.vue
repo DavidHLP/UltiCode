@@ -101,7 +101,7 @@ const bannerThemes = [
     <form @submit="form.handleSubmit(onSubmit)" class="space-y-6">
       <!-- Basic Information Section -->
       <div class="space-y-4">
-        <div class="terminal-comment">// Basic Information</div>
+        <div class="terminal-comment">// {{ t('problemLists.sections.basicInfo') }}</div>
 
         <FormField v-slot="{ componentField }" name="name">
           <FormItem>
@@ -136,7 +136,7 @@ const bannerThemes = [
 
       <!-- Visibility & Featured Section -->
       <div class="space-y-4">
-        <div class="terminal-comment">// Visibility & Featured</div>
+        <div class="terminal-comment">// {{ t('problemLists.sections.visibilityFeatured') }}</div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField v-slot="{ value, handleChange }" name="is_public">
@@ -196,7 +196,7 @@ const bannerThemes = [
         <div class="terminal-separator" />
 
         <div class="space-y-4">
-          <div class="terminal-comment">// Banner Settings</div>
+          <div class="terminal-comment">// {{ t('problemLists.sections.bannerSettings') }}</div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <FormField v-slot="{ componentField }" name="banner_tag">

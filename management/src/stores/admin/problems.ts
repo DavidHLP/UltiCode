@@ -29,16 +29,19 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   const descriptionData = ref<DescriptionData | null>(null)
   const descriptionLoading = ref(false)
   const descriptionError = ref<string | null>(null)
+  const loadedDescriptionId = ref<string | null>(null)
 
   // ========== Code Tab State ==========
   const codeData = ref<CodeData | null>(null)
   const codeLoading = ref(false)
   const codeError = ref<string | null>(null)
+  const loadedCodeId = ref<string | null>(null)
 
   // ========== Cases Tab State ==========
   const casesData = ref<CasesData | null>(null)
   const casesLoading = ref(false)
   const casesError = ref<string | null>(null)
+  const loadedCasesId = ref<string | null>(null)
 
   // ========== Abort Controllers ==========
   const abortControllers = ref<Map<string, AbortController>>(new Map())
@@ -50,13 +53,13 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   // ========== AbortController Helpers ==========
 
   function getAbortController(key: string): AbortController {
-    let controller = abortControllers.value.get(key)
+    const controller = abortControllers.value.get(key)
     if (controller) {
       controller.abort()
     }
-    controller = new AbortController()
-    abortControllers.value.set(key, controller)
-    return controller
+    const newController = new AbortController()
+    abortControllers.value.set(key, newController)
+    return newController
   }
 
   function abortAllRequests() {
@@ -91,14 +94,21 @@ export const useProblemsStore = defineStore('adminProblems', () => {
 
   // ========== Tab Fetch Functions ==========
 
-  async function fetchHeader(id: string): Promise<HeaderData | null> {
+  async function fetchHeader(id: string, forceRefresh = false): Promise<HeaderData | null> {
+    if (!forceRefresh && loadedProblemId.value === id && headerData.value) {
+      headerLoading.value = false
+      return headerData.value
+    }
+
     const controller = getAbortController('header')
     headerLoading.value = true
     headerError.value = null
 
     try {
       const data = await problemsApi.getHeader(id, controller.signal)
+      if (controller.signal.aborted) return null
       headerData.value = data
+      loadedProblemId.value = id
       return data
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') {
@@ -108,18 +118,30 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       console.error('[ProblemsStore] Failed to fetch header:', err)
       return null
     } finally {
-      headerLoading.value = false
+      if (abortControllers.value.get('header') === controller) {
+        headerLoading.value = false
+      }
     }
   }
 
-  async function fetchDescription(id: string): Promise<DescriptionData | null> {
+  async function fetchDescription(
+    id: string,
+    forceRefresh = false,
+  ): Promise<DescriptionData | null> {
+    if (!forceRefresh && loadedDescriptionId.value === id && descriptionData.value) {
+      descriptionLoading.value = false
+      return descriptionData.value
+    }
+
     const controller = getAbortController('description')
     descriptionLoading.value = true
     descriptionError.value = null
 
     try {
       const data = await problemsApi.getDescription(id, controller.signal)
+      if (controller.signal.aborted) return null
       descriptionData.value = data
+      loadedDescriptionId.value = id
       return data
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') {
@@ -129,18 +151,27 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       console.error('[ProblemsStore] Failed to fetch description:', err)
       return null
     } finally {
-      descriptionLoading.value = false
+      if (abortControllers.value.get('description') === controller) {
+        descriptionLoading.value = false
+      }
     }
   }
 
-  async function fetchCode(id: string): Promise<CodeData | null> {
+  async function fetchCode(id: string, forceRefresh = false): Promise<CodeData | null> {
+    if (!forceRefresh && loadedCodeId.value === id && codeData.value) {
+      codeLoading.value = false
+      return codeData.value
+    }
+
     const controller = getAbortController('code')
     codeLoading.value = true
     codeError.value = null
 
     try {
       const data = await problemsApi.getCode(id, controller.signal)
+      if (controller.signal.aborted) return null
       codeData.value = data
+      loadedCodeId.value = id
       return data
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') {
@@ -150,18 +181,27 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       console.error('[ProblemsStore] Failed to fetch code:', err)
       return null
     } finally {
-      codeLoading.value = false
+      if (abortControllers.value.get('code') === controller) {
+        codeLoading.value = false
+      }
     }
   }
 
-  async function fetchCases(id: string): Promise<CasesData | null> {
+  async function fetchCases(id: string, forceRefresh = false): Promise<CasesData | null> {
+    if (!forceRefresh && loadedCasesId.value === id && casesData.value) {
+      casesLoading.value = false
+      return casesData.value
+    }
+
     const controller = getAbortController('cases')
     casesLoading.value = true
     casesError.value = null
 
     try {
       const data = await problemsApi.getCases(id, controller.signal)
+      if (controller.signal.aborted) return null
       casesData.value = data
+      loadedCasesId.value = id
       return data
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') {
@@ -171,7 +211,9 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       console.error('[ProblemsStore] Failed to fetch cases:', err)
       return null
     } finally {
-      casesLoading.value = false
+      if (abortControllers.value.get('cases') === controller) {
+        casesLoading.value = false
+      }
     }
   }
 
@@ -387,10 +429,13 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     headerError.value = null
     descriptionData.value = null
     descriptionError.value = null
+    loadedDescriptionId.value = null
     codeData.value = null
     codeError.value = null
+    loadedCodeId.value = null
     casesData.value = null
     casesError.value = null
+    loadedCasesId.value = null
 
     // Clear legacy state
     currentProblem.value = null
@@ -408,10 +453,13 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     headerError.value = null
     descriptionData.value = null
     descriptionError.value = null
+    loadedDescriptionId.value = null
     codeData.value = null
     codeError.value = null
+    loadedCodeId.value = null
     casesData.value = null
     casesError.value = null
+    loadedCasesId.value = null
 
     // Clear legacy state
     currentProblem.value = null

@@ -43,7 +43,8 @@ const { t } = useI18n();
 const rankingStore = useRankingStore();
 
 // WebSocket connection for real-time updates
-const { isConnected, joinContest, leaveContest, onRankingUpdate } = useContestSocket();
+const { isConnected, joinContest, leaveContest, onRankingUpdate } =
+  useContestSocket();
 
 // Rankings from store
 const rankings = computed(() => {
@@ -159,7 +160,7 @@ watch(
       await unsubscribeFromUpdates();
       await subscribeToUpdates();
     }
-  }
+  },
 );
 </script>
 
@@ -170,7 +171,12 @@ watch(
       v-if="isFrozen"
       class="bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200 px-3 py-2 rounded-md text-sm"
     >
-      {{ t("contest.ranking.frozen", "Rankings are frozen during the final minutes") }}
+      {{
+        t(
+          "contest.ranking.frozen",
+          "Rankings are frozen during the final minutes",
+        )
+      }}
     </div>
 
     <!-- Error State -->
@@ -260,7 +266,9 @@ watch(
               <div class="flex items-center gap-3">
                 <Avatar class="h-8 w-8">
                   <AvatarImage v-if="entry.avatar" :src="entry.avatar" />
-                  <AvatarFallback>{{ getInitials(entry.username) }}</AvatarFallback>
+                  <AvatarFallback>{{
+                    getInitials(entry.username)
+                  }}</AvatarFallback>
                 </Avatar>
                 <div>
                   <span
@@ -325,7 +333,11 @@ watch(
         class="h-2 w-2 rounded-full"
         :class="isConnected ? 'bg-green-500' : 'bg-gray-300'"
       />
-      {{ isConnected ? t("contest.ranking.live", "Live") : t("contest.ranking.connecting", "Connecting...") }}
+      {{
+        isConnected
+          ? t("contest.ranking.live", "Live")
+          : t("contest.ranking.connecting", "Connecting...")
+      }}
     </div>
   </div>
 </template>

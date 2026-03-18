@@ -61,8 +61,10 @@ async function fetchScoringRules() {
       }
     }
   } catch (error) {
-    toast.error(t('scoringRules.loadError'))
-    console.error(error)
+    // Don't show error toast for permission issues - scoring rules are optional
+    // The contest creation will work with default scoring
+    console.warn('Failed to load scoring rules:', error)
+    scoringRules.value = []
   } finally {
     loading.value = false
   }
@@ -291,6 +293,7 @@ function cancelCreateNew() {
             <span class="terminal-comment">{{ t('contests.scoringRule.createNew') }}</span>
           </div>
           <Button
+            type="button"
             variant="terminal"
             size="sm"
             class="font-data text-xs border-[var(--silver-300)]"
@@ -389,6 +392,7 @@ function cancelCreateNew() {
           <!-- Submit Button -->
           <div class="flex justify-end pt-2">
             <Button
+              type="button"
               variant="terminal"
               size="sm"
               class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"

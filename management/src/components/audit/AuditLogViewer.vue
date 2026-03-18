@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -53,6 +53,9 @@ const sortOrder = ref<'asc' | 'desc'>('desc')
 const expandedLogs = ref<Set<string>>(new Set())
 
 async function loadAuditLogs() {
+  if (!props.entityType || !props.entityId) {
+    return
+  }
   loading.value = true
   try {
     const response = await auditApi.getAuditLogs({
@@ -139,8 +142,24 @@ const filteredLogs = computed(() => {
   return auditLogs.value
 })
 
+// Watch for entityId changes to trigger data fetch
+watch(
+  () => props.entityId,
+  (newEntityId) => {
+    if (newEntityId && props.entityType) {
+      currentPage.value = 1
+      loadAuditLogs()
+    }
+  },
+  { immediate: true },
+)
+
 onMounted(() => {
-  loadAuditLogs()
+  // Initial load is handled by the watch with immediate: true
+  // This is kept for backwards compatibility if watch doesn't trigger
+  if (props.entityType && props.entityId) {
+    loadAuditLogs()
+  }
 })
 </script>
 

@@ -265,7 +265,10 @@ export class AntiCheatService {
     const anomalies: TimeAnomaly[] = [];
 
     // Track first accepted submission per user per problem
-    const firstSubmissionPerUserProblem = new Map<string, typeof submissions[0]>();
+    const firstSubmissionPerUserProblem = new Map<
+      string,
+      (typeof submissions)[0]
+    >();
 
     for (const sub of submissions) {
       const key = `${sub.participant.user_id}-${sub.contest_problem_id}`;
@@ -290,7 +293,8 @@ export class AntiCheatService {
           submission_id: sub.submission_id,
           time_from_start: actualTime,
           code_length: codeLength,
-          anomaly_type: actualTime < minTime / 2 ? 'suspicious_pattern' : 'too_fast',
+          anomaly_type:
+            actualTime < minTime / 2 ? 'suspicious_pattern' : 'too_fast',
         });
       }
     }
@@ -335,9 +339,13 @@ export class AntiCheatService {
 
     // Calculate risk level
     const suspiciousRatio =
-      (similarityPairs.length + timeAnomalies.length) / Math.max(participantCount, 1);
+      (similarityPairs.length + timeAnomalies.length) /
+      Math.max(participantCount, 1);
     let riskLevel: 'low' | 'medium' | 'high';
-    if (suspiciousRatio > 0.3 || similarityPairs.some((p) => p.similarity > 0.95)) {
+    if (
+      suspiciousRatio > 0.3 ||
+      similarityPairs.some((p) => p.similarity > 0.95)
+    ) {
       riskLevel = 'high';
     } else if (suspiciousRatio > 0.1 || similarityPairs.length > 0) {
       riskLevel = 'medium';

@@ -100,10 +100,10 @@ const {
     error: computed(() => store.error),
     fetch: (params) => store.fetchSubmissions(params),
   },
-  filters: {
+  filters: () => ({
     status: statusFilter.value,
     language: languageFilter.value,
-  },
+  }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     status: filters.status === 'all' ? undefined : filters.status,

@@ -18,7 +18,11 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
-import type { ScoringRule, CreateScoringRuleDto, UpdateScoringRuleDto } from '@/api/admin/scoring-rules'
+import type {
+  ScoringRule,
+  CreateScoringRuleDto,
+  UpdateScoringRuleDto,
+} from '@/api/admin/scoring-rules'
 
 const { t } = useI18n()
 
@@ -37,12 +41,18 @@ const loading = ref(false)
 
 const formSchema = toTypedSchema(
   z.object({
-    name: z.string().min(1, t('scoringRules.form.nameRequired')).max(100, t('scoringRules.form.nameTooLong')),
+    name: z
+      .string()
+      .min(1, t('scoringRules.form.nameRequired'))
+      .max(100, t('scoringRules.form.nameTooLong')),
     description: z.string().max(500, t('scoringRules.form.descriptionTooLong')).optional(),
     base_score_per_problem: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
     time_bonus_per_minute: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
     wrong_answer_penalty: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
-    time_limit_penalty: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')).optional(),
+    time_limit_penalty: z.coerce
+      .number()
+      .min(0, t('scoringRules.form.mustBeNonNegative'))
+      .optional(),
     first_solve_bonus: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
     full_score_bonus: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')).optional(),
     is_default: z.boolean().optional(),
@@ -106,7 +116,11 @@ function handleCancel() {
           {{ ruleToEdit ? t('scoringRules.form.editTitle') : t('scoringRules.form.createTitle') }}
         </DialogTitle>
         <DialogDescription>
-          {{ ruleToEdit ? t('scoringRules.form.editDescription') : t('scoringRules.form.createDescription') }}
+          {{
+            ruleToEdit
+              ? t('scoringRules.form.editDescription')
+              : t('scoringRules.form.createDescription')
+          }}
         </DialogDescription>
       </DialogHeader>
 
@@ -115,7 +129,10 @@ function handleCancel() {
           <FormItem>
             <FormLabel>{{ t('scoringRules.form.name') }}</FormLabel>
             <FormControl>
-              <Input v-bind="componentField" :placeholder="t('scoringRules.form.namePlaceholder')" />
+              <Input
+                v-bind="componentField"
+                :placeholder="t('scoringRules.form.namePlaceholder')"
+              />
             </FormControl>
             <FormMessage />
           </FormItem>
@@ -221,7 +238,9 @@ function handleCancel() {
           </Button>
           <Button type="submit" :disabled="loading">
             <IconLoader v-if="loading" class="mr-2 h-4 w-4 animate-spin" />
-            {{ ruleToEdit ? t('scoringRules.form.saveChanges') : t('scoringRules.form.createRule') }}
+            {{
+              ruleToEdit ? t('scoringRules.form.saveChanges') : t('scoringRules.form.createRule')
+            }}
           </Button>
         </DialogFooter>
       </form>

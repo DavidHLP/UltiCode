@@ -301,10 +301,114 @@
   margin: 1.5rem 0;
 }
 
-/* Highlight.js code block styles */
+/* Highlight.js code block styles - Light Theme */
 .hljs {
-  background: var(--muted);
-  color: var(--foreground);
+  background: transparent;
+  color: #24292e;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #6a737d;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-addition {
+  color: #d73a49;
+}
+
+.hljs-number,
+.hljs-string,
+.hljs-meta .hljs-meta-string,
+.hljs-literal,
+.hljs-doctag,
+.hljs-regexp {
+  color: #032f62;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #6f42c1;
+}
+
+.hljs-attribute,
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-class .hljs-title,
+.hljs-type {
+  color: #6f42c1;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-subst,
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-link {
+  color: #e36209;
+}
+
+.hljs-built_in,
+.hljs-deletion {
+  color: #b31d28;
+}
+
+.hljs-formula {
+  background: #ffeef0;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+.hljs-function {
+  color: #6f42c1;
+}
+
+.hljs-params {
+  color: #24292e;
+}
+
+.hljs-tag {
+  color: #22863a;
+}
+
+.hljs-xml-tag {
+  color: #22863a;
+}
+
+.hljs-xml-attr {
+  color: #6f42c1;
+}
+
+.hljs-xml-comment {
+  color: #6a737d;
+}
+
+/* Additional language-specific styles */
+.hljs-javascript .hljs-title,
+.hljs-typescript .hljs-title {
+  color: #6f42c1;
+}
+
+.hljs-python .hljs-decorator {
+  color: #6f42c1;
+}
+
+.hljs-java .hljs-annotation {
+  color: #6f42c1;
 }
 
 /* Code tabs styles from markdown renderer */
@@ -389,9 +493,6 @@
 /* ========================================
    Precision Dashboard Typography
    ======================================== */
-
-/* Import JetBrains Mono for data displays */
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 /* Data font utility - monospace for numbers and data */
 .font-data {

@@ -125,9 +125,7 @@ export interface UseContestSocketReturn {
   /** Register callback for first solve notifications */
   onFirstSolve: (callback: (data: FirstSolvePayload) => void) => () => void;
   /** Register callback for announcements */
-  onAnnouncement: (
-    callback: (data: AnnouncementPayload) => void,
-  ) => () => void;
+  onAnnouncement: (callback: (data: AnnouncementPayload) => void) => () => void;
   /** Register callback for contest status changes */
   onContestStatus: (
     callback: (data: ContestStatusPayload) => void,
@@ -333,15 +331,19 @@ export function useContestSocket(
     const socket = getContestSocket(fullOptions);
 
     return new Promise((resolve, reject) => {
-      socket.emit("join_contest", contestId, (response: ContestRoomResponse) => {
-        if (response.success) {
-          currentContestId.value = contestId;
-          resolve(response);
-        } else {
-          error.value = response.error || response.message;
-          reject(new Error(response.message));
-        }
-      });
+      socket.emit(
+        "join_contest",
+        contestId,
+        (response: ContestRoomResponse) => {
+          if (response.success) {
+            currentContestId.value = contestId;
+            resolve(response);
+          } else {
+            error.value = response.error || response.message;
+            reject(new Error(response.message));
+          }
+        },
+      );
 
       // Timeout after 10 seconds
       setTimeout(() => {
@@ -363,15 +365,19 @@ export function useContestSocket(
     }
 
     return new Promise((resolve, reject) => {
-      socket.emit("leave_contest", contestId, (response: ContestRoomResponse) => {
-        if (response.success) {
-          currentContestId.value = null;
-          resolve(response);
-        } else {
-          error.value = response.error || response.message;
-          reject(new Error(response.message));
-        }
-      });
+      socket.emit(
+        "leave_contest",
+        contestId,
+        (response: ContestRoomResponse) => {
+          if (response.success) {
+            currentContestId.value = null;
+            resolve(response);
+          } else {
+            error.value = response.error || response.message;
+            reject(new Error(response.message));
+          }
+        },
+      );
 
       // Timeout after 10 seconds
       setTimeout(() => {

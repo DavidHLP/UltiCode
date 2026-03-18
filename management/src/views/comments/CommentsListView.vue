@@ -96,10 +96,10 @@ const {
     error: computed(() => commentsStore.error),
     fetch: (params) => commentsStore.fetchComments(params),
   },
-  filters: {
+  filters: () => ({
     type: typeFilter.value,
     flaggedFilter: flaggedFilter.value,
-  },
+  }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     type: filters.type === 'all' ? undefined : filters.type,

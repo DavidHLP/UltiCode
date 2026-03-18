@@ -3,41 +3,18 @@ import { isRef } from 'vue'
 import zhCN from './locales/zh-CN'
 import enUS from './locales/en-US'
 
-// Support same locales as frontend - zh-CN first to match
-export const SUPPORTED_LOCALES = ['zh-CN', 'en-US'] as const
-export type SupportedLocale = (typeof SUPPORTED_LOCALES)[number]
+// Re-export types and constants from types.ts (single source of truth)
+export {
+  SUPPORTED_LOCALES,
+  LOCALE_CONFIGS,
+  DEFAULT_LOCALE,
+  FALLBACK_LOCALE,
+  LOCALE_HEADER_KEY,
+} from './types'
 
-// Locale configuration
-export interface LocaleConfig {
-  code: SupportedLocale
-  name: string
-  nativeName: string
-  flag: string
-}
+export type { SupportedLocale, LocaleConfig, MessageSchema } from './types'
 
-export const LOCALE_CONFIGS: Record<SupportedLocale, LocaleConfig> = {
-  'zh-CN': {
-    code: 'zh-CN',
-    name: 'Chinese (Simplified)',
-    nativeName: '简体中文',
-    flag: '🇨🇳',
-  },
-  'en-US': {
-    code: 'en-US',
-    name: 'English (US)',
-    nativeName: 'English',
-    flag: '🇺🇸',
-  },
-}
-
-// Default and fallback locale - zh-CN per user decision
-export const DEFAULT_LOCALE: SupportedLocale = 'zh-CN'
-export const FALLBACK_LOCALE: SupportedLocale = 'zh-CN'
-export const LOCALE_HEADER_KEY = 'x-locale'
-
-/**
- * Get active locale from localStorage or return default
- */
+// Get active locale from localStorage or return default
 function getStoredLocale(): string | null {
   try {
     return localStorage.getItem('ulticode-locale')
@@ -46,41 +23,70 @@ function getStoredLocale(): string | null {
   }
 }
 
-/**
- * Get initial locale
- */
-function getInitialLocale(): SupportedLocale {
+// Get initial locale based on storage or browser preference
+function getInitialLocale(): string {
   const stored = getStoredLocale()
-  if (stored && SUPPORTED_LOCALES.includes(stored as SupportedLocale)) {
-    return stored as SupportedLocale
+  if (stored && ['zh-CN', 'en-US'].includes(stored)) {
+    return stored
   }
-  return DEFAULT_LOCALE
+
+  // Try to detect browser language
+  try {
+    const browserLang = navigator.language
+    if (browserLang.startsWith('zh')) {
+      return 'zh-CN'
+    }
+    if (browserLang.startsWith('en')) {
+      return 'en-US'
+    }
+  } catch {
+    // Ignore if navigator is not available
+  }
+
+  return 'zh-CN' // Default locale
 }
 
 // Create i18n instance
 export const i18n = createI18n({
-  legacy: false,
-  globalInjection: true,
+  legacy: false, // Use Composition API
+  globalInjection: true, // Inject $t globally
   locale: getInitialLocale(),
-  fallbackLocale: FALLBACK_LOCALE,
+  fallbackLocale: 'zh-CN',
   messages: {
     'zh-CN': zhCN,
     'en-US': enUS,
   },
 })
 
-/**
- * Get active locale from i18n instance
- */
-export function getActiveLocale(): SupportedLocale {
+// Get active locale from i18n instance
+export function getActiveLocale(): string {
   const localeRef = i18n.global.locale
   const localeValue = isRef(localeRef) ? localeRef.value : localeRef
 
-  if (SUPPORTED_LOCALES.includes(localeValue as SupportedLocale)) {
-    return localeValue as SupportedLocale
+  if (['zh-CN', 'en-US'].includes(localeValue)) {
+    return localeValue
   }
 
-  return DEFAULT_LOCALE
+  return 'zh-CN'
+}
+
+// Set locale and persist to localStorage
+export function setLocale(locale: 'zh-CN' | 'en-US'): void {
+  i18n.global.locale.value = locale
+
+  try {
+    localStorage.setItem('ulticode-locale', locale)
+  } catch {
+    // Ignore localStorage errors
+  }
+
+  // Update HTML lang attribute
+  document.documentElement.lang = locale
+}
+
+// Type-safe translation helper
+export function t(key: string, params?: Record<string, unknown>): string {
+  return i18n.global.t(key, params ?? {})
 }
 
 export default i18n

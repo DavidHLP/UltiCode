@@ -112,7 +112,9 @@ onMounted(loadData);
     class="max-w-7xl mx-auto w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500 pb-10"
   >
     <!-- Page Header -->
-    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div
+      class="flex flex-col md:flex-row md:items-center justify-between gap-4"
+    >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
           <Trophy class="h-8 w-8 text-yellow-500" />
@@ -147,13 +149,17 @@ onMounted(loadData);
     <div v-else class="space-y-6">
       <!-- Tabbed Navigation -->
       <Tabs v-model="activeTab" class="w-full">
-        <TabsList class="bg-muted/50 p-1 h-12 rounded-xl w-full sm:w-auto grid grid-cols-3">
+        <TabsList
+          class="bg-muted/50 p-1 h-12 rounded-xl w-full sm:w-auto grid grid-cols-3"
+        >
           <TabsTrigger
             value="ongoing"
             class="rounded-lg px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2"
           >
             <PlayCircle class="h-4 w-4" />
-            <span class="hidden sm:inline">{{ t("contest.list.running") }}</span>
+            <span class="hidden sm:inline">{{
+              t("contest.list.running")
+            }}</span>
             <span class="sm:hidden">{{ t("contest.list.running") }}</span>
             <span
               v-if="runningContests.length > 0"
@@ -167,7 +173,9 @@ onMounted(loadData);
             class="rounded-lg px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2"
           >
             <Calendar class="h-4 w-4" />
-            <span class="hidden sm:inline">{{ t("contest.list.upcoming") }}</span>
+            <span class="hidden sm:inline">{{
+              t("contest.list.upcoming")
+            }}</span>
             <span class="sm:hidden">{{ t("contest.list.upcoming") }}</span>
           </TabsTrigger>
           <TabsTrigger
@@ -175,7 +183,9 @@ onMounted(loadData);
             class="rounded-lg px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2"
           >
             <CheckCircle class="h-4 w-4" />
-            <span class="hidden sm:inline">{{ t("contest.list.finished") }}</span>
+            <span class="hidden sm:inline">{{
+              t("contest.list.finished")
+            }}</span>
             <span class="sm:hidden">{{ t("contest.list.finished") }}</span>
           </TabsTrigger>
         </TabsList>
@@ -183,7 +193,10 @@ onMounted(loadData);
         <!-- Ongoing Contests Tab -->
         <TabsContent value="ongoing" class="mt-6 space-y-6">
           <!-- Loading Skeletons -->
-          <div v-if="loadingContests" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-if="loadingContests"
+            class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
             <Card v-for="i in 3" :key="i">
               <CardContent class="p-5 space-y-4">
                 <Skeleton class="h-4 w-20" />
@@ -198,7 +211,10 @@ onMounted(loadData);
           </div>
 
           <!-- Contest Cards Grid -->
-          <div v-else-if="hasContests" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-else-if="hasContests"
+            class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
             <ContestCard
               v-for="contest in currentContests"
               :key="contest.id"
@@ -213,7 +229,9 @@ onMounted(loadData);
             class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5 text-center px-6"
           >
             <PlayCircle class="h-12 w-12 text-muted-foreground/30 mb-4" />
-            <h3 class="text-lg font-bold">{{ t("contest.list.noContests") }}</h3>
+            <h3 class="text-lg font-bold">
+              {{ t("contest.list.noContests") }}
+            </h3>
             <p class="text-sm text-muted-foreground mt-1 max-w-[300px]">
               {{ t("contest.list.noContestsHint") }}
             </p>
@@ -223,7 +241,10 @@ onMounted(loadData);
         <!-- Upcoming Contests Tab -->
         <TabsContent value="upcoming" class="mt-6 space-y-6">
           <!-- Loading Skeletons -->
-          <div v-if="loadingContests" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-if="loadingContests"
+            class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
             <Card v-for="i in 3" :key="i">
               <CardContent class="p-5 space-y-4">
                 <Skeleton class="h-4 w-20" />
@@ -238,7 +259,10 @@ onMounted(loadData);
           </div>
 
           <!-- Contest Cards Grid -->
-          <div v-else-if="hasContests" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-else-if="hasContests"
+            class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
             <ContestCard
               v-for="contest in currentContests"
               :key="contest.id"
@@ -253,7 +277,9 @@ onMounted(loadData);
             class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5 text-center px-6"
           >
             <Calendar class="h-12 w-12 text-muted-foreground/30 mb-4" />
-            <h3 class="text-lg font-bold">{{ t("contest.list.noContests") }}</h3>
+            <h3 class="text-lg font-bold">
+              {{ t("contest.list.noContests") }}
+            </h3>
             <p class="text-sm text-muted-foreground mt-1 max-w-[300px]">
               {{ t("contest.list.noUpcomingHint") }}
             </p>
@@ -263,7 +289,10 @@ onMounted(loadData);
         <!-- Finished Contests Tab -->
         <TabsContent value="finished" class="mt-6 space-y-6">
           <!-- Loading Skeletons -->
-          <div v-if="loadingContests" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-if="loadingContests"
+            class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
             <Card v-for="i in 3" :key="i">
               <CardContent class="p-5 space-y-4">
                 <Skeleton class="h-4 w-20" />
@@ -278,7 +307,10 @@ onMounted(loadData);
           </div>
 
           <!-- Contest Cards Grid -->
-          <div v-else-if="hasContests" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div
+            v-else-if="hasContests"
+            class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"
+          >
             <ContestCard
               v-for="contest in currentContests"
               :key="contest.id"
@@ -293,7 +325,9 @@ onMounted(loadData);
             class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5 text-center px-6"
           >
             <CheckCircle class="h-12 w-12 text-muted-foreground/30 mb-4" />
-            <h3 class="text-lg font-bold">{{ t("contest.list.noContests") }}</h3>
+            <h3 class="text-lg font-bold">
+              {{ t("contest.list.noContests") }}
+            </h3>
             <p class="text-sm text-muted-foreground mt-1 max-w-[300px]">
               {{ t("contest.list.noFinishedHint") }}
             </p>

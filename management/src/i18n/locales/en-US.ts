@@ -68,10 +68,13 @@ export default {
     unpublished: 'Unpublished',
     deleteConfirm: 'Confirm Delete',
     clearSelection: 'Clear Selection',
+    reasonLabel: 'Reason',
+    reasonPlaceholder: 'Please provide a reason...',
   },
 
   // Navigation
   nav: {
+    brandName: 'UltiCode',
     dashboard: 'Dashboard',
     users: 'Users',
     problems: 'Problems',
@@ -106,6 +109,8 @@ export default {
     statusDismissed: 'Dismissed',
     noFlagged: 'No Flagged Problems',
     noFlaggedDescription: 'There are currently no flagged problems requiring review.',
+    emptyTitle: 'No Flagged Content',
+    emptyDescription: 'There are no items requiring moderation at this time.',
     flagReason: 'Flag Reason',
     moderationNotes: 'Moderation Notes',
     moderate: 'Moderate',
@@ -116,6 +121,16 @@ export default {
     success: 'Problem moderated successfully',
     error: 'Failed to moderate problem',
     loadError: 'Failed to load flagged problems',
+    reasonPrompt: 'Please enter a reason for flagging this problem:',
+    flagSuccess: 'Problem flagged successfully',
+    unflagSuccess: 'Problem unflagged successfully',
+    flag: 'Flag',
+    unflag: 'Unflag',
+    // Flag dialog
+    flagProblem: 'Flag Problem',
+    flagDescription:
+      'Flag "{title}" for moderation review. This will mark the problem as requiring attention from moderators. Please provide a reason for flagging.',
+    flagError: 'Failed to flag problem',
     // Batch moderation
     selectAll: 'Select All',
     selectedCount: '{count} selected',
@@ -558,6 +573,21 @@ export default {
       viewDescription: 'Description',
       viewCode: 'Code',
       viewCases: 'Test Cases',
+      viewFlagInfo: 'Flag Info',
+    },
+
+    // Flag Info
+    flagInfo: {
+      title: 'Flag Information',
+      status: 'Status',
+      reason: 'Reason',
+      reportedBy: 'Reported By',
+      reportedAt: 'Reported At',
+      reviewedBy: 'Reviewed By',
+      reviewedAt: 'Reviewed At',
+      notes: 'Notes',
+      noReason: 'No reason provided',
+      noNotes: 'No notes',
     },
 
     // Toast messages
@@ -968,7 +998,12 @@ export default {
         UPDATE: 'Updated',
         DELETE: 'Deleted',
         RESTORE: 'Restored',
+        ROLLBACK: 'Rolled back',
       },
+      createInitial: 'Create Initial Snapshot',
+      createInitialSuccess: 'Initial version snapshot created successfully',
+      createInitialError: 'Failed to create initial snapshot',
+      alreadyHasVersions: 'This problem already has version history',
     },
 
     // Moderation
@@ -998,6 +1033,10 @@ export default {
       unflagSuccess: 'Problem unflagged successfully',
       flag: 'Flag',
       unflag: 'Unflag',
+      flagProblem: 'Flag Problem',
+      flagDescription:
+        'Flag "{title}" for moderation review. This will mark the problem as requiring attention from moderators.',
+      flagError: 'Failed to flag problem',
     },
   },
 
@@ -1911,6 +1950,23 @@ export default {
     generalInfo: 'General Info',
     problems: 'Problems',
 
+    // Sections
+    sections: {
+      basicInfo: 'Basic Information',
+      visibilityFeatured: 'Visibility & Featured',
+      bannerSettings: 'Banner Settings',
+    },
+
+    // Status
+    status: {
+      visibility: 'VISIBILITY',
+      public: 'PUBLIC',
+      private: 'PRIVATE',
+      problems: 'PROBLEMS',
+      status: 'STATUS',
+      featured: 'FEATURED',
+    },
+
     // Table columns
     columns: {
       name: 'Name',
@@ -2673,6 +2729,115 @@ export default {
     goToPreviousPage: 'Go to previous page',
     goToNextPage: 'Go to next page',
     goToLastPage: 'Go to last page',
+    // Column name translations for column visibility dropdown
+    columnNames: {
+      username: 'Username',
+      role: 'Role',
+      status: 'Status',
+      joined_at: 'Joined At',
+      last_login_at: 'Last Login',
+      title: 'Title',
+      name: 'Name',
+      email: 'Email',
+      created_at: 'Created At',
+      updated_at: 'Updated At',
+      difficulty: 'Difficulty',
+      problem: 'Problem',
+      contest: 'Contest',
+      type: 'Type',
+      schedule: 'Schedule',
+      participants: 'Participants',
+      views: 'Views',
+      author: 'Author',
+      content: 'Content',
+      score: 'Score',
+      rank: 'Rank',
+      penalty: 'Penalty',
+      user: 'User',
+      id: 'ID',
+      slug: 'Slug',
+      description: 'Description',
+      tags: 'Tags',
+      language: 'Language',
+      runtime: 'Runtime',
+      memory: 'Memory',
+      submitted_at: 'Submitted At',
+      published: 'Published',
+      flagged: 'Flagged',
+      submissions: 'Submissions',
+      visibility: 'Visibility',
+      featured: 'Featured',
+      problems: 'Problems',
+      order: 'Order',
+      color: 'Color',
+      usage: 'Usage',
+      label: 'Label',
+      solution: 'Solution',
+      stats: 'Stats',
+      comment: 'Comment',
+      priority: 'Priority',
+      action: 'Action',
+      performer: 'Performer',
+      target: 'Target',
+      entity_type: 'Entity Type',
+      ip: 'IP Address',
+      base_score: 'Base Score',
+      time_bonus: 'Time Bonus',
+      wrong_penalty: 'Wrong Penalty',
+      first_solve_bonus: 'First Solve Bonus',
+      is_default: 'Default',
+      is_active: 'Active',
+      // Problem columns
+      is_published: 'Published',
+      is_flagged: 'Flagged',
+      submission_count: 'Submissions',
+      is_premium: 'Premium',
+      // Contest columns
+      start_time: 'Start Time',
+      end_time: 'End Time',
+      duration: 'Duration',
+      // User columns
+      is_banned: 'Banned',
+      avatar: 'Avatar',
+      bio: 'Bio',
+      company: 'Company',
+      location: 'Location',
+      website: 'Website',
+      // Flag/Report columns
+      flag_status: 'Flag Status',
+      flag_reason: 'Flag Reason',
+      flag_reported_by: 'Reported By',
+      flag_reported_at: 'Reported At',
+      // Additional columns
+      category: 'Category',
+      actions: 'Actions',
+      is_hidden: 'Hidden',
+      is_sample: 'Sample',
+      input: 'Input',
+      output: 'Output',
+      explanation: 'Explanation',
+      // Problem list columns
+      is_featured: 'Featured',
+      is_public: 'Public',
+      problem_count: 'Problem Count',
+      banner_order: 'Banner Order',
+      banner_tag: 'Banner Tag',
+      banner_theme: 'Banner Theme',
+      sort_order: 'Sort Order',
+      // Contest columns
+      contest_type: 'Contest Type',
+      participant_count: 'Participant Count',
+      contest_status: 'Contest Status',
+      // Submission/Solution columns
+      problemTitle: 'Problem Title',
+      createdAt: 'Created At',
+      updatedAt: 'Updated At',
+      // Additional columns
+      creator: 'Creator',
+      ip_address: 'IP Address',
+      verdict: 'Verdict',
+      time: 'Time',
+    },
   },
 
   // Dialog labels

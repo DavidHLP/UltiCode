@@ -181,8 +181,7 @@ const columns: ColumnDef<ScoringRule>[] = [
         h(
           'div',
           {
-            class:
-              'h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary',
+            class: 'h-9 w-9 rounded-lg flex items-center justify-center bg-primary/10 text-primary',
           },
           [h(IconCalculator, { class: 'h-4 w-4' })],
         ),
@@ -190,22 +189,22 @@ const columns: ColumnDef<ScoringRule>[] = [
           h('div', { class: 'flex items-center gap-2' }, [
             h('span', { class: 'font-medium text-sm' }, rule.name),
             rule.is_default
-              ? h(
-                  Badge,
-                  { variant: 'default', class: 'text-xs' },
-                  () => t('scoringRules.badges.default'),
+              ? h(Badge, { variant: 'default', class: 'text-xs' }, () =>
+                  t('scoringRules.badges.default'),
                 )
               : null,
             !rule.is_active
-              ? h(
-                  Badge,
-                  { variant: 'secondary', class: 'text-xs' },
-                  () => t('scoringRules.badges.inactive'),
+              ? h(Badge, { variant: 'secondary', class: 'text-xs' }, () =>
+                  t('scoringRules.badges.inactive'),
                 )
               : null,
           ]),
           rule.description
-            ? h('span', { class: 'text-muted-foreground text-xs truncate max-w-[200px]' }, rule.description)
+            ? h(
+                'span',
+                { class: 'text-muted-foreground text-xs truncate max-w-[200px]' },
+                rule.description,
+              )
             : null,
         ]),
       ])
@@ -414,13 +413,23 @@ const columns: ColumnDef<ScoringRule>[] = [
           <div class="flex items-center gap-2 px-3 py-1.5 border rounded-sm">
             <Switch
               :checked="includeInactive"
-              @update:checked="includeInactive = $event; loadScoringRules()"
+              @update:checked="
+                (val: boolean) => {
+                  includeInactive = val
+                  loadScoringRules()
+                }
+              "
               class="data-[state=checked]:bg-primary"
             />
             <span class="text-xs text-muted-foreground">{{ t('scoringRules.showInactive') }}</span>
           </div>
         </div>
-        <Button variant="outline" size="icon" @click="loadScoringRules()" :title="t('common.refresh')">
+        <Button
+          variant="outline"
+          size="icon"
+          @click="loadScoringRules()"
+          :title="t('common.refresh')"
+        >
           <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': loading }" />
         </Button>
       </div>

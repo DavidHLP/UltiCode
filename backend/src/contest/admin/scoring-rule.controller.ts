@@ -17,22 +17,20 @@ import {
 } from '../dto/scoring-rule.dto';
 import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../auth/guards/roles.guard';
-import { Roles } from '../../auth/decorators/roles.decorator';
+import { RequireRoles } from '../../admin/decorators/roles.decorator';
 import { UserRole } from '@prisma/client';
 
 @ApiTags('Admin / Scoring Rules')
 @ApiBearerAuth()
 @Controller('admin/scoring-rules')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
+@RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
 export class ScoringRuleController {
   constructor(private readonly scoringRuleService: ScoringRuleService) {}
 
   @Get()
   @ApiOperation({ summary: 'Get all scoring rules' })
-  async findAll(
-    @Query('includeInactive') includeInactive?: string,
-  ) {
+  async findAll(@Query('includeInactive') includeInactive?: string) {
     return this.scoringRuleService.findAll(includeInactive === 'true');
   }
 
@@ -50,10 +48,7 @@ export class ScoringRuleController {
 
   @Put(':id')
   @ApiOperation({ summary: 'Update a scoring rule' })
-  async update(
-    @Param('id') id: string,
-    @Body() dto: UpdateScoringRuleDto,
-  ) {
+  async update(@Param('id') id: string, @Body() dto: UpdateScoringRuleDto) {
     return this.scoringRuleService.update(id, dto);
   }
 

@@ -81,7 +81,7 @@ function back() {
       >
         <div class="flex items-center gap-6 text-xs">
           <div class="flex items-center gap-2">
-            <span class="terminal-label">visibility:</span>
+            <span class="terminal-label">{{ t('problemLists.status.visibility') }}:</span>
             <span
               :class="
                 list.is_public
@@ -89,18 +89,22 @@ function back() {
                   : 'font-data text-[var(--silver-400)]'
               "
             >
-              {{ list.is_public ? 'PUBLIC' : 'PRIVATE' }}
+              {{
+                list.is_public ? t('problemLists.status.public') : t('problemLists.status.private')
+              }}
             </span>
           </div>
           <div class="flex items-center gap-2">
-            <span class="terminal-label">problems:</span>
+            <span class="terminal-label">{{ t('problemLists.status.problems') }}:</span>
             <span class="font-data text-[var(--terminal-cyan)]">{{
               list.problems?.length || 0
             }}</span>
           </div>
           <div v-if="list.is_featured" class="flex items-center gap-2">
-            <span class="terminal-label">status:</span>
-            <span class="font-data text-[var(--terminal-amber)]">FEATURED</span>
+            <span class="terminal-label">{{ t('problemLists.status.status') }}:</span>
+            <span class="font-data text-[var(--terminal-amber)]">{{
+              t('problemLists.status.featured')
+            }}</span>
           </div>
         </div>
       </div>

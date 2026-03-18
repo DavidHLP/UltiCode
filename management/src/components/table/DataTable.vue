@@ -192,7 +192,6 @@ watch(
               :key="column.id"
             >
               <DropdownMenuCheckboxItem
-                class="capitalize"
                 :model-value="column.getIsVisible()"
                 @update:model-value="
                   (value) => {
@@ -200,7 +199,7 @@ watch(
                   }
                 "
               >
-                {{ column.id }}
+                {{ t(`table.columnNames.${column.id}`, column.id) }}
               </DropdownMenuCheckboxItem>
             </template>
           </DropdownMenuContent>

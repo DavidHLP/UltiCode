@@ -18,7 +18,7 @@ interface ProblemDetail {
     hints?: string[]
   }
   examples?: ProblemExample[]
-  tags: Array<{ id: string; label: string }>
+  tags?: Array<{ id: string; label: string }>
 }
 
 const props = defineProps<{
@@ -102,7 +102,7 @@ const hasAnyContent = computed(
                 {{ t('problems.casesDisplay.input') }}
               </p>
               <pre
-                class="text-sm font-mono p-3 rounded-lg bg-[#0d1117] text-gray-100 overflow-x-auto"
+                class="text-sm font-mono p-3 rounded-lg bg-slate-100 text-slate-800 overflow-x-auto border"
                 >{{ example.input }}</pre
               >
             </div>
@@ -113,7 +113,7 @@ const hasAnyContent = computed(
                 {{ t('problems.casesDisplay.output') }}
               </p>
               <pre
-                class="text-sm font-mono p-3 rounded-lg bg-[#0d1117] text-gray-100 overflow-x-auto"
+                class="text-sm font-mono p-3 rounded-lg bg-slate-100 text-slate-800 overflow-x-auto border"
                 >{{ example.output }}</pre
               >
             </div>

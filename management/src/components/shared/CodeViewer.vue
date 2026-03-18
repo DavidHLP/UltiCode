@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { IconCopy, IconCheck, IconCode, IconBrackets } from '@tabler/icons-vue'
 import { getLanguageColor } from '@/lib/entities/language'
+import hljs from 'highlight.js'
 
 export interface LanguageOption {
   id: string
@@ -67,6 +68,73 @@ const displayLanguage = computed(() => {
 const lineCount = computed(() => currentCode.value.split('\n').length)
 const hasLanguages = computed(() => availableLanguages.value.length > 0)
 const hasCode = computed(() => currentCode.value.length > 0)
+
+// Map common language names to highlight.js language identifiers
+function getHighlightLanguage(lang: string): string {
+  const langMap: Record<string, string> = {
+    javascript: 'javascript',
+    js: 'javascript',
+    typescript: 'typescript',
+    ts: 'typescript',
+    python: 'python',
+    py: 'python',
+    java: 'java',
+    cpp: 'cpp',
+    'c++': 'cpp',
+    c: 'c',
+    csharp: 'csharp',
+    'c#': 'csharp',
+    go: 'go',
+    golang: 'go',
+    rust: 'rust',
+    ruby: 'ruby',
+    php: 'php',
+    swift: 'swift',
+    kotlin: 'kotlin',
+    scala: 'scala',
+    sql: 'sql',
+    html: 'html',
+    css: 'css',
+    json: 'json',
+    xml: 'xml',
+    yaml: 'yaml',
+    markdown: 'markdown',
+    bash: 'bash',
+    shell: 'bash',
+    sh: 'bash',
+  }
+  return langMap[lang.toLowerCase()] || lang.toLowerCase()
+}
+
+// Highlight code with syntax highlighting
+const highlightedCode = computed(() => {
+  if (!currentCode.value) return ''
+
+  const lang = getHighlightLanguage(displayLanguage.value)
+
+  // Try to highlight with detected/specified language
+  if (lang && hljs.getLanguage(lang)) {
+    try {
+      return hljs.highlight(currentCode.value, { language: lang }).value
+    } catch {
+      // Fall through to auto-detection
+    }
+  }
+
+  // Try auto-detection
+  try {
+    return hljs.highlightAuto(currentCode.value).value
+  } catch {
+    // Return escaped code if highlighting fails
+    return escapeHtml(currentCode.value)
+  }
+})
+
+function escapeHtml(text: string): string {
+  const div = document.createElement('div')
+  div.textContent = text
+  return div.innerHTML
+}
 
 async function copyToClipboard() {
   if (!currentCode.value) return
@@ -195,10 +263,12 @@ async function copyToClipboard() {
       </div>
 
       <!-- Code Content -->
-      <div v-if="hasCode" class="p-4 overflow-x-auto bg-[#0d1117]">
-        <pre
-          class="text-sm font-mono whitespace-pre-wrap break-words text-gray-100"
-        ><code>{{ currentCode }}</code></pre>
+      <div v-if="hasCode" class="p-4 overflow-x-auto bg-slate-100 border-t">
+        <pre class="text-sm font-mono whitespace-pre-wrap break-words"><code
+          class="hljs"
+          :class="`language-${getHighlightLanguage(displayLanguage)}`"
+          v-html="highlightedCode"
+        ></code></pre>
       </div>
       <div v-else class="p-8 text-center text-sm text-muted-foreground italic bg-muted/20">
         {{

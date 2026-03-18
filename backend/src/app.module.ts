@@ -2,6 +2,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { APP_GUARD } from '@nestjs/core';
 import { validateConfig } from './config/config.schema';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -30,6 +32,7 @@ import { MonitoringModule } from './monitoring/monitoring.module';
 import { BackupModule } from './backup/backup.module';
 import { EmailModule } from './email/email.module';
 import { RecommendationModule } from './recommendation/recommendation.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 @Module({
   imports: [
@@ -42,6 +45,23 @@ import { RecommendationModule } from './recommendation/recommendation.module';
       },
     }),
     ScheduleModule.forRoot(),
+    ThrottlerModule.forRoot([
+      {
+        name: 'short',
+        ttl: 1000,
+        limit: 3,
+      },
+      {
+        name: 'medium',
+        ttl: 10000,
+        limit: 20,
+      },
+      {
+        name: 'long',
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     BullModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
@@ -77,6 +97,7 @@ import { RecommendationModule } from './recommendation/recommendation.module';
     BackupModule,
     EmailModule,
     RecommendationModule.forRoot(),
+    ModerationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

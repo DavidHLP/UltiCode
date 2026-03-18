@@ -197,6 +197,14 @@ export class AdminProblemController {
       published_by: problem.published_by,
       is_deleted: problem.is_deleted,
       deleted_at: problem.deleted_at,
+      is_flagged: problem.is_flagged,
+      flag_reason: problem.flag_reason,
+      flag_reported_by: problem.flag_reported_by,
+      flag_reported_at: problem.flag_reported_at,
+      flag_status: problem.flag_status,
+      flag_reviewed_by: problem.flag_reviewed_by,
+      flag_reviewed_at: problem.flag_reviewed_at,
+      flag_notes: problem.flag_notes,
       created_at: problem.published_at || new Date(),
       updated_at: problem.detail?.updated_at || new Date(),
       detail: transformedDetail,
@@ -319,6 +327,14 @@ export class AdminProblemController {
         published_by: p.published_by,
         is_deleted: p.is_deleted,
         deleted_at: p.deleted_at,
+        is_flagged: p.is_flagged,
+        flag_reason: p.flag_reason,
+        flag_reported_by: p.flag_reported_by,
+        flag_reported_at: p.flag_reported_at,
+        flag_status: p.flag_status,
+        flag_reviewed_by: p.flag_reviewed_by,
+        flag_reviewed_at: p.flag_reviewed_at,
+        flag_notes: p.flag_notes,
         created_at: p.published_at || new Date(),
         updated_at: p.detail?.updated_at || new Date(),
         detail: p.detail
@@ -769,6 +785,7 @@ export class AdminProblemController {
       title: problem.title,
       slug: problem.slug,
       difficulty: mapDifficultyToFrontend(problem.difficulty),
+      status: problem.status.toLowerCase(),
       is_premium: problem.is_premium,
       is_published: problem.is_published,
       detail: problem.detail
@@ -1328,157 +1345,6 @@ export class AdminProblemController {
     });
 
     return { results };
-  }
-
-  @Get(':id/versions')
-  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @RequirePermissions({
-    action: PermissionAction.READ,
-    resource: PermissionResource.PROBLEM,
-  })
-  async getVersions(@Param('id') id: string) {
-    const auditLogs = await this.prisma.auditLog.findMany({
-      where: {
-        entity_type: 'PROBLEM',
-        entity_id: id,
-        action: {
-          in: ['CREATE_PROBLEM', 'UPDATE_PROBLEM'],
-        },
-      },
-      orderBy: { created_at: 'desc' },
-      include: {
-        performer: {
-          select: {
-            id: true,
-            username: true,
-            name: true,
-            role: true,
-          },
-        },
-      },
-    });
-
-    return {
-      data: auditLogs.map((log) => ({
-        id: log.id,
-        action: log.action,
-        performer: {
-          id: log.performer.id,
-          username: log.performer.username,
-          name: log.performer.name,
-          role: log.performer.role,
-        },
-        entityType: log.entity_type,
-        entityId: log.entity_id,
-        oldValues: log.old_values as Record<string, unknown> | undefined,
-        newValues: log.new_values as Record<string, unknown> | undefined,
-        createdAt: log.created_at.toISOString(),
-      })),
-      total: auditLogs.length,
-    };
-  }
-
-  @Post(':id/versions/:versionId/restore')
-  @RequireRoles(UserRole.ADMIN, UserRole.SUPER_ADMIN)
-  @RequirePermissions({
-    action: PermissionAction.UPDATE,
-    resource: PermissionResource.PROBLEM,
-  })
-  async restoreVersion(
-    @Param('id') id: string,
-    @Param('versionId') versionId: string,
-    @CurrentAdmin() admin: User,
-  ) {
-    // Fetch the audit log for the version to restore
-    const auditLog = await this.prisma.auditLog.findUnique({
-      where: { id: versionId },
-    });
-
-    if (
-      !auditLog ||
-      auditLog.entity_id !== id ||
-      auditLog.entity_type !== 'PROBLEM'
-    ) {
-      throw new Error('Version not found or does not belong to this problem');
-    }
-
-    // Extract the snapshot from the audit log
-    const snapshot = auditLog.new_values as Record<string, unknown>;
-    if (!snapshot) {
-      throw new Error('No snapshot data found in version');
-    }
-
-    const problemId = BigInt(id);
-
-    // Fetch current problem data for audit log
-    const oldCompleteProblem = await this.getCompleteProblem(problemId);
-    const oldTransformedProblem =
-      this.transformProblemForFrontend(oldCompleteProblem);
-
-    // Restore the problem from the snapshot
-    const updateData: Prisma.ProblemUpdateInput = {};
-    const detailUpdate: Prisma.ProblemDetailUpdateWithoutProblemInput = {};
-
-    // Restore basic fields
-    if (snapshot.slug) updateData.slug = snapshot.slug as string;
-    if (snapshot.title) updateData.title = snapshot.title as string;
-    if (snapshot.difficulty) {
-      updateData.difficulty = mapDifficultyToPrisma(
-        snapshot.difficulty as Difficulty,
-      );
-    }
-    if (snapshot.status) {
-      updateData.status = snapshot.status as ProblemStatus;
-    }
-    if (snapshot.is_premium !== undefined) {
-      updateData.is_premium = snapshot.is_premium as boolean;
-    }
-    if (snapshot.has_solution !== undefined) {
-      updateData.has_solution = snapshot.has_solution as boolean;
-    }
-
-    // Restore detail fields
-    if (snapshot.detail) {
-      const detail = snapshot.detail as Record<string, unknown>;
-      if (detail.summary) detailUpdate.summary = detail.summary as string;
-      if (detail.constraints_json) {
-        detailUpdate.constraints_json = detail.constraints_json as string[];
-      }
-      if (detail.hints) detailUpdate.hints = detail.hints as string[];
-      detailUpdate.updated_at = new Date();
-    }
-
-    // Update the problem
-    await this.prisma.problem.update({
-      where: { id: problemId },
-      data: {
-        ...updateData,
-        detail:
-          Object.keys(detailUpdate).length > 0
-            ? {
-                update: detailUpdate,
-              }
-            : undefined,
-      },
-    });
-
-    // Log the restore operation
-    await this.auditService.log({
-      performerId: admin.id,
-      action: 'RESTORE_PROBLEM_VERSION',
-      entityType: 'PROBLEM',
-      entityId: id,
-      oldValues: oldTransformedProblem,
-      newValues: {
-        ...snapshot,
-        restoredFromVersion: versionId,
-        restoredAt: new Date().toISOString(),
-      },
-    });
-
-    // Return the restored problem
-    const newCompleteProblem = await this.getCompleteProblem(problemId);
-    return this.transformProblemForFrontend(newCompleteProblem);
   }
 
   @Post('import')

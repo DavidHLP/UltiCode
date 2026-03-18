@@ -56,7 +56,9 @@ export class AdminContestController {
 
     const skip = (page - 1) * limit;
 
-    const where: Prisma.ContestWhereInput = {};
+    const where: Prisma.ContestWhereInput = {
+      is_deleted: false,
+    };
 
     if (search) {
       where.OR = [
@@ -66,11 +68,23 @@ export class AdminContestController {
     }
 
     if (type) {
-      where.contest_type = type as any;
+      // Map DTO type (PUBLIC/PRIVATE/VIRTUAL) to database fields
+      // PUBLIC: is_visible = true, is_virtual = false
+      // PRIVATE: is_visible = false, is_virtual = false
+      // VIRTUAL: is_virtual = true
+      if (type === 'PUBLIC') {
+        where.is_visible = true;
+        where.is_virtual = false;
+      } else if (type === 'PRIVATE') {
+        where.is_visible = false;
+        where.is_virtual = false;
+      } else if (type === 'VIRTUAL') {
+        where.is_virtual = true;
+      }
     }
 
     if (status) {
-      where.status = status.toUpperCase() as any;
+      where.status = status.toLowerCase() as any;
     }
 
     const [contests, total] = await Promise.all([
@@ -113,8 +127,8 @@ export class AdminContestController {
     resource: PermissionResource.CONTEST,
   })
   async findOne(@Param('id') id: string) {
-    const contest = await this.prisma.contest.findUnique({
-      where: { id: id },
+    const contest = await this.prisma.contest.findFirst({
+      where: { id: id, is_deleted: false },
       include: {
         participants: {
           include: {
@@ -184,10 +198,17 @@ export class AdminContestController {
       duration,
       is_published,
       problem_ids,
+      scoring_rule_id,
     } = createContestDto;
 
     const startTime = new Date(start_time);
     const id = Date.now().toString();
+
+    // Map DTO type (PUBLIC/PRIVATE/VIRTUAL) to database fields
+    // contest_type in DB is weekly/biweekly/special (tournament type)
+    // visibility is controlled by is_visible, virtual contests by is_virtual
+    const isVisible = type !== 'PRIVATE' && (is_published ?? false);
+    const isVirtual = type === 'VIRTUAL';
 
     const contest = await this.prisma.contest.create({
       data: {
@@ -195,11 +216,13 @@ export class AdminContestController {
         slug,
         title,
         description,
-        contest_type: type as any,
+        contest_type: 'special', // Default to special type
         start_time: startTime,
         duration_minutes: duration,
         status: 'upcoming',
-        is_visible: is_published || false,
+        is_visible: isVisible,
+        is_virtual: isVirtual,
+        scoring_rule_id: scoring_rule_id || null,
       },
     });
 
@@ -247,8 +270,8 @@ export class AdminContestController {
     @Body() updateContestDto: UpdateContestDto,
     @CurrentAdmin() admin: User,
   ) {
-    const oldContest = await this.prisma.contest.findUnique({
-      where: { id: id },
+    const oldContest = await this.prisma.contest.findFirst({
+      where: { id: id, is_deleted: false },
     });
 
     if (!oldContest) {
@@ -304,8 +327,8 @@ export class AdminContestController {
     resource: PermissionResource.CONTEST,
   })
   async remove(@Param('id') id: string, @CurrentAdmin() admin: User) {
-    const oldContest = await this.prisma.contest.findUnique({
-      where: { id: id },
+    const oldContest = await this.prisma.contest.findFirst({
+      where: { id: id, is_deleted: false },
     });
 
     await this.prisma.contest.delete({
@@ -337,8 +360,8 @@ export class AdminContestController {
     @Body() problemDto: ContestProblemDto,
     @CurrentAdmin() admin: User,
   ) {
-    const contest = await this.prisma.contest.findUnique({
-      where: { id: id },
+    const contest = await this.prisma.contest.findFirst({
+      where: { id: id, is_deleted: false },
       include: {
         problems: {
           orderBy: { problem_index: 'desc' },
@@ -439,6 +462,15 @@ export class AdminContestController {
     resource: PermissionResource.CONTEST,
   })
   async startContest(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    // Check if contest exists and is not deleted
+    const existingContest = await this.prisma.contest.findFirst({
+      where: { id: id, is_deleted: false },
+    });
+
+    if (!existingContest) {
+      return null;
+    }
+
     const contest = await this.prisma.contest.update({
       where: { id: id },
       data: {
@@ -469,6 +501,15 @@ export class AdminContestController {
     resource: PermissionResource.CONTEST,
   })
   async endContest(@Param('id') id: string, @CurrentAdmin() admin: User) {
+    // Check if contest exists and is not deleted
+    const existingContest = await this.prisma.contest.findFirst({
+      where: { id: id, is_deleted: false },
+    });
+
+    if (!existingContest) {
+      return null;
+    }
+
     const contest = await this.prisma.contest.update({
       where: { id: id },
       data: {

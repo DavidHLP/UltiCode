@@ -32,8 +32,8 @@ const emit = defineEmits<{
     :loading="false"
     :entity="log"
     :title="t('audit.columns.details')"
-    description="Detailed record of the system event."
-    not-found-text="Select a log entry to view details"
+    :description="t('audit.drawer.description')"
+    :not-found-text="t('audit.drawer.notFound')"
   >
     <template #content="{ entity }">
       <!-- Header Info - Terminal Style -->
@@ -84,7 +84,7 @@ const emit = defineEmits<{
             </div>
             <div class="flex flex-col">
               <span class="text-sm font-medium font-data">
-                {{ entity.performer?.username || 'System' }}
+                {{ entity.performer?.username || t('audit.drawer.system') }}
               </span>
               <span class="text-xs text-[var(--silver-500)]">
                 {{ entity.performer?.role || 'SYSTEM' }}
@@ -94,7 +94,9 @@ const emit = defineEmits<{
         </div>
 
         <div class="space-y-4">
-          <span class="terminal-label text-xs uppercase tracking-wider"> Target Entity </span>
+          <span class="terminal-label text-xs uppercase tracking-wider">
+            {{ t('audit.drawer.targetEntity') }}
+          </span>
           <div class="flex items-center gap-3">
             <div
               class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
@@ -106,10 +108,10 @@ const emit = defineEmits<{
             </div>
             <div class="flex flex-col">
               <span class="text-sm font-medium">
-                {{ entity.entity_type || 'N/A' }}
+                {{ entity.entity_type || t('audit.drawer.notAvailable') }}
               </span>
               <span class="text-xs text-[var(--silver-500)] font-data">
-                {{ entity.entity_id?.slice(0, 8) || 'N/A' }}
+                {{ entity.entity_id?.slice(0, 8) || t('audit.drawer.notAvailable') }}
               </span>
             </div>
           </div>
@@ -129,7 +131,7 @@ const emit = defineEmits<{
         </div>
         <div v-if="entity.user_agent" class="flex flex-col gap-1 text-sm">
           <span class="text-[var(--silver-500)] flex items-center gap-2">
-            <IconEye class="h-3.5 w-3.5" /> User Agent
+            <IconEye class="h-3.5 w-3.5" /> {{ t('audit.drawer.userAgent') }}
           </span>
           <span
             class="text-xs text-[var(--silver-400)] break-all bg-[var(--card)] p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] font-data"
@@ -145,19 +147,21 @@ const emit = defineEmits<{
       <div class="space-y-4">
         <h4 class="text-sm font-medium leading-none flex items-center gap-2 font-data">
           <IconDatabase class="h-4 w-4 text-[var(--terminal-cyan)]" />
-          Data Changes
+          {{ t('audit.drawer.dataChanges') }}
         </h4>
 
         <div
           v-if="!entity.old_values && !entity.new_values"
           class="text-sm text-[var(--silver-500)] italic pl-6 font-data"
         >
-          &gt; No data changes recorded.
+          &gt; {{ t('audit.drawer.noDataChanges') }}
         </div>
 
         <div v-else class="grid gap-4">
           <div v-if="entity.old_values" class="space-y-2">
-            <span class="terminal-label text-xs uppercase tracking-wider"> Previous State </span>
+            <span class="terminal-label text-xs uppercase tracking-wider">
+              {{ t('audit.drawer.previousState') }}
+            </span>
             <div
               class="relative rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
             >
@@ -170,7 +174,9 @@ const emit = defineEmits<{
           </div>
 
           <div v-if="entity.new_values" class="space-y-2">
-            <span class="terminal-label text-xs uppercase tracking-wider"> New State </span>
+            <span class="terminal-label text-xs uppercase tracking-wider">
+              {{ t('audit.drawer.newState') }}
+            </span>
             <div
               class="relative rounded border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
             >

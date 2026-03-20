@@ -12,6 +12,17 @@ import table from './modules/table'
 import solutions from './modules/solutions'
 import forum from './modules/forum'
 import problemLists from './modules/problemLists'
+import audit from './modules/audit'
+import account from './modules/account'
+import analytics from './modules/analytics'
+import billing from './modules/billing'
+import comments from './modules/comments'
+import notifications from './modules/notifications'
+import submissions from './modules/submissions'
+import tags from './modules/tags'
+import system from './modules/system'
+import scoringRules from './modules/scoring-rules'
+import auditReport from './modules/audit-report'
 
 export default {
   common,
@@ -28,4 +39,15 @@ export default {
   solutions,
   forum,
   problemLists,
+  audit,
+  account,
+  analytics,
+  billing,
+  comments,
+  notifications,
+  submissions,
+  tags,
+  system,
+  scoringRules,
+  auditReport,
 } as const

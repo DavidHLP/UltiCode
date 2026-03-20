@@ -3,6 +3,7 @@ export default {
   login: {
     title: '登录',
     subtitle: '管理后台',
+    terminal: 'login.terminal',
     username: '用户名',
     usernamePlaceholder: 'admin',
     password: '密码',
@@ -10,11 +11,14 @@ export default {
     rememberMe: '记住我',
     forgotPassword: '忘记密码？',
     submit: '登录',
+    submitting: '登录中...',
     loggingIn: '登录中...',
     invalidCredentials: '用户名或密码错误',
     accountDisabled: '账户已被禁用',
     success: '登录成功',
     error: '登录失败',
+    loginFailed: '登录失败，请重试。',
+    continueWithGithub: '使用 GitHub 继续',
   },
 
   // 登出
@@ -54,5 +58,36 @@ export default {
     denied: '权限不足',
     noAccess: '您没有权限访问此页面',
     noAction: '您没有权限执行此操作',
+  },
+
+  // 注册页面
+  register: {
+    terminal: 'register.terminal',
+  },
+
+  // 注册
+  signup: {
+    title: '创建账户',
+    subtitle: '加入管理员团队',
+    fullName: '姓名',
+    fullNamePlaceholder: '张三',
+    email: '邮箱',
+    emailPlaceholder: 'admin@example.com',
+    password: '密码',
+    confirmPassword: '确认密码',
+    submit: '创建账户',
+    github: '使用 GitHub 继续',
+    alreadyHaveAccount: '已有账户？',
+    signIn: '登录',
+    orContinueWith: '或继续使用',
+  },
+
+  // 认证页面布局
+  layout: {
+    systemOnline: '系统在线',
+    managementConsole: '管理控制台',
+    managementConsoleSubtitle: '// 精密的平台管理工具',
+    joinTheTeam: '加入团队',
+    joinTheTeamSubtitle: '// 创建您的管理员账户',
   },
 } as const

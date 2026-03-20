@@ -41,8 +41,7 @@ const tabs = computed(() => [
 ])
 
 function handleTabChange(value: string) {
-  const routeName = `solution-view-${value}`
-  router.push({ name: routeName, params: { id: solutionId.value } })
+  router.push({ name: 'solution-detail', params: { id: solutionId.value, tab: value } })
 }
 
 onMounted(async () => {

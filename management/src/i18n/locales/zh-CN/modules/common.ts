@@ -55,6 +55,7 @@ export default {
   yesterday: '昨天',
   thisWeek: '本周',
   lastWeek: '上周',
+  minutes: '分钟',
 
   // 其他标签
   reportedBy: '举报人',

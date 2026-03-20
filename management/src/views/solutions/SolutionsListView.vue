@@ -115,7 +115,7 @@ const columns = createColumns(
   t,
   {
     viewSolution: (id: string) => {
-      router.push({ name: 'solution-view-description', params: { id } })
+      router.push({ name: 'solution-detail', params: { id } })
     },
     openFlagDialog: (solution: Solution) => {
       selectedSolutionId.value = solution.id

@@ -14,10 +14,7 @@ import {
 } from '@tabler/icons-vue'
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  type ModerationAction,
-  ModerationActionType,
-} from '@/api/admin/moderation'
+import { type ModerationAction, ModerationActionType } from '@/api/admin/moderation'
 
 interface Props {
   actions: ModerationAction[]
@@ -86,11 +83,13 @@ const actionConfig = computed(() => ({
 }))
 
 function getActionConfig(actionType: ModerationActionType) {
-  return actionConfig.value[actionType] || {
-    icon: IconCheck,
-    color: 'text-[var(--silver-500)]',
-    bg: 'bg-[var(--surface-sunken)]',
-  }
+  return (
+    actionConfig.value[actionType] || {
+      icon: IconCheck,
+      color: 'text-[var(--silver-500)]',
+      bg: 'bg-[var(--surface-sunken)]',
+    }
+  )
 }
 
 function formatDate(date: Date | string): string {
@@ -115,7 +114,9 @@ function getRelativeTime(date: Date | string): string {
 </script>
 
 <template>
-  <Card class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+  <Card
+    class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+  >
     <CardHeader class="pb-3">
       <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
         <IconClock class="h-4 w-4 text-[var(--silver-500)]" />
@@ -149,11 +150,7 @@ function getRelativeTime(date: Date | string): string {
         <div class="absolute left-4 top-0 bottom-0 w-px bg-[var(--silver-300)]" />
 
         <!-- Action items -->
-        <div
-          v-for="action in actions"
-          :key="action.id"
-          class="relative flex gap-4"
-        >
+        <div v-for="action in actions" :key="action.id" class="relative flex gap-4">
           <!-- Icon circle -->
           <div
             :class="[
@@ -178,7 +175,11 @@ function getRelativeTime(date: Date | string): string {
                 <div class="flex items-center gap-2 mt-1 text-xs text-[var(--silver-500)]">
                   <IconUser class="h-3 w-3" />
                   <span>
-                    {{ action.performer?.display_name || action.performer?.username || t('moderation.unknownReporter') }}
+                    {{
+                      action.performer?.display_name ||
+                      action.performer?.username ||
+                      t('moderation.unknownReporter')
+                    }}
                   </span>
                   <span class="text-[var(--silver-400)]">•</span>
                   <span class="font-data tabular-nums">
@@ -201,7 +202,8 @@ function getRelativeTime(date: Date | string): string {
               v-if="action.duration_days && action.action_type === ModerationActionType.TEMP_BANNED"
               class="mt-2 text-xs text-[var(--terminal-amber)]"
             >
-              {{ t('moderation.detail.duration') }}: {{ t('moderation.detail.days', { count: action.duration_days }) }}
+              {{ t('moderation.detail.duration') }}:
+              {{ t('moderation.detail.days', { count: action.duration_days }) }}
             </div>
           </div>
         </div>

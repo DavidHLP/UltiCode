@@ -16,22 +16,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import {
-  IconRefresh,
-  IconScale,
-  IconLoader2,
-  IconCheck,
-  IconX,
-} from '@tabler/icons-vue'
+import { IconRefresh, IconScale, IconLoader2, IconCheck, IconX } from '@tabler/icons-vue'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 
 import { useModerationStore } from '@/stores/admin/moderation'
-import {
-  type Appeal,
-  AppealStatus,
-} from '@/api/admin/moderation'
+import { type Appeal, AppealStatus } from '@/api/admin/moderation'
 import { createAppealsColumns, type AppealActions } from './appeals-columns'
 
 const { t } = useI18n()
@@ -63,7 +54,9 @@ onMounted(() => {
 // Stats
 const stats = computed(() => ({
   total: store.appealsTotal,
-  pending: store.appeals.filter((a) => a.status === AppealStatus.PENDING || a.status === AppealStatus.UNDER_REVIEW).length,
+  pending: store.appeals.filter(
+    (a) => a.status === AppealStatus.PENDING || a.status === AppealStatus.UNDER_REVIEW,
+  ).length,
 }))
 
 // Table columns
@@ -201,12 +194,20 @@ function handleRefresh() {
         class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.total') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{ stats.total }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.total') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.pending') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{ stats.pending }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.pending') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.pending
+          }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconScale class="h-4 w-4" />
@@ -267,7 +268,9 @@ function handleRefresh() {
 
         <div v-if="selectedAppeal" class="space-y-4 pt-4">
           <!-- Appeal Info -->
-          <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]">
+          <div
+            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+          >
             <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
               {{ t('moderation.appeals.reason') }}
             </p>

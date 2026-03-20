@@ -1,7 +1,9 @@
 import { createI18n } from 'vue-i18n'
 import { isRef } from 'vue'
-import zhCN from './locales/zh-CN'
-import enUS from './locales/en-US'
+// Import from modular directory structure (zh-CN/index.ts, en-US/index.ts)
+// These use separate module files for better organization
+import zhCN from './locales/zh-CN/'
+import enUS from './locales/en-US/'
 
 // Re-export types and constants from types.ts (single source of truth)
 export {
@@ -52,6 +54,9 @@ export const i18n = createI18n({
   globalInjection: true, // Inject $t globally
   locale: getInitialLocale(),
   fallbackLocale: 'zh-CN',
+  silentTranslationWarn: true, // Suppress warnings in production
+  missingWarn: false, // Suppress missing key warnings
+  fallbackWarn: false, // Suppress fallback warnings
   messages: {
     'zh-CN': zhCN,
     'en-US': enUS,
@@ -86,7 +91,12 @@ export function setLocale(locale: 'zh-CN' | 'en-US'): void {
 
 // Type-safe translation helper
 export function t(key: string, params?: Record<string, unknown>): string {
-  return i18n.global.t(key, params ?? {})
+  const result = i18n.global.t(key, params ?? {})
+  // Debug: log if translation returns the key itself (missing translation)
+  if (result === key && import.meta.env.DEV) {
+    console.warn(`[i18n] Missing translation for key: ${key}`)
+  }
+  return result
 }
 
 export default i18n

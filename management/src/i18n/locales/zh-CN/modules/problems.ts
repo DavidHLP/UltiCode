@@ -7,11 +7,13 @@ export default {
   importProblem: '导入题目',
   exportProblem: '导出题目',
   searchPlaceholder: '搜索题目...',
+  addProblem: '添加题目',
 
   // 列定义
   columns: {
     id: 'ID',
     title: '标题',
+    problem: '题目',
     difficulty: '难度',
     status: '状态',
     tags: '标签',
@@ -20,6 +22,8 @@ export default {
     createdAt: '创建时间',
     updatedAt: '更新时间',
     isFlagged: '标记状态',
+    published: '发布状态',
+    flagged: '标记',
   },
 
   // 难度
@@ -36,6 +40,24 @@ export default {
     DRAFT: '草稿',
     PUBLISHED: '已发布',
     ARCHIVED: '已归档',
+    TODO: '待做',
+    ATTEMPTED: '已尝试',
+    SOLVED: '已解决',
+    todo: '待做',
+    attempted: '已尝试',
+    solved: '已解决',
+  },
+
+  // 发布状态
+  published: {
+    published: '已发布',
+    draft: '草稿',
+    deleted: '已删除',
+  },
+
+  // 徽章
+  badges: {
+    premium: '高级',
   },
 
   // 操作
@@ -45,6 +67,7 @@ export default {
     delete: '删除',
     duplicate: '复制',
     publish: '发布',
+    unpublish: '取消发布',
     archive: '归档',
     restore: '恢复',
     viewSubmissions: '查看提交',
@@ -52,6 +75,56 @@ export default {
     flag: '标记',
     unflag: '取消标记',
     viewFlagInfo: '查看标记信息',
+    export: '导出',
+  },
+
+  // 筛选器
+  filters: {
+    allDifficulty: '全部难度',
+    allStatus: '全部状态',
+    allPublished: '全部发布状态',
+    published: '已发布',
+    unpublished: '未发布',
+  },
+
+  // 排序
+  sort: {
+    title: '排序方式',
+    default: '默认排序',
+    titleAsc: '按标题升序',
+    difficultyAsc: '按难度升序',
+    createdDesc: '按创建时间降序',
+    updatedDesc: '按更新时间降序',
+    submissionsDesc: '按提交数降序',
+  },
+
+  // 导出
+  export: {
+    title: '导出',
+    json: '导出为 JSON',
+    csv: '导出为 CSV',
+    success: '题目导出成功',
+    failed: '导出题目失败',
+  },
+
+  // 导入
+  import: {
+    title: '导入',
+    success: '题目导入成功',
+    failed: '导入题目失败',
+  },
+
+  // 批量操作
+  bulk: {
+    noSelection: '请选择要操作的题目',
+    success: '成功{action}{count}个题目',
+    failed: '{action}{count}个题目失败',
+    partial: '成功{success}个，失败{failed}个',
+    publish: '发布',
+    unpublish: '取消发布',
+    delete: '删除',
+    restore: '恢复',
+    action: '批量操作',
   },
 
   // 表单
@@ -62,20 +135,136 @@ export default {
     slugPlaceholder: 'two-sum',
     description: '题目描述',
     descriptionPlaceholder: '请输入题目描述...',
+    summary: '摘要',
+    summaryPlaceholder: '请输入题目摘要...',
+    contentPlaceholder: '请输入题目内容...',
+    fullContent: '完整内容',
     difficulty: '难度',
     tags: '标签',
     tagsPlaceholder: '选择标签...',
+    addTagPlaceholder: '添加标签...',
     timeLimit: '时间限制 (ms)',
     memoryLimit: '内存限制 (MB)',
     score: '分数',
     isPremium: '高级题目',
     isPublished: '发布状态',
     hints: '提示',
+    addHintPlaceholder: '添加提示...',
+    addHint: '添加提示',
+    noHints: '暂无提示',
     solutionTemplate: '代码模板',
     starterCode: '起始代码',
     testCases: '测试用例',
     examples: '示例',
     constraints: '约束条件',
+    publishing: '发布设置',
+    status: '状态',
+    premium: '高级',
+    premiumDescription: '仅限高级用户',
+    published: '已发布',
+    publishedDescription: '对所有用户可见',
+    saving: '保存中...',
+    updateProblem: '更新题目',
+    createProblem: '创建题目',
+    taxonomy: '分类',
+    languages: '编程语言',
+    all: '全部',
+    addLanguagePlaceholder: '添加编程语言...',
+    add: '添加',
+    details: {
+      title: '基本信息',
+      description: '填写题目的基本信息',
+    },
+    testCases: {
+      title: '测试用例',
+      description: '添加示例测试用例帮助用户理解题目',
+    },
+    additionalInfo: {
+      title: '附加信息',
+    },
+    constraints: {
+      title: '约束条件',
+      placeholder: '例如: 1 <= nums.length <= 10^4',
+    },
+    validation: {
+      slugRequired: 'Slug 是必填项',
+      slugInvalid: 'Slug 只能包含小写字母、数字和连字符',
+      titleRequired: '标题是必填项',
+      examplesRequired: '至少需要一个测试用例',
+      inputRequired: '输入是必填项',
+      outputRequired: '输出是必填项',
+    },
+  },
+
+  // 描述表单
+  descriptionForm: {
+    problemDescription: '题目描述',
+    problemDescriptionSubtitle: '填写题目的基本信息和描述',
+    titlePlaceholder: '请输入题目标题',
+    slugPlaceholder: '例如: two-sum',
+    summaryPlaceholder: '请输入简短的题目摘要...',
+    contentPlaceholder: '请输入完整的题目描述内容...',
+    publishing: '发布设置',
+    premium: '高级题目',
+    premiumDescription: '仅限高级用户访问',
+    published: '发布状态',
+    publishedDescription: '对所有用户可见',
+    saving: '保存中...',
+    updateDescription: '更新描述',
+    saveDescription: '保存描述',
+    validation: {
+      slugRequired: 'Slug 是必填项',
+      slugInvalid: 'Slug 只能包含小写字母、数字和连字符',
+      titleRequired: '标题是必填项',
+    },
+  },
+
+  // 代码表单
+  codeForm: {
+    addLanguages: '添加编程语言',
+    quickAdd: '快速添加',
+    customLanguagePlaceholder: '输入自定义语言...',
+    add: '添加',
+    lines: '行',
+    starterCodeTemplate: '起始代码模板',
+    noLanguages: '尚未添加语言',
+    noLanguagesDescription: '点击上方的语言按钮快速添加，或输入自定义语言',
+    configuration: '配置信息',
+    languages: '语言数量',
+    allLanguages: '支持所有语言',
+    selectedLanguages: '已选择特定语言',
+    saving: '保存中...',
+    saveChanges: '保存更改',
+  },
+
+  // 测试用例表单
+  casesForm: {
+    testCasesSection: '测试用例',
+    constraintsAndHints: '约束条件与提示',
+    constraints: '约束条件',
+    constraintPlaceholder: '例如: 1 <= n <= 10^5',
+    add: '添加',
+    noConstraints: '暂无约束条件',
+    hints: '提示',
+    addHint: '添加提示',
+    noHints: '暂无提示',
+    tags: '标签',
+    addTag: '添加标签',
+    noTags: '暂无标签',
+    configurationSummary: '配置摘要',
+    summary: {
+      testCases: '测试用例',
+      constraints: '约束条件',
+      hints: '提示',
+      tags: '标签',
+    },
+    saving: '保存中...',
+    saveChanges: '保存更改',
+    validation: {
+      examplesRequired: '至少需要一个测试用例',
+      inputRequired: '输入是必填项',
+      outputRequired: '输出是必填项',
+    },
   },
 
   // 编辑标签页
@@ -83,9 +272,41 @@ export default {
     description: '描述',
     code: '代码',
     cases: '测试用例',
+    testCases: '测试用例',
     settings: '设置',
     versions: '版本历史',
     audit: '审计日志',
+  },
+
+  // 创建页面
+  create: {
+    title: '创建题目',
+  },
+
+  // 编辑页面
+  edit: {
+    loading: '加载中...',
+    descriptionSubtitle: '编辑题目描述信息',
+    codeSubtitle: '配置支持的编程语言',
+    testCasesSubtitle: '管理测试用例和约束条件',
+  },
+
+  // 查看页面
+  view: {
+    notFound: '题目不存在',
+    notFoundDescription: '找不到指定的题目',
+    backToProblems: '返回题目列表',
+  },
+
+  // 显示组件
+  display: {
+    id: 'ID',
+    created: '创建时间',
+    updated: '更新时间',
+    published: '发布时间',
+    metadata: '元数据',
+    tags: '标签',
+    hints: '提示',
   },
 
   // Toast 消息
@@ -98,6 +319,8 @@ export default {
     deleteFailed: '删除题目失败',
     publishSuccess: '题目发布成功',
     publishFailed: '发布题目失败',
+    unpublishSuccess: '取消发布成功',
+    unpublishFailed: '取消发布失败',
     archiveSuccess: '题目归档成功',
     archiveFailed: '归档题目失败',
     restoreSuccess: '题目恢复成功',
@@ -118,6 +341,12 @@ export default {
   dialogs: {
     deleteTitle: '确认删除',
     deleteDescription: '确定要删除题目 "{title}" 吗？此操作不可撤销。',
+    delete: {
+      title: '确认删除',
+      description: '确定要删除题目 "{title}" 吗？此操作不可撤销。',
+      confirm: '确认删除',
+      thisProblem: '此题目',
+    },
     publishTitle: '确认发布',
     publishDescription: '确定要发布题目 "{title}" 吗？',
     archiveTitle: '确认归档',
@@ -145,6 +374,7 @@ export default {
     author: '作者',
     changes: '更改内容',
     restore: '恢复到此版本',
+    restoreSuccess: '版本恢复成功',
     viewDiff: '查看差异',
   },
 

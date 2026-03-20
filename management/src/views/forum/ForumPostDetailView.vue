@@ -59,8 +59,7 @@ const currentView = computed(() => {
 
 function handleTabChange(value: string | number) {
   const view = value as string
-  const routeName = `forum-post-detail-${view}`
-  router.push({ name: routeName, params: { id: postId.value } })
+  router.push({ name: 'forum-post-detail', params: { id: postId.value, tab: view } })
 }
 
 onMounted(async () => {

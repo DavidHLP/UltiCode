@@ -67,7 +67,9 @@ function formatDate(date: Date | string): string {
 </script>
 
 <template>
-  <Card class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+  <Card
+    class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+  >
     <CardHeader class="pb-3">
       <div class="flex items-center justify-between">
         <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">

@@ -44,5 +44,21 @@ export default {
     end_time: 'End Time',
     duration: 'Duration',
     participants: 'Participants',
+
+    // Moderation columns
+    entity_type: 'Entity Type',
+    entity: 'Entity',
+    primary_category: 'Category',
+    priority: 'Priority',
+    report_count: 'Reports',
+    assigned_to: 'Assigned To',
+    created_at: 'Created',
+    reporter: 'Reporter',
+    reason: 'Reason',
+    appellant: 'Appellant',
+    submitted_at: 'Submitted',
+    reviewed_by: 'Reviewed By',
+    reviewed_at: 'Reviewed At',
+    response: 'Response',
   },
 } as const

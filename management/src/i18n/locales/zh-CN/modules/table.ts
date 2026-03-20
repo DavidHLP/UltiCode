@@ -44,5 +44,21 @@ export default {
     end_time: '结束时间',
     duration: '时长',
     participants: '参与者',
+
+    // 审核列
+    entity_type: '实体类型',
+    entity: '实体',
+    primary_category: '类别',
+    priority: '优先级',
+    report_count: '举报数',
+    assigned_to: '分配给',
+    created_at: '创建时间',
+    reporter: '举报者',
+    reason: '原因',
+    appellant: '申诉人',
+    submitted_at: '提交时间',
+    reviewed_by: '审核人',
+    reviewed_at: '审核时间',
+    response: '回复',
   },
 } as const

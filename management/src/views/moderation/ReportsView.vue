@@ -7,10 +7,7 @@ import { useDebounceFn } from '@vueuse/core'
 import type { PaginationState } from '@tanstack/vue-table'
 
 import { Button } from '@/components/ui/button'
-import {
-  IconRefresh,
-  IconAlertTriangle,
-} from '@tabler/icons-vue'
+import { IconRefresh, IconAlertTriangle } from '@tabler/icons-vue'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
@@ -193,12 +190,20 @@ function handleRefresh() {
         class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.total') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{ stats.total }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.total') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.pending') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{ stats.pending }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.pending') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.pending
+          }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconAlertTriangle class="h-4 w-4" />

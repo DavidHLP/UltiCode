@@ -1,0 +1,72 @@
+export default {
+  title: 'Tag Management',
+  searchPlaceholder: 'Search tags...',
+  tagType: 'Tag Type',
+  problemTags: 'Problem Tags',
+  forumTags: 'Forum Tags',
+  createTag: 'Create Tag',
+  bulkDelete: 'Bulk Delete',
+  selected: '{count} tags selected',
+  clearSelection: 'Clear Selection',
+  retry: 'Retry',
+
+  columns: {
+    tag: 'Tag',
+    usage: 'Usage',
+    description: 'Description',
+    actions: 'Actions',
+  },
+
+  actions: {
+    edit: 'Edit',
+    mergeInto: 'Merge Into...',
+    delete: 'Delete',
+    noActionsAvailable: 'No actions available',
+  },
+
+  form: {
+    editTitle: 'Edit Tag',
+    createTitle: 'Create Tag',
+    editDescription: 'Modify tag information',
+    createDescription: 'Create a new tag',
+    name: 'Tag Name',
+    namePlaceholder: 'Enter tag name',
+    slug: 'Slug',
+    slugPlaceholder: 'url-friendly-name',
+    color: 'Color',
+    colorPlaceholder: '#3b82f6',
+    description: 'Description',
+    descriptionPlaceholder: 'Enter tag description (optional)',
+  },
+
+  merge: {
+    title: 'Merge Tags',
+    description:
+      'Merge tag <strong>{source}</strong> into the target tag below. All content using this tag will be transferred to the target tag.',
+    targetLabel: 'Target Tag',
+    targetPlaceholder: 'Select target tag',
+    confirm: 'Confirm Merge',
+    success: 'Tags merged successfully',
+    failed: 'Failed to merge tags',
+    noTarget: 'Please select a target tag',
+    cannotMergeToSelf: 'Cannot merge tag into itself',
+  },
+
+  delete: {
+    title: 'Delete Tag',
+    description: 'Are you sure you want to delete tag "{name}"? This action cannot be undone.',
+    confirm: 'Confirm Delete',
+  },
+
+  toast: {
+    createSuccess: 'Tag created successfully',
+    createFailed: 'Failed to create tag',
+    updateSuccess: 'Tag updated successfully',
+    updateFailed: 'Failed to update tag',
+    deletedSuccessfully: 'Tag deleted successfully',
+    failedToDelete: 'Failed to delete tag',
+    bulkDeleteConfirm: 'Are you sure you want to delete {count} tags?',
+    bulkDeleteSuccess: 'Successfully deleted {count} tags',
+    bulkDeleteFailed: 'Failed to bulk delete tags',
+  },
+} as const

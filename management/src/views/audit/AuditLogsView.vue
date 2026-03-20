@@ -217,7 +217,7 @@ const columns: ColumnDef<AuditLog>[] = [
                     { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
                     {
                       default: () => [
-                        h('span', { class: 'sr-only' }, 'Open menu'),
+                        h('span', { class: 'sr-only' }, t('audit.actions.openMenu')),
                         h(IconDotsVertical, { class: 'h-4 w-4' }),
                       ],
                     },
@@ -279,32 +279,34 @@ const columns: ColumnDef<AuditLog>[] = [
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">total:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.total') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.total
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">create:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.create') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.create
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">update:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.update') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.update
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">delete:</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.delete') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
             stats.delete
           }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconDatabase class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">system audit trail</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('audit.stats.systemAuditTrail')
+          }}</span>
         </div>
       </div>
     </div>
@@ -344,28 +346,38 @@ const columns: ColumnDef<AuditLog>[] = [
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
-                <SelectItem value="CREATE_USER">Create User</SelectItem>
-                <SelectItem value="UPDATE_USER">Update User</SelectItem>
-                <SelectItem value="DELETE_USER">Delete User</SelectItem>
-                <SelectItem value="BAN_USER">Ban User</SelectItem>
-                <SelectItem value="UNBAN_USER">Unban User</SelectItem>
-                <SelectItem value="GRANT_PERMISSION">Grant Permission</SelectItem>
-                <SelectItem value="REVOKE_PERMISSION">Revoke Permission</SelectItem>
+                <SelectItem value="CREATE_USER">{{
+                  t('audit.actionTypes.CREATE_USER')
+                }}</SelectItem>
+                <SelectItem value="UPDATE_USER">{{
+                  t('audit.actionTypes.UPDATE_USER')
+                }}</SelectItem>
+                <SelectItem value="DELETE_USER">{{
+                  t('audit.actionTypes.DELETE_USER')
+                }}</SelectItem>
+                <SelectItem value="BAN_USER">{{ t('audit.actionTypes.BAN_USER') }}</SelectItem>
+                <SelectItem value="UNBAN_USER">{{ t('audit.actionTypes.UNBAN_USER') }}</SelectItem>
+                <SelectItem value="GRANT_PERMISSION">{{
+                  t('audit.actionTypes.GRANT_PERMISSION')
+                }}</SelectItem>
+                <SelectItem value="REVOKE_PERMISSION">{{
+                  t('audit.actionTypes.REVOKE_PERMISSION')
+                }}</SelectItem>
               </SelectContent>
             </Select>
             <Select v-model="entityTypeFilter">
               <SelectTrigger
                 class="terminal-input w-[150px] font-data text-xs uppercase tracking-wider"
               >
-                <SelectValue placeholder="All Entities" />
+                <SelectValue :placeholder="t('audit.filters.allEntities')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Entities</SelectItem>
-                <SelectItem value="USER">User</SelectItem>
-                <SelectItem value="PROBLEM">Problem</SelectItem>
-                <SelectItem value="CONTEST">Contest</SelectItem>
-                <SelectItem value="SOLUTION">Solution</SelectItem>
-                <SelectItem value="FORUM_POST">Forum Post</SelectItem>
+                <SelectItem value="all">{{ t('audit.filters.allEntities') }}</SelectItem>
+                <SelectItem value="USER">{{ t('audit.entityTypes.USER') }}</SelectItem>
+                <SelectItem value="PROBLEM">{{ t('audit.entityTypes.PROBLEM') }}</SelectItem>
+                <SelectItem value="CONTEST">{{ t('audit.entityTypes.CONTEST') }}</SelectItem>
+                <SelectItem value="SOLUTION">{{ t('audit.entityTypes.SOLUTION') }}</SelectItem>
+                <SelectItem value="FORUM_POST">{{ t('audit.entityTypes.FORUM_POST') }}</SelectItem>
               </SelectContent>
             </Select>
             <Button

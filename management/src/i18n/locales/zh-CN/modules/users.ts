@@ -1,6 +1,8 @@
 export default {
   title: '用户管理',
   addUser: '添加用户',
+  createUser: '创建用户',
+  createDescription: '填写以下信息创建新用户账户',
   searchPlaceholder: '搜索用户名或邮箱...',
   banReasonPrompt: '请输入封禁原因',
 
@@ -11,6 +13,8 @@ export default {
     status: '状态',
     joined: '注册时间',
     lastLogin: '最后登录',
+    bannedAt: '封禁时间',
+    username: '用户名',
   },
 
   // 筛选器
@@ -45,8 +49,22 @@ export default {
     banReasonPlaceholder: '请输入封禁原因...',
     name: '姓名',
     namePlaceholder: '张三',
+    fullName: '姓名',
+    fullNamePlaceholder: '张三',
     bio: '个人简介',
     bioPlaceholder: '一句话介绍自己...',
+    status: '状态',
+    creating: '创建中...',
+    createUser: '创建用户',
+    noReasonProvided: '未提供原因',
+    unknown: '未知',
+  },
+
+  // 统计数据
+  stats: {
+    solved: '已解决',
+    streak: '连续天数',
+    never: '从未',
   },
 
   // 操作
@@ -81,6 +99,7 @@ export default {
     unbanFailed: '解封用户失败',
     resetPasswordSuccess: '密码重置成功',
     resetPasswordFailed: '密码重置失败',
+    resetPasswordFailedDescription: '尝试更新密码时发生错误。',
     bulkBanFailed: '批量封禁失败',
     bulkUnbanFailed: '批量解封失败',
     bulkDeleteFailed: '批量删除失败',
@@ -102,6 +121,9 @@ export default {
     activity: '活动记录',
     submissions: '提交记录',
     statistics: '统计数据',
+    title: '用户详情',
+    description: '查看用户的完整信息',
+    notFound: '未找到用户',
   },
 
   clearSelection: '清除选择',

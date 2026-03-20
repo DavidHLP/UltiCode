@@ -173,35 +173,37 @@ onMounted(() => {
             <div class="space-y-3">
               <div v-if="subscription" class="flex items-start gap-3">
                 <IconCheck class="h-5 w-5 text-green-500 mt-0.5" />
-                <span>Access to all premium problems</span>
+                <span>{{ t('billing.features.premiumProblems') }}</span>
               </div>
               <div v-if="subscription" class="flex items-start gap-3">
                 <IconCheck class="h-5 w-5 text-green-500 mt-0.5" />
-                <span>Priority support</span>
+                <span>{{ t('billing.features.prioritySupport') }}</span>
               </div>
               <div v-if="subscription" class="flex items-start gap-3">
                 <IconCheck class="h-5 w-5 text-green-500 mt-0.5" />
-                <span>Advanced analytics and insights</span>
+                <span>{{ t('billing.features.advancedAnalytics') }}</span>
               </div>
               <div v-if="subscription" class="flex items-start gap-3">
                 <IconCheck class="h-5 w-5 text-green-500 mt-0.5" />
-                <span>Unlimited contest participation</span>
+                <span>{{ t('billing.features.unlimitedContests') }}</span>
               </div>
               <div v-if="!subscription" class="flex items-start gap-3">
                 <IconCheck class="h-5 w-5 text-green-500 mt-0.5" />
-                <span>Access to free problems</span>
+                <span>{{ t('billing.features.freeProblems') }}</span>
               </div>
               <div v-if="!subscription" class="flex items-start gap-3">
                 <IconCheck class="h-5 w-5 text-green-500 mt-0.5" />
-                <span>Community forum access</span>
+                <span>{{ t('billing.features.communityForum') }}</span>
               </div>
               <div v-if="!subscription" class="flex items-start gap-3">
                 <IconCheck class="h-5 w-5 text-green-500 mt-0.5" />
-                <span>Basic analytics</span>
+                <span>{{ t('billing.features.basicAnalytics') }}</span>
               </div>
               <div v-if="!subscription" class="flex items-start gap-3">
                 <IconX class="h-5 w-5 text-muted-foreground mt-0.5" />
-                <span class="text-muted-foreground">Premium problems</span>
+                <span class="text-muted-foreground">{{
+                  t('billing.features.premiumProblems')
+                }}</span>
               </div>
             </div>
           </div>
@@ -214,11 +216,7 @@ onMounted(() => {
           <div class="flex items-start gap-3">
             <IconCreditCard class="h-5 w-5 text-muted-foreground mt-0.5" />
             <div class="text-sm text-muted-foreground">
-              {{
-                subscription
-                  ? 'To manage your subscription, please contact support.'
-                  : 'Upgrade to Premium to unlock all features and get the most out of the platform.'
-              }}
+              {{ subscription ? t('billing.manageSubscription') : t('billing.upgradePrompt') }}
             </div>
           </div>
         </CardContent>

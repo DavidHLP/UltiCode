@@ -85,9 +85,9 @@ export const useModerationStore = defineStore('adminModeration', () => {
   const hasActiveFilters = computed(() => {
     return Boolean(
       filters.value.status ||
-        filters.value.category ||
-        filters.value.entityType ||
-        filters.value.assignedToId,
+      filters.value.category ||
+      filters.value.entityType ||
+      filters.value.assignedToId,
     )
   })
 
@@ -113,11 +113,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
       response?: { data?: { message?: string } }
       message?: string
     }
-    return (
-      errorObj?.response?.data?.message ||
-      errorObj?.message ||
-      'An error occurred'
-    )
+    return errorObj?.response?.data?.message || errorObj?.message || 'An error occurred'
   }
 
   // ========== Queue Operations ==========
@@ -276,10 +272,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
     try {
       const item = await moderationQueueApi.performAction(id, data)
       // Remove from queue if resolved or dismissed
-      if (
-        item.status === 'RESOLVED' ||
-        item.status === 'DISMISSED'
-      ) {
+      if (item.status === 'RESOLVED' || item.status === 'DISMISSED') {
         queueItems.value = queueItems.value.filter((i) => i.id !== id)
         queueTotal.value = Math.max(0, queueTotal.value - 1)
       } else {
@@ -308,9 +301,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
     try {
       const result = await moderationQueueApi.batchAction(data)
       // Remove processed items from local state
-      const successfulIds = result.results
-        .filter((r) => r.success)
-        .map((r) => r.id)
+      const successfulIds = result.results.filter((r) => r.success).map((r) => r.id)
       queueItems.value = queueItems.value.filter((i) => !successfulIds.includes(i.id))
       queueTotal.value = Math.max(0, queueTotal.value - successfulIds.length)
       // Refresh stats after batch action

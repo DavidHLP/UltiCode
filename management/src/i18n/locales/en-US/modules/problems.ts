@@ -7,11 +7,13 @@ export default {
   importProblem: 'Import Problem',
   exportProblem: 'Export Problem',
   searchPlaceholder: 'Search problems...',
+  addProblem: 'Add Problem',
 
   // Column definitions
   columns: {
     id: 'ID',
     title: 'Title',
+    problem: 'Problem',
     difficulty: 'Difficulty',
     status: 'Status',
     tags: 'Tags',
@@ -20,6 +22,8 @@ export default {
     createdAt: 'Created At',
     updatedAt: 'Updated At',
     isFlagged: 'Flagged',
+    published: 'Published',
+    flagged: 'Flagged',
   },
 
   // Difficulty
@@ -36,6 +40,24 @@ export default {
     DRAFT: 'Draft',
     PUBLISHED: 'Published',
     ARCHIVED: 'Archived',
+    TODO: 'Todo',
+    ATTEMPTED: 'Attempted',
+    SOLVED: 'Solved',
+    todo: 'Todo',
+    attempted: 'Attempted',
+    solved: 'Solved',
+  },
+
+  // Published status
+  published: {
+    published: 'Published',
+    draft: 'Draft',
+    deleted: 'Deleted',
+  },
+
+  // Badges
+  badges: {
+    premium: 'Premium',
   },
 
   // Actions
@@ -45,6 +67,7 @@ export default {
     delete: 'Delete',
     duplicate: 'Duplicate',
     publish: 'Publish',
+    unpublish: 'Unpublish',
     archive: 'Archive',
     restore: 'Restore',
     viewSubmissions: 'View Submissions',
@@ -52,6 +75,56 @@ export default {
     flag: 'Flag',
     unflag: 'Unflag',
     viewFlagInfo: 'View Flag Info',
+    export: 'Export',
+  },
+
+  // Filters
+  filters: {
+    allDifficulty: 'All Difficulties',
+    allStatus: 'All Status',
+    allPublished: 'All Published',
+    published: 'Published',
+    unpublished: 'Unpublished',
+  },
+
+  // Sort
+  sort: {
+    title: 'Sort By',
+    default: 'Default',
+    titleAsc: 'Title (A-Z)',
+    difficultyAsc: 'Difficulty (Low to High)',
+    createdDesc: 'Created (Newest)',
+    updatedDesc: 'Updated (Newest)',
+    submissionsDesc: 'Submissions (High to Low)',
+  },
+
+  // Export
+  export: {
+    title: 'Export',
+    json: 'Export as JSON',
+    csv: 'Export as CSV',
+    success: 'Problems exported successfully',
+    failed: 'Failed to export problems',
+  },
+
+  // Import
+  import: {
+    title: 'Import',
+    success: 'Problems imported successfully',
+    failed: 'Failed to import problems',
+  },
+
+  // Bulk operations
+  bulk: {
+    noSelection: 'Please select problems to perform action',
+    success: 'Successfully {action} {count} problems',
+    failed: 'Failed to {action} {count} problems',
+    partial: '{success} succeeded, {failed} failed',
+    publish: 'publish',
+    unpublish: 'unpublish',
+    delete: 'delete',
+    restore: 'restore',
+    action: 'Bulk action',
   },
 
   // Form fields
@@ -62,20 +135,137 @@ export default {
     slugPlaceholder: 'two-sum',
     description: 'Description',
     descriptionPlaceholder: 'Enter problem description...',
+    summary: 'Summary',
+    summaryPlaceholder: 'Enter problem summary...',
+    contentPlaceholder: 'Enter problem content...',
+    fullContent: 'Full Content',
     difficulty: 'Difficulty',
     tags: 'Tags',
     tagsPlaceholder: 'Select tags...',
+    addTagPlaceholder: 'Add tag...',
     timeLimit: 'Time Limit (ms)',
     memoryLimit: 'Memory Limit (MB)',
     score: 'Score',
     isPremium: 'Premium Problem',
     isPublished: 'Published',
     hints: 'Hints',
+    addHintPlaceholder: 'Add a hint...',
+    addHint: 'Add Hint',
+    noHints: 'No hints added.',
     solutionTemplate: 'Solution Template',
     starterCode: 'Starter Code',
     testCases: 'Test Cases',
     examples: 'Examples',
     constraints: 'Constraints',
+    publishing: 'Publishing',
+    status: 'Status',
+    premium: 'Premium',
+    premiumDescription: 'Only for premium users',
+    published: 'Published',
+    publishedDescription: 'Visible to all users',
+    saving: 'Saving...',
+    updateProblem: 'Update Problem',
+    createProblem: 'Create Problem',
+    taxonomy: 'Taxonomy',
+    languages: 'Languages',
+    all: 'All',
+    addLanguagePlaceholder: 'Add language...',
+    add: 'Add',
+    details: {
+      title: 'Basic Information',
+      description: 'Fill in the basic problem information',
+    },
+    testCases: {
+      title: 'Test Cases',
+      description: 'Add example test cases to help users understand the problem',
+    },
+    additionalInfo: {
+      title: 'Additional Information',
+    },
+    constraints: {
+      title: 'Constraints',
+      placeholder: 'e.g., 1 <= nums.length <= 10^4',
+    },
+    validation: {
+      slugRequired: 'Slug is required',
+      slugInvalid: 'Slug can only contain lowercase letters, numbers and hyphens',
+      titleRequired: 'Title is required',
+      examplesRequired: 'At least one test case is required',
+      inputRequired: 'Input is required',
+      outputRequired: 'Output is required',
+    },
+  },
+
+  // Description form
+  descriptionForm: {
+    problemDescription: 'Problem Description',
+    problemDescriptionSubtitle: 'Fill in the basic information and description',
+    titlePlaceholder: 'Enter problem title',
+    slugPlaceholder: 'e.g., two-sum',
+    summaryPlaceholder: 'Enter a brief summary...',
+    contentPlaceholder: 'Enter the full problem description...',
+    publishing: 'Publishing',
+    premium: 'Premium',
+    premiumDescription: 'Only accessible to premium users',
+    published: 'Published',
+    publishedDescription: 'Visible to all users',
+    saving: 'Saving...',
+    updateDescription: 'Update Description',
+    saveDescription: 'Save Description',
+    validation: {
+      slugRequired: 'Slug is required',
+      slugInvalid: 'Slug can only contain lowercase letters, numbers and hyphens',
+      titleRequired: 'Title is required',
+    },
+  },
+
+  // Code form
+  codeForm: {
+    addLanguages: 'Add Languages',
+    quickAdd: 'Quick Add',
+    customLanguagePlaceholder: 'Enter custom language...',
+    add: 'Add',
+    lines: 'lines',
+    starterCodeTemplate: 'Starter Code Template',
+    noLanguages: 'No languages added yet',
+    noLanguagesDescription:
+      'Click the language buttons above to quickly add, or enter a custom language',
+    configuration: 'Configuration',
+    languages: 'Languages',
+    allLanguages: 'All languages supported',
+    selectedLanguages: 'Specific languages selected',
+    saving: 'Saving...',
+    saveChanges: 'Save Changes',
+  },
+
+  // Cases form
+  casesForm: {
+    testCasesSection: 'Test Cases',
+    constraintsAndHints: 'Constraints & Hints',
+    constraints: 'Constraints',
+    constraintPlaceholder: 'e.g., 1 <= n <= 10^5',
+    add: 'Add',
+    noConstraints: 'No constraints added',
+    hints: 'Hints',
+    addHint: 'Add Hint',
+    noHints: 'No hints added',
+    tags: 'Tags',
+    addTag: 'Add Tag',
+    noTags: 'No tags added',
+    configurationSummary: 'Configuration Summary',
+    summary: {
+      testCases: 'Test Cases',
+      constraints: 'Constraints',
+      hints: 'Hints',
+      tags: 'Tags',
+    },
+    saving: 'Saving...',
+    saveChanges: 'Save Changes',
+    validation: {
+      examplesRequired: 'At least one test case is required',
+      inputRequired: 'Input is required',
+      outputRequired: 'Output is required',
+    },
   },
 
   // Edit tabs
@@ -83,9 +273,41 @@ export default {
     description: 'Description',
     code: 'Code',
     cases: 'Test Cases',
+    testCases: 'Test Cases',
     settings: 'Settings',
     versions: 'Version History',
     audit: 'Audit Log',
+  },
+
+  // Create page
+  create: {
+    title: 'Create Problem',
+  },
+
+  // Edit page
+  edit: {
+    loading: 'Loading...',
+    descriptionSubtitle: 'Edit problem description',
+    codeSubtitle: 'Configure supported languages',
+    testCasesSubtitle: 'Manage test cases and constraints',
+  },
+
+  // View page
+  view: {
+    notFound: 'Problem Not Found',
+    notFoundDescription: 'The specified problem could not be found',
+    backToProblems: 'Back to Problems',
+  },
+
+  // Display components
+  display: {
+    id: 'ID',
+    created: 'Created',
+    updated: 'Updated',
+    published: 'Published',
+    metadata: 'Metadata',
+    tags: 'Tags',
+    hints: 'Hints',
   },
 
   // Toast messages
@@ -98,6 +320,8 @@ export default {
     deleteFailed: 'Failed to delete problem',
     publishSuccess: 'Problem published successfully',
     publishFailed: 'Failed to publish problem',
+    unpublishSuccess: 'Problem unpublished successfully',
+    unpublishFailed: 'Failed to unpublish problem',
     archiveSuccess: 'Problem archived successfully',
     archiveFailed: 'Failed to archive problem',
     restoreSuccess: 'Problem restored successfully',
@@ -119,6 +343,13 @@ export default {
     deleteTitle: 'Confirm Delete',
     deleteDescription:
       'Are you sure you want to delete problem "{title}"? This action cannot be undone.',
+    delete: {
+      title: 'Confirm Delete',
+      description:
+        'Are you sure you want to delete problem "{title}"? This action cannot be undone.',
+      confirm: 'Confirm Delete',
+      thisProblem: 'this problem',
+    },
     publishTitle: 'Confirm Publish',
     publishDescription: 'Are you sure you want to publish problem "{title}"?',
     archiveTitle: 'Confirm Archive',
@@ -146,6 +377,7 @@ export default {
     author: 'Author',
     changes: 'Changes',
     restore: 'Restore to this version',
+    restoreSuccess: 'Version restored successfully',
     viewDiff: 'View Diff',
   },
 

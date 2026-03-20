@@ -349,12 +349,18 @@ defineExpose({
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <Label class="text-base flex items-center gap-2">
-                <IconBulb class="h-4 w-4" /> Hints
+                <IconBulb class="h-4 w-4" /> {{ t('problems.form.hints') }}
               </Label>
             </div>
             <div class="flex gap-2">
-              <Input v-model="newHint" placeholder="Add a hint..." @keyup.enter="addHint" />
-              <Button type="button" variant="secondary" @click="addHint">Add</Button>
+              <Input
+                v-model="newHint"
+                :placeholder="t('problems.form.addHintPlaceholder')"
+                @keyup.enter="addHint"
+              />
+              <Button type="button" variant="secondary" @click="addHint">{{
+                t('problems.form.addHint')
+              }}</Button>
             </div>
 
             <ul v-if="formData.hints!.length > 0" class="space-y-2">
@@ -377,7 +383,9 @@ defineExpose({
                 </Button>
               </li>
             </ul>
-            <p v-else class="text-sm text-muted-foreground italic">No hints added.</p>
+            <p v-else class="text-sm text-muted-foreground italic">
+              {{ t('problems.form.noHints') }}
+            </p>
           </div>
         </CardContent>
       </Card>
@@ -388,36 +396,50 @@ defineExpose({
       <!-- Actions Card -->
       <Card class="border-primary/10 shadow-sm">
         <CardHeader class="pb-3 border-b bg-muted/20">
-          <CardTitle class="text-base">Publishing</CardTitle>
+          <CardTitle class="text-base">{{ t('problems.form.publishing') }}</CardTitle>
         </CardHeader>
         <CardContent class="pt-6 space-y-6">
           <div class="grid grid-cols-2 gap-4">
             <div class="space-y-2">
-              <Label class="text-xs text-muted-foreground uppercase tracking-wider">Status</Label>
+              <Label class="text-xs text-muted-foreground uppercase tracking-wider">{{
+                t('problems.form.status')
+              }}</Label>
               <Select v-model="formData.status">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="ProblemStatus.TODO">Todo</SelectItem>
-                  <SelectItem :value="ProblemStatus.ATTEMPTED">Attempted</SelectItem>
-                  <SelectItem :value="ProblemStatus.SOLVED">Solved</SelectItem>
+                  <SelectItem :value="ProblemStatus.TODO">{{
+                    t('problems.status.TODO')
+                  }}</SelectItem>
+                  <SelectItem :value="ProblemStatus.ATTEMPTED">{{
+                    t('problems.status.ATTEMPTED')
+                  }}</SelectItem>
+                  <SelectItem :value="ProblemStatus.SOLVED">{{
+                    t('problems.status.SOLVED')
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div class="space-y-2">
-              <Label class="text-xs text-muted-foreground uppercase tracking-wider"
-                >Difficulty</Label
-              >
+              <Label class="text-xs text-muted-foreground uppercase tracking-wider">{{
+                t('problems.form.difficulty')
+              }}</Label>
               <Select v-model="formData.difficulty">
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem :value="Difficulty.EASY">Easy</SelectItem>
-                  <SelectItem :value="Difficulty.MEDIUM">Medium</SelectItem>
-                  <SelectItem :value="Difficulty.HARD">Hard</SelectItem>
+                  <SelectItem :value="Difficulty.EASY">{{
+                    t('problems.difficulty.EASY')
+                  }}</SelectItem>
+                  <SelectItem :value="Difficulty.MEDIUM">{{
+                    t('problems.difficulty.MEDIUM')
+                  }}</SelectItem>
+                  <SelectItem :value="Difficulty.HARD">{{
+                    t('problems.difficulty.HARD')
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -429,8 +451,10 @@ defineExpose({
               @click="formData.is_premium = !formData.is_premium"
             >
               <div class="space-y-0.5">
-                <Label class="text-base cursor-pointer">Premium</Label>
-                <p class="text-xs text-muted-foreground">Only for premium users</p>
+                <Label class="text-base cursor-pointer">{{ t('problems.form.premium') }}</Label>
+                <p class="text-xs text-muted-foreground">
+                  {{ t('problems.form.premiumDescription') }}
+                </p>
               </div>
               <Checkbox v-model="formData.is_premium" />
             </div>
@@ -440,8 +464,10 @@ defineExpose({
               @click="formData.is_published = !formData.is_published"
             >
               <div class="space-y-0.5">
-                <Label class="text-base cursor-pointer">Published</Label>
-                <p class="text-xs text-muted-foreground">Visible to all users</p>
+                <Label class="text-base cursor-pointer">{{ t('problems.form.published') }}</Label>
+                <p class="text-xs text-muted-foreground">
+                  {{ t('problems.form.publishedDescription') }}
+                </p>
               </div>
               <Checkbox v-model="formData.is_published" />
             </div>
@@ -450,7 +476,13 @@ defineExpose({
           <div class="flex flex-col gap-3 pt-2">
             <Button class="w-full" :disabled="loading" @click="submit">
               <IconCheck v-if="!loading" class="h-4 w-4 mr-2" />
-              {{ loading ? 'Saving...' : isEdit ? 'Update Problem' : 'Create Problem' }}
+              {{
+                loading
+                  ? t('problems.form.saving')
+                  : isEdit
+                    ? t('problems.form.updateProblem')
+                    : t('problems.form.createProblem')
+              }}
             </Button>
             <slot name="cancel" />
           </div>
@@ -460,22 +492,22 @@ defineExpose({
       <!-- Taxonomy Card -->
       <Card>
         <CardHeader class="pb-3 border-b bg-muted/20">
-          <CardTitle class="text-base">Taxonomy</CardTitle>
+          <CardTitle class="text-base">{{ t('problems.form.taxonomy') }}</CardTitle>
         </CardHeader>
         <CardContent class="pt-6 space-y-6">
           <!-- Languages -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <Label class="text-sm">Languages</Label>
-              <span v-if="!formData.languages?.length" class="text-xs text-muted-foreground"
-                >All</span
-              >
+              <Label class="text-sm">{{ t('problems.form.languages') }}</Label>
+              <span v-if="!formData.languages?.length" class="text-xs text-muted-foreground">{{
+                t('problems.form.all')
+              }}</span>
             </div>
 
             <div class="relative">
               <Input
                 v-model="newLanguage"
-                placeholder="Add language..."
+                :placeholder="t('problems.form.addLanguagePlaceholder')"
                 @keyup.enter="addLanguage"
                 class="pr-8"
               />
@@ -511,11 +543,16 @@ defineExpose({
           <!-- Tags -->
           <div class="space-y-3">
             <div class="flex items-center justify-between">
-              <Label class="text-sm">Tags</Label>
+              <Label class="text-sm">{{ t('problems.form.tags') }}</Label>
             </div>
 
             <div class="relative">
-              <Input v-model="newTag" placeholder="Add tag..." @keyup.enter="addTag" class="pr-8" />
+              <Input
+                v-model="newTag"
+                :placeholder="t('problems.form.addTagPlaceholder')"
+                @keyup.enter="addTag"
+                class="pr-8"
+              />
               <button
                 v-if="newTag"
                 class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-primary"

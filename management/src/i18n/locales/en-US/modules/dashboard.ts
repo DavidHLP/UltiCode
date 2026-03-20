@@ -16,6 +16,8 @@ export default {
     finished: 'Finished',
     flaggedContent: 'Flagged Content',
     actionNeeded: 'Action Needed',
+    allClear: 'All Clear',
+    pendingModeration: 'Pending Moderation',
     totalSubmissions: 'Total Submissions',
     pending: 'Pending',
     success: 'Success',
@@ -77,6 +79,51 @@ export default {
       '30d': '30 Days',
       '90d': '90 Days',
       '1y': '1 Year',
+    },
+  },
+
+  // Chart (DashboardView uses this)
+  chart: {
+    userRegistrationTrend: 'User Registration Trend',
+    dailyRegistrations: 'Daily new user registrations',
+  },
+
+  // Time period selector
+  timePeriod: {
+    last7Days: 'Last 7 Days',
+    last30Days: 'Last 30 Days',
+    last90Days: 'Last 90 Days',
+    allTime: 'All Time',
+  },
+
+  // Time ago
+  timeAgo: {
+    justNow: 'Just now',
+    minuteAgo: '{count} minute ago | {count} minutes ago',
+    hourAgo: '{count} hour ago | {count} hours ago',
+    dayAgo: '{count} day ago | {count} days ago',
+  },
+
+  // Timeline
+  timeline: {
+    title: 'Activity Timeline',
+    description: 'Recent system activity records',
+    activityTypes: {
+      LOGIN: 'Login',
+      CREATE: 'Create',
+      UPDATE: 'Update',
+      DELETE: 'Delete',
+      PUBLISH: 'Publish',
+      UNPUBLISH: 'Unpublish',
+      FLAG: 'Flag',
+      UNFLAG: 'Unflag',
+      BAN: 'Ban',
+      UNBAN: 'Unban',
+      MODERATE: 'Moderate',
+      PIN: 'Pin',
+      UNPIN: 'Unpin',
+      LOCK: 'Lock',
+      UNLOCK: 'Unlock',
     },
   },
 } as const

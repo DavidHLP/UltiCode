@@ -148,7 +148,7 @@ const columns = createColumns(
   t,
   {
     viewPostDetails: (post: ForumPost) => {
-      router.push({ name: 'forum-post-detail-overview', params: { id: post.id } })
+      router.push({ name: 'forum-post-detail', params: { id: post.id } })
     },
     togglePin: async (post: ForumPost) => {
       try {

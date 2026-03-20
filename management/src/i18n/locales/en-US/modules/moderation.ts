@@ -78,8 +78,8 @@ export default {
     DISMISSED: 'Dismiss the report as invalid',
     RESOLVED: 'Mark the issue as resolved',
     APPEAL_PENDING: 'User has submitted an appeal',
-    APPEAL_APPROVED: 'Approve the user\'s appeal',
-    APPEAL_REJECTED: 'Reject the user\'s appeal',
+    APPEAL_APPROVED: "Approve the user's appeal",
+    APPEAL_REJECTED: "Reject the user's appeal",
   },
 
   // ========== Entity Types (5 types) ==========
@@ -149,6 +149,7 @@ export default {
     byCategory: 'By Category',
     byEntityType: 'By Entity Type',
     recentActivity: 'Recent Activity',
+    noData: 'No data available',
   },
 
   // ========== Detail View ==========
@@ -157,7 +158,7 @@ export default {
     entityInfo: 'Entity Information',
     entityPreview: 'Content Preview',
     reportsTitle: 'Reports ({count})',
-    actionsTitle: 'Action History',
+    actionsTitle: 'Action History ({count})',
     appealTitle: 'Appeal Details',
     noReports: 'No reports found',
     noActions: 'No actions taken',
@@ -170,6 +171,7 @@ export default {
     note: 'Note',
     duration: 'Duration',
     days: '{count} days',
+    moreReports: '{count} more reports',
   },
 
   // ========== Action Panel ==========
@@ -202,6 +204,8 @@ export default {
     rejectAppeal: 'Reject Appeal',
     reviewAppeal: 'Review Appeal',
     responsePlaceholder: 'Enter your response to this appeal...',
+    decision: 'Decision',
+    reviewDescription: 'Review the appeal and provide your decision.',
   },
 
   // ========== Reports View ==========
@@ -220,6 +224,7 @@ export default {
     status: 'Status',
     viewEntity: 'View Entity',
     viewQueue: 'View in Queue',
+    noQueueItem: 'No queue item associated with this report',
   },
 
   // ========== Filters ==========
@@ -286,6 +291,8 @@ export default {
     actions: 'Actions',
     reporter: 'Reporter',
     reason: 'Reason',
+    queueId: 'Queue ID',
+    id: 'ID',
   },
 
   // ========== Terminal Style ==========
@@ -298,6 +305,22 @@ export default {
     resolved: 'Resolved',
     dismissed: 'Dismissed',
     underReview: 'Under Review',
+  },
+
+  // ========== Time Related ==========
+  time: {
+    justNow: 'just now',
+    minutesAgo: '{count}m ago',
+    hoursAgo: '{count}h ago',
+    daysAgo: '{count}d ago',
+  },
+
+  // ========== Priority ==========
+  priority: {
+    critical: 'Critical',
+    high: 'High',
+    medium: 'Medium',
+    low: 'Low',
   },
 
   // ========== Legacy (for backward compatibility) ==========
@@ -327,4 +350,9 @@ export default {
   selectedCount: '{count} selected',
   batchResolve: 'Batch Resolve',
   batchDismiss: 'Batch Dismiss',
+  notFound: 'Moderation item not found',
+  flagSuccess: 'Flagged successfully',
+  flagError: 'Failed to flag',
+  unflagSuccess: 'Unflagged successfully',
+  unflagError: 'Failed to unflag',
 } as const

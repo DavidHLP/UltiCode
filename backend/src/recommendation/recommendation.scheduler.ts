@@ -59,19 +59,26 @@ export class RecommendationScheduler {
       for (const user of activeUsers) {
         try {
           let userSuccess = true;
-          
+
           // Generate recommendations for each scenario
-          const scenarios = [RecommendScenario.DAILY, RecommendScenario.WEAK_POINT, RecommendScenario.CHALLENGE];
+          const scenarios = [
+            RecommendScenario.DAILY,
+            RecommendScenario.WEAK_POINT,
+            RecommendScenario.CHALLENGE,
+          ];
 
           for (const scenario of scenarios) {
             try {
-              const result = await this.recommendationService.getRecommendations({
-                userId: user.id,
-                scenario,
-              });
+              const result =
+                await this.recommendationService.getRecommendations({
+                  userId: user.id,
+                  scenario,
+                });
 
               if (!result?.success || !result?.data) {
-                throw new Error(result?.message || 'Failed to generate recommendations');
+                throw new Error(
+                  result?.message || 'Failed to generate recommendations',
+                );
               }
 
               // Cache the recommendations
@@ -81,7 +88,10 @@ export class RecommendationScheduler {
                 result.data,
               );
             } catch (error) {
-              this.logger.error(`Failed to generate recommendations for user ${user.id}, scenario ${scenario}:`, error);
+              this.logger.error(
+                `Failed to generate recommendations for user ${user.id}, scenario ${scenario}:`,
+                error,
+              );
               userSuccess = false;
               break;
             }
@@ -93,7 +103,10 @@ export class RecommendationScheduler {
             failedUsers.push(user.id);
           }
         } catch (error) {
-          this.logger.error(`Failed to generate recommendations for user ${user.id}:`, error);
+          this.logger.error(
+            `Failed to generate recommendations for user ${user.id}:`,
+            error,
+          );
           failedUsers.push(user.id);
         }
       }
@@ -132,19 +145,26 @@ export class RecommendationScheduler {
         // Generate recommendations for all users in batch
         for (const user of batch) {
           let userSuccess = true;
-          
+
           // Generate recommendations for each scenario
-          const scenarios = [RecommendScenario.DAILY, RecommendScenario.WEAK_POINT, RecommendScenario.CHALLENGE];
+          const scenarios = [
+            RecommendScenario.DAILY,
+            RecommendScenario.WEAK_POINT,
+            RecommendScenario.CHALLENGE,
+          ];
 
           for (const scenario of scenarios) {
             try {
-              const result = await this.recommendationService.getRecommendations({
-                userId: user.id,
-                scenario,
-              });
+              const result =
+                await this.recommendationService.getRecommendations({
+                  userId: user.id,
+                  scenario,
+                });
 
               if (!result?.success || !result?.data) {
-                throw new Error(result?.message || 'Failed to generate recommendations');
+                throw new Error(
+                  result?.message || 'Failed to generate recommendations',
+                );
               }
 
               // Cache the recommendations
@@ -154,12 +174,15 @@ export class RecommendationScheduler {
                 result.data,
               );
             } catch (error) {
-              this.logger.error(`Failed to generate recommendations for user ${user.id}, scenario ${scenario}:`, error);
+              this.logger.error(
+                `Failed to generate recommendations for user ${user.id}, scenario ${scenario}:`,
+                error,
+              );
               userSuccess = false;
               break;
             }
           }
-          
+
           if (userSuccess) {
             successCount++;
           } else {
@@ -195,7 +218,11 @@ export class RecommendationScheduler {
   }
 
   private async generateUserRecommendations(userId: string) {
-    const scenarios = [RecommendScenario.DAILY, RecommendScenario.WEAK_POINT, RecommendScenario.CHALLENGE];
+    const scenarios = [
+      RecommendScenario.DAILY,
+      RecommendScenario.WEAK_POINT,
+      RecommendScenario.CHALLENGE,
+    ];
 
     const results = await Promise.allSettled(
       scenarios.map(async (scenario) => {
@@ -228,7 +255,11 @@ export class RecommendationScheduler {
     return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async triggerManually(): Promise<{ success: boolean; message: string; error?: string }> {
+  async triggerManually(): Promise<{
+    success: boolean;
+    message: string;
+    error?: string;
+  }> {
     this.logger.log('Manually triggering recommendations generation');
 
     try {

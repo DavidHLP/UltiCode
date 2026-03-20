@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
-import {
-  IconX,
-  IconUser,
-  IconFlag,
-  IconClock,
-  IconAlertTriangle,
-} from '@tabler/icons-vue'
+import { IconX, IconUser, IconFlag, IconClock, IconAlertTriangle } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@/components/ui/sheet'
 import { Separator } from '@/components/ui/separator'
 import { Badge } from '@/components/ui/badge'
 import {
@@ -39,11 +39,16 @@ const emit = defineEmits<{
 const { t } = useI18n()
 
 const statusColors: Record<ModerationStatus, string> = {
-  PENDING: 'bg-[oklch(0.75_0.15_85/0.15)] text-[var(--terminal-amber)] border-[oklch(0.75_0.15_85/0.4)]',
-  UNDER_REVIEW: 'bg-[oklch(0.7_0.12_200/0.15)] text-[var(--terminal-cyan)] border-[oklch(0.7_0.12_200/0.4)]',
-  RESOLVED: 'bg-[oklch(0.7_0.15_145/0.15)] text-[var(--terminal-green)] border-[oklch(0.7_0.15_145/0.4)]',
-  DISMISSED: 'bg-[oklch(0.6_0.2_25/0.15)] text-[var(--terminal-red)] border-[oklch(0.6_0.2_25/0.4)]',
-  APPEAL_PENDING: 'bg-[oklch(0.7_0.12_280/0.15)] text-[var(--terminal-purple)] border-[oklch(0.7_0.12_280/0.4)]',
+  PENDING:
+    'bg-[oklch(0.75_0.15_85/0.15)] text-[var(--terminal-amber)] border-[oklch(0.75_0.15_85/0.4)]',
+  UNDER_REVIEW:
+    'bg-[oklch(0.7_0.12_200/0.15)] text-[var(--terminal-cyan)] border-[oklch(0.7_0.12_200/0.4)]',
+  RESOLVED:
+    'bg-[oklch(0.7_0.15_145/0.15)] text-[var(--terminal-green)] border-[oklch(0.7_0.15_145/0.4)]',
+  DISMISSED:
+    'bg-[oklch(0.6_0.2_25/0.15)] text-[var(--terminal-red)] border-[oklch(0.6_0.2_25/0.4)]',
+  APPEAL_PENDING:
+    'bg-[oklch(0.7_0.12_280/0.15)] text-[var(--terminal-purple)] border-[oklch(0.7_0.12_280/0.4)]',
 }
 
 const categoryColors: Record<ReportCategory, string> = {
@@ -88,18 +93,15 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
       class="w-full sm:max-w-[600px] p-0 flex flex-col border-l border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--background)]"
     >
       <!-- Header -->
-      <SheetHeader class="p-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+      <SheetHeader
+        class="p-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+      >
         <div class="flex items-center justify-between">
           <SheetTitle class="flex items-center gap-2 text-lg font-data">
             <IconFlag class="h-5 w-5 text-[var(--terminal-amber)]" />
             <span>{{ t('moderation.detail.title') }}</span>
           </SheetTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            class="h-8 w-8"
-            @click="emit('update:open', false)"
-          >
+          <Button variant="ghost" size="icon" class="h-8 w-8" @click="emit('update:open', false)">
             <IconX class="h-4 w-4" />
           </Button>
         </div>
@@ -111,7 +113,9 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
       <!-- Content -->
       <div v-if="item" class="flex-1 overflow-y-auto">
         <!-- Status & Priority Bar -->
-        <div class="p-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]">
+        <div
+          class="p-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]"
+        >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-3">
               <Badge
@@ -163,7 +167,9 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
               <span
                 :class="[
                   'text-sm font-data tabular-nums',
-                  item.report_count >= 3 ? 'text-[var(--terminal-red)]' : 'text-[var(--foreground)]',
+                  item.report_count >= 3
+                    ? 'text-[var(--terminal-red)]'
+                    : 'text-[var(--foreground)]',
                 ]"
               >
                 {{ item.report_count }}
@@ -172,7 +178,10 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
           </div>
 
           <!-- Assigned To -->
-          <div v-if="item.assigned_to" class="flex items-center gap-2 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+          <div
+            v-if="item.assigned_to"
+            class="flex items-center gap-2 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+          >
             <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
             <span class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
               {{ t('moderation.queue.assignedTo') }}:
@@ -195,7 +204,11 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
               >
                 <div class="flex items-center justify-between mb-2">
                   <span class="text-xs font-data text-[var(--silver-500)]">
-                    {{ report.reporter?.display_name || report.reporter?.username || t('moderation.unknownReporter') }}
+                    {{
+                      report.reporter?.display_name ||
+                      report.reporter?.username ||
+                      t('moderation.unknownReporter')
+                    }}
                   </span>
                   <span class="text-xs font-data text-[var(--silver-400)] tabular-nums">
                     {{ formatDate(report.created_at) }}
@@ -218,10 +231,7 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
           <Separator class="my-4 bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
 
           <!-- Action History -->
-          <ActionHistoryTimeline
-            :actions="item.actions || []"
-            :loading="false"
-          />
+          <ActionHistoryTimeline :actions="item.actions || []" :loading="false" />
 
           <Separator class="my-4 bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
 

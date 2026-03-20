@@ -5,9 +5,12 @@
  * 使用 AuthGrid 背景 + AuthCard 容器 + LoginForm
  */
 import { Terminal } from 'lucide-vue-next'
+import { useI18n } from 'vue-i18n'
 import LoginForm from '@/views/auth/components/LoginForm.vue'
 import AuthCard from '@/views/auth/components/AuthCard.vue'
 import AuthGrid from '@/views/auth/components/AuthGrid.vue'
+
+const { t } = useI18n()
 
 defineOptions({
   name: 'LoginView',
@@ -33,7 +36,7 @@ defineOptions({
 
       <!-- Content Area -->
       <div class="auth-layout__content">
-        <AuthCard title="login.terminal">
+        <AuthCard :title="t('auth.login.terminal')">
           <LoginForm />
         </AuthCard>
       </div>
@@ -44,7 +47,7 @@ defineOptions({
         <span class="auth-layout__separator">|</span>
         <span class="auth-layout__status">
           <span class="auth-layout__status-dot"></span>
-          System Online
+          {{ t('auth.layout.systemOnline') }}
         </span>
       </div>
     </div>
@@ -53,8 +56,8 @@ defineOptions({
     <AuthGrid>
       <div class="auth-pattern-text">
         <div class="auth-pattern-text__prefix">$</div>
-        <h2 class="auth-pattern-text__title">Management<br />Console</h2>
-        <p class="auth-pattern-text__subtitle">// Precision tools for platform administration</p>
+        <h2 class="auth-pattern-text__title" v-html="t('auth.layout.managementConsole')"></h2>
+        <p class="auth-pattern-text__subtitle">{{ t('auth.layout.managementConsoleSubtitle') }}</p>
         <div class="auth-pattern-text__cursor"></div>
       </div>
     </AuthGrid>

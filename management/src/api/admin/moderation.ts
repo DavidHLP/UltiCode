@@ -401,10 +401,7 @@ export const moderationQueueApi = {
   /**
    * Perform a moderation action on a queue item
    */
-  async performAction(
-    id: string,
-    data: PerformModerationActionDto,
-  ): Promise<ModerationQueueItem> {
+  async performAction(id: string, data: PerformModerationActionDto): Promise<ModerationQueueItem> {
     return apiPost<ModerationQueueItem>(`/moderation/queue/${id}/action`, data)
   },
 

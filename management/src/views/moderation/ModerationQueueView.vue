@@ -534,7 +534,9 @@ const selectedActionOption = computed(() =>
         >
           <IconLoader2 v-if="saving" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
           <IconCheck v-else class="h-3.5 w-3.5 mr-1.5" />
-          <span class="uppercase tracking-wider">{{ t('moderation.actionPanel.confirmAction') }}</span>
+          <span class="uppercase tracking-wider">{{
+            t('moderation.actionPanel.confirmAction')
+          }}</span>
         </Button>
       </template>
 
@@ -549,7 +551,9 @@ const selectedActionOption = computed(() =>
             </p>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entityType') }}:</span>
+                <span class="text-[var(--silver-500)]"
+                  >{{ t('moderation.columns.entityType') }}:</span
+                >
                 <span class="font-data">{{ entity.entity_type }}</span>
               </div>
               <div class="flex justify-between">
@@ -561,7 +565,9 @@ const selectedActionOption = computed(() =>
                 <span class="font-data">{{ entity.priority }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]">{{ t('moderation.queue.reportCount') }}:</span>
+                <span class="text-[var(--silver-500)]"
+                  >{{ t('moderation.queue.reportCount') }}:</span
+                >
                 <span class="font-data">{{ entity.report_count }}</span>
               </div>
             </div>
@@ -629,11 +635,11 @@ const selectedActionOption = computed(() =>
           </div>
 
           <!-- Warning -->
-          <div
-            class="border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] p-3"
-          >
+          <div class="border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] p-3">
             <div class="flex items-start gap-2">
-              <IconAlertTriangle class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5" />
+              <IconAlertTriangle
+                class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5"
+              />
               <p class="text-xs text-[var(--terminal-amber)]">
                 {{ t('moderation.actionPanel.warning') }}
               </p>
@@ -672,10 +678,15 @@ const selectedActionOption = computed(() =>
             &gt; {{ t('moderation.dialogs.confirmBatchTitle') }}
           </DialogTitle>
           <DialogDescription class="font-data text-xs text-[var(--silver-400)]">
-            {{ t('moderation.dialogs.confirmBatchMessage', {
-              count: selectedRows.length,
-              action: batchAction === ModerationActionType.RESOLVED ? t('moderation.actions.RESOLVED').toLowerCase() : t('moderation.actions.DISMISSED').toLowerCase()
-            }) }}
+            {{
+              t('moderation.dialogs.confirmBatchMessage', {
+                count: selectedRows.length,
+                action:
+                  batchAction === ModerationActionType.RESOLVED
+                    ? t('moderation.actions.RESOLVED').toLowerCase()
+                    : t('moderation.actions.DISMISSED').toLowerCase(),
+              })
+            }}
           </DialogDescription>
         </DialogHeader>
         <div class="space-y-4 pt-4">

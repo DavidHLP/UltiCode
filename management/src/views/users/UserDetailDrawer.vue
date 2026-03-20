@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUsersStore } from '@/stores/admin/users'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { IconMail, IconTrophy, IconFlame } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
 import { DataBlock } from '@/components/ui/terminal'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
@@ -100,10 +103,10 @@ function getDifficultyColor(diff: string): string {
     @update:open="emit('update:open', $event)"
     :loading="loading"
     :entity="usersStore.currentUser"
-    title="User Details"
-    description="View comprehensive information about the user."
-    loading-text="Loading user details..."
-    not-found-text="User not found"
+    :title="t('users.details.title')"
+    :description="t('users.details.description')"
+    :loading-text="t('common.loading')"
+    :not-found-text="t('users.details.notFound')"
   >
     <template #content="{ entity }">
       <!-- Profile Header - Terminal Style -->
@@ -185,7 +188,7 @@ function getDifficultyColor(diff: string): string {
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
                   {{ entity.stats.totalSolved }}
                 </div>
-                <div class="terminal-label">Solved</div>
+                <div class="terminal-label">{{ $t('users.stats.solved') }}</div>
               </div>
             </div>
             <div
@@ -196,7 +199,7 @@ function getDifficultyColor(diff: string): string {
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
                   {{ entity.stats.streak }}
                 </div>
-                <div class="terminal-label">Streak</div>
+                <div class="terminal-label">{{ $t('users.stats.streak') }}</div>
               </div>
             </div>
           </div>
@@ -252,7 +255,9 @@ function getDifficultyColor(diff: string): string {
               <span v-if="entity.last_login_at" class="font-data text-sm tabular-nums">
                 {{ new Date(entity.last_login_at).toLocaleDateString() }}
               </span>
-              <span v-else class="text-[var(--silver-400)] italic">Never</span>
+              <span v-else class="text-[var(--silver-400)] italic">{{
+                $t('users.stats.never')
+              }}</span>
             </DataBlock>
           </div>
         </div>
@@ -270,12 +275,16 @@ function getDifficultyColor(diff: string): string {
         <div class="p-4 space-y-3">
           <DataBlock :label="$t('users.form.banReason')">
             <span class="text-sm italic text-[var(--foreground)]">
-              {{ entity.ban_reason || 'No reason provided' }}
+              {{ entity.ban_reason || $t('users.form.noReasonProvided') }}
             </span>
           </DataBlock>
           <DataBlock :label="$t('users.columns.bannedAt')">
             <span class="font-data text-sm tabular-nums text-[var(--terminal-red)]">
-              {{ entity.banned_at ? new Date(entity.banned_at).toLocaleString() : 'Unknown' }}
+              {{
+                entity.banned_at
+                  ? new Date(entity.banned_at).toLocaleString()
+                  : $t('users.form.unknown')
+              }}
             </span>
           </DataBlock>
         </div>

@@ -55,6 +55,7 @@ export default {
   yesterday: 'Yesterday',
   thisWeek: 'This week',
   lastWeek: 'Last week',
+  minutes: 'minutes',
 
   // Additional labels
   reportedBy: 'Reported by',

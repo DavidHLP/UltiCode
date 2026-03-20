@@ -265,7 +265,8 @@ export function createAppealsColumns(
         ),
       cell: ({ row }) => {
         const appeal = row.original
-        const isPending = appeal.status === AppealStatus.PENDING || appeal.status === AppealStatus.UNDER_REVIEW
+        const isPending =
+          appeal.status === AppealStatus.PENDING || appeal.status === AppealStatus.UNDER_REVIEW
 
         return h(
           DropdownMenu,
@@ -280,7 +281,11 @@ export function createAppealsColumns(
                     h(
                       Button,
                       { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                      { default: () => [h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' })] },
+                      {
+                        default: () => [
+                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
+                        ],
+                      },
                     ),
                 },
               ),
@@ -288,54 +293,63 @@ export function createAppealsColumns(
                 DropdownMenuContent,
                 { align: 'end', class: 'border-[var(--silver-200)]' },
                 {
-                  default: () => [
-                    h(
-                      DropdownMenuItem,
-                      {
-                        onClick: () => actions.viewAppeal(appeal),
-                        class: 'font-data text-xs cursor-pointer',
-                      },
-                      {
-                        default: () =>
-                          h('div', { class: 'flex items-center gap-2' }, [
-                            h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                            h('span', t('moderation.appeals.reviewAppeal')),
-                          ]),
-                      },
-                    ),
-                    isPending
-                      ? h(
-                          DropdownMenuItem,
-                          {
-                            onClick: () => actions.approveAppeal(appeal),
-                            class: 'font-data text-xs cursor-pointer',
-                          },
-                          {
-                            default: () =>
-                              h('div', { class: 'flex items-center gap-2' }, [
-                                h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                                h('span', { class: 'text-[var(--terminal-green)]' }, t('moderation.appeals.approveAppeal')),
-                              ]),
-                          },
-                        )
-                      : null,
-                    isPending
-                      ? h(
-                          DropdownMenuItem,
-                          {
-                            onClick: () => actions.rejectAppeal(appeal),
-                            class: 'font-data text-xs cursor-pointer',
-                          },
-                          {
-                            default: () =>
-                              h('div', { class: 'flex items-center gap-2' }, [
-                                h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                                h('span', { class: 'text-[var(--terminal-red)]' }, t('moderation.appeals.rejectAppeal')),
-                              ]),
-                          },
-                        )
-                      : null,
-                  ].filter(Boolean),
+                  default: () =>
+                    [
+                      h(
+                        DropdownMenuItem,
+                        {
+                          onClick: () => actions.viewAppeal(appeal),
+                          class: 'font-data text-xs cursor-pointer',
+                        },
+                        {
+                          default: () =>
+                            h('div', { class: 'flex items-center gap-2' }, [
+                              h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                              h('span', t('moderation.appeals.reviewAppeal')),
+                            ]),
+                        },
+                      ),
+                      isPending
+                        ? h(
+                            DropdownMenuItem,
+                            {
+                              onClick: () => actions.approveAppeal(appeal),
+                              class: 'font-data text-xs cursor-pointer',
+                            },
+                            {
+                              default: () =>
+                                h('div', { class: 'flex items-center gap-2' }, [
+                                  h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                                  h(
+                                    'span',
+                                    { class: 'text-[var(--terminal-green)]' },
+                                    t('moderation.appeals.approveAppeal'),
+                                  ),
+                                ]),
+                            },
+                          )
+                        : null,
+                      isPending
+                        ? h(
+                            DropdownMenuItem,
+                            {
+                              onClick: () => actions.rejectAppeal(appeal),
+                              class: 'font-data text-xs cursor-pointer',
+                            },
+                            {
+                              default: () =>
+                                h('div', { class: 'flex items-center gap-2' }, [
+                                  h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                                  h(
+                                    'span',
+                                    { class: 'text-[var(--terminal-red)]' },
+                                    t('moderation.appeals.rejectAppeal'),
+                                  ),
+                                ]),
+                            },
+                          )
+                        : null,
+                    ].filter(Boolean),
                 },
               ),
             ],

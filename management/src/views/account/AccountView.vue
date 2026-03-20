@@ -354,7 +354,7 @@ onMounted(() => {
           </div>
           <Separator />
           <div class="space-y-1">
-            <Label class="text-muted-foreground">Username</Label>
+            <Label class="text-muted-foreground">{{ t('account.fields.username') }}</Label>
             <div class="text-sm">@{{ profile.username }}</div>
           </div>
           <div v-if="profile.last_login_at" class="space-y-1">

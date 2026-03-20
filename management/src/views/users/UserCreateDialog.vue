@@ -181,10 +181,18 @@ async function handleSubmit() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="USER" class="font-data">USER</SelectItem>
-                      <SelectItem value="MODERATOR" class="font-data">MODERATOR</SelectItem>
-                      <SelectItem value="ADMIN" class="font-data">ADMIN</SelectItem>
-                      <SelectItem value="SUPER_ADMIN" class="font-data">SUPER_ADMIN</SelectItem>
+                      <SelectItem value="USER" class="font-data">{{
+                        t('users.filters.role.USER')
+                      }}</SelectItem>
+                      <SelectItem value="MODERATOR" class="font-data">{{
+                        t('users.filters.role.MODERATOR')
+                      }}</SelectItem>
+                      <SelectItem value="ADMIN" class="font-data">{{
+                        t('users.filters.role.ADMIN')
+                      }}</SelectItem>
+                      <SelectItem value="SUPER_ADMIN" class="font-data">{{
+                        t('users.filters.role.SUPER_ADMIN')
+                      }}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -202,7 +210,11 @@ async function handleSubmit() {
                     class="border-[var(--silver-400)] data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
                   />
                   <label for="create-is_active" class="font-data text-xs cursor-pointer">
-                    {{ form.is_active ? 'ACTIVE' : 'INACTIVE' }}
+                    {{
+                      form.is_active
+                        ? t('users.filters.status.active')
+                        : t('users.filters.status.inactive')
+                    }}
                   </label>
                 </div>
               </div>

@@ -64,7 +64,7 @@ const stats = computed<StatItem[]>(() => {
       trend: data.users?.activeToday > 0 ? 'up' : 'neutral',
       description: `${data.users?.activeWeek || 0} ${t('dashboard.stats.activeThisWeek')}`,
       icon: IconUsers,
-      href: '/admin/users',
+      href: '/users',
     },
     {
       title: t('dashboard.stats.totalProblems'),
@@ -73,7 +73,7 @@ const stats = computed<StatItem[]>(() => {
       trend: 'neutral',
       description: `${data.problems?.unpublished || 0} ${t('dashboard.stats.unpublished')}`,
       icon: IconFileText,
-      href: '/admin/problems',
+      href: '/problems',
     },
     {
       title: t('dashboard.stats.activeContests'),
@@ -82,7 +82,7 @@ const stats = computed<StatItem[]>(() => {
       trend: 'neutral',
       description: `${data.contests?.finished || 0} ${t('dashboard.stats.finished')}`,
       icon: IconTrophy,
-      href: '/admin/contests',
+      href: '/contests',
     },
     {
       title: t('dashboard.stats.flaggedContent'),
@@ -91,7 +91,7 @@ const stats = computed<StatItem[]>(() => {
       trend: flaggedCount > 0 ? 'down' : 'neutral',
       description: t('dashboard.stats.pendingModeration'),
       icon: IconFlag,
-      href: '/admin/moderation',
+      href: '/moderation',
     },
   ]
 })

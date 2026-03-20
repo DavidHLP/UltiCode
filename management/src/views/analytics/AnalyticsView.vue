@@ -517,7 +517,12 @@ onMounted(() => {
                 :description="t('analytics.userActivity.activeUsersTrendDesc')"
                 :data="userActivityChartData"
                 :series-keys="['users']"
-                :config="{ users: { label: 'Active Users', color: 'var(--accent-primary)' } }"
+                :config="{
+                  users: {
+                    label: t('analytics.userActivity.activeUsers'),
+                    color: 'var(--accent-primary)',
+                  },
+                }"
               />
             </div>
 
@@ -706,7 +711,9 @@ onMounted(() => {
               <!-- CPU -->
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm text-[var(--silver-500)]">CPU</span>
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.performance.cpu')
+                  }}</span>
                   <span class="font-data tabular-nums font-medium">{{
                     formatPercent(performanceReport.resourceUsage.cpu)
                   }}</span>
@@ -731,7 +738,9 @@ onMounted(() => {
               <!-- Memory -->
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm text-[var(--silver-500)]">Memory</span>
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.performance.memory')
+                  }}</span>
                   <span class="font-data tabular-nums font-medium">{{
                     formatPercent(performanceReport.resourceUsage.memory)
                   }}</span>
@@ -756,7 +765,9 @@ onMounted(() => {
               <!-- Disk -->
               <div class="space-y-2">
                 <div class="flex items-center justify-between">
-                  <span class="text-sm text-[var(--silver-500)]">Disk</span>
+                  <span class="text-sm text-[var(--silver-500)]">{{
+                    t('analytics.performance.disk')
+                  }}</span>
                   <span class="font-data tabular-nums font-medium">{{
                     formatPercent(performanceReport.resourceUsage.disk)
                   }}</span>

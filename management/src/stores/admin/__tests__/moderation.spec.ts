@@ -1,13 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useModerationStore } from '../moderation'
-import {
-  ModerationStatus,
-  ReportCategory,
-  ReportStatus,
-  AppealStatus,
-  ModerationActionType,
-} from '@/api/admin/moderation'
+import { ModerationStatus, ReportCategory } from '@/api/admin/moderation'
 
 // Mock the API module
 vi.mock('@/api/admin/moderation', () => ({
@@ -79,7 +73,6 @@ vi.mock('@/api/admin/moderation', () => ({
     APPEAL_REJECTED: 'APPEAL_REJECTED',
   },
 }))
-
 describe('useModerationStore', () => {
   beforeEach(() => {
     setActivePinia(createPinia())
@@ -110,7 +103,7 @@ describe('useModerationStore', () => {
 
     it('pendingCount should return correct value when stats exists', () => {
       const store = useModerationStore()
-      store.stats = { total_pending: 5 } as any
+      store.stats = { total_pending: 5 } as Record<string, unknown>
       expect(store.pendingCount).toBe(5)
     })
 
@@ -183,7 +176,7 @@ describe('useModerationStore', () => {
 
     it('clearCurrentQueueItem should reset current item', () => {
       const store = useModerationStore()
-      store.currentQueueItem = { id: '123' } as any
+      store.currentQueueItem = { id: '123' } as Record<string, unknown>
       store.currentQueueItemError = 'error'
 
       store.clearCurrentQueueItem()
@@ -194,9 +187,9 @@ describe('useModerationStore', () => {
 
     it('reset should clear all state', () => {
       const store = useModerationStore()
-      store.queueItems = [{ id: '1' }] as any
+      store.queueItems = [{ id: '1' }] as Record<string, unknown>[]
       store.queueTotal = 10
-      store.stats = { total_pending: 5 } as any
+      store.stats = { total_pending: 5 } as Record<string, unknown>
       store.setFilters({ status: ModerationStatus.PENDING })
       store.pagination.page = 5
 

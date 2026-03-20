@@ -62,10 +62,7 @@ const statusStyles: Record<
 }
 
 // ========== Category Styles ==========
-const categoryStyles: Record<
-  ReportCategory,
-  { color: string; icon: typeof IconAlertTriangle }
-> = {
+const categoryStyles: Record<ReportCategory, { color: string; icon: typeof IconAlertTriangle }> = {
   SPAM: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
   HARASSMENT: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
   HATE_SPEECH: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
@@ -119,10 +116,7 @@ function renderCategoryBadge(category: ReportCategory, t: (key: string) => strin
     h(
       'span',
       {
-        class: [
-          'font-data text-[10px] uppercase tracking-[0.05em]',
-          style.color,
-        ].join(' '),
+        class: ['font-data text-[10px] uppercase tracking-[0.05em]', style.color].join(' '),
       },
       t(`moderation.categories.${category}`),
     ),
@@ -196,7 +190,9 @@ export function createReportsColumns(
         ),
       cell: ({ row }) => {
         const reporter = row.original.reporter
-        return h('span', { class: 'text-sm truncate block' },
+        return h(
+          'span',
+          { class: 'text-sm truncate block' },
           reporter?.display_name || reporter?.username || t('moderation.unknownReporter'),
         )
       },
@@ -337,7 +333,11 @@ export function createReportsColumns(
                     h(
                       Button,
                       { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' },
-                      { default: () => [h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' })] },
+                      {
+                        default: () => [
+                          h(IconDotsVertical, { class: 'h-4 w-4 text-[var(--silver-400)]' }),
+                        ],
+                      },
                     ),
                 },
               ),

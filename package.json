@@ -44,7 +44,12 @@
         "pre-commit": "lint-staged",
         "pre-commit:check": "pnpm run lint:fix && pnpm run format:write && pnpm run type-check && pnpm run test",
         "quality": "pnpm run lint && pnpm run type-check && pnpm run test",
-        "quality:fix": "pnpm run lint:fix && pnpm run format:write && pnpm run type-check"
+        "quality:fix": "pnpm run lint:fix && pnpm run format:write && pnpm run type-check",
+        "prisma:generate": "pnpm --filter @ulticode/init-db run prisma:generate",
+        "prisma:migrate": "pnpm --filter @ulticode/init-db run prisma:migrate",
+        "prisma:studio": "pnpm --filter @ulticode/init-db run prisma:studio",
+        "db:reset": "pnpm --filter @ulticode/init-db run db:reset",
+        "db:seed": "pnpm --filter @ulticode/init-db run db:seed"
     },
     "devDependencies": {
         "concurrently": "^9.2.1",

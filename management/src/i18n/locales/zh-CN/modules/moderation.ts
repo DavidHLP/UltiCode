@@ -149,6 +149,7 @@ export default {
     byCategory: '按类别',
     byEntityType: '按实体类型',
     recentActivity: '最近活动',
+    noData: '暂无数据',
   },
 
   // ========== 详情视图 ==========
@@ -157,7 +158,7 @@ export default {
     entityInfo: '实体信息',
     entityPreview: '内容预览',
     reportsTitle: '举报 ({count})',
-    actionsTitle: '操作历史',
+    actionsTitle: '操作历史 ({count})',
     appealTitle: '申诉详情',
     noReports: '未找到举报',
     noActions: '暂无操作记录',
@@ -170,6 +171,7 @@ export default {
     note: '备注',
     duration: '时长',
     days: '{count} 天',
+    moreReports: '还有 {count} 个举报',
   },
 
   // ========== 操作面板 ==========
@@ -202,6 +204,8 @@ export default {
     rejectAppeal: '拒绝申诉',
     reviewAppeal: '审核申诉',
     responsePlaceholder: '输入您对此申诉的回复...',
+    decision: '决定',
+    reviewDescription: '审核申诉并做出决定。',
   },
 
   // ========== 举报视图 ==========
@@ -220,6 +224,7 @@ export default {
     status: '状态',
     viewEntity: '查看实体',
     viewQueue: '在队列中查看',
+    noQueueItem: '该举报没有关联的队列项目',
   },
 
   // ========== 筛选器 ==========
@@ -286,6 +291,8 @@ export default {
     actions: '操作',
     reporter: '举报者',
     reason: '原因',
+    queueId: '队列ID',
+    id: 'ID',
   },
 
   // ========== 终端风格 ==========
@@ -298,6 +305,22 @@ export default {
     resolved: '已解决',
     dismissed: '已驳回',
     underReview: '审核中',
+  },
+
+  // ========== 时间相关 ==========
+  time: {
+    justNow: '刚刚',
+    minutesAgo: '{count} 分钟前',
+    hoursAgo: '{count} 小时前',
+    daysAgo: '{count} 天前',
+  },
+
+  // ========== 优先级 ==========
+  priority: {
+    critical: '紧急',
+    high: '高',
+    medium: '中',
+    low: '低',
   },
 
   // ========== 旧版兼容 ==========
@@ -327,4 +350,9 @@ export default {
   selectedCount: '已选择 {count} 项',
   batchResolve: '批量解决',
   batchDismiss: '批量驳回',
+  notFound: '未找到审核项目',
+  flagSuccess: '标记成功',
+  flagError: '标记失败',
+  unflagSuccess: '取消标记成功',
+  unflagError: '取消标记失败',
 } as const

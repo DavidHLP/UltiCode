@@ -249,11 +249,7 @@ function navigateToAppeals() {
             <p class="text-xs font-data text-[var(--silver-400)]">No data available</p>
           </div>
           <div v-else class="space-y-3">
-            <div
-              v-for="item in categoryData"
-              :key="item.category"
-              class="space-y-1"
-            >
+            <div v-for="item in categoryData" :key="item.category" class="space-y-1">
               <div class="flex items-center justify-between text-xs">
                 <span class="font-data">{{ t(`moderation.categories.${item.category}`) }}</span>
                 <span class="font-data tabular-nums text-[var(--silver-400)]">
@@ -375,7 +371,9 @@ function navigateToAppeals() {
               </h3>
               <p class="text-2xl font-data tabular-nums text-[var(--terminal-green)] mt-1">
                 {{ Math.round(stats.avg_resolution_time_hours) }}
-                <span class="text-sm text-[var(--silver-400)]">{{ t('moderation.stats.hours') }}</span>
+                <span class="text-sm text-[var(--silver-400)]">{{
+                  t('moderation.stats.hours')
+                }}</span>
               </p>
             </div>
           </div>

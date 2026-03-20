@@ -128,15 +128,15 @@ function renderDifficultyBadge(difficulty: string) {
     <!-- Header -->
     <div class="flex justify-between items-center pb-4 border-b border-[var(--silver-200)]">
       <div class="flex items-center gap-3">
-        <span class="terminal-comment">manage problems</span>
+        <span class="terminal-comment">{{ t('problemLists.problemsManager.manageProblems') }}</span>
         <span class="font-data text-xs text-[var(--terminal-cyan)]">
-          {{ problems.length }} problems
+          {{ t('problemLists.problemsManager.problemsCount', { count: problems.length }) }}
         </span>
       </div>
       <div class="flex gap-2">
         <Button variant="terminal" size="sm" class="font-data text-xs" @click="pickerOpen = true">
           <IconPlus class="mr-1.5 h-3.5 w-3.5" />
-          ADD PROBLEM
+          {{ t('problemLists.problemsManager.addProblem').toUpperCase() }}
         </Button>
         <Button
           variant="terminal"
@@ -222,7 +222,9 @@ function renderDifficultyBadge(difficulty: string) {
           <!-- Empty State -->
           <TableRow v-if="problems.length === 0">
             <TableCell colspan="4" class="h-24 text-center">
-              <span class="terminal-comment">no problems added</span>
+              <span class="terminal-comment">{{
+                t('problemLists.problemsManager.noProblems')
+              }}</span>
             </TableCell>
           </TableRow>
         </TableBody>

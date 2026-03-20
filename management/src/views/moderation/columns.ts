@@ -113,10 +113,7 @@ const entityTypeStyles: Record<
 }
 
 // ========== Category Styles ==========
-const categoryStyles: Record<
-  ReportCategory,
-  { color: string; icon: typeof IconAlertTriangle }
-> = {
+const categoryStyles: Record<ReportCategory, { color: string; icon: typeof IconAlertTriangle }> = {
   SPAM: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
   HARASSMENT: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
   HATE_SPEECH: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
@@ -164,10 +161,7 @@ function renderStatusBadge(status: ModerationStatus, t: (key: string) => string)
   ])
 }
 
-function renderEntityTypeBadge(
-  entityType: ModeratableEntityType,
-  t: (key: string) => string,
-) {
+function renderEntityTypeBadge(entityType: ModeratableEntityType, t: (key: string) => string) {
   const style = entityTypeStyles[entityType]
   const Icon = style.icon
 
@@ -176,10 +170,9 @@ function renderEntityTypeBadge(
     h(
       'span',
       {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          style.color,
-        ].join(' '),
+        class: ['font-data text-[11px] font-medium uppercase tracking-[0.05em]', style.color].join(
+          ' ',
+        ),
       },
       t(style.label),
     ),
@@ -195,10 +188,7 @@ function renderCategoryBadge(category: ReportCategory, t: (key: string) => strin
     h(
       'span',
       {
-        class: [
-          'font-data text-[10px] uppercase tracking-[0.05em]',
-          style.color,
-        ].join(' '),
+        class: ['font-data text-[10px] uppercase tracking-[0.05em]', style.color].join(' '),
       },
       t(`moderation.categories.${category}`),
     ),
@@ -212,10 +202,7 @@ function renderPriorityBadge(priority: number) {
     h(
       'span',
       {
-        class: [
-          'font-data text-[10px] uppercase tracking-[0.05em]',
-          style.color,
-        ].join(' '),
+        class: ['font-data text-[10px] uppercase tracking-[0.05em]', style.color].join(' '),
       },
       priority,
     ),
@@ -541,90 +528,103 @@ function createActionsDropdown(
             class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
           },
           {
-            default: () => [
-              // View Details
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.openDrawer(item),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
-                      h('span', t('moderation.queue.viewDetails')),
-                    ]),
-                },
-              ),
-              // View Entity
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.viewEntity(item),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconTournament, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
-                      h('span', t('moderation.queue.viewEntity')),
-                    ]),
-                },
-              ),
-              // Claim (if not assigned)
-              canClaim
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.claimItem(item.id),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconUser, { class: 'h-4 w-4 text-[var(--terminal-purple)]' }),
-                          h('span', t('moderation.queue.claimItem')),
-                        ]),
-                    },
-                  )
-                : null,
-              // Separator
-              canAction ? h(DropdownMenuSeparator, { class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]' }) : null,
-              // Quick Actions
-              canAction
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.quickAction(item.id, ModerationActionType.RESOLVED),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                          h('span', { class: 'text-[var(--terminal-green)]' }, t('moderation.quickResolve')),
-                        ]),
-                    },
-                  )
-                : null,
-              canAction
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.quickAction(item.id, ModerationActionType.DISMISSED),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                          h('span', { class: 'text-[var(--terminal-red)]' }, t('moderation.quickDismiss')),
-                        ]),
-                    },
-                  )
-                : null,
-            ].filter(Boolean),
+            default: () =>
+              [
+                // View Details
+                h(
+                  DropdownMenuItem,
+                  {
+                    onClick: () => actions.openDrawer(item),
+                    class: 'font-data text-xs cursor-pointer',
+                  },
+                  {
+                    default: () =>
+                      h('div', { class: 'flex items-center gap-2' }, [
+                        h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                        h('span', t('moderation.queue.viewDetails')),
+                      ]),
+                  },
+                ),
+                // View Entity
+                h(
+                  DropdownMenuItem,
+                  {
+                    onClick: () => actions.viewEntity(item),
+                    class: 'font-data text-xs cursor-pointer',
+                  },
+                  {
+                    default: () =>
+                      h('div', { class: 'flex items-center gap-2' }, [
+                        h(IconTournament, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
+                        h('span', t('moderation.queue.viewEntity')),
+                      ]),
+                  },
+                ),
+                // Claim (if not assigned)
+                canClaim
+                  ? h(
+                      DropdownMenuItem,
+                      {
+                        onClick: () => actions.claimItem(item.id),
+                        class: 'font-data text-xs cursor-pointer',
+                      },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconUser, { class: 'h-4 w-4 text-[var(--terminal-purple)]' }),
+                            h('span', t('moderation.queue.claimItem')),
+                          ]),
+                      },
+                    )
+                  : null,
+                // Separator
+                canAction
+                  ? h(DropdownMenuSeparator, {
+                      class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+                    })
+                  : null,
+                // Quick Actions
+                canAction
+                  ? h(
+                      DropdownMenuItem,
+                      {
+                        onClick: () => actions.quickAction(item.id, ModerationActionType.RESOLVED),
+                        class: 'font-data text-xs cursor-pointer',
+                      },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                            h(
+                              'span',
+                              { class: 'text-[var(--terminal-green)]' },
+                              t('moderation.quickResolve'),
+                            ),
+                          ]),
+                      },
+                    )
+                  : null,
+                canAction
+                  ? h(
+                      DropdownMenuItem,
+                      {
+                        onClick: () => actions.quickAction(item.id, ModerationActionType.DISMISSED),
+                        class: 'font-data text-xs cursor-pointer',
+                      },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconX, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                            h(
+                              'span',
+                              { class: 'text-[var(--terminal-red)]' },
+                              t('moderation.quickDismiss'),
+                            ),
+                          ]),
+                      },
+                    )
+                  : null,
+              ].filter(Boolean),
           },
         ),
       ],

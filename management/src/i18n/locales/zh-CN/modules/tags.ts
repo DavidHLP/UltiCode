@@ -1,0 +1,72 @@
+export default {
+  title: '标签管理',
+  searchPlaceholder: '搜索标签...',
+  tagType: '标签类型',
+  problemTags: '题目标签',
+  forumTags: '论坛标签',
+  createTag: '创建标签',
+  bulkDelete: '批量删除',
+  selected: '已选择 {count} 个标签',
+  clearSelection: '清除选择',
+  retry: '重试',
+
+  columns: {
+    tag: '标签',
+    usage: '使用次数',
+    description: '描述',
+    actions: '操作',
+  },
+
+  actions: {
+    edit: '编辑',
+    mergeInto: '合并到...',
+    delete: '删除',
+    noActionsAvailable: '无可用操作',
+  },
+
+  form: {
+    editTitle: '编辑标签',
+    createTitle: '创建标签',
+    editDescription: '修改标签信息',
+    createDescription: '创建新的标签',
+    name: '标签名称',
+    namePlaceholder: '输入标签名称',
+    slug: '标签别名',
+    slugPlaceholder: 'url-friendly-name',
+    color: '颜色',
+    colorPlaceholder: '#3b82f6',
+    description: '描述',
+    descriptionPlaceholder: '输入标签描述（可选）',
+  },
+
+  merge: {
+    title: '合并标签',
+    description:
+      '将标签 <strong>{source}</strong> 合并到以下目标标签。所有使用该标签的内容将转移到目标标签。',
+    targetLabel: '目标标签',
+    targetPlaceholder: '选择目标标签',
+    confirm: '确认合并',
+    success: '标签合并成功',
+    failed: '标签合并失败',
+    noTarget: '请选择目标标签',
+    cannotMergeToSelf: '不能合并到自身',
+  },
+
+  delete: {
+    title: '删除标签',
+    description: '确定要删除标签 "{name}" 吗？此操作不可撤销。',
+    confirm: '确认删除',
+  },
+
+  toast: {
+    createSuccess: '标签创建成功',
+    createFailed: '创建标签失败',
+    updateSuccess: '标签更新成功',
+    updateFailed: '更新标签失败',
+    deletedSuccessfully: '标签已删除',
+    failedToDelete: '删除标签失败',
+    bulkDeleteConfirm: '确定要删除 {count} 个标签吗？',
+    bulkDeleteSuccess: '已成功删除 {count} 个标签',
+    bulkDeleteFailed: '批量删除失败',
+  },
+} as const

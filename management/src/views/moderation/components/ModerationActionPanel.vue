@@ -19,10 +19,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import {
-  ModerationActionType,
-  type ModerationQueueItem,
-} from '@/api/admin/moderation'
+import { ModerationActionType, type ModerationQueueItem } from '@/api/admin/moderation'
 
 interface Props {
   item: ModerationQueueItem
@@ -176,17 +173,14 @@ const canSubmit = computed(() => {
 
 function handleSubmit() {
   if (!canSubmit.value || props.loading) return
-  emit(
-    'performAction',
-    selectedAction.value,
-    note.value || undefined,
-    durationDays.value,
-  )
+  emit('performAction', selectedAction.value, note.value || undefined, durationDays.value)
 }
 </script>
 
 <template>
-  <Card class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]">
+  <Card
+    class="border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
+  >
     <CardHeader class="pb-3">
       <CardTitle class="flex items-center gap-2 text-sm font-data uppercase tracking-wider">
         <IconAlertCircle class="h-4 w-4 text-[var(--terminal-amber)]" />
@@ -223,11 +217,7 @@ function handleSubmit() {
       <!-- Selected Action Description -->
       <div
         v-if="selectedOption"
-        :class="[
-          'p-3 border',
-          selectedOption.borderColor,
-          selectedOption.bgColor,
-        ]"
+        :class="['p-3 border', selectedOption.borderColor, selectedOption.bgColor]"
       >
         <p class="text-xs text-[var(--foreground)]">
           {{ selectedOption.description }}
@@ -297,7 +287,11 @@ function handleSubmit() {
       >
         <IconCheck v-if="!loading" class="h-4 w-4 mr-2" />
         <IconAlertCircle v-else class="h-4 w-4 mr-2 animate-pulse" />
-        {{ loading ? t('moderation.actionPanel.confirming') : t('moderation.actionPanel.confirmAction') }}
+        {{
+          loading
+            ? t('moderation.actionPanel.confirming')
+            : t('moderation.actionPanel.confirmAction')
+        }}
       </Button>
     </CardContent>
   </Card>

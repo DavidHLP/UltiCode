@@ -1,6 +1,8 @@
 export default {
   title: 'User Management',
   addUser: 'Add User',
+  createUser: 'Create User',
+  createDescription: 'Fill in the information below to create a new user account',
   searchPlaceholder: 'Search by username or email...',
   banReasonPrompt: 'Please enter a reason for banning',
 
@@ -11,6 +13,8 @@ export default {
     status: 'Status',
     joined: 'Joined',
     lastLogin: 'Last Login',
+    bannedAt: 'Banned At',
+    username: 'Username',
   },
 
   // Filters
@@ -45,8 +49,22 @@ export default {
     banReasonPlaceholder: 'Enter ban reason...',
     name: 'Name',
     namePlaceholder: 'John Doe',
+    fullName: 'Full Name',
+    fullNamePlaceholder: 'John Doe',
     bio: 'Bio',
     bioPlaceholder: 'A brief introduction...',
+    status: 'Status',
+    creating: 'Creating...',
+    createUser: 'Create User',
+    noReasonProvided: 'No reason provided',
+    unknown: 'Unknown',
+  },
+
+  // Stats
+  stats: {
+    solved: 'Solved',
+    streak: 'Streak',
+    never: 'Never',
   },
 
   // Actions
@@ -81,6 +99,7 @@ export default {
     unbanFailed: 'Failed to unban user',
     resetPasswordSuccess: 'Password reset successfully',
     resetPasswordFailed: 'Failed to reset password',
+    resetPasswordFailedDescription: 'An error occurred while attempting to update the password.',
     bulkBanFailed: 'Failed to bulk ban users',
     bulkUnbanFailed: 'Failed to bulk unban users',
     bulkDeleteFailed: 'Failed to bulk delete users',
@@ -103,6 +122,9 @@ export default {
     activity: 'Activity',
     submissions: 'Submissions',
     statistics: 'Statistics',
+    title: 'User Details',
+    description: 'View comprehensive information about the user',
+    notFound: 'User not found',
   },
 
   clearSelection: 'Clear Selection',

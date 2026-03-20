@@ -16,6 +16,8 @@ export default {
     finished: '已结束',
     flaggedContent: '待审核内容',
     actionNeeded: '需要处理',
+    allClear: '全部正常',
+    pendingModeration: '待审核',
     totalSubmissions: '总提交数',
     pending: '待处理',
     success: '成功',
@@ -77,6 +79,51 @@ export default {
       '30d': '30 天',
       '90d': '90 天',
       '1y': '1 年',
+    },
+  },
+
+  // 图表（DashboardView 使用）
+  chart: {
+    userRegistrationTrend: '用户注册趋势',
+    dailyRegistrations: '每日新注册用户',
+  },
+
+  // 时间段选择器
+  timePeriod: {
+    last7Days: '最近 7 天',
+    last30Days: '最近 30 天',
+    last90Days: '最近 90 天',
+    allTime: '全部时间',
+  },
+
+  // 时间格式
+  timeAgo: {
+    justNow: '刚刚',
+    minuteAgo: '{count} 分钟前',
+    hourAgo: '{count} 小时前',
+    dayAgo: '{count} 天前',
+  },
+
+  // 时间线
+  timeline: {
+    title: '活动时间线',
+    description: '最近的系统活动记录',
+    activityTypes: {
+      LOGIN: '登录',
+      CREATE: '创建',
+      UPDATE: '更新',
+      DELETE: '删除',
+      PUBLISH: '发布',
+      UNPUBLISH: '取消发布',
+      FLAG: '标记',
+      UNFLAG: '取消标记',
+      BAN: '封禁',
+      UNBAN: '解封',
+      MODERATE: '审核',
+      PIN: '置顶',
+      UNPIN: '取消置顶',
+      LOCK: '锁定',
+      UNLOCK: '解锁',
     },
   },
 } as const

@@ -16,7 +16,7 @@ import {
   ForumCommunity,
   ForumComment,
 } from './forum.service';
-import forumData from '../../prisma/seed/data/forum.data';
+import { FORUM_QUICK_FILTERS } from './constants/quick-filters';
 import { AuthGuard } from '../auth/auth.guard';
 import { Public } from '../auth/auth.decorator';
 import type { Request } from 'express';
@@ -163,7 +163,7 @@ export class ForumController {
 
   @Get('quick-filters')
   getQuickFilters() {
-    return forumData.forum_quick_filters;
+    return FORUM_QUICK_FILTERS;
   }
 
   @Public()

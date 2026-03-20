@@ -3,6 +3,7 @@ export default {
   login: {
     title: 'Login',
     subtitle: 'Admin Panel',
+    terminal: 'login.terminal',
     username: 'Username',
     usernamePlaceholder: 'admin',
     password: 'Password',
@@ -10,11 +11,14 @@ export default {
     rememberMe: 'Remember me',
     forgotPassword: 'Forgot password?',
     submit: 'Login',
+    submitting: 'Logging in...',
     loggingIn: 'Logging in...',
     invalidCredentials: 'Invalid username or password',
     accountDisabled: 'Account has been disabled',
     success: 'Login successful',
     error: 'Login failed',
+    loginFailed: 'Login failed. Please try again.',
+    continueWithGithub: 'Continue with GitHub',
   },
 
   // Logout
@@ -54,5 +58,36 @@ export default {
     denied: 'Permission denied',
     noAccess: 'You do not have permission to access this page',
     noAction: 'You do not have permission to perform this action',
+  },
+
+  // Register page
+  register: {
+    terminal: 'register.terminal',
+  },
+
+  // Signup
+  signup: {
+    title: 'Create Account',
+    subtitle: 'Join the administrator team',
+    fullName: 'Full Name',
+    fullNamePlaceholder: 'John Doe',
+    email: 'Email',
+    emailPlaceholder: 'admin@example.com',
+    password: 'Password',
+    confirmPassword: 'Confirm Password',
+    submit: 'Create Account',
+    github: 'Continue with GitHub',
+    alreadyHaveAccount: 'Already have an account?',
+    signIn: 'Sign In',
+    orContinueWith: 'Or continue with',
+  },
+
+  // Auth page layout
+  layout: {
+    systemOnline: 'System Online',
+    managementConsole: 'Management Console',
+    managementConsoleSubtitle: '// Precision tools for platform administration',
+    joinTheTeam: 'Join the Team',
+    joinTheTeamSubtitle: '// Create your administrator account',
   },
 } as const

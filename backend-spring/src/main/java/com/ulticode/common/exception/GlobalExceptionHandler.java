@@ -1,0 +1,131 @@
+package com.ulticode.common.exception;
+
+import com.ulticode.common.response.Result;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import java.time.Instant;
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Global exception handler for the application.
+ * Converts exceptions into standardized Result responses.
+ */
+@Slf4j
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    /**
+     * Handle BusinessException
+     * Returns a Result with the appropriate error code and HTTP status
+     *
+     * @param ex the BusinessException
+     * @return ResponseEntity containing the error Result
+     */
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<Result<Void>> handleBusinessException(BusinessException ex) {
+        log.warn("Business exception: code={}, message={}, traceId={}",
+                ex.getCode(), ex.getMessage(), ex.getTraceId());
+
+        Result<Void> result = Result.error(ex.getCode(), ex.getMessage(), ex.getTraceId());
+        return ResponseEntity.status(ex.getHttpStatus()).body(result);
+    }
+
+    /**
+     * Handle validation errors from @Valid annotations
+     * Returns a Result with BAD_REQUEST status and field error details
+     *
+     * @param ex the MethodArgumentNotValidException
+     * @return ResponseEntity containing the error Result
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Result<Map<String, String>>> handleValidationException(
+            MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+
+        log.warn("Validation failed: {}", errors);
+
+        String traceId = "t-" + Instant.now().toEpochMilli();
+        Result<Map<String, String>> result = Result.errorWithData(
+                ErrorCode.BAD_REQUEST.getCode(),
+                "Validation failed",
+                errors,
+                traceId
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(result);
+    }
+
+    /**
+     * Handle AccessDeniedException from Spring Security
+     * Returns a Result with FORBIDDEN status
+     *
+     * @param ex the AccessDeniedException
+     * @return ResponseEntity containing the error Result
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Result<Void>> handleAccessDeniedException(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+
+        String traceId = "t-" + Instant.now().toEpochMilli();
+        Result<Void> result = Result.error(
+                ErrorCode.FORBIDDEN.getCode(),
+                ErrorCode.FORBIDDEN.getMessage(),
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(result);
+    }
+
+    /**
+     * Handle AuthenticationException from Spring Security
+     * Returns a Result with UNAUTHORIZED status
+     *
+     * @param ex the AuthenticationException
+     * @return ResponseEntity containing the error Result
+     */
+    @ExceptionHandler(AuthenticationException.class)
+    public ResponseEntity<Result<Void>> handleAuthenticationException(AuthenticationException ex) {
+        log.warn("Authentication failed: {}", ex.getMessage());
+
+        String traceId = "t-" + Instant.now().toEpochMilli();
+        Result<Void> result = Result.error(
+                ErrorCode.UNAUTHORIZED.getCode(),
+                ErrorCode.UNAUTHORIZED.getMessage(),
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(result);
+    }
+
+    /**
+     * Handle all other exceptions
+     * Returns a Result with INTERNAL_SERVER_ERROR status
+     *
+     * @param ex the Exception
+     * @return ResponseEntity containing the error Result
+     */
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<Result<Void>> handleGenericException(Exception ex) {
+        log.error("Unexpected error: ", ex);
+
+        String traceId = "t-" + Instant.now().toEpochMilli();
+        Result<Void> result = Result.error(
+                ErrorCode.UNKNOWN_ERROR.getCode(),
+                ErrorCode.UNKNOWN_ERROR.getMessage(),
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+}

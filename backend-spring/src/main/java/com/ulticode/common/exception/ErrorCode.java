@@ -127,7 +127,12 @@ public enum ErrorCode {
     // I18n module (14xxxx)
     I18N_INVALID_ENTITY_TYPE(140001, "Invalid entity type", HttpStatus.BAD_REQUEST),
     I18N_INVALID_LOCALE(140002, "Invalid locale", HttpStatus.BAD_REQUEST),
-    I18N_INVALID_FIELD_NAME(140003, "Invalid field name for entity type", HttpStatus.BAD_REQUEST);
+    I18N_INVALID_FIELD_NAME(140003, "Invalid field name for entity type", HttpStatus.BAD_REQUEST),
+
+    // Queue module (16xxxx)
+    QUEUE_NOT_FOUND(160001, "Queue not found", HttpStatus.NOT_FOUND),
+    QUEUE_JOB_NOT_FOUND(160002, "Job not found", HttpStatus.NOT_FOUND),
+    QUEUE_OPERATION_FAILED(160003, "Queue operation failed", HttpStatus.INTERNAL_SERVER_ERROR);
 
     private final Integer code;
     private final String message;

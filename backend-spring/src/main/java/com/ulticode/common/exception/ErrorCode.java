@@ -150,7 +150,12 @@ public enum ErrorCode {
     SUBSCRIPTION_NOT_FOUND(180001, "Subscription not found", HttpStatus.NOT_FOUND),
     SUBSCRIPTION_ALREADY_ACTIVE(180002, "User already has an active subscription", HttpStatus.CONFLICT),
     SUBSCRIPTION_EXPIRED(180003, "Subscription has expired", HttpStatus.BAD_REQUEST),
-    SUBSCRIPTION_CANCELLED(180004, "Subscription is cancelled", HttpStatus.BAD_REQUEST);
+    SUBSCRIPTION_CANCELLED(180004, "Subscription is cancelled", HttpStatus.BAD_REQUEST),
+
+    // Email module (19xxxx)
+    EMAIL_TEMPLATE_NOT_FOUND(190001, "Email template not found", HttpStatus.NOT_FOUND),
+    EMAIL_SEND_FAILED(190002, "Failed to send email", HttpStatus.INTERNAL_SERVER_ERROR),
+    EMAIL_INVALID_RECIPIENT(190003, "Invalid email recipient", HttpStatus.BAD_REQUEST);
 
     private final Integer code;
     private final String message;

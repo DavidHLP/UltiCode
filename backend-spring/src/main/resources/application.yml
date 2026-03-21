@@ -96,3 +96,22 @@ recommendation:
 # Backup Configuration
 backup:
   dir: ${BACKUP_DIR:/tmp/backups}
+
+# Email Configuration
+spring.mail:
+  host: ${SMTP_HOST:localhost}
+  port: ${SMTP_PORT:587}
+  username: ${SMTP_USER:}
+  password: ${SMTP_PASSWORD:}
+  properties:
+    mail:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
+
+# App-specific email configuration
+app:
+  email:
+    enabled: ${EMAIL_ENABLED:false}
+    from-name: ${EMAIL_FROM_NAME:UltiCode}

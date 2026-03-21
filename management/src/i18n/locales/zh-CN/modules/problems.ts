@@ -175,14 +175,14 @@ export default {
       title: '基本信息',
       description: '填写题目的基本信息',
     },
-    testCases: {
+    testCasesSection: {
       title: '测试用例',
       description: '添加示例测试用例帮助用户理解题目',
     },
     additionalInfo: {
       title: '附加信息',
     },
-    constraints: {
+    constraintsSection: {
       title: '约束条件',
       placeholder: '例如: 1 <= nums.length <= 10^4',
     },

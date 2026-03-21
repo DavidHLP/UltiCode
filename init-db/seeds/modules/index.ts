@@ -24,6 +24,10 @@ export {
   FlaggedProblemsSeeder,
   createFlaggedProblemsSeeder,
 } from './flagged-problems';
+export {
+  ModerationQueueSeeder,
+  createModerationQueueSeeder,
+} from './moderation-queue';
 
 // L4 - Depends on L3
 export { SubmissionsSeeder, createSubmissionsSeeder } from './submissions';

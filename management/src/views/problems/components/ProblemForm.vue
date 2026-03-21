@@ -282,10 +282,10 @@ defineExpose({
         <CardHeader>
           <div class="flex items-center gap-2">
             <IconFlask class="h-5 w-5 text-muted-foreground" />
-            <CardTitle>{{ t('problems.form.testCases.title') }}</CardTitle>
+            <CardTitle>{{ t('problems.form.testCasesSection.title') }}</CardTitle>
           </div>
           <CardDescription>
-            {{ t('problems.form.testCases.description') }}
+            {{ t('problems.form.testCasesSection.description') }}
           </CardDescription>
         </CardHeader>
         <CardContent class="space-y-4">
@@ -307,14 +307,14 @@ defineExpose({
           <div class="space-y-3">
             <div class="flex items-center justify-between">
               <Label class="text-base flex items-center gap-2">
-                <IconBrackets class="h-4 w-4" /> {{ t('problems.form.constraints.title') }}
+                <IconBrackets class="h-4 w-4" /> {{ t('problems.form.constraintsSection.title') }}
               </Label>
             </div>
 
             <div class="flex gap-2">
               <Input
                 v-model="newConstraint"
-                :placeholder="t('problems.form.constraints.placeholder')"
+                :placeholder="t('problems.form.constraintsSection.placeholder')"
                 @keyup.enter="addConstraint"
                 class="font-mono text-sm"
               />

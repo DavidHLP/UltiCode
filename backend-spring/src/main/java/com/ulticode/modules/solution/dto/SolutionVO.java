@@ -1,0 +1,95 @@
+package com.ulticode.modules.solution.dto;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.Data;
+
+import java.time.LocalDateTime;
+
+/**
+ * Solution View Object for API responses.
+ * Contains all fields needed for the frontend.
+ */
+@Data
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public class SolutionVO {
+
+    /**
+     * Solution unique identifier
+     */
+    private String id;
+
+    /**
+     * Problem ID this solution belongs to
+     */
+    private Long problemId;
+
+    /**
+     * User ID who created this solution
+     */
+    private String userId;
+
+    /**
+     * Author username
+     */
+    private String authorName;
+
+    /**
+     * Author avatar
+     */
+    private String authorAvatar;
+
+    /**
+     * Solution title
+     */
+    private String title;
+
+    /**
+     * Solution content (markdown)
+     */
+    private String content;
+
+    /**
+     * Summary/excerpt of the solution
+     */
+    private String summary;
+
+    /**
+     * Programming language for this solution
+     */
+    private String language;
+
+    /**
+     * Tags associated with this solution
+     */
+    private String tags;
+
+    /**
+     * Number of views
+     */
+    private Integer views;
+
+    /**
+     * Whether the solution is published
+     */
+    private Boolean isPublished;
+
+    /**
+     * When the solution was published
+     */
+    private LocalDateTime publishedAt;
+
+    /**
+     * Whether the solution is flagged
+     */
+    private Boolean isFlagged;
+
+    /**
+     * Record creation timestamp
+     */
+    private LocalDateTime createdAt;
+
+    /**
+     * Record last update timestamp
+     */
+    private LocalDateTime updatedAt;
+}

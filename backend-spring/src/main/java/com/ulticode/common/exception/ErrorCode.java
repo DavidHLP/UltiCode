@@ -114,6 +114,7 @@ public enum ErrorCode {
     RECOMMENDATION_DISABLED(120002, "Recommendation service is disabled", HttpStatus.SERVICE_UNAVAILABLE),
     RECOMMENDATION_INVALID_SCENARIO(120003, "Invalid recommendation scenario", HttpStatus.BAD_REQUEST),
     RECOMMENDATION_NOT_FOUND(120004, "Recommendation not found", HttpStatus.NOT_FOUND),
+    RECOMMENDATION_USER_REQUIRED(120005, "User ID is required", HttpStatus.BAD_REQUEST),
 
     // Backup module (13xxxx)
     BACKUP_NOT_FOUND(130001, "Backup not found", HttpStatus.NOT_FOUND),

@@ -3,7 +3,9 @@ package com.ulticode.modules.websocket.contest;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.dto.ContestRoomResponse;
 import com.ulticode.modules.websocket.dto.SocketClientData;
+import com.ulticode.modules.websocket.dto.WebSocketErrorMessage;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -121,9 +123,9 @@ public class ContestWebSocketHandler {
    */
   @MessageExceptionHandler
   @SendToUser(WebSocketConstants.USER_QUEUE_ERRORS)
-  public String handleException(Exception e) {
+  public WebSocketErrorMessage handleException(Exception e) {
     log.error("WebSocket error: {}", e.getMessage(), e);
-    return "{\"error\":\"" + e.getMessage() + "\"}";
+    return WebSocketErrorMessage.of("INTERNAL_ERROR", e.getMessage());
   }
 
   /**
@@ -133,7 +135,11 @@ public class ContestWebSocketHandler {
    * @return the user data or null if not authenticated
    */
   private SocketClientData getUserData(SimpMessageHeaderAccessor headerAccessor) {
-    Object user = headerAccessor.getSessionAttributes().get("user");
+    Map<String, Object> attrs = headerAccessor.getSessionAttributes();
+    if (attrs == null) {
+      return null;
+    }
+    Object user = attrs.get("user");
     return user instanceof SocketClientData data ? data : null;
   }
 

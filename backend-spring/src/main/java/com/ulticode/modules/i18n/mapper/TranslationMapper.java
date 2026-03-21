@@ -32,17 +32,24 @@ public interface TranslationMapper extends BaseMapper<Translation> {
 
     /**
      * Find all translations for multiple entities and a specific locale.
-     * Note: entityIds should be a comma-separated string of quoted IDs to prevent SQL injection.
+     * Uses MyBatis foreach for safe parameterized queries.
      *
      * @param entityType the type of entity
-     * @param entityIds  comma-separated string of entity IDs (pre-formatted)
+     * @param entityIds  list of entity IDs
      * @param locale     the locale code
      * @return list of translations
      */
-    @Select("SELECT * FROM translations WHERE entity_type = #{entityType} AND entity_id IN (${entityIds}) AND locale = #{locale}")
+    @Select("<script>" +
+            "SELECT * FROM translations WHERE entity_type = #{entityType} " +
+            "AND entity_id IN " +
+            "<foreach item='id' collection='entityIds' open='(' separator=',' close=')'>" +
+            "#{id}" +
+            "</foreach> " +
+            "AND locale = #{locale}" +
+            "</script>")
     List<Translation> findByEntitiesAndLocale(
             @Param("entityType") String entityType,
-            @Param("entityIds") String entityIds,
+            @Param("entityIds") List<String> entityIds,
             @Param("locale") String locale
     );
 }

@@ -19,7 +19,9 @@ import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 /**
@@ -164,7 +166,7 @@ class I18nServiceTest {
             trans2.setFieldName("title");
             trans2.setContent("Chinese Title 2");
 
-            when(translationMapper.findByEntitiesAndLocale(anyString(), anyString(), anyString()))
+            when(translationMapper.findByEntitiesAndLocale(anyString(), anyList(), anyString()))
                     .thenReturn(Arrays.asList(trans1, trans2));
 
             // Act
@@ -339,7 +341,7 @@ class I18nServiceTest {
             trans2.setFieldName("title");
             trans2.setContent("Translated Title 2");
 
-            when(translationMapper.findByEntitiesAndLocale(anyString(), anyString(), anyString()))
+            when(translationMapper.findByEntitiesAndLocale(anyString(), anyList(), anyString()))
                     .thenReturn(Arrays.asList(trans1, trans2));
 
             // Act
@@ -406,7 +408,8 @@ class I18nServiceTest {
             item.setCreatedBy("user-1");
             items.add(item);
 
-            when(translationMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(null);
+            // Return empty list to indicate no existing translations (batch query)
+            when(translationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Collections.emptyList());
             when(translationMapper.insert(any(Translation.class))).thenReturn(1);
 
             // Act
@@ -442,7 +445,8 @@ class I18nServiceTest {
             existing.setLocale("zh-CN");
             existing.setContent("Old Translation");
 
-            when(translationMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
+            // Return existing translation in batch query
+            when(translationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Arrays.asList(existing));
             when(translationMapper.updateById(any(Translation.class))).thenReturn(1);
 
             // Act
@@ -478,7 +482,8 @@ class I18nServiceTest {
             existing.setLocale("zh-CN");
             existing.setContent("Old Translation");
 
-            when(translationMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(existing);
+            // Return existing translation in batch query
+            when(translationMapper.selectList(any(LambdaQueryWrapper.class))).thenReturn(Arrays.asList(existing));
 
             // Act
             BulkUpsertDTO result = i18nService.bulkUpsertTranslations(items, true);

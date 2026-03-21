@@ -175,14 +175,14 @@ export default {
       title: 'Basic Information',
       description: 'Fill in the basic problem information',
     },
-    testCases: {
+    testCasesSection: {
       title: 'Test Cases',
       description: 'Add example test cases to help users understand the problem',
     },
     additionalInfo: {
       title: 'Additional Information',
     },
-    constraints: {
+    constraintsSection: {
       title: 'Constraints',
       placeholder: 'e.g., 1 <= nums.length <= 10^4',
     },

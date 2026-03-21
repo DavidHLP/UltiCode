@@ -285,19 +285,25 @@ const columns: ColumnDef<AuditLog>[] = [
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.create') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('audit.stats.create') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
             stats.create
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.update') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('audit.stats.update') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
             stats.update
           }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.delete') }}:</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('audit.stats.delete') }}:</span
+          >
           <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
             stats.delete
           }}</span>

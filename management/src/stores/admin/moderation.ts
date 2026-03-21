@@ -136,11 +136,12 @@ export const useModerationStore = defineStore('adminModeration', () => {
       if (controller.signal.aborted) return
 
       queueItems.value = response.data
-      queueTotal.value = response.total
+      // Handle backend response format: { data, meta: { total, page, limit, totalPages } }
+      queueTotal.value = response.meta?.total ?? response.total ?? 0
 
       // Update pagination from response
-      pagination.value.page = response.page
-      pagination.value.limit = response.limit
+      pagination.value.page = response.meta?.page ?? response.page ?? 1
+      pagination.value.limit = response.meta?.limit ?? response.limit ?? 20
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return
       queueError.value = extractErrorMessage(err)
@@ -326,7 +327,12 @@ export const useModerationStore = defineStore('adminModeration', () => {
       const response = await reportsApi.getReports(params, controller.signal)
       if (controller.signal.aborted) return
       reports.value = response.data
-      reportsTotal.value = response.total
+      // Handle backend response format: { data, meta: { total, page, limit, totalPages } }
+      reportsTotal.value = response.meta?.total ?? response.total ?? 0
+
+      // Update pagination from response
+      pagination.value.page = response.meta?.page ?? response.page ?? 1
+      pagination.value.limit = response.meta?.limit ?? response.limit ?? 20
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return
       reportsError.value = extractErrorMessage(err)
@@ -362,7 +368,12 @@ export const useModerationStore = defineStore('adminModeration', () => {
       const response = await appealsApi.getAppeals(params, controller.signal)
       if (controller.signal.aborted) return
       appeals.value = response.data
-      appealsTotal.value = response.total
+      // Handle backend response format: { data, meta: { total, page, limit, totalPages } }
+      appealsTotal.value = response.meta?.total ?? response.total ?? 0
+
+      // Update pagination from response
+      pagination.value.page = response.meta?.page ?? response.page ?? 1
+      pagination.value.limit = response.meta?.limit ?? response.limit ?? 20
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return
       appealsError.value = extractErrorMessage(err)

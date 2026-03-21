@@ -317,10 +317,18 @@ export interface RevokeBanDto {
 
 export interface PaginatedResponse<T> {
   data: T[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
+  // Legacy format (flat) - for backward compatibility
+  total?: number
+  page?: number
+  limit?: number
+  totalPages?: number
+  // Backend format (nested in meta)
+  meta?: {
+    total: number
+    page: number
+    limit: number
+    totalPages: number
+  }
 }
 
 export interface BatchActionResult {

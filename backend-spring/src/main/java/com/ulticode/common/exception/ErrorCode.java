@@ -129,10 +129,22 @@ public enum ErrorCode {
     I18N_INVALID_LOCALE(140002, "Invalid locale", HttpStatus.BAD_REQUEST),
     I18N_INVALID_FIELD_NAME(140003, "Invalid field name for entity type", HttpStatus.BAD_REQUEST),
 
+    // WebSocket module (15xxxx)
+    WEBSOCKET_UNAUTHORIZED(150001, "WebSocket unauthorized", HttpStatus.UNAUTHORIZED),
+    WEBSOCKET_INVALID_CONTEST_ID(150002, "Invalid contest ID", HttpStatus.BAD_REQUEST),
+    WEBSOCKET_INVALID_TOKEN(150003, "Invalid WebSocket token", HttpStatus.UNAUTHORIZED),
+    WEBSOCKET_TOKEN_BLACKLISTED(150004, "Token has been blacklisted", HttpStatus.UNAUTHORIZED),
+    WEBSOCKET_USER_NOT_FOUND(150005, "User not found", HttpStatus.NOT_FOUND),
+
     // Queue module (16xxxx)
     QUEUE_NOT_FOUND(160001, "Queue not found", HttpStatus.NOT_FOUND),
     QUEUE_JOB_NOT_FOUND(160002, "Job not found", HttpStatus.NOT_FOUND),
-    QUEUE_OPERATION_FAILED(160003, "Queue operation failed", HttpStatus.INTERNAL_SERVER_ERROR);
+    QUEUE_OPERATION_FAILED(160003, "Queue operation failed", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // Achievement module (17xxxx)
+    ACHIEVEMENT_NOT_FOUND(170001, "Achievement not found", HttpStatus.NOT_FOUND),
+    ACHIEVEMENT_ALREADY_EARNED(170002, "Achievement already earned", HttpStatus.CONFLICT),
+    ACHIEVEMENT_INVALID_TYPE(170003, "Invalid achievement type", HttpStatus.BAD_REQUEST);
 
     private final Integer code;
     private final String message;

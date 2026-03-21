@@ -1,0 +1,131 @@
+package com.ulticode.common.exception;
+
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+
+/**
+ * Application-wide error codes.
+ * MUST match NestJS error codes exactly for frontend compatibility.
+ * <p>
+ * Format: MODULE_XXXXX
+ * - AUTH        = 1xxxx  Authentication module
+ * - USER        = 2xxxx  User module
+ * - PROBLEM     = 3xxxx  Problem module
+ * - SUBMISSION  = 4xxxx  Submission module
+ * - SOLUTION    = 5xxxx  Solution module
+ * - FORUM       = 6xxxx  Forum module
+ * - CONTEST     = 7xxxx  Contest module
+ * - BOOKMARK    = 8xxxx  Bookmark module
+ * - PROBLEM_LIST = 9xxxx Problem list module
+ */
+@Getter
+public enum ErrorCode {
+
+    // Generic errors (0xxxx)
+    SUCCESS(0, "success", HttpStatus.OK),
+    UNKNOWN_ERROR(50000, "Unknown error", HttpStatus.INTERNAL_SERVER_ERROR),
+    BAD_REQUEST(40000, "Bad request", HttpStatus.BAD_REQUEST),
+    UNAUTHORIZED(40100, "Unauthorized", HttpStatus.UNAUTHORIZED),
+    FORBIDDEN(40300, "Forbidden", HttpStatus.FORBIDDEN),
+    NOT_FOUND(40400, "Not found", HttpStatus.NOT_FOUND),
+    CONFLICT(40900, "Conflict", HttpStatus.CONFLICT),
+
+    // Auth module (1xxxx)
+    AUTH_INVALID_CREDENTIALS(10001, "Invalid credentials", HttpStatus.UNAUTHORIZED),
+    AUTH_NO_PASSWORD(10002, "No password provided", HttpStatus.UNAUTHORIZED),
+    AUTH_USERNAME_TAKEN(10003, "Username already taken", HttpStatus.CONFLICT),
+    AUTH_EMAIL_TAKEN(10004, "Email already taken", HttpStatus.CONFLICT),
+    AUTH_USER_NOT_FOUND(10005, "User not found", HttpStatus.NOT_FOUND),
+    AUTH_TOKEN_EXPIRED(10006, "Token expired", HttpStatus.UNAUTHORIZED),
+    AUTH_INVALID_RESET_TOKEN(10007, "Invalid reset token", HttpStatus.BAD_REQUEST),
+    AUTH_RESET_TOKEN_ALREADY_USED(10008, "Reset token already used", HttpStatus.BAD_REQUEST),
+    AUTH_RESET_TOKEN_EXPIRED(10009, "Reset token expired", HttpStatus.BAD_REQUEST),
+
+    // User module (2xxxx)
+    USER_NOT_FOUND(20001, "User not found", HttpStatus.NOT_FOUND),
+    USER_CANNOT_EDIT_OTHERS(20002, "Cannot edit other users", HttpStatus.FORBIDDEN),
+
+    // Problem module (3xxxx)
+    PROBLEM_NOT_FOUND(30001, "Problem not found", HttpStatus.NOT_FOUND),
+    PROBLEM_LOCKED(30002, "Problem is locked", HttpStatus.FORBIDDEN),
+    PROBLEM_PREMIUM_REQUIRED(30003, "Premium subscription required", HttpStatus.FORBIDDEN),
+
+    // Submission module (4xxxx)
+    SUBMISSION_NOT_FOUND(40001, "Submission not found", HttpStatus.NOT_FOUND),
+    SUBMISSION_USER_ID_REQUIRED(40002, "User ID is required", HttpStatus.BAD_REQUEST),
+    SUBMISSION_RATE_LIMITED(40003, "Too many submissions, please try again later", HttpStatus.TOO_MANY_REQUESTS),
+    SUBMISSION_CODE_EMPTY(40004, "Code cannot be empty", HttpStatus.BAD_REQUEST),
+    SUBMISSION_LANGUAGE_UNSUPPORTED(40005, "Unsupported language", HttpStatus.BAD_REQUEST),
+
+    // Solution module (5xxxx)
+    SOLUTION_NOT_FOUND(50001, "Solution not found", HttpStatus.NOT_FOUND),
+    SOLUTION_CANNOT_DELETE_OTHERS(50002, "Cannot delete others' solution", HttpStatus.FORBIDDEN),
+    SOLUTION_CANNOT_UPDATE_OTHERS(50003, "Cannot update others' solution", HttpStatus.FORBIDDEN),
+    SOLUTION_COMMENT_NOT_FOUND(50004, "Solution comment not found", HttpStatus.NOT_FOUND),
+    SOLUTION_NEED_ACCEPTED_SUBMISSION(50007, "Need accepted submission to create solution", HttpStatus.FORBIDDEN),
+    SOLUTION_ALREADY_EXISTS(50008, "Solution already exists", HttpStatus.CONFLICT),
+
+    // Forum module (6xxxx)
+    FORUM_POST_NOT_FOUND(60001, "Post not found", HttpStatus.NOT_FOUND),
+    FORUM_COMMUNITY_NOT_FOUND(60002, "Community not found", HttpStatus.NOT_FOUND),
+    FORUM_COMMUNITY_RESTRICTED(60003, "Community is restricted", HttpStatus.FORBIDDEN),
+    FORUM_CANNOT_EDIT_POST(60004, "Cannot edit this post", HttpStatus.FORBIDDEN),
+    FORUM_CANNOT_DELETE_POST(60005, "Cannot delete this post", HttpStatus.FORBIDDEN),
+    FORUM_COMMENT_NOT_FOUND(60006, "Comment not found", HttpStatus.NOT_FOUND),
+    FORUM_POST_LOCKED(60007, "Post is locked", HttpStatus.FORBIDDEN),
+
+    // Contest module (7xxxx)
+    CONTEST_NOT_FOUND(70001, "Contest not found", HttpStatus.NOT_FOUND),
+    CONTEST_ONLY_REGISTER_UPCOMING(70002, "Can only register for upcoming contests", HttpStatus.BAD_REQUEST),
+    CONTEST_ALREADY_REGISTERED(70003, "Already registered for this contest", HttpStatus.CONFLICT),
+    CONTEST_NOT_REGISTERED(70004, "Not registered for this contest", HttpStatus.BAD_REQUEST),
+    CONTEST_REGISTRATION_CLOSED(70005, "Contest registration is closed", HttpStatus.BAD_REQUEST),
+    CONTEST_FULL(70006, "Contest is full", HttpStatus.BAD_REQUEST),
+    CONTEST_NO_PERMISSION(70007, "No permission for this contest", HttpStatus.FORBIDDEN),
+    CONTEST_NOT_STARTED(70008, "Contest has not started", HttpStatus.BAD_REQUEST),
+    CONTEST_ENDED(70009, "Contest has ended", HttpStatus.BAD_REQUEST),
+
+    // Bookmark module (8xxxx)
+    BOOKMARK_FOLDER_NOT_FOUND(80001, "Bookmark folder not found", HttpStatus.NOT_FOUND),
+    BOOKMARK_CANNOT_DELETE_DEFAULT(80002, "Cannot delete default folder", HttpStatus.BAD_REQUEST),
+    BOOKMARK_FOLDER_NAME_EXISTS(80003, "Folder name already exists", HttpStatus.CONFLICT),
+
+    // Problem list module (9xxxx)
+    PROBLEM_LIST_NOT_FOUND(90001, "Problem list not found", HttpStatus.NOT_FOUND),
+    PROBLEM_LIST_CANNOT_EDIT(90002, "Cannot edit this problem list", HttpStatus.FORBIDDEN),
+    PROBLEM_LIST_PRIVATE(90003, "Problem list is private", HttpStatus.FORBIDDEN);
+
+    private final Integer code;
+    private final String message;
+    private final HttpStatus httpStatus;
+
+    ErrorCode(Integer code, String message, HttpStatus httpStatus) {
+        this.code = code;
+        this.message = message;
+        this.httpStatus = httpStatus;
+    }
+
+    /**
+     * Get HTTP status for this error code
+     *
+     * @return the corresponding HTTP status
+     */
+    public HttpStatus getHttpStatus() {
+        return this.httpStatus;
+    }
+
+    /**
+     * Find ErrorCode by code value
+     *
+     * @param code the error code value
+     * @return the matching ErrorCode, or UNKNOWN_ERROR if not found
+     */
+    public static ErrorCode fromCode(Integer code) {
+        for (ErrorCode errorCode : values()) {
+            if (errorCode.getCode().equals(code)) {
+                return errorCode;
+            }
+        }
+        return UNKNOWN_ERROR;
+    }
+}

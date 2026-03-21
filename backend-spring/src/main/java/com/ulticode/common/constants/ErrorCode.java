@@ -17,10 +17,11 @@ package com.ulticode.common.constants;
  *   <li>PROBLEM_LIST = 9xxxx - Problem list module
  *   <li>NOTIFICATION = 10xxxx - Notification module
  *   <li>SUBSCRIPTION = 11xxxx - Subscription module
- *   <li>ACHIEVEMENT = 12xxxx - Achievement module
  *   <li>EMAIL = 13xxxx - Email module
  *   <li>BACKUP = 14xxxx - Backup module
  *   <li>WEBSOCKET = 15xxxx - WebSocket module
+ *   <li>QUEUE = 16xxxx - Queue module
+ *   <li>ACHIEVEMENT = 17xxxx - Achievement module
  * </ul>
  */
 public enum ErrorCode {
@@ -106,10 +107,6 @@ public enum ErrorCode {
   SUBSCRIPTION_ALREADY_ACTIVE(110002),
   SUBSCRIPTION_EXPIRED(110003),
 
-  // Achievement module (12xxxx)
-  ACHIEVEMENT_NOT_FOUND(120001),
-  ACHIEVEMENT_ALREADY_EARNED(120002),
-
   // Email module (13xxxx)
   EMAIL_SEND_FAILED(130001),
   EMAIL_TEMPLATE_NOT_FOUND(130002),
@@ -129,7 +126,12 @@ public enum ErrorCode {
   // Queue module (16xxxx)
   QUEUE_NOT_FOUND(160001),
   QUEUE_JOB_NOT_FOUND(160002),
-  QUEUE_OPERATION_FAILED(160003);
+  QUEUE_OPERATION_FAILED(160003),
+
+  // Achievement module (17xxxx)
+  ACHIEVEMENT_NOT_FOUND(170001),
+  ACHIEVEMENT_ALREADY_EARNED(170002),
+  ACHIEVEMENT_INVALID_TYPE(170003);
 
   private final int code;
 

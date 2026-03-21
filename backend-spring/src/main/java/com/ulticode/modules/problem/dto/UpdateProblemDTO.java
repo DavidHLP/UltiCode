@@ -1,0 +1,36 @@
+package com.ulticode.modules.problem.dto;
+
+import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
+import lombok.Data;
+
+/**
+ * DTO for updating an existing problem.
+ */
+@Data
+@Schema(description = "Update problem request")
+public class UpdateProblemDTO {
+
+    @Size(max = 120, message = "Slug must not exceed 120 characters")
+    @Pattern(regexp = "^[a-z0-9-]+$", message = "Slug must contain only lowercase letters, numbers, and hyphens")
+    @Schema(description = "URL-friendly identifier", example = "two-sum")
+    private String slug;
+
+    @Size(max = 255, message = "Title must not exceed 255 characters")
+    @Schema(description = "Problem title", example = "Two Sum")
+    private String title;
+
+    @Pattern(regexp = "^(Easy|Medium|Hard)$", message = "Difficulty must be Easy, Medium, or Hard")
+    @Schema(description = "Difficulty level", example = "Easy", allowableValues = {"Easy", "Medium", "Hard"})
+    private String difficulty;
+
+    @Schema(description = "Whether this is a premium problem", example = "false")
+    private Boolean isPremium;
+
+    @Schema(description = "Whether the problem is published", example = "true")
+    private Boolean isPublished;
+
+    @Schema(description = "Whether the problem has an official solution", example = "false")
+    private Boolean hasSolution;
+}

@@ -1,0 +1,88 @@
+package com.ulticode.modules.problem.service;
+
+import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.problem.dto.CreateProblemDTO;
+import com.ulticode.modules.problem.dto.ProblemQueryDTO;
+import com.ulticode.modules.problem.dto.ProblemVO;
+import com.ulticode.modules.problem.dto.UpdateProblemDTO;
+import com.ulticode.modules.problem.entity.Problem;
+
+import java.util.Optional;
+
+/**
+ * Service interface for problem-related operations.
+ */
+public interface ProblemService {
+
+    /**
+     * Find a problem by its ID.
+     *
+     * @param id the problem ID
+     * @return the problem entity, or empty if not found
+     */
+    Optional<Problem> findById(Long id);
+
+    /**
+     * Find a problem by its slug.
+     *
+     * @param slug the URL-friendly identifier
+     * @return the problem entity, or empty if not found
+     */
+    Optional<Problem> findBySlug(String slug);
+
+    /**
+     * List problems with pagination and filters.
+     *
+     * @param query the query parameters
+     * @return paginated result of problem view objects
+     */
+    PageResult<ProblemVO> listProblems(ProblemQueryDTO query);
+
+    /**
+     * Get a problem by ID as a view object.
+     *
+     * @param id the problem ID
+     * @return the problem view object
+     */
+    ProblemVO getProblemById(Long id);
+
+    /**
+     * Get a problem by slug as a view object.
+     *
+     * @param slug the URL-friendly identifier
+     * @return the problem view object
+     */
+    ProblemVO getProblemBySlug(String slug);
+
+    /**
+     * Create a new problem.
+     *
+     * @param createDTO the create data
+     * @return the created problem view object
+     */
+    ProblemVO createProblem(CreateProblemDTO createDTO);
+
+    /**
+     * Update an existing problem.
+     *
+     * @param id        the problem ID
+     * @param updateDTO the update data
+     * @return the updated problem view object
+     */
+    ProblemVO updateProblem(Long id, UpdateProblemDTO updateDTO);
+
+    /**
+     * Delete a problem (soft delete).
+     *
+     * @param id the problem ID
+     */
+    void deleteProblem(Long id);
+
+    /**
+     * Convert a Problem entity to ProblemVO.
+     *
+     * @param problem the problem entity
+     * @return the problem view object
+     */
+    ProblemVO toVO(Problem problem);
+}

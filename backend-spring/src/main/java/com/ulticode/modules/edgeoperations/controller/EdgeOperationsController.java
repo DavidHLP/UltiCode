@@ -1,0 +1,51 @@
+package com.ulticode.modules.edgeoperations.controller;
+
+import com.ulticode.common.response.Result;
+import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
+import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
+import com.ulticode.modules.edgeoperations.dto.GetInteractionsQueryDTO;
+import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
+import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Controller for edge operations.
+ * Handles operations like voting, analyzing, viewing, and retrieving interaction stats.
+ */
+@Tag(name = "Edge Operations", description = "Edge operations API for voting, analyzing, viewing content")
+@RestController
+@RequestMapping("/api/edge-operations")
+@RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer")
+public class EdgeOperationsController {
+
+    private final EdgeOperationsService edgeOperationsService;
+
+    @Operation(summary = "Perform an edge operation",
+            description = "Perform an edge operation (vote, analyze, view, etc.) on a target. " +
+                    "For vote operations (VOTE_UP, VOTE_DOWN), delegates to vote service with toggle logic. " +
+                    "For other operations, creates the operation if not exists, deletes if exists.")
+    @PostMapping
+    public Result<EdgeOperationResponseVO> performOperation(@Valid @RequestBody EdgeOperationDTO dto) {
+        String userId = SecurityUtil.getCurrentUserId();
+        return Result.success(edgeOperationsService.performOperation(userId, dto));
+    }
+
+    @Operation(summary = "Get interaction stats for a target",
+            description = "Returns likes, dislikes, favorites count, and the current user's vote status. " +
+                    "Works for both authenticated and anonymous users.")
+    @GetMapping("/interactions")
+    public Result<EdgeOperationResponseVO> getInteractions(
+            @Parameter(description = "Target ID") @RequestParam String targetId,
+            @Parameter(description = "Target type") @RequestParam EdgeOperationTargetType targetType) {
+        String userId = SecurityUtil.getCurrentUserId();
+        return Result.success(edgeOperationsService.getInteractions(userId, targetId, targetType));
+    }
+}

@@ -118,6 +118,13 @@
 			<version>${mapstruct.version}</version>
 		</dependency>
 
+		<!-- MeiliSearch -->
+		<dependency>
+			<groupId>com.meilisearch.sdk</groupId>
+			<artifactId>meilisearch-java</artifactId>
+			<version>0.11.0</version>
+		</dependency>
+
 		<!-- Test dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

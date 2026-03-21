@@ -79,3 +79,8 @@ logging:
     org.springframework.security: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# MeiliSearch Configuration (optional - for full-text search)
+meilisearch:
+  host: ${MEILISEARCH_HOST:}
+  api-key: ${MEILISEARCH_API_KEY:}

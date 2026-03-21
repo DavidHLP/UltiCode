@@ -84,3 +84,11 @@ logging:
 meilisearch:
   host: ${MEILISEARCH_HOST:}
   api-key: ${MEILISEARCH_API_KEY:}
+
+# Recommendation Service Configuration (optional - for personalized recommendations)
+recommendation:
+  enabled: ${RECOMMENDATION_ENABLED:false}
+  service-url: ${RECOMMENDATION_SERVICE_URL:}
+  timeout: ${RECOMMENDATION_TIMEOUT:5000}
+  nacos-enabled: ${RECOMMENDATION_NACOS_ENABLED:false}
+  fallback-url: ${RECOMMENDATION_FALLBACK_URL:}

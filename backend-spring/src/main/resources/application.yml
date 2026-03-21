@@ -92,3 +92,7 @@ recommendation:
   timeout: ${RECOMMENDATION_TIMEOUT:5000}
   nacos-enabled: ${RECOMMENDATION_NACOS_ENABLED:false}
   fallback-url: ${RECOMMENDATION_FALLBACK_URL:}
+
+# Backup Configuration
+backup:
+  dir: ${BACKUP_DIR:/tmp/backups}

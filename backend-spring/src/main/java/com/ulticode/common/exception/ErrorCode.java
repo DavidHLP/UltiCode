@@ -107,7 +107,13 @@ public enum ErrorCode {
     // Search module (11xxxx)
     SEARCH_QUERY_EMPTY(110001, "Search query cannot be empty", HttpStatus.BAD_REQUEST),
     SEARCH_QUERY_TOO_LONG(110002, "Search query is too long", HttpStatus.BAD_REQUEST),
-    SEARCH_INVALID_INDEX(110003, "Invalid search index type", HttpStatus.BAD_REQUEST);
+    SEARCH_INVALID_INDEX(110003, "Invalid search index type", HttpStatus.BAD_REQUEST),
+
+    // Recommendation module (12xxxx)
+    RECOMMENDATION_SERVICE_UNAVAILABLE(120001, "Recommendation service is unavailable", HttpStatus.SERVICE_UNAVAILABLE),
+    RECOMMENDATION_DISABLED(120002, "Recommendation service is disabled", HttpStatus.SERVICE_UNAVAILABLE),
+    RECOMMENDATION_INVALID_SCENARIO(120003, "Invalid recommendation scenario", HttpStatus.BAD_REQUEST),
+    RECOMMENDATION_NOT_FOUND(120004, "Recommendation not found", HttpStatus.NOT_FOUND);
 
     private final Integer code;
     private final String message;

@@ -171,7 +171,9 @@ function handleMouseLeave() {
           <div
             class="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)]"
           >
-            <span class="text-[10px] text-[var(--silver-400)]">{{ $t('analytics.heatmap.less') }}</span>
+            <span class="text-[10px] text-[var(--silver-400)]">{{
+              $t('analytics.heatmap.less')
+            }}</span>
             <div class="flex gap-0.5">
               <div
                 v-for="i in 5"
@@ -185,7 +187,9 @@ function handleMouseLeave() {
                 }"
               />
             </div>
-            <span class="text-[10px] text-[var(--silver-400)]">{{ $t('analytics.heatmap.more') }}</span>
+            <span class="text-[10px] text-[var(--silver-400)]">{{
+              $t('analytics.heatmap.more')
+            }}</span>
           </div>
         </div>
       </div>

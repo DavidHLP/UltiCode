@@ -1,0 +1,88 @@
+package com.ulticode.modules.moderation.mapper;
+
+import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.ulticode.modules.moderation.entity.ModerationQueue;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
+
+import java.util.List;
+
+/**
+ * Mapper interface for ModerationQueue entity.
+ */
+@Mapper
+public interface ModerationQueueMapper extends BaseMapper<ModerationQueue> {
+
+    /**
+     * Find all queue items by status, ordered by priority and creation time.
+     *
+     * @param status the status to filter by
+     * @return list of queue items
+     */
+    @Select("SELECT * FROM moderation_queue WHERE status = #{status} ORDER BY priority DESC, created_at ASC")
+    List<ModerationQueue> findByStatus(@Param("status") String status);
+
+    /**
+     * Find queue item by entity type and entity ID.
+     *
+     * @param entityType the entity type
+     * @param entityId   the entity ID
+     * @return the queue item or null
+     */
+    @Select("SELECT * FROM moderation_queue WHERE entity_type = #{entityType} AND entity_id = #{entityId}")
+    ModerationQueue findByEntity(@Param("entityType") String entityType, @Param("entityId") String entityId);
+
+    /**
+     * Assign a queue item to a moderator.
+     *
+     * @param id          the queue item ID
+     * @param assignedTo  the moderator ID
+     * @return number of rows affected
+     */
+    @Update("UPDATE moderation_queue SET assigned_to_id = #{assignedTo}, assigned_at = NOW(), status = 'UNDER_REVIEW', updated_at = NOW() WHERE id = #{id}")
+    int assignToModerator(@Param("id") String id, @Param("assignedTo") String assignedTo);
+
+    /**
+     * Remove assignment from a queue item.
+     *
+     * @param id the queue item ID
+     * @return number of rows affected
+     */
+    @Update("UPDATE moderation_queue SET assigned_to_id = NULL, assigned_at = NULL, status = 'PENDING', updated_at = NOW() WHERE id = #{id}")
+    int unassign(@Param("id") String id);
+
+    /**
+     * Count pending queue items.
+     *
+     * @return count of pending items
+     */
+    @Select("SELECT COUNT(*) FROM moderation_queue WHERE status = 'PENDING'")
+    long countPending();
+
+    /**
+     * Count items under review.
+     *
+     * @return count of items under review
+     */
+    @Select("SELECT COUNT(*) FROM moderation_queue WHERE status = 'UNDER_REVIEW'")
+    long countUnderReview();
+
+    /**
+     * Count items resolved today.
+     *
+     * @return count of items resolved today
+     */
+    @Select("SELECT COUNT(*) FROM moderation_queue WHERE status = 'RESOLVED' AND DATE(resolved_at) = CURDATE()")
+    long countResolvedToday();
+
+    /**
+     * Find queue items assigned to a specific moderator.
+     *
+     * @param assignedToId the moderator ID
+     * @return list of queue items
+     */
+    @Select("SELECT * FROM moderation_queue WHERE assigned_to_id = #{assignedToId} ORDER BY priority DESC, created_at ASC")
+    List<ModerationQueue> findByAssignedTo(@Param("assignedToId") String assignedToId);
+}

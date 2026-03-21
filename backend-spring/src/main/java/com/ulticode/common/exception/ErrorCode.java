@@ -93,7 +93,21 @@ public enum ErrorCode {
     // Problem list module (9xxxx)
     PROBLEM_LIST_NOT_FOUND(90001, "Problem list not found", HttpStatus.NOT_FOUND),
     PROBLEM_LIST_CANNOT_EDIT(90002, "Cannot edit this problem list", HttpStatus.FORBIDDEN),
-    PROBLEM_LIST_PRIVATE(90003, "Problem list is private", HttpStatus.FORBIDDEN);
+    PROBLEM_LIST_PRIVATE(90003, "Problem list is private", HttpStatus.FORBIDDEN),
+
+    // Moderation module (10xxxx)
+    MODERATION_QUEUE_NOT_FOUND(100001, "Moderation queue item not found", HttpStatus.NOT_FOUND),
+    MODERATION_ALREADY_ASSIGNED(100002, "Item is already assigned to another moderator", HttpStatus.CONFLICT),
+    MODERATION_ALREADY_REPORTED(100003, "You have already reported this content", HttpStatus.CONFLICT),
+    MODERATION_APPEAL_NOT_FOUND(100004, "Appeal not found", HttpStatus.NOT_FOUND),
+    MODERATION_APPEAL_ALREADY_REVIEWED(100005, "This appeal has already been reviewed", HttpStatus.BAD_REQUEST),
+    MODERATION_CANNOT_APPEAL(100006, "This item cannot be appealed", HttpStatus.BAD_REQUEST),
+    MODERATION_NOT_AUTHOR(100007, "Only the content author can appeal", HttpStatus.FORBIDDEN),
+
+    // Search module (11xxxx)
+    SEARCH_QUERY_EMPTY(110001, "Search query cannot be empty", HttpStatus.BAD_REQUEST),
+    SEARCH_QUERY_TOO_LONG(110002, "Search query is too long", HttpStatus.BAD_REQUEST),
+    SEARCH_INVALID_INDEX(110003, "Invalid search index type", HttpStatus.BAD_REQUEST);
 
     private final Integer code;
     private final String message;

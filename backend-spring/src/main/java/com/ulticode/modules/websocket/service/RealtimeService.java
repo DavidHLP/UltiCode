@@ -2,13 +2,13 @@ package com.ulticode.modules.websocket.service;
 
 import com.ulticode.modules.websocket.config.WebSocketProperties;
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
-import com.ulticode.modules.websocket.event.AnnouncementEvent;
+import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
+import com.ulticode.modules.websocket.contest.dto.FirstSolvePayload;
+import com.ulticode.modules.websocket.contest.dto.RankingUpdatePayload;
+import com.ulticode.modules.websocket.contest.dto.RankingUpdatePayload.RankingItem;
+import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
 import com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus;
-import com.ulticode.modules.websocket.event.FirstSolveEvent;
-import com.ulticode.modules.websocket.event.RankingUpdateEvent;
-import com.ulticode.modules.websocket.event.RankingUpdateEvent.RankingItem;
-import com.ulticode.modules.websocket.event.SubmissionResultEvent;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
 import java.time.Instant;
 import java.util.List;
@@ -67,11 +67,10 @@ public class RealtimeService {
       return;
     }
 
-    RankingUpdateEvent event =
-        new RankingUpdateEvent(contestId, rankings, Instant.now());
+    RankingUpdatePayload payload = RankingUpdatePayload.of(contestId, rankings);
 
     String destination = WebSocketUtils.getContestRoomName(contestId) + "/ranking";
-    messagingTemplate.convertAndSend(destination, event);
+    messagingTemplate.convertAndSend(destination, payload);
 
     log.debug("Emitted {} to {}", WebSocketConstants.EVENT_RANKING_UPDATE, destination);
   }
@@ -79,34 +78,34 @@ public class RealtimeService {
   /**
    * Emit first solve notification.
    *
-   * @param event the first solve event
+   * @param payload the first solve payload
    */
-  public void emitFirstSolve(FirstSolveEvent event) {
+  public void emitFirstSolve(FirstSolvePayload payload) {
     if (!properties.getFirstSolveNotifications().isEnabled()) {
       log.debug("Skipping first solve notification: Feature disabled");
       return;
     }
 
-    String destination = WebSocketUtils.getContestRoomName(event.contestId()) + "/first-solve";
-    messagingTemplate.convertAndSend(destination, event);
+    String destination = WebSocketUtils.getContestRoomName(payload.contestId()) + "/first-solve";
+    messagingTemplate.convertAndSend(destination, payload);
 
     log.info(
         "First solve: User {} solved problem {} in contest {}",
-        event.username(),
-        event.problemTitle(),
-        event.contestId());
+        payload.username(),
+        payload.problemTitle(),
+        payload.contestId());
   }
 
   /**
    * Emit announcement to contest room.
    *
-   * @param event the announcement event
+   * @param payload the announcement payload
    */
-  public void emitAnnouncement(AnnouncementEvent event) {
-    String destination = WebSocketUtils.getContestRoomName(event.contestId()) + "/announcement";
-    messagingTemplate.convertAndSend(destination, event);
+  public void emitAnnouncement(AnnouncementPayload payload) {
+    String destination = WebSocketUtils.getContestRoomName(payload.contestId()) + "/announcement";
+    messagingTemplate.convertAndSend(destination, payload);
 
-    log.info("Announcement sent to contest {}: {}", event.contestId(), event.title());
+    log.info("Announcement sent to contest {}: {}", payload.contestId(), payload.title());
   }
 
   /**
@@ -138,12 +137,12 @@ public class RealtimeService {
    * Emit submission result to a specific user.
    *
    * @param userId the user ID
-   * @param event the submission result event
+   * @param payload the submission result payload
    */
-  public void emitSubmissionResult(String userId, SubmissionResultEvent event) {
-    messagingTemplate.convertAndSendToUser(userId, WebSocketConstants.USER_QUEUE_SUBMISSION, event);
+  public void emitSubmissionResult(String userId, SubmissionResultPayload payload) {
+    messagingTemplate.convertAndSendToUser(userId, WebSocketConstants.USER_QUEUE_SUBMISSION, payload);
 
-    log.debug("Submission result sent to user {}: {}", userId, event.status());
+    log.debug("Submission result sent to user {}: {}", userId, payload.status());
   }
 
   /**

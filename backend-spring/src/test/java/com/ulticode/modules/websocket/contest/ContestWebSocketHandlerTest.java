@@ -1,9 +1,8 @@
-package com.ulticode.modules.websocket.gateway;
+package com.ulticode.modules.websocket.contest;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-import com.ulticode.modules.websocket.contest.ContestRoomManager;
 import com.ulticode.modules.websocket.dto.ContestRoomResponse;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import java.util.HashMap;
@@ -17,9 +16,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 
-/** Tests for ContestGateway. */
+/** Tests for ContestWebSocketHandler. */
 @ExtendWith(MockitoExtension.class)
-class ContestGatewayTest {
+class ContestWebSocketHandlerTest {
 
   @Mock private SimpMessagingTemplate messagingTemplate;
 
@@ -27,11 +26,11 @@ class ContestGatewayTest {
 
   @Mock private SimpMessageHeaderAccessor headerAccessor;
 
-  private ContestGateway gateway;
+  private ContestWebSocketHandler handler;
 
   @BeforeEach
   void setUp() {
-    gateway = new ContestGateway(messagingTemplate, contestRoomManager);
+    handler = new ContestWebSocketHandler(messagingTemplate, contestRoomManager);
   }
 
   @Test
@@ -43,7 +42,7 @@ class ContestGatewayTest {
 
     when(headerAccessor.getSessionAttributes()).thenReturn(sessionAttributes);
 
-    ContestRoomResponse response = gateway.handleJoinContest(contestId, headerAccessor);
+    ContestRoomResponse response = handler.handleJoinContest(contestId, headerAccessor);
 
     assertTrue(response.success());
     assertEquals(contestId, response.contestId());
@@ -58,7 +57,20 @@ class ContestGatewayTest {
 
     when(headerAccessor.getSessionAttributes()).thenReturn(sessionAttributes);
 
-    ContestRoomResponse response = gateway.handleJoinContest(contestId, headerAccessor);
+    ContestRoomResponse response = handler.handleJoinContest(contestId, headerAccessor);
+
+    assertFalse(response.success());
+    assertEquals("UNAUTHORIZED", response.error());
+    verify(contestRoomManager, never()).subscribe(any(), any());
+  }
+
+  @Test
+  void handleJoinContest_withNullSessionAttributes_returnsError() {
+    String contestId = UUID.randomUUID().toString();
+
+    when(headerAccessor.getSessionAttributes()).thenReturn(null);
+
+    ContestRoomResponse response = handler.handleJoinContest(contestId, headerAccessor);
 
     assertFalse(response.success());
     assertEquals("UNAUTHORIZED", response.error());
@@ -74,7 +86,7 @@ class ContestGatewayTest {
 
     when(headerAccessor.getSessionAttributes()).thenReturn(sessionAttributes);
 
-    ContestRoomResponse response = gateway.handleJoinContest(invalidContestId, headerAccessor);
+    ContestRoomResponse response = handler.handleJoinContest(invalidContestId, headerAccessor);
 
     assertFalse(response.success());
     assertEquals("INVALID_CONTEST_ID", response.error());
@@ -90,7 +102,7 @@ class ContestGatewayTest {
 
     when(headerAccessor.getSessionAttributes()).thenReturn(sessionAttributes);
 
-    ContestRoomResponse response = gateway.handleLeaveContest(contestId, headerAccessor);
+    ContestRoomResponse response = handler.handleLeaveContest(contestId, headerAccessor);
 
     assertTrue(response.success());
     assertTrue(response.message().contains("Successfully left"));
@@ -98,8 +110,22 @@ class ContestGatewayTest {
   }
 
   @Test
+  void handleLeaveContest_withoutAuth_returnsError() {
+    String contestId = UUID.randomUUID().toString();
+    Map<String, Object> sessionAttributes = new HashMap<>();
+
+    when(headerAccessor.getSessionAttributes()).thenReturn(sessionAttributes);
+
+    ContestRoomResponse response = handler.handleLeaveContest(contestId, headerAccessor);
+
+    assertFalse(response.success());
+    assertEquals("UNAUTHORIZED", response.error());
+    verify(contestRoomManager, never()).unsubscribe(any(), any());
+  }
+
+  @Test
   void handlePing_returnsPongWithTimestamp() {
-    ContestGateway.PongResponse response = gateway.handlePing(headerAccessor);
+    ContestWebSocketHandler.PongResponse response = handler.handlePing(headerAccessor);
 
     assertTrue(response.timestamp() > 0);
   }

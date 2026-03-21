@@ -2,6 +2,8 @@ package com.ulticode.modules.websocket.notification;
 
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
 import com.ulticode.modules.websocket.dto.SocketClientData;
+import com.ulticode.modules.websocket.dto.WebSocketErrorMessage;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -72,9 +74,9 @@ public class NotificationWebSocketHandler {
    */
   @MessageExceptionHandler
   @SendToUser(WebSocketConstants.USER_QUEUE_ERRORS)
-  public String handleException(Exception e) {
+  public WebSocketErrorMessage handleException(Exception e) {
     log.error("Notification WebSocket error: {}", e.getMessage(), e);
-    return "{\"error\":\"" + e.getMessage() + "\"}";
+    return WebSocketErrorMessage.of("INTERNAL_ERROR", e.getMessage());
   }
 
   /**
@@ -84,7 +86,11 @@ public class NotificationWebSocketHandler {
    * @return the user data or null if not authenticated
    */
   private SocketClientData getUserData(SimpMessageHeaderAccessor headerAccessor) {
-    Object user = headerAccessor.getSessionAttributes().get("user");
+    Map<String, Object> attrs = headerAccessor.getSessionAttributes();
+    if (attrs == null) {
+      return null;
+    }
+    Object user = attrs.get("user");
     return user instanceof SocketClientData data ? data : null;
   }
 

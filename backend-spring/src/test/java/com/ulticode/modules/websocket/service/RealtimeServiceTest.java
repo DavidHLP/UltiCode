@@ -3,14 +3,13 @@ package com.ulticode.modules.websocket.service;
 import static org.mockito.Mockito.*;
 
 import com.ulticode.modules.websocket.config.WebSocketProperties;
-import com.ulticode.modules.websocket.event.AnnouncementEvent;
+import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
+import com.ulticode.modules.websocket.contest.dto.FirstSolvePayload;
+import com.ulticode.modules.websocket.contest.dto.RankingUpdatePayload;
+import com.ulticode.modules.websocket.contest.dto.RankingUpdatePayload.RankingItem;
+import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
 import com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus;
-import com.ulticode.modules.websocket.event.FirstSolveEvent;
-import com.ulticode.modules.websocket.event.RankingUpdateEvent;
-import com.ulticode.modules.websocket.event.RankingUpdateEvent.RankingItem;
-import com.ulticode.modules.websocket.event.SubmissionResultEvent;
-import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,7 +42,7 @@ class RealtimeServiceTest {
     realtimeService.emitRankingUpdate(contestId, rankings);
 
     verify(messagingTemplate)
-        .convertAndSend(eq("/topic/contest/" + contestId + "/ranking"), any(RankingUpdateEvent.class));
+        .convertAndSend(eq("/topic/contest/" + contestId + "/ranking"), any(RankingUpdatePayload.class));
   }
 
   @Test
@@ -58,38 +57,38 @@ class RealtimeServiceTest {
 
   @Test
   void emitFirstSolve_whenEnabled_sendsMessage() {
-    FirstSolveEvent event =
-        new FirstSolveEvent(
-            "contest-123", "problem-1", "Problem 1", "user-1", "username", Instant.now());
+    FirstSolvePayload payload =
+        FirstSolvePayload.of(
+            "contest-123", "problem-1", "Problem 1", "user-1", "username");
 
-    realtimeService.emitFirstSolve(event);
+    realtimeService.emitFirstSolve(payload);
 
     verify(messagingTemplate)
-        .convertAndSend(eq("/topic/contest/contest-123/first-solve"), eq(event));
+        .convertAndSend(eq("/topic/contest/contest-123/first-solve"), eq(payload));
   }
 
   @Test
   void emitFirstSolve_whenDisabled_doesNotSend() {
     properties.getFirstSolveNotifications().setEnabled(false);
-    FirstSolveEvent event =
-        new FirstSolveEvent(
-            "contest-123", "problem-1", "Problem 1", "user-1", "username", Instant.now());
+    FirstSolvePayload payload =
+        FirstSolvePayload.of(
+            "contest-123", "problem-1", "Problem 1", "user-1", "username");
 
-    realtimeService.emitFirstSolve(event);
+    realtimeService.emitFirstSolve(payload);
 
     verifyNoInteractions(messagingTemplate);
   }
 
   @Test
   void emitAnnouncement_sendsMessage() {
-    AnnouncementEvent event =
-        new AnnouncementEvent(
-            "announcement-1", "contest-123", "Title", "Content", Instant.now());
+    AnnouncementPayload payload =
+        AnnouncementPayload.of(
+            "announcement-1", "contest-123", "Title", "Content");
 
-    realtimeService.emitAnnouncement(event);
+    realtimeService.emitAnnouncement(payload);
 
     verify(messagingTemplate)
-        .convertAndSend(eq("/topic/contest/contest-123/announcement"), eq(event));
+        .convertAndSend(eq("/topic/contest/contest-123/announcement"), eq(payload));
   }
 
   @Test
@@ -102,13 +101,13 @@ class RealtimeServiceTest {
 
   @Test
   void emitSubmissionResult_sendsMessageToUser() {
-    SubmissionResultEvent event =
-        new SubmissionResultEvent(
-            "sub-1", "contest-123", "problem-1", "user-1", "Accepted", 100.0, 50, 1024L, Instant.now());
+    SubmissionResultPayload payload =
+        SubmissionResultPayload.of(
+            "sub-1", "contest-123", "problem-1", "user-1", "Accepted", 100.0, 50, 1024L);
 
-    realtimeService.emitSubmissionResult("user-1", event);
+    realtimeService.emitSubmissionResult("user-1", payload);
 
-    verify(messagingTemplate).convertAndSendToUser(eq("user-1"), eq("/queue/submission"), eq(event));
+    verify(messagingTemplate).convertAndSendToUser(eq("user-1"), eq("/queue/submission"), eq(payload));
   }
 
   @Test

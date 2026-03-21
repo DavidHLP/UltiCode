@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: ulticode-backend
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ulticode}?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+    username: ${DB_USER:root}
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+
+server:
+  port: ${PORT:3001}
+
+# JWT Configuration
+app:
+  jwt:
+    secret: ${JWT_SECRET:default-secret-key-must-be-at-least-256-bits-long-for-security}
+    expiration-ms: ${JWT_EXPIRATION_MS:604800000}  # 7 days
+
+  # Feature Flags
+  features:
+    use-new-contest-system: ${FEATURE_NEW_CONTEST:false}
+    realtime-ranking-enabled: ${FEATURE_REALTIME_RANKING:true}
+    first-solve-notifications-enabled: ${FEATURE_FIRST_SOLVE:true}
+    anticheat-enabled: ${FEATURE_ANTICHEAT:false}
+    contest-analytics-enabled: ${FEATURE_CONTEST_ANALYTICS:true}
+
+  # WebSocket Configuration
+  websocket:
+    realtime-ranking:
+      enabled: true
+    first-solve-notifications:
+      enabled: true
+    allowed-origins:
+      - http://localhost:9002
+      - http://localhost:9003
+      - ${FRONTEND_URL:}
+      - ${ADMIN_URL:}
+
+# MyBatis Configuration
+mybatis:
+  configuration:
+    map-underscore-to-camel-case: true
+  type-aliases-package: com.ulticode.modules
+
+# Logging
+logging:
+  level:
+    root: INFO
+    com.ulticode: DEBUG
+    org.springframework.web.socket: DEBUG

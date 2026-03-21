@@ -1,6 +1,7 @@
 package com.ulticode.modules.i18n.controller;
 
 import com.ulticode.common.annotation.CurrentUser;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.i18n.constants.I18nConstants;
 import com.ulticode.modules.i18n.dto.BulkUpsertDTO;
@@ -44,17 +45,30 @@ public class I18nController {
             @Parameter(description = "Locale code (e.g., en-US, zh-CN)")
             @RequestParam String locale) {
 
+        // Validate entity type
+        I18nConstants.TranslatableEntity type;
         try {
-            I18nConstants.TranslatableEntity type = I18nConstants.TranslatableEntity.valueOf(entityType);
-            Map<String, String> translations = i18nService.getTranslations(type, entityId, locale);
-            return Result.success(translations);
+            type = I18nConstants.TranslatableEntity.valueOf(entityType);
         } catch (IllegalArgumentException e) {
-            return Result.error(40000, "Invalid entity type: " + entityType);
+            return Result.error(ErrorCode.I18N_INVALID_ENTITY_TYPE.getCode(),
+                    ErrorCode.I18N_INVALID_ENTITY_TYPE.getMessage() + ": " + entityType);
         }
+
+        // Validate locale
+        if (!I18nConstants.isSupportedLocale(locale)) {
+            return Result.error(ErrorCode.I18N_INVALID_LOCALE.getCode(),
+                    ErrorCode.I18N_INVALID_LOCALE.getMessage() + ": " + locale);
+        }
+
+        Map<String, String> translations = i18nService.getTranslations(type, entityId, locale);
+        return Result.success(translations);
     }
 
     /**
      * Bulk upsert translations.
+     * <p>
+     * Request fields: translations (list), skipDuplicates (boolean)
+     * Response fields: created (int), updated (int), skipped (int)
      *
      * @param dto     the bulk upsert DTO
      * @param userId  the current user ID
@@ -66,8 +80,30 @@ public class I18nController {
             @Valid @RequestBody BulkUpsertDTO dto,
             @CurrentUser String userId) {
 
-        // Set createdBy for all translations if not provided
+        // Validate all translation items
         for (BulkUpsertDTO.TranslationItem item : dto.getTranslations()) {
+            // Validate entity type
+            I18nConstants.TranslatableEntity entityType;
+            try {
+                entityType = I18nConstants.TranslatableEntity.valueOf(item.getEntityType());
+            } catch (IllegalArgumentException e) {
+                return Result.error(ErrorCode.I18N_INVALID_ENTITY_TYPE.getCode(),
+                        ErrorCode.I18N_INVALID_ENTITY_TYPE.getMessage() + ": " + item.getEntityType());
+            }
+
+            // Validate locale
+            if (!I18nConstants.isSupportedLocale(item.getLocale())) {
+                return Result.error(ErrorCode.I18N_INVALID_LOCALE.getCode(),
+                        ErrorCode.I18N_INVALID_LOCALE.getMessage() + ": " + item.getLocale());
+            }
+
+            // Validate field name
+            if (!I18nConstants.isTranslatableField(entityType, item.getFieldName())) {
+                return Result.error(ErrorCode.I18N_INVALID_FIELD_NAME.getCode(),
+                        ErrorCode.I18N_INVALID_FIELD_NAME.getMessage() + ": " + item.getFieldName());
+            }
+
+            // Set createdBy for all translations if not provided
             if (item.getCreatedBy() == null || item.getCreatedBy().isBlank()) {
                 item.setCreatedBy(userId);
             }

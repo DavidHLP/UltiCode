@@ -55,14 +55,10 @@ public class I18nServiceImpl implements I18nService {
             return Collections.emptyMap();
         }
 
-        // Build comma-separated quoted IDs for SQL IN clause
-        String entityIdsStr = entityIds.stream()
-                .map(id -> "'" + id.replace("'", "''") + "'") // Escape single quotes
-                .collect(Collectors.joining(","));
-
+        // Use parameterized query with List<String> (safe from SQL injection)
         List<Translation> translations = translationMapper.findByEntitiesAndLocale(
                 entityType.name(),
-                entityIdsStr,
+                entityIds,
                 locale
         );
 
@@ -185,41 +181,84 @@ public class I18nServiceImpl implements I18nService {
         int updated = 0;
         int skipped = 0;
 
-        for (BulkUpsertDTO.TranslationItem item : translations) {
-            // Check if translation already exists
+        // Group translations by entity type for batch querying
+        Map<String, List<BulkUpsertDTO.TranslationItem>> byEntityType = translations.stream()
+                .collect(Collectors.groupingBy(BulkUpsertDTO.TranslationItem::getEntityType));
+
+        // Maps to hold items that need to be created vs updated
+        List<Translation> toCreate = new ArrayList<>();
+        List<Translation> toUpdate = new ArrayList<>();
+
+        for (Map.Entry<String, List<BulkUpsertDTO.TranslationItem>> entry : byEntityType.entrySet()) {
+            String entityType = entry.getKey();
+            List<BulkUpsertDTO.TranslationItem> items = entry.getValue();
+
+            // Collect all unique (entityId, fieldName, locale) combinations for batch query
+            Set<String> entityIds = items.stream()
+                    .map(BulkUpsertDTO.TranslationItem::getEntityId)
+                    .collect(Collectors.toSet());
+
+            Set<String> locales = items.stream()
+                    .map(BulkUpsertDTO.TranslationItem::getLocale)
+                    .collect(Collectors.toSet());
+
+            // Batch fetch existing translations for this entity type
             LambdaQueryWrapper<Translation> queryWrapper = new LambdaQueryWrapper<>();
-            queryWrapper.eq(Translation::getEntityType, item.getEntityType())
-                    .eq(Translation::getEntityId, item.getEntityId())
-                    .eq(Translation::getFieldName, item.getFieldName())
-                    .eq(Translation::getLocale, item.getLocale());
+            queryWrapper.eq(Translation::getEntityType, entityType)
+                    .in(Translation::getEntityId, entityIds)
+                    .in(Translation::getLocale, locales);
 
-            Translation existingTranslation = translationMapper.selectOne(queryWrapper);
+            List<Translation> existingTranslations = translationMapper.selectList(queryWrapper);
 
-            if (existingTranslation != null) {
-                if (skipDuplicates) {
-                    skipped++;
-                    continue;
+            // Create lookup key: "entityId:fieldName:locale"
+            Map<String, Translation> existingMap = existingTranslations.stream()
+                    .collect(Collectors.toMap(
+                            t -> t.getEntityId() + ":" + t.getFieldName() + ":" + t.getLocale(),
+                            t -> t,
+                            (a, b) -> a
+                    ));
+
+            // Process each item
+            for (BulkUpsertDTO.TranslationItem item : items) {
+                String key = item.getEntityId() + ":" + item.getFieldName() + ":" + item.getLocale();
+                Translation existing = existingMap.get(key);
+
+                if (existing != null) {
+                    if (skipDuplicates) {
+                        skipped++;
+                    } else {
+                        // Mark for update
+                        existing.setContent(item.getContent());
+                        if (item.getCreatedBy() != null) {
+                            existing.setUpdatedBy(item.getCreatedBy());
+                        }
+                        toUpdate.add(existing);
+                        updated++;
+                    }
+                } else {
+                    // Create new translation
+                    Translation newTranslation = new Translation();
+                    newTranslation.setEntityType(item.getEntityType());
+                    newTranslation.setEntityId(item.getEntityId());
+                    newTranslation.setFieldName(item.getFieldName());
+                    newTranslation.setLocale(item.getLocale());
+                    newTranslation.setContent(item.getContent());
+                    newTranslation.setCreatedBy(item.getCreatedBy());
+                    newTranslation.setUpdatedBy(item.getCreatedBy());
+                    toCreate.add(newTranslation);
+                    created++;
                 }
-                // Update existing translation
-                existingTranslation.setContent(item.getContent());
-                if (item.getCreatedBy() != null) {
-                    existingTranslation.setUpdatedBy(item.getCreatedBy());
-                }
-                translationMapper.updateById(existingTranslation);
-                updated++;
-            } else {
-                // Create new translation
-                Translation newTranslation = new Translation();
-                newTranslation.setEntityType(item.getEntityType());
-                newTranslation.setEntityId(item.getEntityId());
-                newTranslation.setFieldName(item.getFieldName());
-                newTranslation.setLocale(item.getLocale());
-                newTranslation.setContent(item.getContent());
-                newTranslation.setCreatedBy(item.getCreatedBy());
-                newTranslation.setUpdatedBy(item.getCreatedBy());
-                translationMapper.insert(newTranslation);
-                created++;
             }
+        }
+
+        // Batch insert new translations
+        for (Translation translation : toCreate) {
+            translationMapper.insert(translation);
+        }
+
+        // Batch update existing translations
+        for (Translation translation : toUpdate) {
+            translationMapper.updateById(translation);
         }
 
         result.setCreated(created);

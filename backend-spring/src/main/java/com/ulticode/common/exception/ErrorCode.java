@@ -144,7 +144,13 @@ public enum ErrorCode {
     // Achievement module (17xxxx)
     ACHIEVEMENT_NOT_FOUND(170001, "Achievement not found", HttpStatus.NOT_FOUND),
     ACHIEVEMENT_ALREADY_EARNED(170002, "Achievement already earned", HttpStatus.CONFLICT),
-    ACHIEVEMENT_INVALID_TYPE(170003, "Invalid achievement type", HttpStatus.BAD_REQUEST);
+    ACHIEVEMENT_INVALID_TYPE(170003, "Invalid achievement type", HttpStatus.BAD_REQUEST),
+
+    // Subscription module (18xxxx)
+    SUBSCRIPTION_NOT_FOUND(180001, "Subscription not found", HttpStatus.NOT_FOUND),
+    SUBSCRIPTION_ALREADY_ACTIVE(180002, "User already has an active subscription", HttpStatus.CONFLICT),
+    SUBSCRIPTION_EXPIRED(180003, "Subscription has expired", HttpStatus.BAD_REQUEST),
+    SUBSCRIPTION_CANCELLED(180004, "Subscription is cancelled", HttpStatus.BAD_REQUEST);
 
     private final Integer code;
     private final String message;

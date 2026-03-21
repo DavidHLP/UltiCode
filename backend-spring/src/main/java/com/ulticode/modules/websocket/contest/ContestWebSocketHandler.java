@@ -1,7 +1,7 @@
 package com.ulticode.modules.websocket.contest;
 
 import com.ulticode.modules.websocket.constants.WebSocketConstants;
-import com.ulticode.modules.websocket.contest.dto.ContestRoomResponse;
+import com.ulticode.modules.websocket.dto.ContestRoomResponse;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
 import org.slf4j.Logger;

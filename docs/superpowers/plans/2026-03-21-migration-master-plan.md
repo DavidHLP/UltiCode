@@ -55,11 +55,12 @@ Phase 5: 辅助模块 (5 天) ────────────────�
 
 | 阶段 | 计划文档 | 状态 |
 |------|----------|------|
-| Phase 1 | [2026-03-21-phase1-infrastructure.md](./2026-03-21-phase1-infrastructure.md) | 待执行 |
-| Phase 2 | [2026-03-21-phase2-core-modules.md](./2026-03-21-phase2-core-modules.md) | 待执行 |
-| Phase 3 | 待创建 | - |
-| Phase 4 | 待创建 | - |
-| Phase 5 | 待创建 | - |
+| Phase 1 | [2026-03-21-phase1-infrastructure.md](./2026-03-21-phase1-infrastructure.md) | ✅ 已完成 |
+| Phase 2 | [2026-03-21-phase2-core-modules.md](./2026-03-21-phase2-core-modules.md) | ✅ 已完成 |
+| Phase 3 | [2026-03-21-phase3-advanced-features.md](./2026-03-21-phase3-advanced-features.md) | ✅ 已完成 |
+| Phase 4 | [2026-03-21-phase4-admin-features.md](./2026-03-21-phase4-admin-features.md) | ✅ 已完成 |
+| Phase 5 | [2026-03-21-phase5-auxiliary-modules.md](./2026-03-21-phase5-auxiliary-modules.md) | ✅ 已完成 |
+| **Phase 6** | [2026-03-22-phase6-remaining-modules.md](./2026-03-22-phase6-remaining-modules.md) | ⏳ 待执行 |
 
 ---
 

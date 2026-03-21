@@ -117,7 +117,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
 
     // Attach user data to session
     SocketClientData clientData =
-        new SocketClientData(userId, user.username(), user.role());
+        new SocketClientData(userId, user.getUsername(), user.getRole());
 
     Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
     if (sessionAttributes != null) {
@@ -127,7 +127,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     // Set user principal for @MessageMapping methods
     accessor.setUser(clientData::userId);
 
-    log.debug("WebSocket authenticated: userId={}, username={}", userId, user.username());
+    log.debug("WebSocket authenticated: userId={}, username={}", userId, user.getUsername());
   }
 
   /** Exception for WebSocket authentication failures. */

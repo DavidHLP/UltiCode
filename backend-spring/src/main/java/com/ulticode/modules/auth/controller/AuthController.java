@@ -4,7 +4,12 @@ import com.ulticode.common.response.Result;
 import com.ulticode.modules.auth.dto.LoginDTO;
 import com.ulticode.modules.auth.dto.LoginResponse;
 import com.ulticode.modules.auth.dto.RegisterDTO;
+import com.ulticode.modules.auth.dto.UserWithCsrfVO;
 import com.ulticode.modules.auth.service.AuthService;
+import com.ulticode.modules.user.dto.UserVO;
+import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.user.service.UserService;
+import com.ulticode.security.csrf.CsrfService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
@@ -12,7 +17,11 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+
+import java.security.Principal;
 
 /**
  * Authentication controller for login, register, refresh, and logout.
@@ -24,6 +33,8 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final CsrfService csrfService;
+    private final UserService userService;
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
@@ -60,6 +71,23 @@ public class AuthController {
     public Result<Void> logout(HttpServletResponse response) {
         authService.logout(response);
         return Result.success();
+    }
+
+    @Operation(summary = "Get current user", description = "Get the authenticated user profile with CSRF token")
+    @GetMapping("/me")
+    public Result<UserWithCsrfVO> getCurrentUser(Principal principal) {
+        String userId = principal.getName();
+        User user = userService.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String csrfToken = csrfService.generateToken(user.getId());
+        UserVO userVO = userService.toVO(user);
+
+        UserWithCsrfVO response = new UserWithCsrfVO();
+        response.setUser(userVO);
+        response.setCsrfToken(csrfToken);
+
+        return Result.success(response);
     }
 
     /**

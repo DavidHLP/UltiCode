@@ -41,7 +41,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public LoginResponse login(LoginDTO loginDTO, HttpServletResponse response) {
         // Find user by username
-        User user = userMapper.selectById(
+        User user = userMapper.selectOne(
                 new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<User>()
                         .eq(User::getUsername, loginDTO.getUsername())
         );
@@ -203,7 +203,7 @@ public class AuthServiceImpl implements AuthService {
      * @param accessToken the access token
      */
     private void setAuthCookie(HttpServletResponse response, String accessToken) {
-        JwtProperties.CookieConfig cookieConfig = jwtProperties.getCookie();
+        JwtProperties.AccessTokenCookie cookieConfig = jwtProperties.getCookie().getAccessToken();
 
         Cookie cookie = new Cookie(cookieConfig.getName(), accessToken);
         cookie.setHttpOnly(cookieConfig.isHttpOnly());
@@ -230,7 +230,7 @@ public class AuthServiceImpl implements AuthService {
      * @param response the HTTP response
      */
     private void clearAuthCookie(HttpServletResponse response) {
-        JwtProperties.CookieConfig cookieConfig = jwtProperties.getCookie();
+        JwtProperties.AccessTokenCookie cookieConfig = jwtProperties.getCookie().getAccessToken();
 
         String headerValue = String.format("%s=; Path=%s; Max-Age=0; HttpOnly%s; SameSite=%s",
                 cookieConfig.getName(),

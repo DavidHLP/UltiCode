@@ -1,7 +1,7 @@
 package com.ulticode.modules.websocket.interceptor;
 
 import com.ulticode.common.constants.ErrorCode;
-import com.ulticode.common.service.RedisService;
+import com.ulticode.common.service.TokenBlacklistService;
 import com.ulticode.modules.auth.util.JwtUtils;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
@@ -32,17 +32,17 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private static final Logger log = LoggerFactory.getLogger(JwtChannelInterceptor.class);
 
   private final JwtUtils jwtUtils;
-  private final RedisService redisService;
+  private final TokenBlacklistService tokenBlacklistService;
   private final UserService userService;
   private final TokenExtractor tokenExtractor;
 
   public JwtChannelInterceptor(
       JwtUtils jwtUtils,
-      RedisService redisService,
+      TokenBlacklistService tokenBlacklistService,
       UserService userService,
       TokenExtractor tokenExtractor) {
     this.jwtUtils = jwtUtils;
-    this.redisService = redisService;
+    this.tokenBlacklistService = tokenBlacklistService;
     this.userService = userService;
     this.tokenExtractor = tokenExtractor;
   }
@@ -82,7 +82,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     String token = tokenOpt.get();
 
     // Check if token is blacklisted
-    if (redisService.isTokenBlacklisted(token)) {
+    if (tokenBlacklistService.isTokenBlacklisted(token)) {
       log.warn("WebSocket connection rejected: Token is blacklisted");
       throw new WebSocketAuthenticationException(
           ErrorCode.WEBSOCKET_TOKEN_BLACKLISTED, "Token has been revoked");

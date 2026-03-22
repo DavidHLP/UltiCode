@@ -114,11 +114,12 @@ log "${B}:: Management${R} ${D}────────────────�
 stop_port $MANAGEMENT_PORT "Management" && STOPPED+=("Management")
 
 log ""
-log "${B}:: Backend${R} ${D}──────────────────────${R}"
+log "${B}:: Backend (Spring Boot)${R} ${D}────────────────${R}"
 if port_used $BACKEND_PORT; then
     step "Stopping Backend..."
-    pkill -9 -f "nest start" 2>/dev/null || true
-    pkill -9 -f "node.*backend" 2>/dev/null || true
+    pkill -9 -f "spring-boot:run" 2>/dev/null || true
+    pkill -9 -f "backend-spring" 2>/dev/null || true
+    pkill -9 -f "ulticode-backend" 2>/dev/null || true
     sleep 2
     if port_used $BACKEND_PORT; then
         err "Backend still running"

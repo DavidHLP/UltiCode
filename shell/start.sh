@@ -163,18 +163,22 @@ if [ "$SKIP_INSTALL" = false ]; then
     fi
 fi
 
-# ============== Step 4: Backend ==============
+# ============== Step 4: Backend (Spring Boot) ==============
 log ""
-log "${B}:: Backend${R} ${D}──────────────────────${R}"
+log "${B}:: Backend (Spring Boot)${R} ${D}────────────────${R}"
 
 if port_used $BACKEND_PORT; then
     info "Already running on port $BACKEND_PORT"
 else
-    cd backend
-    pnpm run prisma:generate >/dev/null 2>&1 || true
+    cd backend-spring
     rm -f nohup.out 2>/dev/null
 
-    nohup npx nest start --watch >/tmp/ulticode-backend.log 2>&1 &
+    # Load environment variables from .env file
+    if [ -f ".env" ]; then
+        export $(grep -v '^#' .env | xargs)
+    fi
+
+    nohup ./mvnw spring-boot:run >/tmp/ulticode-backend.log 2>&1 &
     BACKEND_PID=$!
     cd ..
 

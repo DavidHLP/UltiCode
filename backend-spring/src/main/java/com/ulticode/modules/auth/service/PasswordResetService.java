@@ -2,6 +2,7 @@ package com.ulticode.modules.auth.service;
 
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.refreshtoken.service.RefreshTokenService;
@@ -41,6 +42,7 @@ public class PasswordResetService {
      *
      * @param email the user's email address
      */
+    @RateLimit(key = "'forgot-password:' + #email", limit = 3, period = 3600)
     public void forgotPassword(String email) {
         User user = userMapper.selectOne(
             new LambdaQueryWrapper<User>()

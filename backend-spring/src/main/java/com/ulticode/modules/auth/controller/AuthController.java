@@ -1,5 +1,7 @@
 package com.ulticode.modules.auth.controller;
 
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.auth.dto.LoginDTO;
 import com.ulticode.modules.auth.dto.LoginResponse;
@@ -17,8 +19,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -78,7 +78,7 @@ public class AuthController {
     public Result<UserWithCsrfVO> getCurrentUser(Principal principal) {
         String userId = principal.getName();
         User user = userService.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
 
         String csrfToken = csrfService.generateToken(user.getId());
         UserVO userVO = userService.toVO(user);

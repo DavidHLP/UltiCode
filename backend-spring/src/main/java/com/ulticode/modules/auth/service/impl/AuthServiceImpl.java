@@ -75,8 +75,9 @@ public class AuthServiceImpl implements AuthService {
         );
         String refreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        // Set cookie
+        // Set cookies
         setAuthCookie(response, accessToken);
+        setRefreshTokenCookie(response, refreshToken);
 
         // Update last login time
         userService.updateLastLoginAt(user.getId());
@@ -171,15 +172,17 @@ public class AuthServiceImpl implements AuthService {
             }
         }
 
-        // Generate new access token
+        // Generate new tokens
         String accessToken = jwtTokenProvider.generateAccessToken(
                 user.getId(),
                 user.getUsername(),
                 user.getRole()
         );
+        String newRefreshToken = jwtTokenProvider.generateRefreshToken(user.getId());
 
-        // Set cookie
+        // Set cookies
         setAuthCookie(response, accessToken);
+        setRefreshTokenCookie(response, newRefreshToken);
 
         // Build response
         String csrfToken = IdUtil.simpleUUID();
@@ -193,7 +196,7 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public void logout(HttpServletResponse response) {
-        clearAuthCookie(response);
+        clearAuthCookies(response);
     }
 
     /**
@@ -225,19 +228,49 @@ public class AuthServiceImpl implements AuthService {
     }
 
     /**
-     * Clear the authentication cookie.
+     * Set the refresh token cookie.
      *
-     * @param response the HTTP response
+     * @param response     the HTTP response
+     * @param refreshToken the refresh token
      */
-    private void clearAuthCookie(HttpServletResponse response) {
-        JwtProperties.AccessTokenCookie cookieConfig = jwtProperties.getCookie().getAccessToken();
+    private void setRefreshTokenCookie(HttpServletResponse response, String refreshToken) {
+        JwtProperties.RefreshTokenCookie cookieConfig = jwtProperties.getCookie().getRefreshToken();
 
-        String headerValue = String.format("%s=; Path=%s; Max-Age=0; HttpOnly%s; SameSite=%s",
+        String headerValue = String.format("%s=%s; Path=%s; Max-Age=%d; HttpOnly%s; SameSite=%s",
                 cookieConfig.getName(),
+                refreshToken,
                 cookieConfig.getPath(),
+                cookieConfig.getMaxAge(),
                 cookieConfig.isSecure() ? "; Secure" : "",
                 cookieConfig.getSameSite()
         );
         response.addHeader("Set-Cookie", headerValue);
+    }
+
+    /**
+     * Clear both authentication cookies.
+     *
+     * @param response the HTTP response
+     */
+    private void clearAuthCookies(HttpServletResponse response) {
+        JwtProperties.CookieConfig cookieConfig = jwtProperties.getCookie();
+
+        // Clear access_token
+        String accessHeader = String.format("%s=; Path=%s; Max-Age=0; HttpOnly%s; SameSite=%s",
+                cookieConfig.getAccessToken().getName(),
+                cookieConfig.getAccessToken().getPath(),
+                cookieConfig.getAccessToken().isSecure() ? "; Secure" : "",
+                cookieConfig.getAccessToken().getSameSite()
+        );
+        response.addHeader("Set-Cookie", accessHeader);
+
+        // Clear refresh_token
+        String refreshHeader = String.format("%s=; Path=%s; Max-Age=0; HttpOnly%s; SameSite=%s",
+                cookieConfig.getRefreshToken().getName(),
+                cookieConfig.getRefreshToken().getPath(),
+                cookieConfig.getRefreshToken().isSecure() ? "; Secure" : "",
+                cookieConfig.getRefreshToken().getSameSite()
+        );
+        response.addHeader("Set-Cookie", refreshHeader);
     }
 }

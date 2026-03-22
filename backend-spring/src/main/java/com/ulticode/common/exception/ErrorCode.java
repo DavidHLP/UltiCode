@@ -29,6 +29,7 @@ public enum ErrorCode {
     FORBIDDEN(40300, "Forbidden", HttpStatus.FORBIDDEN),
     NOT_FOUND(40400, "Not found", HttpStatus.NOT_FOUND),
     CONFLICT(40900, "Conflict", HttpStatus.CONFLICT),
+    TOO_MANY_REQUESTS(42900, "Too many requests", HttpStatus.TOO_MANY_REQUESTS),
 
     // Auth module (1xxxx)
     AUTH_INVALID_CREDENTIALS(10001, "Invalid credentials", HttpStatus.UNAUTHORIZED),

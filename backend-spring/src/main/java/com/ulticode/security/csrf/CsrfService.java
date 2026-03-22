@@ -30,6 +30,10 @@ public class CsrfService {
      * @return CSRF token
      */
     public String generateToken(String userId) {
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("userId cannot be null or empty");
+        }
+
         String tokenId = IdUtil.simpleUUID();
         String token = IdUtil.simpleUUID();
         String key = buildKey(userId, tokenId);
@@ -48,12 +52,18 @@ public class CsrfService {
      * @return 是否验证通过
      */
     public boolean validateToken(String userId, String token) {
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("userId cannot be null or empty");
+        }
+
         if (token == null || token.isEmpty()) {
+            log.debug("CSRF token is null or empty for user: {}", userId);
             return false;
         }
 
         String[] parts = token.split(":");
-        if (parts.length != 2) {
+        if (parts.length != 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
+            log.warn("Invalid CSRF token format for user: {}", userId);
             return false;
         }
 
@@ -82,6 +92,10 @@ public class CsrfService {
      * @param userId 用户ID
      */
     public void clearUserTokens(String userId) {
+        if (userId == null || userId.isEmpty()) {
+            throw new IllegalArgumentException("userId cannot be null or empty");
+        }
+
         String pattern = CSRF_PREFIX + userId + ":*";
         Set<String> keys = redisTemplate.keys(pattern);
         if (keys != null && !keys.isEmpty()) {

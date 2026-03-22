@@ -96,15 +96,16 @@ spin_wait_stop "Processes terminating" 10
 log ""
 log "${B}:: Cleanup${R} ${D}──────────────────────${R}"
 
-pkill -9 -f "nest start" 2>/dev/null || true
-pkill -9 -f "node.*backend" 2>/dev/null || true
+pkill -9 -f "spring-boot:run" 2>/dev/null || true
+pkill -9 -f "backend-spring" 2>/dev/null || true
+pkill -9 -f "ulticode-backend" 2>/dev/null || true
 pkill -9 -f "vite" 2>/dev/null || true
 pkill -9 -f "pnpm.*dev" 2>/dev/null || true
 pkill -9 -f "recommend-web" 2>/dev/null || true
 pkill -9 -f "recommend-provider" 2>/dev/null || true
 
 rm -f /tmp/ulticode-*.log 2>/dev/null
-rm -f nohup.out backend/nohup.out console/nohup.out management/nohup.out 2>/dev/null
+rm -f nohup.out backend-spring/nohup.out console/nohup.out management/nohup.out 2>/dev/null
 
 ok "Cleanup complete"
 

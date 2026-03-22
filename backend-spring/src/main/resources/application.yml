@@ -7,15 +7,15 @@ spring:
 
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
-    username: ${DB_USER:root}
-    password: ${DB_PASSWORD:}
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USER:ulticode}
+    password: ${DB_PASSWORD:ulticode}
 
   data:
     redis:
       host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:6379}
-      password: ${REDIS_PASSWORD:}
+      port: ${REDIS_PORT:26379}
+      password: ${REDIS_PASSWORD:123456}
       database: ${REDIS_DB:0}
       timeout: 10000ms
       lettuce:
@@ -39,12 +39,20 @@ jwt:
   refresh-token:
     expiration: 604800000  # 7 days in milliseconds
   cookie:
-    name: ulticode_token
-    http-only: true
-    secure: ${JWT_COOKIE_SECURE:true}
-    same-site: strict
-    path: /
-    max-age: 604800  # 7 days in seconds
+    access-token:
+      name: access_token
+      http-only: true
+      secure: ${JWT_COOKIE_SECURE:true}
+      same-site: strict
+      path: /
+      max-age: 900  # 15 minutes in seconds
+    refresh-token:
+      name: refresh_token
+      http-only: true
+      secure: ${JWT_COOKIE_SECURE:true}
+      same-site: strict
+      path: /
+      max-age: 604800  # 7 days in seconds
 
 # MyBatis-Plus Configuration
 mybatis-plus:
@@ -55,8 +63,8 @@ mybatis-plus:
     log-impl: org.apache.ibatis.logging.slf4j.Slf4jImpl
   global-config:
     db-config:
-      id-type: auto
-      logic-delete-field: deleted
+      id-type: input                    # 改为 input（UUID）
+      logic-delete-field: isDeleted     # 与实体字段一致
       logic-delete-value: 1
       logic-not-delete-value: 0
 
@@ -116,3 +124,9 @@ app:
   email:
     enabled: ${EMAIL_ENABLED:false}
     from-name: ${EMAIL_FROM_NAME:UltiCode}
+
+# Management/Actuator Configuration
+management:
+  health:
+    mail:
+      enabled: false

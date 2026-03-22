@@ -56,8 +56,9 @@ describe("useContestSocket", () => {
 
   describe("initialization", () => {
     it("should return initial disconnected state", () => {
-      const { status, isConnected, currentContestId, error } =
-        useContestSocket({ autoConnect: false });
+      const { status, isConnected, currentContestId, error } = useContestSocket(
+        { autoConnect: false },
+      );
 
       expect(status.value).toBe("disconnected");
       expect(isConnected.value).toBe(false);

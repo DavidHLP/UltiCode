@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 @Slf4j
 @Controller
 @RequiredArgsConstructor
-public class NotificationController {
+public class WebSocketNotificationController {
 
     private final NotificationService notificationService;
 

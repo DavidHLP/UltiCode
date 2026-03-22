@@ -12,6 +12,16 @@
 
 ---
 
+## ⚠️ 实施前必读
+
+1. **迁移文件命名**: 使用 `20260322000000_description/migration.sql` 格式（与现有迁移一致）
+2. **DigestUtils**: 使用 `org.apache.commons.codec.digest.DigestUtils` (已在项目中)
+3. **Hutool HTTP**: 使用 `cn.hutool.http.HttpRequest` 类而非 `HttpUtil.createPost()`
+4. **WebConfig**: 项目已有 `common/config/WebConfig.java`，需修改而非新建
+5. **ErrorCode**: 需添加 `TOO_MANY_REQUESTS` 到现有枚举类
+
+---
+
 ## 文件结构
 
 ### 新增文件 (12个)
@@ -65,8 +75,8 @@ backend-spring/
 ├── src/main/resources/
 │   └── application.yml
 ├── init-db/migrations/
-│   ├── V009__add_user_soft_delete.sql
-│   └── V010__add_refresh_token_hash.sql
+│   ├── 20260322000000_add_user_soft_delete/migration.sql
+│   └── 20260322000001_add_refresh_token_hash/migration.sql
 └── .env.example
 ```
 
@@ -493,25 +503,68 @@ git commit -m "fix: update cookie handling to use new JWT properties config"
 ## Task 1.7: 添加数据库迁移脚本
 
 **Files:**
-- Create: `init-db/migrations/V009__add_user_soft_delete.sql`
+- Create: `init-db/migrations/20260322000000_add_user_soft_delete/migration.sql`
 
-- [ ] **Step 1: 创建迁移脚本**
+- [ ] **Step 1: 创建迁移目录和脚本**
+
+```bash
+mkdir -p init-db/migrations/20260322000000_add_user_soft_delete
+```
 
 ```sql
--- 添加用户表逻辑删除字段
-ALTER TABLE users
-ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) NOT NULL DEFAULT 0 COMMENT '逻辑删除标记',
-ADD COLUMN IF NOT EXISTS deleted_at DATETIME NULL COMMENT '删除时间',
-ADD COLUMN IF NOT EXISTS deleted_by VARCHAR(40) NULL COMMENT '删除人ID';
+-- migration.sql: 添加用户表逻辑删除字段
+-- 注意: MySQL 不支持 IF NOT EXISTS，使用存储过程实现幂等
+
+DELIMITER //
+
+-- 添加 is_deleted 列
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'is_deleted');
+SET @sql := IF(@exist = 0,
+    'ALTER TABLE users ADD COLUMN is_deleted TINYINT(1) NOT NULL DEFAULT 0 COMMENT ''逻辑删除标记''',
+    'SELECT ''Column is_deleted already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 添加 deleted_at 列
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'deleted_at');
+SET @sql := IF(@exist = 0,
+    'ALTER TABLE users ADD COLUMN deleted_at DATETIME NULL COMMENT ''删除时间''',
+    'SELECT ''Column deleted_at already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+-- 添加 deleted_by 列
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND COLUMN_NAME = 'deleted_by');
+SET @sql := IF(@exist = 0,
+    'ALTER TABLE users ADD COLUMN deleted_by VARCHAR(40) NULL COMMENT ''删除人ID''',
+    'SELECT ''Column deleted_by already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 添加索引
-CREATE INDEX IF NOT EXISTS idx_users_is_deleted ON users(is_deleted);
+SET @exist := (SELECT COUNT(*) FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'users' AND INDEX_NAME = 'idx_users_is_deleted');
+SET @sql := IF(@exist = 0,
+    'CREATE INDEX idx_users_is_deleted ON users(is_deleted)',
+    'SELECT ''Index idx_users_is_deleted already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+//
+DELIMITER ;
 ```
 
 - [ ] **Step 2: 提交修改**
 
 ```bash
-git add init-db/migrations/V009__add_user_soft_delete.sql
+git add init-db/migrations/20260322000000_add_user_soft_delete/
 git commit -m "db: add soft delete columns to users table"
 ```
 
@@ -861,7 +914,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.Duration;
-import java.util.DigestUtils;
+import org.apache.commons.codec.digest.DigestUtils;
 
 @Service
 @RequiredArgsConstructor
@@ -959,23 +1012,48 @@ git commit -m "feat: add RefreshToken entity and service with token rotation"
 ## Task 2.4: 添加数据库迁移脚本
 
 **Files:**
-- Create: `init-db/migrations/V010__add_refresh_token_hash.sql`
+- Create: `init-db/migrations/20260322000001_add_refresh_token_hash/migration.sql`
 
-- [ ] **Step 1: 创建迁移脚本**
+- [ ] **Step 1: 创建迁移目录和脚本**
+
+```bash
+mkdir -p init-db/migrations/20260322000001_add_refresh_token_hash
+```
 
 ```sql
--- 添加 token_hash 列到 refresh_tokens 表
-ALTER TABLE refresh_tokens
-ADD COLUMN IF NOT EXISTS token_hash VARCHAR(255) NULL COMMENT 'Token哈希值' AFTER token;
+-- migration.sql: 添加 token_hash 列到 refresh_tokens 表
+-- 注意: MySQL 不支持 IF NOT EXISTS，使用存储过程实现幂等
+
+DELIMITER //
+
+-- 添加 token_hash 列
+SET @exist := (SELECT COUNT(*) FROM information_schema.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'refresh_tokens' AND COLUMN_NAME = 'token_hash');
+SET @sql := IF(@exist = 0,
+    'ALTER TABLE refresh_tokens ADD COLUMN token_hash VARCHAR(255) NULL COMMENT ''Token哈希值'' AFTER token',
+    'SELECT ''Column token_hash already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
 
 -- 添加索引
-CREATE INDEX IF NOT EXISTS idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
+SET @exist := (SELECT COUNT(*) FROM information_schema.STATISTICS
+    WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'refresh_tokens' AND INDEX_NAME = 'idx_refresh_tokens_token_hash');
+SET @sql := IF(@exist = 0,
+    'CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash)',
+    'SELECT ''Index idx_refresh_tokens_token_hash already exists''');
+PREPARE stmt FROM @sql;
+EXECUTE stmt;
+DEALLOCATE PREPARE stmt;
+
+//
+DELIMITER ;
 ```
 
 - [ ] **Step 2: 提交修改**
 
 ```bash
-git add init-db/migrations/V010__add_refresh_token_hash.sql
+git add init-db/migrations/20260322000001_add_refresh_token_hash/
 git commit -m "db: add token_hash column to refresh_tokens table"
 ```
 
@@ -1317,7 +1395,8 @@ git commit -m "feat: add OAuth configuration for GitHub and Google"
 package com.ulticode.modules.auth.service;
 
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.http.HttpUtil;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.modules.auth.dto.LoginResponse;
@@ -1370,14 +1449,16 @@ public class OAuthService {
         OAuthProperties.OAuthProvider github = oauthProperties.getGithub();
 
         // 获取 access token
-        String tokenResponse = HttpUtil.createPost(github.getTokenUrl())
+        String tokenResponse;
+        try (HttpResponse resp = HttpRequest.post(github.getTokenUrl())
             .header("Accept", "application/json")
             .body("client_id=" + github.getClientId() +
                   "&client_secret=" + github.getClientSecret() +
                   "&code=" + code +
                   "&redirect_uri=" + URLEncoder.encode(github.getRedirectUri(), StandardCharsets.UTF_8))
-            .execute()
-            .body();
+            .execute()) {
+            tokenResponse = resp.body();
+        }
 
         String accessToken;
         try {
@@ -1389,11 +1470,13 @@ public class OAuthService {
         }
 
         // 获取用户信息
-        String userResponse = HttpUtil.createGet(github.getUserUrl())
+        String userResponse;
+        try (HttpResponse resp = HttpRequest.get(github.getUserUrl())
             .header("Authorization", "Bearer " + accessToken)
             .header("Accept", "application/json")
-            .execute()
-            .body();
+            .execute()) {
+            userResponse = resp.body();
+        }
 
         try {
             JsonNode userNode = objectMapper.readTree(userResponse);
@@ -1430,15 +1513,19 @@ public class OAuthService {
         OAuthProperties.OAuthProvider google = oauthProperties.getGoogle();
 
         // 获取 access token
-        String tokenResponse = HttpUtil.createPost(google.getTokenUrl())
+        String tokenRequestBody = "client_id=" + google.getClientId() +
+              "&client_secret=" + google.getClientSecret() +
+              "&code=" + code +
+              "&redirect_uri=" + URLEncoder.encode(google.getRedirectUri(), StandardCharsets.UTF_8) +
+              "&grant_type=authorization_code";
+
+        String tokenResponse;
+        try (HttpResponse resp = HttpRequest.post(google.getTokenUrl())
             .header("Content-Type", "application/x-www-form-urlencoded")
-            .body("client_id=" + google.getClientId() +
-                  "&client_secret=" + google.getClientSecret() +
-                  "&code=" + code +
-                  "&redirect_uri=" + URLEncoder.encode(google.getRedirectUri(), StandardCharsets.UTF_8) +
-                  "&grant_type=authorization_code")
-            .execute()
-            .body();
+            .body(tokenRequestBody)
+            .execute()) {
+            tokenResponse = resp.body();
+        }
 
         String accessToken;
         try {
@@ -1450,10 +1537,12 @@ public class OAuthService {
         }
 
         // 获取用户信息
-        String userResponse = HttpUtil.createGet(google.getUserUrl())
+        String userResponse;
+        try (HttpResponse resp = HttpRequest.get(google.getUserUrl())
             .header("Authorization", "Bearer " + accessToken)
-            .execute()
-            .body();
+            .execute()) {
+            userResponse = resp.body();
+        }
 
         try {
             JsonNode userNode = objectMapper.readTree(userResponse);

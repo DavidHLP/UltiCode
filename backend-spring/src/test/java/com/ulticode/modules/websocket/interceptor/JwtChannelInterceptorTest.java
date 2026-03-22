@@ -4,7 +4,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 import com.ulticode.common.constants.ErrorCode;
-import com.ulticode.common.service.RedisService;
+import com.ulticode.common.service.TokenBlacklistService;
 import com.ulticode.modules.auth.util.JwtUtils;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
@@ -30,7 +30,7 @@ import org.springframework.messaging.support.MessageBuilder;
 class JwtChannelInterceptorTest {
 
   @Mock private JwtUtils jwtUtils;
-  @Mock private RedisService redisService;
+  @Mock private TokenBlacklistService tokenBlacklistService;
   @Mock private UserService userService;
   @Mock private TokenExtractor tokenExtractor;
   @Mock private MessageChannel channel;
@@ -39,7 +39,7 @@ class JwtChannelInterceptorTest {
 
   @BeforeEach
   void setUp() {
-    interceptor = new JwtChannelInterceptor(jwtUtils, redisService, userService, tokenExtractor);
+    interceptor = new JwtChannelInterceptor(jwtUtils, tokenBlacklistService, userService, tokenExtractor);
   }
 
   @Test
@@ -74,7 +74,7 @@ class JwtChannelInterceptorTest {
     User user = createUser(userId, "testuser", "USER");
 
     when(tokenExtractor.extractTokenFromHeaders(any())).thenReturn(Optional.of(token));
-    when(redisService.isTokenBlacklisted(token)).thenReturn(false);
+    when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(false);
     when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
     when(claims.getSubject()).thenReturn(userId);
     when(userService.findById(userId)).thenReturn(Optional.of(user));
@@ -84,7 +84,7 @@ class JwtChannelInterceptorTest {
 
     assertSame(message, result);
     verify(tokenExtractor).extractTokenFromHeaders(any());
-    verify(redisService).isTokenBlacklisted(token);
+    verify(tokenBlacklistService).isTokenBlacklisted(token);
     verify(jwtUtils).validateToken(token);
     verify(userService).findById(userId);
   }
@@ -114,7 +114,7 @@ class JwtChannelInterceptorTest {
     Map<String, Object> headers = new HashMap<>(accessor.getMessageHeaders());
 
     when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(redisService.isTokenBlacklisted(token)).thenReturn(true);
+    when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(true);
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
 
@@ -134,7 +134,7 @@ class JwtChannelInterceptorTest {
     Map<String, Object> headers = new HashMap<>(accessor.getMessageHeaders());
 
     when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(redisService.isTokenBlacklisted(token)).thenReturn(false);
+    when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(false);
     when(jwtUtils.validateToken(token)).thenReturn(Optional.empty());
 
     Message<?> message = MessageBuilder.createMessage("", accessor.getMessageHeaders());
@@ -157,7 +157,7 @@ class JwtChannelInterceptorTest {
     Claims claims = mock(Claims.class);
 
     when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(redisService.isTokenBlacklisted(token)).thenReturn(false);
+    when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(false);
     when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
     when(claims.getSubject()).thenReturn(null);
 
@@ -181,7 +181,7 @@ class JwtChannelInterceptorTest {
     Claims claims = mock(Claims.class);
 
     when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(redisService.isTokenBlacklisted(token)).thenReturn(false);
+    when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(false);
     when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
     when(claims.getSubject()).thenReturn("");
 
@@ -205,7 +205,7 @@ class JwtChannelInterceptorTest {
     Claims claims = mock(Claims.class);
 
     when(tokenExtractor.extractTokenFromHeaders(headers)).thenReturn(Optional.of(token));
-    when(redisService.isTokenBlacklisted(token)).thenReturn(false);
+    when(tokenBlacklistService.isTokenBlacklisted(token)).thenReturn(false);
     when(jwtUtils.validateToken(token)).thenReturn(Optional.of(claims));
     when(claims.getSubject()).thenReturn(userId);
     when(userService.findById(userId)).thenReturn(Optional.empty());

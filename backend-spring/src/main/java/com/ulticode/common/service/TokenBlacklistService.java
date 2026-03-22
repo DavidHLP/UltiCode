@@ -4,23 +4,16 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
-import java.util.Optional;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 /**
- * Redis service for caching and token blacklist operations.
+ * Service for token blacklist operations using Redis.
  *
- * <p>Provides common Redis operations including:
- *
- * <ul>
- *   <li>Token blacklist management
- *   <li>Generic caching with TTL
- *   <li>Cache invalidation
- * </ul>
+ * <p>Provides token blacklist management with SHA-256 hashing for secure storage.
  */
 @Service
-public class RedisService {
+public class TokenBlacklistService {
 
   private final StringRedisTemplate redisTemplate;
 
@@ -30,10 +23,7 @@ public class RedisService {
   /** Key prefix for token blacklist. */
   private static final String TOKEN_BLACKLIST_PREFIX = "blacklist:token:";
 
-  /** Key prefix for general cache. */
-  private static final String CACHE_PREFIX = "cache:";
-
-  public RedisService(StringRedisTemplate redisTemplate) {
+  public TokenBlacklistService(StringRedisTemplate redisTemplate) {
     this.redisTemplate = redisTemplate;
   }
 
@@ -113,64 +103,5 @@ public class RedisService {
       // SHA-256 is always available in Java
       throw new RuntimeException("SHA-256 algorithm not available", e);
     }
-  }
-
-  // ==================== Generic Cache Operations ====================
-
-  /**
-   * Set a cache value with TTL.
-   *
-   * @param key the cache key
-   * @param value the value to cache
-   * @param ttlSeconds time to live in seconds
-   */
-  public void set(String key, String value, long ttlSeconds) {
-    String fullKey = CACHE_PREFIX + key;
-    redisTemplate.opsForValue().set(fullKey, value, Duration.ofSeconds(ttlSeconds));
-  }
-
-  /**
-   * Get a cached value.
-   *
-   * @param key the cache key
-   * @return Optional containing the value if present
-   */
-  public Optional<String> get(String key) {
-    String fullKey = CACHE_PREFIX + key;
-    return Optional.ofNullable(redisTemplate.opsForValue().get(fullKey));
-  }
-
-  /**
-   * Delete a cached value.
-   *
-   * @param key the cache key
-   * @return true if the key was deleted
-   */
-  public boolean delete(String key) {
-    String fullKey = CACHE_PREFIX + key;
-    return Boolean.TRUE.equals(redisTemplate.delete(fullKey));
-  }
-
-  /**
-   * Check if a key exists.
-   *
-   * @param key the cache key
-   * @return true if the key exists
-   */
-  public boolean exists(String key) {
-    String fullKey = CACHE_PREFIX + key;
-    return Boolean.TRUE.equals(redisTemplate.hasKey(fullKey));
-  }
-
-  /**
-   * Set expiration on a key.
-   *
-   * @param key the cache key
-   * @param ttlSeconds time to live in seconds
-   * @return true if expiration was set
-   */
-  public boolean expire(String key, long ttlSeconds) {
-    String fullKey = CACHE_PREFIX + key;
-    return Boolean.TRUE.equals(redisTemplate.expire(fullKey, Duration.ofSeconds(ttlSeconds)));
   }
 }

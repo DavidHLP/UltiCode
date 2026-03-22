@@ -19,12 +19,13 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Auth", description = "Authentication endpoints")
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
     private final AuthService authService;
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
+    private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     @Operation(summary = "Login", description = "Authenticate user with username and password")
     @PostMapping("/login")
@@ -71,7 +72,7 @@ public class AuthController {
         Cookie[] cookies = request.getCookies();
         if (cookies != null) {
             for (Cookie cookie : cookies) {
-                if (ACCESS_TOKEN_COOKIE.equals(cookie.getName())) {
+                if (REFRESH_TOKEN_COOKIE.equals(cookie.getName())) {
                     return cookie.getValue();
                 }
             }

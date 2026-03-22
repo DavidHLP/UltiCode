@@ -3,9 +3,7 @@ import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "@/stores/auth";
-import { useRankingStore } from "@/stores/contest/rankingStore";
-import { useContestStore } from "@/stores/contest/contestStore";
-import type { RankingEntry, ContestAnnouncement } from "@/types/contest";
+import type { RankingEntry } from "@/types/contest";
 
 // ============================================================================
 // TYPES
@@ -201,7 +199,10 @@ function handleMessage(eventType: string, message: IMessage): void {
     const callbacks = eventCallbacks.get(eventType);
     if (callbacks) callbacks.forEach((cb) => cb(data));
   } catch (error) {
-    console.error(`[STOMP Contest] Error parsing message for ${eventType}:`, error);
+    console.error(
+      `[STOMP Contest] Error parsing message for ${eventType}:`,
+      error,
+    );
   }
 }
 
@@ -348,8 +349,6 @@ export function useContestSocket(
   } = options;
 
   const authStore = useAuthStore();
-  const rankingStore = useRankingStore();
-  const contestStore = useContestStore();
 
   const status = ref<ConnectionStatus>(connectionStatus);
   const isConnected = ref(connectionStatus === "connected");
@@ -502,7 +501,9 @@ export function useContestSocket(
     }
     eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
     return () => {
-      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
+      eventCallbacks
+        .get(event)
+        ?.delete(callback as (...args: unknown[]) => void);
     };
   };
 
@@ -515,7 +516,9 @@ export function useContestSocket(
     }
     eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
     return () => {
-      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
+      eventCallbacks
+        .get(event)
+        ?.delete(callback as (...args: unknown[]) => void);
     };
   };
 
@@ -528,7 +531,9 @@ export function useContestSocket(
     }
     eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
     return () => {
-      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
+      eventCallbacks
+        .get(event)
+        ?.delete(callback as (...args: unknown[]) => void);
     };
   };
 
@@ -541,7 +546,9 @@ export function useContestSocket(
     }
     eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
     return () => {
-      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
+      eventCallbacks
+        .get(event)
+        ?.delete(callback as (...args: unknown[]) => void);
     };
   };
 
@@ -554,7 +561,9 @@ export function useContestSocket(
     }
     eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
     return () => {
-      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
+      eventCallbacks
+        .get(event)
+        ?.delete(callback as (...args: unknown[]) => void);
     };
   };
 
@@ -567,10 +576,14 @@ export function useContestSocket(
     }
     eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
     unsubscribers.push(() => {
-      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
+      eventCallbacks
+        .get(event)
+        ?.delete(callback as (...args: unknown[]) => void);
     });
     return () => {
-      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
+      eventCallbacks
+        .get(event)
+        ?.delete(callback as (...args: unknown[]) => void);
     };
   };
 

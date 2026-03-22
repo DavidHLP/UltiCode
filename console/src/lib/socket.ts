@@ -220,7 +220,8 @@ function createSocketManager(): SocketManager {
         // Subscribe to user-specific notification queue
         const notifSub = client?.subscribe(
           "/user/queue/notification",
-          (message) => handleMessage(NotificationEvent.SYSTEM_ANNOUNCEMENT, message),
+          (message) =>
+            handleMessage(NotificationEvent.SYSTEM_ANNOUNCEMENT, message),
         );
         if (notifSub) {
           subscriptions.set("notification", notifSub);
@@ -229,23 +230,21 @@ function createSocketManager(): SocketManager {
         // Subscribe to submission results
         const submissionSub = client?.subscribe(
           "/user/queue/submission",
-          (message) => handleMessage(NotificationEvent.SUBMISSION_RESULT, message),
+          (message) =>
+            handleMessage(NotificationEvent.SUBMISSION_RESULT, message),
         );
         if (submissionSub) {
           subscriptions.set("submission", submissionSub);
         }
 
         // Subscribe to errors
-        const errorSub = client?.subscribe(
-          "/user/queue/errors",
-          (message) => {
-            console.error("[WebSocket] Server error:", message.body);
-            const callbacks = eventListeners.get(NotificationEvent.CONNECT_ERROR);
-            if (callbacks) {
-              callbacks.forEach((cb) => cb({ error: message.body }));
-            }
-          },
-        );
+        const errorSub = client?.subscribe("/user/queue/errors", (message) => {
+          console.error("[WebSocket] Server error:", message.body);
+          const callbacks = eventListeners.get(NotificationEvent.CONNECT_ERROR);
+          if (callbacks) {
+            callbacks.forEach((cb) => cb({ error: message.body }));
+          }
+        });
         if (errorSub) {
           subscriptions.set("errors", errorSub);
         }
@@ -332,9 +331,8 @@ function createSocketManager(): SocketManager {
     }
 
     // Subscribe to contest topic
-    const sub = client.subscribe(
-      `/topic/contest/${contestId}`,
-      (message) => handleMessage(NotificationEvent.CONTEST_UPDATE, message),
+    const sub = client.subscribe(`/topic/contest/${contestId}`, (message) =>
+      handleMessage(NotificationEvent.CONTEST_UPDATE, message),
     );
     subscriptions.set(existingKey, sub);
 
@@ -378,9 +376,8 @@ function createSocketManager(): SocketManager {
       existingSub.unsubscribe();
     }
 
-    const sub = client.subscribe(
-      `/topic/community/${communityId}`,
-      (message) => handleMessage(NotificationEvent.COMMUNITY_NEW_POST, message),
+    const sub = client.subscribe(`/topic/community/${communityId}`, (message) =>
+      handleMessage(NotificationEvent.COMMUNITY_NEW_POST, message),
     );
     subscriptions.set(key, sub);
 

@@ -134,21 +134,21 @@ public class User {
     private String updatedBy;
 
     /**
-     * Record creation timestamp (auto-filled)
+     * Soft delete flag (0 = not deleted, 1 = deleted)
      */
-    @TableField(value = "created_at", fill = FieldFill.INSERT)
-    private LocalDateTime createdAt;
-
-    /**
-     * Record last update timestamp (auto-filled)
-     */
-    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
-    private LocalDateTime updatedAt;
-
-    /**
-     * Soft delete flag
-     */
-    @TableLogic
     @TableField("is_deleted")
-    private Boolean isDeleted;
+    @TableLogic
+    private Integer isDeleted;
+
+    /**
+     * Timestamp when record was soft deleted
+     */
+    @TableField("deleted_at")
+    private LocalDateTime deletedAt;
+
+    /**
+     * ID of user who deleted this record
+     */
+    @TableField("deleted_by")
+    private String deletedBy;
 }

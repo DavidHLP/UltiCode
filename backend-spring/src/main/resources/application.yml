@@ -119,8 +119,9 @@ spring.mail:
         starttls:
           enable: true
 
-# App-specific email configuration
+# App-specific configuration
 app:
+  frontend-url: ${FRONTEND_URL:http://localhost:9002}
   email:
     enabled: ${EMAIL_ENABLED:false}
     from-name: ${EMAIL_FROM_NAME:UltiCode}
@@ -130,3 +131,23 @@ management:
   health:
     mail:
       enabled: false
+
+# OAuth Configuration
+oauth:
+  github:
+    client-id: ${GITHUB_CLIENT_ID:}
+    client-secret: ${GITHUB_CLIENT_SECRET:}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:9001/auth/github/callback}
+    authorize-url: https://github.com/login/oauth/authorize
+    token-url: https://github.com/login/oauth/access_token
+    user-url: https://api.github.com/user
+    scopes: user:email
+
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:9001/auth/google/callback}
+    authorize-url: https://accounts.google.com/o/oauth2/v2/auth
+    token-url: https://oauth2.googleapis.com/token
+    user-url: https://www.googleapis.com/oauth2/v2/userinfo
+    scopes: email,profile

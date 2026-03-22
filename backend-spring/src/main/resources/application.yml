@@ -82,6 +82,7 @@ logging:
 
 # MeiliSearch Configuration (optional - for full-text search)
 meilisearch:
+  enabled: ${MEILISEARCH_ENABLED:false}
   host: ${MEILISEARCH_HOST:}
   api-key: ${MEILISEARCH_API_KEY:}
 

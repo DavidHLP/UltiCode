@@ -10,11 +10,11 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * MeiliSearch configuration.
- * Only creates the client when MeiliSearch host is configured.
+ * Only creates the client when MeiliSearch is explicitly enabled.
  */
 @Slf4j
 @Configuration
-@ConditionalOnProperty(name = "meilisearch.host")
+@ConditionalOnProperty(name = "meilisearch.enabled", havingValue = "true")
 public class MeiliSearchConfig {
 
     @Value("${meilisearch.host}")

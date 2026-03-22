@@ -130,7 +130,7 @@ class SearchServiceTest {
             user.setAvatar("avatar.png");
             user.setIsActive(true);
             user.setIsBanned(false);
-            user.setIsDeleted(false);
+            user.setIsDeleted(0);
             users.add(user);
 
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);
@@ -239,7 +239,7 @@ class SearchServiceTest {
             user.setName("Test User");
             user.setIsActive(true);
             user.setIsBanned(false);
-            user.setIsDeleted(false);
+            user.setIsDeleted(0);
             users.add(user);
 
             when(problemMapper.selectList(any(QueryWrapper.class))).thenReturn(problems);
@@ -286,7 +286,7 @@ class SearchServiceTest {
                 user.setName("Test User " + i);
                 user.setIsActive(true);
                 user.setIsBanned(false);
-                user.setIsDeleted(false);
+                user.setIsDeleted(0);
                 users.add(user);
             }
 
@@ -440,7 +440,7 @@ class SearchServiceTest {
             user.setAvatar("https://example.com/avatar.png");
             user.setIsActive(true);
             user.setIsBanned(false);
-            user.setIsDeleted(false);
+            user.setIsDeleted(0);
             users.add(user);
 
             when(userMapper.selectList(any(QueryWrapper.class))).thenReturn(users);

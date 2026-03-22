@@ -14,6 +14,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Spring Security configuration.
@@ -33,19 +36,25 @@ public class SecurityConfig {
      */
     private static final String[] PUBLIC_ENDPOINTS = {
             // Auth endpoints
-            "/api/auth/login",
-            "/api/auth/register",
-            "/api/auth/refresh",
+            "/auth/login",
+            "/auth/register",
+            "/auth/refresh",
+            "/auth/forgot-password",
+            "/auth/reset-password",
+            "/auth/github",
+            "/auth/google",
             // Problem endpoints (public read access)
-            "/api/problems",
-            "/api/problems/**",
+            "/problems",
+            "/problems/**",
             // Swagger/OpenAPI documentation
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/api-docs/**",
             "/v3/api-docs/**",
             // WebSocket endpoint
-            "/ws/**"
+            "/ws/**",
+            // Health check endpoint (for startup scripts and monitoring)
+            "/actuator/health"
     };
 
     /**
@@ -58,6 +67,9 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // Enable CORS (must be before other security rules)
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+
                 // Disable CSRF (using JWT, not cookies for session)
                 .csrf(AbstractHttpConfigurer::disable)
 
@@ -83,6 +95,47 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    /**
+     * CORS configuration source for Spring Security.
+     *
+     * @return the CORS configuration source
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+
+        // Allow credentials (cookies, authorization headers)
+        config.setAllowCredentials(true);
+
+        // Allowed origins
+        config.setAllowedOriginPatterns(java.util.Arrays.asList(
+                "http://localhost:9002",
+                "http://localhost:9003",
+                "http://127.0.0.1:9002",
+                "http://127.0.0.1:9003"
+        ));
+
+        // Allowed HTTP methods
+        config.setAllowedMethods(java.util.Arrays.asList(
+                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
+        ));
+
+        // Allowed headers (all)
+        config.setAllowedHeaders(java.util.Collections.singletonList("*"));
+
+        // Exposed headers
+        config.setExposedHeaders(java.util.Arrays.asList(
+                "Authorization", "Set-Cookie", "Content-Disposition"
+        ));
+
+        // Max age for preflight cache (1 hour)
+        config.setMaxAge(3600L);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     /**

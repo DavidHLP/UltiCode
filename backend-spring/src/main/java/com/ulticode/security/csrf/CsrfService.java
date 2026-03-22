@@ -99,7 +99,7 @@ public class CsrfService {
         String pattern = CSRF_PREFIX + userId + ":*";
         Set<String> keys = redisTemplate.keys(pattern);
         if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys.toArray(new String[0]));
+            redisTemplate.delete(keys);
             log.debug("Cleared {} CSRF tokens for user: {}", keys.size(), userId);
         }
     }

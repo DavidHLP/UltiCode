@@ -1,7 +1,8 @@
 # NestJS → Spring Boot 后端迁移修复设计文档
 
 **日期**: 2026-03-22
-**状态**: 待审核
+**版本**: v1.1
+**状态**: 已修订
 **作者**: Claude Code
 
 ---
@@ -74,42 +75,67 @@ ADD COLUMN deleted_by VARCHAR(40) NULL COMMENT '删除人ID';
 CREATE INDEX idx_users_is_deleted ON users(is_deleted);
 ```
 
-### 3.2 `refresh_tokens` 表（新增）
+### 3.2 `refresh_tokens` 表（已存在，需修改）
 
+**注意**: 该表已存在于数据库中，需要修改现有结构以支持 Token 哈希存储。
+
+**现有表结构**:
 ```sql
+-- 已存在的表结构
 CREATE TABLE refresh_tokens (
-    id VARCHAR(40) PRIMARY KEY,
-    user_id VARCHAR(40) NOT NULL,
-    token_hash VARCHAR(255) NOT NULL COMMENT 'Token哈希值',
-    expires_at DATETIME NOT NULL COMMENT '过期时间',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    revoked TINYINT(1) DEFAULT 0 COMMENT '是否已撤销',
-    revoked_at DATETIME NULL COMMENT '撤销时间',
-
-    INDEX idx_user_id (user_id),
-    INDEX idx_token_hash (token_hash),
-    INDEX idx_expires_at (expires_at),
-
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    id VARCHAR(191) NOT NULL,
+    user_id VARCHAR(191) NOT NULL,
+    token TEXT NOT NULL,              -- 明文存储，需改为哈希
+    expires_at DATETIME(3) NOT NULL,
+    created_at DATETIME(3),
+    rotated_at DATETIME(3),
+    is_revoked BIT(1) DEFAULT 0,
+    PRIMARY KEY (id)
 );
 ```
 
-### 3.3 `csrf_tokens` 表（新增）
-
+**修改迁移**:
 ```sql
-CREATE TABLE csrf_tokens (
-    id VARCHAR(40) PRIMARY KEY,
-    user_id VARCHAR(40) NOT NULL,
-    token VARCHAR(255) NOT NULL,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    expires_at DATETIME NOT NULL,
+-- 1. 添加 token_hash 列
+ALTER TABLE refresh_tokens
+ADD COLUMN token_hash VARCHAR(255) NULL COMMENT 'Token哈希值' AFTER token;
 
-    INDEX idx_user_id (user_id),
-    INDEX idx_token (token),
+-- 2. 迁移现有数据：将 token 转换为哈希（如果需要保留现有 token）
+-- 注意：现有明文 token 无法直接转换，需要用户重新登录
+-- 建议策略：保留明文 token 字段用于向后兼容，新 token 使用 token_hash
 
-    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
-);
+-- 3. 添加索引
+CREATE INDEX idx_refresh_tokens_token_hash ON refresh_tokens(token_hash);
 ```
+
+**RefreshToken 实体（修改后）**:
+```java
+@Data
+@TableName("refresh_tokens")
+public class RefreshToken {
+    @TableId(type = IdType.INPUT)
+    private String id;
+
+    private String userId;
+
+    private String token;           // 保留用于向后兼容
+    private String tokenHash;       // 新 Token 使用哈希
+
+    private LocalDateTime expiresAt;
+    private LocalDateTime createdAt;
+    private LocalDateTime rotatedAt;
+    private Boolean isRevoked;
+}
+```
+
+### 3.3 CSRF Token 存储
+
+**设计决策**: CSRF Token 仅使用 **Redis 存储**，不使用数据库表。
+
+**理由**:
+1. CSRF Token 生命周期短（15分钟），无需持久化
+2. Redis 提供高性能读写，适合频繁验证
+3. 简化架构，减少数据库负担
 
 ---
 
@@ -179,16 +205,32 @@ public class User {
 
 ### 4.2 MyBatis-Plus 配置修正
 
+**问题**: 当前配置与实体字段名称不一致。
+
+**当前配置（错误）**:
 ```yaml
-# application.yml
 mybatis-plus:
   global-config:
     db-config:
-      id-type: input          # 改为 input（UUID）
-      logic-delete-field: isDeleted
+      id-type: auto              # ❌ UUID 应使用 input
+      logic-delete-field: deleted  # ❌ 实体使用 isDeleted
+```
+
+**修复后**:
+```yaml
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: input              # ✅ UUID 主键
+      logic-delete-field: isDeleted  # ✅ 与实体字段一致
       logic-delete-value: 1
       logic-not-delete-value: 0
 ```
+
+**注意**: 修改 `logic-delete-field` 不需要数据库迁移，因为：
+- 实体字段名由 `@TableLogic` 注解决定
+- 数据库列名由 `@TableField("is_deleted")` 指定
+- 此配置仅影响 MyBatis-Plus 全局元数据处理
 
 ---
 
@@ -243,6 +285,44 @@ public class LoginResponse {
     private String csrfToken;
     private UserVO user;
     // 移除 accessToken（通过 cookie 传递）
+}
+```
+
+### 5.4 现有 Bug 修复：`extractRefreshToken` 方法
+
+**问题**: 当前 `AuthController.extractRefreshToken()` 方法错误地从 `access_token` Cookie 中提取 refresh token。
+
+**当前代码（错误）**:
+```java
+private static final String ACCESS_TOKEN_COOKIE = "access_token";
+
+private String extractRefreshToken(HttpServletRequest request) {
+    Cookie[] cookies = request.getCookies();
+    if (cookies != null) {
+        for (Cookie cookie : cookies) {
+            if (ACCESS_TOKEN_COOKIE.equals(cookie.getName())) {  // ❌ 错误
+                return cookie.getValue();
+            }
+        }
+    }
+    return null;
+}
+```
+
+**修复后**:
+```java
+private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
+
+private String extractRefreshToken(HttpServletRequest request) {
+    Cookie[] cookies = request.getCookies();
+    if (cookies != null) {
+        for (Cookie cookie : cookies) {
+            if (REFRESH_TOKEN_COOKIE.equals(cookie.getName())) {  // ✅ 正确
+                return cookie.getValue();
+            }
+        }
+    }
+    return null;
 }
 ```
 
@@ -561,6 +641,9 @@ public class OAuthController {
 
     private final OAuthService oauthService;
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
     @GetMapping("/github")
     public void githubLogin(HttpServletResponse response) throws IOException {
         String authUrl = oauthService.getGithubAuthUrl();
@@ -572,8 +655,8 @@ public class OAuthController {
             @RequestParam String code,
             HttpServletResponse response) throws IOException {
         LoginResponse loginResponse = oauthService.handleGithubCallback(code, response);
-        // 重定向到前端
-        response.sendRedirect("http://localhost:9002/?oauth=success");
+        // 重定向到前端（使用环境变量）
+        response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 
     @GetMapping("/google")
@@ -587,7 +670,8 @@ public class OAuthController {
             @RequestParam String code,
             HttpServletResponse response) throws IOException {
         LoginResponse loginResponse = oauthService.handleGoogleCallback(code, response);
-        response.sendRedirect("http://localhost:9002/?oauth=success");
+        // 重定向到前端（使用环境变量）
+        response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 }
 ```
@@ -847,10 +931,18 @@ public class PasswordResetService {
     private final EmailService emailService;
     private final RedisTemplate<String, String> redisTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final RefreshTokenService refreshTokenService;  // 新增依赖
 
     private static final String RESET_PREFIX = "password-reset:";
     private static final Duration RESET_TTL = Duration.ofHours(1);
 
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
+
+    /**
+     * 忘记密码 - 限流：每小时每邮箱/IP 最多 3 次
+     */
+    @RateLimit(key = "'forgot-password:' + #email", limit = 3, period = 3600)
     public void forgotPassword(String email) {
         User user = userMapper.selectByEmail(email);
         if (user == null) {
@@ -863,10 +955,13 @@ public class PasswordResetService {
 
         redisTemplate.opsForValue().set(key, user.getId(), RESET_TTL);
 
-        String resetUrl = "http://localhost:9002/reset-password?token=" + token;
+        String resetUrl = frontendUrl + "/reset-password?token=" + token;
         emailService.sendPasswordResetEmail(email, resetUrl);
     }
 
+    /**
+     * 重置密码 - 同时撤销所有会话
+     */
     public void resetPassword(String token, String newPassword) {
         String key = RESET_PREFIX + token;
         String userId = redisTemplate.opsForValue().get(key);
@@ -885,6 +980,9 @@ public class PasswordResetService {
 
         // 删除重置 Token
         redisTemplate.delete(key);
+
+        // 撤销用户所有 Refresh Token（强制重新登录）
+        refreshTokenService.revokeAllUserTokens(userId);
     }
 }
 ```
@@ -975,20 +1073,21 @@ class OAuthServiceTest {
 
 | 任务 | 文件 | 说明 |
 |------|------|------|
-| 2.1 | `RefreshToken.java` | 新增实体 |
+| 2.1 | `RefreshToken.java` | 使用现有表，添加 tokenHash 字段 |
 | 2.2 | `RefreshTokenService.java` | Token 数据库存储与轮换 |
-| 2.3 | `CsrfService.java` | CSRF Token 生成与验证 |
+| 2.3 | `CsrfService.java` | CSRF Token 生成与验证（仅 Redis） |
 | 2.4 | `CsrfInterceptor.java` | CSRF 验证拦截器 |
 | 2.5 | `AuthController.java` | 添加忘记密码/重置密码端点 |
-| 2.6 | `PasswordResetService.java` | 密码重置逻辑 |
-| 2.7 | 数据库迁移 | 创建 `refresh_tokens`, `csrf_tokens` 表 |
+| 2.6 | `PasswordResetService.java` | 密码重置逻辑（含限流和会话撤销） |
+| 2.7 | 数据库迁移 | 添加 `token_hash` 列到 `refresh_tokens` 表 |
 | 2.8 | 单元测试 | CSRF 和 Token 轮换测试 |
 
 **验证标准**:
-- ✅ Refresh Token 存储在数据库
+- ✅ Refresh Token 哈希存储在数据库
 - ✅ Token 轮换正常工作
-- ✅ CSRF Token 验证生效
+- ✅ CSRF Token 验证生效（Redis 存储）
 - ✅ 忘记密码邮件发送成功
+- ✅ 重置密码后所有会话被撤销
 
 ---
 
@@ -1087,9 +1186,8 @@ backend-spring/
 │   └── application.yml                   # 更新配置
 ├── init-db/migrations/
 │   ├── V006__add_user_soft_delete.sql   # 用户表逻辑删除
-│   ├── V007__create_refresh_tokens.sql  # Refresh Token 表
-│   └── V008__create_csrf_tokens.sql     # CSRF Token 表
-└── .env.example                          # 添加 OAuth 变量
+│   └── V007__add_token_hash_column.sql   # Refresh Token 表添加 token_hash 列
+└── .env.example                          # 添加 OAuth 和前端 URL 变量
 ```
 
 ---
@@ -1099,6 +1197,9 @@ backend-spring/
 需要添加到 `.env` 文件的环境变量：
 
 ```bash
+# 前端 URL（用于 OAuth 重定向和密码重置链接）
+FRONTEND_URL=http://localhost:9002
+
 # OAuth - GitHub
 GITHUB_CLIENT_ID=your_github_client_id
 GITHUB_CLIENT_SECRET=your_github_client_secret
@@ -1127,6 +1228,71 @@ EMAIL_ENABLED=true
 | 现有用户密码不兼容 | 无法登录 | 保持 BCrypt 兼容，添加密码迁移脚本 |
 | OAuth 配置错误 | 第三方登录失败 | 添加详细错误日志，提供配置检查端点 |
 | Redis 连接失败 | CSRF/限流失效 | 添加降级策略，记录日志 |
+
+---
+
+## 16.5. 回滚策略
+
+每个阶段部署后如果发现严重问题，按以下步骤回滚：
+
+### Phase 1 回滚
+
+```bash
+# 1. 回滚代码
+git revert <phase1-commit-hash>
+
+# 2. 回滚数据库（如有必要）
+mysql -u ulticode -p ulticode < backup_before_phase1.sql
+
+# 3. 重启服务
+./shell/restart.sh
+```
+
+### Phase 2 回滚
+
+```bash
+# 1. 回滚代码
+git revert <phase2-commit-hash>
+
+# 2. 清理 Redis 中的 CSRF 和 Token 数据
+redis-cli -a 123456 KEYS "csrf:*" | xargs redis-cli -a 123456 DEL
+redis-cli -a 123456 KEYS "password-reset:*" | xargs redis-cli -a 123456 DEL
+
+# 3. 数据库回滚：移除 token_hash 列
+mysql -u ulticode -p ulticode -e "ALTER TABLE refresh_tokens DROP COLUMN token_hash;"
+
+# 4. 重启服务
+./shell/restart.sh
+```
+
+### Phase 3 回滚
+
+```bash
+# 1. 回滚代码
+git revert <phase3-commit-hash>
+
+# 2. 清理 OAuth 相关 Redis 数据
+redis-cli -a 123456 KEYS "oauth:state:*" | xargs redis-cli -a 123456 DEL
+
+# 3. 重启服务
+./shell/restart.sh
+```
+
+### Phase 4 回滚
+
+```bash
+# 1. 回滚代码
+git revert <phase4-commit-hash>
+
+# 2. 清理限流 Redis 数据
+redis-cli -a 123456 KEYS "rate-limit:*" | xargs redis-cli -a 123456 DEL
+
+# 3. 清理权限缓存
+redis-cli -a 123456 KEYS "user:perms:*" | xargs redis-cli -a 123456 DEL
+
+# 4. 重启服务
+./shell/restart.sh
+```
 
 ---
 

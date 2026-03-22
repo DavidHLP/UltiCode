@@ -12,6 +12,7 @@ import com.ulticode.modules.auth.dto.UserWithCsrfVO;
 import com.ulticode.modules.auth.service.AuthService;
 import com.ulticode.modules.auth.service.OAuthService;
 import com.ulticode.modules.auth.service.PasswordResetService;
+import com.ulticode.modules.permission.service.PermissionService;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
@@ -27,8 +28,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
-
 import java.security.Principal;
+import java.util.List;
 
 /**
  * Authentication controller for login, register, refresh, and logout.
@@ -44,6 +45,7 @@ public class AuthController {
     private final UserService userService;
     private final PasswordResetService passwordResetService;
     private final OAuthService oauthService;
+    private final PermissionService permissionService;
 
     @Value("${app.frontend-url:http://localhost:9002}")
     private String frontendUrl;
@@ -114,6 +116,14 @@ public class AuthController {
         response.setCsrfToken(csrfToken);
 
         return Result.success(response);
+    }
+
+    @Operation(summary = "Get user permissions", description = "Get all permissions for the authenticated user")
+    @GetMapping("/permissions")
+    public Result<List<String>> getPermissions(Principal principal) {
+        String userId = principal.getName();
+        List<String> permissions = permissionService.getUserPermissionStrings(userId);
+        return Result.success(permissions);
     }
 
     @Operation(summary = "GitHub login", description = "Redirect to GitHub OAuth")

@@ -1,36 +1,43 @@
-import { io, type Socket } from "socket.io-client";
+import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 
 /**
- * WebSocket event types matching backend NotificationEvent enum
+ * WebSocket event types matching backend WebSocketConstants
  */
 export enum NotificationEvent {
   // Submission events
-  SUBMISSION_RESULT = "submission:result",
-  SUBMISSION_STARTED = "submission:started",
+  SUBMISSION_RESULT = "submission_result",
+  SUBMISSION_STARTED = "submission_started",
 
   // Contest events
-  CONTEST_UPDATE = "contest:update",
-  CONTEST_RANKING_CHANGE = "contest:ranking",
-  CONTEST_STARTING = "contest:starting",
-  CONTEST_ENDED = "contest:ended",
+  CONTEST_UPDATE = "contest_status",
+  CONTEST_RANKING_CHANGE = "ranking_update",
+  CONTEST_STARTING = "contest_starting",
+  CONTEST_ENDED = "contest_ended",
 
   // Community events
-  COMMUNITY_NEW_POST = "community:new_post",
-  COMMUNITY_NEW_COMMENT = "community:new_comment",
-  COMMUNITY_POST_LIKED = "community:post_liked",
+  COMMUNITY_NEW_POST = "community_new_post",
+  COMMUNITY_NEW_COMMENT = "community_new_comment",
+  COMMUNITY_POST_LIKED = "community_post_liked",
 
   // User interaction events
-  MENTION_USER = "mention:user",
-  REPLY_TO_POST = "post:reply",
-  LIKE_SOLUTION = "solution:like",
+  MENTION_USER = "mention_user",
+  REPLY_TO_POST = "reply_to_post",
+  LIKE_SOLUTION = "like_solution",
 
   // Achievement events
-  BADGE_EARNED = "badge:earned",
-  MILESTONE_REACHED = "milestone:reached",
+  BADGE_EARNED = "badge_earned",
+  MILESTONE_REACHED = "milestone_reached",
 
   // System events
-  SYSTEM_ANNOUNCEMENT = "system:announcement",
-  MAINTENANCE_WARNING = "system:maintenance",
+  SYSTEM_ANNOUNCEMENT = "announcement",
+  MAINTENANCE_WARNING = "maintenance_warning",
+
+  // Connection events (client-side only)
+  CONNECTED = "connected",
+  DISCONNECT = "disconnect",
+  CONNECT_ERROR = "connect_error",
+  CONNECTION_STATUS = "connection:status",
 }
 
 export interface SubmissionResultPayload {
@@ -99,7 +106,6 @@ export type ConnectionStatus =
 type EventCallback<T = unknown> = (data: T) => void;
 
 interface SocketManager {
-  socket: Socket | null;
   status: ConnectionStatus;
   connect: () => void;
   disconnect: () => void;
@@ -111,7 +117,6 @@ interface SocketManager {
     event: NotificationEvent | string,
     callback: EventCallback<T>,
   ) => void;
-  emit: (event: string, data?: unknown) => void;
   subscribeToContest: (contestId: string) => void;
   unsubscribeFromContest: (contestId: string) => void;
   subscribeToCommunity: (communityId: string) => void;
@@ -119,85 +124,176 @@ interface SocketManager {
 }
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
-const WS_URL = API_BASE_URL.replace(/^http/, "ws");
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
 // Singleton socket manager
 let socketInstance: SocketManager | null = null;
 const eventListeners = new Map<string, Set<EventCallback>>();
+const subscriptions = new Map<string, StompSubscription>();
+
+/**
+ * Get JWT token from cookies for authentication
+ */
+function getTokenFromCookie(): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; access_token=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+
+  // Also try ulticode_token (Spring Boot cookie name)
+  const ulticodeParts = value.split(`; ulticode_token=`);
+  if (ulticodeParts.length === 2)
+    return ulticodeParts.pop()?.split(";").shift() || null;
+
+  return null;
+}
+
+/**
+ * Get CSRF token from cookies
+ */
+function getCsrfToken(): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+  return null;
+}
 
 function createSocketManager(): SocketManager {
-  let socket: Socket | null = null;
+  let client: Client | null = null;
   let status: ConnectionStatus = "disconnected";
+  let reconnectAttempts = 0;
   const maxReconnectAttempts = 5;
 
   const notifyStatusChange = (newStatus: ConnectionStatus) => {
     status = newStatus;
-    const callbacks = eventListeners.get("connection:status");
+    const callbacks = eventListeners.get(NotificationEvent.CONNECTION_STATUS);
     if (callbacks) {
       callbacks.forEach((cb) => cb(newStatus));
     }
   };
 
+  const handleMessage = (event: string, message: IMessage) => {
+    try {
+      const body = JSON.parse(message.body);
+      const callbacks = eventListeners.get(event);
+      if (callbacks) {
+        callbacks.forEach((cb) => cb(body));
+      }
+    } catch (error) {
+      console.error(`[WebSocket] Error parsing message for ${event}:`, error);
+    }
+  };
+
   const connect = () => {
-    if (socket?.connected) return;
+    if (client?.connected) return;
 
     notifyStatusChange("connecting");
 
-    // Get JWT token from cookies for authentication
-    const getCookie = (name: string): string | null => {
-      const value = `; ${document.cookie}`;
-      const parts = value.split(`; ${name}=`);
-      if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-      return null;
-    };
+    const token = getTokenFromCookie();
+    const csrfToken = getCsrfToken();
 
-    const token = getCookie("access_token");
+    client = new Client({
+      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/notifications`),
+      connectHeaders: {
+        Authorization: token ? `Bearer ${token}` : "",
+        "X-CSRF-Token": csrfToken || "",
+      },
+      debug: (str) => {
+        if (import.meta.env.DEV) {
+          console.log(`[STOMP] ${str}`);
+        }
+      },
+      reconnectDelay: 1000,
+      maxReconnectDelay: 5000,
+      heartbeatIncoming: 10000,
+      heartbeatOutgoing: 10000,
+      onConnect: () => {
+        console.log("[WebSocket] Connected to STOMP server");
+        notifyStatusChange("connected");
+        reconnectAttempts = 0;
 
-    socket = io(`${WS_URL}/notifications`, {
-      auth: { token },
-      withCredentials: true,
-      transports: ["websocket", "polling"],
-      reconnection: true,
-      reconnectionAttempts: maxReconnectAttempts,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
+        // Notify connection listeners
+        const callbacks = eventListeners.get(NotificationEvent.CONNECTED);
+        if (callbacks) {
+          callbacks.forEach((cb) => cb({ connected: true }));
+        }
+
+        // Subscribe to user-specific notification queue
+        const notifSub = client?.subscribe(
+          "/user/queue/notification",
+          (message) => handleMessage(NotificationEvent.SYSTEM_ANNOUNCEMENT, message),
+        );
+        if (notifSub) {
+          subscriptions.set("notification", notifSub);
+        }
+
+        // Subscribe to submission results
+        const submissionSub = client?.subscribe(
+          "/user/queue/submission",
+          (message) => handleMessage(NotificationEvent.SUBMISSION_RESULT, message),
+        );
+        if (submissionSub) {
+          subscriptions.set("submission", submissionSub);
+        }
+
+        // Subscribe to errors
+        const errorSub = client?.subscribe(
+          "/user/queue/errors",
+          (message) => {
+            console.error("[WebSocket] Server error:", message.body);
+            const callbacks = eventListeners.get(NotificationEvent.CONNECT_ERROR);
+            if (callbacks) {
+              callbacks.forEach((cb) => cb({ error: message.body }));
+            }
+          },
+        );
+        if (errorSub) {
+          subscriptions.set("errors", errorSub);
+        }
+      },
+      onDisconnect: () => {
+        console.log("[WebSocket] Disconnected from STOMP server");
+        notifyStatusChange("disconnected");
+        const callbacks = eventListeners.get(NotificationEvent.DISCONNECT);
+        if (callbacks) {
+          callbacks.forEach((cb) => cb({ reason: "disconnected" }));
+        }
+      },
+      onStompError: (frame) => {
+        console.error("[WebSocket] STOMP error:", frame);
+        notifyStatusChange("disconnected");
+        const callbacks = eventListeners.get(NotificationEvent.CONNECT_ERROR);
+        if (callbacks) {
+          callbacks.forEach((cb) => cb({ error: frame.body }));
+        }
+      },
+      onWebSocketError: (event) => {
+        console.error("[WebSocket] WebSocket error:", event);
+        notifyStatusChange("reconnecting");
+        reconnectAttempts++;
+
+        if (reconnectAttempts >= maxReconnectAttempts) {
+          console.error("[WebSocket] Max reconnect attempts reached");
+          notifyStatusChange("disconnected");
+        }
+      },
+      onWebSocketClose: () => {
+        if (status === "connected") {
+          notifyStatusChange("disconnected");
+        }
+      },
     });
 
-    socket.on("connect", () => {
-      notifyStatusChange("connected");
-    });
-
-    socket.on("connected", (data) => {
-      const callbacks = eventListeners.get("connected");
-      if (callbacks) callbacks.forEach((cb) => cb(data));
-    });
-
-    socket.on("disconnect", (reason) => {
-      notifyStatusChange("disconnected");
-      const callbacks = eventListeners.get("disconnect");
-      if (callbacks) callbacks.forEach((cb) => cb(reason));
-    });
-
-    socket.on("connect_error", (error) => {
-      notifyStatusChange("reconnecting");
-      const callbacks = eventListeners.get("connect_error");
-      if (callbacks) callbacks.forEach((cb) => cb(error));
-    });
-
-    // Register event listeners for all notification types
-    Object.values(NotificationEvent).forEach((event) => {
-      socket?.on(event, (message: WebSocketMessage) => {
-        const callbacks = eventListeners.get(event);
-        if (callbacks) callbacks.forEach((cb) => cb(message.data));
-      });
-    });
+    client.activate();
   };
 
   const disconnect = () => {
-    if (socket) {
-      socket.disconnect();
-      socket = null;
+    // Unsubscribe from all subscriptions
+    subscriptions.forEach((sub) => sub.unsubscribe());
+    subscriptions.clear();
+
+    if (client) {
+      client.deactivate();
+      client = null;
       notifyStatusChange("disconnected");
     }
   };
@@ -222,30 +318,87 @@ function createSocketManager(): SocketManager {
     }
   };
 
-  const emit = (event: string, data?: unknown) => {
-    socket?.emit(event, data);
-  };
-
   const subscribeToContest = (contestId: string) => {
-    emit("subscribe:contest", contestId);
+    if (!client?.connected) {
+      console.warn("[WebSocket] Cannot subscribe to contest: not connected");
+      return;
+    }
+
+    // Unsubscribe from existing contest subscription if any
+    const existingKey = `contest-${contestId}`;
+    const existingSub = subscriptions.get(existingKey);
+    if (existingSub) {
+      existingSub.unsubscribe();
+    }
+
+    // Subscribe to contest topic
+    const sub = client.subscribe(
+      `/topic/contest/${contestId}`,
+      (message) => handleMessage(NotificationEvent.CONTEST_UPDATE, message),
+    );
+    subscriptions.set(existingKey, sub);
+
+    // Send join message to server
+    client.publish({
+      destination: `/app/contest.join`,
+      body: contestId,
+    });
+
+    console.log(`[WebSocket] Subscribed to contest ${contestId}`);
   };
 
   const unsubscribeFromContest = (contestId: string) => {
-    emit("unsubscribe:contest", contestId);
+    const key = `contest-${contestId}`;
+    const sub = subscriptions.get(key);
+    if (sub) {
+      sub.unsubscribe();
+      subscriptions.delete(key);
+    }
+
+    // Send leave message to server
+    if (client?.connected) {
+      client.publish({
+        destination: `/app/contest.leave`,
+        body: contestId,
+      });
+    }
+
+    console.log(`[WebSocket] Unsubscribed from contest ${contestId}`);
   };
 
   const subscribeToCommunity = (communityId: string) => {
-    emit("subscribe:community", communityId);
+    if (!client?.connected) {
+      console.warn("[WebSocket] Cannot subscribe to community: not connected");
+      return;
+    }
+
+    const key = `community-${communityId}`;
+    const existingSub = subscriptions.get(key);
+    if (existingSub) {
+      existingSub.unsubscribe();
+    }
+
+    const sub = client.subscribe(
+      `/topic/community/${communityId}`,
+      (message) => handleMessage(NotificationEvent.COMMUNITY_NEW_POST, message),
+    );
+    subscriptions.set(key, sub);
+
+    console.log(`[WebSocket] Subscribed to community ${communityId}`);
   };
 
   const unsubscribeFromCommunity = (communityId: string) => {
-    emit("unsubscribe:community", communityId);
+    const key = `community-${communityId}`;
+    const sub = subscriptions.get(key);
+    if (sub) {
+      sub.unsubscribe();
+      subscriptions.delete(key);
+    }
+
+    console.log(`[WebSocket] Unsubscribed from community ${communityId}`);
   };
 
   return {
-    get socket() {
-      return socket;
-    },
     get status() {
       return status;
     },
@@ -253,7 +406,6 @@ function createSocketManager(): SocketManager {
     disconnect,
     on,
     off,
-    emit,
     subscribeToContest,
     unsubscribeFromContest,
     subscribeToCommunity,

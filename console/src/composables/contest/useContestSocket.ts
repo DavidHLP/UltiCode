@@ -1,6 +1,7 @@
 // console/src/composables/contest/useContestSocket.ts
 import { ref, onMounted, onUnmounted, watch } from "vue";
-import { io, type Socket } from "socket.io-client";
+import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import { useAuthStore } from "@/stores/auth";
 import { useRankingStore } from "@/stores/contest/rankingStore";
 import { useContestStore } from "@/stores/contest/contestStore";
@@ -147,99 +148,159 @@ export interface UseContestSocketReturn {
 // ============================================================================
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:9001";
-const WS_URL = API_BASE_URL.replace(/^http/, "ws");
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:3000";
 
-// Singleton socket instance for contest namespace
-let socketInstance: Socket | null = null;
+// Singleton STOMP client instance for contest namespace
+let stompClient: Client | null = null;
 let connectionStatus: ConnectionStatus = "disconnected";
+let reconnectAttempts = 0;
 const eventCallbacks = new Map<string, Set<(...args: unknown[]) => void>>();
+const subscriptions = new Map<string, StompSubscription>();
 
 /**
- * Get or create the contest socket instance
+ * Get JWT token from cookies for authentication
  */
-function getContestSocket(options: Required<UseContestSocketOptions>): Socket {
-  if (socketInstance?.connected) {
-    return socketInstance;
-  }
+function getTokenFromCookie(): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; access_token=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
 
-  // Get JWT token from cookies for authentication
-  const getCookie = (name: string): string | null => {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-    return null;
-  };
+  // Also try ulticode_token (Spring Boot cookie name)
+  const ulticodeParts = value.split(`; ulticode_token=`);
+  if (ulticodeParts.length === 2)
+    return ulticodeParts.pop()?.split(";").shift() || null;
 
-  const token = getCookie("access_token");
+  return null;
+}
 
-  connectionStatus = "connecting";
-  notifyStatusChange("connecting");
-
-  socketInstance = io(`${WS_URL}/contest`, {
-    auth: { token },
-    withCredentials: true,
-    transports: ["websocket", "polling"],
-    reconnection: options.autoReconnect,
-    reconnectionAttempts: options.maxReconnectAttempts,
-    reconnectionDelay: options.reconnectionDelay,
-    reconnectionDelayMax: 5000,
-  });
-
-  // Connection events
-  socketInstance.on("connect", () => {
-    connectionStatus = "connected";
-    notifyStatusChange("connected");
-  });
-
-  socketInstance.on("disconnect", (reason) => {
-    connectionStatus = "disconnected";
-    notifyStatusChange("disconnected");
-    const callbacks = eventCallbacks.get("disconnect");
-    if (callbacks) callbacks.forEach((cb) => cb(reason));
-  });
-
-  socketInstance.on("connect_error", (error) => {
-    connectionStatus = options.autoReconnect ? "reconnecting" : "disconnected";
-    notifyStatusChange(connectionStatus);
-    const callbacks = eventCallbacks.get("connect_error");
-    if (callbacks) callbacks.forEach((cb) => cb(error));
-  });
-
-  // Register contest event listeners
-  const contestEvents = [
-    "ranking_update",
-    "first_solve",
-    "announcement",
-    "contest_status",
-    "submission_result",
-  ];
-
-  contestEvents.forEach((event) => {
-    socketInstance?.on(event, (data: unknown) => {
-      const callbacks = eventCallbacks.get(event);
-      if (callbacks) callbacks.forEach((cb) => cb(data));
-    });
-  });
-
-  return socketInstance;
+/**
+ * Get CSRF token from cookies
+ */
+function getCsrfToken(): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; csrf_token=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+  return null;
 }
 
 /**
  * Notify all status change listeners
  */
 function notifyStatusChange(status: ConnectionStatus): void {
+  connectionStatus = status;
   const callbacks = eventCallbacks.get("connection:status");
   if (callbacks) callbacks.forEach((cb) => cb(status));
 }
 
 /**
- * Disconnect and cleanup socket
+ * Handle incoming STOMP message and dispatch to event callbacks
+ */
+function handleMessage(eventType: string, message: IMessage): void {
+  try {
+    const data = JSON.parse(message.body);
+    const callbacks = eventCallbacks.get(eventType);
+    if (callbacks) callbacks.forEach((cb) => cb(data));
+  } catch (error) {
+    console.error(`[STOMP Contest] Error parsing message for ${eventType}:`, error);
+  }
+}
+
+/**
+ * Get or create the contest STOMP client
+ */
+function getContestSocket(options: Required<UseContestSocketOptions>): Client {
+  if (stompClient?.connected) {
+    return stompClient;
+  }
+
+  const token = getTokenFromCookie();
+  const csrfToken = getCsrfToken();
+
+  connectionStatus = "connecting";
+  notifyStatusChange("connecting");
+
+  stompClient = new Client({
+    webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/contest`),
+    connectHeaders: {
+      Authorization: token ? `Bearer ${token}` : "",
+      "X-CSRF-Token": csrfToken || "",
+    },
+    debug: (str) => {
+      if (import.meta.env.DEV) {
+        console.log(`[STOMP Contest] ${str}`);
+      }
+    },
+    reconnectDelay: options.reconnectionDelay,
+    maxReconnectDelay: 5000,
+    heartbeatIncoming: 10000,
+    heartbeatOutgoing: 10000,
+    onConnect: () => {
+      connectionStatus = "connected";
+      notifyStatusChange("connected");
+      reconnectAttempts = 0;
+      console.log("[STOMP Contest] Connected to contest WebSocket");
+
+      // Subscribe to contest topic (general broadcast)
+      const broadcastSub = stompClient?.subscribe(
+        "/topic/broadcast",
+        (message) => handleMessage("announcement", message),
+      );
+      if (broadcastSub) {
+        subscriptions.set("broadcast", broadcastSub);
+      }
+    },
+    onDisconnect: () => {
+      connectionStatus = "disconnected";
+      notifyStatusChange("disconnected");
+      const callbacks = eventCallbacks.get("disconnect");
+      if (callbacks) callbacks.forEach((cb) => cb("disconnected"));
+      console.log("[STOMP Contest] Disconnected from contest WebSocket");
+    },
+    onStompError: (frame) => {
+      console.error("[STOMP Contest] STOMP error:", frame);
+      connectionStatus = "disconnected";
+      notifyStatusChange("disconnected");
+      const callbacks = eventCallbacks.get("connect_error");
+      if (callbacks) callbacks.forEach((cb) => cb({ error: frame.body }));
+    },
+    onWebSocketError: (event) => {
+      console.error("[STOMP Contest] WebSocket error:", event);
+      reconnectAttempts++;
+
+      if (reconnectAttempts >= options.maxReconnectAttempts) {
+        connectionStatus = "disconnected";
+        console.error("[STOMP Contest] Max reconnect attempts reached");
+      } else {
+        connectionStatus = "reconnecting";
+      }
+      notifyStatusChange(connectionStatus);
+
+      const callbacks = eventCallbacks.get("connect_error");
+      if (callbacks) callbacks.forEach((cb) => cb(event));
+    },
+    onWebSocketClose: () => {
+      if (connectionStatus === "connected") {
+        connectionStatus = "disconnected";
+        notifyStatusChange("disconnected");
+      }
+    },
+  });
+
+  stompClient.activate();
+  return stompClient;
+}
+
+/**
+ * Disconnect and cleanup STOMP client
  */
 function disconnectSocket(): void {
-  if (socketInstance) {
-    socketInstance.disconnect();
-    socketInstance = null;
+  // Unsubscribe from all subscriptions
+  subscriptions.forEach((sub) => sub.unsubscribe());
+  subscriptions.clear();
+
+  if (stompClient) {
+    stompClient.deactivate();
+    stompClient = null;
     connectionStatus = "disconnected";
     notifyStatusChange("disconnected");
   }
@@ -252,7 +313,7 @@ function disconnectSocket(): void {
 /**
  * Composable for contest WebSocket real-time updates
  *
- * Connects to the /contest namespace and provides methods to:
+ * Connects to the /ws/contest STOMP endpoint and provides methods to:
  * - Join/leave contest rooms
  * - Listen for ranking updates, first solves, announcements
  * - Handle contest status changes and submission results
@@ -328,22 +389,63 @@ export function useContestSocket(
   const joinContest = async (
     contestId: string,
   ): Promise<ContestRoomResponse> => {
-    const socket = getContestSocket(fullOptions);
-
     return new Promise((resolve, reject) => {
-      socket.emit(
-        "join_contest",
-        contestId,
-        (response: ContestRoomResponse) => {
-          if (response.success) {
-            currentContestId.value = contestId;
-            resolve(response);
-          } else {
-            error.value = response.error || response.message;
-            reject(new Error(response.message));
-          }
-        },
-      );
+      const client = getContestSocket(fullOptions);
+
+      if (!client.connected) {
+        // Wait for connection
+        const onConnect = () => {
+          performJoin();
+        };
+        eventCallbacks.set("connected_once", new Set([onConnect]));
+        client.onConnect = () => {
+          performJoin();
+        };
+      } else {
+        performJoin();
+      }
+
+      function performJoin() {
+        // Unsubscribe from existing contest subscription if any
+        const existingKey = `contest-${currentContestId.value}`;
+        const existingSub = subscriptions.get(existingKey);
+        if (existingSub) {
+          existingSub.unsubscribe();
+          subscriptions.delete(existingKey);
+        }
+
+        // Subscribe to contest-specific topic
+        const contestSub = client.subscribe(
+          `/topic/contest/${contestId}`,
+          (message: IMessage) => {
+            // Parse message to determine event type
+            try {
+              const data = JSON.parse(message.body);
+              const eventType = data.type || data.event || "contest_update";
+              handleMessage(eventType, message);
+            } catch {
+              handleMessage("contest_update", message);
+            }
+          },
+        );
+        subscriptions.set(`contest-${contestId}`, contestSub);
+
+        // Send join message to server via STOMP
+        client.publish({
+          destination: "/app/contest.join",
+          body: JSON.stringify({ contestId }),
+        });
+
+        currentContestId.value = contestId;
+
+        // Resolve with success response
+        // In STOMP, we don't get a direct response, so we assume success
+        resolve({
+          success: true,
+          contestId,
+          message: `Successfully joined contest ${contestId}`,
+        });
+      }
 
       // Timeout after 10 seconds
       setTimeout(() => {
@@ -353,10 +455,7 @@ export function useContestSocket(
   };
 
   const leaveContest = async (): Promise<ContestRoomResponse> => {
-    const socket = getContestSocket(fullOptions);
-    const contestId = currentContestId.value;
-
-    if (!contestId) {
+    if (!currentContestId.value) {
       return {
         success: true,
         contestId: "",
@@ -364,26 +463,32 @@ export function useContestSocket(
       };
     }
 
-    return new Promise((resolve, reject) => {
-      socket.emit(
-        "leave_contest",
-        contestId,
-        (response: ContestRoomResponse) => {
-          if (response.success) {
-            currentContestId.value = null;
-            resolve(response);
-          } else {
-            error.value = response.error || response.message;
-            reject(new Error(response.message));
-          }
-        },
-      );
+    const contestId = currentContestId.value;
+    const client = getContestSocket(fullOptions);
 
-      // Timeout after 10 seconds
-      setTimeout(() => {
-        reject(new Error("Disconnection timeout"));
-      }, 10000);
-    });
+    if (client.connected) {
+      // Unsubscribe from contest topic
+      const key = `contest-${contestId}`;
+      const sub = subscriptions.get(key);
+      if (sub) {
+        sub.unsubscribe();
+        subscriptions.delete(key);
+      }
+
+      // Send leave message to server
+      client.publish({
+        destination: "/app/contest.leave",
+        body: JSON.stringify({ contestId }),
+      });
+    }
+
+    currentContestId.value = null;
+
+    return {
+      success: true,
+      contestId,
+      message: `Successfully left contest ${contestId}`,
+    };
   };
 
   // ==================== Event Subscriptions ====================
@@ -391,142 +496,82 @@ export function useContestSocket(
   const onRankingUpdate = (
     callback: (data: RankingUpdatePayload) => void,
   ): (() => void) => {
-    const wrappedCallback = (data: unknown): void => {
-      const payload = data as RankingUpdatePayload;
-      // Auto-update ranking store
-      if (payload.rankings) {
-        rankingStore.updateRankings(payload.rankings);
-      }
-      callback(payload);
-    };
-
-    if (!eventCallbacks.has("ranking_update")) {
-      eventCallbacks.set("ranking_update", new Set());
+    const event = "ranking_update";
+    if (!eventCallbacks.has(event)) {
+      eventCallbacks.set(event, new Set());
     }
-    eventCallbacks.get("ranking_update")!.add(wrappedCallback);
-
-    const unsub = () => {
-      eventCallbacks.get("ranking_update")?.delete(wrappedCallback);
+    eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
+    return () => {
+      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
     };
-    unsubscribers.push(unsub);
-    return unsub;
   };
 
   const onFirstSolve = (
     callback: (data: FirstSolvePayload) => void,
   ): (() => void) => {
-    const wrappedCallback = (data: unknown): void => {
-      callback(data as FirstSolvePayload);
-    };
-
-    if (!eventCallbacks.has("first_solve")) {
-      eventCallbacks.set("first_solve", new Set());
+    const event = "first_solve";
+    if (!eventCallbacks.has(event)) {
+      eventCallbacks.set(event, new Set());
     }
-    eventCallbacks.get("first_solve")!.add(wrappedCallback);
-
-    const unsub = () => {
-      eventCallbacks.get("first_solve")?.delete(wrappedCallback);
+    eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
+    return () => {
+      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
     };
-    unsubscribers.push(unsub);
-    return unsub;
   };
 
   const onAnnouncement = (
     callback: (data: AnnouncementPayload) => void,
   ): (() => void) => {
-    const wrappedCallback = (data: unknown): void => {
-      const payload = data as AnnouncementPayload;
-      // Auto-add to contest store announcements
-      if (payload.contestId === currentContestId.value) {
-        const announcement: ContestAnnouncement = {
-          id: payload.id,
-          contestId: payload.contestId,
-          title: payload.title,
-          content: payload.content,
-          isPinned: false,
-          createdAt:
-            typeof payload.createdAt === "string"
-              ? payload.createdAt
-              : new Date(payload.createdAt).toISOString(),
-          updatedAt:
-            typeof payload.createdAt === "string"
-              ? payload.createdAt
-              : new Date(payload.createdAt).toISOString(),
-        };
-        // Update store if we have current announcements
-        if (contestStore.currentAnnouncements) {
-          contestStore.currentAnnouncements = [
-            announcement,
-            ...contestStore.currentAnnouncements,
-          ];
-        }
-      }
-      callback(payload);
-    };
-
-    if (!eventCallbacks.has("announcement")) {
-      eventCallbacks.set("announcement", new Set());
+    const event = "announcement";
+    if (!eventCallbacks.has(event)) {
+      eventCallbacks.set(event, new Set());
     }
-    eventCallbacks.get("announcement")!.add(wrappedCallback);
-
-    const unsub = () => {
-      eventCallbacks.get("announcement")?.delete(wrappedCallback);
+    eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
+    return () => {
+      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
     };
-    unsubscribers.push(unsub);
-    return unsub;
   };
 
   const onContestStatus = (
     callback: (data: ContestStatusPayload) => void,
   ): (() => void) => {
-    const wrappedCallback = (data: unknown): void => {
-      callback(data as ContestStatusPayload);
-    };
-
-    if (!eventCallbacks.has("contest_status")) {
-      eventCallbacks.set("contest_status", new Set());
+    const event = "contest_status";
+    if (!eventCallbacks.has(event)) {
+      eventCallbacks.set(event, new Set());
     }
-    eventCallbacks.get("contest_status")!.add(wrappedCallback);
-
-    const unsub = () => {
-      eventCallbacks.get("contest_status")?.delete(wrappedCallback);
+    eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
+    return () => {
+      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
     };
-    unsubscribers.push(unsub);
-    return unsub;
   };
 
   const onSubmissionResult = (
     callback: (data: SubmissionResultPayload) => void,
   ): (() => void) => {
-    const wrappedCallback = (data: unknown): void => {
-      callback(data as SubmissionResultPayload);
-    };
-
-    if (!eventCallbacks.has("submission_result")) {
-      eventCallbacks.set("submission_result", new Set());
+    const event = "submission_result";
+    if (!eventCallbacks.has(event)) {
+      eventCallbacks.set(event, new Set());
     }
-    eventCallbacks.get("submission_result")!.add(wrappedCallback);
-
-    const unsub = () => {
-      eventCallbacks.get("submission_result")?.delete(wrappedCallback);
+    eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
+    return () => {
+      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
     };
-    unsubscribers.push(unsub);
-    return unsub;
   };
 
   const onConnectionStatus = (
     callback: (status: ConnectionStatus) => void,
   ): (() => void) => {
-    if (!eventCallbacks.has("connection:status")) {
-      eventCallbacks.set("connection:status", new Set());
+    const event = "connection:status";
+    if (!eventCallbacks.has(event)) {
+      eventCallbacks.set(event, new Set());
     }
-    eventCallbacks.get("connection:status")!.add(callback as () => void);
-
-    const unsub = () => {
-      eventCallbacks.get("connection:status")?.delete(callback as () => void);
+    eventCallbacks.get(event)!.add(callback as (...args: unknown[]) => void);
+    unsubscribers.push(() => {
+      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
+    });
+    return () => {
+      eventCallbacks.get(event)?.delete(callback as (...args: unknown[]) => void);
     };
-    unsubscribers.push(unsub);
-    return unsub;
   };
 
   const clearError = (): void => {
@@ -535,33 +580,30 @@ export function useContestSocket(
 
   // ==================== Lifecycle ====================
 
-  // Watch for authentication changes
-  watch(
-    () => authStore.isAuthenticated,
-    (isAuthenticated) => {
-      if (isAuthenticated && autoConnect) {
-        connect();
-      } else if (!isAuthenticated) {
-        disconnect();
-      }
-    },
-    { immediate: true },
-  );
-
-  // Subscribe to connection status changes on mount
   onMounted(() => {
+    // Subscribe to connection status changes
     onConnectionStatus(handleStatusChange);
-    // Set initial status
-    status.value = connectionStatus;
-    isConnected.value = connectionStatus === "connected";
+
+    // Auto-connect if enabled and authenticated
+    if (autoConnect && authStore.isAuthenticated) {
+      connect();
+    }
+
+    // Watch for authentication changes
+    watch(
+      () => authStore.isAuthenticated,
+      (isAuth) => {
+        if (isAuth && autoConnect) {
+          connect();
+        } else if (!isAuth) {
+          disconnect();
+        }
+      },
+    );
   });
 
-  // Cleanup on unmount
   onUnmounted(() => {
-    // Remove all callbacks registered by this instance
     unsubscribers.forEach((unsub) => unsub());
-    // Note: We don't disconnect the socket on unmount as it's a singleton
-    // and may be used by other components
   });
 
   return {

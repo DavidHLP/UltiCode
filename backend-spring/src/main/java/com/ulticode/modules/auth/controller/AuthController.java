@@ -3,11 +3,14 @@ package com.ulticode.modules.auth.controller;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.auth.dto.ForgotPasswordDTO;
 import com.ulticode.modules.auth.dto.LoginDTO;
 import com.ulticode.modules.auth.dto.LoginResponse;
 import com.ulticode.modules.auth.dto.RegisterDTO;
+import com.ulticode.modules.auth.dto.ResetPasswordDTO;
 import com.ulticode.modules.auth.dto.UserWithCsrfVO;
 import com.ulticode.modules.auth.service.AuthService;
+import com.ulticode.modules.auth.service.PasswordResetService;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
@@ -35,6 +38,7 @@ public class AuthController {
     private final AuthService authService;
     private final CsrfService csrfService;
     private final UserService userService;
+    private final PasswordResetService passwordResetService;
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
@@ -70,6 +74,20 @@ public class AuthController {
     @PostMapping("/logout")
     public Result<Void> logout(HttpServletResponse response) {
         authService.logout(response);
+        return Result.success();
+    }
+
+    @Operation(summary = "Forgot password", description = "Send password reset email")
+    @PostMapping("/forgot-password")
+    public Result<Void> forgotPassword(@Valid @RequestBody ForgotPasswordDTO dto) {
+        passwordResetService.forgotPassword(dto.getEmail());
+        return Result.success();
+    }
+
+    @Operation(summary = "Reset password", description = "Reset password using token from email")
+    @PostMapping("/reset-password")
+    public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO dto) {
+        passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());
         return Result.success();
     }
 

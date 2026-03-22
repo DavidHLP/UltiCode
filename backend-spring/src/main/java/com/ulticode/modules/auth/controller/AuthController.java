@@ -78,7 +78,7 @@ public class AuthController {
     public Result<UserWithCsrfVO> getCurrentUser(Principal principal) {
         String userId = principal.getName();
         User user = userService.findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new BusinessException(ErrorCode.AUTH_USER_NOT_FOUND));
 
         String csrfToken = csrfService.generateToken(user.getId());
         UserVO userVO = userService.toVO(user);

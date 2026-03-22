@@ -10,6 +10,7 @@ import com.ulticode.modules.auth.dto.RegisterDTO;
 import com.ulticode.modules.auth.dto.ResetPasswordDTO;
 import com.ulticode.modules.auth.dto.UserWithCsrfVO;
 import com.ulticode.modules.auth.service.AuthService;
+import com.ulticode.modules.auth.service.OAuthService;
 import com.ulticode.modules.auth.service.PasswordResetService;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
@@ -22,7 +23,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.*;
+
+import java.io.IOException;
 
 import java.security.Principal;
 
@@ -39,6 +43,10 @@ public class AuthController {
     private final CsrfService csrfService;
     private final UserService userService;
     private final PasswordResetService passwordResetService;
+    private final OAuthService oauthService;
+
+    @Value("${app.frontend-url:http://localhost:9002}")
+    private String frontendUrl;
     private static final String ACCESS_TOKEN_COOKIE = "access_token";
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
@@ -106,6 +114,34 @@ public class AuthController {
         response.setCsrfToken(csrfToken);
 
         return Result.success(response);
+    }
+
+    @Operation(summary = "GitHub login", description = "Redirect to GitHub OAuth")
+    @GetMapping("/github")
+    public void githubLogin(HttpServletResponse response) throws IOException {
+        String authUrl = oauthService.getGithubAuthUrl();
+        response.sendRedirect(authUrl);
+    }
+
+    @Operation(summary = "GitHub callback", description = "Handle GitHub OAuth callback")
+    @GetMapping("/github/callback")
+    public void githubCallback(@RequestParam String code, HttpServletResponse response) throws IOException {
+        oauthService.handleGithubCallback(code, response);
+        response.sendRedirect(frontendUrl + "/?oauth=success");
+    }
+
+    @Operation(summary = "Google login", description = "Redirect to Google OAuth")
+    @GetMapping("/google")
+    public void googleLogin(HttpServletResponse response) throws IOException {
+        String authUrl = oauthService.getGoogleAuthUrl();
+        response.sendRedirect(authUrl);
+    }
+
+    @Operation(summary = "Google callback", description = "Handle Google OAuth callback")
+    @GetMapping("/google/callback")
+    public void googleCallback(@RequestParam String code, HttpServletResponse response) throws IOException {
+        oauthService.handleGoogleCallback(code, response);
+        response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 
     /**

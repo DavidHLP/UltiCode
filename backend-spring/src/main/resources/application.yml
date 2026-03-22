@@ -64,9 +64,6 @@ mybatis-plus:
   global-config:
     db-config:
       id-type: input                    # 改为 input（UUID）
-      logic-delete-field: isDeleted     # 与实体字段一致
-      logic-delete-value: 1
-      logic-not-delete-value: 0
 
 # SpringDoc Configuration
 springdoc:

@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 
 @Tag(name = "Admin - Backup", description = "备份管理接口")
 @RestController
-@RequestMapping("/api/admin/backups")
+@RequestMapping("/admin/backups")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
 public class BackupController {

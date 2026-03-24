@@ -1,5 +1,15 @@
 import { apiGet } from '@/utils/request'
 
+/**
+ * Backend Result wrapper - all API responses are wrapped in this structure
+ */
+export interface Result<T> {
+  code: number
+  message: string
+  data: T
+  traceId?: string
+}
+
 export interface AuditLog {
   id: string
   created_at: Date
@@ -73,16 +83,16 @@ export interface AuditExportParams extends AuditLogQueryParams {
 }
 
 export const auditApi = {
-  async getAuditLogs(params: AuditLogQueryParams = {}): Promise<AuditLogsResponse> {
-    return apiGet<AuditLogsResponse>('/admin/audit/logs', { params })
+  async getAuditLogs(params: AuditLogQueryParams = {}): Promise<Result<AuditLogsResponse>> {
+    return apiGet<Result<AuditLogsResponse>>('/admin/audit/logs', { params })
   },
 
   async getAuditStats(params?: {
     startDate?: string
     endDate?: string
     performerId?: string
-  }): Promise<AuditStats> {
-    return apiGet<AuditStats>('/admin/audit/stats', { params })
+  }): Promise<Result<AuditStats>> {
+    return apiGet<Result<AuditStats>>('/admin/audit/stats', { params })
   },
 
   async exportAuditLogs(params: AuditExportParams = {}): Promise<void> {

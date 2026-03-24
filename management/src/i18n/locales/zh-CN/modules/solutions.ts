@@ -71,6 +71,10 @@ export default {
     language: '语言',
     created: '创建时间',
     updated: '更新时间',
+    lines: '行',
+    copy: '复制',
+    copied: '已复制',
+    sourceCode: '源代码',
   },
 
   // ========== 错误状态 ==========

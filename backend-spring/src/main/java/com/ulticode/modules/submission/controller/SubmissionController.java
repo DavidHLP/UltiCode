@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Submissions", description = "Code submission endpoints")
 @RestController
-@RequestMapping("/api/submissions")
+@RequestMapping("/submissions")
 @RequiredArgsConstructor
 public class SubmissionController {
 

@@ -7,7 +7,7 @@ interface ProblemLanguage {
   language: string
   value?: string
   style?: string
-  starter_code: string
+  starterCode: string
 }
 
 interface Props {
@@ -21,7 +21,7 @@ const languageOptions = computed(() =>
   (props.languages || []).map((lang) => ({
     id: lang.id,
     language: lang.language,
-    code: lang.starter_code,
+    code: lang.starterCode,
   })),
 )
 </script>

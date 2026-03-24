@@ -25,6 +25,23 @@ onMounted(async () => {
 })
 </script>
 
+<i18n lang="json">
+{
+  "en-US": {
+    "viewLabel": "view:",
+    "testCasesView": "test_cases",
+    "testData": "test data",
+    "fetchingData": "fetching problem data..."
+  },
+  "zh-CN": {
+    "viewLabel": "视图:",
+    "testCasesView": "测试用例",
+    "testData": "测试数据",
+    "fetchingData": "正在获取题目数据..."
+  }
+}
+</i18n>
+
 <template>
   <div class="relative flex flex-col gap-0 overflow-auto">
     <!-- Terminal Header (only visible on mobile or when not in parent view) -->
@@ -38,12 +55,12 @@ onMounted(async () => {
       <!-- Info Ticker -->
       <div class="px-4 lg:px-6 py-2.5 flex items-center gap-6 bg-[var(--surface-sunken)]">
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">view:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)]">test_cases</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('viewLabel') }}</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)]">{{ t('testCasesView') }}</span>
         </div>
         <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
           <IconFlask class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">test data</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{ t('testData') }}</span>
         </div>
       </div>
     </div>
@@ -64,7 +81,7 @@ onMounted(async () => {
           ></div>
         </div>
         <h2 class="text-sm font-medium mb-1 font-data">{{ t('problems.view.loading') }}</h2>
-        <p class="text-xs text-[var(--silver-500)] font-data">// fetching problem data...</p>
+        <p class="text-xs text-[var(--silver-500)] font-data">// {{ t('fetchingData') }}</p>
       </div>
     </div>
   </div>

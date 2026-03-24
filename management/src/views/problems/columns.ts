@@ -42,6 +42,9 @@ export interface ProblemActions {
 
 // Terminal-style difficulty badge renderer (matches role badge style)
 function renderDifficultyBadge(difficulty: Difficulty, t: (key: string) => string) {
+  // Normalize difficulty to uppercase to handle backend returning "Easy" instead of "EASY"
+  const normalizedDifficulty = (String(difficulty).toUpperCase() || 'UNKNOWN') as Difficulty
+
   const difficultyStyles: Record<Difficulty, { bg: string; border: string; text: string }> = {
     EASY: {
       bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
@@ -60,7 +63,7 @@ function renderDifficultyBadge(difficulty: Difficulty, t: (key: string) => strin
     },
   }
 
-  const style = difficultyStyles[difficulty]
+  const style = difficultyStyles[normalizedDifficulty] || difficultyStyles.EASY
 
   return h('div', { class: 'flex items-center gap-2' }, [
     h('span', {
@@ -77,7 +80,7 @@ function renderDifficultyBadge(difficulty: Difficulty, t: (key: string) => strin
           style.text,
         ].join(' '),
       },
-      t(`problems.difficulty.${difficulty}`),
+      t(`problems.difficulty.${normalizedDifficulty}`),
     ),
   ])
 }

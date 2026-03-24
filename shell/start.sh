@@ -1,85 +1,15 @@
 #!/bin/bash
 
 # ============================================================
-# UltiCode Start Script - Simple & Reliable
+# UltiCode Start Script
 # Usage: ./start.sh [-y] [--skip-docker] [--skip-install]
 # ============================================================
-
-# Don't use set -e - we handle errors explicitly for better reliability
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# ============== Configuration ==============
-CONSOLE_PORT=9002
-MANAGEMENT_PORT=9003
-BACKEND_PORT=9001
-RECOMMEND_WEB_PORT=9004
-RECOMMEND_PROVIDER_DUBBO_PORT=20881
-MYSQL_PORT=23306
-REDIS_PORT=26379
-NACOS_PORT=28848
-
-# Timeouts (seconds)
-BACKEND_TIMEOUT=60
-FRONTEND_TIMEOUT=30
-MYSQL_TIMEOUT=60
-RECOMMEND_TIMEOUT=90
-
-# ============== Colors & Symbols ==============
-R='\033[0m' G='\033[32m' Y='\033[33m' C='\033[36m' D='\033[2m' B='\033[1m'
-CHECK="✓" CROSS="✗" ARROW="→"
-
-# ============== Helper Functions ==============
-log() { echo -e "  $1"; }
-ok() { log "${G}${CHECK}${R} $1"; }
-err() { log "${Y}${CROSS}${R} $1"; }
-info() { log "${D}•${R} $1"; }
-step() { log "${C}${ARROW}${R} $1"; }
-
-spin_wait() {
-    local msg=$1 check_cmd=$2 timeout=$3
-    local i=0 spinner='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-    printf "  ${C}${ARROW}${R} ${msg}..."
-    while [ $i -lt $timeout ]; do
-        if eval "$check_cmd" >/dev/null 2>&1; then
-            printf "\r  ${G}${CHECK}${R} ${msg}    \n"
-            return 0
-        fi
-        printf "\r  ${spinner:$((i % 10)):1} ${msg}... ($((i+1))s/${timeout}s)"
-        sleep 1
-        ((i++)) || true
-    done
-    printf "\r  ${Y}!${R} ${msg} timeout    \n"
-    return 1
-}
-
-port_used() { lsof -i :$1 >/dev/null 2>&1; }
-get_pid() { lsof -ti :$1 2>/dev/null || echo ""; }
-
-# ============== Load Environment ==============
-load_env() {
-    local env_file="$PROJECT_ROOT/backend/.env"
-    if [ -f "$env_file" ]; then
-        while IFS= read -r line || [ -n "$line" ]; do
-            # Skip empty lines and comments
-            [[ -z "$line" || "$line" =~ ^[[:space:]]*# ]] && continue
-            # Only process lines containing =
-            if [[ "$line" == *"="* ]]; then
-                local key="${line%%=*}"
-                local value="${line#*=}"
-                # Remove surrounding quotes if present
-                if [[ "$value" =~ ^\"(.*)\"$ ]]; then
-                    value="${BASH_REMATCH[1]}"
-                elif [[ "$value" =~ ^\'(.*)\'$ ]]; then
-                    value="${BASH_REMATCH[1]}"
-                fi
-                export "$key=$value"
-            fi
-        done < "$env_file"
-    fi
-}
-load_env
+# Source common functions
+source "$SCRIPT_DIR/common.sh"
 
 # ============== Parse Arguments ==============
 SKIP_CONFIRM=false
@@ -95,20 +25,12 @@ for arg in "$@"; do
 done
 
 # ============== Banner ==============
-echo ""
-echo -e "${C}${B}"
-echo "   _   _ _   _ _   _ _   _ ___ ___  ___ ___  ___  "
-echo "  | | | | | | | | | | \\ | |_ _/ _ \\/ __/ __|| _ \\ "
-echo "  | |_| | |_| | | | |  \\| || | (_) | (_| _| |   / "
-echo "   \\___/ \\___/|_| |_|_|\\_|___|\\___/ \\___|___|_|_\\ "
-echo -e "${R}"
-echo -e "  ${D}Starting Development Environment${R}"
-echo ""
+print_banner "Starting Development Environment"
 
 cd "$PROJECT_ROOT"
 
 # ============== Step 1: Check Ports ==============
-log "${B}:: Check Ports${R} ${D}────────────────────────${R}"
+print_section "Check Ports"
 
 for svc in "Console:$CONSOLE_PORT" "Management:$MANAGEMENT_PORT" "Backend:$BACKEND_PORT" "Recommend-Web:$RECOMMEND_WEB_PORT" "Recommend-Provider:$RECOMMEND_PROVIDER_DUBBO_PORT"; do
     name="${svc%:*}" port="${svc#*:}"
@@ -128,33 +50,29 @@ for svc in "Console:$CONSOLE_PORT" "Management:$MANAGEMENT_PORT" "Backend:$BACKE
 done
 
 # ============== Step 2: Docker Services ==============
-if [ "$SKIP_DOCKER" = false ]; then
-    log ""
-    log "${B}:: Docker Services${R} ${D}────────────────${R}"
+log ""
+print_section "Docker Services"
 
-    if docker ps 2>/dev/null | grep -q "ulticode-mysql"; then
-        info "MySQL already running"
-    else
-        step "Starting MySQL, Redis & Nacos..."
-        cd backend && docker compose up -d mysql redis nacos && cd ..
-
-        spin_wait "MySQL ready" \
-            "docker exec ulticode-mysql mysqladmin ping -h localhost -u root -proot --silent" \
-            $MYSQL_TIMEOUT
-
-        docker ps 2>/dev/null | grep -q "ulticode-redis" && ok "Redis running"
-        docker ps 2>/dev/null | grep -q "ulticode-nacos" && ok "Nacos running"
-    fi
-else
-    log ""
-    log "${B}:: Docker Services${R} ${D}────────────────${R}"
+if [ "$SKIP_DOCKER" = true ]; then
     info "Skipping (--skip-docker)"
+elif docker ps 2>/dev/null | grep -q "ulticode-mysql"; then
+    info "MySQL already running"
+else
+    step "Starting MySQL, Redis & Nacos..."
+    cd backend && docker compose up -d mysql redis nacos && cd ..
+
+    spin_wait "MySQL ready" \
+        "docker exec ulticode-mysql mysqladmin ping -h localhost -u root -proot --silent" \
+        $MYSQL_TIMEOUT
+
+    docker ps 2>/dev/null | grep -q "ulticode-redis" && ok "Redis running"
+    docker ps 2>/dev/null | grep -q "ulticode-nacos" && ok "Nacos running"
 fi
 
 # ============== Step 3: Dependencies ==============
 if [ "$SKIP_INSTALL" = false ]; then
     log ""
-    log "${B}:: Dependencies${R} ${D}──────────────────${R}"
+    print_section "Dependencies"
     if [ -d "node_modules" ]; then
         info "Already installed"
     else
@@ -163,33 +81,70 @@ if [ "$SKIP_INSTALL" = false ]; then
     fi
 fi
 
-# ============== Step 4: Backend (Spring Boot) ==============
+# ============== Step 4: Database Initialization ==============
 log ""
-log "${B}:: Backend (Spring Boot)${R} ${D}────────────────${R}"
+print_section "Database Initialization"
+
+if [ -d "init-db" ]; then
+    step "Running database migrations..."
+    cd init-db
+    INIT_DB_LOG="/tmp/ulticode-init-db.log"
+
+    # Install dependencies if needed
+    if [ ! -d "node_modules" ] && [ "$SKIP_INSTALL" = false ]; then
+        info "Installing init-db dependencies..."
+        pnpm install >>"$INIT_DB_LOG" 2>&1
+    fi
+
+    # Load environment variables
+    load_env_file ".env"
+
+    # Generate Prisma client
+    step "Generating Prisma client..."
+    rm -f "$INIT_DB_LOG" 2>/dev/null
+    if pnpm prisma:generate >>"$INIT_DB_LOG" 2>&1; then
+        ok "Prisma client generated"
+    else
+        err "Failed to generate Prisma client"
+        info "Check: tail -f $INIT_DB_LOG"
+    fi
+
+    # Run migrations
+    step "Running migrations..."
+    if pnpm migration:run:all >>"$INIT_DB_LOG" 2>&1; then
+        ok "Migrations completed"
+    else
+        info "Migrations may have warnings (some may already be applied)"
+    fi
+
+    cd ..
+else
+    info "init-db directory not found, skipping"
+fi
+
+# ============== Step 5: Backend (Spring Boot) ==============
+log ""
+print_section "Backend (Spring Boot)"
 
 if port_used $BACKEND_PORT; then
     info "Already running on port $BACKEND_PORT"
 else
     cd backend-spring
     rm -f nohup.out 2>/dev/null
-
-    # Load environment variables from .env file
-    if [ -f ".env" ]; then
-        export $(grep -v '^#' .env | xargs)
-    fi
+    load_env_file ".env"
 
     nohup ./mvnw spring-boot:run >/tmp/ulticode-backend.log 2>&1 &
     BACKEND_PID=$!
     cd ..
 
-    spin_wait "Backend ready" "curl -sf http://localhost:$BACKEND_PORT" $BACKEND_TIMEOUT || {
+    spin_wait "Backend ready" "curl -sf http://localhost:$BACKEND_PORT/actuator/health" $BACKEND_TIMEOUT || {
         info "Check: tail -f /tmp/ulticode-backend.log"
     }
 fi
 
-# ============== Step 5: Console ==============
+# ============== Step 6: Console ==============
 log ""
-log "${B}:: Console${R} ${D}──────────────────────${R}"
+print_section "Console"
 
 if port_used $CONSOLE_PORT; then
     info "Already running on port $CONSOLE_PORT"
@@ -204,9 +159,9 @@ else
     }
 fi
 
-# ============== Step 6: Management ==============
+# ============== Step 7: Management ==============
 log ""
-log "${B}:: Management${R} ${D}──────────────────${R}"
+print_section "Management"
 
 if port_used $MANAGEMENT_PORT; then
     info "Already running on port $MANAGEMENT_PORT"
@@ -221,89 +176,86 @@ else
     }
 fi
 
-# ============== Step 7: Recommendation Service ==============
+# ============== Step 8: Recommendation Service ==============
 log ""
-log "${B}:: Recommendation Service${R} ${D}────────${R}"
+print_section "Recommendation Service"
 
-# Check if recommendation directory exists
 if [ ! -d "recommendation" ]; then
     info "Recommendation service not found, skipping"
+elif ! command -v java &>/dev/null; then
+    err "Java not found, skipping recommendation service"
+elif ! command -v mvn &>/dev/null; then
+    err "Maven not found, skipping recommendation service"
 else
-    # Check Java
-    if ! command -v java &>/dev/null; then
-        err "Java not found, skipping recommendation service"
-    elif ! command -v mvn &>/dev/null; then
-        err "Maven not found, skipping recommendation service"
+    cd recommendation
+
+    # Start Provider first (Dubbo service)
+    if port_used $RECOMMEND_PROVIDER_DUBBO_PORT; then
+        info "Recommend-Provider already running"
     else
-        cd recommendation
+        step "Starting Recommend-Provider..."
+        rm -f /tmp/ulticode-recommend-provider.log 2>/dev/null
+        export NACOS_HOST=localhost
+        export NACOS_PORT=$NACOS_PORT
+        nohup mvn -pl recommend-provider spring-boot:run \
+            -Dspring-boot.run.arguments="--dubbo.registry.address=nacos://localhost:$NACOS_PORT" \
+            >/tmp/ulticode-recommend-provider.log 2>&1 &
+        RECOMMEND_PROVIDER_PID=$!
 
-        # Start Provider first (Dubbo service)
-        if port_used $RECOMMEND_PROVIDER_DUBBO_PORT; then
-            info "Recommend-Provider already running on Dubbo port $RECOMMEND_PROVIDER_DUBBO_PORT"
-        else
-            step "Starting Recommend-Provider..."
-            rm -f /tmp/ulticode-recommend-provider.log 2>/dev/null
-            export NACOS_HOST=localhost
-            export NACOS_PORT=$NACOS_PORT
-            nohup mvn -pl recommend-provider spring-boot:run \
-                -Dspring-boot.run.arguments="--dubbo.registry.address=nacos://localhost:$NACOS_PORT" \
-                >/tmp/ulticode-recommend-provider.log 2>&1 &
-            RECOMMEND_PROVIDER_PID=$!
-
-            spin_wait "Provider ready" "port_used $RECOMMEND_PROVIDER_DUBBO_PORT" $RECOMMEND_TIMEOUT || {
-                info "Check: tail -f /tmp/ulticode-recommend-provider.log"
-            }
-        fi
-
-        # Start Web (HTTP API)
-        if port_used $RECOMMEND_WEB_PORT; then
-            info "Recommend-Web already running on port $RECOMMEND_WEB_PORT"
-        else
-            step "Starting Recommend-Web..."
-            rm -f /tmp/ulticode-recommend-web.log 2>/dev/null
-            export NACOS_HOST=localhost
-            export NACOS_PORT=$NACOS_PORT
-            nohup mvn -pl recommend-web spring-boot:run \
-                -Dspring-boot.run.arguments="--server.port=$RECOMMEND_WEB_PORT --dubbo.registry.address=nacos://localhost:$NACOS_PORT" \
-                >/tmp/ulticode-recommend-web.log 2>&1 &
-            RECOMMEND_WEB_PID=$!
-
-            spin_wait "Web ready" "port_used $RECOMMEND_WEB_PORT" $RECOMMEND_TIMEOUT || {
-                info "Check: tail -f /tmp/ulticode-recommend-web.log"
-            }
-        fi
-
-        cd ..
+        spin_wait "Provider ready" "port_used $RECOMMEND_PROVIDER_DUBBO_PORT" $RECOMMEND_TIMEOUT || {
+            info "Check: tail -f /tmp/ulticode-recommend-provider.log"
+        }
     fi
+
+    # Start Web (HTTP API)
+    if port_used $RECOMMEND_WEB_PORT; then
+        info "Recommend-Web already running"
+    else
+        step "Starting Recommend-Web..."
+        rm -f /tmp/ulticode-recommend-web.log 2>/dev/null
+        nohup mvn -pl recommend-web spring-boot:run \
+            -Dspring-boot.run.arguments="--server.port=$RECOMMEND_WEB_PORT --dubbo.registry.address=nacos://localhost:$NACOS_PORT" \
+            >/tmp/ulticode-recommend-web.log 2>&1 &
+        RECOMMEND_WEB_PID=$!
+
+        spin_wait "Web ready" "port_used $RECOMMEND_WEB_PORT" $RECOMMEND_TIMEOUT || {
+            info "Check: tail -f /tmp/ulticode-recommend-web.log"
+        }
+    fi
+
+    cd ..
 fi
 
 # ============== Summary ==============
 log ""
-log "${B}:: Status${R} ${D}────────────────────────${R}"
+print_section "Status"
 
 ALL_OK=true
-port_used $BACKEND_PORT && ok "Backend  http://localhost:$BACKEND_PORT" || { err "Backend not responding"; ALL_OK=false; }
-port_used $CONSOLE_PORT && ok "Console  http://localhost:$CONSOLE_PORT" || { err "Console not responding"; ALL_OK=false; }
-port_used $MANAGEMENT_PORT && ok "Management http://localhost:$MANAGEMENT_PORT" || { err "Management not responding"; ALL_OK=false; }
-port_used $RECOMMEND_WEB_PORT && ok "Recommend-Web http://localhost:$RECOMMEND_WEB_PORT" || { err "Recommend-Web not responding"; ALL_OK=false; }
-port_used $RECOMMEND_PROVIDER_DUBBO_PORT && ok "Recommend-Provider localhost:$RECOMMEND_PROVIDER_DUBBO_PORT (Dubbo)" || { err "Recommend-Provider not responding"; ALL_OK=false; }
 
+# Check application services
+port_used $BACKEND_PORT && ok "Backend       http://localhost:$BACKEND_PORT" || { err "Backend not responding"; ALL_OK=false; }
+port_used $CONSOLE_PORT && ok "Console       http://localhost:$CONSOLE_PORT" || { err "Console not responding"; ALL_OK=false; }
+port_used $MANAGEMENT_PORT && ok "Management    http://localhost:$MANAGEMENT_PORT" || { err "Management not responding"; ALL_OK=false; }
+port_used $RECOMMEND_WEB_PORT && ok "Recommend-Web http://localhost:$RECOMMEND_WEB_PORT" || { err "Recommend-Web not responding"; ALL_OK=false; }
+port_used $RECOMMEND_PROVIDER_DUBBO_PORT && ok "Recommend-Dubbo localhost:$RECOMMEND_PROVIDER_DUBBO_PORT" || { err "Recommend-Provider not responding"; ALL_OK=false; }
+
+# Check Docker services
 if [ "$SKIP_DOCKER" = false ]; then
-    docker ps 2>/dev/null | grep -q "ulticode-mysql" && ok "MySQL   localhost:$MYSQL_PORT" || { err "MySQL not running"; ALL_OK=false; }
-    docker ps 2>/dev/null | grep -q "ulticode-redis" && ok "Redis   localhost:$REDIS_PORT" || { err "Redis not running"; ALL_OK=false; }
-    docker ps 2>/dev/null | grep -q "ulticode-nacos" && ok "Nacos   localhost:$NACOS_PORT (console: 28080)" || { err "Nacos not running"; ALL_OK=false; }
+    docker ps 2>/dev/null | grep -q "ulticode-mysql" && ok "MySQL         localhost:$MYSQL_PORT" || { err "MySQL not running"; ALL_OK=false; }
+    docker ps 2>/dev/null | grep -q "ulticode-redis" && ok "Redis         localhost:$REDIS_PORT" || { err "Redis not running"; ALL_OK=false; }
+    docker ps 2>/dev/null | grep -q "ulticode-nacos" && ok "Nacos         localhost:$NACOS_PORT (console: 28080)" || { err "Nacos not running"; ALL_OK=false; }
 fi
 
 log ""
 if [ "$ALL_OK" = true ]; then
-    echo -e "  ${G}${B}✓ All services running${R}"
+    echo -e "  ${GREEN_BG}${WHITE} RUNNING ${R}"
     log ""
-    log "${D}Logs: tail -f /tmp/ulticode-{backend,console,management,recommend-*}.log${R}"
+    log "${D}Logs: tail -f /tmp/ulticode-*.log${R}"
     log "${D}Stop: ./shell/stop.sh${R}"
 else
     echo -e "  ${Y}${B}! Some services may still be starting${R}"
     log ""
-    log "${D}Check logs: tail -f /tmp/ulticode-{backend,console,management,recommend-*}.log${R}"
+    log "${D}Check logs: tail -f /tmp/ulticode-*.log${R}"
 fi
 
 echo ""

@@ -1,5 +1,15 @@
 import { apiGet } from '@/utils/request'
 
+/**
+ * Backend Result wrapper - all API responses are wrapped in this structure
+ */
+export interface Result<T> {
+  code: number
+  message: string
+  data: T
+  traceId?: string
+}
+
 export enum ChartPeriod {
   HOUR = 'hour',
   DAY = 'day',
@@ -86,15 +96,11 @@ export interface ChartQueryParams {
 }
 
 export const dashboardApi = {
-  async getStats(): Promise<DashboardStats> {
-    const response = await apiGet<DashboardStats>('/admin/dashboard/stats')
-    return response
+  async getStats(): Promise<Result<DashboardStats>> {
+    return apiGet<Result<DashboardStats>>('/admin/dashboard/stats')
   },
 
-  async getChartStats(params: ChartQueryParams = {}): Promise<ChartStatsResponse> {
-    const response = await apiGet<ChartStatsResponse>('/admin/dashboard/charts', {
-      params,
-    })
-    return response
+  async getChartStats(params: ChartQueryParams = {}): Promise<Result<ChartStatsResponse>> {
+    return apiGet<Result<ChartStatsResponse>>('/admin/dashboard/charts', { params })
   },
 }

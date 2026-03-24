@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Tag(name = "Contest", description = "Contest management endpoints")
 @RestController
-@RequestMapping("/api/contest")
+@RequestMapping("/contest")
 @RequiredArgsConstructor
 public class ContestController {
 

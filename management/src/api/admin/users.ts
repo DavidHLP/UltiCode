@@ -47,12 +47,20 @@ export interface UserQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-export interface UsersResponse {
-  data: User[]
+// Backend PageResult structure
+export interface PageResult<T> {
+  items: T[]
   total: number
   page: number
-  limit: number
+  pageSize: number
   totalPages: number
+}
+
+export interface UsersResponse {
+  success: boolean
+  data: PageResult<User>
+  message?: string
+  code?: number
 }
 
 export interface CreateUserDto {
@@ -97,6 +105,14 @@ export interface BulkActionDto {
   role?: string
 }
 
+// Generic API response wrapper from backend
+interface ApiResponse<T> {
+  success: boolean
+  data: T
+  message?: string
+  code?: number
+}
+
 export const usersApi = {
   async getUsers(params: UserQueryParams): Promise<UsersResponse> {
     const response = await apiGet<UsersResponse>('/admin/users', { params })
@@ -104,20 +120,20 @@ export const usersApi = {
   },
 
   async getUser(id: string): Promise<User> {
-    const response = await apiGet<User>(`/admin/users/${id}`)
-    return response
+    const response = await apiGet<ApiResponse<User>>(`/admin/users/${id}`)
+    return response.data
   },
 
   async createUser(data: CreateUserDto): Promise<User> {
-    const response = await apiPost<User>('/admin/users', data)
+    const response = await apiPost<ApiResponse<User>>('/admin/users', data)
     toast.success('User created successfully')
-    return response
+    return response.data
   },
 
   async updateUser(id: string, data: UpdateUserDto): Promise<User> {
-    const response = await apiPatch<User>(`/admin/users/${id}`, data)
+    const response = await apiPatch<ApiResponse<User>>(`/admin/users/${id}`, data)
     toast.success('User updated successfully')
-    return response
+    return response.data
   },
 
   async deleteUser(id: string): Promise<void> {
@@ -126,15 +142,15 @@ export const usersApi = {
   },
 
   async banUser(id: string, data: BanUserDto): Promise<User> {
-    const response = await apiPost<User>(`/admin/users/${id}/ban`, data)
+    const response = await apiPost<ApiResponse<User>>(`/admin/users/${id}/ban`, data)
     toast.success('User has been banned')
-    return response
+    return response.data
   },
 
   async unbanUser(id: string): Promise<User> {
-    const response = await apiPost<User>(`/admin/users/${id}/unban`)
+    const response = await apiPost<ApiResponse<User>>(`/admin/users/${id}/unban`)
     toast.success('User has been unbanned')
-    return response
+    return response.data
   },
 
   async grantPermission(id: string, data: GrantPermissionDto): Promise<void> {
@@ -153,31 +169,31 @@ export const usersApi = {
     ids: string[],
     reason?: string,
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiPost<{
-      results: { id: string; success: boolean; error?: string }[]
-    }>('/admin/users/bulk-ban', { ids, reason })
+    const response = await apiPost<
+      ApiResponse<{ results: { id: string; success: boolean; error?: string }[] }>
+    >('/admin/users/bulk-ban', { ids, reason })
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response
+    return response.data
   },
 
   async bulkUnban(
     ids: string[],
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiPost<{
-      results: { id: string; success: boolean; error?: string }[]
-    }>('/admin/users/bulk-unban', { ids })
+    const response = await apiPost<
+      ApiResponse<{ results: { id: string; success: boolean; error?: string }[] }>
+    >('/admin/users/bulk-unban', { ids })
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response
+    return response.data
   },
 
   async bulkDelete(
     ids: string[],
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiDelete<{
-      results: { id: string; success: boolean; error?: string }[]
-    }>('/admin/users/bulk-delete', { data: { ids } })
+    const response = await apiDelete<
+      ApiResponse<{ results: { id: string; success: boolean; error?: string }[] }>
+    >('/admin/users/bulk-delete', { data: { ids } })
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response
+    return response.data
   },
 
   async resetPassword(id: string, password: string): Promise<void> {

@@ -19,7 +19,7 @@ import java.util.List;
  */
 @Tag(name = "Achievement", description = "Achievement management API")
 @RestController
-@RequestMapping("/api/achievements")
+@RequestMapping("/achievements")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
 public class AchievementController {

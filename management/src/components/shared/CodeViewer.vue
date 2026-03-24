@@ -12,7 +12,7 @@ export interface LanguageOption {
   language: string
   code?: string
   value?: string
-  starter_code?: string
+  starterCode?: string
 }
 
 interface Props {
@@ -53,7 +53,7 @@ const currentCode = computed(() => {
     const lang = props.languages.find(
       (l) => l.language.toLowerCase() === selectedLanguage.value.toLowerCase(),
     )
-    return lang?.code || lang?.starter_code || ''
+    return lang?.code || lang?.starterCode || ''
   }
   return props.code || ''
 })

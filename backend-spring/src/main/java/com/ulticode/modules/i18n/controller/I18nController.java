@@ -21,7 +21,7 @@ import java.util.Set;
  */
 @Tag(name = "I18n", description = "Internationalization endpoints")
 @RestController
-@RequestMapping("/api/i18n")
+@RequestMapping("/i18n")
 @RequiredArgsConstructor
 public class I18nController {
 

@@ -19,7 +19,7 @@ import java.util.List;
  */
 @Tag(name = "Bookmark", description = "Bookmark management API")
 @RestController
-@RequestMapping("/api/bookmarks")
+@RequestMapping("/bookmarks")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
 public class BookmarkController {

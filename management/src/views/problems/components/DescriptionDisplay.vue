@@ -47,7 +47,7 @@ const props = defineProps<{
 const { t } = useI18n()
 
 const difficultyClass = computed(() => {
-  const difficulty = props.problem.difficulty.toLowerCase()
+  const difficulty = props.problem.difficulty?.toLowerCase() || ''
   if (difficulty === 'easy') return 'text-green-600 bg-green-500/10 border-green-500/20'
   if (difficulty === 'medium') return 'text-orange-600 bg-orange-500/10 border-orange-500/20'
   if (difficulty === 'hard') return 'text-red-600 bg-red-500/10 border-red-500/20'
@@ -67,7 +67,7 @@ const hintsList = computed(() => {
 })
 
 const metadataItems = computed<MetadataItem[]>(() => [
-  { label: t('problems.display.id'), value: props.problem.id.slice(0, 8), icon: IconHash },
+  { label: t('problems.display.id'), value: props.problem.id?.slice(0, 8) ?? '-', icon: IconHash },
   {
     label: t('problems.display.created'),
     value: formatDate(props.problem.created_at),
@@ -119,7 +119,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
 
           <div class="flex items-center gap-2">
             <Badge variant="outline" :class="['capitalize px-2.5 py-0.5 border', difficultyClass]">
-              {{ t(`problems.difficulty.${problem.difficulty.toUpperCase()}`) }}
+              {{ t(`problems.difficulty.${(problem.difficulty || 'UNKNOWN').toUpperCase()}`) }}
             </Badge>
             <Badge
               v-if="problem.is_premium"

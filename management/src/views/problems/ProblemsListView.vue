@@ -570,8 +570,9 @@ const columns: ColumnDef<Problem>[] = [
     accessorKey: 'id',
     header: () => t('problems.columns.id'),
     cell: ({ row }) => {
-      const id = row.getValue('id') as string
-      return h('span', { class: 'text-muted-foreground text-xs font-mono' }, id.slice(0, 8))
+      const id = row.getValue('id')
+      const idStr = String(id ?? '')
+      return h('span', { class: 'text-muted-foreground text-xs font-mono' }, idStr.slice(0, 8))
     },
   },
   {
@@ -595,7 +596,7 @@ const columns: ColumnDef<Problem>[] = [
       return h('div', { class: 'flex items-center gap-2' }, [
         h(icon, { class: `h-4 w-4 ${color}` }),
         h(Badge, { variant: getDifficultyBadgeVariant(difficulty) }, () =>
-          t(`problems.difficulty.${difficulty}`),
+          t(`problems.difficulty.${difficulty.toUpperCase()}`),
         ),
       ])
     },

@@ -293,6 +293,7 @@ export default {
 
   // 查看页面
   view: {
+    loading: '加载中...',
     notFound: '题目不存在',
     notFoundDescription: '找不到指定的题目',
     backToProblems: '返回题目列表',
@@ -382,6 +383,39 @@ export default {
   empty: {
     title: '暂无题目',
     description: '点击上方按钮创建第一个题目',
+  },
+
+  // 代码显示组件
+  codeDisplay: {
+    noCode: '暂无代码模板',
+    noCodeDescription: '此题目尚未配置任何语言模板。编辑题目以添加不同编程语言的起始代码。',
+    noCodeForLanguage: '未配置 {language} 的起始代码',
+    lines: '行',
+    copy: '复制',
+    copied: '已复制',
+    languagesConfigured: '已配置 {count} 种语言',
+    selectLanguage: '选择语言查看代码',
+  },
+
+  // 描述显示组件
+  descriptionDisplay: {
+    example: '示例',
+    input: '输入',
+    expectedOutput: '预期输出',
+    explanation: '解释',
+    constraints: '约束条件',
+    hints: '提示',
+    codeCopied: '代码已复制',
+  },
+
+  // 测试用例显示组件
+  casesDisplay: {
+    examples: '测试用例',
+    input: '输入',
+    output: '输出',
+    explanation: '解释',
+    noCases: '暂无测试用例',
+    noCasesDescription: '此题目尚未配置任何测试用例。编辑题目以添加示例测试用例。',
   },
 
   clearSelection: '清除选择',

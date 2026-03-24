@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { renderSafeMarkdown } from '@/utils/sanitize-markdown'
 import { toast } from 'vue-sonner'
 
@@ -26,6 +27,8 @@ const props = defineProps<{
   description: ProblemDescription
 }>()
 
+const { t } = useI18n()
+
 const handleCopy = (e: MouseEvent) => {
   const target = (e.target as HTMLElement).closest('.lc-copy-btn')
   if (!target) return
@@ -36,7 +39,7 @@ const handleCopy = (e: MouseEvent) => {
     const code = codeBlock.textContent || ''
     if (code) {
       navigator.clipboard.writeText(code)
-      toast.success('Code copied')
+      toast.success(t('problems.descriptionDisplay.codeCopied'))
     }
   }
 }
@@ -53,13 +56,13 @@ const markdownContent = computed(() => {
 
     props.description.examples.forEach((example, index) => {
       parts.push(
-        `### Example ${index + 1}\n`,
-        `> **Input:** \`${example.input}\`\n>\n`,
-        `> **Expected Output:** \`${example.output}\`\n`,
+        `### ${t('problems.descriptionDisplay.example')} ${index + 1}\n`,
+        `> **${t('problems.descriptionDisplay.input')}:** \`${example.input}\`\n>\n`,
+        `> **${t('problems.descriptionDisplay.expectedOutput')}:** \`${example.output}\`\n`,
       )
 
       if (example.explanation) {
-        parts.push(`>\n> **Explanation:** ${example.explanation}\n`)
+        parts.push(`>\n> **${t('problems.descriptionDisplay.explanation')}:** ${example.explanation}\n`)
       }
 
       parts.push(`\n`)
@@ -68,12 +71,12 @@ const markdownContent = computed(() => {
 
   // Add constraints
   if (props.description.constraints?.length) {
-    parts.push(`\n\n### Constraints\n\n`, ...props.description.constraints.map((c) => `- ${c}\n`))
+    parts.push(`\n\n### ${t('problems.descriptionDisplay.constraints')}\n\n`, ...props.description.constraints.map((c) => `- ${c}\n`))
   }
 
   // Add follow-up
   if (props.description.followUp) {
-    parts.push(`\n\n### Hints\n\n${props.description.followUp}`)
+    parts.push(`\n\n### ${t('problems.descriptionDisplay.hints')}\n\n${props.description.followUp}`)
   }
 
   return parts.join('')

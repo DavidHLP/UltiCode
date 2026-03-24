@@ -20,8 +20,11 @@ export const useUsersStore = defineStore('adminUsers', () => {
     error.value = null
     try {
       const response = await usersApi.getUsers(params)
-      users.value = response.data
-      total.value = response.total
+      // Backend returns Result<PageResult<User>> structure
+      // apiGet unwraps to { success, data: PageResult }
+      const pageResult = response.data
+      users.value = pageResult.items
+      total.value = pageResult.total
     } catch (err: unknown) {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||

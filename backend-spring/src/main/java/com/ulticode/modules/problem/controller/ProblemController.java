@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Problem", description = "Problem management endpoints")
 @RestController
-@RequestMapping("/api/problems")
+@RequestMapping("/problems")
 @RequiredArgsConstructor
 public class ProblemController {
 

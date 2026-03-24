@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "User Subscription", description = "User subscription management endpoints")
 @RestController
-@RequestMapping("/api/subscriptions")
+@RequestMapping("/subscriptions")
 @RequiredArgsConstructor
 public class UserSubscriptionController {
 

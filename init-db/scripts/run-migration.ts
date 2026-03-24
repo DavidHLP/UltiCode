@@ -89,7 +89,8 @@ function getMigrationDirs(migrationsRoot: string): MigrationInfo[] {
  * Execute MySQL query and return output
  */
 function executeQuery(sql: string): string {
-  const mysqlCmd = `mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -N -e "${sql.replace(/"/g, '\\"')}"`;
+  // Use --protocol=TCP to force TCP connection instead of socket
+  const mysqlCmd = `mysql --protocol=TCP -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} -N -e "${sql.replace(/"/g, '\\"')}"`;
   try {
     return execSync(mysqlCmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] }).trim();
   } catch (error: any) {
@@ -101,8 +102,18 @@ function executeQuery(sql: string): string {
  * Execute SQL file
  */
 function executeSqlFile(filePath: string): void {
-  const mysqlCmd = `mysql -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < "${filePath}"`;
-  execSync(mysqlCmd, { encoding: 'utf-8', stdio: 'inherit' });
+  // Use --protocol=TCP to force TCP connection instead of socket
+  const mysqlCmd = `mysql --protocol=TCP -h${DB_HOST} -P${DB_PORT} -u${DB_USER} -p${DB_PASSWORD} ${DB_NAME} < "${filePath}"`;
+  try {
+    execSync(mysqlCmd, { encoding: 'utf-8', stdio: ['pipe', 'pipe', 'pipe'] });
+  } catch (error: any) {
+    // Include stderr in error message for better error detection
+    const stderr = error.stderr || '';
+    if (stderr) {
+      error.message = `${error.message}\n${stderr}`;
+    }
+    throw error;
+  }
 }
 
 /**
@@ -187,6 +198,18 @@ function needsMigration(migration: MigrationInfo, applied: Map<string, Migration
 }
 
 /**
+ * Check if error indicates table/index already exists (idempotent)
+ */
+function isAlreadyExistsError(error: any): boolean {
+  const msg = (error.message || '') + ' ' + (error.stderr || '');
+  return msg.includes('already exists') ||
+         msg.includes('Duplicate') ||
+         msg.includes('1050') ||  // Table already exists
+         msg.includes('1061') ||  // Duplicate index
+         msg.includes('1062');    // Duplicate entry
+}
+
+/**
  * Run a single migration
  */
 function runMigration(migration: MigrationInfo, dryRun: boolean = false): boolean {
@@ -215,6 +238,13 @@ function runMigration(migration: MigrationInfo, dryRun: boolean = false): boolea
     console.log(`   ✅ Applied successfully (${executionTime}ms)`);
     return true;
   } catch (error: any) {
+    // If objects already exist, treat as success (migration was already applied)
+    if (isAlreadyExistsError(error)) {
+      const executionTime = Date.now() - startTime;
+      recordMigration(migration, executionTime);
+      console.log(`   ⏭️  Already applied (objects exist)`);
+      return true;
+    }
     console.error(`   ❌ Failed: ${error.message}`);
     return false;
   }

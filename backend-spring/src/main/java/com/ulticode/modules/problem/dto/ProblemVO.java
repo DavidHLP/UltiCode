@@ -1,10 +1,12 @@
 package com.ulticode.modules.problem.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Problem View Object for API responses.
@@ -30,13 +32,15 @@ public class ProblemVO {
     private String title;
 
     /**
-     * Difficulty level: Easy, Medium, Hard
+     * Difficulty level: EASY, MEDIUM, HARD
      */
+    @JsonProperty("difficulty")
     private String difficulty;
 
     /**
      * Acceptance rate (0.00 to 100.00)
      */
+    @JsonProperty("acceptance_rate")
     private BigDecimal acceptanceRate;
 
     /**
@@ -47,35 +51,134 @@ public class ProblemVO {
     /**
      * Whether this is a premium-only problem
      */
+    @JsonProperty("is_premium")
     private Boolean isPremium;
 
     /**
      * Whether the problem has an official solution
      */
+    @JsonProperty("has_solution")
     private Boolean hasSolution;
 
     /**
      * Date when the problem was completed (by user)
      */
+    @JsonProperty("completed_time")
     private LocalDateTime completedTime;
 
     /**
      * Whether the problem is published
      */
+    @JsonProperty("is_published")
     private Boolean isPublished;
 
     /**
      * When the problem was published
      */
+    @JsonProperty("published_at")
     private LocalDateTime publishedAt;
+
+    /**
+     * ID of user who published the problem
+     */
+    @JsonProperty("published_by")
+    private String publishedBy;
+
+    /**
+     * Whether the problem is soft deleted
+     */
+    @JsonProperty("is_deleted")
+    private Boolean isDeleted;
+
+    /**
+     * When the problem was deleted
+     */
+    @JsonProperty("deleted_at")
+    private LocalDateTime deletedAt;
+
+    /**
+     * Whether the problem is flagged for review
+     */
+    @JsonProperty("is_flagged")
+    private Boolean isFlagged;
+
+    /**
+     * Reason for flagging
+     */
+    @JsonProperty("flag_reason")
+    private String flagReason;
+
+    /**
+     * ID of user who reported the flag
+     */
+    @JsonProperty("flag_reported_by")
+    private String flagReportedBy;
+
+    /**
+     * When the flag was reported
+     */
+    @JsonProperty("flag_reported_at")
+    private LocalDateTime flagReportedAt;
+
+    /**
+     * Flag status: PENDING, REVIEWED, RESOLVED, DISMISSED
+     */
+    @JsonProperty("flag_status")
+    private String flagStatus;
+
+    /**
+     * ID of user who reviewed the flag
+     */
+    @JsonProperty("flag_reviewed_by")
+    private String flagReviewedBy;
+
+    /**
+     * When the flag was reviewed
+     */
+    @JsonProperty("flag_reviewed_at")
+    private LocalDateTime flagReviewedAt;
+
+    /**
+     * Notes from flag review
+     */
+    @JsonProperty("flag_notes")
+    private String flagNotes;
+
+    /**
+     * Number of submissions for this problem
+     */
+    @JsonProperty("submission_count")
+    private Long submissionCount;
+
+    /**
+     * Number of solutions for this problem
+     */
+    @JsonProperty("solution_count")
+    private Long solutionCount;
+
+    /**
+     * Tags associated with this problem
+     */
+    private List<ProblemTagVO> tags;
 
     /**
      * Record creation timestamp
      */
+    @JsonProperty("created_at")
     private LocalDateTime createdAt;
 
     /**
      * Record last update timestamp
      */
+    @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
+
+    /**
+     * Inner class for tag information in problem list
+     */
+    @Data
+    public static class ProblemTagVO {
+        private String id;
+        private String label;
+    }
 }

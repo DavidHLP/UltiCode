@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Admin Subscription", description = "Admin subscription management endpoints")
 @RestController
-@RequestMapping("/api/admin/subscriptions")
+@RequestMapping("/admin/subscriptions")
 @RequiredArgsConstructor
 public class SubscriptionController {
 

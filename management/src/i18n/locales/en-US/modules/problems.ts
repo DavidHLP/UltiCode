@@ -294,6 +294,7 @@ export default {
 
   // View page
   view: {
+    loading: 'Loading...',
     notFound: 'Problem Not Found',
     notFoundDescription: 'The specified problem could not be found',
     backToProblems: 'Back to Problems',
@@ -385,6 +386,41 @@ export default {
   empty: {
     title: 'No Problems',
     description: 'Click the button above to create your first problem',
+  },
+
+  // Code Display component
+  codeDisplay: {
+    noCode: 'No Code Templates',
+    noCodeDescription:
+      'No language templates have been configured for this problem yet. Edit the problem to add starter code for different programming languages.',
+    noCodeForLanguage: 'No starter code configured for {language}',
+    lines: 'lines',
+    copy: 'Copy',
+    copied: 'Copied',
+    languagesConfigured: '{count} language(s) configured',
+    selectLanguage: 'Select a language to view code',
+  },
+
+  // Description Display component
+  descriptionDisplay: {
+    example: 'Example',
+    input: 'Input',
+    expectedOutput: 'Expected Output',
+    explanation: 'Explanation',
+    constraints: 'Constraints',
+    hints: 'Hints',
+    codeCopied: 'Code copied',
+  },
+
+  // Cases Display component
+  casesDisplay: {
+    examples: 'Test Cases',
+    input: 'Input',
+    output: 'Output',
+    explanation: 'Explanation',
+    noCases: 'No Test Cases',
+    noCasesDescription:
+      'No test cases have been configured for this problem yet. Edit the problem to add example test cases.',
   },
 
   clearSelection: 'Clear Selection',

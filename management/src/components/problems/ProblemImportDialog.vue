@@ -185,7 +185,7 @@ function transformExportToImportFormat(problem: {
     hints?: string[]
   }
   examples?: Array<{ input: string; output: string; explanation?: string }>
-  languages?: Array<{ label: string; value: string; starter_code: string }>
+  languages?: Array<{ label: string; value: string; starterCode: string }>
   tags?: string[]
 }): ImportProblemDto {
   return {

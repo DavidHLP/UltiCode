@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Vote", description = "Vote management API")
 @RestController
-@RequestMapping("/api/vote")
+@RequestMapping("/vote")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
 public class VoteController {

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Tag(name = "Admin - Audit", description = "审计日志管理接口")
 @RestController
-@RequestMapping("/api/admin/audit")
+@RequestMapping("/admin/audit")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
 public class AuditController {

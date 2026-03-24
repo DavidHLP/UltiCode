@@ -28,11 +28,13 @@ const isLoaded = ref(false)
 async function loadStats() {
   loading.value = true
   try {
-    stats.value = await auditApi.getAuditStats({
+    const response = await auditApi.getAuditStats({
       startDate: startDate.value || undefined,
       endDate: endDate.value || undefined,
       performerId: performerFilter.value || undefined,
     })
+    // Backend returns Result<T> wrapper: { code, message, data: T }
+    stats.value = response.data
   } catch (error) {
     console.error('Failed to load audit stats:', error)
   } finally {

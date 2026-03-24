@@ -47,7 +47,8 @@ onMounted(() => {
 
 // Computed stats from API data
 const stats = computed<StatItem[]>(() => {
-  const data = dashboardStore.stats
+  // Backend returns Result<T> wrapper: { code, message, data: DashboardStatsVO }
+  const data = dashboardStore.stats?.data
   if (!data) return []
 
   // Calculate flagged content count
@@ -97,7 +98,7 @@ const stats = computed<StatItem[]>(() => {
 })
 
 const timelineActivities = computed<TimelineActivity[]>(() => {
-  return auditStore.logs.slice(0, 5).map((log) => ({
+  return (auditStore.logs || []).slice(0, 5).map((log) => ({
     id: log.id,
     action: log.action,
     user: log.performer?.username || 'System',
@@ -108,10 +109,14 @@ const timelineActivities = computed<TimelineActivity[]>(() => {
 
 // Transform backend chart data to AreaChart format
 const chartData = computed<ChartDataPoint[]>(() => {
-  const data = dashboardStore.chartData?.data || []
+  // Backend returns Result<T> wrapper: { code, message, data: ChartStatsVO }
+  // ChartStatsVO contains: { metric, period, data: ChartDataPoint[], startDate, endDate }
+  const chartResponse = dashboardStore.chartData?.data
+  // chartResponse is ChartStatsResponse, which has nested data array
+  const rawData = chartResponse?.data || []
   // Backend returns Prisma groupBy results: { joined_at: Date, _count: number }
   // AreaChart expects: { date: Date, [key: string]: number }
-  return data.map((item) => {
+  return rawData.map((item: Record<string, unknown>) => {
     // Find the date field (joined_at, created_at, published_at, etc.)
     const dateKey = Object.keys(item).find((key) => key.endsWith('_at') || key === 'date')
     const dateValue = dateKey ? (item[dateKey] as string | Date) : new Date()

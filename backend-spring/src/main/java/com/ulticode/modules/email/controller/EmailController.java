@@ -17,7 +17,7 @@ import java.util.List;
  */
 @Tag(name = "Email", description = "Email management APIs")
 @RestController
-@RequestMapping("/api/email")
+@RequestMapping("/email")
 @RequiredArgsConstructor
 public class EmailController {
 

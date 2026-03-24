@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Tag(name = "Forum", description = "Forum management endpoints")
 @RestController
-@RequestMapping("/api/forum")
+@RequestMapping("/forum")
 @RequiredArgsConstructor
 public class ForumController {
 

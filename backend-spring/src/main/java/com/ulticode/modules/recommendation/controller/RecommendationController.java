@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Recommendation", description = "Problem recommendation endpoints")
 @RestController
-@RequestMapping("/api/recommendations")
+@RequestMapping("/recommendations")
 @RequiredArgsConstructor
 public class RecommendationController {
 

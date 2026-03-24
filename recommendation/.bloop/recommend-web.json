@@ -1,0 +1,2450 @@
+{
+    "version": "1.4.0",
+    "project": {
+        "name": "recommend-web",
+        "directory": "/home/davidhlp/project/UltiCode-Public-Next/recommendation/recommend-web",
+        "workspaceDir": "/home/davidhlp/project/UltiCode-Public-Next/recommendation",
+        "sources": [
+            "/home/davidhlp/project/UltiCode-Public-Next/recommendation/recommend-web/src/main/java"
+        ],
+        "dependencies": [
+            "recommend-module",
+            "recommend-api"
+        ],
+        "classpath": [
+            "/home/davidhlp/project/UltiCode-Public-Next/recommendation/target/classes",
+            "/home/davidhlp/project/UltiCode-Public-Next/recommendation/recommend-api/target/classes",
+            "/home/davidhlp/project/UltiCode-Public-Next/recommendation/recommend-web/target/classes",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.2.14/dubbo-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6.jar",
+            "/home/davidhlp/.m2/repository/com/alibaba/spring/spring-context-support/1.0.11/spring-context-support-1.0.11.jar",
+            "/home/davidhlp/.m2/repository/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-all/4.1.109.Final/netty-all-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-buffer/4.1.109.Final/netty-buffer-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec/4.1.109.Final/netty-codec-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-dns/4.1.109.Final/netty-codec-dns-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-haproxy/4.1.109.Final/netty-codec-haproxy-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-http/4.1.109.Final/netty-codec-http-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-http2/4.1.109.Final/netty-codec-http2-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-memcache/4.1.109.Final/netty-codec-memcache-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-mqtt/4.1.109.Final/netty-codec-mqtt-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-redis/4.1.109.Final/netty-codec-redis-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-smtp/4.1.109.Final/netty-codec-smtp-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-socks/4.1.109.Final/netty-codec-socks-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-stomp/4.1.109.Final/netty-codec-stomp-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-codec-xml/4.1.109.Final/netty-codec-xml-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-common/4.1.109.Final/netty-common-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-handler/4.1.109.Final/netty-handler-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.109.Final/netty-transport-native-unix-common-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-handler-proxy/4.1.109.Final/netty-handler-proxy-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-handler-ssl-ocsp/4.1.109.Final/netty-handler-ssl-ocsp-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-resolver/4.1.109.Final/netty-resolver-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-resolver-dns/4.1.109.Final/netty-resolver-dns-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-transport/4.1.109.Final/netty-transport-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-transport-rxtx/4.1.109.Final/netty-transport-rxtx-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-transport-sctp/4.1.109.Final/netty-transport-sctp-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-transport-udt/4.1.109.Final/netty-transport-udt-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.109.Final/netty-transport-classes-epoll-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-transport-classes-kqueue/4.1.109.Final/netty-transport-classes-kqueue-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/io/netty/netty-resolver-dns-classes-macos/4.1.109.Final/netty-resolver-dns-classes-macos-4.1.109.Final.jar",
+            "/home/davidhlp/.m2/repository/com/alibaba/hessian-lite/3.2.13/hessian-lite-3.2.13.jar",
+            "/home/davidhlp/.m2/repository/com/alibaba/fastjson2/fastjson2/2.0.51/fastjson2-2.0.51.jar",
+            "/home/davidhlp/.m2/repository/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar",
+            "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-web/3.2.5/spring-boot-starter-web-3.2.5.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter/3.2.5/spring-boot-starter-3.2.5.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-logging/3.2.5/spring-boot-starter-logging-3.2.5.jar",
+            "/home/davidhlp/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14.jar",
+            "/home/davidhlp/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1.jar",
+            "/home/davidhlp/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1.jar",
+            "/home/davidhlp/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar",
+            "/home/davidhlp/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-json/3.2.5/spring-boot-starter-json-3.2.5.jar",
+            "/home/davidhlp/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4.jar",
+            "/home/davidhlp/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-tomcat/3.2.5/spring-boot-starter-tomcat-3.2.5.jar",
+            "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20.jar",
+            "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20.jar",
+            "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6.jar",
+            "/home/davidhlp/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-starter/3.2.14/dubbo-spring-boot-starter-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-autoconfigure/3.2.14/dubbo-spring-boot-autoconfigure-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-autoconfigure-compatible/3.2.14/dubbo-spring-boot-autoconfigure-compatible-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-registry-nacos/3.2.14/dubbo-registry-nacos-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-registry-api/3.2.14/dubbo-registry-api-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-cluster/3.2.14/dubbo-cluster-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-rpc-api/3.2.14/dubbo-rpc-api-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-serialization-api/3.2.14/dubbo-serialization-api-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-remoting-api/3.2.14/dubbo-remoting-api-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-container-api/3.2.14/dubbo-container-api-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metadata-api/3.2.14/dubbo-metadata-api-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-api/3.2.14/dubbo-metrics-api-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/com/tdunning/t-digest/3.3/t-digest-3.3.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-default/3.2.14/dubbo-metrics-default-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-metadata/3.2.14/dubbo-metrics-metadata-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-registry/3.2.14/dubbo-metrics-registry-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.2.14/dubbo-common-3.2.14.jar",
+            "/home/davidhlp/.m2/repository/commons-io/commons-io/2.16.1/commons-io-2.16.1.jar",
+            "/home/davidhlp/.m2/repository/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar",
+            "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-client/2.3.2/nacos-client-2.3.2.jar",
+            "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-auth-plugin/2.3.2/nacos-auth-plugin-2.3.2.jar",
+            "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-encryption-plugin/2.3.2/nacos-encryption-plugin-2.3.2.jar",
+            "/home/davidhlp/.m2/repository/commons-codec/commons-codec/1.16.1/commons-codec-1.16.1.jar",
+            "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpasyncclient/4.1.5/httpasyncclient-4.1.5.jar",
+            "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpcore-nio/4.4.16/httpcore-nio-4.4.16.jar",
+            "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar",
+            "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16.jar",
+            "/home/davidhlp/.m2/repository/io/prometheus/simpleclient/0.16.0/simpleclient-0.16.0.jar",
+            "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_otel/0.16.0/simpleclient_tracer_otel-0.16.0.jar",
+            "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_common/0.16.0/simpleclient_tracer_common-0.16.0.jar",
+            "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_otel_agent/0.16.0/simpleclient_tracer_otel_agent-0.16.0.jar",
+            "/home/davidhlp/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar",
+            "/home/davidhlp/.m2/repository/io/micrometer/micrometer-core/1.12.5/micrometer-core-1.12.5.jar",
+            "/home/davidhlp/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5.jar",
+            "/home/davidhlp/.m2/repository/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar",
+            "/home/davidhlp/.m2/repository/org/slf4j/slf4j-api/2.0.12/slf4j-api-2.0.12.jar",
+            "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.0/jackson-core-2.17.0.jar",
+            "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.0/jackson-databind-2.17.0.jar",
+            "/home/davidhlp/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13.jar",
+            "/home/davidhlp/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.0/jackson-datatype-jsr310-2.17.0.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6.jar",
+            "/home/davidhlp/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6.jar",
+            "/home/davidhlp/.m2/repository/org/scala-lang/scala-library/2.13.12/scala-library-2.13.12.jar"
+        ],
+        "out": "/home/davidhlp/project/UltiCode-Public-Next/recommendation/recommend-web/target",
+        "classesDir": "/home/davidhlp/project/UltiCode-Public-Next/recommendation/recommend-web/target/classes",
+        "resources": [
+            "/home/davidhlp/project/UltiCode-Public-Next/recommendation/recommend-web/src/main/resources"
+        ],
+        "scala": {
+            "organization": "org.scala-lang",
+            "name": "scala-compiler",
+            "version": "2.13.12",
+            "options": [
+                "-release",
+                "17"
+            ],
+            "jars": [
+                "/home/davidhlp/.m2/repository/org/scala-lang/scala-compiler/2.13.12/scala-compiler-2.13.12.jar",
+                "/home/davidhlp/.m2/repository/org/scala-lang/scala-library/2.13.12/scala-library-2.13.12.jar",
+                "/home/davidhlp/.m2/repository/io/github/java-diff-utils/java-diff-utils/4.12/java-diff-utils-4.12.jar",
+                "/home/davidhlp/.m2/repository/org/jline/jline/3.22.0/jline-3.22.0.jar",
+                "/home/davidhlp/.m2/repository/net/java/dev/jna/jna/5.13.0/jna-5.13.0.jar",
+                "/home/davidhlp/.m2/repository/org/scala-lang/scala-reflect/2.13.12/scala-reflect-2.13.12.jar"
+            ],
+            "setup": {
+                "order": "java->scala",
+                "addLibraryToBootClasspath": true,
+                "addCompilerToClasspath": false,
+                "addExtraJarsToClasspath": false,
+                "manageBootClasspath": true,
+                "filterLibraryFromClasspath": true
+            }
+        },
+        "java": {
+            "options": [
+                "-g",
+                "-target",
+                "17",
+                "-source",
+                "17",
+                "-encoding",
+                "UTF-8"
+            ]
+        },
+        "test": {
+            "frameworks": [
+                {
+                    "names": [
+                        "com.novocode.junit.JUnitFramework"
+                    ]
+                },
+                {
+                    "names": [
+                        "org.scalatest.tools.Framework",
+                        "org.scalatest.tools.ScalaTestFramework"
+                    ]
+                },
+                {
+                    "names": [
+                        "org.scalacheck.ScalaCheckFramework"
+                    ]
+                },
+                {
+                    "names": [
+                        "org.specs.runner.SpecsFramework",
+                        "org.specs2.runner.Specs2Framework",
+                        "org.specs2.runner.SpecsFramework"
+                    ]
+                },
+                {
+                    "names": [
+                        "utest.runner.Framework"
+                    ]
+                },
+                {
+                    "names": [
+                        "munit.Framework"
+                    ]
+                },
+                {
+                    "names": [
+                        "mill.testng.TestNGFramework"
+                    ]
+                }
+            ],
+            "options": {
+                "excludes": [
+                    
+                ],
+                "arguments": [
+                    {
+                        "args": [
+                            "-v",
+                            "-a"
+                        ],
+                        "framework": {
+                            "names": [
+                                "com.novocode.junit.JUnitFramework"
+                            ]
+                        }
+                    }
+                ]
+            }
+        },
+        "platform": {
+            "name": "jvm",
+            "config": {
+                "home": "/home/davidhlp/.vfox/cache/java/v-17.0.1+12/java-17.0.1+12",
+                "options": [
+                    
+                ]
+            },
+            "mainClass": [
+                
+            ]
+        },
+        "resolution": {
+            "modules": [
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-socks",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-socks",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-socks/4.1.109.Final/netty-codec-socks-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-socks",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-socks/4.1.109.Final/netty-codec-socks-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-test-autoconfigure",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-test-autoconfigure",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/3.2.5/spring-boot-test-autoconfigure-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-test-autoconfigure",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-test-autoconfigure/3.2.5/spring-boot-test-autoconfigure-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-starter-tomcat",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-starter-tomcat",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-tomcat/3.2.5/spring-boot-starter-tomcat-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-starter-tomcat",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-tomcat/3.2.5/spring-boot-starter-tomcat-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.latencyutils",
+                    "name": "LatencyUtils",
+                    "version": "2.0.3",
+                    "artifacts": [
+                        {
+                            "name": "LatencyUtils",
+                            "path": "/home/davidhlp/.m2/repository/org/latencyutils/LatencyUtils/2.0.3/LatencyUtils-2.0.3.jar"
+                        },
+                        {
+                            "name": "LatencyUtils",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/latencyutils/LatencyUtils/2.0.3/LatencyUtils-2.0.3-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "commons-io",
+                    "name": "commons-io",
+                    "version": "2.16.1",
+                    "artifacts": [
+                        {
+                            "name": "commons-io",
+                            "path": "/home/davidhlp/.m2/repository/commons-io/commons-io/2.16.1/commons-io-2.16.1.jar"
+                        },
+                        {
+                            "name": "commons-io",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/commons-io/commons-io/2.16.1/commons-io-2.16.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.prometheus",
+                    "name": "simpleclient_tracer_common",
+                    "version": "0.16.0",
+                    "artifacts": [
+                        {
+                            "name": "simpleclient_tracer_common",
+                            "path": "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_common/0.16.0/simpleclient_tracer_common-0.16.0.jar"
+                        },
+                        {
+                            "name": "simpleclient_tracer_common",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_common/0.16.0/simpleclient_tracer_common-0.16.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.validation",
+                    "name": "jakarta.validation-api",
+                    "version": "3.0.2",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.validation-api",
+                            "path": "/home/davidhlp/.m2/repository/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2.jar"
+                        },
+                        {
+                            "name": "jakarta.validation-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/jakarta/validation/jakarta.validation-api/3.0.2/jakarta.validation-api-3.0.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-sctp",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-sctp",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-sctp/4.1.109.Final/netty-transport-sctp-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-transport-sctp",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-sctp/4.1.109.Final/netty-transport-sctp-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-haproxy",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-haproxy",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-haproxy/4.1.109.Final/netty-codec-haproxy-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-haproxy",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-haproxy/4.1.109.Final/netty-codec-haproxy-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-aop",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-aop",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-aop",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-aop/6.1.6/spring-aop-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-starter",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-starter",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter/3.2.5/spring-boot-starter-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-starter",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter/3.2.5/spring-boot-starter-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-test",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-test",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-test/6.1.6/spring-test-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-test",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-test/6.1.6/spring-test-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.junit.jupiter",
+                    "name": "junit-jupiter-engine",
+                    "version": "5.10.2",
+                    "artifacts": [
+                        {
+                            "name": "junit-jupiter-engine",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2.jar"
+                        },
+                        {
+                            "name": "junit-jupiter-engine",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/jupiter/junit-jupiter-engine/5.10.2/junit-jupiter-engine-5.10.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-registry-nacos",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-registry-nacos",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-registry-nacos/3.2.14/dubbo-registry-nacos-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-registry-nacos",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-registry-nacos/3.2.14/dubbo-registry-nacos-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "net.minidev",
+                    "name": "accessors-smart",
+                    "version": "2.5.1",
+                    "artifacts": [
+                        {
+                            "name": "accessors-smart",
+                            "path": "/home/davidhlp/.m2/repository/net/minidev/accessors-smart/2.5.1/accessors-smart-2.5.1.jar"
+                        },
+                        {
+                            "name": "accessors-smart",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/net/minidev/accessors-smart/2.5.1/accessors-smart-2.5.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-all",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-all",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-all/4.1.109.Final/netty-all-4.1.109.Final.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-common",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-common",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-common/4.1.109.Final/netty-common-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-common",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-common/4.1.109.Final/netty-common-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-expression",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-expression",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-expression",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-expression/6.1.6/spring-expression-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-stomp",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-stomp",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-stomp/4.1.109.Final/netty-codec-stomp-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-stomp",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-stomp/4.1.109.Final/netty-codec-stomp-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.alibaba.nacos",
+                    "name": "nacos-encryption-plugin",
+                    "version": "2.3.2",
+                    "artifacts": [
+                        {
+                            "name": "nacos-encryption-plugin",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-encryption-plugin/2.3.2/nacos-encryption-plugin-2.3.2.jar"
+                        },
+                        {
+                            "name": "nacos-encryption-plugin",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-encryption-plugin/2.3.2/nacos-encryption-plugin-2.3.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.logging.log4j",
+                    "name": "log4j-to-slf4j",
+                    "version": "2.21.1",
+                    "artifacts": [
+                        {
+                            "name": "log4j-to-slf4j",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1.jar"
+                        },
+                        {
+                            "name": "log4j-to-slf4j",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/logging/log4j/log4j-to-slf4j/2.21.1/log4j-to-slf4j-2.21.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.javassist",
+                    "name": "javassist",
+                    "version": "3.30.2-GA",
+                    "artifacts": [
+                        {
+                            "name": "javassist",
+                            "path": "/home/davidhlp/.m2/repository/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA.jar"
+                        },
+                        {
+                            "name": "javassist",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/javassist/javassist/3.30.2-GA/javassist-3.30.2-GA-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.fasterxml.jackson.module",
+                    "name": "jackson-module-parameter-names",
+                    "version": "2.15.4",
+                    "artifacts": [
+                        {
+                            "name": "jackson-module-parameter-names",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4.jar"
+                        },
+                        {
+                            "name": "jackson-module-parameter-names",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/module/jackson-module-parameter-names/2.15.4/jackson-module-parameter-names-2.15.4-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-native-unix-common",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-native-unix-common",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.109.Final/netty-transport-native-unix-common-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-transport-native-unix-common",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-native-unix-common/4.1.109.Final/netty-transport-native-unix-common-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-handler-ssl-ocsp",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-handler-ssl-ocsp",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-handler-ssl-ocsp/4.1.109.Final/netty-handler-ssl-ocsp-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-handler-ssl-ocsp",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-handler-ssl-ocsp/4.1.109.Final/netty-handler-ssl-ocsp-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-web",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-web",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-web",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-web/6.1.6/spring-web-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-rxtx",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-rxtx",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-rxtx/4.1.109.Final/netty-transport-rxtx-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-transport-rxtx",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-rxtx/4.1.109.Final/netty-transport-rxtx-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.assertj",
+                    "name": "assertj-core",
+                    "version": "3.24.2",
+                    "artifacts": [
+                        {
+                            "name": "assertj-core",
+                            "path": "/home/davidhlp/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2.jar"
+                        },
+                        {
+                            "name": "assertj-core",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/assertj/assertj-core/3.24.2/assertj-core-3.24.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-metrics-api",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-metrics-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-api/3.2.14/dubbo-metrics-api-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-metrics-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-api/3.2.14/dubbo-metrics-api-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.alibaba.fastjson2",
+                    "name": "fastjson2",
+                    "version": "2.0.51",
+                    "artifacts": [
+                        {
+                            "name": "fastjson2",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/fastjson2/fastjson2/2.0.51/fastjson2-2.0.51.jar"
+                        },
+                        {
+                            "name": "fastjson2",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/fastjson2/fastjson2/2.0.51/fastjson2-2.0.51-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.fasterxml.jackson.core",
+                    "name": "jackson-core",
+                    "version": "2.17.0",
+                    "artifacts": [
+                        {
+                            "name": "jackson-core",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.0/jackson-core-2.17.0.jar"
+                        },
+                        {
+                            "name": "jackson-core",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.17.0/jackson-core-2.17.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.2.14/dubbo-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo/3.2.14/dubbo-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-classes-epoll",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-classes-epoll",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.109.Final/netty-transport-classes-epoll-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-transport-classes-epoll",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-classes-epoll/4.1.109.Final/netty-transport-classes-epoll-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.jayway.jsonpath",
+                    "name": "json-path",
+                    "version": "2.9.0",
+                    "artifacts": [
+                        {
+                            "name": "json-path",
+                            "path": "/home/davidhlp/.m2/repository/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0.jar"
+                        },
+                        {
+                            "name": "json-path",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/jayway/jsonpath/json-path/2.9.0/json-path-2.9.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.junit.jupiter",
+                    "name": "junit-jupiter-api",
+                    "version": "5.10.2",
+                    "artifacts": [
+                        {
+                            "name": "junit-jupiter-api",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2.jar"
+                        },
+                        {
+                            "name": "junit-jupiter-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/jupiter/junit-jupiter-api/5.10.2/junit-jupiter-api-5.10.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-autoconfigure",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-autoconfigure",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-autoconfigure",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.5/spring-boot-autoconfigure-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-serialization-api",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-serialization-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-serialization-api/3.2.14/dubbo-serialization-api-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-serialization-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-serialization-api/3.2.14/dubbo-serialization-api-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-native-kqueue",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-native-kqueue",
+                            "classifier": "osx-x86_64",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-native-kqueue/4.1.109.Final/netty-transport-native-kqueue-4.1.109.Final-osx-x86_64.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-rpc-api",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-rpc-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-rpc-api/3.2.14/dubbo-rpc-api-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-rpc-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-rpc-api/3.2.14/dubbo-rpc-api-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.scala-lang",
+                    "name": "scala-library",
+                    "version": "2.13.12",
+                    "artifacts": [
+                        {
+                            "name": "scala-library",
+                            "path": "/home/davidhlp/.m2/repository/org/scala-lang/scala-library/2.13.12/scala-library-2.13.12.jar"
+                        },
+                        {
+                            "name": "scala-library",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/scala-lang/scala-library/2.13.12/scala-library-2.13.12-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.prometheus",
+                    "name": "simpleclient_tracer_otel",
+                    "version": "0.16.0",
+                    "artifacts": [
+                        {
+                            "name": "simpleclient_tracer_otel",
+                            "path": "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_otel/0.16.0/simpleclient_tracer_otel-0.16.0.jar"
+                        },
+                        {
+                            "name": "simpleclient_tracer_otel",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_otel/0.16.0/simpleclient_tracer_otel-0.16.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.hamcrest",
+                    "name": "hamcrest",
+                    "version": "2.2",
+                    "artifacts": [
+                        {
+                            "name": "hamcrest",
+                            "path": "/home/davidhlp/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2.jar"
+                        },
+                        {
+                            "name": "hamcrest",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/hamcrest/hamcrest/2.2/hamcrest-2.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-handler-proxy",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-handler-proxy",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-handler-proxy/4.1.109.Final/netty-handler-proxy-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-handler-proxy",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-handler-proxy/4.1.109.Final/netty-handler-proxy-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.projectlombok",
+                    "name": "lombok",
+                    "version": "1.18.30",
+                    "artifacts": [
+                        {
+                            "name": "lombok",
+                            "path": "/home/davidhlp/.m2/repository/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar"
+                        },
+                        {
+                            "name": "lombok",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/projectlombok/lombok/1.18.30/lombok-1.18.30-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-metrics-registry",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-metrics-registry",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-registry/3.2.14/dubbo-metrics-registry-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-metrics-registry",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-registry/3.2.14/dubbo-metrics-registry-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.logging.log4j",
+                    "name": "log4j-api",
+                    "version": "2.21.1",
+                    "artifacts": [
+                        {
+                            "name": "log4j-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1.jar"
+                        },
+                        {
+                            "name": "log4j-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/logging/log4j/log4j-api/2.21.1/log4j-api-2.21.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.fasterxml.jackson.datatype",
+                    "name": "jackson-datatype-jdk8",
+                    "version": "2.15.4",
+                    "artifacts": [
+                        {
+                            "name": "jackson-datatype-jdk8",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4.jar"
+                        },
+                        {
+                            "name": "jackson-datatype-jdk8",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jdk8/2.15.4/jackson-datatype-jdk8-2.15.4-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "net.bytebuddy",
+                    "name": "byte-buddy-agent",
+                    "version": "1.14.13",
+                    "artifacts": [
+                        {
+                            "name": "byte-buddy-agent",
+                            "path": "/home/davidhlp/.m2/repository/net/bytebuddy/byte-buddy-agent/1.14.13/byte-buddy-agent-1.14.13.jar"
+                        },
+                        {
+                            "name": "byte-buddy-agent",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/net/bytebuddy/byte-buddy-agent/1.14.13/byte-buddy-agent-1.14.13-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-handler",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-handler",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-handler/4.1.109.Final/netty-handler-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-handler",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-handler/4.1.109.Final/netty-handler-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.prometheus",
+                    "name": "simpleclient",
+                    "version": "0.16.0",
+                    "artifacts": [
+                        {
+                            "name": "simpleclient",
+                            "path": "/home/davidhlp/.m2/repository/io/prometheus/simpleclient/0.16.0/simpleclient-0.16.0.jar"
+                        },
+                        {
+                            "name": "simpleclient",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/prometheus/simpleclient/0.16.0/simpleclient-0.16.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.awaitility",
+                    "name": "awaitility",
+                    "version": "4.2.1",
+                    "artifacts": [
+                        {
+                            "name": "awaitility",
+                            "path": "/home/davidhlp/.m2/repository/org/awaitility/awaitility/4.2.1/awaitility-4.2.1.jar"
+                        },
+                        {
+                            "name": "awaitility",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/awaitility/awaitility/4.2.1/awaitility-4.2.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-remoting-api",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-remoting-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-remoting-api/3.2.14/dubbo-remoting-api-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-remoting-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-remoting-api/3.2.14/dubbo-remoting-api-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "net.bytebuddy",
+                    "name": "byte-buddy",
+                    "version": "1.14.13",
+                    "artifacts": [
+                        {
+                            "name": "byte-buddy",
+                            "path": "/home/davidhlp/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13.jar"
+                        },
+                        {
+                            "name": "byte-buddy",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/net/bytebuddy/byte-buddy/1.14.13/byte-buddy-1.14.13-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.httpcomponents",
+                    "name": "httpcore",
+                    "version": "4.4.16",
+                    "artifacts": [
+                        {
+                            "name": "httpcore",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16.jar"
+                        },
+                        {
+                            "name": "httpcore",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpcore/4.4.16/httpcore-4.4.16-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-metadata-api",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-metadata-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metadata-api/3.2.14/dubbo-metadata-api-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-metadata-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metadata-api/3.2.14/dubbo-metadata-api-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.alibaba.nacos",
+                    "name": "nacos-auth-plugin",
+                    "version": "2.3.2",
+                    "artifacts": [
+                        {
+                            "name": "nacos-auth-plugin",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-auth-plugin/2.3.2/nacos-auth-plugin-2.3.2.jar"
+                        },
+                        {
+                            "name": "nacos-auth-plugin",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-auth-plugin/2.3.2/nacos-auth-plugin-2.3.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.vaadin.external.google",
+                    "name": "android-json",
+                    "version": "0.0.20131108.vaadin1",
+                    "artifacts": [
+                        {
+                            "name": "android-json",
+                            "path": "/home/davidhlp/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1.jar"
+                        },
+                        {
+                            "name": "android-json",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/vaadin/external/google/android-json/0.0.20131108.vaadin1/android-json-0.0.20131108.vaadin1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-native-kqueue",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-native-kqueue",
+                            "classifier": "osx-aarch_64",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-native-kqueue/4.1.109.Final/netty-transport-native-kqueue-4.1.109.Final-osx-aarch_64.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.httpcomponents",
+                    "name": "httpcore-nio",
+                    "version": "4.4.16",
+                    "artifacts": [
+                        {
+                            "name": "httpcore-nio",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpcore-nio/4.4.16/httpcore-nio-4.4.16.jar"
+                        },
+                        {
+                            "name": "httpcore-nio",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpcore-nio/4.4.16/httpcore-nio-4.4.16-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-resolver-dns-native-macos",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-resolver-dns-native-macos",
+                            "classifier": "osx-x86_64",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-resolver-dns-native-macos/4.1.109.Final/netty-resolver-dns-native-macos-4.1.109.Final-osx-x86_64.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-starter-test",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-starter-test",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-test/3.2.5/spring-boot-starter-test-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-starter-test",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-test/3.2.5/spring-boot-starter-test-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec/4.1.109.Final/netty-codec-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec/4.1.109.Final/netty-codec-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.fasterxml.jackson.core",
+                    "name": "jackson-annotations",
+                    "version": "2.15.4",
+                    "artifacts": [
+                        {
+                            "name": "jackson-annotations",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4.jar"
+                        },
+                        {
+                            "name": "jackson-annotations",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.15.4/jackson-annotations-2.15.4-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-beans",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-beans",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-beans",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-beans/6.1.6/spring-beans-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-metrics-metadata",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-metrics-metadata",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-metadata/3.2.14/dubbo-metrics-metadata-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-metrics-metadata",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-metadata/3.2.14/dubbo-metrics-metadata-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.micrometer",
+                    "name": "micrometer-observation",
+                    "version": "1.12.5",
+                    "artifacts": [
+                        {
+                            "name": "micrometer-observation",
+                            "path": "/home/davidhlp/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5.jar"
+                        },
+                        {
+                            "name": "micrometer-observation",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/micrometer/micrometer-observation/1.12.5/micrometer-observation-1.12.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-core",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-core",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-core",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-core/6.1.6/spring-core-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.alibaba.spring",
+                    "name": "spring-context-support",
+                    "version": "1.0.11",
+                    "artifacts": [
+                        {
+                            "name": "spring-context-support",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/spring/spring-context-support/1.0.11/spring-context-support-1.0.11.jar"
+                        },
+                        {
+                            "name": "spring-context-support",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/spring/spring-context-support/1.0.11/spring-context-support-1.0.11-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.junit.jupiter",
+                    "name": "junit-jupiter",
+                    "version": "5.10.2",
+                    "artifacts": [
+                        {
+                            "name": "junit-jupiter",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2.jar"
+                        },
+                        {
+                            "name": "junit-jupiter",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/jupiter/junit-jupiter/5.10.2/junit-jupiter-5.10.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.httpcomponents",
+                    "name": "httpclient",
+                    "version": "4.5.13",
+                    "artifacts": [
+                        {
+                            "name": "httpclient",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13.jar"
+                        },
+                        {
+                            "name": "httpclient",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpclient/4.5.13/httpclient-4.5.13-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.skyscreamer",
+                    "name": "jsonassert",
+                    "version": "1.5.1",
+                    "artifacts": [
+                        {
+                            "name": "jsonassert",
+                            "path": "/home/davidhlp/.m2/repository/org/skyscreamer/jsonassert/1.5.1/jsonassert-1.5.1.jar"
+                        },
+                        {
+                            "name": "jsonassert",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/skyscreamer/jsonassert/1.5.1/jsonassert-1.5.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-resolver-dns-native-macos",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-resolver-dns-native-macos",
+                            "classifier": "osx-aarch_64",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-resolver-dns-native-macos/4.1.109.Final/netty-resolver-dns-native-macos-4.1.109.Final-osx-aarch_64.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.junit.platform",
+                    "name": "junit-platform-engine",
+                    "version": "1.10.2",
+                    "artifacts": [
+                        {
+                            "name": "junit-platform-engine",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2.jar"
+                        },
+                        {
+                            "name": "junit-platform-engine",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/platform/junit-platform-engine/1.10.2/junit-platform-engine-1.10.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.tomcat.embed",
+                    "name": "tomcat-embed-core",
+                    "version": "10.1.20",
+                    "artifacts": [
+                        {
+                            "name": "tomcat-embed-core",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20.jar"
+                        },
+                        {
+                            "name": "tomcat-embed-core",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-core/10.1.20/tomcat-embed-core-10.1.20-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-resolver-dns-classes-macos",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-resolver-dns-classes-macos",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-resolver-dns-classes-macos/4.1.109.Final/netty-resolver-dns-classes-macos-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-resolver-dns-classes-macos",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-resolver-dns-classes-macos/4.1.109.Final/netty-resolver-dns-classes-macos-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-buffer",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-buffer",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-buffer/4.1.109.Final/netty-buffer-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-buffer",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-buffer/4.1.109.Final/netty-buffer-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-spring-boot-autoconfigure",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-spring-boot-autoconfigure",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-autoconfigure/3.2.14/dubbo-spring-boot-autoconfigure-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-spring-boot-autoconfigure",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-autoconfigure/3.2.14/dubbo-spring-boot-autoconfigure-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.fasterxml.jackson.datatype",
+                    "name": "jackson-datatype-jsr310",
+                    "version": "2.17.0",
+                    "artifacts": [
+                        {
+                            "name": "jackson-datatype-jsr310",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.0/jackson-datatype-jsr310-2.17.0.jar"
+                        },
+                        {
+                            "name": "jackson-datatype-jsr310",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/datatype/jackson-datatype-jsr310/2.17.0/jackson-datatype-jsr310-2.17.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "ch.qos.logback",
+                    "name": "logback-core",
+                    "version": "1.4.14",
+                    "artifacts": [
+                        {
+                            "name": "logback-core",
+                            "path": "/home/davidhlp/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14.jar"
+                        },
+                        {
+                            "name": "logback-core",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/ch/qos/logback/logback-core/1.4.14/logback-core-1.4.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.prometheus",
+                    "name": "simpleclient_tracer_otel_agent",
+                    "version": "0.16.0",
+                    "artifacts": [
+                        {
+                            "name": "simpleclient_tracer_otel_agent",
+                            "path": "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_otel_agent/0.16.0/simpleclient_tracer_otel_agent-0.16.0.jar"
+                        },
+                        {
+                            "name": "simpleclient_tracer_otel_agent",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/prometheus/simpleclient_tracer_otel_agent/0.16.0/simpleclient_tracer_otel_agent-0.16.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-native-epoll",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-native-epoll",
+                            "classifier": "linux-riscv64",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-native-epoll/4.1.109.Final/netty-transport-native-epoll-4.1.109.Final-linux-riscv64.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.annotation",
+                    "name": "jakarta.annotation-api",
+                    "version": "2.1.1",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.annotation-api",
+                            "path": "/home/davidhlp/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1.jar"
+                        },
+                        {
+                            "name": "jakarta.annotation-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/jakarta/annotation/jakarta.annotation-api/2.1.1/jakarta.annotation-api-2.1.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-metrics-default",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-metrics-default",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-default/3.2.14/dubbo-metrics-default-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-metrics-default",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-metrics-default/3.2.14/dubbo-metrics-default-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-context",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-context",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-context",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-context/6.1.6/spring-context-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.hdrhistogram",
+                    "name": "HdrHistogram",
+                    "version": "2.1.12",
+                    "artifacts": [
+                        {
+                            "name": "HdrHistogram",
+                            "path": "/home/davidhlp/.m2/repository/org/hdrhistogram/HdrHistogram/2.1.12/HdrHistogram-2.1.12.jar"
+                        },
+                        {
+                            "name": "HdrHistogram",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/hdrhistogram/HdrHistogram/2.1.12/HdrHistogram-2.1.12-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.alibaba.nacos",
+                    "name": "nacos-client",
+                    "version": "2.3.2",
+                    "artifacts": [
+                        {
+                            "name": "nacos-client",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-client/2.3.2/nacos-client-2.3.2.jar"
+                        },
+                        {
+                            "name": "nacos-client",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/nacos/nacos-client/2.3.2/nacos-client-2.3.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "commons-codec",
+                    "name": "commons-codec",
+                    "version": "1.16.1",
+                    "artifacts": [
+                        {
+                            "name": "commons-codec",
+                            "path": "/home/davidhlp/.m2/repository/commons-codec/commons-codec/1.16.1/commons-codec-1.16.1.jar"
+                        },
+                        {
+                            "name": "commons-codec",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/commons-codec/commons-codec/1.16.1/commons-codec-1.16.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-xml",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-xml",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-xml/4.1.109.Final/netty-codec-xml-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-xml",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-xml/4.1.109.Final/netty-codec-xml-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-container-api",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-container-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-container-api/3.2.14/dubbo-container-api-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-container-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-container-api/3.2.14/dubbo-container-api-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-http",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-http",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-http/4.1.109.Final/netty-codec-http-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-http",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-http/4.1.109.Final/netty-codec-http-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.yaml",
+                    "name": "snakeyaml",
+                    "version": "2.2",
+                    "artifacts": [
+                        {
+                            "name": "snakeyaml",
+                            "path": "/home/davidhlp/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2.jar"
+                        },
+                        {
+                            "name": "snakeyaml",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/yaml/snakeyaml/2.2/snakeyaml-2.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.xmlunit",
+                    "name": "xmlunit-core",
+                    "version": "2.9.1",
+                    "artifacts": [
+                        {
+                            "name": "xmlunit-core",
+                            "path": "/home/davidhlp/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1.jar"
+                        },
+                        {
+                            "name": "xmlunit-core",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/xmlunit/xmlunit-core/2.9.1/xmlunit-core-2.9.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.fasterxml.jackson.core",
+                    "name": "jackson-databind",
+                    "version": "2.17.0",
+                    "artifacts": [
+                        {
+                            "name": "jackson-databind",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.0/jackson-databind-2.17.0.jar"
+                        },
+                        {
+                            "name": "jackson-databind",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.17.0/jackson-databind-2.17.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-starter-web",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-starter-web",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-web/3.2.5/spring-boot-starter-web-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-starter-web",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-web/3.2.5/spring-boot-starter-web-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.slf4j",
+                    "name": "jul-to-slf4j",
+                    "version": "2.0.13",
+                    "artifacts": [
+                        {
+                            "name": "jul-to-slf4j",
+                            "path": "/home/davidhlp/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13.jar"
+                        },
+                        {
+                            "name": "jul-to-slf4j",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/slf4j/jul-to-slf4j/2.0.13/jul-to-slf4j-2.0.13-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot/3.2.5/spring-boot-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-cluster",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-cluster",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-cluster/3.2.14/dubbo-cluster-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-cluster",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-cluster/3.2.14/dubbo-cluster-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-jcl",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-jcl",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-jcl",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-jcl/6.1.6/spring-jcl-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.alibaba",
+                    "name": "hessian-lite",
+                    "version": "3.2.13",
+                    "artifacts": [
+                        {
+                            "name": "hessian-lite",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/hessian-lite/3.2.13/hessian-lite-3.2.13.jar"
+                        },
+                        {
+                            "name": "hessian-lite",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/alibaba/hessian-lite/3.2.13/hessian-lite-3.2.13-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.mockito",
+                    "name": "mockito-junit-jupiter",
+                    "version": "5.11.0",
+                    "artifacts": [
+                        {
+                            "name": "mockito-junit-jupiter",
+                            "path": "/home/davidhlp/.m2/repository/org/mockito/mockito-junit-jupiter/5.11.0/mockito-junit-jupiter-5.11.0.jar"
+                        },
+                        {
+                            "name": "mockito-junit-jupiter",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/mockito/mockito-junit-jupiter/5.11.0/mockito-junit-jupiter-5.11.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "javax.annotation",
+                    "name": "javax.annotation-api",
+                    "version": "1.3.2",
+                    "artifacts": [
+                        {
+                            "name": "javax.annotation-api",
+                            "path": "/home/davidhlp/.m2/repository/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2.jar"
+                        },
+                        {
+                            "name": "javax.annotation-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/javax/annotation/javax.annotation-api/1.3.2/javax.annotation-api-1.3.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-native-epoll",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-native-epoll",
+                            "classifier": "linux-x86_64",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-native-epoll/4.1.109.Final/netty-transport-native-epoll-4.1.109.Final-linux-x86_64.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.tomcat.embed",
+                    "name": "tomcat-embed-websocket",
+                    "version": "10.1.20",
+                    "artifacts": [
+                        {
+                            "name": "tomcat-embed-websocket",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20.jar"
+                        },
+                        {
+                            "name": "tomcat-embed-websocket",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-websocket/10.1.20/tomcat-embed-websocket-10.1.20-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "net.minidev",
+                    "name": "json-smart",
+                    "version": "2.5.1",
+                    "artifacts": [
+                        {
+                            "name": "json-smart",
+                            "path": "/home/davidhlp/.m2/repository/net/minidev/json-smart/2.5.1/json-smart-2.5.1.jar"
+                        },
+                        {
+                            "name": "json-smart",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/net/minidev/json-smart/2.5.1/json-smart-2.5.1-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.xml.bind",
+                    "name": "jakarta.xml.bind-api",
+                    "version": "4.0.2",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.xml.bind-api",
+                            "path": "/home/davidhlp/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2.jar"
+                        },
+                        {
+                            "name": "jakarta.xml.bind-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/jakarta/xml/bind/jakarta.xml.bind-api/4.0.2/jakarta.xml.bind-api-4.0.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-starter-logging",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-starter-logging",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-logging/3.2.5/spring-boot-starter-logging-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-starter-logging",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-logging/3.2.5/spring-boot-starter-logging-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-test",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-test",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-test/3.2.5/spring-boot-test-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-test",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-test/3.2.5/spring-boot-test-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-memcache",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-memcache",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-memcache/4.1.109.Final/netty-codec-memcache-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-memcache",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-memcache/4.1.109.Final/netty-codec-memcache-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-classes-kqueue",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-classes-kqueue",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-classes-kqueue/4.1.109.Final/netty-transport-classes-kqueue-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-transport-classes-kqueue",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-classes-kqueue/4.1.109.Final/netty-transport-classes-kqueue-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.tomcat.embed",
+                    "name": "tomcat-embed-el",
+                    "version": "10.1.20",
+                    "artifacts": [
+                        {
+                            "name": "tomcat-embed-el",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20.jar"
+                        },
+                        {
+                            "name": "tomcat-embed-el",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/tomcat/embed/tomcat-embed-el/10.1.20/tomcat-embed-el-10.1.20-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework",
+                    "name": "spring-webmvc",
+                    "version": "6.1.6",
+                    "artifacts": [
+                        {
+                            "name": "spring-webmvc",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6.jar"
+                        },
+                        {
+                            "name": "spring-webmvc",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/spring-webmvc/6.1.6/spring-webmvc-6.1.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-dns",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-dns",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-dns/4.1.109.Final/netty-codec-dns-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-dns",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-dns/4.1.109.Final/netty-codec-dns-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-spring-boot-starter",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-spring-boot-starter",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-starter/3.2.14/dubbo-spring-boot-starter-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-spring-boot-starter",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-starter/3.2.14/dubbo-spring-boot-starter-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport/4.1.109.Final/netty-transport-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-transport",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport/4.1.109.Final/netty-transport-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "jakarta.activation",
+                    "name": "jakarta.activation-api",
+                    "version": "2.1.3",
+                    "artifacts": [
+                        {
+                            "name": "jakarta.activation-api",
+                            "path": "/home/davidhlp/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3.jar"
+                        },
+                        {
+                            "name": "jakarta.activation-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/jakarta/activation/jakarta.activation-api/2.1.3/jakarta.activation-api-2.1.3-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.micrometer",
+                    "name": "micrometer-commons",
+                    "version": "1.12.5",
+                    "artifacts": [
+                        {
+                            "name": "micrometer-commons",
+                            "path": "/home/davidhlp/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5.jar"
+                        },
+                        {
+                            "name": "micrometer-commons",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/micrometer/micrometer-commons/1.12.5/micrometer-commons-1.12.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.junit.jupiter",
+                    "name": "junit-jupiter-params",
+                    "version": "5.10.2",
+                    "artifacts": [
+                        {
+                            "name": "junit-jupiter-params",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2.jar"
+                        },
+                        {
+                            "name": "junit-jupiter-params",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/jupiter/junit-jupiter-params/5.10.2/junit-jupiter-params-5.10.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-redis",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-redis",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-redis/4.1.109.Final/netty-codec-redis-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-redis",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-redis/4.1.109.Final/netty-codec-redis-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.objenesis",
+                    "name": "objenesis",
+                    "version": "3.3",
+                    "artifacts": [
+                        {
+                            "name": "objenesis",
+                            "path": "/home/davidhlp/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3.jar"
+                        },
+                        {
+                            "name": "objenesis",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/objenesis/objenesis/3.3/objenesis-3.3-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.springframework.boot",
+                    "name": "spring-boot-starter-json",
+                    "version": "3.2.5",
+                    "artifacts": [
+                        {
+                            "name": "spring-boot-starter-json",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-json/3.2.5/spring-boot-starter-json-3.2.5.jar"
+                        },
+                        {
+                            "name": "spring-boot-starter-json",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/springframework/boot/spring-boot-starter-json/3.2.5/spring-boot-starter-json-3.2.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.slf4j",
+                    "name": "slf4j-api",
+                    "version": "2.0.12",
+                    "artifacts": [
+                        {
+                            "name": "slf4j-api",
+                            "path": "/home/davidhlp/.m2/repository/org/slf4j/slf4j-api/2.0.12/slf4j-api-2.0.12.jar"
+                        },
+                        {
+                            "name": "slf4j-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/slf4j/slf4j-api/2.0.12/slf4j-api-2.0.12-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-spring-boot-autoconfigure-compatible",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-spring-boot-autoconfigure-compatible",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-autoconfigure-compatible/3.2.14/dubbo-spring-boot-autoconfigure-compatible-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-spring-boot-autoconfigure-compatible",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-spring-boot-autoconfigure-compatible/3.2.14/dubbo-spring-boot-autoconfigure-compatible-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-native-epoll",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-native-epoll",
+                            "classifier": "linux-aarch_64",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-native-epoll/4.1.109.Final/netty-transport-native-epoll-4.1.109.Final-linux-aarch_64.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-http2",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-http2",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-http2/4.1.109.Final/netty-codec-http2-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-http2",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-http2/4.1.109.Final/netty-codec-http2-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "ch.qos.logback",
+                    "name": "logback-classic",
+                    "version": "1.4.14",
+                    "artifacts": [
+                        {
+                            "name": "logback-classic",
+                            "path": "/home/davidhlp/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14.jar"
+                        },
+                        {
+                            "name": "logback-classic",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/ch/qos/logback/logback-classic/1.4.14/logback-classic-1.4.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.httpcomponents",
+                    "name": "httpasyncclient",
+                    "version": "4.1.5",
+                    "artifacts": [
+                        {
+                            "name": "httpasyncclient",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpasyncclient/4.1.5/httpasyncclient-4.1.5.jar"
+                        },
+                        {
+                            "name": "httpasyncclient",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/httpcomponents/httpasyncclient/4.1.5/httpasyncclient-4.1.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-registry-api",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-registry-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-registry-api/3.2.14/dubbo-registry-api-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-registry-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-registry-api/3.2.14/dubbo-registry-api-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-resolver-dns",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-resolver-dns",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-resolver-dns/4.1.109.Final/netty-resolver-dns-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-resolver-dns",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-resolver-dns/4.1.109.Final/netty-resolver-dns-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.mockito",
+                    "name": "mockito-core",
+                    "version": "5.11.0",
+                    "artifacts": [
+                        {
+                            "name": "mockito-core",
+                            "path": "/home/davidhlp/.m2/repository/org/mockito/mockito-core/5.11.0/mockito-core-5.11.0.jar"
+                        },
+                        {
+                            "name": "mockito-core",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/mockito/mockito-core/5.11.0/mockito-core-5.11.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.ow2.asm",
+                    "name": "asm",
+                    "version": "9.6",
+                    "artifacts": [
+                        {
+                            "name": "asm",
+                            "path": "/home/davidhlp/.m2/repository/org/ow2/asm/asm/9.6/asm-9.6.jar"
+                        },
+                        {
+                            "name": "asm",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/ow2/asm/asm/9.6/asm-9.6-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apache.dubbo",
+                    "name": "dubbo-common",
+                    "version": "3.2.14",
+                    "artifacts": [
+                        {
+                            "name": "dubbo-common",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.2.14/dubbo-common-3.2.14.jar"
+                        },
+                        {
+                            "name": "dubbo-common",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apache/dubbo/dubbo-common/3.2.14/dubbo-common-3.2.14-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.micrometer",
+                    "name": "micrometer-core",
+                    "version": "1.12.5",
+                    "artifacts": [
+                        {
+                            "name": "micrometer-core",
+                            "path": "/home/davidhlp/.m2/repository/io/micrometer/micrometer-core/1.12.5/micrometer-core-1.12.5.jar"
+                        },
+                        {
+                            "name": "micrometer-core",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/micrometer/micrometer-core/1.12.5/micrometer-core-1.12.5-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-smtp",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-smtp",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-smtp/4.1.109.Final/netty-codec-smtp-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-smtp",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-smtp/4.1.109.Final/netty-codec-smtp-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-codec-mqtt",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-codec-mqtt",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-mqtt/4.1.109.Final/netty-codec-mqtt-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-codec-mqtt",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-codec-mqtt/4.1.109.Final/netty-codec-mqtt-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.junit.platform",
+                    "name": "junit-platform-commons",
+                    "version": "1.10.2",
+                    "artifacts": [
+                        {
+                            "name": "junit-platform-commons",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2.jar"
+                        },
+                        {
+                            "name": "junit-platform-commons",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/junit/platform/junit-platform-commons/1.10.2/junit-platform-commons-1.10.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.opentest4j",
+                    "name": "opentest4j",
+                    "version": "1.3.0",
+                    "artifacts": [
+                        {
+                            "name": "opentest4j",
+                            "path": "/home/davidhlp/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0.jar"
+                        },
+                        {
+                            "name": "opentest4j",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/opentest4j/opentest4j/1.3.0/opentest4j-1.3.0-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-transport-udt",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-transport-udt",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-udt/4.1.109.Final/netty-transport-udt-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-transport-udt",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-transport-udt/4.1.109.Final/netty-transport-udt-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "org.apiguardian",
+                    "name": "apiguardian-api",
+                    "version": "1.1.2",
+                    "artifacts": [
+                        {
+                            "name": "apiguardian-api",
+                            "path": "/home/davidhlp/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2.jar"
+                        },
+                        {
+                            "name": "apiguardian-api",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/org/apiguardian/apiguardian-api/1.1.2/apiguardian-api-1.1.2-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "com.tdunning",
+                    "name": "t-digest",
+                    "version": "3.3",
+                    "artifacts": [
+                        {
+                            "name": "t-digest",
+                            "path": "/home/davidhlp/.m2/repository/com/tdunning/t-digest/3.3/t-digest-3.3.jar"
+                        },
+                        {
+                            "name": "t-digest",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/com/tdunning/t-digest/3.3/t-digest-3.3-sources.jar"
+                        }
+                    ]
+                },
+                {
+                    "organization": "io.netty",
+                    "name": "netty-resolver",
+                    "version": "4.1.109.Final",
+                    "artifacts": [
+                        {
+                            "name": "netty-resolver",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-resolver/4.1.109.Final/netty-resolver-4.1.109.Final.jar"
+                        },
+                        {
+                            "name": "netty-resolver",
+                            "classifier": "sources",
+                            "path": "/home/davidhlp/.m2/repository/io/netty/netty-resolver/4.1.109.Final/netty-resolver-4.1.109.Final-sources.jar"
+                        }
+                    ]
+                }
+            ]
+        },
+        "tags": [
+            "library"
+        ]
+    }
+}

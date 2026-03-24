@@ -1,0 +1,34 @@
+spring:
+  application:
+    name: recommend-provider
+  cache:
+    type: caffeine
+    caffeine:
+      spec: maximumSize=1000,expireAfterWrite=5m
+
+server:
+  port: 8081
+
+dubbo:
+  application:
+    name: recommend-provider
+    qos-enable: false
+    service-discovery:
+      auto: false
+  registry:
+    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:8848}
+    username: ${NACOS_USERNAME:nacos}
+    password: ${NACOS_PASSWORD:}
+    check: false
+    use-as-config-center: false
+    use-as-metadata-center: false
+    parameters:
+      namespace: public
+      group: DEFAULT_GROUP
+  protocol:
+    name: dubbo
+    port: 20881
+  scan:
+    base-packages: com.ulticode.recommend.provider
+  consumer:
+    check: false

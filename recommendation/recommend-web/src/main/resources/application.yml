@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: recommend-web
+
+server:
+  port: 8080
+
+dubbo:
+  application:
+    name: recommend-web
+    qos-enable: false
+  registry:
+    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:8848}
+    username: ${NACOS_USERNAME:nacos}
+    password: ${NACOS_PASSWORD:}
+    parameters:
+      namespace: public
+      group: DEFAULT_GROUP
+  consumer:
+    check: false
+    timeout: 5000
+  scan:
+    base-packages: com.ulticode.recommend.web

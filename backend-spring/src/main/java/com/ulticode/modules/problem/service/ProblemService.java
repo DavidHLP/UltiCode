@@ -79,6 +79,22 @@ public interface ProblemService {
     void deleteProblem(Long id);
 
     /**
+     * Publish a problem.
+     *
+     * @param id the problem ID
+     * @return the updated problem view object
+     */
+    ProblemVO publishProblem(Long id);
+
+    /**
+     * Unpublish a problem.
+     *
+     * @param id the problem ID
+     * @return the updated problem view object
+     */
+    ProblemVO unpublishProblem(Long id);
+
+    /**
      * Convert a Problem entity to ProblemVO.
      *
      * @param problem the problem entity

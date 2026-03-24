@@ -82,8 +82,11 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
     try {
       const response = await problemsApi.getProblems(params)
-      problems.value = response.data
-      total.value = response.total
+      // Backend returns Result<PageResult<Problem>> structure
+      // apiGet unwraps to { success, data: PageResult }
+      const pageResult = response.data
+      problems.value = pageResult.items
+      total.value = pageResult.total
     } catch (err: unknown) {
       error.value = extractErrorMessage(err)
       console.error('Failed to fetch problems:', err)

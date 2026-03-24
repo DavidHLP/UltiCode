@@ -25,7 +25,7 @@ import java.util.List;
  */
 @Tag(name = "Admin - Monitoring", description = "系统监控接口")
 @RestController
-@RequestMapping("/api/monitoring")
+@RequestMapping("/monitoring")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
 public class MonitoringController {

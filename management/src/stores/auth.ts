@@ -3,6 +3,14 @@ import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
 import { setCsrfToken, clearCsrfToken } from '@/utils/csrf'
 
+// API response wrapper type
+interface ApiResponse<T> {
+  code: number
+  data: T
+  message: string
+  traceId?: string
+}
+
 // Key for storing auth state indicator in localStorage
 // Since cookies are httpOnly, we need this to avoid unnecessary /auth/me calls
 const AUTH_HAS_CREDENTIALS_KEY = 'auth_has_credentials'
@@ -52,8 +60,10 @@ export const useAuthStore = defineStore('auth', () => {
     if (!user.value) return
 
     try {
-      const perms = await authApi.getPermissions()
-      permissions.value = new Set(perms)
+      const response = await authApi.getPermissions()
+      // Response is wrapped in {code, data, message, traceId} structure
+      const perms = Array.isArray(response) ? response : (response as ApiResponse<string[]>).data
+      permissions.value = new Set(perms || [])
     } catch (error) {
       console.error('Failed to load permissions:', error)
     }

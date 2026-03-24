@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Problem Submissions", description = "Problem-specific submission endpoints")
 @RestController
-@RequestMapping("/api/problems/{problemId}/submissions")
+@RequestMapping("/problems/{problemId}/submissions")
 @RequiredArgsConstructor
 public class ProblemSubmissionController {
 

@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "Edge Operations", description = "Edge operations API for voting, analyzing, viewing content")
 @RestController
-@RequestMapping("/api/edge-operations")
+@RequestMapping("/edge-operations")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
 public class EdgeOperationsController {

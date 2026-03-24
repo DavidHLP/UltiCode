@@ -20,7 +20,7 @@ import java.util.List;
  */
 @Tag(name = "Moderation", description = "Content moderation API")
 @RestController
-@RequestMapping("/api/moderation")
+@RequestMapping("/moderation")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
 public class ModerationController {

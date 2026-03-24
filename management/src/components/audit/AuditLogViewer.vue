@@ -69,9 +69,11 @@ async function loadAuditLogs() {
       sortBy: sortBy.value,
       sortOrder: sortOrder.value,
     })
-    auditLogs.value = response.logs
-    total.value = response.total
-    totalPages.value = response.totalPages
+    // Backend returns Result<T> wrapper: { code, message, data: T }
+    const data = response.data
+    auditLogs.value = data.logs
+    total.value = data.total
+    totalPages.value = data.totalPages
   } catch (error) {
     console.error('Failed to load audit logs:', error)
   } finally {

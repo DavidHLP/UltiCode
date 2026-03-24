@@ -71,6 +71,10 @@ export default {
     language: 'Language',
     created: 'Created',
     updated: 'Updated',
+    lines: 'lines',
+    copy: 'Copy',
+    copied: 'Copied',
+    sourceCode: 'Source Code',
   },
 
   // ========== Error States ==========

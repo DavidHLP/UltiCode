@@ -72,7 +72,7 @@ export interface ProblemLanguage {
   language: string
   value: string
   style?: string
-  starter_code: string
+  starterCode: string
 }
 
 // ========== Tab-specific Types ==========
@@ -116,7 +116,7 @@ export interface CodeData {
     language: string
     value: string
     style?: string
-    starter_code: string
+    starterCode: string
   }>
 }
 
@@ -149,12 +149,21 @@ export interface ProblemQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-export interface ProblemsResponse {
-  data: Problem[]
+// Backend PageResult structure (from Result<PageResult>)
+export interface PageResult<T> {
+  items: T[]
   total: number
   page: number
-  limit: number
+  pageSize: number
   totalPages: number
+}
+
+// Full API response: Result<PageResult<Problem>>
+export interface ProblemsResponse {
+  success: boolean
+  data: PageResult<Problem>
+  message?: string
+  code?: number
 }
 
 export interface CreateProblemDto {
@@ -231,7 +240,7 @@ export interface ProblemVersionDetail {
   languages: Array<{
     label: string
     value: string
-    starter_code: string
+    starterCode: string
   }> | null
   tags: string[] | null
   changeSummary: string | null
@@ -285,7 +294,7 @@ export interface ImportProblemDto {
   languages?: Array<{
     label: string
     value: string
-    starter_code: string
+    starterCode: string
   }>
   tags?: string[]
 }

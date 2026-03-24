@@ -65,8 +65,13 @@ public class ProblemServiceImpl implements ProblemService {
         // Build query wrapper
         LambdaQueryWrapper<Problem> queryWrapper = new LambdaQueryWrapper<>();
 
-        // Only show published and non-deleted problems (soft delete handled by @TableLogic)
-        queryWrapper.eq(Problem::getIsPublished, true);
+        // Filter by published status (null means show all - for admin)
+        if (query.getIsPublished() != null) {
+            queryWrapper.eq(Problem::getIsPublished, query.getIsPublished());
+        }
+
+        // Note: Soft delete is handled by @TableLogic, but admin may want to see deleted items
+        // For now, we don't explicitly filter deleted items
 
         // Filter by difficulty
         if (query.getDifficulty() != null && !query.getDifficulty().isBlank()) {
@@ -226,13 +231,74 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     @Override
+    @Transactional
+    public ProblemVO publishProblem(Long id) {
+        Problem problem = findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
+
+        problem.setIsPublished(true);
+        if (problem.getPublishedAt() == null) {
+            problem.setPublishedAt(LocalDateTime.now());
+            problem.setPublishedBy(SecurityUtil.getCurrentUserId());
+        }
+
+        problemMapper.updateById(problem);
+
+        log.info("Problem published: {} by user {}", id, SecurityUtil.getCurrentUserId());
+        return toVO(problem);
+    }
+
+    @Override
+    @Transactional
+    public ProblemVO unpublishProblem(Long id) {
+        Problem problem = findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
+
+        problem.setIsPublished(false);
+
+        problemMapper.updateById(problem);
+
+        log.info("Problem unpublished: {} by user {}", id, SecurityUtil.getCurrentUserId());
+        return toVO(problem);
+    }
+
+    @Override
     public ProblemVO toVO(Problem problem) {
         if (problem == null) {
             return null;
         }
 
         ProblemVO vo = new ProblemVO();
-        BeanUtils.copyProperties(problem, vo);
+        // Copy basic properties from entity to VO
+        vo.setId(problem.getId());
+        vo.setSlug(problem.getSlug());
+        vo.setTitle(problem.getTitle());
+        vo.setDifficulty(problem.getDifficulty() != null ? problem.getDifficulty().toUpperCase() : null);
+        vo.setAcceptanceRate(problem.getAcceptanceRate());
+        vo.setStatus(problem.getStatus());
+        vo.setIsPremium(problem.getIsPremium());
+        vo.setHasSolution(problem.getHasSolution());
+        vo.setIsPublished(problem.getIsPublished());
+        vo.setPublishedAt(problem.getPublishedAt());
+        vo.setPublishedBy(problem.getPublishedBy());
+        vo.setIsDeleted(problem.getIsDeleted());
+        vo.setDeletedAt(problem.getDeletedAt());
+        vo.setIsFlagged(problem.getIsFlagged());
+        vo.setFlagReason(problem.getFlagReason());
+        vo.setFlagReportedBy(problem.getFlagReportedBy());
+        vo.setFlagReportedAt(problem.getFlagReportedAt());
+        vo.setFlagStatus(problem.getFlagStatus());
+        vo.setFlagReviewedBy(problem.getFlagReviewedBy());
+        vo.setFlagReviewedAt(problem.getFlagReviewedAt());
+        vo.setFlagNotes(problem.getFlagNotes());
+        vo.setCreatedAt(problem.getCreatedAt());
+        vo.setUpdatedAt(problem.getUpdatedAt());
+
+        // Set default values for new fields not yet populated
+        vo.setSubmissionCount(0L);
+        vo.setSolutionCount(0L);
+        vo.setTags(List.of());
+
         return vo;
     }
 }

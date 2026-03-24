@@ -1,202 +1,132 @@
 #!/bin/bash
 
-# Get script directory (supports symlinks)
+# ============================================================
+# UltiCode Status Script
+# Usage: ./status.sh
+# ============================================================
+
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Configuration
-CONSOLE_PORT=9002
-MANAGEMENT_PORT=9003
-BACKEND_PORT=9001
-MYSQL_PORT=23306
-REDIS_PORT=26379
-NACOS_PORT=28848
-NACOS_CONSOLE_PORT=28080
-RECOMMEND_WEB_PORT=9004
-RECOMMEND_PROVIDER_PORT=9005
+# Source common functions
+source "$SCRIPT_DIR/common.sh"
 
-# Colors
-RESET='\033[0m'
-GREEN='\033[32m'
-RED='\033[31m'
-YELLOW='\033[33m'
-CYAN='\033[36m'
-WHITE='\033[37m'
-DIM='\033[2m'
-BOLD='\033[1m'
-GREEN_BG='\033[42m'
-YELLOW_BG='\033[43m'
-
-# Symbols
-CHECK="✓"
-CROSS="✗"
-DOT="•"
-
-# Print banner
-print_banner() {
-    echo ""
-    echo -e "${CYAN}${BOLD}"
-    echo "   _   _ _   _ _   _ _   _ ___ ___  ___ ___  ___  "
-    echo "  | | | | | | | | | | \\ | |_ _/ _ \\/ __/ __|| _ \\ "
-    echo "  | |_| | |_| | | | |  \\| || | (_) | (_| _| |   / "
-    echo "   \\___/ \\___/|_| |_|_|\\_|___|\\___/ \\___|___|_|_\\ "
-    echo -e "${RESET}"
-    echo -e "  ${DIM}Service Status${RESET}"
-    echo ""
-}
-
-# Print status line
-print_status() {
-    local status=$1
-    local message=$2
-    case $status in
-        "ok")    echo -e "  ${GREEN}${CHECK}${RESET} ${message}" ;;
-        "error") echo -e "  ${RED}${CROSS}${RESET} ${message}" ;;
-        "warn")  echo -e "  ${YELLOW}!${RESET} ${message}" ;;
-        "info")  echo -e "  ${DIM}${DOT}${RESET} ${message}" ;;
-    esac
-}
-
-# Print section header
-print_section() {
-    local title=$1
-    echo ""
-    echo -e "  ${BOLD}${WHITE}:: ${title}${RESET}"
-    echo -e "  ${DIM}────────────────────────────────────────${RESET}"
-}
-
-# Port check
-is_port_in_use() {
-    lsof -i :$1 >/dev/null 2>&1
-}
-
-get_pid_on_port() {
-    lsof -ti :$1 2>/dev/null | head -1 || echo ""
-}
+# ============== Banner ==============
+print_banner "Service Status"
 
 cd "$PROJECT_ROOT"
-print_banner
 
-# Check services
+# ============== Helper Functions ==============
+check_service() {
+    local name=$1 port=$2 url=$3
+    if port_used $port; then
+        local pid=$(get_pid $port)
+        ok "$name ${D}(PID: $pid)${R}"
+        [ -n "$url" ] && info "  $url"
+        return 0
+    else
+        err "$name ${D}(not running)${R}"
+        return 1
+    fi
+}
+
+check_docker() {
+    local name=$1 port=$2 extra=$3
+    if docker ps 2>/dev/null | grep -q "ulticode-$name"; then
+        ok "$name ${D}(localhost:$port)${R} ${extra:+$extra}"
+        return 0
+    else
+        if docker ps -a 2>/dev/null | grep -q "ulticode-$name"; then
+            err "$name ${D}(stopped)${R}"
+        else
+            info "$name ${D}(not created)${R}"
+        fi
+        return 1
+    fi
+}
+
+# ============== Application Services ==============
 print_section "Application Services"
 
-# Console
-if is_port_in_use $CONSOLE_PORT; then
-    pid=$(get_pid_on_port $CONSOLE_PORT)
-    print_status "ok" "Console     running on port ${CONSOLE_PORT} (PID: ${pid})"
-else
-    print_status "error" "Console     not running"
-fi
+check_service "Backend" $BACKEND_PORT "http://localhost:$BACKEND_PORT"
+check_service "Console" $CONSOLE_PORT "http://localhost:$CONSOLE_PORT"
+check_service "Management" $MANAGEMENT_PORT "http://localhost:$MANAGEMENT_PORT"
+check_service "Recommend-Web" $RECOMMEND_WEB_PORT "http://localhost:$RECOMMEND_WEB_PORT"
+check_service "Recommend-Dubbo" $RECOMMEND_PROVIDER_DUBBO_PORT ""
 
-# Management
-if is_port_in_use $MANAGEMENT_PORT; then
-    pid=$(get_pid_on_port $MANAGEMENT_PORT)
-    print_status "ok" "Management  running on port ${MANAGEMENT_PORT} (PID: ${pid})"
-else
-    print_status "error" "Management  not running"
-fi
-
-# Backend
-if is_port_in_use $BACKEND_PORT; then
-    pid=$(get_pid_on_port $BACKEND_PORT)
-    # Check if backend is responding
-    if curl -s -f "http://localhost:$BACKEND_PORT" -o /dev/null 2>&1; then
-        print_status "ok" "Backend     running on port ${BACKEND_PORT} (PID: ${pid})"
-    else
-        print_status "warn" "Backend     port ${BACKEND_PORT} in use but not responding (PID: ${pid})"
-    fi
-else
-    print_status "error" "Backend     not running"
-fi
-
-# Docker services
+# ============== Docker Services ==============
+log ""
 print_section "Docker Services"
 
-# MySQL
-if docker ps | grep -q "ulticode-mysql"; then
-    print_status "ok" "MySQL       running on port ${MYSQL_PORT}"
-else
-    if docker ps -a | grep -q "ulticode-mysql"; then
-        print_status "warn" "MySQL       container exists but not running"
+check_docker "mysql" $MYSQL_PORT
+check_docker "redis" $REDIS_PORT
+check_docker "nacos" $NACOS_PORT "${D}(console: 28080)${R}"
+
+# ============== Health Checks ==============
+log ""
+print_section "Health Checks"
+
+if port_used $BACKEND_PORT; then
+    if curl -sf "http://localhost:$BACKEND_PORT/actuator/health" >/dev/null 2>&1; then
+        ok "Backend health check passed"
     else
-        print_status "info" "MySQL       container not created"
+        err "Backend health check failed"
     fi
+else
+    info "Backend not running, skipping"
 fi
 
-# Redis
-if docker ps | grep -q "ulticode-redis"; then
-    print_status "ok" "Redis       running on port ${REDIS_PORT}"
-else
-    if docker ps -a | grep -q "ulticode-redis"; then
-        print_status "warn" "Redis       container exists but not running"
-    else
-        print_status "info" "Redis       container not created"
+# ============== Log Files ==============
+log ""
+print_section "Log Files"
+
+LOG_COUNT=0
+for log in /tmp/ulticode-*.log; do
+    if [ -f "$log" ]; then
+        size=$(du -h "$log" 2>/dev/null | cut -f1)
+        info "$(basename $log) ${D}($size)${R}"
+        ((LOG_COUNT++)) || true
     fi
-fi
+done
 
-# Nacos
-if docker ps | grep -q "ulticode-nacos"; then
-    print_status "ok" "Nacos       running on port ${NACOS_PORT} (console: ${NACOS_CONSOLE_PORT})"
-else
-    if docker ps -a | grep -q "ulticode-nacos"; then
-        print_status "warn" "Nacos       container exists but not running"
-    else
-        print_status "info" "Nacos       container not created"
-    fi
-fi
+[ $LOG_COUNT -eq 0 ] && info "No log files found"
 
-# Recommend Web (Java process)
-if is_port_in_use $RECOMMEND_WEB_PORT; then
-    pid=$(get_pid_on_port $RECOMMEND_WEB_PORT)
-    print_status "ok" "Recommend-Web running on port ${RECOMMEND_WEB_PORT} (PID: ${pid})"
-else
-    print_status "info" "Recommend-Web not running"
-fi
-
-# Recommend Provider (Dubbo - Java process)
-if is_port_in_use $RECOMMEND_PROVIDER_PORT; then
-    pid=$(get_pid_on_port $RECOMMEND_PROVIDER_PORT)
-    print_status "ok" "Rec-Provider running on port ${RECOMMEND_PROVIDER_PORT} (PID: ${pid})"
-else
-    print_status "info" "Rec-Provider not running"
-fi
-
-# Summary
+# ============== Summary ==============
 echo ""
-RUNNING_COUNT=0
-is_port_in_use $BACKEND_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
-is_port_in_use $CONSOLE_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
-is_port_in_use $MANAGEMENT_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
-is_port_in_use $RECOMMEND_WEB_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
-is_port_in_use $RECOMMEND_PROVIDER_PORT && RUNNING_COUNT=$((RUNNING_COUNT + 1))
-docker ps | grep -q "ulticode-mysql" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
-docker ps | grep -q "ulticode-redis" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
-docker ps | grep -q "ulticode-nacos" && RUNNING_COUNT=$((RUNNING_COUNT + 1))
+RUNNING=0
+TOTAL=8
 
-TOTAL_SERVICES=8
+port_used $BACKEND_PORT && ((RUNNING++)) || true
+port_used $CONSOLE_PORT && ((RUNNING++)) || true
+port_used $MANAGEMENT_PORT && ((RUNNING++)) || true
+port_used $RECOMMEND_WEB_PORT && ((RUNNING++)) || true
+port_used $RECOMMEND_PROVIDER_DUBBO_PORT && ((RUNNING++)) || true
+docker ps 2>/dev/null | grep -q "ulticode-mysql" && ((RUNNING++)) || true
+docker ps 2>/dev/null | grep -q "ulticode-redis" && ((RUNNING++)) || true
+docker ps 2>/dev/null | grep -q "ulticode-nacos" && ((RUNNING++)) || true
 
-echo -e "  ${BOLD}Summary:${RESET} ${RUNNING_COUNT}/${TOTAL_SERVICES} services running"
+echo -e "  ${B}$RUNNING${R}/${TOTAL} services running"
 echo ""
 
-if [ $RUNNING_COUNT -eq $TOTAL_SERVICES ]; then
-    echo -e "  ${GREEN_BG}${WHITE} ALL SYSTEMS GO ${RESET}"
+if [ $RUNNING -eq $TOTAL ]; then
+    echo -e "  ${GREEN_BG}${WHITE} ALL SYSTEMS GO ${R}"
     echo ""
-    echo -e "  ${BOLD}Quick Access:${RESET}"
-    echo -e "    ${CYAN}Console${RESET}        http://localhost:${CONSOLE_PORT}"
-    echo -e "    ${CYAN}Management${RESET}     http://localhost:${MANAGEMENT_PORT}"
-    echo -e "    ${CYAN}Backend${RESET}        http://localhost:${BACKEND_PORT}"
-    echo -e "    ${CYAN}Recommend-Web${RESET}  http://localhost:${RECOMMEND_WEB_PORT}"
-    echo -e "    ${CYAN}Nacos${RESET}          http://localhost:${NACOS_CONSOLE_PORT}/nacos"
-elif [ $RUNNING_COUNT -eq 0 ]; then
-    echo -e "  ${RED}${CROSS}${RESET} ${BOLD}All services stopped${RESET}"
+    log "${B}Quick Access:${R}"
+    info "Console        http://localhost:$CONSOLE_PORT"
+    info "Management     http://localhost:$MANAGEMENT_PORT"
+    info "Backend        http://localhost:$BACKEND_PORT"
+    info "Recommend-Web  http://localhost:$RECOMMEND_WEB_PORT"
+    info "Nacos          http://localhost:28080/nacos"
+elif [ $RUNNING -eq 0 ]; then
+    echo -e "  ${RED_BG}${WHITE} ALL STOPPED ${R}"
     echo ""
-    echo -e "  ${DIM}Start: ./shell/start.sh${RESET}"
+    log "${D}Start: ./shell/start.sh${R}"
 else
-    echo -e "  ${YELLOW_BG} PARTIAL ${RESET}"
+    echo -e "  ${Y}${B}! Partial services running${R}"
     echo ""
-    echo -e "  ${DIM}Start all:  ./shell/start.sh${RESET}"
-    echo -e "  ${DIM}Stop all:   ./shell/stop.sh${RESET}"
-    echo -e "  ${DIM}Restart:    ./shell/restart.sh${RESET}"
+    log "${D}Start:   ./shell/start.sh${R}"
+    log "${D}Stop:    ./shell/stop.sh${R}"
+    log "${D}Restart: ./shell/restart.sh${R}"
 fi
 
 echo ""

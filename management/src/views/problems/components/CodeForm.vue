@@ -12,7 +12,7 @@ import { getLanguageColor } from '@/lib/entities/language'
 
 export interface LanguageWithCode {
   language: string
-  starter_code: string
+  starterCode: string
   value?: string
   style?: string
 }
@@ -27,7 +27,7 @@ interface ProblemData {
     language: string
     value?: string
     style?: string
-    starter_code: string
+    starterCode: string
   }>
 }
 
@@ -73,7 +73,7 @@ function updateForm(data?: ProblemData) {
   }
   formData.value.languages = (data.languages || []).map((lang) => ({
     language: lang.language,
-    starter_code: lang.starter_code || '',
+    starterCode: lang.starterCode || '',
     value: lang.value,
     style: lang.style,
   }))
@@ -116,7 +116,7 @@ function addLanguage(name: string) {
     return
   }
 
-  formData.value.languages.push({ language: sanitizedName, starter_code: '' })
+  formData.value.languages.push({ language: sanitizedName, starterCode: '' })
   expandedLang.value = sanitizedName
   delete errors.value.language
 }
@@ -135,7 +135,7 @@ function removeLanguage(index: number) {
 
 function updateStarterCode(index: number, code: string) {
   const lang = formData.value.languages[index]
-  if (lang) lang.starter_code = code
+  if (lang) lang.starterCode = code
 }
 
 function isLanguageAdded(name: string): boolean {
@@ -224,7 +224,7 @@ defineExpose({
                 {{ lang.language }}
               </Badge>
               <span class="text-xs text-muted-foreground">
-                {{ lang.starter_code.split('\n').filter(Boolean).length || 0 }}
+                {{ lang.starterCode.split('\n').filter(Boolean).length || 0 }}
                 {{ t('problems.codeForm.lines') }}
               </span>
             </div>
@@ -252,7 +252,7 @@ defineExpose({
               t('problems.codeForm.starterCodeTemplate')
             }}</Label>
             <Textarea
-              :model-value="lang.starter_code"
+              :model-value="lang.starterCode"
               @update:model-value="(v) => updateStarterCode(index, String(v))"
               rows="12"
               :placeholder="`// Starter code for ${lang.language}...`"

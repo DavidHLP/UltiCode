@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useProblemsStore } from '@/stores/admin/problems'
@@ -27,7 +27,44 @@ const versionHistoryOpen = ref(false)
 const isLoaded = ref(false)
 
 const problemId = computed(() => route.params.id as string)
-const problem = computed(() => problemsStore.currentProblem)
+
+// Use headerData for basic problem info (title, badges, etc)
+const headerInfo = computed(() => problemsStore.headerData)
+
+// Tab-specific data
+const descriptionData = computed(() => problemsStore.descriptionData)
+const codeData = computed(() => problemsStore.codeData)
+const casesData = computed(() => problemsStore.casesData)
+
+// Loading state for current tab
+const isLoading = computed(() => {
+  switch (currentView.value) {
+    case 'description':
+      return problemsStore.descriptionLoading || problemsStore.headerLoading
+    case 'code':
+      return problemsStore.codeLoading || problemsStore.headerLoading
+    case 'cases':
+      return problemsStore.casesLoading || problemsStore.headerLoading
+    case 'audit':
+      return problemsStore.headerLoading
+    default:
+      return false
+  }
+})
+
+// Error state for current tab
+const currentError = computed(() => {
+  switch (currentView.value) {
+    case 'description':
+      return problemsStore.descriptionError || problemsStore.headerError
+    case 'code':
+      return problemsStore.codeError || problemsStore.headerError
+    case 'cases':
+      return problemsStore.casesError || problemsStore.headerError
+    default:
+      return problemsStore.headerError
+  }
+})
 
 // Determine current view from route
 const currentView = computed(() => {
@@ -43,27 +80,58 @@ function handleTabChange(value: string | number) {
   router.push({ name: 'problem-detail', params: { id: problemId.value, tab: view } })
 }
 
-onMounted(async () => {
-  if (problemId.value) {
-    await problemsStore.fetchProblem(problemId.value)
-    isInitialLoad.value = false
-    setTimeout(() => {
-      isLoaded.value = true
-    }, 100)
+// Fetch data for current view
+async function fetchCurrentViewData() {
+  if (!problemId.value) return
+
+  // Always fetch header data first (for title, badges)
+  await problemsStore.fetchHeader(problemId.value)
+
+  // Then fetch tab-specific data
+  switch (currentView.value) {
+    case 'description':
+      await problemsStore.fetchDescription(problemId.value)
+      break
+    case 'code':
+      await problemsStore.fetchCode(problemId.value)
+      break
+    case 'cases':
+      await problemsStore.fetchCases(problemId.value)
+      break
+    case 'audit':
+      // No additional data needed for audit view
+      break
   }
+
+  isInitialLoad.value = false
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
+}
+
+// Watch for view changes to fetch appropriate data
+watch(currentView, () => {
+  isLoaded.value = false
+  fetchCurrentViewData()
+})
+
+onMounted(() => {
+  fetchCurrentViewData()
 })
 
 async function togglePublish() {
-  if (!problem.value) return
+  if (!headerInfo.value) return
   publishing.value = true
   try {
-    if (problem.value.is_published) {
+    if (headerInfo.value.is_published) {
       await problemsStore.unpublishProblem(problemId.value)
       toast.success(t('problems.toast.unpublishSuccess'))
     } else {
       await problemsStore.publishProblem(problemId.value)
       toast.success(t('problems.toast.publishSuccess'))
     }
+    // Refresh header data after toggling publish state
+    await problemsStore.fetchHeader(problemId.value, true)
   } catch (error) {
     console.error('Failed to toggle publish:', error)
     toast.error(t('problems.toast.publishFailed'))
@@ -88,7 +156,12 @@ function editProblem() {
 
 async function handleVersionRestored() {
   toast.success(t('problems.versionHistory.restoreSuccess'))
-  await problemsStore.fetchProblem(problemId.value)
+  // Refresh current view data after restore
+  await fetchCurrentViewData()
+}
+
+function retryFetch() {
+  fetchCurrentViewData()
 }
 </script>
 
@@ -114,23 +187,23 @@ async function handleVersionRestored() {
             <ArrowLeft :size="18" />
           </Button>
 
-          <div v-if="problem" class="flex items-center gap-3 min-w-0">
+          <div v-if="headerInfo" class="flex items-center gap-3 min-w-0">
             <div class="flex items-center gap-2">
               <span class="terminal-prompt text-sm">problem</span>
               <span class="terminal-cursor" />
             </div>
             <h1 class="text-sm font-medium text-[var(--foreground)] truncate">
-              {{ problem.title }}
+              {{ headerInfo.title }}
             </h1>
             <div class="hidden sm:flex items-center gap-2">
               <span
-                v-if="!problem.is_published"
+                v-if="!headerInfo.is_published"
                 class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.published.draft') }}
               </span>
               <span
-                v-if="problem.is_premium"
+                v-if="headerInfo.is_premium"
                 class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.badges.premium') }}
@@ -173,7 +246,7 @@ async function handleVersionRestored() {
         </div>
 
         <!-- Right: Actions -->
-        <div v-if="problem" class="flex items-center gap-2">
+        <div v-if="headerInfo" class="flex items-center gap-2">
           <Button
             variant="terminal"
             size="sm"
@@ -197,16 +270,16 @@ async function handleVersionRestored() {
           </Button>
 
           <Button
-            :variant="problem.is_published ? 'terminal' : 'terminal_primary'"
+            :variant="headerInfo.is_published ? 'terminal' : 'terminal_primary'"
             size="sm"
             class="h-8 font-data text-[10px]"
             :disabled="publishing"
             @click="togglePublish"
           >
-            <Eye v-if="!problem.is_published" :size="14" class="mr-1.5" />
+            <Eye v-if="!headerInfo.is_published" :size="14" class="mr-1.5" />
             <EyeOff v-else :size="14" class="mr-1.5" />
             <span class="hidden sm:inline uppercase tracking-wider">{{
-              problem.is_published ? t('problems.actions.unpublish') : t('problems.actions.publish')
+              headerInfo.is_published ? t('problems.actions.unpublish') : t('problems.actions.publish')
             }}</span>
           </Button>
         </div>
@@ -251,12 +324,12 @@ async function handleVersionRestored() {
     <main class="flex-1 w-full max-w-[1600px] mx-auto p-4 lg:p-6 lg:pt-8">
       <!-- Error State - Terminal Style -->
       <div
-        v-if="problemsStore.error"
+        v-if="currentError"
         class="flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] dark:bg-[oklch(0.6_0.2_25/0.15)] p-4 mb-6"
       >
         <div class="flex items-center gap-3">
           <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ problemsStore.error }}</span>
+          <span class="text-sm text-[var(--foreground)]">{{ currentError }}</span>
         </div>
         <div class="flex gap-2">
           <Button
@@ -271,7 +344,7 @@ async function handleVersionRestored() {
             variant="terminal"
             size="sm"
             class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)]"
-            @click="problemsStore.fetchProblem(problemId)"
+            @click="retryFetch"
           >
             {{ t('common.retry') }}
           </Button>
@@ -279,7 +352,7 @@ async function handleVersionRestored() {
       </div>
 
       <!-- Loading State -->
-      <div v-else-if="isInitialLoad || problemsStore.loading" class="space-y-6">
+      <div v-else-if="isInitialLoad || isLoading" class="space-y-6">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
           <div class="lg:col-span-8 space-y-4">
             <Skeleton class="h-12 w-3/4 rounded-lg" />
@@ -293,7 +366,7 @@ async function handleVersionRestored() {
       </div>
 
       <!-- Not Found State - Terminal Style -->
-      <div v-else-if="!problem" class="flex flex-col items-center justify-center py-24 text-center">
+      <div v-else-if="!headerInfo" class="flex flex-col items-center justify-center py-24 text-center">
         <div
           class="w-12 h-12 rounded-full bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] flex items-center justify-center mb-3"
         >
@@ -336,8 +409,8 @@ async function handleVersionRestored() {
                     : AuditLogViewer
             "
             :key="currentView"
-            :problem="currentView !== 'audit' ? problem : undefined"
-            :languages="currentView !== 'audit' ? problem.languages : undefined"
+            :problem="currentView === 'description' ? descriptionData : currentView === 'cases' ? casesData : undefined"
+            :languages="currentView === 'code' ? codeData?.languages : undefined"
             :entity-type="currentView === 'audit' ? 'PROBLEM' : undefined"
             :entity-id="currentView === 'audit' ? problemId : undefined"
           />

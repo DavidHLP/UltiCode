@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "ProblemList", description = "Problem list management API")
 @RestController
-@RequestMapping("/api/problem-lists")
+@RequestMapping("/problem-lists")
 @RequiredArgsConstructor
 public class ProblemListController {
 

@@ -186,17 +186,21 @@ const navSecondary = computed(() => {
     })
   }
 
-  items.push({
-    title: t('nav.getHelp'),
-    url: '#',
-    icon: IconHelp,
-  })
+  // Only show help and search for users with READ:SYSTEM permission
+  // Basic admin users (only Dashboard + User Management) should not see these
+  if (authStore.hasPermission('READ', 'SYSTEM')) {
+    items.push({
+      title: t('nav.getHelp'),
+      url: '#',
+      icon: IconHelp,
+    })
 
-  items.push({
-    title: t('nav.search'),
-    url: '#',
-    icon: IconSearch,
-  })
+    items.push({
+      title: t('nav.search'),
+      url: '#',
+      icon: IconSearch,
+    })
+  }
 
   return items
 })

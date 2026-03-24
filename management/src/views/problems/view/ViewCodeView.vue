@@ -60,7 +60,9 @@ onMounted(async () => {
         </div>
         <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
           <IconCode class="h-4 w-4" />
-          <span class="text-xs font-data uppercase tracking-wider">{{ t('languageTemplates') }}</span>
+          <span class="text-xs font-data uppercase tracking-wider">{{
+            t('languageTemplates')
+          }}</span>
         </div>
       </div>
     </div>

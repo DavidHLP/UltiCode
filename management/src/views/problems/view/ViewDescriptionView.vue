@@ -56,7 +56,9 @@ onMounted(async () => {
       <div class="px-4 lg:px-6 py-2.5 flex items-center gap-6 bg-[var(--surface-sunken)]">
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">{{ t('viewLabel') }}</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)]">{{ t('descriptionView') }}</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)]">{{
+            t('descriptionView')
+          }}</span>
         </div>
         <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
           <IconFileText class="h-4 w-4" />

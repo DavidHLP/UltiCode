@@ -62,7 +62,9 @@ const markdownContent = computed(() => {
       )
 
       if (example.explanation) {
-        parts.push(`>\n> **${t('problems.descriptionDisplay.explanation')}:** ${example.explanation}\n`)
+        parts.push(
+          `>\n> **${t('problems.descriptionDisplay.explanation')}:** ${example.explanation}\n`,
+        )
       }
 
       parts.push(`\n`)
@@ -71,7 +73,10 @@ const markdownContent = computed(() => {
 
   // Add constraints
   if (props.description.constraints?.length) {
-    parts.push(`\n\n### ${t('problems.descriptionDisplay.constraints')}\n\n`, ...props.description.constraints.map((c) => `- ${c}\n`))
+    parts.push(
+      `\n\n### ${t('problems.descriptionDisplay.constraints')}\n\n`,
+      ...props.description.constraints.map((c) => `- ${c}\n`),
+    )
   }
 
   // Add follow-up

@@ -20,12 +20,12 @@ import * as path from 'path';
 import * as crypto from 'crypto';
 import { execSync } from 'child_process';
 
-// Configuration
-const DB_HOST = process.env.DB_HOST || '127.0.0.1';
-const DB_PORT = process.env.DB_PORT || '23306';
-const DB_USER = process.env.DB_USER || 'root';
-const DB_PASSWORD = process.env.DB_PASSWORD || 'root';
-const DB_NAME = process.env.DB_NAME || 'ulticode';
+// Configuration - 优先使用 DB_MIGRATION_* 前缀，回退到 DB_*
+const DB_HOST = process.env.DB_MIGRATION_HOST || process.env.DB_HOST || '127.0.0.1';
+const DB_PORT = process.env.DB_MIGRATION_PORT || process.env.DB_PORT || '23306';
+const DB_USER = process.env.DB_MIGRATION_USER || process.env.DB_USER || 'root';
+const DB_PASSWORD = process.env.DB_MIGRATION_PASSWORD || process.env.DB_PASSWORD || 'root';
+const DB_NAME = process.env.DB_MIGRATION_NAME || process.env.DB_NAME || 'ulticode';
 
 interface MigrationInfo {
   version: string;

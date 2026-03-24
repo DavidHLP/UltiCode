@@ -1,5 +1,4 @@
 packages:
   - 'console'
   - 'management'
-  - 'backend'
   - 'init-db'

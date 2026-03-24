@@ -12,6 +12,14 @@ import java.util.Set;
 /**
  * CSRF Token 服务
  * 使用 Redis 存储 token, 支持多实例部署
+ *
+ * 安全模型：
+ * - Token 有效期 24 小时
+ * - Token 在会话期间可重复使用（更好的开发体验）
+ * - 登出时统一清除所有 Token
+ * - 每个 Token 绑定到特定用户
+ *
+ * 注意：生产环境建议考虑 Token 轮换或更严格的策略
  */
 @Slf4j
 @Service
@@ -78,10 +86,9 @@ public class CsrfService {
             return false;
         }
 
-        // 验证通过后删除 token (一次性使用)
-        redisTemplate.delete(key);
-
-        log.debug("CSRF token validated and consumed for user: {}", userId);
+        // Token 在有效期内可重复使用, 不再一次性删除
+        // 登出时会统一清理所有 token
+        log.debug("CSRF token validated for user: {}", userId);
         return true;
     }
 

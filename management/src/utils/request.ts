@@ -201,6 +201,20 @@ service.interceptors.response.use(
     if (config.skipResponseUnwrap) {
       return response
     }
+
+    // Backend response format: { code: 0, message: "success", data: {...}, traceId: "..." }
+    // Unwrap to return just the data field
+    const responseData = response.data
+    if (responseData && typeof responseData === 'object' && 'code' in responseData) {
+      if (responseData.code === 0 && 'data' in responseData) {
+        return responseData.data
+      }
+      // Error response - throw with message
+      const errorMessage = responseData.message || 'Request failed'
+      throw new ApiError(errorMessage, responseData.code || 0, response)
+    }
+
+    // Fallback for non-standard responses
     return response.data
   },
   async (error: AxiosError) => {
@@ -214,7 +228,9 @@ service.interceptors.response.use(
 
     // Handle request cancellation
     if (axios.isCancel(error)) {
-      console.log('Request canceled:', error.message)
+      if (isDevelopment) {
+        console.log('Request canceled:', error.message)
+      }
       return Promise.reject(new ApiError('Request canceled', 0))
     }
 
@@ -287,7 +303,7 @@ service.interceptors.response.use(
           data: error.response?.data,
         })
       }
-    } else {
+    } else if (isDevelopment) {
       console.error('Request error:', error)
     }
 

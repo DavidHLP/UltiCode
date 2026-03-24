@@ -279,7 +279,9 @@ function retryFetch() {
             <Eye v-if="!headerInfo.is_published" :size="14" class="mr-1.5" />
             <EyeOff v-else :size="14" class="mr-1.5" />
             <span class="hidden sm:inline uppercase tracking-wider">{{
-              headerInfo.is_published ? t('problems.actions.unpublish') : t('problems.actions.publish')
+              headerInfo.is_published
+                ? t('problems.actions.unpublish')
+                : t('problems.actions.publish')
             }}</span>
           </Button>
         </div>
@@ -366,7 +368,10 @@ function retryFetch() {
       </div>
 
       <!-- Not Found State - Terminal Style -->
-      <div v-else-if="!headerInfo" class="flex flex-col items-center justify-center py-24 text-center">
+      <div
+        v-else-if="!headerInfo"
+        class="flex flex-col items-center justify-center py-24 text-center"
+      >
         <div
           class="w-12 h-12 rounded-full bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] flex items-center justify-center mb-3"
         >
@@ -409,7 +414,13 @@ function retryFetch() {
                     : AuditLogViewer
             "
             :key="currentView"
-            :problem="currentView === 'description' ? descriptionData : currentView === 'cases' ? casesData : undefined"
+            :problem="
+              currentView === 'description'
+                ? descriptionData
+                : currentView === 'cases'
+                  ? casesData
+                  : undefined
+            "
             :languages="currentView === 'code' ? codeData?.languages : undefined"
             :entity-type="currentView === 'audit' ? 'PROBLEM' : undefined"
             :entity-id="currentView === 'audit' ? problemId : undefined"

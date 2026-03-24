@@ -29,6 +29,15 @@ print_banner "Starting Development Environment"
 
 cd "$PROJECT_ROOT"
 
+# ============== Load Root Environment Variables ==============
+# 导出根目录环境变量，供所有子模块使用
+if [ -f "$PROJECT_ROOT/.env" ]; then
+    info "Loading environment variables from root .env..."
+    load_env_file "$PROJECT_ROOT/.env"
+else
+    info "Root .env not found, using defaults"
+fi
+
 # ============== Step 1: Check Ports ==============
 print_section "Check Ports"
 
@@ -59,7 +68,17 @@ elif docker ps 2>/dev/null | grep -q "ulticode-mysql"; then
     info "MySQL already running"
 else
     step "Starting MySQL, Redis & Nacos..."
-    cd backend && docker compose up -d mysql redis nacos && cd ..
+    # Try docker compose if compose file exists, otherwise show error
+    if [ -f "docker-compose.yml" ]; then
+        docker compose up -d mysql redis nacos
+    else
+        err "docker-compose.yml not found in project root"
+        err "Please create the compose file or start containers manually:"
+        err "  docker run -d --name ulticode-mysql -p 23306:3306 -e MYSQL_ROOT_PASSWORD=root mysql:9.1"
+        err "  docker run -d --name ulticode-redis -p 26379:6379 redis:7-alpine"
+        err "  docker run -d --name ulticode-nacos -p 28848:8848 -p 28080:8080 nacos/nacos-server:v2.3.2"
+        exit 1
+    fi
 
     spin_wait "MySQL ready" \
         "docker exec ulticode-mysql mysqladmin ping -h localhost -u root -proot --silent" \
@@ -96,8 +115,7 @@ if [ -d "init-db" ]; then
         pnpm install >>"$INIT_DB_LOG" 2>&1
     fi
 
-    # Load environment variables
-    load_env_file ".env"
+    # Environment variables already loaded from root .env
 
     # Generate Prisma client
     step "Generating Prisma client..."
@@ -131,7 +149,6 @@ if port_used $BACKEND_PORT; then
 else
     cd backend-spring
     rm -f nohup.out 2>/dev/null
-    load_env_file ".env"
 
     nohup ./mvnw spring-boot:run >/tmp/ulticode-backend.log 2>&1 &
     BACKEND_PID=$!

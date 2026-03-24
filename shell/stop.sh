@@ -99,7 +99,14 @@ if [ "$SKIP_DOCKER" = true ]; then
     info "Skipping (--skip-docker)"
 elif docker ps 2>/dev/null | grep -qE "ulticode-(mysql|redis|nacos)"; then
     step "Stopping containers..."
-    cd backend && docker compose down && cd ..
+    # Try docker compose down if compose file exists (preferred method)
+    if [ -f "docker-compose.yml" ]; then
+        docker compose down 2>/dev/null || true
+    fi
+
+    # Fallback: remove any remaining containers by name
+    docker rm -f ulticode-mysql ulticode-redis ulticode-nacos 2>/dev/null || true
+
     ok "Containers stopped"
     STOPPED+=("MySQL" "Redis" "Nacos")
 else

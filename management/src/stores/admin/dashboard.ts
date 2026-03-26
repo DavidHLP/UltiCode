@@ -2,15 +2,15 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
   dashboardApi,
-  type Result,
   type DashboardStats,
   type ChartStatsResponse,
   type ChartQueryParams,
 } from '@/api/admin/dashboard'
 
 export const useDashboardStore = defineStore('adminDashboard', () => {
-  const stats = ref<Result<DashboardStats> | null>(null)
-  const chartData = ref<Result<ChartStatsResponse> | null>(null)
+  // Note: API returns unwrapped data (request.ts interceptor handles Result<T>)
+  const stats = ref<DashboardStats | null>(null)
+  const chartData = ref<ChartStatsResponse | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 

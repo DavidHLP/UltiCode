@@ -16,12 +16,13 @@ export interface PaginationState {
 }
 
 // Simplified store interface - user passes the actual store object
+// Accepts Ref, ComputedRef, or getter functions - toValue() handles unwrapping
 export interface UseDataTableOptions<TData, TFilters, TParams> {
   store: {
-    data: Ref<TData[]>
-    total: Ref<number>
-    isLoading: Ref<boolean>
-    error: Ref<string | null>
+    data: MaybeRefOrGetter<TData[]>
+    total: MaybeRefOrGetter<number>
+    isLoading: MaybeRefOrGetter<boolean>
+    error: MaybeRefOrGetter<string | null>
     fetch: (params: TParams) => Promise<void>
   }
   filters?: MaybeRefOrGetter<TFilters>
@@ -63,11 +64,16 @@ export function useDataTable<
   const tablePagination = ref<PaginationState>({ pageIndex: 0, pageSize: 10 })
   const selectedRows = shallowRef<TData[]>([])
 
-  // Wrap store refs in computed to avoid type issues with Pinia
-  const loading = computed(() => store.isLoading.value || false)
-  const data = computed(() => store.data.value || [])
-  const total = computed(() => store.total.value || 0)
-  const error = computed(() => store.error.value || null)
+  // Initial load state - ensures loading state is true on first page load
+  // This prevents showing empty state before data arrives
+  const initialLoad = ref(true)
+
+  // Use toValue() to properly unwrap nested refs (handles both ref and computed)
+  // Include initialLoad to ensure skeleton is shown during first data fetch
+  const loading = computed(() => initialLoad.value || toValue(store.isLoading) || false)
+  const data = computed(() => toValue(store.data) || [])
+  const total = computed(() => toValue(store.total) || 0)
+  const error = computed(() => toValue(store.error) || null)
 
   const loadEntities = async () => {
     const currentFilters = toValue(filters)
@@ -77,7 +83,15 @@ export function useDataTable<
       page: tablePagination.value.pageIndex + 1,
       limit: tablePagination.value.pageSize,
     })
-    await store.fetch(params as TParams)
+    try {
+      await store.fetch(params as TParams)
+    } finally {
+      // Clear initial load state after first fetch completes
+      // This ensures subsequent loads only show actual loading state
+      if (initialLoad.value) {
+        initialLoad.value = false
+      }
+    }
   }
 
   // Debounced search watcher

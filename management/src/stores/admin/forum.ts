@@ -33,7 +33,7 @@ export const useForumStore = defineStore('adminForum', () => {
     postsError.value = null
     try {
       const response = await forumApi.getPosts(params)
-      posts.value = response.data
+      posts.value = response.items
       totalPosts.value = response.total
     } catch (err: unknown) {
       postsError.value =
@@ -51,7 +51,7 @@ export const useForumStore = defineStore('adminForum', () => {
       // Fetch all communities (or a reasonably large page) for filtering
       // For now, let's fetch the first page. If we have many communities, we might need a search-select.
       const response = await forumApi.getCommunities(1, 100)
-      communities.value = response.data
+      communities.value = response.items
     } catch (err) {
       console.error('Failed to fetch communities:', err)
     } finally {

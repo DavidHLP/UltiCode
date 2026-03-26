@@ -4,7 +4,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * DTO for querying admin users list
+ * DTO for querying admin users list.
+ * Follows Java naming conventions with camelCase field names.
  */
 @Data
 @Schema(description = "Admin user query parameters")
@@ -17,10 +18,10 @@ public class AdminUserQueryDTO {
     private String role;
 
     @Schema(description = "Filter by active status")
-    private Boolean is_active;
+    private Boolean isActive;
 
     @Schema(description = "Filter by banned status")
-    private Boolean is_banned;
+    private Boolean isBanned;
 
     @Schema(description = "Page number (1-based)", defaultValue = "1")
     private Integer page = 1;
@@ -28,18 +29,9 @@ public class AdminUserQueryDTO {
     @Schema(description = "Items per page", defaultValue = "10")
     private Integer limit = 10;
 
-    @Schema(description = "Sort by field", defaultValue = "joined_at")
-    private String sortBy = "joined_at";
+    @Schema(description = "Sort by field", defaultValue = "joinedAt")
+    private String sortBy = "joinedAt";
 
     @Schema(description = "Sort order", defaultValue = "desc")
     private String sortOrder = "desc";
-
-    // Aliases for frontend compatibility
-    public void setIsActive(Boolean isActive) {
-        this.is_active = isActive;
-    }
-
-    public void setIsBanned(Boolean isBanned) {
-        this.is_banned = isBanned;
-    }
 }

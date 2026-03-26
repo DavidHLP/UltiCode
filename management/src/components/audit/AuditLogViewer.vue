@@ -69,11 +69,10 @@ async function loadAuditLogs() {
       sortBy: sortBy.value,
       sortOrder: sortOrder.value,
     })
-    // Backend returns Result<T> wrapper: { code, message, data: T }
-    const data = response.data
-    auditLogs.value = data.logs
-    total.value = data.total
-    totalPages.value = data.totalPages
+    // Note: request.ts unwraps Result<T>, so response is directly AuditLogsResponse
+    auditLogs.value = response.logs
+    total.value = response.total
+    totalPages.value = response.totalPages
   } catch (error) {
     console.error('Failed to load audit logs:', error)
   } finally {
@@ -236,18 +235,18 @@ onMounted(() => {
                 <Badge :variant="getActionBadgeVariant(log.action)">
                   {{ formatAction(log.action) }}
                 </Badge>
-                <Badge v-if="log.entity_type" variant="outline" class="text-xs">
-                  {{ log.entity_type }}
+                <Badge v-if="log.entityType" variant="outline" class="text-xs">
+                  {{ log.entityType }}
                 </Badge>
               </div>
               <CardTitle class="text-base">{{
-                log.entity_id || t('auditLogs.systemAction')
+                log.entityId || t('auditLogs.systemAction')
               }}</CardTitle>
             </div>
             <div class="flex items-center gap-2">
               <span class="text-sm text-muted-foreground">
                 <IconClock class="inline h-3 w-3 mr-1" />
-                {{ formatDate(log.created_at) }}
+                {{ formatDate(log.createdAt) }}
               </span>
               <Button variant="ghost" size="sm" @click="toggleExpand(log.id)">
                 <component
@@ -266,30 +265,26 @@ onMounted(() => {
               <Badge variant="outline" class="text-xs">{{ log.performer.role }}</Badge>
             </div>
 
-            <div v-if="log.old_values" class="bg-muted rounded-lg p-3">
+            <div v-if="log.oldValues" class="bg-muted rounded-lg p-3">
               <p class="text-sm font-medium mb-1">{{ t('auditLogs.oldValues') }}</p>
               <pre class="text-xs text-muted-foreground whitespace-pre-wrap">{{
-                formatValues(log.old_values)
+                formatValues(log.oldValues)
               }}</pre>
             </div>
 
-            <div v-if="log.new_values" class="bg-muted rounded-lg p-3">
+            <div v-if="log.newValues" class="bg-muted rounded-lg p-3">
               <p class="text-sm font-medium mb-1">{{ t('auditLogs.newValues') }}</p>
               <pre class="text-xs text-muted-foreground whitespace-pre-wrap">{{
-                formatValues(log.new_values)
+                formatValues(log.newValues)
               }}</pre>
             </div>
 
             <div
-              v-if="log.ip_address || log.user_agent"
+              v-if="log.ipAddress || log.userAgent"
               class="flex flex-wrap gap-4 text-xs text-muted-foreground"
             >
-              <span v-if="log.ip_address"
-                >{{ t('auditLogs.ipAddress') }}: {{ log.ip_address }}</span
-              >
-              <span v-if="log.user_agent"
-                >{{ t('auditLogs.userAgent') }}: {{ log.user_agent }}</span
-              >
+              <span v-if="log.ipAddress">{{ t('auditLogs.ipAddress') }}: {{ log.ipAddress }}</span>
+              <span v-if="log.userAgent">{{ t('auditLogs.userAgent') }}: {{ log.userAgent }}</span>
             </div>
           </div>
         </CardContent>

@@ -1,6 +1,5 @@
 package com.ulticode.modules.admin.dto;
 
-import com.fasterxml.jackson.annotation.JsonAlias;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
@@ -8,7 +7,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * Admin user view object with full information
+ * Admin user view object with full information.
+ * Follows Java naming conventions with camelCase field names.
+ * Jackson serialization will use camelCase by default.
  */
 @Data
 @Schema(description = "Admin user details")
@@ -33,28 +34,22 @@ public class AdminUserVO {
     private String role;
 
     @Schema(description = "Is user active")
-    @JsonAlias("isActive")
-    private Boolean is_active;
+    private Boolean isActive;
 
     @Schema(description = "Is user banned")
-    @JsonAlias("isBanned")
-    private Boolean is_banned;
+    private Boolean isBanned;
 
     @Schema(description = "Ban reason")
-    @JsonAlias("banReason")
-    private String ban_reason;
+    private String banReason;
 
-    @Schema(description = "When user was banned")
-    @JsonAlias("bannedAt")
-    private LocalDateTime banned_at;
+    @Schema(description = "Ban expiration time")
+    private LocalDateTime bannedUntil;
 
     @Schema(description = "When user joined")
-    @JsonAlias("joinedAt")
-    private LocalDateTime joined_at;
+    private LocalDateTime joinedAt;
 
     @Schema(description = "Last login time")
-    @JsonAlias("lastLoginAt")
-    private LocalDateTime last_login_at;
+    private LocalDateTime lastLoginAt;
 
     @Schema(description = "User permissions")
     private List<PermissionInfo> permissions;
@@ -68,15 +63,15 @@ public class AdminUserVO {
         private String action;
         private String resource;
         private String source; // 'role' or 'direct'
-        private LocalDateTime expires_at;
+        private LocalDateTime expiresAt;
     }
 
     @Data
     @Schema(description = "User statistics")
     public static class UserStatsInfo {
-        private Integer total_submissions;
-        private Integer accepted_submissions;
-        private Integer total_solutions;
+        private Integer totalSubmissions;
+        private Integer acceptedSubmissions;
+        private Integer totalSolutions;
         private Integer streak;
     }
 }

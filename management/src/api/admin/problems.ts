@@ -21,10 +21,10 @@ export interface ProblemDetail {
   id: string
   summary: string
   content?: string
-  difficulty_rating: number
+  difficultyRating: number
   likes: number
   dislikes: number
-  constraints_json?: string[]
+  constraintsJson?: string[]
   hints?: string[]
 }
 
@@ -34,27 +34,27 @@ export interface Problem {
   title: string
   difficulty: Difficulty
   status: ProblemStatus
-  is_premium: boolean
-  has_solution: boolean
-  is_published: boolean
-  published_at?: Date
-  published_by?: string
-  is_deleted: boolean
-  deleted_at?: Date
-  is_flagged?: boolean
-  flag_reason?: string
-  flag_reported_by?: string
-  flag_reported_at?: Date
-  flag_status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
-  flag_reviewed_by?: string
-  flag_reviewed_at?: Date
-  flag_notes?: string
-  created_at: Date
-  updated_at: Date
+  isPremium: boolean
+  hasSolution: boolean
+  isPublished: boolean
+  publishedAt?: Date
+  publishedBy?: string
+  isDeleted: boolean
+  deletedAt?: Date
+  isFlagged?: boolean
+  flagReason?: string
+  flagReportedBy?: string
+  flagReportedAt?: Date
+  flagStatus?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
+  flagReviewedBy?: string
+  flagReviewedAt?: Date
+  flagNotes?: string
+  createdAt: Date
+  updatedAt: Date
   detail?: ProblemDetail
   tags: ProblemTag[]
-  submission_count?: number
-  solution_count?: number
+  submissionCount?: number
+  solutionCount?: number
   examples?: ProblemExample[]
   languages?: ProblemLanguage[]
 }
@@ -83,9 +83,9 @@ export interface HeaderData {
   slug: string
   difficulty: 'EASY' | 'MEDIUM' | 'HARD'
   status: ProblemStatus
-  is_premium: boolean
-  is_published: boolean
-  published_at?: Date
+  isPremium: boolean
+  isPublished: boolean
+  publishedAt?: Date
 }
 
 export interface DescriptionData {
@@ -94,19 +94,19 @@ export interface DescriptionData {
   slug: string
   difficulty: string
   status: string
-  is_premium: boolean
-  is_published: boolean
+  isPremium: boolean
+  isPublished: boolean
   detail?: {
     summary?: string
     content?: string
-    constraints_json?: string[]
+    constraintsJson?: string[]
     hints?: string[]
   }
   tags: Array<{ id: string; label: string }>
   examples?: ProblemExample[]
-  created_at: Date
-  updated_at: Date
-  published_at?: Date
+  createdAt: Date
+  updatedAt: Date
+  publishedAt?: Date
 }
 
 export interface CodeData {
@@ -130,7 +130,7 @@ export interface CasesData {
     order: number
   }>
   detail?: {
-    constraints_json?: string[]
+    constraintsJson?: string[]
     hints?: string[]
   }
   tags?: Array<{ id: string; label: string }>
@@ -140,8 +140,8 @@ export interface ProblemQueryParams {
   search?: string
   difficulty?: Difficulty
   status?: ProblemStatus
-  is_published?: boolean
-  is_deleted?: boolean
+  isPublished?: boolean
+  isDeleted?: boolean
   tag?: string
   page?: number
   limit?: number
@@ -158,22 +158,14 @@ export interface PageResult<T> {
   totalPages: number
 }
 
-// Full API response: Result<PageResult<Problem>>
-export interface ProblemsResponse {
-  success: boolean
-  data: PageResult<Problem>
-  message?: string
-  code?: number
-}
-
 export interface CreateProblemDto {
   slug: string
   title: string
   difficulty: Difficulty
   status?: ProblemStatus
-  is_premium?: boolean
-  is_published?: boolean
-  published_by?: string
+  isPremium?: boolean
+  isPublished?: boolean
+  publishedBy?: string
   summary?: string
   content?: string
   examples?: ProblemExample[]
@@ -188,8 +180,8 @@ export interface UpdateProblemDto {
   title?: string
   difficulty?: Difficulty
   status?: ProblemStatus
-  is_premium?: boolean
-  has_solution?: boolean
+  isPremium?: boolean
+  hasSolution?: boolean
   summary?: string
   content?: string
   examples?: ProblemExample[]
@@ -207,7 +199,7 @@ export interface BulkProblemActionDto {
 export interface BulkEditProblemDto {
   ids: string[]
   difficulty?: Difficulty
-  is_premium?: boolean
+  isPremium?: boolean
 }
 
 export interface ProblemVersion {
@@ -280,9 +272,9 @@ export interface ImportProblemDto {
   title: string
   difficulty: Difficulty
   status?: ProblemStatus
-  is_premium?: boolean
-  has_solution?: boolean
-  is_published?: boolean
+  isPremium?: boolean
+  hasSolution?: boolean
+  isPublished?: boolean
   summary?: string
   examples?: Array<{
     input: string
@@ -314,9 +306,9 @@ export interface ImportProblemsResponse {
 }
 
 export const problemsApi = {
-  async getProblems(params: ProblemQueryParams): Promise<ProblemsResponse> {
-    const response = await apiGet<ProblemsResponse>('/admin/problems', { params })
-    return response
+  async getProblems(params: ProblemQueryParams): Promise<PageResult<Problem>> {
+    // apiGet already unwraps response.data automatically
+    return apiGet<PageResult<Problem>>('/admin/problems', { params })
   },
 
   async getProblem(id: string): Promise<Problem> {
@@ -457,9 +449,9 @@ export const problemsApi = {
     page?: number
     limit?: number
     status?: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED'
-  }): Promise<ProblemsResponse> {
-    const response = await apiGet<ProblemsResponse>('/admin/problems/flagged', { params })
-    return response
+  }): Promise<PageResult<Problem>> {
+    // apiGet already unwraps response.data automatically
+    return apiGet<PageResult<Problem>>('/admin/problems/flagged', { params })
   },
 
   async batchModerateProblems(data: {

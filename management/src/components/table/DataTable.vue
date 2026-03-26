@@ -86,7 +86,7 @@ const rowSelection = ref({})
 
 const table = useVueTable({
   get data() {
-    return props.data
+    return props.data || []
   },
   get columns() {
     return props.columns

@@ -17,7 +17,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-const flagStatus = computed(() => props.problem?.flag_status || 'PENDING')
+const flagStatus = computed(() => props.problem?.flagStatus || 'PENDING')
 
 const statusStyles = computed((): { bg: string; border: string; text: string } => {
   const styles = {
@@ -100,59 +100,59 @@ function handleClose(value: boolean) {
           <p
             class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
           >
-            {{ problem.flag_reason || t('problems.flagInfo.noReason') }}
+            {{ problem.flagReason || t('problems.flagInfo.noReason') }}
           </p>
         </div>
 
         <!-- Reported By -->
-        <div v-if="problem.flag_reported_by" class="flex items-center justify-between">
+        <div v-if="problem.flagReportedBy" class="flex items-center justify-between">
           <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reportedBy') }}
           </span>
           <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)]">
-            {{ problem.flag_reported_by }}
+            {{ problem.flagReportedBy }}
           </span>
         </div>
 
         <!-- Reported At -->
-        <div v-if="problem.flag_reported_at" class="flex items-center justify-between">
+        <div v-if="problem.flagReportedAt" class="flex items-center justify-between">
           <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reportedAt') }}
           </span>
           <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)] font-data">
-            {{ formatDate(problem.flag_reported_at) }}
+            {{ formatDate(problem.flagReportedAt) }}
           </span>
         </div>
 
         <!-- Reviewed By -->
-        <div v-if="problem.flag_reviewed_by" class="flex items-center justify-between">
+        <div v-if="problem.flagReviewedBy" class="flex items-center justify-between">
           <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reviewedBy') }}
           </span>
           <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)]">
-            {{ problem.flag_reviewed_by }}
+            {{ problem.flagReviewedBy }}
           </span>
         </div>
 
         <!-- Reviewed At -->
-        <div v-if="problem.flag_reviewed_at" class="flex items-center justify-between">
+        <div v-if="problem.flagReviewedAt" class="flex items-center justify-between">
           <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.reviewedAt') }}
           </span>
           <span class="text-sm text-[var(--silver-600)] dark:text-[var(--silver-400)] font-data">
-            {{ formatDate(problem.flag_reviewed_at) }}
+            {{ formatDate(problem.flagReviewedAt) }}
           </span>
         </div>
 
         <!-- Notes -->
-        <div v-if="problem.flag_notes">
+        <div v-if="problem.flagNotes">
           <span class="font-data text-[10px] uppercase tracking-wider text-[var(--silver-500)]">
             {{ t('problems.flagInfo.notes') }}
           </span>
           <p
             class="text-sm mt-1 p-2 bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
           >
-            {{ problem.flag_notes }}
+            {{ problem.flagNotes }}
           </p>
         </div>
       </div>

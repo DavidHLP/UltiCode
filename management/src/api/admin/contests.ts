@@ -82,11 +82,11 @@ export interface ContestQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-export interface ContestsResponse {
-  data: Contest[]
+export interface PageResult<T> {
+  items: T[]
   total: number
   page: number
-  limit: number
+  pageSize: number
   totalPages: number
 }
 
@@ -118,8 +118,8 @@ export interface AddContestProblemDto {
 }
 
 export const contestsApi = {
-  async getContests(params: ContestQueryParams): Promise<ContestsResponse> {
-    const response = await apiGet<ContestsResponse>('/admin/contests', { params })
+  async getContests(params: ContestQueryParams): Promise<PageResult<Contest>> {
+    const response = await apiGet<PageResult<Contest>>('/admin/contests', { params })
     return response
   },
 

@@ -54,17 +54,17 @@ const columns = computed(() => {
   const actions: ReportActions = {
     viewEntity: (report) => {
       const routes: Record<ModeratableEntityType, string> = {
-        forum_post: `/admin/forum/posts/${report.entity_id}`,
-        forum_comment: `/admin/forum/comments/${report.entity_id}`,
-        solution: `/admin/solutions/${report.entity_id}`,
-        solution_comment: `/admin/solutions/${report.entity_id}`,
-        problem: `/admin/problems/${report.entity_id}`,
+        forum_post: `/admin/forum/posts/${report.entityId}`,
+        forum_comment: `/admin/forum/comments/${report.entityId}`,
+        solution: `/admin/solutions/${report.entityId}`,
+        solution_comment: `/admin/solutions/${report.entityId}`,
+        problem: `/admin/problems/${report.entityId}`,
       }
-      router.push(routes[report.entity_type])
+      router.push(routes[report.entityType])
     },
     viewInQueue: (report) => {
-      if (report.queue_id) {
-        router.push({ path: '/admin/moderation', query: { queueId: report.queue_id } })
+      if (report.queueId) {
+        router.push({ path: '/admin/moderation', query: { queueId: report.queueId } })
       } else {
         toast.warning('No queue item associated with this report')
       }
@@ -138,7 +138,7 @@ async function loadData() {
     limit: pagination.value.pageSize,
     status: statusFilter.value === 'all' ? undefined : statusFilter.value,
     category: categoryFilter.value === 'all' ? undefined : categoryFilter.value,
-    entity_type: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
+    entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
   })
 }
 

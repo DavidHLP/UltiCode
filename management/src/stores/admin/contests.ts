@@ -23,7 +23,7 @@ export const useContestsStore = defineStore('adminContests', () => {
     error.value = null
     try {
       const response = await contestsApi.getContests(params)
-      contests.value = response.data
+      contests.value = response.items
       total.value = response.total
     } catch (err: unknown) {
       error.value =

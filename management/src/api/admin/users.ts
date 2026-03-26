@@ -8,25 +8,21 @@ export interface User {
   email: string
   avatar?: string
   role: string
-  is_active: boolean
-  is_banned: boolean
-  ban_reason?: string
-  banned_at?: string
-  joined_at: string
-  last_login_at?: string
+  isActive: boolean
+  isBanned: boolean
+  banReason?: string
+  bannedUntil?: string
+  joinedAt: string
+  lastLoginAt?: string
   permissions?: UserPermission[]
   stats?: UserStats
 }
 
 export interface UserStats {
-  stats: {
-    Easy: { count: number; total: number }
-    Medium: { count: number; total: number }
-    Hard: { count: number; total: number }
-  }
+  totalSubmissions: number
+  acceptedSubmissions: number
+  totalSolutions: number
   streak: number
-  totalSolved: number
-  heatmap: { date: string; level: number }[]
 }
 
 export interface UserPermission {
@@ -39,8 +35,8 @@ export interface UserPermission {
 export interface UserQueryParams {
   search?: string
   role?: string
-  is_active?: boolean
-  is_banned?: boolean
+  isActive?: boolean
+  isBanned?: boolean
   page?: number
   limit?: number
   sortBy?: string
@@ -56,20 +52,13 @@ export interface PageResult<T> {
   totalPages: number
 }
 
-export interface UsersResponse {
-  success: boolean
-  data: PageResult<User>
-  message?: string
-  code?: number
-}
-
 export interface CreateUserDto {
   username: string
   email: string
   name: string
   password?: string
   role?: string
-  is_active?: boolean
+  isActive?: boolean
 }
 
 export interface UpdateUserDto {
@@ -77,7 +66,7 @@ export interface UpdateUserDto {
   email?: string
   name?: string
   role?: string
-  is_active?: boolean
+  isActive?: boolean
   avatar?: string
   bio?: string
   company?: string
@@ -85,7 +74,7 @@ export interface UpdateUserDto {
   website?: string
   location?: string
   twitter?: string
-  preferred_language?: string
+  preferredLanguage?: string
 }
 
 export interface BanUserDto {
@@ -96,7 +85,7 @@ export interface BanUserDto {
 export interface GrantPermissionDto {
   action: string
   resource: string
-  expires_at?: string
+  expiresAt?: Date | null
 }
 
 export interface BulkActionDto {
@@ -105,35 +94,29 @@ export interface BulkActionDto {
   role?: string
 }
 
-// Generic API response wrapper from backend
-interface ApiResponse<T> {
-  success: boolean
-  data: T
-  message?: string
-  code?: number
-}
-
 export const usersApi = {
-  async getUsers(params: UserQueryParams): Promise<UsersResponse> {
-    const response = await apiGet<UsersResponse>('/admin/users', { params })
-    return response
+  async getUsers(params: UserQueryParams): Promise<PageResult<User>> {
+    // apiGet already unwraps response.data automatically
+    return apiGet<PageResult<User>>('/admin/users', { params })
   },
 
   async getUser(id: string): Promise<User> {
-    const response = await apiGet<ApiResponse<User>>(`/admin/users/${id}`)
-    return response.data
+    // apiGet already unwraps response.data automatically
+    return apiGet<User>(`/admin/users/${id}`)
   },
 
   async createUser(data: CreateUserDto): Promise<User> {
-    const response = await apiPost<ApiResponse<User>>('/admin/users', data)
+    // apiPost already unwraps response.data automatically
+    const result = apiPost<User>('/admin/users', data)
     toast.success('User created successfully')
-    return response.data
+    return result
   },
 
   async updateUser(id: string, data: UpdateUserDto): Promise<User> {
-    const response = await apiPatch<ApiResponse<User>>(`/admin/users/${id}`, data)
+    // apiPatch already unwraps response.data automatically
+    const result = apiPatch<User>(`/admin/users/${id}`, data)
     toast.success('User updated successfully')
-    return response.data
+    return result
   },
 
   async deleteUser(id: string): Promise<void> {
@@ -142,15 +125,17 @@ export const usersApi = {
   },
 
   async banUser(id: string, data: BanUserDto): Promise<User> {
-    const response = await apiPost<ApiResponse<User>>(`/admin/users/${id}/ban`, data)
+    // apiPost already unwraps response.data automatically
+    const result = apiPost<User>(`/admin/users/${id}/ban`, data)
     toast.success('User has been banned')
-    return response.data
+    return result
   },
 
   async unbanUser(id: string): Promise<User> {
-    const response = await apiPost<ApiResponse<User>>(`/admin/users/${id}/unban`)
+    // apiPost already unwraps response.data automatically
+    const result = apiPost<User>(`/admin/users/${id}/unban`)
     toast.success('User has been unbanned')
-    return response.data
+    return result
   },
 
   async grantPermission(id: string, data: GrantPermissionDto): Promise<void> {
@@ -169,31 +154,37 @@ export const usersApi = {
     ids: string[],
     reason?: string,
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiPost<
-      ApiResponse<{ results: { id: string; success: boolean; error?: string }[] }>
-    >('/admin/users/bulk-ban', { ids, reason })
+    // apiPost already unwraps response.data automatically
+    const result = apiPost<{ results: { id: string; success: boolean; error?: string }[] }>(
+      '/admin/users/bulk-ban',
+      { ids, reason },
+    )
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response.data
+    return result
   },
 
   async bulkUnban(
     ids: string[],
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiPost<
-      ApiResponse<{ results: { id: string; success: boolean; error?: string }[] }>
-    >('/admin/users/bulk-unban', { ids })
+    // apiPost already unwraps response.data automatically
+    const result = apiPost<{ results: { id: string; success: boolean; error?: string }[] }>(
+      '/admin/users/bulk-unban',
+      { ids },
+    )
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response.data
+    return result
   },
 
   async bulkDelete(
     ids: string[],
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiDelete<
-      ApiResponse<{ results: { id: string; success: boolean; error?: string }[] }>
-    >('/admin/users/bulk-delete', { data: { ids } })
+    // apiDelete already unwraps response.data automatically
+    const result = apiDelete<{ results: { id: string; success: boolean; error?: string }[] }>(
+      '/admin/users/bulk-delete',
+      { data: { ids } },
+    )
     toast.success(`Batch operation processed for ${ids.length} users`)
-    return response.data
+    return result
   },
 
   async resetPassword(id: string, password: string): Promise<void> {

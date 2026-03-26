@@ -176,12 +176,12 @@ function transformExportToImportFormat(problem: {
   title: string
   difficulty: Difficulty
   status?: ProblemStatus
-  is_premium?: boolean
-  has_solution?: boolean
-  is_published?: boolean
+  isPremium?: boolean
+  hasSolution?: boolean
+  isPublished?: boolean
   detail?: {
     summary?: string
-    constraints_json?: string[]
+    constraintsJson?: string[]
     hints?: string[]
   }
   examples?: Array<{ input: string; output: string; explanation?: string }>
@@ -194,13 +194,13 @@ function transformExportToImportFormat(problem: {
     title: problem.title,
     difficulty: problem.difficulty,
     status: problem.status || ProblemStatus.TODO,
-    is_premium: problem.is_premium || false,
-    has_solution: problem.has_solution || false,
-    is_published: problem.is_published || false,
+    isPremium: problem.isPremium || false,
+    hasSolution: problem.hasSolution || false,
+    isPublished: problem.isPublished || false,
 
     // Flatten detail object
     summary: problem.detail?.summary,
-    constraints: problem.detail?.constraints_json,
+    constraints: problem.detail?.constraintsJson,
     hints: problem.detail?.hints,
 
     // Nested arrays pass through
@@ -277,9 +277,9 @@ function parseCSVFile(content: string): ImportProblemDto[] {
       title,
       difficulty,
       status,
-      is_premium: isPremium,
-      has_solution: hasSolution,
-      is_published: isPublished,
+      isPremium,
+      hasSolution,
+      isPublished,
       summary,
     })
   }

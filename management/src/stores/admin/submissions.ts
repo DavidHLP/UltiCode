@@ -45,7 +45,7 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     error.value = null
     try {
       const response = await submissionsApi.getList(params)
-      submissions.value = response.data
+      submissions.value = response.items
       total.value = response.total
       totalPages.value = response.totalPages
     } catch (err) {

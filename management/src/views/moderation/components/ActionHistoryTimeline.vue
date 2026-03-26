@@ -155,13 +155,13 @@ function getRelativeTime(date: Date | string): string {
           <div
             :class="[
               'relative z-10 flex h-8 w-8 items-center justify-center rounded-full border',
-              getActionConfig(action.action_type).bg,
+              getActionConfig(action.actionType).bg,
               'border-[var(--silver-300)]',
             ]"
           >
             <component
-              :is="getActionConfig(action.action_type).icon"
-              :class="['h-4 w-4', getActionConfig(action.action_type).color]"
+              :is="getActionConfig(action.actionType).icon"
+              :class="['h-4 w-4', getActionConfig(action.actionType).color]"
             />
           </div>
 
@@ -170,20 +170,20 @@ function getRelativeTime(date: Date | string): string {
             <div class="flex items-start justify-between gap-2">
               <div class="flex-1">
                 <p class="text-sm font-medium">
-                  {{ t(`moderation.actions.${action.action_type}`) }}
+                  {{ t(`moderation.actions.${action.actionType}`) }}
                 </p>
                 <div class="flex items-center gap-2 mt-1 text-xs text-[var(--silver-500)]">
                   <IconUser class="h-3 w-3" />
                   <span>
                     {{
-                      action.performer?.display_name ||
+                      action.performer?.displayName ||
                       action.performer?.username ||
                       t('moderation.unknownReporter')
                     }}
                   </span>
                   <span class="text-[var(--silver-400)]">•</span>
                   <span class="font-data tabular-nums">
-                    {{ getRelativeTime(action.created_at) }}
+                    {{ getRelativeTime(action.createdAt) }}
                   </span>
                 </div>
               </div>
@@ -199,11 +199,11 @@ function getRelativeTime(date: Date | string): string {
 
             <!-- Duration (for temp bans) -->
             <div
-              v-if="action.duration_days && action.action_type === ModerationActionType.TEMP_BANNED"
+              v-if="action.durationDays && action.actionType === ModerationActionType.TEMP_BANNED"
               class="mt-2 text-xs text-[var(--terminal-amber)]"
             >
               {{ t('moderation.detail.duration') }}:
-              {{ t('moderation.detail.days', { count: action.duration_days }) }}
+              {{ t('moderation.detail.days', { count: action.durationDays }) }}
             </div>
           </div>
         </div>

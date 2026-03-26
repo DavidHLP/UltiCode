@@ -20,7 +20,6 @@ import {
 } from '@/api/admin/moderation'
 
 import EntityPreviewCard from './EntityPreviewCard.vue'
-import ActionHistoryTimeline from './ActionHistoryTimeline.vue'
 import ModerationActionPanel from './ModerationActionPanel.vue'
 
 interface Props {
@@ -135,7 +134,7 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
             </div>
             <div class="flex items-center gap-2 text-xs text-[var(--silver-500)]">
               <IconClock class="h-3.5 w-3.5" />
-              <span class="font-data tabular-nums">{{ formatDate(item.created_at) }}</span>
+              <span class="font-data tabular-nums">{{ formatDate(item.createdAt) }}</span>
             </div>
           </div>
         </div>
@@ -144,9 +143,9 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
         <div class="p-4 space-y-4">
           <!-- Entity Preview -->
           <EntityPreviewCard
-            :entity-type="item.entity_type"
-            :entity-id="item.entity_id"
-            :title="item.entity_id"
+            :entity-type="item.entityType"
+            :entity-id="item.entityId"
+            :title="item.entityId"
             @view-entity="emit('viewEntity')"
           />
 
@@ -156,8 +155,8 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
               <span class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
                 {{ t('moderation.columns.category') }}:
               </span>
-              <span :class="['text-sm font-data', categoryColors[item.primary_category]]">
-                {{ t(`moderation.categories.${item.primary_category}`) }}
+              <span :class="['text-sm font-data', categoryColors[item.primaryCategory]]">
+                {{ t(`moderation.categories.${item.primaryCategory}`) }}
               </span>
             </div>
             <div class="flex items-center gap-2">
@@ -167,19 +166,17 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
               <span
                 :class="[
                   'text-sm font-data tabular-nums',
-                  item.report_count >= 3
-                    ? 'text-[var(--terminal-red)]'
-                    : 'text-[var(--foreground)]',
+                  item.reportCount >= 3 ? 'text-[var(--terminal-red)]' : 'text-[var(--foreground)]',
                 ]"
               >
-                {{ item.report_count }}
+                {{ item.reportCount }}
               </span>
             </div>
           </div>
 
           <!-- Assigned To -->
           <div
-            v-if="item.assigned_to"
+            v-if="item.assignedToId"
             class="flex items-center gap-2 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
           >
             <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
@@ -187,51 +184,19 @@ function handlePerformAction(action: ModerationActionType, note?: string, durati
               {{ t('moderation.queue.assignedTo') }}:
             </span>
             <span class="text-sm">
-              {{ item.assigned_to.display_name || item.assigned_to.username }}
+              {{ item.assignedToName || item.assignedToUsername }}
             </span>
           </div>
 
           <!-- Reports Section -->
-          <div v-if="item.reports && item.reports.length > 0" class="space-y-2">
-            <h3 class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">
-              {{ t('moderation.detail.reportsTitle', { count: item.reports.length }) }}
-            </h3>
-            <div class="space-y-2">
-              <div
-                v-for="report in item.reports.slice(0, 3)"
-                :key="report.id"
-                class="p-3 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
-              >
-                <div class="flex items-center justify-between mb-2">
-                  <span class="text-xs font-data text-[var(--silver-500)]">
-                    {{
-                      report.reporter?.display_name ||
-                      report.reporter?.username ||
-                      t('moderation.unknownReporter')
-                    }}
-                  </span>
-                  <span class="text-xs font-data text-[var(--silver-400)] tabular-nums">
-                    {{ formatDate(report.created_at) }}
-                  </span>
-                </div>
-                <p v-if="report.reason" class="text-sm">{{ report.reason }}</p>
-                <p v-if="report.evidence" class="text-xs text-[var(--silver-500)] mt-1">
-                  {{ t('moderation.detail.evidence') }}: {{ report.evidence }}
-                </p>
-              </div>
-              <p
-                v-if="item.reports.length > 3"
-                class="text-xs text-center text-[var(--silver-400)]"
-              >
-                +{{ item.reports.length - 3 }} more reports
-              </p>
-            </div>
-          </div>
+          <!-- TODO: Fetch reports separately via API -->
+          <!-- <div v-if="item.reports && item.reports.length > 0" class="space-y-2">...</div> -->
 
           <Separator class="my-4 bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
 
           <!-- Action History -->
-          <ActionHistoryTimeline :actions="item.actions || []" :loading="false" />
+          <!-- TODO: Fetch actions separately or remove this section -->
+          <!-- <ActionHistoryTimeline :actions="item.actions || []" :loading="false" /> -->
 
           <Separator class="my-4 bg-[var(--silver-200)] dark:bg-[var(--silver-300)]" />
 

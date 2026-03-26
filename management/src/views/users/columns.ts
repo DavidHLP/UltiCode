@@ -80,7 +80,7 @@ function renderRoleBadge(role: string) {
 
 // Terminal-style status badge renderer
 function renderStatusBadge(user: User) {
-  if (user.is_banned) {
+  if (user.isBanned) {
     return h(
       'div',
       { class: 'flex items-center gap-2' },
@@ -101,7 +101,7 @@ function renderStatusBadge(user: User) {
     )
   }
 
-  if (!user.is_active) {
+  if (!user.isActive) {
     return h(
       'span',
       {
@@ -207,9 +207,9 @@ export function createColumns(
             {
               class: [
                 'relative',
-                user.is_banned
+                user.isBanned
                   ? 'ring-2 ring-[var(--terminal-red)] ring-offset-2 ring-offset-background'
-                  : user.is_active
+                  : user.isActive
                     ? 'ring-2 ring-[var(--terminal-green)] ring-offset-2 ring-offset-background'
                     : '',
               ].join(' '),
@@ -269,7 +269,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'joined_at',
+      accessorKey: 'joinedAt',
       header: () =>
         h(
           'span',
@@ -277,7 +277,7 @@ export function createColumns(
           t('users.columns.joined'),
         ),
       cell: ({ row }) => {
-        const date = row.getValue('joined_at') as string
+        const date = row.getValue('joinedAt') as string
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
@@ -286,7 +286,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'last_login_at',
+      accessorKey: 'lastLoginAt',
       header: () =>
         h(
           'span',
@@ -294,7 +294,7 @@ export function createColumns(
           t('users.columns.lastLogin'),
         ),
       cell: ({ row }) => {
-        const lastLogin = row.getValue('last_login_at') as string | undefined
+        const lastLogin = row.getValue('lastLoginAt') as string | undefined
         if (!lastLogin) {
           return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '—')
         }
@@ -408,7 +408,7 @@ function createActionsDropdown(
                 class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
               }),
               canModerateUser()
-                ? user.is_banned
+                ? user.isBanned
                   ? h(
                       DropdownMenuItem,
                       {

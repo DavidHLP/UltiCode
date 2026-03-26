@@ -210,10 +210,12 @@ function renderPriorityBadge(priority: number) {
 }
 
 function renderAssignedUser(
-  assignedTo: ModerationQueueItem['assigned_to'],
+  assignedToName: string | undefined,
+  assignedToUsername: string | undefined,
   t: (key: string) => string,
 ) {
-  if (!assignedTo) {
+  const displayName = assignedToName || assignedToUsername
+  if (!displayName) {
     return h(
       'span',
       { class: 'font-data text-xs text-[var(--silver-400)] italic' },
@@ -222,11 +224,7 @@ function renderAssignedUser(
   }
   return h('div', { class: 'flex items-center gap-2' }, [
     h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--silver-500)]' }),
-    h(
-      'span',
-      { class: 'text-sm text-[var(--foreground)] truncate' },
-      assignedTo.display_name || assignedTo.username,
-    ),
+    h('span', { class: 'text-sm text-[var(--foreground)] truncate' }, displayName),
   ])
 }
 
@@ -291,7 +289,7 @@ export function createColumns(
     },
     // Entity type column
     {
-      accessorKey: 'entity_type',
+      accessorKey: 'entityType',
       size: 120,
       minSize: 100,
       maxSize: 140,
@@ -304,7 +302,7 @@ export function createColumns(
           t('moderation.columns.entityType'),
         ),
       cell: ({ row }) => {
-        const entityType = row.original.entity_type as ModeratableEntityType
+        const entityType = row.original.entityType as ModeratableEntityType
         return renderEntityTypeBadge(entityType, t)
       },
     },
@@ -327,21 +325,21 @@ export function createColumns(
             'span',
             {
               class: 'font-medium text-sm truncate',
-              title: item.entity_id,
+              title: item.entityId,
             },
-            truncateText(item.entity_id, 24),
+            truncateText(item.entityId, 24),
           ),
           h(
             'span',
             { class: 'text-muted-foreground text-xs truncate' },
-            truncateText(item.entity_id, 32),
+            truncateText(item.entityId, 32),
           ),
         ])
       },
     },
     // Category column
     {
-      accessorKey: 'primary_category',
+      accessorKey: 'primaryCategory',
       size: 120,
       minSize: 100,
       maxSize: 140,
@@ -354,7 +352,7 @@ export function createColumns(
           t('moderation.columns.category'),
         ),
       cell: ({ row }) => {
-        const category = row.original.primary_category as ReportCategory
+        const category = row.original.primaryCategory as ReportCategory
         return renderCategoryBadge(category, t)
       },
     },
@@ -398,7 +396,7 @@ export function createColumns(
     },
     // Report count column
     {
-      accessorKey: 'report_count',
+      accessorKey: 'reportCount',
       size: 70,
       minSize: 60,
       maxSize: 80,
@@ -411,7 +409,7 @@ export function createColumns(
           t('moderation.columns.reports'),
         ),
       cell: ({ row }) => {
-        const count = row.original.report_count
+        const count = row.original.reportCount
         return h(
           'span',
           {
@@ -426,7 +424,7 @@ export function createColumns(
     },
     // Assigned to column
     {
-      accessorKey: 'assigned_to',
+      accessorKey: 'assignedTo',
       size: 120,
       minSize: 100,
       maxSize: 140,
@@ -439,12 +437,12 @@ export function createColumns(
           t('moderation.columns.assignedTo'),
         ),
       cell: ({ row }) => {
-        return renderAssignedUser(row.original.assigned_to, t)
+        return renderAssignedUser(row.original.assignedToName, row.original.assignedToUsername, t)
       },
     },
     // Created at column
     {
-      accessorKey: 'created_at',
+      accessorKey: 'createdAt',
       size: 100,
       minSize: 80,
       maxSize: 120,
@@ -457,7 +455,7 @@ export function createColumns(
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
-        const date = row.original.created_at
+        const date = row.original.createdAt
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
@@ -491,7 +489,7 @@ function createActionsDropdown(
 ) {
   const isPending = item.status === 'PENDING'
   const isUnderReview = item.status === 'UNDER_REVIEW'
-  const canClaim = !item.assigned_to_id
+  const canClaim = !item.assignedToId
   const canAction = isPending || isUnderReview
 
   return h(

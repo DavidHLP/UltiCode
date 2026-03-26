@@ -67,9 +67,9 @@ const {
   }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
-    is_featured:
+    isFeatured:
       filters.featuredFilter === 'all' ? undefined : filters.featuredFilter === 'featured',
-    is_public:
+    isPublic:
       filters.visibilityFilter === 'all' ? undefined : filters.visibilityFilter === 'public',
     page,
     limit,
@@ -80,8 +80,8 @@ const {
 // Stats for terminal ticker
 const stats = computed(() => ({
   total: store.total,
-  featured: store.lists.filter((l) => l.is_featured).length,
-  public: store.lists.filter((l) => l.is_public).length,
+  featured: (store.lists || []).filter((l) => l.isFeatured).length,
+  public: (store.lists || []).filter((l) => l.isPublic).length,
 }))
 
 // Toolbar filters for DataTableToolbar

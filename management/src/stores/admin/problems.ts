@@ -81,10 +81,8 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await problemsApi.getProblems(params)
-      // Backend returns Result<PageResult<Problem>> structure
-      // apiGet unwraps to { success, data: PageResult }
-      const pageResult = response.data
+      // problemsApi.getProblems already returns PageResult<Problem> directly (unwrapped by request.ts)
+      const pageResult = await problemsApi.getProblems(params)
       problems.value = pageResult.items
       total.value = pageResult.total
     } catch (err: unknown) {
@@ -377,7 +375,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     try {
       let problem = await problemsApi.updateProblem(id, data)
 
-      const currentState = problem.is_published
+      const currentState = problem.isPublished
       if (currentState !== targetPublishedState) {
         problem = targetPublishedState
           ? await problemsApi.publishProblem(id)

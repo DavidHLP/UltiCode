@@ -41,14 +41,12 @@ export interface CommentQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-export interface CommentsResponse {
-  data: Comment[]
-  meta: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-  }
+export interface PageResult<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
 }
 
 export interface BulkCommentActionDto {
@@ -58,8 +56,8 @@ export interface BulkCommentActionDto {
 }
 
 export const commentsApi = {
-  async getComments(params: CommentQueryParams): Promise<CommentsResponse> {
-    return apiGet<CommentsResponse>('/admin/comments', { params })
+  async getComments(params: CommentQueryParams): Promise<PageResult<Comment>> {
+    return apiGet<PageResult<Comment>>('/admin/comments', { params })
   },
 
   async flagComment(id: string, type: CommentType, reason: string): Promise<Comment> {

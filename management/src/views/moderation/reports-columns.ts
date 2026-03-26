@@ -189,17 +189,18 @@ export function createReportsColumns(
           t('moderation.columns.reporter'),
         ),
       cell: ({ row }) => {
-        const reporter = row.original.reporter
+        const reporterName = row.original.reporterName
+        const reporterUsername = row.original.reporterUsername
         return h(
           'span',
           { class: 'text-sm truncate block' },
-          reporter?.display_name || reporter?.username || t('moderation.unknownReporter'),
+          reporterName || reporterUsername || t('moderation.unknownReporter'),
         )
       },
     },
     // Entity Type
     {
-      accessorKey: 'entity_type',
+      accessorKey: 'entityType',
       size: 100,
       header: () =>
         h(
@@ -208,7 +209,7 @@ export function createReportsColumns(
           t('moderation.columns.entityType'),
         ),
       cell: ({ row }) => {
-        const entityType = row.original.entity_type as ModeratableEntityType
+        const entityType = row.original.entityType as ModeratableEntityType
         return h(
           'span',
           { class: ['font-data text-xs', entityTypeColors[entityType]] },
@@ -218,7 +219,7 @@ export function createReportsColumns(
     },
     // Entity ID
     {
-      accessorKey: 'entity_id',
+      accessorKey: 'entityId',
       minSize: 150,
       header: () =>
         h(
@@ -227,7 +228,7 @@ export function createReportsColumns(
           t('moderation.columns.entity'),
         ),
       cell: ({ row }) => {
-        const entityId = row.original.entity_id
+        const entityId = row.original.entityId
         return h(
           'span',
           {
@@ -292,7 +293,7 @@ export function createReportsColumns(
     },
     // Created at
     {
-      accessorKey: 'created_at',
+      accessorKey: 'createdAt',
       size: 100,
       header: () =>
         h(
@@ -301,7 +302,7 @@ export function createReportsColumns(
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
-        const date = row.original.created_at
+        const date = row.original.createdAt
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },

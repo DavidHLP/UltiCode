@@ -25,7 +25,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
     error.value = null
     try {
       const response = await solutionsApi.getSolutions(params)
-      solutions.value = response.data
+      solutions.value = response.items
       total.value = response.total
     } catch (err: unknown) {
       error.value =
@@ -42,7 +42,7 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
     error.value = null
     try {
       const response = await solutionsApi.getFlaggedSolutions(params)
-      solutions.value = response.data
+      solutions.value = response.items
       total.value = response.total
     } catch (err: unknown) {
       error.value =

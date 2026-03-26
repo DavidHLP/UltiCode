@@ -75,7 +75,7 @@ const formattedProblem = computed(() => {
 
   return {
     examples: problemData.value.examples?.map(mapExampleToTestCase) || [],
-    constraints: problemData.value.detail?.constraints_json || [],
+    constraints: problemData.value.detail?.constraintsJson || [],
     hints: problemData.value.detail?.hints || [],
     tags: problemData.value.tags?.map((t) => t.label) || [],
   }

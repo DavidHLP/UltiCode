@@ -103,7 +103,7 @@ describe('useModerationStore', () => {
 
     it('pendingCount should return correct value when stats exists', () => {
       const store = useModerationStore()
-      store.stats = { total_pending: 5 } as Record<string, unknown>
+      store.stats = { pendingCount: 5 } as Record<string, unknown>
       expect(store.pendingCount).toBe(5)
     })
 
@@ -189,7 +189,7 @@ describe('useModerationStore', () => {
       const store = useModerationStore()
       store.queueItems = [{ id: '1' }] as Record<string, unknown>[]
       store.queueTotal = 10
-      store.stats = { total_pending: 5 } as Record<string, unknown>
+      store.stats = { pendingCount: 5 } as Record<string, unknown>
       store.setFilters({ status: ModerationStatus.PENDING })
       store.pagination.page = 5
 

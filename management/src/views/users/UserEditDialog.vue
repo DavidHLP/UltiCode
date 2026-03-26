@@ -43,7 +43,7 @@ const form = ref({
   email: '',
   name: '',
   role: 'USER',
-  is_active: true,
+  isActive: true,
 })
 
 watch(
@@ -60,7 +60,7 @@ watch(
             email: user.email || '',
             name: user.name || '',
             role: user.role,
-            is_active: user.is_active,
+            isActive: user.isActive,
           }
         }
       } catch {
@@ -84,7 +84,7 @@ async function handleSubmit() {
       email: form.value.email,
       name: form.value.name,
       role: form.value.role as 'USER' | 'MODERATOR' | 'ADMIN' | 'SUPER_ADMIN',
-      is_active: form.value.is_active,
+      isActive: form.value.isActive,
     })
 
     emit('success')
@@ -204,13 +204,13 @@ async function handleSubmit() {
                     class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
                   >
                     <Checkbox
-                      id="edit-is_active"
-                      v-model="form.is_active"
+                      id="edit-isActive"
+                      v-model="form.isActive"
                       :disabled="saving"
                       class="border-[var(--silver-400)] data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
                     />
-                    <label for="edit-is_active" class="font-data text-xs cursor-pointer">
-                      {{ form.is_active ? 'ACTIVE' : 'INACTIVE' }}
+                    <label for="edit-isActive" class="font-data text-xs cursor-pointer">
+                      {{ form.isActive ? 'ACTIVE' : 'INACTIVE' }}
                     </label>
                   </div>
                 </div>

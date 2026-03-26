@@ -84,13 +84,13 @@ function back() {
             <span class="terminal-label">{{ t('problemLists.status.visibility') }}:</span>
             <span
               :class="
-                list.is_public
+                list.isPublic
                   ? 'font-data text-[var(--terminal-green)]'
                   : 'font-data text-[var(--silver-400)]'
               "
             >
               {{
-                list.is_public ? t('problemLists.status.public') : t('problemLists.status.private')
+                list.isPublic ? t('problemLists.status.public') : t('problemLists.status.private')
               }}
             </span>
           </div>
@@ -100,7 +100,7 @@ function back() {
               list.problems?.length || 0
             }}</span>
           </div>
-          <div v-if="list.is_featured" class="flex items-center gap-2">
+          <div v-if="list.isFeatured" class="flex items-center gap-2">
             <span class="terminal-label">{{ t('problemLists.status.status') }}:</span>
             <span class="font-data text-[var(--terminal-amber)]">{{
               t('problemLists.status.featured')

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useUsersStore } from '@/stores/admin/users'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -22,6 +22,25 @@ const emit = defineEmits<{
 const usersStore = useUsersStore()
 const loading = ref(false)
 
+// Computed stats for progress display
+const acceptanceRate = computed(() => {
+  const stats = usersStore.currentUser?.stats
+  if (!stats || stats.totalSubmissions === 0) return 0
+  return Math.round((stats.acceptedSubmissions / stats.totalSubmissions) * 100)
+})
+
+const progressFilled = computed(() => {
+  const percent = acceptanceRate.value
+  const filledCount = Math.round((percent / 100) * 40)
+  return '█'.repeat(filledCount)
+})
+
+const progressEmpty = computed(() => {
+  const percent = acceptanceRate.value
+  const filledCount = Math.round((percent / 100) * 40)
+  return '░'.repeat(40 - filledCount)
+})
+
 async function loadUser() {
   if (!props.userId) return
   loading.value = true
@@ -41,28 +60,15 @@ watch(
   },
 )
 
-// ASCII-style progress bar
-function renderAsciiProgress(
-  count: number,
-  total: number,
-  width = 20,
-): { filled: string; empty: string; percent: number } {
-  const percent = total > 0 ? Math.round((count / total) * 100) : 0
-  const filledCount = Math.round((percent / 100) * width)
-  const filled = '█'.repeat(filledCount)
-  const empty = '░'.repeat(width - filledCount)
-  return { filled, empty, percent }
-}
-
 // Get status badge styling
-function getStatusStyle(entity: { is_banned: boolean; is_active: boolean }) {
-  if (entity.is_banned) {
+function getStatusStyle(entity: { isBanned: boolean; isActive: boolean }) {
+  if (entity.isBanned) {
     return {
       class: 'terminal-badge-error animate-pulse-subtle',
       label: 'BANNED',
     }
   }
-  if (!entity.is_active) {
+  if (!entity.isActive) {
     return {
       class:
         'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
@@ -84,16 +90,6 @@ function getRoleStyle(role: string) {
     USER: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
   }
   return styles[role] || styles.USER
-}
-
-// Get difficulty color
-function getDifficultyColor(diff: string): string {
-  const colors: Record<string, string> = {
-    Easy: 'text-[var(--terminal-green)]',
-    Medium: 'text-[var(--terminal-amber)]',
-    Hard: 'text-[var(--terminal-red)]',
-  }
-  return colors[diff] || 'text-[var(--silver-400)]'
 }
 </script>
 
@@ -126,9 +122,9 @@ function getDifficultyColor(diff: string): string {
             <div
               :class="[
                 'relative',
-                entity.is_banned
+                entity.isBanned
                   ? 'ring-2 ring-[var(--terminal-red)] ring-offset-2 ring-offset-background'
-                  : entity.is_active
+                  : entity.isActive
                     ? 'ring-2 ring-[var(--terminal-green)] ring-offset-2 ring-offset-background'
                     : '',
               ]"
@@ -186,9 +182,9 @@ function getDifficultyColor(diff: string): string {
               <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
-                  {{ entity.stats.totalSolved }}
+                  {{ entity.stats?.totalSolutions ?? 0 }}
                 </div>
-                <div class="terminal-label">{{ $t('users.stats.solved') }}</div>
+                <div class="terminal-label">{{ $t('users.stats.solutions') }}</div>
               </div>
             </div>
             <div
@@ -197,32 +193,52 @@ function getDifficultyColor(diff: string): string {
               <IconFlame class="h-5 w-5 text-[var(--terminal-red)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
-                  {{ entity.stats.streak }}
+                  {{ entity.stats?.streak ?? 0 }}
                 </div>
                 <div class="terminal-label">{{ $t('users.stats.streak') }}</div>
               </div>
             </div>
+            <div
+              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            >
+              <div class="h-5 w-5 flex items-center justify-center">
+                <span class="font-data text-sm text-[var(--terminal-cyan)]">∑</span>
+              </div>
+              <div>
+                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                  {{ entity.stats?.totalSubmissions ?? 0 }}
+                </div>
+                <div class="terminal-label">{{ $t('users.stats.submissions') }}</div>
+              </div>
+            </div>
+            <div
+              class="flex items-center gap-3 p-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
+            >
+              <div class="h-5 w-5 flex items-center justify-center">
+                <span class="font-data text-sm text-[var(--terminal-green)]">✓</span>
+              </div>
+              <div>
+                <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
+                  {{ entity.stats?.acceptedSubmissions ?? 0 }}
+                </div>
+                <div class="terminal-label">{{ $t('users.stats.accepted') }}</div>
+              </div>
+            </div>
           </div>
 
-          <!-- ASCII Progress Bars -->
-          <div class="space-y-3">
-            <div v-for="(data, diff) in entity.stats.stats" :key="diff" class="space-y-1">
-              <div class="flex items-center justify-between">
-                <span class="font-data text-xs" :class="getDifficultyColor(diff as string)">{{
-                  diff
-                }}</span>
-                <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
-                  {{ data.count }}/{{ data.total }}
-                </span>
-              </div>
-              <div class="ascii-progress">
-                <span :class="getDifficultyColor(diff as string)">{{
-                  renderAsciiProgress(data.count, data.total).filled
-                }}</span>
-                <span class="ascii-progress-track">{{
-                  renderAsciiProgress(data.count, data.total).empty
-                }}</span>
-              </div>
+          <!-- Submission Progress Bar -->
+          <div class="space-y-2" v-if="entity.stats">
+            <div class="flex items-center justify-between">
+              <span class="font-data text-xs text-[var(--silver-400)]">{{
+                $t('users.stats.acceptanceRate')
+              }}</span>
+              <span class="font-data text-xs text-[var(--silver-400)] tabular-nums"
+                >{{ acceptanceRate }}%</span
+              >
+            </div>
+            <div class="ascii-progress">
+              <span class="text-[var(--terminal-green)]">{{ progressFilled }}</span>
+              <span class="ascii-progress-track">{{ progressEmpty }}</span>
             </div>
           </div>
         </div>
@@ -248,12 +264,12 @@ function getDifficultyColor(diff: string): string {
             </DataBlock>
             <DataBlock :label="$t('users.columns.joined')">
               <span class="font-data text-sm tabular-nums">
-                {{ new Date(entity.joined_at).toLocaleDateString() }}
+                {{ new Date(entity.joinedAt).toLocaleDateString() }}
               </span>
             </DataBlock>
             <DataBlock :label="$t('users.columns.lastLogin')">
-              <span v-if="entity.last_login_at" class="font-data text-sm tabular-nums">
-                {{ new Date(entity.last_login_at).toLocaleDateString() }}
+              <span v-if="entity.lastLoginAt" class="font-data text-sm tabular-nums">
+                {{ new Date(entity.lastLoginAt).toLocaleDateString() }}
               </span>
               <span v-else class="text-[var(--silver-400)] italic">{{
                 $t('users.stats.never')
@@ -265,7 +281,7 @@ function getDifficultyColor(diff: string): string {
 
       <!-- Ban Information -->
       <div
-        v-if="entity.is_banned"
+        v-if="entity.isBanned"
         class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)]"
       >
         <div class="border-b border-[var(--terminal-red)] px-4 py-2 bg-[oklch(0.6_0.2_25/0.12)]">
@@ -275,14 +291,14 @@ function getDifficultyColor(diff: string): string {
         <div class="p-4 space-y-3">
           <DataBlock :label="$t('users.form.banReason')">
             <span class="text-sm italic text-[var(--foreground)]">
-              {{ entity.ban_reason || $t('users.form.noReasonProvided') }}
+              {{ entity.banReason || $t('users.form.noReasonProvided') }}
             </span>
           </DataBlock>
-          <DataBlock :label="$t('users.columns.bannedAt')">
+          <DataBlock :label="$t('users.columns.bannedUntil')">
             <span class="font-data text-sm tabular-nums text-[var(--terminal-red)]">
               {{
-                entity.banned_at
-                  ? new Date(entity.banned_at).toLocaleString()
+                entity.bannedUntil
+                  ? new Date(entity.bannedUntil).toLocaleString()
                   : $t('users.form.unknown')
               }}
             </span>

@@ -148,7 +148,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'is_featured',
+      accessorKey: 'isFeatured',
       header: () =>
         h(
           'span',
@@ -156,12 +156,12 @@ export function createColumns(
           t('problemLists.columns.featured'),
         ),
       cell: ({ row }) => {
-        const isFeatured = row.getValue('is_featured') as boolean
+        const isFeatured = row.getValue('isFeatured') as boolean
         return renderFeaturedBadge(isFeatured)
       },
     },
     {
-      accessorKey: 'is_public',
+      accessorKey: 'isPublic',
       header: () =>
         h(
           'span',
@@ -169,12 +169,12 @@ export function createColumns(
           t('problemLists.columns.visibility'),
         ),
       cell: ({ row }) => {
-        const isPublic = row.getValue('is_public') as boolean
+        const isPublic = row.getValue('isPublic') as boolean
         return renderVisibilityBadge(isPublic)
       },
     },
     {
-      accessorKey: 'problem_count',
+      accessorKey: 'problemCount',
       header: () =>
         h(
           'span',
@@ -182,7 +182,7 @@ export function createColumns(
           t('problemLists.columns.problems'),
         ),
       cell: ({ row }) => {
-        const count = row.original.problem_count || 0
+        const count = row.original.problemCount || 0
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--terminal-cyan)] tabular-nums' },
@@ -191,7 +191,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'banner_order',
+      accessorKey: 'bannerOrder',
       header: () =>
         h(
           'span',
@@ -199,7 +199,7 @@ export function createColumns(
           t('problemLists.columns.order'),
         ),
       cell: ({ row }) => {
-        const order = row.original.banner_order
+        const order = row.original.bannerOrder
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
@@ -208,7 +208,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'updated_at',
+      accessorKey: 'updatedAt',
       header: () =>
         h(
           'span',
@@ -216,7 +216,7 @@ export function createColumns(
           t('common.updated'),
         ),
       cell: ({ row }) => {
-        const date = row.getValue('updated_at') as string
+        const date = row.getValue('updatedAt') as string
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },

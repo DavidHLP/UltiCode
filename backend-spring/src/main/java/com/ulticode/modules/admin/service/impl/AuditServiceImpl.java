@@ -137,8 +137,6 @@ public class AuditServiceImpl implements AuditService {
     private AuditLogVO toVO(AuditLog auditLog, Map<String, User> userMap) {
         AuditLogVO vo = new AuditLogVO();
         vo.setId(auditLog.getId());
-        vo.setPerformerId(auditLog.getPerformerId());
-        vo.setUserId(auditLog.getUserId());
         vo.setAction(auditLog.getAction());
         vo.setEntityType(auditLog.getEntityType());
         vo.setEntityId(auditLog.getEntityId());
@@ -148,16 +146,25 @@ public class AuditServiceImpl implements AuditService {
         vo.setUserAgent(auditLog.getUserAgent());
         vo.setCreatedAt(auditLog.getCreatedAt());
 
+        // Build nested performer object
         User performer = userMap.get(auditLog.getPerformerId());
         if (performer != null) {
-            vo.setPerformerName(performer.getName());
-            vo.setPerformerUsername(performer.getUsername());
+            AuditLogVO.PerformerInfo performerInfo = new AuditLogVO.PerformerInfo();
+            performerInfo.setId(performer.getId());
+            performerInfo.setUsername(performer.getUsername());
+            performerInfo.setName(performer.getName());
+            performerInfo.setRole(performer.getRole());
+            vo.setPerformer(performerInfo);
         }
 
+        // Build nested user object
         User user = userMap.get(auditLog.getUserId());
         if (user != null) {
-            vo.setUserName(user.getName());
-            vo.setUserUsername(user.getUsername());
+            AuditLogVO.UserInfo userInfo = new AuditLogVO.UserInfo();
+            userInfo.setId(user.getId());
+            userInfo.setUsername(user.getUsername());
+            userInfo.setName(user.getName());
+            vo.setUser(userInfo);
         }
 
         return vo;

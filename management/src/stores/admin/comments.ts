@@ -19,8 +19,8 @@ export const useCommentsStore = defineStore('adminComments', () => {
     error.value = null
     try {
       const response = await commentsApi.getComments(params)
-      comments.value = response.data
-      total.value = response.meta.total
+      comments.value = response.items
+      total.value = response.total
     } catch (err: unknown) {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||

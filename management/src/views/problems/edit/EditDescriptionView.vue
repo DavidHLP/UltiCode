@@ -48,11 +48,11 @@ async function handleSubmit(data: DescriptionFormData) {
         title: data.title,
         difficulty: data.difficulty,
         status: data.status,
-        is_premium: data.is_premium,
+        isPremium: data.isPremium,
         summary: data.summary,
         content: data.content,
       },
-      data.is_published,
+      data.isPublished,
     )
 
     toast.success(t('problems.toast.updateSuccess'))
@@ -73,8 +73,8 @@ const formattedProblem = computed(() => {
     title: problemData.value.title,
     difficulty: problemData.value.difficulty,
     status: problemData.value.status,
-    is_premium: problemData.value.is_premium,
-    is_published: problemData.value.is_published,
+    isPremium: problemData.value.isPremium,
+    isPublished: problemData.value.isPublished,
     summary: problemData.value.detail?.summary || '',
     content: problemData.value.detail?.content || '',
   }

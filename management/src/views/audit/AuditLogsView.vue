@@ -131,11 +131,11 @@ const columns: ColumnDef<AuditLog>[] = [
     },
   },
   {
-    accessorKey: 'entity_type',
+    accessorKey: 'entityType',
     header: () => t('audit.columns.entityType'),
     cell: ({ row }) => {
-      const entityType = row.original.entity_type
-      const entityId = row.original.entity_id
+      const entityType = row.original.entityType
+      const entityId = row.original.entityId
       const icon = getEntityTypeIcon(entityType)
       if (!entityType) {
         return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
@@ -185,10 +185,10 @@ const columns: ColumnDef<AuditLog>[] = [
     },
   },
   {
-    accessorKey: 'ip_address',
+    accessorKey: 'ipAddress',
     header: () => t('audit.columns.ip'),
     cell: ({ row }) => {
-      const ip = row.original.ip_address
+      const ip = row.original.ipAddress
       if (!ip) {
         return h('span', { class: 'text-[var(--silver-500)] text-sm' }, '—')
       }

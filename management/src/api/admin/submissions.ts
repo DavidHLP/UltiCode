@@ -39,11 +39,11 @@ export interface SubmissionDetail extends SubmissionListItem {
   runtimeDistBinsMs: unknown
 }
 
-export interface SubmissionListResponse {
-  data: SubmissionListItem[]
+export interface PageResult<T> {
+  items: T[]
   total: number
   page: number
-  limit: number
+  pageSize: number
   totalPages: number
 }
 
@@ -77,8 +77,8 @@ export interface StatusOption {
 }
 
 export const submissionsApi = {
-  async getList(params: SubmissionQueryParams): Promise<SubmissionListResponse> {
-    return apiGet<SubmissionListResponse>('/admin/submissions', { params })
+  async getList(params: SubmissionQueryParams): Promise<PageResult<SubmissionListItem>> {
+    return apiGet<PageResult<SubmissionListItem>>('/admin/submissions', { params })
   },
 
   async getById(id: string): Promise<SubmissionDetail | null> {

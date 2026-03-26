@@ -13,7 +13,7 @@ export default {
     status: '状态',
     joined: '注册时间',
     lastLogin: '最后登录',
-    bannedAt: '封禁时间',
+    bannedUntil: '封禁截止',
     username: '用户名',
   },
 

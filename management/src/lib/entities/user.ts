@@ -18,10 +18,10 @@ export { getRoleBadgeVariant } from '@/lib/ui/roles'
  * Returns the icon component for a user's status
  */
 export function getStatusIcon(user: User): VNode {
-  if (user.is_banned) {
+  if (user.isBanned) {
     return h(IconCircleXFilled, { class: 'h-4 w-4 text-destructive' })
   }
-  if (user.is_active) {
+  if (user.isActive) {
     return h(IconCircleCheckFilled, { class: 'h-4 w-4 text-emerald-500' })
   }
   return h(IconLoader, { class: 'h-4 w-4 animate-spin text-muted-foreground' })
@@ -32,10 +32,10 @@ export function getStatusIcon(user: User): VNode {
  * @param t - i18n translation function
  */
 export function getStatusBadge(user: User, t: (key: string) => string): VNode {
-  if (user.is_banned) {
+  if (user.isBanned) {
     return h(Badge, { variant: 'destructive' }, () => t('users.status.banned'))
   }
-  if (user.is_active) {
+  if (user.isActive) {
     return h(Badge, { variant: 'default' }, () => t('users.status.active'))
   }
   return h(Badge, { variant: 'secondary' }, () => t('users.status.inactive'))

@@ -33,8 +33,8 @@ async function loadStats() {
       endDate: endDate.value || undefined,
       performerId: performerFilter.value || undefined,
     })
-    // Backend returns Result<T> wrapper: { code, message, data: T }
-    stats.value = response.data
+    // Note: request.ts unwraps Result<T>, so response is directly AuditStats
+    stats.value = response
   } catch (error) {
     console.error('Failed to load audit stats:', error)
   } finally {

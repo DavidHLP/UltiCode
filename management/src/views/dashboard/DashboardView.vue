@@ -47,8 +47,8 @@ onMounted(() => {
 
 // Computed stats from API data
 const stats = computed<StatItem[]>(() => {
-  // Backend returns Result<T> wrapper: { code, message, data: DashboardStatsVO }
-  const data = dashboardStore.stats?.data
+  // Note: request.ts unwraps Result<T>, so stats is directly DashboardStatsVO
+  const data = dashboardStore.stats
   if (!data) return []
 
   // Calculate flagged content count
@@ -102,31 +102,19 @@ const timelineActivities = computed<TimelineActivity[]>(() => {
     id: log.id,
     action: log.action,
     user: log.performer?.username || 'System',
-    target: log.user?.username || log.entity_type || 'N/A',
-    time: formatRelativeTime(log.created_at),
+    target: log.user?.username || log.entityType || 'N/A',
+    time: formatRelativeTime(log.createdAt),
   }))
 })
 
 // Transform backend chart data to AreaChart format
+// Backend now returns ChartDataPoint[] with { date, count } format
 const chartData = computed<ChartDataPoint[]>(() => {
-  // Backend returns Result<T> wrapper: { code, message, data: ChartStatsVO }
-  // ChartStatsVO contains: { metric, period, data: ChartDataPoint[], startDate, endDate }
-  const chartResponse = dashboardStore.chartData?.data
-  // chartResponse is ChartStatsResponse, which has nested data array
-  const rawData = chartResponse?.data || []
-  // Backend returns Prisma groupBy results: { joined_at: Date, _count: number }
-  // AreaChart expects: { date: Date, [key: string]: number }
-  return rawData.map((item: Record<string, unknown>) => {
-    // Find the date field (joined_at, created_at, published_at, etc.)
-    const dateKey = Object.keys(item).find((key) => key.endsWith('_at') || key === 'date')
-    const dateValue = dateKey ? (item[dateKey] as string | Date) : new Date()
-    // Get the count value
-    const countValue = (item._count as number) || 0
-    return {
-      date: new Date(dateValue),
-      users: countValue,
-    }
-  })
+  const rawData = dashboardStore.chartData?.data || []
+  return rawData.map((item) => ({
+    date: new Date(item.date),
+    users: item.count,
+  }))
 })
 
 function formatRelativeTime(date: Date | string): string {

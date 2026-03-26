@@ -58,14 +58,23 @@ spin_wait "Processes terminating" "all_ports_free" $PROCESS_WAIT_TIMEOUT || true
 log ""
 print_section "Cleanup"
 
+step "Cleaning up all service processes..."
+
+# Backend processes
 pkill -9 -f "spring-boot:run" 2>/dev/null || true
 pkill -9 -f "backend-spring" 2>/dev/null || true
 pkill -9 -f "ulticode-backend" 2>/dev/null || true
+
+# Frontend processes
 pkill -9 -f "vite" 2>/dev/null || true
 pkill -9 -f "pnpm.*dev" 2>/dev/null || true
+
+# Recommendation processes
 pkill -9 -f "recommend-web" 2>/dev/null || true
 pkill -9 -f "recommend-provider" 2>/dev/null || true
+pkill -9 -f "recommendation.*spring-boot:run" 2>/dev/null || true
 
+# Clean log files
 rm -f /tmp/ulticode-*.log 2>/dev/null
 rm -f nohup.out backend-spring/nohup.out console/nohup.out management/nohup.out 2>/dev/null
 

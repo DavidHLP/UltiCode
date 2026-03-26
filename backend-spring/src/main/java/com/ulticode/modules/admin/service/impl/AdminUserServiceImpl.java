@@ -56,22 +56,22 @@ public class AdminUserServiceImpl implements AdminUserService {
         }
 
         // Active status filter
-        if (query.getIs_active() != null) {
-            wrapper.eq(User::getIsActive, query.getIs_active());
+        if (query.getIsActive() != null) {
+            wrapper.eq(User::getIsActive, query.getIsActive());
         }
 
         // Banned status filter
-        if (query.getIs_banned() != null) {
-            wrapper.eq(User::getIsBanned, query.getIs_banned());
+        if (query.getIsBanned() != null) {
+            wrapper.eq(User::getIsBanned, query.getIsBanned());
         }
 
         // Sorting
         boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "joined_at";
+        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "joinedAt";
         switch (sortBy) {
             case "username" -> wrapper.orderBy(true, isAsc, User::getUsername);
             case "email" -> wrapper.orderBy(true, isAsc, User::getEmail);
-            case "last_login_at" -> wrapper.orderBy(true, isAsc, User::getLastLoginAt);
+            case "lastLoginAt" -> wrapper.orderBy(true, isAsc, User::getLastLoginAt);
             default -> wrapper.orderBy(true, isAsc, User::getJoinedAt);
         }
 
@@ -231,12 +231,12 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setEmail(user.getEmail());
         vo.setAvatar(user.getAvatar());
         vo.setRole(user.getRole());
-        vo.setIs_active(user.getIsActive());
-        vo.setIs_banned(user.getIsBanned());
-        vo.setBan_reason(user.getBannedReason());
-        vo.setBanned_at(user.getBannedUntil());
-        vo.setJoined_at(user.getJoinedAt());
-        vo.setLast_login_at(user.getLastLoginAt());
+        vo.setIsActive(user.getIsActive());
+        vo.setIsBanned(user.getIsBanned());
+        vo.setBanReason(user.getBannedReason());
+        vo.setBannedUntil(user.getBannedUntil());
+        vo.setJoinedAt(user.getJoinedAt());
+        vo.setLastLoginAt(user.getLastLoginAt());
         // Permissions and stats can be added later if needed
 
         return vo;

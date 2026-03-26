@@ -5,6 +5,17 @@ spring:
   application:
     name: ulticode-backend
 
+  # Redisson Configuration (distributed locks, queues)
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:26379}"
+          password: ${REDIS_PASSWORD:}
+          database: ${REDIS_DB:0}
+          connectionPoolSize: 64
+          connectionMinimumIdleSize: 10
+
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
@@ -15,7 +26,7 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:26379}
-      password: ${REDIS_PASSWORD:123456}
+      password: ${REDIS_PASSWORD:}
       database: ${REDIS_DB:0}
       timeout: 10000ms
       lettuce:

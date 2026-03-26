@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.ulticode.modules.admin.dto.ChartDataPoint;
 import com.ulticode.modules.admin.dto.ChartStatsVO;
 import com.ulticode.modules.admin.dto.DashboardStatsVO;
 import com.ulticode.modules.admin.mapper.DashboardMapper;
@@ -160,7 +161,7 @@ public class DashboardServiceImpl implements DashboardService {
         result.setStartDate(startDate);
         result.setEndDate(now);
 
-        List<Map<String, Object>> data = getChartData(metric, period, startDate, now);
+        List<ChartDataPoint> data = getChartData(metric, period, startDate, now);
         result.setData(data);
 
         return result;
@@ -178,9 +179,9 @@ public class DashboardServiceImpl implements DashboardService {
         };
     }
 
-    private List<Map<String, Object>> getChartData(String metric, String period, LocalDateTime start, LocalDateTime end) {
+    private List<ChartDataPoint> getChartData(String metric, String period, LocalDateTime start, LocalDateTime end) {
         String dateFormat = getDateFormat(period);
-        return switch (metric.toLowerCase()) {
+        List<Map<String, Object>> rawData = switch (metric.toLowerCase()) {
             case "users" -> dashboardMapper.getUsersChartData(start, end, dateFormat);
             case "submissions" -> dashboardMapper.getSubmissionsChartData(start, end, dateFormat);
             case "problems" -> dashboardMapper.getProblemsChartData(start, end, dateFormat);
@@ -189,6 +190,21 @@ public class DashboardServiceImpl implements DashboardService {
             case "forum_posts" -> dashboardMapper.getForumPostsChartData(start, end, dateFormat);
             default -> List.of();
         };
+
+        // Convert Map<String, Object> to ChartDataPoint
+        return rawData.stream()
+                .map(row -> {
+                    ChartDataPoint point = new ChartDataPoint();
+                    point.setDate((String) row.get("date"));
+                    Object countObj = row.get("count");
+                    if (countObj instanceof Number) {
+                        point.setCount(((Number) countObj).longValue());
+                    } else {
+                        point.setCount(0L);
+                    }
+                    return point;
+                })
+                .toList();
     }
 
     private String getDateFormat(String period) {

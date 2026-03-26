@@ -23,8 +23,8 @@ export interface DescriptionFormData {
   title: string
   difficulty: Difficulty
   status: ProblemStatus
-  is_premium: boolean
-  is_published: boolean
+  isPremium: boolean
+  isPublished: boolean
   summary: string
   content: string
 }
@@ -34,8 +34,8 @@ interface ProblemData {
   title: string
   difficulty: string
   status: string
-  is_premium: boolean
-  is_published: boolean
+  isPremium: boolean
+  isPublished: boolean
   summary: string
   content: string
 }
@@ -63,8 +63,8 @@ const formData = ref<DescriptionFormData>({
   title: '',
   difficulty: Difficulty.MEDIUM,
   status: ProblemStatus.TODO,
-  is_premium: false,
-  is_published: false,
+  isPremium: false,
+  isPublished: false,
   summary: '',
   content: '',
 })
@@ -78,8 +78,8 @@ function updateForm(data?: ProblemData) {
     title: data.title || '',
     difficulty: (data.difficulty as Difficulty) || Difficulty.MEDIUM,
     status: (data.status as ProblemStatus) || ProblemStatus.TODO,
-    is_premium: !!data.is_premium,
-    is_published: !!data.is_published,
+    isPremium: !!data.isPremium,
+    isPublished: !!data.isPublished,
     summary: data.summary || '',
     content: data.content || '',
   }
@@ -245,7 +245,7 @@ defineExpose({
           <div class="space-y-4">
             <div
               class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
-              @click="formData.is_premium = !formData.is_premium"
+              @click="formData.isPremium = !formData.isPremium"
             >
               <div class="space-y-0.5">
                 <Label class="text-base cursor-pointer">{{
@@ -255,12 +255,12 @@ defineExpose({
                   {{ t('problems.descriptionForm.premiumDescription') }}
                 </p>
               </div>
-              <Checkbox v-model="formData.is_premium" />
+              <Checkbox v-model="formData.isPremium" />
             </div>
 
             <div
               class="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors cursor-pointer"
-              @click="formData.is_published = !formData.is_published"
+              @click="formData.isPublished = !formData.isPublished"
             >
               <div class="space-y-0.5">
                 <Label class="text-base cursor-pointer">{{
@@ -270,7 +270,7 @@ defineExpose({
                   {{ t('problems.descriptionForm.publishedDescription') }}
                 </p>
               </div>
-              <Checkbox v-model="formData.is_published" />
+              <Checkbox v-model="formData.isPublished" />
             </div>
           </div>
 

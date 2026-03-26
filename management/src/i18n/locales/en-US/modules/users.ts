@@ -13,7 +13,7 @@ export default {
     status: 'Status',
     joined: 'Joined',
     lastLogin: 'Last Login',
-    bannedAt: 'Banned At',
+    bannedUntil: 'Banned Until',
     username: 'Username',
   },
 

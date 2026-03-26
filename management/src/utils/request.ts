@@ -206,16 +206,18 @@ service.interceptors.response.use(
     // Unwrap to return just the data field
     const responseData = response.data
     if (responseData && typeof responseData === 'object' && 'code' in responseData) {
-      if (responseData.code === 0 && 'data' in responseData) {
-        return responseData.data
+      if (responseData.code === 0) {
+        // Success response - return data field if present, otherwise null
+        const rawData = 'data' in responseData ? responseData.data : null
+        return rawData
       }
       // Error response - throw with message
       const errorMessage = responseData.message || 'Request failed'
       throw new ApiError(errorMessage, responseData.code || 0, response)
     }
 
-    // Fallback for non-standard responses
-    return response.data
+    // Fallback for non-standard responses - return data directly
+    return response.data as never
   },
   async (error: AxiosError) => {
     const config = error.config as ConfigWithMetadata | undefined

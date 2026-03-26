@@ -72,20 +72,12 @@ export interface ForumPostsResponse {
   // I should adjust the client to match or map it.
 }
 
-// Based on AdminForumController.getPosts return type:
-export interface AdminForumPostsResponse {
-  data: ForumPost[]
+// Standard PageResult interface for paginated responses
+export interface PageResult<T> {
+  items: T[]
   total: number
   page: number
-  limit: number
-  totalPages: number
-}
-
-export interface AdminForumCommunitiesResponse {
-  data: ForumCommunity[]
-  total: number
-  page: number
-  limit: number
+  pageSize: number
   totalPages: number
 }
 
@@ -125,13 +117,13 @@ export interface ForumPostDetail extends ForumPost {
 }
 
 export const forumApi = {
-  async getPosts(params: ForumPostQueryParams): Promise<AdminForumPostsResponse> {
-    const response = await apiGet<AdminForumPostsResponse>('/admin/forum/posts', { params })
+  async getPosts(params: ForumPostQueryParams): Promise<PageResult<ForumPost>> {
+    const response = await apiGet<PageResult<ForumPost>>('/admin/forum/posts', { params })
     return response
   },
 
-  async getCommunities(page = 1, limit = 20): Promise<AdminForumCommunitiesResponse> {
-    const response = await apiGet<AdminForumCommunitiesResponse>('/admin/forum/communities', {
+  async getCommunities(page = 1, limit = 20): Promise<PageResult<ForumCommunity>> {
+    const response = await apiGet<PageResult<ForumCommunity>>('/admin/forum/communities', {
       params: { page, limit },
     })
     return response

@@ -10,29 +10,41 @@ export interface Result<T> {
   traceId?: string
 }
 
+/**
+ * Audit log entry with nested performer and user information.
+ * All field names use camelCase following TypeScript conventions.
+ */
 export interface AuditLog {
-  id: string
-  created_at: Date
-  performer_id: string
-  performer?: {
-    id: string
-    username: string
-    name: string
-    role: string
-  }
-  user_id?: string
-  user?: {
-    id: string
-    username: string
-    name: string
-  }
+  id: string // ID uses string to avoid precision loss
+  createdAt: Date // Backend uses camelCase (LocalDateTime)
+  performer?: PerformerInfo
+  user?: UserInfo
   action: string
-  entity_type?: string
-  entity_id?: string
-  old_values?: unknown
-  new_values?: unknown
-  ip_address?: string
-  user_agent?: string
+  entityType?: string
+  entityId?: string // ID uses string
+  oldValues?: unknown
+  newValues?: unknown
+  ipAddress?: string
+  userAgent?: string
+}
+
+/**
+ * Performer information - who performed the action.
+ */
+export interface PerformerInfo {
+  id: string
+  username: string
+  name: string
+  role: string
+}
+
+/**
+ * Target user information - who the action was performed on.
+ */
+export interface UserInfo {
+  id: string
+  username: string
+  name: string
 }
 
 export interface AuditLogQueryParams {
@@ -69,12 +81,7 @@ export interface AuditStats {
     count: number
   }>
   topPerformers: Array<{
-    performer: {
-      id: string
-      username: string
-      name: string
-      role: string
-    }
+    performer: PerformerInfo
   }>
 }
 
@@ -83,16 +90,17 @@ export interface AuditExportParams extends AuditLogQueryParams {
 }
 
 export const auditApi = {
-  async getAuditLogs(params: AuditLogQueryParams = {}): Promise<Result<AuditLogsResponse>> {
-    return apiGet<Result<AuditLogsResponse>>('/admin/audit/logs', { params })
+  // Note: request.ts intercepts and unwraps Result<T>, returning just T
+  async getAuditLogs(params: AuditLogQueryParams = {}): Promise<AuditLogsResponse> {
+    return apiGet<AuditLogsResponse>('/admin/audit/logs', { params })
   },
 
   async getAuditStats(params?: {
     startDate?: string
     endDate?: string
     performerId?: string
-  }): Promise<Result<AuditStats>> {
-    return apiGet<Result<AuditStats>>('/admin/audit/stats', { params })
+  }): Promise<AuditStats> {
+    return apiGet<AuditStats>('/admin/audit/stats', { params })
   },
 
   async exportAuditLogs(params: AuditExportParams = {}): Promise<void> {

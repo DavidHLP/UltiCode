@@ -56,8 +56,8 @@ const canDeleteUser = computed(() => authStore.hasPermission('DELETE', 'USER'))
 const stats = computed(() => {
   const users = usersStore.users
   const total = usersStore.total
-  const active = users.filter((u) => u.is_active && !u.is_banned).length
-  const banned = users.filter((u) => u.is_banned).length
+  const active = users.filter((u) => u.isActive && !u.isBanned).length
+  const banned = users.filter((u) => u.isBanned).length
   return { total, active, banned }
 })
 
@@ -114,9 +114,9 @@ const {
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     role: filters.role === 'all' ? undefined : filters.role,
-    is_active:
+    isActive:
       filters.status === 'active' ? true : filters.status === 'inactive' ? false : undefined,
-    is_banned: filters.status === 'banned' ? true : undefined,
+    isBanned: filters.status === 'banned' ? true : undefined,
     page,
     limit,
   }),

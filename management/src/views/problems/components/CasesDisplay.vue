@@ -14,7 +14,7 @@ interface ProblemExample {
 
 interface ProblemDetail {
   detail?: {
-    constraints_json?: string[]
+    constraintsJson?: string[]
     hints?: string[]
   }
   examples?: ProblemExample[]
@@ -32,7 +32,7 @@ const examples = computed(() => {
 })
 
 const constraints = computed(() => {
-  return props.problem.detail?.constraints_json || []
+  return props.problem.detail?.constraintsJson || []
 })
 
 const hints = computed(() => {

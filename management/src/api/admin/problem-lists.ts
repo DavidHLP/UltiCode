@@ -4,16 +4,16 @@ export interface ProblemList {
   id: string
   name: string
   description: string
-  author_id: string
-  is_public: boolean
-  is_featured: boolean
-  banner_tag?: string
-  banner_icon?: string
-  banner_theme?: string
-  banner_order: number
-  created_at: string
-  updated_at: string
-  problem_count?: number
+  authorId: string
+  isPublic: boolean
+  isFeatured: boolean
+  bannerTag?: string
+  bannerIcon?: string
+  bannerTheme?: string
+  bannerOrder: number
+  createdAt: string
+  updatedAt: string
+  problemCount?: number
 }
 
 export interface ProblemListProblem {
@@ -22,8 +22,8 @@ export interface ProblemListProblem {
   title: string
   difficulty: string
   status: string
-  sort_order: number
-  added_at: string
+  sortOrder: number
+  addedAt: string
 }
 
 export interface ProblemListDetail extends ProblemList {
@@ -32,8 +32,8 @@ export interface ProblemListDetail extends ProblemList {
 
 export interface ProblemListQuery {
   search?: string
-  is_featured?: boolean
-  is_public?: boolean
+  isFeatured?: boolean
+  isPublic?: boolean
   page?: number
   limit?: number
   sortBy?: string
@@ -44,48 +44,46 @@ export interface CreateProblemListDto {
   name: string
   description?: string
   slug?: string
-  is_public?: boolean
-  is_featured?: boolean
-  banner_tag?: string
-  banner_icon?: string
-  banner_theme?: string
-  banner_order?: number
-  author_id?: string
+  isPublic?: boolean
+  isFeatured?: boolean
+  bannerTag?: string
+  bannerIcon?: string
+  bannerTheme?: string
+  bannerOrder?: number
+  authorId?: string
 }
 
 export interface UpdateProblemListDto {
   name?: string
   description?: string
   slug?: string
-  is_public?: boolean
-  is_featured?: boolean
-  banner_tag?: string
-  banner_icon?: string
-  banner_theme?: string
-  banner_order?: number
+  isPublic?: boolean
+  isFeatured?: boolean
+  bannerTag?: string
+  bannerIcon?: string
+  bannerTheme?: string
+  bannerOrder?: number
 }
 
 export interface UpdateProblemListProblemsDto {
   problems: {
-    problem_id: number
-    sort_order: number
+    problemId: number
+    sortOrder: number
   }[]
 }
 
-export interface ProblemListResponse {
-  data: ProblemList[]
+// PageResult type for paginated responses (matches backend PageResult<T>)
+export interface PageResult<T> {
+  items: T[]
   total: number
   page: number
-  limit: number
+  pageSize: number
   totalPages: number
 }
 
 export const adminProblemListsApi = {
-  async getLists(query: ProblemListQuery): Promise<ProblemListResponse> {
-    const response = await apiGet<ProblemListResponse>('/admin/problem-lists', {
-      params: query,
-    })
-    return response
+  async getLists(query: ProblemListQuery): Promise<PageResult<ProblemList>> {
+    return apiGet<PageResult<ProblemList>>('/admin/problem-lists', { params: query })
   },
 
   async getList(id: string): Promise<ProblemListDetail> {

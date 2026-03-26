@@ -81,15 +81,32 @@ fi
 log ""
 print_section "Recommendation"
 
-# Stop Web first (depends on Provider)
-stop_port $RECOMMEND_WEB_PORT "Recommend-Web" && STOPPED+=("Recommend-Web")
+# Stop Web first (HTTP API)
+if port_used $RECOMMEND_WEB_PORT; then
+    stop_port $RECOMMEND_WEB_PORT "Recommend-Web" && STOPPED+=("Recommend-Web")
+else
+    info "Recommend-Web not running"
+fi
 
 log ""
-stop_port $RECOMMEND_PROVIDER_DUBBO_PORT "Recommend-Provider" && STOPPED+=("Recommend-Provider")
 
-# Kill any lingering Java processes for recommendation
+# Stop Provider (Dubbo service)
+if port_used $RECOMMEND_PROVIDER_DUBBO_PORT; then
+    stop_port $RECOMMEND_PROVIDER_DUBBO_PORT "Recommend-Provider" && STOPPED+=("Recommend-Provider")
+else
+    info "Recommend-Provider not running"
+fi
+
+# Kill any lingering Java/Maven processes for recommendation services
+step "Cleaning up recommendation processes..."
 pkill -9 -f "recommend-web" 2>/dev/null || true
 pkill -9 -f "recommend-provider" 2>/dev/null || true
+pkill -9 -f "recommendation.*spring-boot:run" 2>/dev/null || true
+
+# Clean log files
+rm -f /tmp/ulticode-recommend-*.log 2>/dev/null || true
+
+ok "Recommendation cleanup complete"
 
 # ============== Step 5: Docker Services ==============
 log ""
@@ -120,6 +137,8 @@ print_section "Cleanup"
 # Kill lingering processes
 pkill -9 -f "vite" 2>/dev/null || true
 pkill -9 -f "pnpm.*dev" 2>/dev/null || true
+pkill -9 -f "spring-boot:run" 2>/dev/null || true
+pkill -9 -f "recommendation" 2>/dev/null || true
 
 # Clean log files
 rm -f /tmp/ulticode-*.log 2>/dev/null

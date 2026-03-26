@@ -123,7 +123,7 @@ async function togglePublish() {
   if (!headerInfo.value) return
   publishing.value = true
   try {
-    if (headerInfo.value.is_published) {
+    if (headerInfo.value.isPublished) {
       await problemsStore.unpublishProblem(problemId.value)
       toast.success(t('problems.toast.unpublishSuccess'))
     } else {
@@ -197,13 +197,13 @@ function retryFetch() {
             </h1>
             <div class="hidden sm:flex items-center gap-2">
               <span
-                v-if="!headerInfo.is_published"
+                v-if="!headerInfo.isPublished"
                 class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.published.draft') }}
               </span>
               <span
-                v-if="headerInfo.is_premium"
+                v-if="headerInfo.isPremium"
                 class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.badges.premium') }}
@@ -270,16 +270,16 @@ function retryFetch() {
           </Button>
 
           <Button
-            :variant="headerInfo.is_published ? 'terminal' : 'terminal_primary'"
+            :variant="headerInfo.isPublished ? 'terminal' : 'terminal_primary'"
             size="sm"
             class="h-8 font-data text-[10px]"
             :disabled="publishing"
             @click="togglePublish"
           >
-            <Eye v-if="!headerInfo.is_published" :size="14" class="mr-1.5" />
+            <Eye v-if="!headerInfo.isPublished" :size="14" class="mr-1.5" />
             <EyeOff v-else :size="14" class="mr-1.5" />
             <span class="hidden sm:inline uppercase tracking-wider">{{
-              headerInfo.is_published
+              headerInfo.isPublished
                 ? t('problems.actions.unpublish')
                 : t('problems.actions.publish')
             }}</span>

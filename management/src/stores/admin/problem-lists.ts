@@ -29,9 +29,9 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
     isLoading.value = true
     error.value = null
     try {
-      const response = await adminProblemListsApi.getLists(query)
-      lists.value = response.data
-      total.value = response.total
+      const pageResult = await adminProblemListsApi.getLists(query)
+      lists.value = pageResult.items
+      total.value = pageResult.total
     } catch (err) {
       error.value = getErrorMessage(err, 'Failed to fetch problem lists')
       throw err

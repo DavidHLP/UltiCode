@@ -108,9 +108,9 @@ const canDeleteProblem = computed(() => authStore.hasPermission('DELETE', 'PROBL
 const stats = computed(() => {
   const problems = problemsStore.problems
   const total = problemsStore.total
-  const published = problems.filter((p) => p.is_published).length
-  const draft = problems.filter((p) => !p.is_published).length
-  const flagged = problems.filter((p) => p.is_flagged).length
+  const published = problems.filter((p) => p.isPublished).length
+  const draft = problems.filter((p) => !p.isPublished).length
+  const flagged = problems.filter((p) => p.isFlagged).length
   return { total, published, draft, flagged }
 })
 
@@ -181,7 +181,7 @@ const {
     difficulty:
       difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
     status: statusFilter.value === 'all' ? undefined : (statusFilter.value as Problem['status']),
-    is_published:
+    isPublished:
       publishedFilter.value === 'all'
         ? undefined
         : publishedFilter.value === 'published'
@@ -441,7 +441,7 @@ async function exportProblems(format: 'json' | 'csv') {
           difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
         status:
           statusFilter.value === 'all' ? undefined : (statusFilter.value as Problem['status']),
-        is_published:
+        isPublished:
           publishedFilter.value === 'all'
             ? undefined
             : publishedFilter.value === 'published'
@@ -624,11 +624,11 @@ const columns: ColumnDef<Problem>[] = [
     },
   },
   {
-    accessorKey: 'is_published',
+    accessorKey: 'isPublished',
     header: () => t('problems.columns.published'),
     cell: ({ row }) => {
-      const isPublished = row.getValue('is_published') as boolean
-      const isDeleted = row.original.is_deleted
+      const isPublished = row.getValue('isPublished') as boolean
+      const isDeleted = row.original.isDeleted
       if (isDeleted) {
         return h(
           Badge,
@@ -653,17 +653,17 @@ const columns: ColumnDef<Problem>[] = [
     },
   },
   {
-    accessorKey: 'is_flagged',
+    accessorKey: 'isFlagged',
     header: () => t('problems.columns.flagged'),
     cell: ({ row }) => {
       const problem = row.original
-      const isFlagged = problem.is_flagged
+      const isFlagged = problem.isFlagged
       if (!isFlagged) {
         return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '—')
       }
 
       const flagStatus: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED' =
-        problem.flag_status || 'PENDING'
+        problem.flagStatus || 'PENDING'
 
       const statusColors: Record<'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED', string> = {
         PENDING: 'text-[var(--terminal-red)]',
@@ -679,7 +679,7 @@ const columns: ColumnDef<Problem>[] = [
         'div',
         {
           class: 'flex items-center gap-1',
-          title: `${t(statusKey)}${problem.flag_reason ? `: ${problem.flag_reason}` : ''}`,
+          title: `${t(statusKey)}${problem.flagReason ? `: ${problem.flagReason}` : ''}`,
         },
         [
           h(IconFlag, {
@@ -699,10 +699,10 @@ const columns: ColumnDef<Problem>[] = [
     },
   },
   {
-    accessorKey: 'submission_count',
+    accessorKey: 'submissionCount',
     header: () => t('problems.columns.submissions'),
     cell: ({ row }) => {
-      const count = row.original.submission_count || 0
+      const count = row.original.submissionCount || 0
       return h(
         'span',
         { class: 'text-muted-foreground text-sm tabular-nums' },
@@ -734,10 +734,10 @@ const columns: ColumnDef<Problem>[] = [
     },
   },
   {
-    accessorKey: 'created_at',
+    accessorKey: 'createdAt',
     header: () => t('common.created'),
     cell: ({ row }) => {
-      const date = new Date(row.getValue('created_at') as Date)
+      const date = new Date(row.getValue('createdAt') as Date)
       return h('span', { class: 'text-muted-foreground text-sm' }, date.toLocaleDateString())
     },
   },
@@ -825,7 +825,7 @@ const columns: ColumnDef<Problem>[] = [
                                 },
                               ),
                               // Flag Info - only show when problem is flagged
-                              problem.is_flagged
+                              problem.isFlagged
                                 ? h(
                                     DropdownMenuItem,
                                     { onClick: () => viewFlagInfo(problem) },
@@ -853,24 +853,22 @@ const columns: ColumnDef<Problem>[] = [
                         DropdownMenuItem,
                         {
                           onClick: () =>
-                            problem.is_flagged
-                              ? unflagProblem(problem.id)
-                              : openFlagDialog(problem),
+                            problem.isFlagged ? unflagProblem(problem.id) : openFlagDialog(problem),
                         },
                         {
                           default: () =>
                             h('div', { class: 'flex items-center gap-2' }, [
-                              problem.is_flagged
+                              problem.isFlagged
                                 ? h(IconFlagOff, { class: 'h-4 w-4 text-emerald-600' })
                                 : h(IconFlag, { class: 'h-4 w-4 text-amber-600' }),
-                              problem.is_flagged ? t('moderation.unflag') : t('moderation.flag'),
+                              problem.isFlagged ? t('moderation.unflag') : t('moderation.flag'),
                             ]),
                         },
                       )
                     : null,
                   h(DropdownMenuSeparator, {}),
                   canUpdateProblem.value
-                    ? problem.is_published
+                    ? problem.isPublished
                       ? h(
                           DropdownMenuItem,
                           { onClick: () => unpublishProblem(problem.id) },
@@ -1089,7 +1087,9 @@ const columns: ColumnDef<Problem>[] = [
                   <SelectItem value="difficulty">{{ t('problems.sort.difficultyAsc') }}</SelectItem>
                   <SelectItem value="created_at">{{ t('problems.sort.createdDesc') }}</SelectItem>
                   <SelectItem value="updated_at">{{ t('problems.sort.updatedDesc') }}</SelectItem>
-                  <SelectItem value="submission_count">{{
+                  <SelectItem value="createdAt">{{ t('problems.sort.createdDesc') }}</SelectItem>
+                  <SelectItem value="updatedAt">{{ t('problems.sort.updatedDesc') }}</SelectItem>
+                  <SelectItem value="submissionCount">{{
                     t('problems.sort.submissionsDesc')
                   }}</SelectItem>
                 </SelectContent>

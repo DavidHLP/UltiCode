@@ -32,7 +32,7 @@ watch(
   () => props.list,
   (newList) => {
     if (newList) {
-      problems.value = [...newList.problems].sort((a, b) => a.sort_order - b.sort_order)
+      problems.value = [...newList.problems].sort((a, b) => a.sortOrder - b.sortOrder)
     } else {
       problems.value = []
     }
@@ -45,7 +45,7 @@ function addProblem(problem: { id: string; title: string; difficulty: string; sl
   if (problems.value.some((p) => p.id === problemId)) return
 
   const maxOrder =
-    problems.value.length > 0 ? Math.max(...problems.value.map((p) => p.sort_order)) : 0
+    problems.value.length > 0 ? Math.max(...problems.value.map((p) => p.sortOrder)) : 0
 
   problems.value.push({
     id: problemId,
@@ -53,8 +53,8 @@ function addProblem(problem: { id: string; title: string; difficulty: string; sl
     slug: problem.slug,
     difficulty: problem.difficulty,
     status: 'todo',
-    sort_order: maxOrder + 1,
-    added_at: new Date().toISOString(),
+    sortOrder: maxOrder + 1,
+    addedAt: new Date().toISOString(),
   })
   isDirty.value = true
   pickerOpen.value = false
@@ -68,9 +68,9 @@ function removeProblem(problemId: number) {
 function updateSortOrder(problemId: number, order: number) {
   const problem = problems.value.find((p) => p.id === problemId)
   if (problem) {
-    problem.sort_order = order
+    problem.sortOrder = order
     // Re-sort the list for display
-    problems.value.sort((a, b) => a.sort_order - b.sort_order)
+    problems.value.sort((a, b) => a.sortOrder - b.sortOrder)
     isDirty.value = true
   }
 }
@@ -81,8 +81,8 @@ async function saveProblems() {
   try {
     await store.updateListProblems(props.list.id, {
       problems: problems.value.map((p) => ({
-        problem_id: p.id,
-        sort_order: p.sort_order,
+        problemId: p.id,
+        sortOrder: p.sortOrder,
       })),
     })
     toast.success(t('problemLists.toast.problemsUpdated'))
@@ -192,7 +192,7 @@ function renderDifficultyBadge(difficulty: string) {
               <Input
                 type="number"
                 class="terminal-input w-16 h-8 font-data text-xs tabular-nums"
-                :model-value="problem.sort_order"
+                :model-value="problem.sortOrder"
                 @update:model-value="updateSortOrder(problem.id, Number($event))"
               />
             </TableCell>

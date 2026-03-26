@@ -30,20 +30,20 @@ interface ProblemDetail {
   slug: string
   difficulty: string
   status: string
-  is_premium: boolean
-  is_published: boolean
-  has_solution?: boolean
-  submission_count?: number
-  solution_count?: number
-  created_at: string | Date
-  updated_at: string | Date
-  published_at?: string | Date
+  isPremium: boolean
+  isPublished: boolean
+  hasSolution?: boolean
+  submissionCount?: number
+  solutionCount?: number
+  createdAt: string | Date
+  updatedAt: string | Date
+  publishedAt?: string | Date
   detail?: {
     summary?: string
-    difficulty_rating?: number
+    difficultyRating?: number
     likes?: number
     dislikes?: number
-    constraints_json?: string[]
+    constraintsJson?: string[]
     hints?: string[]
   }
   tags: Array<{ id: string; label: string }>
@@ -106,7 +106,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
       output: example.output,
       explanation: example.explanation,
     })),
-  constraints: props.problem.detail?.constraints_json || [],
+  constraints: props.problem.detail?.constraintsJson || [],
   followUp: props.problem.detail?.hints?.join('\n'),
 }))
 
@@ -241,11 +241,11 @@ const hintsList = computed(() => {
                   <div>
                     <p class="text-muted-foreground mb-0.5">{{ t('common.status') }}</p>
                     <Badge
-                      :variant="problem.is_published ? 'default' : 'secondary'"
+                      :variant="problem.isPublished ? 'default' : 'secondary'"
                       class="text-[10px] px-1.5 py-0"
                     >
                       {{
-                        problem.is_published
+                        problem.isPublished
                           ? t('problems.published.published')
                           : t('problems.published.draft')
                       }}
@@ -258,21 +258,21 @@ const hintsList = computed(() => {
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.created') }}</span>
                     <span class="ml-auto">{{
-                      new Date(problem.created_at).toLocaleDateString()
+                      new Date(problem.createdAt).toLocaleDateString()
                     }}</span>
                   </div>
                   <div class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.updated') }}</span>
                     <span class="ml-auto">{{
-                      new Date(problem.updated_at).toLocaleDateString()
+                      new Date(problem.updatedAt).toLocaleDateString()
                     }}</span>
                   </div>
-                  <div v-if="problem.published_at" class="flex items-center gap-2">
+                  <div v-if="problem.publishedAt" class="flex items-center gap-2">
                     <IconCalendar class="w-3 h-3 text-muted-foreground" />
                     <span class="text-muted-foreground">{{ t('problems.display.published') }}</span>
                     <span class="ml-auto">{{
-                      new Date(problem.published_at).toLocaleDateString()
+                      new Date(problem.publishedAt).toLocaleDateString()
                     }}</span>
                   </div>
                 </div>

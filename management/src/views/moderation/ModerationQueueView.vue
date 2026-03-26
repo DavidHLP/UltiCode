@@ -88,9 +88,9 @@ onMounted(() => {
 // Stats for terminal ticker
 const stats = computed(() => ({
   total: store.queueTotal,
-  pending: store.stats?.total_pending ?? 0,
-  underReview: store.stats?.total_under_review ?? 0,
-  resolved: store.stats?.total_resolved ?? 0,
+  pending: store.stats?.pendingCount ?? 0,
+  underReview: store.stats?.underReviewCount ?? 0,
+  resolved: store.stats?.resolvedCount ?? 0,
 }))
 
 // Table columns with actions
@@ -99,13 +99,13 @@ const columns = computed(() => {
     viewEntity: (item) => {
       // Navigate to the appropriate entity detail page
       const routes: Record<ModeratableEntityType, string> = {
-        forum_post: `/admin/forum/posts/${item.entity_id}`,
-        forum_comment: `/admin/forum/comments/${item.entity_id}`,
-        solution: `/admin/solutions/${item.entity_id}`,
-        solution_comment: `/admin/solutions/${item.entity_id}`,
-        problem: `/admin/problems/${item.entity_id}`,
+        forum_post: `/admin/forum/posts/${item.entityId}`,
+        forum_comment: `/admin/forum/comments/${item.entityId}`,
+        solution: `/admin/solutions/${item.entityId}`,
+        solution_comment: `/admin/solutions/${item.entityId}`,
+        problem: `/admin/problems/${item.entityId}`,
       }
-      router.push(routes[item.entity_type])
+      router.push(routes[item.entityType])
     },
     openDrawer: (item) => {
       selectedQueueItem.value = item
@@ -198,8 +198,8 @@ async function loadData() {
     page: pagination.value.pageIndex + 1,
     limit: pagination.value.pageSize,
     status: statusFilter.value === 'all' ? undefined : statusFilter.value,
-    primary_category: categoryFilter.value === 'all' ? undefined : categoryFilter.value,
-    entity_type: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
+    primaryCategory: categoryFilter.value === 'all' ? undefined : categoryFilter.value,
+    entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
   })
 }
 
@@ -231,7 +231,7 @@ async function handleDrawerSave() {
     await store.performAction(selectedQueueItem.value.id, {
       action: drawerAction.value,
       note: drawerNote.value || undefined,
-      duration_days: drawerDurationDays.value,
+      durationDays: drawerDurationDays.value,
     })
 
     toast.success(t('moderation.toast.success'))
@@ -258,7 +258,7 @@ async function handleBatchAction() {
   batchSaving.value = true
   try {
     const result = await store.batchAction({
-      queue_ids: selectedRows.value.map((item) => item.id),
+      queueIds: selectedRows.value.map((item) => item.id),
       action: batchAction.value,
       note: batchNote.value || undefined,
     })
@@ -554,11 +554,11 @@ const selectedActionOption = computed(() =>
                 <span class="text-[var(--silver-500)]"
                   >{{ t('moderation.columns.entityType') }}:</span
                 >
-                <span class="font-data">{{ entity.entity_type }}</span>
+                <span class="font-data">{{ entity.entityType }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entity') }}:</span>
-                <span class="font-data text-xs truncate max-w-[200px]">{{ entity.entity_id }}</span>
+                <span class="font-data text-xs truncate max-w-[200px]">{{ entity.entityId }}</span>
               </div>
               <div class="flex justify-between">
                 <span class="text-[var(--silver-500)]">{{ t('moderation.queue.priority') }}:</span>
@@ -568,7 +568,7 @@ const selectedActionOption = computed(() =>
                 <span class="text-[var(--silver-500)]"
                   >{{ t('moderation.queue.reportCount') }}:</span
                 >
-                <span class="font-data">{{ entity.report_count }}</span>
+                <span class="font-data">{{ entity.reportCount }}</span>
               </div>
             </div>
           </div>
@@ -648,7 +648,7 @@ const selectedActionOption = computed(() =>
 
           <!-- Assigned To -->
           <div
-            v-if="entity.assigned_to"
+            v-if="entity.assignedToId"
             class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
           >
             <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
@@ -657,7 +657,7 @@ const selectedActionOption = computed(() =>
             <div class="flex items-center gap-2">
               <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
               <span class="text-sm">
-                {{ entity.assigned_to.display_name || entity.assigned_to.username }}
+                {{ entity.assignedToName || entity.assignedToUsername }}
               </span>
             </div>
           </div>

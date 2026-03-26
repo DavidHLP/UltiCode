@@ -61,11 +61,12 @@ export interface SolutionQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
-export interface SolutionsResponse {
-  data: Solution[]
+// PageResult type for paginated responses (matches backend PageResult<T>)
+export interface PageResult<T> {
+  items: T[]
   total: number
   page: number
-  limit: number
+  pageSize: number
   totalPages: number
 }
 
@@ -79,14 +80,12 @@ export interface FlagSolutionDto {
 }
 
 export const solutionsApi = {
-  async getSolutions(params: SolutionQueryParams): Promise<SolutionsResponse> {
-    const response = await apiGet<SolutionsResponse>('/admin/solutions', { params })
-    return response
+  async getSolutions(params: SolutionQueryParams): Promise<PageResult<Solution>> {
+    return apiGet<PageResult<Solution>>('/admin/solutions', { params })
   },
 
-  async getFlaggedSolutions(params: SolutionQueryParams): Promise<SolutionsResponse> {
-    const response = await apiGet<SolutionsResponse>('/admin/solutions/flagged', { params })
-    return response
+  async getFlaggedSolutions(params: SolutionQueryParams): Promise<PageResult<Solution>> {
+    return apiGet<PageResult<Solution>>('/admin/solutions/flagged', { params })
   },
 
   async getSolution(id: string): Promise<Solution> {

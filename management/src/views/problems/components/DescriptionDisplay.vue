@@ -26,14 +26,14 @@ interface ProblemDetail {
   slug: string
   difficulty: string
   status: string
-  is_premium: boolean
-  is_published: boolean
-  created_at: string | Date
-  updated_at: string | Date
-  published_at?: string | Date
+  isPremium: boolean
+  isPublished: boolean
+  createdAt: string | Date
+  updatedAt: string | Date
+  publishedAt?: string | Date
   detail?: {
     summary?: string
-    constraints_json?: string[]
+    constraintsJson?: string[]
     hints?: string[]
   }
   tags: Array<{ id: string; label: string }>
@@ -70,19 +70,19 @@ const metadataItems = computed<MetadataItem[]>(() => [
   { label: t('problems.display.id'), value: props.problem.id?.slice(0, 8) ?? '-', icon: IconHash },
   {
     label: t('problems.display.created'),
-    value: formatDate(props.problem.created_at),
+    value: formatDate(props.problem.createdAt),
     icon: IconCalendar,
   },
   {
     label: t('problems.display.updated'),
-    value: formatDate(props.problem.updated_at),
+    value: formatDate(props.problem.updatedAt),
     icon: IconCalendar,
   },
-  ...(props.problem.published_at
+  ...(props.problem.publishedAt
     ? [
         {
           label: t('problems.display.published'),
-          value: formatDate(props.problem.published_at),
+          value: formatDate(props.problem.publishedAt),
           icon: IconCalendar,
         },
       ]
@@ -98,7 +98,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
       output: example.output,
       explanation: example.explanation,
     })),
-  constraints: props.problem.detail?.constraints_json || [],
+  constraints: props.problem.detail?.constraintsJson || [],
   followUp: props.problem.detail?.hints?.join('\n'),
 }))
 </script>
@@ -122,15 +122,15 @@ const problemDescription = computed<ProblemDescription>(() => ({
               {{ t(`problems.difficulty.${(problem.difficulty || 'UNKNOWN').toUpperCase()}`) }}
             </Badge>
             <Badge
-              v-if="problem.is_premium"
+              v-if="problem.isPremium"
               variant="secondary"
               class="bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20 border"
             >
               {{ t('problems.badges.premium') }}
             </Badge>
-            <Badge :variant="problem.is_published ? 'default' : 'outline'" class="capitalize">
+            <Badge :variant="problem.isPublished ? 'default' : 'outline'" class="capitalize">
               {{
-                problem.is_published
+                problem.isPublished
                   ? t('problems.published.published')
                   : t('problems.published.draft')
               }}

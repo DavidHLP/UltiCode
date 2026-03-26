@@ -71,7 +71,7 @@ async function handleEdit() {
     }
 
     if (isPremium.value !== undefined) {
-      editData.is_premium = isPremium.value
+      editData.isPremium = isPremium.value
     }
 
     const response = await problemsApi.bulkEdit(editData)

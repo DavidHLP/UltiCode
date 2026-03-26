@@ -44,7 +44,7 @@ const statusCards = computed(() => [
   {
     key: 'pending',
     label: t('moderation.stats.totalPending'),
-    value: stats.value?.total_pending ?? 0,
+    value: stats.value?.pendingCount ?? 0,
     icon: IconAlertTriangle,
     color: 'text-[var(--terminal-amber)]',
     bgColor: 'bg-[oklch(0.75_0.15_85/0.15)]',
@@ -53,7 +53,7 @@ const statusCards = computed(() => [
   {
     key: 'under_review',
     label: t('moderation.stats.totalUnderReview'),
-    value: stats.value?.total_under_review ?? 0,
+    value: stats.value?.underReviewCount ?? 0,
     icon: IconClock,
     color: 'text-[var(--terminal-cyan)]',
     bgColor: 'bg-[oklch(0.7_0.12_200/0.15)]',
@@ -62,7 +62,7 @@ const statusCards = computed(() => [
   {
     key: 'resolved',
     label: t('moderation.stats.totalResolved'),
-    value: stats.value?.total_resolved ?? 0,
+    value: stats.value?.resolvedCount ?? 0,
     icon: IconCheck,
     color: 'text-[var(--terminal-green)]',
     bgColor: 'bg-[oklch(0.7_0.15_145/0.15)]',
@@ -71,7 +71,7 @@ const statusCards = computed(() => [
   {
     key: 'dismissed',
     label: t('moderation.stats.totalDismissed'),
-    value: stats.value?.total_dismissed ?? 0,
+    value: stats.value?.dismissedCount ?? 0,
     icon: IconX,
     color: 'text-[var(--terminal-red)]',
     bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
@@ -80,7 +80,7 @@ const statusCards = computed(() => [
   {
     key: 'appeal_pending',
     label: t('moderation.stats.totalAppealPending'),
-    value: stats.value?.total_appeal_pending ?? 0,
+    value: stats.value?.pendingAppealsCount ?? 0,
     icon: IconScale,
     color: 'text-[var(--terminal-purple)]',
     bgColor: 'bg-[oklch(0.7_0.12_280/0.15)]',
@@ -90,8 +90,8 @@ const statusCards = computed(() => [
 
 // Category distribution
 const categoryData = computed(() => {
-  if (!stats.value?.by_category) return []
-  const categories = Object.entries(stats.value.by_category)
+  if (!stats.value?.byCategory) return []
+  const categories = Object.entries(stats.value.byCategory)
     .filter(([, count]) => count > 0)
     .sort((a, b) => b[1] - a[1])
     .slice(0, 6)
@@ -105,8 +105,8 @@ const categoryData = computed(() => {
 
 // Entity type distribution
 const entityTypeData = computed(() => {
-  if (!stats.value?.by_entity_type) return []
-  return Object.entries(stats.value.by_entity_type)
+  if (!stats.value?.byEntityType) return []
+  return Object.entries(stats.value.byEntityType)
     .filter(([, count]) => count > 0)
     .sort((a, b) => b[1] - a[1])
 })
@@ -352,7 +352,7 @@ function navigateToAppeals() {
 
     <!-- Average Resolution Time -->
     <Card
-      v-if="stats?.avg_resolution_time_hours"
+      v-if="stats?.avgResolutionTimeHours"
       :class="[
         'border-[var(--silver-200)] dark:border-[var(--silver-300)]',
         'transition-all duration-500 delay-400',
@@ -370,7 +370,7 @@ function navigateToAppeals() {
                 {{ t('moderation.stats.avgResolutionTime') }}
               </h3>
               <p class="text-2xl font-data tabular-nums text-[var(--terminal-green)] mt-1">
-                {{ Math.round(stats.avg_resolution_time_hours) }}
+                {{ Math.round(stats.avgResolutionTimeHours) }}
                 <span class="text-sm text-[var(--silver-400)]">{{
                   t('moderation.stats.hours')
                 }}</span>

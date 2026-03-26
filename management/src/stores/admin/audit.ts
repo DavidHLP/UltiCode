@@ -18,9 +18,8 @@ export const useAuditStore = defineStore('adminAudit', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await auditApi.getAuditLogs(params)
-      // Backend returns Result<T> wrapper: { code, message, data: T }
-      const data = response.data
+      // Note: request.ts unwraps Result<T>, so response is directly AuditLogsResponse
+      const data = await auditApi.getAuditLogs(params)
       logs.value = data.logs
       total.value = data.total
       return data
@@ -43,10 +42,10 @@ export const useAuditStore = defineStore('adminAudit', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await auditApi.getAuditStats(params)
-      // Backend returns Result<T> wrapper: { code, message, data: T }
-      stats.value = response.data
-      return response.data
+      // Note: request.ts unwraps Result<T>, so response is directly AuditStats
+      const data = await auditApi.getAuditStats(params)
+      stats.value = data
+      return data
     } catch (err: unknown) {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||

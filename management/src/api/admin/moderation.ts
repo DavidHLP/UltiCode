@@ -65,140 +65,152 @@ export type ModeratableEntityType =
 
 export interface ModerationQueueItem {
   id: string
-  entity_type: ModeratableEntityType
-  entity_id: string
+  entityType: ModeratableEntityType
+  entityId: string
   status: ModerationStatus
   priority: number
-  primary_category: ReportCategory
-  assigned_to_id?: string
-  assigned_to?: {
-    id: string
-    username: string
-    display_name?: string
-    avatar_url?: string
-  }
-  created_at: Date
-  updated_at: Date
-  report_count: number
-  reports?: Report[]
-  actions?: ModerationAction[]
+  primaryCategory: ReportCategory
+
+  // Assigned user fields (separated, matching backend VO)
+  assignedToId?: string
+  assignedToName?: string
+  assignedToUsername?: string
+  assignedAt?: Date
+
+  // Author fields (separated, matching backend VO)
+  authorId?: string
+  authorName?: string
+  authorUsername?: string
+
+  // Reviewer fields (separated, matching backend VO)
+  reviewedById?: string
+  reviewedByName?: string
+  reviewedAt?: Date
+
+  // Resolution fields
+  resolution?: string
+  resolutionNote?: string
+  resolvedAt?: Date
+
+  createdAt: Date
+  updatedAt: Date
+  reportCount: number
 }
 
 export interface Report {
   id: string
-  reporter_id: string
-  reporter?: {
-    id: string
-    username: string
-    display_name?: string
-    avatar_url?: string
-  }
-  entity_type: ModeratableEntityType
-  entity_id: string
+
+  // Reporter fields (separated, matching backend VO)
+  reporterId: string
+  reporterName?: string
+  reporterUsername?: string
+
+  entityType: ModeratableEntityType
+  entityId: string
   category: ReportCategory
   status: ReportStatus
   reason?: string
   evidence?: string
-  created_at: Date
-  queue_id?: string
+  createdAt: Date
+  updatedAt: Date
+  queueId?: string
 }
 
 export interface ModerationAction {
   id: string
-  queue_id: string
-  action_type: ModerationActionType
-  performed_by: string
+  queueId: string
+  actionType: ModerationActionType
+  performedBy: string
   performer?: {
     id: string
     username: string
-    display_name?: string
-    avatar_url?: string
+    displayName?: string
+    avatarUrl?: string
   }
   note?: string
-  duration_days?: number
-  created_at: Date
+  durationDays?: number
+  createdAt: Date
 }
 
 export interface Appeal {
   id: string
-  queue_id: string
-  queue?: ModerationQueueItem
-  appellant_id: string
-  appellant?: {
-    id: string
-    username: string
-    display_name?: string
-    avatar_url?: string
-  }
+  queueId: string
+
+  // Appellant fields (separated, matching backend VO)
+  appellantId: string
+  appellantName?: string
+  appellantUsername?: string
+
   reason: string
   evidence?: string
   status: AppealStatus
-  reviewed_by?: string
-  reviewer?: {
-    id: string
-    username: string
-    display_name?: string
-  }
+
+  // Reviewer fields (separated, matching backend VO)
+  reviewedById?: string
+  reviewedByName?: string
+  reviewedAt?: Date
+
   response?: string
-  created_at: Date
-  updated_at: Date
+  createdAt: Date
+  updatedAt: Date
 }
 
 export interface ModerationStats {
-  total_pending: number
-  total_under_review: number
-  total_resolved: number
-  total_dismissed: number
-  total_appeal_pending: number
-  by_category: Record<ReportCategory, number>
-  by_entity_type: Record<ModeratableEntityType, number>
-  avg_resolution_time_hours?: number
+  pendingCount: number
+  underReviewCount: number
+  resolvedCount: number
+  dismissedCount: number
+  resolvedToday: number
+  avgResolutionTimeHours?: number
+  pendingAppealsCount: number
+  byCategory?: Record<string, number>
+  byEntityType?: Record<string, number>
 }
 
 export interface UserWarning {
   id: string
-  user_id: string
+  userId: string
   user?: {
     id: string
     username: string
-    display_name?: string
+    displayName?: string
   }
-  queue_id?: string
-  action_id?: string
+  queueId?: string
+  actionId?: string
   reason: string
   category?: ReportCategory
   acknowledged: boolean
-  acknowledged_at?: Date
-  created_at: Date
-  expires_at?: Date
+  acknowledgedAt?: Date
+  createdAt: Date
+  expiresAt?: Date
 }
 
 export interface UserBan {
   id: string
-  user_id: string
+  userId: string
   user?: {
     id: string
     username: string
-    display_name?: string
+    displayName?: string
   }
-  is_permanent: boolean
+  isPermanent: boolean
   reason: string
   category?: ReportCategory
-  banned_by: string
+  bannedBy: string
   banner?: {
     id: string
     username: string
-    display_name?: string
+    displayName?: string
   }
-  queue_id?: string
-  action_id?: string
-  starts_at: Date
-  ends_at?: Date
-  is_active: boolean
-  unban_reason?: string
-  unbanned_by?: string
-  unbanned_at?: Date
-  created_at: Date
+  queueId?: string
+  actionId?: string
+  startsAt: Date
+  endsAt?: Date
+  isActive: boolean
+  unbanReason?: string
+  unbannedBy?: string
+  unbannedAt?: Date
+  createdAt: Date
 }
 
 // ============================================================================
@@ -209,10 +221,10 @@ export interface QueryModerationQueueParams {
   page?: number
   limit?: number
   status?: ModerationStatus
-  primary_category?: ReportCategory
-  entity_type?: ModeratableEntityType
-  assigned_to_id?: string
-  min_priority?: number
+  primaryCategory?: ReportCategory
+  entityType?: ModeratableEntityType
+  assignedToId?: string
+  minPriority?: number
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -222,9 +234,9 @@ export interface QueryReportsParams {
   limit?: number
   status?: ReportStatus
   category?: ReportCategory
-  entity_type?: ModeratableEntityType
-  entity_id?: string
-  reporter_id?: string
+  entityType?: ModeratableEntityType
+  entityId?: string
+  reporterId?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -233,8 +245,8 @@ export interface QueryAppealsParams {
   page?: number
   limit?: number
   status?: AppealStatus
-  queue_id?: string
-  appellant_id?: string
+  queueId?: string
+  appellantId?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -242,7 +254,7 @@ export interface QueryAppealsParams {
 export interface QueryUserWarningsParams {
   page?: number
   limit?: number
-  user_id?: string
+  userId?: string
   acknowledged?: boolean
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
@@ -251,9 +263,9 @@ export interface QueryUserWarningsParams {
 export interface QueryUserBansParams {
   page?: number
   limit?: number
-  user_id?: string
+  userId?: string
   active?: boolean
-  is_permanent?: boolean
+  isPermanent?: boolean
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -263,31 +275,31 @@ export interface QueryUserBansParams {
 // ============================================================================
 
 export interface AssignModerationDto {
-  assigned_to_id: string
+  assignedToId: string
 }
 
 export interface PerformModerationActionDto {
   action: ModerationActionType
   note?: string
-  duration_days?: number
+  durationDays?: number
 }
 
 export interface BatchModerationActionDto {
-  queue_ids: string[]
+  queueIds: string[]
   action: ModerationActionType
   note?: string
 }
 
 export interface CreateReportDto {
-  entity_type: ModeratableEntityType
-  entity_id: string
+  entityType: ModeratableEntityType
+  entityId: string
   category: ReportCategory
   reason?: string
   evidence?: string
 }
 
 export interface CreateAppealDto {
-  queue_id: string
+  queueId: string
   reason: string
   evidence?: string
 }
@@ -298,17 +310,17 @@ export interface ReviewAppealDto {
 }
 
 export interface CreateUserBanDto {
-  user_id: string
-  is_permanent?: boolean
+  userId: string
+  isPermanent?: boolean
   reason: string
   category?: ReportCategory
-  duration_days?: number
-  queue_id?: string
-  action_id?: string
+  durationDays?: number
+  queueId?: string
+  actionId?: string
 }
 
 export interface RevokeBanDto {
-  unban_reason: string
+  unbanReason: string
 }
 
 // ============================================================================
@@ -487,11 +499,11 @@ export const appealsApi = {
    * Get appeal statistics
    */
   async getStats(signal?: AbortSignal): Promise<{
-    total_pending: number
-    total_under_review: number
-    total_approved: number
-    total_rejected: number
-    avg_review_time_hours?: number
+    totalPending: number
+    totalUnderReview: number
+    totalApproved: number
+    totalRejected: number
+    avgReviewTimeHours?: number
   }> {
     return apiGet('/appeals/stats', { signal })
   },

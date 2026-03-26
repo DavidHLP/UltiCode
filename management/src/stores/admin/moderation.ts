@@ -79,8 +79,8 @@ export const useModerationStore = defineStore('adminModeration', () => {
 
   // ========== Computed ==========
 
-  const pendingCount = computed(() => stats.value?.total_pending ?? 0)
-  const underReviewCount = computed(() => stats.value?.total_under_review ?? 0)
+  const pendingCount = computed(() => stats.value?.pendingCount ?? 0)
+  const underReviewCount = computed(() => stats.value?.underReviewCount ?? 0)
 
   const hasActiveFilters = computed(() => {
     return Boolean(

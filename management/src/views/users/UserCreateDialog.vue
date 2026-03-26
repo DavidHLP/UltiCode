@@ -42,7 +42,7 @@ const defaultForm = {
   name: '',
   password: '',
   role: 'USER',
-  is_active: true,
+  isActive: true,
 }
 
 const form = ref({ ...defaultForm })
@@ -68,7 +68,7 @@ async function handleSubmit() {
       name: form.value.name,
       password: form.value.password,
       role: form.value.role as 'USER' | 'MODERATOR' | 'ADMIN' | 'SUPER_ADMIN',
-      is_active: form.value.is_active,
+      isActive: form.value.isActive,
     })
 
     emit('success')
@@ -204,14 +204,14 @@ async function handleSubmit() {
                   class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)]"
                 >
                   <Checkbox
-                    id="create-is_active"
-                    v-model="form.is_active"
+                    id="create-isActive"
+                    v-model="form.isActive"
                     :disabled="loading"
                     class="border-[var(--silver-400)] data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
                   />
-                  <label for="create-is_active" class="font-data text-xs cursor-pointer">
+                  <label for="create-isActive" class="font-data text-xs cursor-pointer">
                     {{
-                      form.is_active
+                      form.isActive
                         ? t('users.filters.status.active')
                         : t('users.filters.status.inactive')
                     }}

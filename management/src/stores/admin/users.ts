@@ -19,10 +19,8 @@ export const useUsersStore = defineStore('adminUsers', () => {
     loading.value = true
     error.value = null
     try {
-      const response = await usersApi.getUsers(params)
-      // Backend returns Result<PageResult<User>> structure
-      // apiGet unwraps to { success, data: PageResult }
-      const pageResult = response.data
+      // usersApi.getUsers already returns PageResult<User> directly (unwrapped by request.ts)
+      const pageResult = await usersApi.getUsers(params)
       users.value = pageResult.items
       total.value = pageResult.total
     } catch (err: unknown) {

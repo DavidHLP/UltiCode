@@ -48,11 +48,11 @@ const formSchema = toTypedSchema(
   z.object({
     name: z.string().min(1, t('problemLists.form.validation.nameRequired')).max(100),
     description: z.string().optional(),
-    is_public: z.boolean(),
-    is_featured: z.boolean(),
-    banner_tag: z.string().optional(),
-    banner_theme: z.string().optional(),
-    banner_order: z.number().int().optional(),
+    isPublic: z.boolean(),
+    isFeatured: z.boolean(),
+    bannerTag: z.string().optional(),
+    bannerTheme: z.string().optional(),
+    bannerOrder: z.number().int().optional(),
   }),
 )
 
@@ -61,11 +61,11 @@ const form = useForm({
   initialValues: {
     name: props.list?.name || '',
     description: props.list?.description || '',
-    is_public: props.list?.is_public ?? true,
-    is_featured: props.list?.is_featured ?? false,
-    banner_tag: props.list?.banner_tag || '',
-    banner_theme: props.list?.banner_theme || 'blue',
-    banner_order: props.list?.banner_order || 0,
+    isPublic: props.list?.isPublic ?? true,
+    isFeatured: props.list?.isFeatured ?? false,
+    bannerTag: props.list?.bannerTag || '',
+    bannerTheme: props.list?.bannerTheme || 'blue',
+    bannerOrder: props.list?.bannerOrder || 0,
   },
 })
 
@@ -139,7 +139,7 @@ const bannerThemes = [
         <div class="terminal-comment">// {{ t('problemLists.sections.visibilityFeatured') }}</div>
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField v-slot="{ value, handleChange }" name="is_public">
+          <FormField v-slot="{ value, handleChange }" name="isPublic">
             <FormItem>
               <FormLabel class="terminal-label">{{ t('problemLists.form.isPublic') }}</FormLabel>
               <div
@@ -164,7 +164,7 @@ const bannerThemes = [
             </FormItem>
           </FormField>
 
-          <FormField v-slot="{ value, handleChange }" name="is_featured">
+          <FormField v-slot="{ value, handleChange }" name="isFeatured">
             <FormItem>
               <FormLabel class="terminal-label">{{ t('problemLists.form.isFeatured') }}</FormLabel>
               <div
@@ -192,14 +192,14 @@ const bannerThemes = [
       </div>
 
       <!-- Banner Settings Section (conditionally visible) -->
-      <template v-if="form.values.is_featured">
+      <template v-if="form.values.isFeatured">
         <div class="terminal-separator" />
 
         <div class="space-y-4">
           <div class="terminal-comment">// {{ t('problemLists.sections.bannerSettings') }}</div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField v-slot="{ componentField }" name="banner_tag">
+            <FormField v-slot="{ componentField }" name="bannerTag">
               <FormItem>
                 <FormLabel class="terminal-label">{{ t('problemLists.form.bannerTag') }}</FormLabel>
                 <FormControl>
@@ -216,7 +216,7 @@ const bannerThemes = [
               </FormItem>
             </FormField>
 
-            <FormField v-slot="{ componentField }" name="banner_theme">
+            <FormField v-slot="{ componentField }" name="bannerTheme">
               <FormItem>
                 <FormLabel class="terminal-label">{{
                   t('problemLists.form.bannerTheme')
@@ -242,7 +242,7 @@ const bannerThemes = [
               </FormItem>
             </FormField>
 
-            <FormField v-slot="{ componentField }" name="banner_order">
+            <FormField v-slot="{ componentField }" name="bannerOrder">
               <FormItem>
                 <FormLabel class="terminal-label">{{ t('problemLists.form.sortOrder') }}</FormLabel>
                 <FormControl>

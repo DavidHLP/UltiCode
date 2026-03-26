@@ -56,7 +56,7 @@ const emit = defineEmits<{
           <p class="text-sm text-[var(--silver-500)] flex items-center gap-1">
             <IconClock class="h-3.5 w-3.5" />
             <span class="font-data tabular-nums">{{
-              new Date(entity.created_at).toLocaleString()
+              new Date(entity.createdAt).toLocaleString()
             }}</span>
           </p>
           <div class="flex flex-wrap gap-2 mt-1">
@@ -102,16 +102,16 @@ const emit = defineEmits<{
               class="flex h-8 w-8 items-center justify-center rounded-full border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
             >
               <component
-                :is="getEntityTypeIcon(entity.entity_type)"
+                :is="getEntityTypeIcon(entity.entityType)"
                 class="h-4 w-4 text-[var(--silver-500)]"
               />
             </div>
             <div class="flex flex-col">
               <span class="text-sm font-medium">
-                {{ entity.entity_type || t('audit.drawer.notAvailable') }}
+                {{ entity.entityType || t('audit.drawer.notAvailable') }}
               </span>
               <span class="text-xs text-[var(--silver-500)] font-data">
-                {{ entity.entity_id?.slice(0, 8) || t('audit.drawer.notAvailable') }}
+                {{ entity.entityId?.slice(0, 8) || t('audit.drawer.notAvailable') }}
               </span>
             </div>
           </div>
@@ -120,23 +120,23 @@ const emit = defineEmits<{
 
       <!-- Request Context - Terminal Style -->
       <div
-        v-if="entity.ip_address || entity.user_agent"
+        v-if="entity.ipAddress || entity.userAgent"
         class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] p-3 space-y-2"
       >
-        <div v-if="entity.ip_address" class="flex items-center justify-between text-sm">
+        <div v-if="entity.ipAddress" class="flex items-center justify-between text-sm">
           <span class="text-[var(--silver-500)] flex items-center gap-2">
             <IconTerminal class="h-3.5 w-3.5" /> {{ t('audit.columns.ip') }}
           </span>
-          <span class="font-data text-[var(--terminal-cyan)]">{{ entity.ip_address }}</span>
+          <span class="font-data text-[var(--terminal-cyan)]">{{ entity.ipAddress }}</span>
         </div>
-        <div v-if="entity.user_agent" class="flex flex-col gap-1 text-sm">
+        <div v-if="entity.userAgent" class="flex flex-col gap-1 text-sm">
           <span class="text-[var(--silver-500)] flex items-center gap-2">
             <IconEye class="h-3.5 w-3.5" /> {{ t('audit.drawer.userAgent') }}
           </span>
           <span
             class="text-xs text-[var(--silver-400)] break-all bg-[var(--card)] p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] font-data"
           >
-            {{ entity.user_agent }}
+            {{ entity.userAgent }}
           </span>
         </div>
       </div>
@@ -151,14 +151,14 @@ const emit = defineEmits<{
         </h4>
 
         <div
-          v-if="!entity.old_values && !entity.new_values"
+          v-if="!entity.oldValues && !entity.newValues"
           class="text-sm text-[var(--silver-500)] italic pl-6 font-data"
         >
           &gt; {{ t('audit.drawer.noDataChanges') }}
         </div>
 
         <div v-else class="grid gap-4">
-          <div v-if="entity.old_values" class="space-y-2">
+          <div v-if="entity.oldValues" class="space-y-2">
             <span class="terminal-label text-xs uppercase tracking-wider">
               {{ t('audit.drawer.previousState') }}
             </span>
@@ -167,13 +167,13 @@ const emit = defineEmits<{
             >
               <ScrollArea class="h-[200px] w-full rounded">
                 <pre class="p-4 text-xs font-data leading-relaxed text-[var(--terminal-cyan)]">{{
-                  formatJson(entity.old_values)
+                  formatJson(entity.oldValues)
                 }}</pre>
               </ScrollArea>
             </div>
           </div>
 
-          <div v-if="entity.new_values" class="space-y-2">
+          <div v-if="entity.newValues" class="space-y-2">
             <span class="terminal-label text-xs uppercase tracking-wider">
               {{ t('audit.drawer.newState') }}
             </span>
@@ -182,7 +182,7 @@ const emit = defineEmits<{
             >
               <ScrollArea class="h-[200px] w-full rounded">
                 <pre class="p-4 text-xs font-data leading-relaxed text-[var(--terminal-green)]">{{
-                  formatJson(entity.new_values)
+                  formatJson(entity.newValues)
                 }}</pre>
               </ScrollArea>
             </div>

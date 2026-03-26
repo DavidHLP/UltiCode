@@ -314,7 +314,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'is_published',
+      accessorKey: 'isPublished',
       size: 80,
       minSize: 70,
       maxSize: 90,
@@ -327,13 +327,13 @@ export function createColumns(
           t('problems.columns.published'),
         ),
       cell: ({ row }) => {
-        const isPublished = row.getValue('is_published') as boolean
-        const isDeleted = row.original.is_deleted
+        const isPublished = row.getValue('isPublished') as boolean
+        const isDeleted = row.original.isDeleted
         return renderPublishedBadge(isPublished, isDeleted, t)
       },
     },
     {
-      accessorKey: 'is_flagged',
+      accessorKey: 'isFlagged',
       size: 70,
       minSize: 60,
       maxSize: 80,
@@ -347,13 +347,13 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const problem = row.original
-        const isFlagged = problem.is_flagged
+        const isFlagged = problem.isFlagged
         if (!isFlagged) {
           return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '—')
         }
 
         const flagStatus: 'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED' =
-          problem.flag_status || 'PENDING'
+          problem.flagStatus || 'PENDING'
 
         // Status-based color for the flag icon
         const statusColors: Record<'PENDING' | 'REVIEWED' | 'RESOLVED' | 'DISMISSED', string> = {
@@ -370,7 +370,7 @@ export function createColumns(
           'div',
           {
             class: 'flex items-center gap-1',
-            title: `${t(statusKey)}${problem.flag_reason ? `: ${problem.flag_reason}` : ''}`,
+            title: `${t(statusKey)}${problem.flagReason ? `: ${problem.flagReason}` : ''}`,
           },
           [
             h(IconFlag, {
@@ -390,7 +390,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'submission_count',
+      accessorKey: 'submissionCount',
       size: 60,
       minSize: 50,
       maxSize: 70,
@@ -403,7 +403,7 @@ export function createColumns(
           t('problems.columns.submissions'),
         ),
       cell: ({ row }) => {
-        const count = row.original.submission_count || 0
+        const count = row.original.submissionCount || 0
         return h(
           'span',
           {
@@ -449,7 +449,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'created_at',
+      accessorKey: 'createdAt',
       size: 90,
       minSize: 70,
       maxSize: 100,
@@ -462,7 +462,7 @@ export function createColumns(
           t('common.created'),
         ),
       cell: ({ row }) => {
-        const date = row.getValue('created_at') as string
+        const date = row.getValue('createdAt') as string
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-600)] dark:text-[var(--silver-400)]' },
@@ -575,7 +575,7 @@ function createActionsDropdown(
                             },
                           ),
                           // Flag Info - only show when problem is flagged
-                          problem.is_flagged
+                          problem.isFlagged
                             ? h(
                                 DropdownMenuItem,
                                 { onClick: () => actions.viewFlagInfo(problem) },
@@ -603,24 +603,24 @@ function createActionsDropdown(
                     DropdownMenuItem,
                     {
                       onClick: () =>
-                        problem.is_flagged
+                        problem.isFlagged
                           ? actions.unflagProblem(problem.id)
                           : actions.flagProblem(problem),
                     },
                     {
                       default: () =>
                         h('div', { class: 'flex items-center gap-2' }, [
-                          problem.is_flagged
+                          problem.isFlagged
                             ? h(IconFlagOff, { class: 'h-4 w-4 text-emerald-600' })
                             : h(IconFlag, { class: 'h-4 w-4 text-amber-600' }),
-                          problem.is_flagged ? t('moderation.unflag') : t('moderation.flag'),
+                          problem.isFlagged ? t('moderation.unflag') : t('moderation.flag'),
                         ]),
                     },
                   )
                 : null,
               h(DropdownMenuSeparator, {}),
               canUpdateProblem()
-                ? problem.is_published
+                ? problem.isPublished
                   ? h(
                       DropdownMenuItem,
                       { onClick: () => actions.unpublishProblem(problem.id) },

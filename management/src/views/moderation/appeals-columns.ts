@@ -146,20 +146,21 @@ export function createAppealsColumns(
           t('moderation.appeals.appellant'),
         ),
       cell: ({ row }) => {
-        const appellant = row.original.appellant
+        const appellantName = row.original.appellantName
+        const appellantUsername = row.original.appellantUsername
         return h('div', { class: 'flex items-center gap-2' }, [
           h(IconUser, { class: 'h-3.5 w-3.5 text-[var(--silver-500)]' }),
           h(
             'span',
             { class: 'text-sm truncate' },
-            appellant?.display_name || appellant?.username || t('moderation.unknownReporter'),
+            appellantName || appellantUsername || t('moderation.unknownReporter'),
           ),
         ])
       },
     },
     // Queue ID
     {
-      accessorKey: 'queue_id',
+      accessorKey: 'queueId',
       minSize: 150,
       header: () =>
         h(
@@ -168,7 +169,7 @@ export function createAppealsColumns(
           'Queue ID',
         ),
       cell: ({ row }) => {
-        const queueId = row.original.queue_id
+        const queueId = row.original.queueId
         return h(
           'span',
           {
@@ -224,20 +225,16 @@ export function createAppealsColumns(
           t('moderation.appeals.reviewedBy'),
         ),
       cell: ({ row }) => {
-        const reviewer = row.original.reviewer
-        if (!reviewer) {
+        const reviewerName = row.original.reviewedByName
+        if (!reviewerName) {
           return h('span', { class: 'font-data text-xs text-[var(--silver-400)] italic' }, '-')
         }
-        return h(
-          'span',
-          { class: 'text-sm truncate block' },
-          reviewer.display_name || reviewer.username,
-        )
+        return h('span', { class: 'text-sm truncate block' }, reviewerName)
       },
     },
     // Created at
     {
-      accessorKey: 'created_at',
+      accessorKey: 'createdAt',
       size: 100,
       header: () =>
         h(
@@ -246,7 +243,7 @@ export function createAppealsColumns(
           t('moderation.columns.createdAt'),
         ),
       cell: ({ row }) => {
-        const date = row.original.created_at
+        const date = row.original.createdAt
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },

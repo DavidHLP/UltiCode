@@ -79,7 +79,7 @@ export const useForumStore = defineStore('adminForum', () => {
   async function togglePin(post: ForumPost) {
     postsLoading.value = true
     try {
-      if (post.is_pinned) {
+      if (post.isPinned) {
         await forumApi.unpinPost(post.id)
       } else {
         await forumApi.pinPost(post.id)
@@ -87,7 +87,7 @@ export const useForumStore = defineStore('adminForum', () => {
       // Update locally
       const index = posts.value.findIndex((p) => p.id === post.id)
       if (index !== -1 && posts.value[index]) {
-        posts.value[index].is_pinned = !post.is_pinned
+        posts.value[index].isPinned = !post.isPinned
       }
     } catch (err: unknown) {
       postsError.value = 'Failed to update pin status'
@@ -100,7 +100,7 @@ export const useForumStore = defineStore('adminForum', () => {
   async function toggleLock(post: ForumPost) {
     postsLoading.value = true
     try {
-      if (post.is_locked) {
+      if (post.isLocked) {
         await forumApi.unlockPost(post.id)
       } else {
         await forumApi.lockPost(post.id)
@@ -108,7 +108,7 @@ export const useForumStore = defineStore('adminForum', () => {
       // Update locally
       const index = posts.value.findIndex((p) => p.id === post.id)
       if (index !== -1 && posts.value[index]) {
-        posts.value[index].is_locked = !post.is_locked
+        posts.value[index].isLocked = !post.isLocked
       }
     } catch (err: unknown) {
       postsError.value = 'Failed to update lock status'
@@ -165,9 +165,9 @@ export const useForumStore = defineStore('adminForum', () => {
     try {
       await forumApi.flagPost(id, reason)
       if (currentPost.value?.id === id) {
-        currentPost.value.is_flagged = true
-        currentPost.value.flagged_reason = reason
-        currentPost.value.flagged_at = new Date().toISOString()
+        currentPost.value.isFlagged = true
+        currentPost.value.flaggedReason = reason
+        currentPost.value.flaggedAt = new Date().toISOString()
       }
     } catch (err) {
       console.error('Failed to flag post:', err)
@@ -179,9 +179,9 @@ export const useForumStore = defineStore('adminForum', () => {
     try {
       await forumApi.unflagPost(id)
       if (currentPost.value?.id === id) {
-        currentPost.value.is_flagged = false
-        currentPost.value.flagged_reason = undefined
-        currentPost.value.flagged_at = undefined
+        currentPost.value.isFlagged = false
+        currentPost.value.flaggedReason = undefined
+        currentPost.value.flaggedAt = undefined
       }
     } catch (err) {
       console.error('Failed to unflag post:', err)

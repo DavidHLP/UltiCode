@@ -199,7 +199,7 @@ function getChangesText(entry: AuditEntry): string | null {
           <div class="flex items-center gap-2 mb-3">
             <IconCalendar class="h-3.5 w-3.5 text-[var(--silver-400)]" />
             <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
-              {{ formatDate(entry.created_at) }}
+              {{ formatDate(entry.createdAt) }}
             </span>
           </div>
 

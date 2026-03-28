@@ -3,6 +3,13 @@ export default {
   description: 'View platform performance metrics and user behavior insights',
   loadError: 'Failed to load report',
   noData: 'No data available',
+  authRequired: 'Please login first',
+  adminRequired: 'Admin privileges required',
+  adminRequiredWithRole: 'Admin privileges required (Current role: {role})',
+  permissionDenied: 'You do not have permission to view this page',
+  refreshSession: 'Refresh Session',
+  sessionRefreshed: 'Session refreshed successfully',
+  sessionRefreshFailed: 'Failed to refresh session',
 
   // Navigation
   nav: {

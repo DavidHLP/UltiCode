@@ -111,7 +111,7 @@ function back() {
         <div v-if="solution" class="flex items-center gap-2">
           <template v-if="canUpdateSolution">
             <Button
-              v-if="solution.is_flagged"
+              v-if="solution.isFlagged"
               variant="terminal"
               size="sm"
               class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
@@ -154,13 +154,13 @@ function back() {
           <div class="flex items-center gap-2">
             <span class="terminal-label">status:</span>
             <span
-              v-if="solution.is_flagged"
+              v-if="solution.isFlagged"
               class="font-data text-[var(--terminal-amber)] uppercase"
             >
               flagged
             </span>
             <span
-              v-else-if="solution.is_published"
+              v-else-if="solution.isPublished"
               class="font-data text-[var(--terminal-green)] uppercase"
             >
               published

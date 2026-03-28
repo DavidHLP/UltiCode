@@ -47,9 +47,9 @@ const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_PO
 const stats = computed(() => {
   const posts = forumStore.posts
   const total = forumStore.totalPosts
-  const pinned = posts.filter((p) => p.is_pinned).length
-  const locked = posts.filter((p) => p.is_locked).length
-  const flagged = posts.filter((p) => p.is_flagged).length
+  const pinned = posts.filter((p) => p.isPinned).length
+  const locked = posts.filter((p) => p.isLocked).length
+  const flagged = posts.filter((p) => p.isFlagged).length
   return { total, pinned, locked, flagged }
 })
 
@@ -130,9 +130,9 @@ const {
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     communityId: filters.communityFilter === 'all' ? undefined : filters.communityFilter,
-    is_flagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
-    is_pinned: filters.pinnedFilter === 'all' ? undefined : filters.pinnedFilter === 'pinned',
-    is_locked: filters.lockedFilter === 'all' ? undefined : filters.lockedFilter === 'locked',
+    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    isPinned: filters.pinnedFilter === 'all' ? undefined : filters.pinnedFilter === 'pinned',
+    isLocked: filters.lockedFilter === 'all' ? undefined : filters.lockedFilter === 'locked',
     page,
     limit,
   }),
@@ -154,7 +154,7 @@ const columns = createColumns(
       try {
         await forumStore.togglePin(post)
         toast.success(
-          post.is_pinned
+          post.isPinned
             ? t('forum.toast.unpinnedSuccessfully')
             : t('forum.toast.pinnedSuccessfully'),
         )
@@ -166,7 +166,7 @@ const columns = createColumns(
       try {
         await forumStore.toggleLock(post)
         toast.success(
-          post.is_locked
+          post.isLocked
             ? t('forum.toast.unlockedSuccessfully')
             : t('forum.toast.lockedSuccessfully'),
         )

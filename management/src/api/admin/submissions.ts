@@ -14,6 +14,10 @@ export interface SubmissionQueryParams {
   sortOrder?: 'asc' | 'desc'
 }
 
+/**
+ * Submission list item from AdminSubmissionVO
+ * Backend uses camelCase (Jackson serialization)
+ */
 export interface SubmissionListItem {
   id: string
   problemId: number
@@ -23,14 +27,22 @@ export interface SubmissionListItem {
   username: string
   language: string
   status: string
-  runtime: number
-  memory: number
+  /** Runtime in milliseconds, null if not judged yet */
+  runtime: number | null
+  /** Memory in MB, null if not judged yet */
+  memory: number | null
   createdAt: string
-  codeLength: number
+  /** Code length in bytes, can be null */
+  codeLength: number | null
 }
 
+/**
+ * Detailed submission information
+ * Extends SubmissionListItem with additional fields
+ */
 export interface SubmissionDetail extends SubmissionListItem {
-  code: string
+  /** Source code, can be null */
+  code: string | null
   notes: string | null
   runtimePercentile: number | null
   memoryPercentile: number | null

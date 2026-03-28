@@ -10,13 +10,14 @@ import { LOCALE_HEADER_KEY, getActiveLocale } from '@/i18n'
 import { getCsrfToken } from '@/utils/csrf'
 
 /**
- * Standard API Response wrapper
+ * Standard API Response wrapper (matches backend Result<T>)
+ * code: 0 = success, non-zero = error
  */
 export interface ApiResponse<T = unknown> {
-  success: boolean
+  code: number
+  message: string
   data: T
-  message?: string
-  code?: number
+  traceId?: string
 }
 
 /**

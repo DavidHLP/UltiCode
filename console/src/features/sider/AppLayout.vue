@@ -18,10 +18,17 @@ import SearchBar from "@/components/search/SearchBar.vue";
 import type { RouteLocationRaw } from "vue-router";
 import { useRoute } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { computed } from "vue";
+import { computed, onMounted } from "vue";
 
 const route = useRoute();
 const { t } = useI18n();
+const isDevelopment = import.meta.env.DEV;
+
+onMounted(() => {
+  if (isDevelopment) {
+    console.log("[AppLayout] Component mounted, current route:", route.path);
+  }
+});
 
 type NavItem = {
   label: string;

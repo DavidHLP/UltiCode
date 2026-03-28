@@ -67,7 +67,7 @@ function renderTypeBadge(type: CommentType) {
 
 // Terminal-style status badge renderer
 function renderStatusBadge(comment: Comment) {
-  if (comment.is_deleted) {
+  if (comment.isDeleted) {
     return h('div', { class: 'flex items-center gap-2' }, [
       h('span', {
         class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-red)] animate-pulse-subtle',
@@ -88,7 +88,7 @@ function renderStatusBadge(comment: Comment) {
     ])
   }
 
-  if (comment.is_flagged) {
+  if (comment.isFlagged) {
     return h('div', { class: 'flex items-center gap-2' }, [
       h('span', {
         class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-amber)] animate-pulse-subtle',
@@ -243,7 +243,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'created_at',
+      accessorKey: 'createdAt',
       header: () =>
         h(
           'span',
@@ -251,7 +251,7 @@ export function createColumns(
           t('comments.columns.created'),
         ),
       cell: ({ row }) => {
-        const date = row.getValue('created_at') as string
+        const date = row.getValue('createdAt') as string
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
@@ -316,7 +316,7 @@ function createActionsDropdown(
           },
           {
             default: () => [
-              comment.is_flagged
+              comment.isFlagged
                 ? h(
                     DropdownMenuItem,
                     {

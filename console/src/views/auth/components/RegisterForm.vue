@@ -13,10 +13,12 @@ import { Input } from "@/components/ui/input";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { authApi } from "@/api/auth";
-import { setToken, setUserId } from "@/utils/auth";
+import { setUserId } from "@/utils/auth";
+import { setCsrfToken } from "@/utils/csrf";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 import { setSessionFlag } from "@/stores/auth";
+import { useAuthStore } from "@/stores/auth";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -24,6 +26,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const router = useRouter();
+const authStore = useAuthStore();
 const username = ref("");
 const email = ref("");
 const password = ref("");
@@ -38,11 +41,49 @@ async function handleSubmit(e: Event) {
       email: email.value,
       password: password.value,
     });
-    setToken(res.access_token);
-    setUserId(res.user.id);
+
+    if (import.meta.env.DEV) {
+      console.log("[Register] API response:", res);
+    }
+
+    // Validate response - backend returns { csrfToken, user } (unwrapped)
+    if (!res || !res.user) {
+      throw new Error("Registration response is invalid");
+    }
+    // Store CSRF token for subsequent state-changing requests
+    if (res.csrfToken) {
+      setCsrfToken(res.csrfToken);
+    }
+
+    // Set session flag to indicate user has an active session
     setSessionFlag();
+
+    // Store user ID for components that still use fetchCurrentUserId()
+    setUserId(res.user.id);
+
+    // Mark auth store as initialized to prevent router guard from calling initialize() again
+    authStore.markAsInitialized();
+
+    // Set user data in auth store - this makes isAuthenticated work correctly
+    authStore.user = res.user;
+
+    if (import.meta.env.DEV) {
+      console.log("[Register] User set in store:", authStore.user);
+      console.log("[Register] isAuthenticated:", authStore.isAuthenticated);
+    }
+
     toast.success(t("auth.messages.registerSuccess"));
-    router.push("/");
+
+    // Handle redirect to original page if user was redirected to register
+    const redirect = router.currentRoute.value.query.redirect as string;
+    if (redirect && typeof redirect === "string") {
+      if (import.meta.env.DEV) {
+        console.log("[Register] Redirecting to:", redirect);
+      }
+      router.push(redirect);
+    } else {
+      router.push("/");
+    }
   } catch (error) {
     console.error(error);
     toast.error(t("auth.messages.registerFailed"));

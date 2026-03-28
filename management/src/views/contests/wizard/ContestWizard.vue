@@ -124,11 +124,11 @@ async function handleSubmit() {
       title: formData.value.title,
       description: formData.value.description,
       type: formData.value.type,
-      start_time: startTimeISO,
+      startTime: startTimeISO,
       duration: formData.value.duration,
-      is_published: formData.value.is_published,
-      problem_ids: formData.value.selectedProblems.map((p) => p.id),
-      scoring_rule_id: formData.value.scoring_rule_id || undefined,
+      isPublished: formData.value.is_published,
+      problemIds: formData.value.selectedProblems.map((p) => p.id),
+      scoringRuleId: formData.value.scoring_rule_id || undefined,
     })
 
     toast.success(t('contests.toast.createdSuccessfully'))

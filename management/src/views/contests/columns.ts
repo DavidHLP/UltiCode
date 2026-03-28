@@ -220,7 +220,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'contest_type',
+      accessorKey: 'contestType',
       header: () =>
         h(
           'span',
@@ -228,7 +228,7 @@ export function createColumns(
           t('contests.columns.type'),
         ),
       cell: ({ row }) => {
-        const type = row.original.contest_type
+        const type = row.original.contestType
         return renderTypeBadge(type, t)
       },
     },
@@ -246,7 +246,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'start_time',
+      accessorKey: 'startTime',
       header: () =>
         h(
           'span',
@@ -255,7 +255,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const contest = row.original
-        const startDate = formatDate(contest.start_time)
+        const startDate = formatDate(contest.startTime)
         return h('div', { class: 'flex flex-col gap-1' }, [
           h('div', { class: 'flex items-center gap-1.5 text-[var(--silver-400)]' }, [
             h(IconCalendar, { class: 'h-3.5 w-3.5' }),
@@ -266,14 +266,14 @@ export function createColumns(
             h(
               'span',
               { class: 'font-data text-xs tabular-nums' },
-              t('contests.scheduleStep.minutes', { minutes: contest.duration_minutes }),
+              t('contests.scheduleStep.minutes', { minutes: contest.durationMinutes }),
             ),
           ]),
         ])
       },
     },
     {
-      accessorKey: 'participant_count',
+      accessorKey: 'participantCount',
       header: () =>
         h(
           'span',
@@ -286,7 +286,7 @@ export function createColumns(
           h(
             'span',
             { class: 'font-data text-sm tabular-nums' },
-            row.original.participant_count || 0,
+            row.original.participantCount || 0,
           ),
         ])
       },

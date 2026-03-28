@@ -138,13 +138,13 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
       ),
   },
   {
-    accessorKey: 'created_at',
+    accessorKey: 'createdAt',
     header: () => t('notifications.sentAt'),
     cell: ({ row }) =>
       h(
         'span',
         { class: 'font-data text-sm text-[var(--silver-500)] tabular-nums' },
-        format(new Date(row.original.created_at), 'MMM d, yyyy HH:mm'),
+        format(new Date(row.original.createdAt), 'MMM d, yyyy HH:mm'),
       ),
   },
   {

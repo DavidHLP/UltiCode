@@ -122,7 +122,7 @@ function getDifficultyStyle(difficulty: string) {
                 variant="ghost"
                 size="icon"
                 class="h-8 w-8 text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
-                @click="emit('removeProblem', cp.problem_id)"
+                @click="emit('removeProblem', cp.problemId)"
               >
                 <IconTrash class="h-4 w-4" />
               </Button>

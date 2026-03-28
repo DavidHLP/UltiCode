@@ -19,7 +19,7 @@ import type { SubmissionListItem, SubmissionDetail } from '@/api/admin/submissio
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import { useDataTable } from '@/composables/useDataTable'
-import { createColumns } from './columns'
+import { createColumns, formatRuntime, formatMemory } from './columns'
 
 const { t } = useI18n()
 const store = useSubmissionsStore()
@@ -180,16 +180,6 @@ async function batchRejudge() {
     batchRejudging.value = false
     batchRejudgeDialogOpen.value = false
   }
-}
-
-function formatRuntime(ms: number): string {
-  if (ms < 1000) return `${ms}ms`
-  return `${(ms / 1000).toFixed(2)}s`
-}
-
-function formatMemory(kb: number): string {
-  if (kb < 1024) return `${kb}KB`
-  return `${(kb / 1024).toFixed(1)}MB`
 }
 
 const columns = createColumns(t, {

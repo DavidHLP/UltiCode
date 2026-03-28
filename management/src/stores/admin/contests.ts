@@ -185,7 +185,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       // Manually remove from current contest state to avoid full refetch if possible
       if (currentContest.value?.problems) {
         currentContest.value.problems = currentContest.value.problems.filter(
-          (p) => p.problem_id !== problemId,
+          (p) => p.problemId !== problemId,
         )
       }
     } catch (err: unknown) {

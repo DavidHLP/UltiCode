@@ -35,7 +35,7 @@ export interface ForumPostActions {
 
 // Terminal-style status badge renderer
 function renderStatusBadge(post: ForumPost) {
-  if (post.is_deleted) {
+  if (post.isDeleted) {
     return h(
       'span',
       {
@@ -51,7 +51,7 @@ function renderStatusBadge(post: ForumPost) {
     )
   }
 
-  if (post.is_flagged) {
+  if (post.isFlagged) {
     return h(
       'div',
       { class: 'flex items-center gap-2' },
@@ -96,7 +96,7 @@ function renderStatusBadge(post: ForumPost) {
 function renderPinLockBadge(post: ForumPost, t: (key: string) => string) {
   const badges: ReturnType<typeof h>[] = []
 
-  if (post.is_pinned) {
+  if (post.isPinned) {
     badges.push(
       h(
         'span',
@@ -116,7 +116,7 @@ function renderPinLockBadge(post: ForumPost, t: (key: string) => string) {
     )
   }
 
-  if (post.is_locked) {
+  if (post.isLocked) {
     badges.push(
       h(
         'span',
@@ -222,7 +222,7 @@ export function createColumns(
         return h('div', { class: 'flex items-center gap-4 text-[var(--silver-400)] text-xs' }, [
           h('div', { class: 'flex items-center gap-1.5' }, [
             h(IconEye, { class: 'h-3.5 w-3.5 text-[var(--terminal-cyan)]' }),
-            h('span', { class: 'font-data tabular-nums' }, post.view_count || 0),
+            h('span', { class: 'font-data tabular-nums' }, post.viewCount || 0),
           ]),
           h('div', { class: 'flex items-center gap-1.5' }, [
             h(IconThumbUp, { class: 'h-3.5 w-3.5 text-[var(--terminal-green)]' }),
@@ -232,7 +232,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'is_flagged',
+      accessorKey: 'isFlagged',
       header: () =>
         h(
           'span',
@@ -245,7 +245,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'created_at',
+      accessorKey: 'createdAt',
       header: () =>
         h(
           'span',
@@ -253,7 +253,7 @@ export function createColumns(
           t('forum.columns.created'),
         ),
       cell: ({ row }) => {
-        const date = row.getValue('created_at') as string
+        const date = row.getValue('createdAt') as string
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
@@ -350,7 +350,7 @@ function createActionsDropdown(
                           h(IconPin, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
                           h(
                             'span',
-                            post.is_pinned ? t('forum.actions.unpin') : t('forum.actions.pin'),
+                            post.isPinned ? t('forum.actions.unpin') : t('forum.actions.pin'),
                           ),
                         ]),
                     },
@@ -369,7 +369,7 @@ function createActionsDropdown(
                           h(IconLock, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
                           h(
                             'span',
-                            post.is_locked ? t('forum.actions.unlock') : t('forum.actions.lock'),
+                            post.isLocked ? t('forum.actions.unlock') : t('forum.actions.lock'),
                           ),
                         ]),
                     },
@@ -381,7 +381,7 @@ function createActionsDropdown(
                   })
                 : null,
               canModerate()
-                ? post.is_flagged
+                ? post.isFlagged
                   ? h(
                       DropdownMenuItem,
                       {

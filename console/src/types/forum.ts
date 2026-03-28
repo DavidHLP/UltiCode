@@ -173,7 +173,9 @@ export interface ForumPost {
   excerpt?: string;
   tags?: string[];
   community?: ForumCommunity;
+  communityId?: string; // Community reference from backend
   flair?: ForumFlair;
+  flairType?: ForumFlairType; // Direct flair type from backend
   isPinned?: boolean;
   isLocked?: boolean;
   media?: ForumPostMedia[];

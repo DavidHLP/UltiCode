@@ -95,7 +95,7 @@ async function togglePin() {
   try {
     await forumStore.togglePin(post.value)
     toast.success(
-      post.value.is_pinned
+      post.value.isPinned
         ? t('forum.toast.unpinnedSuccessfully')
         : t('forum.toast.pinnedSuccessfully'),
     )
@@ -110,7 +110,7 @@ async function toggleLock() {
   try {
     await forumStore.toggleLock(post.value)
     toast.success(
-      post.value.is_locked
+      post.value.isLocked
         ? t('forum.toast.unlockedSuccessfully')
         : t('forum.toast.lockedSuccessfully'),
     )
@@ -221,20 +221,20 @@ async function handleFlagPost(id: string | number, reason?: string) {
         <div v-if="post" class="flex items-center gap-3">
           <!-- Status Badges -->
           <div class="hidden sm:flex items-center gap-2">
-            <TerminalBadge v-if="post.is_pinned" variant="info" :label="t('forum.status.pinned')" />
+            <TerminalBadge v-if="post.isPinned" variant="info" :label="t('forum.status.pinned')" />
             <TerminalBadge
-              v-if="post.is_locked"
+              v-if="post.isLocked"
               variant="warning"
               :label="t('forum.status.locked')"
             />
             <TerminalBadge
-              v-if="post.is_flagged"
+              v-if="post.isFlagged"
               variant="error"
               pulse
               :label="t('forum.status.flagged')"
             />
             <TerminalBadge
-              v-if="post.is_deleted"
+              v-if="post.isDeleted"
               variant="error"
               :label="t('forum.status.deleted')"
             />
@@ -250,7 +250,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
             >
               <IconPin class="h-3.5 w-3.5 mr-1.5" />
               <span class="uppercase tracking-wider">{{
-                post.is_pinned ? t('forum.actions.unpin') : t('forum.actions.pin')
+                post.isPinned ? t('forum.actions.unpin') : t('forum.actions.pin')
               }}</span>
             </Button>
 
@@ -262,12 +262,12 @@ async function handleFlagPost(id: string | number, reason?: string) {
             >
               <IconLock class="h-3.5 w-3.5 mr-1.5" />
               <span class="uppercase tracking-wider">{{
-                post.is_locked ? t('forum.actions.unlock') : t('forum.actions.lock')
+                post.isLocked ? t('forum.actions.unlock') : t('forum.actions.lock')
               }}</span>
             </Button>
 
             <Button
-              v-if="post.is_flagged"
+              v-if="post.isFlagged"
               variant="terminal"
               size="sm"
               class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"

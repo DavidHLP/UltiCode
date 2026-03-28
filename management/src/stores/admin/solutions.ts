@@ -17,8 +17,8 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
 
   // Computed stats for terminal ticker
   const totalCount = computed(() => total.value)
-  const flaggedCount = computed(() => solutions.value.filter((s) => s.is_flagged).length)
-  const publishedCount = computed(() => solutions.value.filter((s) => s.is_published).length)
+  const flaggedCount = computed(() => solutions.value.filter((s) => s.isFlagged).length)
+  const publishedCount = computed(() => solutions.value.filter((s) => s.isPublished).length)
 
   async function fetchSolutions(params: SolutionQueryParams = {}) {
     loading.value = true

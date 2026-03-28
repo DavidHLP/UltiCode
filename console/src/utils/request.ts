@@ -12,13 +12,14 @@ import { getActiveLocale } from "@/i18n/utils/locale";
 import { getCsrfToken } from "@/utils/csrf";
 
 /**
- * Standard API Response wrapper
+ * Standard API Response wrapper (matches backend Result<T>)
+ * code: 0 = success, non-zero = error
  */
 export interface ApiResponse<T = unknown> {
-  success: boolean;
+  code: number;
+  message: string;
   data: T;
-  message?: string;
-  code?: number;
+  traceId?: string;
 }
 
 /**
@@ -169,8 +170,10 @@ service.interceptors.request.use(
     // Log request in development
     if (isDevelopment) {
       console.log(`[API Request] ${requestId}`, {
+        baseURL: config.baseURL,
         method: config.method?.toUpperCase(),
         url: config.url,
+        fullUrl: `${config.baseURL || ""}${config.url || ""}`,
         headers: config.headers,
         params: config.params,
         data: config.data,
@@ -212,6 +215,30 @@ service.interceptors.response.use(
     if (config.skipResponseUnwrap) {
       return response;
     }
+
+    // Handle wrapped API responses (Result<T> format)
+    const responseData = response.data;
+    if (
+      responseData &&
+      typeof responseData === "object" &&
+      "code" in responseData
+    ) {
+      const apiResponse = responseData as ApiResponse<unknown>;
+      // code: 0 = success, non-zero = error
+      if (apiResponse.code !== 0) {
+        // Treat non-zero code as error
+        const error = new ApiError(
+          apiResponse.message || "Request failed",
+          apiResponse.code,
+          response,
+        );
+        return Promise.reject(error);
+      }
+      // Return the inner data field
+      return apiResponse.data;
+    }
+
+    // Return raw data for non-wrapped responses (backward compatibility)
     return response.data;
   },
   async (error: AxiosError) => {
@@ -231,6 +258,10 @@ service.interceptors.response.use(
 
     // Retry logic for network errors and 5xx
     if (config) {
+      if (config.skipErrorHandler) {
+        return Promise.reject(ApiError.fromAxiosError(error));
+      }
+
       const enableRetry = config.retry === undefined ? true : config.retry > 0;
       const metadata = config._metadata || {
         requestId: "unknown",
@@ -264,17 +295,27 @@ service.interceptors.response.use(
     }
 
     // Handle authentication errors (401/403)
-    // Cookies are httpOnly - cannot be removed by JavaScript
-    // Backend will handle cookie clearing on logout
     if (
       error.response &&
       (error.response.status === 401 || error.response.status === 403)
     ) {
-      // Redirect to login page
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
+      const { useAuthStore } = await import("@/stores/auth");
+      const authStore = useAuthStore();
+
+      // Only clear if we were previously authenticated or had a session flag
+      if (
+        authStore.isAuthenticated ||
+        localStorage.getItem("ulticode_has_session") === "true"
+      ) {
+        authStore.clearUser();
       }
-      // Silent handling for 401/403 - expected for unauthenticated users
+
+      if (isDevelopment) {
+        console.warn(
+          `[API Auth Error] ${error.response.status} on ${config?.url}`,
+        );
+      }
+
       return Promise.reject(ApiError.fromAxiosError(error));
     }
 

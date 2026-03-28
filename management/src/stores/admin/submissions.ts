@@ -92,6 +92,22 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     return submissionsApi.getById(id)
   }
 
+  function clearError() {
+    error.value = null
+  }
+
+  function reset() {
+    submissions.value = []
+    total.value = 0
+    totalPages.value = 0
+    loading.value = false
+    error.value = null
+    statistics.value = null
+    statsLoading.value = false
+    statuses.value = []
+    languages.value = []
+  }
+
   return {
     // State
     submissions,
@@ -112,5 +128,7 @@ export const useSubmissionsStore = defineStore('admin-submissions', () => {
     rejudgeSubmission,
     batchRejudge,
     getSubmissionDetail,
+    clearError,
+    reset,
   }
 })

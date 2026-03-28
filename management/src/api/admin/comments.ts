@@ -5,23 +5,22 @@ export type CommentType = 'forum' | 'solution'
 export interface Comment {
   id: string
   content: string
-  created_at: string
-  updated_at: string
-  author_id: string
-  parent_id?: string
+  createdAt: string
+  updatedAt: string
+  authorId: string
+  parentId?: string
 
   // Type identification
   type: CommentType
-  parentId: string // unified parent ID (post_id or solution_id)
-  parentTitle?: string // unified parent title
+  parentTitle?: string // unified parent title (post title or solution title)
 
   // Moderation
-  is_flagged: boolean
-  flagged_reason?: string
-  flagged_at?: string
-  is_deleted: boolean
-  deleted_at?: string
-  deleted_by?: string
+  isFlagged: boolean
+  flaggedReason?: string
+  flaggedAt?: string
+  isDeleted: boolean
+  deletedAt?: string
+  deletedBy?: string
 
   author: {
     id: string
@@ -35,8 +34,8 @@ export interface CommentQueryParams {
   limit?: number
   search?: string
   type?: CommentType
-  is_flagged?: boolean
-  is_deleted?: boolean
+  isFlagged?: boolean
+  isDeleted?: boolean
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }

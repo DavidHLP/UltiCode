@@ -49,8 +49,8 @@ const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_CO
 const stats = computed(() => {
   const comments = commentsStore.comments
   const total = commentsStore.total
-  const flagged = comments.filter((c) => c.is_flagged).length
-  const deleted = comments.filter((c) => c.is_deleted).length
+  const flagged = comments.filter((c) => c.isFlagged).length
+  const deleted = comments.filter((c) => c.isDeleted).length
   return { total, flagged, deleted }
 })
 
@@ -112,7 +112,7 @@ async function unflagComment(comment: Comment) {
 
 // Terminal-style status badge renderer
 function renderStatusBadge(comment: Comment) {
-  if (comment.is_deleted) {
+  if (comment.isDeleted) {
     return h(
       'span',
       {
@@ -128,7 +128,7 @@ function renderStatusBadge(comment: Comment) {
     )
   }
 
-  if (comment.is_flagged) {
+  if (comment.isFlagged) {
     return h(
       'div',
       { class: 'flex items-center gap-2' },
@@ -233,7 +233,7 @@ const columns: ColumnDef<Comment>[] = [
     },
   },
   {
-    accessorKey: 'created_at',
+    accessorKey: 'createdAt',
     header: () =>
       h(
         'span',
@@ -241,7 +241,7 @@ const columns: ColumnDef<Comment>[] = [
         t('comments.columns.created'),
       ),
     cell: ({ row }) => {
-      const date = new Date(row.getValue('created_at') as string)
+      const date = new Date(row.getValue('createdAt') as string)
       return h(
         'span',
         { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
@@ -250,7 +250,7 @@ const columns: ColumnDef<Comment>[] = [
     },
   },
   {
-    accessorKey: 'is_flagged',
+    accessorKey: 'isFlagged',
     header: () =>
       h(
         'span',
@@ -309,7 +309,7 @@ const columns: ColumnDef<Comment>[] = [
               },
               {
                 default: () => [
-                  comment.is_flagged
+                  comment.isFlagged
                     ? h(
                         DropdownMenuItem,
                         {

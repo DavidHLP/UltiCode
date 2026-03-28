@@ -47,7 +47,7 @@ const canModerateSolution = computed(() => authStore.hasPermission('MODERATE', '
 const stats = computed(() => {
   const comments = commentsStore.comments
   const total = commentsStore.total
-  const flagged = comments.filter((c) => c.is_flagged).length
+  const flagged = comments.filter((c) => c.isFlagged).length
   const forumCount = comments.filter((c) => c.type === 'forum').length
   const solutionCount = comments.filter((c) => c.type === 'solution').length
   return { total, flagged, forumCount, solutionCount }
@@ -103,7 +103,7 @@ const {
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     type: filters.type === 'all' ? undefined : filters.type,
-    is_flagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
     page,
     limit,
   }),

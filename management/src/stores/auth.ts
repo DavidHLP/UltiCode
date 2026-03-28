@@ -28,8 +28,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const loginResponse = await authApi.login(credentials)
       // Store CSRF token for subsequent state-changing requests
-      if (loginResponse.csrf_token) {
-        setCsrfToken(loginResponse.csrf_token)
+      if (loginResponse.csrfToken) {
+        setCsrfToken(loginResponse.csrfToken)
       }
       // Mark that we have auth credentials (httpOnly cookies were set by backend)
       localStorage.setItem(AUTH_HAS_CREDENTIALS_KEY, 'true')
@@ -71,14 +71,24 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchUser() {
     try {
-      const userData = await authApi.getCurrentUser()
-      user.value = userData
+      // Backend returns: { code: 0, data: { user: {...}, csrfToken: "..." } }
+      // After request.ts unwrapping, we get: { user: {...}, csrfToken: "..." }
+      const response = await authApi.getCurrentUser()
+
+      // Debug: Log the response to see what we're getting
+      if (import.meta.env.DEV) {
+        console.log('[Auth] fetchUser response:', response)
+        console.log('[Auth] response.user:', response.user)
+        console.log('[Auth] response.user.role:', response.user?.role)
+      }
+
+      user.value = response.user
       // Store CSRF token if returned (handles page refresh case)
-      if (userData.csrf_token) {
-        setCsrfToken(userData.csrf_token)
+      if (response.csrfToken) {
+        setCsrfToken(response.csrfToken)
       }
       await loadPermissions()
-      return userData
+      return response.user
     } catch {
       // 401 is expected for unauthenticated users - no need to log
       // Clear credentials flag since auth failed (cookie expired or invalid)
@@ -110,11 +120,48 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   function hasRole(role: string): boolean {
-    return user.value?.role === role
+    const userRole = user.value?.role?.toUpperCase()
+    const requiredRole = role.toUpperCase()
+    const hasRoleMatch = userRole === requiredRole
+
+    // Debug logging (dev only)
+    if (import.meta.env.DEV) {
+      console.log('[Auth] hasRole check:', {
+        userRole: user.value?.role,
+        normalizedUserRole: userRole,
+        requiredRole: role,
+        normalizedRequiredRole: requiredRole,
+        hasRoleMatch,
+      })
+    }
+
+    return hasRoleMatch
   }
 
   function hasAnyRole(roles: string[]): boolean {
-    return roles.includes(user.value?.role || '')
+    const userRole = user.value?.role?.toUpperCase()
+    if (!userRole) {
+      if (import.meta.env.DEV) {
+        console.log('[Auth] hasAnyRole check: No user role found')
+      }
+      return false
+    }
+
+    const normalizedRoles = roles.map((r) => r.toUpperCase())
+    const hasRole = normalizedRoles.includes(userRole)
+
+    // Debug logging (dev only)
+    if (import.meta.env.DEV) {
+      console.log('[Auth] hasAnyRole check:', {
+        userRole: user.value?.role,
+        normalizedUserRole: userRole,
+        requiredRoles: roles,
+        normalizedRequiredRoles: normalizedRoles,
+        hasRole,
+      })
+    }
+
+    return hasRole
   }
 
   return {

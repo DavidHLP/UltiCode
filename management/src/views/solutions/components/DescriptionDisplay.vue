@@ -82,14 +82,8 @@ const solutionContent = computed(() => ({
         />
         <DataBlock :label="t('solutions.detail.views')" :value="solution.views.toLocaleString()" />
         <DataBlock :label="t('solutions.detail.language')" :value="solution.language" />
-        <DataBlock
-          :label="t('solutions.detail.created')"
-          :value="formatDate(solution.created_at)"
-        />
-        <DataBlock
-          :label="t('solutions.detail.updated')"
-          :value="formatDate(solution.updated_at)"
-        />
+        <DataBlock :label="t('solutions.detail.created')" :value="formatDate(solution.createdAt)" />
+        <DataBlock :label="t('solutions.detail.updated')" :value="formatDate(solution.updatedAt)" />
       </div>
     </div>
 

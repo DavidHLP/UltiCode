@@ -47,7 +47,7 @@ const totalPages = ref(0)
 const searchQuery = ref('')
 const actionFilter = ref('')
 const performerFilter = ref('')
-const sortBy = ref('created_at')
+const sortBy = ref('createdAt')
 const sortOrder = ref<'asc' | 'desc'>('desc')
 
 const expandedLogs = ref<Set<string>>(new Set())

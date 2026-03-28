@@ -33,6 +33,8 @@ import { isAuthenticated } from "@/utils/auth";
 import { vote, VoteTargetType } from "@/api/vote";
 import { useI18n } from "vue-i18n";
 
+const isDevelopment = import.meta.env.DEV;
+
 const posts = ref<ForumPost[]>([]);
 const communities = ref<ForumCommunity[]>([]);
 const quickFilters = ref<Array<{ label: string; value: string }>>([]);
@@ -56,6 +58,9 @@ const selectedFlair = ref<"all" | ForumFlairType>("all");
 
 // Load all posts and communities on mount
 async function loadAllPosts() {
+  if (isDevelopment) {
+    console.log("[ForumFeedView] loadAllPosts() called");
+  }
   isLoading.value = true;
   try {
     const [postRows, communityRows, filters] = await Promise.all([
@@ -72,13 +77,23 @@ async function loadAllPosts() {
     currentCommunity.value = null;
     communityRules.value = [];
     communityLinks.value = [];
+    if (isDevelopment) {
+      console.log("[ForumFeedView] Data loaded:", {
+        postsCount: postRows.length,
+        communitiesCount: communityRows.length,
+        filtersCount: filters.length,
+      });
+    }
   } catch (error) {
-    console.error("Failed to load forum data", error);
+    console.error("[ForumFeedView] Failed to load forum data", error);
     posts.value = [];
     communities.value = [];
     quickFilters.value = [];
   } finally {
     isLoading.value = false;
+    if (isDevelopment) {
+      console.log("[ForumFeedView] isLoading set to false");
+    }
   }
 }
 
@@ -144,7 +159,7 @@ const filteredPosts = computed(() => {
         ));
 
     const matchesFlair =
-      selectedFlair.value === "all" || post.flair?.type === selectedFlair.value;
+      selectedFlair.value === "all" || post.flairType === selectedFlair.value;
 
     return matchesSearch && matchesFlair;
   });
@@ -153,7 +168,11 @@ const filteredPosts = computed(() => {
 const sortedPosts = computed(() => {
   const postsArray = [...filteredPosts.value];
   const sorters: Record<string, (a: ForumPost, b: ForumPost) => number> = {
-    hot: (a, b) => (b.stats?.score ?? 0) - (a.stats?.score ?? 0),
+    hot: (a, b) => {
+      const aScore = (a.likes ?? 0) - (a.dislikes ?? 0);
+      const bScore = (b.likes ?? 0) - (b.dislikes ?? 0);
+      return bScore - aScore;
+    },
     new: (a, b) =>
       new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf(),
     top: (a, b) => (b.stats?.saves ?? 0) - (a.stats?.saves ?? 0),
@@ -166,7 +185,16 @@ const sortedPosts = computed(() => {
   const pinned = postsArray.filter((post) => post.isPinned);
   const rest = postsArray.filter((post) => !post.isPinned);
 
-  return [...pinned, ...rest];
+  const result = [...pinned, ...rest];
+  if (isDevelopment) {
+    console.log("[ForumFeedView] sortedPosts:", {
+      filter: quickFilter.value,
+      inputCount: postsArray.length,
+      outputCount: result.length,
+      pinnedCount: pinned.length,
+    });
+  }
+  return result;
 });
 
 function handleCreatePost() {

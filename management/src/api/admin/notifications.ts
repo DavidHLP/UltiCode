@@ -37,7 +37,7 @@ export interface SystemAnnouncement {
   title: string
   content: string
   type: NotificationType
-  created_at: string
+  createdAt: string
   creator: {
     id: string
     username: string

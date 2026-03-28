@@ -14,8 +14,8 @@ export enum ContestStatus {
 
 export interface ContestParticipant {
   id: string
-  contest_id: string
-  user_id: string
+  contestId: string
+  userId: string
   score: number
   rank?: number
   user: {
@@ -27,9 +27,9 @@ export interface ContestParticipant {
 
 export interface ContestProblem {
   id: string
-  contest_id: string
-  problem_id: string
-  problem_index: string
+  contestId: string
+  problemId: string
+  problemIndex: string
   score: number
   problem: {
     id: string
@@ -41,10 +41,10 @@ export interface ContestProblem {
 
 export interface ContestRanking {
   id: string
-  contest_id: string
-  user_id: string
-  total_score: number
-  total_penalty: number
+  contestId: string
+  userId: string
+  totalScore: number
+  totalPenalty: number
   rank: number
   user: {
     id: string
@@ -58,16 +58,16 @@ export interface Contest {
   slug: string
   title: string
   description?: string
-  contest_type: ContestType
-  start_time: string
-  end_time?: string
-  duration_minutes: number
+  contestType: ContestType
+  startTime: string
+  endTime?: string
+  durationMinutes: number
   status: ContestStatus
-  is_visible: boolean
-  participant_count?: number
-  problem_count?: number
-  created_at: string
-  updated_at: string
+  isVisible: boolean
+  participantCount?: number
+  problemCount?: number
+  createdAt: string
+  updatedAt: string
   participants?: ContestParticipant[]
   problems?: ContestProblem[]
 }
@@ -95,11 +95,11 @@ export interface CreateContestDto {
   title: string
   description?: string
   type: ContestType
-  start_time: string
+  startTime: string
   duration: number
-  is_published?: boolean
-  problem_ids?: string[]
-  scoring_rule_id?: string
+  isPublished?: boolean
+  problemIds?: string[]
+  scoringRuleId?: string
 }
 
 export interface UpdateContestDto {
@@ -107,13 +107,13 @@ export interface UpdateContestDto {
   title?: string
   description?: string
   type?: ContestType
-  start_time?: string
+  startTime?: string
   duration?: number
-  is_published?: boolean
+  isPublished?: boolean
 }
 
 export interface AddContestProblemDto {
-  problem_id: string
+  problemId: string
   score?: number
 }
 

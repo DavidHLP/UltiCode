@@ -42,16 +42,29 @@ import {
 } from "@/api/user";
 import { fetchUserSubmissions } from "@/api/submission";
 import type { SubmissionRecord } from "@/types/submission";
-import { fetchCurrentUserId } from "@/utils/auth";
+import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 const loading = ref(true);
 const user = ref<UserProfile | null>(null);
 const submissions = ref<SubmissionRecord[]>([]);
 const statsData = ref<UserStats | null>(null);
 const skillsData = ref<UserSkill[]>([]);
 const skillsLoading = ref(false);
+
+// Use authenticated user from auth store
+const currentUserId = computed(() => authStore.user?.id);
+
+// Debug: log when component is created
+if (import.meta.env.DEV) {
+  console.log(
+    "[PersonalView] Component created, authStore.user:",
+    authStore.user,
+  );
+  console.log("[PersonalView] currentUserId:", currentUserId.value);
+}
 
 const stats = computed(() => {
   if (!statsData.value)
@@ -108,18 +121,48 @@ const recentActivity = computed(() => {
 });
 
 onMounted(async () => {
+  if (import.meta.env.DEV) {
+    console.log("[PersonalView] onMounted called");
+    console.log("[PersonalView] authStore.user:", authStore.user);
+    console.log("[PersonalView] currentUserId.value:", currentUserId.value);
+  }
+
   try {
-    const userId = fetchCurrentUserId();
-    if (!userId) return;
+    const userId = currentUserId.value;
+    if (!userId) {
+      if (import.meta.env.DEV) {
+        console.error("[PersonalView] No user ID found in auth store");
+      }
+      loading.value = false;
+      return;
+    }
+
+    if (import.meta.env.DEV) {
+      console.log("[PersonalView] Loading data for user:", userId);
+    }
+
     const [userData, userSubmissions, userStats] = await Promise.all([
       fetchUserProfile(userId),
       fetchUserSubmissions(),
       fetchUserStats(userId),
     ]);
 
+    if (import.meta.env.DEV) {
+      console.log("[PersonalView] API responses received:", {
+        userData,
+        submissionsCount: userSubmissions.length,
+        userStats,
+      });
+    }
+
     user.value = userData;
     submissions.value = userSubmissions;
     statsData.value = userStats;
+
+    if (import.meta.env.DEV) {
+      console.log("[PersonalView] Data loaded, user.value set to:", user.value);
+      console.log("[PersonalView] loading.value set to false");
+    }
 
     // Fetch skills data separately (non-blocking)
     skillsLoading.value = true;
@@ -134,9 +177,20 @@ onMounted(async () => {
         skillsLoading.value = false;
       });
   } catch (e) {
-    console.error("Failed to load profile data", e);
+    console.error("[PersonalView] Failed to load profile data", e);
+    if (import.meta.env.DEV) {
+      console.error("[PersonalView] Error details:", e);
+    }
   } finally {
     loading.value = false;
+    if (import.meta.env.DEV) {
+      console.log(
+        "[PersonalView] onMounted completed, loading:",
+        loading.value,
+        "user:",
+        !!user.value,
+      );
+    }
   }
 });
 </script>

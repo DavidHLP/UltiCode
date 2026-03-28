@@ -315,6 +315,18 @@ router.beforeEach(async (to, from, next) => {
     (record) => record.meta.requiresAuth === true,
   );
 
+  // Development logging for debugging auth flow
+  if (import.meta.env.DEV) {
+    console.log("[Router] Navigation:", {
+      to: to.path,
+      requiresAuth,
+      isAuthenticated: authStore.isAuthenticated,
+      isInitialized: authStore.isInitialized,
+      hasUser: !!authStore.user,
+      hasSessionFlag: localStorage.getItem("ulticode_has_session"),
+    });
+  }
+
   if (requiresAuth && !authStore.isAuthenticated) {
     // Redirect to login with return url
     return next({

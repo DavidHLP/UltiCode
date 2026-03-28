@@ -85,7 +85,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
       const index = comments.value.findIndex((c) => c.id === id)
       const comment = comments.value[index]
       if (comment) {
-        comment.is_deleted = true
+        comment.isDeleted = true
       }
     } catch (err: unknown) {
       error.value =

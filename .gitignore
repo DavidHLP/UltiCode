@@ -1,10 +1,59 @@
-# compiled output
-/dist
+# ====================================================================
+# 1. 编译产物与构建目录 (Compiled Output)
+# ====================================================================
+/dist/
+/build/
+/target/
+/bin/
+/out/
 node_modules/
 **/node_modules/
-/build
+/backend/
+.gradle/
+*.class
+*.jar
+*.war
+*.ear
 
-# Logs
+# ====================================================================
+# 2. 语言特定规则 (Language Specific)
+# ====================================================================
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.pytest_cache/
+.mypy_cache/
+.tox/
+*.egg-info/
+.python-version
+
+# --- Java / Spring Boot ---
+.help.md
+/logs/
+*.log.gz
+/db/
+# 忽略 Maven 生成的单元测试报告
+**/target/surefire-reports/
+
+# --- Vue 3 / Frontend ---
+dist-ssr/
+*.local
+.eslintcache
+.stylelintcache
+.vite-inspect
+# 生产环境环境变量（建议手动管理，不进入 Git）
+.env.production.local
+.env.development.local
+
+# ====================================================================
+# 3. 日志与调试 (Logs & Debug)
+# ====================================================================
 logs
 *.log
 npm-debug.log*
@@ -13,47 +62,55 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
-# OS
+# ====================================================================
+# 4. 操作系统与临时文件 (OS & Temp)
+# ====================================================================
 .DS_Store
+Thumbs.db
+.temp
+.tmp
+.worktrees/
+pids
+*.pid
+*.seed
+*.pid.lock
 
-# Tests
-/coverage
-/.nyc_output
+# Node.js 诊断报告
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# IDEs and editors
-/.idea
+# ====================================================================
+# 5. IDE 与 编辑器 (IDEs and Editors)
+# ====================================================================
+
+# --- General ---
+.idea/
+*.iws
+*.iml
+*.ipr
 .project
 .classpath
 .c9/
 *.launch
 .settings/
 *.sublime-workspace
+.nb-configuration.xml
 
-# IDE - VSCode
+# --- VSCode ---
 .vscode/*
 !.vscode/settings.json
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
 
-
-# temp directory
-.temp
-.tmp
-
-# Git worktrees
-.worktrees/
-
-# Deprecated directories
-/backend/
-
-# Runtime data
-pids
-*.pid
-*.seed
-*.pid.lock
+# --- AI Tools ---
 .claude
 *CLAUDE.md
 
-# Diagnostic reports (https://nodejs.org/api/report.html)
-report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+# ====================================================================
+# 6. 测试与覆盖率 (Tests & Coverage)
+# ====================================================================
+/coverage
+/.nyc_output
+htmlcov/
+.noserc
+.fluentd.conf

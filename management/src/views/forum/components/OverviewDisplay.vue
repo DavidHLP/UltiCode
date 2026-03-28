@@ -45,29 +45,29 @@ function formatDate(dateStr: string) {
           <h3 class="text-lg font-medium text-[var(--foreground)] mb-3">{{ post.title }}</h3>
           <div class="flex flex-wrap gap-1.5">
             <TerminalBadge
-              v-if="post.is_pinned"
+              v-if="post.isPinned"
               variant="info"
               pulse
               :label="t('forum.status.pinned')"
             />
             <TerminalBadge
-              v-if="post.is_locked"
+              v-if="post.isLocked"
               variant="warning"
               :label="t('forum.status.locked')"
             />
             <TerminalBadge
-              v-if="post.is_flagged"
+              v-if="post.isFlagged"
               variant="error"
               pulse
               :label="t('forum.status.flagged')"
             />
             <TerminalBadge
-              v-if="post.is_deleted"
+              v-if="post.isDeleted"
               variant="error"
               :label="t('forum.status.deleted')"
             />
             <TerminalBadge
-              v-if="!post.is_pinned && !post.is_locked && !post.is_flagged && !post.is_deleted"
+              v-if="!post.isPinned && !post.isLocked && !post.isFlagged && !post.isDeleted"
               variant="success"
               :label="t('forum.status.active')"
             />
@@ -103,7 +103,7 @@ function formatDate(dateStr: string) {
         >
           <p class="font-data text-sm text-[var(--foreground)] whitespace-pre-wrap leading-relaxed">
             {{
-              post.full_content ||
+              post.fullContent ||
               post.content ||
               post.excerpt ||
               t('forum.detail.noContentAvailable')
@@ -123,7 +123,7 @@ function formatDate(dateStr: string) {
           <span class="terminal-label text-[var(--silver-500)]">{{ t('forum.detail.views') }}</span>
         </div>
         <span class="font-data text-2xl tabular-nums text-[var(--foreground)]">{{
-          post.view_count || 0
+          post.viewCount || 0
         }}</span>
       </div>
       <div
@@ -136,7 +136,7 @@ function formatDate(dateStr: string) {
           }}</span>
         </div>
         <span class="font-data text-2xl tabular-nums text-[var(--foreground)]">{{
-          post.comment_count || 0
+          post.commentCount || 0
         }}</span>
       </div>
       <div
@@ -174,7 +174,7 @@ function formatDate(dateStr: string) {
           <div class="flex items-center gap-2">
             <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
             <span class="font-data text-sm text-[var(--foreground)]">{{
-              formatDate(post.created_at)
+              formatDate(post.createdAt)
             }}</span>
           </div>
         </DataBlock>
@@ -182,7 +182,7 @@ function formatDate(dateStr: string) {
           <div class="flex items-center gap-2">
             <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
             <span class="font-data text-sm text-[var(--foreground)]">{{
-              formatDate(post.updated_at)
+              formatDate(post.updatedAt)
             }}</span>
           </div>
         </DataBlock>
@@ -191,7 +191,7 @@ function formatDate(dateStr: string) {
 
     <!-- Flagged Info -->
     <div
-      v-if="post.is_flagged && post.flagged_reason"
+      v-if="post.isFlagged && post.flaggedReason"
       class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)]"
     >
       <div class="px-4 py-3 border-b border-[var(--terminal-red)]/30 bg-[oklch(0.6_0.2_25/0.05)]">
@@ -203,16 +203,16 @@ function formatDate(dateStr: string) {
         </div>
       </div>
       <div class="p-4 space-y-3">
-        <DataBlock :label="t('forum.detail.reason')" :value="post.flagged_reason" size="sm" />
-        <p v-if="post.flagged_at" class="font-data text-xs text-[var(--silver-400)]">
-          {{ t('forum.detail.flaggedOn') }} {{ formatDate(post.flagged_at) }}
+        <DataBlock :label="t('forum.detail.reason')" :value="post.flaggedReason" size="sm" />
+        <p v-if="post.flaggedAt" class="font-data text-xs text-[var(--silver-400)]">
+          {{ t('forum.detail.flaggedOn') }} {{ formatDate(post.flaggedAt) }}
         </p>
       </div>
     </div>
 
     <!-- Deleted Info -->
     <div
-      v-if="post.is_deleted"
+      v-if="post.isDeleted"
       class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)]"
     >
       <div class="px-4 py-3 border-b border-[var(--terminal-red)]/30 bg-[oklch(0.6_0.2_25/0.05)]">
@@ -224,8 +224,8 @@ function formatDate(dateStr: string) {
         </div>
       </div>
       <div class="p-4">
-        <p v-if="post.deleted_at" class="font-data text-xs text-[var(--silver-400)]">
-          {{ t('forum.detail.deletedOn') }} {{ formatDate(post.deleted_at) }}
+        <p v-if="post.deletedAt" class="font-data text-xs text-[var(--silver-400)]">
+          {{ t('forum.detail.deletedOn') }} {{ formatDate(post.deletedAt) }}
         </p>
       </div>
     </div>
@@ -248,7 +248,7 @@ function formatDate(dateStr: string) {
           }}</span>
           <code
             class="font-data text-xs bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--silver-300)]"
-            >{{ post.user_id }}</code
+            >{{ post.userId }}</code
           >
         </div>
         <div class="flex items-center gap-3">
@@ -257,7 +257,7 @@ function formatDate(dateStr: string) {
           }}</span>
           <code
             class="font-data text-xs bg-[var(--surface-sunken)] px-2 py-1 border border-[var(--silver-300)]"
-            >{{ post.community_id }}</code
+            >{{ post.communityId }}</code
           >
         </div>
       </div>

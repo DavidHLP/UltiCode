@@ -18,7 +18,7 @@ async function handleReset(e: Event) {
   e.preventDefault();
   loading.value = true;
   try {
-    await authApi.forgotPassword(email.value);
+    await authApi.forgotPassword({ email: email.value });
     toast.success(t("auth.forgotPassword.successMessage"));
     router.push("/login");
   } catch (error) {

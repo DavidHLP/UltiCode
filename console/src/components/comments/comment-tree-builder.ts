@@ -19,10 +19,25 @@ const mapToComment = (
   const voteCounts = resolveVoteCounts(input.likes, input.dislikes);
   const userVote = resolveUserVote(input.userVote);
 
+  // Get username from backend response (authorUsername) or from author object
+  const username = input.authorUsername || input.author?.username;
+  const authorId = input.authorId || input.author?.id;
+  const avatar = input.authorAvatar || input.author?.avatar;
+
+  // Validate required fields - these should always be present from backend
+  if (!username) {
+    console.error("Comment missing required username:", input);
+    throw new Error(`Comment ${input.id} is missing required username field`);
+  }
+  if (!authorId) {
+    console.error("Comment missing required authorId:", input);
+    throw new Error(`Comment ${input.id} is missing required authorId field`);
+  }
+
   return {
     id: input.id,
-    author: input.author.username,
-    avatar: buildAvatar(input.author.username, input.author.avatar),
+    author: username,
+    avatar: buildAvatar(username, avatar),
     time: formatRelativeTime(input.createdAt),
     votes: voteCounts.likes - voteCounts.dislikes,
     likes: voteCounts.likes,
@@ -30,10 +45,8 @@ const mapToComment = (
     userVote,
     content: input.body,
     isOp:
-      !!options?.postAuthorUsername &&
-      input.author.username === options.postAuthorUsername,
-    isOwn:
-      !!options?.currentUserId && input.author.id === options.currentUserId,
+      !!options?.postAuthorUsername && username === options.postAuthorUsername,
+    isOwn: !!options?.currentUserId && authorId === options.currentUserId,
     children: [],
   };
 };

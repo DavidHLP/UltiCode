@@ -2,25 +2,25 @@ import { apiGet, apiPost, apiDelete } from '@/utils/request'
 
 export interface Solution {
   id: string
-  problem_id: string
-  user_id: string
+  problemId: string
+  userId: string
   title: string
   content: string
   summary?: string
   language: string
   tags?: string[]
   views: number
-  is_published: boolean
-  published_at?: Date
-  published_by?: string
-  is_flagged: boolean
-  flagged_reason?: string
-  flagged_at?: Date
-  is_deleted: boolean
-  deleted_at?: Date
-  deleted_by?: string
-  created_at: Date
-  updated_at: Date
+  isPublished: boolean
+  publishedAt?: Date
+  publishedBy?: string
+  isFlagged: boolean
+  flaggedReason?: string
+  flaggedAt?: Date
+  isDeleted: boolean
+  deletedAt?: Date
+  deletedBy?: string
+  createdAt: Date
+  updatedAt: Date
   author: {
     id: string
     username: string
@@ -33,14 +33,14 @@ export interface Solution {
     title: string
     difficulty: string
   }
-  comment_count?: number
+  commentCount?: number
   comments?: SolutionComment[]
 }
 
 export interface SolutionComment {
   id: string
   content: string
-  created_at: Date
+  createdAt: Date
   author: {
     id: string
     username: string
@@ -52,9 +52,9 @@ export interface SolutionQueryParams {
   search?: string
   problemId?: string
   userId?: string
-  is_flagged?: boolean
-  is_published?: boolean
-  is_deleted?: boolean
+  isFlagged?: boolean
+  isPublished?: boolean
+  isDeleted?: boolean
   page?: number
   limit?: number
   sortBy?: string

@@ -96,7 +96,7 @@ async function handleDelete() {
 async function handleAddProblem(problem: { id: string }) {
   try {
     await contestsStore.addProblem(contestId.value, {
-      problem_id: problem.id,
+      problemId: problem.id,
       score: 100,
     })
     toast.success(t('contests.toast.problemAdded'))
@@ -193,8 +193,8 @@ function getTypeStyle(type: string) {
                   <h1 class="font-medium text-sm text-[var(--foreground)]">{{ contest.title }}</h1>
                 </div>
                 <div class="flex items-center gap-2 mt-1">
-                  <span :class="['terminal-badge text-[10px]', getTypeStyle(contest.contest_type)]">
-                    {{ t(`contests.type.${contest.contest_type}`) }}
+                  <span :class="['terminal-badge text-[10px]', getTypeStyle(contest.contestType)]">
+                    {{ t(`contests.type.${contest.contestType}`) }}
                   </span>
                   <span
                     :class="['terminal-badge text-[10px]', getStatusStyle(contest.status).class]"
@@ -326,7 +326,7 @@ function getTypeStyle(type: string) {
       <ContestProblemPicker
         v-if="contest"
         v-model:open="problemPickerOpen"
-        :exclude-ids="contest.problems?.map((p) => p.problem_id) || []"
+        :exclude-ids="contest.problems?.map((p) => p.problemId) || []"
         @select="handleAddProblem"
       />
     </main>

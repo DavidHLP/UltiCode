@@ -18,6 +18,7 @@ import { toast } from "vue-sonner";
 import { setCsrfToken } from "@/utils/csrf";
 import { setSessionFlag } from "@/stores/auth";
 import { setUserId } from "@/utils/auth";
+import { useAuthStore } from "@/stores/auth";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -25,6 +26,7 @@ const props = defineProps<{
 
 const { t } = useI18n();
 const router = useRouter();
+const authStore = useAuthStore();
 const email = ref("");
 const password = ref("");
 const loading = ref(false);
@@ -38,24 +40,20 @@ async function handleSubmit(e: Event) {
       password: password.value,
     });
 
-    // Validate response
-    if (!res) {
+    if (import.meta.env.DEV) {
+      console.log("[Login] API response:", res);
+    }
+
+    // Validate response - backend returns { csrfToken, user } (unwrapped)
+    if (!res || !res.user) {
       throw new Error(
-        "Login response is undefined. Please check if the backend is running.",
+        "Login response is invalid. Please check if the backend is running.",
       );
     }
 
-    if (!res.user) {
-      console.error("Invalid response format:", res);
-      throw new Error("Invalid login response format");
-    }
-
-    // Cookies are set automatically by the backend (httpOnly)
-    // No need to manually store tokens
-
     // Store CSRF token for subsequent state-changing requests
-    if (res.csrf_token) {
-      setCsrfToken(res.csrf_token);
+    if (res.csrfToken) {
+      setCsrfToken(res.csrfToken);
     }
 
     // Set session flag to indicate user has an active session
@@ -64,8 +62,29 @@ async function handleSubmit(e: Event) {
     // Store user ID for components that still use fetchCurrentUserId()
     setUserId(res.user.id);
 
+    // Mark auth store as initialized to prevent router guard from calling initialize() again
+    authStore.markAsInitialized();
+
+    // Set user data in auth store - this makes isAuthenticated work correctly
+    authStore.user = res.user;
+
+    if (import.meta.env.DEV) {
+      console.log("[Login] User set in store:", authStore.user);
+      console.log("[Login] isAuthenticated:", authStore.isAuthenticated);
+    }
+
     toast.success(t("auth.messages.loginSuccess"));
-    router.push("/");
+
+    // Handle redirect to original page if user was redirected to login
+    const redirect = router.currentRoute.value.query.redirect as string;
+    if (redirect && typeof redirect === "string") {
+      if (import.meta.env.DEV) {
+        console.log("[Login] Redirecting to:", redirect);
+      }
+      router.push(redirect);
+    } else {
+      router.push("/");
+    }
   } catch (error) {
     console.error("Login error:", error);
     toast.error(t("auth.messages.loginFailed"));

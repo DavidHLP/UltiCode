@@ -3,6 +3,13 @@ export default {
   description: '查看平台运营数据和用户行为分析',
   loadError: '加载报告失败',
   noData: '暂无数据',
+  authRequired: '请先登录',
+  adminRequired: '需要管理员权限',
+  adminRequiredWithRole: '需要管理员权限（当前角色：{role}）',
+  permissionDenied: '您没有权限查看此页面',
+  refreshSession: '刷新会话',
+  sessionRefreshed: '会话刷新成功',
+  sessionRefreshFailed: '会话刷新失败',
 
   // 导航
   nav: {

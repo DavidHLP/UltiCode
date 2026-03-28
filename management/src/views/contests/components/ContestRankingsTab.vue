@@ -95,12 +95,12 @@ function getRankIcon(rank: number) {
             </TableCell>
             <TableCell class="text-right">
               <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums font-bold">
-                {{ r.total_score }}
+                {{ r.totalScore }}
               </span>
             </TableCell>
             <TableCell class="text-right">
               <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
-                {{ r.total_penalty }}
+                {{ r.totalPenalty }}
               </span>
             </TableCell>
           </TableRow>

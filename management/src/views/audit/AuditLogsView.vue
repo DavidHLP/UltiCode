@@ -105,10 +105,10 @@ function showDetails(log: AuditLog) {
 
 const columns: ColumnDef<AuditLog>[] = [
   {
-    accessorKey: 'created_at',
+    accessorKey: 'createdAt',
     header: () => t('audit.columns.createdAt'),
     cell: ({ row }) => {
-      const date = new Date(row.getValue('created_at') as Date)
+      const date = new Date(row.getValue('createdAt') as Date)
       return h(
         'span',
         { class: 'font-data text-sm text-[var(--silver-500)] tabular-nums' },

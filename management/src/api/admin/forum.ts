@@ -11,9 +11,9 @@ export interface ForumCommunity {
   name: string
   slug: string
   description?: string
-  post_count?: number
-  member_count?: number
-  created_at: string
+  postCount?: number
+  memberCount?: number
+  createdAt: string
 }
 
 export interface ForumPost {
@@ -21,21 +21,21 @@ export interface ForumPost {
   title: string
   excerpt: string
   content?: string // Full content might not be in list view
-  user_id: string
-  community_id: string
-  view_count: number
-  comment_count: number
+  userId: string
+  communityId: string
+  viewCount: number
+  commentCount: number
   upvotes: number
   downvotes: number
-  is_pinned: boolean
-  is_locked: boolean
-  is_flagged: boolean
-  flagged_reason?: string
-  flagged_at?: string
-  is_deleted: boolean
-  deleted_at?: string
-  created_at: string
-  updated_at: string
+  isPinned: boolean
+  isLocked: boolean
+  isFlagged: boolean
+  flaggedReason?: string
+  flaggedAt?: string
+  isDeleted: boolean
+  deletedAt?: string
+  createdAt: string
+  updatedAt: string
 
   author: ForumUser
   community: {
@@ -51,9 +51,9 @@ export interface ForumPostQueryParams {
   search?: string
   communityId?: string
   authorId?: string
-  is_flagged?: boolean
-  is_pinned?: boolean
-  is_locked?: boolean
+  isFlagged?: boolean
+  isPinned?: boolean
+  isLocked?: boolean
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -108,12 +108,12 @@ export interface AuditEntry {
   newValues?: Record<string, unknown>
   ipAddress?: string
   userAgent?: string
-  created_at: string
+  createdAt: string
 }
 
 export interface ForumPostDetail extends ForumPost {
-  full_content?: string
-  moderation_history?: AuditEntry[]
+  fullContent?: string
+  moderationHistory?: AuditEntry[]
 }
 
 export const forumApi = {

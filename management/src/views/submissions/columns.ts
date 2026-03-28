@@ -32,14 +32,26 @@ function shouldPulse(status: string): boolean {
   return status === 'PENDING' || status === 'JUDGING'
 }
 
-function formatRuntime(ms: number): string {
+/**
+ * Format runtime from milliseconds to human-readable string
+ * Handles null/undefined values
+ */
+export function formatRuntime(ms: number | null | undefined): string {
+  if (ms == null) return '-'
   if (ms < 1000) return `${ms}ms`
   return `${(ms / 1000).toFixed(2)}s`
 }
 
-function formatMemory(kb: number): string {
-  if (kb < 1024) return `${kb}KB`
-  return `${(kb / 1024).toFixed(1)}MB`
+/**
+ * Format memory from MB to human-readable string
+ * Backend returns memory in MB, NOT KB
+ * Handles null/undefined values
+ */
+export function formatMemory(mb: number | null | undefined): string {
+  if (mb == null) return '-'
+  if (mb < 1) return `${(mb * 1024).toFixed(0)}KB`
+  if (mb < 1024) return `${mb.toFixed(1)}MB`
+  return `${(mb / 1024).toFixed(2)}GB`
 }
 
 export function createColumns(
@@ -121,13 +133,21 @@ export function createColumns(
       accessorKey: 'runtime',
       header: () => t('submissions.runtime'),
       cell: ({ row }) =>
-        h('span', { class: 'font-data text-sm tabular-nums' }, formatRuntime(row.original.runtime)),
+        h(
+          'span',
+          { class: 'font-data text-sm tabular-nums' },
+          formatRuntime(row.original.runtime ?? null),
+        ),
     },
     {
       accessorKey: 'memory',
       header: () => t('submissions.memory'),
       cell: ({ row }) =>
-        h('span', { class: 'font-data text-sm tabular-nums' }, formatMemory(row.original.memory)),
+        h(
+          'span',
+          { class: 'font-data text-sm tabular-nums' },
+          formatMemory(row.original.memory ?? null),
+        ),
     },
     {
       accessorKey: 'createdAt',

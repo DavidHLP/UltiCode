@@ -6,8 +6,7 @@ export interface LoginCredentials {
 }
 
 export interface LoginResponse {
-  access_token: string
-  csrf_token: string
+  csrfToken: string
   user: {
     id: string
     username: string
@@ -38,8 +37,8 @@ export const authApi = {
     return apiPost('/auth/logout')
   },
 
-  async getCurrentUser(): Promise<User> {
-    return apiGet<User>('/auth/me')
+  async getCurrentUser(): Promise<{ user: User; csrfToken?: string }> {
+    return apiGet<{ user: User; csrfToken?: string }>('/auth/me')
   },
 
   async getPermissions(): Promise<string[]> {

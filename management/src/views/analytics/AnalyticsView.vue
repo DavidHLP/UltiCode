@@ -3,6 +3,8 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
+import type { ApiError } from '@/utils/request'
+import { useAuthStore } from '@/stores/auth'
 import {
   Select,
   SelectContent,
@@ -34,6 +36,7 @@ import AreaChart from '@/components/dashboard/AreaChart.vue'
 import type { ChartDataPoint } from '@/components/dashboard/AreaChart.vue'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 
 type ReportTab =
   | 'user_activity'
@@ -45,6 +48,7 @@ type ReportTab =
 const activeTab = ref<ReportTab>('user_activity')
 const loading = ref(false)
 const days = ref(30)
+const showRefreshSession = ref(false)
 
 const userActivityReport = ref<UserActivityReport | null>(null)
 const problemCompletionReport = ref<ProblemCompletionReport | null>(null)
@@ -387,6 +391,35 @@ const performanceEndpointBarItems = computed<BarListItem[]>(() => {
 })
 
 async function loadReport() {
+  // Debug: Log auth state before role check
+  if (import.meta.env.DEV) {
+    console.log('[Analytics] Auth state before loadReport:', {
+      isAuthenticated: authStore.isAuthenticated,
+      userRole: authStore.userRole,
+      user: authStore.user,
+      hasAdminRole: authStore.hasRole('ADMIN'),
+      hasSuperAdminRole: authStore.hasRole('SUPER_ADMIN'),
+      hasAnyAdminRole: authStore.hasAnyRole(['ADMIN', 'SUPER_ADMIN']),
+    })
+  }
+
+  // Check if user has required role before making API request
+  if (!authStore.isAuthenticated) {
+    toast.error(t('analytics.authRequired'))
+    return
+  }
+  if (!authStore.hasAnyRole(['ADMIN', 'SUPER_ADMIN'])) {
+    const currentRole = authStore.userRole || 'none'
+    toast.error(t('analytics.adminRequiredWithRole', { role: currentRole }))
+    // Show refresh session button
+    showRefreshSession.value = true
+    return
+  }
+
+  // Hide refresh session button if we passed the role check
+  showRefreshSession.value = false
+
+  // Only set loading to true after passing all checks
   loading.value = true
   try {
     switch (activeTab.value) {
@@ -412,7 +445,28 @@ async function loadReport() {
     }
   } catch (error) {
     console.error('Failed to load report:', error)
-    toast.error(t('analytics.loadError'))
+    // Skip toast for 401 errors - request interceptor already handles redirect to login
+    const apiError = error as ApiError
+    if (apiError.code !== 401) {
+      toast.error(t('analytics.loadError'))
+    }
+  } finally {
+    loading.value = false
+  }
+}
+
+async function refreshSession() {
+  showRefreshSession.value = false
+  loading.value = true
+  try {
+    // Re-fetch user data from backend
+    await authStore.fetchUser()
+    // Reload the report after session refresh
+    await loadReport()
+    toast.success(t('analytics.sessionRefreshed'))
+  } catch (error) {
+    console.error('Failed to refresh session:', error)
+    toast.error(t('analytics.sessionRefreshFailed'))
   } finally {
     loading.value = false
   }
@@ -494,6 +548,17 @@ onMounted(() => {
               class="h-4 w-4 border-2 border-[var(--silver-300)] border-t-foreground rounded-full animate-spin"
             ></div>
             <span>{{ t('common.loading') }}</span>
+          </div>
+        </div>
+
+        <!-- Permission Denied - Show Refresh Session Button -->
+        <div v-else-if="showRefreshSession" class="flex items-center justify-center py-12">
+          <div class="text-center space-y-4">
+            <p class="text-[var(--silver-400)]">{{ t('analytics.permissionDenied') }}</p>
+            <Button variant="outline" size="sm" @click="refreshSession" :disabled="loading">
+              <IconRefresh class="h-4 w-4 mr-2" :class="{ 'animate-spin': loading }" />
+              {{ t('analytics.refreshSession') }}
+            </Button>
           </div>
         </div>
 

@@ -31,6 +31,11 @@ public class Subscription {
     private String status;
 
     /**
+     * When the subscription started
+     */
+    private LocalDateTime startedAt;
+
+    /**
      * When the subscription expires
      */
     private LocalDateTime expiresAt;

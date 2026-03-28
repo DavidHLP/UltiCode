@@ -32,7 +32,7 @@ export interface SolutionActions {
 
 // Terminal-style status badge renderer
 function renderStatusBadge(solution: Solution, t: (key: string) => string) {
-  if (solution.is_deleted) {
+  if (solution.isDeleted) {
     return h(
       'span',
       {
@@ -48,7 +48,7 @@ function renderStatusBadge(solution: Solution, t: (key: string) => string) {
     )
   }
 
-  if (solution.is_flagged) {
+  if (solution.isFlagged) {
     return h(
       'span',
       {
@@ -65,7 +65,7 @@ function renderStatusBadge(solution: Solution, t: (key: string) => string) {
     )
   }
 
-  if (solution.is_published) {
+  if (solution.isPublished) {
     return h(
       'span',
       {
@@ -192,7 +192,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'is_flagged',
+      accessorKey: 'isFlagged',
       header: () =>
         h(
           'span',
@@ -222,7 +222,7 @@ export function createColumns(
       },
     },
     {
-      accessorKey: 'created_at',
+      accessorKey: 'createdAt',
       header: () =>
         h(
           'span',
@@ -230,7 +230,7 @@ export function createColumns(
           t('solutions.columns.created'),
         ),
       cell: ({ row }) => {
-        const date = row.getValue('created_at') as string
+        const date = row.getValue('createdAt') as string
         return h(
           'span',
           { class: 'font-data text-xs text-[var(--silver-400)] tabular-nums' },
@@ -311,7 +311,7 @@ function createActionsDropdown(
                 },
               ),
               canUpdateSolution()
-                ? solution.is_flagged
+                ? solution.isFlagged
                   ? h(
                       DropdownMenuItem,
                       {

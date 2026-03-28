@@ -35,7 +35,7 @@ defineProps<{
               <div>
                 <span class="terminal-label">{{ $t('contests.detail.visibility') }}</span>
                 <p class="font-data text-sm">
-                  <span v-if="contest.is_visible" class="text-[var(--terminal-green)]">
+                  <span v-if="contest.isVisible" class="text-[var(--terminal-green)]">
                     PUBLISHED
                   </span>
                   <span v-else class="text-[var(--silver-400)]">HIDDEN</span>
@@ -68,7 +68,7 @@ defineProps<{
                 }}</span>
               </div>
               <span class="font-data text-sm tabular-nums">
-                {{ new Date(contest.start_time).toLocaleString() }}
+                {{ new Date(contest.startTime).toLocaleString() }}
               </span>
             </div>
             <div
@@ -81,7 +81,7 @@ defineProps<{
                 }}</span>
               </div>
               <span class="font-data text-sm tabular-nums">
-                {{ contest.duration_minutes }} {{ $t('common.minutes') }}
+                {{ contest.durationMinutes }} {{ $t('common.minutes') }}
               </span>
             </div>
           </div>
@@ -105,7 +105,7 @@ defineProps<{
               <IconUsers class="h-5 w-5 text-[var(--terminal-cyan)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
-                  {{ contest.participant_count || 0 }}
+                  {{ contest.participantCount || 0 }}
                 </div>
                 <div class="terminal-label">{{ $t('contests.detail.participants') }}</div>
               </div>

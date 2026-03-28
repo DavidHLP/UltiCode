@@ -139,14 +139,14 @@ function getTypeStyle(type: string) {
                 {{ entity.slug }}
               </div>
               <div class="flex flex-wrap gap-2">
-                <span :class="['terminal-badge', getTypeStyle(entity.contest_type)]">
-                  {{ t(`contests.type.${entity.contest_type}`) }}
+                <span :class="['terminal-badge', getTypeStyle(entity.contestType)]">
+                  {{ t(`contests.type.${entity.contestType}`) }}
                 </span>
                 <span :class="['terminal-badge', getStatusStyle(entity.status).class]">
                   {{ getStatusStyle(entity.status).label }}
                 </span>
                 <span
-                  v-if="entity.is_visible"
+                  v-if="entity.isVisible"
                   class="terminal-badge bg-[oklch(0.7_0.15_145/0.15)] text-[var(--terminal-green)] border border-[oklch(0.7_0.15_145/0.4)]"
                 >
                   <IconEye class="h-3 w-3 mr-1" />
@@ -194,7 +194,7 @@ function getTypeStyle(type: string) {
               <IconUsers class="h-5 w-5 text-[var(--terminal-cyan)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
-                  {{ entity.participant_count || 0 }}
+                  {{ entity.participantCount || 0 }}
                 </div>
                 <div class="terminal-label">{{ t('contests.drawer.participants') }}</div>
               </div>
@@ -219,7 +219,7 @@ function getTypeStyle(type: string) {
               <div class="flex items-center gap-2">
                 <IconCalendar class="h-4 w-4 text-[var(--silver-400)]" />
                 <span class="font-data text-sm tabular-nums">
-                  {{ new Date(entity.start_time).toLocaleString() }}
+                  {{ new Date(entity.startTime).toLocaleString() }}
                 </span>
               </div>
             </DataBlock>
@@ -227,7 +227,7 @@ function getTypeStyle(type: string) {
               <div class="flex items-center gap-2">
                 <IconClock class="h-4 w-4 text-[var(--silver-400)]" />
                 <span class="font-data text-sm tabular-nums">
-                  {{ entity.duration_minutes }} {{ t('common.minutes') }}
+                  {{ entity.durationMinutes }} {{ t('common.minutes') }}
                 </span>
               </div>
             </DataBlock>

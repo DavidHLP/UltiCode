@@ -3,6 +3,7 @@ import {
   createWebHistory,
   type RouteRecordRaw,
 } from "vue-router";
+import { useAuthStore } from "@/stores/auth";
 
 const forumRoutes: RouteRecordRaw = {
   path: "/forum",
@@ -304,42 +305,56 @@ const router = createRouter({
 /**
  * Navigation guard for authentication
  *
+ * LAZY LOADING design: User information is fetched on-demand when
+ * accessing authenticated routes, NOT during app bootstrap.
+ *
  * Logic:
- * 1. Initialize auth store on first navigation (calls /auth/me)
- * 2. Check if route requires authentication
- * 3. Redirect to login if not authenticated
+ * 1. Check if route requires authentication
+ * 2. If required, call ensureUser() to fetch user info on-demand
+ * 3. Redirect to login if not authenticated after fetch
  * 4. Redirect to home if already authenticated and accessing login/register
  */
 router.beforeEach(async (to, from, next) => {
-  const { useAuthStore } = await import("@/stores/auth");
   const authStore = useAuthStore();
 
-  // Initialize auth store on first navigation
-  if (!authStore.isInitialized) {
-    await authStore.initialize();
+  // Development-only logging
+  if (import.meta.env.DEV) {
+    console.log("[Router] Navigation:", {
+      to: to.path,
+      from: from.path,
+      requiresAuth: to.matched.some((r) => r.meta.requiresAuth === true),
+      authStatus: authStore.status,
+      isAuthenticated: authStore.isAuthenticated,
+      hasUser: !!authStore.user,
+    });
   }
 
   const requiresAuth = to.matched.some(
     (record) => record.meta.requiresAuth === true,
   );
 
-  // Development logging for debugging auth flow
-  if (import.meta.env.DEV) {
-    console.log("[Router] Navigation:", {
-      to: to.path,
-      requiresAuth,
-      isAuthenticated: authStore.isAuthenticated,
-      isInitialized: authStore.isInitialized,
-      hasUser: !!authStore.user,
-    });
-  }
+  // If authentication required, fetch user info on-demand
+  if (requiresAuth) {
+    try {
+      await authStore.ensureUser();
+    } catch (error) {
+      // Connection error or other failure - redirect to login
+      if (import.meta.env.DEV) {
+        console.warn("[Router] Failed to ensure user:", error);
+      }
+      return next({
+        name: "login",
+        query: { redirect: to.fullPath },
+      });
+    }
 
-  // Redirect to login if authentication required but not authenticated
-  if (requiresAuth && !authStore.isAuthenticated) {
-    return next({
-      name: "login",
-      query: { redirect: to.fullPath },
-    });
+    // After fetch, check if authenticated
+    if (!authStore.isAuthenticated) {
+      return next({
+        name: "login",
+        query: { redirect: to.fullPath },
+      });
+    }
   }
 
   // If already authenticated and trying to access login/register, redirect to home

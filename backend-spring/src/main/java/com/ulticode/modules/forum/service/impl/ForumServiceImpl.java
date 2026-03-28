@@ -6,15 +6,15 @@ import com.ulticode.modules.forum.dto.*;
 import com.ulticode.modules.forum.entity.*;
 import com.ulticode.modules.forum.mapper.*;
 import com.ulticode.modules.forum.service.ForumService;
+import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +33,7 @@ public class ForumServiceImpl implements ForumService {
     private final ForumCommunityMapper communityMapper;
     private final ForumCommunityMemberMapper memberMapper;
     private final ForumTagMapper tagMapper;
+    private final UserService userService;
 
     // =========================================================================
     // POST OPERATIONS
@@ -196,11 +197,22 @@ public class ForumServiceImpl implements ForumService {
         // Get all comments for the post
         List<ForumComment> comments = commentMapper.findByPostId(postId);
 
-        // Build comment tree
-        List<ForumCommentVO> commentVOs = buildCommentTree(comments);
+        // Batch fetch all authors to avoid N+1 queries (including post author)
+        Set<String> authorIds = comments.stream()
+                .map(ForumComment::getAuthorId)
+                .collect(Collectors.toSet());
+        authorIds.add(post.getUserId()); // Include post author
+
+        Map<String, User> authorMap = new HashMap<>();
+        for (String authorId : authorIds) {
+            userService.findById(authorId).ifPresent(user -> authorMap.put(authorId, user));
+        }
+
+        // Build comment tree with author info
+        List<ForumCommentVO> commentVOs = buildCommentTree(comments, authorMap);
 
         ForumPostThreadVO thread = new ForumPostThreadVO();
-        thread.setPost(convertToPostVO(post, userId));
+        thread.setPost(convertToPostVO(post, userId, authorMap.get(post.getUserId())));
         thread.setComments(commentVOs);
 
         return thread;
@@ -254,7 +266,11 @@ public class ForumServiceImpl implements ForumService {
 
         commentMapper.insert(comment);
 
-        return convertToCommentVO(comment);
+        // Fetch author info for the response
+        Map<String, User> authorMap = new HashMap<>();
+        userService.findById(userId).ifPresent(user -> authorMap.put(userId, user));
+
+        return convertToCommentVO(comment, authorMap);
     }
 
     @Override
@@ -277,7 +293,11 @@ public class ForumServiceImpl implements ForumService {
         commentMapper.updateById(comment);
         commentMapper.markAsEdited(id);
 
-        return convertToCommentVO(comment);
+        // Fetch author info for the response
+        Map<String, User> authorMap = new HashMap<>();
+        userService.findById(comment.getAuthorId()).ifPresent(user -> authorMap.put(comment.getAuthorId(), user));
+
+        return convertToCommentVO(comment, authorMap);
     }
 
     @Override
@@ -416,10 +436,30 @@ public class ForumServiceImpl implements ForumService {
     }
 
     // =========================================================================
+    // QUICK FILTER OPERATIONS
+    // =========================================================================
+
+    @Override
+    public List<QuickFilterDTO> getQuickFilters() {
+        log.debug("Getting quick filters");
+        // Returns the available filter options for forum posts
+        // The label will be translated on the frontend using i18n
+        return List.of(
+                new QuickFilterDTO("Hot", "hot"),
+                new QuickFilterDTO("New", "new"),
+                new QuickFilterDTO("Top", "top")
+        );
+    }
+
+    // =========================================================================
     // HELPER METHODS
     // =========================================================================
 
     private ForumPostVO convertToPostVO(ForumPost post, String userId) {
+        return convertToPostVO(post, userId, null);
+    }
+
+    private ForumPostVO convertToPostVO(ForumPost post, String userId, User author) {
         ForumPostVO vo = new ForumPostVO();
         vo.setId(post.getId());
         vo.setCommunityId(post.getCommunityId());
@@ -450,6 +490,12 @@ public class ForumServiceImpl implements ForumService {
         vo.setFlaggedAt(post.getFlaggedAt());
         vo.setCreatedAt(post.getCreatedAt());
 
+        // Populate author info if available
+        if (author != null) {
+            vo.setAuthorUsername(author.getUsername());
+            vo.setAuthorAvatar(author.getAvatar());
+        }
+
         // Check if user is member of community (if userId provided)
         if (userId != null) {
             vo.setIsMember(memberMapper.isMember(post.getCommunityId(), userId));
@@ -458,12 +504,20 @@ public class ForumServiceImpl implements ForumService {
         return vo;
     }
 
-    private ForumCommentVO convertToCommentVO(ForumComment comment) {
+    private ForumCommentVO convertToCommentVO(ForumComment comment, Map<String, User> authorMap) {
         ForumCommentVO vo = new ForumCommentVO();
         vo.setId(comment.getId());
         vo.setPostId(comment.getPostId());
         vo.setParentId(comment.getParentId());
         vo.setAuthorId(comment.getAuthorId());
+
+        // Populate author info from author map
+        User author = authorMap.get(comment.getAuthorId());
+        if (author != null) {
+            vo.setAuthorUsername(author.getUsername());
+            vo.setAuthorAvatar(author.getAvatar());
+        }
+
         vo.setBody(comment.getBody());
         vo.setMarkdown(comment.getMarkdown());
         vo.setCreatedAt(comment.getCreatedAt());
@@ -510,7 +564,7 @@ public class ForumServiceImpl implements ForumService {
         return vo;
     }
 
-    private List<ForumCommentVO> buildCommentTree(List<ForumComment> comments) {
+    private List<ForumCommentVO> buildCommentTree(List<ForumComment> comments, Map<String, User> authorMap) {
         // Separate top-level comments and replies
         List<ForumComment> topLevelComments = comments.stream()
                 .filter(c -> c.getParentId() == null)
@@ -518,9 +572,9 @@ public class ForumServiceImpl implements ForumService {
 
         return topLevelComments.stream()
                 .map(c -> {
-                    ForumCommentVO vo = convertToCommentVO(c);
+                    ForumCommentVO vo = convertToCommentVO(c, authorMap);
                     // Recursively build replies
-                    List<ForumCommentVO> replies = findReplies(c.getId(), comments);
+                    List<ForumCommentVO> replies = findReplies(c.getId(), comments, authorMap);
                     if (!replies.isEmpty()) {
                         vo.setReplies(replies);
                     }
@@ -529,12 +583,12 @@ public class ForumServiceImpl implements ForumService {
                 .collect(Collectors.toList());
     }
 
-    private List<ForumCommentVO> findReplies(String parentId, List<ForumComment> allComments) {
+    private List<ForumCommentVO> findReplies(String parentId, List<ForumComment> allComments, Map<String, User> authorMap) {
         return allComments.stream()
                 .filter(c -> parentId.equals(c.getParentId()))
                 .map(c -> {
-                    ForumCommentVO vo = convertToCommentVO(c);
-                    vo.setReplies(findReplies(c.getId(), allComments));
+                    ForumCommentVO vo = convertToCommentVO(c, authorMap);
+                    vo.setReplies(findReplies(c.getId(), allComments, authorMap));
                     return vo;
                 })
                 .collect(Collectors.toList());

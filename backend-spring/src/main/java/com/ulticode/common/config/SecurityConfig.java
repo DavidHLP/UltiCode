@@ -46,6 +46,13 @@ public class SecurityConfig {
             // Problem endpoints (public read access)
             "/problems",
             "/problems/**",
+            // Forum endpoints (public read access)
+            "/forum/posts",
+            "/forum/posts/**",
+            "/forum/communities",
+            "/forum/communities/**",
+            "/forum/tags",
+            "/forum/quick-filters",
             // Swagger/OpenAPI documentation
             "/swagger-ui/**",
             "/swagger-ui.html",

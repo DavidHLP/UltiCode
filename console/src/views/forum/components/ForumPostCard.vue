@@ -57,6 +57,9 @@ const flairClasses: Record<ForumFlairType, string> = {
 };
 
 const userInitials = computed(() => {
+  if (!props.post.author?.username) {
+    return "?";
+  }
   const parts = props.post.author.username.split(/[\s_-]/);
   return parts
     .map((part: string) => part.charAt(0).toUpperCase())
@@ -211,11 +214,11 @@ async function handleSave() {
           </Avatar>
           <Avatar
             class="h-9 w-9 rounded-full border border-border/40"
-            v-else-if="post.author.avatar"
+            v-else-if="post.author?.avatar"
           >
             <AvatarImage
               :src="post.author.avatar"
-              :alt="post.author.username"
+              :alt="post.author?.username || 'user'"
             />
             <AvatarFallback class="text-xs">{{ userInitials }}</AvatarFallback>
           </Avatar>
@@ -230,7 +233,7 @@ async function handleSave() {
               v-else
               class="font-bold text-foreground hover:underline cursor-pointer"
             >
-              u/{{ post.author.username }}
+              u/{{ post.author?.username || "?" }}
             </span>
             <span class="text-muted-foreground/60">•</span>
             <span>{{ createdAgo }}</span>
@@ -238,7 +241,9 @@ async function handleSave() {
               >•</span
             >
             <span v-if="post.community"
-              >{{ t("forum.post.postedBy") }} u/{{ post.author.username }}</span
+              >{{ t("forum.post.postedBy") }} u/{{
+                post.author?.username || "?"
+              }}</span
             >
           </span>
           <Badge

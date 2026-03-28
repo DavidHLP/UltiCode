@@ -25,7 +25,7 @@ import {
   type ProblemListWithStatus,
 } from "@/api/problem-list";
 import { toast } from "vue-sonner";
-import { isAuthenticated, fetchCurrentUserId } from "@/utils/auth";
+import { useAuth } from "@/composables/useAuth";
 import {
   Dialog,
   DialogContent,
@@ -49,11 +49,11 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const { isAuthenticated, userId } = useAuth();
 
 const userLists = ref<ProblemListWithStatus[]>([]);
 const isLoading = ref(false);
 const isOpen = ref(false);
-const isAuthed = ref(false);
 const showCreateDialog = ref(false);
 const newListName = ref("");
 const isCreating = ref(false);
@@ -68,15 +68,13 @@ const hasAnyList = computed(() => selectedListIds.value.length > 0);
 async function loadData() {
   if (!isOpen.value) return;
 
-  isAuthed.value = isAuthenticated();
-  if (!isAuthed.value) {
+  if (!isAuthenticated.value) {
     userLists.value = [];
     isLoading.value = false;
     return;
   }
 
-  const userId = fetchCurrentUserId();
-  if (!userId) {
+  if (!userId.value) {
     userLists.value = [];
     isLoading.value = false;
     return;
@@ -84,7 +82,10 @@ async function loadData() {
 
   isLoading.value = true;
   try {
-    userLists.value = await getUserListsForProblem(userId, props.problemId);
+    userLists.value = await getUserListsForProblem(
+      userId.value,
+      props.problemId,
+    );
   } catch (error) {
     console.error("Failed to load user lists:", error);
     toast.error(t("problem.save.toast.loadListsFailed"));
@@ -94,13 +95,12 @@ async function loadData() {
 }
 
 async function toggleList(listId: string) {
-  if (!isAuthenticated()) {
+  if (!isAuthenticated.value) {
     toast.error(t("problem.save.toast.loginRequired"));
     return;
   }
 
-  const userId = fetchCurrentUserId();
-  if (!userId) return;
+  if (!userId.value) return;
 
   const list = userLists.value.find((l) => l.id === listId);
   if (!list) return;
@@ -110,14 +110,16 @@ async function toggleList(listId: string) {
   try {
     if (isInList) {
       // Remove from this list
-      await batchRemoveProblemFromLists(userId, props.problemId, [listId]);
+      await batchRemoveProblemFromLists(userId.value, props.problemId, [
+        listId,
+      ]);
       list.containsProblem = false;
       toast.success(
         t("problem.save.toast.removedFromList", { name: list.name }),
       );
     } else {
       // Add to this list
-      await batchAddProblemToLists(userId, props.problemId, [listId]);
+      await batchAddProblemToLists(userId.value, props.problemId, [listId]);
       list.containsProblem = true;
       toast.success(t("problem.save.toast.addedToList", { name: list.name }));
     }
@@ -147,18 +149,17 @@ async function handleCreateList() {
     return;
   }
 
-  const userId = fetchCurrentUserId();
-  if (!userId) return;
+  if (!userId.value) return;
 
   isCreating.value = true;
   try {
-    const newList = await createProblemList(userId, {
+    const newList = await createProblemList(userId.value, {
       name: newListName.value.trim(),
       isPublic: false,
     });
 
     // Add the problem to the newly created list
-    await batchAddProblemToLists(userId, props.problemId, [newList.id]);
+    await batchAddProblemToLists(userId.value, props.problemId, [newList.id]);
 
     // Reload the lists
     await loadData();
@@ -210,7 +211,7 @@ watch(
             <Loader2 class="h-4 w-4 animate-spin" />
           </div>
         </template>
-        <template v-else-if="!isAuthed">
+        <template v-else-if="!isAuthenticated">
           <div class="px-3 py-2 text-sm text-muted-foreground">
             {{ t("problem.save.loginRequired") }}
           </div>

@@ -33,7 +33,7 @@ import {
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { isAuthenticated } from "@/utils/auth";
+import { useAuth } from "@/composables/useAuth";
 import { toast } from "vue-sonner";
 import { useNotificationStore } from "@/stores/notification";
 import { useAuthStore } from "@/stores/auth";
@@ -50,6 +50,7 @@ const { t } = useI18n();
 const { isMobile } = useSidebar();
 const router = useRouter();
 const authStore = useAuthStore();
+const { isAuthenticated } = useAuth();
 const notificationStore = useNotificationStore();
 const unreadCount = computed(() => notificationStore.unreadCount);
 const unreadLabel = computed(() =>
@@ -57,7 +58,7 @@ const unreadLabel = computed(() =>
 );
 
 onMounted(() => {
-  if (!isAuthenticated()) return;
+  if (!isAuthenticated.value) return;
   notificationStore.loadUnreadCount().catch((error) => {
     console.error("Failed to load notification count", error);
   });

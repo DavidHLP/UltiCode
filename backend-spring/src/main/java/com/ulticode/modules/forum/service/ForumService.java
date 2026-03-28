@@ -182,4 +182,16 @@ public interface ForumService {
      * @return list of tags
      */
     List<ForumTagVO> findAllTags();
+
+    // =========================================================================
+    // QUICK FILTER OPERATIONS
+    // =========================================================================
+
+    /**
+     * Get all quick filter options.
+     * Returns available filter options for post listings.
+     *
+     * @return list of quick filters
+     */
+    List<QuickFilterDTO> getQuickFilters();
 }

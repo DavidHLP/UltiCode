@@ -369,6 +369,24 @@ public class ForumController {
     }
 
     // =========================================================================
+    // QUICK FILTER OPERATIONS (Public)
+    // =========================================================================
+
+    /**
+     * Get quick filter options.
+     * Public endpoint - accessible without authentication.
+     * Returns available filter options for post listings (e.g., hot, new, top).
+     *
+     * @return list of quick filters
+     */
+    @Operation(summary = "Get quick filters", description = "Get available quick filter options for forum posts")
+    @GetMapping("/quick-filters")
+    public Result<List<QuickFilterDTO>> getQuickFilters() {
+        List<QuickFilterDTO> filters = forumService.getQuickFilters();
+        return Result.success(filters);
+    }
+
+    // =========================================================================
     // HELPER METHODS
     // =========================================================================
 

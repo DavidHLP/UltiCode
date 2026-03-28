@@ -60,6 +60,7 @@ const flairClasses: Record<ForumFlairType, string> = {
 const communityIcon = computed(() => props.thread.community?.icon || "");
 
 const userInitials = computed(() => {
+  if (!props.thread.author?.username) return "??";
   const parts = props.thread.author.username.split(/[\s_-]/);
   return parts
     .map((part: string) => part.charAt(0).toUpperCase())
@@ -190,9 +191,9 @@ async function handleShare() {
         <template v-else>
           <Avatar class="h-9 w-9 rounded-full border border-border/40">
             <AvatarImage
-              v-if="thread.author.avatar"
+              v-if="thread.author?.avatar"
               :src="thread.author.avatar"
-              :alt="thread.author.username"
+              :alt="thread.author?.username || 'user'"
             />
             <AvatarFallback class="text-xs">{{ userInitials }}</AvatarFallback>
           </Avatar>
@@ -208,7 +209,7 @@ async function handleShare() {
             <span class="text-muted-foreground/60">•</span>
             <span class="hover:underline cursor-pointer"
               >{{ t("forum.post.postedBy") }} u/{{
-                thread.author.username
+                thread.author?.username || "unknown"
               }}</span
             >
           </template>
@@ -216,7 +217,7 @@ async function handleShare() {
             <span
               class="font-bold text-foreground hover:underline cursor-pointer"
             >
-              u/{{ thread.author.username }}
+              u/{{ thread.author?.username || "unknown" }}
             </span>
           </template>
           <span class="text-muted-foreground/60">•</span>

@@ -1,7 +1,21 @@
 /**
  * Authentication utilities
  *
- * Note: Authentication is now handled via httpOnly cookies (access_token, refresh_token)
+ * ⚠️ DEPRECATED - This module is deprecated. Use `@/composables/useAuth` instead.
+ *
+ * Migration guide:
+ * ```ts
+ * // OLD (deprecated)
+ * import { isAuthenticated, fetchCurrentUserId } from '@/utils/auth';
+ * if (isAuthenticated()) { ... }
+ *
+ * // NEW (recommended)
+ * import { useAuth } from '@/composables/useAuth';
+ * const { isAuthenticated, userId } = useAuth();
+ * if (isAuthenticated.value) { ... }
+ * ```
+ *
+ * Note: Authentication is handled via httpOnly cookies (access_token, refresh_token)
  * The auth store (@/stores/auth) manages user state and authentication status
  */
 
@@ -9,7 +23,18 @@ import { useAuthStore } from "@/stores/auth";
 
 /**
  * Get current user ID from auth store
- * This is a convenience function for components that need just the user ID
+ *
+ * @deprecated Use `useAuth().userId` composable instead
+ * @example
+ * ```ts
+ * // OLD
+ * import { fetchCurrentUserId } from '@/utils/auth';
+ * const userId = fetchCurrentUserId();
+ *
+ * // NEW
+ * import { useAuth } from '@/composables/useAuth';
+ * const { userId } = useAuth();
+ * ```
  */
 export function fetchCurrentUserId(): string | null {
   const authStore = useAuthStore();
@@ -18,10 +43,19 @@ export function fetchCurrentUserId(): string | null {
 
 /**
  * Check if user is authenticated
- * For reliable authentication status, use auth store's isAuthenticated computed.
  *
- * @deprecated Use authStore.isAuthenticated instead
- * @returns true if user is authenticated
+ * @deprecated Use `useAuth().isAuthenticated` composable instead
+ * @example
+ * ```ts
+ * // OLD
+ * import { isAuthenticated } from '@/utils/auth';
+ * if (isAuthenticated()) { ... }
+ *
+ * // NEW
+ * import { useAuth } from '@/composables/useAuth';
+ * const { isAuthenticated } = useAuth();
+ * if (isAuthenticated.value) { ... }
+ * ```
  */
 export function isAuthenticated(): boolean {
   const authStore = useAuthStore();
@@ -30,7 +64,9 @@ export function isAuthenticated(): boolean {
 
 /**
  * Verify authentication by calling the API
- * This is the recommended way to check authentication status
+ *
+ * Note: This function makes a real API call. For reactive authentication
+ * state, use the `useAuth()` composable instead.
  *
  * @returns Promise<boolean> - true if authenticated, false otherwise
  */

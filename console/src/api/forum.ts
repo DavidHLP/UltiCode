@@ -7,7 +7,6 @@ import type {
   ForumThread,
   ForumTag,
 } from "@/types/forum";
-import { fetchCurrentUserId } from "@/utils/auth";
 
 export async function fetchForumPosts(): Promise<ForumPost[]> {
   return apiGet<ForumPost[]>("/forum/posts");
@@ -93,10 +92,7 @@ export async function deleteForumComment(commentId: string): Promise<void> {
 }
 
 export async function recordForumView(postId: string) {
-  const userId = fetchCurrentUserId();
-  // Call the general view recording (with IP/cooldown logic)
-  apiPost(`/views/forum/${postId}`, { userId }).catch(() => {});
-  // Also call the forum-specific view recording to update stats JSON
+  // Call the forum-specific view recording endpoint
   return apiPost(`/forum/posts/${postId}/view`, {});
 }
 

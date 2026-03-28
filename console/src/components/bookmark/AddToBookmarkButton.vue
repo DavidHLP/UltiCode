@@ -18,7 +18,7 @@ import {
 } from "@/api/bookmark";
 import type { BookmarkType } from "@/types/bookmark";
 import { toast } from "vue-sonner";
-import { isAuthenticated } from "@/utils/auth";
+import { useAuth } from "@/composables/useAuth";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -34,11 +34,11 @@ const emit = defineEmits<{
 }>();
 const store = useBookmarkStore();
 const { t } = useI18n();
+const { isAuthenticated } = useAuth();
 
 const itemFolders = ref<string[]>([]);
 const isLoading = ref(false);
 const isOpen = ref(false);
-const isAuthed = ref(false);
 
 const isFavorited = computed(() => {
   const defaultId = store.defaultFolder?.id;
@@ -50,8 +50,7 @@ const isBookmarked = computed(() => itemFolders.value.length > 0);
 async function loadData() {
   if (!isOpen.value) return;
 
-  isAuthed.value = isAuthenticated();
-  if (!isAuthed.value) {
+  if (!isAuthenticated.value) {
     itemFolders.value = [];
     isLoading.value = false;
     return;
@@ -72,7 +71,7 @@ async function loadData() {
 }
 
 async function toggleFolder(folderId: string) {
-  if (!isAuthenticated()) {
+  if (!isAuthenticated.value) {
     toast.error(t("bookmark.toasts.loginRequired"));
     return;
   }
@@ -138,7 +137,7 @@ watch(
           <Loader2 class="h-6 w-6 animate-spin text-primary/60" />
         </div>
       </template>
-      <template v-else-if="!isAuthed">
+      <template v-else-if="!isAuthenticated">
         <div class="px-4 py-6 text-center">
           <Bookmark class="h-8 w-8 text-muted-foreground/30 mx-auto mb-2" />
           <p

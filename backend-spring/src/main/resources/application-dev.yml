@@ -20,7 +20,10 @@ spring:
 jwt:
   secret: dev-secret-key-for-local-development-must-be-at-least-32-chars
   cookie:
-    secure: false  # Disable secure cookie for local development
+    accessToken:
+      secure: false  # Disable secure flag for local development (HTTP)
+    refreshToken:
+      secure: false  # Disable secure flag for local development (HTTP)
 
 # MyBatis-Plus Development Settings
 mybatis-plus:

@@ -189,7 +189,12 @@ export interface ForumPost {
 export interface ForumComment {
   id: string;
   body: string;
-  author: ForumUser;
+  // Author info - populated from backend fields (authorId, authorUsername, authorAvatar)
+  author?: ForumUser;
+  // Raw fields from backend response
+  authorId?: string;
+  authorUsername?: string;
+  authorAvatar?: string;
   createdAt: string;
   upvotes: number;
   likes?: number;

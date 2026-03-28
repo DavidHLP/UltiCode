@@ -1,91 +1,89 @@
+/**
+ * Authentication API
+ *
+ * All API calls use the unified types from @/types/auth
+ * The request.ts utility automatically unwraps the backend Result<T> envelope
+ */
+
 import { apiGet, apiPost } from "@/utils/request";
+import type {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  LoginResponse,
+  UserWithCsrfResponse,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+} from "@/types/auth";
 
-export interface LoginCredentials {
-  username: string;
-  password: string;
-}
-
-export interface RegisterDto {
-  username: string;
-  password: string;
-  email?: string;
-  name?: string;
-}
-
-export interface User {
-  id: string;
-  username: string;
-  name: string;
-  email: string;
-  avatar?: string;
-  bio?: string;
-  company?: string;
-  github?: string;
-  location?: string;
-  twitter?: string;
-  website?: string;
-  preferredLanguage?: string;
-  role: string;
-  isActive: boolean;
-  joinedAt: string; // ISO 8601 format from LocalDateTime
-  lastLoginAt?: string; // ISO 8601 format from LocalDateTime
-}
-
-export interface LoginResponse {
-  code: number;
-  message: string;
-  data: {
-    csrfToken: string;
-    user: {
-      id: string;
-      username: string;
-      name: string;
-      email: string;
-      avatar?: string;
-      role: string;
-      isActive: boolean;
-      joinedAt: string;
-      lastLoginAt?: string;
-    };
-  };
-  traceId: string;
-}
-
+/**
+ * Authentication API methods
+ */
 export const authApi = {
-  async login(
-    credentials: LoginCredentials,
-  ): Promise<{ csrfToken: string; user: User }> {
-    return apiPost<{ csrfToken: string; user: User }>(
-      "/auth/login",
-      credentials,
-    );
+  /**
+   * Login with username and password
+   * POST /auth/login → Result<LoginResponse>
+   * Returns: { csrfToken: string, user: User }
+   */
+  async login(credentials: LoginRequest): Promise<LoginResponse> {
+    return apiPost<LoginResponse>("/auth/login", credentials);
   },
 
-  async register(
-    data: RegisterDto,
-  ): Promise<{ csrfToken: string; user: User }> {
-    return apiPost<{ csrfToken: string; user: User }>("/auth/register", data);
+  /**
+   * Register a new user account
+   * POST /auth/register → Result<LoginResponse>
+   * Returns: { csrfToken: string, user: User }
+   */
+  async register(data: RegisterRequest): Promise<LoginResponse> {
+    return apiPost<LoginResponse>("/auth/register", data);
   },
 
+  /**
+   * Logout current user
+   * POST /auth/logout → Result<Void>
+   */
   async logout(): Promise<void> {
-    return apiPost("/auth/logout");
+    return apiPost<void>("/auth/logout");
   },
 
+  /**
+   * Get current authenticated user
+   * GET /auth/me → Result<UserWithCsrfResponse>
+   * Returns: { user: User, csrfToken: string }
+   *
+   * Note: We return only the User part for simplicity
+   * The CSRF token is automatically stored by the auth store
+   */
   async getCurrentUser(): Promise<User> {
-    const response = await apiGet<{ csrfToken?: string; user: User }>(
-      "/auth/me",
-    );
+    // /auth/me returns { user: User, csrfToken: string }
+    const response = await apiGet<UserWithCsrfResponse>("/auth/me");
     return response.user;
   },
 
-  async forgotPassword(email: string): Promise<{ message: string }> {
-    return apiPost("/auth/forgot-password", { email });
+  /**
+   * Send password reset email
+   * POST /auth/forgot-password → Result<Void>
+   */
+  async forgotPassword(request: ForgotPasswordRequest): Promise<void> {
+    return apiPost<void>("/auth/forgot-password", request);
   },
 
-  async resetPassword(
-    token: string,
-    newPassword: string,
-  ): Promise<{ message: string }> {
-    return apiPost("/auth/reset-password", { token, newPassword });
+  /**
+   * Reset password with token from email
+   * POST /auth/reset-password → Result<Void>
+   */
+  async resetPassword(request: ResetPasswordRequest): Promise<void> {
+    return apiPost<void>("/auth/reset-password", request);
   },
+};
+
+// Re-export types for convenience
+export type {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  LoginResponse,
+  UserWithCsrfResponse,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
 };

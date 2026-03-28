@@ -13,12 +13,9 @@ import { Input } from "@/components/ui/input";
 import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
-import { authApi } from "@/api/auth";
-import { toast } from "vue-sonner";
-import { setCsrfToken } from "@/utils/csrf";
-import { setSessionFlag } from "@/stores/auth";
-import { setUserId } from "@/utils/auth";
 import { useAuthStore } from "@/stores/auth";
+import { toast } from "vue-sonner";
+import type { LoginRequest } from "@/types/auth";
 
 const props = defineProps<{
   class?: HTMLAttributes["class"];
@@ -34,43 +31,25 @@ const loading = ref(false);
 async function handleSubmit(e: Event) {
   e.preventDefault();
   loading.value = true;
+
   try {
-    const res = await authApi.login({
+    if (import.meta.env.DEV) {
+      console.log("[Login] Submitting login for:", email.value);
+    }
+
+    // Use the store's login method
+    const credentials: LoginRequest = {
       username: email.value,
       password: password.value,
-    });
+    };
+
+    await authStore.login(credentials);
 
     if (import.meta.env.DEV) {
-      console.log("[Login] API response:", res);
-    }
-
-    // Validate response - backend returns { csrfToken, user } (unwrapped)
-    if (!res || !res.user) {
-      throw new Error(
-        "Login response is invalid. Please check if the backend is running.",
+      console.log(
+        "[Login] Login successful, isAuthenticated:",
+        authStore.isAuthenticated,
       );
-    }
-
-    // Store CSRF token for subsequent state-changing requests
-    if (res.csrfToken) {
-      setCsrfToken(res.csrfToken);
-    }
-
-    // Set session flag to indicate user has an active session
-    setSessionFlag();
-
-    // Store user ID for components that still use fetchCurrentUserId()
-    setUserId(res.user.id);
-
-    // Mark auth store as initialized to prevent router guard from calling initialize() again
-    authStore.markAsInitialized();
-
-    // Set user data in auth store - this makes isAuthenticated work correctly
-    authStore.user = res.user;
-
-    if (import.meta.env.DEV) {
-      console.log("[Login] User set in store:", authStore.user);
-      console.log("[Login] isAuthenticated:", authStore.isAuthenticated);
     }
 
     toast.success(t("auth.messages.loginSuccess"));
@@ -86,7 +65,7 @@ async function handleSubmit(e: Event) {
       router.push("/");
     }
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("[Login] Login error:", error);
     toast.error(t("auth.messages.loginFailed"));
   } finally {
     loading.value = false;

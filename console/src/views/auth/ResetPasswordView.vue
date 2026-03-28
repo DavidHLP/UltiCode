@@ -53,7 +53,10 @@ async function handleReset(e: Event) {
 
   loading.value = true;
   try {
-    await authApi.resetPassword(token.value, newPassword.value);
+    await authApi.resetPassword({
+      token: token.value,
+      newPassword: newPassword.value,
+    });
     toast.success(t("auth.resetPassword.successMessage"));
     router.push("/login");
   } catch (error) {

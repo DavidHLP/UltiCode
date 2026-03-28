@@ -301,7 +301,15 @@ const router = createRouter({
   ],
 });
 
-// Navigation guard for authentication
+/**
+ * Navigation guard for authentication
+ *
+ * Logic:
+ * 1. Initialize auth store on first navigation (calls /auth/me)
+ * 2. Check if route requires authentication
+ * 3. Redirect to login if not authenticated
+ * 4. Redirect to home if already authenticated and accessing login/register
+ */
 router.beforeEach(async (to, from, next) => {
   const { useAuthStore } = await import("@/stores/auth");
   const authStore = useAuthStore();
@@ -323,12 +331,11 @@ router.beforeEach(async (to, from, next) => {
       isAuthenticated: authStore.isAuthenticated,
       isInitialized: authStore.isInitialized,
       hasUser: !!authStore.user,
-      hasSessionFlag: localStorage.getItem("ulticode_has_session"),
     });
   }
 
+  // Redirect to login if authentication required but not authenticated
   if (requiresAuth && !authStore.isAuthenticated) {
-    // Redirect to login with return url
     return next({
       name: "login",
       query: { redirect: to.fullPath },

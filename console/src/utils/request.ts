@@ -302,13 +302,8 @@ service.interceptors.response.use(
       const { useAuthStore } = await import("@/stores/auth");
       const authStore = useAuthStore();
 
-      // Only clear if we were previously authenticated or had a session flag
-      if (
-        authStore.isAuthenticated ||
-        localStorage.getItem("ulticode_has_session") === "true"
-      ) {
-        authStore.clearUser();
-      }
+      // Clear user state - router guard will handle redirect
+      authStore.clearUser();
 
       if (isDevelopment) {
         console.warn(
@@ -319,10 +314,10 @@ service.interceptors.response.use(
       return Promise.reject(ApiError.fromAxiosError(error));
     }
 
-    // Log other errors - skip auth errors
+    // Log other errors - skip auth errors (already handled above)
     if (isDevelopment && config?._metadata) {
       const status = error.response?.status;
-      // Skip logging 401/403 - already handled above with redirect
+      // Skip logging 401/403 - already handled above
       if (status !== 401 && status !== 403) {
         console.error(`[API Error] ${config._metadata.requestId}`, {
           status: error.response?.status,

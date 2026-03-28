@@ -33,11 +33,10 @@ import {
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { authApi } from "@/api/auth";
-import { isAuthenticated, removeToken, removeUserId } from "@/utils/auth";
+import { isAuthenticated } from "@/utils/auth";
 import { toast } from "vue-sonner";
 import { useNotificationStore } from "@/stores/notification";
-import { clearSessionFlag } from "@/stores/auth";
+import { useAuthStore } from "@/stores/auth";
 
 const { user } = defineProps<{
   user: {
@@ -50,6 +49,7 @@ const { user } = defineProps<{
 const { t } = useI18n();
 const { isMobile } = useSidebar();
 const router = useRouter();
+const authStore = useAuthStore();
 const notificationStore = useNotificationStore();
 const unreadCount = computed(() => notificationStore.unreadCount);
 const unreadLabel = computed(() =>
@@ -65,14 +65,12 @@ onMounted(() => {
 
 async function handleLogout() {
   try {
-    await authApi.logout();
+    await authStore.logout();
+    toast.success(t("auth.messages.logoutSuccess"));
+    router.push("/login");
   } catch (error) {
     console.error("Logout failed", error);
-    // Continue with local cleanup anyway
-  } finally {
-    removeToken();
-    removeUserId();
-    clearSessionFlag();
+    // Still redirect to login even if API call fails
     toast.success(t("auth.messages.logoutSuccess"));
     router.push("/login");
   }

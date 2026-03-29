@@ -12,7 +12,6 @@ import {
 } from "@/features/sider/sidebar.data";
 import { computed } from "vue";
 import { useRoute } from "vue-router";
-import { useI18n } from "vue-i18n";
 import { useAuthStore } from "@/stores/auth";
 import {
   Sidebar,
@@ -25,11 +24,12 @@ import {
 
 const props = defineProps<SidebarProps>();
 const route = useRoute();
-const { t } = useI18n();
 const authStore = useAuthStore();
 
+const isAuthenticated = computed(() => authStore.isAuthenticated);
+
 const user = computed(() => {
-  if (authStore.isAuthenticated && authStore.user) {
+  if (isAuthenticated.value && authStore.user) {
     return {
       name: authStore.user.name || authStore.user.username,
       email: authStore.user.email || "",
@@ -37,8 +37,8 @@ const user = computed(() => {
     };
   }
   return {
-    name: t("common.labels.guest"),
-    email: "guest@example.com",
+    name: "",
+    email: "",
     avatar: "",
   };
 });
@@ -70,7 +70,7 @@ const currentSidebarData = computed(() => {
 <template>
   <Sidebar v-bind="props">
     <SidebarHeader class="h-16 border-b border-sidebar-border">
-      <NavUser :user="user" />
+      <NavUser :user="user" :is-authenticated="isAuthenticated" />
     </SidebarHeader>
     <SidebarContent>
       <!-- Dynamic Sidebar Navigation -->

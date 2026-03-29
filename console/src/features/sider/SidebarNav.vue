@@ -14,18 +14,36 @@ import {
 import { ChevronRight } from "lucide-vue-next";
 import { Badge } from "@/components/ui/badge";
 import { useI18n } from "vue-i18n";
+import { computed } from "vue";
+import { useAuthStore } from "@/stores/auth";
 import type { SidebarSection } from "./sidebar.data";
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 
-defineProps<{
+const props = defineProps<{
   sections: SidebarSection[];
 }>();
+
+const visibleSections = computed(() => {
+  const isAuth = authStore.isAuthenticated;
+  return props.sections
+    .filter((section) => !section.requiresAuth || isAuth)
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => !item.requiresAuth || isAuth),
+    }))
+    .filter((section) => section.items.length > 0);
+});
 </script>
 
 <template>
   <div class="flex flex-col gap-0">
-    <SidebarGroup v-for="section in sections" :key="section.name" class="py-0">
+    <SidebarGroup
+      v-for="section in visibleSections"
+      :key="section.name"
+      class="py-0"
+    >
       <Collapsible
         v-if="section.collapsible"
         :default-open="true"

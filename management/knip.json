@@ -1,0 +1,13 @@
+{
+  "$schema": "https://unpkg.com/knip@5/schema.json",
+  "entry": ["src/main.{ts,js}!"],
+  "project": ["src/**/*.{ts,js,vue}!"],
+  "ignore": [
+    "src/assets/**",
+    "src/components/ui/**",
+    "public/**", 
+    "**/*.d.ts",
+    "eslint.config.ts",
+    "vite.config.ts"
+  ]
+}

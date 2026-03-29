@@ -34,12 +34,14 @@ export interface SidebarItem {
   badgeVariant?: "default" | "secondary" | "destructive" | "outline";
   children?: SidebarItem[];
   action?: () => void;
+  requiresAuth?: boolean;
 }
 
 export interface SidebarSection {
   name: string;
   items: SidebarItem[];
   collapsible?: boolean;
+  requiresAuth?: boolean;
 }
 
 export const forumSidebarData: SidebarSection[] = [
@@ -59,6 +61,7 @@ export const forumSidebarData: SidebarSection[] = [
   {
     name: "sidebar.forum.mySpace",
     collapsible: true,
+    requiresAuth: true,
     items: [
       {
         title: "sidebar.forum.myPosts",
@@ -135,7 +138,12 @@ export const contestSidebarData: SidebarSection[] = [
         url: "/contest/past",
         icon: History,
       },
-      { title: "sidebar.contest.myContests", url: "/contest/my", icon: Trophy },
+      {
+        title: "sidebar.contest.myContests",
+        url: "/contest/my",
+        icon: Trophy,
+        requiresAuth: true,
+      },
     ],
   },
   {
@@ -159,6 +167,7 @@ export const contestSidebarData: SidebarSection[] = [
 export const personalSidebarData: SidebarSection[] = [
   {
     name: "sidebar.personal.account",
+    requiresAuth: true,
     items: [
       { title: "sidebar.personal.profile", url: "/personal", icon: User },
       {
@@ -175,6 +184,7 @@ export const personalSidebarData: SidebarSection[] = [
   },
   {
     name: "sidebar.personal.activity",
+    requiresAuth: true,
     items: [
       {
         title: "sidebar.personal.submissions",
@@ -208,6 +218,7 @@ export const personalSidebarData: SidebarSection[] = [
 export const recommendationSidebarData: SidebarSection[] = [
   {
     name: "sidebar.recommendation.types",
+    requiresAuth: true,
     items: [
       {
         title: "sidebar.recommendation.daily",

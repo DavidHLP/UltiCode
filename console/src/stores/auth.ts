@@ -12,6 +12,16 @@ import { setCsrfToken, clearCsrfToken } from "@/utils/csrf";
 const isDevelopment = import.meta.env.DEV;
 
 /**
+ * Check if auth cookies exist (httpOnly, so we check for presence only).
+ * Returns true only if an access_token cookie is present.
+ */
+function hasAuthCookie(): boolean {
+  return document.cookie
+    .split(";")
+    .some((c) => c.trim().startsWith("access_token="));
+}
+
+/**
  * Authentication status states
  *
  * State machine transitions:
@@ -93,7 +103,16 @@ export const useAuthStore = defineStore("auth", () => {
     // Create and store the promise
     _initializationPromise = (async () => {
       try {
-        // Attempt to restore session from httpOnly cookies
+        // Only attempt to restore session if auth cookies exist
+        // Guests without cookies skip the /auth/me request entirely
+        if (!hasAuthCookie()) {
+          if (isDevelopment) {
+            console.log(
+              "[Auth] No auth cookies found, skipping session restore",
+            );
+          }
+          return;
+        }
         await fetchUser();
         if (isDevelopment) {
           console.log("[Auth] Session restored successfully");

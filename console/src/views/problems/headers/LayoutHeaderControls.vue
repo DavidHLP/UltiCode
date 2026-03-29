@@ -10,6 +10,7 @@ import {
   History,
   Settings,
   LogOut,
+  LogIn,
 } from "lucide-vue-next";
 import {
   DropdownMenu,
@@ -26,6 +27,7 @@ import type { ProblemDetail } from "@/types/problem-detail";
 import { RouterLink } from "vue-router";
 import { ProblemEdgeOperations } from "@/components/edge-operations";
 import { useI18n } from "vue-i18n";
+import { useAuthStore } from "@/stores/auth";
 
 interface Props {
   currentLayout: "leet" | "classic" | "compact" | "wide";
@@ -38,6 +40,8 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+const authStore = useAuthStore();
+const isAuthenticated = computed(() => authStore.isAuthenticated);
 
 // Layout options
 const layoutOptions = computed(() => [
@@ -211,8 +215,20 @@ const selectedLayout = computed({
           class="h-7 w-px flex-none bg-gray-200"
         />
 
-        <!-- User button with Dropdown -->
-        <DropdownMenu>
+        <!-- Guest: show login button -->
+        <RouterLink v-if="!isAuthenticated" to="/login">
+          <Button
+            variant="ghost"
+            size="icon"
+            :aria-label="t('auth.login.submit')"
+            class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0"
+          >
+            <LogIn class="h-4 w-4" aria-hidden="true" />
+          </Button>
+        </RouterLink>
+
+        <!-- Authenticated: user dropdown -->
+        <DropdownMenu v-else>
           <DropdownMenuTrigger as-child>
             <Button
               variant="ghost"

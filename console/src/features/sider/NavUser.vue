@@ -2,6 +2,8 @@
 import {
   Bell,
   ChevronsUpDown,
+  LogIn,
+  UserPlus,
   LogOut,
   User,
   History,
@@ -33,24 +35,23 @@ import {
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
-import { useAuth } from "@/composables/useAuth";
 import { toast } from "vue-sonner";
 import { useNotificationStore } from "@/stores/notification";
 import { useAuthStore } from "@/stores/auth";
 
-const { user } = defineProps<{
+const { user, isAuthenticated } = defineProps<{
   user: {
     name: string;
     email: string;
     avatar: string;
   };
+  isAuthenticated: boolean;
 }>();
 
 const { t } = useI18n();
 const { isMobile } = useSidebar();
 const router = useRouter();
 const authStore = useAuthStore();
-const { isAuthenticated } = useAuth();
 const notificationStore = useNotificationStore();
 const unreadCount = computed(() => notificationStore.unreadCount);
 const unreadLabel = computed(() =>
@@ -58,7 +59,7 @@ const unreadLabel = computed(() =>
 );
 
 onMounted(() => {
-  if (!isAuthenticated.value) return;
+  if (!isAuthenticated) return;
   notificationStore.loadUnreadCount().catch((error) => {
     console.error("Failed to load notification count", error);
   });
@@ -81,7 +82,26 @@ async function handleLogout() {
 <template>
   <SidebarMenu>
     <SidebarMenuItem>
-      <DropdownMenu>
+      <!-- Guest: show login/register buttons -->
+      <template v-if="!isAuthenticated">
+        <div class="flex items-center gap-2 px-2 py-1.5">
+          <RouterLink to="/login" class="flex-1">
+            <SidebarMenuButton size="sm" class="justify-center">
+              <LogIn class="mr-1.5 h-4 w-4" />
+              {{ t("auth.login.submit") }}
+            </SidebarMenuButton>
+          </RouterLink>
+          <RouterLink to="/register" class="flex-1">
+            <SidebarMenuButton size="sm" class="justify-center">
+              <UserPlus class="mr-1.5 h-4 w-4" />
+              {{ t("auth.register.submit") }}
+            </SidebarMenuButton>
+          </RouterLink>
+        </div>
+      </template>
+
+      <!-- Authenticated: show user dropdown menu -->
+      <DropdownMenu v-else>
         <DropdownMenuTrigger as-child>
           <SidebarMenuButton
             size="lg"

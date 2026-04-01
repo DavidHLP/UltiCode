@@ -220,8 +220,13 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
   connectionStatus = "connecting";
   notifyStatusChange("connecting");
 
+  // Pass token as query parameter since SockJS doesn't forward custom headers
+  const wsUrl = token
+    ? `${API_BASE_URL}/ws/contest?token=${encodeURIComponent(token)}`
+    : `${API_BASE_URL}/ws/contest`;
+
   stompClient = new Client({
-    webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/contest`),
+    webSocketFactory: () => new SockJS(wsUrl),
     connectHeaders: {
       Authorization: token ? `Bearer ${token}` : "",
       "X-CSRF-Token": csrfToken || "",

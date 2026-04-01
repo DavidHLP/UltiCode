@@ -21,9 +21,11 @@ import "@/pwa-register";
  * Flow:
  * 1. Create Vue app
  * 2. Install Pinia (required for stores)
- * 3. Initialize auth store (async, completes before router)
- * 4. Install router (now auth status is known)
- * 5. Mount app
+ * 3. Initialize auth context (coordinates auth state)
+ * 4. Initialize auth store (async, completes before router)
+ * 5. Setup auth-aware navigation handling
+ * 6. Install router (now auth status is known)
+ * 7. Mount app
  */
 async function bootstrap() {
   const app = createApp(App);
@@ -34,8 +36,27 @@ async function bootstrap() {
   app.use(i18n);
   app.use(VueDnDKitPlugin);
 
-  // Initialize auth BEFORE router installation
-  // This ensures auth status is known when router guards run
+  // Initialize auth context BEFORE auth store
+  // This sets up global auth error handling
+  const { initializeAuthContext, onSessionExpired } = await import(
+    "@/contexts/AuthContext"
+  );
+  initializeAuthContext();
+
+  // Setup session expired redirect to login
+  const { useRouter } = await import("vue-router");
+  onSessionExpired(() => {
+    // Delay to allow current request to complete
+    setTimeout(() => {
+      const router = useRouter();
+      if (router.currentRoute.value.meta.requiresAuth !== true) {
+        // Only redirect if not already on a public page
+        router.push("/login");
+      }
+    }, 100);
+  });
+
+  // Initialize auth store AFTER auth context is ready
   const { useAuthStore } = await import("@/stores/auth");
   const authStore = useAuthStore();
 

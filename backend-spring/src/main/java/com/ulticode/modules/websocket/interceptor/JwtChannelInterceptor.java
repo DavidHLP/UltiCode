@@ -53,14 +53,86 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
     if (accessor == null) {
+      log.warn("WebSocket message with null StompHeaderAccessor");
       return message;
     }
 
-    if (StompCommand.CONNECT.equals(accessor.getCommand())) {
-      authenticateConnection(accessor);
+    StompCommand command = accessor.getCommand();
+    log.debug("WebSocket STOMP command: {}, sessionId: {}", command, accessor.getSessionId());
+
+    try {
+      if (StompCommand.CONNECT.equals(command)) {
+        return handleConnect(accessor, message, channel);
+      } else if (StompCommand.SEND.equals(command) || StompCommand.SUBSCRIBE.equals(command)) {
+        validateUserSession(accessor, command);
+      }
+    } catch (WebSocketAuthenticationException e) {
+      log.error("WebSocket auth error for session {}: {} - {}", 
+          accessor.getSessionId(), e.getErrorCode(), e.getMessage());
+      throw e;
+    } catch (Exception e) {
+      log.error("WebSocket error for session {}: {}", accessor.getSessionId(), e.getMessage(), e);
+      throw e;
     }
 
     return message;
+  }
+
+  /**
+   * Handle STOMP CONNECT command with proper exception handling.
+   */
+  private Message<?> handleConnect(StompHeaderAccessor accessor, Message<?> message, MessageChannel channel) {
+    log.debug("=== Handling CONNECT for sessionId: {} ===", accessor.getSessionId());
+    log.debug("Session attributes BEFORE auth: {}", accessor.getSessionAttributes());
+    
+    try {
+      authenticateConnection(accessor);
+      log.debug("=== CONNECT authenticated successfully for sessionId: {} ===", accessor.getSessionId());
+      log.debug("Session attributes AFTER auth: {}", accessor.getSessionAttributes());
+      log.debug("User principal AFTER auth: {}", accessor.getUser());
+    } catch (WebSocketAuthenticationException e) {
+      log.error("=== CONNECT auth FAILED for sessionId: {}: {} ===", 
+          accessor.getSessionId(), e.getErrorCode());
+      throw e;
+    } catch (Exception e) {
+      log.error("=== Unexpected error in CONNECT for sessionId: {}: {} ===", 
+          accessor.getSessionId(), e.getMessage(), e);
+      throw e;
+    }
+    
+    return message;
+  }
+
+  /**
+   * Validate that user session exists for message processing.
+   *
+   * @param accessor the STOMP header accessor
+   * @param command the STOMP command being processed
+   */
+  private void validateUserSession(StompHeaderAccessor accessor, StompCommand command) {
+    Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+    if (sessionAttributes == null) {
+      log.warn("WebSocket {} command with null session attributes, destination: {}",
+          command, accessor.getDestination());
+      return;
+    }
+
+    Object userObj = sessionAttributes.get("user");
+    if (userObj == null) {
+      log.warn("WebSocket {} command with no user in session, destination: {}, sessionId: {}",
+          command, accessor.getDestination(), accessor.getSessionId());
+      return;
+    }
+
+    if (!(userObj instanceof SocketClientData)) {
+      log.warn("WebSocket {} command with invalid user type: {}, destination: {}",
+          command, userObj.getClass().getName(), accessor.getDestination());
+      return;
+    }
+
+    SocketClientData userData = (SocketClientData) userObj;
+    log.debug("WebSocket {} command for user: {}, destination: {}",
+        command, userData.username(), accessor.getDestination());
   }
 
   /**
@@ -69,9 +141,16 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
    * @param accessor the STOMP header accessor
    */
   private void authenticateConnection(StompHeaderAccessor accessor) {
-    // Extract token from headers
-    Optional<String> tokenOpt =
-        tokenExtractor.extractTokenFromHeaders(accessor.getMessageHeaders());
+    log.debug("Authenticating WebSocket CONNECT, sessionId: {}, sessionAttributes: {}",
+        accessor.getSessionId(), accessor.getSessionAttributes());
+
+    // First try session attributes (set by HandshakeInterceptor from query param/cookie)
+    Optional<String> tokenOpt = extractTokenFromSession(accessor);
+
+    // Fall back to STOMP CONNECT message headers
+    if (tokenOpt.isEmpty()) {
+      tokenOpt = tokenExtractor.extractTokenFromHeaders(accessor.getMessageHeaders());
+    }
 
     if (tokenOpt.isEmpty()) {
       log.warn("WebSocket connection rejected: No token provided");
@@ -108,7 +187,7 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     // Verify user exists
     Optional<User> userOpt = userService.findById(userId);
     if (userOpt.isEmpty()) {
-      log.warn("WebSocket connection rejected: User not found");
+      log.warn("WebSocket connection rejected: User not found, userId: {}", userId);
       throw new WebSocketAuthenticationException(
           ErrorCode.WEBSOCKET_USER_NOT_FOUND, "User not found");
     }
@@ -122,12 +201,34 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
     Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
     if (sessionAttributes != null) {
       sessionAttributes.put("user", clientData);
+      log.debug("User data added to session, sessionId: {}", accessor.getSessionId());
+    } else {
+      log.warn("Session attributes is null during authentication, sessionId: {}",
+          accessor.getSessionId());
     }
 
     // Set user principal for @MessageMapping methods
     accessor.setUser(clientData::userId);
 
-    log.debug("WebSocket authenticated: userId={}, username={}", userId, user.getUsername());
+    log.info("WebSocket authenticated: userId={}, username={}, sessionId={}, userPrincipal={}",
+        userId, user.getUsername(), accessor.getSessionId(), accessor.getUser());
+  }
+
+  /**
+   * Extract token from WebSocket session attributes.
+   *
+   * @param accessor the STOMP header accessor
+   * @return Optional containing the token if found in session attributes
+   */
+  private Optional<String> extractTokenFromSession(StompHeaderAccessor accessor) {
+    Map<String, Object> sessionAttributes = accessor.getSessionAttributes();
+    if (sessionAttributes != null) {
+      Object auth = sessionAttributes.get("auth");
+      if (auth instanceof String token && !token.isEmpty()) {
+        return Optional.of(token);
+      }
+    }
+    return Optional.empty();
   }
 
   /** Exception for WebSocket authentication failures. */

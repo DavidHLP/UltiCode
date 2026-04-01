@@ -56,7 +56,7 @@ watch(
   () => route.params.postId as string,
   (postId) => {
     void loadThread(postId);
-    if (postId) {
+    if (postId && isAuthenticated()) {
       recordForumView(postId).catch((e) =>
         console.error("Failed to record view", e),
       );

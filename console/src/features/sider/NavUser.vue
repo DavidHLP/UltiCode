@@ -17,6 +17,7 @@ import { onMounted, computed } from "vue";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,11 +59,18 @@ const unreadLabel = computed(() =>
   unreadCount.value > 99 ? "99+" : `${unreadCount.value}`,
 );
 
-onMounted(() => {
-  if (!isAuthenticated) return;
-  notificationStore.loadUnreadCount().catch((error) => {
-    console.error("Failed to load notification count", error);
-  });
+onMounted(async () => {
+  // Only fetch unread count if user is authenticated
+  // Check both prop and store to handle edge cases
+  if (!isAuthenticated || !authStore.isAuthenticated) return;
+
+  try {
+    await notificationStore.loadUnreadCount();
+  } catch (error) {
+    // Don't show error toast for notification count failures
+    // It's a non-critical UI element
+    console.warn("Failed to load notification count:", error);
+  }
 });
 
 async function handleLogout() {
@@ -86,16 +94,16 @@ async function handleLogout() {
       <template v-if="!isAuthenticated">
         <div class="flex items-center gap-2 px-2 py-1.5">
           <RouterLink to="/login" class="flex-1">
-            <SidebarMenuButton size="sm" class="justify-center">
-              <LogIn class="mr-1.5 h-4 w-4" />
+            <Button size="sm" class="w-full justify-center">
+              <LogIn class="size-4" />
               {{ t("auth.login.submit") }}
-            </SidebarMenuButton>
+            </Button>
           </RouterLink>
           <RouterLink to="/register" class="flex-1">
-            <SidebarMenuButton size="sm" class="justify-center">
-              <UserPlus class="mr-1.5 h-4 w-4" />
+            <Button variant="outline" size="sm" class="w-full justify-center">
+              <UserPlus class="size-4" />
               {{ t("auth.register.submit") }}
-            </SidebarMenuButton>
+            </Button>
           </RouterLink>
         </div>
       </template>

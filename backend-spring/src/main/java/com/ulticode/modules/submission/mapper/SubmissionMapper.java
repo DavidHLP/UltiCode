@@ -86,4 +86,15 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      */
     @Select("SELECT COUNT(*) FROM submissions WHERE user_id = #{userId}")
     Long countByUserId(@Param("userId") String userId);
+
+    /**
+     * Find distinct submission dates for a user in a given year.
+     *
+     * @param userId user ID
+     * @param year   the year to filter by
+     * @return list of date strings (YYYY-MM-DD format)
+     */
+    @Select("SELECT DISTINCT DATE_FORMAT(created_at, '%Y-%m-%d') as date FROM submissions " +
+            "WHERE user_id = #{userId} AND YEAR(created_at) = #{year} ORDER BY date")
+    List<String> findSubmissionDatesByYear(@Param("userId") String userId, @Param("year") Integer year);
 }

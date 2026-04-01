@@ -6,6 +6,7 @@ import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -75,4 +76,13 @@ public interface SubmissionService {
      * @return the submission view object
      */
     SubmissionVO toVO(Submission submission);
+
+    /**
+     * Get the list of dates (YYYY-MM-DD) when a user made submissions in a given year.
+     *
+     * @param userId the user ID
+     * @param year   the year to filter by
+     * @return list of date strings
+     */
+    List<String> getSubmissionDates(String userId, Integer year);
 }

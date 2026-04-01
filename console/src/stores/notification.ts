@@ -32,6 +32,7 @@ export const useNotificationStore = defineStore("notification", () => {
   const loading = ref(false);
   const realtimeConnected = ref(false);
   const error = ref<string | null>(null);
+  const isSetup = ref(false);
 
   async function loadNotifications(params: NotificationQuery = {}) {
     loading.value = true;
@@ -53,16 +54,27 @@ export const useNotificationStore = defineStore("notification", () => {
     }
   }
 
-  async function loadUnreadCount() {
+  /**
+   * Load unread notification count
+   * Only call this when user is authenticated
+   */
+  async function loadUnreadCount(): Promise<number> {
+    const authStore = useAuthStore();
+
+    // Guard: Don't make API call if not authenticated
+    if (!authStore.isAuthenticated) {
+      unreadCount.value = 0;
+      return 0;
+    }
+
     error.value = null;
     try {
       const result = await fetchUnreadCount();
       unreadCount.value = result.count;
       return result.count;
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load unread count";
-      throw err;
+    } catch {
+      // Silently handle - unread count is non-critical and shouldn't trigger logout
+      return 0;
     }
   }
 
@@ -168,8 +180,16 @@ export const useNotificationStore = defineStore("notification", () => {
     console.log("[Notification] Badge earned:", payload);
   }
 
-  // Setup WebSocket listeners when authenticated
-  function setupRealtimeListeners() {
+  /**
+   * Setup WebSocket listeners
+   * Safe to call multiple times - will only setup once
+   */
+  function setupRealtimeListeners(): void {
+    // Prevent duplicate setup
+    if (isSetup.value) {
+      return;
+    }
+
     const authStore = useAuthStore();
     const socketManager = getSocketManager();
 
@@ -189,12 +209,7 @@ export const useNotificationStore = defineStore("notification", () => {
     );
     socketManager.on(NotificationEvent.BADGE_EARNED, handleBadgeEarned);
 
-    // Connect if authenticated
-    if (authStore.isAuthenticated) {
-      socketManager.connect();
-    }
-
-    // Watch for auth changes
+    // Watch for auth changes - this is the key integration point
     watch(
       () => authStore.isAuthenticated,
       (isAuth) => {
@@ -202,13 +217,31 @@ export const useNotificationStore = defineStore("notification", () => {
           socketManager.connect();
         } else {
           socketManager.disconnect();
+          // Reset unread count when logged out
+          unreadCount.value = 0;
         }
       },
+      { immediate: true },
     );
+
+    isSetup.value = true;
   }
 
-  // Initialize real-time listeners
-  setupRealtimeListeners();
+  /**
+   * Initialize notification store
+   * Call this explicitly after auth is ready
+   */
+  async function initialize(): Promise<void> {
+    const authStore = useAuthStore();
+
+    // Setup WebSocket listeners
+    setupRealtimeListeners();
+
+    // Only load unread count if authenticated
+    if (authStore.isAuthenticated) {
+      await loadUnreadCount();
+    }
+  }
 
   function clearError() {
     error.value = null;
@@ -224,6 +257,8 @@ export const useNotificationStore = defineStore("notification", () => {
     loading,
     realtimeConnected,
     error,
+    setupRealtimeListeners,
+    initialize,
     loadNotifications,
     loadUnreadCount,
     markAsRead,

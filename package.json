@@ -63,5 +63,8 @@
         "overrides": {
             "eslint": "^9.39.0"
         }
+    },
+    "dependencies": {
+        "ecc-universal": "^1.9.0"
     }
 }

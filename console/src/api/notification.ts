@@ -27,7 +27,9 @@ export async function fetchNotifications(
 }
 
 export async function fetchUnreadCount(): Promise<{ count: number }> {
-  return apiGet<{ count: number }>("/notifications/unread-count");
+  return apiGet<{ count: number }>("/notifications/unread-count", {
+    skipErrorHandler: true,
+  });
 }
 
 export async function updateNotificationRead(

@@ -12,16 +12,6 @@ import { setCsrfToken, clearCsrfToken } from "@/utils/csrf";
 const isDevelopment = import.meta.env.DEV;
 
 /**
- * Check if auth cookies exist (httpOnly, so we check for presence only).
- * Returns true only if an access_token cookie is present.
- */
-function hasAuthCookie(): boolean {
-  return document.cookie
-    .split(";")
-    .some((c) => c.trim().startsWith("access_token="));
-}
-
-/**
  * Authentication status states
  *
  * State machine transitions:
@@ -51,6 +41,46 @@ export const useAuthStore = defineStore("auth", () => {
 
   // Private: prevents duplicate initialization calls
   let _initializationPromise: Promise<void> | null = null;
+  // Track if user has explicitly logged out - used to skip /auth/me check in new tabs
+  // Use localStorage for cross-tab persistence (sessionStorage is tab-isolated)
+  const LOGOUT_KEY = "auth:explicitly_logged_out";
+
+  function getHasExplicitlyLoggedOut(): boolean {
+    try {
+      return localStorage.getItem(LOGOUT_KEY) === "true";
+    } catch {
+      return false;
+    }
+  }
+
+  function setHasExplicitlyLoggedOut(value: boolean): void {
+    try {
+      if (value) {
+        localStorage.setItem(LOGOUT_KEY, "true");
+      } else {
+        localStorage.removeItem(LOGOUT_KEY);
+      }
+    } catch {
+      // localStorage might be unavailable
+    }
+  }
+
+  // Listen for logout events from other tabs
+  function setupLogoutListener(): void {
+    try {
+      window.addEventListener("storage", (event: StorageEvent) => {
+        if (event.key === LOGOUT_KEY && event.newValue === "true") {
+          if (isDevelopment) {
+            console.log("[Auth] Logout detected from another tab");
+          }
+          // Clear user state when logout is detected from another tab
+          clearUser();
+        }
+      });
+    } catch {
+      // storage event might not be available
+    }
+  }
 
   // Computed
   const isAuthenticated = computed(() => !!user.value);
@@ -84,6 +114,18 @@ export const useAuthStore = defineStore("auth", () => {
       return;
     }
 
+    // If user has explicitly logged out, skip /auth/me check
+    // This prevents unnecessary 401 requests in new tabs after logout
+    if (getHasExplicitlyLoggedOut()) {
+      if (isDevelopment) {
+        console.log(
+          "[Auth] User explicitly logged out, skipping session check",
+        );
+      }
+      status.value = "ready";
+      return;
+    }
+
     // Return existing promise if initialization is in progress
     if (_initializationPromise) {
       if (isDevelopment) {
@@ -96,6 +138,9 @@ export const useAuthStore = defineStore("auth", () => {
     status.value = "loading";
     error.value = null;
 
+    // Setup cross-tab logout listener (only once)
+    setupLogoutListener();
+
     if (isDevelopment) {
       console.log("[Auth] initialize() called - attempting to restore session");
     }
@@ -103,16 +148,9 @@ export const useAuthStore = defineStore("auth", () => {
     // Create and store the promise
     _initializationPromise = (async () => {
       try {
-        // Only attempt to restore session if auth cookies exist
-        // Guests without cookies skip the /auth/me request entirely
-        if (!hasAuthCookie()) {
-          if (isDevelopment) {
-            console.log(
-              "[Auth] No auth cookies found, skipping session restore",
-            );
-          }
-          return;
-        }
+        // Always attempt to restore session via /auth/me
+        // The endpoint will return 401 if not authenticated
+        // This properly validates the httpOnly cookie-based session
         await fetchUser();
         if (isDevelopment) {
           console.log("[Auth] Session restored successfully");
@@ -172,47 +210,67 @@ export const useAuthStore = defineStore("auth", () => {
   /**
    * Fetch current user from /auth/me endpoint
    * Returns null if not authenticated (401)
+   *
+   * Uses skipErrorHandler to prevent the response interceptor
+   * from treating 401 as a global error (which would call clearUser)
    */
   async function fetchUser(): Promise<User | null> {
-    try {
-      // /auth/me returns { user: User, csrfToken: string }
-      // request.ts unwraps the Result<T> envelope
-      const response = await apiGet<{ user: User; csrfToken: string }>(
-        "/auth/me",
-        { skipErrorHandler: true },
-      );
-
+    // Prevent concurrent fetchUser calls
+    if (_fetchUserPromise) {
       if (isDevelopment) {
-        console.log("[Auth] /auth/me response:", response);
+        console.log("[Auth] fetchUser already in progress, waiting...");
       }
-
-      if (!response || !response.user) {
-        console.error("[Auth] Invalid /auth/me response:", response);
-        throw new Error("Invalid user response from /auth/me");
-      }
-
-      // Store CSRF token for subsequent state-changing requests
-      if (response.csrfToken) {
-        setCsrfToken(response.csrfToken);
-      }
-
-      user.value = response.user;
-
-      if (isDevelopment) {
-        console.log("[Auth] User data set:", user.value);
-        console.log("[Auth] isAuthenticated:", isAuthenticated.value);
-      }
-
-      return response.user;
-    } catch (err) {
-      if (isDevelopment) {
-        console.log("[Auth] fetchUser error (user not logged in):", err);
-      }
-      // 401 means no valid session - clear state
-      user.value = null;
-      return null;
+      return _fetchUserPromise;
     }
+
+    _fetchUserPromise = (async () => {
+      try {
+        // /auth/me returns { user: User, csrfToken: string }
+        // request.ts unwraps the Result<T> envelope
+        const response = await apiGet<{ user: User; csrfToken: string }>(
+          "/auth/me",
+          { skipErrorHandler: true },
+        );
+
+        if (isDevelopment) {
+          console.log("[Auth] /auth/me response:", response);
+        }
+
+        if (!response || !response.user) {
+          console.error("[Auth] Invalid /auth/me response:", response);
+          throw new Error("Invalid user response from /auth/me");
+        }
+
+        // Store CSRF token for subsequent state-changing requests
+        if (response.csrfToken) {
+          setCsrfToken(response.csrfToken);
+        }
+
+        user.value = response.user;
+
+        if (isDevelopment) {
+          console.log("[Auth] User data set:", user.value);
+          console.log("[Auth] isAuthenticated:", isAuthenticated.value);
+        }
+
+        return response.user;
+      } catch (err) {
+        if (isDevelopment) {
+          console.log("[Auth] fetchUser error (user not logged in):", err);
+        }
+        // 401 means no valid session - clear state
+        user.value = null;
+        return null;
+      } finally {
+        _fetchUserPromise = null;
+      }
+    })();
+
+    return _fetchUserPromise;
   }
+
+  // Store the promise to prevent concurrent fetchUser calls
+  let _fetchUserPromise: Promise<User | null> | null = null;
 
   /**
    * Login with username and password
@@ -324,6 +382,9 @@ export const useAuthStore = defineStore("auth", () => {
     } catch (err) {
       console.error("[Auth] Logout error:", err);
     } finally {
+      // Mark as explicitly logged out BEFORE clearing user
+      // This ensures new tabs/windows know user has logged out
+      setHasExplicitlyLoggedOut(true);
       clearUser();
     }
   }
@@ -331,6 +392,10 @@ export const useAuthStore = defineStore("auth", () => {
   /**
    * Clear all authentication state
    * Called after 401/403 errors or manual logout
+   *
+   * NOTE: Does NOT set hasExplicitlyLoggedOut flag - that should only be set
+   * by explicit logout action. 401 errors may be transient (session just expired)
+   * and should not block session restoration on page refresh.
    */
   function clearUser(): void {
     if (isDevelopment) {
@@ -338,9 +403,11 @@ export const useAuthStore = defineStore("auth", () => {
     }
     user.value = null;
     clearCsrfToken();
-    // Reset to idle state - allows potential re-initialization
-    status.value = "idle";
     error.value = null;
+    // Note: Do NOT reset status to 'idle' here
+    // Keeping status as 'ready' with user=null prevents re-initialization loops
+    // The app remains in "ready but unauthenticated" state
+    // Session restoration will be attempted on next initialize() call
   }
 
   /**
@@ -352,6 +419,8 @@ export const useAuthStore = defineStore("auth", () => {
     status.value = "idle";
     error.value = null;
     _initializationPromise = null;
+    _fetchUserPromise = null;
+    setHasExplicitlyLoggedOut(false);
     clearCsrfToken();
   }
 

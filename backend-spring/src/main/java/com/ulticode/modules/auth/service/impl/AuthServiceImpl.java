@@ -208,13 +208,8 @@ public class AuthServiceImpl implements AuthService {
     private void setAuthCookie(HttpServletResponse response, String accessToken) {
         JwtProperties.AccessTokenCookie cookieConfig = jwtProperties.getCookie().getAccessToken();
 
-        Cookie cookie = new Cookie(cookieConfig.getName(), accessToken);
-        cookie.setHttpOnly(cookieConfig.isHttpOnly());
-        cookie.setSecure(cookieConfig.isSecure());
-        cookie.setPath(cookieConfig.getPath());
-        cookie.setMaxAge(cookieConfig.getMaxAge());
-
-        // Set SameSite attribute via header (Servlet API doesn't support SameSite directly)
+        // Use setHeader to construct full cookie string including SameSite
+        // (Servlet Cookie API doesn't support SameSite directly)
         String sameSite = cookieConfig.getSameSite();
         String headerValue = String.format("%s=%s; Path=%s; Max-Age=%d; HttpOnly%s; SameSite=%s",
                 cookieConfig.getName(),
@@ -224,7 +219,7 @@ public class AuthServiceImpl implements AuthService {
                 cookieConfig.isSecure() ? "; Secure" : "",
                 sameSite
         );
-        response.addHeader("Set-Cookie", headerValue);
+        response.setHeader("Set-Cookie", headerValue);
     }
 
     /**

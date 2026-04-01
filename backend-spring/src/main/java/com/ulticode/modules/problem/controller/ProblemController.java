@@ -79,6 +79,22 @@ public class ProblemController {
     }
 
     /**
+     * Get a problem by slug.
+     * Public endpoint - accessible without authentication.
+     *
+     * @param slug the problem slug
+     * @return the problem details
+     */
+    @Operation(summary = "Get problem by slug", description = "Get a problem's details by its slug")
+    @GetMapping("/slug/{slug}")
+    public Result<ProblemVO> getProblemBySlug(
+            @Parameter(description = "Problem slug")
+            @PathVariable String slug) {
+        ProblemVO problem = problemService.getProblemBySlug(slug);
+        return Result.success(problem);
+    }
+
+    /**
      * Create a new problem.
      * Admin only - requires ADMIN or SUPER_ADMIN role.
      *

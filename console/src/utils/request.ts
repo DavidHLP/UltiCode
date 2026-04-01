@@ -86,6 +86,17 @@ interface ConfigWithMetadata
 const pendingRequests = new Map<string, CancelTokenSource>();
 
 /**
+ * URLs that should never be deduplicated
+ * These are auth-critical requests that must always go through
+ */
+const NON_DEDUPLICABLE_URLS = new Set([
+  "/auth/me",
+  "/auth/login",
+  "/auth/logout",
+  "/auth/register",
+]);
+
+/**
  * Generate unique request ID
  */
 function generateRequestId(): string {
@@ -94,6 +105,7 @@ function generateRequestId(): string {
 
 /**
  * Generate request key for deduplication
+ * Includes URL to allow same endpoint different params
  */
 function getRequestKey(config: InternalAxiosRequestConfig): string {
   const { method, url, params, data } = config;
@@ -155,17 +167,20 @@ service.interceptors.request.use(
     config.headers[LOCALE_HEADER_KEY] = activeLocale;
     config.headers["Accept-Language"] = activeLocale;
 
-    // Request deduplication
-    const key = getRequestKey(config);
-    if (pendingRequests.has(key)) {
-      const source = pendingRequests.get(key)!;
-      config.cancelToken = source.token;
-      return config;
-    }
+    // Request deduplication - skip for auth-critical endpoints
+    const shouldDeduplicate = !NON_DEDUPLICABLE_URLS.has(config.url || "");
+    if (shouldDeduplicate) {
+      const key = getRequestKey(config);
+      if (pendingRequests.has(key)) {
+        const source = pendingRequests.get(key)!;
+        config.cancelToken = source.token;
+        return config;
+      }
 
-    const source = axios.CancelToken.source();
-    config.cancelToken = source.token;
-    pendingRequests.set(key, source);
+      const source = axios.CancelToken.source();
+      config.cancelToken = source.token;
+      pendingRequests.set(key, source);
+    }
 
     // Log request in development
     if (isDevelopment) {
@@ -195,8 +210,8 @@ service.interceptors.response.use(
     const config = response.config as ConfigWithMetadata;
     const metadata = config._metadata;
 
-    // Remove from pending requests
-    if (config) {
+    // Remove from pending requests (skip for non-deduplicated URLs)
+    if (config && !NON_DEDUPLICABLE_URLS.has(config.url || "")) {
       const key = getRequestKey(config);
       pendingRequests.delete(key);
     }
@@ -244,8 +259,8 @@ service.interceptors.response.use(
   async (error: AxiosError) => {
     const config = error.config as ConfigWithMetadata | undefined;
 
-    // Remove from pending requests
-    if (config) {
+    // Remove from pending requests (skip for non-deduplicated URLs)
+    if (config && !NON_DEDUPLICABLE_URLS.has(config.url || "")) {
       const key = getRequestKey(config);
       pendingRequests.delete(key);
     }
@@ -302,13 +317,16 @@ service.interceptors.response.use(
       const { useAuthStore } = await import("@/stores/auth");
       const authStore = useAuthStore();
 
-      // Clear user state - router guard will handle redirect
-      authStore.clearUser();
+      // Only clear user state if user was authenticated
+      // This prevents clearing state on login/register failures
+      if (authStore.isAuthenticated) {
+        authStore.clearUser();
 
-      if (isDevelopment) {
-        console.warn(
-          `[API Auth Error] ${error.response.status} on ${config?.url}`,
-        );
+        if (isDevelopment) {
+          console.warn(
+            `[API Auth Error] ${error.response.status} on ${config?.url}`,
+          );
+        }
       }
 
       return Promise.reject(ApiError.fromAxiosError(error));
@@ -325,7 +343,8 @@ service.interceptors.response.use(
           data: error.response?.data,
         });
       }
-    } else {
+    } else if (!error.response) {
+      // Network error (no response) - log it
       console.error("Request error:", error);
     }
 

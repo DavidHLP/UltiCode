@@ -9,6 +9,7 @@ import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.service.SubmissionService;
+import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -98,6 +99,26 @@ public class SubmissionController {
 
         PageResult<SubmissionVO> result = submissionService.findByUserId(userId, query);
         return Result.success(result);
+    }
+
+    /**
+     * Get submission calendar (dates with submissions) for the authenticated user.
+     * Requires authentication.
+     *
+     * @param year the year to filter by (defaults to current year)
+     * @return list of date strings (YYYY-MM-DD) with submissions
+     */
+    @Operation(summary = "Get submission calendar", description = "Get dates with submissions for the authenticated user")
+    @GetMapping("/calendar")
+    public Result<List<String>> getSubmissionCalendar(
+            @Parameter(description = "Year to filter by")
+            @RequestParam(required = false) Integer year) {
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        List<String> dates = submissionService.getSubmissionDates(userId, year);
+        return Result.success(dates);
     }
 
     /**

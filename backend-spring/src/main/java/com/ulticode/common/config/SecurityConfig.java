@@ -46,6 +46,10 @@ public class SecurityConfig {
             // Problem endpoints (public read access)
             "/problems",
             "/problems/**",
+            // Solution endpoints (public read access)
+            "/api/solutions",
+            "/api/solutions/**",
+            "/api/views/solution/**",
             // Forum endpoints (public read access)
             "/forum/posts",
             "/forum/posts/**",

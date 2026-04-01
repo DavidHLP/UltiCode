@@ -1,6 +1,60 @@
 module.exports = {
   apps: [
-    // Frontend - Console
+    // ============================================
+    // Docker - Infrastructure Services
+    // ============================================
+    // Start all Docker containers (MySQL, Redis, Nacos)
+    {
+      name: 'docker-up',
+      script: 'docker-wrapper.cjs',
+      args: 'up',
+      env: { NODE_ENV: 'development' },
+      autorestart: false,
+      watch: false,
+      instance_var: 'INSTANCE',
+    },
+    // Stop all Docker containers
+    {
+      name: 'docker-down',
+      script: 'docker-wrapper.cjs',
+      args: 'down',
+      env: { NODE_ENV: 'development' },
+      autorestart: false,
+      watch: false,
+      instance_var: 'INSTANCE',
+    },
+    // Docker logs (follow mode)
+    {
+      name: 'docker-logs',
+      script: 'docker-wrapper.cjs',
+      args: 'logs',
+      env: { NODE_ENV: 'development' },
+      autorestart: false,
+      watch: false,
+      instance_var: 'INSTANCE',
+    },
+    // Docker status
+    {
+      name: 'docker-ps',
+      script: 'docker-wrapper.cjs',
+      args: 'ps',
+      env: { NODE_ENV: 'development' },
+      autorestart: false,
+      watch: false,
+      instance_var: 'INSTANCE',
+    },
+
+    // ============================================
+    // Application Services
+    // ============================================
+    // Backend - Spring Boot (port 9001)
+    {
+      name: 'ulticode-9001',
+      cwd: './backend-spring',
+      script: 'start.cjs',
+      env: { NODE_ENV: 'development' },
+    },
+    // Frontend - Console (port 9002)
     {
       name: 'ulticode-9002',
       cwd: './console',
@@ -8,7 +62,7 @@ module.exports = {
       args: '--port 9002',
       env: { NODE_ENV: 'development' },
     },
-    // Frontend - Management
+    // Frontend - Management (port 9003)
     {
       name: 'ulticode-9003',
       cwd: './management',
@@ -16,21 +70,14 @@ module.exports = {
       args: '--port 9003',
       env: { NODE_ENV: 'development' },
     },
-    // Backend - Spring Boot
-    {
-      name: 'ulticode-9001',
-      cwd: './backend-spring',
-      script: 'start.cjs',
-      env: { NODE_ENV: 'development' },
-    },
-    // Recommendation - Provider
+    // Recommendation - Provider (port 9004)
     {
       name: 'ulticode-9004',
       cwd: './recommendation',
       script: 'start-provider.cjs',
       env: { NODE_ENV: 'development' },
     },
-    // Recommendation - Web
+    // Recommendation - Web (port 9005)
     {
       name: 'ulticode-9005',
       cwd: './recommendation',

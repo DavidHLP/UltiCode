@@ -107,9 +107,11 @@ const sortedItems = computed(() => {
   const items = [...filteredItems.value];
   switch (sortBy.value) {
     case "likes":
-      return items.sort((a, b) => b.stats.likes - a.stats.likes);
+      return items.sort(
+        (a, b) => (b.stats?.likes ?? 0) - (a.stats?.likes ?? 0),
+      );
     case "heat":
-      return items.sort((a, b) => b.score - a.score);
+      return items.sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
     case "newest":
       return items.sort(
         (a, b) =>

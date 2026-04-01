@@ -33,6 +33,7 @@ public class ForumServiceImpl implements ForumService {
     private final ForumCommunityMapper communityMapper;
     private final ForumCommunityMemberMapper memberMapper;
     private final ForumTagMapper tagMapper;
+    private final ForumUserMapper forumUserMapper;
     private final UserService userService;
 
     // =========================================================================
@@ -86,9 +87,12 @@ public class ForumServiceImpl implements ForumService {
             }
         }
 
+        // Ensure forum user exists (find or create) - forum_posts.user_id references forum_users.id
+        String forumUserId = ensureForumUserExists(userId);
+
         ForumPost post = new ForumPost();
         post.setCommunityId(dto.getCommunityId());
-        post.setUserId(userId);
+        post.setUserId(forumUserId);
         post.setPermalink(generatePermalink());
         post.setTitle(dto.getTitle());
         post.setFlairType(dto.getFlairType());
@@ -254,10 +258,13 @@ public class ForumServiceImpl implements ForumService {
             throw new BusinessException(ErrorCode.FORUM_POST_LOCKED);
         }
 
+        // Ensure forum user exists (find or create) - forum_users.id must exist for FK constraint
+        String forumUserId = ensureForumUserExists(userId);
+
         ForumComment comment = new ForumComment();
         comment.setPostId(postId);
         comment.setParentId(dto.getParentId());
-        comment.setAuthorId(userId);
+        comment.setAuthorId(forumUserId);
         comment.setBody(dto.getBody());
         comment.setMarkdown(dto.getBody());
         comment.setIsPinned(false);
@@ -271,6 +278,41 @@ public class ForumServiceImpl implements ForumService {
         userService.findById(userId).ifPresent(user -> authorMap.put(userId, user));
 
         return convertToCommentVO(comment, authorMap);
+    }
+
+    /**
+     * Ensures a forum_users entry exists for the given user.
+     * If not exists, creates one using the main user's information.
+     *
+     * @param userId the main users table ID (UUID)
+     * @return the forum_users.id to use for forum operations
+     */
+    private String ensureForumUserExists(String userId) {
+        // Check if forum user already exists
+        ForumUser forumUser = forumUserMapper.selectById(userId);
+        if (forumUser != null) {
+            return forumUser.getId();
+        }
+
+        // Need to create forum user entry - fetch main user info
+        User user = userService.findById(userId)
+                .orElseThrow(() -> {
+                    log.error("User not found when creating forum user: {}", userId);
+                    return new BusinessException(ErrorCode.USER_NOT_FOUND);
+                });
+
+        // Create forum user with same ID as main user
+        ForumUser newForumUser = new ForumUser();
+        newForumUser.setId(userId);
+        newForumUser.setUsername(user.getUsername());
+        newForumUser.setAvatar(user.getAvatar());
+        newForumUser.setKarma(0);
+        newForumUser.setCreatedAt(LocalDateTime.now());
+
+        forumUserMapper.insert(newForumUser);
+        log.debug("Created forum user entry for user: {} with id: {}", user.getUsername(), userId);
+
+        return newForumUser.getId();
     }
 
     @Override

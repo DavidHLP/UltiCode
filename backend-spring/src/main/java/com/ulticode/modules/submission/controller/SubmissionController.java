@@ -6,6 +6,8 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
+import com.ulticode.modules.submission.dto.LearningProgressDTO;
+import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.service.SubmissionService;
@@ -141,5 +143,39 @@ public class SubmissionController {
 
         SubmissionVO submission = submissionService.findBest(problemId, userId);
         return Result.success(submission);
+    }
+
+    /**
+     * Get learning progress for the authenticated user.
+     * Requires authentication.
+     *
+     * @return learning progress data including weekly progress, difficulty breakdown, and streaks
+     */
+    @Operation(summary = "Get learning progress", description = "Get learning progress for the authenticated user")
+    @GetMapping("/learning-progress")
+    public Result<LearningProgressDTO> getLearningProgress() {
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        LearningProgressDTO progress = submissionService.getLearningProgress(userId);
+        return Result.success(progress);
+    }
+
+    /**
+     * Get submission history for the authenticated user.
+     * Requires authentication.
+     *
+     * @return submission history data including monthly stats and language breakdown
+     */
+    @Operation(summary = "Get submission history", description = "Get submission history for the authenticated user")
+    @GetMapping("/history")
+    public Result<SubmissionHistoryDTO> getSubmissionHistory() {
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        SubmissionHistoryDTO history = submissionService.getSubmissionHistory(userId);
+        return Result.success(history);
     }
 }

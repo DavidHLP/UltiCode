@@ -2,6 +2,8 @@ package com.ulticode.modules.user.service;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
+import com.ulticode.modules.user.dto.UserSkillsDTO;
+import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 
@@ -69,11 +71,28 @@ public interface UserService {
     UserVO getUserById(String id);
 
     /**
+     * Get user statistics including solved problems count by difficulty,
+     * streak, total solved, and submission heatmap.
+     *
+     * @param id the user ID
+     * @return the user statistics
+     */
+    UserStatsDTO getUserStatsById(String id);
+
+    /**
      * Update the last login timestamp for a user.
      *
      * @param userId the user ID
      */
     void updateLastLoginAt(String userId);
+
+    /**
+     * Get user skills (tag statistics) for a user.
+     *
+     * @param id the user ID
+     * @return the user skills data
+     */
+    UserSkillsDTO getUserSkillsById(String id);
 
     /**
      * Convert a User entity to UserVO.

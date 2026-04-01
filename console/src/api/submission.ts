@@ -59,8 +59,9 @@ export async function fetchBestSubmission(
 }
 
 export async function fetchUserSubmissions(): Promise<SubmissionRecord[]> {
-  const data = await apiGet<unknown[]>(`/submissions`);
-  return data.map(mapSubmission);
+  // Backend returns PageResult<SubmissionVO> with items array, not a plain array
+  const pageResult = await apiGet<{ items: unknown[] }>(`/submissions`);
+  return pageResult.items.map(mapSubmission);
 }
 
 export async function fetchSubmissionStatuses(): Promise<

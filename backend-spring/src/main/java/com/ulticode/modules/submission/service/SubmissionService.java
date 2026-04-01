@@ -2,6 +2,8 @@ package com.ulticode.modules.submission.service;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
+import com.ulticode.modules.submission.dto.LearningProgressDTO;
+import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
@@ -85,4 +87,20 @@ public interface SubmissionService {
      * @return list of date strings
      */
     List<String> getSubmissionDates(String userId, Integer year);
+
+    /**
+     * Get learning progress data for a user.
+     *
+     * @param userId the user ID
+     * @return learning progress data
+     */
+    LearningProgressDTO getLearningProgress(String userId);
+
+    /**
+     * Get submission history data for a user.
+     *
+     * @param userId the user ID
+     * @return submission history data
+     */
+    SubmissionHistoryDTO getSubmissionHistory(String userId);
 }

@@ -233,6 +233,17 @@ Frontend uses Vite env vars (`VITE_API_BASE_URL`).
 
 ## PM2 Services
 
+### Docker Services (via docker-wrapper.cjs)
+
+| Name          | Action | Description                    |
+| ------------- | ------ | ------------------------------ |
+| docker-up     | up     | Start all containers (MySQL, Redis, Nacos) |
+| docker-down   | down   | Stop and remove all containers |
+| docker-logs   | logs   | View container logs (follow)   |
+| docker-ps     | ps     | Show container status          |
+
+### Application Services
+
 | Port | Name          | Type                             |
 | ---- | ------------- | -------------------------------- |
 | 9001 | ulticode-9001 | Spring Boot (Backend)            |
@@ -244,13 +255,19 @@ Frontend uses Vite env vars (`VITE_API_BASE_URL`).
 **Terminal Commands:**
 
 ```bash
-pnpm install                 # Install frontend deps FIRST if node_modules missing
-pm2 start ecosystem.config.cjs   # First time
-pm2 start all                    # After first time
+# Docker management
+pm2 start docker-up     # Start Docker containers (MySQL, Redis, Nacos)
+pm2 start docker-down   # Stop Docker containers
+pm2 logs docker-up      # View Docker logs
+
+# Application services
+pm2 start ecosystem.config.cjs   # Start all app services
+pm2 start all                   # After first time
 pm2 stop all / pm2 restart all
 pm2 start ulticode-9001 / pm2 stop ulticode-9001
+
+# Common
 pm2 logs / pm2 status / pm2 monit
 pm2 save                         # Save process list
 pm2 resurrect                    # Restore saved list
-pm2 logs ulticode-9001 --lines 50  # Check backend restart cause
 ```

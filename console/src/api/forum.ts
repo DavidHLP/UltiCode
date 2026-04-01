@@ -10,7 +10,23 @@ import type {
 } from "@/types/forum";
 
 export async function fetchForumPosts(): Promise<ForumPost[]> {
-  return apiGet<ForumPost[]>("/forum/posts");
+  const response = await apiGet<
+    Array<{
+      userId: string;
+      authorUsername?: string;
+      authorAvatar?: string;
+    } & Omit<ForumPost, "author">>
+  >("/forum/posts");
+
+  // Transform flat author fields to nested author object
+  return response.map((post) => ({
+    ...post,
+    author: {
+      id: post.userId,
+      username: post.authorUsername ?? post.userId,
+      avatar: post.authorAvatar,
+    },
+  }));
 }
 
 export async function fetchForumPost(postId: string): Promise<ForumPost> {
@@ -37,7 +53,23 @@ export async function fetchCommunityPosts(
   options?: { sortBy?: "hot" | "new" | "top" },
 ): Promise<ForumPost[]> {
   const params = options?.sortBy ? `?sortBy=${options.sortBy}` : "";
-  return apiGet<ForumPost[]>(`/forum/communities/${slug}/posts${params}`);
+  const response = await apiGet<
+    Array<{
+      userId: string;
+      authorUsername?: string;
+      authorAvatar?: string;
+    } & Omit<ForumPost, "author">>
+  >(`/forum/communities/${slug}/posts${params}`);
+
+  // Transform flat author fields to nested author object
+  return response.map((post) => ({
+    ...post,
+    author: {
+      id: post.userId,
+      username: post.authorUsername ?? post.userId,
+      avatar: post.authorAvatar,
+    },
+  }));
 }
 
 export async function fetchForumTags(): Promise<ForumTag[]> {

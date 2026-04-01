@@ -6,14 +6,11 @@ WORKDIR /app
 # Install pnpm
 RUN corepack enable && corepack prepare pnpm@9 --activate
 
-# Copy root package files (for workspace)
-COPY pnpm-lock.yaml package.json pnpm-workspace.yaml* ./
-
-# Copy management package files
+# Copy package files
 COPY management/package.json ./management/
 
 # Install dependencies
-RUN pnpm install --filter admin-frontend --frozen-lockfile
+RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --frozen-lockfile
 
 # Copy source code
 COPY management ./management

@@ -8,9 +8,12 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
+import com.ulticode.modules.solution.dto.SolutionCommentVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
+import com.ulticode.modules.solution.entity.SolutionComment;
+import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.solution.service.SolutionService;
 import com.ulticode.modules.user.entity.User;
@@ -36,6 +39,7 @@ import java.util.stream.Collectors;
 public class SolutionServiceImpl implements SolutionService {
 
     private final SolutionMapper solutionMapper;
+    private final SolutionCommentMapper solutionCommentMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
 
@@ -47,6 +51,69 @@ public class SolutionServiceImpl implements SolutionService {
             return Optional.empty();
         }
         return Optional.ofNullable(solutionMapper.selectById(id));
+    }
+
+    @Override
+    public void recordView(String solutionId, String userId) {
+        Solution solution = findById(solutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
+
+        // Increment view count
+        solution.setViews(solution.getViews() != null ? solution.getViews() + 1 : 1);
+        solutionMapper.updateById(solution);
+
+        log.info("Solution view recorded: {} by user {}", solutionId, userId);
+    }
+
+    @Override
+    public List<SolutionCommentVO> getComments(String solutionId) {
+        // Verify solution exists
+        findById(solutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
+
+        LambdaQueryWrapper<SolutionComment> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(SolutionComment::getSolutionId, solutionId)
+                .orderByAsc(SolutionComment::getCreatedAt);
+
+        List<SolutionComment> comments = solutionCommentMapper.selectList(queryWrapper);
+
+        return comments.stream()
+                .map(this::toCommentVO)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Convert SolutionComment entity to SolutionCommentVO.
+     *
+     * @param comment the entity
+     * @return the VO
+     */
+    private SolutionCommentVO toCommentVO(SolutionComment comment) {
+        if (comment == null) {
+            return null;
+        }
+
+        SolutionCommentVO vo = new SolutionCommentVO();
+        vo.setId(comment.getId());
+        vo.setSolutionId(comment.getSolutionId());
+        vo.setParentId(comment.getParentId());
+        vo.setUserId(comment.getUserId());
+        vo.setAuthorId(comment.getUserId());
+        vo.setContent(comment.getContent());
+        vo.setCreatedAt(comment.getCreatedAt());
+        vo.setUpdatedAt(comment.getUpdatedAt());
+        vo.setIsFlagged(comment.getIsFlagged());
+
+        // Fetch author info
+        if (comment.getUserId() != null) {
+            User author = userMapper.selectById(comment.getUserId());
+            if (author != null) {
+                vo.setAuthorUsername(author.getName() != null ? author.getName() : author.getUsername());
+                vo.setAuthorAvatar(author.getAvatar());
+            }
+        }
+
+        return vo;
     }
 
     @Override
@@ -198,6 +265,23 @@ public class SolutionServiceImpl implements SolutionService {
         }
 
         log.info("Solution deleted: {} by user {}", id, userId);
+    }
+
+    @Override
+    public List<SolutionVO> findByUserId(String userId, Long problemId) {
+        LambdaQueryWrapper<Solution> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Solution::getUserId, userId)
+                .eq(Solution::getIsPublished, true)
+                .orderByDesc(Solution::getCreatedAt);
+
+        if (problemId != null) {
+            queryWrapper.eq(Solution::getProblemId, problemId);
+        }
+
+        List<Solution> solutions = solutionMapper.selectList(queryWrapper);
+        return solutions.stream()
+                .map(this::toVO)
+                .collect(Collectors.toList());
     }
 
     @Override

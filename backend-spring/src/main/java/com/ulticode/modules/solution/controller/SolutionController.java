@@ -4,9 +4,14 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
+import com.ulticode.modules.solution.dto.RecordViewRequest;
+import com.ulticode.modules.solution.dto.SolutionCommentVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
 import com.ulticode.modules.solution.service.SolutionService;
+
+import java.util.List;
+
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -132,5 +137,61 @@ public class SolutionController {
 
         solutionService.delete(id, userId);
         return Result.success();
+    }
+
+    /**
+     * Get solutions by user ID.
+     * Public endpoint - accessible without authentication.
+     *
+     * @param userId the user ID
+     * @param problemId optional problem ID to filter by
+     * @return list of solutions by the user
+     */
+    @Operation(summary = "Get solutions by user ID", description = "Get all solutions published by a specific user")
+    @GetMapping("/api/solutions")
+    public Result<List<SolutionVO>> findByUserId(
+            @Parameter(description = "User ID")
+            @RequestParam String userId,
+            @Parameter(description = "Problem ID (optional)")
+            @RequestParam(required = false) Long problemId) {
+
+        List<SolutionVO> solutions = solutionService.findByUserId(userId, problemId);
+        return Result.success(solutions);
+    }
+
+    /**
+     * Record a view for a solution.
+     * Public endpoint - accessible without authentication.
+     *
+     * @param solutionId the solution ID
+     * @param request the view request containing user ID
+     * @return success result
+     */
+    @Operation(summary = "Record solution view", description = "Record a view for a solution")
+    @PostMapping("/api/views/solution/{solutionId}")
+    public Result<Void> recordView(
+            @Parameter(description = "Solution ID")
+            @PathVariable String solutionId,
+            @RequestBody RecordViewRequest request) {
+
+        solutionService.recordView(solutionId, request != null ? request.getUserId() : null);
+        return Result.success();
+    }
+
+    /**
+     * Get comments for a solution.
+     * Public endpoint - accessible without authentication.
+     *
+     * @param solutionId the solution ID
+     * @return list of comments
+     */
+    @Operation(summary = "Get solution comments", description = "Get all comments for a solution")
+    @GetMapping("/api/solutions/{solutionId}/comments")
+    public Result<List<SolutionCommentVO>> getComments(
+            @Parameter(description = "Solution ID")
+            @PathVariable String solutionId) {
+
+        List<SolutionCommentVO> comments = solutionService.getComments(solutionId);
+        return Result.success(comments);
     }
 }

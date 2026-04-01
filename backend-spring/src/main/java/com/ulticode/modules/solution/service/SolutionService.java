@@ -2,6 +2,7 @@ package com.ulticode.modules.solution.service;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
+import com.ulticode.modules.solution.dto.SolutionCommentVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
@@ -21,6 +22,22 @@ public interface SolutionService {
      * @return the solution if found
      */
     Optional<Solution> findById(String id);
+
+    /**
+     * Record a view for a solution.
+     *
+     * @param solutionId the solution ID
+     * @param userId the user ID (optional, can be null for anonymous)
+     */
+    void recordView(String solutionId, String userId);
+
+    /**
+     * Get comments for a solution.
+     *
+     * @param solutionId the solution ID
+     * @return list of comments
+     */
+    List<SolutionCommentVO> getComments(String solutionId);
 
     /**
      * Find all solutions for a specific problem.
@@ -75,4 +92,13 @@ public interface SolutionService {
      * @return the VO
      */
     SolutionVO toVO(Solution solution);
+
+    /**
+     * Find all solutions for a specific user.
+     *
+     * @param userId the user ID
+     * @param problemId optional problem ID to filter by
+     * @return list of solution VOs
+     */
+    List<SolutionVO> findByUserId(String userId, Long problemId);
 }

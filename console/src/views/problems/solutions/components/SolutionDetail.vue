@@ -349,10 +349,10 @@ watch(
           userVote: userVote,
         }"
         :config="{
-          views: { show: true, count: props.item.stats.views },
+          views: { show: true, count: props.item.stats?.views ?? 0 },
           comments: {
             show: true,
-            count: props.item.stats.comments,
+            count: props.item.stats?.comments ?? 0,
             text: t('forum.comments.title'),
             icon: 'message-circle',
           },

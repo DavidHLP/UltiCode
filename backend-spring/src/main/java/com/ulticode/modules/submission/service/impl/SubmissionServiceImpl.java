@@ -250,4 +250,9 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         return vo;
     }
+
+    @Override
+    public List<String> getSubmissionDates(String userId, Integer year) {
+        return submissionMapper.findSubmissionDatesByYear(userId, year);
+    }
 }

@@ -186,13 +186,28 @@ function createSocketManager(): SocketManager {
   const connect = () => {
     if (client?.connected) return;
 
+    const token = getTokenFromCookie();
+
+    // Don't connect if no token - user is not authenticated
+    if (!token) {
+      if (import.meta.env.DEV) {
+        console.log("[WebSocket] No token found, skipping connection");
+      }
+      notifyStatusChange("disconnected");
+      return;
+    }
+
     notifyStatusChange("connecting");
 
-    const token = getTokenFromCookie();
     const csrfToken = getCsrfToken();
 
+    // Pass token as query parameter since SockJS doesn't forward custom headers
+    const wsUrl = token
+      ? `${API_BASE_URL}/ws/notifications?token=${encodeURIComponent(token)}`
+      : `${API_BASE_URL}/ws/notifications`;
+
     client = new Client({
-      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/notifications`),
+      webSocketFactory: () => new SockJS(wsUrl),
       connectHeaders: {
         Authorization: token ? `Bearer ${token}` : "",
         "X-CSRF-Token": csrfToken || "",
@@ -259,6 +274,22 @@ function createSocketManager(): SocketManager {
       },
       onStompError: (frame) => {
         console.error("[WebSocket] STOMP error:", frame);
+        const errorBody = frame.body || "";
+        const isAuthError =
+          errorBody.includes("WEBSOCKET_UNAUTHORIZED") ||
+          errorBody.includes("WEBSOCKET_INVALID_TOKEN") ||
+          errorBody.includes("No authentication token");
+
+        if (isAuthError) {
+          // Auth error means user is not logged in - stop reconnecting
+          console.warn("[WebSocket] Auth error - stopping reconnect attempts");
+          reconnectAttempts = maxReconnectAttempts; // Prevent further reconnect
+          // Deactivate to stop reconnection attempts
+          if (client) {
+            client.deactivate();
+          }
+        }
+
         notifyStatusChange("disconnected");
         const callbacks = eventListeners.get(NotificationEvent.CONNECT_ERROR);
         if (callbacks) {
@@ -267,12 +298,14 @@ function createSocketManager(): SocketManager {
       },
       onWebSocketError: (event) => {
         console.error("[WebSocket] WebSocket error:", event);
-        notifyStatusChange("reconnecting");
         reconnectAttempts++;
 
         if (reconnectAttempts >= maxReconnectAttempts) {
-          console.error("[WebSocket] Max reconnect attempts reached");
+          console.error("[WebSocket] Max reconnect attempts reached, stopping");
           notifyStatusChange("disconnected");
+          reconnectAttempts = maxReconnectAttempts; // Ensure no more reconnects
+        } else {
+          notifyStatusChange("reconnecting");
         }
       },
       onWebSocketClose: () => {

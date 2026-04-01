@@ -10,6 +10,10 @@ overrides:
 importers:
 
   .:
+    dependencies:
+      ecc-universal:
+        specifier: ^1.9.0
+        version: 1.9.0
     devDependencies:
       concurrently:
         specifier: ^9.2.1
@@ -3004,6 +3008,11 @@ packages:
   eastasianwidth@0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
 
+  ecc-universal@1.9.0:
+    resolution: {integrity: sha512-3LlWa6KJhzB1x02mtxH7mA2m+bHfaNNayj9VcdZv1ytMhFgJ5dcRrc0xi/gcwe+IqH6dM/5ISWL+yc+K65ta6g==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   echarts@6.0.0:
     resolution: {integrity: sha512-Tte/grDQRiETQP4xz3iZWSvoHrkCQtwqd6hs+mifXcjrCuo2iKWbajFObuLJVBlDIJlOzgQPd1hsaKt/3+OMkQ==}
 
@@ -4647,6 +4656,9 @@ packages:
   speakingurl@14.0.1:
     resolution: {integrity: sha512-1POYv7uv2gXoyGFpBCmpDVSNV74IfsWlDW216UPjbWufNf+bSU6GdbDsxdcxtfwb4xlI3yxzOTKClUosxARYrQ==}
     engines: {node: '>=0.10.0'}
+
+  sql.js@1.14.1:
+    resolution: {integrity: sha512-gcj8zBWU5cFsi9WUP+4bFNXAyF1iRpA3LLyS/DP5xlrNzGmPIizUeBggKa8DbDwdqaKwUcTEnChtd2grWo/x/A==}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -8404,6 +8416,10 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
+  ecc-universal@1.9.0:
+    dependencies:
+      sql.js: 1.14.1
+
   echarts@6.0.0:
     dependencies:
       tslib: 2.3.0
@@ -10145,6 +10161,8 @@ snapshots:
   sourcemap-codec@1.4.8: {}
 
   speakingurl@14.0.1: {}
+
+  sql.js@1.14.1: {}
 
   stackback@0.0.2: {}
 

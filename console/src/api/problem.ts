@@ -76,7 +76,9 @@ export async function fetchProblemById(
   userId?: string,
 ): Promise<Problem> {
   const query = userId ? `?userId=${userId}` : "";
-  const data = await apiGet<unknown>(`/problems/${id}${query}`);
+  const isNumeric = typeof id === "number" || !isNaN(Number(id));
+  const endpoint = isNumeric ? `/problems/${id}` : `/problems/slug/${id}`;
+  const data = await apiGet<unknown>(`${endpoint}${query}`);
   return mapProblem(data);
 }
 

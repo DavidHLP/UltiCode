@@ -14,6 +14,7 @@ import {
 } from "lucide-vue-next";
 import type { LucideIcon } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
+import { useAuthStore } from "@/stores/auth";
 
 type BannerTheme = {
   card: string;
@@ -31,6 +32,7 @@ type DisplayBanner = ProblemList & {
 };
 
 const { t } = useI18n();
+const authStore = useAuthStore();
 
 const CARD_BASE =
   "relative overflow-hidden border shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 h-full rounded-2xl";
@@ -124,7 +126,14 @@ onMounted(async () => {
   try {
     isLoading.value = true;
     hasError.value = false;
-    banners.value = await fetchFeaturedProblemLists();
+
+    // 只在已认证时获取精选列表，避免访客用户出现 401 错误
+    if (authStore.isAuthenticated) {
+      banners.value = await fetchFeaturedProblemLists();
+    } else {
+      // 访客用户显示空状态
+      banners.value = [];
+    }
   } catch (error) {
     console.error("Failed to load featured lists", error);
     hasError.value = true;

@@ -22,8 +22,8 @@ public class JwtUtils {
   private final long expirationMs;
 
   public JwtUtils(
-      @Value("${app.jwt.secret:default-secret-key-must-be-at-least-256-bits-long}") String secret,
-      @Value("${app.jwt.expiration-ms:604800000}") long expirationMs) {
+      @Value("${jwt.secret:default-secret-key-must-be-at-least-512-bits-long-for-hs512-algorithm}") String secret,
+      @Value("${jwt.access-token.expiration:604800000}") long expirationMs) {
     this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     this.expirationMs = expirationMs;
   }

@@ -2,3 +2,12 @@ packages:
   - 'console'
   - 'management'
   - 'init-db'
+
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  prisma: true
+  bcrypt: true
+  ecc-universal: true
+  esbuild: true
+  vue-demi: true

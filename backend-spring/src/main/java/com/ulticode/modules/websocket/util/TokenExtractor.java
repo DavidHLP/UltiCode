@@ -76,7 +76,13 @@ public class TokenExtractor {
    */
   @SuppressWarnings("unchecked")
   public Optional<String> extractTokenFromHeaders(Map<String, Object> headers) {
-    // Try native headers
+    // Try auth attribute first (set by HandshakeInterceptor from cookie/query param)
+    Object auth = headers.get("auth");
+    if (auth instanceof String token && StringUtils.hasText(token)) {
+      return Optional.of(token);
+    }
+
+    // Try native headers (for direct WebSocket connections without SockJS)
     Object nativeHeaders = headers.get("nativeHeaders");
     if (nativeHeaders instanceof Map) {
       Map<String, Object> nh = (Map<String, Object>) nativeHeaders;
@@ -90,17 +96,11 @@ public class TokenExtractor {
       // Try Authorization header
       Object authObj = nh.get("Authorization");
       if (authObj instanceof java.util.List<?> authList && !authList.isEmpty()) {
-        String auth = String.valueOf(authList.get(0));
-        if (auth.startsWith("Bearer ")) {
-          return Optional.of(auth.substring(7));
+        String authHeader = String.valueOf(authList.get(0));
+        if (authHeader.startsWith("Bearer ")) {
+          return Optional.of(authHeader.substring(7));
         }
       }
-    }
-
-    // Try auth object (set during handshake)
-    Object auth = headers.get("auth");
-    if (auth instanceof String token && StringUtils.hasText(token)) {
-      return Optional.of(token);
     }
 
     return Optional.empty();

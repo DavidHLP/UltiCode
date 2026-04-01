@@ -1,7 +1,9 @@
 package com.ulticode.modules.problem.service;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
+import com.ulticode.modules.problem.dto.ProblemDetailResponse;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
@@ -55,6 +57,22 @@ public interface ProblemService {
     ProblemVO getProblemBySlug(String slug);
 
     /**
+     * Get full problem detail response including description, examples, and languages.
+     *
+     * @param id the problem ID
+     * @return the full problem detail response
+     */
+    ProblemDetailResponse getProblemDetailResponse(Long id);
+
+    /**
+     * Get full problem detail response by slug including description, examples, and languages.
+     *
+     * @param slug the URL-friendly identifier
+     * @return the full problem detail response
+     */
+    ProblemDetailResponse getProblemDetailResponseBySlug(String slug);
+
+    /**
      * Create a new problem.
      *
      * @param createDTO the create data
@@ -101,4 +119,12 @@ public interface ProblemService {
      * @return the problem view object
      */
     ProblemVO toVO(Problem problem);
+
+    /**
+     * Get adjacent problems (previous and next) for navigation.
+     *
+     * @param id the current problem ID
+     * @return the adjacent problems response with prev and next problem IDs (slugs)
+     */
+    AdjacentProblemsVO getAdjacentProblems(Long id);
 }

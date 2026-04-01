@@ -3,7 +3,9 @@ package com.ulticode.modules.problem.controller;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
+import com.ulticode.modules.problem.dto.ProblemDetailResponse;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
@@ -71,10 +73,10 @@ public class ProblemController {
      */
     @Operation(summary = "Get problem by ID", description = "Get a problem's details by its ID")
     @GetMapping("/{id}")
-    public Result<ProblemVO> getProblemById(
+    public Result<ProblemDetailResponse> getProblemById(
             @Parameter(description = "Problem ID")
             @PathVariable Long id) {
-        ProblemVO problem = problemService.getProblemById(id);
+        ProblemDetailResponse problem = problemService.getProblemDetailResponse(id);
         return Result.success(problem);
     }
 
@@ -87,11 +89,27 @@ public class ProblemController {
      */
     @Operation(summary = "Get problem by slug", description = "Get a problem's details by its slug")
     @GetMapping("/slug/{slug}")
-    public Result<ProblemVO> getProblemBySlug(
+    public Result<ProblemDetailResponse> getProblemBySlug(
             @Parameter(description = "Problem slug")
             @PathVariable String slug) {
-        ProblemVO problem = problemService.getProblemBySlug(slug);
+        ProblemDetailResponse problem = problemService.getProblemDetailResponseBySlug(slug);
         return Result.success(problem);
+    }
+
+    /**
+     * Get adjacent problems for navigation (prev/next).
+     * Public endpoint - accessible without authentication.
+     *
+     * @param id the current problem ID
+     * @return the previous and next problem slugs
+     */
+    @Operation(summary = "Get adjacent problems", description = "Get previous and next problem slugs for navigation")
+    @GetMapping("/{id}/adjacent")
+    public Result<AdjacentProblemsVO> getAdjacentProblems(
+            @Parameter(description = "Current problem ID")
+            @PathVariable Long id) {
+        AdjacentProblemsVO adjacent = problemService.getAdjacentProblems(id);
+        return Result.success(adjacent);
     }
 
     /**

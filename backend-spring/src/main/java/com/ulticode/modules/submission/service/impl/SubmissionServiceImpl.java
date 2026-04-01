@@ -9,6 +9,8 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
+import com.ulticode.modules.submission.dto.LearningProgressDTO;
+import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
@@ -254,5 +256,83 @@ public class SubmissionServiceImpl implements SubmissionService {
     @Override
     public List<String> getSubmissionDates(String userId, Integer year) {
         return submissionMapper.findSubmissionDatesByYear(userId, year);
+    }
+
+    @Override
+    public LearningProgressDTO getLearningProgress(String userId) {
+        LearningProgressDTO progress = new LearningProgressDTO();
+
+        // Get weekly progress
+        List<Object[]> weeklyData = submissionMapper.findWeeklyProgress(userId);
+        List<LearningProgressDTO.WeeklyProgress> weeklyProgress = weeklyData.stream()
+                .map(row -> new LearningProgressDTO.WeeklyProgress(
+                        (String) row[0],
+                        ((Number) row[1]).intValue(),
+                        ((Number) row[2]).doubleValue()))
+                .toList();
+        progress.setWeeklyProgress(weeklyProgress);
+
+        // Get difficulty progress (reuse existing data from getUserStats pattern)
+        // For now, return empty list - can be enhanced later
+        progress.setDifficultyProgress(new ArrayList<>());
+
+        // Calculate totals
+        int totalProblems = weeklyProgress.stream()
+                .mapToInt(LearningProgressDTO.WeeklyProgress::getSolved)
+                .sum();
+        double totalTimeHours = weeklyProgress.stream()
+                .mapToDouble(LearningProgressDTO.WeeklyProgress::getTimeSpent)
+                .sum();
+
+        progress.setTotalProblems(totalProblems);
+        progress.setTotalTimeHours(totalTimeHours);
+        progress.setAvgTimePerProblem(totalProblems > 0 ? totalTimeHours / totalProblems : 0);
+
+        // Get current streak
+        Integer streak = submissionMapper.calculateStreak(userId);
+        progress.setCurrentStreak(streak != null ? streak : 0);
+
+        // Longest streak - for now same as current, can be enhanced with historical data
+        progress.setLongestStreak(progress.getCurrentStreak());
+
+        return progress;
+    }
+
+    @Override
+    public SubmissionHistoryDTO getSubmissionHistory(String userId) {
+        SubmissionHistoryDTO history = new SubmissionHistoryDTO();
+
+        // Get monthly stats
+        List<Object[]> monthlyData = submissionMapper.findMonthlySubmissionStats(userId);
+        List<SubmissionHistoryDTO.MonthlySubmission> monthly = monthlyData.stream()
+                .map(row -> new SubmissionHistoryDTO.MonthlySubmission(
+                        (String) row[0],
+                        ((Number) row[1]).intValue(),
+                        ((Number) row[2]).intValue()))
+                .toList();
+        history.setMonthly(monthly);
+
+        // Get language stats
+        List<Object[]> languageData = submissionMapper.findLanguageStats(userId);
+        List<SubmissionHistoryDTO.LanguageSubmission> languages = languageData.stream()
+                .map(row -> new SubmissionHistoryDTO.LanguageSubmission(
+                        (String) row[0],
+                        ((Number) row[1]).intValue()))
+                .toList();
+        history.setLanguages(languages);
+
+        // Calculate totals
+        int totalSubmissions = monthly.stream()
+                .mapToInt(SubmissionHistoryDTO.MonthlySubmission::getCount)
+                .sum();
+        int totalAccepted = monthly.stream()
+                .mapToInt(SubmissionHistoryDTO.MonthlySubmission::getAccepted)
+                .sum();
+
+        history.setTotalSubmissions(totalSubmissions);
+        history.setTotalAccepted(totalAccepted);
+        history.setAcceptanceRate(totalSubmissions > 0 ? (double) totalAccepted / totalSubmissions : 0);
+
+        return history;
     }
 }

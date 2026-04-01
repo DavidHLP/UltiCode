@@ -1,5 +1,6 @@
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/utils/request";
 import type {
+  ForumComment,
   ForumCommunity,
   ForumCommunityRule,
   ForumCommunityLink,
@@ -66,7 +67,29 @@ export async function fetchForumThread(
   const url = userId
     ? `/forum/posts/${postId}/thread?userId=${userId}`
     : `/forum/posts/${postId}/thread`;
-  return apiGet<ForumThread>(url);
+
+  // Transform API response from { post, comments } wrapper to flat ForumThread structure
+  const response = await apiGet<{
+    post: ForumThread & {
+      userId: string;
+      authorUsername: string;
+      authorAvatar: string;
+    };
+    comments: ForumComment[];
+  }>(url);
+
+  const { post, comments } = response;
+
+  // Transform flat author fields to nested author object that ForumPost expects
+  return {
+    ...post,
+    author: {
+      id: post.userId,
+      username: post.authorUsername,
+      avatar: post.authorAvatar,
+    },
+    comments,
+  };
 }
 
 export async function createForumComment(

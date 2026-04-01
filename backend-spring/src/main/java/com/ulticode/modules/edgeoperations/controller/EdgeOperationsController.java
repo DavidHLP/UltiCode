@@ -48,4 +48,15 @@ public class EdgeOperationsController {
         String userId = SecurityUtil.getCurrentUserId();
         return Result.success(edgeOperationsService.getInteractions(userId, targetId, targetType));
     }
+
+    @Operation(summary = "Get interaction stats for a target by path",
+            description = "Returns likes, dislikes, favorites count, and the current user's vote status. " +
+                    "Works for both authenticated and anonymous users.")
+    @GetMapping("/{targetType}/{targetId}")
+    public Result<EdgeOperationResponseVO> getInteractionsByPath(
+            @Parameter(description = "Target type") @PathVariable EdgeOperationTargetType targetType,
+            @Parameter(description = "Target ID") @PathVariable String targetId,
+            @RequestParam(required = false) String userId) {
+        return Result.success(edgeOperationsService.getInteractions(userId, targetId, targetType));
+    }
 }

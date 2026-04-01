@@ -2,25 +2,42 @@ package com.ulticode.modules.problem.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
+import com.ulticode.modules.problem.dto.ProblemDetailResponse;
+import com.ulticode.modules.problem.dto.ProblemDetailResponse.CompanyInfo;
+import com.ulticode.modules.problem.dto.ProblemDetailResponse.DetailData;
+import com.ulticode.modules.problem.dto.ProblemDetailResponse.ExampleData;
+import com.ulticode.modules.problem.dto.ProblemDetailResponse.InputData;
+import com.ulticode.modules.problem.dto.ProblemDetailResponse.LanguageData;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
+import com.ulticode.modules.problem.entity.ProblemDetail;
+import com.ulticode.modules.problem.entity.ProblemExample;
+import com.ulticode.modules.problem.entity.ProblemLanguage;
+import com.ulticode.modules.problem.mapper.ProblemDetailMapper;
+import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
+import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -34,6 +51,10 @@ import java.util.stream.Collectors;
 public class ProblemServiceImpl implements ProblemService {
 
     private final ProblemMapper problemMapper;
+    private final ProblemDetailMapper problemDetailMapper;
+    private final ProblemExampleMapper problemExampleMapper;
+    private final ProblemLanguageMapper problemLanguageMapper;
+    private final ObjectMapper objectMapper;
 
     @Override
     public Optional<Problem> findById(Long id) {
@@ -140,6 +161,162 @@ public class ProblemServiceImpl implements ProblemService {
         }
 
         return toVO(problem);
+    }
+
+    @Override
+    public ProblemDetailResponse getProblemDetailResponse(Long id) {
+        Problem problem = findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
+        return buildDetailResponse(problem);
+    }
+
+    @Override
+    public ProblemDetailResponse getProblemDetailResponseBySlug(String slug) {
+        Problem problem = findBySlug(slug)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
+        return buildDetailResponse(problem);
+    }
+
+    private ProblemDetailResponse buildDetailResponse(Problem problem) {
+        ProblemDetailResponse response = new ProblemDetailResponse();
+
+        // Copy basic properties from problem entity
+        response.setId(problem.getId());
+        response.setSlug(problem.getSlug());
+        response.setTitle(problem.getTitle());
+        response.setDifficulty(problem.getDifficulty() != null ? problem.getDifficulty().toUpperCase() : null);
+        response.setAcceptanceRate(problem.getAcceptanceRate());
+        response.setStatus(problem.getStatus());
+        response.setIsPremium(problem.getIsPremium());
+        response.setHasSolution(problem.getHasSolution());
+        response.setIsPublished(problem.getIsPublished());
+        response.setPublishedAt(problem.getPublishedAt());
+        response.setPublishedBy(problem.getPublishedBy());
+        response.setIsDeleted(problem.getIsDeleted());
+        response.setDeletedAt(problem.getDeletedAt());
+        response.setIsFlagged(problem.getIsFlagged());
+        response.setFlagReason(problem.getFlagReason());
+        response.setFlagReportedBy(problem.getFlagReportedBy());
+        response.setFlagReportedAt(problem.getFlagReportedAt());
+        response.setFlagStatus(problem.getFlagStatus());
+        response.setFlagReviewedBy(problem.getFlagReviewedBy());
+        response.setFlagReviewedAt(problem.getFlagReviewedAt());
+        response.setFlagNotes(problem.getFlagNotes());
+        response.setCreatedAt(problem.getCreatedAt());
+        response.setUpdatedAt(problem.getUpdatedAt());
+        response.setSubmissionCount(0L);
+        response.setSolutionCount(0L);
+        response.setTags(Collections.emptyList());
+
+        // Fetch and set detail data
+        DetailData detailData = buildDetailData(problem.getId());
+        if (detailData != null) {
+            response.setDetail(detailData);
+        }
+
+        // Fetch and set examples
+        List<ExampleData> examples = buildExamples(problem.getId());
+        if (!examples.isEmpty()) {
+            response.setExamples(examples);
+        }
+
+        // Fetch and set languages
+        List<LanguageData> languages = buildLanguages(problem.getId());
+        if (!languages.isEmpty()) {
+            response.setLanguages(languages);
+        }
+
+        return response;
+    }
+
+    private DetailData buildDetailData(Long problemId) {
+        LambdaQueryWrapper<ProblemDetail> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProblemDetail::getProblemId, problemId);
+        ProblemDetail detail = problemDetailMapper.selectOne(wrapper);
+
+        if (detail == null) {
+            return null;
+        }
+
+        DetailData data = new DetailData();
+        data.setSummary(detail.getSummary());
+        data.setConstraintsJson(parseJsonArray(detail.getConstraintsJson()));
+        data.setHints(parseJsonArray(detail.getHints()));
+        data.setFollowUp(detail.getFollowUp());
+
+        // Parse companies JSON
+        if (detail.getCompanies() != null && !detail.getCompanies().isBlank()) {
+            try {
+                List<CompanyInfo> companies = objectMapper.readValue(
+                        detail.getCompanies(),
+                        new TypeReference<List<CompanyInfo>>() {}
+                );
+                data.setCompanies(companies);
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to parse companies JSON for problem {}", problemId, e);
+            }
+        }
+
+        return data;
+    }
+
+    private List<ExampleData> buildExamples(Long problemId) {
+        List<ProblemExample> examples = problemExampleMapper.findByProblemIdOrderByOrder(problemId);
+        if (examples == null || examples.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return examples.stream().map(ex -> {
+            ExampleData data = new ExampleData();
+            data.setId(ex.getId());
+            data.setInputText(ex.getInputText());
+            data.setOutputText(ex.getOutputText());
+            data.setExplanation(ex.getExplanation());
+
+            // Parse structured inputs if present
+            if (ex.getInputs() != null && !ex.getInputs().isBlank()) {
+                try {
+                    List<InputData> inputs = objectMapper.readValue(
+                            ex.getInputs(),
+                            new TypeReference<List<InputData>>() {}
+                    );
+                    data.setInputs(inputs);
+                } catch (JsonProcessingException e) {
+                    log.warn("Failed to parse inputs JSON for example {}", ex.getId(), e);
+                }
+            }
+
+            return data;
+        }).collect(Collectors.toList());
+    }
+
+    private List<LanguageData> buildLanguages(Long problemId) {
+        List<ProblemLanguage> languages = problemLanguageMapper.findByProblemId(problemId);
+        if (languages == null || languages.isEmpty()) {
+            return Collections.emptyList();
+        }
+
+        return languages.stream().map(lang -> {
+            LanguageData data = new LanguageData();
+            data.setId(lang.getId());
+            data.setLabel(lang.getLabel());
+            data.setValue(lang.getValue());
+            data.setStyle(lang.getStyle());
+            data.setStarterCode(lang.getStarterCode());
+            return data;
+        }).collect(Collectors.toList());
+    }
+
+    private List<String> parseJsonArray(String json) {
+        if (json == null || json.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            return objectMapper.readValue(json, new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to parse JSON array: {}", json, e);
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -300,5 +477,29 @@ public class ProblemServiceImpl implements ProblemService {
         vo.setTags(List.of());
 
         return vo;
+    }
+
+    @Override
+    public AdjacentProblemsVO getAdjacentProblems(Long id) {
+        // Find the previous problem (ID less than current, ordered by ID desc, limit 1)
+        LambdaQueryWrapper<Problem> prevWrapper = new LambdaQueryWrapper<>();
+        prevWrapper.lt(Problem::getId, id)
+                .eq(Problem::getIsPublished, true)
+                .orderByDesc(Problem::getId)
+                .last("LIMIT 1");
+        Problem prevProblem = problemMapper.selectOne(prevWrapper);
+
+        // Find the next problem (ID greater than current, ordered by ID asc, limit 1)
+        LambdaQueryWrapper<Problem> nextWrapper = new LambdaQueryWrapper<>();
+        nextWrapper.gt(Problem::getId, id)
+                .eq(Problem::getIsPublished, true)
+                .orderByAsc(Problem::getId)
+                .last("LIMIT 1");
+        Problem nextProblem = problemMapper.selectOne(nextWrapper);
+
+        return new AdjacentProblemsVO(
+                prevProblem != null ? prevProblem.getSlug() : null,
+                nextProblem != null ? nextProblem.getSlug() : null
+        );
     }
 }

@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from 'node:url'
+import path from 'node:path'
 import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, searchForWorkspaceRoot, type PluginOption } from 'vite'
 import vue from '@vitejs/plugin-vue'
@@ -98,7 +99,13 @@ export default defineConfig({
     fs: {
       // Allow serving files from workspace root for pnpm monorepo
       // This enables access to .pnpm directory for font files (e.g., KaTeX)
-      allow: [searchForWorkspaceRoot(process.cwd())],
+      allow: [
+        searchForWorkspaceRoot(process.cwd()),
+        // Allow pnpm store for KaTeX and other package fonts
+        // Note: searchForWorkspaceRoot may return project subdir in monorepo,
+        // so we explicitly include the parent workspace root's .pnpm directory
+        path.resolve(process.cwd(), '../node_modules/.pnpm'),
+      ],
     },
   },
   build: {

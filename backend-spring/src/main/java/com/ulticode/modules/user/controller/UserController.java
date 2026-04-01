@@ -3,6 +3,8 @@ package com.ulticode.modules.user.controller;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
+import com.ulticode.modules.user.dto.UserSkillsDTO;
+import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -79,5 +81,36 @@ public class UserController {
             @PathVariable String id) {
         UserVO user = userService.getUserById(id);
         return Result.success(user);
+    }
+
+    /**
+     * Get user statistics including solved problems count by difficulty,
+     * streak, total solved, and submission heatmap.
+     *
+     * @param id the user ID
+     * @return the user's statistics
+     */
+    @Operation(summary = "Get user stats", description = "Get user statistics including solved problems count by difficulty, streak, and heatmap")
+    @GetMapping("/{id}/stats")
+    public Result<UserStatsDTO> getUserStats(
+            @Parameter(description = "User ID")
+            @PathVariable String id) {
+        UserStatsDTO stats = userService.getUserStatsById(id);
+        return Result.success(stats);
+    }
+
+    /**
+     * Get user skills (tag statistics) for a user.
+     *
+     * @param id the user ID
+     * @return the user's skills data
+     */
+    @Operation(summary = "Get user skills", description = "Get user skills including tag statistics for solved problems")
+    @GetMapping("/{id}/skills")
+    public Result<UserSkillsDTO> getUserSkills(
+            @Parameter(description = "User ID")
+            @PathVariable String id) {
+        UserSkillsDTO skills = userService.getUserSkillsById(id);
+        return Result.success(skills);
     }
 }

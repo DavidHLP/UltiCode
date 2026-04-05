@@ -5,6 +5,7 @@ import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
+import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 
@@ -103,4 +104,11 @@ public interface SubmissionService {
      * @return submission history data
      */
     SubmissionHistoryDTO getSubmissionHistory(String userId);
+
+    /**
+     * Get submission status metadata for frontend display.
+     *
+     * @return list of submission status metadata
+     */
+    List<SubmissionStatusMeta> getStatuses();
 }

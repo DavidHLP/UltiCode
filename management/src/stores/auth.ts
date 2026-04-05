@@ -15,10 +15,13 @@ interface ApiResponse<T> {
 // Since cookies are httpOnly, we need this to avoid unnecessary /auth/me calls
 const AUTH_HAS_CREDENTIALS_KEY = 'auth_has_credentials'
 
+type SessionExpiredCallback = () => void
+
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const permissions = ref<Set<string>>(new Set())
   const isInitialized = ref(false)
+  let _sessionExpiredCallback: SessionExpiredCallback | null = null
 
   const isAuthenticated = computed(() => !!user.value)
   const userRole = computed(() => user.value?.role)
@@ -112,6 +115,20 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
+  function setupSessionExpiredCallback(callback: SessionExpiredCallback) {
+    _sessionExpiredCallback = callback
+  }
+
+  function clearUser() {
+    user.value = null
+    permissions.value.clear()
+    clearCsrfToken()
+    localStorage.removeItem(AUTH_HAS_CREDENTIALS_KEY)
+    if (_sessionExpiredCallback) {
+      _sessionExpiredCallback()
+    }
+  }
+
   function hasPermission(action: string, resource: string): boolean {
     if (permissions.value.has('*:*')) return true
     if (permissions.value.has(`${action}:${resource}`)) return true
@@ -176,6 +193,8 @@ export const useAuthStore = defineStore('auth', () => {
     loadPermissions,
     fetchUser,
     initialize,
+    setupSessionExpiredCallback,
+    clearUser,
     hasPermission,
     hasRole,
     hasAnyRole,

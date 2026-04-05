@@ -20,6 +20,7 @@
  */
 
 import { useAuthStore } from "@/stores/auth";
+import { apiGet } from "@/utils/request";
 
 /**
  * Get current user ID from auth store
@@ -72,19 +73,10 @@ export function isAuthenticated(): boolean {
  */
 export async function verifyAuth(): Promise<boolean> {
   try {
-    // Make a lightweight API call to verify auth
-    // The endpoint should return 401 if not authenticated
-    const response = await fetch(
-      `${import.meta.env.VITE_API_BASE_URL || "http://localhost:9001"}/auth/me`,
-      {
-        method: "GET",
-        credentials: "include",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
-    return response.ok;
+    // Use apiGet to ensure the request goes through the axios interceptor chain
+    // (CSRF token attach, locale headers, error handling, etc.)
+    await apiGet("/auth/me", { skipErrorHandler: true });
+    return true;
   } catch {
     return false;
   }

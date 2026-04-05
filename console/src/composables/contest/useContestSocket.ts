@@ -4,6 +4,7 @@ import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "@/stores/auth";
 import type { RankingEntry } from "@/types/contest";
+import { getTokenFromCookie, getCsrfToken } from "@/lib/socket";
 
 // ============================================================================
 // TYPES
@@ -156,32 +157,6 @@ const eventCallbacks = new Map<string, Set<(...args: unknown[]) => void>>();
 const subscriptions = new Map<string, StompSubscription>();
 
 /**
- * Get JWT token from cookies for authentication
- */
-function getTokenFromCookie(): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; access_token=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-
-  // Also try ulticode_token (Spring Boot cookie name)
-  const ulticodeParts = value.split(`; ulticode_token=`);
-  if (ulticodeParts.length === 2)
-    return ulticodeParts.pop()?.split(";").shift() || null;
-
-  return null;
-}
-
-/**
- * Get CSRF token from cookies
- */
-function getCsrfToken(): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; csrf_token=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-  return null;
-}
-
-/**
  * Notify all status change listeners
  */
 function notifyStatusChange(status: ConnectionStatus): void {
@@ -220,13 +195,10 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
   connectionStatus = "connecting";
   notifyStatusChange("connecting");
 
-  // Pass token as query parameter since SockJS doesn't forward custom headers
-  const wsUrl = token
-    ? `${API_BASE_URL}/ws/contest?token=${encodeURIComponent(token)}`
-    : `${API_BASE_URL}/ws/contest`;
-
+  // Token is passed via connectHeaders.Authorization (Cookie-based auth)
+  // URL does NOT contain token to prevent log leakage
   stompClient = new Client({
-    webSocketFactory: () => new SockJS(wsUrl),
+    webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/contest`),
     connectHeaders: {
       Authorization: token ? `Bearer ${token}` : "",
       "X-CSRF-Token": csrfToken || "",

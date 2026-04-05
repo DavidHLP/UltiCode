@@ -10,6 +10,7 @@
  * This module should be imported BEFORE the router and stores.
  */
 
+import { watch } from "vue";
 import { getSocketManager } from "@/lib/socket";
 import { useAuthStore } from "@/stores/auth";
 
@@ -156,22 +157,18 @@ export function setupWebSocketAuth(): void {
   const authStore = useAuthStore();
   const socketManager = getSocketManager();
 
-  // Watch for auth state changes
-  let previousAuth = authStore.isAuthenticated;
-
-  // Use a simple polling or store watch
-  // The notification store handles this, but we provide centralized control
-  setInterval(() => {
-    const currentAuth = authStore.isAuthenticated;
-    if (currentAuth !== previousAuth) {
-      previousAuth = currentAuth;
-      if (currentAuth) {
+  // Watch for auth state changes reactively (no polling)
+  watch(
+    () => authStore.isAuthenticated,
+    (isAuth) => {
+      if (isAuth) {
         socketManager.connect();
       } else {
         socketManager.disconnect();
       }
-    }
-  }, 1000);
+    },
+    { immediate: true },
+  );
 }
 
 export default {

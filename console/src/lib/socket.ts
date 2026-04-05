@@ -134,7 +134,7 @@ const subscriptions = new Map<string, StompSubscription>();
 /**
  * Get JWT token from cookies for authentication
  */
-function getTokenFromCookie(): string | null {
+export function getTokenFromCookie(): string | null {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; access_token=`);
   if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
@@ -150,7 +150,7 @@ function getTokenFromCookie(): string | null {
 /**
  * Get CSRF token from cookies
  */
-function getCsrfToken(): string | null {
+export function getCsrfToken(): string | null {
   const value = `; ${document.cookie}`;
   const parts = value.split(`; csrf_token=`);
   if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
@@ -201,13 +201,10 @@ function createSocketManager(): SocketManager {
 
     const csrfToken = getCsrfToken();
 
-    // Pass token as query parameter since SockJS doesn't forward custom headers
-    const wsUrl = token
-      ? `${API_BASE_URL}/ws/notifications?token=${encodeURIComponent(token)}`
-      : `${API_BASE_URL}/ws/notifications`;
-
+    // Token is passed via connectHeaders.Authorization (Cookie-based auth)
+    // URL does NOT contain token to prevent log leakage
     client = new Client({
-      webSocketFactory: () => new SockJS(wsUrl),
+      webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/notifications`),
       connectHeaders: {
         Authorization: token ? `Bearer ${token}` : "",
         "X-CSRF-Token": csrfToken || "",

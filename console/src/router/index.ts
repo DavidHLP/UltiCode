@@ -310,10 +310,11 @@ const router = createRouter({
  * accessing authenticated routes, NOT during app bootstrap.
  *
  * Logic:
- * 1. Check if route requires authentication
- * 2. If required, call ensureUser() to fetch user info on-demand
- * 3. Redirect to login if not authenticated after fetch
- * 4. Redirect to home if already authenticated and accessing login/register
+ * 1. Wait for auth initialization if still in progress (prevents premature redirect to login)
+ * 2. Check if route requires authentication
+ * 3. If required, call ensureUser() to fetch user info on-demand
+ * 4. Redirect to login if not authenticated after fetch
+ * 5. Redirect to home if already authenticated and accessing login/register
  */
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
@@ -328,6 +329,18 @@ router.beforeEach(async (to, from, next) => {
       isAuthenticated: authStore.isAuthenticated,
       hasUser: !!authStore.user,
     });
+  }
+
+  // If auth is still initializing, wait for it to complete before making navigation decisions.
+  // This prevents premature redirect to login when user navigates before initialize() completes.
+  if (authStore.status === "loading" && authStore.initializationPromise) {
+    if (import.meta.env.DEV) {
+      console.log("[Router] Auth is initializing, waiting for it to complete...");
+    }
+    await authStore.initializationPromise;
+    if (import.meta.env.DEV) {
+      console.log("[Router] Auth initialization complete, status:", authStore.status);
+    }
   }
 
   const requiresAuth = to.matched.some(

@@ -8,6 +8,7 @@ import axios, {
 } from 'axios'
 import { LOCALE_HEADER_KEY, getActiveLocale } from '@/i18n'
 import { getCsrfToken } from '@/utils/csrf'
+import router from '@/router'
 
 /**
  * Standard API Response wrapper (matches backend Result<T>)
@@ -291,8 +292,8 @@ service.interceptors.response.use(
     if (error.response) {
       if (error.response.status === 401) {
         // Unauthorized - redirect to login page
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login'
+        if (router.currentRoute.value.name !== 'login') {
+          router.push('/login')
         }
         return Promise.reject(ApiError.fromAxiosError(error))
       }

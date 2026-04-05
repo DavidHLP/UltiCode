@@ -15,9 +15,9 @@ import java.util.List;
 public class ContestVO {
 
     /**
-     * Contest unique identifier
+     * Contest unique identifier (UUID string)
      */
-    private Long id;
+    private String id;
 
     /**
      * URL-friendly identifier for the contest

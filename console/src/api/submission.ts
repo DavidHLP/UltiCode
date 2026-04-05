@@ -40,8 +40,8 @@ function mapSubmissionStatus(meta: unknown): SubmissionStatusMeta {
 export async function fetchProblemSubmissions(
   problemId: number,
 ): Promise<SubmissionRecord[]> {
-  const data = await apiGet<unknown[]>(`/problems/${problemId}/submissions`);
-  return data.map(mapSubmission);
+  const pageResult = await apiGet<{ items: unknown[] }>(`/problems/${problemId}/submissions`);
+  return pageResult.items.map(mapSubmission);
 }
 
 export async function fetchSubmission(

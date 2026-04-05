@@ -556,7 +556,7 @@ public class ContestServiceImpl implements ContestService {
         BeanUtils.copyProperties(contest, vo);
 
         // Map field names
-        vo.setId(Long.parseLong(contest.getId()));
+        vo.setId(contest.getId());
         vo.setDuration(contest.getDurationMinutes());
         vo.setCurrentParticipants(contest.getParticipantCount());
         vo.setIsPremium(false); // Default value, can be enhanced later

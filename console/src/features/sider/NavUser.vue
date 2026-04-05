@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import {
   Bell,
-  ChevronsUpDown,
   LogIn,
   UserPlus,
   LogOut,
@@ -13,11 +12,11 @@ import {
   List,
   CheckCircle2,
 } from "lucide-vue-next";
+import { IconDotsVertical } from "@tabler/icons-vue";
 import { onMounted, computed } from "vue";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -90,22 +89,60 @@ async function handleLogout() {
 <template>
   <SidebarMenu>
     <SidebarMenuItem>
-      <!-- Guest: show login/register buttons -->
+      <!-- Guest: unified dropdown -->
       <template v-if="!isAuthenticated">
-        <div class="flex items-center gap-2 px-2 py-1.5">
-          <RouterLink to="/login" class="flex-1">
-            <Button size="sm" class="w-full justify-center">
-              <LogIn class="size-4" />
-              {{ t("auth.login.submit") }}
-            </Button>
-          </RouterLink>
-          <RouterLink to="/register" class="flex-1">
-            <Button variant="outline" size="sm" class="w-full justify-center">
-              <UserPlus class="size-4" />
-              {{ t("auth.register.submit") }}
-            </Button>
-          </RouterLink>
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger as-child>
+            <SidebarMenuButton
+              size="lg"
+              class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+            >
+              <Avatar class="h-8 w-8 rounded-lg">
+                <AvatarFallback class="rounded-lg">
+                  <User class="size-4" />
+                </AvatarFallback>
+              </Avatar>
+              <div class="grid flex-1 text-left text-sm leading-tight">
+                <span class="truncate font-medium">{{ t("auth.guest.name") }}</span>
+                <span class="truncate text-xs text-muted-foreground">
+                  {{ t("auth.guest.loginToContinue") }}
+                </span>
+              </div>
+              <IconDotsVertical class="ml-auto size-4" />
+            </SidebarMenuButton>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            :side="isMobile ? 'bottom' : 'right'"
+            align="end"
+            :side-offset="4"
+          >
+            <DropdownMenuLabel class="p-0 font-normal">
+              <div class="px-1 py-1.5 text-left text-sm">
+                <span class="text-muted-foreground">{{ t("auth.guest.welcome") }}</span>
+              </div>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup class="space-y-1">
+              <RouterLink to="/login">
+                <DropdownMenuItem class="w-full justify-center">
+                  <LogIn class="mr-2 h-4 w-4" />
+                  {{ t("auth.login.submit") }}
+                </DropdownMenuItem>
+              </RouterLink>
+              <RouterLink to="/register">
+                <DropdownMenuItem class="w-full justify-center">
+                  <UserPlus class="mr-2 h-4 w-4" />
+                  {{ t("auth.register.submit") }}
+                </DropdownMenuItem>
+              </RouterLink>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <div class="p-1">
+              <LanguageSwitcher />
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </template>
 
       <!-- Authenticated: show user dropdown menu -->
@@ -125,13 +162,13 @@ async function handleLogout() {
               <span class="truncate font-medium">{{ user.name }}</span>
               <span class="truncate text-xs">{{ user.email }}</span>
             </div>
-            <ChevronsUpDown class="ml-auto size-4" />
+            <IconDotsVertical class="ml-auto size-4" />
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-lg"
           :side="isMobile ? 'bottom' : 'right'"
-          align="start"
+          align="end"
           :side-offset="4"
         >
           <DropdownMenuLabel class="p-0 font-normal">
@@ -146,7 +183,6 @@ async function handleLogout() {
                 <span class="truncate font-medium">{{ user.name }}</span>
                 <span class="truncate text-xs">{{ user.email }}</span>
               </div>
-              <LanguageSwitcher />
             </div>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
@@ -220,6 +256,10 @@ async function handleLogout() {
             <LogOut class="mr-2 h-4 w-4" />
             {{ t("sidebar.personal.logout") }}
           </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <div class="p-1">
+            <LanguageSwitcher />
+          </div>
         </DropdownMenuContent>
       </DropdownMenu>
     </SidebarMenuItem>

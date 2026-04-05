@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "node",
+    "lib": ["ES2020", "DOM"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true,
+    "jsx": "preserve",
+    "baseUrl": "/home/davidhlp/project/UltiCode-Public-Next/shared/auth-core",
+    "paths": {
+      "vue": ["/home/davidhlp/project/UltiCode-Public-Next/console/node_modules/vue/dist/vue.d.ts"]
+    }
+  },
+  "include": ["src/**/*.ts"]
+}

@@ -1,33 +1,17 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
-import { setCsrfToken, clearCsrfToken } from '@/utils/csrf'
+import { clearCsrfToken } from '@/utils/csrf'
+import { parseCookies, hasCookie } from '@/shared/auth-core'
+import { createCsrfTokenManager } from '@/shared/auth-core'
 
-// API response wrapper type
-interface ApiResponse<T> {
-  code: number
-  data: T
-  message: string
-  traceId?: string
-}
-
-/**
- * Check if auth cookies exist (httpOnly, so we check for presence only).
- * Returns true only if an access_token cookie is present.
- */
-function hasAuthCookie(): boolean {
-  return document.cookie
-    .split(";")
-    .some((c) => c.trim().startsWith("access_token="));
-}
-
-type SessionExpiredCallback = () => void
+// CSRF token manager - survives page refresh via refreshFromResponse
+const csrfManager = createCsrfTokenManager()
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
   const permissions = ref<Set<string>>(new Set())
   const isInitialized = ref(false)
-  let _sessionExpiredCallback: SessionExpiredCallback | null = null
 
   const isAuthenticated = computed(() => !!user.value)
   const userRole = computed(() => user.value?.role)
@@ -36,10 +20,8 @@ export const useAuthStore = defineStore('auth', () => {
   async function login(credentials: LoginCredentials) {
     try {
       const loginResponse = await authApi.login(credentials)
-      // Store CSRF token for subsequent state-changing requests
-      if (loginResponse.csrfToken) {
-        setCsrfToken(loginResponse.csrfToken)
-      }
+      // Use csrfManager to handle CSRF token (survives page refresh)
+      csrfManager.refreshFromResponse(loginResponse)
       // Login response returns partial user data, fetch full user data
       await fetchUser()
       return true
@@ -58,6 +40,7 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       permissions.value.clear()
       clearCsrfToken()
+      csrfManager.clearToken()
     }
   }
 
@@ -65,10 +48,9 @@ export const useAuthStore = defineStore('auth', () => {
     if (!user.value) return
 
     try {
+      // Response is already unwrapped by request.ts interceptor
       const response = await authApi.getPermissions()
-      // Response is wrapped in {code, data, message, traceId} structure
-      const perms = Array.isArray(response) ? response : (response as ApiResponse<string[]>).data
-      permissions.value = new Set(perms || [])
+      permissions.value = new Set(response || [])
     } catch (error) {
       console.error('Failed to load permissions:', error)
     }
@@ -80,18 +62,9 @@ export const useAuthStore = defineStore('auth', () => {
       // After request.ts unwrapping, we get: { user: {...}, csrfToken: "..." }
       const response = await authApi.getCurrentUser()
 
-      // Debug: Log the response to see what we're getting
-      if (import.meta.env.DEV) {
-        console.log('[Auth] fetchUser response:', response)
-        console.log('[Auth] response.user:', response.user)
-        console.log('[Auth] response.user.role:', response.user?.role)
-      }
-
       user.value = response.user
-      // Store CSRF token if returned (handles page refresh case)
-      if (response.csrfToken) {
-        setCsrfToken(response.csrfToken)
-      }
+      // Use csrfManager to handle CSRF token (survives page refresh)
+      csrfManager.refreshFromResponse(response)
       await loadPermissions()
       return response.user
     } catch {
@@ -105,26 +78,26 @@ export const useAuthStore = defineStore('auth', () => {
   async function initialize() {
     if (isInitialized.value) return
 
-    isInitialized.value = true
-
-    // Always attempt to fetch user - hasAuthCookie() checks cookie presence
-    // If no cookie, /auth/me will return 401 and we handle it gracefully
-    if (hasAuthCookie()) {
-      await fetchUser()
+    // Use secure cookie parsing from shared/auth-core
+    // Cannot be fooled by cookies like "access_token_extra=x"
+    const cookies = parseCookies(document.cookie)
+    if (!hasCookie(cookies, 'access_token')) {
+      isInitialized.value = true
+      return
     }
-  }
 
-  function setupSessionExpiredCallback(callback: SessionExpiredCallback) {
-    _sessionExpiredCallback = callback
+    try {
+      await fetchUser()
+    } finally {
+      isInitialized.value = true
+    }
   }
 
   function clearUser() {
     user.value = null
     permissions.value.clear()
     clearCsrfToken()
-    if (_sessionExpiredCallback) {
-      _sessionExpiredCallback()
-    }
+    csrfManager.clearToken()
   }
 
   function hasPermission(action: string, resource: string): boolean {
@@ -191,7 +164,6 @@ export const useAuthStore = defineStore('auth', () => {
     loadPermissions,
     fetchUser,
     initialize,
-    setupSessionExpiredCallback,
     clearUser,
     hasPermission,
     hasRole,

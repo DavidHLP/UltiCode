@@ -330,10 +330,8 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
 
-  // Initialize auth store on first navigation
-  if (!authStore.isInitialized) {
-    await authStore.initialize()
-  }
+  // Auth is bootstrapped in main.ts before router installation
+  // isInitialized being true means auth state is known
 
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth !== false)
 

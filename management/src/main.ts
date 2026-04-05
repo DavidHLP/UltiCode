@@ -7,10 +7,67 @@ import App from './App.vue'
 import router from './router'
 import i18n from './i18n'
 
-const app = createApp(App)
+/**
+ * Application Bootstrap
+ *
+ * Critical: Auth initialization happens BEFORE router installation.
+ * This eliminates race conditions where the router guard would
+ * need to wait for async auth initialization.
+ *
+ * Flow:
+ * 1. Create Vue app
+ * 2. Install Pinia (required for stores)
+ * 3. Initialize auth store (async, completes before router)
+ * 4. Install router (now auth status is known)
+ * 5. Mount app
+ */
+async function bootstrap() {
+  const app = createApp(App)
+  const pinia = createPinia()
 
-app.use(createPinia())
-app.use(router)
-app.use(i18n)
+  // Install Pinia first (required for stores to work)
+  app.use(pinia)
+  app.use(i18n)
 
-app.mount('#app')
+  // Initialize auth BEFORE router installation
+  // This ensures auth status is known when router guards run
+  const { useAuthStore } = await import('@/stores/auth')
+  const authStore = useAuthStore()
+
+  // Set up session expiration callback
+  authStore.setupSessionExpiredCallback(() => {
+    console.log('[Bootstrap] Session expired, clearing auth state')
+    authStore.clearUser()
+  })
+
+  try {
+    await authStore.initialize()
+    console.log('[Bootstrap] Auth initialization complete')
+  } catch (error) {
+    console.error('[Bootstrap] Auth initialization failed:', error)
+    // Continue anyway - app will render with unauthenticated state
+  }
+
+  // Now install router (auth status is already determined)
+  app.use(router)
+
+  // Set initial document language
+  document.documentElement.lang = (
+    i18n.global.locale as unknown as { value: string }
+  ).value
+
+  app.mount('#app')
+
+  console.log('[Bootstrap] App mounted successfully')
+}
+
+// Start the application
+bootstrap().catch((error) => {
+  console.error('[Bootstrap] Fatal error during bootstrap:', error)
+  // Fallback: mount app anyway to show error UI
+  const app = createApp(App)
+  app.use(createPinia())
+  app.use(i18n)
+  app.use(router)
+  app.mount('#app')
+})

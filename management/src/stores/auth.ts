@@ -11,9 +11,15 @@ interface ApiResponse<T> {
   traceId?: string
 }
 
-// Key for storing auth state indicator in localStorage
-// Since cookies are httpOnly, we need this to avoid unnecessary /auth/me calls
-const AUTH_HAS_CREDENTIALS_KEY = 'auth_has_credentials'
+/**
+ * Check if auth cookies exist (httpOnly, so we check for presence only).
+ * Returns true only if an access_token cookie is present.
+ */
+function hasAuthCookie(): boolean {
+  return document.cookie
+    .split(";")
+    .some((c) => c.trim().startsWith("access_token="));
+}
 
 type SessionExpiredCallback = () => void
 
@@ -34,8 +40,6 @@ export const useAuthStore = defineStore('auth', () => {
       if (loginResponse.csrfToken) {
         setCsrfToken(loginResponse.csrfToken)
       }
-      // Mark that we have auth credentials (httpOnly cookies were set by backend)
-      localStorage.setItem(AUTH_HAS_CREDENTIALS_KEY, 'true')
       // Login response returns partial user data, fetch full user data
       await fetchUser()
       return true
@@ -54,8 +58,6 @@ export const useAuthStore = defineStore('auth', () => {
       user.value = null
       permissions.value.clear()
       clearCsrfToken()
-      // Clear auth credentials flag
-      localStorage.removeItem(AUTH_HAS_CREDENTIALS_KEY)
     }
   }
 
@@ -94,8 +96,6 @@ export const useAuthStore = defineStore('auth', () => {
       return response.user
     } catch {
       // 401 is expected for unauthenticated users - no need to log
-      // Clear credentials flag since auth failed (cookie expired or invalid)
-      localStorage.removeItem(AUTH_HAS_CREDENTIALS_KEY)
       user.value = null
       permissions.value.clear()
       return null
@@ -107,10 +107,9 @@ export const useAuthStore = defineStore('auth', () => {
 
     isInitialized.value = true
 
-    // Only attempt to fetch user if we have credentials flag set
-    // This prevents unnecessary /auth/me calls that would trigger rate limiting
-    const hasCredentials = localStorage.getItem(AUTH_HAS_CREDENTIALS_KEY) === 'true'
-    if (hasCredentials) {
+    // Always attempt to fetch user - hasAuthCookie() checks cookie presence
+    // If no cookie, /auth/me will return 401 and we handle it gracefully
+    if (hasAuthCookie()) {
       await fetchUser()
     }
   }
@@ -123,7 +122,6 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     permissions.value.clear()
     clearCsrfToken()
-    localStorage.removeItem(AUTH_HAS_CREDENTIALS_KEY)
     if (_sessionExpiredCallback) {
       _sessionExpiredCallback()
     }

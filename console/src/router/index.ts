@@ -340,18 +340,14 @@ router.beforeEach(async (to, from, next) => {
       await authStore.ensureUser();
     } catch (error) {
       // ApiError (e.g., 401 from /auth/me) or connection error - redirect to login
-      const isApiError = error instanceof ApiError;
       if (import.meta.env.DEV) {
         console.warn("[Router] Failed to ensure user:", error);
       }
-      if (isApiError || !(error instanceof Error)) {
-        return next({
-          name: "login",
-          query: { redirect: to.fullPath },
-        });
-      }
-      // Rethrow non-ApiError failures (e.g., network completely down) so caller handles
-      throw error;
+      // Redirect to login for all errors (ApiError, network errors, etc.)
+      return next({
+        name: "login",
+        query: { redirect: to.fullPath },
+      });
     }
 
     // After fetch, check if authenticated

@@ -6,6 +6,13 @@
  *
  * CSRF tokens are stored in memory (not localStorage) to prevent
  * XSS attacks from stealing them.
+ *
+ * LIMITATION: Tokens stored in memory are lost on page refresh.
+ * This is a known limitation of the in-memory approach - the token
+ * is only available for the current page session. If the user
+ * refreshes the page, they will need to re-authenticate to obtain
+ * a new CSRF token. This is an acceptable trade-off for security
+ * (preventing XSS theft) vs. convenience.
  */
 
 let csrfToken: string | null = null

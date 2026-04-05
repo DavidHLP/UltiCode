@@ -85,6 +85,13 @@ export default {
     sessionExpired: "Session expired. Please login again.",
   },
 
+  // Guest user
+  guest: {
+    name: "Guest",
+    loginToContinue: "Login to continue",
+    welcome: "Welcome, sign in to access all features",
+  },
+
   // Validation messages
   validation: {
     usernameRequired: "Username is required",

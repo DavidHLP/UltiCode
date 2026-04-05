@@ -1,50 +1,6 @@
 module.exports = {
   apps: [
     // ============================================
-    // Docker - Infrastructure Services
-    // ============================================
-    // Start all Docker containers (MySQL, Redis, Nacos)
-    {
-      name: 'docker-up',
-      script: 'docker-wrapper.cjs',
-      args: 'up',
-      env: { NODE_ENV: 'development' },
-      autorestart: false,
-      watch: false,
-      instance_var: 'INSTANCE',
-    },
-    // Stop all Docker containers
-    {
-      name: 'docker-down',
-      script: 'docker-wrapper.cjs',
-      args: 'down',
-      env: { NODE_ENV: 'development' },
-      autorestart: false,
-      watch: false,
-      instance_var: 'INSTANCE',
-    },
-    // Docker logs (follow mode)
-    {
-      name: 'docker-logs',
-      script: 'docker-wrapper.cjs',
-      args: 'logs',
-      env: { NODE_ENV: 'development' },
-      autorestart: false,
-      watch: false,
-      instance_var: 'INSTANCE',
-    },
-    // Docker status
-    {
-      name: 'docker-ps',
-      script: 'docker-wrapper.cjs',
-      args: 'ps',
-      env: { NODE_ENV: 'development' },
-      autorestart: false,
-      watch: false,
-      instance_var: 'INSTANCE',
-    },
-
-    // ============================================
     // Application Services
     // ============================================
     // Backend - Spring Boot (port 9001)

@@ -9,6 +9,7 @@ import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
+import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.service.SubmissionService;
 import java.util.List;
@@ -177,5 +178,18 @@ public class SubmissionController {
         }
         SubmissionHistoryDTO history = submissionService.getSubmissionHistory(userId);
         return Result.success(history);
+    }
+
+    /**
+     * Get available submission statuses for filtering and display.
+     * This endpoint is public (no authentication required).
+     *
+     * @return list of submission status metadata
+     */
+    @Operation(summary = "Get submission statuses", description = "Get available submission status options")
+    @GetMapping("/statuses")
+    public Result<List<SubmissionStatusMeta>> getSubmissionStatuses() {
+        List<SubmissionStatusMeta> statuses = submissionService.getStatuses();
+        return Result.success(statuses);
     }
 }

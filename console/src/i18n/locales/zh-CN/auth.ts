@@ -83,6 +83,13 @@ export default {
     sessionExpired: "登录已过期，请重新登录",
   },
 
+  // Guest user
+  guest: {
+    name: "游客",
+    loginToContinue: "登录以继续",
+    welcome: "欢迎登录，探索全部功能",
+  },
+
   // Validation messages
   validation: {
     usernameRequired: "请输入用户名",

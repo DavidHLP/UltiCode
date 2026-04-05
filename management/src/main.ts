@@ -34,12 +34,6 @@ async function bootstrap() {
   const { useAuthStore } = await import('@/stores/auth')
   const authStore = useAuthStore()
 
-  // Set up session expiration callback
-  authStore.setupSessionExpiredCallback(() => {
-    console.log('[Bootstrap] Session expired, clearing auth state')
-    authStore.clearUser()
-  })
-
   try {
     await authStore.initialize()
     console.log('[Bootstrap] Auth initialization complete')

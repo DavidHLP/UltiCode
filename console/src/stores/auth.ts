@@ -7,19 +7,13 @@ import type {
   LoginResponse,
 } from "@/types/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { setCsrfToken, clearCsrfToken } from "@/utils/csrf";
+import { parseCookies, hasCookie } from "../../shared/auth-core/src/cookie";
+import { createCsrfTokenManager } from "../../shared/auth-core/src/csrf";
 
 const isDevelopment = import.meta.env.DEV;
 
-/**
- * Check if auth cookies exist (httpOnly, so we check for presence only).
- * Returns true only if an access_token cookie is present.
- */
-function hasAuthCookie(): boolean {
-  return document.cookie
-    .split(";")
-    .some((c) => c.trim().startsWith("access_token="));
-}
+// CSRF token manager instance
+const csrfManager = createCsrfTokenManager();
 
 /**
  * Authentication status states
@@ -56,12 +50,17 @@ export const useAuthStore = defineStore("auth", () => {
   const isAuthenticated = computed(() => !!user.value);
   const isInitialized = computed(() => status.value === "ready");
   const isLoading = computed(() => status.value === "loading");
-  const isInitializing = computed(() => status.value === "loading");
   const userId = computed(() => user.value?.id || "");
   const userName = computed(
     () => user.value?.name || user.value?.username || "",
   );
   const userRole = computed(() => user.value?.role || "");
+
+  /**
+   * Expose the initialization promise for router guards.
+   * Allows router to wait for auth initialization before making navigation decisions.
+   */
+  const initializationPromise = computed(() => _initializationPromise);
 
   /**
    * Initialize the auth store.
@@ -105,7 +104,7 @@ export const useAuthStore = defineStore("auth", () => {
       try {
         // Only attempt to restore session if auth cookies exist
         // Guests without cookies skip the /auth/me request entirely
-        if (!hasAuthCookie()) {
+        if (!hasCookie(parseCookies(document.cookie), 'access_token')) {
           if (isDevelopment) {
             console.log(
               "[Auth] No auth cookies found, skipping session restore",
@@ -237,7 +236,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       // Store CSRF token for subsequent state-changing requests
       if (csrfToken) {
-        setCsrfToken(csrfToken);
+        csrfManager.refreshFromResponse({ csrfToken });
       }
 
       // Update user state
@@ -285,7 +284,7 @@ export const useAuthStore = defineStore("auth", () => {
 
       // Store CSRF token for subsequent state-changing requests
       if (csrfToken) {
-        setCsrfToken(csrfToken);
+        csrfManager.refreshFromResponse({ csrfToken });
       }
 
       // Update user state
@@ -336,7 +335,7 @@ export const useAuthStore = defineStore("auth", () => {
       console.log("[Auth] clearUser() called");
     }
     user.value = null;
-    clearCsrfToken();
+    csrfManager.clearToken();
     // Reset to idle state - allows potential re-initialization
     status.value = "idle";
     error.value = null;
@@ -351,7 +350,7 @@ export const useAuthStore = defineStore("auth", () => {
     status.value = "idle";
     error.value = null;
     _initializationPromise = null;
-    clearCsrfToken();
+    csrfManager.clearToken();
   }
 
   return {
@@ -363,7 +362,7 @@ export const useAuthStore = defineStore("auth", () => {
     isAuthenticated,
     isInitialized,
     isLoading,
-    isInitializing,
+    initializationPromise,
     userId,
     userName,
     userRole,

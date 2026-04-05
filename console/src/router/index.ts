@@ -4,6 +4,7 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
+import { ApiError } from "@/utils/request";
 
 const forumRoutes: RouteRecordRaw = {
   path: "/forum",
@@ -338,14 +339,19 @@ router.beforeEach(async (to, from, next) => {
     try {
       await authStore.ensureUser();
     } catch (error) {
-      // Connection error or other failure - redirect to login
+      // ApiError (e.g., 401 from /auth/me) or connection error - redirect to login
+      const isApiError = error instanceof ApiError;
       if (import.meta.env.DEV) {
         console.warn("[Router] Failed to ensure user:", error);
       }
-      return next({
-        name: "login",
-        query: { redirect: to.fullPath },
-      });
+      if (isApiError || !(error instanceof Error)) {
+        return next({
+          name: "login",
+          query: { redirect: to.fullPath },
+        });
+      }
+      // Rethrow non-ApiError failures (e.g., network completely down) so caller handles
+      throw error;
     }
 
     // After fetch, check if authenticated

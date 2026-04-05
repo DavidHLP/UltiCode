@@ -19,7 +19,7 @@ defineOptions({
 
 function handleOAuth() {
   // Redirect to GitHub OAuth
-  window.location.href = '/api/auth/github'
+  window.location.href = `${import.meta.env.VITE_API_BASE_URL}/auth/github`
 }
 </script>
 

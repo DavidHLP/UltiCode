@@ -355,6 +355,12 @@ router.beforeEach(async (to, from, next) => {
     )
 
     if (!hasAnyPermission) {
+      // Show toast notification for permission denial
+      const { toast } = await import('vue-sonner')
+      toast.error('You do not have permission to access this page', {
+        duration: 4000,
+        position: 'top-right',
+      })
       return next({ name: 'dashboard' })
     }
   }
@@ -363,6 +369,12 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.roles && authStore.isAuthenticated) {
     const roles = to.meta.roles as string[]
     if (!authStore.hasAnyRole(roles)) {
+      // Show toast notification for role denial
+      const { toast } = await import('vue-sonner')
+      toast.error('You do not have the required role to access this page', {
+        duration: 4000,
+        position: 'top-right',
+      })
       return next({ name: 'dashboard' })
     }
   }

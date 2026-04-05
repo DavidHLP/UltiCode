@@ -81,6 +81,17 @@ interface ConfigWithMetadata
 const pendingRequests = new Map<string, CancelTokenSource>()
 
 /**
+ * URLs that should never be deduplicated
+ * These are auth-critical requests that must always go through
+ */
+const NON_DEDUPLICABLE_URLS = new Set([
+  "/auth/me",
+  "/auth/login",
+  "/auth/logout",
+  "/auth/register",
+])
+
+/**
  * Generate unique request ID
  */
 function generateRequestId(): string {
@@ -144,17 +155,20 @@ service.interceptors.request.use(
     config.headers[LOCALE_HEADER_KEY] = activeLocale
     config.headers['Accept-Language'] = activeLocale
 
-    // Request deduplication
-    const key = getRequestKey(config)
-    if (pendingRequests.has(key)) {
-      const source = pendingRequests.get(key)!
-      config.cancelToken = source.token
-      return config
-    }
+    // Request deduplication - skip for auth-critical endpoints
+    const shouldDeduplicate = !NON_DEDUPLICABLE_URLS.has(config.url || "")
+    if (shouldDeduplicate) {
+      const key = getRequestKey(config)
+      if (pendingRequests.has(key)) {
+        const source = pendingRequests.get(key)!
+        config.cancelToken = source.token
+        return config
+      }
 
-    const source = axios.CancelToken.source()
-    config.cancelToken = source.token
-    pendingRequests.set(key, source)
+      const source = axios.CancelToken.source()
+      config.cancelToken = source.token
+      pendingRequests.set(key, source)
+    }
 
     // Log request in development
     if (isDevelopment) {
@@ -182,8 +196,8 @@ service.interceptors.response.use(
     const config = response.config as ConfigWithMetadata
     const metadata = config._metadata
 
-    // Remove from pending requests
-    if (config) {
+    // Remove from pending requests (skip for non-deduplicated URLs)
+    if (config && !NON_DEDUPLICABLE_URLS.has(config.url || "")) {
       const key = getRequestKey(config)
       pendingRequests.delete(key)
     }
@@ -223,8 +237,8 @@ service.interceptors.response.use(
   async (error: AxiosError) => {
     const config = error.config as ConfigWithMetadata | undefined
 
-    // Remove from pending requests
-    if (config) {
+    // Remove from pending requests (skip for non-deduplicated URLs)
+    if (config && !NON_DEDUPLICABLE_URLS.has(config.url || "")) {
       const key = getRequestKey(config)
       pendingRequests.delete(key)
     }

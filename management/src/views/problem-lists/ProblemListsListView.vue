@@ -142,15 +142,9 @@ const columns = createColumns(
     >
       <!-- Title Row -->
       <div class="py-4 flex items-center justify-between">
-        <div class="flex items-center gap-4">
-          <div class="flex items-center gap-2">
-            <span class="terminal-prompt text-base">problem_lists</span>
-            <span class="terminal-cursor" />
-          </div>
-          <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
+        <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
             {{ t('problemLists.title') }}
           </h1>
-        </div>
         <Button
           v-if="canCreate"
           variant="terminal"

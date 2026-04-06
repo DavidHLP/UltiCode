@@ -135,13 +135,13 @@ export const useModerationStore = defineStore('adminModeration', () => {
 
       if (controller.signal.aborted) return
 
-      queueItems.value = response.data
-      // Handle backend response format: { data, meta: { total, page, limit, totalPages } }
-      queueTotal.value = response.meta?.total ?? response.total ?? 0
+      queueItems.value = response.items ?? response.data ?? (Array.isArray(response) ? response : [])
+      // Handle backend response format: { items, total, page, pageSize, totalPages }
+      queueTotal.value = response.total ?? response.meta?.total ?? 0
 
       // Update pagination from response
-      pagination.value.page = response.meta?.page ?? response.page ?? 1
-      pagination.value.limit = response.meta?.limit ?? response.limit ?? 20
+      pagination.value.page = response.page ?? response.meta?.page ?? 1
+      pagination.value.limit = response.pageSize ?? response.limit ?? response.meta?.limit ?? 20
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return
       queueError.value = extractErrorMessage(err)
@@ -326,13 +326,13 @@ export const useModerationStore = defineStore('adminModeration', () => {
     try {
       const response = await reportsApi.getReports(params, controller.signal)
       if (controller.signal.aborted) return
-      reports.value = response.data
-      // Handle backend response format: { data, meta: { total, page, limit, totalPages } }
-      reportsTotal.value = response.meta?.total ?? response.total ?? 0
+      reports.value = response.items ?? response.data ?? (Array.isArray(response) ? response : [])
+      // Handle backend response format: { items, total, page, pageSize, totalPages }
+      reportsTotal.value = response.total ?? response.meta?.total ?? 0
 
       // Update pagination from response
-      pagination.value.page = response.meta?.page ?? response.page ?? 1
-      pagination.value.limit = response.meta?.limit ?? response.limit ?? 20
+      pagination.value.page = response.page ?? response.meta?.page ?? 1
+      pagination.value.limit = response.pageSize ?? response.limit ?? response.meta?.limit ?? 20
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return
       reportsError.value = extractErrorMessage(err)
@@ -367,13 +367,13 @@ export const useModerationStore = defineStore('adminModeration', () => {
     try {
       const response = await appealsApi.getAppeals(params, controller.signal)
       if (controller.signal.aborted) return
-      appeals.value = response.data
-      // Handle backend response format: { data, meta: { total, page, limit, totalPages } }
-      appealsTotal.value = response.meta?.total ?? response.total ?? 0
+      appeals.value = response.items ?? response.data ?? (Array.isArray(response) ? response : [])
+      // Handle backend response format: { items, total, page, pageSize, totalPages }
+      appealsTotal.value = response.total ?? response.meta?.total ?? 0
 
       // Update pagination from response
-      pagination.value.page = response.meta?.page ?? response.page ?? 1
-      pagination.value.limit = response.meta?.limit ?? response.limit ?? 20
+      pagination.value.page = response.page ?? response.meta?.page ?? 1
+      pagination.value.limit = response.pageSize ?? response.limit ?? response.meta?.limit ?? 20
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return
       appealsError.value = extractErrorMessage(err)

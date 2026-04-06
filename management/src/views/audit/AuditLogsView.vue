@@ -56,7 +56,7 @@ onMounted(() => {
 
 // Stats for terminal ticker
 const stats = computed(() => {
-  const logs = auditStore.logs
+  const logs = auditStore.logs ?? []
   return {
     total: auditStore.total,
     create: logs.filter((l) => l.action.includes('CREATE')).length,

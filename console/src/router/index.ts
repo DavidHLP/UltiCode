@@ -383,15 +383,4 @@ router.beforeEach(async (to, from, next) => {
   next();
 });
 
-/**
- * Setup router-level auth integration
- * Called after router is installed
- */
-export function setupRouterAuthIntegration(): void {
-  // The router is now integrated with auth store through:
-  // 1. beforeEach guard for protected routes
-  // 2. AuthContext handles 401/403 globally and redirects to login
-  // 3. Session expired callback in main.ts redirects to login
-}
-
 export default router;

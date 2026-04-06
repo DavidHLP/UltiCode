@@ -325,34 +325,6 @@ export async function deleteSolutionComment(commentId: string): Promise<void> {
   return apiDelete<void>(`/api/solutions/comments/${commentId}`);
 }
 
-export async function voteSolution(
-  solutionId: string,
-  voteType: 1 | -1 | 0,
-): Promise<EdgeOperationResponse> {
-  if (voteType === 0) {
-    throw new Error("voteType must be 1 or -1");
-  }
-  return operateEdgeOperation(
-    voteType === 1 ? EdgeOperationType.VOTE_UP : EdgeOperationType.VOTE_DOWN,
-    EdgeOperationTargetType.SOLUTION,
-    solutionId,
-  );
-}
-
-export async function voteSolutionComment(
-  commentId: string,
-  voteType: 1 | -1 | 0,
-): Promise<EdgeOperationResponse> {
-  if (voteType === 0) {
-    throw new Error("voteType must be 1 or -1");
-  }
-  return operateEdgeOperation(
-    voteType === 1 ? EdgeOperationType.VOTE_UP : EdgeOperationType.VOTE_DOWN,
-    EdgeOperationTargetType.SOLUTION_COMMENT,
-    commentId,
-  );
-}
-
 export async function recordSolutionView(solutionId: string) {
   const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) return;

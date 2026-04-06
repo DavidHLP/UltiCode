@@ -46,8 +46,3 @@ export const PROBLEM_CATEGORIES = [
     icon: Cpu,
   },
 ] as const;
-
-// Helper to get category by value
-export function getCategoryByValue(value: string) {
-  return PROBLEM_CATEGORIES.find((c) => c.value === value);
-}

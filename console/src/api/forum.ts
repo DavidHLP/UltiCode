@@ -76,14 +76,6 @@ export async function fetchForumTags(): Promise<ForumTag[]> {
   return apiGet<ForumTag[]>("/forum/tags");
 }
 
-export async function joinCommunity(communityId: string): Promise<void> {
-  return apiPost(`/forum/communities/${communityId}/join`, {});
-}
-
-export async function leaveCommunity(communityId: string): Promise<void> {
-  return apiPost(`/forum/communities/${communityId}/leave`, {});
-}
-
 export async function fetchForumQuickFilters(): Promise<
   Array<{ label: string; value: string }>
 > {

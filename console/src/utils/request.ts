@@ -377,14 +377,6 @@ export async function apiPost<T = unknown>(
   return service.post<T, T, unknown>(path, body, { ...init });
 }
 
-export async function apiPut<T = unknown>(
-  path: string,
-  body?: unknown,
-  init?: RequestConfig,
-): Promise<T> {
-  return service.put<T, T, unknown>(path, body, { ...init });
-}
-
 export async function apiPatch<T = unknown>(
   path: string,
   body?: unknown,
@@ -399,66 +391,3 @@ export async function apiDelete<T = unknown>(
 ): Promise<T> {
   return service.delete<T, T>(path, { ...init });
 }
-
-/**
- * Upload file with progress tracking
- */
-export async function apiUpload<T = unknown>(
-  path: string,
-  file: File | Blob,
-  onProgress?: (progress: number) => void,
-  init?: RequestConfig,
-): Promise<T> {
-  const formData = new FormData();
-  formData.append("file", file);
-
-  return service.post<T, T>(path, formData, {
-    ...init,
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
-    onUploadProgress: (progressEvent) => {
-      if (onProgress && progressEvent.total) {
-        const progress = Math.round(
-          (progressEvent.loaded * 100) / progressEvent.total,
-        );
-        onProgress(progress);
-      }
-    },
-  });
-}
-
-/**
- * Download file
- */
-export async function apiDownload(
-  path: string,
-  filename?: string,
-  init?: RequestConfig,
-): Promise<void> {
-  // Use axiosInstance directly to get raw response for binary data
-  const response = await (service as AxiosInstance).get<Blob>(path, {
-    ...init,
-    responseType: "blob",
-    skipResponseUnwrap: true,
-  } as RequestConfig);
-
-  const url = window.URL.createObjectURL(response.data as Blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", filename || "download");
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.URL.revokeObjectURL(url);
-}
-
-/**
- * Create abort controller for manual cancellation
- */
-export function createAbortController(): AbortController {
-  return new AbortController();
-}
-
-export { service as axiosInstance };
-export default service;

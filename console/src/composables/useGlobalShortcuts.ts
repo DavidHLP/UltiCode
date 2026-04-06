@@ -1,4 +1,4 @@
-import { onMounted, onUnmounted, ref, watch, type Ref } from "vue";
+import { ref } from "vue";
 
 export interface ShortcutHandler {
   key: string;
@@ -95,90 +95,6 @@ function handleKeyDown(event: KeyboardEvent): void {
 }
 
 /**
- * Composable for using global shortcuts
- */
-export function useGlobalShortcuts() {
-  return {
-    isModalOpen,
-    registerShortcut: registerGlobalShortcut,
-  };
-}
-
-/**
- * Composable for registering shortcuts in a component
- * Automatically cleans up on unmount
- */
-export function useShortcut(
-  shortcuts: ShortcutHandler[] | Ref<ShortcutHandler[]>,
-) {
-  const unregisterFns: (() => void)[] = [];
-
-  const register = (items: ShortcutHandler[]) => {
-    // Unregister previous
-    unregisterFns.forEach((fn) => fn());
-    unregisterFns.length = 0;
-
-    // Register new
-    items.forEach((shortcut) => {
-      const unregister = registerGlobalShortcut(shortcut);
-      unregisterFns.push(unregister);
-    });
-  };
-
-  onMounted(() => {
-    const items = Array.isArray(shortcuts) ? shortcuts : shortcuts.value;
-    register(items);
-  });
-
-  onUnmounted(() => {
-    unregisterFns.forEach((fn) => fn());
-  });
-
-  // If shortcuts is a ref, watch for changes
-  if (typeof shortcuts === "object" && "value" in shortcuts) {
-    watch(
-      shortcuts as Ref<ShortcutHandler[]>,
-      (newItems: ShortcutHandler[]) => {
-        register(newItems);
-      },
-    );
-  }
-}
-
-/**
- * Common platform-aware key formatter
- */
-export function formatShortcutKey(key: string): string {
-  if (!isMac) return key;
-
-  const macMap: Record<string, string> = {
-    Ctrl: "⌘",
-    Alt: "⌥",
-    Shift: "⇧",
-    Meta: "⌘",
-    Enter: "↵",
-    Tab: "⇥",
-    Escape: "⎋",
-    ArrowUp: "↑",
-    ArrowDown: "↓",
-    ArrowLeft: "←",
-    ArrowRight: "→",
-    Backspace: "⌫",
-    Delete: "⌦",
-    " ": "Space",
-  };
-
-  return macMap[key] ?? key;
-}
-
-/**
- * Get modifier key name based on platform
- */
-export function getModifierKeyName(): string {
-  return isMac ? "⌘" : "Ctrl";
-}
-
-/**
  * Initialize global keyboard listener
  */
 let isInitialized = false;
@@ -188,16 +104,6 @@ export function initGlobalShortcuts(): void {
 
   window.addEventListener("keydown", handleKeyDown);
   isInitialized = true;
-}
-
-/**
- * Cleanup global keyboard listener
- */
-export function cleanupGlobalShortcuts(): void {
-  if (!isInitialized || typeof window === "undefined") return;
-
-  window.removeEventListener("keydown", handleKeyDown);
-  isInitialized = false;
 }
 
 // Auto-initialize on mount if in browser

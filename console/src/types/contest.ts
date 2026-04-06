@@ -91,19 +91,6 @@ export const RATING_COLORS: Record<RatingTitle, string> = {
   LEGENDARY_GRANDMASTER: "#FF0000",
 };
 
-export const RATING_DISPLAY_NAMES: Record<RatingTitle, string> = {
-  NEWBIE: "Newbie",
-  PUPIL: "Pupil",
-  SPECIALIST: "Specialist",
-  EXPERT: "Expert",
-  CANDIDATE_MASTER: "Candidate Master",
-  MASTER: "Master",
-  INTERNATIONAL_MASTER: "International Master",
-  GRANDMASTER: "Grandmaster",
-  INTERNATIONAL_GRANDMASTER: "International Grandmaster",
-  LEGENDARY_GRANDMASTER: "Legendary Grandmaster",
-};
-
 export function getRatingTitle(rating: number): RatingTitle {
   if (rating >= RATING_THRESHOLDS.LEGENDARY_GRANDMASTER)
     return "LEGENDARY_GRANDMASTER";

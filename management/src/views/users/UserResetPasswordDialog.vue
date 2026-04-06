@@ -84,7 +84,7 @@ async function handleReset() {
         <div class="p-4 space-y-4">
           <!-- Security Warning -->
           <div
-            class="flex items-start gap-3 p-3 border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)]"
+            class="flex items-start gap-3 p-3 border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)]"
           >
             <IconShieldCheck class="h-4 w-4 text-[var(--terminal-amber)] shrink-0 mt-0.5" />
             <div class="space-y-1">

@@ -41,7 +41,7 @@ const emit = defineEmits<{
         class="flex items-start gap-4 p-4 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div
-          class="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--terminal-cyan)] bg-[oklch(0.65_0.15_200/0.1)]"
+          class="flex h-12 w-12 items-center justify-center rounded-full border border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_10%,_transparent)]"
         >
           <component
             :is="getActionIcon(entity.action)"

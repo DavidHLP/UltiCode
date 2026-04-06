@@ -96,7 +96,7 @@ defineOptions({
 }
 
 .dark .auth-card__header {
-  background: oklch(0.18 0.01 270);
+  background: var(--silver-800);
   border-bottom-color: var(--silver-300);
 }
 
@@ -113,15 +113,15 @@ defineOptions({
 }
 
 .auth-card__control--close {
-  background: oklch(0.6 0.2 25);
+  background: var(--terminal-red);
 }
 
 .auth-card__control--minimize {
-  background: oklch(0.75 0.18 90);
+  background: var(--terminal-amber);
 }
 
 .auth-card__control--maximize {
-  background: oklch(0.7 0.18 145);
+  background: var(--terminal-green);
 }
 
 .auth-card__title {

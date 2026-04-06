@@ -31,6 +31,7 @@ import {
 
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
   DropdownMenu,
@@ -62,7 +63,6 @@ import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
 import BulkEditDialog from '@/components/problems/BulkEditDialog.vue'
 import FlagInfoDialog from '@/components/problems/FlagInfoDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
-import { getDifficultyBadgeVariant, getDifficultyColor } from '@/lib/entities/problem'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -591,14 +591,12 @@ const columns: ColumnDef<Problem>[] = [
     header: () => t('problems.columns.difficulty'),
     cell: ({ row }) => {
       const difficulty = row.getValue('difficulty') as Difficulty
-      const icon = getDifficultyIcon(difficulty)
-      const color = getDifficultyColor(difficulty)
-      return h('div', { class: 'flex items-center gap-2' }, [
-        h(icon, { class: `h-4 w-4 ${color}` }),
-        h(Badge, { variant: getDifficultyBadgeVariant(difficulty) }, () =>
-          t(`problems.difficulty.${difficulty.toUpperCase()}`),
-        ),
-      ])
+      return badge({
+        color: DIFFICULTY_COLOR_MAP[difficulty] ?? 'neutral',
+        label: t(`problems.difficulty.${difficulty.toUpperCase()}`),
+        dot: true,
+        icon: getDifficultyIcon(difficulty),
+      })
     },
   },
   {
@@ -988,7 +986,7 @@ const columns: ColumnDef<Problem>[] = [
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
@@ -1001,7 +999,7 @@ const columns: ColumnDef<Problem>[] = [
           <Button
             variant="terminal"
             size="sm"
-            class="h-7 font-data text-[10px] border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.15)]"
+            class="h-7 font-data text-[10px] border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]"
             @click="handleBulkAction('publish')"
           >
             <IconEye class="h-3 w-3 mr-1" />
@@ -1010,7 +1008,7 @@ const columns: ColumnDef<Problem>[] = [
           <Button
             variant="terminal"
             size="sm"
-            class="h-7 font-data text-[10px] border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[oklch(0.75_0.15_85/0.15)]"
+            class="h-7 font-data text-[10px] border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]"
             @click="handleBulkAction('unpublish')"
           >
             <IconEyeOff class="h-3 w-3 mr-1" />
@@ -1019,7 +1017,7 @@ const columns: ColumnDef<Problem>[] = [
           <Button
             variant="terminal"
             size="sm"
-            class="h-7 font-data text-[10px] border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]"
+            class="h-7 font-data text-[10px] border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
             @click="handleBulkAction('delete')"
           >
             <IconTrash class="h-3 w-3 mr-1" />
@@ -1028,7 +1026,7 @@ const columns: ColumnDef<Problem>[] = [
           <Button
             variant="terminal"
             size="sm"
-            class="h-7 font-data text-[10px] border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[oklch(0.65_0.15_250/0.15)]"
+            class="h-7 font-data text-[10px] border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]"
             @click="bulkEditDialogOpen = true"
           >
             <IconPencil class="h-3 w-3 mr-1" />
@@ -1151,7 +1149,7 @@ const columns: ColumnDef<Problem>[] = [
       <!-- Error State - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] dark:bg-[oklch(0.6_0.2_25/0.15)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
           <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
@@ -1160,7 +1158,7 @@ const columns: ColumnDef<Problem>[] = [
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.15)]"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
           @click="loadProblems()"
         >
           {{ t('common.retry') }}

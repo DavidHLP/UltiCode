@@ -15,6 +15,7 @@ import {
   IconTrophy,
 } from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
+import { SemanticBadge, CONTEST_STATUS_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@/components/ui/terminal'
 import ContestProblemPicker from './components/ContestProblemPicker.vue'
 import ContestOverviewTab from './components/ContestOverviewTab.vue'
 import ContestProblemsTab from './components/ContestProblemsTab.vue'
@@ -123,35 +124,6 @@ function handleTabChange(value: string | number) {
   }
 }
 
-// Get status badge styling
-function getStatusStyle(status: string): { class: string; label: string } {
-  const styles: Record<string, { class: string; label: string }> = {
-    RUNNING: {
-      class: 'terminal-badge-success animate-pulse-subtle',
-      label: 'RUNNING',
-    },
-    UPCOMING: {
-      class: 'terminal-badge-warning',
-      label: 'UPCOMING',
-    },
-    FINISHED: {
-      class:
-        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
-      label: 'FINISHED',
-    },
-  }
-  return styles[status] ?? { class: 'terminal-badge', label: status }
-}
-
-// Get type badge styling
-function getTypeStyle(type: string) {
-  const styles: Record<string, string> = {
-    IOI: 'terminal-badge-info',
-    ICPC: 'terminal-badge-info',
-    CUSTOM: 'terminal-badge-warning',
-  }
-  return styles[type] || 'terminal-badge'
-}
 </script>
 
 <template>
@@ -193,14 +165,8 @@ function getTypeStyle(type: string) {
                   <h1 class="font-medium text-sm text-[var(--foreground)]">{{ contest.title }}</h1>
                 </div>
                 <div class="flex items-center gap-2 mt-1">
-                  <span :class="['terminal-badge text-[10px]', getTypeStyle(contest.contestType)]">
-                    {{ t(`contests.type.${contest.contestType}`) }}
-                  </span>
-                  <span
-                    :class="['terminal-badge text-[10px]', getStatusStyle(contest.status).class]"
-                  >
-                    {{ getStatusStyle(contest.status).label }}
-                  </span>
+                  <SemanticBadge :color="CONTEST_TYPE_COLOR_MAP[contest.contestType] ?? 'neutral'" :label="t(`contests.type.${contest.contestType}`)" size="sm" />
+                  <SemanticBadge :color="CONTEST_STATUS_COLOR_MAP[contest.status] ?? 'neutral'" :label="contest.status" size="sm" :dot="contest.status === 'RUNNING'" :pulse="contest.status === 'RUNNING'" />
                 </div>
               </div>
             </div>
@@ -212,7 +178,7 @@ function getTypeStyle(type: string) {
                 v-if="contest.status === 'UPCOMING'"
                 variant="terminal"
                 size="sm"
-                class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+                class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
                 @click="handleStart"
               >
                 <IconPlayerPlay class="mr-1.5 h-3.5 w-3.5" />
@@ -222,7 +188,7 @@ function getTypeStyle(type: string) {
                 v-if="contest.status === 'RUNNING'"
                 variant="terminal"
                 size="sm"
-                class="font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[oklch(0.75_0.15_85/0.1)]"
+                class="font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_10%,_transparent)]"
                 @click="handleEnd"
               >
                 <IconPlayerStop class="mr-1.5 h-3.5 w-3.5" />
@@ -233,7 +199,7 @@ function getTypeStyle(type: string) {
               v-if="canDelete"
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+              class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
               @click="handleDelete"
             >
               <IconTrash class="mr-1.5 h-3.5 w-3.5" />

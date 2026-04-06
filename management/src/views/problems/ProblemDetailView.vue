@@ -198,13 +198,13 @@ function retryFetch() {
             <div class="hidden sm:flex items-center gap-2">
               <span
                 v-if="!headerInfo.isPublished"
-                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]"
+                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.published.draft') }}
               </span>
               <span
                 v-if="headerInfo.isPremium"
-                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]"
+                class="font-data text-[10px] uppercase px-2 py-0.5 border rounded-sm bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]"
               >
                 {{ t('problems.badges.premium') }}
               </span>
@@ -327,7 +327,7 @@ function retryFetch() {
       <!-- Error State - Terminal Style -->
       <div
         v-if="currentError"
-        class="flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] dark:bg-[oklch(0.6_0.2_25/0.15)] p-4 mb-6"
+        class="flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)] p-4 mb-6"
       >
         <div class="flex items-center gap-3">
           <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>

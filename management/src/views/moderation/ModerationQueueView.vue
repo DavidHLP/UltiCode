@@ -438,7 +438,7 @@ const selectedActionOption = computed(() =>
     <div
       v-if="selectedRows.length > 0"
       :class="[
-        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+        'mt-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
         'animate-in fade-in slide-in-from-top-2 duration-200',
       ]"
     >
@@ -453,7 +453,7 @@ const selectedActionOption = computed(() =>
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+            class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
             @click="openBatchDialog(ModerationActionType.RESOLVED)"
           >
             <IconCheck class="h-3.5 w-3.5 mr-1.5" />
@@ -462,7 +462,7 @@ const selectedActionOption = computed(() =>
           <Button
             variant="terminal"
             size="sm"
-            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+            class="h-8 font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
             @click="openBatchDialog(ModerationActionType.DISMISSED)"
           >
             <IconX class="h-3.5 w-3.5 mr-1.5" />
@@ -528,7 +528,7 @@ const selectedActionOption = computed(() =>
         <Button
           variant="terminal"
           size="sm"
-          class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+          class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
           :disabled="saving"
           @click="handleDrawerSave"
         >
@@ -635,7 +635,7 @@ const selectedActionOption = computed(() =>
           </div>
 
           <!-- Warning -->
-          <div class="border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] p-3">
+          <div class="border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] p-3">
             <div class="flex items-start gap-2">
               <IconAlertTriangle
                 class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5"
@@ -700,7 +700,7 @@ const selectedActionOption = computed(() =>
                 :class="[
                   'h-9 font-data text-xs',
                   batchAction === ModerationActionType.RESOLVED
-                    ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] bg-[oklch(0.7_0.15_145/0.1)]'
+                    ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]'
                     : 'border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]',
                 ]"
                 size="sm"
@@ -714,7 +714,7 @@ const selectedActionOption = computed(() =>
                 :class="[
                   'h-9 font-data text-xs',
                   batchAction === ModerationActionType.DISMISSED
-                    ? 'border-[var(--terminal-red)] text-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.1)]'
+                    ? 'border-[var(--terminal-red)] text-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]'
                     : 'border-[var(--silver-300)] hover:border-[var(--terminal-red)] hover:text-[var(--terminal-red)]',
                 ]"
                 size="sm"
@@ -753,7 +753,7 @@ const selectedActionOption = computed(() =>
           <Button
             variant="terminal"
             size="sm"
-            class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+            class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
             :disabled="batchSaving"
             @click="handleBatchAction"
           >

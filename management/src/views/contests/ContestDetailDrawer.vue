@@ -9,12 +9,10 @@ import {
   IconClock,
   IconTrophy,
   IconUsers,
-  IconEye,
-  IconEyeOff,
   IconExternalLink,
 } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
-import { DataBlock } from '@/components/ui/terminal'
+import { DataBlock, SemanticBadge, CONTEST_STATUS_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@/components/ui/terminal'
 
 const props = defineProps<{
   open: boolean
@@ -56,35 +54,7 @@ function navigateToDetail() {
   router.push({ name: 'contest-detail', params: { id: props.contestId } })
 }
 
-// Get status badge styling
-function getStatusStyle(status: string): { class: string; label: string } {
-  const styles: Record<string, { class: string; label: string }> = {
-    RUNNING: {
-      class: 'terminal-badge-success animate-pulse-subtle',
-      label: 'RUNNING',
-    },
-    UPCOMING: {
-      class: 'terminal-badge-warning',
-      label: 'UPCOMING',
-    },
-    FINISHED: {
-      class:
-        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
-      label: 'FINISHED',
-    },
-  }
-  return styles[status] ?? { class: 'terminal-badge', label: status }
-}
 
-// Get type badge styling
-function getTypeStyle(type: string) {
-  const styles: Record<string, string> = {
-    IOI: 'terminal-badge-info',
-    ICPC: 'terminal-badge-info',
-    CUSTOM: 'terminal-badge-warning',
-  }
-  return styles[type] || 'terminal-badge'
-}
 </script>
 
 <template>
@@ -139,26 +109,10 @@ function getTypeStyle(type: string) {
                 {{ entity.slug }}
               </div>
               <div class="flex flex-wrap gap-2">
-                <span :class="['terminal-badge', getTypeStyle(entity.contestType)]">
-                  {{ t(`contests.type.${entity.contestType}`) }}
-                </span>
-                <span :class="['terminal-badge', getStatusStyle(entity.status).class]">
-                  {{ getStatusStyle(entity.status).label }}
-                </span>
-                <span
-                  v-if="entity.isVisible"
-                  class="terminal-badge bg-[oklch(0.7_0.15_145/0.15)] text-[var(--terminal-green)] border border-[oklch(0.7_0.15_145/0.4)]"
-                >
-                  <IconEye class="h-3 w-3 mr-1" />
-                  {{ t('contests.drawer.published') }}
-                </span>
-                <span
-                  v-else
-                  class="terminal-badge bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]"
-                >
-                  <IconEyeOff class="h-3 w-3 mr-1" />
-                  {{ t('contests.detail.hidden') }}
-                </span>
+                <SemanticBadge :color="CONTEST_TYPE_COLOR_MAP[entity.contestType] ?? 'neutral'" :label="t(`contests.type.${entity.contestType}`)" size="sm" />
+                <SemanticBadge :color="CONTEST_STATUS_COLOR_MAP[entity.status] ?? 'neutral'" :label="entity.status" size="sm" :dot="entity.status === 'RUNNING'" :pulse="entity.status === 'RUNNING'" />
+                <SemanticBadge v-if="entity.isVisible" color="success" :label="t('contests.drawer.published')" size="sm" />
+                <SemanticBadge v-else color="neutral" :label="t('contests.detail.hidden')" size="sm" />
               </div>
             </div>
           </div>

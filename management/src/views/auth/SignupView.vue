@@ -217,7 +217,7 @@ defineOptions({
 .auth-layout__status-dot {
   width: 0.375rem;
   height: 0.375rem;
-  background: oklch(0.7 0.18 145);
+  background: var(--terminal-green);
   border-radius: 50%;
   animation: pulse-dot 2s ease-in-out infinite;
 }

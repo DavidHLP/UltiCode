@@ -129,7 +129,7 @@ async function handleSubmit() {
           <!-- Error Block - Terminal Style -->
           <div
             v-if="error"
-            class="mb-4 p-3 border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] text-sm"
+            class="mb-4 p-3 border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] text-sm"
           >
             <span class="font-data text-[var(--terminal-red)]">&gt; ERROR: </span>
             <span class="text-[var(--foreground)]">{{ error }}</span>
@@ -256,7 +256,7 @@ async function handleSubmit() {
                     <div
                       class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
                       :class="{
-                        'border-[var(--terminal-cyan)] bg-[oklch(0.65_0.15_200/0.08)]':
+                        'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_8%,_transparent)]':
                           form.target === NotificationTarget.ALL,
                       }"
                     >
@@ -268,7 +268,7 @@ async function handleSubmit() {
                     <div
                       class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
                       :class="{
-                        'border-[var(--terminal-cyan)] bg-[oklch(0.65_0.15_200/0.08)]':
+                        'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_8%,_transparent)]':
                           form.target === NotificationTarget.USERS,
                       }"
                     >
@@ -312,7 +312,7 @@ async function handleSubmit() {
               type="submit"
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[oklch(0.65_0.15_250/0.1)]"
+              class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]"
               :disabled="loading"
             >
               <span v-if="loading" class="flex items-center gap-2">

@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { badge, type SemanticColor } from '@/components/ui/terminal'
 import type { Comment, CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 
@@ -28,106 +29,16 @@ export interface CommentActions {
   confirmDelete: (comment: Comment) => void
 }
 
-// Terminal-style type badge renderer
 function renderTypeBadge(type: CommentType) {
-  const typeStyles: Record<CommentType, { bg: string; border: string; text: string }> = {
-    forum: {
-      bg: 'bg-[oklch(0.7_0.12_195/0.15)]',
-      border: 'border-[oklch(0.7_0.12_195/0.4)]',
-      text: 'text-[var(--terminal-cyan)]',
-    },
-    solution: {
-      bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-      border: 'border-[oklch(0.7_0.15_145/0.4)]',
-      text: 'text-[var(--terminal-green)]',
-    },
-  }
-
-  const style = typeStyles[type]
-  const icon =
-    type === 'forum' ? h(IconMessage, { class: 'h-3 w-3' }) : h(IconFileText, { class: 'h-3 w-3' })
-
-  return h('div', { class: 'flex items-center gap-1.5' }, [
-    icon,
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          style.bg,
-          style.border,
-          style.text,
-        ].join(' '),
-      },
-      type,
-    ),
-  ])
+  const color: SemanticColor = type === 'forum' ? 'info' : 'success'
+  const icon = type === 'forum' ? IconMessage : IconFileText
+  return badge({ color, label: type, icon })
 }
 
-// Terminal-style status badge renderer
 function renderStatusBadge(comment: Comment) {
-  if (comment.isDeleted) {
-    return h('div', { class: 'flex items-center gap-2' }, [
-      h('span', {
-        class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-red)] animate-pulse-subtle',
-      }),
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border rounded-sm',
-            'bg-[oklch(0.6_0.2_25/0.15)]',
-            'border-[oklch(0.6_0.2_25/0.4)]',
-            'text-[var(--terminal-red)]',
-          ].join(' '),
-        },
-        'DELETED',
-      ),
-    ])
-  }
-
-  if (comment.isFlagged) {
-    return h('div', { class: 'flex items-center gap-2' }, [
-      h('span', {
-        class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-amber)] animate-pulse-subtle',
-      }),
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border rounded-sm',
-            'bg-[oklch(0.75_0.15_85/0.15)]',
-            'border-[oklch(0.75_0.15_85/0.4)]',
-            'text-[var(--terminal-amber)]',
-            'animate-pulse-subtle',
-          ].join(' '),
-        },
-        'FLAGGED',
-      ),
-    ])
-  }
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h('span', {
-      class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-green)] animate-pulse-subtle',
-    }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[oklch(0.7_0.15_145/0.15)]',
-          'border-[oklch(0.7_0.15_145/0.4)]',
-          'text-[var(--terminal-green)]',
-        ].join(' '),
-      },
-      'ACTIVE',
-    ),
-  ])
+  if (comment.isDeleted) return badge({ color: 'error', label: 'DELETED', dot: true, pulse: true })
+  if (comment.isFlagged) return badge({ color: 'warning', label: 'FLAGGED', dot: true, pulse: true })
+  return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
 }
 
 export function createColumns(

@@ -68,13 +68,13 @@ const gridData = computed(() => {
 
 function getCellColor(value: number): string {
   const intensity = value / maxVal.value
-  // Silver to ice-blue gradient
+  // Solarized: interpolate from base2 (silver-100) to blue accent
   if (intensity === 0) {
     return 'var(--silver-100)'
   }
-  // Interpolate from silver to accent-primary
-  const r = Math.round(220 - intensity * 50)
-  return `oklch(0.${r.toString(16).slice(-2)} 0.0${Math.round(intensity * 25)} 250)`
+  // Use color-mix to blend from silver-100 to accent-electric
+  const pct = Math.round(intensity * 70 + 10)
+  return `color-mix(in oklch, var(--accent-electric) ${pct}%, var(--silver-100))`
 }
 
 function getCellOpacity(value: number): number {
@@ -85,11 +85,10 @@ function getCellOpacity(value: number): number {
 function handleMouseEnter(cell: HeatmapCell, event: MouseEvent) {
   if (!props.showTooltip) return
   hoveredCell.value = cell
-  const target = event.target as HTMLElement
-  const rect = target.getBoundingClientRect()
+  // Use event coordinates + known cell size to avoid getBoundingClientRect() forced reflow
   tooltipPosition.value = {
-    x: rect.left + rect.width / 2,
-    y: rect.top,
+    x: event.clientX - props.cellSize / 2,
+    y: event.clientY - props.cellSize / 2,
   }
 }
 

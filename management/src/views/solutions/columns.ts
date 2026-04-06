@@ -20,6 +20,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { badge } from '@/components/ui/terminal'
 import type { Solution } from '@/api/admin/solutions'
 import { formatDate } from '@/lib/format/date'
 
@@ -30,70 +31,11 @@ export interface SolutionActions {
   confirmDelete: (solution: Solution) => void
 }
 
-// Terminal-style status badge renderer
 function renderStatusBadge(solution: Solution, t: (key: string) => string) {
-  if (solution.isDeleted) {
-    return h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[oklch(0.6_0.2_25/0.15)]',
-          'border-[oklch(0.6_0.2_25/0.4)]',
-          'text-[var(--terminal-red)]',
-        ].join(' '),
-      },
-      [h(IconTrash, { class: 'mr-1 h-3 w-3 inline' }), t('solutions.status.deleted')],
-    )
-  }
-
-  if (solution.isFlagged) {
-    return h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[oklch(0.75_0.15_85/0.15)]',
-          'border-[oklch(0.75_0.15_85/0.4)]',
-          'text-[var(--terminal-amber)]',
-          'animate-pulse-subtle',
-        ].join(' '),
-      },
-      [h(IconFlag, { class: 'mr-1 h-3 w-3 inline' }), t('solutions.status.flagged')],
-    )
-  }
-
-  if (solution.isPublished) {
-    return h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[oklch(0.7_0.15_145/0.15)]',
-          'border-[oklch(0.7_0.15_145/0.4)]',
-          'text-[var(--terminal-green)]',
-        ].join(' '),
-      },
-      [h(IconCheck, { class: 'mr-1 h-3 w-3 inline' }), t('solutions.status.published')],
-    )
-  }
-
-  return h(
-    'span',
-    {
-      class: [
-        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-        'px-2 py-0.5 border rounded-sm',
-        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-        'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-        'text-[var(--silver-500)]',
-      ].join(' '),
-    },
-    [h(IconEyeOff, { class: 'mr-1 h-3 w-3 inline' }), t('solutions.status.unpublished')],
-  )
+  if (solution.isDeleted) return badge({ color: 'error', label: t('solutions.status.deleted'), icon: IconTrash })
+  if (solution.isFlagged) return badge({ color: 'warning', label: t('solutions.status.flagged'), icon: IconFlag, pulse: true })
+  if (solution.isPublished) return badge({ color: 'success', label: t('solutions.status.published'), icon: IconCheck })
+  return badge({ color: 'neutral', label: t('solutions.status.unpublished'), icon: IconEyeOff })
 }
 
 export function createColumns(

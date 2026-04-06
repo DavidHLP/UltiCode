@@ -128,7 +128,7 @@ async function handleSubmit() {
         <!-- Error Banner -->
         <div
           v-if="error"
-          class="mx-4 mt-4 p-3 border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] flex items-center gap-2"
+          class="mx-4 mt-4 p-3 border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] flex items-center gap-2"
         >
           <span class="font-data text-xs text-[var(--terminal-red)]">> ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>

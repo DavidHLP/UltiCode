@@ -95,7 +95,7 @@ defineOptions({
 }
 
 .dark .auth-button--secondary:hover:not(:disabled) {
-  background: oklch(0.2 0.01 270);
+  background: var(--silver-800);
   border-color: var(--silver-400);
 }
 

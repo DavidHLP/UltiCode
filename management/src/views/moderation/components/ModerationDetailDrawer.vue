@@ -39,15 +39,15 @@ const { t } = useI18n()
 
 const statusColors: Record<ModerationStatus, string> = {
   PENDING:
-    'bg-[oklch(0.75_0.15_85/0.15)] text-[var(--terminal-amber)] border-[oklch(0.75_0.15_85/0.4)]',
+    'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] text-[var(--terminal-amber)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
   UNDER_REVIEW:
-    'bg-[oklch(0.7_0.12_200/0.15)] text-[var(--terminal-cyan)] border-[oklch(0.7_0.12_200/0.4)]',
+    'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)] text-[var(--terminal-cyan)] border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
   RESOLVED:
-    'bg-[oklch(0.7_0.15_145/0.15)] text-[var(--terminal-green)] border-[oklch(0.7_0.15_145/0.4)]',
+    'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)] text-[var(--terminal-green)] border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
   DISMISSED:
-    'bg-[oklch(0.6_0.2_25/0.15)] text-[var(--terminal-red)] border-[oklch(0.6_0.2_25/0.4)]',
+    'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)] text-[var(--terminal-red)] border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
   APPEAL_PENDING:
-    'bg-[oklch(0.7_0.12_280/0.15)] text-[var(--terminal-purple)] border-[oklch(0.7_0.12_280/0.4)]',
+    'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)] text-[var(--terminal-purple)] border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
 }
 
 const categoryColors: Record<ReportCategory, string> = {

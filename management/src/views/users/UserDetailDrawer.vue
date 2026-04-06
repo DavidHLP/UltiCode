@@ -5,7 +5,7 @@ import { useUsersStore } from '@/stores/admin/users'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { IconMail, IconTrophy, IconFlame } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
-import { DataBlock } from '@/components/ui/terminal'
+import { DataBlock, SemanticBadge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 
 const { t } = useI18n()
 
@@ -60,37 +60,7 @@ watch(
   },
 )
 
-// Get status badge styling
-function getStatusStyle(entity: { isBanned: boolean; isActive: boolean }) {
-  if (entity.isBanned) {
-    return {
-      class: 'terminal-badge-error animate-pulse-subtle',
-      label: 'BANNED',
-    }
-  }
-  if (!entity.isActive) {
-    return {
-      class:
-        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
-      label: 'INACTIVE',
-    }
-  }
-  return {
-    class: 'terminal-badge-success animate-pulse-subtle',
-    label: 'ACTIVE',
-  }
-}
 
-// Get role styling
-function getRoleStyle(role: string) {
-  const styles: Record<string, string> = {
-    SUPER_ADMIN: 'terminal-badge-info',
-    ADMIN: 'terminal-badge-info',
-    MODERATOR: 'terminal-badge-warning',
-    USER: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)] text-[var(--silver-500)] border border-[var(--silver-300)]',
-  }
-  return styles[role] || styles.USER
-}
 </script>
 
 <template>
@@ -150,12 +120,13 @@ function getRoleStyle(role: string) {
                 <span class="font-data text-xs truncate">{{ entity.email || 'no-email' }}</span>
               </div>
               <div class="flex flex-wrap gap-2">
-                <span :class="['terminal-badge', getRoleStyle(entity.role)]">
-                  {{ entity.role.replace('_', ' ') }}
-                </span>
-                <span :class="['terminal-badge', getStatusStyle(entity).class]">
-                  {{ getStatusStyle(entity).label }}
-                </span>
+                <SemanticBadge :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'" :label="entity.role.replace('_', ' ')" />
+                <SemanticBadge
+                  :color="entity.isBanned ? 'error' : entity.isActive ? 'success' : 'neutral'"
+                  :label="entity.isBanned ? 'BANNED' : entity.isActive ? 'ACTIVE' : 'INACTIVE'"
+                  :dot="entity.isActive"
+                  :pulse="entity.isActive"
+                />
               </div>
             </div>
           </div>
@@ -258,9 +229,7 @@ function getRoleStyle(role: string) {
           <div class="grid grid-cols-2 gap-4">
             <DataBlock :label="$t('users.columns.username')" :value="entity.username" />
             <DataBlock :label="$t('users.columns.role')">
-              <span :class="['terminal-badge', getRoleStyle(entity.role)]">
-                {{ entity.role.replace('_', ' ') }}
-              </span>
+              <SemanticBadge :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'" :label="entity.role.replace('_', ' ')" />
             </DataBlock>
             <DataBlock :label="$t('users.columns.joined')">
               <span class="font-data text-sm tabular-nums">
@@ -282,9 +251,9 @@ function getRoleStyle(role: string) {
       <!-- Ban Information -->
       <div
         v-if="entity.isBanned"
-        class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)]"
+        class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)]"
       >
-        <div class="border-b border-[var(--terminal-red)] px-4 py-2 bg-[oklch(0.6_0.2_25/0.12)]">
+        <div class="border-b border-[var(--terminal-red)] px-4 py-2 bg-[color-mix(in_oklch,_var(--terminal-red)_12%,_transparent)]">
           <span class="terminal-comment text-[var(--terminal-red)]">ban_info</span>
         </div>
 

@@ -54,8 +54,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.DISMISSED'),
     icon: IconX,
     color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -64,8 +64,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.RESOLVED'),
     icon: IconCheck,
     color: 'text-[var(--terminal-green)]',
-    bgColor: 'bg-[oklch(0.7_0.15_145/0.15)]',
-    borderColor: 'border-[oklch(0.7_0.15_145/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -74,8 +74,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.DELETED'),
     icon: IconTrash,
     color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -84,8 +84,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.HIDDEN'),
     icon: IconEyeOff,
     color: 'text-[var(--terminal-amber)]',
-    bgColor: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    borderColor: 'border-[oklch(0.75_0.15_85/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -94,8 +94,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.RESTORED'),
     icon: IconRefresh,
     color: 'text-[var(--terminal-green)]',
-    bgColor: 'bg-[oklch(0.7_0.15_145/0.15)]',
-    borderColor: 'border-[oklch(0.7_0.15_145/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -104,8 +104,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.WARNED'),
     icon: IconAlertCircle,
     color: 'text-[var(--terminal-amber)]',
-    bgColor: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    borderColor: 'border-[oklch(0.75_0.15_85/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -114,8 +114,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.TEMP_BANNED'),
     icon: IconClock,
     color: 'text-[var(--terminal-amber)]',
-    bgColor: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    borderColor: 'border-[oklch(0.75_0.15_85/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
     requiresDuration: true,
   },
   {
@@ -124,8 +124,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.PERM_BANNED'),
     icon: IconBan,
     color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -134,8 +134,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.APPEAL_PENDING'),
     icon: IconScale,
     color: 'text-[var(--terminal-purple)]',
-    bgColor: 'bg-[oklch(0.7_0.12_280/0.15)]',
-    borderColor: 'border-[oklch(0.7_0.12_280/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -144,8 +144,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.APPEAL_APPROVED'),
     icon: IconCheck,
     color: 'text-[var(--terminal-green)]',
-    bgColor: 'bg-[oklch(0.7_0.15_145/0.15)]',
-    borderColor: 'border-[oklch(0.7_0.15_145/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
     requiresDuration: false,
   },
   {
@@ -154,8 +154,8 @@ const actionOptions = computed(() => [
     description: t('moderation.actionDescriptions.APPEAL_REJECTED'),
     icon: IconX,
     color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
     requiresDuration: false,
   },
 ])
@@ -265,7 +265,7 @@ function handleSubmit() {
 
       <!-- Warning -->
       <div
-        class="flex items-start gap-2 p-3 border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)]"
+        class="flex items-start gap-2 p-3 border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)]"
       >
         <IconAlertTriangle class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5" />
         <p class="text-xs text-[var(--terminal-amber)]">

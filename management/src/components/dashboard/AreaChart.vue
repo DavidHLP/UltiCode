@@ -3,7 +3,7 @@ import { ref, computed } from 'vue'
 import type { ChartConfig } from '@/components/ui/chart'
 import { VisAxis, VisLine, VisXYContainer, VisScatter } from '@unovis/vue'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { ChartContainer, ChartCrosshair, ChartTooltip } from '@/components/ui/chart'
+import { ChartContainer, ChartTooltip } from '@/components/ui/chart'
 import { Button } from '@/components/ui/button'
 import { useI18n } from 'vue-i18n'
 
@@ -263,35 +263,6 @@ const getColors = () => {
             :tick-format="(d: number) => d.toString()"
           />
           <ChartTooltip />
-          <ChartCrosshair
-            :template="
-              (d: any) => {
-                if (!d || !d.y) return ''
-                const date = new Date(d.x)
-                const dateStr = date.toLocaleDateString('en-US', {
-                  month: 'short',
-                  day: 'numeric',
-                })
-                const colors = getColors()
-                const values = seriesKeys
-                  .map((key, i) => {
-                    const val = d.y[i] ?? 0
-                    const config = chartConfig[key as keyof typeof chartConfig]
-                    return `<div style='display:flex;align-items:center;gap:6px;'>
-                    <span style='width:6px;height:6px;border-radius:50%;background:${colors[i]}'></span>
-                    <span style='font-family:JetBrains Mono,monospace;font-size:12px;'>${val}</span>
-                    <span style='color:var(--silver-400);font-size:11px;'>${config?.label || key}</span>
-                  </div>`
-                  })
-                  .join('')
-                return `<div style='padding:8px 12px;'>
-                  <div style='font-size:11px;color:var(--silver-400);margin-bottom:6px;'>${dateStr}</div>
-                  ${values}
-                </div>`
-              }
-            "
-            :color="getColors()[0]"
-          />
         </VisXYContainer>
       </ChartContainer>
     </CardContent>

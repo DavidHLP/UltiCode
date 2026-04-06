@@ -27,6 +27,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Difficulty, type Problem } from '@/api/admin/problems'
 import { formatDate } from '@/lib/format/date'
+import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
+import type { SemanticColor } from '@/components/ui/terminal'
 
 export interface ProblemActions {
   viewProblem: (id: string) => void
@@ -40,170 +42,31 @@ export interface ProblemActions {
   confirmDelete: (problem: Problem) => void
 }
 
-// Terminal-style difficulty badge renderer (matches role badge style)
 function renderDifficultyBadge(difficulty: Difficulty, t: (key: string) => string) {
-  // Normalize difficulty to uppercase to handle backend returning "Easy" instead of "EASY"
-  const normalizedDifficulty = (String(difficulty).toUpperCase() || 'UNKNOWN') as Difficulty
-
-  const difficultyStyles: Record<Difficulty, { bg: string; border: string; text: string }> = {
-    EASY: {
-      bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-      border: 'border-[oklch(0.7_0.15_145/0.4)]',
-      text: 'text-[var(--terminal-green)]',
-    },
-    MEDIUM: {
-      bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-      border: 'border-[oklch(0.75_0.15_85/0.4)]',
-      text: 'text-[var(--terminal-amber)]',
-    },
-    HARD: {
-      bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
-      border: 'border-[oklch(0.6_0.2_25/0.4)]',
-      text: 'text-[var(--terminal-red)]',
-    },
-  }
-
-  const style = difficultyStyles[normalizedDifficulty] || difficultyStyles.EASY
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h('span', {
-      class: ['w-1.5 h-1.5 rounded-full', style.text.replace('text-', 'bg-')].join(' '),
-    }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border',
-          style.bg,
-          style.border,
-          style.text,
-        ].join(' '),
-      },
-      t(`problems.difficulty.${normalizedDifficulty}`),
-    ),
-  ])
+  const normalized = (String(difficulty).toUpperCase() || 'EASY') as Difficulty
+  return badge({
+    color: DIFFICULTY_COLOR_MAP[normalized] ?? 'neutral',
+    label: t(`problems.difficulty.${normalized}`),
+    dot: true,
+  })
 }
 
-// Terminal-style published status badge renderer (matches role badge style)
 function renderPublishedBadge(
   isPublished: boolean,
   isDeleted: boolean,
   t: (key: string) => string,
 ) {
-  if (isDeleted) {
-    return h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border',
-          'bg-[oklch(0.6_0.2_25/0.15)]',
-          'border-[oklch(0.6_0.2_25/0.4)]',
-          'text-[var(--terminal-red)]',
-        ].join(' '),
-      },
-      t('problems.published.deleted'),
-    )
-  }
-
-  if (isPublished) {
-    return h('div', { class: 'flex items-center gap-2' }, [
-      h('span', {
-        class: 'w-1.5 h-1.5 bg-[var(--terminal-green)] animate-pulse-subtle',
-      }),
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border',
-            'bg-[oklch(0.7_0.15_145/0.15)]',
-            'border-[oklch(0.7_0.15_145/0.4)]',
-            'text-[var(--terminal-green)]',
-          ].join(' '),
-        },
-        t('problems.published.published'),
-      ),
-    ])
-  }
-
-  return h(
-    'span',
-    {
-      class: [
-        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-        'px-2 py-0.5 border',
-        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-        'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-        'text-[var(--silver-500)]',
-      ].join(' '),
-    },
-    t('problems.published.draft'),
-  )
+  if (isDeleted) return badge({ color: 'error', label: t('problems.published.deleted') })
+  if (isPublished) return badge({ color: 'success', label: t('problems.published.published'), dot: true, pulse: true })
+  return badge({ color: 'neutral', label: t('problems.published.draft') })
 }
 
-// Terminal-style problem status badge renderer (matches role badge style)
 function renderProblemStatusBadge(status: string, t: (key: string) => string) {
   const isSolved = status === 'solved'
   const isAttempted = status === 'attempted'
   const label = t(`problems.status.${isSolved ? 'solved' : isAttempted ? 'attempted' : 'todo'}`)
-
-  if (isSolved) {
-    return h('div', { class: 'flex items-center gap-2' }, [
-      h('span', {
-        class: 'w-1.5 h-1.5 bg-[var(--terminal-green)] animate-pulse-subtle',
-      }),
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border',
-            'bg-[oklch(0.7_0.15_145/0.15)]',
-            'border-[oklch(0.7_0.15_145/0.4)]',
-            'text-[var(--terminal-green)]',
-          ].join(' '),
-        },
-        label,
-      ),
-    ])
-  }
-
-  if (isAttempted) {
-    return h('div', { class: 'flex items-center gap-2' }, [
-      h('span', {
-        class: 'w-1.5 h-1.5 bg-[var(--terminal-amber)]',
-      }),
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border',
-            'bg-[oklch(0.75_0.15_85/0.15)]',
-            'border-[oklch(0.75_0.15_85/0.4)]',
-            'text-[var(--terminal-amber)]',
-          ].join(' '),
-        },
-        label,
-      ),
-    ])
-  }
-
-  return h(
-    'span',
-    {
-      class: [
-        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-        'px-2 py-0.5 border',
-        'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-        'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-        'text-[var(--silver-500)]',
-      ].join(' '),
-    },
-    label,
-  )
+  const color: SemanticColor = isSolved ? 'success' : isAttempted ? 'warning' : 'neutral'
+  return badge({ color, label, dot: true, pulse: isSolved })
 }
 
 export function createColumns(

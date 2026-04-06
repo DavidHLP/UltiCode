@@ -2,6 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { IconCalculator } from '@tabler/icons-vue'
+import { badge, DIFFICULTY_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@/components/ui/terminal'
 import { scoringRulesApi, type ScoringRule } from '@/api/admin/scoring-rules'
 
 const props = defineProps<{
@@ -52,26 +53,14 @@ const formattedDate = computed(() => {
   return new Date(props.formData.start_time).toLocaleString()
 })
 
-// Get difficulty styling
-function getDifficultyStyle(difficulty: string) {
-  const styles: Record<string, string> = {
-    Easy: 'terminal-badge-success',
-    Medium: 'terminal-badge-warning',
-    Hard: 'terminal-badge-error',
-  }
-  return styles[difficulty] || 'terminal-badge'
+function renderDifficultyBadge(difficulty: string) {
+  const color = DIFFICULTY_COLOR_MAP[difficulty] ?? 'neutral'
+  return badge({ color, label: difficulty?.toUpperCase() || 'UNKNOWN', size: 'sm' })
 }
 
-// Get type styling
-function getTypeStyle(type: string) {
-  const styles: Record<string, string> = {
-    IOI: 'terminal-badge-info',
-    ICPC: 'terminal-badge-info',
-    PUBLIC: 'terminal-badge-success',
-    PRIVATE: 'terminal-badge-warning',
-    VIRTUAL: 'terminal-badge-info',
-  }
-  return styles[type] || 'terminal-badge'
+function renderTypeBadge(type: string) {
+  const color = CONTEST_TYPE_COLOR_MAP[type] ?? 'neutral'
+  return badge({ color, label: type || 'UNKNOWN', size: 'sm' })
 }
 </script>
 
@@ -105,9 +94,7 @@ function getTypeStyle(type: string) {
           <div>
             <span class="terminal-label">{{ t('contests.basics.type') }}</span>
             <p>
-              <span :class="['terminal-badge text-[10px]', getTypeStyle(formData.type)]">
-                {{ formData.type }}
-              </span>
+              {{ renderTypeBadge(formData.type) }}
             </p>
           </div>
         </div>
@@ -138,10 +125,7 @@ function getTypeStyle(type: string) {
           <div>
             <span class="terminal-label">{{ t('contests.reviewStep.visibility') }}</span>
             <p>
-              <span v-if="formData.is_published" class="terminal-badge-success text-[10px]">
-                PUBLISHED
-              </span>
-              <span v-else class="terminal-badge text-[10px]">DRAFT</span>
+              {{ formData.is_published ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' }) : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' }) }}
             </p>
           </div>
         </div>
@@ -166,11 +150,8 @@ function getTypeStyle(type: string) {
               <span class="font-medium text-sm text-[var(--foreground)]">{{
                 scoringRule.name
               }}</span>
-              <span
-                v-if="scoringRule.is_default"
-                class="terminal-badge-success text-[10px] px-1.5 py-0.5"
-              >
-                {{ t('scoringRules.badges.default') }}
+              <span v-if="scoringRule.is_default">
+                {{ badge({ color: 'success', label: t('scoringRules.badges.default'), size: 'sm' }) }}
               </span>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
@@ -226,9 +207,7 @@ function getTypeStyle(type: string) {
                 {{ String.fromCharCode(65 + index) }}
               </span>
               <span class="font-medium text-sm text-[var(--foreground)]">{{ problem.title }}</span>
-              <span :class="['terminal-badge text-[10px]', getDifficultyStyle(problem.difficulty)]">
-                {{ problem.difficulty?.toUpperCase() }}
-              </span>
+              {{ renderDifficultyBadge(problem.difficulty) }}
             </div>
             <span
               class="font-data text-xs text-[var(--terminal-cyan)] tabular-nums w-16 text-right"

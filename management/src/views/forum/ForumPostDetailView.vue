@@ -270,7 +270,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
               v-if="post.isFlagged"
               variant="terminal"
               size="sm"
-              class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+              class="h-8 font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
               @click="unflagPost"
             >
               <IconFlag class="h-3.5 w-3.5 mr-1.5" />
@@ -280,7 +280,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
               v-else
               variant="terminal"
               size="sm"
-              class="h-8 font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[oklch(0.75_0.15_85/0.1)]"
+              class="h-8 font-data text-xs border-[var(--terminal-amber)] text-[var(--terminal-amber)] hover:bg-[color-mix(in_oklch,_var(--terminal-amber)_10%,_transparent)]"
               @click="flagDialogOpen = true"
             >
               <IconFlag class="h-3.5 w-3.5 mr-1.5" />
@@ -292,7 +292,7 @@ async function handleFlagPost(id: string | number, reason?: string) {
             v-if="canDelete"
             variant="terminal"
             size="sm"
-            class="h-8 w-8 p-0 border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+            class="h-8 w-8 p-0 border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
             @click="deleteDialogOpen = true"
           >
             <IconTrash class="h-4 w-4" />

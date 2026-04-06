@@ -28,57 +28,57 @@ const actionConfig = computed(() => ({
   [ModerationActionType.DELETED]: {
     icon: IconTrash,
     color: 'text-[var(--terminal-red)]',
-    bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
   },
   [ModerationActionType.HIDDEN]: {
     icon: IconEyeOff,
     color: 'text-[var(--terminal-amber)]',
-    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
   },
   [ModerationActionType.RESTORED]: {
     icon: IconCheck,
     color: 'text-[var(--terminal-green)]',
-    bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
   },
   [ModerationActionType.WARNED]: {
     icon: IconAlertCircle,
     color: 'text-[var(--terminal-amber)]',
-    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
   },
   [ModerationActionType.TEMP_BANNED]: {
     icon: IconClock,
     color: 'text-[var(--terminal-amber)]',
-    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
   },
   [ModerationActionType.PERM_BANNED]: {
     icon: IconBan,
     color: 'text-[var(--terminal-red)]',
-    bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
   },
   [ModerationActionType.DISMISSED]: {
     icon: IconX,
     color: 'text-[var(--terminal-red)]',
-    bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
   },
   [ModerationActionType.RESOLVED]: {
     icon: IconCheck,
     color: 'text-[var(--terminal-green)]',
-    bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_PENDING]: {
     icon: IconScale,
     color: 'text-[var(--terminal-purple)]',
-    bg: 'bg-[oklch(0.7_0.12_280/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_APPROVED]: {
     icon: IconCheck,
     color: 'text-[var(--terminal-green)]',
-    bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
   },
   [ModerationActionType.APPEAL_REJECTED]: {
     icon: IconX,
     color: 'text-[var(--terminal-red)]',
-    bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
   },
 }))
 

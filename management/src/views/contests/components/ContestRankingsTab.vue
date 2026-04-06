@@ -18,7 +18,7 @@ defineProps<{
 function getRankStyle(rank: number) {
   if (rank === 1) return 'text-[var(--terminal-amber)]'
   if (rank === 2) return 'text-[var(--silver-400)]'
-  if (rank === 3) return 'text-[oklch(0.6_0.1_35)]'
+  if (rank === 3) return 'text-[oklch(0.5808_0.1732_39.5)]'
   return 'text-[var(--foreground)]'
 }
 

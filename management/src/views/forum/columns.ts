@@ -21,6 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { badge } from '@/components/ui/terminal'
 import type { ForumPost } from '@/api/admin/forum'
 import { formatDate } from '@/lib/format/date'
 
@@ -33,109 +34,16 @@ export interface ForumPostActions {
   confirmDelete: (post: ForumPost) => void
 }
 
-// Terminal-style status badge renderer
 function renderStatusBadge(post: ForumPost) {
-  if (post.isDeleted) {
-    return h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[oklch(0.6_0.2_25/0.15)]',
-          'border-[oklch(0.6_0.2_25/0.4)]',
-          'text-[var(--terminal-red)]',
-        ].join(' '),
-      },
-      'DELETED',
-    )
-  }
-
-  if (post.isFlagged) {
-    return h(
-      'div',
-      { class: 'flex items-center gap-2' },
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border rounded-sm',
-            'bg-[oklch(0.6_0.2_25/0.15)]',
-            'border-[oklch(0.6_0.2_25/0.4)]',
-            'text-[var(--terminal-red)]',
-            'animate-pulse-subtle',
-          ].join(' '),
-        },
-        'FLAGGED',
-      ),
-    )
-  }
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h('span', {
-      class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-green)] animate-pulse-subtle',
-    }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[oklch(0.7_0.15_145/0.15)]',
-          'border-[oklch(0.7_0.15_145/0.4)]',
-          'text-[var(--terminal-green)]',
-        ].join(' '),
-      },
-      'ACTIVE',
-    ),
-  ])
+  if (post.isDeleted) return badge({ color: 'error', label: 'DELETED' })
+  if (post.isFlagged) return badge({ color: 'error', label: 'FLAGGED', pulse: true })
+  return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
 }
 
-// Terminal-style pin/lock badge
 function renderPinLockBadge(post: ForumPost, t: (key: string) => string) {
   const badges: ReturnType<typeof h>[] = []
-
-  if (post.isPinned) {
-    badges.push(
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[10px] uppercase tracking-wider',
-            'px-1.5 py-0.5 border rounded-sm',
-            'bg-[oklch(0.7_0.12_195/0.15)]',
-            'border-[oklch(0.7_0.12_195/0.4)]',
-            'text-[var(--terminal-cyan)]',
-            'flex items-center gap-1',
-          ].join(' '),
-          title: t('forum.status.pinned'),
-        },
-        [h(IconPin, { class: 'h-3 w-3' }), 'PIN'],
-      ),
-    )
-  }
-
-  if (post.isLocked) {
-    badges.push(
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[10px] uppercase tracking-wider',
-            'px-1.5 py-0.5 border rounded-sm',
-            'bg-[oklch(0.75_0.15_85/0.15)]',
-            'border-[oklch(0.75_0.15_85/0.4)]',
-            'text-[var(--terminal-amber)]',
-            'flex items-center gap-1',
-          ].join(' '),
-          title: t('forum.status.locked'),
-        },
-        [h(IconLock, { class: 'h-3 w-3' }), 'LOCK'],
-      ),
-    )
-  }
-
+  if (post.isPinned) badges.push(badge({ color: 'info', label: 'PIN', size: 'xs', icon: IconPin }))
+  if (post.isLocked) badges.push(badge({ color: 'warning', label: 'LOCK', size: 'xs', icon: IconLock }))
   return badges.length > 0 ? h('div', { class: 'flex items-center gap-1.5' }, badges) : null
 }
 

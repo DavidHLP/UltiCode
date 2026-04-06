@@ -402,7 +402,7 @@ const columns: ColumnDef<AuditLog>[] = [
       <!-- Error state - Terminal Style -->
       <div
         v-if="auditStore.error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
           <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
@@ -411,7 +411,7 @@ const columns: ColumnDef<AuditLog>[] = [
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
           @click="loadLogs()"
         >
           {{ t('common.retry') }}

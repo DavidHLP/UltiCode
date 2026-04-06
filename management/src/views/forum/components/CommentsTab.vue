@@ -12,6 +12,7 @@ import {
   IconTrash,
   IconUser,
 } from '@tabler/icons-vue'
+import { badge } from '@/components/ui/terminal'
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
 import {
@@ -110,63 +111,16 @@ async function unflagComment(comment: Comment) {
   }
 }
 
-// Terminal-style status badge renderer
 function renderStatusBadge(comment: Comment) {
   if (comment.isDeleted) {
-    return h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[oklch(0.6_0.2_25/0.15)]',
-          'border-[oklch(0.6_0.2_25/0.4)]',
-          'text-[var(--terminal-red)]',
-        ].join(' '),
-      },
-      'DELETED',
-    )
+    return badge({ color: 'error', label: 'DELETED', size: 'sm' })
   }
 
   if (comment.isFlagged) {
-    return h(
-      'div',
-      { class: 'flex items-center gap-2' },
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border rounded-sm',
-            'bg-[oklch(0.6_0.2_25/0.15)]',
-            'border-[oklch(0.6_0.2_25/0.4)]',
-            'text-[var(--terminal-red)]',
-            'animate-pulse-subtle',
-          ].join(' '),
-        },
-        'FLAGGED',
-      ),
-    )
+    return badge({ color: 'error', label: 'FLAGGED', size: 'sm', pulse: true })
   }
 
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h('span', {
-      class: 'w-1.5 h-1.5 rounded-full bg-[var(--terminal-green)] animate-pulse-subtle',
-    }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[oklch(0.7_0.15_145/0.15)]',
-          'border-[oklch(0.7_0.15_145/0.4)]',
-          'text-[var(--terminal-green)]',
-        ].join(' '),
-      },
-      'ACTIVE',
-    ),
-  ])
+  return badge({ color: 'success', label: 'ACTIVE', size: 'sm', dot: true, pulse: true })
 }
 
 const columns: ColumnDef<Comment>[] = [
@@ -444,7 +398,7 @@ const columns: ColumnDef<Comment>[] = [
     <!-- Error state - Terminal Style -->
     <div
       v-if="commentsStore.error"
-      class="flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+      class="flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
     >
       <div class="flex items-center gap-3">
         <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
@@ -453,7 +407,7 @@ const columns: ColumnDef<Comment>[] = [
       <Button
         variant="terminal"
         size="sm"
-        class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+        class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
         @click="loadComments"
       >
         {{ t('common.retry') }}

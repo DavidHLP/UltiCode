@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { Badge } from "@/components/ui/badge";
 import { onMounted, ref, computed } from "vue";
 import { fetchUserSubmissions } from "@/api/submission";
@@ -14,7 +15,6 @@ import {
 } from "lucide-vue-next";
 import { RouterLink, useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
@@ -130,7 +130,7 @@ const handleRowClick = (submission: SubmissionRecord) => {
 
 onMounted(async () => {
   try {
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     if (!userId) return;
     hasUser.value = true;
     submissions.value = await fetchUserSubmissions();

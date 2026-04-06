@@ -1,28 +1,25 @@
 /**
  * CSRF Token Management Utility
  *
- * This utility handles the storage and retrieval of CSRF tokens
- * returned by the backend after successful authentication.
+ * This is a thin wrapper around the shared csrfManager from shared/auth-core.
+ * It provides convenience functions for CSRF token management while ensuring
+ * a single source of truth for the token across the application.
  *
- * CSRF tokens are stored in memory (not localStorage) to prevent
- * XSS attacks from stealing them.
- *
- * LIMITATION: Tokens stored in memory are lost on page refresh.
- * This is a known limitation of the in-memory approach - the token
- * is only available for the current page session. If the user
- * refreshes the page, they will need to re-authenticate to obtain
- * a new CSRF token. This is an acceptable trade-off for security
- * (preventing XSS theft) vs. convenience.
+ * The underlying csrfManager survives page refreshes via the refreshFromResponse
+ * method that extracts tokens from API responses.
  */
 
-let csrfToken: string | null = null
+import { createCsrfTokenManager, type CsrfTokenManager } from "@/shared/auth-core/src/csrf"
+
+// Single instance of the CSRF token manager
+const csrfManager: CsrfTokenManager = createCsrfTokenManager()
 
 /**
  * Store the CSRF token
  * @param token - The CSRF token from the login response
  */
 export function setCsrfToken(token: string): void {
-  csrfToken = token
+  csrfManager.setToken(token)
 }
 
 /**
@@ -30,7 +27,7 @@ export function setCsrfToken(token: string): void {
  * @returns The CSRF token or null if not set
  */
 export function getCsrfToken(): string | null {
-  return csrfToken
+  return csrfManager.getToken()
 }
 
 /**
@@ -38,5 +35,11 @@ export function getCsrfToken(): string | null {
  * Called on logout to clean up
  */
 export function clearCsrfToken(): void {
-  csrfToken = null
+  csrfManager.clearToken()
 }
+
+/**
+ * Export the csrfManager instance for direct access to refreshFromResponse
+ * This is used in auth.ts to sync tokens from API responses
+ */
+export { csrfManager }

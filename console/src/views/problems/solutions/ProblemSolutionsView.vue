@@ -1,10 +1,10 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { computed, ref, watch } from "vue";
 import type { SolutionFeedItem } from "@/types/solution";
 import SolutionListView from "./SolutionListView.vue";
 import SolutionDetail from "./components/SolutionDetail.vue";
 import { fetchSolutionFeed } from "@/api/solution";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
@@ -32,7 +32,7 @@ watch(
       return;
     }
     isLoading.value = true;
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     await problemHooks.emit("problem:solutions:load:before", {
       problemId: id,
       userId,

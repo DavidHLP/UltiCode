@@ -4,7 +4,6 @@ import axios, {
   type AxiosError,
   type AxiosRequestConfig,
   type AxiosInstance,
-  type CancelTokenSource,
   type AxiosRequestHeaders,
 } from "axios";
 import { LOCALE_HEADER_KEY } from "@/i18n";
@@ -28,11 +27,8 @@ export interface ApiResponse<T = unknown> {
 export interface RequestConfig extends AxiosRequestConfig {
   retry?: number;
   retryDelay?: number;
-  skipAuth?: boolean;
   skipErrorHandler?: boolean;
   skipResponseUnwrap?: boolean;
-  cache?: boolean;
-  cacheTTL?: number;
   requestId?: string;
 }
 
@@ -83,7 +79,7 @@ interface ConfigWithMetadata
 /**
  * Pending requests map for deduplication
  */
-const pendingRequests = new Map<string, CancelTokenSource>();
+const pendingRequests = new Map<string, AbortController>();
 
 /**
  * URLs that should never be deduplicated
@@ -172,14 +168,14 @@ service.interceptors.request.use(
     if (shouldDeduplicate) {
       const key = getRequestKey(config);
       if (pendingRequests.has(key)) {
-        const source = pendingRequests.get(key)!;
-        config.cancelToken = source.token;
+        const controller = pendingRequests.get(key)!;
+        controller.abort();
         return config;
       }
 
-      const source = axios.CancelToken.source();
-      config.cancelToken = source.token;
-      pendingRequests.set(key, source);
+      const controller = new AbortController();
+      config.signal = controller.signal;
+      pendingRequests.set(key, controller);
     }
 
     // Log request in development
@@ -266,9 +262,11 @@ service.interceptors.response.use(
     }
 
     // Handle request cancellation
-    if (axios.isCancel(error)) {
-      console.log("Request canceled:", error.message);
-      return Promise.reject(new ApiError("Request canceled", 0));
+    if (error.name === "CanceledError" || error.code === "ERR_CANCELED") {
+      if (isDevelopment) {
+        console.log("Request canceled:", error.message);
+      }
+      return Promise.reject(new ApiError("Request canceled", -1));
     }
 
     // Retry logic for network errors and 5xx
@@ -318,9 +316,17 @@ service.interceptors.response.use(
       const authStore = useAuthStore();
 
       // Only clear user state if user was authenticated
-      // This prevents clearing state on login/register failures
       if (authStore.isAuthenticated) {
         authStore.clearUser();
+
+        // Trigger session expired callback (e.g., redirect to login)
+        const { getSessionExpiredCallback } = await import(
+          "@/contexts/AuthContext"
+        );
+        const callback = getSessionExpiredCallback();
+        if (callback) {
+          callback();
+        }
 
         if (isDevelopment) {
           console.warn(
@@ -448,10 +454,10 @@ export async function apiDownload(
 }
 
 /**
- * Create cancel token source for manual cancellation
+ * Create abort controller for manual cancellation
  */
-export function createCancelToken(): CancelTokenSource {
-  return axios.CancelToken.source();
+export function createAbortController(): AbortController {
+  return new AbortController();
 }
 
 export { service as axiosInstance };

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { ref, onMounted, computed } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import {
@@ -90,13 +91,12 @@ import {
   deleteCategory,
   moveListToCategory,
 } from "@/api/problem-list";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 
 const router = useRouter();
 const { t } = useI18n();
 const loading = ref(true);
-const currentUserId = fetchCurrentUserId();
+const currentUserId = useAuthStore().fetchCurrentUserId();
 const activeTab = ref("my-lists");
 const searchQuery = ref("");
 

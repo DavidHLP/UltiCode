@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import type { ForumFlairType, ForumPost } from "@/types/forum";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -12,7 +13,6 @@ import { renderMarkdown } from "@/utils/markdown";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toast } from "vue-sonner";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
-import { isAuthenticated } from "@/utils/auth";
 import { recordForumShare } from "@/api/forum";
 import { useI18n } from "vue-i18n";
 
@@ -171,7 +171,7 @@ async function handleShare() {
 }
 
 async function handleSave() {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToSave"));
     return;
   }

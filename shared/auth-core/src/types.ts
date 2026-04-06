@@ -31,6 +31,10 @@ export interface LoginResponse {
 /**
  * User entity stored in the backend and returned by /auth/me.
  * Field names mirror the backend API snake_case contract.
+ *
+ * **IMPORTANT**: This is the single source of truth for User type across the entire frontend.
+ * Both console and management frontends MUST use this type from shared/auth-core.
+ * Do NOT define duplicate User types in console/src/types/auth.ts or management/src/api/auth.ts.
  */
 export interface User {
   id: string;
@@ -49,6 +53,14 @@ export interface User {
 /**
  * A parsed permission with an optional wildcard action and/or resource.
  * Re-exported by `permission.ts` so consumers of both modules get the same type.
+ *
+ * Usage:
+ * - Use `parsePermissionString()` to convert permission strings like "READ:USER" to Permission objects
+ * - Use `hasPermission()` to check if a user's permission set satisfies required permissions
+ * - Use `Permissions` constants from './permission' for pre-defined permission strings
+ *
+ * Permission format: "ACTION:RESOURCE"
+ * - Wildcards supported: "*:*" (all), "action:*" (action on any resource), "*:resource" (any action on resource)
  */
 export interface Permission {
   action: string;

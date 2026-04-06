@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { computed, ref, watch } from "vue";
 import { toast } from "vue-sonner";
 import type {
@@ -15,7 +16,6 @@ import {
 import { BookmarkType } from "@/types/bookmark";
 import ProblemSaveButton from "./ProblemSaveButton.vue";
 import { VoteControl } from "./vote-control";
-import { fetchCurrentUserId, isAuthenticated } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 
 interface Props {
@@ -41,7 +41,7 @@ const viewerInteraction = ref<{
 const isLoadingInteractions = ref(false);
 
 const loadInteractions = async (problemId: number | string) => {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   isLoadingInteractions.value = true;
   try {
     const opsRes = await fetchEdgeOperationStatus(
@@ -93,7 +93,7 @@ const reactionCounts = computed(() => interactionCounts.value);
 
 const toggleReaction = async (reaction: "like" | "dislike") => {
   if (!props.problem) return;
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("problem.save.toast.loginToVote"));
     return;
   }

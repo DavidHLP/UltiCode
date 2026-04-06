@@ -1,12 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
-import { clearCsrfToken } from '@/utils/csrf'
-import { parseCookies, hasCookie } from '@/shared/auth-core'
-import { createCsrfTokenManager } from '@/shared/auth-core'
-
-// CSRF token manager - survives page refresh via refreshFromResponse
-const csrfManager = createCsrfTokenManager()
+import { csrfManager, clearCsrfToken } from '@/utils/csrf'
+import { parseCookies, hasCookie } from "@/shared/auth-core/src/cookie"
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)

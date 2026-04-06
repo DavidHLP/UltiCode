@@ -1,11 +1,11 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import type { ForumComment } from "@/types/forum";
 import { Lock, MessageSquare } from "lucide-vue-next";
 import CommentNode from "./CommentNode.vue";
 import CommentForm from "./CommentForm.vue";
 import { buildCommentTree } from "./comment-tree-builder";
 import { ref, computed } from "vue";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -29,7 +29,7 @@ function handleReply(commentId: string | number, content: string) {
 }
 
 const commentTree = computed(() => {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   return buildCommentTree(props.comments, {
     currentUserId: userId || undefined,
     postAuthorUsername: props.postAuthorUsername,

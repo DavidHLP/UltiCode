@@ -85,7 +85,7 @@ provideSidebarContext({
       }"
       :class="
         cn(
-          'group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex min-h-svh w-full overflow-x-hidden',
+          'group/sidebar-wrapper has-data-[variant=inset]:bg-sidebar flex h-svh w-full overflow-hidden',
           props.class,
         )
       "

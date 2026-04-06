@@ -101,3 +101,45 @@ export function hasPermission(
 
 /** Convenience constant for the super-admin wildcard permission. */
 export const WILDCARD_PERMISSION: Permission = { action: '*', resource: '*' };
+
+// ---------------------------------------------------------------------------
+// Pre-defined permission constants
+// ---------------------------------------------------------------------------
+
+/**
+ * Pre-defined permission constants for common operations.
+ * Use these constants instead of raw strings to avoid typos and enable refactoring.
+ *
+ * Example usage in management router guards:
+ * ```ts
+ * import { Permissions, hasPermission } from '@/shared/auth-core';
+ *
+ * const userPermissions = new Set(user.permissions);
+ * if (!hasPermission(userPermissions, Permissions.USER_READ)) {
+ *   return false;
+ * }
+ * ```
+ */
+export const Permissions = {
+  USER_READ: 'READ:USER',
+  USER_CREATE: 'CREATE:USER',
+  USER_UPDATE: 'UPDATE:USER',
+  USER_DELETE: 'DELETE:USER',
+  PROBLEM_READ: 'READ:PROBLEM',
+  PROBLEM_CREATE: 'CREATE:PROBLEM',
+  PROBLEM_UPDATE: 'UPDATE:PROBLEM',
+  PROBLEM_DELETE: 'DELETE:PROBLEM',
+  SOLUTION_READ: 'READ:SOLUTION',
+  MODERATE_PROBLEM: 'MODERATE:PROBLEM',
+  MODERATE_FORUM_POST: 'MODERATE:FORUM_POST',
+  MODERATE_FORUM_COMMENT: 'MODERATE:FORUM_COMMENT',
+  MODERATE_SOLUTION_COMMENT: 'MODERATE:SOLUTION_COMMENT',
+  PROBLEM_LIST_READ: 'READ:PROBLEM_LIST',
+  PROBLEM_LIST_CREATE: 'CREATE:PROBLEM_LIST',
+  PROBLEM_LIST_UPDATE: 'UPDATE:PROBLEM_LIST',
+  CONTEST_READ: 'READ:CONTEST',
+  TAG_READ: 'READ:TAG',
+  TAG_UPDATE: 'UPDATE:TAG',
+  SYSTEM_READ: 'READ:SYSTEM',
+  SYSTEM_UPDATE: 'UPDATE:SYSTEM',
+} as const;

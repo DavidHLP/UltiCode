@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import type {
   ForumFlairType,
   ForumThread,
@@ -13,7 +14,6 @@ import { computed, ref, watch } from "vue";
 import { renderMarkdown } from "@/utils/markdown";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
-import { isAuthenticated } from "@/utils/auth";
 import { toast } from "vue-sonner";
 import { recordForumShare } from "@/api/forum";
 import { useI18n } from "vue-i18n";
@@ -137,7 +137,7 @@ function formatPollWidth(votes: number, totalVotes: number) {
 }
 
 async function handleSave() {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToSave"));
     return;
   }

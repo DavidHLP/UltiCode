@@ -1,13 +1,9 @@
 /**
  * Authentication Context
  *
- * Provides a centralized authentication state management system that:
- * 1. Coordinates between auth store, router, and HTTP client
- * 2. Handles session expiration globally
- * 3. Manages WebSocket authentication lifecycle
- * 4. Prevents auth-related race conditions
- *
- * This module should be imported BEFORE the router and stores.
+ * Provides centralized session expiration handling and WebSocket auth lifecycle.
+ * 401/403 error handling is done in request.ts interceptor — this module
+ * only manages the session expired callback.
  */
 
 import { watch } from "vue";
@@ -15,65 +11,15 @@ import { getSocketManager } from "@/lib/socket";
 import { useAuthStore } from "@/stores/auth";
 
 // Singleton state
-let isInitialized = false;
 let sessionExpiredCallback: (() => void) | null = null;
-const pendingAuthRequests = new Set<string>();
 
 /**
  * Initialize the authentication context
  * Called once during app bootstrap
  */
-export async function initializeAuthContext(): Promise<void> {
-  if (isInitialized) return;
-  isInitialized = true;
-
-  // Setup session expiration handler
-  setupResponseInterceptor();
-}
-
-/**
- * Setup global response interceptor to handle auth errors
- */
-function setupResponseInterceptor(): void {
-  // We need to hook into the axios instance AFTER it's created
-  // This is done by importing the module after request.ts is loaded
-  import("@/utils/request").then(({ axiosInstance }) => {
-    // Add our auth error handler as a response interceptor
-    // This runs AFTER the request.ts response interceptor handles 401/403
-    axiosInstance.interceptors.response.use(
-      (response) => response,
-      async (error) => {
-        const config = error.config;
-        if (!config) return Promise.reject(error);
-
-        const status = error.response?.status;
-        const url = config.url || "";
-
-        // Track this request as no longer pending
-        pendingAuthRequests.delete(url);
-
-        // Handle 401/403 - session expired or invalid
-        if (status === 401 || status === 403) {
-          const authStore = useAuthStore();
-
-          // Only trigger session expired if user was authenticated
-          if (authStore.isAuthenticated) {
-            console.warn(`[AuthContext] Session expired: ${url}`);
-
-            // Clear user state
-            authStore.clearUser();
-
-            // Call session expired callback if set
-            if (sessionExpiredCallback) {
-              sessionExpiredCallback();
-            }
-          }
-        }
-
-        return Promise.reject(error);
-      },
-    );
-  });
+export function initializeAuthContext(): void {
+  // Session expired callback is set by main.ts
+  // No response interceptor needed — request.ts handles 401/403
 }
 
 /**
@@ -85,8 +31,15 @@ export function onSessionExpired(callback: () => void): void {
 }
 
 /**
+ * Get the current session expired callback
+ * Used by request.ts to trigger session expiration handling
+ */
+export function getSessionExpiredCallback(): (() => void) | null {
+  return sessionExpiredCallback;
+}
+
+/**
  * Check if user is currently authenticated
- * Shortcut for authStore.isAuthenticated
  */
 export function isAuthenticated(): boolean {
   try {
@@ -111,7 +64,6 @@ export function getCurrentUser() {
 
 /**
  * Request a fresh user state from the server
- * Use this when you need to verify the current auth state
  */
 export async function refreshUserState(): Promise<boolean> {
   try {
@@ -124,40 +76,12 @@ export async function refreshUserState(): Promise<boolean> {
 }
 
 /**
- * Mark a URL as currently being requested for auth purposes
- * Used to prevent duplicate auth requests
- */
-export function markAuthRequest(url: string): boolean {
-  if (pendingAuthRequests.has(url)) {
-    return false; // Already pending
-  }
-  pendingAuthRequests.add(url);
-  return true; // New request
-}
-
-/**
- * Clear a URL from pending auth requests
- */
-export function unmarkAuthRequest(url: string): void {
-  pendingAuthRequests.delete(url);
-}
-
-/**
- * Check if there are pending auth requests
- */
-export function hasPendingAuthRequests(): boolean {
-  return pendingAuthRequests.size > 0;
-}
-
-/**
  * Setup WebSocket connection based on auth state
- * Call this after auth is initialized
  */
 export function setupWebSocketAuth(): void {
   const authStore = useAuthStore();
   const socketManager = getSocketManager();
 
-  // Watch for auth state changes reactively (no polling)
   watch(
     () => authStore.isAuthenticated,
     (isAuth) => {
@@ -174,11 +98,9 @@ export function setupWebSocketAuth(): void {
 export default {
   initializeAuthContext,
   onSessionExpired,
+  getSessionExpiredCallback,
   isAuthenticated,
   getCurrentUser,
   refreshUserState,
-  markAuthRequest,
-  unmarkAuthRequest,
-  hasPendingAuthRequests,
   setupWebSocketAuth,
 };

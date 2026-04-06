@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { computed, ref, watch } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import ProblemExplorer from "@/components/problem/ProblemExplorer.vue";
@@ -63,7 +64,6 @@ import {
   moveListToCategory,
 } from "@/api/problem-list";
 import { searchProblems } from "@/api/problem";
-import { fetchCurrentUserId } from "@/utils/auth";
 import {
   Empty,
   EmptyContent,
@@ -86,7 +86,7 @@ const listId = computed(() => route.params.id as string);
 const currentList = ref<ProblemList | null>(null);
 const problems = ref<Problem[]>([]);
 const problemsWithStatus = computed(() => problems.value);
-const currentUser = fetchCurrentUserId();
+const currentUser = useAuthStore().fetchCurrentUserId();
 
 // State for dialogs
 const isEditOpen = ref(false);
@@ -119,7 +119,7 @@ async function loadProblemList(id?: string) {
     isSaved.value = false;
     return;
   }
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   try {
     const overview = await fetchProblemListOverview(id, userId ?? undefined);
     currentList.value = overview.list;

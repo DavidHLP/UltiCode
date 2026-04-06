@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { computed, ref, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import type { SolutionFeedItem } from "@/types/solution";
@@ -32,7 +33,6 @@ import {
   EmptyHeader,
   EmptyMedia,
 } from "@/components/ui/empty";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
 
@@ -166,7 +166,7 @@ onMounted(async () => {
       });
     }
     try {
-      const userId = fetchCurrentUserId();
+      const userId = useAuthStore().fetchCurrentUserId();
       if (userId) {
         const response = await fetchUserSolutions(userId, problemId);
         userSolution.value = response.items[0] ?? null;

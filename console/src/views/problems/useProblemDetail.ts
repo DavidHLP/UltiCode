@@ -1,8 +1,8 @@
+import { useAuthStore } from "@/stores/auth";
 import { ref, watch, type Ref } from "vue";
 import type { ProblemDetail } from "@/types/problem-detail";
 import type { ProblemRunResult } from "@/types/test-results";
 import { fetchProblemDetailById } from "@/api/problem-detail";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useBottomPanelStore } from "./test/test";
 import { runSubmission } from "@/api/submission";
@@ -21,7 +21,7 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
     await problemHooks.emit("problem:load:before", { slug: value });
     isLoading.value = true;
     try {
-      const userId = fetchCurrentUserId();
+      const userId = useAuthStore().fetchCurrentUserId();
       problem.value = await fetchProblemDetailById(value, userId ?? undefined);
       await problemHooks.emit("problem:load:after", {
         slug: value,

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { computed, onMounted, ref, watch } from "vue";
 import { RouterLink, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
@@ -30,7 +31,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useNotificationStore } from "@/stores/notification";
 import type { NotificationItem, NotificationType } from "@/types/notification";
 
@@ -175,7 +175,7 @@ async function handleDelete(notificationId: string) {
 }
 
 onMounted(async () => {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) return;
   hasUser.value = true;
   await loadNotifications();

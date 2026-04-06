@@ -11,7 +11,6 @@ import {
   fetchSubmissionStatuses,
 } from "@/api/submission";
 import { fetchContestProblemSubmissions } from "@/api/contest";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useAuthStore } from "@/stores/auth";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useErrorHandler } from "@/composables/useErrorHandler";
@@ -72,7 +71,7 @@ const loadSubmissions = async () => {
     return;
   }
   isLoading.value = true;
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   await problemHooks.emit("problem:submissions:load:before", {
     problemId: props.problemId,
     userId,

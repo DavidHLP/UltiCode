@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import type {
   ForumFlairType,
   ForumPost,
@@ -29,7 +30,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "vue-sonner";
-import { isAuthenticated } from "@/utils/auth";
 import { vote, VoteTargetType } from "@/api/vote";
 import { useI18n } from "vue-i18n";
 
@@ -198,7 +198,7 @@ const sortedPosts = computed(() => {
 });
 
 function handleCreatePost() {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToCreate"));
     return;
   }
@@ -206,7 +206,7 @@ function handleCreatePost() {
 }
 
 async function handlePostVote(postId: string, type: 1 | -1) {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToVote"));
     return;
   }

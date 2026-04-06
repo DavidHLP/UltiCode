@@ -1,3 +1,4 @@
+import { useAuthStore } from "@/stores/auth";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/utils/request";
 import {
   EdgeOperationTargetType,
@@ -7,7 +8,6 @@ import {
 import type { EdgeOperationResponse } from "./edge-operations";
 import type { SolutionFeedResponse, SolutionFeedItem } from "@/types/solution";
 import type { ForumComment } from "@/types/forum";
-import { fetchCurrentUserId } from "@/utils/auth";
 export type { SolutionFeedResponse };
 
 export interface CreateSolutionDto {
@@ -294,7 +294,7 @@ export async function createSolutionComment(
   content: string,
   parentId?: string,
 ): Promise<ForumComment> {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) {
     throw new Error("User must be logged in to create comments");
   }
@@ -308,7 +308,7 @@ export async function updateSolutionComment(
   commentId: string,
   content: string,
 ): Promise<ForumComment> {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) {
     throw new Error("User must be logged in to update comments");
   }
@@ -318,7 +318,7 @@ export async function updateSolutionComment(
 }
 
 export async function deleteSolutionComment(commentId: string): Promise<void> {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) {
     throw new Error("User must be logged in to delete comments");
   }
@@ -354,7 +354,7 @@ export async function voteSolutionComment(
 }
 
 export async function recordSolutionView(solutionId: string) {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) return;
   return apiPost(`/api/views/solution/${solutionId}`, { userId });
 }

@@ -138,6 +138,7 @@
 </template>
 
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { computed, onMounted, ref, watch } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useDebounceFn } from "@vueuse/core";
@@ -157,7 +158,6 @@ import { fetchProblemById } from "@/api/problem";
 import { fetchSubmission, fetchBestSubmission } from "@/api/submission";
 import type { SubmissionRecord } from "@/types/submission";
 import type { SolutionTopic } from "@/types/topic";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 import "highlight.js/styles/atom-one-dark.css";
 
@@ -453,7 +453,7 @@ const handlePublish = async () => {
       message.toLowerCase().includes("already exists") &&
       resolvedProblemId.value
     ) {
-      const userId = fetchCurrentUserId();
+      const userId = useAuthStore().fetchCurrentUserId();
       if (userId) {
         try {
           const response = await fetchUserSolutions(

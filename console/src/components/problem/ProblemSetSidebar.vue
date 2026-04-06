@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -10,7 +11,6 @@ import { Badge } from "@/components/ui/badge";
 import { type Ref, ref, onMounted } from "vue";
 import { Trophy } from "lucide-vue-next";
 import { fetchDailyActivity } from "@/api/submission";
-import { isAuthenticated } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 
 const date = ref(today(getLocalTimeZone())) as Ref<DateValue>;
@@ -19,7 +19,7 @@ const completedDates = ref<string[]>([]);
 const { t } = useI18n();
 
 onMounted(async () => {
-  if (isAuthenticated()) {
+  if (useAuthStore().isAuthenticated) {
     try {
       const year = new Date().getFullYear();
       completedDates.value = await fetchDailyActivity(year);

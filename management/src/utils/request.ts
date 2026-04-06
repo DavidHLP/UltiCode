@@ -4,7 +4,6 @@ import axios, {
   type AxiosError,
   type AxiosRequestConfig,
   type AxiosInstance,
-  type CancelTokenSource,
 } from 'axios'
 import { LOCALE_HEADER_KEY, getActiveLocale } from '@/i18n'
 import { getCsrfToken } from '@/utils/csrf'
@@ -27,11 +26,8 @@ export interface ApiResponse<T = unknown> {
 export interface RequestConfig extends AxiosRequestConfig {
   retry?: number
   retryDelay?: number
-  skipAuth?: boolean
   skipErrorHandler?: boolean
   skipResponseUnwrap?: boolean
-  cache?: boolean
-  cacheTTL?: number
   requestId?: string
 }
 
@@ -79,7 +75,7 @@ interface ConfigWithMetadata
 /**
  * Pending requests map for deduplication
  */
-const pendingRequests = new Map<string, CancelTokenSource>()
+const pendingRequests = new Map<string, AbortController>()
 
 /**
  * URLs that should never be deduplicated
@@ -161,14 +157,14 @@ service.interceptors.request.use(
     if (shouldDeduplicate) {
       const key = getRequestKey(config)
       if (pendingRequests.has(key)) {
-        const source = pendingRequests.get(key)!
-        config.cancelToken = source.token
-        return config
+        const controller = pendingRequests.get(key)!
+        controller.abort()
+        pendingRequests.delete(key)
       }
 
-      const source = axios.CancelToken.source()
-      config.cancelToken = source.token
-      pendingRequests.set(key, source)
+      const controller = new AbortController()
+      config.signal = controller.signal
+      pendingRequests.set(key, controller)
     }
 
     // Log request in development
@@ -245,11 +241,12 @@ service.interceptors.response.use(
     }
 
     // Handle request cancellation
-    if (axios.isCancel(error)) {
+    if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
       if (isDevelopment) {
         console.log('Request canceled:', error.message)
       }
-      return Promise.reject(new ApiError('Request canceled', 0))
+      // Use -1 instead of 0 to avoid conflict with backend's success code
+      return Promise.reject(new ApiError('Request canceled', -1))
     }
 
     // Retry logic for network errors and 5xx
@@ -291,6 +288,12 @@ service.interceptors.response.use(
     // Backend will handle cookie clearing on logout
     if (error.response) {
       if (error.response.status === 401) {
+        // Clear authentication state to prevent stale session data
+        const { useAuthStore } = await import('@/stores/auth')
+        const authStore = useAuthStore()
+        if (authStore.isAuthenticated) {
+          authStore.clearUser()
+        }
         // Unauthorized - redirect to login page
         if (router.currentRoute.value.name !== 'login') {
           router.push('/login')
@@ -424,10 +427,10 @@ export async function apiDownload(
 }
 
 /**
- * Create cancel token source for manual cancellation
+ * Create abort controller for manual cancellation
  */
-export function createCancelToken(): CancelTokenSource {
-  return axios.CancelToken.source()
+export function createAbortController(): AbortController {
+  return new AbortController()
 }
 
 export { service as axiosInstance }

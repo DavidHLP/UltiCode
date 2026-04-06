@@ -1,13 +1,13 @@
+import { useAuthStore } from "@/stores/auth";
 import type { ProblemTestCase } from "@/types/problem-detail";
 import type { ProblemRunResult } from "@/types/test-results";
-import { fetchCurrentUserId } from "@/utils/auth";
 
 export const buildRunResultFromCases = (
   cases: ProblemTestCase[],
   problemId: number,
 ): ProblemRunResult => {
   const runId = `run-${problemId}-${Date.now()}`;
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   const runtimeMs = 40 + cases.length * 5;
   const memoryMb = 8 + cases.length * 2;
 

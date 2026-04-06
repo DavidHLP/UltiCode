@@ -39,4 +39,5 @@ export {
   parsePermissionString,
   hasPermission,
   WILDCARD_PERMISSION,
+  Permissions,
 } from './permission';

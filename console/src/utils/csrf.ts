@@ -33,3 +33,17 @@ export function getCsrfToken(): string | null {
 export function clearCsrfToken(): void {
   csrfToken = null;
 }
+
+/**
+ * CSRF Manager object for compatibility with auth store
+ */
+export const csrfManager = {
+  getToken: () => csrfToken,
+  setToken: (token: string) => { csrfToken = token; },
+  clearToken: () => { csrfToken = null; },
+  refreshFromResponse: (response: { csrfToken?: string }) => {
+    if (response.csrfToken) {
+      csrfToken = response.csrfToken;
+    }
+  },
+};

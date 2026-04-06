@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { PERM } from '@/constants/permissions'
 
 /**
  * Route naming convention:
@@ -18,7 +19,6 @@ const routes: RouteRecordRaw[] = [
     path: '/login',
     name: 'login',
     component: () => import('@/views/auth/LoginView.vue'),
-    meta: { requiresAuth: false },
   },
 
   // ==================== Main App ====================
@@ -40,7 +40,7 @@ const routes: RouteRecordRaw[] = [
         path: 'users',
         name: 'users',
         component: () => import('@/views/users/UsersListView.vue'),
-        meta: { titleKey: 'nav.users', permission: { action: 'READ', resource: 'USER' } },
+        meta: { titleKey: 'nav.users', permission: PERM.USER_READ },
       },
 
       // ==================== Audit Logs ====================
@@ -48,7 +48,7 @@ const routes: RouteRecordRaw[] = [
         path: 'audit',
         name: 'audit',
         component: () => import('@/views/audit/AuditLogsView.vue'),
-        meta: { titleKey: 'nav.auditLogs', permission: { action: 'READ', resource: 'SYSTEM' } },
+        meta: { titleKey: 'nav.auditLogs', permission: PERM.SYSTEM_READ },
       },
 
       // ==================== Analytics ====================
@@ -56,7 +56,7 @@ const routes: RouteRecordRaw[] = [
         path: 'analytics',
         name: 'analytics',
         component: () => import('@/views/analytics/AnalyticsView.vue'),
-        meta: { titleKey: 'nav.analytics', permission: { action: 'READ', resource: 'SYSTEM' } },
+        meta: { titleKey: 'nav.analytics', permission: PERM.SYSTEM_READ },
       },
 
       // ==================== Problems ====================
@@ -64,7 +64,7 @@ const routes: RouteRecordRaw[] = [
         path: 'problems',
         name: 'problems',
         component: () => import('@/views/problems/ProblemsListView.vue'),
-        meta: { titleKey: 'nav.problems', permission: { action: 'READ', resource: 'PROBLEM' } },
+        meta: { titleKey: 'nav.problems', permission: PERM.PROBLEM_READ },
       },
       {
         path: 'problems/create',
@@ -72,7 +72,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/problems/ProblemCreateView.vue'),
         meta: {
           titleKey: 'problems.createTitle',
-          permission: { action: 'CREATE', resource: 'PROBLEM' },
+          permission: PERM.PROBLEM_CREATE,
         },
       },
       // Problem detail view (handles all tabs via route detection)
@@ -82,7 +82,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/problems/ProblemDetailView.vue'),
         meta: {
           titleKey: 'problems.detailTitle',
-          permission: { action: 'READ', resource: 'PROBLEM' },
+          permission: PERM.PROBLEM_READ,
         },
         props: true,
       },
@@ -93,7 +93,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/problems/ProblemEditView.vue'),
         meta: {
           titleKey: 'problems.editTitle',
-          permission: { action: 'UPDATE', resource: 'PROBLEM' },
+          permission: PERM.PROBLEM_UPDATE,
         },
         props: true,
       },
@@ -105,7 +105,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/moderation/ModerationQueueView.vue'),
         meta: {
           titleKey: 'nav.moderation',
-          permission: { action: 'MODERATE', resource: 'PROBLEM' },
+          permission: PERM.MODERATE_PROBLEM,
         },
       },
       {
@@ -114,7 +114,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/moderation/ModerationDashboardView.vue'),
         meta: {
           titleKey: 'moderation.stats.title',
-          permission: { action: 'MODERATE', resource: 'PROBLEM' },
+          permission: PERM.MODERATE_PROBLEM,
         },
       },
       {
@@ -123,7 +123,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/moderation/ReportsView.vue'),
         meta: {
           titleKey: 'moderation.reports.title',
-          permission: { action: 'MODERATE', resource: 'PROBLEM' },
+          permission: PERM.MODERATE_PROBLEM,
         },
       },
       {
@@ -132,7 +132,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/moderation/AppealsView.vue'),
         meta: {
           titleKey: 'moderation.appeals.title',
-          permission: { action: 'MODERATE', resource: 'PROBLEM' },
+          permission: PERM.MODERATE_PROBLEM,
         },
       },
 
@@ -143,7 +143,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/problem-lists/ProblemListsListView.vue'),
         meta: {
           titleKey: 'nav.problemLists',
-          permission: { action: 'READ', resource: 'PROBLEM_LIST' },
+          permission: PERM.PROBLEM_LIST_READ,
         },
       },
       {
@@ -152,7 +152,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
         meta: {
           titleKey: 'problemLists.createTitle',
-          permission: { action: 'CREATE', resource: 'PROBLEM_LIST' },
+          permission: PERM.PROBLEM_LIST_CREATE,
         },
       },
       {
@@ -161,7 +161,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/problem-lists/ProblemListDetailView.vue'),
         meta: {
           titleKey: 'problemLists.editTitle',
-          permission: { action: 'UPDATE', resource: 'PROBLEM_LIST' },
+          permission: PERM.PROBLEM_LIST_UPDATE,
         },
         props: true,
       },
@@ -171,7 +171,7 @@ const routes: RouteRecordRaw[] = [
         path: 'solutions',
         name: 'solutions',
         component: () => import('@/views/solutions/SolutionsListView.vue'),
-        meta: { titleKey: 'nav.solutions', permission: { action: 'READ', resource: 'SOLUTION' } },
+        meta: { titleKey: 'nav.solutions', permission: PERM.SOLUTION_READ },
       },
       // Solution detail view (handles all tabs via route detection)
       {
@@ -180,7 +180,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/solutions/SolutionDetailView.vue'),
         meta: {
           titleKey: 'solutions.detailTitle',
-          permission: { action: 'READ', resource: 'SOLUTION' },
+          permission: PERM.SOLUTION_READ,
         },
         props: true,
       },
@@ -193,8 +193,8 @@ const routes: RouteRecordRaw[] = [
         meta: {
           titleKey: 'nav.comments',
           permission: [
-            { action: 'MODERATE', resource: 'FORUM_COMMENT' },
-            { action: 'MODERATE', resource: 'SOLUTION_COMMENT' },
+            PERM.MODERATE_FORUM_COMMENT,
+            PERM.MODERATE_SOLUTION_COMMENT,
           ],
         },
       },
@@ -204,7 +204,7 @@ const routes: RouteRecordRaw[] = [
         path: 'tags',
         name: 'tags',
         component: () => import('@/views/tags/TagsListView.vue'),
-        meta: { titleKey: 'nav.tags', permission: { action: 'READ', resource: 'TAG' } },
+        meta: { titleKey: 'nav.tags', permission: PERM.TAG_READ },
       },
 
       // ==================== Forum ====================
@@ -218,7 +218,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/forum/ForumPostsListView.vue'),
         meta: {
           titleKey: 'forum.postsTitle',
-          permission: { action: 'MODERATE', resource: 'FORUM_POST' },
+          permission: PERM.MODERATE_FORUM_POST,
         },
       },
       // Forum post detail view (handles all tabs via route detection)
@@ -228,7 +228,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/forum/ForumPostDetailView.vue'),
         meta: {
           titleKey: 'forum.detailTitle',
-          permission: { action: 'MODERATE', resource: 'FORUM_POST' },
+          permission: PERM.MODERATE_FORUM_POST,
         },
         props: true,
       },
@@ -238,7 +238,7 @@ const routes: RouteRecordRaw[] = [
         path: 'contests',
         name: 'contests',
         component: () => import('@/views/contests/ContestsListView.vue'),
-        meta: { titleKey: 'nav.contests', permission: { action: 'READ', resource: 'CONTEST' } },
+        meta: { titleKey: 'nav.contests', permission: PERM.CONTEST_READ },
       },
       {
         path: 'contests/:id',
@@ -246,7 +246,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/contests/ContestDetailView.vue'),
         meta: {
           titleKey: 'contests.detailTitle',
-          permission: { action: 'READ', resource: 'CONTEST' },
+          permission: PERM.CONTEST_READ,
         },
         props: true,
       },
@@ -256,7 +256,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/contests/ScoringRulesView.vue'),
         meta: {
           titleKey: 'contests.scoringRules',
-          permission: { action: 'READ', resource: 'CONTEST' },
+          permission: PERM.CONTEST_READ,
         },
       },
 
@@ -265,7 +265,7 @@ const routes: RouteRecordRaw[] = [
         path: 'submissions',
         name: 'submissions',
         component: () => import('@/views/submissions/SubmissionsView.vue'),
-        meta: { titleKey: 'nav.submissions', permission: { action: 'READ', resource: 'PROBLEM' } },
+        meta: { titleKey: 'nav.submissions', permission: PERM.PROBLEM_READ },
       },
 
       // ==================== Settings ====================
@@ -273,7 +273,7 @@ const routes: RouteRecordRaw[] = [
         path: 'settings',
         name: 'settings',
         component: () => import('@/views/settings/SettingsView.vue'),
-        meta: { titleKey: 'nav.settings', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+        meta: { titleKey: 'nav.settings', permission: PERM.SYSTEM_UPDATE },
       },
 
       // ==================== Notifications ====================
@@ -281,7 +281,7 @@ const routes: RouteRecordRaw[] = [
         path: 'notifications',
         name: 'notifications',
         component: () => import('@/views/notifications/NotificationsListView.vue'),
-        meta: { titleKey: 'nav.notifications', permission: { action: 'READ', resource: 'SYSTEM' } },
+        meta: { titleKey: 'nav.notifications', permission: PERM.SYSTEM_READ },
       },
 
       // ==================== System ====================
@@ -289,19 +289,19 @@ const routes: RouteRecordRaw[] = [
         path: 'monitoring',
         name: 'monitoring',
         component: () => import('@/views/system/MonitoringView.vue'),
-        meta: { titleKey: 'nav.monitoring', permission: { action: 'READ', resource: 'SYSTEM' } },
+        meta: { titleKey: 'nav.monitoring', permission: PERM.SYSTEM_READ },
       },
       {
         path: 'backup',
         name: 'backup',
         component: () => import('@/views/system/BackupView.vue'),
-        meta: { titleKey: 'nav.backup', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+        meta: { titleKey: 'nav.backup', permission: PERM.SYSTEM_UPDATE },
       },
       {
         path: 'email',
         name: 'email',
         component: () => import('@/views/system/EmailView.vue'),
-        meta: { titleKey: 'nav.email', permission: { action: 'UPDATE', resource: 'SYSTEM' } },
+        meta: { titleKey: 'nav.email', permission: PERM.SYSTEM_UPDATE },
       },
 
       // ==================== Account ====================
@@ -333,7 +333,8 @@ router.beforeEach(async (to, from, next) => {
   // Auth is bootstrapped in main.ts before router installation
   // isInitialized being true means auth state is known
 
-  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth !== false)
+  // Safe default: only routes explicitly marked with requiresAuth: true need authentication
+  const requiresAuth = to.matched.some((record) => record.meta.requiresAuth === true)
 
   if (requiresAuth && !authStore.isAuthenticated) {
     return next({

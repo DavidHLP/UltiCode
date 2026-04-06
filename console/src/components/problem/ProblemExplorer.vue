@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import type { Problem } from "@/types/problem";
 import type { Component } from "vue";
 
@@ -14,7 +15,6 @@ import {
 import CheckIcon from "~icons/radix-icons/check";
 import { fetchProblems, fetchRandomProblem } from "@/api/problem";
 import { toast } from "vue-sonner";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 
@@ -82,7 +82,7 @@ const categoryOptions = computed(() =>
 
 const loadProblems = async () => {
   try {
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     fallbackProblems.value = await fetchProblems(userId ?? undefined, {
       category: selectedCategory.value,
     });

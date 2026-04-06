@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { ref, onMounted, computed } from "vue";
 import { fetchProblems } from "@/api/problem";
 import type { Problem } from "@/types/problem";
@@ -15,7 +16,6 @@ import {
 } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import { cn } from "@/lib/utils";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 
 defineProps<{
@@ -35,7 +35,7 @@ const loading = ref(true);
 onMounted(async () => {
   try {
     loading.value = true;
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     problems.value = await fetchProblems(userId ?? undefined);
   } catch (error) {
     console.error("Failed to load problems", error);

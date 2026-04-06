@@ -1,17 +1,17 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { Calendar } from "@/components/ui/calendar";
 import { SidebarGroup, SidebarGroupContent } from "@/components/ui/sidebar";
 import { fetchProblems } from "@/api/problem";
 import type { Problem } from "@/types/problem";
 import { computed, onMounted, ref } from "vue";
 import { getLocalTimeZone, today } from "@internationalized/date";
-import { fetchCurrentUserId } from "@/utils/auth";
 
 const problems = ref<Problem[]>([]);
 
 onMounted(async () => {
   try {
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     problems.value = await fetchProblems(userId ?? undefined);
   } catch (error) {
     console.error("Failed to load problems", error);

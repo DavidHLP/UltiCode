@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import {
   Card,
   CardContent,
@@ -38,7 +39,6 @@ import {
   updateNotificationPreferences,
 } from "@/api/notification";
 import type { NotificationPreferences } from "@/types/notification";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { onMounted, ref } from "vue";
 import { useI18n } from "vue-i18n";
 
@@ -93,7 +93,7 @@ const saveProfile = async () => {
 
 onMounted(async () => {
   try {
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     if (!userId) return;
     user.value = await fetchUserProfile(userId);
     try {

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import type { ForumThread } from "@/types/forum";
 import { Skeleton } from "@/components/ui/skeleton";
 import ForumPostSkeleton from "@/views/forum/components/ForumPostSkeleton.vue";
@@ -16,7 +17,6 @@ import { ref, watch } from "vue";
 import { useRoute, RouterLink, useRouter } from "vue-router";
 import { ArrowLeft } from "lucide-vue-next";
 import { toast } from "vue-sonner";
-import { fetchCurrentUserId, isAuthenticated } from "@/utils/auth";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "vue-i18n";
 import {
@@ -42,7 +42,7 @@ async function loadThread(postId: string) {
   if (!postId) return;
   isLoading.value = true;
   try {
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     thread.value = await fetchForumThread(postId, userId || undefined);
   } catch (error) {
     console.error("Failed to load forum thread", error);
@@ -56,7 +56,7 @@ watch(
   () => route.params.postId as string,
   (postId) => {
     void loadThread(postId);
-    if (postId && isAuthenticated()) {
+    if (postId && useAuthStore().isAuthenticated) {
       recordForumView(postId).catch((e) =>
         console.error("Failed to record view", e),
       );
@@ -66,7 +66,7 @@ watch(
 );
 
 async function onSubmitComment(body: string, parentId?: string | null) {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToComment"));
     return;
   }
@@ -81,7 +81,7 @@ async function onSubmitComment(body: string, parentId?: string | null) {
 }
 
 async function onEditComment(commentId: string | number, body: string) {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToEdit"));
     return;
   }
@@ -95,7 +95,7 @@ async function onEditComment(commentId: string | number, body: string) {
 }
 
 async function onDeleteComment(commentId: string | number) {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToDelete"));
     return;
   }
@@ -132,12 +132,12 @@ function handleEditThread() {
 import { vote, VoteTargetType } from "@/api/vote";
 
 const isOwner = () => {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   return !!userId && thread.value?.author?.id === userId;
 };
 
 async function handleThreadVote(type: 1 | -1) {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToVote"));
     return;
   }
@@ -162,7 +162,7 @@ async function handleThreadVote(type: 1 | -1) {
 }
 
 async function handleCommentVote(commentId: string | number, type: 1 | -1) {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToVote"));
     return;
   }

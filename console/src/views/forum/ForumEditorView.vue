@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { ref, onMounted, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import {
@@ -20,7 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "vue-sonner";
-import { isAuthenticated } from "@/utils/auth";
 import { MarkdownEdit, MarkdownView } from "@/components/markdown";
 import { useI18n } from "vue-i18n";
 import {
@@ -113,7 +113,7 @@ async function loadData() {
 }
 
 async function handleSave() {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToPublish"));
     return;
   }

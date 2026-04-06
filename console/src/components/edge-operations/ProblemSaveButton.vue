@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import { ref, computed, watch } from "vue";
 import {
   Bookmark,
@@ -33,7 +34,6 @@ import {
 } from "@/api/problem-list";
 import type { BookmarkType } from "@/types/bookmark";
 import { toast } from "vue-sonner";
-import { isAuthenticated, fetchCurrentUserId } from "@/utils/auth";
 import {
   Dialog,
   DialogContent,
@@ -94,7 +94,7 @@ const isSaved = computed(
 async function loadData() {
   if (!isOpen.value) return;
 
-  isAuthed.value = isAuthenticated();
+  isAuthed.value = useAuthStore().isAuthenticated;
   if (!isAuthed.value) {
     itemFolders.value = [];
     userLists.value = [];
@@ -102,7 +102,7 @@ async function loadData() {
     return;
   }
 
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) {
     itemFolders.value = [];
     userLists.value = [];
@@ -130,7 +130,7 @@ async function loadData() {
 }
 
 async function toggleFolder(folderId: string) {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("problem.save.toast.loginRequired"));
     return;
   }
@@ -163,12 +163,12 @@ async function toggleFolder(folderId: string) {
 }
 
 async function toggleList(listId: string) {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("problem.save.toast.loginRequired"));
     return;
   }
 
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) return;
 
   const list = userLists.value.find((l) => l.id === listId);
@@ -218,7 +218,7 @@ async function handleCreateList() {
     return;
   }
 
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) return;
 
   isCreating.value = true;

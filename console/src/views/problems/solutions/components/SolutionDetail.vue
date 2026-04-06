@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import type { SolutionFeedItem } from "@/types/solution";
 import type { ForumComment } from "@/types/forum";
 import MarkdownView from "@/components/markdown/MarkdownView.vue";
@@ -20,7 +21,6 @@ import { PostActions } from "@/components/edge-operations";
 import "highlight.js/styles/atom-one-dark.css";
 import { toast } from "vue-sonner";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
-import { fetchCurrentUserId, isAuthenticated } from "@/utils/auth";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "vue-router";
 import { Pencil, Trash2 } from "lucide-vue-next";
@@ -58,7 +58,7 @@ const localStats = ref<{ likes: number; dislikes: number }>({
 });
 const userVote = ref<0 | 1 | -1>(0);
 const isOwner = computed(() => {
-  const userId = fetchCurrentUserId();
+  const userId = useAuthStore().fetchCurrentUserId();
   return (
     Boolean(userId) &&
     props.item.id !== "follow-up" &&
@@ -85,7 +85,7 @@ const loadComments = async () => {
     return;
   }
   try {
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     comments.value = await fetchSolutionComments(
       props.item.id,
       userId || undefined,
@@ -144,7 +144,7 @@ const handleCommentDelete = async (commentId: string | number) => {
 };
 
 const handleSolutionVote = async (voteType: 1 | -1) => {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("problem.solutions.loginToVote"));
     return;
   }
@@ -188,7 +188,7 @@ const handleCommentVote = async (
   commentId: string | number,
   voteType: 1 | -1,
 ) => {
-  if (!isAuthenticated()) {
+  if (!useAuthStore().isAuthenticated) {
     toast.error(t("problem.solutions.loginToVote"));
     return;
   }

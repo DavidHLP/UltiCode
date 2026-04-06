@@ -1,5 +1,6 @@
 <!-- eslint-disable vue/multi-word-component-names -->
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import {
   Collapsible,
   CollapsibleContent,
@@ -59,7 +60,6 @@ import type {
 import { RouterLink } from "vue-router";
 import { ref, computed, onMounted } from "vue";
 import { useI18n } from "vue-i18n";
-import { fetchCurrentUserId } from "@/utils/auth";
 import {
   fetchProblemListsOverview,
   createCategory,
@@ -73,7 +73,7 @@ import {
 import { toast } from "vue-sonner";
 
 const { t } = useI18n();
-const currentUserId = fetchCurrentUserId();
+const currentUserId = useAuthStore().fetchCurrentUserId();
 
 // Data state
 const data = ref<UserProblemListsResponse>({

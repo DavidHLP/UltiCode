@@ -7,13 +7,10 @@ import type {
   LoginResponse,
 } from "@/types/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { parseCookies, hasCookie } from "../../shared/auth-core/src/cookie";
-import { createCsrfTokenManager } from "../../shared/auth-core/src/csrf";
+import { parseCookies, hasCookie } from "@/utils/cookie";
+import { csrfManager } from "@/utils/csrf";
 
 const isDevelopment = import.meta.env.DEV;
-
-// CSRF token manager instance
-const csrfManager = createCsrfTokenManager();
 
 /**
  * Authentication status states
@@ -42,6 +39,7 @@ export const useAuthStore = defineStore("auth", () => {
   const user = ref<User | null>(null);
   const status = ref<AuthStatus>("idle");
   const error = ref<Error | null>(null);
+  const permissions = ref<Set<string>>(new Set());
 
   // Private: prevents duplicate initialization calls
   let _initializationPromise: Promise<void> | null = null;
@@ -335,9 +333,10 @@ export const useAuthStore = defineStore("auth", () => {
       console.log("[Auth] clearUser() called");
     }
     user.value = null;
+    permissions.value.clear();
     csrfManager.clearToken();
-    // Reset to idle state - allows potential re-initialization
-    status.value = "idle";
+    // Reset to ready state - app continues in guest mode
+    status.value = "ready";
     error.value = null;
   }
 
@@ -353,11 +352,67 @@ export const useAuthStore = defineStore("auth", () => {
     csrfManager.clearToken();
   }
 
+  /**
+   * Get current user ID (helper for API calls)
+   * @returns user ID or null if not authenticated
+   */
+  function fetchCurrentUserId(): string | null {
+    return user.value?.id || null;
+  }
+
+  /**
+   * Load permissions for the current user
+   * Permissions are returned as strings in "action:resource" format
+   * e.g., "read:problem", "write:solution", "*:*" for admin
+   */
+  async function loadPermissions(): Promise<void> {
+    try {
+      const response = await apiGet<string[]>("/auth/permissions", {
+        skipErrorHandler: true,
+      });
+      permissions.value = new Set(response || []);
+      if (isDevelopment) {
+        console.log("[Auth] Permissions loaded:", permissions.value);
+      }
+    } catch (error) {
+      if (isDevelopment) {
+        console.log("[Auth] Failed to load permissions:", error);
+      }
+      permissions.value.clear();
+    }
+  }
+
+  /**
+   * Check if user has a specific permission
+   * @param action - The action (e.g., "read", "write", "delete")
+   * @param resource - The resource (e.g., "problem", "solution")
+   * @returns true if user has permission
+   */
+  function hasPermission(action: string, resource: string): boolean {
+    // Wildcard permission has access to everything
+    if (permissions.value.has("*:*")) return true;
+    if (permissions.value.has(`${action}:${resource}`)) return true;
+    if (permissions.value.has(`${action}:*`)) return true;
+    return false;
+  }
+
+  /**
+   * Check if user has a specific role
+   * @param role - The role to check
+   * @returns true if user has the role
+   */
+  function hasRole(role: string): boolean {
+    const userRoleValue = user.value?.role?.toUpperCase();
+    const requiredRole = role.toUpperCase();
+    return userRoleValue === requiredRole;
+  }
+
   return {
     // State
     user,
     status,
     error,
+    permissions,
     // Computed
     isAuthenticated,
     isInitialized,
@@ -375,5 +430,9 @@ export const useAuthStore = defineStore("auth", () => {
     logout,
     clearUser,
     reset,
+    fetchCurrentUserId,
+    loadPermissions,
+    hasPermission,
+    hasRole,
   };
 });

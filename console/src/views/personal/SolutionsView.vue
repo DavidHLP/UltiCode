@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useAuthStore } from "@/stores/auth";
 import {
   Card,
   CardContent,
@@ -36,7 +37,6 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { toast } from "vue-sonner";
 import { RouterLink, useRouter } from "vue-router";
-import { fetchCurrentUserId } from "@/utils/auth";
 import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
@@ -76,7 +76,7 @@ const handleDelete = async (solutionId: string) => {
 
 onMounted(async () => {
   try {
-    const userId = fetchCurrentUserId();
+    const userId = useAuthStore().fetchCurrentUserId();
     if (!userId) return;
     hasUser.value = true;
     const response = await fetchUserSolutions(userId);

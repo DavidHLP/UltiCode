@@ -946,6 +946,17 @@
    Terminal Table Enhancements
    ======================================== */
 
+.terminal-table {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Handle terminal-table applied to DataTable (wraps flex container with inner overflow div) */
+.terminal-table > div.overflow-hidden {
+  overflow-x: auto;
+}
+
 .terminal-table-row {
   transition: background-color var(--duration-fast) ease;
 }

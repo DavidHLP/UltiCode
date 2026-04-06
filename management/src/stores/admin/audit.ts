@@ -20,7 +20,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
     try {
       // Note: request.ts unwraps Result<T>, so response is directly AuditLogsResponse
       const data = await auditApi.getAuditLogs(params)
-      logs.value = data.logs
+      logs.value = data.logs ?? []
       total.value = data.total
       return data
     } catch (err: unknown) {

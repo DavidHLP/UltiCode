@@ -152,6 +152,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     header: () => t('notifications.sentBy'),
     cell: ({ row }) => {
       const creator = row.original.creator
+      if (!creator) return h('span', { class: 'text-sm text-[var(--silver-400)]' }, '—')
       const initials = creator.username.slice(0, 2).toUpperCase()
       return h('div', { class: 'flex items-center gap-2' }, [
         h(

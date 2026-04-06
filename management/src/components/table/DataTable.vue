@@ -210,7 +210,7 @@ watch(
 
     <div
       v-if="loading || table.getRowModel().rows.length"
-      class="overflow-hidden border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
+      class="overflow-auto border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
     >
       <DragDropProvider :modifiers="[RestrictToVerticalAxis]">
         <Table>

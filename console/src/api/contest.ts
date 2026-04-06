@@ -165,11 +165,6 @@ function mapGlobalRankingEntry(data: unknown): GlobalRankingEntry {
 // CONTEST QUERIES
 // ============================================================================
 
-export async function fetchContestList(): Promise<ContestListItem[]> {
-  const result = await apiGet<{ items: ContestListItem[] }>("/contest/list");
-  return (result.items || []).map(mapContestListItem);
-}
-
 export async function fetchUpcomingContests(): Promise<ContestListItem[]> {
   const result = await apiGet<ContestListItem[]>("/contest/upcoming");
   return result.map(mapContestListItem);
@@ -198,10 +193,6 @@ export async function fetchContestDetail(
 ): Promise<ContestDetail> {
   const result = await apiGet<ContestDetail>(`/contest/${contestId}`);
   return mapContestDetail(result);
-}
-
-export async function fetchContestStats(): Promise<ContestStats> {
-  return apiGet<ContestStats>("/contest/stats");
 }
 
 // ============================================================================
@@ -242,14 +233,6 @@ export async function fetchGlobalRankings(options?: {
     ...result,
     items: (result.items || []).map(mapGlobalRankingEntry),
   };
-}
-
-// Legacy API for backward compatibility
-export async function fetchGlobalRankingsLegacy(): Promise<
-  GlobalRankingEntry[]
-> {
-  const result = await apiGet<GlobalRankingEntry[]>("/contest/global-ranking");
-  return (result || []).map(mapGlobalRankingEntry);
 }
 
 // ============================================================================
@@ -314,24 +297,6 @@ export async function fetchUserContestHistory(): Promise<UserContestHistory[]> {
 
 export async function fetchUserRatingHistory(): Promise<RatingHistoryEntry[]> {
   return apiGet<RatingHistoryEntry[]>("/contest/user/rating-history");
-}
-
-// ============================================================================
-// PUBLIC USER DATA
-// ============================================================================
-
-export async function fetchUserContestHistoryById(
-  userId: string,
-): Promise<UserContestHistory[]> {
-  return apiGet<UserContestHistory[]>(`/rankings/user/${userId}`);
-}
-
-export async function fetchUserRatingHistoryById(
-  userId: string,
-): Promise<RatingHistoryEntry[]> {
-  return apiGet<RatingHistoryEntry[]>(
-    `/rankings/user/${userId}/rating-history`,
-  );
 }
 
 // ============================================================================
@@ -481,16 +446,6 @@ export async function getRanking(
 }
 
 /**
- * Get user ranking in a contest
- */
-export async function getUserRanking(
-  slug: string,
-  userId: string,
-): Promise<RankingEntry | null> {
-  return apiGet<RankingEntry | null>(`/contest/${slug}/ranking/user/${userId}`);
-}
-
-/**
  * Register for a contest
  */
 export async function register(slug: string): Promise<void> {
@@ -520,13 +475,3 @@ export async function getMyParticipation(
   return fetchParticipationStatus(slug);
 }
 
-/**
- * End virtual contest
- */
-export async function endVirtualContest(slug: string): Promise<void> {
-  const session = await fetchVirtualSession(slug);
-  if (session) {
-    return finishVirtualContest(slug, session.id);
-  }
-  throw new Error("No active virtual contest session");
-}

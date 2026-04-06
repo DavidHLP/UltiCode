@@ -147,17 +147,17 @@ async function handleSubmit(event: Event) {
   align-items: flex-start;
   gap: 0.5rem;
   padding: 0.875rem 1rem;
-  border-left: 3px solid oklch(0.6 0.18 25);
+  border-left: 3px solid var(--terminal-red);
   border-radius: 0 var(--radius-md) var(--radius-md) 0;
-  background: oklch(0.6 0.18 25 / 0.08);
+  background: color-mix(in oklch, var(--terminal-red) 8%, transparent);
   color: var(--status-error);
   font-size: 0.875rem;
   font-family: 'JetBrains Mono', 'Fira Code', ui-monospace, monospace;
 }
 
 .dark .login-form__error {
-  background: oklch(0.55 0.2 25 / 0.15);
-  border-left-color: oklch(0.55 0.2 25);
+  background: color-mix(in oklch, var(--terminal-red) 15%, transparent);
+  border-left-color: var(--terminal-red);
 }
 
 .login-form__error-prefix {

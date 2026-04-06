@@ -43,7 +43,7 @@ const modelValue = useVModel(props, 'modelValue', emits, {
         variant === 'terminal' && [
           'font-data text-sm border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-none shadow-none bg-[var(--surface-sunken)]',
           'focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)] focus-visible:ring-[2px]',
-          'aria-invalid:border-[var(--terminal-red)] aria-invalid:ring-[oklch(0.6_0.2_25/0.2)]',
+          'aria-invalid:border-[var(--terminal-red)] aria-invalid:ring-[color-mix(in_oklch,_var(--terminal-red)_20%,_transparent)]',
         ],
         props.class,
       )

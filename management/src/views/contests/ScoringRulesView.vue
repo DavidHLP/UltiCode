@@ -438,7 +438,7 @@ const columns: ColumnDef<ScoringRule>[] = [
       <div
         v-if="selectedRows.length > 0"
         :class="[
-          'mb-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] dark:bg-[oklch(0.75_0.15_85/0.15)] p-3',
+          'mb-4 flex items-center justify-between border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] p-3',
           'animate-in fade-in slide-in-from-top-2 duration-200',
         ]"
       >
@@ -475,7 +475,7 @@ const columns: ColumnDef<ScoringRule>[] = [
       <!-- Error state - Terminal Style -->
       <div
         v-if="error"
-        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
           <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
@@ -484,7 +484,7 @@ const columns: ColumnDef<ScoringRule>[] = [
         <Button
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
           @click="loadScoringRules()"
         >
           {{ t('common.retry') }}

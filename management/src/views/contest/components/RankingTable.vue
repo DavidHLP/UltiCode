@@ -48,7 +48,7 @@ const props = withDefaults(
 function getRankStyle(rank: number) {
   if (rank === 1) return 'text-[var(--terminal-amber)]'
   if (rank === 2) return 'text-[var(--silver-400)]'
-  if (rank === 3) return 'text-[oklch(0.6_0.1_35)]'
+  if (rank === 3) return 'text-[oklch(0.5808_0.1732_39.5)]'
   return 'text-[var(--foreground)]'
 }
 
@@ -75,10 +75,10 @@ function formatPenalty(penalty: number): string {
 function getProblemCellStyles(problem?: { solved: boolean; attempts: number }) {
   if (!problem) return ''
   if (problem.solved) {
-    return 'bg-[oklch(0.7_0.15_145/0.15)] text-[var(--terminal-green)]'
+    return 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)] text-[var(--terminal-green)]'
   }
   if (problem.attempts > 0) {
-    return 'bg-[oklch(0.65_0.15_25/0.1)] text-[var(--terminal-red)]'
+    return 'bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)] text-[var(--terminal-red)]'
   }
   return ''
 }

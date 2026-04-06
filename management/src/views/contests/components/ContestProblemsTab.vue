@@ -9,6 +9,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { IconTrash, IconPlus } from '@tabler/icons-vue'
+import { SemanticBadge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import type { Contest } from '@/api/admin/contests'
 
 defineProps<{
@@ -21,15 +22,6 @@ const emit = defineEmits<{
   removeProblem: [problemId: string]
 }>()
 
-// Get difficulty styling
-function getDifficultyStyle(difficulty: string) {
-  const styles: Record<string, string> = {
-    Easy: 'terminal-badge-success',
-    Medium: 'terminal-badge-warning',
-    Hard: 'terminal-badge-error',
-  }
-  return styles[difficulty] || 'terminal-badge'
-}
 </script>
 
 <template>
@@ -105,11 +97,7 @@ function getDifficultyStyle(difficulty: string) {
               </div>
             </TableCell>
             <TableCell>
-              <span
-                :class="['terminal-badge text-[10px]', getDifficultyStyle(cp.problem.difficulty)]"
-              >
-                {{ cp.problem.difficulty.toUpperCase() }}
-              </span>
+              <SemanticBadge :color="DIFFICULTY_COLOR_MAP[cp.problem.difficulty] ?? 'neutral'" :label="cp.problem.difficulty.toUpperCase()" size="sm" dot />
             </TableCell>
             <TableCell>
               <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
@@ -121,7 +109,7 @@ function getDifficultyStyle(difficulty: string) {
                 v-if="canUpdate"
                 variant="ghost"
                 size="icon"
-                class="h-8 w-8 text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]"
+                class="h-8 w-8 text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
                 @click="emit('removeProblem', cp.problemId)"
               >
                 <IconTrash class="h-4 w-4" />

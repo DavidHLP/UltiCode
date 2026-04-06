@@ -192,20 +192,20 @@ async function createInitialSnapshot() {
 
 function getChangeTypeStyle(type: string): { bg: string; border: string; text: string } {
   const defaultStyle = {
-    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    border: 'border-[oklch(0.75_0.15_85/0.4)]',
+    bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+    border: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
     text: 'text-[var(--terminal-amber)]',
   }
   const styles: Record<string, { bg: string; border: string; text: string }> = {
     create: {
-      bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-      border: 'border-[oklch(0.7_0.15_145/0.4)]',
+      bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+      border: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
       text: 'text-[var(--terminal-green)]',
     },
     update: defaultStyle,
     rollback: {
-      bg: 'bg-[oklch(0.65_0.2_250/0.15)]',
-      border: 'border-[oklch(0.65_0.2_250/0.4)]',
+      bg: 'bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]',
+      border: 'border-[color-mix(in_oklch,_var(--accent-electric)_40%,_transparent)]',
       text: 'text-[var(--accent-electric)]',
     },
   }
@@ -248,7 +248,7 @@ watch(
         <!-- Compare Mode Banner -->
         <div
           v-if="compareMode"
-          class="mb-4 p-3 rounded-lg border border-[var(--accent-electric)] bg-[oklch(0.65_0.2_250/0.1)]"
+          class="mb-4 p-3 rounded-lg border border-[var(--accent-electric)] bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]"
         >
           <div class="flex items-center justify-between">
             <span class="text-sm text-[var(--accent-electric)]">

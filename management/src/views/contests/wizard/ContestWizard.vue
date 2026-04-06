@@ -188,8 +188,8 @@ async function handleSubmit() {
                 :class="[
                   'h-8 w-8 border-2 text-xs font-data font-semibold flex items-center justify-center',
                   'border-[var(--silver-300)] text-[var(--silver-400)]',
-                  'data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] data-[state=active]:bg-[oklch(0.65_0.15_250/0.1)]',
-                  'data-[state=completed]:border-[var(--terminal-green)] data-[state=completed]:text-[var(--terminal-green)] data-[state=completed]:bg-[oklch(0.7_0.15_145/0.1)]',
+                  'data-[state=active]:border-[var(--accent-electric)] data-[state=active]:text-[var(--accent-electric)] data-[state=active]:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]',
+                  'data-[state=completed]:border-[var(--terminal-green)] data-[state=completed]:text-[var(--terminal-green)] data-[state=completed]:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]',
                 ]"
               >
                 {{ step.step }}
@@ -242,7 +242,7 @@ async function handleSubmit() {
           type="button"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[oklch(0.65_0.15_250/0.1)]"
+          class="font-data text-xs border-[var(--accent-electric)] text-[var(--accent-electric)] hover:bg-[color-mix(in_oklch,_var(--accent-electric)_10%,_transparent)]"
           @click="nextStep"
           :disabled="!isStepValid"
         >
@@ -254,7 +254,7 @@ async function handleSubmit() {
           type="button"
           variant="terminal"
           size="sm"
-          class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+          class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
           @click="handleSubmit"
           :disabled="!isStepValid || loading"
         >

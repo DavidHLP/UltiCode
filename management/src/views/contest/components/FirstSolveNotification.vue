@@ -114,8 +114,8 @@ onUnmounted(() => {
         :class="
           cn(
             'fixed top-4 right-4 z-50 max-w-sm',
-            'border border-[oklch(0.75_0.15_85/0.4)]',
-            'bg-gradient-to-r from-[oklch(0.75_0.15_85/0.15)] to-[oklch(0.7_0.12_195/0.15)]',
+            'border border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
+            'bg-gradient-to-r from-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] to-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
             'backdrop-blur-sm',
             'rounded-lg shadow-lg',
             'p-4',
@@ -126,7 +126,7 @@ onUnmounted(() => {
         <div class="flex items-start gap-3">
           <!-- Trophy icon with animation -->
           <div
-            class="flex-shrink-0 w-10 h-10 rounded-full bg-[oklch(0.75_0.15_85/0.3)] flex items-center justify-center"
+            class="flex-shrink-0 w-10 h-10 rounded-full bg-[color-mix(in_oklch,_var(--terminal-amber)_30%,_transparent)] flex items-center justify-center"
           >
             <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)] animate-bounce-subtle" />
           </div>

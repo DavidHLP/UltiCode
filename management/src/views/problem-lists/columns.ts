@@ -21,49 +21,16 @@ import {
 import { Button } from '@/components/ui/button'
 import type { ProblemList } from '@/api/admin/problem-lists'
 import { formatDate } from '@/lib/format/date'
+import { badge } from '@/components/ui/terminal'
 
 export interface ProblemListActions {
   editList: (id: string) => void
   deleteList: (list: ProblemList) => void
 }
 
-// Terminal-style visibility badge renderer
 function renderVisibilityBadge(isPublic: boolean) {
-  if (isPublic) {
-    return h('div', { class: 'flex items-center gap-2' }, [
-      h(IconEye, { class: 'h-3.5 w-3.5 text-[var(--terminal-green)]' }),
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border rounded-sm',
-            'bg-[oklch(0.7_0.15_145/0.15)]',
-            'border-[oklch(0.7_0.15_145/0.4)]',
-            'text-[var(--terminal-green)]',
-          ].join(' '),
-        },
-        'PUBLIC',
-      ),
-    ])
-  }
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h(IconEyeOff, { class: 'h-3.5 w-3.5 text-[var(--silver-400)]' }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-          'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-          'text-[var(--silver-500)]',
-        ].join(' '),
-      },
-      'PRIVATE',
-    ),
-  ])
+  if (isPublic) return badge({ color: 'success', label: 'PUBLIC', icon: IconEye })
+  return badge({ color: 'neutral', label: 'PRIVATE', icon: IconEyeOff })
 }
 
 // Terminal-style featured badge renderer

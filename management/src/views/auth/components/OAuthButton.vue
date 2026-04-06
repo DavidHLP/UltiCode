@@ -61,7 +61,7 @@ function handleOAuth() {
 }
 
 .dark .oauth-button:hover {
-  background: oklch(0.2 0.01 270);
+  background: var(--silver-800);
   border-color: var(--silver-400);
 }
 

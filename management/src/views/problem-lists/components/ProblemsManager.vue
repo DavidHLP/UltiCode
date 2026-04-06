@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, h } from 'vue'
+import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import {
   Table,
@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { IconPlus, IconTrash } from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
+import { badge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import ContestProblemPicker from '@/views/contests/components/ContestProblemPicker.vue'
 import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
 import type { ProblemListDetail, ProblemListProblem } from '@/api/admin/problem-lists'
@@ -94,32 +95,10 @@ async function saveProblems() {
   }
 }
 
-// Terminal-style difficulty badge
-function getDifficultyStyle(difficulty: string): string {
-  const styles: Record<string, string> = {
-    easy: 'bg-[oklch(0.7_0.15_145/0.15)] border-[oklch(0.7_0.15_145/0.4)] text-[var(--terminal-green)]',
-    medium:
-      'bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]',
-    hard: 'bg-[oklch(0.6_0.2_25/0.15)] border-[oklch(0.6_0.2_25/0.4)] text-[var(--terminal-red)]',
-  }
-  return (
-    styles[difficulty?.toLowerCase()] ||
-    'bg-[var(--silver-100)] border-[var(--silver-300)] text-[var(--silver-500)]'
-  )
-}
-
 function renderDifficultyBadge(difficulty: string) {
-  return h(
-    'span',
-    {
-      class: [
-        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-        'px-2 py-0.5 border rounded-sm',
-        getDifficultyStyle(difficulty),
-      ].join(' '),
-    },
-    difficulty?.toLowerCase() || 'unknown',
-  )
+  const key = difficulty?.toUpperCase()
+  const color = DIFFICULTY_COLOR_MAP[key] ?? 'neutral'
+  return badge({ color, label: key || 'UNKNOWN', size: 'sm' })
 }
 </script>
 
@@ -205,13 +184,13 @@ function renderDifficultyBadge(difficulty: string) {
               </div>
             </TableCell>
             <TableCell>
-              <component :is="renderDifficultyBadge(problem.difficulty)" />
+              {{ renderDifficultyBadge(problem.difficulty) }}
             </TableCell>
             <TableCell>
               <Button
                 size="icon"
                 variant="ghost"
-                class="h-8 w-8 hover:bg-[oklch(0.6_0.2_25/0.15)]"
+                class="h-8 w-8 hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
                 @click="removeProblem(problem.id)"
               >
                 <IconTrash class="h-4 w-4 text-[var(--terminal-red)]" />

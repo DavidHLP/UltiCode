@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authApi, type LoginCredentials, type User } from '@/api/auth'
 import { csrfManager, clearCsrfToken } from '@/utils/csrf'
-import { parseCookies, hasCookie } from "@/shared/auth-core/src/cookie"
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref<User | null>(null)
@@ -74,14 +73,10 @@ export const useAuthStore = defineStore('auth', () => {
   async function initialize() {
     if (isInitialized.value) return
 
-    // Use secure cookie parsing from shared/auth-core
-    // Cannot be fooled by cookies like "access_token_extra=x"
-    const cookies = parseCookies(document.cookie)
-    if (!hasCookie(cookies, 'access_token')) {
-      isInitialized.value = true
-      return
-    }
-
+    // Always attempt to restore session from httpOnly cookies.
+    // httpOnly cookies are NOT readable via document.cookie (browser security).
+    // The server reads cookies from the request headers directly.
+    // If no valid session exists, /auth/me returns 401 — handled gracefully.
     try {
       await fetchUser()
     } finally {

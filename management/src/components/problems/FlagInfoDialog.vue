@@ -22,18 +22,18 @@ const flagStatus = computed(() => props.problem?.flagStatus || 'PENDING')
 const statusStyles = computed((): { bg: string; border: string; text: string } => {
   const styles = {
     PENDING: {
-      bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
-      border: 'border-[oklch(0.6_0.2_25/0.4)]',
+      bg: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+      border: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
       text: 'text-[var(--terminal-red)]',
     },
     REVIEWED: {
-      bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-      border: 'border-[oklch(0.75_0.15_85/0.4)]',
+      bg: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+      border: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
       text: 'text-[var(--terminal-amber)]',
     },
     RESOLVED: {
-      bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-      border: 'border-[oklch(0.7_0.15_145/0.4)]',
+      bg: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+      border: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
       text: 'text-[var(--terminal-green)]',
     },
     DISMISSED: {

@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/command'
 import { Button } from '@/components/ui/button'
 import { Plus, Loader2 } from 'lucide-vue-next'
+import { SemanticBadge, DIFFICULTY_COLOR_MAP } from '@/components/ui/terminal'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { useDebounceFn } from '@vueuse/core'
 
@@ -55,16 +56,6 @@ function handleInput(e: Event) {
 
 function handleSelect(problem: { id: string; title: string; difficulty: string; slug: string }) {
   emit('select', problem)
-}
-
-// Get difficulty styling
-function getDifficultyStyle(difficulty: string) {
-  const styles: Record<string, string> = {
-    Easy: 'terminal-badge-success',
-    Medium: 'terminal-badge-warning',
-    Hard: 'terminal-badge-error',
-  }
-  return styles[difficulty] || 'terminal-badge'
 }
 
 // Initial fetch
@@ -131,11 +122,7 @@ debouncedSearch('')
                       problem.slug
                     }}</span>
                   </div>
-                  <span
-                    :class="['terminal-badge text-[10px]', getDifficultyStyle(problem.difficulty)]"
-                  >
-                    {{ problem.difficulty.toUpperCase() }}
-                  </span>
+                  <SemanticBadge :color="DIFFICULTY_COLOR_MAP[problem.difficulty] ?? 'neutral'" :label="problem.difficulty.toUpperCase()" size="sm" dot />
                 </div>
                 <Button
                   size="sm"

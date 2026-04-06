@@ -14,7 +14,7 @@ const props = defineProps<{
       cn(
         'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)]',
         'hover:bg-[var(--surface-sunken)] transition-colors duration-150',
-        'data-[state=selected]:bg-[oklch(0.65_0.15_250/0.08)] dark:data-[state=selected]:bg-[oklch(0.6_0.18_250/0.15)]',
+        'data-[state=selected]:bg-[color-mix(in_oklch,_var(--accent-electric)_8%,_transparent)] dark:data-[state=selected]:bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)]',
         props.class,
       )
     "

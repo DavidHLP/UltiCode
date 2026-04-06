@@ -47,8 +47,8 @@ const statusCards = computed(() => [
     value: stats.value?.pendingCount ?? 0,
     icon: IconAlertTriangle,
     color: 'text-[var(--terminal-amber)]',
-    bgColor: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    borderColor: 'border-[oklch(0.75_0.15_85/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)]',
   },
   {
     key: 'under_review',
@@ -56,8 +56,8 @@ const statusCards = computed(() => [
     value: stats.value?.underReviewCount ?? 0,
     icon: IconClock,
     color: 'text-[var(--terminal-cyan)]',
-    bgColor: 'bg-[oklch(0.7_0.12_200/0.15)]',
-    borderColor: 'border-[oklch(0.7_0.12_200/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)]',
   },
   {
     key: 'resolved',
@@ -65,8 +65,8 @@ const statusCards = computed(() => [
     value: stats.value?.resolvedCount ?? 0,
     icon: IconCheck,
     color: 'text-[var(--terminal-green)]',
-    bgColor: 'bg-[oklch(0.7_0.15_145/0.15)]',
-    borderColor: 'border-[oklch(0.7_0.15_145/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-green)_40%,_transparent)]',
   },
   {
     key: 'dismissed',
@@ -74,8 +74,8 @@ const statusCards = computed(() => [
     value: stats.value?.dismissedCount ?? 0,
     icon: IconX,
     color: 'text-[var(--terminal-red)]',
-    bgColor: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    borderColor: 'border-[oklch(0.6_0.2_25/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-red)_40%,_transparent)]',
   },
   {
     key: 'appeal_pending',
@@ -83,8 +83,8 @@ const statusCards = computed(() => [
     value: stats.value?.pendingAppealsCount ?? 0,
     icon: IconScale,
     color: 'text-[var(--terminal-purple)]',
-    bgColor: 'bg-[oklch(0.7_0.12_280/0.15)]',
-    borderColor: 'border-[oklch(0.7_0.12_280/0.4)]',
+    bgColor: 'bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]',
+    borderColor: 'border-[color-mix(in_oklch,_var(--terminal-purple)_40%,_transparent)]',
   },
 ])
 
@@ -308,12 +308,12 @@ function navigateToAppeals() {
       ]"
     >
       <Card
-        class="border-[var(--terminal-amber)] bg-[oklch(0.75_0.15_85/0.08)] cursor-pointer hover:shadow-md transition-shadow"
+        class="border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] cursor-pointer hover:shadow-md transition-shadow"
         @click="navigateToQueue"
       >
         <CardContent class="py-6">
           <div class="flex items-center gap-4">
-            <div class="p-3 rounded-full bg-[oklch(0.75_0.15_85/0.15)]">
+            <div class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]">
               <IconAlertTriangle class="h-6 w-6 text-[var(--terminal-amber)]" />
             </div>
             <div>
@@ -329,12 +329,12 @@ function navigateToAppeals() {
       </Card>
 
       <Card
-        class="border-[var(--terminal-purple)] bg-[oklch(0.7_0.12_280/0.08)] cursor-pointer hover:shadow-md transition-shadow"
+        class="border-[var(--terminal-purple)] bg-[color-mix(in_oklch,_var(--terminal-purple)_8%,_transparent)] cursor-pointer hover:shadow-md transition-shadow"
         @click="navigateToAppeals"
       >
         <CardContent class="py-6">
           <div class="flex items-center gap-4">
-            <div class="p-3 rounded-full bg-[oklch(0.7_0.12_280/0.15)]">
+            <div class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]">
               <IconScale class="h-6 w-6 text-[var(--terminal-purple)]" />
             </div>
             <div>
@@ -362,7 +362,7 @@ function navigateToAppeals() {
       <CardContent class="py-6">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
-            <div class="p-3 rounded-full bg-[oklch(0.7_0.15_145/0.15)]">
+            <div class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]">
               <IconClock class="h-6 w-6 text-[var(--terminal-green)]" />
             </div>
             <div>

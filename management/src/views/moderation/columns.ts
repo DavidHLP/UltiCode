@@ -35,6 +35,8 @@ import {
   ModerationActionType,
 } from '@/api/admin/moderation'
 import { formatDate } from '@/lib/format/date'
+import { badge, MODERATION_STATUS_COLOR_MAP } from '@/components/ui/terminal'
+import type { SemanticColor } from '@/components/ui/terminal'
 
 export interface ModerationActions {
   viewEntity: (item: ModerationQueueItem) => void
@@ -43,170 +45,70 @@ export interface ModerationActions {
   claimItem: (id: string) => void
 }
 
-// ========== Status Styles ==========
-const statusStyles: Record<
-  ModerationStatus,
-  { bg: string; border: string; text: string; icon: typeof IconAlertTriangle }
-> = {
-  PENDING: {
-    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    border: 'border-[oklch(0.75_0.15_85/0.4)]',
-    text: 'text-[var(--terminal-amber)]',
-    icon: IconAlertTriangle,
-  },
-  UNDER_REVIEW: {
-    bg: 'bg-[oklch(0.7_0.12_200/0.15)]',
-    border: 'border-[oklch(0.7_0.12_200/0.4)]',
-    text: 'text-[var(--terminal-cyan)]',
-    icon: IconClock,
-  },
-  RESOLVED: {
-    bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-    border: 'border-[oklch(0.7_0.15_145/0.4)]',
-    text: 'text-[var(--terminal-green)]',
-    icon: IconCheck,
-  },
-  DISMISSED: {
-    bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    border: 'border-[oklch(0.6_0.2_25/0.4)]',
-    text: 'text-[var(--terminal-red)]',
-    icon: IconX,
-  },
-  APPEAL_PENDING: {
-    bg: 'bg-[oklch(0.7_0.12_280/0.15)]',
-    border: 'border-[oklch(0.7_0.12_280/0.4)]',
-    text: 'text-[var(--terminal-purple)]',
-    icon: IconScale,
-  },
+// ========== Status Icon Map ==========
+const STATUS_ICON_MAP: Record<ModerationStatus, typeof IconAlertTriangle> = {
+  PENDING: IconAlertTriangle,
+  UNDER_REVIEW: IconClock,
+  RESOLVED: IconCheck,
+  DISMISSED: IconX,
+  APPEAL_PENDING: IconScale,
 }
 
 // ========== Entity Type Styles ==========
-const entityTypeStyles: Record<
+const ENTITY_TYPE_CONFIG: Record<
   ModeratableEntityType,
-  { icon: typeof IconFileText; color: string; label: string }
+  { icon: typeof IconFileText; color: SemanticColor; label: string }
 > = {
-  forum_post: {
-    icon: IconMessages,
-    color: 'text-[var(--terminal-cyan)]',
-    label: 'moderation.entityTypes.forum_post',
-  },
-  forum_comment: {
-    icon: IconMessage,
-    color: 'text-[var(--terminal-cyan)]',
-    label: 'moderation.entityTypes.forum_comment',
-  },
-  solution: {
-    icon: IconCode,
-    color: 'text-[var(--terminal-green)]',
-    label: 'moderation.entityTypes.solution',
-  },
-  solution_comment: {
-    icon: IconMessage,
-    color: 'text-[var(--terminal-green)]',
-    label: 'moderation.entityTypes.solution_comment',
-  },
-  problem: {
-    icon: IconFileText,
-    color: 'text-[var(--terminal-amber)]',
-    label: 'moderation.entityTypes.problem',
-  },
+  forum_post: { icon: IconMessages, color: 'info', label: 'moderation.entityTypes.forum_post' },
+  forum_comment: { icon: IconMessage, color: 'info', label: 'moderation.entityTypes.forum_comment' },
+  solution: { icon: IconCode, color: 'success', label: 'moderation.entityTypes.solution' },
+  solution_comment: { icon: IconMessage, color: 'success', label: 'moderation.entityTypes.solution_comment' },
+  problem: { icon: IconFileText, color: 'warning', label: 'moderation.entityTypes.problem' },
 }
 
 // ========== Category Styles ==========
-const categoryStyles: Record<ReportCategory, { color: string; icon: typeof IconAlertTriangle }> = {
-  SPAM: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
-  HARASSMENT: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
-  HATE_SPEECH: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
-  VIOLENCE: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
-  SEXUAL_CONTENT: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
-  MISINFORMATION: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
-  WRONG_ANSWER: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
-  COPYRIGHT: { color: 'text-[var(--terminal-purple)]', icon: IconAlertCircle },
-  OTHER: { color: 'text-[var(--silver-500)]', icon: IconAlertCircle },
+const CATEGORY_CONFIG: Record<ReportCategory, { color: SemanticColor; icon: typeof IconAlertTriangle }> = {
+  SPAM: { color: 'warning', icon: IconAlertCircle },
+  HARASSMENT: { color: 'error', icon: IconAlertTriangle },
+  HATE_SPEECH: { color: 'error', icon: IconAlertTriangle },
+  VIOLENCE: { color: 'error', icon: IconAlertTriangle },
+  SEXUAL_CONTENT: { color: 'error', icon: IconAlertTriangle },
+  MISINFORMATION: { color: 'warning', icon: IconAlertCircle },
+  WRONG_ANSWER: { color: 'warning', icon: IconAlertCircle },
+  COPYRIGHT: { color: 'purple', icon: IconAlertCircle },
+  OTHER: { color: 'neutral', icon: IconAlertCircle },
 }
 
 // ========== Priority Styles ==========
-function getPriorityStyle(priority: number): { color: string; label: string } {
-  if (priority >= 8) {
-    return { color: 'text-[var(--terminal-red)]', label: 'critical' }
-  } else if (priority >= 5) {
-    return { color: 'text-[var(--terminal-amber)]', label: 'high' }
-  } else if (priority >= 3) {
-    return { color: 'text-[var(--terminal-cyan)]', label: 'medium' }
-  }
-  return { color: 'text-[var(--silver-500)]', label: 'low' }
+function getPriorityStyle(priority: number): SemanticColor {
+  if (priority >= 8) return 'error'
+  if (priority >= 5) return 'warning'
+  if (priority >= 3) return 'info'
+  return 'neutral'
 }
 
 // ========== Renderers ==========
 
 function renderStatusBadge(status: ModerationStatus, t: (key: string) => string) {
-  const style = statusStyles[status]
-  const Icon = style.icon
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h(Icon, { class: ['h-3.5 w-3.5', style.text] }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border',
-          style.bg,
-          style.border,
-          style.text,
-        ].join(' '),
-      },
-      t(`moderation.status.${status}`),
-    ),
-  ])
+  return badge({
+    color: MODERATION_STATUS_COLOR_MAP[status] ?? 'neutral',
+    label: t(`moderation.status.${status}`),
+    icon: STATUS_ICON_MAP[status],
+  })
 }
 
 function renderEntityTypeBadge(entityType: ModeratableEntityType, t: (key: string) => string) {
-  const style = entityTypeStyles[entityType]
-  const Icon = style.icon
-
-  return h('div', { class: 'flex items-center gap-1.5' }, [
-    h(Icon, { class: ['h-3.5 w-3.5', style.color] }),
-    h(
-      'span',
-      {
-        class: ['font-data text-[11px] font-medium uppercase tracking-[0.05em]', style.color].join(
-          ' ',
-        ),
-      },
-      t(style.label),
-    ),
-  ])
+  const config = ENTITY_TYPE_CONFIG[entityType]
+  return badge({ color: config.color, label: t(config.label), icon: config.icon })
 }
 
 function renderCategoryBadge(category: ReportCategory, t: (key: string) => string) {
-  const style = categoryStyles[category]
-  const Icon = style.icon
-
-  return h('div', { class: 'flex items-center gap-1.5' }, [
-    h(Icon, { class: ['h-3 w-3', style.color] }),
-    h(
-      'span',
-      {
-        class: ['font-data text-[10px] uppercase tracking-[0.05em]', style.color].join(' '),
-      },
-      t(`moderation.categories.${category}`),
-    ),
-  ])
+  const config = CATEGORY_CONFIG[category]
+  return badge({ color: config.color, label: t(`moderation.categories.${category}`), icon: config.icon, size: 'sm' })
 }
 
 function renderPriorityBadge(priority: number) {
-  const style = getPriorityStyle(priority)
-  return h('div', { class: 'flex items-center gap-1.5' }, [
-    h(IconFlag, { class: ['h-3 w-3', style.color] }),
-    h(
-      'span',
-      {
-        class: ['font-data text-[10px] uppercase tracking-[0.05em]', style.color].join(' '),
-      },
-      priority,
-    ),
-  ])
+  return badge({ color: getPriorityStyle(priority), label: String(priority), icon: IconFlag, size: 'sm' })
 }
 
 function renderAssignedUser(

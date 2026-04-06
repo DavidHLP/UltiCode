@@ -19,6 +19,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Button } from '@/components/ui/button'
+import { badge, USER_ROLE_COLOR_MAP } from '@/components/ui/terminal'
 import type { User } from '@/api/admin/users'
 import { formatDate } from '@/lib/format/date'
 
@@ -32,109 +33,15 @@ export interface UserActions {
 
 // Terminal-style role badge renderer
 function renderRoleBadge(role: string) {
-  const roleStyles: Record<string, { bg: string; border: string; text: string }> = {
-    SUPER_ADMIN: {
-      bg: 'bg-[oklch(0.65_0.15_250/0.15)]',
-      border: 'border-[oklch(0.65_0.15_250/0.4)]',
-      text: 'text-[var(--accent-electric)]',
-    },
-    ADMIN: {
-      bg: 'bg-[oklch(0.7_0.12_195/0.15)]',
-      border: 'border-[oklch(0.7_0.12_195/0.4)]',
-      text: 'text-[var(--terminal-cyan)]',
-    },
-    MODERATOR: {
-      bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-      border: 'border-[oklch(0.75_0.15_85/0.4)]',
-      text: 'text-[var(--terminal-amber)]',
-    },
-    USER: {
-      bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-      border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-      text: 'text-[var(--silver-600)] dark:text-[var(--silver-400)]',
-    },
-  }
-
-  const defaultStyle = {
-    bg: 'bg-[var(--silver-100)]',
-    border: 'border-[var(--silver-300)]',
-    text: 'text-[var(--silver-600)]',
-  }
-  const style = roleStyles[role] ?? defaultStyle
   const displayRole = role.replace('_', ' ')
-
-  return h(
-    'span',
-    {
-      class: [
-        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-        'px-2 py-0.5 border',
-        style.bg,
-        style.border,
-        style.text,
-      ].join(' '),
-    },
-    displayRole,
-  )
+  return badge({ color: USER_ROLE_COLOR_MAP[role] ?? 'neutral', label: displayRole })
 }
 
 // Terminal-style status badge renderer
 function renderStatusBadge(user: User) {
-  if (user.isBanned) {
-    return h(
-      'div',
-      { class: 'flex items-center gap-2' },
-      h(
-        'span',
-        {
-          class: [
-            'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-            'px-2 py-0.5 border',
-            'bg-[oklch(0.6_0.2_25/0.15)]',
-            'border-[oklch(0.6_0.2_25/0.4)]',
-            'text-[var(--terminal-red)]',
-            'animate-pulse-subtle',
-          ].join(' '),
-        },
-        'BANNED',
-      ),
-    )
-  }
-
-  if (!user.isActive) {
-    return h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border',
-          'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-          'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-          'text-[var(--silver-500)]',
-        ].join(' '),
-      },
-      'INACTIVE',
-    )
-  }
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h('span', {
-      class: 'w-1.5 h-1.5 bg-[var(--terminal-green)] animate-pulse-subtle',
-    }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border',
-          'bg-[oklch(0.7_0.15_145/0.15)]',
-          'border-[oklch(0.7_0.15_145/0.4)]',
-          'text-[var(--terminal-green)]',
-        ].join(' '),
-      },
-      'ACTIVE',
-    ),
-  ])
+  if (user.isBanned) return badge({ color: 'error', label: 'BANNED', pulse: true })
+  if (!user.isActive) return badge({ color: 'neutral', label: 'INACTIVE' })
+  return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
 }
 
 export function createColumns(

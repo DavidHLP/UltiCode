@@ -171,7 +171,7 @@ onMounted(() => {
             <Button
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--terminal-cyan)] text-[var(--terminal-cyan)] hover:bg-[oklch(0.65_0.15_200/0.1)]"
+              class="font-data text-xs border-[var(--terminal-cyan)] text-[var(--terminal-cyan)] hover:bg-[color-mix(in_oklch,_var(--terminal-cyan)_10%,_transparent)]"
               @click="loadStats"
               :disabled="loading"
             >

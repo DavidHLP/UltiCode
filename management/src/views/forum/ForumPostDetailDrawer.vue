@@ -206,7 +206,7 @@ function formatDate(dateStr: string) {
           <!-- Flagged Info -->
           <div
             v-if="post.isFlagged && post.flaggedReason"
-            class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+            class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
           >
             <div class="flex items-center gap-2 mb-3">
               <IconFlag class="h-4 w-4 text-[var(--terminal-red)]" />
@@ -223,7 +223,7 @@ function formatDate(dateStr: string) {
           <!-- Deleted Info -->
           <div
             v-if="post.isDeleted"
-            class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)] p-4"
+            class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
           >
             <div class="flex items-center gap-2 mb-3">
               <IconTrash class="h-4 w-4 text-[var(--terminal-red)]" />

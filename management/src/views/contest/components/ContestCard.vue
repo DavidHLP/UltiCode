@@ -112,10 +112,10 @@ function handleRegister(event: Event) {
                 'font-data text-[10px] font-medium uppercase tracking-[0.05em]',
                 'px-2 py-0.5 border rounded-sm',
                 contest.type === 'PUBLIC'
-                  ? 'bg-[oklch(0.7_0.12_195/0.15)] border-[oklch(0.7_0.12_195/0.4)] text-[var(--terminal-cyan)]'
+                  ? 'bg-[color-mix(in_oklch,_var(--terminal-cyan)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-cyan)_40%,_transparent)] text-[var(--terminal-cyan)]'
                   : contest.type === 'PRIVATE'
-                    ? 'bg-[oklch(0.65_0.15_250/0.15)] border-[oklch(0.65_0.15_250/0.4)] text-[var(--accent-electric)]'
-                    : 'bg-[oklch(0.75_0.15_85/0.15)] border-[oklch(0.75_0.15_85/0.4)] text-[var(--terminal-amber)]',
+                    ? 'bg-[color-mix(in_oklch,_var(--accent-electric)_15%,_transparent)] border-[color-mix(in_oklch,_var(--accent-electric)_40%,_transparent)] text-[var(--accent-electric)]'
+                    : 'bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)] border-[color-mix(in_oklch,_var(--terminal-amber)_40%,_transparent)] text-[var(--terminal-amber)]',
               )
             "
           >

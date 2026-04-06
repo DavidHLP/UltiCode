@@ -25,6 +25,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import type { Contest } from '@/api/admin/contests'
 import { formatDate } from '@/lib/format/date'
+import { badge, CONTEST_TYPE_COLOR_MAP, CONTEST_STATUS_COLOR_MAP } from '@/components/ui/terminal'
+import type { SemanticColor } from '@/components/ui/terminal'
 
 export interface ContestActions {
   viewContest: (contest: Contest) => void
@@ -33,109 +35,32 @@ export interface ContestActions {
   startDeleteContest: (contest: Contest) => void
 }
 
-// Terminal-style type badge renderer
-function renderTypeBadge(type: string, t: (key: string) => string) {
-  const typeStyles: Record<string, { bg: string; border: string; text: string }> = {
-    IOI: {
-      bg: 'bg-[oklch(0.7_0.12_195/0.15)]',
-      border: 'border-[oklch(0.7_0.12_195/0.4)]',
-      text: 'text-[var(--terminal-cyan)]',
-    },
-    ICPC: {
-      bg: 'bg-[oklch(0.65_0.15_250/0.15)]',
-      border: 'border-[oklch(0.65_0.15_250/0.4)]',
-      text: 'text-[var(--accent-electric)]',
-    },
-    CUSTOM: {
-      bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-      border: 'border-[oklch(0.75_0.15_85/0.4)]',
-      text: 'text-[var(--terminal-amber)]',
-    },
-  }
-
-  const defaultStyle = {
-    bg: 'bg-[var(--silver-100)]',
-    border: 'border-[var(--silver-300)]',
-    text: 'text-[var(--silver-600)]',
-  }
-  const style = typeStyles[type] ?? defaultStyle
-
-  return h(
-    'span',
-    {
-      class: [
-        'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-        'px-2 py-0.5 border rounded-sm',
-        style.bg,
-        style.border,
-        style.text,
-      ].join(' '),
-    },
-    t(`contests.type.${type}`),
-  )
+const CONTEST_STATUS_ICON_MAP: Record<string, typeof IconCircleCheckFilled> = {
+  RUNNING: IconCircleCheckFilled,
+  FINISHED: IconCircleCheckFilled,
+  UPCOMING: IconLoader,
 }
 
-// Terminal-style status badge renderer with icon
+function renderTypeBadge(type: string, t: (key: string) => string) {
+  return badge({
+    color: CONTEST_TYPE_COLOR_MAP[type] ?? 'neutral',
+    label: t(`contests.type.${type}`),
+  })
+}
+
 function renderStatusBadge(
   status: string,
   t: (key: string, params?: Record<string, unknown>) => string,
 ) {
-  const statusConfig: Record<
-    string,
-    { bg: string; border: string; text: string; icon: ReturnType<typeof h>; pulse?: boolean }
-  > = {
-    RUNNING: {
-      bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-      border: 'border-[oklch(0.7_0.15_145/0.4)]',
-      text: 'text-[var(--terminal-green)]',
-      icon: h(IconCircleCheckFilled, { class: 'h-3.5 w-3.5' }),
-      pulse: true,
-    },
-    FINISHED: {
-      bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-      border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-      text: 'text-[var(--silver-500)]',
-      icon: h(IconCircleCheckFilled, { class: 'h-3.5 w-3.5' }),
-    },
-    UPCOMING: {
-      bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-      border: 'border-[oklch(0.75_0.15_85/0.4)]',
-      text: 'text-[var(--terminal-amber)]',
-      icon: h(IconLoader, { class: 'h-3.5 w-3.5 animate-spin' }),
-    },
-  }
-
-  const defaultConfig = {
-    bg: 'bg-[var(--silver-100)] dark:bg-[var(--silver-800)]',
-    border: 'border-[var(--silver-300)] dark:border-[var(--silver-600)]',
-    text: 'text-[var(--silver-500)]',
-    icon: h(IconLoader, { class: 'h-3.5 w-3.5 animate-spin' }),
-    pulse: false,
-  }
-  const config = statusConfig[status] ?? defaultConfig
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h('span', {
-      class: [
-        'w-1.5 h-1.5 rounded-full',
-        config.pulse ? 'bg-[var(--terminal-green)] animate-pulse-subtle' : 'bg-current opacity-50',
-      ].join(' '),
-    }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border rounded-sm',
-          'inline-flex items-center gap-1.5',
-          config.bg,
-          config.border,
-          config.text,
-        ].join(' '),
-      },
-      [config.icon, t(`contests.status.${status.toLowerCase()}`)],
-    ),
-  ])
+  const color = CONTEST_STATUS_COLOR_MAP[status] ?? 'neutral'
+  const icon = CONTEST_STATUS_ICON_MAP[status]
+  return badge({
+    color,
+    label: t(`contests.status.${status.toLowerCase()}`),
+    icon,
+    dot: status === 'RUNNING',
+    pulse: status === 'RUNNING',
+  })
 }
 
 export function createColumns(

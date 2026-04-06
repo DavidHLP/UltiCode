@@ -43,62 +43,63 @@
 
 :root {
   --radius: 0;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  /* Solarized Light: base3 background, base00 body text */
+  --background: oklch(0.9735 0.0261 90.1);
+  --foreground: oklch(0.5682 0.0285 221.9);
+  --card: oklch(0.9735 0.0261 90.1);
+  --card-foreground: oklch(0.5682 0.0285 221.9);
+  --popover: oklch(0.9735 0.0261 90.1);
+  --popover-foreground: oklch(0.5682 0.0285 221.9);
+  --primary: oklch(0.5230 0.0283 219.1);
+  --primary-foreground: oklch(0.9735 0.0261 90.1);
+  --secondary: oklch(0.9306 0.0260 92.4);
+  --secondary-foreground: oklch(0.5230 0.0283 219.1);
+  --muted: oklch(0.9306 0.0260 92.4);
+  --muted-foreground: oklch(0.6979 0.0159 196.8);
+  --accent: oklch(0.6149 0.1394 244.9);
+  --accent-foreground: oklch(0.9735 0.0261 90.1);
+  --destructive: oklch(0.5863 0.2064 27.1);
+  --border: oklch(0.6979 0.0159 196.8);
+  --input: oklch(0.6979 0.0159 196.8);
+  --ring: oklch(0.6149 0.1394 244.9);
+  --chart-1: oklch(0.6149 0.1394 244.9);
+  --chart-2: oklch(0.6437 0.1019 187.4);
+  --chart-3: oklch(0.6444 0.1508 118.6);
+  --chart-4: oklch(0.6545 0.1340 85.7);
+  --chart-5: oklch(0.5808 0.1732 39.5);
+  --sidebar: oklch(0.9306 0.0260 92.4);
+  --sidebar-foreground: oklch(0.5682 0.0285 221.9);
+  --sidebar-primary: oklch(0.6149 0.1394 244.9);
+  --sidebar-primary-foreground: oklch(0.9735 0.0261 90.1);
+  --sidebar-accent: oklch(0.6149 0.1394 244.9 / 0.1);
+  --sidebar-accent-foreground: oklch(0.5682 0.0285 221.9);
+  --sidebar-border: oklch(0.6979 0.0159 196.8);
+  --sidebar-ring: oklch(0.6149 0.1394 244.9);
 
   /* ========================================
-     Precision Dashboard Design System
+     Solarized Design System - Light
      ======================================== */
 
-  /* Silver Gray Palette */
-  --silver-50: oklch(0.98 0.005 270);
-  --silver-100: oklch(0.95 0.008 270);
-  --silver-200: oklch(0.88 0.012 270);
-  --silver-300: oklch(0.75 0.015 270);
-  --silver-400: oklch(0.6 0.018 270);
-  --silver-500: oklch(0.45 0.02 270);
-  --silver-600: oklch(0.35 0.022 270);
-  --silver-700: oklch(0.25 0.02 270);
-  --silver-800: oklch(0.18 0.015 270);
-  --silver-900: oklch(0.12 0.01 270);
+  /* Solarized Monotones (base3→base03, warm hue ~90) */
+  --silver-50: oklch(0.9735 0.0261 90.1);
+  --silver-100: oklch(0.9306 0.0260 92.4);
+  --silver-200: oklch(0.6979 0.0159 196.8);
+  --silver-300: oklch(0.6537 0.0197 205.3);
+  --silver-400: oklch(0.6537 0.0197 205.3);
+  --silver-500: oklch(0.5682 0.0285 221.9);
+  --silver-600: oklch(0.5230 0.0283 219.1);
+  --silver-700: oklch(0.5230 0.0283 219.1);
+  --silver-800: oklch(0.3092 0.0518 219.7);
+  --silver-900: oklch(0.2673 0.0486 219.8);
 
-  /* Accent Colors - Ice Blue Silver */
-  --accent-primary: oklch(0.7 0.025 250);
-  --accent-glow: oklch(0.75 0.04 250 / 0.15);
+  /* Solarized Blue Accent */
+  --accent-primary: oklch(0.6149 0.1394 244.9);
+  --accent-glow: oklch(0.6149 0.1394 244.9 / 0.15);
 
-  /* Status Colors */
-  --status-success: oklch(0.65 0.12 145);
-  --status-warning: oklch(0.7 0.15 85);
-  --status-error: oklch(0.6 0.18 25);
+  /* Solarized Accent Status */
+  --status-success: oklch(0.6444 0.1508 118.6);
+  --status-warning: oklch(0.6545 0.1340 85.7);
+  --status-error: oklch(0.5863 0.2064 27.1);
 
   /* Border Styles */
   --border-thin: 1px solid var(--silver-200);
@@ -115,62 +116,63 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Solarized Dark: base03 background, base0 body text */
+  --background: oklch(0.2673 0.0486 219.8);
+  --foreground: oklch(0.6537 0.0197 205.3);
+  --card: oklch(0.3092 0.0518 219.7);
+  --card-foreground: oklch(0.6537 0.0197 205.3);
+  --popover: oklch(0.3092 0.0518 219.7);
+  --popover-foreground: oklch(0.6537 0.0197 205.3);
+  --primary: oklch(0.6979 0.0159 196.8);
+  --primary-foreground: oklch(0.2673 0.0486 219.8);
+  --secondary: oklch(0.3092 0.0518 219.7);
+  --secondary-foreground: oklch(0.6537 0.0197 205.3);
+  --muted: oklch(0.3092 0.0518 219.7);
+  --muted-foreground: oklch(0.5230 0.0283 219.1);
+  --accent: oklch(0.6149 0.1394 244.9);
+  --accent-foreground: oklch(0.9735 0.0261 90.1);
+  --destructive: oklch(0.5863 0.2064 27.1);
+  --border: oklch(0.5230 0.0283 219.1 / 0.4);
+  --input: oklch(0.5230 0.0283 219.1 / 0.4);
+  --ring: oklch(0.6149 0.1394 244.9);
+  --chart-1: oklch(0.6149 0.1394 244.9);
+  --chart-2: oklch(0.6437 0.1019 187.4);
+  --chart-3: oklch(0.6444 0.1508 118.6);
+  --chart-4: oklch(0.6545 0.1340 85.7);
+  --chart-5: oklch(0.5808 0.1732 39.5);
+  --sidebar: oklch(0.3092 0.0518 219.7);
+  --sidebar-foreground: oklch(0.6537 0.0197 205.3);
+  --sidebar-primary: oklch(0.6149 0.1394 244.9);
+  --sidebar-primary-foreground: oklch(0.9735 0.0261 90.1);
+  --sidebar-accent: oklch(0.6149 0.1394 244.9 / 0.15);
+  --sidebar-accent-foreground: oklch(0.6537 0.0197 205.3);
+  --sidebar-border: oklch(0.5230 0.0283 219.1 / 0.4);
+  --sidebar-ring: oklch(0.6149 0.1394 244.9);
 
   /* ========================================
-     Precision Dashboard Design System - Dark
+     Solarized Design System - Dark
      ======================================== */
 
-  /* Silver Gray Palette - Dark Mode */
-  --silver-50: oklch(0.18 0.01 270);
-  --silver-100: oklch(0.22 0.012 270);
-  --silver-200: oklch(0.3 0.015 270);
-  --silver-300: oklch(0.45 0.018 270);
-  --silver-400: oklch(0.58 0.02 270);
-  --silver-500: oklch(0.7 0.022 270);
-  --silver-600: oklch(0.78 0.02 270);
-  --silver-700: oklch(0.85 0.018 270);
-  --silver-800: oklch(0.92 0.012 270);
-  --silver-900: oklch(0.96 0.008 270);
+  /* Solarized Monotones - Dark Mode (inverted) */
+  --silver-50: oklch(0.2673 0.0486 219.8);
+  --silver-100: oklch(0.3092 0.0518 219.7);
+  --silver-200: oklch(0.5230 0.0283 219.1);
+  --silver-300: oklch(0.5230 0.0283 219.1);
+  --silver-400: oklch(0.6537 0.0197 205.3);
+  --silver-500: oklch(0.6537 0.0197 205.3);
+  --silver-600: oklch(0.6979 0.0159 196.8);
+  --silver-700: oklch(0.9306 0.0260 92.4);
+  --silver-800: oklch(0.9735 0.0261 90.1);
+  --silver-900: oklch(0.9735 0.0261 90.1);
 
-  /* Accent Colors - Dark Mode */
-  --accent-primary: oklch(0.65 0.035 250);
-  --accent-glow: oklch(0.7 0.05 250 / 0.2);
+  /* Accent Colors - Dark Mode (same as light per Solarized spec) */
+  --accent-primary: oklch(0.6149 0.1394 244.9);
+  --accent-glow: oklch(0.6149 0.1394 244.9 / 0.2);
 
-  /* Status Colors - Dark Mode */
-  --status-success: oklch(0.6 0.14 145);
-  --status-warning: oklch(0.68 0.16 85);
-  --status-error: oklch(0.55 0.2 25);
+  /* Status Colors - Dark Mode (same as light per Solarized spec) */
+  --status-success: oklch(0.6444 0.1508 118.6);
+  --status-warning: oklch(0.6545 0.1340 85.7);
+  --status-error: oklch(0.5863 0.2064 27.1);
 
   /* Shadow Styles - Dark Mode */
   --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.25);
@@ -301,22 +303,22 @@
   margin: 1.5rem 0;
 }
 
-/* Highlight.js code block styles - Light Theme */
+/* Highlight.js code block styles - Solarized Light Theme */
 .hljs {
   background: transparent;
-  color: #24292e;
+  color: #657b83;
 }
 
 .hljs-comment,
 .hljs-quote {
-  color: #6a737d;
+  color: #93a1a1;
   font-style: italic;
 }
 
 .hljs-keyword,
 .hljs-selector-tag,
 .hljs-addition {
-  color: #d73a49;
+  color: #859900;
 }
 
 .hljs-number,
@@ -325,7 +327,7 @@
 .hljs-literal,
 .hljs-doctag,
 .hljs-regexp {
-  color: #032f62;
+  color: #2aa198;
 }
 
 .hljs-title,
@@ -333,7 +335,7 @@
 .hljs-name,
 .hljs-selector-id,
 .hljs-selector-class {
-  color: #6f42c1;
+  color: #268bd2;
 }
 
 .hljs-attribute,
@@ -342,7 +344,7 @@
 .hljs-template-variable,
 .hljs-class .hljs-title,
 .hljs-type {
-  color: #6f42c1;
+  color: #268bd2;
 }
 
 .hljs-symbol,
@@ -353,16 +355,16 @@
 .hljs-selector-attr,
 .hljs-selector-pseudo,
 .hljs-link {
-  color: #e36209;
+  color: #cb4b16;
 }
 
 .hljs-built_in,
 .hljs-deletion {
-  color: #b31d28;
+  color: #dc322f;
 }
 
 .hljs-formula {
-  background: #ffeef0;
+  background: #eee8d5;
 }
 
 .hljs-emphasis {
@@ -374,41 +376,59 @@
 }
 
 .hljs-function {
-  color: #6f42c1;
+  color: #268bd2;
 }
 
 .hljs-params {
-  color: #24292e;
+  color: #657b83;
 }
 
 .hljs-tag {
-  color: #22863a;
+  color: #859900;
 }
 
 .hljs-xml-tag {
-  color: #22863a;
+  color: #859900;
 }
 
 .hljs-xml-attr {
-  color: #6f42c1;
+  color: #268bd2;
 }
 
 .hljs-xml-comment {
-  color: #6a737d;
+  color: #93a1a1;
 }
 
 /* Additional language-specific styles */
 .hljs-javascript .hljs-title,
 .hljs-typescript .hljs-title {
-  color: #6f42c1;
+  color: #268bd2;
 }
 
 .hljs-python .hljs-decorator {
-  color: #6f42c1;
+  color: #268bd2;
 }
 
 .hljs-java .hljs-annotation {
-  color: #6f42c1;
+  color: #268bd2;
+}
+
+/* Highlight.js Dark Theme Override */
+.dark .hljs {
+  color: #839496;
+}
+
+.dark .hljs-comment,
+.dark .hljs-quote {
+  color: #586e75;
+}
+
+.dark .hljs-formula {
+  background: #073642;
+}
+
+.dark .hljs-params {
+  color: #839496;
 }
 
 /* Code tabs styles from markdown renderer */
@@ -592,19 +612,20 @@
    ======================================== */
 
 :root {
-  /* Terminal Colors */
-  --terminal-green: oklch(0.7 0.15 145);
-  --terminal-amber: oklch(0.75 0.15 85);
-  --terminal-red: oklch(0.6 0.2 25);
-  --terminal-cyan: oklch(0.7 0.12 195);
+  /* Solarized Terminal Accent Colors (identical in light/dark) */
+  --terminal-green: oklch(0.6444 0.1508 118.6);
+  --terminal-amber: oklch(0.6545 0.1340 85.7);
+  --terminal-red: oklch(0.5863 0.2064 27.1);
+  --terminal-cyan: oklch(0.6437 0.1019 187.4);
+  --terminal-purple: oklch(0.5924 0.2025 355.9);
 
-  /* Electric Blue Accent */
-  --accent-electric: oklch(0.65 0.15 250);
-  --accent-electric-glow: oklch(0.7 0.2 250 / 0.15);
+  /* Solarized Blue Accent */
+  --accent-electric: oklch(0.6149 0.1394 244.9);
+  --accent-electric-glow: oklch(0.6149 0.1394 244.9 / 0.15);
 
   /* Surface Layers */
-  --surface-elevated: oklch(0.99 0.003 270);
-  --surface-sunken: oklch(0.97 0.005 270);
+  --surface-elevated: oklch(0.9735 0.0261 90.1);
+  --surface-sunken: oklch(0.9306 0.0260 92.4);
 
   /* Terminal Timing */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
@@ -886,27 +907,45 @@
 }
 
 .terminal-badge-success {
-  background: oklch(0.7 0.15 145 / 0.15);
+  background: color-mix(in oklch, var(--terminal-green) 15%, transparent);
   color: var(--terminal-green);
-  border: 1px solid oklch(0.7 0.15 145 / 0.3);
+  border: 1px solid color-mix(in oklch, var(--terminal-green) 30%, transparent);
 }
 
 .terminal-badge-warning {
-  background: oklch(0.75 0.15 85 / 0.15);
+  background: color-mix(in oklch, var(--terminal-amber) 15%, transparent);
   color: var(--terminal-amber);
-  border: 1px solid oklch(0.75 0.15 85 / 0.3);
+  border: 1px solid color-mix(in oklch, var(--terminal-amber) 30%, transparent);
 }
 
 .terminal-badge-error {
-  background: oklch(0.6 0.2 25 / 0.15);
+  background: color-mix(in oklch, var(--terminal-red) 15%, transparent);
   color: var(--terminal-red);
-  border: 1px solid oklch(0.6 0.2 25 / 0.3);
+  border: 1px solid color-mix(in oklch, var(--terminal-red) 30%, transparent);
 }
 
 .terminal-badge-info {
-  background: oklch(0.7 0.12 195 / 0.15);
+  background: color-mix(in oklch, var(--terminal-cyan) 15%, transparent);
   color: var(--terminal-cyan);
-  border: 1px solid oklch(0.7 0.12 195 / 0.3);
+  border: 1px solid color-mix(in oklch, var(--terminal-cyan) 30%, transparent);
+}
+
+.terminal-badge-purple {
+  background: color-mix(in oklch, var(--terminal-purple) 15%, transparent);
+  color: var(--terminal-purple);
+  border: 1px solid color-mix(in oklch, var(--terminal-purple) 30%, transparent);
+}
+
+.terminal-badge-electric {
+  background: color-mix(in oklch, var(--accent-electric) 15%, transparent);
+  color: var(--accent-electric);
+  border: 1px solid color-mix(in oklch, var(--accent-electric) 30%, transparent);
+}
+
+.terminal-badge-neutral {
+  background: color-mix(in oklch, var(--silver-500) 15%, transparent);
+  color: var(--silver-500);
+  border: 1px solid color-mix(in oklch, var(--silver-500) 30%, transparent);
 }
 
 /* Pulse animation for active states */
@@ -979,13 +1018,8 @@
    Dark Mode Terminal Adjustments
    ======================================== */
 
+/* Solarized Dark Mode Terminal (accent colors are identical to light mode) */
 .dark {
-  --terminal-green: oklch(0.65 0.14 145);
-  --terminal-amber: oklch(0.7 0.14 85);
-  --terminal-red: oklch(0.58 0.18 25);
-  --terminal-cyan: oklch(0.65 0.11 195);
-  --accent-electric: oklch(0.6 0.18 250);
-  --accent-electric-glow: oklch(0.65 0.22 250 / 0.2);
-  --surface-elevated: oklch(0.22 0.008 270);
-  --surface-sunken: oklch(0.17 0.01 270);
+  --surface-elevated: oklch(0.3092 0.0518 219.7);
+  --surface-sunken: oklch(0.2673 0.0486 219.8);
 }

@@ -291,7 +291,7 @@ function handleRefresh() {
                 :class="[
                   'h-9 font-data text-xs',
                   reviewDecision === 'APPROVED'
-                    ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] bg-[oklch(0.7_0.15_145/0.1)]'
+                    ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]'
                     : 'border-[var(--silver-300)] hover:border-[var(--terminal-green)] hover:text-[var(--terminal-green)]',
                 ]"
                 size="sm"
@@ -305,7 +305,7 @@ function handleRefresh() {
                 :class="[
                   'h-9 font-data text-xs',
                   reviewDecision === 'REJECTED'
-                    ? 'border-[var(--terminal-red)] text-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.1)]'
+                    ? 'border-[var(--terminal-red)] text-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]'
                     : 'border-[var(--silver-300)] hover:border-[var(--terminal-red)] hover:text-[var(--terminal-red)]',
                 ]"
                 size="sm"
@@ -350,8 +350,8 @@ function handleRefresh() {
             :class="[
               'font-data text-xs',
               reviewDecision === 'APPROVED'
-                ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]'
-                : 'border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[oklch(0.6_0.2_25/0.1)]',
+                ? 'border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]'
+                : 'border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]',
             ]"
             :disabled="reviewLoading"
             @click="handleReviewSubmit"

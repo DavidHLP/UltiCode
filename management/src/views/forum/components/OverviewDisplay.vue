@@ -192,9 +192,9 @@ function formatDate(dateStr: string) {
     <!-- Flagged Info -->
     <div
       v-if="post.isFlagged && post.flaggedReason"
-      class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)]"
+      class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)]"
     >
-      <div class="px-4 py-3 border-b border-[var(--terminal-red)]/30 bg-[oklch(0.6_0.2_25/0.05)]">
+      <div class="px-4 py-3 border-b border-[var(--terminal-red)]/30 bg-[color-mix(in_oklch,_var(--terminal-red)_5%,_transparent)]">
         <div class="flex items-center gap-2">
           <IconFlag class="h-4 w-4 text-[var(--terminal-red)]" />
           <span class="font-data text-xs uppercase tracking-wider text-[var(--terminal-red)]">
@@ -213,9 +213,9 @@ function formatDate(dateStr: string) {
     <!-- Deleted Info -->
     <div
       v-if="post.isDeleted"
-      class="border border-[var(--terminal-red)] bg-[oklch(0.6_0.2_25/0.08)]"
+      class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)]"
     >
-      <div class="px-4 py-3 border-b border-[var(--terminal-red)]/30 bg-[oklch(0.6_0.2_25/0.05)]">
+      <div class="px-4 py-3 border-b border-[var(--terminal-red)]/30 bg-[color-mix(in_oklch,_var(--terminal-red)_5%,_transparent)]">
         <div class="flex items-center gap-2">
           <IconTrash class="h-4 w-4 text-[var(--terminal-red)]" />
           <span class="font-data text-xs uppercase tracking-wider text-[var(--terminal-red)]">

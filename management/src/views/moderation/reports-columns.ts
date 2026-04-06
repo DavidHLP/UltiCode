@@ -17,6 +17,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { badge, MODERATION_STATUS_COLOR_MAP } from '@/components/ui/terminal'
+import type { SemanticColor } from '@/components/ui/terminal'
 import {
   type Report,
   ReportStatus,
@@ -30,48 +32,44 @@ export interface ReportActions {
   viewInQueue: (report: Report) => void
 }
 
-// ========== Status Styles ==========
-const statusStyles: Record<
-  ReportStatus,
-  { bg: string; border: string; text: string; icon: typeof IconAlertTriangle }
-> = {
-  PENDING: {
-    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    border: 'border-[oklch(0.75_0.15_85/0.4)]',
-    text: 'text-[var(--terminal-amber)]',
-    icon: IconAlertTriangle,
-  },
-  REVIEWED: {
-    bg: 'bg-[oklch(0.7_0.12_200/0.15)]',
-    border: 'border-[oklch(0.7_0.12_200/0.4)]',
-    text: 'text-[var(--terminal-cyan)]',
-    icon: IconClock,
-  },
-  RESOLVED: {
-    bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-    border: 'border-[oklch(0.7_0.15_145/0.4)]',
-    text: 'text-[var(--terminal-green)]',
-    icon: IconEye,
-  },
-  DISMISSED: {
-    bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    border: 'border-[oklch(0.6_0.2_25/0.4)]',
-    text: 'text-[var(--terminal-red)]',
-    icon: IconAlertCircle,
-  },
+// ========== Status Maps ==========
+const REPORT_STATUS_ICON_MAP: Record<ReportStatus, typeof IconAlertTriangle> = {
+  PENDING: IconAlertTriangle,
+  REVIEWED: IconClock,
+  RESOLVED: IconEye,
+  DISMISSED: IconAlertCircle,
 }
 
-// ========== Category Styles ==========
-const categoryStyles: Record<ReportCategory, { color: string; icon: typeof IconAlertTriangle }> = {
-  SPAM: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
-  HARASSMENT: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
-  HATE_SPEECH: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
-  VIOLENCE: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
-  SEXUAL_CONTENT: { color: 'text-[var(--terminal-red)]', icon: IconAlertTriangle },
-  MISINFORMATION: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
-  WRONG_ANSWER: { color: 'text-[var(--terminal-amber)]', icon: IconAlertCircle },
-  COPYRIGHT: { color: 'text-[var(--terminal-purple)]', icon: IconAlertCircle },
-  OTHER: { color: 'text-[var(--silver-500)]', icon: IconAlertCircle },
+const REPORT_STATUS_COLOR_MAP: Record<string, SemanticColor> = {
+  PENDING: 'warning',
+  REVIEWED: 'info',
+  RESOLVED: 'success',
+  DISMISSED: 'error',
+}
+
+// ========== Category Maps ==========
+const CATEGORY_COLOR_MAP: Record<string, SemanticColor> = {
+  SPAM: 'warning',
+  HARASSMENT: 'error',
+  HATE_SPEECH: 'error',
+  VIOLENCE: 'error',
+  SEXUAL_CONTENT: 'error',
+  MISINFORMATION: 'warning',
+  WRONG_ANSWER: 'warning',
+  COPYRIGHT: 'purple',
+  OTHER: 'neutral',
+}
+
+const CATEGORY_ICON_MAP: Record<ReportCategory, typeof IconAlertTriangle> = {
+  SPAM: IconAlertCircle,
+  HARASSMENT: IconAlertTriangle,
+  HATE_SPEECH: IconAlertTriangle,
+  VIOLENCE: IconAlertTriangle,
+  SEXUAL_CONTENT: IconAlertTriangle,
+  MISINFORMATION: IconAlertCircle,
+  WRONG_ANSWER: IconAlertCircle,
+  COPYRIGHT: IconAlertCircle,
+  OTHER: IconAlertCircle,
 }
 
 // ========== Entity Type Styles ==========
@@ -86,41 +84,20 @@ const entityTypeColors: Record<ModeratableEntityType, string> = {
 // ========== Renderers ==========
 
 function renderStatusBadge(status: ReportStatus, t: (key: string) => string) {
-  const style = statusStyles[status]
-  const Icon = style.icon
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h(Icon, { class: ['h-3.5 w-3.5', style.text] }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border',
-          style.bg,
-          style.border,
-          style.text,
-        ].join(' '),
-      },
-      t(`moderation.reportStatus.${status}`),
-    ),
-  ])
+  return badge({
+    color: REPORT_STATUS_COLOR_MAP[status] ?? 'neutral',
+    label: t(`moderation.reportStatus.${status}`),
+    icon: REPORT_STATUS_ICON_MAP[status],
+  })
 }
 
 function renderCategoryBadge(category: ReportCategory, t: (key: string) => string) {
-  const style = categoryStyles[category]
-  const Icon = style.icon
-
-  return h('div', { class: 'flex items-center gap-1.5' }, [
-    h(Icon, { class: ['h-3 w-3', style.color] }),
-    h(
-      'span',
-      {
-        class: ['font-data text-[10px] uppercase tracking-[0.05em]', style.color].join(' '),
-      },
-      t(`moderation.categories.${category}`),
-    ),
-  ])
+  return badge({
+    color: CATEGORY_COLOR_MAP[category] ?? 'neutral',
+    label: t(`moderation.categories.${category}`),
+    icon: CATEGORY_ICON_MAP[category],
+    size: 'sm',
+  })
 }
 
 function truncateText(text: string, maxLength: number): string {

@@ -46,7 +46,7 @@ const forwardedProps = useForwardProps(delegatedProps)
         ],
         // Terminal destructive variant
         variant === 'terminal_destructive' && [
-          'text-[var(--terminal-red)] focus:bg-[oklch(0.6_0.2_25/0.1)] dark:focus:bg-[oklch(0.58_0.18_25/0.15)] focus:text-[var(--terminal-red)] [&_svg:not([class*=\'text-\'])]:!text-[var(--terminal-red)] font-data text-xs rounded-none',
+          'text-[var(--terminal-red)] focus:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)] dark:focus:bg-[oklch(0.58_0.18_25/0.15)] focus:text-[var(--terminal-red)] [&_svg:not([class*=\'text-\'])]:!text-[var(--terminal-red)] font-data text-xs rounded-none',
         ],
         props.class,
       )

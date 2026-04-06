@@ -18,6 +18,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { badge } from '@/components/ui/terminal'
+import type { SemanticColor } from '@/components/ui/terminal'
 import { type Appeal, AppealStatus } from '@/api/admin/moderation'
 import { formatDate } from '@/lib/format/date'
 
@@ -27,57 +29,27 @@ export interface AppealActions {
   rejectAppeal: (appeal: Appeal) => void
 }
 
-// ========== Status Styles ==========
-const statusStyles: Record<
-  AppealStatus,
-  { bg: string; border: string; text: string; icon: typeof IconScale }
-> = {
-  PENDING: {
-    bg: 'bg-[oklch(0.75_0.15_85/0.15)]',
-    border: 'border-[oklch(0.75_0.15_85/0.4)]',
-    text: 'text-[var(--terminal-amber)]',
-    icon: IconClock,
-  },
-  UNDER_REVIEW: {
-    bg: 'bg-[oklch(0.7_0.12_200/0.15)]',
-    border: 'border-[oklch(0.7_0.12_200/0.4)]',
-    text: 'text-[var(--terminal-cyan)]',
-    icon: IconEye,
-  },
-  APPROVED: {
-    bg: 'bg-[oklch(0.7_0.15_145/0.15)]',
-    border: 'border-[oklch(0.7_0.15_145/0.4)]',
-    text: 'text-[var(--terminal-green)]',
-    icon: IconCheck,
-  },
-  REJECTED: {
-    bg: 'bg-[oklch(0.6_0.2_25/0.15)]',
-    border: 'border-[oklch(0.6_0.2_25/0.4)]',
-    text: 'text-[var(--terminal-red)]',
-    icon: IconX,
-  },
+// ========== Status Maps ==========
+const APPEAL_STATUS_ICON_MAP: Record<AppealStatus, typeof IconScale> = {
+  PENDING: IconClock,
+  UNDER_REVIEW: IconEye,
+  APPROVED: IconCheck,
+  REJECTED: IconX,
+}
+
+const APPEAL_STATUS_COLOR_MAP: Record<AppealStatus, SemanticColor> = {
+  PENDING: 'warning',
+  UNDER_REVIEW: 'info',
+  APPROVED: 'success',
+  REJECTED: 'error',
 }
 
 function renderStatusBadge(status: AppealStatus, t: (key: string) => string) {
-  const style = statusStyles[status]
-  const Icon = style.icon
-
-  return h('div', { class: 'flex items-center gap-2' }, [
-    h(Icon, { class: ['h-3.5 w-3.5', style.text] }),
-    h(
-      'span',
-      {
-        class: [
-          'font-data text-[11px] font-medium uppercase tracking-[0.05em]',
-          'px-2 py-0.5 border',
-          style.bg,
-          style.border,
-          style.text,
-        ].join(' '),
-      },
-      t(`moderation.appealStatus.${status}`),
-    ),
-  ])
+  return badge({
+    color: APPEAL_STATUS_COLOR_MAP[status],
+    label: t(`moderation.appealStatus.${status}`),
+    icon: APPEAL_STATUS_ICON_MAP[status],
+  })
 }
 
 function truncateText(text: string, maxLength: number): string {

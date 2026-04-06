@@ -8,6 +8,17 @@ import {
   IconUser,
   IconX,
 } from '@tabler/icons-vue'
+import { getAuditActionColor, type SemanticColor } from '@/components/ui/terminal'
+
+const COLOR_TO_CLASS: Record<SemanticColor, string> = {
+  success: 'terminal-badge-success',
+  warning: 'terminal-badge-warning',
+  error: 'terminal-badge-error',
+  info: 'terminal-badge-info',
+  purple: 'terminal-badge-purple',
+  electric: 'terminal-badge-electric',
+  neutral: 'terminal-badge-neutral',
+}
 
 export function formatJson(value: unknown): string {
   if (!value) return 'N/A'
@@ -45,25 +56,7 @@ export function getActionBadgeVariant(
  * @returns Terminal badge class name
  */
 export function getActionBadgeClass(action: string): string {
-  const actionUpper = action.toUpperCase()
-  if (
-    actionUpper.includes('CREATE') ||
-    actionUpper.includes('GRANT') ||
-    actionUpper.includes('PUBLISH')
-  ) {
-    return 'terminal-badge-success' // green
-  }
-  if (actionUpper.includes('UPDATE') || actionUpper.includes('UNBAN')) {
-    return 'terminal-badge-info' // cyan
-  }
-  if (
-    actionUpper.includes('DELETE') ||
-    actionUpper.includes('BAN') ||
-    actionUpper.includes('REVOKE')
-  ) {
-    return 'terminal-badge-error' // red
-  }
-  return 'terminal-badge-info'
+  return COLOR_TO_CLASS[getAuditActionColor(action)]
 }
 
 export function getActionIcon(action: string) {
@@ -86,31 +79,23 @@ export function getActionIcon(action: string) {
   return IconInfoCircle
 }
 
+const COLOR_TO_TEXT_CLASS: Record<SemanticColor, string> = {
+  success: 'text-[var(--terminal-green)]',
+  warning: 'text-[var(--terminal-amber)]',
+  error: 'text-[var(--terminal-red)]',
+  info: 'text-[var(--terminal-cyan)]',
+  purple: 'text-[var(--terminal-purple)]',
+  electric: 'text-[var(--accent-electric)]',
+  neutral: 'text-[var(--silver-500)]',
+}
+
 /**
  * Get terminal color class based on action type
  * @param action - The action string to determine color style
  * @returns Terminal color class name
  */
 export function getActionIconColor(action: string): string {
-  const actionUpper = action.toUpperCase()
-  if (
-    actionUpper.includes('CREATE') ||
-    actionUpper.includes('GRANT') ||
-    actionUpper.includes('PUBLISH')
-  ) {
-    return 'text-[var(--terminal-green)]'
-  }
-  if (actionUpper.includes('UPDATE')) {
-    return 'text-[var(--terminal-cyan)]'
-  }
-  if (
-    actionUpper.includes('DELETE') ||
-    actionUpper.includes('BAN') ||
-    actionUpper.includes('REVOKE')
-  ) {
-    return 'text-[var(--terminal-red)]'
-  }
-  return 'text-[var(--silver-500)]'
+  return COLOR_TO_TEXT_CLASS[getAuditActionColor(action)]
 }
 
 export function getEntityTypeIcon(entityType: string | undefined) {

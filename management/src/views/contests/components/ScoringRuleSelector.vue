@@ -286,7 +286,7 @@ function cancelCreateNew() {
 
     <!-- Create New Rule Form -->
     <div v-else class="space-y-4">
-      <div class="border border-[var(--accent-electric)] bg-[oklch(0.65_0.15_250/0.05)] p-4">
+      <div class="border border-[var(--accent-electric)] bg-[color-mix(in_oklch,_var(--accent-electric)_5%,_transparent)] p-4">
         <div class="flex items-center justify-between mb-4">
           <div class="flex items-center gap-2">
             <IconPlus class="h-4 w-4 text-[var(--accent-electric)]" />
@@ -395,7 +395,7 @@ function cancelCreateNew() {
               type="button"
               variant="terminal"
               size="sm"
-              class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[oklch(0.7_0.15_145/0.1)]"
+              class="font-data text-xs border-[var(--terminal-green)] text-[var(--terminal-green)] hover:bg-[color-mix(in_oklch,_var(--terminal-green)_10%,_transparent)]"
               :disabled="createLoading || !newRuleForm.name.trim()"
               @click="handleCreateRule"
             >

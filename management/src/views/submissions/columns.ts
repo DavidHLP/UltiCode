@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/vue-table'
 import type { SubmissionListItem } from '@/api/admin/submissions'
 import { Checkbox } from '@/components/ui/checkbox'
-import { TerminalBadge } from '@/components/ui/terminal'
+import { badge, SUBMISSION_STATUS_COLOR_MAP } from '@/components/ui/terminal'
 import { Button } from '@/components/ui/button'
 import { IconEye, IconRefresh } from '@tabler/icons-vue'
 import { h } from 'vue'
@@ -10,26 +10,6 @@ import { formatDistanceToNow } from 'date-fns'
 export interface SubmissionActions {
   viewSubmission: (id: string) => void
   openRejudgeDialog: (id: string) => void
-}
-
-function getStatusBadgeVariant(
-  status: string,
-): 'success' | 'warning' | 'error' | 'info' | 'default' {
-  if (status === 'ACCEPTED') return 'success'
-  if (status === 'PENDING' || status === 'JUDGING') return 'warning'
-  if (
-    status === 'WRONG_ANSWER' ||
-    status === 'TIME_LIMIT_EXCEEDED' ||
-    status === 'MEMORY_LIMIT_EXCEEDED' ||
-    status === 'RUNTIME_ERROR' ||
-    status === 'COMPILE_ERROR'
-  )
-    return 'error'
-  return 'default'
-}
-
-function shouldPulse(status: string): boolean {
-  return status === 'PENDING' || status === 'JUDGING'
 }
 
 /**
@@ -123,10 +103,10 @@ export function createColumns(
       accessorKey: 'status',
       header: () => t('submissions.status'),
       cell: ({ row }) =>
-        h(TerminalBadge, {
-          variant: getStatusBadgeVariant(row.original.status),
-          pulse: shouldPulse(row.original.status),
+        badge({
+          color: SUBMISSION_STATUS_COLOR_MAP[row.original.status] ?? 'neutral',
           label: row.original.status,
+          pulse: row.original.status === 'PENDING' || row.original.status === 'JUDGING',
         }),
     },
     {

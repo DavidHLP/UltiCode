@@ -7,7 +7,6 @@ import type {
   LoginResponse,
 } from "@/types/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { parseCookies, hasCookie } from "@/utils/cookie";
 import { csrfManager } from "@/utils/csrf";
 
 const isDevelopment = import.meta.env.DEV;
@@ -100,16 +99,10 @@ export const useAuthStore = defineStore("auth", () => {
     // Create and store the promise
     _initializationPromise = (async () => {
       try {
-        // Only attempt to restore session if auth cookies exist
-        // Guests without cookies skip the /auth/me request entirely
-        if (!hasCookie(parseCookies(document.cookie), 'access_token')) {
-          if (isDevelopment) {
-            console.log(
-              "[Auth] No auth cookies found, skipping session restore",
-            );
-          }
-          return;
-        }
+        // Always attempt to restore session from httpOnly cookies.
+        // httpOnly cookies are NOT readable via document.cookie (browser security).
+        // The server reads cookies from the request headers directly.
+        // If no valid session exists, /auth/me returns 401 — handled gracefully.
         await fetchUser();
         if (isDevelopment) {
           console.log("[Auth] Session restored successfully");
@@ -172,8 +165,8 @@ export const useAuthStore = defineStore("auth", () => {
    */
   async function fetchUser(): Promise<User | null> {
     try {
-      // /auth/me returns User directly after interceptor unwraps Result<T> envelope
-      const response = await apiGet<User>("/auth/me", {
+      // /auth/me returns { user: User, csrfToken: string } after interceptor unwraps Result<T>
+      const response = await apiGet<{ user: User; csrfToken?: string }>("/auth/me", {
         skipErrorHandler: true,
       });
 
@@ -181,19 +174,24 @@ export const useAuthStore = defineStore("auth", () => {
         console.log("[Auth] /auth/me response:", response);
       }
 
-      if (!response) {
+      if (!response?.user) {
         console.error("[Auth] Invalid /auth/me response:", response);
         throw new Error("Invalid user response from /auth/me");
       }
 
-      user.value = response;
+      user.value = response.user;
+
+      // Restore CSRF token from /auth/me response (survives page refresh)
+      if (response.csrfToken) {
+        csrfManager.refreshFromResponse(response);
+      }
 
       if (isDevelopment) {
         console.log("[Auth] User data set:", user.value);
         console.log("[Auth] isAuthenticated:", isAuthenticated.value);
       }
 
-      return response;
+      return response.user;
     } catch (err) {
       if (isDevelopment) {
         console.log("[Auth] fetchUser error (user not logged in):", err);

@@ -74,6 +74,14 @@ cd management && pnpm test:coverage
 cd backend-spring && ./mvnw test
 ```
 
+### Database Management Notes
+
+- **Python 路径**: db-manager 有独立 venv，必须用 `db-manager/.venv/bin/python -m db_manager.cli`，系统 python 不可用
+- **修改迁移文件后**: 已有迁移的 checksum 会变化，需先 `clean --force` 再 `migrate`
+- **MySQL 访问**: 通过 Docker 容器访问，`docker exec ulticode-mysql mysql -u ulticode -pulticode ulticode`
+- **种子数据分布**: V1(users/submissions/permissions), V2(problems/tags/lists), V3(contests/rankings), V4(forum), V8(collections), V9(solutions)
+- **外键**: 迁移文件以 `SET FOREIGN_KEY_CHECKS=0` 开头，`SET FOREIGN_KEY_CHECKS=1` 结尾
+
 ### Build
 
 ```bash

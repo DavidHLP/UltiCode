@@ -11,27 +11,11 @@
 let csrfToken: string | null = null;
 
 /**
- * Store the CSRF token
- * @param token - The CSRF token from the login response
- */
-export function setCsrfToken(token: string): void {
-  csrfToken = token;
-}
-
-/**
  * Retrieve the current CSRF token
  * @returns The CSRF token or null if not set
  */
 export function getCsrfToken(): string | null {
   return csrfToken;
-}
-
-/**
- * Clear the stored CSRF token
- * Called on logout to clean up
- */
-export function clearCsrfToken(): void {
-  csrfToken = null;
 }
 
 /**

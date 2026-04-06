@@ -243,5 +243,3 @@ export const recommendationSidebarData: SidebarSection[] = [
     ],
   },
 ];
-
-export const sidebarData = forumSidebarData; // Default fallback

@@ -38,7 +38,7 @@
           v-else
           class="flex flex-col items-center justify-center py-24 text-center"
         >
-          <div class="p-6 rounded-3xl bg-muted/30 mb-6">
+          <div class="p-6 rounded-none bg-muted/30 mb-6">
             <MessageSquare class="h-12 w-12 text-muted-foreground/20" />
           </div>
           <h3 class="text-xl font-black tracking-tight">

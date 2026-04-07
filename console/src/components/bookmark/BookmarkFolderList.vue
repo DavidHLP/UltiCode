@@ -44,7 +44,7 @@ const sortedFolders = computed(() => {
     <div
       v-for="folder in sortedFolders"
       :key="folder.id"
-      class="group flex items-center justify-between rounded-2xl px-3 py-2.5 hover:bg-muted/50 transition-all duration-200 cursor-pointer border border-transparent"
+      class="group flex items-center justify-between rounded-none px-3 py-2.5 hover:bg-muted/50 transition-all duration-200 cursor-pointer border border-transparent"
       :class="{
         'bg-muted/80 border-muted-foreground/10 shadow-sm':
           selectedId === folder.id,
@@ -54,7 +54,7 @@ const sortedFolders = computed(() => {
     >
       <div class="flex items-center gap-3.5 min-w-0">
         <div
-          class="flex items-center justify-center h-10 w-10 rounded-xl shrink-0 border transition-colors"
+          class="flex items-center justify-center h-10 w-10 rounded-none shrink-0 border transition-colors"
           :class="[
             folder.color
               ? `bg-${folder.color}-500/10 border-${folder.color}-500/20 text-${folder.color}-600`
@@ -89,7 +89,7 @@ const sortedFolders = computed(() => {
             <MoreHorizontal class="h-4 w-4" />
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" class="rounded-xl">
+        <DropdownMenuContent align="end" class="rounded-none">
           <DropdownMenuItem @select="emit('edit', folder)" class="gap-2">
             <Pencil class="h-4 w-4" />
             {{ t("bookmark.actions.edit") }}
@@ -109,7 +109,7 @@ const sortedFolders = computed(() => {
       v-if="folders.length === 0"
       class="py-12 text-center flex flex-col items-center justify-center"
     >
-      <div class="p-4 rounded-3xl bg-muted/50 mb-3">
+      <div class="p-4 rounded-none bg-muted/50 mb-3">
         <Folder class="h-8 w-8 text-muted-foreground/30" />
       </div>
       <p class="text-sm font-bold text-muted-foreground/70 tracking-tight">

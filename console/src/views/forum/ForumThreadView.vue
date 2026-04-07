@@ -220,7 +220,7 @@ function handleThreadSave(isSaved: boolean) {
             <ArrowLeft class="h-5 w-5" />
           </RouterLink>
 
-          <div class="flex-1 min-w-0 bg-card sm:rounded-xl overflow-hidden">
+          <div class="flex-1 min-w-0 bg-card sm:rounded-none overflow-hidden">
             <div
               v-if="isOwner()"
               class="flex flex-wrap items-center justify-end gap-2 px-4 sm:px-6 pt-4"
@@ -274,7 +274,7 @@ function handleThreadSave(isSaved: boolean) {
 
       <div
         v-else
-        class="rounded-xl border border-dashed border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive"
+        class="rounded-none border border-dashed border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive"
       >
         {{ t("forum.comments.failedToLoad") }}
       </div>

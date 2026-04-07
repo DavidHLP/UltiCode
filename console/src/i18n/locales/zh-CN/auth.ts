@@ -1,6 +1,14 @@
 export default {
+  // Layout
+  layout: {
+    systemOnline: "系统在线",
+    codingConsole: "在线编程<br/>控制台",
+    codingConsoleSubtitle: "练习算法，提升编程能力",
+  },
+
   // Login page
   login: {
+    terminal: "login.sh",
     title: "登录您的账户",
     subtitle: "输入您的用户名和密码登录",
     username: "用户名",
@@ -19,6 +27,7 @@ export default {
 
   // Register page
   register: {
+    terminal: "register.sh",
     title: "创建账户",
     subtitle: "输入您的信息创建新账户",
     username: "用户名",
@@ -41,6 +50,7 @@ export default {
 
   // Forgot password page
   forgotPassword: {
+    terminal: "reset-request.sh",
     title: "忘记密码",
     subtitle: "输入您的邮箱地址，我们将发送重置链接",
     email: "邮箱",
@@ -54,6 +64,7 @@ export default {
 
   // Reset password page
   resetPassword: {
+    terminal: "reset-password.sh",
     title: "重置密码",
     subtitle: "请输入您的新密码",
     newPassword: "新密码",

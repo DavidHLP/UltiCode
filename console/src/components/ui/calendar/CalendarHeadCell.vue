@@ -19,7 +19,7 @@ const forwardedProps = useForwardProps(delegatedProps);
     data-slot="calendar-head-cell"
     :class="
       cn(
-        'text-muted-foreground rounded-md w-8 font-normal text-[0.8rem]',
+        'text-muted-foreground w-8 font-normal text-[0.8rem]',
         props.class,
       )
     "

@@ -99,13 +99,13 @@ function handleProblemSelect(problemId: number) {
 
     <!-- Loading state -->
     <div v-if="store.loading" class="grid gap-4">
-      <Skeleton v-for="i in 3" :key="i" class="h-32 rounded-lg" />
+      <Skeleton v-for="i in 3" :key="i" class="h-32 rounded-none" />
     </div>
 
     <!-- Error state -->
     <div
       v-else-if="store.error"
-      class="rounded-lg border border-destructive/50 bg-destructive/10 p-4 text-destructive"
+      class="rounded-none border border-destructive/50 bg-destructive/10 p-4 text-destructive"
     >
       {{ store.error }}
     </div>
@@ -113,7 +113,7 @@ function handleProblemSelect(problemId: number) {
     <!-- Empty state -->
     <div
       v-else-if="recommendations.length === 0"
-      class="rounded-lg border bg-muted/50 p-8 text-center text-muted-foreground"
+      class="rounded-none border bg-muted/50 p-8 text-center text-muted-foreground"
     >
       <p v-if="currentType === 'similar' && !selectedProblemId">
         {{ t("recommendation.empty.similar") }}

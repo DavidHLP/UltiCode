@@ -25,7 +25,7 @@
       <div class="flex w-full flex-col overflow-hidden">
         <!-- 标题和话题区域 -->
         <div class="flex flex-shrink-0 flex-col gap-3 px-4 py-3">
-          <div class="rounded-lg border bg-card p-3">
+          <div class="rounded-none border bg-card p-3">
             <Input
               v-model="title"
               :placeholder="t('solution.editor.enterTitle')"
@@ -36,7 +36,7 @@
               <div class="relative">
                 <button
                   type="button"
-                  class="flex h-8 items-center gap-2 rounded-md border border-border bg-background px-3 text-sm hover:bg-muted"
+                  class="flex h-8 items-center gap-2 rounded-none border border-border bg-background px-3 text-sm hover:bg-muted"
                   @click="showTopicPicker = !showTopicPicker"
                 >
                   <Tag class="h-4 w-4" />
@@ -44,7 +44,7 @@
                 </button>
                 <div
                   v-if="showTopicPicker"
-                  class="absolute left-0 top-10 z-50 w-80 rounded-md border border-border bg-card shadow-lg"
+                  class="absolute left-0 top-10 z-50 w-80 rounded-none border border-border bg-card shadow-lg"
                 >
                   <div class="border-b border-border px-4 py-3">
                     <h4 class="text-sm font-medium">
@@ -94,7 +94,7 @@
               <span
                 v-for="topic in selectedTopics"
                 :key="topic.id"
-                class="inline-flex items-center gap-1.5 rounded-md bg-secondary px-2 py-1 text-sm"
+                class="inline-flex items-center gap-1.5 rounded-none bg-secondary px-2 py-1 text-sm"
               >
                 {{ topic.name }}
                 <button
@@ -119,7 +119,7 @@
 
             <!-- Markdown Preview -->
             <div
-              class="flex flex-col rounded-lg border bg-card overflow-hidden"
+              class="flex flex-col rounded-none border bg-card overflow-hidden"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-3 py-2 text-xs font-medium text-muted-foreground"
@@ -159,7 +159,6 @@ import { fetchSubmission, fetchBestSubmission } from "@/api/submission";
 import type { SubmissionRecord } from "@/types/submission";
 import type { SolutionTopic } from "@/types/topic";
 import { useI18n } from "vue-i18n";
-import "highlight.js/styles/atom-one-dark.css";
 
 import { MarkdownEdit, MarkdownView } from "@/components/markdown";
 

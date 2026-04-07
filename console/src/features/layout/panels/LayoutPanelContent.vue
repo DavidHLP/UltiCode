@@ -30,7 +30,7 @@ const content = computed(() => {
 </script>
 
 <template>
-  <div class="h-full w-full bg-[#ffffff]">
+  <div class="h-full w-full bg-background">
     <component
       v-if="contentComponent"
       :is="contentComponent"
@@ -38,7 +38,7 @@ const content = computed(() => {
     />
     <div
       v-else
-      class="border-2 border-dashed border-muted-foreground rounded-lg p-8 h-full w-full flex items-center justify-center bg-[#ffffff]"
+      class="border-2 border-dashed border-muted-foreground rounded-none p-8 h-full w-full flex items-center justify-center bg-background"
     >
       <p class="text-center text-muted-foreground">{{ content }}</p>
     </div>

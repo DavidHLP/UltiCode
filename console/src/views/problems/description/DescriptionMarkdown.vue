@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { renderMarkdown } from "@/utils/markdown";
-import "highlight.js/styles/atom-one-dark.css";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 
@@ -216,6 +215,6 @@ const htmlContent = computed(() => renderMarkdown(markdownContent.value));
 
 /* Dark mode tweaks if necessary */
 .dark .description-markdown :deep(.markdown-content code) {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: oklch(0.95 0.01 250);
 }
 </style>

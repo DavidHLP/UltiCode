@@ -15,15 +15,15 @@ defineProps<{
 
 const colorClasses = {
   default: "text-foreground",
-  green: "text-green-600 dark:text-green-400",
-  blue: "text-blue-600 dark:text-blue-400",
-  purple: "text-purple-600 dark:text-purple-400",
-  orange: "text-orange-600 dark:text-orange-400",
+  green: "text-[oklch(0.6444_0.1508_118.6)]",
+  blue: "text-[oklch(0.6149_0.1394_244.9)]",
+  purple: "text-[oklch(0.5924_0.2025_355.9)]",
+  orange: "text-[oklch(0.6545_0.1340_85.7)]",
 };
 </script>
 
 <template>
-  <div class="rounded-lg border bg-card p-4 transition-all hover:shadow-md">
+  <div class="rounded-none border bg-card p-4 transition-all hover:shadow-md">
     <div class="flex items-start justify-between">
       <div class="space-y-1">
         <p class="text-sm font-medium text-muted-foreground">{{ title }}</p>
@@ -42,7 +42,7 @@ const colorClasses = {
         :class="
           cn(
             'text-xs font-medium',
-            trend.value >= 0 ? 'text-green-600' : 'text-red-600',
+            trend.value >= 0 ? 'text-[oklch(0.6444_0.1508_118.6)]' : 'text-[oklch(0.5863_0.2064_27.1)]',
           )
         "
       >

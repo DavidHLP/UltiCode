@@ -87,7 +87,7 @@ async function handleRandom() {
           <HoverCardTrigger as-child>
             <Button
               variant="ghost"
-              class="group cursor-pointer gap-2 overflow-hidden hover:text-lc-icon-primary flex items-center h-8 transition-none hover:bg-fill-quaternary text-gray-60 px-2"
+              class="group cursor-pointer gap-2 overflow-hidden hover:text-lc-icon-primary flex items-center h-8 transition-none hover:bg-fill-quaternary text-gray-600 px-2"
               role="button"
               data-state="closed"
               @click="toggleSidePanel"

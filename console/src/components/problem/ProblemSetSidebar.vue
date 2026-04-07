@@ -8,7 +8,7 @@ import {
   today,
 } from "@internationalized/date";
 import { Badge } from "@/components/ui/badge";
-import { type Ref, ref, onMounted } from "vue";
+import { type Ref, ref, computed, onMounted } from "vue";
 import { Trophy } from "lucide-vue-next";
 import { fetchDailyActivity } from "@/api/submission";
 import { useI18n } from "vue-i18n";
@@ -16,7 +16,15 @@ import { useI18n } from "vue-i18n";
 const date = ref(today(getLocalTimeZone())) as Ref<DateValue>;
 const completedDates = ref<string[]>([]);
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
+
+const displayMonth = computed(() => {
+  const d = date.value;
+  return new Intl.DateTimeFormat(locale.value, {
+    month: "short",
+    year: "numeric",
+  }).format(d.toDate(getLocalTimeZone()));
+});
 
 onMounted(async () => {
   if (useAuthStore().isAuthenticated) {
@@ -33,13 +41,13 @@ onMounted(async () => {
 <template>
   <div class="space-y-6">
     <!-- Calendar Widget -->
-    <Card class="border-muted/60 shadow-sm bg-card/50 rounded-2xl">
+    <Card class="border-muted/60 bg-card/50 rounded-none">
       <CardHeader class="pb-2 border-b border-border/50 bg-muted/20">
         <CardTitle
           class="text-sm font-medium flex items-center justify-between"
         >
           <div class="flex items-center gap-2">
-            <Trophy class="w-4 h-4 text-amber-500" />
+            <Trophy class="w-4 h-4 text-[var(--terminal-amber)]" />
             <span>{{ t("problem.sidebar.dailyChallenge") }}</span>
           </div>
           <div class="flex items-center gap-1">
@@ -48,10 +56,10 @@ onMounted(async () => {
             >
             <Badge
               variant="outline"
-              class="text-[10px] font-normal h-5 px-1.5 flex gap-1 items-center bg-background/50 rounded-md"
+              class="text-[10px] font-normal h-5 px-1.5 flex gap-1 items-center bg-background/50 rounded-none"
             >
               <span
-                class="w-1.5 h-1.5 rounded-full bg-amber-500 shadow-[0_0_5px_rgba(245,158,11,0.4)]"
+                class="w-1.5 h-1.5 rounded-full bg-[var(--terminal-amber)] shadow-[0_0_5px_oklch(0.795_0.184_86.047/0.4)]"
               ></span>
               {{ completedDates.length }}
             </Badge>
@@ -61,7 +69,7 @@ onMounted(async () => {
       <CardContent class="p-3 flex justify-center bg-card/30">
         <Calendar
           v-model="date"
-          class="rounded-md border-0 p-0"
+          class="rounded-none border-0 p-0"
           :completed-dates="completedDates"
         />
       </CardContent>

@@ -20,12 +20,12 @@ const { t } = useI18n();
     <!-- Community Info (when viewing specific community) -->
     <div
       v-if="community"
-      class="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm"
+      class="overflow-hidden rounded-none border bg-card text-card-foreground shadow-sm"
     >
       <div
         class="bg-muted/50 p-4 font-medium"
         :style="{
-          borderLeftColor: community.color || '#6366f1',
+          borderLeftColor: community.color || 'oklch(0.5924 0.2025 355.9)',
           borderLeftWidth: '4px',
         }"
       >
@@ -48,7 +48,7 @@ const { t } = useI18n();
             <span class="text-muted-foreground">{{
               t("forum.sidebar.online")
             }}</span>
-            <span class="font-medium text-green-600">{{
+            <span class="font-medium text-[var(--terminal-green)]">{{
               community.online?.toLocaleString()
             }}</span>
           </div>
@@ -103,7 +103,7 @@ const { t } = useI18n();
     <!-- Default sidebar (when viewing all posts) -->
     <div
       v-else
-      class="overflow-hidden rounded-lg border bg-card text-card-foreground shadow-sm"
+      class="overflow-hidden rounded-none border bg-card text-card-foreground shadow-sm"
     >
       <div class="bg-muted/50 p-4 font-medium">
         {{ t("forum.sidebar.aboutCommunity") }}

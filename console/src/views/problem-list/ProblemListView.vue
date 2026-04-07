@@ -362,13 +362,13 @@ const openAddProblemsDialog = () => {
 const getDifficultyColor = (difficulty: string) => {
   switch (difficulty?.toLowerCase()) {
     case "easy":
-      return "text-green-600 bg-green-100";
+      return "text-[var(--terminal-green)] bg-[oklch(0.6444_0.1508_118.6_/_0.12)]";
     case "medium":
-      return "text-yellow-600 bg-yellow-100";
+      return "text-[var(--terminal-amber)] bg-[oklch(0.6545_0.1340_85.7_/_0.12)]";
     case "hard":
-      return "text-red-600 bg-red-100";
+      return "text-[var(--terminal-red)] bg-[oklch(0.5863_0.2064_27.1_/_0.12)]";
     default:
-      return "text-gray-600 bg-gray-100";
+      return "text-muted-foreground bg-muted";
   }
 };
 </script>
@@ -384,7 +384,7 @@ const getDifficultyColor = (difficulty: string) => {
       <div class="space-y-4 max-w-3xl">
         <div class="space-y-2">
           <div class="flex items-center gap-3">
-            <Badge variant="outline" class="rounded-md px-2.5 py-0.5">{{
+            <Badge variant="outline" class="rounded-none px-2.5 py-0.5">{{
               t("problem.problemList.detail.listBadge")
             }}</Badge>
             <Badge
@@ -660,7 +660,7 @@ const getDifficultyColor = (difficulty: string) => {
           </div>
 
           <!-- Search Results -->
-          <div class="border rounded-md overflow-hidden">
+          <div class="border rounded-none overflow-hidden">
             <div
               v-if="isSearching"
               class="flex items-center justify-center py-12"
@@ -717,7 +717,7 @@ const getDifficultyColor = (difficulty: string) => {
                       v-if="problemIdsInList.has(problem.id)"
                       variant="ghost"
                       size="sm"
-                      class="text-green-600 gap-1 pointer-events-none"
+                      class="text-[var(--terminal-green)] gap-1 pointer-events-none"
                     >
                       <Check class="h-4 w-4" />
                       {{ t("problem.problemList.detail.added") }}
@@ -753,7 +753,7 @@ const getDifficultyColor = (difficulty: string) => {
 
     <div v-if="problems.length === 0" class="py-12">
       <Empty
-        class="h-80 border border-dashed border-border/60 bg-muted/20 rounded-xl"
+        class="h-80 border border-dashed border-border/60 bg-muted/20 rounded-none"
       >
         <EmptyContent>
           <EmptyMedia

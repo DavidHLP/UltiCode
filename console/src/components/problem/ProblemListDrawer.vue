@@ -71,10 +71,10 @@ const navigateToProblem = (slug: string) => {
         </div>
         <div class="flex items-center text-xs text-muted-foreground">
           <div
-            class="w-3 h-3 rounded-full border border-green-500 mr-1.5 relative"
+            class="w-3 h-3 rounded-full border border-[var(--terminal-green)] mr-1.5 relative"
           >
             <div
-              class="absolute inset-0 m-auto w-1.5 h-1.5 rounded-full bg-green-500"
+              class="absolute inset-0 m-auto w-1.5 h-1.5 rounded-full bg-[var(--terminal-green)]"
               v-if="filteredProblems.length > 0"
             ></div>
           </div>
@@ -132,7 +132,7 @@ const navigateToProblem = (slug: string) => {
             class="flex flex-col items-center justify-center py-12 space-y-3 text-muted-foreground"
           >
             <div
-              class="flex h-12 w-12 items-center justify-center rounded-2xl bg-muted/50 mb-2"
+              class="flex h-12 w-12 items-center justify-center rounded-none bg-muted/50 mb-2"
             >
               <Search class="h-6 w-6 text-muted-foreground/50" />
             </div>
@@ -146,7 +146,7 @@ const navigateToProblem = (slug: string) => {
             <div
               v-for="problem in filteredProblems"
               :key="problem.id"
-              class="group flex items-center justify-between px-4 py-3 rounded-lg cursor-pointer transition-colors"
+              class="group flex items-center justify-between px-4 py-3 rounded-none cursor-pointer transition-colors"
               :class="
                 currentProblemId === problem.id
                   ? 'bg-zinc-900 text-white hover:bg-zinc-800'
@@ -164,7 +164,7 @@ const navigateToProblem = (slug: string) => {
                 <div class="shrink-0">
                   <Check
                     v-if="problem.status === 'solved'"
-                    class="h-4 w-4 text-green-500"
+                    class="h-4 w-4 text-[var(--terminal-green)]"
                   />
                   <div v-else class="h-4 w-4"></div>
                   <!-- Spacer -->
@@ -182,9 +182,9 @@ const navigateToProblem = (slug: string) => {
                 <span
                   :class="
                     cn({
-                      'text-green-500': problem.difficulty === 'Easy',
-                      'text-yellow-500': problem.difficulty === 'Medium',
-                      'text-red-500': problem.difficulty === 'Hard',
+                      'text-[var(--terminal-green)]': problem.difficulty === 'Easy',
+                      'text-[var(--terminal-amber)]': problem.difficulty === 'Medium',
+                      'text-[var(--terminal-red)]': problem.difficulty === 'Hard',
                     })
                   "
                 >

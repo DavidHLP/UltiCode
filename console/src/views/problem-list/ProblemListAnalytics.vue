@@ -61,9 +61,9 @@ const difficultyStats = computed(() => {
     const percentage = total > 0 ? (solved / total) * 100 : 0;
 
     // Determine color class based on difficulty
-    let colorClass = "bg-green-500";
-    if (difficulty === "Medium") colorClass = "bg-yellow-500";
-    if (difficulty === "Hard") colorClass = "bg-red-500";
+    let colorClass = "bg-chart-easy";
+    if (difficulty === "Medium") colorClass = "bg-chart-medium";
+    if (difficulty === "Hard") colorClass = "bg-chart-hard";
 
     return {
       difficulty,
@@ -90,7 +90,7 @@ const donutValueFormatter = (tick: number | Date) =>
 <template>
   <div class="space-y-6">
     <!-- Progress Overview -->
-    <Card class="border-none shadow-md bg-gradient-to-br from-card to-muted/20">
+    <Card class="border-none shadow-md bg-card">
       <CardHeader class="pb-2">
         <CardTitle class="text-lg font-semibold tracking-tight">{{
           t("problem.problemList.analytics.progress")
@@ -135,11 +135,11 @@ const donutValueFormatter = (tick: number | Date) =>
           <div class="flex justify-between text-sm font-medium">
             <span
               :class="{
-                'text-green-600 dark:text-green-400':
+                'text-chart-easy':
                   stat.difficulty === 'Easy',
-                'text-yellow-600 dark:text-yellow-400':
+                'text-chart-medium':
                   stat.difficulty === 'Medium',
-                'text-red-600 dark:text-red-400': stat.difficulty === 'Hard',
+                'text-chart-hard': stat.difficulty === 'Hard',
               }"
               >{{ stat.label }}</span
             >

@@ -50,11 +50,11 @@ const emit = defineEmits<{
 }>();
 
 const flairClasses: Record<ForumFlairType, string> = {
-  announcement: "bg-amber-100 text-amber-700",
-  discussion: "bg-blue-100 text-blue-700",
-  showcase: "bg-purple-100 text-purple-700",
-  question: "bg-emerald-100 text-emerald-700",
-  hiring: "bg-orange-100 text-orange-700",
+  announcement: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
+  discussion: "bg-[oklch(0.6149_0.1394_244.9_/_0.12)] text-[var(--accent-electric)]",
+  showcase: "bg-[oklch(0.5924_0.2025_355.9_/_0.12)] text-[var(--terminal-purple)]",
+  question: "bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]",
+  hiring: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
 };
 
 const communityIcon = computed(() => props.thread.community?.icon || "");
@@ -252,7 +252,7 @@ async function handleShare() {
         </Badge>
         <span
           v-if="thread.isLocked"
-          class="inline-flex items-center gap-1 text-[11px] font-medium text-amber-600"
+          class="inline-flex items-center gap-1 text-[11px] font-medium text-[var(--terminal-amber)]"
         >
           <Lock class="h-3 w-3" /> {{ t("forum.post.locked") }}
         </span>
@@ -269,7 +269,7 @@ async function handleShare() {
 
       <section v-if="media" class="mt-4">
         <div
-          class="overflow-hidden rounded-lg border border-border/40 bg-muted/20"
+          class="overflow-hidden rounded-none border border-border/40 bg-muted/20"
         >
           <AspectRatio
             v-if="media.type === 'image'"
@@ -308,7 +308,7 @@ async function handleShare() {
               <a
                 :href="media.url"
                 target="_blank"
-                class="mt-2 text-blue-500 hover:underline text-xs inline-flex items-center gap-1"
+                class="mt-2 text-[var(--accent-electric)] hover:underline text-xs inline-flex items-center gap-1"
               >
                 {{ t("forum.actions.copyLink") }} <Share2 class="w-3 h-3" />
               </a>

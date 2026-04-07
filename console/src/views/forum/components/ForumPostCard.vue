@@ -49,11 +49,11 @@ const emit = defineEmits<{
 }>();
 
 const flairClasses: Record<ForumFlairType, string> = {
-  announcement: "bg-amber-100 text-amber-700",
-  discussion: "bg-blue-100 text-blue-700",
-  showcase: "bg-purple-100 text-purple-700",
-  question: "bg-emerald-100 text-emerald-700",
-  hiring: "bg-orange-100 text-orange-700",
+  announcement: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
+  discussion: "bg-[oklch(0.6149_0.1394_244.9_/_0.12)] text-[var(--accent-electric)]",
+  showcase: "bg-[oklch(0.5924_0.2025_355.9_/_0.12)] text-[var(--terminal-purple)]",
+  question: "bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]",
+  hiring: "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)]",
 };
 
 const userInitials = computed(() => {
@@ -284,7 +284,7 @@ async function handleSave() {
           <!-- Media -->
           <div
             v-if="media"
-            class="mt-2 overflow-hidden rounded-xl border border-border/40 bg-muted/40"
+            class="mt-2 overflow-hidden rounded-none border border-border/40 bg-muted/40"
           >
             <AspectRatio
               v-if="media.kind === 'image'"
@@ -311,7 +311,7 @@ async function handleSave() {
                 <div class="text-xs text-muted-foreground truncate">
                   {{ media.description }}
                 </div>
-                <div class="flex items-center gap-1 text-xs text-blue-500">
+                <div class="flex items-center gap-1 text-xs text-[var(--accent-electric)]">
                   <LinkIcon class="w-3 h-3" />
                   {{ media.domain }}
                 </div>

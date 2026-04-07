@@ -107,13 +107,13 @@ watch(isOpen, (open) => {
 
       <div class="grid grid-cols-2 gap-4 mt-4 h-[400px]">
         <!-- Template List -->
-        <div class="border rounded-lg overflow-hidden flex flex-col">
+        <div class="border rounded-none overflow-hidden flex flex-col">
           <div class="p-2 border-b bg-muted/50">
             <input
               v-model="searchQuery"
               type="text"
               :placeholder="t('problem.editor.templates.searchPlaceholder')"
-              class="w-full px-3 py-1.5 text-sm bg-background border rounded-md outline-none focus:ring-2 focus:ring-ring"
+              class="w-full px-3 py-1.5 text-sm bg-background border rounded-none outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
 
@@ -139,7 +139,7 @@ watch(isOpen, (open) => {
                 <button
                   v-for="template in group.items"
                   :key="template.id"
-                  class="w-full text-left px-3 py-2 rounded-md text-sm hover:bg-accent transition-colors"
+                  class="w-full text-left px-3 py-2 rounded-none text-sm hover:bg-accent transition-colors"
                   :class="[
                     selectedTemplate?.id === template.id
                       ? 'bg-accent text-accent-foreground'
@@ -162,7 +162,7 @@ watch(isOpen, (open) => {
         </div>
 
         <!-- Template Preview -->
-        <div class="border rounded-lg overflow-hidden flex flex-col">
+        <div class="border rounded-none overflow-hidden flex flex-col">
           <div class="p-2 border-b bg-muted/50">
             <span class="text-sm font-medium">{{
               t("problem.editor.templates.preview")

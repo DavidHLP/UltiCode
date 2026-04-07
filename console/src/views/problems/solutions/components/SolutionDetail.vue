@@ -18,7 +18,6 @@ import {
 } from "@/api/solution";
 import { vote, VoteTargetType } from "@/api/vote";
 import { PostActions } from "@/components/edge-operations";
-import "highlight.js/styles/atom-one-dark.css";
 import { toast } from "vue-sonner";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { Button } from "@/components/ui/button";
@@ -271,7 +270,7 @@ watch(
           <Badge
             v-if="props.item.flair"
             variant="secondary"
-            class="rounded-full bg-orange-100 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700 hover:bg-orange-100"
+            class="rounded-full bg-[var(--terminal-amber)]/20 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/20"
           >
             {{ props.item.flair }}
           </Badge>

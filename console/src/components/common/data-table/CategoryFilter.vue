@@ -31,7 +31,7 @@ const emit = defineEmits<{
       "
     >
       <div
-        class="p-1 rounded bg-white dark:bg-zinc-950 shadow-sm"
+        class="p-1 rounded bg-popover shadow-sm"
         :class="modelValue === cat.value ? 'text-primary' : 'text-zinc-400'"
       >
         <component :is="cat.icon" v-if="cat.icon" class="w-3 h-3" />

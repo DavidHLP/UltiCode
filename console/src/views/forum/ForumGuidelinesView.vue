@@ -107,7 +107,7 @@ const { t } = useI18n();
         </Card>
 
         <div
-          class="rounded-2xl border border-primary/20 bg-primary/5 p-6 text-base"
+          class="rounded-none border border-primary/20 bg-primary/5 p-6 text-base"
         >
           <p class="font-bold text-primary">
             {{ t("forum.guidelines.questionsTitle") }}

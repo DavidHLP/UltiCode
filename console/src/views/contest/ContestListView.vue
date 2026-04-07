@@ -117,9 +117,9 @@ onMounted(loadData);
     >
       <div class="space-y-1">
         <div class="flex items-center gap-3">
-          <Trophy class="h-8 w-8 text-yellow-500" />
+          <Trophy class="h-8 w-8 text-[var(--terminal-amber)]" />
           <h1
-            class="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-yellow-500 to-orange-600"
+            class="text-3xl font-bold tracking-tight text-[var(--terminal-amber)]"
           >
             {{ t("contest.list.title") }}
           </h1>
@@ -150,11 +150,11 @@ onMounted(loadData);
       <!-- Tabbed Navigation -->
       <Tabs v-model="activeTab" class="w-full">
         <TabsList
-          class="bg-muted/50 p-1 h-12 rounded-xl w-full sm:w-auto grid grid-cols-3"
+          class="bg-muted/50 p-1 h-12 rounded-none w-full sm:w-auto grid grid-cols-3"
         >
           <TabsTrigger
             value="ongoing"
-            class="rounded-lg px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2"
+            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
           >
             <PlayCircle class="h-4 w-4" />
             <span class="hidden sm:inline">{{
@@ -163,14 +163,14 @@ onMounted(loadData);
             <span class="sm:hidden">{{ t("contest.list.running") }}</span>
             <span
               v-if="runningContests.length > 0"
-              class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-bold text-white"
+              class="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-[var(--terminal-red)] text-[10px] font-bold text-white"
             >
               {{ runningContests.length }}
             </span>
           </TabsTrigger>
           <TabsTrigger
             value="upcoming"
-            class="rounded-lg px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2"
+            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
           >
             <Calendar class="h-4 w-4" />
             <span class="hidden sm:inline">{{
@@ -180,7 +180,7 @@ onMounted(loadData);
           </TabsTrigger>
           <TabsTrigger
             value="finished"
-            class="rounded-lg px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-sm gap-2"
+            class="rounded-none px-6 font-bold data-[state=active]:bg-background data-[state=active]:shadow-[var(--shadow-float)] gap-2"
           >
             <CheckCircle class="h-4 w-4" />
             <span class="hidden sm:inline">{{
@@ -226,7 +226,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
           >
             <PlayCircle class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">
@@ -274,7 +274,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
           >
             <Calendar class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">
@@ -322,7 +322,7 @@ onMounted(loadData);
           <!-- Empty State -->
           <div
             v-else
-            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-2xl bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-16 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
           >
             <CheckCircle class="h-12 w-12 text-muted-foreground/30 mb-4" />
             <h3 class="text-lg font-bold">

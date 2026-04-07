@@ -134,15 +134,15 @@ function getTypeLabel(type: string) {
 function getTypeColor(type: string): string {
   switch (type) {
     case "problems":
-      return "bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400";
+      return "bg-[var(--accent-electric)]/10 text-[var(--accent-electric)]";
     case "users":
-      return "bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400";
+      return "bg-[var(--terminal-green)]/10 text-[var(--terminal-green)]";
     case "posts":
-      return "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400";
+      return "bg-[var(--terminal-purple)]/10 text-[var(--terminal-purple)]";
     case "solutions":
-      return "bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400";
+      return "bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)]";
     default:
-      return "bg-gray-100 text-gray-600 dark:bg-gray-900/30 dark:text-gray-400";
+      return "bg-muted text-muted-foreground";
   }
 }
 
@@ -202,7 +202,7 @@ onUnmounted(() => {
             <div
               :class="
                 cn(
-                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-lg',
+                  'flex h-10 w-10 shrink-0 items-center justify-center rounded-none',
                   getTypeColor(result.type),
                 )
               "

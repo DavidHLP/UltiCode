@@ -170,7 +170,7 @@ watch(
         <div class="flex items-center gap-1">
           <DropdownMenu>
             <DropdownMenuTrigger
-              class="h-8 px-3 py-1 text-xs font-medium flex items-center gap-1 hover:bg-muted rounded-md transition-colors outline-none"
+              class="h-8 px-3 py-1 text-xs font-medium flex items-center gap-1 hover:bg-muted rounded-none transition-colors outline-none"
               :aria-label="t('problem.layout.selectLanguage')"
             >
               {{ activeLanguageLabel }}

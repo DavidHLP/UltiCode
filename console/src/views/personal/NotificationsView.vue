@@ -231,7 +231,7 @@ watch(currentPage, () => {
 
     <div
       v-else-if="!hasUser"
-      class="flex flex-col items-center justify-center py-24 border border-dashed rounded-xl bg-muted/5"
+      class="flex flex-col items-center justify-center py-24 border border-dashed rounded-none bg-muted/5"
     >
       <p class="text-muted-foreground mb-4">
         {{ t("personal.account.loginToManage") }}
@@ -259,7 +259,7 @@ watch(currentPage, () => {
           <div
             v-for="notification in group.items"
             :key="notification.id"
-            class="group relative flex items-start gap-4 p-4 rounded-xl border bg-card transition-all hover:shadow-md hover:border-primary/20"
+            class="group relative flex items-start gap-4 p-4 rounded-none border bg-card transition-all hover:shadow-[var(--shadow-float)] hover:border-primary/20"
             :class="{
               'bg-muted/30 border-transparent': notification.isRead,
               'border-primary/10 bg-primary/5': !notification.isRead,
@@ -273,7 +273,7 @@ watch(currentPage, () => {
 
             <!-- Icon -->
             <div
-              class="ml-3 shrink-0 flex h-10 w-10 items-center justify-center rounded-full border shadow-sm"
+              class="ml-3 shrink-0 flex h-10 w-10 items-center justify-center rounded-full border shadow-[var(--shadow-float)]"
               :class="
                 notification.isRead
                   ? 'bg-background text-muted-foreground/70 border-muted'
@@ -381,7 +381,7 @@ watch(currentPage, () => {
 
     <div
       v-else
-      class="flex flex-col items-center justify-center py-32 border border-dashed rounded-xl bg-muted/5 text-center"
+      class="flex flex-col items-center justify-center py-32 border border-dashed rounded-none bg-muted/5 text-center"
     >
       <div class="bg-muted/30 p-4 rounded-full mb-4">
         <Bell class="h-8 w-8 text-muted-foreground/40" />

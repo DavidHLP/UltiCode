@@ -46,7 +46,7 @@ const categoryColor = computed(
   () =>
     AchievementCategoryColors[
       props.achievement.category as keyof typeof AchievementCategoryColors
-    ] || "text-gray-500",
+    ] || "text-muted-foreground",
 );
 </script>
 
@@ -58,7 +58,7 @@ const categoryColor = computed(
           'relative flex items-center justify-center rounded-full transition-all duration-300',
           sizeClasses[size || 'md'],
           achievement.earned
-            ? `bg-gradient-to-br ${tierGradient} shadow-lg`
+            ? `${tierGradient} shadow-lg`
             : 'bg-muted',
           !achievement.earned && 'opacity-50',
         )

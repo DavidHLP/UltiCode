@@ -77,7 +77,7 @@ const fallbackSolution = computed<SolutionFeedItem>(() => ({
     name: t("personal.profile.displayName"),
     username: "editorial",
     role: "System Note",
-    avatarColor: "#94a3b8",
+    avatarColor: "var(--silver-400)",
   },
   tags: [],
   stats: {

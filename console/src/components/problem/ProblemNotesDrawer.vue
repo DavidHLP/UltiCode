@@ -49,7 +49,7 @@ async function handleSave() {
 </script>
 
 <template>
-  <div class="flex flex-col h-full bg-white">
+  <div class="flex flex-col h-full bg-card">
     <div class="flex items-center justify-between p-4 border-b">
       <h2 class="text-lg font-semibold">{{ t("problem.notes.title") }}</h2>
     </div>
@@ -65,7 +65,7 @@ async function handleSave() {
         <Textarea
           v-model="content"
           :placeholder="t('problem.notes.startWriting')"
-          class="min-h-[400px] resize-none focus-visible:ring-1 rounded-lg"
+          class="min-h-[400px] resize-none focus-visible:ring-1 rounded-none"
         />
       </div>
     </div>

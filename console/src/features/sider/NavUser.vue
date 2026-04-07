@@ -97,8 +97,8 @@ async function handleLogout() {
               size="lg"
               class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
             >
-              <Avatar class="h-8 w-8 rounded-lg">
-                <AvatarFallback class="rounded-lg">
+              <Avatar class="h-8 w-8 rounded-none">
+                <AvatarFallback class="rounded-none">
                   <User class="size-4" />
                 </AvatarFallback>
               </Avatar>
@@ -112,7 +112,7 @@ async function handleLogout() {
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent
-            class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+            class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-none"
             :side="isMobile ? 'bottom' : 'right'"
             align="end"
             :side-offset="4"
@@ -152,9 +152,9 @@ async function handleLogout() {
             size="lg"
             class="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
           >
-            <Avatar class="h-8 w-8 rounded-lg">
+            <Avatar class="h-8 w-8 rounded-none">
               <AvatarImage :src="user.avatar" :alt="user.name" />
-              <AvatarFallback class="rounded-lg">
+              <AvatarFallback class="rounded-none">
                 {{ user.name.substring(0, 2).toUpperCase() }}
               </AvatarFallback>
             </Avatar>
@@ -166,16 +166,16 @@ async function handleLogout() {
           </SidebarMenuButton>
         </DropdownMenuTrigger>
         <DropdownMenuContent
-          class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-lg"
+          class="w-[--reka-dropdown-menu-trigger-width] min-w-56 rounded-none"
           :side="isMobile ? 'bottom' : 'right'"
           align="end"
           :side-offset="4"
         >
           <DropdownMenuLabel class="p-0 font-normal">
             <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-              <Avatar class="h-8 w-8 rounded-lg">
+              <Avatar class="h-8 w-8 rounded-none">
                 <AvatarImage :src="user.avatar" :alt="user.name" />
-                <AvatarFallback class="rounded-lg">
+                <AvatarFallback class="rounded-none">
                   {{ user.name.substring(0, 2).toUpperCase() }}
                 </AvatarFallback>
               </Avatar>

@@ -53,12 +53,12 @@ const initChart = () => {
       type: "bar",
       data: submissionCounts,
       itemStyle: {
-        color: "hsl(var(--primary) / 0.6)",
+        color: "oklch(0.6149 0.1394 244.9 / 0.6)",
         borderRadius: [4, 4, 0, 0],
       },
       emphasis: {
         itemStyle: {
-          color: "hsl(var(--primary))",
+          color: "oklch(0.6149 0.1394 244.9)",
         },
       },
     },
@@ -71,15 +71,15 @@ const initChart = () => {
       symbolSize: 6,
       lineStyle: {
         width: 2,
-        color: "hsl(var(--chart-2))",
+        color: "oklch(0.6444 0.1508 118.6)",
       },
       itemStyle: {
-        color: "hsl(var(--chart-2))",
+        color: "oklch(0.6444 0.1508 118.6)",
       },
       areaStyle: {
         color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-          { offset: 0, color: "hsl(var(--chart-2) / 0.3)" },
-          { offset: 1, color: "hsl(var(--chart-2) / 0.05)" },
+          { offset: 0, color: "oklch(0.6444 0.1508 118.6 / 0.3)" },
+          { offset: 1, color: "oklch(0.6444 0.1508 118.6 / 0.05)" },
         ]),
       },
     },
@@ -108,7 +108,7 @@ const initChart = () => {
       },
       itemStyle: {
         borderRadius: 4,
-        borderColor: "hsl(var(--background))",
+        borderColor: "var(--background)",
         borderWidth: 2,
       },
     });
@@ -117,7 +117,7 @@ const initChart = () => {
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: "axis",
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backgroundColor: "oklch(0 0 0 / 0.8)",
       borderColor: "transparent",
       textStyle: {
         color: "#fff",
@@ -130,7 +130,7 @@ const initChart = () => {
       ],
       bottom: 0,
       textStyle: {
-        color: "hsl(var(--muted-foreground))",
+        color: "var(--muted-foreground)",
         fontSize: 11,
       },
     },
@@ -146,11 +146,11 @@ const initChart = () => {
       data: months,
       axisLine: {
         lineStyle: {
-          color: "hsl(var(--border))",
+          color: "var(--border)",
         },
       },
       axisLabel: {
-        color: "hsl(var(--muted-foreground))",
+        color: "var(--muted-foreground)",
         fontSize: 10,
         rotate: 45,
       },
@@ -159,16 +159,16 @@ const initChart = () => {
       type: "value",
       axisLine: {
         lineStyle: {
-          color: "hsl(var(--border))",
+          color: "var(--border)",
         },
       },
       axisLabel: {
-        color: "hsl(var(--muted-foreground))",
+        color: "var(--muted-foreground)",
         fontSize: 10,
       },
       splitLine: {
         lineStyle: {
-          color: "hsl(var(--border))",
+          color: "var(--border)",
           type: "dashed",
         },
       },

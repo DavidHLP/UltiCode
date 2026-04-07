@@ -41,9 +41,9 @@ defineOptions({
       <Button
         variant="ghost"
         size="icon"
-        class="h-7 w-7 rounded-full hover:bg-background/80 hover:text-orange-600 transition-all"
+        class="h-7 w-7 rounded-full hover:bg-background/80 hover:text-[var(--terminal-amber)] transition-all"
         :class="{
-          'text-orange-600 bg-background shadow-sm': userVote === 1,
+          'text-[var(--terminal-amber)] bg-background shadow-sm': userVote === 1,
           'cursor-default hover:bg-transparent hover:text-inherit': readonly,
         }"
         :disabled="readonly"
@@ -59,7 +59,7 @@ defineOptions({
       <span
         class="text-[11px] font-bold px-1.5 min-w-[1.5rem] text-center select-none"
         :class="{
-          'text-orange-600': userVote === 1,
+          'text-[var(--terminal-amber)]': userVote === 1,
           'text-muted-foreground': userVote !== 1,
         }"
       >
@@ -73,7 +73,7 @@ defineOptions({
       <span
         class="text-[11px] font-bold px-1.5 min-w-[1.5rem] text-center select-none"
         :class="{
-          'text-blue-600': userVote === -1,
+          'text-[var(--accent-electric)]': userVote === -1,
           'text-muted-foreground': userVote !== -1,
         }"
       >
@@ -84,9 +84,9 @@ defineOptions({
       <Button
         variant="ghost"
         size="icon"
-        class="h-7 w-7 rounded-full hover:bg-background/80 hover:text-blue-600 transition-all"
+        class="h-7 w-7 rounded-full hover:bg-background/80 hover:text-[var(--accent-electric)] transition-all"
         :class="{
-          'text-blue-600 bg-background shadow-sm': userVote === -1,
+          'text-[var(--accent-electric)] bg-background shadow-sm': userVote === -1,
           'cursor-default hover:bg-transparent hover:text-inherit': readonly,
         }"
         :disabled="readonly"

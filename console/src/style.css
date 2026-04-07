@@ -644,15 +644,38 @@
   text-transform: uppercase;
   letter-spacing: 0.1em;
   padding: 8px 12px;
-  border-bottom: 1px solid var(--silver-200);
-  background: var(--silver-50);
+  border-bottom: none;
+  background:
+    linear-gradient(
+        to right,
+        transparent 0%,
+        var(--silver-200) 15%,
+        var(--silver-200) 85%,
+        transparent 100%
+      )
+      bottom / 100% 1px no-repeat,
+    var(--silver-50);
   color: var(--silver-600);
 }
 
 .dark .terminal-card-header {
-  border-color: var(--silver-300);
-  background: var(--silver-100);
+  background:
+    linear-gradient(
+        to right,
+        transparent 0%,
+        var(--silver-300) 15%,
+        var(--silver-300) 85%,
+        transparent 100%
+      )
+      bottom / 100% 1px no-repeat,
+    var(--silver-100);
   color: var(--silver-500);
+}
+
+.terminal-tab {
+  transition: background-color var(--duration-fast) var(--ease-out-expo),
+    border-color var(--duration-fast) var(--ease-out-expo),
+    color var(--duration-fast) var(--ease-out-expo);
 }
 
 .terminal-separator {

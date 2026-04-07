@@ -105,6 +105,14 @@ const onPointerOver = (e: PointerEvent) => {
   emit("drag-over", e);
 };
 
+const activeTabStyle = computed(() => {
+  if (!props.isActive || !props.header.iconColor) return {};
+  return {
+    borderColor: props.header.iconColor,
+    backgroundColor: `color-mix(in oklch, ${props.header.iconColor} 8%, transparent)`,
+  };
+});
+
 const onHeaderClick = () => {
   // 只有在没有移动时才触发点击事件
   if (!hasMoved.value) {
@@ -123,7 +131,7 @@ const setRef = (el: unknown) => {
 <template>
   <div
     :ref="setRef"
-    class="flex items-center h-4 cursor-move relative"
+    class="flex items-center h-full cursor-move relative"
     :style="{ touchAction: 'none' }"
     @pointerdown="onPointerDown"
     @pointermove="onPointerMove"
@@ -131,26 +139,26 @@ const setRef = (el: unknown) => {
     @pointerup="onPointerUp"
     @pointerleave="onPointerLeave"
   >
-    <Separator v-if="showSeparator" orientation="vertical" class="h-3" />
+    <Separator v-if="showSeparator" orientation="vertical" class="h-3 mx-1" />
     <Button
       variant="ghost"
       size="sm"
-      class="relative bg-[#fafafa] h-7 hover:bg-gray-200 rounded-sm"
-      :class="{
-        'opacity-60': !isActive,
-      }"
-      :style="{
-        color: header.color,
-      }"
+      class="relative h-7 rounded-none font-data uppercase tracking-widest terminal-tab"
+      :class="[
+        isActive
+          ? 'text-[var(--foreground)] border-b-2'
+          : 'text-[var(--silver-500)] hover:bg-[var(--silver-100)] border-b-2 border-transparent',
+      ]"
+      :style="activeTabStyle"
       @click="onHeaderClick"
     >
       <component
         :is="getIconComponent(header.icon)"
         v-if="getIconComponent(header.icon)"
-        :style="{ color: header.iconColor || header.color }"
-        class="h-3 w-3"
+        :style="{ color: header.iconColor }"
+        class="h-3.5 w-3.5 mr-1"
       />
-      <span class="font-medium text-sm">{{ header.title }}</span>
+      <span class="text-[11px] font-bold">{{ header.title }}</span>
     </Button>
   </div>
 </template>

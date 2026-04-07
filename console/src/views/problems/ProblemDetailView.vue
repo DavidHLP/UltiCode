@@ -235,7 +235,6 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 0,
           title: t("problem.layout.problemDescription"),
           icon: "FileText",
-          color: "var(--background)",
           iconColor: "oklch(0.6149 0.1394 244.9)",
         },
         {
@@ -243,7 +242,6 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 1,
           title: t("problem.layout.solution"),
           icon: "FlaskConical",
-          color: "var(--background)",
           iconColor: "oklch(0.6149 0.1394 244.9)",
         },
         {
@@ -251,7 +249,6 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 2,
           title: t("problem.layout.submissions"),
           icon: "History",
-          color: "var(--background)",
           iconColor: "oklch(0.6149 0.1394 244.9)",
         },
       ],
@@ -265,7 +262,6 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 0,
           title: t("problem.layout.code"),
           icon: "Code2",
-          color: "var(--background)",
           iconColor: "oklch(0.6444 0.1508 118.6)",
         },
       ],
@@ -279,7 +275,6 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 0,
           title: t("problem.layout.testCases"),
           icon: "SquareCheck",
-          color: "var(--background)",
           iconColor: "oklch(0.6444 0.1508 118.6)",
         },
         {
@@ -287,7 +282,6 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 1,
           title: t("problem.layout.testResults"),
           icon: "Terminal",
-          color: "var(--background)",
           iconColor: "oklch(0.6444 0.1508 118.6)",
         },
       ],

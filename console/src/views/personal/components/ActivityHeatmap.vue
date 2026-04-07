@@ -57,13 +57,13 @@ const activityData = computed(() => {
 const getColorClass = (level: number) => {
   switch (level) {
     case 1:
-      return "bg-emerald-200 dark:bg-emerald-900/30";
+      return "bg-[oklch(0.6444_0.1508_118.6/0.2)] dark:bg-[oklch(0.6444_0.1508_118.6/0.3)]";
     case 2:
-      return "bg-emerald-400 dark:bg-emerald-700/50";
+      return "bg-[oklch(0.6444_0.1508_118.6/0.4)] dark:bg-[oklch(0.6444_0.1508_118.6/0.5)]";
     case 3:
-      return "bg-emerald-500 dark:bg-emerald-600/70";
+      return "bg-[oklch(0.6444_0.1508_118.6/0.6)] dark:bg-[oklch(0.6444_0.1508_118.6/0.7)]";
     case 4:
-      return "bg-emerald-700 dark:bg-emerald-400";
+      return "bg-[oklch(0.6444_0.1508_118.6/0.8)] dark:bg-[oklch(0.6444_0.1508_118.6)]";
     default:
       return "bg-secondary/60"; // Empty/None
   }
@@ -106,7 +106,7 @@ const months = computed(() => [
             <Tooltip>
               <TooltipTrigger as-child>
                 <div
-                  class="h-3 w-3 rounded-[2px] transition-colors hover:ring-2 hover:ring-ring hover:ring-offset-1"
+                  class="h-3 w-3 rounded-none transition-colors hover:ring-2 hover:ring-ring hover:ring-offset-1"
                   :class="getColorClass(day.level)"
                 ></div>
               </TooltipTrigger>
@@ -125,18 +125,18 @@ const months = computed(() => [
       <div class="flex items-center gap-2 text-xs text-muted-foreground">
         <span>{{ t("common.labels.less") }}</span>
         <div class="flex gap-[2px]">
-          <div class="h-3 w-3 rounded-[2px] bg-secondary/60"></div>
+          <div class="h-3 w-3 rounded-none bg-secondary/60"></div>
           <div
-            class="h-3 w-3 rounded-[2px] bg-emerald-200 dark:bg-emerald-900/30"
+            class="h-3 w-3 rounded-none bg-[oklch(0.6444_0.1508_118.6/0.2)] dark:bg-[oklch(0.6444_0.1508_118.6/0.3)]"
           ></div>
           <div
-            class="h-3 w-3 rounded-[2px] bg-emerald-400 dark:bg-emerald-700/50"
+            class="h-3 w-3 rounded-none bg-[oklch(0.6444_0.1508_118.6/0.4)] dark:bg-[oklch(0.6444_0.1508_118.6/0.5)]"
           ></div>
           <div
-            class="h-3 w-3 rounded-[2px] bg-emerald-500 dark:bg-emerald-600/70"
+            class="h-3 w-3 rounded-none bg-[oklch(0.6444_0.1508_118.6/0.6)] dark:bg-[oklch(0.6444_0.1508_118.6/0.7)]"
           ></div>
           <div
-            class="h-3 w-3 rounded-[2px] bg-emerald-700 dark:bg-emerald-400"
+            class="h-3 w-3 rounded-none bg-[oklch(0.6444_0.1508_118.6/0.8)] dark:bg-[oklch(0.6444_0.1508_118.6)]"
           ></div>
         </div>
         <span>{{ t("common.labels.more") }}</span>

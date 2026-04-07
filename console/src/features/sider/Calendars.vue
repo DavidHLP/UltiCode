@@ -313,7 +313,7 @@ const handleCreateList = async () => {
           <ChevronRight
             class="h-4 w-4 transform transition-transform duration-200 ui-open:rotate-90"
           />
-          <User class="h-4 w-4 mr-1 text-blue-500" />
+          <User class="h-4 w-4 mr-1 text-[var(--accent-electric)]" />
           <span class="text-sm font-semibold">{{
             t("sidebar.problemLists.myLists")
           }}</span>
@@ -324,7 +324,7 @@ const handleCreateList = async () => {
         <ul class="space-y-1">
           <li v-for="item in data.myLists" :key="item.id" class="group/item">
             <div
-              class="flex items-center justify-between gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
@@ -373,7 +373,7 @@ const handleCreateList = async () => {
           <ChevronRight
             class="h-4 w-4 transform transition-transform duration-200 ui-open:rotate-90"
           />
-          <Bookmark class="h-4 w-4 mr-1 text-green-500" />
+          <Bookmark class="h-4 w-4 mr-1 text-[var(--terminal-green)]" />
           <span class="text-sm font-semibold">{{
             t("sidebar.problemLists.savedLists")
           }}</span>
@@ -384,7 +384,7 @@ const handleCreateList = async () => {
         <ul class="space-y-1">
           <li v-for="item in data.savedLists" :key="item.id" class="group/item">
             <div
-              class="flex items-center justify-between gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
@@ -447,7 +447,7 @@ const handleCreateList = async () => {
           <ChevronRight
             class="h-4 w-4 transform transition-transform duration-200 ui-open:rotate-90"
           />
-          <Star class="h-4 w-4 mr-1 text-yellow-500" />
+          <Star class="h-4 w-4 mr-1 text-[var(--terminal-amber)]" />
           <span class="text-sm font-semibold">{{
             t("sidebar.problemLists.featured")
           }}</span>
@@ -458,7 +458,7 @@ const handleCreateList = async () => {
         <ul class="space-y-1">
           <li v-for="item in data.featured" :key="item.id" class="group/item">
             <div
-              class="flex items-center justify-between gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"
@@ -519,7 +519,7 @@ const handleCreateList = async () => {
         <ul class="space-y-1">
           <li v-for="item in category.lists" :key="item.id" class="group/item">
             <div
-              class="flex items-center justify-between gap-1 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+              class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             >
               <RouterLink
                 :to="`/problemset/list/${item.id}`"

@@ -18,7 +18,7 @@ const { t } = useI18n();
   <Transition name="slide-up">
     <div
       v-if="needRefresh"
-      class="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-lg border border-border bg-card p-4 shadow-lg"
+      class="fixed bottom-4 right-4 z-50 flex items-center gap-3 rounded-none border border-border bg-card p-4 shadow-[var(--shadow-float)]"
       role="alert"
     >
       <RefreshCw class="h-5 w-5 text-primary" />
@@ -32,13 +32,13 @@ const { t } = useI18n();
       </div>
       <div class="flex gap-2">
         <button
-          class="rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+          class="rounded-none bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
           @click="updateServiceWorker"
         >
           {{ t("pwa.update") }}
         </button>
         <button
-          class="rounded-md px-2 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          class="rounded-none px-2 py-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           :aria-label="t('common.dismiss')"
           @click="close"
         >

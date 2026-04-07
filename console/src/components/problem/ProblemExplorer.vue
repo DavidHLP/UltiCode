@@ -327,11 +327,11 @@ function loadMore() {
 const difficultyClass = (difficulty: Problem["difficulty"]) => {
   switch (difficulty) {
     case "Easy":
-      return "text-emerald-600";
+      return "text-[var(--terminal-green)]";
     case "Medium":
-      return "text-amber-600";
+      return "text-[var(--terminal-amber)]";
     case "Hard":
-      return "text-red-600";
+      return "text-[var(--terminal-red)]";
     default:
       return "";
   }
@@ -537,7 +537,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
             v-if="(problem as EnrichedProblem).statusIcon"
             class="h-5 w-5"
             :class="{
-              'text-emerald-600':
+              'text-[var(--terminal-green)]':
                 (problem as EnrichedProblem).status === 'solved',
             }"
           />
@@ -560,7 +560,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
           </a>
           <Lock
             v-if="(problem as EnrichedProblem).isPremium"
-            class="h-4 w-4 text-amber-500"
+            class="h-4 w-4 text-[var(--terminal-amber)]"
           />
         </div>
       </template>

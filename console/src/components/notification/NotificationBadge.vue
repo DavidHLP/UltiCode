@@ -65,7 +65,7 @@ function goToNotifications() {
             v-for="notification in notificationStore.notifications.slice(0, 5)"
             :key="notification.id"
             :to="notification.link || '#'"
-            class="block rounded-md p-2 transition-colors hover:bg-muted"
+            class="block rounded-none p-2 transition-colors hover:bg-muted"
           >
             <div class="flex items-start gap-2">
               <span

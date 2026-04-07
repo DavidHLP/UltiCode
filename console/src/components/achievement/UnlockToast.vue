@@ -36,7 +36,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
   left: Math.random() * 100,
   delay: Math.random() * 0.5,
   duration: 1 + Math.random() * 0.5,
-  color: ["#FFD700", "#FF6B6B", "#4ECDC4", "#45B7D1", "#96CEB4"][
+  color: ["oklch(0.6545 0.1340 85.7)", "oklch(0.5863 0.2064 27.1)", "oklch(0.6437 0.1019 187.4)", "oklch(0.6149 0.1394 244.9)", "oklch(0.6444 0.1508 118.6)"][
     Math.floor(Math.random() * 5)
   ],
 }));
@@ -54,7 +54,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
     >
       <div
         v-if="visible"
-        class="fixed bottom-4 right-4 z-50 max-w-sm overflow-hidden rounded-xl border border-yellow-500/30 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-2xl dark:from-yellow-950/30 dark:to-orange-950/30"
+        class="fixed bottom-4 right-4 z-50 max-w-sm overflow-hidden rounded-none border border-[oklch(0.6545_0.1340_85.7/0.3)] bg-[oklch(0.9735_0.0261_90.1)] shadow-2xl dark:bg-[oklch(0.3092_0.0518_219.7)]"
       >
         <!-- Confetti -->
         <div
@@ -81,7 +81,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
           <div class="flex items-start gap-3">
             <!-- Icon -->
             <div
-              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-yellow-400 to-orange-500 shadow-lg"
+              class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[oklch(0.6545_0.1340_85.7)] shadow-lg"
             >
               <Trophy class="h-6 w-6 text-white" />
             </div>
@@ -89,9 +89,9 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
             <!-- Text -->
             <div class="flex-1 space-y-1">
               <div class="flex items-center gap-2">
-                <Sparkles class="h-4 w-4 text-yellow-500" />
+                <Sparkles class="h-4 w-4 text-[var(--terminal-amber)]" />
                 <span
-                  class="text-sm font-semibold text-yellow-700 dark:text-yellow-400"
+                  class="text-sm font-semibold text-[var(--terminal-amber)]"
                 >
                   Achievement Unlocked!
                 </span>
@@ -103,7 +103,7 @@ const confettiPieces = Array.from({ length: 20 }, (_, i) => ({
                 {{ badgeDescription }}
               </p>
               <span
-                class="inline-block rounded-full bg-yellow-500/20 px-2 py-0.5 text-xs font-medium text-yellow-700 dark:text-yellow-400"
+                class="inline-block rounded-full bg-[var(--terminal-amber)]/20 px-2 py-0.5 text-xs font-medium text-[var(--terminal-amber)]"
               >
                 +{{ points }} points
               </span>

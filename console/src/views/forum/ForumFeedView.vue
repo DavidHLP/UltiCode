@@ -249,7 +249,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
     <!-- Main Feed -->
     <main class="w-full min-w-0 flex-1 space-y-6">
       <div
-        class="flex flex-col gap-3 rounded-2xl border border-border/40 bg-card/60 p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
+        class="flex flex-col gap-3 rounded-none border border-border/40 bg-card/60 p-4 sm:flex-row sm:items-center sm:justify-between shadow-sm"
       >
         <div class="flex flex-1 items-center gap-3">
           <div class="relative flex-1 max-w-md">

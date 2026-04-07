@@ -98,10 +98,10 @@ onMounted(loadPosts);
 
     <div
       v-else-if="posts.length === 0"
-      class="flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
+      class="flex flex-col items-center justify-center py-24 rounded-none border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
     >
       <div
-        class="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 mb-4"
+        class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
       >
         <MessageSquare class="h-8 w-8 text-muted-foreground/50" />
       </div>
@@ -120,14 +120,14 @@ onMounted(loadPosts);
       <Card
         v-for="post in posts"
         :key="post.id"
-        class="group hover:shadow-md transition-all duration-300 border-muted/60 overflow-hidden rounded-2xl"
+        class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 overflow-hidden rounded-none"
       >
         <div class="flex flex-col sm:flex-row">
           <div class="flex-1 p-6">
             <div class="flex items-center gap-2 mb-3">
               <Badge
                 variant="secondary"
-                class="bg-primary/5 text-primary border-primary/10 font-semibold hover:bg-primary/10 transition-colors rounded-md"
+                class="bg-primary/5 text-primary border-primary/10 font-semibold hover:bg-primary/10 transition-colors rounded-none"
               >
                 {{ post.community?.name ?? "General" }}
               </Badge>
@@ -161,7 +161,7 @@ onMounted(loadPosts);
                   <Badge
                     v-if="post.isPinned"
                     variant="secondary"
-                    class="bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 gap-1 rounded-sm h-5 text-[10px] font-semibold"
+                    class="bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] gap-1 rounded-none h-5 text-[10px] font-semibold"
                   >
                     <Pin class="h-3 w-3" />
                     {{ t("personal.forumPosts.pinned") }}
@@ -169,7 +169,7 @@ onMounted(loadPosts);
                   <Badge
                     v-if="post.isLocked"
                     variant="outline"
-                    class="gap-1 rounded-sm h-5 text-[10px] font-semibold border-muted-foreground/30 text-muted-foreground"
+                    class="gap-1 rounded-none h-5 text-[10px] font-semibold border-muted-foreground/30 text-muted-foreground"
                   >
                     <Lock class="h-3 w-3" />
                     {{ t("personal.forumPosts.locked") }}
@@ -177,7 +177,7 @@ onMounted(loadPosts);
                   <Badge
                     v-if="post.flair"
                     variant="secondary"
-                    class="rounded-sm h-5 text-[10px] font-semibold uppercase"
+                    class="rounded-none h-5 text-[10px] font-semibold uppercase"
                   >
                     {{ post.flair.text }}
                   </Badge>

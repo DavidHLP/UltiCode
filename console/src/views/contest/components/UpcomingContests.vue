@@ -87,11 +87,11 @@ onUnmounted(() => {
       <Card
         v-for="(contest, index) in contests.slice(0, 2)"
         :key="contest.id"
-        class="relative cursor-pointer overflow-hidden border-0 text-white transition-all hover:scale-[1.02] hover:shadow-xl"
+        class="relative cursor-pointer overflow-hidden border-0 text-white transition-all hover:scale-[1.02] hover:shadow-[var(--shadow-float)]"
         :class="
           index === 0
-            ? 'bg-gradient-to-br from-[#2c3e50] to-[#4ca1af]'
-            : 'bg-gradient-to-br from-[#134e5e] to-[#71b280]'
+            ? 'bg-[var(--terminal-cyan)]'
+            : 'bg-[var(--terminal-green)]'
         "
         @click="
           router.push({

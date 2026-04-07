@@ -66,7 +66,7 @@ const visibleChildren = computed(() => {
           :id="child.id"
           :default-size="child.size"
           :min-size="20"
-          class="rounded-xl overflow-hidden"
+          class="rounded-none overflow-hidden"
         >
           <!-- Recursively render children -->
           <LayoutTreeNode :node="child" />
@@ -86,8 +86,8 @@ const visibleChildren = computed(() => {
         node.groupId &&
         getGroupHeaders(node.groupId).length > 0
       "
-      class="h-full cursor-pointer rounded-xl border border-transparent overflow-hidden bg-white"
-      :class="{ 'border-[#dedede] shadow-sm': activeGroupId === node.groupId }"
+      class="h-full cursor-pointer rounded-none border border-transparent overflow-hidden bg-background"
+      :class="{ 'border-border shadow-sm': activeGroupId === node.groupId }"
       @click="handleGroupClick(node.groupId)"
     >
       <LayoutPanel

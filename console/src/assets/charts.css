@@ -1,84 +1,84 @@
 @layer base {
   :root {
     /* Chart Visualization Colors */
-    --vis-primary-color: 222.2 47.4% 11.2%;
-    --vis-secondary-color: 160 81% 40%;
+    --vis-primary-color: oklch(0.2051 0.0390 219.7);
+    --vis-secondary-color: oklch(0.6444 0.1508 118.6);
     --vis-text-color: var(--muted-foreground);
 
-    /* Status Colors (HSL format for charts) */
-    --chart-status-solved: 142 71% 45%;
-    --chart-status-attempted: 45 93% 47%;
-    --chart-status-todo: 215 16% 47%;
+    /* Status Colors (oklch Solarized) */
+    --chart-status-solved: oklch(0.6444 0.1508 118.6);
+    --chart-status-attempted: oklch(0.6545 0.1340 85.7);
+    --chart-status-todo: oklch(0.6437 0.1019 187.4);
 
-    /* Difficulty Colors */
-    --chart-difficulty-easy: 142 71% 45%;
-    --chart-difficulty-medium: 45 93% 47%;
-    --chart-difficulty-hard: 0 84% 60%;
+    /* Difficulty Colors (oklch Solarized) */
+    --chart-difficulty-easy: oklch(0.6444 0.1508 118.6);
+    --chart-difficulty-medium: oklch(0.6545 0.1340 85.7);
+    --chart-difficulty-hard: oklch(0.5863 0.2064 27.1);
 
-    /* Multi-series Chart Colors (for line/bar charts) */
-    --chart-series-1: 221 83% 53%;
-    --chart-series-2: 142 71% 45%;
-    --chart-series-3: 45 93% 47%;
-    --chart-series-4: 262 83% 58%;
-    --chart-series-5: 0 84% 60%;
-    --chart-series-6: 199 89% 48%;
+    /* Multi-series Chart Colors (oklch Solarized) */
+    --chart-series-1: oklch(0.6149 0.1394 244.9);
+    --chart-series-2: oklch(0.6437 0.1019 187.4);
+    --chart-series-3: oklch(0.6444 0.1508 118.6);
+    --chart-series-4: oklch(0.5924 0.2025 355.9);
+    --chart-series-5: oklch(0.5863 0.2064 27.1);
+    --chart-series-6: oklch(0.6545 0.1340 85.7);
 
-    /* Accent & Highlight Colors */
-    --chart-accent-primary: 221 83% 53%;
-    --chart-accent-secondary: 142 71% 45%;
-    --chart-accent-warning: 45 93% 47%;
-    --chart-accent-danger: 0 84% 60%;
-    --chart-accent-info: 199 89% 48%;
+    /* Accent & Highlight Colors (oklch Solarized) */
+    --chart-accent-primary: oklch(0.6149 0.1394 244.9);
+    --chart-accent-secondary: oklch(0.6444 0.1508 118.6);
+    --chart-accent-warning: oklch(0.6545 0.1340 85.7);
+    --chart-accent-danger: oklch(0.5863 0.2064 27.1);
+    --chart-accent-info: oklch(0.6437 0.1019 187.4);
 
     /* Background & Grid Colors */
-    --chart-grid-color: 215 16% 90%;
+    --chart-grid-color: oklch(0.6979 0.0159 196.8);
     --chart-background: var(--card);
-    --chart-tooltip-background: oklch(1 0 0);
-    --chart-tooltip-border: oklch(0.922 0 0);
+    --chart-tooltip-background: oklch(0.9735 0.0261 90.1);
+    --chart-tooltip-border: oklch(0.6979 0.0159 196.8);
 
-    /* Premium & Solution Indicators */
-    --chart-premium: 280 100% 70%;
-    --chart-solution: 199 89% 48%;
+    /* Premium & Solution Indicators (oklch Solarized) */
+    --chart-premium: oklch(0.5924 0.2025 355.9);
+    --chart-solution: oklch(0.6437 0.1019 187.4);
   }
 
   .dark {
-    /* Chart Visualization Colors - Dark Mode */
-    --vis-primary-color: 210 40% 98%;
-    --vis-secondary-color: 160 81% 45%;
+    /* Chart Visualization Colors - Dark Mode (Solarized invariant) */
+    --vis-primary-color: oklch(0.9735 0.0261 90.1);
+    --vis-secondary-color: oklch(0.6444 0.1508 118.6);
 
-    /* Status Colors - Dark Mode */
-    --chart-status-solved: 142 70% 50%;
-    --chart-status-attempted: 45 93% 55%;
-    --chart-status-todo: 215 20% 60%;
+    /* Status Colors - Dark Mode (Solarized invariant) */
+    --chart-status-solved: oklch(0.6444 0.1508 118.6);
+    --chart-status-attempted: oklch(0.6545 0.1340 85.7);
+    --chart-status-todo: oklch(0.6437 0.1019 187.4);
 
-    /* Difficulty Colors - Dark Mode */
-    --chart-difficulty-easy: 142 70% 50%;
-    --chart-difficulty-medium: 45 93% 55%;
-    --chart-difficulty-hard: 0 84% 65%;
+    /* Difficulty Colors - Dark Mode (Solarized invariant) */
+    --chart-difficulty-easy: oklch(0.6444 0.1508 118.6);
+    --chart-difficulty-medium: oklch(0.6545 0.1340 85.7);
+    --chart-difficulty-hard: oklch(0.5863 0.2064 27.1);
 
-    /* Multi-series Chart Colors - Dark Mode */
-    --chart-series-1: 221 83% 60%;
-    --chart-series-2: 142 70% 50%;
-    --chart-series-3: 45 93% 55%;
-    --chart-series-4: 262 83% 65%;
-    --chart-series-5: 0 84% 65%;
-    --chart-series-6: 199 89% 55%;
+    /* Multi-series Chart Colors - Dark Mode (Solarized invariant) */
+    --chart-series-1: oklch(0.6149 0.1394 244.9);
+    --chart-series-2: oklch(0.6437 0.1019 187.4);
+    --chart-series-3: oklch(0.6444 0.1508 118.6);
+    --chart-series-4: oklch(0.5924 0.2025 355.9);
+    --chart-series-5: oklch(0.5863 0.2064 27.1);
+    --chart-series-6: oklch(0.6545 0.1340 85.7);
 
-    /* Accent & Highlight Colors - Dark Mode */
-    --chart-accent-primary: 221 83% 60%;
-    --chart-accent-secondary: 142 70% 50%;
-    --chart-accent-warning: 45 93% 55%;
-    --chart-accent-danger: 0 84% 65%;
-    --chart-accent-info: 199 89% 55%;
+    /* Accent & Highlight Colors - Dark Mode (Solarized invariant) */
+    --chart-accent-primary: oklch(0.6149 0.1394 244.9);
+    --chart-accent-secondary: oklch(0.6444 0.1508 118.6);
+    --chart-accent-warning: oklch(0.6545 0.1340 85.7);
+    --chart-accent-danger: oklch(0.5863 0.2064 27.1);
+    --chart-accent-info: oklch(0.6437 0.1019 187.4);
 
     /* Background & Grid Colors - Dark Mode */
-    --chart-grid-color: 215 16% 25%;
-    --chart-tooltip-background: oklch(0.205 0 0);
-    --chart-tooltip-border: oklch(0.269 0 0);
+    --chart-grid-color: oklch(0.5230 0.0283 219.1);
+    --chart-tooltip-background: oklch(0.3092 0.0518 219.7);
+    --chart-tooltip-border: oklch(0.5230 0.0283 219.1);
 
-    /* Premium & Solution Indicators - Dark Mode */
-    --chart-premium: 280 100% 75%;
-    --chart-solution: 199 89% 55%;
+    /* Premium & Solution Indicators - Dark Mode (Solarized invariant) */
+    --chart-premium: oklch(0.5924 0.2025 355.9);
+    --chart-solution: oklch(0.6437 0.1019 187.4);
   }
 }
 
@@ -86,77 +86,77 @@
 @layer utilities {
   /* Status Color Classes */
   .chart-solved {
-    color: hsl(var(--chart-status-solved));
+    color: var(--chart-status-solved);
   }
 
   .chart-attempted {
-    color: hsl(var(--chart-status-attempted));
+    color: var(--chart-status-attempted);
   }
 
   .chart-todo {
-    color: hsl(var(--chart-status-todo));
+    color: var(--chart-status-todo);
   }
 
   .bg-chart-solved {
-    background-color: hsl(var(--chart-status-solved));
+    background-color: var(--chart-status-solved);
   }
 
   .bg-chart-attempted {
-    background-color: hsl(var(--chart-status-attempted));
+    background-color: var(--chart-status-attempted);
   }
 
   .bg-chart-todo {
-    background-color: hsl(var(--chart-status-todo));
+    background-color: var(--chart-status-todo);
   }
 
   /* Difficulty Color Classes */
   .chart-easy {
-    color: hsl(var(--chart-difficulty-easy));
+    color: var(--chart-difficulty-easy);
   }
 
   .chart-medium {
-    color: hsl(var(--chart-difficulty-medium));
+    color: var(--chart-difficulty-medium);
   }
 
   .chart-hard {
-    color: hsl(var(--chart-difficulty-hard));
+    color: var(--chart-difficulty-hard);
   }
 
   .bg-chart-easy {
-    background-color: hsl(var(--chart-difficulty-easy));
+    background-color: var(--chart-difficulty-easy);
   }
 
   .bg-chart-medium {
-    background-color: hsl(var(--chart-difficulty-medium));
+    background-color: var(--chart-difficulty-medium);
   }
 
   .bg-chart-hard {
-    background-color: hsl(var(--chart-difficulty-hard));
+    background-color: var(--chart-difficulty-hard);
   }
 
   /* Series Color Classes */
   .chart-series-1 {
-    color: hsl(var(--chart-series-1));
+    color: var(--chart-series-1);
   }
 
   .chart-series-2 {
-    color: hsl(var(--chart-series-2));
+    color: var(--chart-series-2);
   }
 
   .chart-series-3 {
-    color: hsl(var(--chart-series-3));
+    color: var(--chart-series-3);
   }
 
   .chart-series-4 {
-    color: hsl(var(--chart-series-4));
+    color: var(--chart-series-4);
   }
 
   .chart-series-5 {
-    color: hsl(var(--chart-series-5));
+    color: var(--chart-series-5);
   }
 
   .chart-series-6 {
-    color: hsl(var(--chart-series-6));
+    color: var(--chart-series-6);
   }
 }
 
@@ -164,57 +164,57 @@
 @layer components {
   /* Donut Chart Segments */
   [data-chart-segment="Solved"] {
-    fill: hsl(var(--chart-status-solved));
+    fill: var(--chart-status-solved);
   }
 
   [data-chart-segment="Attempted"] {
-    fill: hsl(var(--chart-status-attempted));
+    fill: var(--chart-status-attempted);
   }
 
   [data-chart-segment="Todo"] {
-    fill: hsl(var(--chart-status-todo));
+    fill: var(--chart-status-todo);
   }
 
   /* Bar Chart Segments */
   [data-chart-bar="Solved"] {
-    fill: hsl(var(--chart-status-solved));
+    fill: var(--chart-status-solved);
   }
 
   [data-chart-bar="Attempted"] {
-    fill: hsl(var(--chart-status-attempted));
+    fill: var(--chart-status-attempted);
   }
 
   [data-chart-bar="Todo"] {
-    fill: hsl(var(--chart-status-todo));
+    fill: var(--chart-status-todo);
   }
 
   /* Line Chart Series */
   [data-chart-line="Solved Share"] {
-    stroke: hsl(var(--chart-status-solved) / 0.8);
+    stroke: color-mix(in oklch, var(--chart-status-solved) 80%, transparent);
   }
 
   [data-chart-line="Attempted Share"] {
-    stroke: hsl(var(--chart-status-attempted) / 0.8);
+    stroke: color-mix(in oklch, var(--chart-status-attempted) 80%, transparent);
   }
 
   [data-chart-line="Todo Share"] {
-    stroke: hsl(var(--chart-status-todo) / 0.8);
+    stroke: color-mix(in oklch, var(--chart-status-todo) 80%, transparent);
   }
 
   [data-chart-line="Acceptance Rate"] {
-    stroke: hsl(var(--chart-accent-info) / 0.9);
+    stroke: color-mix(in oklch, var(--chart-accent-info) 90%, transparent);
   }
 
   /* Chart Container Styling */
   .chart-container {
     background: var(--chart-background);
-    border-radius: var(--radius-lg);
+    border-radius: var(--radius);
     padding: 1rem;
   }
 
   /* Chart Grid Lines */
   .chart-grid-line {
-    stroke: hsl(var(--chart-grid-color));
+    stroke: var(--chart-grid-color);
     stroke-width: 1;
     stroke-dasharray: 4 4;
   }
@@ -223,7 +223,7 @@
   .chart-tooltip {
     background: var(--chart-tooltip-background);
     border: 1px solid var(--chart-tooltip-border);
-    border-radius: var(--radius-md);
+    border-radius: var(--radius);
     padding: 0.5rem 0.75rem;
     box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
   }
@@ -244,28 +244,28 @@
   }
 
   .chart-legend-marker-solved {
-    background-color: hsl(var(--chart-status-solved));
+    background-color: var(--chart-status-solved);
   }
 
   .chart-legend-marker-attempted {
-    background-color: hsl(var(--chart-status-attempted));
+    background-color: var(--chart-status-attempted);
   }
 
   .chart-legend-marker-todo {
-    background-color: hsl(var(--chart-status-todo));
+    background-color: var(--chart-status-todo);
   }
 
   /* Premium & Solution Badges */
   .chart-badge-premium {
-    color: hsl(var(--chart-premium));
-    border-color: hsl(var(--chart-premium) / 0.3);
-    background-color: hsl(var(--chart-premium) / 0.1);
+    color: var(--chart-premium);
+    border-color: color-mix(in oklch, var(--chart-premium) 30%, transparent);
+    background-color: color-mix(in oklch, var(--chart-premium) 10%, transparent);
   }
 
   .chart-badge-solution {
-    color: hsl(var(--chart-solution));
-    border-color: hsl(var(--chart-solution) / 0.3);
-    background-color: hsl(var(--chart-solution) / 0.1);
+    color: var(--chart-solution);
+    border-color: color-mix(in oklch, var(--chart-solution) 30%, transparent);
+    background-color: color-mix(in oklch, var(--chart-solution) 10%, transparent);
   }
 }
 

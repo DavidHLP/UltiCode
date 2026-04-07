@@ -1,7 +1,7 @@
 <template>
   <form @submit.prevent="submit" class="w-full">
     <div
-      class="rounded-xl border border-muted-foreground/10 bg-background focus-within:ring-1 focus-within:ring-primary/30 transition-all overflow-hidden shadow-sm"
+      class="rounded-none border border-muted-foreground/10 bg-background focus-within:ring-1 focus-within:ring-primary/30 transition-all overflow-hidden"
     >
       <Textarea
         v-model="content"

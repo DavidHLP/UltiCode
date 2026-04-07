@@ -1,6 +1,14 @@
 export default {
+  // Layout
+  layout: {
+    systemOnline: "System Online",
+    codingConsole: "Online Coding<br/>Console",
+    codingConsoleSubtitle: "Practice algorithms, improve your skills",
+  },
+
   // Login page
   login: {
+    terminal: "login.sh",
     title: "Login to your account",
     subtitle: "Enter your username and password to login",
     username: "Username",
@@ -19,6 +27,7 @@ export default {
 
   // Register page
   register: {
+    terminal: "register.sh",
     title: "Create an account",
     subtitle: "Enter your information to create a new account",
     username: "Username",
@@ -41,6 +50,7 @@ export default {
 
   // Forgot password page
   forgotPassword: {
+    terminal: "reset-request.sh",
     title: "Forgot Password",
     subtitle: "Enter your email address and we'll send you a reset link",
     email: "Email",
@@ -55,6 +65,7 @@ export default {
 
   // Reset password page
   resetPassword: {
+    terminal: "reset-password.sh",
     title: "Reset Password",
     subtitle: "Please enter your new password",
     newPassword: "New Password",

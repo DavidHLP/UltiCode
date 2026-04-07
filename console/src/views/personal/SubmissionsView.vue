@@ -103,22 +103,22 @@ const getStatusIcon = (status: SubmissionRecord["status"]) => {
 const getStatusColorClass = (status: SubmissionRecord["status"]) => {
   switch (status) {
     case "Accepted":
-      return "text-emerald-500 bg-emerald-500/10 border-emerald-500/20";
+      return "text-[var(--terminal-green)] bg-[var(--terminal-green)]/10 border-[var(--terminal-green)]/20";
     case "Wrong Answer":
     case "Runtime Error":
     case "Compile Error":
     case "System Error":
-      return "text-rose-500 bg-rose-500/10 border-rose-500/20";
+      return "text-[var(--terminal-red)] bg-[var(--terminal-red)]/10 border-[var(--terminal-red)]/20";
     case "Time Limit Exceeded":
     case "Memory Limit Exceeded":
     case "Output Limit Exceeded":
     case "Presentation Error":
-      return "text-amber-500 bg-amber-500/10 border-amber-500/20";
+      return "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 border-[var(--terminal-amber)]/20";
     case "Judging":
     case "Pending":
-      return "text-sky-500 bg-sky-500/10 border-sky-500/20";
+      return "text-[var(--terminal-cyan)] bg-[var(--terminal-cyan)]/10 border-[var(--terminal-cyan)]/20";
     default:
-      return "text-amber-500 bg-amber-500/10 border-amber-500/20";
+      return "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/10 border-[var(--terminal-amber)]/20";
   }
 };
 
@@ -170,7 +170,7 @@ onMounted(async () => {
 
     <div
       v-else-if="!hasUser"
-      class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 bg-muted/5 rounded-2xl"
+      class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 bg-muted/5 rounded-none"
     >
       <p class="text-muted-foreground mb-4">
         {{ t("personal.submissions.loginToView") }}
@@ -216,7 +216,7 @@ onMounted(async () => {
         <template #cell-status="{ item }">
           <Badge
             variant="outline"
-            class="gap-1.5 py-1 px-2 font-medium rounded-md border"
+            class="gap-1.5 py-1 px-2 font-medium rounded-none border"
             :class="getStatusColorClass((item as SubmissionRecord).status)"
           >
             <component
@@ -269,10 +269,10 @@ onMounted(async () => {
 
         <template #empty>
           <div
-            class="flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-24 rounded-none border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
           >
             <div
-              class="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 mb-4"
+              class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
             >
               <ListX class="h-8 w-8 text-muted-foreground/50" />
             </div>

@@ -72,7 +72,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
                 :month="month.value"
                 :class="
                   props.completedDates?.includes(weekDate.toString())
-                    ? 'bg-amber-500/15 text-amber-600 font-bold hover:bg-amber-500/25 dark:bg-amber-500/25 dark:text-amber-400 ring-1 ring-amber-500/30 ring-inset'
+                    ? 'bg-[oklch(0.6545_0.1340_85.7_/_0.15)] text-[var(--terminal-amber)] font-bold hover:bg-[oklch(0.6545_0.1340_85.7_/_0.25)] dark:bg-[oklch(0.6545_0.1340_85.7_/_0.25)] dark:text-[var(--terminal-amber)] ring-1 ring-[oklch(0.6545_0.1340_85.7_/_0.3)] ring-inset'
                     : ''
                 "
               />

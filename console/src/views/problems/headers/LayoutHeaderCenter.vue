@@ -151,13 +151,13 @@ onBeforeUnmount(() => {
               size="icon"
               :aria-label="t('problem.layout.runCode')"
               :aria-busy="isRunning"
-              class="group relative flex-none cursor-pointer flex items-center h-8 transition hover:bg-primary/10 text-gray-600 w-9 focus:outline-none focus:ring-0 focus:ring-offset-0 bg-gray-100 overflow-hidden rounded-md"
+              class="group relative flex-none cursor-pointer flex items-center h-8 transition hover:bg-primary/10 text-gray-600 w-9 focus:outline-none focus:ring-0 focus:ring-offset-0 bg-gray-100 overflow-hidden rounded-none"
               @click="handleRun"
             >
               <span
                 v-if="isRunning"
                 :key="runPulseKey"
-                class="pointer-events-none absolute inset-0 animate-[ping_1s_ease-out] rounded-md bg-primary/20"
+                class="pointer-events-none absolute inset-0 animate-[ping_1s_ease-out] rounded-none bg-primary/20"
               />
               <span
                 class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-50"
@@ -197,7 +197,7 @@ onBeforeUnmount(() => {
               variant="ghost"
               :aria-label="t('problem.layout.submitSolution')"
               :disabled="isSubmitting"
-              class="group cursor-pointer gap-2 overflow-hidden hover:text-lc-icon-primary flex items-center h-8 transition-none hover:bg-gray-200 text-gray-60 px-2 bg-gray-200 disabled:opacity-50"
+              class="group cursor-pointer gap-2 overflow-hidden hover:text-lc-icon-primary flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 px-2 bg-gray-200 disabled:opacity-50"
               @click="handleSubmit"
             >
               <CloudUpload

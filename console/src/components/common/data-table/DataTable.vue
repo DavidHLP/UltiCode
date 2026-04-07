@@ -192,10 +192,10 @@ const getItemAtIndex = (index: number): T => {
             <TableCell colspan="100%" class="p-0">
               <slot name="empty">
                 <div
-                  class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5 text-center px-6 m-4"
+                  class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6 m-4"
                 >
                   <div
-                    class="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 mb-4"
+                    class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
                   >
                     <SearchX class="h-8 w-8 text-muted-foreground/50" />
                   </div>
@@ -274,10 +274,10 @@ const getItemAtIndex = (index: number): T => {
           <TableCell colspan="100%" class="p-0">
             <slot name="empty">
               <div
-                class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5 text-center px-6 m-4"
+                class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6 m-4"
               >
                 <div
-                  class="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 mb-4"
+                  class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
                 >
                   <SearchX class="h-8 w-8 text-muted-foreground/50" />
                 </div>

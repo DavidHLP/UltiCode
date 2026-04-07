@@ -235,24 +235,24 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 0,
           title: t("problem.layout.problemDescription"),
           icon: "FileText",
-          color: "#1a1a1a",
-          iconColor: "#007bff",
+          color: "var(--background)",
+          iconColor: "oklch(0.6149 0.1394 244.9)",
         },
         {
           id: 2,
           index: 1,
           title: t("problem.layout.solution"),
           icon: "FlaskConical",
-          color: "#1a1a1a",
-          iconColor: "#007bff",
+          color: "var(--background)",
+          iconColor: "oklch(0.6149 0.1394 244.9)",
         },
         {
           id: 3,
           index: 2,
           title: t("problem.layout.submissions"),
           icon: "History",
-          color: "#1a1a1a",
-          iconColor: "#007bff",
+          color: "var(--background)",
+          iconColor: "oklch(0.6149 0.1394 244.9)",
         },
       ],
     },
@@ -265,8 +265,8 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 0,
           title: t("problem.layout.code"),
           icon: "Code2",
-          color: "#1a1a1a",
-          iconColor: "#02b128",
+          color: "var(--background)",
+          iconColor: "oklch(0.6444 0.1508 118.6)",
         },
       ],
     },
@@ -279,16 +279,16 @@ const createInitialHeaderGroups = (): HeaderGroup[] => {
           index: 0,
           title: t("problem.layout.testCases"),
           icon: "SquareCheck",
-          color: "#1a1a1a",
-          iconColor: "#02b128",
+          color: "var(--background)",
+          iconColor: "oklch(0.6444 0.1508 118.6)",
         },
         {
           id: 6,
           index: 1,
           title: t("problem.layout.testResults"),
           icon: "Terminal",
-          color: "#1a1a1a",
-          iconColor: "#02b128",
+          color: "var(--background)",
+          iconColor: "oklch(0.6444 0.1508 118.6)",
         },
       ],
     },
@@ -614,11 +614,11 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-[#f0f0f0] antialiased">
+  <div class="h-screen flex flex-col bg-[var(--background)] antialiased">
     <!-- Skip to main content link for screen readers -->
     <a
       href="#main-content"
-      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-none"
     >
       {{ t("common.skipToContent") }}
     </a>
@@ -654,7 +654,7 @@ onUnmounted(() => {
     </Sheet>
 
     <header
-      class="relative flex h-12 w-full min-w-[100px] shrink-0 items-center justify-between gap-2 bg-[#f0f0f0] px-2.5"
+      class="relative flex h-12 w-full min-w-[100px] shrink-0 items-center justify-between gap-2 bg-[var(--background)] px-2.5"
     >
       <div
         class="relative z-10 flex h-full min-w-[240px] flex-1 items-center overflow-hidden"

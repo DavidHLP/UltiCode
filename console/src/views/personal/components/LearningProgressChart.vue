@@ -51,12 +51,12 @@ const initChart = () => {
       type: "bar",
       data: problemsSolved,
       itemStyle: {
-        color: "hsl(var(--primary) / 0.7)",
+        color: "oklch(0.6149 0.1394 244.9 / 0.7)",
         borderRadius: [4, 4, 0, 0],
       },
       emphasis: {
         itemStyle: {
-          color: "hsl(var(--primary))",
+          color: "oklch(0.6149 0.1394 244.9)",
         },
       },
     },
@@ -70,10 +70,10 @@ const initChart = () => {
       symbolSize: 6,
       lineStyle: {
         width: 2,
-        color: "hsl(var(--chart-3))",
+        color: "oklch(0.6545 0.1340 85.7)",
       },
       itemStyle: {
-        color: "hsl(var(--chart-3))",
+        color: "oklch(0.6545 0.1340 85.7)",
       },
     },
   ];
@@ -81,7 +81,7 @@ const initChart = () => {
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: "axis",
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backgroundColor: "oklch(0 0 0 / 0.8)",
       borderColor: "transparent",
       textStyle: {
         color: "#fff",
@@ -97,7 +97,7 @@ const initChart = () => {
       ],
       bottom: 0,
       textStyle: {
-        color: "hsl(var(--muted-foreground))",
+        color: "var(--muted-foreground)",
         fontSize: 11,
       },
     },
@@ -113,11 +113,11 @@ const initChart = () => {
       data: weeks,
       axisLine: {
         lineStyle: {
-          color: "hsl(var(--border))",
+          color: "var(--border)",
         },
       },
       axisLabel: {
-        color: "hsl(var(--muted-foreground))",
+        color: "var(--muted-foreground)",
         fontSize: 10,
         rotate: 45,
       },
@@ -127,21 +127,21 @@ const initChart = () => {
         type: "value",
         name: t("personal.learning.problemsSolved"),
         nameTextStyle: {
-          color: "hsl(var(--muted-foreground))",
+          color: "var(--muted-foreground)",
           fontSize: 10,
         },
         axisLine: {
           lineStyle: {
-            color: "hsl(var(--border))",
+            color: "var(--border)",
           },
         },
         axisLabel: {
-          color: "hsl(var(--muted-foreground))",
+          color: "var(--muted-foreground)",
           fontSize: 10,
         },
         splitLine: {
           lineStyle: {
-            color: "hsl(var(--border))",
+            color: "var(--border)",
             type: "dashed",
           },
         },
@@ -150,16 +150,16 @@ const initChart = () => {
         type: "value",
         name: t("personal.learning.hours"),
         nameTextStyle: {
-          color: "hsl(var(--muted-foreground))",
+          color: "var(--muted-foreground)",
           fontSize: 10,
         },
         axisLine: {
           lineStyle: {
-            color: "hsl(var(--border))",
+            color: "var(--border)",
           },
         },
         axisLabel: {
-          color: "hsl(var(--muted-foreground))",
+          color: "var(--muted-foreground)",
           fontSize: 10,
         },
         splitLine: {

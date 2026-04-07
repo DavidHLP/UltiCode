@@ -256,7 +256,7 @@ onMounted(loadData);
               <div
                 class="flex items-center gap-2 bg-card rounded-full border p-1 pr-3 shadow-sm hover:border-primary/50 transition-colors"
               >
-                <div class="bg-amber-500/10 text-amber-600 p-1.5 rounded-full">
+                <div class="bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] p-1.5 rounded-full">
                   <Tag class="h-3.5 w-3.5" />
                 </div>
                 <Select v-model="flairType">
@@ -296,7 +296,7 @@ onMounted(loadData);
                 </Button>
                 <div
                   v-if="showTagPicker"
-                  class="absolute left-0 top-11 z-50 w-64 rounded-xl border border-border bg-popover shadow-xl animate-in zoom-in-95 duration-200"
+                  class="absolute left-0 top-11 z-50 w-64 rounded-none border border-border bg-popover shadow-[var(--shadow-float)] animate-in zoom-in-95 duration-200"
                 >
                   <div class="border-b border-border px-4 py-3 bg-muted/30">
                     <h4
@@ -310,7 +310,7 @@ onMounted(loadData);
                       v-for="tag in tags"
                       :key="tag.id"
                       type="button"
-                      class="flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-muted transition-colors"
+                      class="flex w-full items-center justify-between rounded-none px-3 py-2 text-sm hover:bg-muted transition-colors"
                       @click="toggleTag(tag.name)"
                     >
                       <span class="font-medium text-foreground/80">{{
@@ -357,7 +357,7 @@ onMounted(loadData);
             class="max-w-[1600px] mx-auto h-full grid grid-cols-1 lg:grid-cols-2 gap-6"
           >
             <div
-              class="flex flex-col h-full overflow-hidden border rounded-2xl bg-card shadow-sm focus-within:border-primary/50 transition-all"
+              class="flex flex-col h-full overflow-hidden border rounded-none bg-card shadow-sm focus-within:border-primary/50 transition-all"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"
@@ -376,7 +376,7 @@ onMounted(loadData);
             </div>
 
             <div
-              class="hidden lg:flex flex-col rounded-2xl border bg-card overflow-hidden shadow-sm"
+              class="hidden lg:flex flex-col rounded-none border bg-card overflow-hidden shadow-sm"
             >
               <div
                 class="flex items-center border-b bg-muted/30 px-4 h-10 shrink-0"

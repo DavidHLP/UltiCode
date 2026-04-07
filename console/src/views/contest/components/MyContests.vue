@@ -98,7 +98,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="contest in contestStore.registeredContests"
                 :key="contest.id"
-                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
+                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50 cursor-pointer"
                 @click="navigateToContest(contest.id)"
               >
                 <div class="space-y-1">
@@ -142,7 +142,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="history in contestStore.contestHistory"
                 :key="history.contestId"
-                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50"
+                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50"
               >
                 <div class="flex-1 space-y-1">
                   <h3 class="font-semibold">{{ history.contestTitle }}</h3>
@@ -172,11 +172,11 @@ function navigateToContest(slug: string) {
                     t("contest.types.virtual")
                   }}</Badge>
                   <div
-                    class="flex items-center gap-1 rounded-md px-2 py-1 font-semibold"
+                    class="flex items-center gap-1 rounded-none px-2 py-1 font-semibold"
                     :class="{
-                      'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400':
+                      'bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]':
                         history.ratingChange > 0,
-                      'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400':
+                      'bg-[oklch(0.5863_0.2064_27.1_/_0.12)] text-[var(--terminal-red)]':
                         history.ratingChange < 0,
                       'text-muted-foreground': history.ratingChange === 0,
                     }"
@@ -216,7 +216,7 @@ function navigateToContest(slug: string) {
               <div
                 v-for="contest in contestStore.virtualContests"
                 :key="contest.id"
-                class="flex items-center justify-between rounded-lg border p-4 hover:bg-muted/50 cursor-pointer"
+                class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50 cursor-pointer"
                 @click="navigateToContest(contest.id)"
               >
                 <div class="space-y-1">

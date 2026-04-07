@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col rounded-lg border bg-card overflow-hidden h-full w-full"
+    class="flex flex-col rounded-none border bg-card overflow-hidden h-full w-full"
   >
     <div
       v-if="!hideHeader"

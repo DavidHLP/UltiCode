@@ -72,16 +72,16 @@ const stats = computed(() => {
       easy: {
         count: 0,
         total: 0,
-        color: "text-emerald-500",
-        bg: "bg-emerald-500",
+        color: "text-[var(--terminal-green)]",
+        bg: "bg-[var(--terminal-green)]",
       },
       medium: {
         count: 0,
         total: 0,
-        color: "text-orange-500",
-        bg: "bg-orange-500",
+        color: "text-[var(--terminal-amber)]",
+        bg: "bg-[var(--terminal-amber)]",
       },
-      hard: { count: 0, total: 0, color: "text-rose-500", bg: "bg-rose-500" },
+      hard: { count: 0, total: 0, color: "text-[var(--terminal-red)]", bg: "bg-[var(--terminal-red)]" },
     };
 
   const { stats: s } = statsData.value;
@@ -89,20 +89,20 @@ const stats = computed(() => {
     easy: {
       count: s.Easy.count,
       total: s.Easy.total,
-      color: "text-emerald-500",
-      bg: "bg-emerald-500",
+      color: "text-[var(--terminal-green)]",
+      bg: "bg-[var(--terminal-green)]",
     },
     medium: {
       count: s.Medium.count,
       total: s.Medium.total,
-      color: "text-orange-500",
-      bg: "bg-orange-500",
+      color: "text-[var(--terminal-amber)]",
+      bg: "bg-[var(--terminal-amber)]",
     },
     hard: {
       count: s.Hard.count,
       total: s.Hard.total,
-      color: "text-rose-500",
-      bg: "bg-rose-500",
+      color: "text-[var(--terminal-red)]",
+      bg: "bg-[var(--terminal-red)]",
     },
   };
 });
@@ -207,7 +207,7 @@ onMounted(async () => {
     </div>
   </div>
   <div v-else-if="!user" class="flex h-[60vh] items-center justify-center">
-    <Card class="w-full max-w-md border-dashed rounded-2xl">
+    <Card class="w-full max-w-md border-dashed rounded-none">
       <CardContent class="flex flex-col items-center py-10 text-center">
         <div class="mb-4 rounded-full bg-muted p-3 text-muted-foreground">
           <Activity class="h-10 w-10" />
@@ -229,7 +229,7 @@ onMounted(async () => {
   <PersonalPageShell v-else-if="user">
     <!-- Hero Section -->
     <div
-      class="relative overflow-hidden rounded-2xl border bg-card p-6 md:p-10 shadow-sm"
+      class="relative overflow-hidden rounded-none border bg-card p-6 md:p-10 shadow-[var(--shadow-float)]"
     >
       <div
         class="absolute right-0 top-0 h-32 w-32 -translate-y-8 translate-x-8 rounded-full bg-primary/10 blur-3xl"
@@ -242,10 +242,10 @@ onMounted(async () => {
         <div class="shrink-0 flex justify-center md:block">
           <div class="relative group">
             <div
-              class="absolute -inset-1 rounded-full bg-gradient-to-tr from-primary to-primary/50 opacity-20 blur-sm group-hover:opacity-40 transition duration-500"
+              class="absolute -inset-1 rounded-full bg-primary opacity-20 blur-sm group-hover:opacity-40 transition duration-500"
             ></div>
             <Avatar
-              class="h-32 w-32 border-4 border-background shadow-xl relative"
+              class="h-32 w-32 border-4 border-background shadow-[var(--shadow-float)] relative"
             >
               <AvatarImage :src="user.avatar" :alt="user.name" />
               <AvatarFallback class="text-2xl font-bold bg-muted">{{
@@ -253,7 +253,7 @@ onMounted(async () => {
               }}</AvatarFallback>
             </Avatar>
             <div
-              class="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg border-4 border-background"
+              class="absolute -bottom-1 -right-1 flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[var(--shadow-float)] border-4 border-background"
               :title="t('personal.profile.proMember')"
             >
               <Zap class="h-4 w-4 fill-current" />
@@ -267,7 +267,7 @@ onMounted(async () => {
           >
             <div class="space-y-1">
               <h1
-                class="text-3xl md:text-4xl font-extrabold tracking-tighter bg-gradient-to-r from-foreground to-foreground/70 bg-clip-text text-transparent"
+                class="text-3xl md:text-4xl font-extrabold tracking-tighter text-foreground"
               >
                 {{ user.name || user.username }}
               </h1>
@@ -359,9 +359,9 @@ onMounted(async () => {
       <div class="space-y-6 lg:col-span-8">
         <!-- Key Metrics Row -->
         <div class="grid gap-4 sm:grid-cols-3">
-          <Card class="relative overflow-hidden group rounded-2xl">
+          <Card class="relative overflow-hidden group rounded-none">
             <div
-              class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-blue-500/5 group-hover:scale-150 transition-transform duration-500"
+              class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--accent-electric)]/5 group-hover:scale-150 transition-transform duration-500"
             ></div>
             <CardHeader
               class="pb-2 space-y-0 flex flex-row items-center justify-between"
@@ -370,7 +370,7 @@ onMounted(async () => {
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >{{ t("personal.profile.globalRank") }}</CardTitle
               >
-              <Trophy class="h-4 w-4 text-blue-500" />
+              <Trophy class="h-4 w-4 text-[var(--accent-electric)]" />
             </CardHeader>
             <CardContent>
               <div class="text-3xl font-bold tracking-tight">
@@ -379,7 +379,7 @@ onMounted(async () => {
               <div class="mt-2 flex items-center gap-2">
                 <Badge
                   variant="secondary"
-                  class="bg-blue-100 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 rounded-md px-1.5 font-bold"
+                  class="bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] hover:bg-[var(--accent-electric)]/10 rounded-none px-1.5 font-bold"
                 >
                   DIAMOND III
                 </Badge>
@@ -393,9 +393,9 @@ onMounted(async () => {
             </CardContent>
           </Card>
 
-          <Card class="relative overflow-hidden group rounded-2xl">
+          <Card class="relative overflow-hidden group rounded-none">
             <div
-              class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-emerald-500/5 group-hover:scale-150 transition-transform duration-500"
+              class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--terminal-green)]/5 group-hover:scale-150 transition-transform duration-500"
             ></div>
             <CardHeader
               class="pb-2 space-y-0 flex flex-row items-center justify-between"
@@ -404,7 +404,7 @@ onMounted(async () => {
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >{{ t("personal.profile.solved") }}</CardTitle
               >
-              <CheckCircle2 class="h-4 w-4 text-emerald-500" />
+              <CheckCircle2 class="h-4 w-4 text-[var(--terminal-green)]" />
             </CardHeader>
             <CardContent>
               <div class="text-3xl font-bold tracking-tight">
@@ -416,9 +416,9 @@ onMounted(async () => {
             </CardContent>
           </Card>
 
-          <Card class="relative overflow-hidden group rounded-2xl">
+          <Card class="relative overflow-hidden group rounded-none">
             <div
-              class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-orange-500/5 group-hover:scale-150 transition-transform duration-500"
+              class="absolute -right-2 -top-2 h-16 w-16 rounded-full bg-[var(--terminal-amber)]/5 group-hover:scale-150 transition-transform duration-500"
             ></div>
             <CardHeader
               class="pb-2 space-y-0 flex flex-row items-center justify-between"
@@ -427,7 +427,7 @@ onMounted(async () => {
                 class="text-xs font-semibold uppercase tracking-wider text-muted-foreground"
                 >{{ t("personal.profile.streak") }}</CardTitle
               >
-              <Flame class="h-4 w-4 text-orange-500" />
+              <Flame class="h-4 w-4 text-[var(--terminal-amber)]" />
             </CardHeader>
             <CardContent>
               <div class="text-3xl font-bold tracking-tight">
@@ -441,7 +441,7 @@ onMounted(async () => {
                 >
                   <div
                     v-if="i <= (statsData?.streak || 0) % 7"
-                    class="h-full bg-gradient-to-r from-orange-400 to-orange-600 shadow-[0_0_8px_rgba(249,115,22,0.4)]"
+                    class="h-full bg-[var(--terminal-amber)] shadow-[0_0_8px_oklch(0.7_0.15_55)]"
                   ></div>
                 </div>
               </div>
@@ -450,7 +450,7 @@ onMounted(async () => {
         </div>
 
         <!-- Detailed Problem Stats -->
-        <Card class="border-none shadow-none bg-muted/30 rounded-2xl">
+        <Card class="border-none shadow-none bg-muted/30 rounded-none">
           <CardHeader class="pb-4">
             <div class="flex items-center justify-between">
               <CardTitle class="text-lg font-bold flex items-center gap-2">
@@ -511,7 +511,7 @@ onMounted(async () => {
         </Card>
 
         <!-- Activity Heatmap -->
-        <Card class="rounded-2xl">
+        <Card class="rounded-none">
           <CardHeader class="pb-2">
             <CardTitle class="text-lg font-bold flex items-center gap-2">
               <Activity class="h-5 w-5 text-primary" />
@@ -527,7 +527,7 @@ onMounted(async () => {
         </Card>
 
         <!-- Skill Radar Chart -->
-        <Card class="rounded-2xl">
+        <Card class="rounded-none">
           <CardHeader class="pb-2">
             <CardTitle class="text-lg font-bold flex items-center gap-2">
               <Target class="h-5 w-5 text-primary" />
@@ -543,7 +543,7 @@ onMounted(async () => {
         </Card>
 
         <!-- Submission History Chart -->
-        <Card class="rounded-2xl">
+        <Card class="rounded-none">
           <CardHeader class="pb-2">
             <CardTitle class="text-lg font-bold flex items-center gap-2">
               <GitCommit class="h-5 w-5 text-primary" />
@@ -559,7 +559,7 @@ onMounted(async () => {
         </Card>
 
         <!-- Learning Progress Chart -->
-        <Card class="rounded-2xl">
+        <Card class="rounded-none">
           <CardHeader class="pb-2">
             <CardTitle class="text-lg font-bold flex items-center gap-2">
               <Target class="h-5 w-5 text-primary" />
@@ -577,7 +577,7 @@ onMounted(async () => {
 
       <!-- Right Column: Recent Activity & Badges -->
       <div class="space-y-6 lg:col-span-4">
-        <Card class="h-full border-muted/50 rounded-2xl">
+        <Card class="h-full border-muted/50 rounded-none">
           <CardHeader class="pb-4 border-b bg-muted/20">
             <CardTitle class="text-base font-bold flex items-center gap-2">
               <GitCommit class="h-4 w-4 text-primary" />
@@ -595,14 +595,14 @@ onMounted(async () => {
                 class="group relative flex items-start gap-4 p-4 hover:bg-muted/40 transition-colors"
               >
                 <div
-                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border bg-background group-hover:border-primary/50 transition-colors"
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none border bg-background group-hover:border-primary/50 transition-colors"
                 >
                   <div
-                    class="h-3 w-3 rounded-full animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                    class="h-3 w-3 rounded-full animate-pulse shadow-[0_0_8px_oklch(0.7_0.15_160)]"
                     :class="
                       item.status === 'Accepted'
-                        ? 'bg-emerald-500'
-                        : 'bg-rose-500 shadow-[0_0_8px_rgba(244,63,94,0.3)]'
+                        ? 'bg-[var(--terminal-green)]'
+                        : 'bg-[var(--terminal-red)] shadow-[0_0_8px_oklch(0.65_0.2_25)]'
                     "
                   ></div>
                 </div>
@@ -625,11 +625,11 @@ onMounted(async () => {
                     >
                     <Badge
                       variant="outline"
-                      class="text-[9px] h-4 px-1 rounded font-bold uppercase tracking-tighter"
+                      class="text-[9px] h-4 px-1 rounded-none font-bold uppercase tracking-tighter"
                       :class="
                         item.status === 'Accepted'
-                          ? 'border-emerald-500/50 text-emerald-600'
-                          : 'border-rose-500/50 text-rose-600'
+                          ? 'border-[var(--terminal-green)]/50 text-[var(--terminal-green)]'
+                          : 'border-[var(--terminal-red)]/50 text-[var(--terminal-red)]'
                       "
                     >
                       {{ item.status }}

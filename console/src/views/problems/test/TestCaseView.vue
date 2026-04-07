@@ -190,7 +190,7 @@ const handleAddKeydown = (event: KeyboardEvent) => {
         :key="testCase.id"
         :variant="testCase.id === activeId ? 'secondary' : 'ghost'"
         size="sm"
-        class="h-7 rounded-md px-3 text-xs font-medium"
+        class="h-7 rounded-none px-3 text-xs font-medium"
         :class="
           testCase.id === activeId
             ? 'text-foreground shadow-none'
@@ -207,7 +207,7 @@ const handleAddKeydown = (event: KeyboardEvent) => {
         <button
           v-if="testCase.id === activeId && canRemoveCases"
           type="button"
-          class="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-md text-[10px] text-muted-foreground hover:text-foreground"
+          class="ml-1 inline-flex h-4 w-4 items-center justify-center rounded-none text-[10px] text-muted-foreground hover:text-foreground"
           :aria-label="t('problem.layout.removeTestCase') || 'Remove test case'"
           tabindex="0"
           @click.stop="removeCase(testCase.id)"
@@ -220,7 +220,7 @@ const handleAddKeydown = (event: KeyboardEvent) => {
       <Button
         variant="ghost"
         size="sm"
-        class="h-7 rounded-md px-2 text-xs text-muted-foreground hover:text-foreground"
+        class="h-7 rounded-none px-2 text-xs text-muted-foreground hover:text-foreground"
         :aria-label="t('problem.layout.addTestCase') || 'Add test case'"
         tabindex="0"
         @click="addCase"

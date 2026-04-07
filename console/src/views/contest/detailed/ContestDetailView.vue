@@ -59,12 +59,12 @@ const isRegistered = computed(() => contestStore.isRegistered(contestId));
 const statusCardClass = computed(() => {
   const status = contest.value?.status;
   if (status === "running") {
-    return "bg-gradient-to-br from-rose-600 via-orange-500 to-amber-500";
+    return "bg-[var(--terminal-red)]";
   }
   if (status === "upcoming") {
-    return "bg-gradient-to-br from-emerald-600 via-teal-500 to-cyan-600";
+    return "bg-[var(--terminal-green)]";
   }
-  return "bg-gradient-to-br from-slate-700 to-slate-800";
+  return "bg-[var(--silver-dark)]";
 });
 
 const contestEndTime = computed(() => {
@@ -275,11 +275,11 @@ function formatDateTime(isoString: string): string {
 // Get Difficulty Color
 function getDifficultyColor(difficulty: string): string {
   const colors: Record<string, string> = {
-    Easy: "text-green-600",
-    Medium: "text-yellow-600",
-    Hard: "text-red-600",
+    Easy: "text-[var(--terminal-green)]",
+    Medium: "text-[var(--terminal-amber)]",
+    Hard: "text-[var(--terminal-red)]",
   };
-  return colors[difficulty] || "text-gray-600";
+  return colors[difficulty] || "text-[var(--silver-dark)]";
 }
 
 // Get Country Flag Emoji
@@ -365,7 +365,7 @@ function getCountryFlag(countryCode: string): string {
             <Button
               v-if="!isRegistered && contest.status === 'upcoming'"
               size="lg"
-              class="gap-2 rounded-full h-12 px-8 font-bold shadow-lg shadow-primary/20"
+              class="gap-2 rounded-full h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
               :disabled="registering"
               @click="handleRegister"
             >
@@ -394,7 +394,7 @@ function getCountryFlag(countryCode: string): string {
             <template v-else-if="contest.status === 'running'">
               <Button
                 size="lg"
-                class="gap-2 rounded-full h-12 px-8 font-bold shadow-lg shadow-primary/20"
+                class="gap-2 rounded-full h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
                 @click="scrollToSection('contest-problems')"
               >
                 <PlayCircle class="h-5 w-5" />
@@ -417,7 +417,7 @@ function getCountryFlag(countryCode: string): string {
                   contestStore.virtualSession.status !== 'IN_PROGRESS'
                 "
                 size="lg"
-                class="gap-2 rounded-full h-12 px-8 font-bold shadow-lg shadow-primary/20"
+                class="gap-2 rounded-full h-12 px-8 font-bold shadow-[var(--shadow-float)] shadow-primary/20"
                 :disabled="startingVirtual"
                 @click="handleStartVirtual"
               >
@@ -444,7 +444,7 @@ function getCountryFlag(countryCode: string): string {
       </div>
 
       <Card
-        class="border-none shadow-lg text-white overflow-hidden rounded-2xl backdrop-blur-md relative"
+        class="border-none shadow-[var(--shadow-float)] text-white overflow-hidden rounded-none backdrop-blur-md relative"
         :class="statusCardClass"
       >
         <!-- Background Pattern -->
@@ -474,11 +474,11 @@ function getCountryFlag(countryCode: string): string {
                 >
                   <span
                     v-if="contest.status === 'running'"
-                    class="h-2 w-2 rounded-full bg-rose-500 animate-pulse shadow-[0_0_8px_2px_rgba(244,63,94,0.6)]"
+                    class="h-2 w-2 rounded-full bg-[var(--terminal-red)] animate-pulse shadow-[0_0_8px_2px_oklch(0.6_0.25_25)]"
                   ></span>
                   <span
                     v-else-if="contest.status === 'upcoming'"
-                    class="h-2 w-2 rounded-full bg-emerald-400"
+                    class="h-2 w-2 rounded-full bg-[var(--terminal-green)]"
                   ></span>
                   {{
                     contest.status === "running"
@@ -535,7 +535,7 @@ function getCountryFlag(countryCode: string): string {
             class="mt-8 h-3 rounded-full bg-black/20 overflow-hidden backdrop-blur-sm border border-white/5"
           >
             <div
-              class="h-full bg-gradient-to-r from-white/80 to-white shadow-[0_0_10px_rgba(255,255,255,0.5)] transition-all duration-1000 ease-out"
+              class="h-full bg-white/80 shadow-[0_0_10px_oklch(0.95_0_0_0)] transition-all duration-1000 ease-out"
               :style="{ width: `${statusProgress}%` }"
             ></div>
           </div>
@@ -544,20 +544,20 @@ function getCountryFlag(countryCode: string): string {
             class="mt-6 flex flex-wrap items-center gap-6 text-xs font-medium text-white/80"
           >
             <span
-              class="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-lg backdrop-blur-sm border border-white/5"
+              class="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-none backdrop-blur-sm border border-white/5"
             >
               <Calendar class="h-4 w-4" />
               {{ formatDateTime(contest.start_time) }}
             </span>
             <span
               v-if="contestEndTime"
-              class="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-lg backdrop-blur-sm border border-white/5"
+              class="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-none backdrop-blur-sm border border-white/5"
             >
               <Clock class="h-4 w-4" />
               {{ formatDateTime(contestEndTime) }}
             </span>
             <span
-              class="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-lg backdrop-blur-sm border border-white/5"
+              class="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-none backdrop-blur-sm border border-white/5"
             >
               <Users class="h-4 w-4" />
               {{ contest.participant_count || contest.participantCount || 0 }}
@@ -575,12 +575,12 @@ function getCountryFlag(countryCode: string): string {
       <!-- Contest Info Cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <Card
-          class="border-none shadow-sm bg-gradient-to-br from-primary/5 via-primary/0 to-transparent hover:bg-primary/5 transition-colors"
+          class="border-none shadow-sm bg-primary/5 hover:bg-primary/5 transition-colors"
         >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-primary/10 text-primary shadow-sm"
               >
                 <Calendar class="h-5 w-5" />
               </div>
@@ -597,12 +597,12 @@ function getCountryFlag(countryCode: string): string {
         </Card>
 
         <Card
-          class="border-none shadow-sm bg-gradient-to-br from-amber-500/5 via-amber-500/0 to-transparent hover:bg-amber-500/5 transition-colors"
+          class="border-none shadow-sm bg-[var(--terminal-amber)]/5 hover:bg-[var(--terminal-amber)]/5 transition-colors"
         >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-500/10 text-amber-600 shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] shadow-sm"
               >
                 <Clock class="h-5 w-5" />
               </div>
@@ -620,12 +620,12 @@ function getCountryFlag(countryCode: string): string {
         </Card>
 
         <Card
-          class="border-none shadow-sm bg-gradient-to-br from-emerald-500/5 via-emerald-500/0 to-transparent hover:bg-emerald-500/5 transition-colors"
+          class="border-none shadow-sm bg-[var(--terminal-green)]/5 hover:bg-[var(--terminal-green)]/5 transition-colors"
         >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-600 shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] shadow-sm"
               >
                 <Users class="h-5 w-5" />
               </div>
@@ -642,12 +642,12 @@ function getCountryFlag(countryCode: string): string {
         </Card>
 
         <Card
-          class="border-none shadow-sm bg-gradient-to-br from-blue-500/5 via-blue-500/0 to-transparent hover:bg-blue-500/5 transition-colors"
+          class="border-none shadow-sm bg-[var(--accent-electric)]/5 hover:bg-[var(--accent-electric)]/5 transition-colors"
         >
           <CardContent class="p-6 flex flex-col gap-4">
             <div class="flex items-center gap-3">
               <div
-                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-600 shadow-sm"
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] shadow-sm"
               >
                 <Trophy class="h-5 w-5" />
               </div>
@@ -670,7 +670,7 @@ function getCountryFlag(countryCode: string): string {
 
       <Card
         v-if="contest.rules"
-        class="border-none shadow-sm overflow-hidden rounded-2xl"
+        class="border-none shadow-sm overflow-hidden rounded-none"
       >
         <CardHeader class="pb-3 border-b bg-muted/20">
           <CardTitle
@@ -710,7 +710,7 @@ function getCountryFlag(countryCode: string): string {
         <TabsContent value="problems" class="mt-0">
           <Card
             id="contest-problems"
-            class="border-none shadow-sm overflow-hidden rounded-2xl"
+            class="border-none shadow-sm overflow-hidden rounded-none"
           >
             <CardHeader class="pb-3 border-b bg-muted/20">
               <CardTitle
@@ -724,7 +724,7 @@ function getCountryFlag(countryCode: string): string {
                 class="flex flex-col items-center justify-center gap-4 px-6 py-12 text-center"
               >
                 <div
-                  class="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
+                  class="flex h-16 w-16 items-center justify-center rounded-none bg-muted text-muted-foreground"
                 >
                   <Lock class="h-7 w-7" />
                 </div>
@@ -773,7 +773,7 @@ function getCountryFlag(countryCode: string): string {
                   >
                     <TableCell class="pl-6">
                       <div
-                        class="flex h-10 w-10 items-center justify-center rounded-xl bg-muted font-mono text-sm font-black text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all"
+                        class="flex h-10 w-10 items-center justify-center rounded-none bg-muted font-mono text-sm font-black text-muted-foreground group-hover:bg-primary group-hover:text-primary-foreground transition-all"
                       >
                         {{ problem.problemIndex || "#" }}
                       </div>
@@ -810,7 +810,7 @@ function getCountryFlag(countryCode: string): string {
                         variant="outline"
                         :class="[
                           getDifficultyColor(problem.difficulty || 'Medium'),
-                          'font-black text-[10px] uppercase h-5 px-2 rounded-sm border-current/20 bg-current/5',
+                          'font-black text-[10px] uppercase h-5 px-2 rounded-none border-current/20 bg-current/5',
                         ]"
                       >
                         {{
@@ -822,7 +822,7 @@ function getCountryFlag(countryCode: string): string {
                     </TableCell>
                     <TableCell class="text-center">
                       <span
-                        class="inline-flex items-center gap-1 font-black text-amber-600"
+                        class="inline-flex items-center gap-1 font-black text-[var(--terminal-amber)]"
                       >
                         <Award class="h-4 w-4" />
                         {{ problem.score || 0 }}
@@ -860,7 +860,7 @@ function getCountryFlag(countryCode: string): string {
         <TabsContent value="ranking" class="mt-0">
           <Card
             id="contest-ranking"
-            class="border-none shadow-sm overflow-hidden rounded-2xl"
+            class="border-none shadow-sm overflow-hidden rounded-none"
           >
             <CardHeader
               class="flex flex-row items-center justify-between pb-3 border-b bg-muted/20"
@@ -908,13 +908,13 @@ function getCountryFlag(countryCode: string): string {
                   >
                     <TableCell class="pl-6">
                       <div
-                        class="inline-flex h-10 w-10 items-center justify-center rounded-xl font-black text-sm transition-all"
+                        class="inline-flex h-10 w-10 items-center justify-center rounded-none font-black text-sm transition-all"
                         :class="{
-                          'bg-gradient-to-br from-yellow-400 to-yellow-600 text-white shadow-lg shadow-yellow-500/20 scale-110':
+                          'bg-[var(--terminal-amber)] text-white shadow-[var(--shadow-float)] shadow-[var(--terminal-amber)]/20 scale-110':
                             entry.rank === 1,
-                          'bg-gradient-to-br from-slate-300 to-slate-500 text-white shadow-lg shadow-slate-400/20 scale-105':
+                          'bg-[var(--silver-300)] text-white shadow-[var(--shadow-float)] shadow-[var(--silver-300)]/20 scale-105':
                             entry.rank === 2,
-                          'bg-gradient-to-br from-orange-400 to-orange-600 text-white shadow-lg shadow-orange-500/20':
+                          'bg-[var(--terminal-amber)] text-white shadow-[var(--shadow-float)] shadow-[var(--terminal-amber)]/20':
                             entry.rank === 3,
                           'bg-muted text-muted-foreground': entry.rank > 3,
                         }"
@@ -930,11 +930,11 @@ function getCountryFlag(countryCode: string): string {
                               entry.avatar ||
                               'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
                             "
-                            class="h-10 w-10 rounded-xl border border-border bg-muted shadow-sm"
+                            class="h-10 w-10 rounded-none border border-border bg-muted shadow-sm"
                             alt="Avatar"
                           />
                           <span
-                            class="absolute -bottom-1 -right-1 text-base shadow-sm bg-background rounded-sm"
+                            class="absolute -bottom-1 -right-1 text-base shadow-sm bg-background rounded-none"
                           >
                             {{ getCountryFlag(entry.country || "CN") }}
                           </span>
@@ -985,11 +985,11 @@ function getCountryFlag(countryCode: string): string {
                     </TableCell>
                     <TableCell class="pr-6 text-right">
                       <div
-                        class="inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-xs font-black shadow-sm"
+                        class="inline-flex items-center gap-1 rounded-none px-2.5 py-1 text-xs font-black shadow-sm"
                         :class="{
-                          'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20':
+                          'bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border border-[var(--terminal-green)]/20':
                             (entry.ratingChange || 0) > 0,
-                          'bg-rose-500/10 text-rose-600 border border-rose-500/20':
+                          'bg-[var(--terminal-red)]/10 text-[var(--terminal-red)] border border-[var(--terminal-red)]/20':
                             (entry.ratingChange || 0) < 0,
                           'bg-muted text-muted-foreground border border-border':
                             (entry.ratingChange || 0) === 0,
@@ -1018,7 +1018,7 @@ function getCountryFlag(countryCode: string): string {
 
     <div
       v-else-if="!loading"
-      class="flex flex-col items-center justify-center py-32 border-2 border-dashed rounded-3xl bg-muted/5 text-center px-6"
+      class="flex flex-col items-center justify-center py-32 border-2 border-dashed rounded-none bg-muted/5 text-center px-6"
     >
       <Trophy class="h-16 w-16 text-muted-foreground/20 mb-4" />
       <h3 class="text-2xl font-black tracking-tight">

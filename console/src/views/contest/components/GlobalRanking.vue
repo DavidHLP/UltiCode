@@ -16,7 +16,7 @@ const { t } = useI18n();
   <div class="space-y-6">
     <!-- Podium Section -->
     <Card
-      class="border-none shadow-sm bg-gradient-to-b from-gray-50/50 to-white"
+      class="border-none shadow-[var(--shadow-float)] bg-[var(--background)]"
     >
       <div class="p-6 text-center space-y-6">
         <div class="flex items-center justify-between mb-4">
@@ -44,23 +44,23 @@ const { t } = useI18n();
                   rankings[1].avatar ||
                   'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
                 "
-                class="w-14 h-14 rounded-full border-4 border-slate-300 shadow-lg"
+                class="w-14 h-14 rounded-full border-4 border-[var(--silver-200)] shadow-[var(--shadow-float)]"
               />
               <div class="absolute -bottom-2 w-full text-center">
                 <span
-                  class="bg-slate-300 text-slate-800 text-xs px-2 py-0.5 rounded-full font-black shadow-sm"
+                  class="bg-[var(--silver-200)] text-[var(--foreground)] text-xs px-2 py-0.5 rounded-full font-black shadow-[var(--shadow-float)]"
                   >2</span
                 >
               </div>
             </div>
             <p
-              class="text-xs font-bold truncate w-full text-slate-700 dark:text-slate-300 mt-1"
+              class="text-xs font-bold truncate w-full text-[var(--foreground)] mt-1"
             >
               {{ rankings[1].username }}
             </p>
             <RatingBadge :rating="rankings[1].rating" size="sm" />
             <div
-              class="h-24 w-full bg-gradient-to-b from-slate-200 via-slate-100 to-white dark:from-slate-800 dark:to-slate-900 rounded-t-xl shadow-inner border-t border-slate-300/50 relative overflow-hidden"
+              class="h-24 w-full bg-[var(--silver-100)] rounded-none shadow-[var(--shadow-float)] border-t border-[var(--silver-200)] relative overflow-hidden"
             >
               <div
                 class="absolute inset-0 bg-white/30 skew-y-12 opacity-50"
@@ -86,29 +86,29 @@ const { t } = useI18n();
                   rankings[0].avatar ||
                   'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
                 "
-                class="w-20 h-20 rounded-full border-4 border-yellow-400 shadow-xl ring-4 ring-yellow-400/20"
+                class="w-20 h-20 rounded-full border-4 border-[var(--terminal-amber)] shadow-[var(--shadow-float)] ring-4 ring-[var(--terminal-amber)]/20"
               />
               <div class="absolute -bottom-3 w-full text-center">
                 <span
-                  class="bg-gradient-to-r from-yellow-400 to-orange-400 text-white text-sm px-2.5 py-0.5 rounded-full font-black shadow-md"
+                  class="bg-[var(--terminal-amber)] text-white text-sm px-2.5 py-0.5 rounded-full font-black shadow-[var(--shadow-float)]"
                   >1</span
                 >
               </div>
             </div>
             <p
-              class="text-sm font-black truncate w-full text-yellow-600 dark:text-yellow-400 mt-1"
+              class="text-sm font-black truncate w-full text-[var(--terminal-amber)] mt-1"
             >
               {{ rankings[0].username }}
             </p>
             <RatingBadge :rating="rankings[0].rating" size="sm" />
             <div
-              class="h-36 w-full bg-gradient-to-b from-yellow-100 via-yellow-50 to-white dark:from-yellow-900/40 dark:to-slate-900 rounded-t-xl shadow-lg border-t border-yellow-300/50 relative overflow-hidden"
+              class="h-36 w-full bg-[var(--terminal-amber)]/10 rounded-none shadow-[var(--shadow-float)] border-t border-[var(--terminal-amber)]/50 relative overflow-hidden"
             >
               <div
                 class="absolute inset-0 bg-white/40 skew-y-12 opacity-50"
               ></div>
               <div
-                class="absolute bottom-0 w-full text-center pb-2 opacity-10 font-black text-4xl text-yellow-600"
+                class="absolute bottom-0 w-full text-center pb-2 opacity-10 font-black text-4xl text-[var(--terminal-amber)]"
               >
                 1
               </div>
@@ -128,23 +128,23 @@ const { t } = useI18n();
                   rankings[2].avatar ||
                   'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
                 "
-                class="w-14 h-14 rounded-full border-4 border-orange-300 shadow-lg"
+                class="w-14 h-14 rounded-full border-4 border-[var(--terminal-amber)] shadow-[var(--shadow-float)]"
               />
               <div class="absolute -bottom-2 w-full text-center">
                 <span
-                  class="bg-orange-300 text-orange-800 text-xs px-2 py-0.5 rounded-full font-black shadow-sm"
+                  class="bg-[var(--terminal-amber)] text-[var(--foreground)] text-xs px-2 py-0.5 rounded-full font-black shadow-[var(--shadow-float)]"
                   >3</span
                 >
               </div>
             </div>
             <p
-              class="text-xs font-bold truncate w-full text-orange-700 dark:text-orange-300 mt-1"
+              class="text-xs font-bold truncate w-full text-[var(--terminal-amber)] mt-1"
             >
               {{ rankings[2].username }}
             </p>
             <RatingBadge :rating="rankings[2].rating" size="sm" />
             <div
-              class="h-16 w-full bg-gradient-to-b from-orange-100 via-orange-50 to-white dark:from-orange-900/30 dark:to-slate-900 rounded-t-xl shadow-inner border-t border-orange-300/50 relative overflow-hidden"
+              class="h-16 w-full bg-[var(--terminal-amber)]/10 rounded-none shadow-[var(--shadow-float)] border-t border-[var(--terminal-amber)]/50 relative overflow-hidden"
             >
               <div
                 class="absolute inset-0 bg-white/30 skew-y-12 opacity-50"
@@ -158,7 +158,7 @@ const { t } = useI18n();
           <div
             v-for="(user, index) in rankings.slice(3, 10)"
             :key="user.username"
-            class="flex items-center gap-3 p-2 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer group"
+            class="flex items-center gap-3 p-2 rounded-none hover:bg-muted/50 transition-colors cursor-pointer group"
           >
             <span
               class="text-xs font-bold w-6 text-center text-muted-foreground group-hover:text-foreground transition-colors"

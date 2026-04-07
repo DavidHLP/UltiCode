@@ -8,7 +8,6 @@
 
 @layer base {
   :root {
-    /* ... */
     --vis-tooltip-background-color: none !important;
     --vis-tooltip-border-color: none !important;
     --vis-tooltip-text-color: none !important;
@@ -17,38 +16,8 @@
     --vis-tooltip-padding: none !important;
 
     --vis-primary-color: 222.2 47.4% 11.2%;
-    /* change to any hsl value you want */
     --vis-secondary-color: 160 81% 40%;
     --vis-text-color: var(--muted-foreground);
-
-    /* Status Colors (HSL format for charts) */
-    --chart-status-solved: 142 71% 45%;
-    --chart-status-attempted: 45 93% 47%;
-    --chart-status-todo: 215 16% 47%;
-
-    /* Difficulty Colors */
-    --chart-difficulty-easy: 142 71% 45%;
-    --chart-difficulty-medium: 45 93% 47%;
-    --chart-difficulty-hard: 0 84% 60%;
-
-    /* Multi-series Chart Colors */
-    --chart-series-1: 221 83% 53%;
-    --chart-series-2: 142 71% 45%;
-    --chart-series-3: 45 93% 47%;
-    --chart-series-4: 262 83% 58%;
-    --chart-series-5: 0 84% 60%;
-    --chart-series-6: 199 89% 48%;
-
-    /* Accent & Highlight Colors */
-    --chart-accent-primary: 221 83% 53%;
-    --chart-accent-secondary: 142 71% 45%;
-    --chart-accent-warning: 45 93% 47%;
-    --chart-accent-danger: 0 84% 60%;
-    --chart-accent-info: 199 89% 48%;
-
-    /* Premium & Solution Indicators */
-    --chart-premium: 280 100% 70%;
-    --chart-solution: 199 89% 48%;
   }
 
   .markdown-block {
@@ -76,17 +45,25 @@
 
   .markdown-block code {
     font-family:
-      "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo,
-      Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      "JetBrains Mono",
+      "Fira Code",
+      ui-monospace,
+      SFMono-Regular,
+      Menlo,
+      Monaco,
+      Consolas,
+      "Liberation Mono",
+      "Courier New",
+      monospace;
     font-size: 0.85em;
     padding: 0.1rem 0.35rem;
-    border-radius: 0.35rem;
+    border-radius: 0;
     background-color: color-mix(in srgb, var(--muted) 80%, transparent);
   }
 
   .markdown-block pre {
     padding: 0.75rem 1rem;
-    border-radius: 0.75rem;
+    border-radius: 0;
     background-color: color-mix(in srgb, var(--muted) 70%, transparent);
     overflow-x: auto;
   }
@@ -199,121 +176,784 @@
       height: 0;
     }
   }
-  @keyframes accordion-down {
-    from {
-      height: 0;
-    }
-    to {
-      height: var(--reka-accordion-content-height);
-    }
-  }
-  @keyframes accordion-up {
-    from {
-      height: var(--reka-accordion-content-height);
-    }
-    to {
-      height: 0;
-    }
-  }
 }
+
+/* ========================================
+   Solarized Design System - Light
+   ======================================== */
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --radius: 0;
+  /* Solarized Light: base3 background, base00 body text */
+  --background: oklch(0.9735 0.0261 90.1);
+  --foreground: oklch(0.5682 0.0285 221.9);
+  --card: oklch(0.9735 0.0261 90.1);
+  --card-foreground: oklch(0.5682 0.0285 221.9);
+  --popover: oklch(0.9735 0.0261 90.1);
+  --popover-foreground: oklch(0.5682 0.0285 221.9);
+  --primary: oklch(0.5230 0.0283 219.1);
+  --primary-foreground: oklch(0.9735 0.0261 90.1);
+  --secondary: oklch(0.9306 0.0260 92.4);
+  --secondary-foreground: oklch(0.5230 0.0283 219.1);
+  --muted: oklch(0.9306 0.0260 92.4);
+  --muted-foreground: oklch(0.6979 0.0159 196.8);
+  --accent: oklch(0.6149 0.1394 244.9);
+  --accent-foreground: oklch(0.9735 0.0261 90.1);
+  --destructive: oklch(0.5863 0.2064 27.1);
+  --destructive-foreground: oklch(0.9735 0.0261 90.1);
+  --border: oklch(0.6979 0.0159 196.8);
+  --input: oklch(0.6979 0.0159 196.8);
+  --ring: oklch(0.6149 0.1394 244.9);
+  --chart-1: oklch(0.6149 0.1394 244.9);
+  --chart-2: oklch(0.6437 0.1019 187.4);
+  --chart-3: oklch(0.6444 0.1508 118.6);
+  --chart-4: oklch(0.6545 0.1340 85.7);
+  --chart-5: oklch(0.5808 0.1732 39.5);
+  --sidebar: oklch(0.9306 0.0260 92.4);
+  --sidebar-foreground: oklch(0.5682 0.0285 221.9);
+  --sidebar-primary: oklch(0.6149 0.1394 244.9);
+  --sidebar-primary-foreground: oklch(0.9735 0.0261 90.1);
+  --sidebar-accent: oklch(0.6149 0.1394 244.9 / 0.1);
+  --sidebar-accent-foreground: oklch(0.5682 0.0285 221.9);
+  --sidebar-border: oklch(0.6979 0.0159 196.8);
+  --sidebar-ring: oklch(0.6149 0.1394 244.9);
+
+  /* Solarized Monotones (base3→base03, warm hue ~90) */
+  --silver-50: oklch(0.9735 0.0261 90.1);
+  --silver-100: oklch(0.9306 0.0260 92.4);
+  --silver-200: oklch(0.6979 0.0159 196.8);
+  --silver-300: oklch(0.6537 0.0197 205.3);
+  --silver-400: oklch(0.6537 0.0197 205.3);
+  --silver-500: oklch(0.5682 0.0285 221.9);
+  --silver-600: oklch(0.5230 0.0283 219.1);
+  --silver-700: oklch(0.5230 0.0283 219.1);
+  --silver-800: oklch(0.3092 0.0518 219.7);
+  --silver-900: oklch(0.2673 0.0486 219.8);
+
+  /* Solarized Blue Accent */
+  --accent-primary: oklch(0.6149 0.1394 244.9);
+  --accent-glow: oklch(0.6149 0.1394 244.9 / 0.15);
+
+  /* Solarized Accent Status */
+  --status-success: oklch(0.6444 0.1508 118.6);
+  --status-warning: oklch(0.6545 0.1340 85.7);
+  --status-error: oklch(0.5863 0.2064 27.1);
+
+  /* Border Styles */
+  --border-thin: 1px solid var(--silver-200);
+  --border-accent: 1px solid var(--accent-primary);
+
+  /* Shadow Styles */
+  --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.08);
+  --shadow-float-hover: 0 8px 30px -4px oklch(0 0 0 / 0.12);
+
+  /* Transition Timing */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 400ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+/* ========================================
+   Solarized Design System - Dark
+   ======================================== */
 
-  /* Chart Colors - Dark Mode */
-  --chart-status-solved: 142 70% 50%;
-  --chart-status-attempted: 45 93% 55%;
-  --chart-status-todo: 215 20% 60%;
-  --chart-difficulty-easy: 142 70% 50%;
-  --chart-difficulty-medium: 45 93% 55%;
-  --chart-difficulty-hard: 0 84% 65%;
-  --chart-series-1: 221 83% 60%;
-  --chart-series-2: 142 70% 50%;
-  --chart-series-3: 45 93% 55%;
-  --chart-series-4: 262 83% 65%;
-  --chart-series-5: 0 84% 65%;
-  --chart-series-6: 199 89% 55%;
-  --chart-accent-primary: 221 83% 60%;
-  --chart-accent-secondary: 142 70% 50%;
-  --chart-accent-warning: 45 93% 55%;
-  --chart-accent-danger: 0 84% 65%;
-  --chart-accent-info: 199 89% 55%;
-  --chart-premium: 280 100% 75%;
-  --chart-solution: 199 89% 55%;
+.dark {
+  /* Solarized Dark: base03 background, base0 body text */
+  --background: oklch(0.2673 0.0486 219.8);
+  --foreground: oklch(0.6537 0.0197 205.3);
+  --card: oklch(0.3092 0.0518 219.7);
+  --card-foreground: oklch(0.6537 0.0197 205.3);
+  --popover: oklch(0.3092 0.0518 219.7);
+  --popover-foreground: oklch(0.6537 0.0197 205.3);
+  --primary: oklch(0.6979 0.0159 196.8);
+  --primary-foreground: oklch(0.2673 0.0486 219.8);
+  --secondary: oklch(0.3092 0.0518 219.7);
+  --secondary-foreground: oklch(0.6537 0.0197 205.3);
+  --muted: oklch(0.3092 0.0518 219.7);
+  --muted-foreground: oklch(0.5230 0.0283 219.1);
+  --accent: oklch(0.6149 0.1394 244.9);
+  --accent-foreground: oklch(0.9735 0.0261 90.1);
+  --destructive: oklch(0.5863 0.2064 27.1);
+  --destructive-foreground: oklch(0.9735 0.0261 90.1);
+  --border: oklch(0.5230 0.0283 219.1 / 0.4);
+  --input: oklch(0.5230 0.0283 219.1 / 0.4);
+  --ring: oklch(0.6149 0.1394 244.9);
+  --chart-1: oklch(0.6149 0.1394 244.9);
+  --chart-2: oklch(0.6437 0.1019 187.4);
+  --chart-3: oklch(0.6444 0.1508 118.6);
+  --chart-4: oklch(0.6545 0.1340 85.7);
+  --chart-5: oklch(0.5808 0.1732 39.5);
+  --sidebar: oklch(0.3092 0.0518 219.7);
+  --sidebar-foreground: oklch(0.6537 0.0197 205.3);
+  --sidebar-primary: oklch(0.6149 0.1394 244.9);
+  --sidebar-primary-foreground: oklch(0.9735 0.0261 90.1);
+  --sidebar-accent: oklch(0.6149 0.1394 244.9 / 0.15);
+  --sidebar-accent-foreground: oklch(0.6537 0.0197 205.3);
+  --sidebar-border: oklch(0.5230 0.0283 219.1 / 0.4);
+  --sidebar-ring: oklch(0.6149 0.1394 244.9);
+
+  /* Solarized Monotones - Dark Mode (inverted) */
+  --silver-50: oklch(0.2673 0.0486 219.8);
+  --silver-100: oklch(0.3092 0.0518 219.7);
+  --silver-200: oklch(0.5230 0.0283 219.1);
+  --silver-300: oklch(0.5230 0.0283 219.1);
+  --silver-400: oklch(0.6537 0.0197 205.3);
+  --silver-500: oklch(0.6537 0.0197 205.3);
+  --silver-600: oklch(0.6979 0.0159 196.8);
+  --silver-700: oklch(0.9306 0.0260 92.4);
+  --silver-800: oklch(0.9735 0.0261 90.1);
+  --silver-900: oklch(0.9735 0.0261 90.1);
+
+  /* Accent Colors - Dark Mode (same as light per Solarized spec) */
+  --accent-primary: oklch(0.6149 0.1394 244.9);
+  --accent-glow: oklch(0.6149 0.1394 244.9 / 0.2);
+
+  /* Status Colors - Dark Mode (same as light per Solarized spec) */
+  --status-success: oklch(0.6444 0.1508 118.6);
+  --status-warning: oklch(0.6545 0.1340 85.7);
+  --status-error: oklch(0.5863 0.2064 27.1);
+
+  /* Shadow Styles - Dark Mode */
+  --shadow-float: 0 4px 20px -4px oklch(0 0 0 / 0.25);
+  --shadow-float-hover: 0 8px 30px -4px oklch(0 0 0 / 0.35);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    overflow-x: hidden;
+  }
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
   }
+}
+
+/* ========================================
+   Precision Dashboard Typography
+   ======================================== */
+
+.font-data {
+  font-family:
+    "JetBrains Mono",
+    "SF Mono",
+    "Roboto Mono",
+    ui-monospace,
+    monospace;
+  font-feature-settings:
+    "tnum" on,
+    "lnum" on;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings:
+    "tnum" on,
+    "lnum" on;
+}
+
+/* ========================================
+   Precision Dashboard Utilities
+   ======================================== */
+
+.precision-card {
+  transition:
+    transform var(--transition-normal),
+    box-shadow var(--transition-normal);
+}
+
+.precision-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-float-hover);
+}
+
+.border-silver {
+  border-color: var(--silver-200);
+}
+
+.dark .border-silver {
+  border-color: var(--silver-300);
+}
+
+.shadow-float {
+  box-shadow: var(--shadow-float);
+}
+
+.precision-divider {
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--silver-200), transparent);
+}
+
+.dark .precision-divider {
+  background: linear-gradient(to right, transparent, var(--silver-300), transparent);
+}
+
+.timeline-line {
+  position: relative;
+}
+
+.timeline-line::before {
+  content: "";
+  position: absolute;
+  left: 11px;
+  top: 24px;
+  bottom: 0;
+  width: 1px;
+  background: var(--silver-200);
+}
+
+.dark .timeline-line::before {
+  background: var(--silver-300);
+}
+
+.glow-accent {
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.status-success {
+  color: var(--status-success);
+}
+
+.status-warning {
+  color: var(--status-warning);
+}
+
+.status-error {
+  color: var(--status-error);
+}
+
+/* ========================================
+   Terminal Precision Design System
+   ======================================== */
+
+:root {
+  /* Solarized Terminal Accent Colors (identical in light/dark) */
+  --terminal-green: oklch(0.6444 0.1508 118.6);
+  --terminal-amber: oklch(0.6545 0.1340 85.7);
+  --terminal-red: oklch(0.5863 0.2064 27.1);
+  --terminal-cyan: oklch(0.6437 0.1019 187.4);
+  --terminal-purple: oklch(0.5924 0.2025 355.9);
+
+  /* Solarized Blue Accent */
+  --accent-electric: oklch(0.6149 0.1394 244.9);
+  --accent-electric-glow: oklch(0.6149 0.1394 244.9 / 0.15);
+
+  /* Surface Layers */
+  --surface-elevated: oklch(0.9735 0.0261 90.1);
+  --surface-sunken: oklch(0.9306 0.0260 92.4);
+
+  /* Terminal Timing */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --duration-fast: 200ms;
+  --duration-normal: 350ms;
+}
+
+/* ========================================
+   Terminal Animations
+   ======================================== */
+
+@keyframes slide-up-fade {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes cursor-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes scan-reveal {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes subtle-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+@keyframes terminal-typing {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+/* Staggered animation utility */
+.animate-stagger > * {
+  animation: slide-up-fade var(--duration-normal) var(--ease-out-expo) forwards;
+  opacity: 0;
+}
+
+.animate-stagger > *:nth-child(1) {
+  animation-delay: 0ms;
+}
+.animate-stagger > *:nth-child(2) {
+  animation-delay: 50ms;
+}
+.animate-stagger > *:nth-child(3) {
+  animation-delay: 100ms;
+}
+.animate-stagger > *:nth-child(4) {
+  animation-delay: 150ms;
+}
+.animate-stagger > *:nth-child(5) {
+  animation-delay: 200ms;
+}
+.animate-stagger > *:nth-child(6) {
+  animation-delay: 250ms;
+}
+.animate-stagger > *:nth-child(7) {
+  animation-delay: 300ms;
+}
+.animate-stagger > *:nth-child(8) {
+  animation-delay: 350ms;
+}
+.animate-stagger > *:nth-child(9) {
+  animation-delay: 400ms;
+}
+.animate-stagger > *:nth-child(10) {
+  animation-delay: 450ms;
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .animate-stagger > *,
+  .terminal-cursor,
+  .animate-scan,
+  .animate-pulse-subtle {
+    animation: none !important;
+    opacity: 1 !important;
+  }
+}
+
+/* ========================================
+   Terminal Typography Utilities
+   ======================================== */
+
+.terminal-prompt {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 14px;
+  color: var(--accent-electric);
+}
+
+.terminal-prompt::before {
+  content: "> ";
+  color: var(--terminal-green);
+}
+
+.terminal-cursor {
+  display: inline-block;
+  width: 8px;
+  height: 16px;
+  background: var(--accent-electric);
+  animation: cursor-blink 1s step-end infinite;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+}
+
+.terminal-label {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--muted-foreground);
+}
+
+.terminal-comment {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--silver-400);
+  font-style: italic;
+}
+
+.terminal-comment::before {
+  content: "// ";
+}
+
+.terminal-badge {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 2px 8px;
+  border-radius: 0;
+}
+
+.terminal-kv-key {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--silver-500);
+}
+
+.terminal-kv-value {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 14px;
+  font-feature-settings:
+    "tnum" on,
+    "lnum" on;
+}
+
+/* ========================================
+   Terminal Card Styling
+   ======================================== */
+
+.terminal-card {
+  border-radius: 0;
+  border: 1px solid var(--silver-200);
+  background: var(--card);
+}
+
+.dark .terminal-card {
+  border-color: var(--silver-300);
+}
+
+.terminal-card-header {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--silver-200);
+  background: var(--silver-50);
+  color: var(--silver-600);
+}
+
+.dark .terminal-card-header {
+  border-color: var(--silver-300);
+  background: var(--silver-100);
+  color: var(--silver-500);
+}
+
+.terminal-separator {
+  height: 3px;
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--silver-200) 0px,
+    var(--silver-200) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  margin: 16px 0;
+}
+
+.dark .terminal-separator {
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--silver-300) 0px,
+    var(--silver-300) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.terminal-input {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 14px;
+  border-radius: 0;
+  border: 1px solid var(--silver-200);
+  background: var(--surface-sunken);
+}
+
+.dark .terminal-input {
+  border-color: var(--silver-300);
+}
+
+.terminal-input:focus {
+  outline: none;
+  border-color: var(--accent-electric);
+  box-shadow: 0 0 0 2px var(--accent-electric-glow);
+}
+
+/* ========================================
+   Terminal Status Colors
+   ======================================== */
+
+.terminal-success {
+  color: var(--terminal-green);
+}
+
+.terminal-warning {
+  color: var(--terminal-amber);
+}
+
+.terminal-error {
+  color: var(--terminal-red);
+}
+
+.terminal-info {
+  color: var(--terminal-cyan);
+}
+
+.terminal-badge-success {
+  background: color-mix(in oklch, var(--terminal-green) 15%, transparent);
+  color: var(--terminal-green);
+  border: 1px solid color-mix(in oklch, var(--terminal-green) 30%, transparent);
+}
+
+.terminal-badge-warning {
+  background: color-mix(in oklch, var(--terminal-amber) 15%, transparent);
+  color: var(--terminal-amber);
+  border: 1px solid color-mix(in oklch, var(--terminal-amber) 30%, transparent);
+}
+
+.terminal-badge-error {
+  background: color-mix(in oklch, var(--terminal-red) 15%, transparent);
+  color: var(--terminal-red);
+  border: 1px solid color-mix(in oklch, var(--terminal-red) 30%, transparent);
+}
+
+.terminal-badge-info {
+  background: color-mix(in oklch, var(--terminal-cyan) 15%, transparent);
+  color: var(--terminal-cyan);
+  border: 1px solid color-mix(in oklch, var(--terminal-cyan) 30%, transparent);
+}
+
+.terminal-badge-purple {
+  background: color-mix(in oklch, var(--terminal-purple) 15%, transparent);
+  color: var(--terminal-purple);
+  border: 1px solid color-mix(in oklch, var(--terminal-purple) 30%, transparent);
+}
+
+.terminal-badge-electric {
+  background: color-mix(in oklch, var(--accent-electric) 15%, transparent);
+  color: var(--accent-electric);
+  border: 1px solid color-mix(in oklch, var(--accent-electric) 30%, transparent);
+}
+
+.terminal-badge-neutral {
+  background: color-mix(in oklch, var(--silver-500) 15%, transparent);
+  color: var(--silver-500);
+  border: 1px solid color-mix(in oklch, var(--silver-500) 30%, transparent);
+}
+
+.animate-pulse-subtle {
+  animation: subtle-pulse 2s ease-in-out infinite;
+}
+
+.animate-scan {
+  animation: scan-reveal 0.6s var(--ease-out-expo) forwards;
+}
+
+/* ========================================
+   ASCII-Style Progress Bars
+   ======================================== */
+
+.ascii-progress {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 12px;
+  white-space: pre;
+  letter-spacing: 0;
+}
+
+.ascii-progress-track {
+  color: var(--silver-300);
+}
+
+.dark .ascii-progress-track {
+  color: var(--silver-400);
+}
+
+.ascii-progress-fill {
+  color: var(--accent-electric);
+}
+
+/* ========================================
+   Terminal Table Enhancements
+   ======================================== */
+
+.terminal-table {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.terminal-table > div.overflow-hidden {
+  overflow-x: auto;
+}
+
+.terminal-table-row {
+  transition: background-color var(--duration-fast) ease;
+}
+
+.terminal-table-row:hover {
+  background: var(--surface-sunken);
+}
+
+.terminal-row-num {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--silver-400);
+  text-align: right;
+  user-select: none;
+  width: 40px;
+}
+
+/* ========================================
+   Dark Mode Terminal Adjustments
+   ======================================== */
+
+.dark {
+  --surface-elevated: oklch(0.3092 0.0518 219.7);
+  --surface-sunken: oklch(0.2673 0.0486 219.8);
+}
+
+/* ========================================
+   Highlight.js Solarized Theme
+   ======================================== */
+
+.hljs {
+  background: transparent;
+  color: #657b83;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: #93a1a1;
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-addition {
+  color: #859900;
+}
+
+.hljs-number,
+.hljs-string,
+.hljs-meta .hljs-meta-string,
+.hljs-literal,
+.hljs-doctag,
+.hljs-regexp {
+  color: #2aa198;
+}
+
+.hljs-title,
+.hljs-section,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #268bd2;
+}
+
+.hljs-attribute,
+.hljs-attr,
+.hljs-variable,
+.hljs-template-variable,
+.hljs-class .hljs-title,
+.hljs-type {
+  color: #268bd2;
+}
+
+.hljs-symbol,
+.hljs-bullet,
+.hljs-subst,
+.hljs-meta,
+.hljs-meta .hljs-keyword,
+.hljs-selector-attr,
+.hljs-selector-pseudo,
+.hljs-link {
+  color: #cb4b16;
+}
+
+.hljs-built_in,
+.hljs-deletion {
+  color: #dc322f;
+}
+
+.hljs-formula {
+  background: #eee8d5;
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+.hljs-function {
+  color: #268bd2;
+}
+
+.hljs-params {
+  color: #657b83;
+}
+
+.hljs-tag {
+  color: #859900;
+}
+
+.hljs-xml-tag {
+  color: #859900;
+}
+
+.hljs-xml-attr {
+  color: #268bd2;
+}
+
+.hljs-xml-comment {
+  color: #93a1a1;
+}
+
+.hljs-javascript .hljs-title,
+.hljs-typescript .hljs-title {
+  color: #268bd2;
+}
+
+.hljs-python .hljs-decorator {
+  color: #268bd2;
+}
+
+.hljs-java .hljs-annotation {
+  color: #268bd2;
+}
+
+/* Highlight.js Dark Theme Override */
+.dark .hljs {
+  color: #839496;
+}
+
+.dark .hljs-comment,
+.dark .hljs-quote {
+  color: #586e75;
+}
+
+.dark .hljs-formula {
+  background: #073642;
+}
+
+.dark .hljs-params {
+  color: #839496;
 }

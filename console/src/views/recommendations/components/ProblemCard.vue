@@ -25,11 +25,11 @@ const difficultyVariant = computed(() => {
 const difficultyClass = computed(() => {
   switch (props.item.difficulty.toLowerCase()) {
     case "easy":
-      return "text-green-600";
+      return "text-[var(--terminal-green)]";
     case "medium":
-      return "text-yellow-600";
+      return "text-[var(--terminal-amber)]";
     case "hard":
-      return "text-red-600";
+      return "text-[var(--terminal-red)]";
     default:
       return "";
   }

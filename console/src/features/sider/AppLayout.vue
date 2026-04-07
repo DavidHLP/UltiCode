@@ -134,8 +134,10 @@ const isActiveNav = (item: NavItem) => {
           <NotificationBadge />
         </div>
       </header>
-      <main class="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-        <router-view />
+      <main class="flex flex-1 flex-col px-3 py-3 sm:px-4 sm:py-4 lg:px-6 lg:py-6 xl:px-8">
+        <div class="mx-auto w-full max-w-[1440px] min-w-0 px-2 sm:px-3 lg:px-4">
+          <router-view />
+        </div>
       </main>
     </SidebarInset>
   </SidebarProvider>

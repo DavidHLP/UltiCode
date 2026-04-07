@@ -203,9 +203,9 @@ const handleOverlayDrop = (
 </script>
 
 <template>
-  <div class="flex flex-col h-full rounded-none overflow-hidden shadow-sm">
-    <header class="flex items-center bg-[#fafafa] py-1 px-2 min-h-9">
-      <div class="flex items-center min-h-8 flex-1">
+  <div class="flex flex-col h-full rounded-none overflow-hidden shadow-sm terminal-card">
+    <header class="flex items-center terminal-card-header min-h-9">
+      <div class="flex items-center min-h-8 flex-1 gap-1">
         <LayoutPanelHeader
           v-for="(header, idx) in localHeaders"
           :key="header.id"

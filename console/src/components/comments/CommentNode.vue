@@ -90,7 +90,7 @@
           </div>
 
           <!-- Actions -->
-          <div class="flex items-center gap-1 mt-2 -ml-2 select-none">
+          <div class="inline-flex w-fit items-center gap-1 mt-2 select-none">
             <VoteControl
               :likes="likes"
               :dislikes="dislikes"

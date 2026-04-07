@@ -129,7 +129,7 @@ const handleSaveChange = () => {
 </script>
 
 <template>
-  <div v-if="problem" class="flex items-center gap-3">
+  <div v-if="problem" class="flex items-center gap-2">
     <VoteControl
       :likes="reactionCounts.likes"
       :dislikes="reactionCounts.dislikes"

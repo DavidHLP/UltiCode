@@ -363,10 +363,11 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
   <section class="flex flex-col gap-6">
     <slot name="header" />
 
-    <div class="space-y-4">
+    <div class="space-y-4 terminal-card animate-stagger p-4 md:p-5 problem-explorer-controls">
       <CategoryFilter
         :categories="categoryOptions"
         v-model="selectedCategory"
+        class="pt-1"
       />
 
       <DataTableToolbar
@@ -506,7 +507,11 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
           </DropdownMenuCheckboxItem>
         </template>
         <template #actions>
-          <Button variant="outline" class="h-10 rounded-full" @click="pickOne">
+          <Button
+            variant="outline"
+            class="h-10 rounded-none font-data text-xs uppercase tracking-[0.12em] border-[var(--silver-200)]"
+            @click="pickOne"
+          >
             {{ t("problem.explorer.pickOne") }}
           </Button>
         </template>
@@ -600,3 +605,38 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
     </DataTable>
   </section>
 </template>
+
+<style scoped>
+/* Terminal-ify non-terminal child components (CategoryFilter, DataTableToolbar, DataTable).
+   VoteControl/ActionItem already handle their own rounded-none + font-data. */
+.problem-explorer-controls :deep(.rounded-full),
+.problem-explorer-controls :deep(.rounded-md),
+.problem-explorer-controls :deep(.rounded-lg) {
+  border-radius: 0 !important;
+}
+
+.problem-explorer-controls :deep(button),
+.problem-explorer-controls :deep(input),
+.problem-explorer-controls :deep([role="button"]),
+.problem-explorer-controls :deep([data-slot="badge"]) {
+  font-family:
+    "JetBrains Mono",
+    ui-monospace,
+    monospace;
+}
+
+.problem-explorer-controls :deep(.border-dashed) {
+  border-style: solid;
+  border-color: var(--silver-200);
+}
+
+.problem-explorer-controls :deep(input) {
+  border-color: var(--silver-200);
+  background: var(--surface-sunken);
+}
+
+.problem-explorer-controls :deep(input:focus-visible) {
+  border-color: var(--accent-electric);
+  box-shadow: 0 0 0 2px var(--accent-electric-glow);
+}
+</style>

@@ -117,7 +117,7 @@ onMounted(async () => {
 
     <div
       v-else-if="!hasUser"
-      class="text-center py-20 border-2 border-dashed rounded-3xl"
+      class="text-center py-20 border-2 border-dashed rounded-none"
     >
       <p class="text-muted-foreground mb-4">
         {{ t("personal.solutions.loginToView") }}
@@ -134,13 +134,13 @@ onMounted(async () => {
       <Card
         v-for="sol in solutions"
         :key="sol.id"
-        class="flex flex-col group hover:shadow-md transition-all duration-300 border-muted/60 rounded-2xl"
+        class="flex flex-col group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 rounded-none"
       >
         <CardHeader class="pb-3">
           <div class="flex items-center justify-between mb-3">
             <Badge
               variant="outline"
-              class="font-mono text-[10px] bg-primary/5 text-primary border-primary/20 rounded-md"
+              class="font-mono text-[10px] bg-primary/5 text-primary border-primary/20 rounded-none"
             >
               {{ sol.language }}
             </Badge>
@@ -212,7 +212,7 @@ onMounted(async () => {
               v-for="tag in sol.tags"
               :key="tag"
               variant="secondary"
-              class="text-[10px] font-medium py-0 h-5 rounded-md"
+              class="text-[10px] font-medium py-0 h-5 rounded-none"
             >
               {{ tag }}
             </Badge>
@@ -270,10 +270,10 @@ onMounted(async () => {
 
     <div
       v-else
-      class="flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
+      class="flex flex-col items-center justify-center py-24 rounded-none border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
     >
       <div
-        class="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 mb-4"
+        class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
       >
         <FileCode2 class="h-8 w-8 text-muted-foreground/50" />
       </div>

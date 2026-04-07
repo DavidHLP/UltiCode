@@ -56,17 +56,17 @@ const statusToneClass = computed(() => {
   const severity = statusMeta.value?.severity ?? statusMeta.value?.category;
   switch (severity) {
     case "success":
-      return "text-green-600 dark:text-green-400";
+      return "text-[var(--terminal-green)]";
     case "error":
-      return "text-red-600 dark:text-red-400";
+      return "text-[var(--terminal-red)]";
     case "warning":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-[var(--terminal-amber)]";
     case "info":
-      return "text-sky-600 dark:text-sky-400";
+      return "text-[var(--accent-electric)]";
     default:
       return props.submission?.status === "Accepted"
-        ? "text-green-600 dark:text-green-400"
-        : "text-red-600 dark:text-red-400";
+        ? "text-[var(--terminal-green)]"
+        : "text-[var(--terminal-red)]";
   }
 });
 
@@ -566,7 +566,7 @@ const handleWriteSolution = () => {
           v-if="isAccepted"
           variant="default"
           size="sm"
-          class="h-7 text-xs bg-green-600 hover:bg-green-700 text-white"
+          class="h-7 text-xs bg-[var(--terminal-green)] hover:bg-[var(--terminal-green)] text-[var(--background)]"
           @click="handleWriteSolution"
         >
           {{ t("problem.solutions.writeSolution") }}
@@ -577,7 +577,7 @@ const handleWriteSolution = () => {
     <!-- Content based on Status -->
     <div
       v-if="showVerdictMeta"
-      class="rounded-md border border-border bg-muted/40 px-4 py-3 text-xs"
+      class="rounded-none border border-border bg-muted/40 px-4 py-3 text-xs"
     >
       <div class="text-xs font-medium text-muted-foreground">
         {{ t("problem.submissions.verdictInfo") }}
@@ -587,7 +587,7 @@ const handleWriteSolution = () => {
       </div>
       <div
         v-if="verdictDetail"
-        class="mt-2 rounded-md bg-muted px-3 py-2 font-mono text-xs text-foreground"
+        class="mt-2 rounded-none bg-muted px-3 py-2 font-mono text-xs text-foreground"
       >
         {{ verdictDetail }}
       </div>
@@ -602,13 +602,13 @@ const handleWriteSolution = () => {
     <!-- 1. Compile Error -->
     <div
       v-if="isCompileError"
-      class="rounded-md bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 p-4"
+      class="rounded-none bg-[var(--terminal-red)]/10 border border-[var(--terminal-red)]/30 p-4"
     >
-      <h3 class="font-medium text-red-700 dark:text-red-400 text-sm mb-2">
+      <h3 class="font-medium text-[var(--terminal-red)] text-sm mb-2">
         {{ t("problem.submissions.compileError") }}
       </h3>
       <pre
-        class="whitespace-pre-wrap text-sm font-mono text-red-600 dark:text-red-300 bg-transparent p-0"
+        class="whitespace-pre-wrap text-sm font-mono text-[var(--terminal-red)] bg-transparent p-0"
         >{{
           props.submission.compiler_error ||
           t("problem.submissions.noErrorMessage")
@@ -623,7 +623,7 @@ const handleWriteSolution = () => {
           {{ t("problem.layout.input") }}
         </div>
         <div
-          class="rounded-md bg-muted px-3 py-2 text-sm font-mono text-foreground"
+          class="rounded-none bg-muted px-3 py-2 text-sm font-mono text-foreground"
         >
           {{ props.submission.input }}
         </div>
@@ -634,7 +634,7 @@ const handleWriteSolution = () => {
           {{ t("problem.layout.output") }}
         </div>
         <div
-          class="rounded-md bg-muted px-3 py-2 text-sm font-mono text-foreground"
+          class="rounded-none bg-muted px-3 py-2 text-sm font-mono text-foreground"
         >
           {{ props.submission.output }}
         </div>
@@ -645,7 +645,7 @@ const handleWriteSolution = () => {
           {{ t("problem.layout.expected") }}
         </div>
         <div
-          class="rounded-md bg-muted px-3 py-2 text-sm font-mono text-foreground"
+          class="rounded-none bg-muted px-3 py-2 text-sm font-mono text-foreground"
         >
           {{ props.submission.expected_output }}
         </div>
@@ -656,13 +656,13 @@ const handleWriteSolution = () => {
     <div v-else-if="isAccepted" class="space-y-4">
       <!-- 分布统计卡片 -->
       <div
-        class="flex w-full flex-col gap-1.5 rounded-lg border border-border p-2"
+        class="flex w-full flex-col gap-1.5 rounded-none border border-border p-2"
       >
         <div class="flex items-center justify-between gap-1.5">
           <div class="flex w-full flex-wrap gap-2">
             <!-- Runtime Trigger -->
             <div
-              class="rounded-md group flex min-w-[240px] flex-1 cursor-pointer flex-col px-3 py-2 text-xs transition hover:opacity-100"
+              class="rounded-none group flex min-w-[240px] flex-1 cursor-pointer flex-col px-3 py-2 text-xs transition hover:opacity-100"
               :class="showRuntimeDetail ? 'bg-accent' : 'opacity-40'"
               @click="toggleRuntimeChart"
             >
@@ -693,7 +693,7 @@ const handleWriteSolution = () => {
 
             <!-- Memory Trigger -->
             <div
-              class="rounded-md group flex min-w-[240px] flex-1 cursor-pointer flex-col px-3 py-2 text-xs transition hover:opacity-100"
+              class="rounded-none group flex min-w-[240px] flex-1 cursor-pointer flex-col px-3 py-2 text-xs transition hover:opacity-100"
               :class="showMemoryDetail ? 'bg-accent' : 'opacity-40'"
               @click="toggleMemoryChart"
             >
@@ -725,14 +725,14 @@ const handleWriteSolution = () => {
       </div>
 
       <!-- Charts -->
-      <div v-if="showRuntimeDetail" class="rounded-lg border border-border p-3">
+      <div v-if="showRuntimeDetail" class="rounded-none border border-border p-3">
         <div
           class="h-48 w-full"
           ref="runtimeChartRef"
           style="touch-action: none; overflow: hidden; contain: content"
         ></div>
       </div>
-      <div v-if="showMemoryDetail" class="rounded-lg border border-border p-3">
+      <div v-if="showMemoryDetail" class="rounded-none border border-border p-3">
         <div
           class="h-48 w-full"
           ref="memoryChartRef"
@@ -743,7 +743,7 @@ const handleWriteSolution = () => {
 
     <div
       v-else-if="!showVerdictMeta"
-      class="rounded-md border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground"
+      class="rounded-none border border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground"
     >
       {{ t("problem.submissions.detailsNotAvailable") }}
     </div>

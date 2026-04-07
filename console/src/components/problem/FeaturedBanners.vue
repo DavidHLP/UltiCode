@@ -35,48 +35,48 @@ const { t } = useI18n();
 const authStore = useAuthStore();
 
 const CARD_BASE =
-  "relative overflow-hidden border shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-0.5 h-full rounded-2xl";
+  "relative overflow-hidden border transition-all duration-300 hover:-translate-y-0.5 h-full rounded-none";
 const CARD_CONTENT_BASE = "p-5 relative z-10 flex flex-col h-full";
 const ICON_BASE =
-  "w-10 h-10 rounded-2xl flex items-center justify-center shadow-sm transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3";
+  "w-10 h-10 rounded-none flex items-center justify-center transition-transform duration-300 group-hover:scale-110 group-hover:-rotate-3";
 const BADGE_BASE =
-  "px-2 py-0.5 rounded-md text-[10px] font-bold border shadow-sm backdrop-blur uppercase tracking-widest";
+  "px-2 py-0.5 rounded-none text-[10px] font-bold border backdrop-blur uppercase tracking-widest";
 const GLOW_BASE =
   "absolute rounded-full blur-3xl transition-transform duration-300";
 
 const SLATE_THEME: BannerTheme = {
-  card: "bg-gradient-to-br from-slate-500/10 via-slate-500/5 to-transparent border-slate-200/40 dark:border-slate-800/40",
-  icon: "text-slate-700 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-900/30",
+  card: "bg-muted/30 border-border/40",
+  icon: "text-muted-foreground bg-muted/50",
   badge:
-    "bg-slate-50/70 text-slate-700 border-slate-200/60 dark:bg-slate-900/20 dark:text-slate-200 dark:border-slate-800/60",
-  glow: "bg-slate-500/20",
-  sparkle: "text-slate-500",
+    "bg-muted/70 text-muted-foreground border-border/60",
+  glow: "bg-muted/20",
+  sparkle: "text-muted-foreground",
 };
 
 const THEME_MAP: Record<string, BannerTheme> = {
   amber: {
-    card: "bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-transparent border-amber-200/40 dark:border-amber-900/40",
-    icon: "text-amber-700 dark:text-amber-300 bg-amber-100/80 dark:bg-amber-900/30",
+    card: "bg-[var(--terminal-amber)]/10 border-[var(--terminal-amber)]/30",
+    icon: "text-[var(--terminal-amber)] bg-[var(--terminal-amber)]/15",
     badge:
-      "bg-amber-50/70 text-amber-700 border-amber-200/60 dark:bg-amber-900/20 dark:text-amber-200 dark:border-amber-800/60",
-    glow: "bg-amber-500/20",
-    sparkle: "text-amber-500",
+      "bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/30",
+    glow: "bg-[var(--terminal-amber)]/20",
+    sparkle: "text-[var(--terminal-amber)]",
   },
   sky: {
-    card: "bg-gradient-to-br from-sky-500/10 via-indigo-500/5 to-transparent border-sky-200/40 dark:border-sky-900/40",
-    icon: "text-sky-700 dark:text-sky-300 bg-sky-100/80 dark:bg-sky-900/30",
+    card: "bg-[var(--accent-electric)]/10 border-[var(--accent-electric)]/30",
+    icon: "text-[var(--accent-electric)] bg-[var(--accent-electric)]/15",
     badge:
-      "bg-sky-50/70 text-sky-700 border-sky-200/60 dark:bg-sky-900/20 dark:text-sky-200 dark:border-sky-800/60",
-    glow: "bg-sky-500/20",
-    sparkle: "text-sky-500",
+      "bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border-[var(--accent-electric)]/30",
+    glow: "bg-[var(--accent-electric)]/20",
+    sparkle: "text-[var(--accent-electric)]",
   },
   emerald: {
-    card: "bg-gradient-to-br from-emerald-500/10 via-teal-500/5 to-transparent border-emerald-200/40 dark:border-emerald-900/40",
-    icon: "text-emerald-700 dark:text-emerald-300 bg-emerald-100/80 dark:bg-emerald-900/30",
+    card: "bg-[var(--terminal-green)]/10 border-[var(--terminal-green)]/30",
+    icon: "text-[var(--terminal-green)] bg-[var(--terminal-green)]/15",
     badge:
-      "bg-emerald-50/70 text-emerald-700 border-emerald-200/60 dark:bg-emerald-900/20 dark:text-emerald-200 dark:border-emerald-800/60",
-    glow: "bg-emerald-500/20",
-    sparkle: "text-emerald-500",
+      "bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/30",
+    glow: "bg-[var(--terminal-green)]/20",
+    sparkle: "text-[var(--terminal-green)]",
   },
   slate: SLATE_THEME,
 };
@@ -150,11 +150,11 @@ onMounted(async () => {
       <Card
         v-for="i in 3"
         :key="i"
-        class="relative overflow-hidden border bg-muted/30 h-full rounded-2xl"
+        class="relative overflow-hidden border bg-muted/30 h-full rounded-none"
       >
         <CardContent class="p-5 animate-pulse space-y-4">
           <div class="flex items-start justify-between">
-            <div class="h-10 w-10 rounded-2xl bg-muted/70"></div>
+            <div class="h-10 w-10 rounded-none bg-muted/70"></div>
             <div class="h-4 w-16 rounded-full bg-muted/60"></div>
           </div>
           <div class="space-y-2">
@@ -172,10 +172,10 @@ onMounted(async () => {
 
     <template v-else-if="displayBanners.length === 0">
       <div
-        class="col-span-full flex flex-col items-center justify-center py-24 rounded-2xl border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
+        class="col-span-full flex flex-col items-center justify-center py-24 rounded-none border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
       >
         <div
-          class="flex h-16 w-16 items-center justify-center rounded-2xl bg-muted/50 mb-4"
+          class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
         >
           <Sparkles class="h-8 w-8 text-muted-foreground/50" />
         </div>

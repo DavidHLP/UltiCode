@@ -144,7 +144,7 @@ onMounted(async () => {
           >
             <TabsTrigger
               value="general"
-              class="flex items-center gap-3 px-4 py-3 justify-start w-full text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-secondary/50 data-[state=active]:shadow-none hover:bg-muted/50 rounded-xl transition-all"
+              class="flex items-center gap-3 px-4 py-3 justify-start w-full text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-secondary/50 data-[state=active]:shadow-none hover:bg-muted/50 rounded-none transition-all"
             >
               <User class="h-4 w-4" />
               <span class="font-medium">{{
@@ -153,7 +153,7 @@ onMounted(async () => {
             </TabsTrigger>
             <TabsTrigger
               value="password"
-              class="flex items-center gap-3 px-4 py-3 justify-start w-full text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-secondary/50 data-[state=active]:shadow-none hover:bg-muted/50 rounded-xl transition-all"
+              class="flex items-center gap-3 px-4 py-3 justify-start w-full text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-secondary/50 data-[state=active]:shadow-none hover:bg-muted/50 rounded-none transition-all"
             >
               <Lock class="h-4 w-4" />
               <span class="font-medium">{{
@@ -162,7 +162,7 @@ onMounted(async () => {
             </TabsTrigger>
             <TabsTrigger
               value="notifications"
-              class="flex items-center gap-3 px-4 py-3 justify-start w-full text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-secondary/50 data-[state=active]:shadow-none hover:bg-muted/50 rounded-xl transition-all"
+              class="flex items-center gap-3 px-4 py-3 justify-start w-full text-muted-foreground data-[state=active]:text-foreground data-[state=active]:bg-secondary/50 data-[state=active]:shadow-none hover:bg-muted/50 rounded-none transition-all"
             >
               <Bell class="h-4 w-4" />
               <span class="font-medium">{{
@@ -179,7 +179,7 @@ onMounted(async () => {
             class="mt-0 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300"
           >
             <!-- Profile Section -->
-            <Card class="border shadow-sm bg-card rounded-2xl">
+            <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
               <CardHeader>
                 <CardTitle class="text-xl font-semibold tracking-tight">{{
                   t("personal.account.sections.publicProfile")
@@ -286,7 +286,7 @@ onMounted(async () => {
             </Card>
 
             <!-- Social/Links Section -->
-            <Card class="border shadow-sm bg-card rounded-2xl">
+            <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
               <CardHeader>
                 <CardTitle class="text-xl font-semibold tracking-tight">{{
                   t("personal.account.sections.webPresence")
@@ -299,7 +299,7 @@ onMounted(async () => {
                 <div class="space-y-4">
                   <div class="flex items-center gap-3">
                     <div
-                      class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted"
+                      class="flex h-9 w-9 items-center justify-center rounded-none bg-muted"
                     >
                       <Globe class="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -313,7 +313,7 @@ onMounted(async () => {
                   </div>
                   <div class="flex items-center gap-3">
                     <div
-                      class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted"
+                      class="flex h-9 w-9 items-center justify-center rounded-none bg-muted"
                     >
                       <Twitter class="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -327,7 +327,7 @@ onMounted(async () => {
                   </div>
                   <div class="flex items-center gap-3">
                     <div
-                      class="flex h-9 w-9 items-center justify-center rounded-lg bg-muted"
+                      class="flex h-9 w-9 items-center justify-center rounded-none bg-muted"
                     >
                       <Github class="h-4 w-4 text-muted-foreground" />
                     </div>
@@ -359,7 +359,7 @@ onMounted(async () => {
             value="password"
             class="mt-0 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300"
           >
-            <Card class="border shadow-sm bg-card rounded-2xl">
+            <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
               <CardHeader>
                 <CardTitle class="text-lg">{{
                   t("personal.account.changePassword")
@@ -403,7 +403,7 @@ onMounted(async () => {
               </CardFooter>
             </Card>
 
-            <Card class="border-destructive/20 bg-destructive/5 rounded-2xl">
+            <Card class="border-destructive/20 bg-destructive/5 rounded-none">
               <CardHeader>
                 <CardTitle class="text-lg text-destructive">{{
                   t("personal.account.dangerZone")
@@ -428,7 +428,7 @@ onMounted(async () => {
             value="notifications"
             class="mt-0 space-y-6 animate-in fade-in slide-in-from-right-4 duration-300"
           >
-            <Card class="border shadow-sm bg-card rounded-2xl">
+            <Card class="border shadow-[var(--shadow-float)] bg-card rounded-none">
               <CardHeader>
                 <CardTitle class="text-lg">{{
                   t("personal.account.sections.notifications")
@@ -440,7 +440,7 @@ onMounted(async () => {
               <CardContent class="space-y-4">
                 <div class="space-y-4">
                   <div
-                    class="flex items-center justify-between space-x-4 rounded-xl border bg-background p-4 transition-all"
+                    class="flex items-center justify-between space-x-4 rounded-none border bg-background p-4 transition-all"
                   >
                     <div class="flex gap-4 items-center">
                       <div
@@ -472,13 +472,13 @@ onMounted(async () => {
                   </div>
 
                   <div
-                    class="flex items-center justify-between space-x-4 rounded-xl border bg-background p-4 transition-all"
+                    class="flex items-center justify-between space-x-4 rounded-none border bg-background p-4 transition-all"
                   >
                     <div class="flex gap-4 items-center">
                       <div
-                        class="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center"
+                        class="h-10 w-10 rounded-full bg-[var(--terminal-amber)]/10 flex items-center justify-center"
                       >
-                        <Bell class="h-5 w-5 text-orange-500" />
+                        <Bell class="h-5 w-5 text-[var(--terminal-amber)]" />
                       </div>
                       <div class="space-y-0.5">
                         <Label class="text-base font-bold">{{
@@ -504,13 +504,13 @@ onMounted(async () => {
                   </div>
 
                   <div
-                    class="flex items-center justify-between space-x-4 rounded-xl border bg-background p-4 opacity-70"
+                    class="flex items-center justify-between space-x-4 rounded-none border bg-background p-4 opacity-70"
                   >
                     <div class="flex gap-4 items-center">
                       <div
-                        class="h-10 w-10 rounded-full bg-emerald-500/10 flex items-center justify-center"
+                        class="h-10 w-10 rounded-full bg-[var(--terminal-green)]/10 flex items-center justify-center"
                       >
-                        <ShieldCheck class="h-5 w-5 text-emerald-500" />
+                        <ShieldCheck class="h-5 w-5 text-[var(--terminal-green)]" />
                       </div>
                       <div class="space-y-0.5">
                         <Label class="text-base font-bold">{{

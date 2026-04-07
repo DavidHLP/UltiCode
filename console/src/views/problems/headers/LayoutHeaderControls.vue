@@ -95,7 +95,7 @@ const selectedLayout = computed({
           </DropdownMenuTrigger>
           <DropdownMenuContent class="w-96 p-4">
             <div class="space-y-3">
-              <div class="text-sm font-semibold text-gray-900">
+              <div class="text-sm font-semibold text-foreground">
                 {{ t("problem.explorer.filters") }}
               </div>
               <DropdownMenuRadioGroup
@@ -114,16 +114,16 @@ const selectedLayout = computed({
                     v-for="option in layoutOptions"
                     :key="option.id"
                     :value="option.value"
-                    class="relative flex flex-col items-center gap-2 p-2 rounded-lg border-2 transition-all duration-200 cursor-pointer data-[state=checked]:border-blue-500 data-[state=unchecked]:border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+                    class="relative flex flex-col items-center gap-2 p-2 rounded-none border-2 transition-all duration-200 cursor-pointer data-[state=checked]:border-[var(--accent-electric)] data-[state=unchecked]:border-border hover:border-muted-foreground hover:bg-muted"
                   >
                     <!-- Layout preview container -->
                     <div
-                      class="w-full aspect-[4/3] bg-gradient-to-br from-gray-50 to-gray-100 rounded-md flex items-center justify-center relative overflow-hidden border border-gray-200"
+                      class="w-full aspect-[4/3] bg-muted rounded-none flex items-center justify-center relative overflow-hidden border border-border"
                     >
                       <!-- Selected indicator -->
                       <div
                         v-if="option.value === selectedLayout"
-                        class="absolute inset-0 border-2 border-blue-500 rounded-md"
+                        class="absolute inset-0 border-2 border-[var(--accent-electric)] rounded-none"
                       />
 
                       <!-- Layout preview visualization -->
@@ -132,14 +132,14 @@ const selectedLayout = computed({
                         class="w-full h-full p-2 flex flex-row gap-1.5"
                       >
                         <div
-                          class="flex-1 bg-white rounded border border-gray-300"
+                          class="flex-1 bg-[var(--background)] rounded-none border border-border"
                         ></div>
                         <div class="flex flex-col gap-1.5 flex-1">
                           <div
-                            class="flex-1 bg-white rounded border border-gray-300"
+                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
                           ></div>
                           <div
-                            class="flex-1 bg-white rounded border border-gray-300"
+                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
                           ></div>
                         </div>
                       </div>
@@ -148,14 +148,14 @@ const selectedLayout = computed({
                         class="w-full h-full p-2 flex flex-col gap-1.5"
                       >
                         <div
-                          class="flex-1 bg-white rounded border border-gray-300"
+                          class="flex-1 bg-[var(--background)] rounded-none border border-border"
                         ></div>
                         <div class="flex gap-1.5 flex-1">
                           <div
-                            class="flex-1 bg-white rounded border border-gray-300"
+                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
                           ></div>
                           <div
-                            class="flex-1 bg-white rounded border border-gray-300"
+                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
                           ></div>
                         </div>
                       </div>
@@ -165,14 +165,14 @@ const selectedLayout = computed({
                       >
                         <div class="flex flex-col gap-1.5 w-1/3">
                           <div
-                            class="flex-1 bg-white rounded border border-gray-300"
+                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
                           ></div>
                           <div
-                            class="flex-1 bg-white rounded border border-gray-300"
+                            class="flex-1 bg-[var(--background)] rounded-none border border-border"
                           ></div>
                         </div>
                         <div
-                          class="flex-1 bg-white rounded border border-gray-300"
+                          class="flex-1 bg-[var(--background)] rounded-none border border-border"
                         ></div>
                       </div>
                       <div
@@ -180,27 +180,27 @@ const selectedLayout = computed({
                         class="w-full h-full p-2 flex flex-row gap-1.5"
                       >
                         <div
-                          class="w-1/4 bg-white rounded border border-gray-300"
+                          class="w-1/4 bg-[var(--background)] rounded-none border border-border"
                         ></div>
                         <div
-                          class="flex-1 bg-white rounded border border-gray-300"
+                          class="flex-1 bg-[var(--background)] rounded-none border border-border"
                         ></div>
                         <div
-                          class="w-1/4 bg-white rounded border border-gray-300"
+                          class="w-1/4 bg-[var(--background)] rounded-none border border-border"
                         ></div>
                       </div>
 
                       <!-- Check mark indicator -->
                       <div
                         v-if="option.value === selectedLayout"
-                        class="absolute top-1.5 right-1.5 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center shadow-sm"
+                        class="absolute top-1.5 right-1.5 w-5 h-5 bg-[var(--accent-electric)] rounded-full flex items-center justify-center shadow-[var(--shadow-float)]"
                       >
                         <Check class="w-3 h-3 text-white" />
                       </div>
                     </div>
 
                     <!-- Label -->
-                    <span class="text-xs font-medium text-gray-700 mt-1">{{
+                    <span class="text-xs font-medium text-foreground mt-1">{{
                       option.label
                     }}</span>
                   </DropdownMenuRadioItem>
@@ -272,7 +272,7 @@ const selectedLayout = computed({
               </DropdownMenuItem>
             </RouterLink>
             <DropdownMenuSeparator />
-            <DropdownMenuItem class="text-rose-600 cursor-pointer">
+            <DropdownMenuItem class="text-[var(--terminal-red)] cursor-pointer">
               <LogOut class="mr-2 h-4 w-4" aria-hidden="true" />
               <span>{{ t("problem.layout.logout") }}</span>
             </DropdownMenuItem>

@@ -51,7 +51,7 @@ const progressPercentage = computed(() =>
   <div
     :class="
       cn(
-        'relative flex items-start gap-4 rounded-lg border p-4 transition-all',
+        'relative flex items-start gap-4 rounded-none border p-4 transition-all',
         achievement.earned
           ? 'border-primary/30 bg-primary/5'
           : 'border-border bg-card hover:border-border/80',
@@ -85,7 +85,7 @@ const progressPercentage = computed(() =>
         </span>
 
         <template v-if="achievement.earned && formattedDate">
-          <span class="flex items-center gap-1 text-green-600">
+          <span class="flex items-center gap-1 text-[var(--terminal-green)]">
             <Check class="h-3 w-3" />
             Earned
           </span>

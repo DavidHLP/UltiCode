@@ -70,23 +70,23 @@ const verdictClass = computed(() => {
   if (!verdict) return "text-muted-foreground";
   switch (verdict) {
     case "Accepted":
-      return "text-emerald-600 dark:text-emerald-400";
+      return "text-[var(--terminal-green)]";
     case "Wrong Answer":
-      return "text-red-600 dark:text-red-400";
+      return "text-[var(--terminal-red)]";
     case "Runtime Error":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-[var(--terminal-amber)]";
     case "Time Limit Exceeded":
-      return "text-sky-600 dark:text-sky-400";
+      return "text-[var(--accent-electric)]";
     case "Memory Limit Exceeded":
     case "Output Limit Exceeded":
     case "Presentation Error":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-[var(--terminal-amber)]";
     case "Compile Error":
-      return "text-red-600 dark:text-red-400";
+      return "text-[var(--terminal-red)]";
     case "System Error":
-      return "text-red-600 dark:text-red-400";
+      return "text-[var(--terminal-red)]";
     case "Judging":
-      return "text-sky-600 dark:text-sky-400";
+      return "text-[var(--accent-electric)]";
     default:
       return "text-muted-foreground";
   }
@@ -95,21 +95,21 @@ const verdictClass = computed(() => {
 const caseStatusIconClass = (status: ProblemCaseResultDetail["status"]) => {
   switch (status) {
     case "Accepted":
-      return "text-emerald-500";
+      return "text-[var(--terminal-green)]";
     case "Wrong Answer":
-      return "text-red-500";
+      return "text-[var(--terminal-red)]";
     case "Runtime Error":
-      return "text-amber-500";
+      return "text-[var(--terminal-amber)]";
     case "Time Limit Exceeded":
-      return "text-sky-500";
+      return "text-[var(--accent-electric)]";
     case "Memory Limit Exceeded":
     case "Output Limit Exceeded":
     case "Presentation Error":
-      return "text-amber-500";
+      return "text-[var(--terminal-amber)]";
     case "Compile Error":
-      return "text-red-500";
+      return "text-[var(--terminal-red)]";
     case "System Error":
-      return "text-red-500";
+      return "text-[var(--terminal-red)]";
     case "Judging":
     case "Pending":
       return "text-muted-foreground";
@@ -170,7 +170,7 @@ const selectCase = (label: string) => {
           props.runResult?.verdict === 'Compile Error' &&
           props.runResult.error_message
         "
-        class="rounded-md bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-900/30 p-3 text-xs font-mono text-red-600 dark:text-red-300"
+        class="rounded-none bg-[var(--terminal-red)]/10 border border-[var(--terminal-red)]/30 p-3 text-xs font-mono text-[var(--terminal-red)]"
       >
         {{ props.runResult.error_message }}
       </div>
@@ -184,7 +184,7 @@ const selectCase = (label: string) => {
               result.caseLabel === activeCaseLabel ? 'secondary' : 'ghost'
             "
             size="sm"
-            class="h-7 rounded-md px-3 text-xs font-medium"
+            class="h-7 rounded-none px-3 text-xs font-medium"
             :class="
               result.caseLabel === activeCaseLabel
                 ? 'text-foreground shadow-none'

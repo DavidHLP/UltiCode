@@ -203,7 +203,7 @@ const handleOverlayDrop = (
 </script>
 
 <template>
-  <div class="flex flex-col h-full rounded-lg overflow-hidden shadow-sm">
+  <div class="flex flex-col h-full rounded-none overflow-hidden shadow-sm">
     <header class="flex items-center bg-[#fafafa] py-1 px-2 min-h-9">
       <div class="flex items-center min-h-8 flex-1">
         <LayoutPanelHeader
@@ -227,7 +227,7 @@ const handleOverlayDrop = (
       </div>
     </header>
     <main class="flex-1 overflow-hidden p-2 relative">
-      <div class="h-full overflow-auto rounded-md bg-white">
+      <div class="h-full overflow-auto rounded-none bg-background">
         <LayoutPanelContent
           :active-header="activeHeader || null"
           :is-active="isActive"

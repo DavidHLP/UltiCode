@@ -272,7 +272,7 @@ onMounted(() => {
       <template #actions>
         <Button
           @click="showCreateDialog = true"
-          class="rounded-full gap-2 shadow-sm"
+          class="rounded-full gap-2 shadow-[var(--shadow-float)]"
         >
           <Plus class="h-4 w-4" />
           {{ t("personal.bookmarks.newCollection") }}
@@ -283,7 +283,7 @@ onMounted(() => {
     <div class="grid grid-cols-1 lg:grid-cols-4 gap-8 items-start">
       <!-- Sidebar (Folders) -->
       <Card
-        class="lg:col-span-1 border-none shadow-none bg-muted/20 sticky top-24 rounded-2xl"
+        class="lg:col-span-1 border-none shadow-none bg-muted/20 sticky top-24 rounded-none"
       >
         <CardHeader class="pb-3 px-4">
           <CardTitle
@@ -335,7 +335,7 @@ onMounted(() => {
             </div>
           </div>
 
-          <Card class="border-none shadow-sm overflow-hidden rounded-2xl">
+          <Card class="border-none shadow-[var(--shadow-float)] overflow-hidden rounded-none">
             <CardContent class="p-0">
               <div
                 v-if="isLoadingDetails"
@@ -349,7 +349,7 @@ onMounted(() => {
 
               <div v-else-if="!selectedFolderDetails" class="py-24 text-center">
                 <div
-                  class="bg-muted/50 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4"
+                  class="bg-muted/50 w-16 h-16 rounded-none flex items-center justify-center mx-auto mb-4"
                 >
                   <FolderOpen class="h-8 w-8 text-muted-foreground/50" />
                 </div>
@@ -360,10 +360,10 @@ onMounted(() => {
 
               <div
                 v-else-if="selectedFolderDetails.items.length === 0"
-                class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5 m-4"
+                class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 m-4"
               >
                 <div
-                  class="p-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-muted/50 mb-4"
+                  class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4"
                 >
                   <FileText class="h-8 w-8 text-muted-foreground/50" />
                 </div>
@@ -383,7 +383,7 @@ onMounted(() => {
                 >
                   <!-- Icon -->
                   <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-background group-hover:border-primary/50 group-hover:bg-primary/5 transition-all shadow-sm"
+                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-none border bg-background group-hover:border-primary/50 group-hover:bg-primary/5 transition-all shadow-[var(--shadow-float)]"
                   >
                     <component
                       :is="getItemIcon(item.targetType)"
@@ -410,7 +410,7 @@ onMounted(() => {
                         >
                           <Badge
                             variant="secondary"
-                            class="text-[9px] font-semibold uppercase tracking-widest px-1.5 h-4 rounded-md"
+                            class="text-[9px] font-semibold uppercase tracking-widest px-1.5 h-4 rounded-none"
                           >
                             {{
                               item.targetType.toLowerCase().replace("_", " ")
@@ -507,7 +507,7 @@ onMounted(() => {
 
         <div
           v-else
-          class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5 text-center px-6"
+          class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6"
         >
           <FolderOpen class="h-12 w-12 text-muted-foreground/30 mb-4" />
           <h3 class="text-xl font-bold">
@@ -534,7 +534,7 @@ onMounted(() => {
       :open="showDeleteDialog"
       @update:open="showDeleteDialog = $event"
     >
-      <AlertDialogContent class="rounded-2xl">
+      <AlertDialogContent class="rounded-none">
         <AlertDialogHeader>
           <AlertDialogTitle>{{
             t("personal.bookmarks.dialogs.deleteTitle")

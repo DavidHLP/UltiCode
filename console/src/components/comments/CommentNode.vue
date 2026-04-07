@@ -119,7 +119,7 @@
                   <MoreHorizontal class="h-4.5 w-4.5" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" class="rounded-xl">
+              <DropdownMenuContent align="start" class="rounded-none">
                 <DropdownMenuItem
                   @click="toggleEdit"
                   class="gap-2 font-bold text-xs"
@@ -188,7 +188,7 @@
       :open="showDeleteDialog"
       @update:open="showDeleteDialog = $event"
     >
-      <AlertDialogContent class="rounded-3xl">
+      <AlertDialogContent class="rounded-none">
         <AlertDialogHeader>
           <AlertDialogTitle class="text-xl font-black tracking-tight">{{
             t("forum.comments.deleteDialog.title")
@@ -198,12 +198,12 @@
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter class="gap-2 sm:gap-0">
-          <AlertDialogCancel class="rounded-xl font-bold">{{
+          <AlertDialogCancel class="rounded-none font-bold">{{
             t("forum.comments.deleteDialog.cancel")
           }}</AlertDialogCancel>
           <AlertDialogAction
             @click="confirmDelete"
-            class="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-xl font-black"
+            class="bg-destructive text-destructive-foreground hover:bg-destructive/90 rounded-none font-black"
           >
             {{ t("forum.comments.deleteDialog.confirm") }}
           </AlertDialogAction>

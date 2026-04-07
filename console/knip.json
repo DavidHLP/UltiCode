@@ -1,0 +1,12 @@
+{
+  "entry": ["src/main.ts"],
+  "project": ["src/**/*.{js,ts,vue}"],
+  "ignore": [
+    "vite.config.ts",
+    "eslint.config.ts",
+    "components.json",
+    "**/*.d.ts"
+  ],
+  "vue": true,
+  "ignoreExportsUsedInFile": true
+}

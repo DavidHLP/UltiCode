@@ -77,7 +77,7 @@ const voteCounts = computed(() =>
           >
           <span
             v-if="props.item.flair"
-            class="rounded-full bg-orange-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-orange-700"
+            class="rounded-full bg-[var(--terminal-amber)]/20 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--terminal-amber)]"
           >
             {{ props.item.flair }}
           </span>

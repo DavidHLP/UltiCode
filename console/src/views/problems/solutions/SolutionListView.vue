@@ -235,7 +235,7 @@ onMounted(async () => {
             class="lc-md:px-1.5 lc-md:py-0.5 inline-flex cursor-pointer items-center flex-shrink-0 gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium transition-colors"
             :class="
               languageFilter === 'all'
-                ? 'bg-gray-100 dark:bg-gray-100 text-foreground dark:text-foreground'
+                ? 'bg-muted text-foreground'
                 : 'bg-secondary text-secondary-foreground hover:bg-secondary/80'
             "
             @click="languageFilter = 'all'"
@@ -265,7 +265,7 @@ onMounted(async () => {
       <!-- 提交统计和操作栏 -->
       <div class="mx-3 mb-1.5 lc-md:mx-2 lc-md:mb-1">
         <div
-          class="bg-gray-100 dark:bg-gray-800 flex items-center justify-between gap-2 rounded-lg p-1.5 lc-md:p-1"
+          class="bg-gray-100 dark:bg-gray-800 flex items-center justify-between gap-2 rounded-none p-1.5 lc-md:p-1"
         >
           <div class="flex items-center gap-1.5 flex-1 min-w-0">
             <template v-if="userSolution">
@@ -303,7 +303,7 @@ onMounted(async () => {
             </template>
           </div>
           <button
-            class="flex h-5 flex-shrink-0 items-center gap-0.5 rounded bg-green-600 px-2 py-0.5 text-[11px] font-medium text-white shadow-sm transition-all hover:bg-green-600/90 hover:shadow active:bg-green-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50"
+            class="flex h-5 flex-shrink-0 items-center gap-0.5 rounded-none bg-[var(--terminal-green)] px-2 py-0.5 text-[11px] font-medium text-[var(--background)] shadow-[var(--shadow-float)] transition-all hover:bg-[var(--terminal-green)]/90 hover:shadow active:bg-[var(--terminal-green)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50"
             @click="handleCreateSolution"
           >
             <PenLine class="h-2.5 w-2.5" />

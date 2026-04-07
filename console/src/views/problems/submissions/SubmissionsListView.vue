@@ -47,17 +47,17 @@ const statusClass = (status: string) => {
   const severity = meta?.severity ?? meta?.category;
   switch (severity) {
     case "success":
-      return "text-green-600 dark:text-green-400";
+      return "text-[var(--terminal-green)]";
     case "error":
-      return "text-red-600 dark:text-red-400";
+      return "text-[var(--terminal-red)]";
     case "warning":
-      return "text-amber-600 dark:text-amber-400";
+      return "text-[var(--terminal-amber)]";
     case "info":
-      return "text-sky-600 dark:text-sky-400";
+      return "text-[var(--accent-electric)]";
     default:
       return status === "Accepted"
-        ? "text-green-600 dark:text-green-400"
-        : "text-red-600 dark:text-red-400";
+        ? "text-[var(--terminal-green)]"
+        : "text-[var(--terminal-red)]";
   }
 };
 

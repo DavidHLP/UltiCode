@@ -96,7 +96,7 @@ const isActiveNav = (item: NavItem) => {
               >
                 <RouterLink
                   :to="item.to"
-                  class="flex flex-col items-center justify-center gap-1 rounded-md border border-transparent px-3 py-2 text-center transition hover:border-accent hover:bg-accent/30"
+                  class="flex flex-col items-center justify-center gap-1 rounded-none border border-transparent px-3 py-2 text-center transition hover:border-accent hover:bg-accent/30"
                 >
                   <span class="text-sm font-medium md:text-base">
                     {{ item.label }}

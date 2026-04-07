@@ -41,7 +41,7 @@ const initChart = () => {
   const option: echarts.EChartsOption = {
     tooltip: {
       trigger: "item",
-      backgroundColor: "rgba(0, 0, 0, 0.8)",
+      backgroundColor: "oklch(0 0 0 / 0.8)",
       borderColor: "transparent",
       textStyle: {
         color: "#fff",
@@ -62,23 +62,23 @@ const initChart = () => {
       shape: "polygon",
       splitNumber: 4,
       axisName: {
-        color: "hsl(var(--muted-foreground))",
+        color: "var(--muted-foreground)",
         fontSize: 11,
         fontWeight: 500,
       },
       splitLine: {
         lineStyle: {
-          color: "hsl(var(--border))",
+          color: "var(--border)",
         },
       },
       splitArea: {
         areaStyle: {
-          color: ["hsl(var(--muted) / 0.3)", "hsl(var(--muted) / 0.1)"],
+          color: ["oklch(0.5 0 0 / 0.3)", "oklch(0.5 0 0 / 0.1)"],
         },
       },
       axisLine: {
         lineStyle: {
-          color: "hsl(var(--border))",
+          color: "var(--border)",
         },
       },
     },
@@ -93,14 +93,14 @@ const initChart = () => {
             symbolSize: 6,
             lineStyle: {
               width: 2,
-              color: "hsl(var(--primary))",
+              color: "oklch(0.6149 0.1394 244.9)",
             },
             areaStyle: {
-              color: "hsl(var(--primary) / 0.2)",
+              color: "oklch(0.6149 0.1394 244.9 / 0.2)",
             },
             itemStyle: {
-              color: "hsl(var(--primary))",
-              borderColor: "hsl(var(--background))",
+              color: "oklch(0.6149 0.1394 244.9)",
+              borderColor: "var(--background)",
               borderWidth: 2,
             },
           },

@@ -10,7 +10,7 @@ const props = defineProps<{
 const notificationStore = useNotificationStore();
 
 const statusColor = computed(() => {
-  return notificationStore.realtimeConnected ? "bg-green-500" : "bg-yellow-500";
+  return notificationStore.realtimeConnected ? "bg-[var(--terminal-green)]" : "bg-[var(--terminal-amber)]";
 });
 
 const statusText = computed(() => {

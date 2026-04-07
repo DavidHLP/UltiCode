@@ -16,18 +16,18 @@ const iconMap = {
 };
 
 const statusColors: Record<string, string> = {
-  Accepted: "text-green-600",
-  "Wrong Answer": "text-red-600",
-  "Time Limit Exceeded": "text-orange-600",
-  "Runtime Error": "text-red-600",
-  "Compile Error": "text-red-600",
+  Accepted: "text-[oklch(0.6444_0.1508_118.6)]",
+  "Wrong Answer": "text-[oklch(0.5863_0.2064_27.1)]",
+  "Time Limit Exceeded": "text-[oklch(0.6545_0.1340_85.7)]",
+  "Runtime Error": "text-[oklch(0.5863_0.2064_27.1)]",
+  "Compile Error": "text-[oklch(0.5863_0.2064_27.1)]",
 };
 
 const typeColors: Record<string, string> = {
-  submission: "text-blue-500",
-  solution: "text-purple-500",
-  post: "text-green-500",
-  comment: "text-orange-500",
+  submission: "text-[oklch(0.6149_0.1394_244.9)]",
+  solution: "text-[oklch(0.5924_0.2025_355.9)]",
+  post: "text-[oklch(0.6444_0.1508_118.6)]",
+  comment: "text-[oklch(0.6545_0.1340_85.7)]",
 };
 
 function formatTime(dateStr: string): string {
@@ -54,7 +54,7 @@ function formatTime(dateStr: string): string {
       <div
         v-for="activity in activities"
         :key="activity.id"
-        class="flex items-start gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50"
+        class="flex items-start gap-3 rounded-none border p-3 transition-colors hover:bg-muted/50"
       >
         <!-- Icon -->
         <div
@@ -62,7 +62,7 @@ function formatTime(dateStr: string): string {
             cn(
               'flex h-8 w-8 shrink-0 items-center justify-center rounded-full',
               activity.type === 'submission' && activity.status === 'Accepted'
-                ? 'bg-green-100 dark:bg-green-900/30'
+                ? 'bg-[oklch(0.6444_0.1508_118.6/0.1)] dark:bg-[oklch(0.6444_0.1508_118.6/0.3)]'
                 : 'bg-muted',
             )
           "

@@ -38,7 +38,7 @@ function isTagSelected(tag: string, currentTags: string[]) {
         v-for="tag in popularTags"
         :key="tag"
         :variant="isTagSelected(tag, modelValue) ? 'default' : 'outline'"
-        class="cursor-pointer px-3 py-1 hover:bg-primary/80 hover:text-primary-foreground transition-colors rounded-md"
+        class="cursor-pointer px-3 py-1 hover:bg-primary/80 hover:text-primary-foreground transition-colors rounded-none"
         :class="{
           'bg-primary text-primary-foreground hover:bg-primary/90':
             isTagSelected(tag, modelValue),
@@ -51,7 +51,7 @@ function isTagSelected(tag: string, currentTags: string[]) {
         <Button
           variant="ghost"
           size="sm"
-          class="gap-1 h-7 text-xs text-muted-foreground hover:text-foreground rounded-full"
+          class="gap-1 h-7 text-xs text-muted-foreground hover:text-foreground rounded-none"
         >
           {{ showMoreLabel || "Show more" }}
           <ChevronDown class="h-3 w-3" />
@@ -64,7 +64,7 @@ function isTagSelected(tag: string, currentTags: string[]) {
           v-for="tag in otherTags"
           :key="tag"
           variant="outline"
-          class="cursor-pointer px-2.5 py-0.5 text-[11px] font-normal border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors rounded-md"
+          class="cursor-pointer px-2.5 py-0.5 text-[11px] font-normal border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors rounded-none"
           :class="{
             'bg-zinc-900 text-zinc-50 border-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900':
               isTagSelected(tag, modelValue),

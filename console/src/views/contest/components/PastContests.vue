@@ -67,7 +67,7 @@ const visiblePages = computed(() => {
         </p>
       </div>
       <div
-        class="flex items-center gap-1.5 rounded-full bg-yellow-50 px-3 py-1 text-xs font-semibold text-yellow-600 transition-colors hover:bg-yellow-100 cursor-pointer"
+        class="flex items-center gap-1.5 rounded-full bg-[oklch(0.6545_0.1340_85.7_/_0.12)] px-3 py-1 text-xs font-semibold text-[var(--terminal-amber)] transition-colors hover:bg-[oklch(0.6545_0.1340_85.7_/_0.2)] cursor-pointer"
       >
         <Trophy class="h-3.5 w-3.5" />
         {{ t("contest.list.partner") }}
@@ -76,7 +76,7 @@ const visiblePages = computed(() => {
 
     <!-- Contest List -->
     <div
-      class="flex flex-col rounded-xl border bg-card text-card-foreground shadow-sm overflow-hidden"
+      class="flex flex-col rounded-none border bg-card text-card-foreground shadow-sm overflow-hidden"
     >
       <div
         v-for="contest in contests"
@@ -92,7 +92,7 @@ const visiblePages = computed(() => {
         <div class="flex items-center gap-4 min-w-0">
           <!-- Icon Box -->
           <div
-            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary group-hover:scale-110 group-hover:shadow-md transition-all duration-300"
+            class="flex h-12 w-12 shrink-0 items-center justify-center rounded-none bg-primary/10 text-primary group-hover:scale-110 group-hover:shadow-md transition-all duration-300"
           >
             <Trophy class="h-6 w-6" />
           </div>
@@ -108,13 +108,13 @@ const visiblePages = computed(() => {
               class="flex items-center gap-4 text-xs font-medium text-muted-foreground"
             >
               <span
-                class="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md"
+                class="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-none"
               >
                 <Calendar class="h-3.5 w-3.5" />
                 {{ formatDateTime(contest.start_time).split(" ")[0] }}
               </span>
               <span
-                class="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-md"
+                class="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-none"
               >
                 <Clock class="h-3.5 w-3.5" />
                 {{ getDurationMinutes(contest.start_time, contest.end_time) }}

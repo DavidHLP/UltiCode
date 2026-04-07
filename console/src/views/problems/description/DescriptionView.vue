@@ -24,9 +24,9 @@ const { t } = useI18n();
  */
 const difficultyClass = computed(() => {
   const difficulty = props.problem.difficulty.toLowerCase();
-  if (difficulty === "easy") return "text-green-600 dark:text-green-500";
-  if (difficulty === "medium") return "text-orange-600 dark:text-orange-500";
-  if (difficulty === "hard") return "text-red-600 dark:text-red-500";
+  if (difficulty === "easy") return "text-[var(--terminal-green)]";
+  if (difficulty === "medium") return "text-[var(--terminal-amber)]";
+  if (difficulty === "hard") return "text-[var(--terminal-red)]";
   return "text-foreground";
 });
 
@@ -138,7 +138,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
           class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted cursor-pointer transition-colors hover:bg-muted/80 hover:opacity-80 text-xs text-muted-foreground"
           @click="scrollToSection((companiesSection as any).$el)"
         >
-          <span class="text-yellow-600 dark:text-yellow-500">{{
+          <span class="text-[var(--terminal-amber)]">{{
             t("problem.detail.companies")
           }}</span>
         </button>
@@ -283,7 +283,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
           >
             <AccordionTrigger class="text-xs hover:no-underline">
               <div class="flex items-center gap-2">
-                <span class="text-yellow-600 dark:text-yellow-500">{{
+                <span class="text-[var(--terminal-amber)]">{{
                   t("problem.detail.companies")
                 }}</span>
               </div>

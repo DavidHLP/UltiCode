@@ -50,37 +50,37 @@ const statusConfig = computed((): StatusConfig => {
       variant: "outline",
       label: t("contest.status.registrationOpen", "Registration Open"),
       customClass:
-        "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800",
+        "bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/30 dark:bg-[var(--terminal-green)]/10 dark:text-[var(--terminal-green)] dark:border-[var(--terminal-green)]/30",
     },
     UPCOMING: {
       variant: "outline",
       label: t("contest.status.upcoming", "Upcoming"),
       customClass:
-        "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800",
+        "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)] border-[var(--terminal-amber)]/30",
     },
     ONGOING: {
       variant: "outline",
       label: t("contest.status.running", "Running"),
       customClass:
-        "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+        "bg-[var(--terminal-red)]/10 text-[var(--terminal-red)] border-[var(--terminal-red)]/30 dark:bg-[var(--terminal-red)]/10 dark:text-[var(--terminal-red)] dark:border-[var(--terminal-red)]/30",
     },
     RUNNING: {
       variant: "outline",
       label: t("contest.status.running", "Running"),
       customClass:
-        "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800",
+        "bg-[var(--terminal-red)]/10 text-[var(--terminal-red)] border-[var(--terminal-red)]/30 dark:bg-[var(--terminal-red)]/10 dark:text-[var(--terminal-red)] dark:border-[var(--terminal-red)]/30",
     },
     FREEZING: {
       variant: "outline",
       label: t("contest.status.freezing", "Freezing"),
       customClass:
-        "bg-orange-100 text-orange-800 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800",
+        "bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/30 dark:bg-[var(--terminal-amber)]/10 dark:text-[var(--terminal-amber)] dark:border-[var(--terminal-amber)]/30",
     },
     FINISHED: {
       variant: "outline",
       label: t("contest.status.finished", "Finished"),
       customClass:
-        "bg-gray-50 text-gray-600 border-gray-200 dark:bg-gray-800/50 dark:text-gray-400 dark:border-gray-700",
+        "bg-muted text-muted-foreground border-border",
     },
     ARCHIVED: {
       variant: "secondary",

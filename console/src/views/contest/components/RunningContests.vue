@@ -115,9 +115,9 @@ onUnmounted(() => {
         </p>
       </div>
       <div
-        class="flex items-center gap-2 rounded-full border border-rose-200 bg-rose-50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-rose-600"
+        class="flex items-center gap-2 rounded-full border border-[var(--terminal-red)] bg-[var(--terminal-red)]/10 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[var(--terminal-red)]"
       >
-        <span class="h-2 w-2 rounded-full bg-rose-500 animate-pulse"></span>
+        <span class="h-2 w-2 rounded-full bg-[var(--terminal-red)] animate-pulse"></span>
         {{ t("contest.list.liveBadge") }}
       </div>
     </div>
@@ -126,10 +126,10 @@ onUnmounted(() => {
       <Card
         v-for="contest in contests.slice(0, 2)"
         :key="contest.id"
-        class="relative overflow-hidden border-0 text-white shadow-xl transition-transform hover:-translate-y-1"
+        class="relative overflow-hidden border-0 text-white shadow-[var(--shadow-float)] transition-transform hover:-translate-y-1"
       >
         <div
-          class="absolute inset-0 bg-gradient-to-br from-[#1f2937] via-[#1f2937] to-[#f97316]"
+          class="absolute inset-0 bg-[oklch(0.27_0.049_220)]"
         ></div>
         <div
           class="absolute -right-12 -top-12 h-36 w-36 rounded-full bg-white/10 blur-3xl"

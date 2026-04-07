@@ -110,7 +110,7 @@ function handleClose() {
 
 <template>
   <Dialog :open="open" @update:open="$emit('update:open', $event)">
-    <DialogContent class="sm:max-w-[425px] rounded-3xl">
+    <DialogContent class="sm:max-w-[425px] rounded-none">
       <DialogHeader>
         <DialogTitle class="text-2xl font-black tracking-tight">{{
           title
@@ -136,7 +136,7 @@ function handleClose() {
             v-model="name"
             :placeholder="t('bookmark.placeholders.folderName')"
             :disabled="isSubmitting"
-            class="rounded-xl border-muted-foreground/20 focus:ring-primary/20 h-11"
+            class="rounded-none border-muted-foreground/20 focus:ring-primary/20 h-11"
           />
         </div>
 
@@ -152,7 +152,7 @@ function handleClose() {
             :placeholder="t('bookmark.placeholders.description')"
             :disabled="isSubmitting"
             rows="3"
-            class="rounded-xl border-muted-foreground/20 focus:ring-primary/20 resize-none p-3"
+            class="rounded-none border-muted-foreground/20 focus:ring-primary/20 resize-none p-3"
           />
         </div>
 
@@ -171,7 +171,7 @@ function handleClose() {
                 `bg-${color}-500 border-transparent`,
                 selectedColor === color
                   ? 'border-primary ring-2 ring-primary/20 scale-110'
-                  : 'hover:scale-110 hover:shadow-md',
+                  : 'hover:scale-110',
               ]"
               @click="selectedColor = color"
               :title="t(`bookmark.colors.${color}`)"
@@ -202,14 +202,14 @@ function handleClose() {
             type="button"
             variant="ghost"
             @click="handleClose"
-            class="rounded-xl font-bold"
+            class="rounded-none font-bold"
           >
             {{ t("common.actions.cancel") }}
           </Button>
           <Button
             type="submit"
             :disabled="!name.trim() || isSubmitting"
-            class="rounded-xl px-8 font-black shadow-sm"
+            class="rounded-none px-8 font-black"
           >
             <Loader2 v-if="isSubmitting" class="mr-2 h-4 w-4 animate-spin" />
             {{

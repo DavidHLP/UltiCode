@@ -398,10 +398,10 @@ onMounted(loadData);
     <!-- Not Logged In State -->
     <div
       v-else-if="!currentUserId"
-      class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 bg-muted/5 rounded-2xl text-center px-6"
+      class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 bg-muted/5 rounded-none text-center px-6"
     >
       <div
-        class="bg-muted/50 w-16 h-16 rounded-2xl flex items-center justify-center mb-4"
+        class="bg-muted/50 w-16 h-16 rounded-none flex items-center justify-center mb-4"
       >
         <Lock class="h-8 w-8 text-muted-foreground/50" />
       </div>
@@ -477,10 +477,10 @@ onMounted(loadData);
         <TabsContent value="my-lists" class="mt-0">
           <div
             v-if="data.myLists.length === 0"
-            class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5"
+            class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-none bg-muted/5"
           >
             <div
-              class="p-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-muted/50 mb-4"
+              class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4"
             >
               <LayoutGrid class="h-8 w-8 text-muted-foreground/50" />
             </div>
@@ -504,7 +504,7 @@ onMounted(loadData);
             <Card
               v-for="list in sortedMyLists"
               :key="list.id"
-              class="group hover:shadow-md transition-all duration-300 border-muted/60 overflow-hidden flex flex-col rounded-2xl"
+              class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 overflow-hidden flex flex-col rounded-none"
             >
               <CardHeader class="pb-3">
                 <div class="flex items-start justify-between">
@@ -513,7 +513,7 @@ onMounted(loadData);
                       <Badge
                         v-if="list.isPublic"
                         variant="secondary"
-                        class="h-5 px-1.5 text-[10px] font-semibold uppercase tracking-widest bg-emerald-500/10 text-emerald-600 border-emerald-500/20 rounded-md"
+                        class="h-5 px-1.5 text-[10px] font-semibold uppercase tracking-widest bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/20 rounded-none"
                       >
                         <Globe class="h-3 w-3 mr-1" />
                         {{ t("personal.problemLists.listCard.public") }}
@@ -521,7 +521,7 @@ onMounted(loadData);
                       <Badge
                         v-else
                         variant="outline"
-                        class="h-5 px-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground border-muted-foreground/20 rounded-md"
+                        class="h-5 px-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground border-muted-foreground/20 rounded-none"
                       >
                         <Lock class="h-3 w-3 mr-1" />
                         {{ t("personal.problemLists.listCard.private") }}
@@ -608,14 +608,14 @@ onMounted(loadData);
               <Card
                 v-for="list in sortedSavedLists"
                 :key="list.id"
-                class="group hover:shadow-md transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-2xl"
+                class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none"
               >
                 <CardHeader class="pb-3">
                   <div class="flex items-start justify-between">
                     <div class="space-y-1.5 flex-1 min-w-0">
                       <Badge
                         variant="secondary"
-                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-600 border-blue-500/20 rounded-md"
+                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 rounded-none"
                       >
                         {{ t("personal.problemLists.listCard.saved") }}
                       </Badge>
@@ -750,7 +750,7 @@ onMounted(loadData);
               <CollapsibleContent class="pt-4 pb-8">
                 <div
                   v-if="category.lists.length === 0"
-                  class="flex flex-col items-center justify-center py-12 border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5 text-muted-foreground"
+                  class="flex flex-col items-center justify-center py-12 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-muted-foreground"
                 >
                   <FolderInput class="h-10 w-10 opacity-20 mb-3" />
                   <p class="text-sm font-medium">
@@ -763,7 +763,7 @@ onMounted(loadData);
                   <Card
                     v-for="list in category.lists"
                     :key="list.id"
-                    class="group hover:shadow-md transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-2xl"
+                    class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none"
                   >
                     <CardHeader class="pb-3">
                       <div class="flex items-start justify-between">
@@ -832,10 +832,10 @@ onMounted(loadData);
           <!-- Empty State for Saved -->
           <div
             v-if="data.savedLists.length === 0 && data.categories.length === 0"
-            class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5 text-center px-6"
+            class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6"
           >
             <div
-              class="p-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-muted/50 mb-4 text-muted-foreground/40"
+              class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4 text-muted-foreground/40"
             >
               <Bookmark class="h-8 w-8" />
             </div>
@@ -854,7 +854,7 @@ onMounted(loadData);
             <Card
               v-for="category in sortedCategories"
               :key="category.id"
-              class="border-muted/60 hover:shadow-md transition-shadow duration-300 rounded-2xl overflow-hidden"
+              class="border-muted/60 hover:shadow-[var(--shadow-float)] transition-shadow duration-300 rounded-none overflow-hidden"
             >
               <div
                 class="flex items-center justify-between px-6 py-4 bg-muted/30"
@@ -864,7 +864,7 @@ onMounted(loadData);
                     class="h-5 w-5 text-muted-foreground/30 cursor-grab"
                   />
                   <div
-                    class="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center"
+                    class="h-10 w-10 rounded-none bg-primary/10 flex items-center justify-center"
                   >
                     <Folder class="h-5 w-5 text-primary" />
                   </div>
@@ -907,7 +907,7 @@ onMounted(loadData);
               <div class="p-4 sm:p-6">
                 <div
                   v-if="category.lists.length === 0"
-                  class="text-center py-10 bg-muted/10 rounded-xl border-2 border-dashed"
+                  class="text-center py-10 bg-muted/10 rounded-none border-2 border-dashed"
                 >
                   <p class="text-sm text-muted-foreground italic">
                     {{
@@ -921,7 +921,7 @@ onMounted(loadData);
                   <div
                     v-for="list in category.lists"
                     :key="list.id"
-                    class="flex items-center justify-between p-4 rounded-xl bg-muted/20 hover:bg-muted/40 transition-all group"
+                    class="flex items-center justify-between p-4 rounded-none bg-muted/20 hover:bg-muted/40 transition-all group"
                   >
                     <RouterLink
                       :to="`/problemset/list/${list.id}`"
@@ -1002,10 +1002,10 @@ onMounted(loadData);
         <TabsContent value="featured" class="mt-0">
           <div
             v-if="data.featured.length === 0"
-            class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-2xl bg-muted/5 text-center"
+            class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center"
           >
             <div
-              class="p-0 flex items-center justify-center w-16 h-16 rounded-2xl bg-muted/50 mb-4 text-muted-foreground/20"
+              class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4 text-muted-foreground/20"
             >
               <Star class="h-8 w-8" />
             </div>
@@ -1021,7 +1021,7 @@ onMounted(loadData);
             <Card
               v-for="list in data.featured"
               :key="list.id"
-              class="group hover:shadow-md transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-2xl"
+              class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none"
             >
               <CardHeader class="pb-3">
                 <div class="flex items-start justify-between">
@@ -1029,14 +1029,14 @@ onMounted(loadData);
                     <div class="flex items-center gap-2">
                       <Badge
                         variant="secondary"
-                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-amber-500/10 text-amber-600 border-amber-500/20 rounded-md"
+                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/20 rounded-none"
                       >
                         {{ t("personal.problemLists.listCard.featured") }}
                       </Badge>
                       <Badge
                         v-if="list.isSaved"
                         variant="secondary"
-                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-blue-500/10 text-blue-600 border-blue-500/20 rounded-md"
+                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 rounded-none"
                       >
                         {{ t("personal.problemLists.listCard.saved") }}
                       </Badge>
@@ -1049,7 +1049,7 @@ onMounted(loadData);
                         class="flex items-center gap-2"
                       >
                         {{ list.name }}
-                        <Star class="h-4 w-4 text-amber-500 fill-amber-500" />
+                        <Star class="h-4 w-4 text-[var(--terminal-amber)] fill-[var(--terminal-amber)]" />
                       </RouterLink>
                     </CardTitle>
                   </div>
@@ -1104,7 +1104,7 @@ onMounted(loadData);
 
     <!-- Create List Dialog -->
     <Dialog v-model:open="isCreateOpen">
-      <DialogContent class="sm:max-w-[425px] rounded-2xl">
+      <DialogContent class="sm:max-w-[425px] rounded-none">
         <DialogHeader>
           <DialogTitle class="text-2xl font-black tracking-tight">{{
             t("personal.problemLists.dialogs.createList")
@@ -1126,7 +1126,7 @@ onMounted(loadData);
               :placeholder="
                 t('personal.problemLists.dialogs.listNamePlaceholder')
               "
-              class="h-11 rounded-lg"
+              class="h-11 rounded-none"
             />
           </div>
           <div class="space-y-2">
@@ -1141,11 +1141,11 @@ onMounted(loadData);
               :placeholder="
                 t('personal.problemLists.dialogs.descriptionPlaceholder')
               "
-              class="min-h-[100px] resize-none rounded-lg"
+              class="min-h-[100px] resize-none rounded-none"
             />
           </div>
           <div
-            class="flex items-center justify-between p-4 rounded-xl bg-muted/30 border"
+            class="flex items-center justify-between p-4 rounded-none bg-muted/30 border"
           >
             <div class="space-y-0.5">
               <Label for="create-public" class="text-sm font-bold">{{
@@ -1185,7 +1185,7 @@ onMounted(loadData);
 
     <!-- Delete List Confirmation -->
     <AlertDialog v-model:open="isDeleteListOpen">
-      <AlertDialogContent class="rounded-2xl">
+      <AlertDialogContent class="rounded-none">
         <AlertDialogHeader>
           <AlertDialogTitle>{{
             t("personal.problemLists.dialogs.deleteList")
@@ -1219,7 +1219,7 @@ onMounted(loadData);
 
     <!-- Create Category Dialog -->
     <Dialog v-model:open="isCreateCategoryOpen">
-      <DialogContent class="sm:max-w-md rounded-2xl">
+      <DialogContent class="sm:max-w-md rounded-none">
         <DialogHeader>
           <DialogTitle class="text-2xl font-black tracking-tight">{{
             t("personal.problemLists.dialogs.newCategory")
@@ -1241,7 +1241,7 @@ onMounted(loadData);
               :placeholder="
                 t('personal.problemLists.dialogs.categoryNamePlaceholder')
               "
-              class="h-11 rounded-lg"
+              class="h-11 rounded-none"
               @keydown.enter="handleCreateCategory"
             />
           </div>
@@ -1272,7 +1272,7 @@ onMounted(loadData);
 
     <!-- Edit Category Dialog -->
     <Dialog v-model:open="isEditCategoryOpen">
-      <DialogContent class="sm:max-w-md rounded-2xl">
+      <DialogContent class="sm:max-w-md rounded-none">
         <DialogHeader>
           <DialogTitle class="text-2xl font-black tracking-tight">{{
             t("personal.problemLists.dialogs.renameCategory")
@@ -1288,7 +1288,7 @@ onMounted(loadData);
             <Input
               id="edit-category-name"
               v-model="editCategoryForm.name"
-              class="h-11 rounded-lg"
+              class="h-11 rounded-none"
               @keydown.enter="handleEditCategory"
             />
           </div>
@@ -1319,7 +1319,7 @@ onMounted(loadData);
 
     <!-- Delete Category Confirmation -->
     <AlertDialog v-model:open="isDeleteCategoryOpen">
-      <AlertDialogContent class="rounded-2xl">
+      <AlertDialogContent class="rounded-none">
         <AlertDialogHeader>
           <AlertDialogTitle>{{
             t("personal.problemLists.dialogs.deleteCategory")

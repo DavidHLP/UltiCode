@@ -49,10 +49,10 @@ const heatmapGrid = computed(() => {
 
 const levelColors = [
   "bg-muted",
-  "bg-green-200 dark:bg-green-900",
-  "bg-green-400 dark:bg-green-700",
-  "bg-green-500 dark:bg-green-500",
-  "bg-green-600 dark:bg-green-400",
+  "bg-[oklch(0.6444_0.1508_118.6/0.2)] dark:bg-[oklch(0.6444_0.1508_118.6/0.3)]",
+  "bg-[oklch(0.6444_0.1508_118.6/0.4)] dark:bg-[oklch(0.6444_0.1508_118.6/0.5)]",
+  "bg-[oklch(0.6444_0.1508_118.6/0.6)] dark:bg-[oklch(0.6444_0.1508_118.6/0.6)]",
+  "bg-[oklch(0.6444_0.1508_118.6/0.8)] dark:bg-[oklch(0.6444_0.1508_118.6)]",
 ];
 
 const levelLabels = [
@@ -107,7 +107,7 @@ function getActivityCount(level: number): string {
               :key="`${weekIndex}-${dayIndex}`"
               :class="
                 cn(
-                  'h-3 w-3 rounded-sm transition-colors',
+                  'h-3 w-3 rounded-none transition-colors',
                   levelColors[cell.level],
                 )
               "
@@ -126,7 +126,7 @@ function getActivityCount(level: number): string {
       <div
         v-for="(color, i) in levelColors"
         :key="i"
-        :class="cn('h-3 w-3 rounded-sm', color)"
+        :class="cn('h-3 w-3 rounded-none', color)"
       />
       <span>More</span>
     </div>

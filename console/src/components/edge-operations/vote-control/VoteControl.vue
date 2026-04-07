@@ -34,16 +34,16 @@ defineOptions({
 
 <template>
   <div
-    class="flex items-center rounded-full bg-muted/50 px-1 h-8 border border-transparent hover:border-border/50 transition-colors"
+    class="flex items-center rounded-none h-8 px-0.5 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-50)] dark:bg-[var(--silver-100)] hover:border-[var(--silver-300)] dark:hover:border-[var(--silver-400)] transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)]"
   >
     <template v-if="!isPreview">
       <!-- Upvote -->
       <Button
         variant="ghost"
         size="icon"
-        class="h-7 w-7 rounded-full hover:bg-background/80 hover:text-[var(--terminal-amber)] transition-all"
+        class="h-7 w-7 rounded-none hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--terminal-amber)] transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)]"
         :class="{
-          'text-[var(--terminal-amber)] bg-background shadow-sm': userVote === 1,
+          'text-[var(--terminal-amber)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]': userVote === 1,
           'cursor-default hover:bg-transparent hover:text-inherit': readonly,
         }"
         :disabled="readonly"
@@ -57,24 +57,24 @@ defineOptions({
 
       <!-- Likes Count -->
       <span
-        class="text-[11px] font-bold px-1.5 min-w-[1.5rem] text-center select-none"
+        class="font-data text-[11px] font-bold px-1.5 min-w-[1.5rem] text-center select-none tabular-nums"
         :class="{
           'text-[var(--terminal-amber)]': userVote === 1,
-          'text-muted-foreground': userVote !== 1,
+          'text-[var(--silver-500)]': userVote !== 1,
         }"
       >
         {{ formatCount(likes) }}
       </span>
 
       <!-- Separator -->
-      <div class="h-3 w-px bg-border/40 mx-0.5"></div>
+      <div class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] mx-0.5"></div>
 
       <!-- Dislikes Count -->
       <span
-        class="text-[11px] font-bold px-1.5 min-w-[1.5rem] text-center select-none"
+        class="font-data text-[11px] font-bold px-1.5 min-w-[1.5rem] text-center select-none tabular-nums"
         :class="{
           'text-[var(--accent-electric)]': userVote === -1,
-          'text-muted-foreground': userVote !== -1,
+          'text-[var(--silver-500)]': userVote !== -1,
         }"
       >
         {{ formatCount(dislikes) }}
@@ -84,9 +84,9 @@ defineOptions({
       <Button
         variant="ghost"
         size="icon"
-        class="h-7 w-7 rounded-full hover:bg-background/80 hover:text-[var(--accent-electric)] transition-all"
+        class="h-7 w-7 rounded-none hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:text-[var(--accent-electric)] transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)]"
         :class="{
-          'text-[var(--accent-electric)] bg-background shadow-sm': userVote === -1,
+          'text-[var(--accent-electric)] bg-[var(--silver-100)] dark:bg-[var(--silver-200)]': userVote === -1,
           'cursor-default hover:bg-transparent hover:text-inherit': readonly,
         }"
         :disabled="readonly"
@@ -102,11 +102,11 @@ defineOptions({
     <template v-else>
       <!-- Preview Mode -->
       <div class="flex items-center gap-1.5 px-2">
-        <span class="text-[11px] font-bold text-muted-foreground/70">
+        <span class="font-data text-[11px] font-bold text-[var(--silver-500)] tabular-nums">
           {{ formatCount(likes) }}
         </span>
-        <div class="h-3 w-px bg-border/40 mx-0.5"></div>
-        <span class="text-[11px] font-bold text-muted-foreground/70">
+        <div class="h-3 w-px bg-[var(--silver-200)] dark:bg-[var(--silver-300)] mx-0.5"></div>
+        <span class="font-data text-[11px] font-bold text-[var(--silver-500)] tabular-nums">
           {{ formatCount(dislikes) }}
         </span>
       </div>

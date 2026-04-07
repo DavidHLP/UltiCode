@@ -27,11 +27,9 @@ const isButton = computed(() => props.variant === "button");
     :is="isButton ? Button : 'div'"
     :variant="isButton ? 'ghost' : undefined"
     :size="isButton ? 'sm' : undefined"
-    class="rounded-full flex items-center transition-all h-8 select-none border border-transparent"
+    class="rounded-none flex items-center transition-all duration-[var(--duration-fast)] [transition-timing-function:var(--ease-out-expo)] h-8 select-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--silver-50)] dark:bg-[var(--silver-100)] hover:bg-[var(--silver-100)] dark:hover:bg-[var(--silver-200)] hover:border-[var(--silver-300)] dark:hover:border-[var(--silver-400)]"
     :class="[
-      isButton
-        ? 'bg-muted/50 hover:bg-muted/80 text-muted-foreground'
-        : 'text-muted-foreground/70',
+      isButton ? 'text-[var(--silver-500)]' : 'text-[var(--silver-500)]/70',
       active && isButton
         ? activeClass ||
           'text-primary bg-primary/10 hover:bg-primary/20 border-primary/10 font-medium'
@@ -43,7 +41,7 @@ const isButton = computed(() => props.variant === "button");
     <component :is="icon" v-if="icon" class="h-4 w-4" />
     <span
       v-if="count !== undefined && count !== ''"
-      class="font-bold text-[11px] tracking-tight"
+      class="font-data font-bold text-[11px] tracking-tight tabular-nums"
     >
       {{ count }}
     </span>

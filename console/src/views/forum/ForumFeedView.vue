@@ -259,11 +259,13 @@ function handlePostSave(postId: string, isSaved: boolean) {
             <Input
               v-model="searchQuery"
               :placeholder="t('forum.list.searchPlaceholder')"
-              class="h-10 pl-10 rounded-full bg-background/50"
+              class="h-10 pl-10 rounded-none bg-background/50 font-data border-[var(--silver-200)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
             />
           </div>
           <Select v-model="quickFilter">
-            <SelectTrigger class="h-10 w-40 rounded-full bg-background/50">
+            <SelectTrigger
+              class="h-10 w-40 rounded-none bg-background/50 font-data border-[var(--silver-200)] focus-visible:border-[var(--accent-electric)] focus-visible:ring-[var(--accent-electric-glow)]"
+            >
               <SelectValue :placeholder="t('forum.list.sort')" />
             </SelectTrigger>
             <SelectContent>
@@ -277,7 +279,10 @@ function handlePostSave(postId: string, isSaved: boolean) {
             </SelectContent>
           </Select>
         </div>
-        <Button class="h-10 rounded-full px-6 gap-2" @click="handleCreatePost">
+        <Button
+          class="h-10 rounded-none px-6 gap-2 font-data uppercase tracking-[0.12em]"
+          @click="handleCreatePost"
+        >
           <Plus class="h-4 w-4" />
           {{ t("forum.list.newPost") }}
         </Button>

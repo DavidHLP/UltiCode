@@ -239,7 +239,33 @@ Frontend uses Vite env vars (`VITE_API_BASE_URL`).
 - Swagger UI: `http://localhost:9001/swagger-ui.html`
 - Health check: `curl http://localhost:9001/actuator/health`
 
+## Frontend Design System
+
+Both `console/` and `management/` share a unified Solarized color palette using OKLCH color space with `--radius: 0` (sharp corners). Reference the local skills for detailed specs:
+- `ulticode-solarized-colors` — Full OKLCH color token reference
+- `ulticode-layout` — Layout architecture, sidebar, responsive patterns
+- `ulticode-console-styles` — Code blocks, markdown, charts (console-specific)
+
+### Design Rules
+- Color space: OKLCH only, never hex/HSL
+- Theme toggle: `.dark` class on root element
+- CSS framework: Tailwind CSS v4 with `@theme inline`, no tailwind.config.ts
+- UI components: shadcn-vue (new-york style) + Radix Vue + Lucide icons
+- Console-only: KaTeX math, highlight.js Solarized syntax, chart visualization tokens
+- Chart data colors are light/dark invariant; only grid/tooltip change between themes
+
 ## PM2 Services
+
+**Prerequisite:** `npm install -g pm2` (PM2 is a global tool, not a project dependency)
+
+### Slash Commands
+
+`/pm2-all` `/pm2-all-stop` `/pm2-all-restart` — Batch operations
+`/pm2-9001` `/pm2-9002` `/pm2-9003` — Start single service + logs
+`/pm2-9001-stop` `/pm2-9002-stop` `/pm2-9003-stop` — Stop single service
+`/pm2-9001-restart` `/pm2-9002-restart` `/pm2-9003-restart` — Restart single service
+`/pm2-docker` `/pm2-docker-stop` — Docker container management
+`/pm2-logs` `/pm2-status` — Monitoring
 
 ### Docker Services (via docker-wrapper.cjs)
 

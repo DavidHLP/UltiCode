@@ -7,8 +7,11 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: ulticode
+      MYSQL_USER: ulticode
+      MYSQL_PASSWORD: ulticode
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./docker/initdb:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
       interval: 10s
@@ -49,7 +52,8 @@ services:
     volumes:
       - nacos_logs:/home/nacos/logs
     depends_on:
-      - mysql
+      mysql:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
       interval: 10s
@@ -58,11 +62,5 @@ services:
 
 volumes:
   mysql_data:
-    name: backend_mysql_data
-    external: true
   redis_data:
-    name: backend_redis_data
-    external: true
   nacos_logs:
-    name: backend_nacos_logs
-    external: true

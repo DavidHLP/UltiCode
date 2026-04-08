@@ -20,6 +20,7 @@ import { vote, VoteTargetType } from "@/api/vote";
 import { PostActions } from "@/components/edge-operations";
 import { toast } from "vue-sonner";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
+import { formatRelativeTime } from "@/utils/date";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "vue-router";
 import { Pencil, Trash2 } from "lucide-vue-next";
@@ -49,6 +50,16 @@ const topicLabel = computed(
     props.item.topic ||
     t("forum.post.flair"),
 );
+
+const formattedDate = computed(() =>
+  formatRelativeTime(props.item.created_at),
+);
+
+const languageLabel = computed(() => {
+  const lang = props.item.language;
+  if (!lang) return "";
+  return lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase();
+});
 
 const comments = ref<ForumComment[]>([]);
 const localStats = ref<{ likes: number; dislikes: number }>({
@@ -265,7 +276,7 @@ watch(
             {{ props.item.author.role }}
           </span>
           <span class="text-xs text-muted-foreground">
-            · {{ props.item.created_at }}
+            · {{ formattedDate }}
           </span>
           <Badge
             v-if="props.item.flair"
@@ -301,7 +312,7 @@ watch(
             variant="secondary"
             class="rounded-full px-2.5 py-0.5 text-[11px] capitalize"
           >
-            {{ props.item.language }}
+            {{ languageLabel }}
           </Badge>
           <Badge
             variant="secondary"

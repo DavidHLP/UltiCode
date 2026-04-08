@@ -20,6 +20,7 @@ export default {
     submitting: "Logging in...",
     orContinueWith: "Or continue with",
     loginWithGithub: "Login with GitHub",
+    loginWithGoogle: "Login with Google",
     noAccount: "Don't have an account?",
     signUp: "Sign up",
     rememberMe: "Remember me",

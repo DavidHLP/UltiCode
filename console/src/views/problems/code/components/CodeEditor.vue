@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
 import loader from "@monaco-editor/loader";
+import { registerSolarizedThemes } from "@/utils/monaco-solarized-theme";
 
 const props = defineProps<{
   modelValue: string;
@@ -145,6 +146,9 @@ onMounted(async () => {
 
   const monaco = await getMonaco();
   if (!monaco) return;
+
+  // Register Solarized themes to match project design system
+  registerSolarizedThemes(monaco);
 
   // Configure Language Features (Inspections & Intentions)
   configureLanguageFeatures(monaco);

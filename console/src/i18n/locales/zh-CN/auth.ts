@@ -20,6 +20,7 @@ export default {
     submitting: "登录中...",
     orContinueWith: "或使用以下方式继续",
     loginWithGithub: "使用 GitHub 登录",
+    loginWithGoogle: "使用 Google 登录",
     noAccount: "还没有账户？",
     signUp: "注册",
     rememberMe: "记住我",

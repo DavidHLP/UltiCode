@@ -44,13 +44,11 @@ async function bootstrap() {
   initializeAuthContext();
 
   // Setup session expired redirect to login
-  const { useRouter } = await import("vue-router");
+  // Use the imported router instance directly — useRouter() relies on inject()
+  // which only works during setup, not in async callbacks.
   onSessionExpired(() => {
-    // Delay to allow current request to complete
     setTimeout(() => {
-      const router = useRouter();
       if (router.currentRoute.value.meta.requiresAuth !== true) {
-        // Only redirect if not already on a public page
         router.push("/login");
       }
     }, 100);

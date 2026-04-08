@@ -74,6 +74,11 @@ export default {
     },
   },
 
+  // Keyboard shortcuts
+  shortcuts: {
+    title: "Keyboard Shortcuts",
+  },
+
   // Problem lists
   problemList: {
     title: "Problem Lists",
@@ -375,6 +380,10 @@ export default {
     loginToVote: "Please log in to vote.",
     returnToList: "Return solution list",
     loading: "Loading solutions...",
+    error: {
+      viewRecordFailed: "Failed to record view",
+      commentVoteFailed: "Failed to vote on comment",
+    },
   },
 
   // Submissions in Problem Detail

@@ -60,11 +60,11 @@ describe("useEditorThemes", () => {
       const { availableThemes } = useEditorThemes();
 
       const darkTheme = availableThemes.find((t) => t.value === "vs-dark");
-      expect(darkTheme?.label).toBe("Dark");
+      expect(darkTheme?.label).toBe("Solarized Dark");
       expect(darkTheme?.icon).toBe("moon");
 
       const lightTheme = availableThemes.find((t) => t.value === "vs-light");
-      expect(lightTheme?.label).toBe("Light");
+      expect(lightTheme?.label).toBe("Solarized Light");
       expect(lightTheme?.icon).toBe("sun");
 
       const hcTheme = availableThemes.find((t) => t.value === "hc-black");

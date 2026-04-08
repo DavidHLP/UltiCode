@@ -74,6 +74,11 @@ export default {
     },
   },
 
+  // 键盘快捷键
+  shortcuts: {
+    title: "键盘快捷键",
+  },
+
   // Problem lists
   problemList: {
     title: "题单",
@@ -366,6 +371,10 @@ export default {
     loginToVote: "请登录后投票。",
     returnToList: "返回题解列表",
     loading: "正在加载题解...",
+    error: {
+      viewRecordFailed: "记录浏览失败",
+      commentVoteFailed: "评论投票失败",
+    },
   },
 
   // Submissions in Problem Detail

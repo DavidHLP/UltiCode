@@ -77,14 +77,14 @@ const isActiveNav = (item: NavItem) => {
 </script>
 
 <template>
-  <SidebarProvider class="w-full" :style="{ '--sidebar-width': '280px' }">
+  <SidebarProvider class="w-full" :style="{ '--sidebar-width': '220px' }">
     <AppSidebar />
     <SidebarInset>
       <header
-        class="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4"
+        class="sticky top-0 z-10 flex h-12 shrink-0 items-center gap-2 border-b bg-background px-3"
       >
         <SidebarTrigger class="-ml-1" />
-        <Separator orientation="vertical" class="mr-2 h-4" />
+        <Separator orientation="vertical" class="mr-1 h-4" />
         <NavigationMenu class="hidden md:flex">
           <NavigationMenuList>
             <NavigationMenuItem v-for="item in navItems" :key="item.label">
@@ -92,18 +92,17 @@ const isActiveNav = (item: NavItem) => {
                 v-if="item.to"
                 :as-child="true"
                 :active="isActiveNav(item)"
-                class="min-w-[120px]"
               >
                 <RouterLink
                   :to="item.to"
-                  class="flex flex-col items-center justify-center gap-1 rounded-none border border-transparent px-3 py-2 text-center transition hover:border-accent hover:bg-accent/30"
+                  class="flex items-center justify-center gap-1 rounded-none border border-transparent px-3 py-1.5 text-center transition hover:border-accent hover:bg-accent/30"
                 >
-                  <span class="text-sm font-medium md:text-base">
+                  <span class="text-sm font-medium">
                     {{ item.label }}
                   </span>
                   <span
                     v-if="item.comingSoon"
-                    class="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground md:text-xs"
+                    class="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
                   >
                     {{ t("common.labels.soon") }}
                   </span>
@@ -112,15 +111,15 @@ const isActiveNav = (item: NavItem) => {
               <NavigationMenuLink
                 v-else
                 :href="item.href"
-                class="flex min-w-[120px] flex-col items-center justify-center gap-1"
+                class="flex items-center justify-center gap-1 px-3 py-1.5"
                 target="_self"
               >
-                <span class="text-sm font-medium md:text-base">
+                <span class="text-sm font-medium">
                   {{ item.label }}
                 </span>
                 <span
                   v-if="item.comingSoon"
-                  class="rounded-full border px-2 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground md:text-xs"
+                  class="rounded-full border px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted-foreground"
                 >
                   {{ t("common.labels.soon") }}
                 </span>

@@ -18,12 +18,12 @@ const emit = defineEmits<{
 </script>
 
 <template>
-  <div class="flex flex-wrap gap-2 mb-2">
+  <div class="flex flex-wrap gap-1.5 mb-1.5">
     <button
       v-for="cat in categories"
       :key="cat.value"
       @click="emit('update:modelValue', cat.value)"
-      class="flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-medium transition-all duration-200"
+      class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all duration-200"
       :class="
         modelValue === cat.value
           ? 'bg-zinc-100 dark:bg-zinc-800 text-zinc-900 dark:text-zinc-100 shadow-sm ring-1 ring-black/5 dark:ring-white/10'
@@ -31,10 +31,10 @@ const emit = defineEmits<{
       "
     >
       <div
-        class="p-1 rounded bg-popover shadow-sm"
+        class="p-0.5 rounded bg-popover shadow-sm"
         :class="modelValue === cat.value ? 'text-primary' : 'text-zinc-400'"
       >
-        <component :is="cat.icon" v-if="cat.icon" class="w-3 h-3" />
+        <component :is="cat.icon" v-if="cat.icon" class="w-2.5 h-2.5" />
       </div>
       {{ cat.label }}
     </button>

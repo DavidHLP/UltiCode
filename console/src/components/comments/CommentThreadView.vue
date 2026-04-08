@@ -106,6 +106,5 @@ onMounted(() => {
 });
 
 const handleReply = (parentId: number | string, content: string) => {
-  console.log("Reply to", parentId, ":", content);
 };
 </script>

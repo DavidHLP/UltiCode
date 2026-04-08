@@ -173,11 +173,9 @@ export const useNotificationStore = defineStore("notification", () => {
 
   function handleSubmissionResult(payload: SubmissionResultPayload) {
     // This can be used to trigger toast notifications or update UI
-    console.log("[Notification] Submission result:", payload);
   }
 
   function handleBadgeEarned(payload: BadgeEarnedPayload) {
-    console.log("[Notification] Badge earned:", payload);
   }
 
   /**

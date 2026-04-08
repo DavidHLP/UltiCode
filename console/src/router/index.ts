@@ -321,7 +321,6 @@ router.beforeEach(async (to, from, next) => {
 
   // Development-only logging
   if (import.meta.env.DEV) {
-    console.log("[Router] Navigation:", {
       to: to.path,
       from: from.path,
       requiresAuth: to.matched.some((r) => r.meta.requiresAuth === true),
@@ -335,11 +334,9 @@ router.beforeEach(async (to, from, next) => {
   // This prevents premature redirect to login when user navigates before initialize() completes.
   if (authStore.status === "loading" && authStore.initializationPromise) {
     if (import.meta.env.DEV) {
-      console.log("[Router] Auth is initializing, waiting for it to complete...");
     }
     await authStore.initializationPromise;
     if (import.meta.env.DEV) {
-      console.log("[Router] Auth initialization complete, status:", authStore.status);
     }
   }
 

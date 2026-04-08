@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.Year;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,6 +51,15 @@ public class UserServiceImpl implements UserService {
             return Optional.empty();
         }
         return Optional.ofNullable(userMapper.selectById(id));
+    }
+
+    @Override
+    public Map<String, User> findAllById(Collection<String> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Map.of();
+        }
+        return userMapper.selectBatchIds(ids).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
     }
 
     @Override

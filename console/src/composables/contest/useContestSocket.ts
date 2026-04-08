@@ -205,7 +205,6 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
     },
     debug: (str) => {
       if (import.meta.env.DEV) {
-        console.log(`[STOMP Contest] ${str}`);
       }
     },
     reconnectDelay: options.reconnectionDelay,
@@ -216,7 +215,6 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
       connectionStatus = "connected";
       notifyStatusChange("connected");
       reconnectAttempts = 0;
-      console.log("[STOMP Contest] Connected to contest WebSocket");
 
       // Subscribe to contest topic (general broadcast)
       const broadcastSub = stompClient?.subscribe(
@@ -232,7 +230,6 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
       notifyStatusChange("disconnected");
       const callbacks = eventCallbacks.get("disconnect");
       if (callbacks) callbacks.forEach((cb) => cb("disconnected"));
-      console.log("[STOMP Contest] Disconnected from contest WebSocket");
     },
     onStompError: (frame) => {
       console.error("[STOMP Contest] STOMP error:", frame);
@@ -311,7 +308,6 @@ function disconnectSocket(): void {
  *
  * // Listen for ranking updates
  * onRankingUpdate((data) => {
- *   console.log('New rankings:', data.rankings);
  * });
  * ```
  */

@@ -8,8 +8,6 @@ const isDevelopment = import.meta.env.DEV;
 
 onMounted(() => {
   if (isDevelopment) {
-    console.log("[App.vue] App mounted");
-    console.log("[App.vue] Current route:", router.currentRoute.value);
   }
 
   // Global error handler

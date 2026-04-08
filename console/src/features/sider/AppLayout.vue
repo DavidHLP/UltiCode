@@ -26,7 +26,6 @@ const isDevelopment = import.meta.env.DEV;
 
 onMounted(() => {
   if (isDevelopment) {
-    console.log("[AppLayout] Component mounted, current route:", route.path);
   }
 });
 

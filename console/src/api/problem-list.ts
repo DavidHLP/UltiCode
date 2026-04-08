@@ -123,12 +123,12 @@ function mapUserProblemListsResponse(input: unknown): UserProblemListsResponse {
   }
   const raw = input as Record<string, unknown>;
   return {
-    myLists: Array.isArray(raw.myLists) ? raw.myLists.map(mapProblemList) : [],
+    myLists: Array.isArray(raw.ownLists) ? raw.ownLists.map(mapProblemList) : [],
     savedLists: Array.isArray(raw.savedLists)
       ? raw.savedLists.map(mapProblemList)
       : [],
-    featured: Array.isArray(raw.featured)
-      ? raw.featured.map(mapProblemList)
+    featured: Array.isArray(raw.featuredLists)
+      ? raw.featuredLists.map(mapProblemList)
       : [],
     categories: Array.isArray(raw.categories)
       ? raw.categories.map(mapCategory)

@@ -66,6 +66,22 @@ const userInitials = computed(() => {
     .join("")
     .slice(0, 2);
 });
+
+const normalizedAvatar = computed(() => {
+  const username = props.post.author?.username || "anonymous";
+
+  // If author has a custom avatar that's NOT a DiceBear URL, use it directly
+  if (
+    props.post.author?.avatar &&
+    !props.post.author.avatar.includes("dicebear.com")
+  ) {
+    return props.post.author.avatar;
+  }
+
+  // If author has a DiceBear URL or no avatar, generate with username as seed
+  return `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(username)}`;
+});
+
 const createdAgo = computed(() => formatRelativeTime(props.post.createdAt));
 
 type PostMediaItem = {
@@ -201,7 +217,7 @@ async function handleSave() {
         <!-- Header -->
         <header class="flex items-center gap-2 text-xs text-muted-foreground">
           <Avatar
-            class="h-9 w-9 rounded-full border border-border/40"
+            class="h-9 w-9 rounded-none border border-border/40"
             v-if="post.community?.icon"
           >
             <AvatarImage
@@ -213,11 +229,11 @@ async function handleSave() {
             }}</AvatarFallback>
           </Avatar>
           <Avatar
-            class="h-9 w-9 rounded-full border border-border/40"
-            v-else-if="post.author?.avatar"
+            class="h-9 w-9 rounded-none border border-border/40"
+            v-else
           >
             <AvatarImage
-              :src="post.author.avatar"
+              :src="normalizedAvatar"
               :alt="post.author?.username || 'user'"
             />
             <AvatarFallback class="text-xs">{{ userInitials }}</AvatarFallback>
@@ -250,7 +266,7 @@ async function handleSave() {
             v-if="post.flair"
             variant="secondary"
             :class="[
-              'ml-auto sm:ml-2 rounded-full px-2 py-0 text-[10px] h-5',
+              'ml-auto sm:ml-2 rounded-none px-2 py-0 text-[10px] h-5',
               flairClasses[post.flair.type],
             ]"
           >

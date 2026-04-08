@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/ui/skeleton";
   <div class="rounded-none border border-border/50 bg-card shadow-sm">
     <div class="space-y-4 p-4">
       <div class="flex items-start gap-3">
-        <Skeleton class="h-9 w-9 rounded-full" />
+        <Skeleton class="h-9 w-9 rounded-none" />
         <div class="space-y-2 flex-1">
           <Skeleton class="h-4 w-1/3" />
           <Skeleton class="h-3 w-1/4" />

@@ -68,6 +68,21 @@ const userInitials = computed(() => {
     .slice(0, 2);
 });
 
+const normalizedAvatar = computed(() => {
+  const username = props.thread.author?.username || "anonymous";
+
+  // If author has a custom avatar that's NOT a DiceBear URL, use it directly
+  if (
+    props.thread.author?.avatar &&
+    !props.thread.author.avatar.includes("dicebear.com")
+  ) {
+    return props.thread.author.avatar;
+  }
+
+  // If author has a DiceBear URL or no avatar, generate with username as seed
+  return `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(username)}`;
+});
+
 const createdAgo = computed(() => formatRelativeTime(props.thread.createdAt));
 
 const media = computed(
@@ -177,7 +192,7 @@ async function handleShare() {
     <div class="px-3 pt-4 sm:px-4 sm:pt-6">
       <div class="flex items-center gap-2 text-xs text-muted-foreground mb-2">
         <template v-if="communityIcon">
-          <Avatar class="h-9 w-9 rounded-full border border-border/40">
+          <Avatar class="h-9 w-9 rounded-none border border-border/40">
             <AvatarImage
               v-if="communityIcon"
               :src="communityIcon"
@@ -189,10 +204,9 @@ async function handleShare() {
           </Avatar>
         </template>
         <template v-else>
-          <Avatar class="h-9 w-9 rounded-full border border-border/40">
+          <Avatar class="h-9 w-9 rounded-none border border-border/40">
             <AvatarImage
-              v-if="thread.author?.avatar"
-              :src="thread.author.avatar"
+              :src="normalizedAvatar"
               :alt="thread.author?.username || 'user'"
             />
             <AvatarFallback class="text-xs">{{ userInitials }}</AvatarFallback>
@@ -228,7 +242,7 @@ async function handleShare() {
           v-if="thread.flair"
           variant="secondary"
           :class="[
-            'ml-auto sm:ml-2 rounded-full px-2 py-0 text-[10px] h-5',
+            'ml-auto sm:ml-2 rounded-none px-2 py-0 text-[10px] h-5',
             flairClasses[thread.flair.type],
           ]"
         >
@@ -245,8 +259,10 @@ async function handleShare() {
       <div class="flex flex-wrap gap-2 mb-4">
         <Badge
           v-if="thread.isPinned"
-          variant="outline"
-          class="flex items-center gap-1 rounded-full border-dashed px-2 py-0.5 text-[10px] uppercase"
+          :class="[
+            'flex items-center gap-1 rounded-none px-2 py-0.5 text-[10px] uppercase font-bold border-0',
+            'bg-[oklch(0.6545_0.1340_85.7_/_0.15)] text-[var(--terminal-amber)]',
+          ]"
         >
           <Pin class="h-3 w-3" /> {{ t("forum.post.pinned") }}
         </Badge>

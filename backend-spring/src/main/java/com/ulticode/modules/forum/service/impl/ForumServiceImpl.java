@@ -44,8 +44,9 @@ public class ForumServiceImpl implements ForumService {
     public List<ForumPostVO> findAllPosts(String userId) {
         log.debug("Finding all posts for userId: {}", userId);
         List<ForumPost> posts = postMapper.findRecentPosts(MAX_RECENT_POSTS);
+        Map<String, User> authorMap = batchLoadAuthors(posts);
         return posts.stream()
-                .map(post -> convertToPostVO(post, userId))
+                .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
                 .collect(Collectors.toList());
     }
 
@@ -56,15 +57,17 @@ public class ForumServiceImpl implements ForumService {
         if (post == null) {
             throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
         }
-        return convertToPostVO(post, userId);
+        User author = userService.findById(post.getUserId()).orElse(null);
+        return convertToPostVO(post, userId, author);
     }
 
     @Override
     public List<ForumPostVO> findMyPosts(String userId) {
         log.debug("Finding posts for user: {}", userId);
         List<ForumPost> posts = postMapper.findByUserId(userId);
+        Map<String, User> authorMap = batchLoadAuthors(posts);
         return posts.stream()
-                .map(post -> convertToPostVO(post, userId))
+                .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
                 .collect(Collectors.toList());
     }
 
@@ -113,7 +116,8 @@ public class ForumServiceImpl implements ForumService {
         // Increment community post count
         communityMapper.incrementPostsCount(dto.getCommunityId());
 
-        return convertToPostVO(post, userId);
+        User author = userService.findById(post.getUserId()).orElse(null);
+        return convertToPostVO(post, userId, author);
     }
 
     @Override
@@ -164,7 +168,8 @@ public class ForumServiceImpl implements ForumService {
 
         postMapper.updateById(post);
 
-        return convertToPostVO(post, userId);
+        User author = userService.findById(post.getUserId()).orElse(null);
+        return convertToPostVO(post, userId, author);
     }
 
     @Override
@@ -424,8 +429,9 @@ public class ForumServiceImpl implements ForumService {
         }
         // 'hot' and 'new' use default created_at desc order
 
+        Map<String, User> authorMap = batchLoadAuthors(posts);
         return posts.stream()
-                .map(post -> convertToPostVO(post, userId))
+                .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
                 .collect(Collectors.toList());
     }
 
@@ -497,8 +503,12 @@ public class ForumServiceImpl implements ForumService {
     // HELPER METHODS
     // =========================================================================
 
-    private ForumPostVO convertToPostVO(ForumPost post, String userId) {
-        return convertToPostVO(post, userId, null);
+    private Map<String, User> batchLoadAuthors(List<ForumPost> posts) {
+        Set<String> authorIds = posts.stream()
+                .map(ForumPost::getUserId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        return userService.findAllById(authorIds);
     }
 
     private ForumPostVO convertToPostVO(ForumPost post, String userId, User author) {

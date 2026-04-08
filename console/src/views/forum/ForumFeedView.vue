@@ -77,6 +77,7 @@ async function loadAllPosts() {
     communityRules.value = [];
     communityLinks.value = [];
     if (isDevelopment) {
+      console.debug("[ForumFeedView] Data loaded", {
         postsCount: postRows.length,
         communitiesCount: communityRows.length,
         filtersCount: filters.length,
@@ -184,6 +185,7 @@ const sortedPosts = computed(() => {
 
   const result = [...pinned, ...rest];
   if (isDevelopment) {
+    console.debug("[ForumFeedView] Filter applied", {
       filter: quickFilter.value,
       inputCount: postsArray.length,
       outputCount: result.length,

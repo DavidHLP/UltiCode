@@ -18,6 +18,9 @@ import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.solution.service.SolutionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
+import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
+import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -42,6 +45,7 @@ public class SolutionServiceImpl implements SolutionService {
     private final SolutionCommentMapper solutionCommentMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
+    private final EdgeOperationMapper edgeOperationMapper;
 
     private static final int MAX_SUMMARY_LENGTH = 180;
 
@@ -299,6 +303,20 @@ public class SolutionServiceImpl implements SolutionService {
             vo.setAuthorName(author.getName() != null ? author.getName() : author.getUsername());
             vo.setAuthorAvatar(author.getAvatar());
         }
+
+        // Populate vote counts from edge_operations
+        String targetId = solution.getId();
+        String targetType = EdgeOperationTargetType.SOLUTION.getValue();
+        long likes = edgeOperationMapper.countByTargetAndOperation(
+                targetId, targetType, EdgeOperationType.VOTE_UP.getValue());
+        long dislikes = edgeOperationMapper.countByTargetAndOperation(
+                targetId, targetType, EdgeOperationType.VOTE_DOWN.getValue());
+        long commentCount = solutionCommentMapper.countBySolutionId(targetId);
+
+        vo.setLikes(likes);
+        vo.setDislikes(dislikes);
+        vo.setComments(commentCount);
+        vo.setScore(likes - dislikes);
 
         return vo;
     }

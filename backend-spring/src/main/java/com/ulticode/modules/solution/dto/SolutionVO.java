@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * Solution View Object for API responses.
@@ -59,7 +60,7 @@ public class SolutionVO {
     private String language;
 
     /**
-     * Tags associated with this solution
+     * Tags associated with this solution (JSON string)
      */
     private String tags;
 
@@ -67,6 +68,31 @@ public class SolutionVO {
      * Number of views
      */
     private Integer views;
+
+    /**
+     * Number of upvotes
+     */
+    private Long likes;
+
+    /**
+     * Number of downvotes
+     */
+    private Long dislikes;
+
+    /**
+     * Number of comments
+     */
+    private Long comments;
+
+    /**
+     * Computed score (likes - dislikes)
+     */
+    private Long score;
+
+    /**
+     * Current user's vote status: 0=none, 1=upvote, -1=downvote
+     */
+    private Integer userVote;
 
     /**
      * Whether the solution is published

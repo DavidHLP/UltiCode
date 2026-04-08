@@ -10,6 +10,20 @@ import type { SolutionFeedResponse, SolutionFeedItem } from "@/types/solution";
 import type { ForumComment } from "@/types/forum";
 export type { SolutionFeedResponse };
 
+/** Safely parse backend tags field (may be JSON string or already an array). */
+function parseTags(tags: unknown): string[] {
+  if (Array.isArray(tags)) return tags;
+  if (typeof tags === "string") {
+    try {
+      const parsed = JSON.parse(tags);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return tags ? [tags] : [];
+    }
+  }
+  return [];
+}
+
 export interface CreateSolutionDto {
   title: string;
   content: string;
@@ -64,6 +78,7 @@ export async function fetchSolution(
     tags: string[];
     votes: number;
     views: number;
+    comments?: number;
     likes: number;
     dislikes?: number;
     userVote?: 0 | 1 | -1;
@@ -88,7 +103,7 @@ export async function fetchSolution(
     },
     stats: {
       views: item.views ?? 0,
-      comments: 0,
+      comments: item.comments ?? 0,
       likes: item.likes ?? 0,
       dislikes: item.dislikes ?? 0,
     },
@@ -103,7 +118,7 @@ export async function fetchSolution(
     language: item.language,
     languageFilter: item.languageFilter,
     content: item.content,
-    tags: item.tags,
+    tags: parseTags(item.tags),
     votes: item.votes,
     views: item.views,
     likes: item.likes,
@@ -146,6 +161,7 @@ export async function fetchSolutionFeed(
       tags: string[];
       votes: number;
       views: number;
+      comments?: number;
       likes: number;
       dislikes?: number;
       userVote?: 0 | 1 | -1;
@@ -174,8 +190,13 @@ export async function fetchSolutionFeed(
         role: "",
         avatar: item.authorAvatar,
       },
-      stats: item.stats,
-      score: item.score,
+      stats: {
+        views: item.views ?? 0,
+        comments: item.comments ?? 0,
+        likes: item.likes ?? 0,
+        dislikes: item.dislikes ?? 0,
+      },
+      score: item.score ?? 0,
       is_pinned: item.isPinned,
       is_locked: item.isLocked,
       created_at: item.createdAt,
@@ -186,7 +207,7 @@ export async function fetchSolutionFeed(
       language: item.language,
       languageFilter: item.languageFilter,
       content: item.content,
-      tags: item.tags,
+      tags: parseTags(item.tags),
       votes: item.votes,
       views: item.views,
       likes: item.likes,
@@ -232,6 +253,7 @@ export async function fetchUserSolutions(
       tags: string[];
       votes: number;
       views: number;
+      comments?: number;
       likes: number;
       dislikes?: number;
       userVote?: 0 | 1 | -1;
@@ -256,8 +278,13 @@ export async function fetchUserSolutions(
         role: "",
         avatar: item.authorAvatar,
       },
-      stats: item.stats,
-      score: item.score,
+      stats: {
+        views: item.views ?? 0,
+        comments: item.comments ?? 0,
+        likes: item.likes ?? 0,
+        dislikes: item.dislikes ?? 0,
+      },
+      score: item.score ?? 0,
       is_pinned: item.isPinned,
       is_locked: item.isLocked,
       created_at: item.createdAt,
@@ -268,7 +295,7 @@ export async function fetchUserSolutions(
       language: item.language,
       languageFilter: item.languageFilter,
       content: item.content,
-      tags: item.tags,
+      tags: parseTags(item.tags),
       votes: item.votes,
       views: item.views,
       likes: item.likes,

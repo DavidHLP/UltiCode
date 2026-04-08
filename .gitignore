@@ -27,6 +27,8 @@ __pycache__/
 venv/
 ENV/
 env/
+# Flyway CLI (auto-downloaded by setup.sh)
+db-manager/flyway/
 .pytest_cache/
 .mypy_cache/
 .tox/

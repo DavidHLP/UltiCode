@@ -1,9 +1,12 @@
 const { spawn } = require('child_process');
+const { resolve } = require('path');
 
-const proc = spawn('./mvnw', ['spring-boot:run'], {
+// Try common Maven wrapper paths
+const mvnw = resolve(__dirname, 'mvnw');
+
+const proc = spawn(mvnw, ['spring-boot:run'], {
   cwd: __dirname,
   stdio: 'inherit',
-  env: { ...process.env, JAVA_HOME: '/home/davidhlp/.vfox/cache/java/v-17.0.1+12/java-17.0.1+12' },
 });
 
 proc.on('close', (code) => process.exit(code));

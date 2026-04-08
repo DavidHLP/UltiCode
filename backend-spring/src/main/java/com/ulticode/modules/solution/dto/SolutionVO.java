@@ -59,7 +59,7 @@ public class SolutionVO {
     private String language;
 
     /**
-     * Tags associated with this solution
+     * Tags associated with this solution (JSON string)
      */
     private String tags;
 
@@ -67,6 +67,26 @@ public class SolutionVO {
      * Number of views
      */
     private Integer views;
+
+    /**
+     * Number of upvotes
+     */
+    private Long likes;
+
+    /**
+     * Number of downvotes
+     */
+    private Long dislikes;
+
+    /**
+     * Number of comments
+     */
+    private Long comments;
+
+    /**
+     * Computed score (likes - dislikes)
+     */
+    private Long score;
 
     /**
      * Whether the solution is published

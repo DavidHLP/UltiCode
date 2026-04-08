@@ -1,14 +1,99 @@
 import { useAuthStore } from "@/stores/auth";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/utils/request";
-import {
-  EdgeOperationTargetType,
-  EdgeOperationType,
-  operateEdgeOperation,
-} from "./edge-operations";
-import type { EdgeOperationResponse } from "./edge-operations";
 import type { SolutionFeedResponse, SolutionFeedItem } from "@/types/solution";
 import type { ForumComment } from "@/types/forum";
 export type { SolutionFeedResponse };
+
+/** Backend API response shape for a single solution. */
+interface SolutionApiItem {
+  id: string;
+  problemId: number;
+  userId: string;
+  authorName?: string;
+  authorAvatar?: string;
+  title: string;
+  summary: string;
+  highlight?: string;
+  flair?: string;
+  badges?: string[];
+  language: string;
+  languageFilter?: string;
+  topicName?: string;
+  topicTranslated?: string;
+  topic?: { id: string; name: string; translatedName?: string };
+  stats: { views: number; comments: number; likes: number; dislikes: number };
+  score: number;
+  isPinned?: boolean;
+  isLocked?: boolean;
+  createdAt: string;
+  publishedAt: string;
+  content: string;
+  tags: string[];
+  votes: number;
+  views: number;
+  comments?: number;
+  likes: number;
+  dislikes?: number;
+  userVote?: 0 | 1 | -1;
+}
+
+/** Safely parse backend tags field (may be JSON string or already an array). */
+function parseTags(tags: unknown): string[] {
+  if (Array.isArray(tags)) return tags.map(String);
+  if (typeof tags === "string") {
+    try {
+      const parsed = JSON.parse(tags);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return tags ? [tags] : [];
+    }
+  }
+  return [];
+}
+
+/** Transform a raw API solution item into the frontend SolutionFeedItem shape. */
+function transformApiSolution(item: SolutionApiItem): SolutionFeedItem {
+  return {
+    id: item.id,
+    problem_id: item.problemId?.toString() ?? "",
+    title: item.title,
+    summary: item.summary,
+    highlight: item.highlight,
+    flair: item.flair,
+    badges: item.badges,
+    authorId: item.userId,
+    author: {
+      id: item.userId,
+      username: item.authorName ?? item.userId,
+      name: item.authorName ?? item.userId,
+      role: "",
+      avatar: item.authorAvatar,
+    },
+    stats: {
+      views: item.views ?? 0,
+      comments: item.comments ?? 0,
+      likes: item.likes ?? 0,
+      dislikes: item.dislikes ?? 0,
+    },
+    score: item.score ?? 0,
+    is_pinned: item.isPinned,
+    is_locked: item.isLocked,
+    created_at: item.createdAt,
+    publishedAt: item.publishedAt,
+    topicName: item.topicName,
+    topicTranslated: item.topicTranslated,
+    topic: item.topic,
+    language: item.language,
+    languageFilter: item.languageFilter,
+    content: item.content,
+    tags: parseTags(item.tags),
+    votes: item.votes,
+    views: item.views,
+    likes: item.likes,
+    dislikes: item.dislikes,
+    userVote: item.userVote,
+  };
+}
 
 export interface CreateSolutionDto {
   title: string;
@@ -38,78 +123,8 @@ export async function deleteSolution(solutionId: string): Promise<void> {
 export async function fetchSolution(
   solutionId: string,
 ): Promise<SolutionFeedItem> {
-  const item = await apiGet<{
-    id: string;
-    problemId: number;
-    userId: string;
-    authorName?: string;
-    authorAvatar?: string;
-    title: string;
-    summary: string;
-    highlight?: string;
-    flair?: string;
-    badges?: string[];
-    language: string;
-    languageFilter?: string;
-    topicName?: string;
-    topicTranslated?: string;
-    topic?: { id: string; name: string; translatedName?: string };
-    stats: { views: number; comments: number; likes: number; dislikes: number };
-    score: number;
-    isPinned?: boolean;
-    isLocked?: boolean;
-    createdAt: string;
-    publishedAt: string;
-    content: string;
-    tags: string[];
-    votes: number;
-    views: number;
-    likes: number;
-    dislikes?: number;
-    userVote?: 0 | 1 | -1;
-  }>(`/api/solutions/${solutionId}`);
-
-  // Transform flat author fields to nested author object
-  return {
-    id: item.id,
-    problem_id: item.problemId?.toString() ?? "",
-    title: item.title,
-    summary: item.summary,
-    highlight: item.highlight,
-    flair: item.flair,
-    badges: item.badges,
-    authorId: item.userId,
-    author: {
-      id: item.userId,
-      username: item.authorName ?? item.userId,
-      name: item.authorName ?? item.userId,
-      role: "",
-      avatar: item.authorAvatar,
-    },
-    stats: {
-      views: item.views ?? 0,
-      comments: 0,
-      likes: item.likes ?? 0,
-      dislikes: item.dislikes ?? 0,
-    },
-    score: item.score ?? 0,
-    is_pinned: item.isPinned,
-    is_locked: item.isLocked,
-    created_at: item.createdAt,
-    publishedAt: item.publishedAt,
-    topicName: item.topicName,
-    topicTranslated: item.topicTranslated,
-    topic: item.topic,
-    language: item.language,
-    languageFilter: item.languageFilter,
-    content: item.content,
-    tags: item.tags,
-    votes: item.votes,
-    views: item.views,
-    likes: item.likes,
-    dislikes: item.dislikes,
-    userVote: item.userVote,
-  };
+  const item = await apiGet<SolutionApiItem>(`/api/solutions/${solutionId}`);
+  return transformApiSolution(item);
 }
 
 export async function fetchSolutionFeed(
@@ -120,79 +135,15 @@ export async function fetchSolutionFeed(
     ? `/api/problems/${problemId}/solutions?userId=${userId}`
     : `/api/problems/${problemId}/solutions`;
   const pageResult = await apiGet<{
-    items: Array<{
-      id: string;
-      problemId: number;
-      userId: string;
-      authorName?: string;
-      authorAvatar?: string;
-      title: string;
-      summary: string;
-      highlight?: string;
-      flair?: string;
-      badges?: string[];
-      language: string;
-      languageFilter?: string;
-      topicName?: string;
-      topicTranslated?: string;
-      topic?: { id: string; name: string; translatedName?: string };
-      stats: { views: number; comments: number; likes: number; dislikes: number };
-      score: number;
-      isPinned?: boolean;
-      isLocked?: boolean;
-      createdAt: string;
-      publishedAt: string;
-      content: string;
-      tags: string[];
-      votes: number;
-      views: number;
-      likes: number;
-      dislikes?: number;
-      userVote?: 0 | 1 | -1;
-    }>;
+    items: SolutionApiItem[];
     total: number;
     page: number;
     pageSize: number;
     totalPages: number;
   }>(url);
 
-  // Transform flat author fields to nested author object
   return {
-    items: pageResult.items.map((item) => ({
-      id: item.id,
-      problem_id: item.problemId?.toString() ?? "",
-      title: item.title,
-      summary: item.summary,
-      highlight: item.highlight,
-      flair: item.flair,
-      badges: item.badges,
-      authorId: item.userId,
-      author: {
-        id: item.userId,
-        username: item.authorName ?? item.userId,
-        name: item.authorName ?? item.userId,
-        role: "",
-        avatar: item.authorAvatar,
-      },
-      stats: item.stats,
-      score: item.score,
-      is_pinned: item.isPinned,
-      is_locked: item.isLocked,
-      created_at: item.createdAt,
-      publishedAt: item.publishedAt,
-      topicName: item.topicName,
-      topicTranslated: item.topicTranslated,
-      topic: item.topic,
-      language: item.language,
-      languageFilter: item.languageFilter,
-      content: item.content,
-      tags: item.tags,
-      votes: item.votes,
-      views: item.views,
-      likes: item.likes,
-      dislikes: item.dislikes,
-      userVote: item.userVote,
-    })),
+    items: pageResult.items.map(transformApiSolution),
     total: pageResult.total,
   };
 }
@@ -205,76 +156,12 @@ export async function fetchUserSolutions(
   if (problemId) {
     params.set("problemId", problemId);
   }
-  const response = await apiGet<
-    Array<{
-      id: string;
-      problemId: number;
-      userId: string;
-      authorName?: string;
-      authorAvatar?: string;
-      title: string;
-      summary: string;
-      highlight?: string;
-      flair?: string;
-      badges?: string[];
-      language: string;
-      languageFilter?: string;
-      topicName?: string;
-      topicTranslated?: string;
-      topic?: { id: string; name: string; translatedName?: string };
-      stats: { views: number; comments: number; likes: number; dislikes: number };
-      score: number;
-      isPinned?: boolean;
-      isLocked?: boolean;
-      createdAt: string;
-      publishedAt: string;
-      content: string;
-      tags: string[];
-      votes: number;
-      views: number;
-      likes: number;
-      dislikes?: number;
-      userVote?: 0 | 1 | -1;
-    }>
-  >(`/api/solutions?${params.toString()}`);
+  const response = await apiGet<SolutionApiItem[]>(
+    `/api/solutions?${params.toString()}`,
+  );
 
-  // Transform flat author fields to nested author object
   return {
-    items: response.map((item) => ({
-      id: item.id,
-      problem_id: item.problemId?.toString() ?? "",
-      title: item.title,
-      summary: item.summary,
-      highlight: item.highlight,
-      flair: item.flair,
-      badges: item.badges,
-      authorId: item.userId,
-      author: {
-        id: item.userId,
-        username: item.authorName ?? item.userId,
-        name: item.authorName ?? item.userId,
-        role: "",
-        avatar: item.authorAvatar,
-      },
-      stats: item.stats,
-      score: item.score,
-      is_pinned: item.isPinned,
-      is_locked: item.isLocked,
-      created_at: item.createdAt,
-      publishedAt: item.publishedAt,
-      topicName: item.topicName,
-      topicTranslated: item.topicTranslated,
-      topic: item.topic,
-      language: item.language,
-      languageFilter: item.languageFilter,
-      content: item.content,
-      tags: item.tags,
-      votes: item.votes,
-      views: item.views,
-      likes: item.likes,
-      dislikes: item.dislikes,
-      userVote: item.userVote,
-    })),
+    items: response.map(transformApiSolution),
     total: response.length,
   };
 }

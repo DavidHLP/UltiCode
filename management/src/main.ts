@@ -36,7 +36,6 @@ async function bootstrap() {
 
   try {
     await authStore.initialize()
-    console.log('[Bootstrap] Auth initialization complete')
   } catch (error) {
     console.error('[Bootstrap] Auth initialization failed:', error)
     // Continue anyway - app will render with unauthenticated state
@@ -52,7 +51,6 @@ async function bootstrap() {
 
   app.mount('#app')
 
-  console.log('[Bootstrap] App mounted successfully')
 }
 
 // Start the application

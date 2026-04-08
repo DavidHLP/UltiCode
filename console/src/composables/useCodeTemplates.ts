@@ -43,7 +43,6 @@ function main(args) {
 }
 
 // Example usage
-console.log(main([]));
 `,
   },
   {
@@ -121,7 +120,6 @@ function main(args: Args): unknown {
 }
 
 // Example usage
-console.log(main({}));
 `,
   },
   {

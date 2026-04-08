@@ -269,7 +269,6 @@ const initCreationFlow = async () => {
         submissionToUse = best;
       }
     } catch (error) {
-      console.log("No best submission found or failed to fetch", error);
     }
   }
 

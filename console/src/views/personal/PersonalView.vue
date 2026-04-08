@@ -59,11 +59,9 @@ const currentUserId = computed(() => authStore.user?.id);
 
 // Debug: log when component is created
 if (import.meta.env.DEV) {
-  console.log(
     "[PersonalView] Component created, authStore.user:",
     authStore.user,
   );
-  console.log("[PersonalView] currentUserId:", currentUserId.value);
 }
 
 const stats = computed(() => {
@@ -122,9 +120,6 @@ const recentActivity = computed(() => {
 
 onMounted(async () => {
   if (import.meta.env.DEV) {
-    console.log("[PersonalView] onMounted called");
-    console.log("[PersonalView] authStore.user:", authStore.user);
-    console.log("[PersonalView] currentUserId.value:", currentUserId.value);
   }
 
   try {
@@ -138,7 +133,6 @@ onMounted(async () => {
     }
 
     if (import.meta.env.DEV) {
-      console.log("[PersonalView] Loading data for user:", userId);
     }
 
     const [userData, userSubmissions, userStats] = await Promise.all([
@@ -148,7 +142,6 @@ onMounted(async () => {
     ]);
 
     if (import.meta.env.DEV) {
-      console.log("[PersonalView] API responses received:", {
         userData,
         submissionsCount: userSubmissions.length,
         userStats,
@@ -160,8 +153,6 @@ onMounted(async () => {
     statsData.value = userStats;
 
     if (import.meta.env.DEV) {
-      console.log("[PersonalView] Data loaded, user.value set to:", user.value);
-      console.log("[PersonalView] loading.value set to false");
     }
 
     // Fetch skills data separately (non-blocking)
@@ -184,7 +175,6 @@ onMounted(async () => {
   } finally {
     loading.value = false;
     if (import.meta.env.DEV) {
-      console.log(
         "[PersonalView] onMounted completed, loading:",
         loading.value,
         "user:",

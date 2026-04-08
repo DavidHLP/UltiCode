@@ -45,6 +45,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class SolutionServiceImpl implements SolutionService {
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
     private final SolutionMapper solutionMapper;
     private final SolutionCommentMapper solutionCommentMapper;
     private final UserMapper userMapper;
@@ -342,8 +344,7 @@ public class SolutionServiceImpl implements SolutionService {
             return Collections.emptyList();
         }
         try {
-            ObjectMapper mapper = new ObjectMapper();
-            return mapper.readValue(tagsJson, new TypeReference<List<String>>() {});
+            return OBJECT_MAPPER.readValue(tagsJson, new TypeReference<List<String>>() {});
         } catch (JsonProcessingException e) {
             log.warn("Failed to parse tags JSON: {}", tagsJson, e);
             return Collections.emptyList();

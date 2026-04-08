@@ -36,7 +36,6 @@ export const updateServiceWorker = registerSW({
   },
   onOfflineReady() {
     // Called when the app is ready to work offline
-    console.log("[PWA] App ready to work offline");
   },
   onRegistered(swRegistration) {
     // Check for updates every hour

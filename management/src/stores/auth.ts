@@ -105,7 +105,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Debug logging (dev only)
     if (import.meta.env.DEV) {
-      console.log('[Auth] hasRole check:', {
         userRole: user.value?.role,
         normalizedUserRole: userRole,
         requiredRole: role,
@@ -121,7 +120,6 @@ export const useAuthStore = defineStore('auth', () => {
     const userRole = user.value?.role?.toUpperCase()
     if (!userRole) {
       if (import.meta.env.DEV) {
-        console.log('[Auth] hasAnyRole check: No user role found')
       }
       return false
     }
@@ -131,7 +129,6 @@ export const useAuthStore = defineStore('auth', () => {
 
     // Debug logging (dev only)
     if (import.meta.env.DEV) {
-      console.log('[Auth] hasAnyRole check:', {
         userRole: user.value?.role,
         normalizedUserRole: userRole,
         requiredRoles: roles,

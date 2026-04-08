@@ -169,7 +169,6 @@ service.interceptors.request.use(
 
     // Log request in development
     if (isDevelopment) {
-      console.log(`[API Request] ${requestId}`, {
         method: config.method?.toUpperCase(),
         url: config.url,
         headers: config.headers,
@@ -202,7 +201,6 @@ service.interceptors.response.use(
     // Log response in development
     if (isDevelopment && metadata) {
       const duration = Date.now() - metadata.startTime
-      console.log(`[API Response] ${metadata.requestId}`, {
         status: response.status,
         duration: `${duration}ms`,
         data: response.data,
@@ -243,7 +241,6 @@ service.interceptors.response.use(
     // Handle request cancellation
     if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
       if (isDevelopment) {
-        console.log('Request canceled:', error.message)
       }
       // Use -1 instead of 0 to avoid conflict with backend's success code
       return Promise.reject(new ApiError('Request canceled', -1))
@@ -272,7 +269,6 @@ service.interceptors.response.use(
         await new Promise((resolve) => setTimeout(resolve, delay))
 
         if (isDevelopment) {
-          console.log(`[API Retry] ${metadata.requestId}`, {
             attempt: retryCount + 1,
             maxRetry,
             delay,

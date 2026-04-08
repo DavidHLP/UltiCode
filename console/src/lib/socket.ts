@@ -191,7 +191,6 @@ function createSocketManager(): SocketManager {
     // Don't connect if no token - user is not authenticated
     if (!token) {
       if (import.meta.env.DEV) {
-        console.log("[WebSocket] No token found, skipping connection");
       }
       notifyStatusChange("disconnected");
       return;
@@ -211,7 +210,6 @@ function createSocketManager(): SocketManager {
       },
       debug: (str) => {
         if (import.meta.env.DEV) {
-          console.log(`[STOMP] ${str}`);
         }
       },
       reconnectDelay: 1000,
@@ -219,7 +217,6 @@ function createSocketManager(): SocketManager {
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
       onConnect: () => {
-        console.log("[WebSocket] Connected to STOMP server");
         notifyStatusChange("connected");
         reconnectAttempts = 0;
 
@@ -262,7 +259,6 @@ function createSocketManager(): SocketManager {
         }
       },
       onDisconnect: () => {
-        console.log("[WebSocket] Disconnected from STOMP server");
         notifyStatusChange("disconnected");
         const callbacks = eventListeners.get(NotificationEvent.DISCONNECT);
         if (callbacks) {
@@ -372,7 +368,6 @@ function createSocketManager(): SocketManager {
       body: contestId,
     });
 
-    console.log(`[WebSocket] Subscribed to contest ${contestId}`);
   };
 
   const unsubscribeFromContest = (contestId: string) => {
@@ -391,7 +386,6 @@ function createSocketManager(): SocketManager {
       });
     }
 
-    console.log(`[WebSocket] Unsubscribed from contest ${contestId}`);
   };
 
   const subscribeToCommunity = (communityId: string) => {
@@ -411,7 +405,6 @@ function createSocketManager(): SocketManager {
     );
     subscriptions.set(key, sub);
 
-    console.log(`[WebSocket] Subscribed to community ${communityId}`);
   };
 
   const unsubscribeFromCommunity = (communityId: string) => {
@@ -422,7 +415,6 @@ function createSocketManager(): SocketManager {
       subscriptions.delete(key);
     }
 
-    console.log(`[WebSocket] Unsubscribed from community ${communityId}`);
   };
 
   return {

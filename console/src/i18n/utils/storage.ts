@@ -248,7 +248,6 @@ function initializeStorage(): void {
  * @example
  * const stored = getStoredLocale();
  * if (stored) {
- *   console.log('User prefers:', stored);
  * }
  */
 export function getStoredLocale(): string | null {
@@ -312,7 +311,6 @@ export function setStoredLocale(locale: string): void {
         } else {
           fallbackStorage.setItem(LOCALE_STORAGE_KEY, locale);
         }
-        console.log(`Successfully stored locale in ${newLayer}`);
       } catch (retryError) {
         console.error("All storage layers failed:", retryError);
       }

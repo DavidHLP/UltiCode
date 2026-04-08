@@ -59,7 +59,6 @@ const selectedFlair = ref<"all" | ForumFlairType>("all");
 // Load all posts and communities on mount
 async function loadAllPosts() {
   if (isDevelopment) {
-    console.log("[ForumFeedView] loadAllPosts() called");
   }
   isLoading.value = true;
   try {
@@ -78,7 +77,6 @@ async function loadAllPosts() {
     communityRules.value = [];
     communityLinks.value = [];
     if (isDevelopment) {
-      console.log("[ForumFeedView] Data loaded:", {
         postsCount: postRows.length,
         communitiesCount: communityRows.length,
         filtersCount: filters.length,
@@ -92,7 +90,6 @@ async function loadAllPosts() {
   } finally {
     isLoading.value = false;
     if (isDevelopment) {
-      console.log("[ForumFeedView] isLoading set to false");
     }
   }
 }
@@ -187,7 +184,6 @@ const sortedPosts = computed(() => {
 
   const result = [...pinned, ...rest];
   if (isDevelopment) {
-    console.log("[ForumFeedView] sortedPosts:", {
       filter: quickFilter.value,
       inputCount: postsArray.length,
       outputCount: result.length,

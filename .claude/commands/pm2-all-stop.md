@@ -1,4 +1,4 @@
 Stop all services.
 ```bash
-cd "/home/davidhlp/project/UltiCode-Public-Next" && pm2 stop all
+cd "$CLAUDE_PROJECT_DIR" && pm2 stop all
 ```

@@ -11,6 +11,7 @@ import { Share2, Pin, Lock } from "lucide-vue-next";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";
+import { useAvatar } from "@/composables/useAvatar";
 import { renderMarkdown } from "@/utils/markdown";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
@@ -68,20 +69,10 @@ const userInitials = computed(() => {
     .slice(0, 2);
 });
 
-const normalizedAvatar = computed(() => {
-  const username = props.thread.author?.username || "anonymous";
-
-  // If author has a custom avatar that's NOT a DiceBear URL, use it directly
-  if (
-    props.thread.author?.avatar &&
-    !props.thread.author.avatar.includes("dicebear.com")
-  ) {
-    return props.thread.author.avatar;
-  }
-
-  // If author has a DiceBear URL or no avatar, generate with username as seed
-  return `https://api.dicebear.com/7.x/notionists/svg?seed=${encodeURIComponent(username)}`;
-});
+const { normalizedAvatar } = useAvatar(
+  computed(() => props.thread.author?.username),
+  computed(() => props.thread.author?.avatar),
+);
 
 const createdAgo = computed(() => formatRelativeTime(props.thread.createdAt));
 

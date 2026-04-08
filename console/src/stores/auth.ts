@@ -75,7 +75,6 @@ export const useAuthStore = defineStore("auth", () => {
     // If already ready, skip
     if (status.value === "ready") {
       if (isDevelopment) {
-        console.log("[Auth] Already initialized, skipping");
       }
       return;
     }
@@ -83,7 +82,6 @@ export const useAuthStore = defineStore("auth", () => {
     // Return existing promise if initialization is in progress
     if (_initializationPromise) {
       if (isDevelopment) {
-        console.log("[Auth] Initialization already in progress, waiting...");
       }
       return _initializationPromise;
     }
@@ -93,7 +91,6 @@ export const useAuthStore = defineStore("auth", () => {
     error.value = null;
 
     if (isDevelopment) {
-      console.log("[Auth] initialize() called - attempting to restore session");
     }
 
     // Create and store the promise
@@ -105,19 +102,16 @@ export const useAuthStore = defineStore("auth", () => {
         // If no valid session exists, /auth/me returns 401 — handled gracefully.
         await fetchUser();
         if (isDevelopment) {
-          console.log("[Auth] Session restored successfully");
         }
       } catch (err) {
         // Backend unavailable or not authenticated - still mark as ready
         // App will function in guest mode
         if (isDevelopment) {
-          console.log("[Auth] Could not restore session:", err);
         }
       } finally {
         status.value = "ready";
         _initializationPromise = null;
         if (isDevelopment) {
-          console.log("[Auth] Initialization complete, status: ready");
         }
       }
     })();
@@ -136,14 +130,12 @@ export const useAuthStore = defineStore("auth", () => {
     // If we already have user data, return it
     if (user.value) {
       if (isDevelopment) {
-        console.log("[Auth] ensureUser() - user already loaded");
       }
       return user.value;
     }
 
     // Otherwise, fetch from backend
     if (isDevelopment) {
-      console.log("[Auth] ensureUser() - fetching user from backend");
     }
 
     try {
@@ -151,7 +143,6 @@ export const useAuthStore = defineStore("auth", () => {
     } catch {
       // Connection error or 401 - user is not authenticated
       if (isDevelopment) {
-        console.log(
           "[Auth] ensureUser() - fetch failed, user not authenticated",
         );
       }
@@ -171,7 +162,6 @@ export const useAuthStore = defineStore("auth", () => {
       });
 
       if (isDevelopment) {
-        console.log("[Auth] /auth/me response:", response);
       }
 
       if (!response?.user) {
@@ -187,14 +177,11 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       if (isDevelopment) {
-        console.log("[Auth] User data set:", user.value);
-        console.log("[Auth] isAuthenticated:", isAuthenticated.value);
       }
 
       return response.user;
     } catch (err) {
       if (isDevelopment) {
-        console.log("[Auth] fetchUser error (user not logged in):", err);
       }
       // 401 means no valid session - clear state
       user.value = null;
@@ -212,7 +199,6 @@ export const useAuthStore = defineStore("auth", () => {
 
     try {
       if (isDevelopment) {
-        console.log("[Auth] login() called with:", credentials.username);
       }
 
       // /auth/login returns { csrfToken: string, user: User }
@@ -223,7 +209,6 @@ export const useAuthStore = defineStore("auth", () => {
       );
 
       if (isDevelopment) {
-        console.log("[Auth] login response:", { user: fetchedUser, csrfToken });
       }
 
       if (!fetchedUser) {
@@ -240,8 +225,6 @@ export const useAuthStore = defineStore("auth", () => {
       status.value = "ready";
 
       if (isDevelopment) {
-        console.log("[Auth] Login successful, user set:", user.value);
-        console.log("[Auth] isAuthenticated:", isAuthenticated.value);
       }
     } catch (err) {
       status.value = "error";
@@ -260,7 +243,6 @@ export const useAuthStore = defineStore("auth", () => {
 
     try {
       if (isDevelopment) {
-        console.log("[Auth] register() called with:", data.username);
       }
 
       // /auth/register returns { csrfToken: string, user: User }
@@ -271,7 +253,6 @@ export const useAuthStore = defineStore("auth", () => {
       );
 
       if (isDevelopment) {
-        console.log("[Auth] register response:", { user: fetchedUser, csrfToken });
       }
 
       if (!fetchedUser) {
@@ -288,8 +269,6 @@ export const useAuthStore = defineStore("auth", () => {
       status.value = "ready";
 
       if (isDevelopment) {
-        console.log("[Auth] Register successful, user set:", user.value);
-        console.log("[Auth] isAuthenticated:", isAuthenticated.value);
       }
     } catch (err) {
       status.value = "error";
@@ -307,13 +286,11 @@ export const useAuthStore = defineStore("auth", () => {
 
     try {
       if (isDevelopment) {
-        console.log("[Auth] logout() called");
       }
 
       await apiPost<void>("/auth/logout");
 
       if (isDevelopment) {
-        console.log("[Auth] Logout successful");
       }
     } catch (err) {
       console.error("[Auth] Logout error:", err);
@@ -328,7 +305,6 @@ export const useAuthStore = defineStore("auth", () => {
    */
   function clearUser(): void {
     if (isDevelopment) {
-      console.log("[Auth] clearUser() called");
     }
     user.value = null;
     permissions.value.clear();
@@ -370,11 +346,9 @@ export const useAuthStore = defineStore("auth", () => {
       });
       permissions.value = new Set(response || []);
       if (isDevelopment) {
-        console.log("[Auth] Permissions loaded:", permissions.value);
       }
     } catch (error) {
       if (isDevelopment) {
-        console.log("[Auth] Failed to load permissions:", error);
       }
       permissions.value.clear();
     }

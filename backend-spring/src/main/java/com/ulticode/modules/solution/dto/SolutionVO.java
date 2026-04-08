@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Data;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * Solution View Object for API responses.
@@ -88,11 +87,6 @@ public class SolutionVO {
      * Computed score (likes - dislikes)
      */
     private Long score;
-
-    /**
-     * Current user's vote status: 0=none, 1=upvote, -1=downvote
-     */
-    private Integer userVote;
 
     /**
      * Whether the solution is published

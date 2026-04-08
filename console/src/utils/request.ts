@@ -180,6 +180,7 @@ service.interceptors.request.use(
 
     // Log request in development
     if (isDevelopment) {
+      console.debug("[API Request]", {
         baseURL: config.baseURL,
         method: config.method?.toUpperCase(),
         url: config.url,
@@ -214,6 +215,7 @@ service.interceptors.response.use(
     // Log response in development
     if (isDevelopment && metadata) {
       const duration = Date.now() - metadata.startTime;
+      console.debug("[API Response]", {
         status: response.status,
         duration: `${duration}ms`,
         data: response.data,
@@ -293,6 +295,7 @@ service.interceptors.response.use(
         await new Promise((resolve) => setTimeout(resolve, delay));
 
         if (isDevelopment) {
+          console.debug("[API Retry]", {
             attempt: retryCount + 1,
             maxRetry,
             delay,

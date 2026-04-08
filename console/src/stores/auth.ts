@@ -143,8 +143,7 @@ export const useAuthStore = defineStore("auth", () => {
     } catch {
       // Connection error or 401 - user is not authenticated
       if (isDevelopment) {
-          "[Auth] ensureUser() - fetch failed, user not authenticated",
-        );
+        console.debug("[Auth] ensureUser() - fetch failed, user not authenticated");
       }
       return null;
     }

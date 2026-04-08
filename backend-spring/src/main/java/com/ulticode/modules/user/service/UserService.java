@@ -7,7 +7,12 @@ import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 /**
  * Service interface for user-related operations.
@@ -21,6 +26,20 @@ public interface UserService {
      * @return the user entity, or empty if not found
      */
     Optional<User> findById(String id);
+
+    /**
+     * Find multiple users by their IDs, returned as a map keyed by user ID.
+     *
+     * @param ids the user IDs
+     * @return map of user ID to User entity
+     */
+    default Map<String, User> findAllById(Collection<String> ids) {
+        return ids.stream()
+                .map(this::findById)
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .collect(Collectors.toMap(User::getId, Function.identity()));
+    }
 
     /**
      * Find a user by their username.

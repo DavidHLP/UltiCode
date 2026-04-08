@@ -3,6 +3,7 @@ import { computed } from "vue";
 import type { SolutionFeedItem } from "@/types/solution";
 import { PostActions } from "@/components/edge-operations";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
+import { formatRelativeTime } from "@/utils/date";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
@@ -19,12 +20,11 @@ const authorInitial = computed(
   () => props.item.author.name.charAt(0)?.toUpperCase() ?? "?",
 );
 
-const languageLabel = computed(
-  () =>
-    props.item.language ||
-    props.item.languageFilter ||
-    t("problem.submissions.language"),
-);
+const languageLabel = computed(() => {
+  const lang = props.item.language || props.item.languageFilter;
+  if (!lang) return t("problem.submissions.language");
+  return lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase();
+});
 
 const topicLabel = computed(
   () =>
@@ -32,6 +32,10 @@ const topicLabel = computed(
     props.item.topicTranslated ||
     props.item.topic ||
     t("forum.post.flair"),
+);
+
+const formattedDate = computed(() =>
+  formatRelativeTime(props.item.created_at),
 );
 
 const handleSelect = () => emit("select", props.item);
@@ -73,7 +77,7 @@ const voteCounts = computed(() =>
             props.item.author.role
           }}</span>
           <span class="text-xs text-muted-foreground"
-            >· {{ props.item.created_at }}</span
+            >· {{ formattedDate }}</span
           >
           <span
             v-if="props.item.flair"
@@ -105,6 +109,7 @@ const voteCounts = computed(() =>
     <section class="space-y-1">
       <div class="space-y-1">
         <p
+          v-if="props.item.highlight"
           class="text-[10px] font-medium uppercase tracking-wide text-muted-foreground"
         >
           {{ props.item.highlight }}
@@ -116,6 +121,22 @@ const voteCounts = computed(() =>
       <p class="line-clamp-2 text-xs text-muted-foreground">
         {{ props.item.summary }}
       </p>
+      <!-- Tags -->
+      <div v-if="props.item.tags && props.item.tags.length" class="flex flex-wrap gap-1">
+        <span
+          v-for="tag in props.item.tags.slice(0, 3)"
+          :key="tag"
+          class="rounded-full bg-muted/80 px-2 py-0.5 text-[10px] capitalize text-muted-foreground"
+        >
+          {{ tag }}
+        </span>
+        <span
+          v-if="props.item.tags.length > 3"
+          class="text-[10px] text-muted-foreground"
+        >
+          +{{ props.item.tags.length - 3 }}
+        </span>
+      </div>
     </section>
 
     <footer class="mt-2">

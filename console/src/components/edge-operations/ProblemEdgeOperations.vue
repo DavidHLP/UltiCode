@@ -80,8 +80,8 @@ watch(
         viewerInteraction.value = {
           reaction: props.problem.interactions.viewer?.reaction,
         };
-      } else {
-        // Otherwise fetch from API
+      } else if (useAuthStore().isAuthenticated) {
+        // Only fetch from API when authenticated
         loadInteractions(problemId);
       }
     }

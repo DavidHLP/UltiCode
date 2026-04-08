@@ -62,6 +62,21 @@ public class Solution {
     private Integer views;
 
     /**
+     * Number of likes (denormalized from edge_operations)
+     */
+    private Integer likes = 0;
+
+    /**
+     * Number of dislikes (denormalized from edge_operations)
+     */
+    private Integer dislikes = 0;
+
+    /**
+     * Number of comments (denormalized for performance)
+     */
+    private Integer commentCount = 0;
+
+    /**
      * Whether the solution is published
      */
     @TableField("is_published")

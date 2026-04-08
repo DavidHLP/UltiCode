@@ -33,6 +33,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import LanguageSwitcher from "@/components/LanguageSwitcher.vue";
+import { useLocale } from "@/composables/useLocale";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 import { toast } from "vue-sonner";
@@ -49,6 +50,7 @@ const { user, isAuthenticated } = defineProps<{
 }>();
 
 const { t } = useI18n();
+const { availableLocales, setLocale, isCurrentLocale } = useLocale();
 const { isMobile } = useSidebar();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -118,20 +120,30 @@ async function handleLogout() {
             :side-offset="4"
           >
             <DropdownMenuLabel class="p-0 font-normal">
-              <div class="px-1 py-1.5 text-left text-sm">
-                <span class="text-muted-foreground">{{ t("auth.guest.welcome") }}</span>
+              <div class="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                <Avatar class="h-8 w-8 rounded-none">
+                  <AvatarFallback class="rounded-none">
+                    <User class="size-4" />
+                  </AvatarFallback>
+                </Avatar>
+                <div class="grid flex-1 text-left text-sm leading-tight">
+                  <span class="truncate font-medium">{{ t("auth.guest.name") }}</span>
+                  <span class="truncate text-xs text-muted-foreground">
+                    {{ t("auth.guest.loginToContinue") }}
+                  </span>
+                </div>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuGroup class="space-y-1">
+            <DropdownMenuGroup>
               <RouterLink to="/login">
-                <DropdownMenuItem class="w-full justify-center">
+                <DropdownMenuItem class="cursor-pointer">
                   <LogIn class="mr-2 h-4 w-4" />
                   {{ t("auth.login.submit") }}
                 </DropdownMenuItem>
               </RouterLink>
               <RouterLink to="/register">
-                <DropdownMenuItem class="w-full justify-center">
+                <DropdownMenuItem class="cursor-pointer">
                   <UserPlus class="mr-2 h-4 w-4" />
                   {{ t("auth.register.submit") }}
                 </DropdownMenuItem>

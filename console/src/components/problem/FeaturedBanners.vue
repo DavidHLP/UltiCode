@@ -172,21 +172,21 @@ onMounted(async () => {
 
     <template v-else-if="displayBanners.length === 0">
       <div
-        class="col-span-full flex flex-col items-center justify-center py-24 rounded-none border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
+        class="col-span-full flex flex-col items-center justify-center py-12 rounded-none border-2 border-dashed border-muted/50 bg-muted/5 text-center px-6"
       >
         <div
-          class="flex h-16 w-16 items-center justify-center rounded-none bg-muted/50 mb-4"
+          class="flex h-12 w-12 items-center justify-center rounded-none bg-muted/50 mb-3"
         >
-          <Sparkles class="h-8 w-8 text-muted-foreground/50" />
+          <Sparkles class="h-6 w-6 text-muted-foreground/50" />
         </div>
-        <p class="text-xl font-bold text-foreground">
+        <p class="text-base font-bold text-foreground">
           {{
             hasError
               ? t("problem.banners.unableToLoad")
               : t("problem.banners.noBanners")
           }}
         </p>
-        <p class="text-sm text-muted-foreground mt-2 max-w-[300px]">
+        <p class="text-xs text-muted-foreground mt-1 max-w-[300px]">
           {{
             hasError
               ? t("problem.banners.tryAgain")

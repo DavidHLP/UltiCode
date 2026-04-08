@@ -32,13 +32,13 @@ function isTagSelected(tag: string, currentTags: string[]) {
 </script>
 
 <template>
-  <Collapsible class="w-full space-y-3">
-    <div class="flex flex-wrap items-center gap-2">
+  <Collapsible class="w-full space-y-2.5">
+    <div class="flex flex-wrap items-center gap-1.5">
       <Badge
         v-for="tag in popularTags"
         :key="tag"
         :variant="isTagSelected(tag, modelValue) ? 'default' : 'outline'"
-        class="cursor-pointer px-3 py-1 hover:bg-primary/80 hover:text-primary-foreground transition-colors rounded-none"
+        class="cursor-pointer px-2 py-0.5 text-[11px] hover:bg-primary/80 hover:text-primary-foreground transition-colors rounded-none"
         :class="{
           'bg-primary text-primary-foreground hover:bg-primary/90':
             isTagSelected(tag, modelValue),
@@ -51,20 +51,20 @@ function isTagSelected(tag: string, currentTags: string[]) {
         <Button
           variant="ghost"
           size="sm"
-          class="gap-1 h-7 text-xs text-muted-foreground hover:text-foreground rounded-none"
+          class="gap-1 h-6 text-[10px] text-muted-foreground hover:text-foreground rounded-none px-2"
         >
           {{ showMoreLabel || "Show more" }}
-          <ChevronDown class="h-3 w-3" />
+          <ChevronDown class="h-2.5 w-2.5" />
         </Button>
       </CollapsibleTrigger>
     </div>
     <CollapsibleContent class="animate-slide-down">
-      <div class="flex flex-wrap gap-2 pt-2">
+      <div class="flex flex-wrap gap-1.5 pt-1.5">
         <Badge
           v-for="tag in otherTags"
           :key="tag"
           variant="outline"
-          class="cursor-pointer px-2.5 py-0.5 text-[11px] font-normal border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors rounded-none"
+          class="cursor-pointer px-2 py-0.5 text-[10px] font-normal border-zinc-200 dark:border-zinc-800 text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors rounded-none"
           :class="{
             'bg-zinc-900 text-zinc-50 border-zinc-900 hover:bg-zinc-800 dark:bg-zinc-50 dark:text-zinc-900':
               isTagSelected(tag, modelValue),

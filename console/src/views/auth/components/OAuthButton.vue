@@ -3,8 +3,10 @@
  * OAuthButton - OAuth button supporting GitHub and Google
  */
 import type { HTMLAttributes } from "vue";
+import { computed } from "vue";
 import { cn } from "@/lib/utils";
 import { Github } from "lucide-vue-next";
+import { useI18n } from "vue-i18n";
 
 const props = withDefaults(
   defineProps<{
@@ -18,6 +20,14 @@ const props = withDefaults(
 
 defineOptions({
   name: "OAuthButton",
+});
+
+const { t } = useI18n();
+
+const oauthLabel = computed(() => {
+  return props.provider === "github"
+    ? t("auth.login.loginWithGithub")
+    : t("auth.login.loginWithGoogle");
 });
 
 function handleOAuth() {
@@ -62,7 +72,7 @@ function handleOAuth() {
       />
     </svg>
     <span class="oauth-button__text">
-      <slot>Continue with {{ provider === "github" ? "GitHub" : "Google" }}</slot>
+      <slot>{{ oauthLabel }}</slot>
     </span>
   </button>
 </template>

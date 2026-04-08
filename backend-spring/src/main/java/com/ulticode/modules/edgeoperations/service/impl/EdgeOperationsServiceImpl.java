@@ -6,6 +6,8 @@ import com.ulticode.modules.bookmark.mapper.BookmarkMapper;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationResponseVO;
 import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
+import com.ulticode.modules.solution.entity.Solution;
+import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.vote.dto.VoteDTO;
 import com.ulticode.modules.vote.dto.VoteResultVO;
 import com.ulticode.modules.vote.entity.EdgeOperation;
@@ -30,6 +32,7 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
     private final VoteService voteService;
     private final EdgeOperationMapper edgeOperationMapper;
     private final BookmarkMapper bookmarkMapper;
+    private final SolutionMapper solutionMapper;
 
     @Override
     @Transactional
@@ -87,6 +90,9 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
 
         VoteResultVO voteResult = voteService.vote(userId, voteDTO);
 
+        // Update denormalized vote counts on solution entity
+        updateSolutionVoteCounts(targetId, targetType);
+
         // Get favorites count
         long favorites = getFavoritesCount(targetId, targetType);
 
@@ -142,5 +148,33 @@ public class EdgeOperationsServiceImpl implements EdgeOperationsService {
         }
         // For other target types, return 0 (can be extended later)
         return 0;
+    }
+
+    /**
+     * Update denormalized vote counts on solution entity.
+     * Called after vote operations on SOLUTION target type.
+     */
+    private void updateSolutionVoteCounts(String solutionId, EdgeOperationTargetType targetType) {
+        if (targetType != EdgeOperationTargetType.SOLUTION) {
+            return;
+        }
+
+        Solution solution = solutionMapper.selectById(solutionId);
+        if (solution == null) {
+            log.warn("Solution not found for vote count update: {}", solutionId);
+            return;
+        }
+
+        // Count likes and dislikes from edge_operations
+        long likes = edgeOperationMapper.countByTargetAndOperation(
+                solutionId, EdgeOperationTargetType.SOLUTION.getValue(), EdgeOperationType.VOTE_UP.getValue());
+        long dislikes = edgeOperationMapper.countByTargetAndOperation(
+                solutionId, EdgeOperationTargetType.SOLUTION.getValue(), EdgeOperationType.VOTE_DOWN.getValue());
+
+        solution.setLikes((int) likes);
+        solution.setDislikes((int) dislikes);
+        solutionMapper.updateById(solution);
+
+        log.debug("Updated solution {} vote counts: likes={}, dislikes={}", solutionId, likes, dislikes);
     }
 }

@@ -363,11 +363,11 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
   <section class="flex flex-col gap-6">
     <slot name="header" />
 
-    <div class="space-y-4 terminal-card animate-stagger p-4 md:p-5 problem-explorer-controls">
+    <div class="space-y-4 terminal-card animate-stagger p-3 md:p-4 problem-explorer-controls">
       <CategoryFilter
         :categories="categoryOptions"
         v-model="selectedCategory"
-        class="pt-1"
+        class="pt-0.5"
       />
 
       <DataTableToolbar
@@ -509,7 +509,7 @@ const handleRemove = (e: Event, problem: EnrichedProblem) => {
         <template #actions>
           <Button
             variant="outline"
-            class="h-10 rounded-none font-data text-xs uppercase tracking-[0.12em] border-[var(--silver-200)]"
+            class="h-9 rounded-none font-data text-[10px] uppercase tracking-[0.12em] border-[var(--silver-200)]"
             @click="pickOne"
           >
             {{ t("problem.explorer.pickOne") }}

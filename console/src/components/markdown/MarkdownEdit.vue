@@ -22,6 +22,7 @@ import * as monaco from "monaco-editor";
 import loader from "@monaco-editor/loader";
 import { usePreferredDark } from "@vueuse/core";
 import { configureMonacoWorkers } from "@/utils/monaco-workers";
+import { registerSolarizedThemes } from "@/utils/monaco-solarized-theme";
 import { useI18n } from "vue-i18n";
 
 // 确保 Worker 配置生效
@@ -56,6 +57,8 @@ const initEditor = async () => {
 
   loader.config({ monaco });
   const monacoInstance = await loader.init();
+
+  registerSolarizedThemes(monacoInstance);
 
   const initialValue = props.modelValue || props.defaultValue || "";
 

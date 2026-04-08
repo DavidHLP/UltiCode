@@ -18,6 +18,9 @@ import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.solution.service.SolutionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
@@ -28,6 +31,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -191,6 +195,9 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setLanguage(createDTO.getLanguage());
         solution.setTags(createDTO.getTags() != null ? createDTO.getTags() : "[]");
         solution.setViews(0);
+        solution.setLikes(0);
+        solution.setDislikes(0);
+        solution.setCommentCount(0);
         solution.setIsPublished(true);
         solution.setPublishedAt(LocalDateTime.now());
         solution.setPublishedBy(userId);
@@ -297,6 +304,9 @@ public class SolutionServiceImpl implements SolutionService {
         SolutionVO vo = new SolutionVO();
         BeanUtils.copyProperties(solution, vo);
 
+        // Parse tags JSON to list
+        vo.setTagsList(parseTags(solution.getTags()));
+
         // Fetch author info
         User author = userMapper.selectById(solution.getUserId());
         if (author != null) {
@@ -319,6 +329,25 @@ public class SolutionServiceImpl implements SolutionService {
         vo.setScore(likes - dislikes);
 
         return vo;
+    }
+
+    /**
+     * Parse tags JSON string to list.
+     *
+     * @param tagsJson the JSON string of tags
+     * @return list of tags
+     */
+    private List<String> parseTags(String tagsJson) {
+        if (tagsJson == null || tagsJson.isBlank()) {
+            return Collections.emptyList();
+        }
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            return mapper.readValue(tagsJson, new TypeReference<List<String>>() {});
+        } catch (JsonProcessingException e) {
+            log.warn("Failed to parse tags JSON: {}", tagsJson, e);
+            return Collections.emptyList();
+        }
     }
 
     /**

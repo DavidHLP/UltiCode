@@ -386,7 +386,7 @@ onMounted(loadData);
                   >{{ t("forum.post.livePreview") }}</span
                 >
               </div>
-              <div class="flex-1 overflow-y-auto p-8 scrollbar-thin">
+              <div class="flex-1 overflow-y-auto p-8">
                 <div class="prose prose-sm dark:prose-invert max-w-none">
                   <h1 class="text-3xl font-black mb-6">
                     {{ title || t("forum.post.untitled") }}

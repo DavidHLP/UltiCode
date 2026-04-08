@@ -26,18 +26,18 @@ const emit = defineEmits<{
 
 <template>
   <div
-    class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between"
+    class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between"
   >
     <!-- Left: Search -->
     <div class="relative w-full max-w-md">
       <Search
-        class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"
+        class="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground"
       />
       <Input
         :model-value="modelValue"
         @update:model-value="(v) => emit('update:modelValue', v as string)"
         :placeholder="placeholder || 'Search...'"
-        class="pl-9 h-10 rounded-full"
+        class="pl-8.5 h-9 text-xs rounded-full"
       />
     </div>
 
@@ -47,14 +47,14 @@ const emit = defineEmits<{
         <DropdownMenuTrigger as-child>
           <Button
             variant="outline"
-            class="h-10 gap-2 border-dashed rounded-full"
+            class="h-9 gap-1.5 border-dashed rounded-full text-xs"
           >
-            <ListFilter class="h-4 w-4" />
+            <ListFilter class="h-3.5 w-3.5" />
             {{ filterLabel || "Filters" }}
             <Badge
               v-if="(activeFilterCount || 0) > 0"
               variant="secondary"
-              class="ml-1 h-5 px-1 text-[10px] rounded-full"
+              class="ml-0.5 h-4 px-1 text-[9px] rounded-full"
             >
               {{ activeFilterCount }}
             </Badge>
@@ -71,11 +71,11 @@ const emit = defineEmits<{
         v-if="showClear"
         variant="ghost"
         size="icon"
-        class="h-10 w-10 rounded-full"
+        class="h-9 w-9 rounded-full"
         @click="emit('clear')"
         :aria-label="clearLabel || 'Clear filters'"
       >
-        <X class="h-4 w-4" />
+        <X class="h-3.5 w-3.5" />
       </Button>
     </div>
   </div>

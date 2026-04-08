@@ -23,11 +23,10 @@
         y1="32"
         x2="16"
         :y2="height"
-        stroke="black"
+        :stroke="isActive ? 'var(--primary)' : 'var(--border)'"
         stroke-width="2"
         stroke-linecap="round"
         class="transition-colors duration-200"
-        :class="{ 'opacity-100': isActive, 'opacity-20': !isActive }"
       />
     </svg>
   </div>

@@ -15,7 +15,7 @@ import {
 } from "@/api/forum";
 import { ref, watch } from "vue";
 import { useRoute, RouterLink, useRouter } from "vue-router";
-import { ArrowLeft } from "lucide-vue-next";
+import { ArrowLeft, MessageSquare } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "vue-i18n";
@@ -202,7 +202,7 @@ function handleThreadSave(isSaved: boolean) {
         <ForumPostSkeleton />
         <div class="space-y-4 pl-4 border-l border-border/40">
           <div class="flex gap-3" v-for="i in 3" :key="i">
-            <Skeleton class="h-8 w-8 rounded-full" />
+            <Skeleton class="h-8 w-8 rounded-none" />
             <div class="space-y-2 flex-1">
               <Skeleton class="h-4 w-32" />
               <Skeleton class="h-4 w-full" />
@@ -212,10 +212,10 @@ function handleThreadSave(isSaved: boolean) {
       </div>
 
       <template v-else-if="thread">
-        <div class="relative flex items-start gap-0.25 sm:gap-0.5 xl:block">
+        <div class="flex items-start gap-0.25 sm:gap-0.5">
           <RouterLink
             to="/forum"
-            class="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-full bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mt-4 sm:mt-6 xl:absolute xl:right-full xl:mr-3"
+            class="shrink-0 inline-flex h-9 w-9 items-center justify-center rounded-none bg-muted/50 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground mt-4 sm:mt-6"
           >
             <ArrowLeft class="h-5 w-5" />
           </RouterLink>
@@ -259,7 +259,15 @@ function handleThreadSave(isSaved: boolean) {
               @vote="handleThreadVote"
               @save="handleThreadSave"
             />
-            <div class="px-4 sm:px-6 bg-muted/10 h-2"></div>
+            <div class="px-4 sm:px-6 py-4 border-t border-border/50">
+              <h2 class="text-sm font-bold tracking-tight flex items-center gap-2">
+                <MessageSquare class="h-4 w-4" />
+                {{ t("forum.comments.title") }}
+                <span class="text-muted-foreground font-normal">
+                  ({{ thread.comments?.length || 0 }})
+                </span>
+              </h2>
+            </div>
             <CommentThread
               :comments="thread.comments"
               :is-locked="thread.isLocked"

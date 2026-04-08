@@ -5,12 +5,11 @@
   >
     <path
       :d="path"
-      stroke="black"
+      :stroke="isActive ? 'var(--primary)' : 'var(--border)'"
       :stroke-width="2"
       fill="none"
       stroke-linecap="round"
       class="transition-colors duration-200"
-      :class="{ 'opacity-100': isActive, 'opacity-20': !isActive }"
     />
   </svg>
 </template>

@@ -60,6 +60,6 @@ shell
 .worktrees
 
 # Docker
-docker-compose*.yml
-Dockerfile*
+# Note: Do NOT exclude Dockerfile* or docker-compose*.yml here.
+# Multi-stage builds use project root as context and need these files visible.
 .dockerignore

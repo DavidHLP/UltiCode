@@ -1,0 +1,109 @@
+name: CD Deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+      services:
+        description: 'Services to deploy'
+        required: true
+        type: choice
+        options:
+          - all
+          - backend
+          - console
+          - management
+      skip_migrations:
+        description: 'Skip database migrations'
+        required: false
+        type: boolean
+        default: false
+      image_tag:
+        description: 'Image tag to deploy'
+        required: false
+        type: string
+        default: 'latest'
+
+concurrency:
+  group: deploy-${{ github.event.inputs.environment }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: ${{ github.event.inputs.image_tag || 'latest' }}
+
+jobs:
+  deploy:
+    name: Deploy to ${{ github.event.inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Run database migrations
+        if: ${{ !github.event.inputs.skip_migrations }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no \
+            ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }} \
+            "cd ${{ secrets.DEPLOY_PATH }} && \
+             docker run --rm --network host \
+               -e DB_HOST=${{ secrets.DB_HOST }} \
+               -e DB_PORT=${{ secrets.DB_PORT }} \
+               -e DB_USER=${{ secrets.DB_USER }} \
+               -e DB_PASSWORD=${{ secrets.DB_PASSWORD }} \
+               -e DB_NAME=${{ secrets.DB_NAME }} \
+               -v \$(pwd)/db-manager/migrations:/flyway/sql \
+               flyway/flyway migrate"
+
+      - name: Pull and deploy services
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
+
+          # Login to GHCR on remote
+          $SSH_CMD "echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin"
+
+          # Deploy via docker compose
+          $SSH_CMD "cd ${{ secrets.DEPLOY_PATH }} && \
+                    docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
+                    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans"
+
+      - name: Health check
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SERVICES=("backend:9001/actuator/health" "console:80" "management:80")
+
+          for svc in "${SERVICES[@]}"; do
+            NAME="${svc%%:*}"
+            ENDPOINT="${svc#*:}"
+            echo "Checking $NAME..."
+            for i in $(seq 1 15); do
+              if $SSH_CMD "curl -sf http://localhost:$ENDPOINT > /dev/null 2>&1"; then
+                echo "  $NAME is healthy"
+                break
+              fi
+              if [ "$i" -eq 15 ]; then
+                echo "  ERROR: $NAME failed health check"
+                exit 1
+              fi
+              sleep 5
+            done
+          done
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "::error::Deployment to ${{ github.event.inputs.environment }} failed. Check logs for details."

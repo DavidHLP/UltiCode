@@ -1,0 +1,21 @@
+graph TD
+    subgraph Cluster[推荐服务微服务集群]
+        Web[recommend-web :8080<br/>HTTP API / Dubbo Consumer]
+        
+        Nacos[Nacos Registry :8848]
+        
+        subgraph Providers[Provider多实例]
+            P1[recommend-provider :20881]
+            P2[recommend-provider :20882]
+        end
+        
+        subgraph Core[recommend-core]
+            Recall --> Rank --> ReRank
+        end
+        
+        Spark[recommend-spark 离线<br/>特征工程 / 训练 / Redis更新]
+    end
+
+    Web -. Dubbo .-> Providers
+    Providers --> Core
+    Providers -. RPC .-> Nacos

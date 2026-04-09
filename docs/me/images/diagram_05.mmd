@@ -1,0 +1,16 @@
+graph TD
+    Front[前端应用 Console] --> Gateway[API 网关 Gateway]
+    Gateway --> Back[后端 Spring Boot :9001]
+    
+    Back -. Dubbo RPC .-> RecSvc[推荐服务 recommend-provider :9004]
+    
+    subgraph RecEngine[RecommendEngine 核心引擎]
+        Recall[多路召回 Recall] --> Rank[规则排序 Rank]
+        Rank --> ReRank[重排序 ReRank]
+    end
+    
+    RecSvc --> RecEngine
+    
+    RecEngine --> Redis[(Redis 缓存)]
+    RecEngine --> MySQL[(MySQL 数据库)]
+    RecEngine --> Spark[Spark 离线计算]

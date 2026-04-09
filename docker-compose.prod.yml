@@ -1,0 +1,83 @@
+# Production Docker Compose override
+# Usage: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This file references pre-built images from GHCR instead of building locally.
+# Required environment variables (set in deployment environment):
+#   DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME
+#   REDIS_HOST, REDIS_PORT
+#   JWT_SECRET
+#   GHCR_REGISTRY (optional, defaults to ghcr.io/davidhlp/ulticode-public-next)
+
+services:
+  backend:
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend:${IMAGE_TAG:-latest}
+    container_name: ulticode-backend
+    restart: unless-stopped
+    ports:
+      - "9001:9001"
+    environment:
+      - DB_HOST=${DB_HOST:-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USER=${DB_USER:-ulticode}
+      - DB_PASSWORD=${DB_PASSWORD:-ulticode}
+      - DB_NAME=${DB_NAME:-ulticode}
+      - REDIS_HOST=${REDIS_HOST:-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - SERVER_PORT=9001
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9001/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
+  console:
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/console:${IMAGE_TAG:-latest}
+    container_name: ulticode-console
+    restart: unless-stopped
+    ports:
+      - "9002:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"
+
+  management:
+    image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/management:${IMAGE_TAG:-latest}
+    container_name: ulticode-management
+    restart: unless-stopped
+    ports:
+      - "9003:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "3"

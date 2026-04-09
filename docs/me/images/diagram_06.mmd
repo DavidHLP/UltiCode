@@ -1,0 +1,49 @@
+graph TD
+    subgraph Presentation[前端展示层 Presentation Layer]
+        Console[Console 用户端<br/>Vue 3 + Vite + Tailwind<br/>端口: 9002]
+        Management[Management 管理端<br/>Vue 3 + Vite + Tailwind<br/>端口: 9003]
+    end
+
+    subgraph Service[后端服务层 Service Layer]
+        MainApp[Spring Boot 3.5.12 主应用<br/>端口: 9001 HTTP]
+        
+        subgraph Modules[业务模块]
+            Auth[认证模块 auth]
+            User[用户模块 user]
+            Prob[题目模块 problem]
+            Subm[提交模块 submission]
+            Cont[竞赛模块 contest]
+            Rec[推荐模块 recommend]
+            Forum[论坛模块 forum]
+            Noti[通知模块 notification]
+            Subsc[订阅模块 subscription]
+            Mod[审核模块 moderation]
+            Ach[成就模块 achievement]
+            Admin[管理模块 admin]
+        end
+        
+        subgraph DubboServices[Dubbo3 RPC 调用]
+            RecProv[推荐服务 recommend-provider<br/>端口: 20881 Dubbo]
+            RecWeb[推荐API recommend-web<br/>端口: 8080 HTTP]
+        end
+    end
+
+    subgraph Data[数据存储层 Data Layer]
+        MySQL[(MySQL 8.0<br/>端口: 23306)]
+        Redis[(Redis 7.x<br/>端口: 26379)]
+        Nacos[Nacos 2.x<br/>端口: 28848]
+    end
+
+    subgraph Infra[基础设施层 Infrastructure Layer]
+        Sec[Spring Security: JWT/RBAC/CORS]
+        AOP[AOP切面: 限流/日志/监控]
+        GlobalExc[全局异常处理]
+        Swagger[Swagger/SpringDoc API文档]
+        WS[WebSocket: 实时通知]
+    end
+
+    Presentation --> Service
+    Service --> Data
+    Service --> Infra
+    MainApp --- Modules
+    MainApp -. Dubbo RPC .-> DubboServices

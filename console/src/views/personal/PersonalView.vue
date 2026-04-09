@@ -142,6 +142,7 @@ onMounted(async () => {
     ]);
 
     if (import.meta.env.DEV) {
+      console.log({
         userData,
         submissionsCount: userSubmissions.length,
         userStats,
@@ -153,6 +154,7 @@ onMounted(async () => {
     statsData.value = userStats;
 
     if (import.meta.env.DEV) {
+      console.log('User data loaded');
     }
 
     // Fetch skills data separately (non-blocking)

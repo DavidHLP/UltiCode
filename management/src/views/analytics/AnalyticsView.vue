@@ -393,6 +393,7 @@ const performanceEndpointBarItems = computed<BarListItem[]>(() => {
 async function loadReport() {
   // Debug: Log auth state before role check
   if (import.meta.env.DEV) {
+    console.log({
       isAuthenticated: authStore.isAuthenticated,
       userRole: authStore.userRole,
       user: authStore.user,

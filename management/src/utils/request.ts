@@ -81,12 +81,7 @@ const pendingRequests = new Map<string, AbortController>()
  * URLs that should never be deduplicated
  * These are auth-critical requests that must always go through
  */
-const NON_DEDUPLICABLE_URLS = new Set([
-  "/auth/me",
-  "/auth/login",
-  "/auth/logout",
-  "/auth/register",
-])
+const NON_DEDUPLICABLE_URLS = new Set(['/auth/me', '/auth/login', '/auth/logout', '/auth/register'])
 
 /**
  * Generate unique request ID
@@ -153,7 +148,7 @@ service.interceptors.request.use(
     config.headers['Accept-Language'] = activeLocale
 
     // Request deduplication - skip for auth-critical endpoints
-    const shouldDeduplicate = !NON_DEDUPLICABLE_URLS.has(config.url || "")
+    const shouldDeduplicate = !NON_DEDUPLICABLE_URLS.has(config.url || '')
     if (shouldDeduplicate) {
       const key = getRequestKey(config)
       if (pendingRequests.has(key)) {
@@ -169,6 +164,7 @@ service.interceptors.request.use(
 
     // Log request in development
     if (isDevelopment) {
+      console.log({
         method: config.method?.toUpperCase(),
         url: config.url,
         headers: config.headers,
@@ -193,7 +189,7 @@ service.interceptors.response.use(
     const metadata = config._metadata
 
     // Remove from pending requests (skip for non-deduplicated URLs)
-    if (config && !NON_DEDUPLICABLE_URLS.has(config.url || "")) {
+    if (config && !NON_DEDUPLICABLE_URLS.has(config.url || '')) {
       const key = getRequestKey(config)
       pendingRequests.delete(key)
     }
@@ -201,6 +197,7 @@ service.interceptors.response.use(
     // Log response in development
     if (isDevelopment && metadata) {
       const duration = Date.now() - metadata.startTime
+      console.log({
         status: response.status,
         duration: `${duration}ms`,
         data: response.data,
@@ -233,7 +230,7 @@ service.interceptors.response.use(
     const config = error.config as ConfigWithMetadata | undefined
 
     // Remove from pending requests (skip for non-deduplicated URLs)
-    if (config && !NON_DEDUPLICABLE_URLS.has(config.url || "")) {
+    if (config && !NON_DEDUPLICABLE_URLS.has(config.url || '')) {
       const key = getRequestKey(config)
       pendingRequests.delete(key)
     }
@@ -241,6 +238,7 @@ service.interceptors.response.use(
     // Handle request cancellation
     if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
       if (isDevelopment) {
+        console.log('Request canceled')
       }
       // Use -1 instead of 0 to avoid conflict with backend's success code
       return Promise.reject(new ApiError('Request canceled', -1))
@@ -269,6 +267,7 @@ service.interceptors.response.use(
         await new Promise((resolve) => setTimeout(resolve, delay))
 
         if (isDevelopment) {
+          console.log({
             attempt: retryCount + 1,
             maxRetry,
             delay,

@@ -159,3 +159,18 @@ oauth:
     token-url: https://oauth2.googleapis.com/token
     user-url: https://www.googleapis.com/oauth2/v2/userinfo
     scopes: email,profile
+
+# Dubbo Configuration (recommendation service consumer)
+dubbo:
+  application:
+    name: ulticode-backend
+    qos-enable: false
+  registry:
+    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:28848}
+    parameters:
+      namespace: public
+      group: DEFAULT_GROUP
+  consumer:
+    check: false
+    timeout: 5000
+    retries: 1

@@ -61,6 +61,21 @@ public class DailyRecommendation {
     private LocalDateTime generatedAt;
 
     /**
+     * When this recommendation expires
+     */
+    private LocalDateTime expiresAt;
+
+    /**
+     * Whether the user clicked on this recommendation
+     */
+    private Boolean isClicked;
+
+    /**
+     * Whether the user solved this recommended problem
+     */
+    private Boolean isSolved;
+
+    /**
      * Record creation timestamp
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)

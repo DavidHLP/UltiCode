@@ -39,19 +39,12 @@ public class RecommendServiceImpl implements RecommendService {
     private final RecommendEngine recommendEngine;
 
     /**
-     * Creates a new RecommendServiceImpl with the given recommend engine.
+     * Creates a new RecommendServiceImpl with Spring-injected recommend engine.
      *
-     * @param recommendEngine the recommendation engine to use
+     * @param recommendEngine the recommendation engine (configured by RecommendationEngineConfig)
      */
     public RecommendServiceImpl(RecommendEngine recommendEngine) {
         this.recommendEngine = recommendEngine;
-    }
-
-    /**
-     * Creates a new RecommendServiceImpl with default recommend engine.
-     */
-    public RecommendServiceImpl() {
-        this.recommendEngine = new RecommendEngine();
     }
 
     /**

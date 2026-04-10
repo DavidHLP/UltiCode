@@ -8,7 +8,7 @@ module.exports = {
       name: 'ulticode-9001',
       cwd: './backend-spring',
       script: 'start.cjs',
-      env: { NODE_ENV: 'development' },
+      env: { NODE_ENV: 'development', NACOS_PORT: '28848' },
     },
     // Frontend - Console (port 9002)
     {
@@ -31,14 +31,14 @@ module.exports = {
       name: 'ulticode-9004',
       cwd: './recommendation',
       script: 'start-provider.cjs',
-      env: { NODE_ENV: 'development' },
+      env: { NODE_ENV: 'development', NACOS_PORT: '28848' },
     },
     // Recommendation - Web (port 9005)
     {
       name: 'ulticode-9005',
       cwd: './recommendation',
       script: 'start-web.cjs',
-      env: { NODE_ENV: 'development' },
+      env: { NODE_ENV: 'development', NACOS_PORT: '28848' },
     },
   ],
 }

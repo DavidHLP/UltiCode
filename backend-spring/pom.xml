@@ -145,6 +145,25 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Dubbo3 (direct call to recommendation service) -->
+		<dependency>
+			<groupId>org.apache.dubbo</groupId>
+			<artifactId>dubbo-spring-boot-starter</artifactId>
+			<version>3.2.14</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.dubbo</groupId>
+			<artifactId>dubbo-registry-nacos</artifactId>
+			<version>3.2.14</version>
+		</dependency>
+
+		<!-- Recommendation API (Dubbo service interface) -->
+		<dependency>
+			<groupId>com.ulticode</groupId>
+			<artifactId>recommend-api</artifactId>
+			<version>1.0.0-SNAPSHOT</version>
+		</dependency>
 	</dependencies>
 
 	<build>

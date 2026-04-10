@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -62,4 +63,22 @@ public interface DailyRecommendationMapper extends BaseMapper<DailyRecommendatio
      */
     @Delete("DELETE FROM daily_recommendations WHERE generated_at < #{beforeDate}")
     int deleteOldRecommendations(@Param("beforeDate") LocalDateTime beforeDate);
+
+    /**
+     * Mark a recommendation as clicked by the user.
+     */
+    @Update("UPDATE daily_recommendations SET is_clicked = 1 WHERE id = #{id}")
+    void updateClicked(@Param("id") String id);
+
+    /**
+     * Mark a recommendation as solved by the user.
+     */
+    @Update("UPDATE daily_recommendations SET is_solved = 1 WHERE id = #{id}")
+    void updateSolved(@Param("id") String id);
+
+    /**
+     * Delete expired recommendations.
+     */
+    @Delete("DELETE FROM daily_recommendations WHERE expires_at < #{now}")
+    int deleteExpired(@Param("now") LocalDateTime now);
 }

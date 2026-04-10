@@ -5,8 +5,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * Configuration properties for the recommendation service.
- * Connects to an external recommendation microservice.
+ * Configuration properties for the recommendation module.
+ *
+ * <p>Dubbo RPC is used for service communication (configured via spring.dubbo.*).
+ * This class only manages the feature toggle.
  */
 @Data
 @Configuration
@@ -14,27 +16,7 @@ import org.springframework.context.annotation.Configuration;
 public class RecommendationConfig {
 
     /**
-     * Whether the recommendation service is enabled
+     * Whether the recommendation feature is enabled.
      */
     private boolean enabled = false;
-
-    /**
-     * URL of the recommendation microservice
-     */
-    private String serviceUrl;
-
-    /**
-     * Request timeout in milliseconds
-     */
-    private int timeout = 5000;
-
-    /**
-     * Whether Nacos service discovery is enabled
-     */
-    private boolean nacosEnabled = false;
-
-    /**
-     * Fallback URL if primary service is unavailable
-     */
-    private String fallbackUrl;
 }

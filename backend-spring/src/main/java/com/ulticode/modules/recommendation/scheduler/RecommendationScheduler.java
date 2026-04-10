@@ -1,6 +1,7 @@
 package com.ulticode.modules.recommendation.scheduler;
 
 import com.ulticode.modules.recommendation.config.RecommendationConfig;
+import com.ulticode.modules.recommendation.mapper.DailyRecommendationMapper;
 import com.ulticode.modules.recommendation.service.RecommendationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +21,7 @@ public class RecommendationScheduler {
 
     private final RecommendationService recommendationService;
     private final RecommendationConfig recommendationConfig;
+    private final DailyRecommendationMapper dailyRecommendationMapper;
 
     /**
      * Generate daily recommendations for all users.
@@ -55,22 +57,20 @@ public class RecommendationScheduler {
     }
 
     /**
-     * Clean up old recommendations.
-     * Runs every day at 2:00 AM to remove recommendations older than 30 days.
+     * Clean up expired recommendations.
+     * Runs every day at 3:00 AM to remove expired entries.
      */
-    @Scheduled(cron = "0 0 2 * * ?")
-    public void cleanupOldRecommendations() {
+    @Scheduled(cron = "0 0 3 * * ?")
+    public void cleanupExpiredRecommendations() {
         if (!recommendationConfig.isEnabled()) {
             return;
         }
 
-        log.info("Starting old recommendation cleanup job");
+        log.info("Starting expired recommendation cleanup job");
 
         try {
-            // In a real implementation, this would delete old recommendations
-            // dailyRecommendationMapper.deleteOldRecommendations(thirtyDaysAgo);
-
-            log.info("Old recommendation cleanup job completed successfully");
+            int deleted = dailyRecommendationMapper.deleteExpired(java.time.LocalDateTime.now());
+            log.info("Expired recommendation cleanup completed: {} entries removed", deleted);
         } catch (Exception e) {
             log.error("Error during recommendation cleanup: {}", e.getMessage(), e);
         }

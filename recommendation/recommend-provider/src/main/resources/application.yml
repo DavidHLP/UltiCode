@@ -5,9 +5,14 @@ spring:
     type: caffeine
     caffeine:
       spec: maximumSize=1000,expireAfterWrite=5m
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:26379}
+      timeout: 3000ms
 
 server:
-  port: 8081
+  port: ${SERVER_PORT:8081}
 
 dubbo:
   application:

@@ -41,7 +41,8 @@ cd console && pnpm run dev
 # Management Frontend - runs on port 9003
 cd management && pnpm run dev
 
-# Recommendation Service (optional)
+# Recommendation Service (optional) — MUST build first!
+cd recommendation && mvn install -DskipTests             # Required first time
 cd recommendation && mvn -pl recommend-provider spring-boot:run
 cd recommendation && mvn -pl recommend-web spring-boot:run
 ```
@@ -229,7 +230,7 @@ Frontend uses Vite env vars (`VITE_API_BASE_URL`).
 | Recommend-Web    | 9004  |
 | MySQL            | 23306 |
 | Redis            | 26379 |
-| Nacos            | 28848 |
+| Nacos            | 28848 | services need `NACOS_PORT=28848` env var |
 
 ## Debugging
 
@@ -285,6 +286,22 @@ Both `console/` and `management/` share a unified Solarized color palette using 
 | 9003 | ulticode-9003 | Vite (Management)                |
 | 9004 | ulticode-9004 | Spring Boot (Recommend-Provider) |
 | 9005 | ulticode-9005 | Spring Boot (Recommend-Web)      |
+
+#### Recommendation Services (9004/9005) — First-Time Setup
+
+```bash
+# Step 1: Build all internal modules (REQUIRED before first start)
+cd recommendation && mvn install -DskipTests
+
+# Step 2: Ensure Nacos container running, then start with correct env
+pm2 restart ulticode-9004 ulticode-9005 --update-env
+```
+
+**Troubleshooting:**
+- `DependencyResolutionException`: Run `cd recommendation && mvn install -DskipTests`
+- `LoggerFactory is not a Logback LoggerContext`: `slf4j-simple` conflict — removed from recommend-core
+- Nacos connection refused: Verify `NACOS_PORT=28848` in env and Nacos container running
+- Maven Central timeout: Ensure `~/.m2/settings.xml` has Aliyun mirror
 
 **Terminal Commands:**
 

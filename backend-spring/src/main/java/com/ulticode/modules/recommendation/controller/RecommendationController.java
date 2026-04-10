@@ -3,6 +3,7 @@ package com.ulticode.modules.recommendation.controller;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.recommendation.dto.GetRecommendationsDTO;
 import com.ulticode.modules.recommendation.dto.RecommendResponseVO;
+import com.ulticode.modules.recommendation.mapper.DailyRecommendationMapper;
 import com.ulticode.modules.recommendation.service.RecommendationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 public class RecommendationController {
 
     private final RecommendationService recommendationService;
+    private final DailyRecommendationMapper dailyRecommendationMapper;
 
     /**
      * Get personalized recommendations for the current user.
@@ -109,6 +111,26 @@ public class RecommendationController {
     public Result<RecommendResponseVO> healthCheck() {
         RecommendResponseVO response = recommendationService.healthCheck();
         return wrapResponse(response);
+    }
+
+    /**
+     * Track user clicking on a recommended problem.
+     */
+    @Operation(summary = "Track recommendation click", description = "Record that the user clicked on a recommended problem")
+    @PostMapping("/{recommendationId}/click")
+    public Result<Void> trackClick(@PathVariable String recommendationId) {
+        dailyRecommendationMapper.updateClicked(recommendationId);
+        return Result.success();
+    }
+
+    /**
+     * Track user solving a recommended problem.
+     */
+    @Operation(summary = "Track recommendation solve", description = "Record that the user solved a recommended problem")
+    @PostMapping("/{recommendationId}/solve")
+    public Result<Void> trackSolve(@PathVariable String recommendationId) {
+        dailyRecommendationMapper.updateSolved(recommendationId);
+        return Result.success();
     }
 
     /**

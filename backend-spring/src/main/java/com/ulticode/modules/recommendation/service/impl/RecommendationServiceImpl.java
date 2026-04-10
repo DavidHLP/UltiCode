@@ -1,86 +1,73 @@
 package com.ulticode.modules.recommendation.service.impl;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import com.ulticode.common.util.SecurityUtil;
-import com.ulticode.modules.recommendation.config.RecommendationConfig;
 import com.ulticode.modules.recommendation.dto.GetRecommendationsDTO;
 import com.ulticode.modules.recommendation.dto.RecommendResponseVO;
+import com.ulticode.modules.recommendation.dto.RecommendResponseVO.RecommendItem;
 import com.ulticode.modules.recommendation.service.RecommendationService;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
+import com.ulticode.recommend.api.RecommendService;
+import com.ulticode.recommend.api.dto.RecommendRequest;
+import com.ulticode.recommend.api.dto.RecommendResponse;
+import com.ulticode.recommend.api.dto.RecommendResult;
+import com.ulticode.recommend.api.enums.RecommendScenario;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.dubbo.config.annotation.DubboReference;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 
 /**
- * Implementation of RecommendationService.
- * Calls an external recommendation microservice via RestTemplate.
+ * Implementation of RecommendationService using Dubbo RPC.
+ * Directly calls the recommendation provider service via Dubbo,
+ * eliminating the HTTP → Dubbo protocol translation layer.
  */
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class RecommendationServiceImpl implements RecommendationService {
 
-    private final RecommendationConfig recommendationConfig;
-    private final RestTemplate restTemplate;
+    @DubboReference(check = false, timeout = 5000, retries = 1)
+    private RecommendService recommendService;
+
+    @Value("${recommendation.enabled:false}")
+    private boolean enabled;
 
     @Override
     public boolean isAvailable() {
-        if (!recommendationConfig.isEnabled()) {
-            return false;
-        }
-        String serviceUrl = recommendationConfig.getServiceUrl();
-        return serviceUrl != null && !serviceUrl.isBlank();
+        return enabled;
     }
 
     @Override
     public RecommendResponseVO getRecommendations(GetRecommendationsDTO dto) {
-        if (!isAvailable()) {
-            return createDisabledResponse();
-        }
+        if (!enabled) return createDisabledResponse();
 
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
             return RecommendResponseVO.error(40100, "User not authenticated");
         }
 
-        String scenario = dto.getScenario() != null ? dto.getScenario() : "DAILY";
-        String endpoint = buildEndpoint(scenario, dto.getProblemId());
-
-        return callRecommendationService(endpoint, buildRequestParams(userId, dto));
+        RecommendScenario scenario = parseScenario(dto.getScenario());
+        return callDubboService(userId, scenario, dto.getLimit(), dto.getProblemId());
     }
 
     @Override
     public RecommendResponseVO getDailyRecommendations(Integer limit) {
-        if (!isAvailable()) {
-            return createDisabledResponse();
-        }
+        if (!enabled) return createDisabledResponse();
 
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
             return RecommendResponseVO.error(40100, "User not authenticated");
         }
 
-        GetRecommendationsDTO dto = new GetRecommendationsDTO();
-        dto.setLimit(limit != null ? limit : 10);
-        dto.setScenario("DAILY");
-
-        return callRecommendationService("/recommend/daily", buildRequestParams(userId, dto));
+        return callDubboService(userId, RecommendScenario.DAILY, limit, null);
     }
 
     @Override
     public RecommendResponseVO getSimilarProblems(Long problemId, Integer limit) {
-        if (!isAvailable()) {
-            return createDisabledResponse();
-        }
+        if (!enabled) return createDisabledResponse();
 
         if (problemId == null) {
             return RecommendResponseVO.error(40000, "Problem ID is required");
@@ -91,55 +78,36 @@ public class RecommendationServiceImpl implements RecommendationService {
             return RecommendResponseVO.error(40100, "User not authenticated");
         }
 
-        GetRecommendationsDTO dto = new GetRecommendationsDTO();
-        dto.setLimit(limit != null ? limit : 10);
-        dto.setProblemId(problemId);
-
-        return callRecommendationService(
-                "/recommend/similar/" + problemId,
-                buildRequestParams(userId, dto)
-        );
+        return callDubboService(userId, RecommendScenario.SIMILAR, limit, problemId);
     }
 
     @Override
     public RecommendResponseVO getWeakPointRecommendations(Integer limit) {
-        if (!isAvailable()) {
-            return createDisabledResponse();
-        }
+        if (!enabled) return createDisabledResponse();
 
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
             return RecommendResponseVO.error(40100, "User not authenticated");
         }
 
-        GetRecommendationsDTO dto = new GetRecommendationsDTO();
-        dto.setLimit(limit != null ? limit : 10);
-        dto.setScenario("WEAK_POINT");
-
-        return callRecommendationService("/recommend/weak-points", buildRequestParams(userId, dto));
+        return callDubboService(userId, RecommendScenario.WEAK_POINT, limit, null);
     }
 
     @Override
     public RecommendResponseVO getChallengeRecommendations(Integer limit) {
-        if (!isAvailable()) {
-            return createDisabledResponse();
-        }
+        if (!enabled) return createDisabledResponse();
 
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
             return RecommendResponseVO.error(40100, "User not authenticated");
         }
 
-        GetRecommendationsDTO dto = new GetRecommendationsDTO();
-        dto.setLimit(limit != null ? limit : 10);
-        dto.setScenario("CHALLENGE");
-
-        return callRecommendationService("/recommend/challenge", buildRequestParams(userId, dto));
+        return callDubboService(userId, RecommendScenario.CHALLENGE, limit, null);
     }
 
     @Override
     public RecommendResponseVO healthCheck() {
-        if (!isAvailable()) {
+        if (!enabled) {
             RecommendResponseVO response = new RecommendResponseVO();
             response.setSuccess(true);
             response.setCode(200);
@@ -148,133 +116,83 @@ public class RecommendationServiceImpl implements RecommendationService {
         }
 
         try {
-            String healthUrl = recommendationConfig.getServiceUrl() + "/health";
-            ResponseEntity<Map> response = restTemplate.getForEntity(healthUrl, Map.class);
+            // Ping the Dubbo service with a minimal request
+            RecommendRequest request = RecommendRequest.builder()
+                    .userId("health-check")
+                    .scenario(RecommendScenario.DAILY)
+                    .size(1)
+                    .build();
+            RecommendResponse<RecommendResult> result = recommendService.recommend(request);
 
-            if (response.getStatusCode().is2xxSuccessful()) {
-                RecommendResponseVO result = new RecommendResponseVO();
-                result.setSuccess(true);
-                result.setCode(200);
-                result.setMessage("Recommendation service is healthy");
-                return result;
-            } else {
-                return RecommendResponseVO.error(50000, "Recommendation service unhealthy");
-            }
-        } catch (RestClientException e) {
+            RecommendResponseVO response = new RecommendResponseVO();
+            response.setSuccess(result.isSuccess());
+            response.setCode(result.getCode());
+            response.setMessage("Recommendation service is healthy");
+            return response;
+        } catch (Exception e) {
             log.warn("Recommendation service health check failed: {}", e.getMessage());
             return RecommendResponseVO.error(50000, "Recommendation service unavailable: " + e.getMessage());
         }
     }
 
     /**
-     * Build the endpoint URL based on scenario.
+     * Calls the Dubbo recommendation service and converts the result.
      */
-    private String buildEndpoint(String scenario, Long problemId) {
-        return switch (scenario.toUpperCase()) {
-            case "DAILY" -> "/recommend/daily";
-            case "SIMILAR" -> "/recommend/similar/" + problemId;
-            case "WEAK_POINT" -> "/recommend/weak-points";
-            case "CHALLENGE" -> "/recommend/challenge";
-            default -> "/recommend/daily";
-        };
-    }
-
-    /**
-     * Build request parameters map.
-     */
-    private Map<String, Object> buildRequestParams(String userId, GetRecommendationsDTO dto) {
-        Map<String, Object> params = new HashMap<>();
-        params.put("userId", userId);
-        params.put("limit", dto.getLimit());
-        if (dto.getProblemId() != null) {
-            params.put("problemId", dto.getProblemId());
-        }
-        return params;
-    }
-
-    /**
-     * Call the external recommendation service.
-     */
-    private RecommendResponseVO callRecommendationService(String endpoint, Map<String, Object> params) {
-        String serviceUrl = recommendationConfig.getServiceUrl();
-        String url = serviceUrl + endpoint;
-
+    private RecommendResponseVO callDubboService(String userId, RecommendScenario scenario,
+                                                  Integer limit, Long problemId) {
         try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/json");
+            RecommendRequest request = RecommendRequest.builder()
+                    .userId(userId)
+                    .scenario(scenario)
+                    .size(limit != null ? limit : 10)
+                    .sourceProblemId(problemId)
+                    .build();
 
-            // Add user context for the microservice
-            String userId = (String) params.get("userId");
-            if (userId != null) {
-                headers.set("X-User-Id", userId);
-            }
+            log.debug("Calling recommendation service via Dubbo: userId={}, scenario={}", userId, scenario);
+            RecommendResponse<RecommendResult> response = recommendService.recommend(request);
 
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(params, headers);
+            if (response.isSuccess() && response.getData() != null) {
+                List<RecommendItem> items = response.getData().getItems().stream()
+                        .map(this::convertApiItemToVoItem)
+                        .collect(Collectors.toList());
 
-            log.debug("Calling recommendation service: {}", url);
-            ResponseEntity<RecommendResponseVO> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    entity,
-                    RecommendResponseVO.class
-            );
-
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
+                return RecommendResponseVO.success(items);
             } else {
-                log.warn("Recommendation service returned non-success status: {}", response.getStatusCode());
-                return RecommendResponseVO.error(50000, "Recommendation service error");
+                log.warn("Recommendation service returned error: code={}, message={}",
+                        response.getCode(), response.getMessage());
+                return RecommendResponseVO.error(response.getCode(), response.getMessage());
             }
-        } catch (RestClientException e) {
-            log.error("Failed to call recommendation service: {}", e.getMessage());
-
-            // Try fallback URL if available
-            String fallbackUrl = recommendationConfig.getFallbackUrl();
-            if (fallbackUrl != null && !fallbackUrl.isBlank()) {
-                return tryFallbackService(fallbackUrl + endpoint, params);
-            }
-
+        } catch (Exception e) {
+            log.error("Dubbo recommendation service call failed: {}", e.getMessage());
             return RecommendResponseVO.error(50000, "Recommendation service unavailable: " + e.getMessage());
         }
     }
 
     /**
-     * Try the fallback recommendation service.
+     * Converts a Dubbo API RecommendItem to the VO's inner RecommendItem.
      */
-    private RecommendResponseVO tryFallbackService(String url, Map<String, Object> params) {
-        try {
-            log.info("Trying fallback recommendation service: {}", url);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Content-Type", "application/json");
-
-            String userId = (String) params.get("userId");
-            if (userId != null) {
-                headers.set("X-User-Id", userId);
-            }
-
-            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(params, headers);
-
-            ResponseEntity<RecommendResponseVO> response = restTemplate.exchange(
-                    url,
-                    HttpMethod.POST,
-                    entity,
-                    RecommendResponseVO.class
-            );
-
-            if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                return response.getBody();
-            }
-        } catch (RestClientException e) {
-            log.error("Fallback recommendation service also failed: {}", e.getMessage());
-        }
-
-        return RecommendResponseVO.error(50000, "All recommendation services unavailable");
+    private RecommendItem convertApiItemToVoItem(com.ulticode.recommend.api.dto.RecommendItem apiItem) {
+        RecommendItem voItem = new RecommendItem();
+        voItem.setProblemId(apiItem.getProblemId());
+        voItem.setTitle(apiItem.getTitle());
+        voItem.setSlug(apiItem.getSlug());
+        voItem.setDifficulty(apiItem.getDifficulty());
+        voItem.setScore((float) apiItem.getScore());
+        voItem.setReason(apiItem.getReason());
+        voItem.setTags(apiItem.getTags());
+        return voItem;
     }
 
-    /**
-     * Create a response for when the service is disabled.
-     */
+    private RecommendScenario parseScenario(String scenario) {
+        if (scenario == null) return RecommendScenario.DAILY;
+        return switch (scenario.toUpperCase()) {
+            case "SIMILAR" -> RecommendScenario.SIMILAR;
+            case "WEAK_POINT" -> RecommendScenario.WEAK_POINT;
+            case "CHALLENGE" -> RecommendScenario.CHALLENGE;
+            default -> RecommendScenario.DAILY;
+        };
+    }
+
     private RecommendResponseVO createDisabledResponse() {
         return RecommendResponseVO.success(new ArrayList<>());
     }

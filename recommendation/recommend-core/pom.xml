@@ -34,11 +34,7 @@
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-simple</artifactId>
-            <scope>runtime</scope>
-        </dependency>
+        <!-- slf4j-simple excluded: Spring Boot provides logback as SLF4J implementation -->
 
         <!-- Jackson -->
         <dependency>

@@ -1,80 +1,59 @@
 <!-- console/src/views/recommendations/components/ProblemCard.vue -->
 <script setup lang="ts">
 import { computed } from "vue";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { RouterLink } from "vue-router";
 import type { RecommendItem } from "@/types/recommendation";
 
 const props = defineProps<{
   item: RecommendItem;
 }>();
 
-const difficultyVariant = computed(() => {
+const difficultyBadgeClass = computed(() => {
   switch (props.item.difficulty.toLowerCase()) {
     case "easy":
-      return "default";
+      return "terminal-badge-success";
     case "medium":
-      return "secondary";
+      return "terminal-badge-warning";
     case "hard":
-      return "destructive";
+      return "terminal-badge-error";
     default:
-      return "outline";
-  }
-});
-
-const difficultyClass = computed(() => {
-  switch (props.item.difficulty.toLowerCase()) {
-    case "easy":
-      return "text-[var(--terminal-green)]";
-    case "medium":
-      return "text-[var(--terminal-amber)]";
-    case "hard":
-      return "text-[var(--terminal-red)]";
-    default:
-      return "";
+      return "terminal-badge-neutral";
   }
 });
 </script>
 
 <template>
-  <Card class="hover:border-primary/50 transition-colors">
-    <CardHeader class="pb-2">
-      <div class="flex items-start justify-between gap-4">
-        <div class="flex-1">
-          <CardTitle class="text-lg">
-            <RouterLink
-              :to="`/problems/${item.slug}`"
-              class="hover:text-primary transition-colors"
-            >
-              {{ item.title }}
-            </RouterLink>
-          </CardTitle>
-          <div class="mt-2 flex flex-wrap gap-2">
-            <Badge :variant="difficultyVariant" :class="difficultyClass">
-              {{ item.difficulty }}
-            </Badge>
-            <Badge
-              v-for="tag in item.tags.slice(0, 3)"
-              :key="tag"
-              variant="outline"
-            >
-              {{ tag }}
-            </Badge>
-            <Badge v-if="item.tags.length > 3" variant="outline">
-              +{{ item.tags.length - 3 }}
-            </Badge>
-          </div>
-        </div>
-        <div class="text-right shrink-0">
-          <span class="text-xs text-muted-foreground">推荐指数</span>
-          <div class="text-lg font-semibold text-primary">
-            {{ item.score.toFixed(2) }}
-          </div>
+  <article class="group precision-card terminal-card p-4 flex flex-col gap-3 cursor-pointer" tabindex="0" role="link" @click="$router.push(`/problems/${item.slug}`)" @keyup.enter.prevent="$router.push(`/problems/${item.slug}`)">
+    <header class="flex items-start justify-between gap-4">
+      <div class="flex-1 min-w-0">
+        <h3 class="text-base font-semibold text-foreground group-hover:text-primary transition-colors leading-tight truncate">
+          {{ item.title }}
+        </h3>
+        <div class="mt-2 flex flex-wrap items-center gap-2">
+          <span :class="['terminal-badge', difficultyBadgeClass]">
+            {{ item.difficulty }}
+          </span>
+          <span
+            v-for="tag in item.tags.slice(0, 3)"
+            :key="tag"
+            class="rounded-full bg-muted/80 px-2 py-0.5 text-[11px] text-muted-foreground capitalize"
+          >
+            {{ tag }}
+          </span>
+          <span v-if="item.tags.length > 3" class="text-[11px] text-muted-foreground">
+            +{{ item.tags.length - 3 }}
+          </span>
         </div>
       </div>
-    </CardHeader>
-    <CardContent>
-      <p class="text-sm text-muted-foreground">{{ item.reason }}</p>
-    </CardContent>
-  </Card>
+      <div class="text-right shrink-0 flex flex-col items-end gap-0.5">
+        <span class="terminal-label">推荐指数</span>
+        <span class="terminal-kv-value text-lg text-primary">
+          {{ item.score.toFixed(2) }}
+        </span>
+      </div>
+    </header>
+    <p v-if="item.reason" class="text-xs text-muted-foreground leading-relaxed line-clamp-2">
+      {{ item.reason }}
+    </p>
+  </article>
 </template>

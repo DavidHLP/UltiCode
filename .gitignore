@@ -116,3 +116,6 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 htmlcov/
 .noserc
 .fluentd.conf
+
+.playwright-mcp
+docs

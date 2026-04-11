@@ -14,19 +14,21 @@ import org.springframework.stereotype.Component;
 /**
  * Reads pre-computed recommendation data from Redis.
  *
- * <p>Redis keys (written by Spark offline jobs):
+ * <p>Redis keys (written by backend-spring sync and Spark offline jobs):
  * <ul>
- *   <li>{@code rec:problems} — available problems list (JSON)</li>
- *   <li>{@code rec:user-matrix} — user→solvedProblems mapping (JSON)</li>
- *   <li>{@code rec:similarity:{problemId}} — similar problems for a given problem</li>
- *   <li>{@code rec:feature:user:{userId}} — user feature profile (JSON)</li>
- *   <li>{@code rec:feature:problem:{problemId}} — problem features (JSON)</li>
+ *   <li>{@code recommend:available:problems} — available problems list (JSON)</li>
+ *   <li>{@code recommend:user:problem:matrix} — user→solvedProblems mapping (JSON)</li>
+ *   <li>{@code recommend:similar:problems:{problemId}} — similar problems for a given problem</li>
  * </ul>
  */
 @Component
 public class RedisRecommendationStore {
 
     private static final Logger log = LoggerFactory.getLogger(RedisRecommendationStore.class);
+
+    private static final String AVAILABLE_PROBLEMS_KEY = "recommend:available:problems";
+    private static final String USER_PROBLEM_MATRIX_KEY = "recommend:user:problem:matrix";
+    private static final String SIMILAR_PROBLEMS_PREFIX = "recommend:similar:problems:";
 
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
@@ -41,7 +43,7 @@ public class RedisRecommendationStore {
      * Falls back to empty list if Redis has no data.
      */
     public List<RecommendItem> loadAvailableProblems() {
-        return loadList("rec:problems", new TypeReference<List<RecommendItem>>() {});
+        return loadList(AVAILABLE_PROBLEMS_KEY, new TypeReference<List<RecommendItem>>() {});
     }
 
     /**
@@ -49,14 +51,14 @@ public class RedisRecommendationStore {
      * Falls back to empty map if Redis has no data.
      */
     public Map<String, Set<Long>> loadUserProblemMatrix() {
-        return loadMap("rec:user-matrix", new TypeReference<Map<String, Set<Long>>>() {});
+        return loadMap(USER_PROBLEM_MATRIX_KEY, new TypeReference<Map<String, Set<Long>>>() {});
     }
 
     /**
      * Load similar problem IDs for a given problem.
      */
     public List<Long> loadSimilarProblemIds(long problemId) {
-        return loadList("rec:similarity:" + problemId, new TypeReference<List<Long>>() {});
+        return loadList(SIMILAR_PROBLEMS_PREFIX + problemId, new TypeReference<List<Long>>() {});
     }
 
     // ==================== Generic Helpers ====================

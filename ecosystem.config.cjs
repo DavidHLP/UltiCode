@@ -8,7 +8,7 @@ module.exports = {
       name: 'ulticode-9001',
       cwd: './backend-spring',
       script: 'start.cjs',
-      env: { NODE_ENV: 'development', NACOS_PORT: '28848' },
+      env: { NODE_ENV: 'development', NACOS_PORT: '28848', RECOMMENDATION_ENABLED: 'true' },
     },
     // Frontend - Console (port 9002)
     {

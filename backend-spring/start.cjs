@@ -4,7 +4,7 @@ const { resolve } = require('path');
 // Try common Maven wrapper paths
 const mvnw = resolve(__dirname, 'mvnw');
 
-const proc = spawn(mvnw, ['spring-boot:run', `-Dspring-boot.run.jvmArguments=-XX:-UseContainerSupport`], {
+const proc = spawn(mvnw, ['spring-boot:run', '-Dmaven.test.skip=true', `-Dspring-boot.run.jvmArguments=-XX:-UseContainerSupport`], {
   cwd: __dirname,
   stdio: 'inherit',
 });

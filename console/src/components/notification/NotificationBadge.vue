@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
 import { Bell } from "lucide-vue-next";
+import { useI18n } from "vue-i18n";
 import { useNotificationStore } from "@/stores/notification";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ const props = defineProps<{
   class?: string;
 }>();
 
+const { t } = useI18n();
 const notificationStore = useNotificationStore();
 const router = useRouter();
 
@@ -38,7 +40,7 @@ function goToNotifications() {
     <PopoverTrigger as-child>
       <Button variant="ghost" size="icon" :class="cn('relative', props.class)">
         <Bell class="h-5 w-5" />
-        <span class="sr-only">Notifications</span>
+        <span class="sr-only">{{ t("notification.toggleNotifications") }}</span>
         <Badge
           v-if="hasUnread"
           variant="destructive"
@@ -50,7 +52,7 @@ function goToNotifications() {
     </PopoverTrigger>
     <PopoverContent align="end" class="w-80 p-0">
       <div class="flex items-center justify-between border-b px-4 py-3">
-        <h4 class="text-sm font-medium">Notifications</h4>
+        <h4 class="text-sm font-medium">{{ t("notification.title") }}</h4>
         <ConnectionStatus />
       </div>
       <div class="max-h-80 overflow-y-auto p-2">
@@ -58,7 +60,7 @@ function goToNotifications() {
           v-if="notificationStore.notifications.length === 0"
           class="py-8 text-center text-sm text-muted-foreground"
         >
-          No notifications
+          {{ t("notification.noNotifications") }}
         </div>
         <div v-else class="space-y-1">
           <RouterLink
@@ -93,7 +95,7 @@ function goToNotifications() {
           class="w-full"
           @click="goToNotifications"
         >
-          View all notifications
+          {{ t("notification.viewAll") }}
         </Button>
       </div>
     </PopoverContent>

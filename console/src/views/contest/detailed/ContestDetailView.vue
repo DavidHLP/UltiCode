@@ -319,7 +319,7 @@ function getCountryFlag(countryCode: string): string {
         <Button
           variant="ghost"
           size="sm"
-          class="gap-2 rounded-full"
+          class="gap-2"
           @click="$router.push({ name: 'contest-list' })"
         >
           <ArrowLeft class="h-4 w-4" />
@@ -1029,7 +1029,7 @@ function getCountryFlag(countryCode: string): string {
       </p>
       <Button
         variant="outline"
-        class="mt-8 rounded-full px-8 h-11 font-bold"
+        class="mt-8 px-8 h-11 font-bold"
         @click="$router.push({ name: 'contest-list' })"
       >
         {{ t("contest.detail.notFound.return") }}

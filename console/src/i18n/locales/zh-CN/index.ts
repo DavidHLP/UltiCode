@@ -13,6 +13,7 @@ import solution from "./solution";
 import shortcuts from "./shortcuts";
 import achievement from "./achievement";
 import recommendation from "./recommendation";
+import notification from "./notification";
 
 export default {
   common,
@@ -30,4 +31,5 @@ export default {
   shortcuts,
   achievement,
   recommendation,
+  notification,
 } as const;

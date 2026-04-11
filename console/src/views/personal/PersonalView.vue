@@ -59,6 +59,7 @@ const currentUserId = computed(() => authStore.user?.id);
 
 // Debug: log when component is created
 if (import.meta.env.DEV) {
+  console.log(
     "[PersonalView] Component created, authStore.user:",
     authStore.user,
   );
@@ -177,6 +178,7 @@ onMounted(async () => {
   } finally {
     loading.value = false;
     if (import.meta.env.DEV) {
+      console.log(
         "[PersonalView] onMounted completed, loading:",
         loading.value,
         "user:",

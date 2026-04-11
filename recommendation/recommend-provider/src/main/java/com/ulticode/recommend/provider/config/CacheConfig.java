@@ -74,12 +74,4 @@ public class CacheConfig {
     public ObjectMapper objectMapper() {
         return new ObjectMapper();
     }
-
-    @Bean
-    public Caffeine<Object, Object> caffeineConfig() {
-        return Caffeine.newBuilder()
-                .maximumSize(MAX_CACHE_SIZE)
-                .expireAfterWrite(CACHE_TTL_MINUTES, TimeUnit.MINUTES)
-                .recordStats();
-    }
 }

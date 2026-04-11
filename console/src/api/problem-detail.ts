@@ -41,6 +41,15 @@ interface BackendProblemResponse {
   [key: string]: unknown;
 }
 
+interface BackendLanguageOption {
+  id?: unknown;
+  label?: unknown;
+  value?: unknown;
+  style?: unknown;
+  starterCode?: unknown;
+  starter_code?: unknown;
+}
+
 export async function fetchProblemDetailById(
   id: number | string,
   userId?: string,
@@ -80,7 +89,7 @@ const mapLanguages = (raw: unknown): ProblemLanguageOption[] => {
   if (!Array.isArray(raw)) return [];
   const mapped = raw
     .map((lang) => {
-      const l = lang as Record<string, unknown>;
+      const l = lang as BackendLanguageOption;
       const value = typeof l.value === "string" ? l.value : "";
       return {
         id: l.id as ProblemLanguageOption["id"],

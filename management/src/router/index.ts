@@ -192,10 +192,7 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/comments/CommentsListView.vue'),
         meta: {
           titleKey: 'nav.comments',
-          permission: [
-            PERM.MODERATE_FORUM_COMMENT,
-            PERM.MODERATE_SOLUTION_COMMENT,
-          ],
+          permission: [PERM.MODERATE_FORUM_COMMENT, PERM.MODERATE_SOLUTION_COMMENT],
         },
       },
 
@@ -326,9 +323,21 @@ const router = createRouter({
   routes,
 })
 
+// Navigation abort detection: each new navigation increments the counter,
+// allowing async guards to bail out when superseded.
+let pendingNavigationId = 0
+
+// Token freshness: track last successful auth validation to detect stale sessions.
+// Sessions older than this threshold are re-validated against /auth/me before
+// allowing access to protected routes.
+let lastValidatedAt = 0
+const STALE_SESSION_MS = 5 * 60 * 1000 // 5 minutes
+
 // Navigation guard for authentication and permissions
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
+  const navId = ++pendingNavigationId
+  const isStale = () => navId !== pendingNavigationId
 
   // Auth is bootstrapped in main.ts before router installation
   // isInitialized being true means auth state is known
@@ -336,11 +345,28 @@ router.beforeEach(async (to, from, next) => {
   // Safe default: only routes explicitly marked with requiresAuth: true need authentication
   const requiresAuth = to.matched.some((record) => record.meta.requiresAuth === true)
 
-  if (requiresAuth && !authStore.isAuthenticated) {
-    return next({
-      name: 'login',
-      query: { redirect: to.fullPath },
-    })
+  if (requiresAuth) {
+    // Re-validate stale sessions — token may have expired while user was idle.
+    // isAuthenticated is a cached computed (just checks !!user.value), so we
+    // must hit the backend when the session is potentially expired.
+    const isSessionExpired =
+      authStore.isAuthenticated &&
+      lastValidatedAt > 0 &&
+      Date.now() - lastValidatedAt > STALE_SESSION_MS
+
+    if (isSessionExpired) {
+      await authStore.fetchUser()
+      if (isStale()) return
+    }
+
+    if (!authStore.isAuthenticated) {
+      return next({
+        name: 'login',
+        query: { redirect: to.fullPath },
+      })
+    }
+
+    lastValidatedAt = Date.now()
   }
 
   // Check permissions if route requires them
@@ -354,6 +380,7 @@ router.beforeEach(async (to, from, next) => {
     )
 
     if (!hasAnyPermission) {
+      if (isStale()) return
       // Show toast notification for permission denial
       const { toast } = await import('vue-sonner')
       toast.error('You do not have permission to access this page', {
@@ -368,6 +395,7 @@ router.beforeEach(async (to, from, next) => {
   if (to.meta.roles && authStore.isAuthenticated) {
     const roles = to.meta.roles as string[]
     if (!authStore.hasAnyRole(roles)) {
+      if (isStale()) return
       // Show toast notification for role denial
       const { toast } = await import('vue-sonner')
       toast.error('You do not have the required role to access this page', {

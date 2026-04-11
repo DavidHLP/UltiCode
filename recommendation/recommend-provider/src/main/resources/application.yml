@@ -12,7 +12,7 @@ spring:
       timeout: 3000ms
 
 server:
-  port: ${SERVER_PORT:8081}
+  port: ${SERVER_PORT:9004}
 
 dubbo:
   application:
@@ -22,8 +22,8 @@ dubbo:
       auto: false
   registry:
     address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:8848}
-    username: ${NACOS_USERNAME:nacos}
-    password: ${NACOS_PASSWORD:nacos}
+    username: ${NACOS_USERNAME:?NACOS_USERNAME is required}
+    password: ${NACOS_PASSWORD:?NACOS_PASSWORD is required}
     check: false
     use-as-config-center: false
     use-as-metadata-center: false

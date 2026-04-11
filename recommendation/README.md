@@ -305,7 +305,7 @@ spring:
       spec: maximumSize=1000,expireAfterWrite=5m
 
 server:
-  port: 8081
+  port: 9004
 
 dubbo:
   application:
@@ -327,7 +327,7 @@ spring:
     name: recommend-web
 
 server:
-  port: 8080
+  port: 9005
 
 dubbo:
   application:

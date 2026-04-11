@@ -2,13 +2,17 @@
 /**
  * LoginView - Login page with AuthGrid + AuthCard
  */
+import { computed } from "vue";
 import { Terminal } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
+import { sanitizeHtml } from "@/utils/sanitize";
 import LoginForm from "@/views/auth/components/LoginForm.vue";
 import AuthCard from "@/views/auth/components/AuthCard.vue";
 import AuthGrid from "@/views/auth/components/AuthGrid.vue";
 
 const { t } = useI18n();
+
+const codingConsoleHtml = computed(() => sanitizeHtml(t('auth.layout.codingConsole')));
 
 defineOptions({
   name: "LoginView",
@@ -51,7 +55,7 @@ defineOptions({
     <AuthGrid>
       <div class="auth-pattern-text">
         <div class="auth-pattern-text__prefix">$</div>
-        <h2 class="auth-pattern-text__title" v-html="t('auth.layout.codingConsole')"></h2>
+        <h2 class="auth-pattern-text__title" v-html="codingConsoleHtml"></h2>
         <p class="auth-pattern-text__subtitle">{{ t('auth.layout.codingConsoleSubtitle') }}</p>
         <div class="auth-pattern-text__cursor"></div>
       </div>

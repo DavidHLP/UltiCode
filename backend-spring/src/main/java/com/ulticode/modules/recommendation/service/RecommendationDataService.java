@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.modules.contest.entity.GlobalRanking;
+import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemTag;
 import com.ulticode.modules.problem.entity.ProblemTagRelation;
@@ -18,6 +20,8 @@ import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.user.entity.User;
+import com.ulticode.modules.user.mapper.UserMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,11 +41,14 @@ public class RecommendationDataService {
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final ProblemTagMapper problemTagMapper;
     private final SubmissionMapper submissionMapper;
+    private final GlobalRankingMapper globalRankingMapper;
+    private final UserMapper userMapper;
     private final StringRedisTemplate redisTemplate;
     private final ObjectMapper objectMapper;
 
     private static final String AVAILABLE_PROBLEMS_KEY = "recommend:available:problems";
     private static final String USER_PROBLEM_MATRIX_KEY = "recommend:user:problem:matrix";
+    private static final String USER_PROFILES_KEY = "recommend:user:profiles";
     private static final String SIMILAR_PROBLEMS_PREFIX = "recommend:similar:problems:";
 
     /**
@@ -120,6 +127,40 @@ public class RecommendationDataService {
     }
 
     /**
+     * Sync user profiles (rating, maxRating, preferredLanguage) from global_rankings + users to Redis.
+     *
+     * @return number of user profiles synced
+     */
+    public int syncUserProfiles() {
+        List<GlobalRanking> rankings = globalRankingMapper.selectList(null);
+
+        Map<String, Map<String, Object>> profiles = new HashMap<>();
+        for (GlobalRanking ranking : rankings) {
+            Map<String, Object> profile = new HashMap<>();
+            profile.put("rating", ranking.getRating() != null ? ranking.getRating() : 1500);
+            profile.put("maxRating", ranking.getMaxRating() != null ? ranking.getMaxRating() : 1500);
+
+            // Load preferred language from users table
+            User user = userMapper.selectById(ranking.getUserId());
+            if (user != null && user.getPreferredLanguage() != null) {
+                profile.put("preferredLanguage", user.getPreferredLanguage());
+            }
+
+            profiles.put(ranking.getUserId(), profile);
+        }
+
+        try {
+            String json = objectMapper.writeValueAsString(profiles);
+            redisTemplate.opsForValue().set(USER_PROFILES_KEY, json);
+            log.info("Synced user profiles for {} users to Redis", profiles.size());
+            return profiles.size();
+        } catch (Exception e) {
+            log.error("Failed to sync user profiles to Redis", e);
+            throw new RuntimeException("Redis sync failed for user profiles", e);
+        }
+    }
+
+    /**
      * Compute similar problems by tag overlap (Jaccard similarity) and sync to Redis.
      *
      * @return number of problems with similar entries
@@ -190,6 +231,7 @@ public class RecommendationDataService {
         Map<String, Object> stats = new HashMap<>();
         stats.put("problemsSynced", syncAvailableProblems());
         stats.put("userMatrixEntries", syncUserProblemMatrix());
+        stats.put("userProfilesSynced", syncUserProfiles());
         stats.put("similarProblemEntries", syncSimilarProblems());
         return stats;
     }
@@ -200,6 +242,7 @@ public class RecommendationDataService {
     public void clearAll() {
         redisTemplate.delete(AVAILABLE_PROBLEMS_KEY);
         redisTemplate.delete(USER_PROBLEM_MATRIX_KEY);
+        redisTemplate.delete(USER_PROFILES_KEY);
 
         Set<String> similarKeys = redisTemplate.keys(SIMILAR_PROBLEMS_PREFIX + "*");
         if (similarKeys != null && !similarKeys.isEmpty()) {

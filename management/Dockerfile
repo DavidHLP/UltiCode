@@ -22,17 +22,30 @@ RUN pnpm build
 # Production stage - nginx
 FROM nginx:alpine AS production
 
-# Copy nginx config
-COPY management/nginx.conf /etc/nginx/conf.d/default.conf
+# Create non-root user with specific UID for consistency
+RUN addgroup -g 1001 -S appgroup && \
+    adduser -S appuser -u 1001 -G appgroup
 
-# Copy built application from builder
-COPY --from=builder /app/management/dist /usr/share/nginx/html
+# Copy nginx config (listen on 8080 since non-root cannot bind port 80)
+COPY management/nginx.conf /etc/nginx/templates/default.conf.template
+RUN sed -i 's/listen 80;/listen 8080;/' /etc/nginx/templates/default.conf.template
+ENV API_ORIGIN="http://localhost:9001"
+
+# Grant write access to nginx runtime directories
+RUN chown -R appuser:appgroup /var/cache/nginx /var/run /var/log/nginx && \
+    touch /var/run/nginx.pid && \
+    chown appuser:appgroup /var/run/nginx.pid
+
+# Copy built application with proper ownership
+COPY --from=builder --chown=appuser:appgroup /app/management/dist /usr/share/nginx/html
 
 # Expose port
-EXPOSE 80
+EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
+    CMD wget --no-verbose --tries=1 --spider http://localhost:8080/ || exit 1
+
+USER appuser
 
 CMD ["nginx", "-g", "daemon off;"]

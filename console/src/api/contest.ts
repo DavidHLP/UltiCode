@@ -16,8 +16,87 @@ import type {
   ContestAnnouncement,
   RankingEntry,
   ContestProblem,
+  ContestScoringMode,
+  ContestTieBreaker,
 } from "@/types/contest";
 import type { SubmissionRecord } from "@/types/submission";
+
+// ============================================================================
+// Backend Response Interfaces (snake_case from Spring Boot)
+// ============================================================================
+
+interface BackendContestListItem {
+  start_time?: unknown;
+  startTime?: unknown;
+  duration_minutes?: unknown;
+  durationMinutes?: unknown;
+  penalty_per_wrong?: unknown;
+  penaltyPerWrong?: unknown;
+  scoring_mode?: unknown;
+  scoringMode?: unknown;
+  tie_breaker?: unknown;
+  tieBreaker?: unknown;
+  end_time?: unknown;
+  endTime?: unknown;
+  is_rated?: unknown;
+  isRated?: unknown;
+  contest_type?: unknown;
+  type?: unknown;
+  status?: unknown;
+  registered_count?: unknown;
+  registeredCount?: unknown;
+  participant_count?: unknown;
+  participantCount?: unknown;
+  can_register?: unknown;
+  canRegister?: unknown;
+  can_start?: unknown;
+  canStart?: unknown;
+  [key: string]: unknown;
+}
+
+interface BackendContestProblem {
+  penalty_per_wrong?: unknown;
+  penaltyPerWrong?: unknown;
+  problem_index?: unknown;
+  problemIndex?: unknown;
+  problem_id?: unknown;
+  problemId?: unknown;
+  solved_count?: unknown;
+  solvedCount?: unknown;
+  submission_count?: unknown;
+  submissionCount?: unknown;
+  acceptance_rate?: unknown;
+  acceptanceRate?: unknown;
+  problems?: unknown[];
+  [key: string]: unknown;
+}
+
+interface BackendGlobalRankingEntry {
+  rank?: unknown;
+  global_rank?: unknown;
+  user_id?: unknown;
+  userId?: unknown;
+  id?: unknown;
+  username?: unknown;
+  avatar?: unknown;
+  country?: unknown;
+  rating?: unknown;
+  max_rating?: unknown;
+  maxRating?: unknown;
+  rating_title?: unknown;
+  ratingTitle?: unknown;
+  max_rating_title?: unknown;
+  maxRatingTitle?: unknown;
+  contests_attended?: unknown;
+  contestsAttended?: unknown;
+  badge?: unknown;
+}
+
+interface BackendContestProblemForContest {
+  problem_id?: unknown;
+  problemId?: unknown;
+  [key: string]: unknown;
+}
 
 function toNumber(value: unknown): number | undefined {
   if (typeof value === "number" && Number.isFinite(value)) return value;
@@ -30,7 +109,7 @@ function toNumber(value: unknown): number | undefined {
 
 function mapContestListItem(data: unknown): ContestListItem {
   if (!data || typeof data !== "object") return data as ContestListItem;
-  const contest = data as Record<string, unknown>;
+  const contest = data as BackendContestListItem;
   const base = data as ContestListItem;
   const startTime = (contest.start_time ?? contest.startTime) as
     | string
@@ -42,9 +121,9 @@ function mapContestListItem(data: unknown): ContestListItem {
     contest.penalty_per_wrong ?? contest.penaltyPerWrong,
   );
   const scoringMode = (contest.scoring_mode ??
-    contest.scoringMode) as ContestListItem["scoring_mode"];
+    contest.scoringMode) as ContestScoringMode | undefined;
   const tieBreaker = (contest.tie_breaker ??
-    contest.tieBreaker) as ContestListItem["tie_breaker"];
+    contest.tieBreaker) as ContestTieBreaker | undefined;
   const endTimeRaw = (contest.end_time ?? contest.endTime) as
     | string
     | undefined;
@@ -70,9 +149,9 @@ function mapContestListItem(data: unknown): ContestListItem {
     penalty_per_wrong:
       penaltyPerWrong ?? (contest.penalty_per_wrong as number | undefined),
     scoring_mode:
-      scoringMode ?? (contest.scoring_mode as ContestListItem["scoring_mode"]),
+      scoringMode ?? (contest.scoring_mode as ContestScoringMode | undefined),
     tie_breaker:
-      tieBreaker ?? (contest.tie_breaker as ContestListItem["tie_breaker"]),
+      tieBreaker ?? (contest.tie_breaker as ContestTieBreaker | undefined),
     startTime,
     endTime,
     end_time: endTime ?? (contest.end_time as string | undefined),
@@ -99,7 +178,7 @@ function mapContestListItem(data: unknown): ContestListItem {
 
 function mapContestProblem(data: unknown): ContestProblemSummary {
   if (!data || typeof data !== "object") return data as ContestProblemSummary;
-  const problem = data as Record<string, unknown>;
+  const problem = data as BackendContestProblem;
   const penaltyPerWrong = toNumber(
     problem.penalty_per_wrong ?? problem.penaltyPerWrong,
   );
@@ -122,7 +201,7 @@ function mapContestProblem(data: unknown): ContestProblemSummary {
 
 function mapContestDetail(data: unknown): ContestDetail {
   if (!data || typeof data !== "object") return data as ContestDetail;
-  const contest = data as Record<string, unknown>;
+  const contest = data as BackendContestListItem & { problems?: unknown[] };
   const mapped = mapContestListItem(contest) as ContestDetail;
   const problems = Array.isArray(contest.problems)
     ? contest.problems.map(mapContestProblem)
@@ -135,7 +214,7 @@ function mapContestDetail(data: unknown): ContestDetail {
 
 function mapGlobalRankingEntry(data: unknown): GlobalRankingEntry {
   if (!data || typeof data !== "object") return data as GlobalRankingEntry;
-  const ranking = data as Record<string, unknown>;
+  const ranking = data as BackendGlobalRankingEntry;
   const rating = toNumber(ranking.rating) ?? 0;
   const ratingTitle =
     ranking.rating_title ??
@@ -415,7 +494,7 @@ export async function getContestProblems(
 ): Promise<ContestProblem[]> {
   const data = await apiGet<unknown[]>(`/contest/${slug}/problems`);
   return (data || []).map((item) => {
-    const problem = item as Record<string, unknown>;
+    const problem = item as BackendContestProblemForContest;
     return {
       ...problem,
       problemId: String(problem.problem_id ?? problem.problemId ?? ""),

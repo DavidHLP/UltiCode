@@ -9,6 +9,7 @@ import com.ulticode.recommend.api.enums.RecommendScenario;
 import com.ulticode.recommend.core.RecommendEngine;
 import com.ulticode.recommend.core.model.RecommendContext;
 import com.ulticode.recommend.core.model.UserProfile;
+import com.ulticode.recommend.provider.store.RedisRecommendationStore;
 import org.apache.dubbo.config.annotation.DubboService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,14 +38,17 @@ public class RecommendServiceImpl implements RecommendService {
     private static final Logger log = LoggerFactory.getLogger(RecommendServiceImpl.class);
 
     private final RecommendEngine recommendEngine;
+    private final RedisRecommendationStore store;
 
     /**
-     * Creates a new RecommendServiceImpl with Spring-injected recommend engine.
+     * Creates a new RecommendServiceImpl with Spring-injected dependencies.
      *
      * @param recommendEngine the recommendation engine (configured by RecommendationEngineConfig)
+     * @param store           the Redis recommendation store for loading user data
      */
-    public RecommendServiceImpl(RecommendEngine recommendEngine) {
+    public RecommendServiceImpl(RecommendEngine recommendEngine, RedisRecommendationStore store) {
         this.recommendEngine = recommendEngine;
+        this.store = store;
     }
 
     /**
@@ -70,7 +74,7 @@ public class RecommendServiceImpl implements RecommendService {
             // Convert API request to core context
             RecommendContext context = convertToContext(request);
 
-            // Build user profile (in production, this would be fetched from a data store)
+            // Build user profile from Redis (rating, solvedProblems) with fallback to defaults
             UserProfile profile = buildUserProfile(request);
 
             // Execute recommendation pipeline
@@ -144,17 +148,41 @@ public class RecommendServiceImpl implements RecommendService {
     /**
      * Builds a user profile for the recommendation engine.
      *
-     * <p>In production, this would fetch user data from a database or cache.
-     * For now, returns a minimal profile.
+     * <p>Loads user data from Redis (rating, maxRating, solvedProblems).
+     * Falls back to a default profile with rating 1500 and empty solved set
+     * when Redis has no data for the user.
      *
      * @param request the recommendation request
      * @return the user profile
      */
     private UserProfile buildUserProfile(RecommendRequest request) {
+        try {
+            UserProfile profile = store.loadUserProfile(request.getUserId());
+            if (profile != null) {
+                log.debug("Loaded profile from Redis for user: {}, solved={}, rating={}",
+                        request.getUserId(), profile.getTotalSolved(), profile.getRating());
+                return profile;
+            }
+        } catch (Exception e) {
+            log.warn("Failed to load user profile from Redis for user: {}, using defaults: {}",
+                    request.getUserId(), e.getMessage());
+        }
+
+        // Fallback: load solved problems from user-problem matrix even if profile key is missing
+        Set<Long> solvedProblems = Set.of();
+        try {
+            solvedProblems = store.loadSolvedProblemsForUser(request.getUserId());
+        } catch (Exception e) {
+            log.warn("Failed to load solved problems from Redis for user: {}: {}",
+                    request.getUserId(), e.getMessage());
+        }
+
         return UserProfile.builder()
                 .userId(request.getUserId())
-                .solvedProblems(Set.of())  // In production, fetch from data store
-                .rating(1500)  // Default rating
+                .rating(1500)
+                .maxRating(1500)
+                .solvedProblems(solvedProblems)
+                .totalSolved(solvedProblems.size())
                 .build();
     }
 

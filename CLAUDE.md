@@ -227,7 +227,8 @@ Frontend uses Vite env vars (`VITE_API_BASE_URL`).
 | Backend (Spring) | 9001  |
 | Console          | 9002  |
 | Management       | 9003  |
-| Recommend-Web    | 9004  |
+| Recommend-Provider | 9004 |
+| Recommend-Web    | 9005  |
 | MySQL            | 23306 |
 | Redis            | 26379 |
 | Nacos            | 28848 | services need `NACOS_PORT=28848` env var |
@@ -302,6 +303,8 @@ pm2 restart ulticode-9004 ulticode-9005 --update-env
 - `LoggerFactory is not a Logback LoggerContext`: `slf4j-simple` conflict — removed from recommend-core
 - Nacos connection refused: Verify `NACOS_PORT=28848` in env and Nacos container running
 - Maven Central timeout: Ensure `~/.m2/settings.xml` has Aliyun mirror
+- Dubbo WARN `empty url address list` (error 1-37): Set `enable-empty-protection: "true"` in `dubbo.registry.parameters` (NOT `empty-protection`; property has no setter in RegistryConfig 3.2.14, must use parameters map)
+- Dubbo WARN `Ignore empty notify urls` (error 1-4): Expected — provider self-subscribes to empty `configurators` category, harmless
 
 **Terminal Commands:**
 

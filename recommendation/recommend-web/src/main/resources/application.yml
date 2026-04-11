@@ -12,10 +12,11 @@ dubbo:
   registry:
     address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:8848}
     username: ${NACOS_USERNAME:nacos}
-    password: ${NACOS_PASSWORD:}
+    password: ${NACOS_PASSWORD:nacos}
     parameters:
       namespace: public
       group: DEFAULT_GROUP
+      enable-empty-protection: "true"
   consumer:
     check: false
     timeout: 5000

@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { IconCopy, IconCheck, IconCode, IconBrackets } from '@tabler/icons-vue'
 import { getLanguageColor } from '@/lib/entities/language'
 import hljs from 'highlight.js'
+import { sanitizeCodeHtml } from '@/utils/sanitize'
 
 export interface LanguageOption {
   id: string
@@ -115,7 +116,7 @@ const highlightedCode = computed(() => {
   // Try to highlight with detected/specified language
   if (lang && hljs.getLanguage(lang)) {
     try {
-      return hljs.highlight(currentCode.value, { language: lang }).value
+      return sanitizeCodeHtml(hljs.highlight(currentCode.value, { language: lang }).value)
     } catch {
       // Fall through to auto-detection
     }
@@ -123,7 +124,7 @@ const highlightedCode = computed(() => {
 
   // Try auto-detection
   try {
-    return hljs.highlightAuto(currentCode.value).value
+    return sanitizeCodeHtml(hljs.highlightAuto(currentCode.value).value)
   } catch {
     // Return escaped code if highlighting fails
     return escapeHtml(currentCode.value)

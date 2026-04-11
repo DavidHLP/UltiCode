@@ -1,9 +1,28 @@
 import type { Problem } from "@/types/problem";
 import { apiGet } from "@/utils/request";
 
+// ============================================================================
+// Backend Response Interface (snake_case from Spring Boot)
+// ============================================================================
+
+interface BackendProblem {
+  id?: unknown;
+  acceptanceRate?: unknown;
+  acceptance_rate?: unknown;
+  completedTime?: unknown;
+  completed_time?: unknown;
+  isPremium?: unknown;
+  is_premium?: unknown;
+  hasSolution?: unknown;
+  has_solution?: unknown;
+  tagRelations?: unknown;
+  tags?: unknown;
+  [key: string]: unknown;
+}
+
 function mapProblem(problem: unknown): Problem {
   if (!problem || typeof problem !== "object") return problem as Problem;
-  const p = problem as Record<string, unknown>;
+  const p = problem as BackendProblem;
   const rawAcceptance = p.acceptanceRate ?? p.acceptance_rate;
   const parsedAcceptance =
     rawAcceptance === undefined || rawAcceptance === null

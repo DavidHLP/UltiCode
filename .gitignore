@@ -49,9 +49,10 @@ dist-ssr/
 .eslintcache
 .stylelintcache
 .vite-inspect
-# 生产环境环境变量（建议手动管理，不进入 Git）
-.env.production.local
-.env.development.local
+# 环境变量文件（含敏感信息，禁止进入 Git）
+.env
+.env.*
+!.env.example
 
 # ====================================================================
 # 3. 日志与调试 (Logs & Debug)

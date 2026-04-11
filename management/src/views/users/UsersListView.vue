@@ -158,7 +158,7 @@ const columns = createColumns(
 
 async function handleBanUser(id: string | number, reason?: string) {
   if (!reason) return
-  await usersStore.banUser(id as string, reason)
+  await usersStore.banUser(String(id), reason)
 }
 
 async function handleBulkBan() {

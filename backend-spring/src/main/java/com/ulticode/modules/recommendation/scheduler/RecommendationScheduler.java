@@ -151,6 +151,12 @@ public class RecommendationScheduler {
                 RecommendResponse<RecommendResult> response = recommendService.recommend(request);
 
                 if (response.isSuccess() && response.getData() != null && response.getData().getItems() != null) {
+                    // Dedup: delete existing recommendations for this user/scenario today
+                    dailyRecommendationMapper.delete(new QueryWrapper<DailyRecommendation>()
+                            .eq("user_id", userId)
+                            .eq("scenario", scenario.name())
+                            .ge("generated_at", generatedAt.toLocalDate().atStartOfDay()));
+
                     for (var item : response.getData().getItems()) {
                         DailyRecommendation rec = new DailyRecommendation();
                         rec.setUserId(userId);

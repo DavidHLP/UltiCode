@@ -2,6 +2,7 @@ package com.ulticode.modules.recommendation.controller;
 
 import java.util.Map;
 
+import com.ulticode.common.annotation.RequireRole;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.recommendation.service.RecommendationDataService;
 
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/recommendations/admin")
 @RequiredArgsConstructor
+@RequireRole("ADMIN")
 @Tag(name = "Recommendation Admin", description = "Admin endpoints for recommendation data management")
 public class RecommendationDataController {
 

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemTag;
@@ -128,22 +129,23 @@ public class RecommendationServiceImpl implements RecommendationService {
         }
 
         try {
-            // Ping the Dubbo service with a minimal request
+            // Only check Dubbo connectivity, not business logic
+            // Use a size of 0 to avoid triggering actual recommendation computation
             RecommendRequest request = RecommendRequest.builder()
                     .userId("health-check")
                     .scenario(RecommendScenario.DAILY)
-                    .size(1)
+                    .size(0)
                     .build();
-            RecommendResponse<RecommendResult> result = recommendService.recommend(request);
+            recommendService.recommend(request);
 
             RecommendResponseVO response = new RecommendResponseVO();
-            response.setSuccess(result.isSuccess());
-            response.setCode(result.getCode());
+            response.setSuccess(true);
+            response.setCode(200);
             response.setMessage("Recommendation service is healthy");
             return response;
         } catch (Exception e) {
             log.warn("Recommendation service health check failed: {}", e.getMessage());
-            return RecommendResponseVO.error(50000, "Recommendation service unavailable: " + e.getMessage());
+            return RecommendResponseVO.error(50000, "Recommendation service unavailable");
         }
     }
 
@@ -196,14 +198,14 @@ public class RecommendationServiceImpl implements RecommendationService {
         QueryWrapper<Problem> wrapper = new QueryWrapper<Problem>()
                 .eq("is_deleted", false)
                 .eq("is_published", true)
-                .orderByDesc("acceptance_rate")
-                .last("LIMIT " + size);
+                .orderByDesc("acceptance_rate");
 
         if (difficulty != null) {
             wrapper.eq("difficulty", difficulty);
         }
 
-        List<Problem> problems = problemMapper.selectList(wrapper);
+        Page<Problem> page = new Page<>(1, size);
+        List<Problem> problems = problemMapper.selectPage(page, wrapper).getRecords();
         List<RecommendItem> items = problems.stream()
                 .map(this::convertProblemToItem)
                 .collect(Collectors.toList());

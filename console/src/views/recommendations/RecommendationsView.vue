@@ -88,7 +88,11 @@ function handleProblemSelect(problemId: number) {
 
 <template>
   <div>
-    <h1 class="mb-6 text-2xl font-bold">{{ t("recommendation.title") }}</h1>
+    <header class="mb-6">
+      <span class="terminal-label">{{ currentType === 'daily' ? '// DAILY RECOMMENDATIONS' : currentType === 'weak-points' ? '// WEAK POINTS' : currentType === 'challenge' ? '// CHALLENGE MODE' : '// SIMILAR PROBLEMS' }}</span>
+      <h1 class="font-data text-2xl font-semibold tracking-tight mt-1">{{ t("recommendation.title") }}</h1>
+    </header>
+    <div class="terminal-separator mb-6" />
 
     <!-- Filter bar -->
     <SimilarProblemSearch
@@ -98,8 +102,8 @@ function handleProblemSelect(problemId: number) {
     <TagFilter v-else v-model="selectedTags" @refresh="loadRecommendations" />
 
     <!-- Loading state -->
-    <div v-if="store.loading" class="grid gap-4">
-      <Skeleton v-for="i in 3" :key="i" class="h-32 rounded-none" />
+    <div v-if="store.loading" class="animate-stagger grid gap-4">
+      <div v-for="i in 3" :key="i" class="terminal-card p-4 h-28 animate-pulse-subtle" />
     </div>
 
     <!-- Error state -->
@@ -124,7 +128,7 @@ function handleProblemSelect(problemId: number) {
     </div>
 
     <!-- Recommendation list -->
-    <div v-else class="grid gap-4">
+    <div v-else class="animate-stagger grid gap-4">
       <ProblemCard
         v-for="item in recommendations"
         :key="item.problemId"

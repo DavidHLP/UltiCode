@@ -5,10 +5,38 @@ import type {
 } from "@/types/submission";
 import type { ProblemRunResult } from "@/types/test-results";
 
+// ============================================================================
+// Backend Response Interfaces (snake_case from Spring Boot)
+// ============================================================================
+
+interface BackendSubmissionRecord {
+  error_detail?: unknown;
+  errorDetail?: unknown;
+  runtime_percentile?: unknown;
+  runtimePercentile?: unknown;
+  memory_percentile?: unknown;
+  memoryPercentile?: unknown;
+  [key: string]: unknown;
+}
+
+interface BackendSubmissionStatusMeta {
+  key?: unknown;
+  code?: unknown;
+  label?: unknown;
+  description?: unknown;
+  suggestion?: unknown;
+  category?: unknown;
+  severity?: unknown;
+  is_terminal?: unknown;
+  isTerminal?: unknown;
+  sort_order?: unknown;
+  sortOrder?: unknown;
+}
+
 // Helper to map backend snake_case to frontend camelCase
 export function mapSubmission(sub: unknown): SubmissionRecord {
   if (!sub || typeof sub !== "object") return sub as SubmissionRecord;
-  const s = sub as Record<string, unknown>;
+  const s = sub as BackendSubmissionRecord;
   return {
     ...s,
     errorDetail: (s.error_detail ?? s.errorDetail) as string | undefined,
@@ -23,7 +51,7 @@ export function mapSubmission(sub: unknown): SubmissionRecord {
 
 function mapSubmissionStatus(meta: unknown): SubmissionStatusMeta {
   if (!meta || typeof meta !== "object") return meta as SubmissionStatusMeta;
-  const m = meta as Record<string, unknown>;
+  const m = meta as BackendSubmissionStatusMeta;
   return {
     key: m.key as SubmissionStatusMeta["key"],
     code: m.code as string,

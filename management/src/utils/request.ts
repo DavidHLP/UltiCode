@@ -47,8 +47,13 @@ export class ApiError extends Error {
   }
 
   static fromAxiosError(error: AxiosError): ApiError {
+    const data = error.response?.data
     const message =
-      (error.response?.data as { message?: string })?.message || error.message || 'Request failed'
+      (typeof data === 'object' && data !== null && 'message' in data
+        ? (data as { message?: string }).message
+        : undefined) ||
+      error.message ||
+      'Request failed'
     const code = error.response?.status || 0
     return new ApiError(message, code, error.response)
   }
@@ -164,7 +169,7 @@ service.interceptors.request.use(
 
     // Log request in development
     if (isDevelopment) {
-      console.log({
+      console.debug({
         method: config.method?.toUpperCase(),
         url: config.url,
         headers: config.headers,
@@ -197,7 +202,7 @@ service.interceptors.response.use(
     // Log response in development
     if (isDevelopment && metadata) {
       const duration = Date.now() - metadata.startTime
-      console.log({
+      console.debug({
         status: response.status,
         duration: `${duration}ms`,
         data: response.data,
@@ -238,7 +243,7 @@ service.interceptors.response.use(
     // Handle request cancellation
     if (error.name === 'CanceledError' || error.code === 'ERR_CANCELED') {
       if (isDevelopment) {
-        console.log('Request canceled')
+        console.debug('Request canceled')
       }
       // Use -1 instead of 0 to avoid conflict with backend's success code
       return Promise.reject(new ApiError('Request canceled', -1))
@@ -267,7 +272,7 @@ service.interceptors.response.use(
         await new Promise((resolve) => setTimeout(resolve, delay))
 
         if (isDevelopment) {
-          console.log({
+          console.debug({
             attempt: retryCount + 1,
             maxRetry,
             delay,

@@ -6,9 +6,81 @@ import type {
   ProblemListItem,
   ProblemList,
   ProblemListCategory,
+  ProblemListCategoryOption,
   UserProblemListsResponse,
   ProblemListDetailResponse,
 } from "@/types/problem-list";
+
+// ============================================================================
+// Backend Response Interfaces (snake_case from Spring Boot)
+// ============================================================================
+
+interface BackendProblemList {
+  id?: unknown;
+  name?: unknown;
+  description?: unknown;
+  problemCount?: unknown;
+  problem_count?: unknown;
+  favoritesCount?: unknown;
+  favorites_count?: unknown;
+  authorId?: unknown;
+  author_id?: unknown;
+  isPublic?: unknown;
+  is_public?: unknown;
+  isFeatured?: unknown;
+  is_featured?: unknown;
+  bannerTag?: unknown;
+  banner_tag?: unknown;
+  bannerIcon?: unknown;
+  banner_icon?: unknown;
+  bannerTheme?: unknown;
+  banner_theme?: unknown;
+  bannerOrder?: unknown;
+  banner_order?: unknown;
+  createdAt?: unknown;
+  created_at?: unknown;
+  updatedAt?: unknown;
+  updated_at?: unknown;
+  isSaved?: unknown;
+  categoryId?: unknown;
+  containsProblem?: unknown;
+  canEdit?: unknown;
+}
+
+interface BackendProblemListCategory {
+  id?: unknown;
+  name?: unknown;
+  sortOrder?: unknown;
+  sort_order?: unknown;
+  lists?: unknown[];
+}
+
+interface BackendUserProblemListsResponse {
+  ownLists?: unknown[];
+  savedLists?: unknown[];
+  featuredLists?: unknown[];
+  categories?: unknown[];
+}
+
+interface BackendProblemListDetailResponse {
+  list?: unknown;
+  problems?: unknown[];
+  stats?: unknown;
+  viewer?: BackendViewerState;
+  categories?: BackendCategoryOption[];
+}
+
+interface BackendViewerState {
+  isSaved?: unknown;
+  categoryId?: unknown;
+}
+
+interface BackendCategoryOption {
+  id?: unknown;
+  name?: unknown;
+  sortOrder?: unknown;
+  sort_order?: unknown;
+}
 
 // ============================================================================
 // Mappers
@@ -24,7 +96,7 @@ function mapProblemList(input: unknown): ProblemList {
       favoritesCount: 0,
     };
   }
-  const raw = input as Record<string, unknown>;
+  const raw = input as BackendProblemList;
   const rawCount = raw.problemCount ?? raw.problem_count ?? 0;
   const rawFavorites = raw.favoritesCount ?? raw.favorites_count ?? 0;
   const rawBannerOrder = raw.bannerOrder ?? raw.banner_order;
@@ -103,7 +175,7 @@ function mapCategory(input: unknown): ProblemListCategory {
   if (!input || typeof input !== "object") {
     return { id: "", name: "", sortOrder: 0, lists: [] };
   }
-  const raw = input as Record<string, unknown>;
+  const raw = input as BackendProblemListCategory;
   return {
     id: String(raw.id ?? ""),
     name: String(raw.name ?? ""),
@@ -121,7 +193,7 @@ function mapUserProblemListsResponse(input: unknown): UserProblemListsResponse {
   if (!input || typeof input !== "object") {
     return { myLists: [], savedLists: [], featured: [], categories: [] };
   }
-  const raw = input as Record<string, unknown>;
+  const raw = input as BackendUserProblemListsResponse;
   return {
     myLists: Array.isArray(raw.ownLists) ? raw.ownLists.map(mapProblemList) : [],
     savedLists: Array.isArray(raw.savedLists)
@@ -143,7 +215,7 @@ function mapProblemListItem(input: unknown): ProblemListItem {
       name: "",
     };
   }
-  const raw = input as Record<string, unknown>;
+  const raw = input as BackendProblemList;
   const createdRaw = raw.createdAt ?? raw.created_at;
   const updatedRaw = raw.updatedAt ?? raw.updated_at;
   const rawBannerOrder = raw.bannerOrder ?? raw.banner_order;
@@ -246,7 +318,7 @@ export async function fetchProblemListOverview(
   if (!data || typeof data !== "object") {
     return { list: null, problems: [], stats: null };
   }
-  const raw = data as Record<string, unknown>;
+  const raw = data as BackendProblemListDetailResponse;
   return {
     list: raw.list ? mapProblemList(raw.list) : null,
     problems: Array.isArray(raw.problems) ? raw.problems.map(mapProblem) : [],
@@ -257,28 +329,24 @@ export async function fetchProblemListOverview(
     viewer:
       raw.viewer && typeof raw.viewer === "object"
         ? {
-            isSaved: Boolean((raw.viewer as Record<string, unknown>).isSaved),
+            isSaved: Boolean(raw.viewer.isSaved),
             categoryId:
-              typeof (raw.viewer as Record<string, unknown>).categoryId ===
-              "string"
-                ? String((raw.viewer as Record<string, unknown>).categoryId)
+              typeof raw.viewer.categoryId === "string"
+                ? String(raw.viewer.categoryId)
                 : null,
           }
         : undefined,
     categories: Array.isArray(raw.categories)
-      ? raw.categories.map((item) => {
-          const entry = item as Record<string, unknown>;
-          return {
-            id: String(entry.id ?? ""),
-            name: String(entry.name ?? ""),
-            sortOrder:
-              typeof entry.sortOrder === "number"
-                ? entry.sortOrder
-                : typeof entry.sort_order === "number"
-                  ? entry.sort_order
-                  : 0,
-          };
-        })
+      ? raw.categories.map((item: BackendCategoryOption) => ({
+          id: String(item.id ?? ""),
+          name: String(item.name ?? ""),
+          sortOrder:
+            typeof item.sortOrder === "number"
+              ? item.sortOrder
+              : typeof item.sort_order === "number"
+                ? item.sort_order
+                : 0,
+        }))
       : undefined,
   };
 }
@@ -381,11 +449,14 @@ export async function getUserListsForProblem(
   if (!Array.isArray(data)) {
     return [];
   }
-  return data.map((item) => ({
-    ...mapProblemList(item),
-    containsProblem: Boolean((item as Record<string, unknown>).containsProblem),
-    canEdit: Boolean((item as Record<string, unknown>).canEdit),
-  }));
+  return data.map((item) => {
+    const raw = item as BackendProblemList;
+    return {
+      ...mapProblemList(item),
+      containsProblem: Boolean(raw.containsProblem),
+      canEdit: Boolean(raw.canEdit),
+    };
+  });
 }
 
 // ============================================================================

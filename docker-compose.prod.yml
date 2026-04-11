@@ -9,12 +9,55 @@
 #   GHCR_REGISTRY (optional, defaults to ghcr.io/davidhlp/ulticode-public-next)
 
 services:
+  nacos:
+    image: nacos/nacos-server:v2.3.2
+    container_name: ulticode-nacos
+    restart: unless-stopped
+    ports:
+      - "28848:8848"
+      - "28080:8080"
+      - "29848:9848"
+    deploy:
+      resources:
+        limits:
+          memory: 768M
+          cpus: "1.0"
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: ${DB_HOST:-mysql}
+      MYSQL_SERVICE_PORT: ${DB_PORT:-3306}
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
+      MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=true&allowPublicKeyRetrieval=true"
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "50m"
+        max-file: "5"
+
   backend:
     image: ${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend:${IMAGE_TAG:-latest}
     container_name: ulticode-backend
     restart: unless-stopped
     ports:
       - "9001:9001"
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+          cpus: "2.0"
     environment:
       - DB_HOST=${DB_HOST:-mysql}
       - DB_PORT=${DB_PORT:-3306}
@@ -24,11 +67,15 @@ services:
       - REDIS_HOST=${REDIS_HOST:-redis}
       - REDIS_PORT=${REDIS_PORT:-6379}
       - JWT_SECRET=${JWT_SECRET:?JWT_SECRET is required}
+      - NACOS_HOST=nacos
+      - NACOS_PORT=8848
       - SERVER_PORT=9001
     depends_on:
       mysql:
         condition: service_healthy
       redis:
+        condition: service_healthy
+      nacos:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9001/actuator/health"]
@@ -47,12 +94,19 @@ services:
     container_name: ulticode-console
     restart: unless-stopped
     ports:
-      - "9002:80"
+      - "9002:8080"
+    environment:
+      - API_ORIGIN=http://backend:9001
     depends_on:
       backend:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -67,12 +121,19 @@ services:
     container_name: ulticode-management
     restart: unless-stopped
     ports:
-      - "9003:80"
+      - "9003:8080"
+    environment:
+      - API_ORIGIN=http://backend:9001
     depends_on:
       backend:
         condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 3

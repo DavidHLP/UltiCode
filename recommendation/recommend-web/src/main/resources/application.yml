@@ -3,7 +3,7 @@ spring:
     name: recommend-web
 
 server:
-  port: ${SERVER_PORT:8080}
+  port: ${SERVER_PORT:9005}
 
 dubbo:
   application:
@@ -11,8 +11,8 @@ dubbo:
     qos-enable: false
   registry:
     address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:8848}
-    username: ${NACOS_USERNAME:nacos}
-    password: ${NACOS_PASSWORD:nacos}
+    username: ${NACOS_USERNAME:?NACOS_USERNAME is required}
+    password: ${NACOS_PASSWORD:?NACOS_PASSWORD is required}
     parameters:
       namespace: public
       group: DEFAULT_GROUP

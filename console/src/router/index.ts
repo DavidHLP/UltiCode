@@ -313,11 +313,26 @@ const router = createRouter({
  * 1. Wait for auth initialization if still in progress (prevents premature redirect to login)
  * 2. Check if route requires authentication
  * 3. If required, call ensureUser() to fetch user info on-demand
- * 4. Redirect to login if not authenticated after fetch
- * 5. Redirect to home if already authenticated and accessing login/register
+ * 4. Re-validate stale sessions (token may have expired while user was idle)
+ * 5. Redirect to login if not authenticated after fetch
+ * 6. Redirect to home if already authenticated and accessing login/register
+ * 7. Guard against navigation abort (newer navigation superseded this one)
  */
+
+// Navigation abort detection: each new navigation increments the counter,
+// allowing async guards to bail out when superseded.
+let pendingNavigationId = 0;
+
+// Token freshness: track last successful auth validation to detect stale sessions.
+// Sessions older than this threshold are re-validated against /auth/me before
+// allowing access to protected routes.
+let lastValidatedAt = 0;
+const STALE_SESSION_MS = 5 * 60 * 1000; // 5 minutes
+
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore();
+  const navId = ++pendingNavigationId;
+  const isStale = () => navId !== pendingNavigationId;
 
   // Development-only logging
   if (import.meta.env.DEV) {
@@ -335,6 +350,7 @@ router.beforeEach(async (to, from, next) => {
   // This prevents premature redirect to login when user navigates before initialize() completes.
   if (authStore.status === "loading" && authStore.initializationPromise) {
     await authStore.initializationPromise;
+    if (isStale()) return;
   }
 
   const requiresAuth = to.matched.some(
@@ -343,18 +359,23 @@ router.beforeEach(async (to, from, next) => {
 
   // If authentication required, fetch user info on-demand
   if (requiresAuth) {
-    try {
+    // Re-validate stale sessions — token may have expired while user was idle.
+    // ensureUser() returns cached user without API call, so we must force
+    // a backend check when the session is potentially expired.
+    const isSessionExpired =
+      authStore.isAuthenticated &&
+      lastValidatedAt > 0 &&
+      Date.now() - lastValidatedAt > STALE_SESSION_MS;
+
+    if (isSessionExpired) {
+      await authStore.fetchUser();
+      if (isStale()) return;
+    }
+
+    // ensureUser() loads user from backend if not present; no-op if already loaded
+    if (!authStore.isAuthenticated) {
       await authStore.ensureUser();
-    } catch (error) {
-      // ApiError (e.g., 401 from /auth/me) or connection error - redirect to login
-      if (import.meta.env.DEV) {
-        console.warn("[Router] Failed to ensure user:", error);
-      }
-      // Redirect to login for all errors (ApiError, network errors, etc.)
-      return next({
-        name: "login",
-        query: { redirect: to.fullPath },
-      });
+      if (isStale()) return;
     }
 
     // After fetch, check if authenticated
@@ -364,6 +385,8 @@ router.beforeEach(async (to, from, next) => {
         query: { redirect: to.fullPath },
       });
     }
+
+    lastValidatedAt = Date.now();
   }
 
   // If already authenticated and trying to access login/register, redirect to home

@@ -56,7 +56,7 @@ defineOptions({
     <AuthGrid>
       <div class="auth-pattern-text">
         <div class="auth-pattern-text__prefix">$</div>
-        <h2 class="auth-pattern-text__title" v-html="t('auth.layout.joinTheTeam')"></h2>
+        <h2 class="auth-pattern-text__title">{{ t('auth.layout.joinTheTeam') }}</h2>
         <p class="auth-pattern-text__subtitle">{{ t('auth.layout.joinTheTeamSubtitle') }}</p>
         <div class="auth-pattern-text__cursor"></div>
       </div>

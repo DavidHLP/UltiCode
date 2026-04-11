@@ -1,5 +1,5 @@
 SET FOREIGN_KEY_CHECKS=0;
--- UltiCode Migration: V10__edge_schema
+-- UltiCode Migration: V10a__edge_schema
 -- Generated from ulticode.sql
 -- Tables: 1
 

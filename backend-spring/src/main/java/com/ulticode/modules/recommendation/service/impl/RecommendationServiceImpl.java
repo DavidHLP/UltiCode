@@ -4,7 +4,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.problem.entity.Problem;
+import com.ulticode.modules.problem.entity.ProblemTag;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problem.mapper.ProblemTagMapper;
+import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.recommendation.dto.GetRecommendationsDTO;
 import com.ulticode.modules.recommendation.dto.RecommendResponseVO;
 import com.ulticode.modules.recommendation.dto.RecommendResponseVO.RecommendItem;
@@ -15,6 +21,7 @@ import com.ulticode.recommend.api.dto.RecommendResponse;
 import com.ulticode.recommend.api.dto.RecommendResult;
 import com.ulticode.recommend.api.enums.RecommendScenario;
 
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +34,7 @@ import org.springframework.stereotype.Service;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class RecommendationServiceImpl implements RecommendationService {
 
     @DubboReference(check = false, timeout = 5000, retries = 1)
@@ -34,6 +42,10 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     @Value("${recommendation.enabled:false}")
     private boolean enabled;
+
+    private final ProblemMapper problemMapper;
+    private final ProblemTagRelationMapper problemTagRelationMapper;
+    private final ProblemTagMapper problemTagMapper;
 
     @Override
     public boolean isAvailable() {
@@ -137,6 +149,7 @@ public class RecommendationServiceImpl implements RecommendationService {
 
     /**
      * Calls the Dubbo recommendation service and converts the result.
+     * Falls back to MySQL-based popular problems when Dubbo is unavailable.
      */
     private RecommendResponseVO callDubboService(String userId, RecommendScenario scenario,
                                                   Integer limit, Long problemId) {
@@ -160,12 +173,64 @@ public class RecommendationServiceImpl implements RecommendationService {
             } else {
                 log.warn("Recommendation service returned error: code={}, message={}",
                         response.getCode(), response.getMessage());
-                return RecommendResponseVO.error(response.getCode(), response.getMessage());
+                return fallbackToPopularProblems(limit, scenario);
             }
         } catch (Exception e) {
-            log.error("Dubbo recommendation service call failed: {}", e.getMessage());
-            return RecommendResponseVO.error(50000, "Recommendation service unavailable: " + e.getMessage());
+            log.warn("Dubbo recommendation service unavailable, falling back to popular problems: {}", e.getMessage());
+            return fallbackToPopularProblems(limit, scenario);
         }
+    }
+
+    /**
+     * Fallback: queries MySQL for popular problems sorted by acceptance rate.
+     * Used when the Dubbo recommendation service is unavailable.
+     */
+    private RecommendResponseVO fallbackToPopularProblems(Integer limit, RecommendScenario scenario) {
+        int size = limit != null ? limit : 10;
+        String difficulty = switch (scenario) {
+            case CHALLENGE -> "Hard";
+            case WEAK_POINT -> "Medium";
+            default -> null;
+        };
+
+        QueryWrapper<Problem> wrapper = new QueryWrapper<Problem>()
+                .eq("is_deleted", false)
+                .eq("is_published", true)
+                .orderByDesc("acceptance_rate")
+                .last("LIMIT " + size);
+
+        if (difficulty != null) {
+            wrapper.eq("difficulty", difficulty);
+        }
+
+        List<Problem> problems = problemMapper.selectList(wrapper);
+        List<RecommendItem> items = problems.stream()
+                .map(this::convertProblemToItem)
+                .collect(Collectors.toList());
+
+        return RecommendResponseVO.success(items);
+    }
+
+    /**
+     * Converts a Problem entity to a RecommendItem with tags.
+     */
+    private RecommendItem convertProblemToItem(Problem problem) {
+        RecommendItem item = new RecommendItem();
+        item.setProblemId(problem.getId());
+        item.setTitle(problem.getTitle());
+        item.setSlug(problem.getSlug());
+        item.setDifficulty(problem.getDifficulty());
+        item.setScore(problem.getAcceptanceRate() != null ? problem.getAcceptanceRate().floatValue() : 50f);
+        item.setReason("热门推荐");
+
+        List<String> tagIds = problemTagRelationMapper.findTagIdsByProblemId(problem.getId());
+        if (!tagIds.isEmpty()) {
+            List<ProblemTag> tags = problemTagMapper.selectBatchIds(tagIds);
+            item.setTags(tags.stream().map(ProblemTag::getLabel).collect(Collectors.toList()));
+        } else {
+            item.setTags(List.of());
+        }
+        return item;
     }
 
     /**

@@ -2,7 +2,7 @@ export default {
   // Layout
   layout: {
     systemOnline: "系统在线",
-    codingConsole: "在线编程<br/>控制台",
+    codingConsole: "在线编程\n控制台",
     codingConsoleSubtitle: "练习算法，提升编程能力",
   },
 

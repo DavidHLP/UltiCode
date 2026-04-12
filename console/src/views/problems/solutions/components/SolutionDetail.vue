@@ -281,7 +281,7 @@ watch(
           <Badge
             v-if="props.item.flair"
             variant="secondary"
-            class="rounded-full bg-[var(--terminal-amber)]/20 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/20"
+            class="rounded-none bg-[var(--terminal-amber)]/20 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--terminal-amber)] hover:bg-[var(--terminal-amber)]/20 border border-[var(--terminal-amber)]/30"
           >
             {{ props.item.flair }}
           </Badge>
@@ -310,13 +310,13 @@ watch(
         <div class="flex flex-wrap items-center gap-2">
           <Badge
             variant="secondary"
-            class="rounded-full px-2.5 py-0.5 text-[11px] capitalize"
+            class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2.5 py-0.5 text-[11px] capitalize text-[var(--silver-600)] bg-[var(--surface-sunken)]"
           >
             {{ languageLabel }}
           </Badge>
           <Badge
             variant="secondary"
-            class="rounded-full px-2.5 py-0.5 text-[11px] capitalize"
+            class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2.5 py-0.5 text-[11px] capitalize text-[var(--silver-600)] bg-[var(--surface-sunken)]"
           >
             {{ topicLabel }}
           </Badge>
@@ -324,7 +324,7 @@ watch(
             v-for="badge in props.item.badges"
             :key="badge"
             variant="outline"
-            class="rounded-full px-2.5 py-0.5 text-[11px] font-medium"
+            class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--silver-600)] bg-transparent"
           >
             {{ badge }}
           </Badge>
@@ -345,7 +345,7 @@ watch(
           v-for="tag in props.item.tags"
           :key="tag"
           variant="secondary"
-          class="rounded-full px-3 py-1 text-xs"
+          class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] px-3 py-1 text-[11px] text-[var(--silver-500)] bg-[var(--surface-sunken)] font-[family-name:var(--font-mono)]"
         >
           {{ tag }}
         </Badge>

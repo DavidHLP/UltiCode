@@ -2,7 +2,7 @@ export default {
   // Layout
   layout: {
     systemOnline: "System Online",
-    codingConsole: "Online Coding<br/>Console",
+    codingConsole: "Online Coding\nConsole",
     codingConsoleSubtitle: "Practice algorithms, improve your skills",
   },
 

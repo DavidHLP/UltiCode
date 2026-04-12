@@ -102,7 +102,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
       <div class="flex flex-wrap gap-1">
         <!-- Difficulty Badge -->
         <div
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted text-xs"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] text-xs font-[family-name:var(--font-mono)] uppercase tracking-wider"
           :class="difficultyClass"
         >
           {{
@@ -113,7 +113,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <!-- Tags Button -->
         <button
           v-if="props.problem.tags?.length"
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted cursor-pointer transition-colors hover:bg-muted/80 hover:opacity-80 text-xs text-muted-foreground"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs text-[var(--silver-600)] font-[family-name:var(--font-mono)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
           @click="scrollToSection((tagsSection as any).$el)"
         >
           <svg
@@ -135,7 +135,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
             Array.isArray(props.problem.companies) &&
             props.problem.companies.length
           "
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted cursor-pointer transition-colors hover:bg-muted/80 hover:opacity-80 text-xs text-muted-foreground"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs font-[family-name:var(--font-mono)] hover:border-[var(--terminal-amber)]"
           @click="scrollToSection((companiesSection as any).$el)"
         >
           <span class="text-[var(--terminal-amber)]">{{
@@ -146,7 +146,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <!-- Hint Button -->
         <button
           v-if="props.problem.followUp || props.problem.starterNotes?.length"
-          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-full bg-muted cursor-pointer transition-colors hover:bg-muted/80 hover:opacity-80 text-xs text-muted-foreground"
+          class="relative inline-flex items-center justify-center px-1.5 py-0.5 gap-1 rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] cursor-pointer transition-colors text-xs text-[var(--silver-600)] font-[family-name:var(--font-mono)] hover:border-[var(--accent-electric)] hover:text-[var(--accent-electric)]"
           @click="scrollToSection((hintsSection as any)?.$el)"
         >
           <svg
@@ -171,7 +171,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <span
           v-for="tag in props.problem.tags || []"
           :key="tag"
-          class="rounded-full border border-border bg-background px-3 py-1 text-[11px] text-muted-foreground"
+          class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-3 py-1 text-[11px] text-[var(--silver-500)] font-[family-name:var(--font-mono)]"
         >
           {{ tag }}
         </span>
@@ -189,7 +189,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
         <span
           v-for="company in props.problem.companies"
           :key="company.id"
-          class="rounded-full bg-muted px-3 py-1 text-[11px] font-medium text-foreground"
+          class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-3 py-1 text-[11px] font-medium text-[var(--silver-600)] font-[family-name:var(--font-mono)]"
         >
           {{ company.name }}
         </span>
@@ -264,7 +264,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 <span
                   v-for="tag in props.problem.tags || []"
                   :key="tag"
-                  class="rounded-full bg-muted px-2 py-1 text-xs text-muted-foreground"
+                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-2 py-1 text-[11px] text-[var(--silver-500)] font-[family-name:var(--font-mono)]"
                 >
                   {{ tag }}
                 </span>
@@ -293,7 +293,7 @@ const problemDescription = computed<ProblemDescription>(() => ({
                 <span
                   v-for="company in props.problem.companies"
                   :key="company.id"
-                  class="rounded-full bg-muted px-2 py-1 text-xs text-foreground"
+                  class="rounded-none border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] px-2 py-1 text-[11px] text-[var(--silver-600)] font-[family-name:var(--font-mono)]"
                 >
                   {{ company.name }}
                 </span>

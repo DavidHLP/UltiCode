@@ -111,24 +111,14 @@ public class AuditServiceImpl implements AuditService {
         // Get total actions count
         stats.setTotalActions(auditLogMapper.selectCount(wrapper));
 
-        // Get actions by entity type using MyBatis-Plus selectMaps with SQL
-        LambdaQueryWrapper<AuditLog> entityWrapper = new LambdaQueryWrapper<>();
-        entityWrapper.ge(query.getStartDate() != null, AuditLog::getCreatedAt, query.getStartDate())
-                     .le(query.getEndDate() != null, AuditLog::getCreatedAt, query.getEndDate())
-                     .eq(query.getPerformerId() != null, AuditLog::getPerformerId, query.getPerformerId());
-        List<Map<String, Object>> entityStats = auditLogMapper.selectMaps(
-            entityWrapper.apply("SELECT entity_type as entityType, COUNT(*) as count FROM audit_logs WHERE ${ew.customSqlSegment} GROUP BY entity_type ORDER BY count DESC LIMIT 10")
-        );
+        // Get actions by entity type using parameterized query
+        List<Map<String, Object>> entityStats = auditLogMapper.selectStatsByEntityType(
+            query.getStartDate(), query.getEndDate(), query.getPerformerId());
         stats.setActionsByEntity(entityStats);
 
-        // Get top performers using MyBatis-Plus selectMaps with SQL
-        LambdaQueryWrapper<AuditLog> performerWrapper = new LambdaQueryWrapper<>();
-        performerWrapper.ge(query.getStartDate() != null, AuditLog::getCreatedAt, query.getStartDate())
-                        .le(query.getEndDate() != null, AuditLog::getCreatedAt, query.getEndDate())
-                        .eq(query.getPerformerId() != null, AuditLog::getPerformerId, query.getPerformerId());
-        List<Map<String, Object>> performerStats = auditLogMapper.selectMaps(
-            performerWrapper.apply("SELECT performer_id as performerId, COUNT(*) as count FROM audit_logs WHERE ${ew.customSqlSegment} GROUP BY performer_id ORDER BY count DESC LIMIT 10")
-        );
+        // Get top performers using parameterized query
+        List<Map<String, Object>> performerStats = auditLogMapper.selectStatsByPerformer(
+            query.getStartDate(), query.getEndDate(), query.getPerformerId());
         stats.setTopPerformers(performerStats);
 
         return stats;

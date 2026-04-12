@@ -47,8 +47,8 @@ import java.util.stream.Collectors;
  * # Run evaluation
  * java -cp "recommend-core/target/classes:$(mvn -q dependency:build-classpath -Dmdep.outputFile=/dev/stdout)" \
  *      -Ddb.url="jdbc:mysql://localhost:23306/ulticode" \
- *      -Ddb.user="root" \
- *      -Ddb.password="ulticode2024" \
+ *      -Ddb.user="<your-db-user>" \
+ *      -Ddb.password="<your-db-password>" \
  *      com.ulticode.recommend.core.OfflineEvaluationRunner
  * </pre>
  */
@@ -71,9 +71,9 @@ public class OfflineEvaluationRunner {
         String dbUrl = System.getProperty("db.url",
                 System.getenv().getOrDefault("DB_URL", "jdbc:mysql://localhost:23306/ulticode"));
         String dbUser = System.getProperty("db.user",
-                System.getenv().getOrDefault("DB_USER", "root"));
+                System.getenv().getOrDefault("DB_USER", ""));
         String dbPassword = System.getProperty("db.password",
-                System.getenv().getOrDefault("DB_PASSWORD", "ulticode2024"));
+                System.getenv().getOrDefault("DB_PASSWORD", ""));
         int k = Integer.parseInt(System.getProperty("k", String.valueOf(DEFAULT_K)));
 
         new OfflineEvaluationRunner(dbUrl, dbUser, dbPassword, k).run();

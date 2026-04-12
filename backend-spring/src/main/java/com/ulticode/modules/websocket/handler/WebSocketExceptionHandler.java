@@ -92,6 +92,6 @@ public class WebSocketExceptionHandler {
       }
     }
 
-    return WebSocketErrorMessage.from(ErrorCode.UNKNOWN_ERROR, "An unexpected error occurred: " + e.getMessage());
+    return WebSocketErrorMessage.from(ErrorCode.UNKNOWN_ERROR, "An unexpected error occurred. Please try again.");
   }
 }

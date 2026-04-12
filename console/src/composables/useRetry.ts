@@ -1,4 +1,4 @@
-import { ref, computed, type Ref } from "vue";
+import { ref, computed, onScopeDispose, type Ref } from "vue";
 
 /**
  * Retry configuration options
@@ -74,6 +74,10 @@ export function useRetry(options: RetryOptions = {}) {
 
   // Countdown interval
   let countdownInterval: ReturnType<typeof setInterval> | null = null;
+
+  onScopeDispose(() => {
+    clearCountdown();
+  });
 
   /**
    * Clear countdown interval

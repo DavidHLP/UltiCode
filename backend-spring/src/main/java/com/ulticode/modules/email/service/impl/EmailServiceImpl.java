@@ -101,12 +101,11 @@ public class EmailServiceImpl implements EmailService {
 
             return toLogDTO(emailLog);
         } catch (Exception e) {
-            String errorMessage = e.getMessage();
-            log.error("Failed to send email to {}: {}", dto.getTo(), errorMessage);
+            log.error("Failed to send email to {}: {}", dto.getTo(), e.getMessage(), e);
 
             // Update log as failed
             emailLog.setStatus(EmailStatus.FAILED);
-            emailLog.setError(errorMessage);
+            emailLog.setError("Failed to send email");
             logMapper.updateById(emailLog);
 
             return toLogDTO(emailLog);

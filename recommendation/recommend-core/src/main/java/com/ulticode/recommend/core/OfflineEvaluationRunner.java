@@ -8,6 +8,8 @@ import com.ulticode.recommend.core.model.RecommendItem;
 import com.ulticode.recommend.core.model.UserProfile;
 import com.ulticode.recommend.core.rank.RankStrategy;
 import com.ulticode.recommend.core.rank.RuleRankStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import com.ulticode.recommend.core.recall.CFRecallStrategy;
 import com.ulticode.recommend.core.recall.ColdStartStrategy;
 import com.ulticode.recommend.core.recall.ContentRecallStrategy;
@@ -53,6 +55,7 @@ import java.util.stream.Collectors;
  * </pre>
  */
 public class OfflineEvaluationRunner {
+    private static final Logger log = LoggerFactory.getLogger(OfflineEvaluationRunner.class);
 
     private static final int DEFAULT_K = 10;
     private static final double STRONG_TAG_THRESHOLD = 0.7;
@@ -135,8 +138,7 @@ public class OfflineEvaluationRunner {
             printResults(results);
 
         } catch (SQLException e) {
-            System.err.println("Database error: " + e.getMessage());
-            e.printStackTrace();
+            log.error("Database error", e);
         }
     }
 

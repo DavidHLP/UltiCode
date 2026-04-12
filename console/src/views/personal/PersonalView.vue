@@ -165,15 +165,18 @@ onMounted(async () => {
         skillsData.value = data.skills;
       })
       .catch((e) => {
-        console.error("Failed to load skills data", e);
+        if (import.meta.env.DEV) {
+          console.error("Failed to load skills data", e);
+        }
       })
       .finally(() => {
         skillsLoading.value = false;
       });
   } catch (e) {
-    console.error("[PersonalView] Failed to load profile data", e);
     if (import.meta.env.DEV) {
+      console.error("[PersonalView] Failed to load profile data", e);
       console.error("[PersonalView] Error details:", e);
+    }
     }
   } finally {
     loading.value = false;

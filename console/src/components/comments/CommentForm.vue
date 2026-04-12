@@ -1,22 +1,27 @@
 <template>
   <form @submit.prevent="submit" class="w-full">
+    <!-- Terminal-styled comment input container -->
     <div
-      class="rounded-none border border-muted-foreground/10 bg-background focus-within:ring-1 focus-within:ring-primary/30 transition-all overflow-hidden"
+      class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] focus-within:border-[var(--accent-electric)] focus-within:ring-1 focus-within:ring-[var(--accent-electric)]/30 transition-all duration-200"
     >
+      <!-- Textarea area -->
       <Textarea
         v-model="content"
         :placeholder="t('forum.comments.placeholder')"
-        class="min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-3 text-sm placeholder:text-muted-foreground/50 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 font-medium"
+        class="min-h-[100px] w-full resize-none border-0 bg-transparent px-4 py-3 text-sm placeholder:text-[var(--silver-400)]/60 focus-visible:ring-0 focus-visible:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50 font-[family-name:var(--font-mono)] leading-relaxed"
       />
+
+      <!-- Action bar -->
       <div
-        class="flex items-center justify-between px-3 py-2 bg-muted/20 border-t border-muted-foreground/5"
+        class="flex items-center justify-between px-3 py-2 bg-[var(--surface-sunken)] border-t border-[var(--silver-200)] dark:border-[var(--silver-300)]"
       >
-        <div class="flex items-center gap-0.5">
+        <!-- Left: Attachment buttons -->
+        <div class="flex items-center gap-1">
           <Button
             type="button"
             variant="ghost"
             size="icon"
-            class="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+            class="h-8 w-8 text-[var(--silver-500)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors duration-200"
           >
             <ImageIcon class="h-4 w-4" />
           </Button>
@@ -24,26 +29,29 @@
             type="button"
             variant="ghost"
             size="icon"
-            class="h-8 w-8 rounded-full text-muted-foreground hover:text-primary hover:bg-primary/5 transition-colors"
+            class="h-8 w-8 text-[var(--silver-500)] hover:text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors duration-200"
           >
             <Type class="h-4 w-4" />
           </Button>
         </div>
+
+        <!-- Right: Action buttons -->
         <div class="flex items-center gap-2">
           <Button
             v-if="onCancel"
             type="button"
             variant="ghost"
             size="sm"
-            class="rounded-full px-4 h-8 text-[12px] font-bold text-muted-foreground hover:bg-muted"
+            class="h-8 px-3 font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider"
             @click="onCancel"
           >
             {{ t("common.actions.cancel") }}
           </Button>
           <Button
             type="submit"
+            variant="default"
             size="sm"
-            class="rounded-full px-5 h-8 text-[12px] font-bold shadow-sm"
+            class="h-8 px-4 font-[family-name:var(--font-mono)] text-xs uppercase tracking-wider"
             :disabled="!content.trim()"
           >
             {{ t("forum.comments.submit") }}

@@ -57,9 +57,9 @@ watch(
   (postId) => {
     void loadThread(postId);
     if (postId && useAuthStore().isAuthenticated) {
-      recordForumView(postId).catch((e) =>
-        console.error("Failed to record view", e),
-      );
+      recordForumView(postId).catch(() => {
+        // Non-critical analytics — silently ignore CSRF rotation / transient failures
+      });
     }
   },
   { immediate: true },

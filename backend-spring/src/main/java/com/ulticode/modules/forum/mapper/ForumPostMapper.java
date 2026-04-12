@@ -185,4 +185,14 @@ public interface ForumPostMapper extends BaseMapper<ForumPost> {
      */
     @Select("SELECT * FROM forum_posts WHERE (title LIKE CONCAT('%', #{keyword}, '%') OR excerpt LIKE CONCAT('%', #{keyword}, '%')) AND is_deleted = 0 ORDER BY created_at DESC LIMIT #{limit}")
     List<ForumPost> searchPosts(@Param("keyword") String keyword, @Param("limit") int limit);
+
+    /**
+     * Update vote state on a post.
+     *
+     * @param postId    the post ID
+     * @param voteState the new vote state (upvoted, downvoted, neutral)
+     * @return number of rows affected
+     */
+    @Update("UPDATE forum_posts SET vote_state = #{voteState} WHERE id = #{postId} AND is_deleted = 0")
+    int updateVoteState(@Param("postId") String postId, @Param("voteState") String voteState);
 }

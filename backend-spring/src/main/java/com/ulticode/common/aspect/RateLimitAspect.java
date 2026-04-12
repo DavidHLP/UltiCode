@@ -76,13 +76,15 @@ public class RateLimitAspect {
         }
 
         HttpServletRequest request = attributes.getRequest();
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getHeader("X-Real-IP");
+
+        // Prefer X-Real-IP (set by nginx, not spoofable by clients)
+        String ip = request.getHeader("X-Real-IP");
+        if (ip != null && !ip.isEmpty() && !"unknown".equalsIgnoreCase(ip)) {
+            return ip.contains(",") ? ip.split(",")[0].trim() : ip;
         }
-        if (ip == null || ip.isEmpty() || "unknown".equalsIgnoreCase(ip)) {
-            ip = request.getRemoteAddr();
-        }
-        return ip;
+
+        // Fallback to remote address (direct connection)
+        ip = request.getRemoteAddr();
+        return ip != null ? ip : "unknown";
     }
 }

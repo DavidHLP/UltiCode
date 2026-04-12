@@ -170,7 +170,7 @@ public class SecurityConfig {
 
         // Exposed headers
         config.setExposedHeaders(java.util.Arrays.asList(
-                "Authorization", "Set-Cookie", "Content-Disposition"
+                "Authorization", "Set-Cookie", "Content-Disposition", "X-New-CSRF-Token"
         ));
 
         // Max age for preflight cache (1 hour)

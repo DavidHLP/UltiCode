@@ -8,7 +8,7 @@ import axios, {
 } from "axios";
 import { LOCALE_HEADER_KEY } from "@/i18n";
 import { getActiveLocale } from "@/i18n/utils/locale";
-import { getCsrfToken } from "@/utils/csrf";
+import { csrfManager, getCsrfToken } from "@/utils/csrf";
 
 /**
  * Standard API Response wrapper (matches backend Result<T>)
@@ -64,6 +64,7 @@ interface RequestMetadata {
   requestId: string;
   startTime: number;
   retryCount: number;
+  csrfRetried?: boolean;
 }
 
 /**
@@ -223,6 +224,12 @@ service.interceptors.response.use(
       });
     }
 
+    // Refresh CSRF token from rotation header (backend rotates after each state-changing request)
+    const newCsrfToken = response.headers["x-new-csrf-token"];
+    if (newCsrfToken) {
+      csrfManager.refreshFromResponse({ csrfToken: newCsrfToken });
+    }
+
     // Return full response for download requests, unwrapped data otherwise
     if (config.skipResponseUnwrap) {
       return response;
@@ -267,6 +274,42 @@ service.interceptors.response.use(
       if (isDevelopment) {
       }
       return Promise.reject(new ApiError("Request canceled", -1));
+    }
+
+    // Handle CSRF token rotation mismatch — fetch fresh token and retry once
+    if (
+      error.response?.status === 403 &&
+      config &&
+      !config._metadata?.csrfRetried
+    ) {
+      const errorData = error.response.data as Record<string, unknown> | undefined;
+      const isCsrfError =
+        typeof errorData?.message === "string" &&
+        (errorData.message.includes("CSRF") || errorData.code === 40300);
+
+      if (isCsrfError) {
+        try {
+          // Fetch fresh CSRF token (GET request, no CSRF validation needed)
+          const meResponse = await service.get("/auth/me", {
+            skipErrorHandler: true,
+          });
+          if (meResponse?.csrfToken) {
+            csrfManager.refreshFromResponse(meResponse);
+          }
+
+          // Retry original request once with fresh token
+          config._metadata = {
+            requestId: config._metadata?.requestId || generateRequestId(),
+            startTime: Date.now(),
+            retryCount: 0,
+            csrfRetried: true,
+          };
+
+          return service(config);
+        } catch {
+          // Token refresh failed — fall through to normal error handling
+        }
+      }
     }
 
     // Retry logic for network errors and 5xx

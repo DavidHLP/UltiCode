@@ -6,10 +6,12 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.RecordViewRequest;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
+import com.ulticode.modules.solution.dto.UpdateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
 import com.ulticode.modules.solution.service.SolutionService;
 
@@ -200,5 +202,49 @@ public class SolutionController {
 
         List<SolutionCommentVO> comments = solutionService.getComments(solutionId);
         return Result.success(comments);
+    }
+
+    @Operation(summary = "Create solution comment", description = "Add a comment to a solution")
+    @PostMapping("/api/solutions/{solutionId}/comments")
+    public Result<SolutionCommentVO> createComment(
+            @Parameter(description = "Solution ID")
+            @PathVariable String solutionId,
+            @Valid @RequestBody CreateSolutionCommentDTO dto) {
+
+        if (!SecurityUtil.isAuthenticated()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        String userId = SecurityUtil.getCurrentUserId();
+        SolutionCommentVO comment = solutionService.createComment(solutionId, userId, dto);
+        return Result.success(comment);
+    }
+
+    @Operation(summary = "Update solution comment", description = "Edit an existing comment")
+    @PatchMapping("/api/solutions/comments/{commentId}")
+    public Result<SolutionCommentVO> updateComment(
+            @Parameter(description = "Comment ID")
+            @PathVariable String commentId,
+            @Valid @RequestBody UpdateSolutionCommentDTO dto) {
+
+        if (!SecurityUtil.isAuthenticated()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        String userId = SecurityUtil.getCurrentUserId();
+        SolutionCommentVO comment = solutionService.updateComment(commentId, userId, dto);
+        return Result.success(comment);
+    }
+
+    @Operation(summary = "Delete solution comment", description = "Soft-delete a comment")
+    @DeleteMapping("/api/solutions/comments/{commentId}")
+    public Result<Void> deleteComment(
+            @Parameter(description = "Comment ID")
+            @PathVariable String commentId) {
+
+        if (!SecurityUtil.isAuthenticated()) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        String userId = SecurityUtil.getCurrentUserId();
+        solutionService.deleteComment(commentId, userId);
+        return Result.success();
     }
 }

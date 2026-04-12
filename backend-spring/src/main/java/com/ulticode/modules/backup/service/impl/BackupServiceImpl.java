@@ -142,7 +142,7 @@ public class BackupServiceImpl implements BackupService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Backup is not completed yet");
         }
 
-        Path filePath = Paths.get(backupDir, backup.getFilename());
+        Path filePath = validateBackupFilePath(backup.getFilename());
         File file = filePath.toFile();
 
         if (!file.exists()) {
@@ -162,7 +162,7 @@ public class BackupServiceImpl implements BackupService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Cannot restore from a non-completed backup");
         }
 
-        Path filePath = Paths.get(backupDir, backup.getFilename());
+        Path filePath = validateBackupFilePath(backup.getFilename());
         if (!Files.exists(filePath)) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Backup file not found");
         }
@@ -173,15 +173,15 @@ public class BackupServiceImpl implements BackupService {
             // Parse database connection info from datasource URL
             DatabaseConnectionInfo dbInfo = parseDatasourceUrl(datasourceUrl);
 
-            // Build mysql restore command
+            // Build mysql restore command — use MYSQL_PWD env var to avoid credential exposure in process args
             ProcessBuilder processBuilder = new ProcessBuilder(
                     "mysql",
                     "--host=" + dbInfo.host,
                     "--port=" + dbInfo.port,
                     "--user=" + datasourceUsername,
-                    "--password=" + datasourcePassword,
                     dbInfo.database
             );
+            processBuilder.environment().put("MYSQL_PWD", datasourcePassword);
 
             processBuilder.redirectInput(filePath.toFile());
             processBuilder.redirectErrorStream(true);
@@ -215,12 +215,12 @@ public class BackupServiceImpl implements BackupService {
                 return toVO(backup);
             } else {
                 log.error("Database restore failed with exit code: {}. Output: {}", exitCode, output);
-                throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Database restore failed: " + output);
+                throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Database restore failed. Check server logs for details.");
             }
         } catch (IOException | InterruptedException e) {
             log.error("Failed to restore database from backup: {}", id, e);
             Thread.currentThread().interrupt();
-            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to restore database: " + e.getMessage());
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to restore database. Check server logs for details.");
         }
     }
 
@@ -232,7 +232,7 @@ public class BackupServiceImpl implements BackupService {
         }
 
         // Delete the file from disk
-        Path filePath = Paths.get(backupDir, backup.getFilename());
+        Path filePath = validateBackupFilePath(backup.getFilename());
         try {
             Files.deleteIfExists(filePath);
         } catch (IOException e) {
@@ -266,19 +266,19 @@ public class BackupServiceImpl implements BackupService {
 
             Path filePath = Paths.get(backupDir, backup.getFilename());
 
-            // Build mysqldump command
+            // Build mysqldump command — use MYSQL_PWD env var to avoid credential exposure
             ProcessBuilder processBuilder = new ProcessBuilder(
                     "mysqldump",
                     "--host=" + dbInfo.host,
                     "--port=" + dbInfo.port,
                     "--user=" + datasourceUsername,
-                    "--password=" + datasourcePassword,
                     "--single-transaction",
                     "--routines",
                     "--triggers",
                     "--add-drop-table",
                     dbInfo.database
             );
+            processBuilder.environment().put("MYSQL_PWD", datasourcePassword);
 
             processBuilder.redirectOutput(filePath.toFile());
             processBuilder.redirectErrorStream(true);
@@ -368,6 +368,21 @@ public class BackupServiceImpl implements BackupService {
         }
     }
 
+    /**
+     * Validate backup filename and ensure the resolved path stays within the backup directory.
+     */
+    private Path validateBackupFilePath(String filename) {
+        if (filename == null || filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid backup filename");
+        }
+        Path backupRoot = Paths.get(backupDir).normalize();
+        Path filePath = Paths.get(backupDir, filename).normalize();
+        if (!filePath.startsWith(backupRoot)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Backup path traversal detected");
+        }
+        return filePath;
+    }
+
     private DatabaseConnectionInfo parseDatasourceUrl(String url) {
         // Parse JDBC URL: jdbc:mysql://host:port/database
         DatabaseConnectionInfo info = new DatabaseConnectionInfo();
@@ -401,9 +416,8 @@ public class BackupServiceImpl implements BackupService {
                 }
             }
         } catch (Exception e) {
-            log.warn("Failed to parse datasource URL: {}, using defaults", url);
-            info.host = "localhost";
-            info.database = "ulticode";
+            log.error("Failed to parse datasource URL: {}", url, e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to parse database connection configuration");
         }
 
         return info;

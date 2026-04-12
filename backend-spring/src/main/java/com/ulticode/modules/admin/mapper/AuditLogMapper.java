@@ -41,4 +41,20 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate,
         @Param("performerId") String performerId);
+
+    /**
+     * Count distinct active users per day within a date range.
+     * Replaces per-day loop queries to eliminate N+1 query problem.
+     *
+     * @param startDate start of the range (inclusive)
+     * @param endDate   end of the range (exclusive)
+     * @return list of maps with "date" (DATE) and "count" (COUNT DISTINCT user_id)
+     */
+    @Select("SELECT DATE(created_at) as date, COUNT(DISTINCT performer_id) as count "
+        + "FROM audit_logs "
+        + "WHERE created_at >= #{startDate} AND created_at < #{endDate} "
+        + "GROUP BY DATE(created_at) ORDER BY date")
+    List<Map<String, Object>> countDailyActiveUsers(
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate);
 }

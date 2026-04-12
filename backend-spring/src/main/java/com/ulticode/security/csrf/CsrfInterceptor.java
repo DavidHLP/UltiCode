@@ -57,13 +57,16 @@ public class CsrfInterceptor implements HandlerInterceptor {
             throw new BusinessException(ErrorCode.FORBIDDEN, "CSRF token is required");
         }
 
-        // 验证 token
-        if (!csrfService.validateToken(userId, csrfToken)) {
+        // 验证 token 并轮换
+        String newToken = csrfService.validateAndRotateToken(userId, csrfToken);
+        if (newToken == null) {
             log.warn("Invalid CSRF token for user {} on {} {}", userId, method, path);
             throw new BusinessException(ErrorCode.FORBIDDEN, "Invalid CSRF token");
         }
 
-        log.debug("CSRF validation passed for user {} on {} {}", userId, method, path);
+        // Return new token so the client can update its stored token
+        response.setHeader("X-New-CSRF-Token", newToken);
+        log.debug("CSRF validation and rotation passed for user {} on {} {}", userId, method, path);
         return true;
     }
 }

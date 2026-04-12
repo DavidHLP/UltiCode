@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import { useDashboardStore } from '@/stores/admin/dashboard'
@@ -39,10 +39,14 @@ const formattedDate = computed(() => {
 })
 
 // Update time every minute
+let timeInterval: ReturnType<typeof setInterval>
 onMounted(() => {
-  setInterval(() => {
+  timeInterval = setInterval(() => {
     currentTime.value = new Date()
   }, 60000)
+})
+onUnmounted(() => {
+  clearInterval(timeInterval)
 })
 
 // Computed stats from API data

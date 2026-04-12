@@ -1,5 +1,6 @@
 package com.ulticode.modules.auth.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
@@ -54,6 +55,7 @@ public class AuthController {
 
     @Operation(summary = "Login", description = "Authenticate user with username and password")
     @PostMapping("/login")
+    @RateLimit(key = "login", limit = 10, period = 60)
     public Result<LoginResponse> login(
             @Valid @RequestBody LoginDTO loginDTO,
             HttpServletResponse response) {
@@ -63,6 +65,7 @@ public class AuthController {
 
     @Operation(summary = "Register", description = "Register a new user account")
     @PostMapping("/register")
+    @RateLimit(key = "register", limit = 5, period = 60)
     public Result<LoginResponse> register(
             @Valid @RequestBody RegisterDTO registerDTO,
             HttpServletResponse response) {
@@ -135,8 +138,8 @@ public class AuthController {
 
     @Operation(summary = "GitHub callback", description = "Handle GitHub OAuth callback")
     @GetMapping("/github/callback")
-    public void githubCallback(@RequestParam String code, HttpServletResponse response) throws IOException {
-        oauthService.handleGithubCallback(code, response);
+    public void githubCallback(@RequestParam String code, @RequestParam String state, HttpServletResponse response) throws IOException {
+        oauthService.handleGithubCallback(code, state, response);
         response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 
@@ -149,8 +152,8 @@ public class AuthController {
 
     @Operation(summary = "Google callback", description = "Handle Google OAuth callback")
     @GetMapping("/google/callback")
-    public void googleCallback(@RequestParam String code, HttpServletResponse response) throws IOException {
-        oauthService.handleGoogleCallback(code, response);
+    public void googleCallback(@RequestParam String code, @RequestParam String state, HttpServletResponse response) throws IOException {
+        oauthService.handleGoogleCallback(code, state, response);
         response.sendRedirect(frontendUrl + "/?oauth=success");
     }
 

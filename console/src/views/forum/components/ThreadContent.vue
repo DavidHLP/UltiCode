@@ -315,6 +315,7 @@ async function handleShare() {
               <a
                 :href="media.url"
                 target="_blank"
+                rel="noopener noreferrer"
                 class="mt-2 text-[var(--accent-electric)] hover:underline text-xs inline-flex items-center gap-1"
               >
                 {{ t("forum.actions.copyLink") }} <Share2 class="w-3 h-3" />

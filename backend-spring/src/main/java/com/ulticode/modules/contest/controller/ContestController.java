@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -44,7 +45,7 @@ public class ContestController {
     @SecurityRequirement(name = "Bearer")
     @PostMapping
     public Result<ContestVO> createContest(
-            @RequestBody CreateContestDTO dto) {
+            @Valid @RequestBody CreateContestDTO dto) {
 
         String userId = getCurrentUserIdOrThrow();
         ContestVO contest = contestService.createContest(dto, userId);
@@ -65,7 +66,7 @@ public class ContestController {
     public Result<ContestVO> updateContest(
             @Parameter(description = "Contest ID")
             @PathVariable String id,
-            @RequestBody UpdateContestDTO dto) {
+            @Valid @RequestBody UpdateContestDTO dto) {
 
         ContestVO contest = contestService.updateContest(id, dto);
         return Result.success(contest);

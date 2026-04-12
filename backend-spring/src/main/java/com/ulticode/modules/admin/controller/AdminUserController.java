@@ -4,20 +4,20 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
+import com.ulticode.modules.admin.dto.BanUserRequest;
+import com.ulticode.modules.admin.dto.BulkUserActionRequest;
+import com.ulticode.modules.admin.dto.ResetPasswordRequest;
 import com.ulticode.modules.admin.service.AdminUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
-/**
- * Admin controller for user management
- */
 @Tag(name = "Admin - Users", description = "用户管理接口")
 @RestController
 @RequestMapping("/admin/users")
@@ -46,9 +46,9 @@ public class AdminUserController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> banUser(
             @PathVariable String id,
-            @RequestBody(required = false) Map<String, String> body) {
-        String reason = body != null ? body.get("reason") : null;
-        String until = body != null ? body.get("until") : null;
+            @RequestBody(required = false) BanUserRequest request) {
+        String reason = request != null ? request.getReason() : null;
+        String until = request != null ? request.getUntil() : null;
         return Result.success(adminUserService.banUser(id, reason, until));
     }
 
@@ -64,37 +64,29 @@ public class AdminUserController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> resetPassword(
             @PathVariable String id,
-            @RequestBody Map<String, String> body) {
-        String newPassword = body.get("password");
-        adminUserService.resetPassword(id, newPassword);
+            @Valid @RequestBody ResetPasswordRequest request) {
+        adminUserService.resetPassword(id, request.getPassword());
         return Result.success();
     }
 
     @Operation(summary = "Bulk ban users", description = "Ban multiple users at once")
     @PostMapping("/bulk-ban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<List<AdminUserService.BanResult>> bulkBan(@RequestBody Map<String, Object> body) {
-        @SuppressWarnings("unchecked")
-        List<String> ids = (List<String>) body.get("ids");
-        String reason = (String) body.get("reason");
-        return Result.success(adminUserService.bulkBan(ids, reason));
+    public Result<List<AdminUserService.BanResult>> bulkBan(@Valid @RequestBody BulkUserActionRequest request) {
+        return Result.success(adminUserService.bulkBan(request.getIds(), request.getReason()));
     }
 
     @Operation(summary = "Bulk unban users", description = "Unban multiple users at once")
     @PostMapping("/bulk-unban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<List<AdminUserService.BanResult>> bulkUnban(@RequestBody Map<String, Object> body) {
-        @SuppressWarnings("unchecked")
-        List<String> ids = (List<String>) body.get("ids");
-        return Result.success(adminUserService.bulkUnban(ids));
+    public Result<List<AdminUserService.BanResult>> bulkUnban(@Valid @RequestBody BulkUserActionRequest request) {
+        return Result.success(adminUserService.bulkUnban(request.getIds()));
     }
 
     @Operation(summary = "Bulk delete users", description = "Delete multiple users at once")
     @DeleteMapping("/bulk-delete")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
-    public Result<List<AdminUserService.DeleteResult>> bulkDelete(@RequestBody Map<String, Object> body) {
-        @SuppressWarnings("unchecked")
-        List<String> ids = (List<String>) body.get("ids");
-        return Result.success(adminUserService.bulkDelete(ids));
+    public Result<List<AdminUserService.DeleteResult>> bulkDelete(@Valid @RequestBody BulkUserActionRequest request) {
+        return Result.success(adminUserService.bulkDelete(request.getIds()));
     }
 }

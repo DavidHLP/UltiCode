@@ -44,10 +44,15 @@ public class RecommendController {
         try {
             RecommendResponse<RecommendResult> response = recommendService.recommend(request);
             return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            log.warn("Invalid recommendation request: {}", e.getMessage());
+            RecommendResponse<RecommendResult> errorResponse = RecommendResponse.fail(
+                    400, "Invalid request parameters");
+            return ResponseEntity.badRequest().body(errorResponse);
         } catch (Exception e) {
             log.error("Error processing recommendation request", e);
             RecommendResponse<RecommendResult> errorResponse = RecommendResponse.fail(
-                    500, "Internal server error: " + e.getMessage());
+                    500, "Internal server error");
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }

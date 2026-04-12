@@ -9,7 +9,9 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 
 import java.time.Instant;
 import java.util.HashMap;
@@ -116,6 +118,13 @@ public class GlobalExceptionHandler {
      * @param ex the Exception
      * @return ResponseEntity containing the error Result
      */
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ResponseEntity<Result<Void>> handleNoResourceFoundException(NoResourceFoundException ex) {
+        String traceId = "t-" + Instant.now().toEpochMilli();
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Result.error(ErrorCode.NOT_FOUND.getCode(), "Not found", traceId));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Result<Void>> handleGenericException(Exception ex) {
         log.error("Unexpected error: ", ex);
@@ -127,5 +136,18 @@ public class GlobalExceptionHandler {
                 traceId
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(result);
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<Result<Void>> handleMethodNotSupported(HttpRequestMethodNotSupportedException ex) {
+        log.warn("Method not supported: {}", ex.getMessage());
+
+        String traceId = "t-" + Instant.now().toEpochMilli();
+        Result<Void> result = Result.error(
+                ErrorCode.METHOD_NOT_ALLOWED.getCode(),
+                "Method not allowed: " + ex.getMethod(),
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(result);
     }
 }

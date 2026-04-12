@@ -28,6 +28,7 @@ public enum ErrorCode {
     UNAUTHORIZED(40100, "Unauthorized", HttpStatus.UNAUTHORIZED),
     FORBIDDEN(40300, "Forbidden", HttpStatus.FORBIDDEN),
     NOT_FOUND(40400, "Not found", HttpStatus.NOT_FOUND),
+    METHOD_NOT_ALLOWED(40500, "Method not allowed", HttpStatus.METHOD_NOT_ALLOWED),
     CONFLICT(40900, "Conflict", HttpStatus.CONFLICT),
     TOO_MANY_REQUESTS(42900, "Too many requests", HttpStatus.TOO_MANY_REQUESTS),
 
@@ -57,6 +58,9 @@ public enum ErrorCode {
     SUBMISSION_RATE_LIMITED(40003, "Too many submissions, please try again later", HttpStatus.TOO_MANY_REQUESTS),
     SUBMISSION_CODE_EMPTY(40004, "Code cannot be empty", HttpStatus.BAD_REQUEST),
     SUBMISSION_LANGUAGE_UNSUPPORTED(40005, "Unsupported language", HttpStatus.BAD_REQUEST),
+    SANDBOX_ERROR(40006, "Code execution sandbox error", HttpStatus.INTERNAL_SERVER_ERROR),
+    SANDBOX_IMAGE_NOT_FOUND(40007, "Sandbox Docker image not found", HttpStatus.INTERNAL_SERVER_ERROR),
+    SANDBOX_TIMEOUT(40008, "Code execution timed out", HttpStatus.REQUEST_TIMEOUT),
 
     // Solution module (5xxxx)
     SOLUTION_NOT_FOUND(50001, "Solution not found", HttpStatus.NOT_FOUND),

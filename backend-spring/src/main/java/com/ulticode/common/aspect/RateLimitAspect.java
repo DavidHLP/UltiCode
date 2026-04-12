@@ -10,12 +10,14 @@ import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -28,7 +30,12 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class RateLimitAspect {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private static final String RATE_LIMIT_SCRIPT =
+            "local count = redis.call('INCR', KEYS[1]) " +
+            "redis.call('EXPIRE', KEYS[1], ARGV[1]) " +
+            "return count";
+
+    private final StringRedisTemplate redisTemplate;
 
     @Around("@annotation(com.ulticode.common.annotation.RateLimit)")
     public Object enforceRateLimit(ProceedingJoinPoint joinPoint) throws Throwable {
@@ -39,16 +46,14 @@ public class RateLimitAspect {
         String key = generateKey(rateLimit, joinPoint);
         String redisKey = "rate-limit:" + key;
 
-        Long count = redisTemplate.opsForValue().increment(redisKey);
-
-        if (count != null && count == 1) {
-            redisTemplate.expire(redisKey, rateLimit.period(), TimeUnit.SECONDS);
-        }
+        DefaultRedisScript<Long> script = new DefaultRedisScript<>(RATE_LIMIT_SCRIPT, Long.class);
+        Long count = redisTemplate.execute(script, List.of(redisKey), String.valueOf(rateLimit.period()));
 
         if (count != null && count > rateLimit.limit()) {
-            log.warn("Rate limit exceeded for key: {}", key);
+            Long ttl = redisTemplate.getExpire(redisKey, TimeUnit.SECONDS);
+            log.warn("Rate limit exceeded for key: {}, ttl: {}s", key, ttl);
             throw new BusinessException(ErrorCode.TOO_MANY_REQUESTS,
-                "Rate limit exceeded. Please try again later.");
+                    "Rate limit exceeded. Please try again in " + (ttl != null ? ttl : rateLimit.period()) + " seconds.");
         }
 
         return joinPoint.proceed();

@@ -32,6 +32,7 @@ public enum ErrorCode {
   UNAUTHORIZED(40100),
   FORBIDDEN(40300),
   NOT_FOUND(40400),
+  METHOD_NOT_ALLOWED(40500),
   CONFLICT(40900),
 
   // Auth module (1xxxx)

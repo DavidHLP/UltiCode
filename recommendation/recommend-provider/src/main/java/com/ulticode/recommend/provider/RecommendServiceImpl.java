@@ -60,7 +60,8 @@ public class RecommendServiceImpl implements RecommendService {
     @Cacheable(
             value = "recommendations",
             key = "#request.userId + '_' + #request.scenario + '_' + #request.size",
-            condition = "#request != null && #request.userId != null && !#request.userId.isBlank()"
+            condition = "#request != null && #request.userId != null && !#request.userId.isBlank()",
+            sync = true
     )
     public RecommendResponse<RecommendResult> recommend(RecommendRequest request) {
         log.info("Received recommendation request for user: {}", request.getUserId());
@@ -98,7 +99,7 @@ public class RecommendServiceImpl implements RecommendService {
 
         } catch (Exception e) {
             log.error("Error generating recommendations for user: {}", request.getUserId(), e);
-            return RecommendResponse.fail(500, "Internal server error: " + e.getMessage());
+            return RecommendResponse.fail(500, "Internal server error");
         }
     }
 

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { renderMarkdown } from "@/utils/markdown";
+import { sanitizeHtml } from "@/utils/sanitize";
 import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 
@@ -61,7 +62,7 @@ const handleClick = (e: MouseEvent) => {
   <div class="markdown-view" @click="handleClick">
     <div
       class="prose prose-sm dark:prose-invert max-w-none w-full bg-transparent"
-      v-html="renderMarkdown(props.content)"
+      v-html="sanitizeHtml(renderMarkdown(props.content))"
     ></div>
   </div>
 </template>

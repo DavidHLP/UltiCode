@@ -40,9 +40,13 @@ export const operateEdgeOperation = async (
   targetType: EdgeOperationTargetType,
   targetId: string,
 ): Promise<EdgeOperationResponse> => {
-  return apiPost<EdgeOperationResponse>(`/edge-operations`, {
-    operationType,
-    targetType,
-    targetId,
-  });
+  return apiPost<EdgeOperationResponse>(
+    `/edge-operations`,
+    {
+      operationType,
+      targetType,
+      targetId,
+    },
+    { retry: 0 },
+  );
 };

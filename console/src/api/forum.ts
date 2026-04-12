@@ -11,15 +11,18 @@ import type {
 
 export async function fetchForumPosts(): Promise<ForumPost[]> {
   const response = await apiGet<
-    Array<{
-      userId: string;
-      authorUsername?: string;
-      authorAvatar?: string;
-    } & Omit<ForumPost, "author">>
+    | Array<{
+        userId: string;
+        authorUsername?: string;
+        authorAvatar?: string;
+      } & Omit<ForumPost, "author">>
+    | { items: Array<{ userId: string; authorUsername?: string; authorAvatar?: string } & Omit<ForumPost, "author">> }
   >("/forum/posts");
 
-  // Transform flat author fields to nested author object
-  return response.map((post) => ({
+  // Backend returns PageResult(items=[...]) — extract items array
+  const rows = Array.isArray(response) ? response : response.items;
+
+  return rows.map((post) => ({
     ...post,
     author: {
       id: post.userId,
@@ -54,17 +57,20 @@ export async function fetchCommunityPosts(
   options?: { sortBy?: "hot" | "new" | "top" },
 ): Promise<ForumPost[]> {
   const response = await apiGet<
-    Array<{
-      userId: string;
-      authorUsername?: string;
-      authorAvatar?: string;
-    } & Omit<ForumPost, "author">>
+    | Array<{
+        userId: string;
+        authorUsername?: string;
+        authorAvatar?: string;
+      } & Omit<ForumPost, "author">>
+    | { items: Array<{ userId: string; authorUsername?: string; authorAvatar?: string } & Omit<ForumPost, "author">> }
   >(`/forum/communities/${slug}/posts`, {
     params: options?.sortBy ? { sortBy: options.sortBy } : undefined,
   });
 
-  // Transform flat author fields to nested author object
-  return response.map((post) => ({
+  // Backend returns PageResult(items=[...]) — extract items array
+  const rows = Array.isArray(response) ? response : response.items;
+
+  return rows.map((post) => ({
     ...post,
     author: {
       id: post.userId,
@@ -136,12 +142,13 @@ export async function deleteForumComment(commentId: string): Promise<void> {
 }
 
 export async function recordForumView(postId: string) {
-  // Call the forum-specific view recording endpoint
-  return apiPost(`/forum/posts/${postId}/view`, {});
+  // Non-critical analytics — skip global auth error handler to avoid
+  // clearing the user session on CSRF rotation or transient 403s
+  return apiPost(`/forum/posts/${postId}/view`, {}, { skipErrorHandler: true });
 }
 
 export async function recordForumShare(postId: string) {
-  return apiPost(`/forum/posts/${postId}/share`, {});
+  return apiPost(`/forum/posts/${postId}/share`, {}, { skipErrorHandler: true });
 }
 
 export async function createForumPost(input: {
@@ -175,5 +182,8 @@ export async function deleteForumPost(postId: string): Promise<void> {
 }
 
 export async function fetchMyForumPosts(): Promise<ForumPost[]> {
-  return apiGet<ForumPost[]>("/forum/me/posts");
+  const response = await apiGet<ForumPost[] | { items: ForumPost[] }>(
+    "/forum/me/posts",
+  );
+  return Array.isArray(response) ? response : response.items;
 }

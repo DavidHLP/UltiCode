@@ -152,7 +152,7 @@ export function getTokenFromCookie(): string | null {
  * Get CSRF token — delegates to the canonical implementation in csrf.ts
  * which supports both in-memory and cookie-based token storage.
  */
-export { getCsrfToken } from "@/utils/csrf";
+import { getCsrfToken } from "@/utils/csrf";
 
 function createSocketManager(): SocketManager {
   let client: Client | null = null;

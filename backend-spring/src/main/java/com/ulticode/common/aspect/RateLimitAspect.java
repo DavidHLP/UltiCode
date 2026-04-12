@@ -56,13 +56,16 @@ public class RateLimitAspect {
 
     private String generateKey(RateLimit rateLimit, ProceedingJoinPoint joinPoint) {
         String key = rateLimit.key();
+        String ip = getClientIp();
 
         if (key.isEmpty()) {
             // 使用类名 + 方法名 + IP 作为默认 key
             String className = joinPoint.getTarget().getClass().getSimpleName();
             String methodName = joinPoint.getSignature().getName();
-            String ip = getClientIp();
             key = className + ":" + methodName + ":" + ip;
+        } else {
+            // 显式指定的 key 也需要追加 IP 维度，确保按用户/IP 分别限流
+            key = key + ":" + ip;
         }
 
         return key;

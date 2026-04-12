@@ -53,7 +53,7 @@ public class EdgeOperationsController {
 
     @Operation(summary = "Get interaction stats for a target by path",
             description = "Returns likes, dislikes, favorites count, and the current user's vote status. " +
-                    "Works for both authenticated and anonymous users.")
+                    "Uses authenticated user if available, falls back to anonymous.")
     @GetMapping("/{targetType}/{targetId}")
     public Result<EdgeOperationResponseVO> getInteractionsByPath(
             @Parameter(description = "Target type") @PathVariable EdgeOperationTargetType targetType,

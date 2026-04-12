@@ -332,7 +332,13 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.CONTEST_ALREADY_REGISTERED);
         }
 
-        // Create participant record
+        // Atomically increment registered count with capacity check (prevents race condition)
+        int updated = contestMapper.tryIncrementRegisteredCount(contestId);
+        if (updated == 0) {
+            throw new BusinessException(ErrorCode.CONTEST_FULL);
+        }
+
+        // Create participant record (only after capacity check succeeds)
         ContestParticipant participant = new ContestParticipant();
         participant.setContestId(contestId);
         participant.setUserId(userId);
@@ -341,14 +347,6 @@ public class ContestServiceImpl implements ContestService {
         participant.setIsVirtual(false);
 
         participantMapper.insert(participant);
-
-        // Atomically increment registered count with capacity check (prevents race condition)
-        int updated = contestMapper.tryIncrementRegisteredCount(contestId);
-        if (updated == 0) {
-            // Contest became full between check and insert — rollback participant
-            participantMapper.deleteById(participant.getId());
-            throw new BusinessException(ErrorCode.CONTEST_FULL);
-        }
 
         log.info("User {} registered for contest {}", userId, contestId);
     }

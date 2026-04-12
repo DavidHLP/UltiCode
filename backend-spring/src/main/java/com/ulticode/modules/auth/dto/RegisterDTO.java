@@ -20,12 +20,12 @@ public class RegisterDTO {
     private String username;
 
     /**
-     * Password (8-255 characters, must contain uppercase, lowercase, digit, and special char)
+     * Password (8-255 characters, must contain uppercase, lowercase, and digit)
      */
     @NotBlank(message = "Password is required")
     @Size(min = 8, max = 255, message = "Password must be between 8 and 255 characters")
-    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d).+$",
-            message = "Password must contain at least one lowercase letter, one uppercase letter, and one digit")
+    @Pattern(regexp = "^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)[\\S]+$",
+            message = "Password must contain at least one lowercase letter, one uppercase letter, one digit, and no whitespace")
     private String password;
 
     /**

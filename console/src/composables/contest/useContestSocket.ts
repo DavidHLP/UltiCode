@@ -4,7 +4,8 @@ import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "@/stores/auth";
 import type { RankingEntry } from "@/types/contest";
-import { getTokenFromCookie, getCsrfToken } from "@/lib/socket";
+import { getTokenFromCookie } from "@/lib/socket";
+import { getCsrfToken } from "@/utils/csrf";
 
 // ============================================================================
 // TYPES
@@ -195,12 +196,11 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
   connectionStatus = "connecting";
   notifyStatusChange("connecting");
 
-  // Token is passed via connectHeaders.Authorization (Cookie-based auth)
-  // URL does NOT contain token to prevent log leakage
+  // Auth is handled via httpOnly cookies (withCredentials on SockJS).
+  // Do NOT send Authorization header — httpOnly cookies are sent automatically.
   stompClient = new Client({
     webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/contest`),
     connectHeaders: {
-      Authorization: token ? `Bearer ${token}` : "",
       "X-CSRF-Token": csrfToken || "",
     },
     debug: (str) => {

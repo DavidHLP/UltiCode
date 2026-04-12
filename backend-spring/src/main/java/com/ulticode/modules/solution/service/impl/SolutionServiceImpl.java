@@ -7,9 +7,11 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
+import com.ulticode.modules.solution.dto.UpdateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
 import com.ulticode.modules.solution.entity.SolutionComment;
@@ -124,6 +126,61 @@ public class SolutionServiceImpl implements SolutionService {
         }
 
         return vo;
+    }
+
+    @Override
+    @Transactional
+    public SolutionCommentVO createComment(String solutionId, String userId, CreateSolutionCommentDTO dto) {
+        findById(solutionId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
+
+        SolutionComment comment = new SolutionComment();
+        comment.setId(UUID.randomUUID().toString());
+        comment.setSolutionId(solutionId);
+        comment.setUserId(userId);
+        comment.setContent(dto.getContent());
+        comment.setParentId(dto.getParentId());
+        comment.setCreatedAt(LocalDateTime.now());
+        comment.setUpdatedAt(LocalDateTime.now());
+        comment.setIsFlagged(false);
+        comment.setIsDeleted(false);
+
+        solutionCommentMapper.insert(comment);
+        return toCommentVO(comment);
+    }
+
+    @Override
+    @Transactional
+    public SolutionCommentVO updateComment(String commentId, String userId, UpdateSolutionCommentDTO dto) {
+        SolutionComment comment = solutionCommentMapper.selectById(commentId);
+        if (comment == null || Boolean.TRUE.equals(comment.getIsDeleted())) {
+            throw new BusinessException(ErrorCode.SOLUTION_COMMENT_NOT_FOUND);
+        }
+        if (!comment.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.USER_CANNOT_EDIT_OTHERS);
+        }
+
+        comment.setContent(dto.getContent());
+        comment.setUpdatedAt(LocalDateTime.now());
+        solutionCommentMapper.updateById(comment);
+        return toCommentVO(comment);
+    }
+
+    @Override
+    @Transactional
+    public void deleteComment(String commentId, String userId) {
+        SolutionComment comment = solutionCommentMapper.selectById(commentId);
+        if (comment == null || Boolean.TRUE.equals(comment.getIsDeleted())) {
+            throw new BusinessException(ErrorCode.SOLUTION_COMMENT_NOT_FOUND);
+        }
+        if (!comment.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.USER_CANNOT_EDIT_OTHERS);
+        }
+
+        comment.setIsDeleted(true);
+        comment.setDeletedAt(LocalDateTime.now());
+        comment.setDeletedBy(userId);
+        solutionCommentMapper.updateById(comment);
     }
 
     @Override

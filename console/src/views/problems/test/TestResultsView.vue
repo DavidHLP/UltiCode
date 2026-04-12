@@ -242,7 +242,7 @@ const selectCase = (label: string) => {
                 {{ t("problem.layout.output") }} =
               </div>
               <Input
-                :model-value="activeResult.output"
+                :model-value="activeResult.output ?? activeResult.detail ?? ''"
                 readonly
                 class="font-mono text-xs md:text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
               />

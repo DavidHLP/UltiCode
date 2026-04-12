@@ -6,6 +6,8 @@ export default {
     403: "Permission denied",
     404: "Resource not found",
     409: "Resource conflict",
+    429: "Too many requests. Please wait a moment and try again.",
+    42900: "Too many requests. Please wait a moment and try again.",
     500: "Internal server error",
     networkError: "Network connection failed",
     timeout: "Request timeout",

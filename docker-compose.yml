@@ -37,6 +37,7 @@ services:
     container_name: ulticode-nacos
     ports:
       - "${NACOS_PORT:-28848}:8848"
+      - "29848:9848"
     environment:
       MODE: standalone
       SPRING_DATASOURCE_PLATFORM: mysql

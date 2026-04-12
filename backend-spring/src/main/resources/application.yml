@@ -110,6 +110,16 @@ recommendation:
   nacos-enabled: ${RECOMMENDATION_NACOS_ENABLED:false}
   fallback-url: ${RECOMMENDATION_FALLBACK_URL:}
 
+# Code Execution Sandbox Configuration
+code-execution:
+  sandbox:
+    enabled: ${SANDBOX_ENABLED:true}
+    image: ${SANDBOX_IMAGE:ulticode-sandbox:latest}
+    memory: ${SANDBOX_MEMORY:256m}
+    cpus: ${SANDBOX_CPUS:1.0}
+    timeout: ${SANDBOX_TIMEOUT:10}
+    pids-limit: ${SANDBOX_PIDS_LIMIT:128}
+
 # Backup Configuration
 backup:
   dir: ${BACKUP_DIR:/tmp/backups}
@@ -166,10 +176,12 @@ dubbo:
     name: ulticode-backend
     qos-enable: false
   registry:
-    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:8848}
+    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:28848}
     parameters:
       namespace: public
       group: DEFAULT_GROUP
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
   consumer:
     check: false
     timeout: 5000

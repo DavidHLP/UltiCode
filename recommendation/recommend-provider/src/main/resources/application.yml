@@ -34,7 +34,15 @@ dubbo:
   protocol:
     name: dubbo
     port: 20881
-  scan:
-    base-packages: com.ulticode.recommend.provider
+    host: ${DUBBO_HOST:0.0.0.0}
+    # Restrict Dubbo RPC to internal network only
+    accepted-interfaces: ${DUBBO_ACCEPTED_INTERFACES:eth0,lo,127.0.0.1}
+  provider:
+    timeout: 5000
+    retries: 0
   consumer:
     check: false
+    timeout: 5000
+    retries: 0
+  scan:
+    base-packages: com.ulticode.recommend.provider

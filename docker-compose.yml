@@ -5,15 +5,15 @@ services:
     ports:
       - "23306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: ulticode
-      MYSQL_USER: ulticode
-      MYSQL_PASSWORD: ulticode
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_DATABASE: ${DB_NAME:-ulticode}
+      MYSQL_USER: ${DB_USER:-ulticode}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-ulticode}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./docker/initdb:/docker-entrypoint-initdb.d
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,7 +22,7 @@ services:
     image: redis:7-alpine
     container_name: ulticode-redis
     ports:
-      - "26379:6379"
+      - "${REDIS_PORT:-26379}:6379"
     volumes:
       - redis_data:/data
     healthcheck:
@@ -35,7 +35,7 @@ services:
     image: nacos/nacos-server:v2.3.2
     container_name: ulticode-nacos
     ports:
-      - "28848:8848"
+      - "${NACOS_PORT:-28848}:8848"
       - "28080:8080"
       - "29848:9848"
     environment:
@@ -45,7 +45,7 @@ services:
       MYSQL_SERVICE_PORT: 3306
       MYSQL_SERVICE_DB_NAME: nacos_config
       MYSQL_SERVICE_USER: root
-      MYSQL_SERVICE_PASSWORD: root
+      MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
       MYSQL_SERVICE_DB_PARAM: "characterEncoding=utf8&connectTimeout=1000&socketTimeout=3000&autoReconnect=true&useSSL=false&allowPublicKeyRetrieval=true"
       JVM_XMS: 256m
       JVM_XMX: 512m

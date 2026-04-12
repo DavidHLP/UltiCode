@@ -7,7 +7,8 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
-import java.util.Set;
+
+import org.springframework.data.redis.core.Cursor;
 
 /**
  * CSRF Token 服务
@@ -53,26 +54,26 @@ public class CsrfService {
     }
 
     /**
-     * 验证 CSRF Token
+     * 验证 CSRF Token 并轮换（使用后失效，生成新 token）
      *
      * @param userId 用户ID
      * @param token 客户端提交的 token (格式: tokenId:tokenValue)
-     * @return 是否验证通过
+     * @return 新生成的 CSRF token（客户端需更新存储）
      */
-    public boolean validateToken(String userId, String token) {
+    public String validateAndRotateToken(String userId, String token) {
         if (userId == null || userId.isEmpty()) {
             throw new IllegalArgumentException("userId cannot be null or empty");
         }
 
         if (token == null || token.isEmpty()) {
             log.debug("CSRF token is null or empty for user: {}", userId);
-            return false;
+            return null;
         }
 
         String[] parts = token.split(":");
         if (parts.length != 2 || parts[0].isEmpty() || parts[1].isEmpty()) {
             log.warn("Invalid CSRF token format for user: {}", userId);
-            return false;
+            return null;
         }
 
         String tokenId = parts[0];
@@ -83,13 +84,13 @@ public class CsrfService {
 
         if (storedValue == null || !storedValue.equals(tokenValue)) {
             log.warn("CSRF token validation failed for user: {}, tokenId: {}", userId, tokenId);
-            return false;
+            return null;
         }
 
-        // Token 在有效期内可重复使用, 不再一次性删除
-        // 登出时会统一清理所有 token
-        log.debug("CSRF token validated for user: {}", userId);
-        return true;
+        // Token rotation: delete old token, generate new one
+        redisTemplate.delete(key);
+        log.debug("CSRF token validated and rotated for user: {}", userId);
+        return generateToken(userId);
     }
 
 
@@ -104,11 +105,15 @@ public class CsrfService {
         }
 
         String pattern = CSRF_PREFIX + userId + ":*";
-        Set<String> keys = redisTemplate.keys(pattern);
-        if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
-            log.debug("Cleared {} CSRF tokens for user: {}", keys.size(), userId);
+        Cursor<String> keys = redisTemplate.scan(
+            org.springframework.data.redis.core.ScanOptions.scanOptions().match(pattern).count(100).build()
+        );
+        int count = 0;
+        while (keys.hasNext()) {
+            redisTemplate.delete(keys.next());
+            count++;
         }
+        log.debug("Cleared {} CSRF tokens for user: {}", count, userId);
     }
 
     private String buildKey(String userId, String tokenId) {

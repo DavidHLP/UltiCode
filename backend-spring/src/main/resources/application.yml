@@ -44,7 +44,7 @@ spring:
 
 # JWT Configuration
 jwt:
-  secret: ${JWT_SECRET:your-256-bit-secret-key-here-must-be-at-least-32-characters-long}
+  secret: ${JWT_SECRET:}
   access-token:
     expiration: 900000  # 15 minutes in milliseconds
   refresh-token:
@@ -79,10 +79,10 @@ mybatis-plus:
 # SpringDoc Configuration
 springdoc:
   api-docs:
-    enabled: true
+    enabled: ${SPRINGDOC_ENABLED:false}
     path: /api-docs
   swagger-ui:
-    enabled: true
+    enabled: ${SPRINGDOC_ENABLED:false}
     path: /swagger-ui.html
     tags-sorter: alpha
     operations-sorter: alpha
@@ -91,7 +91,7 @@ springdoc:
 logging:
   level:
     root: INFO
-    com.ulticode: DEBUG
+    com.ulticode: INFO
     org.springframework.security: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
@@ -166,7 +166,7 @@ dubbo:
     name: ulticode-backend
     qos-enable: false
   registry:
-    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:28848}
+    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:8848}
     parameters:
       namespace: public
       group: DEFAULT_GROUP

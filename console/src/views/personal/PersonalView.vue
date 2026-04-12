@@ -312,6 +312,7 @@ onMounted(async () => {
                 :href="user.website"
                 class="text-primary hover:underline transition-all underline-offset-4"
                 target="_blank"
+                rel="noopener noreferrer"
                 >{{ user.website.replace(/^https?:\/\//, "") }}</a
               >
             </div>

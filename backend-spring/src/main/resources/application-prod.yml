@@ -1,0 +1,21 @@
+# Production Profile Configuration
+server:
+  port: ${SERVER_PORT:9001}
+
+springdoc:
+  api-docs:
+    enabled: false
+  swagger-ui:
+    enabled: false
+
+jwt:
+  cookie:
+    access-token:
+      secure: true
+    refresh-token:
+      secure: true
+
+logging:
+  level:
+    com.ulticode: INFO
+    org.springframework.security: WARN

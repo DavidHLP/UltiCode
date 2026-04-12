@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import { Trophy, X, Sparkles } from "lucide-vue-next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -13,20 +13,26 @@ const props = defineProps<{
 
 const visible = ref(false);
 const showConfetti = ref(false);
+let autoCloseTimer: ReturnType<typeof setTimeout> | null = null;
+let fadeOutTimer: ReturnType<typeof setTimeout> | null = null;
 
 onMounted(() => {
   visible.value = true;
   showConfetti.value = true;
 
-  // Auto-close after 5 seconds
-  setTimeout(() => {
+  autoCloseTimer = setTimeout(() => {
     close();
   }, 5000);
 });
 
+onUnmounted(() => {
+  if (autoCloseTimer !== null) clearTimeout(autoCloseTimer);
+  if (fadeOutTimer !== null) clearTimeout(fadeOutTimer);
+});
+
 function close() {
   visible.value = false;
-  setTimeout(() => {
+  fadeOutTimer = setTimeout(() => {
     props.onClose?.();
   }, 300);
 }

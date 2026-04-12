@@ -97,7 +97,7 @@ export async function fetchForumThread(
       authorAvatar: string;
     };
     comments: ForumComment[];
-  }>(url);
+  }>(`/forum/posts/${postId}/thread`);
 
   const { post, comments } = response;
 

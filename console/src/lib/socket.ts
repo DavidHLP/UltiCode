@@ -132,7 +132,8 @@ const eventListeners = new Map<string, Set<EventCallback>>();
 const subscriptions = new Map<string, StompSubscription>();
 
 /**
- * Get JWT token from cookies for authentication
+ * Get JWT token from cookies for authentication.
+ * Note: httpOnly cookies are not accessible via JS; this is for non-httpOnly cookie setups.
  */
 export function getTokenFromCookie(): string | null {
   const value = `; ${document.cookie}`;
@@ -148,14 +149,10 @@ export function getTokenFromCookie(): string | null {
 }
 
 /**
- * Get CSRF token from cookies
+ * Get CSRF token — delegates to the canonical implementation in csrf.ts
+ * which supports both in-memory and cookie-based token storage.
  */
-export function getCsrfToken(): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; csrf_token=`);
-  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
-  return null;
-}
+export { getCsrfToken } from "@/utils/csrf";
 
 function createSocketManager(): SocketManager {
   let client: Client | null = null;

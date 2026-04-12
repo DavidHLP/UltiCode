@@ -1,5 +1,6 @@
 package com.ulticode.modules.vote.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.vote.dto.VoteDTO;
@@ -30,6 +31,7 @@ public class VoteController {
     @Operation(summary = "Vote on a target item",
             description = "Three-state voting: 1 (upvote), -1 (downvote), 0 (neutral/remove vote). " +
                     "Clicking the same vote type toggles it off.")
+    @RateLimit(key = "vote:cast", limit = 20, period = 60)
     @PostMapping
     public Result<VoteResultVO> vote(@Valid @RequestBody VoteDTO dto) {
         String userId = SecurityUtil.getCurrentUserId();

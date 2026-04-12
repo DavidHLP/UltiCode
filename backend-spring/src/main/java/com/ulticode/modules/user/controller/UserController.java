@@ -1,5 +1,6 @@
 package com.ulticode.modules.user.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
@@ -44,6 +45,7 @@ public class UserController {
      * @return the updated user profile
      */
     @Operation(summary = "Update current user", description = "Update the profile of the currently authenticated user")
+    @RateLimit(key = "user:update", limit = 20, period = 60)
     @PatchMapping("/me")
     public Result<UserVO> updateCurrentUser(@Valid @RequestBody UpdateUserDTO updateDTO) {
         UserVO user = userService.updateCurrentUser(updateDTO);

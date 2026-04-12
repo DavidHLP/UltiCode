@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
@@ -46,6 +47,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Pin post", description = "Pin a post to top")
+    @RateLimit(key = "admin:forum-pin", limit = 30, period = 60)
     @PostMapping("/posts/{id}/pin")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> pinPost(
@@ -56,6 +58,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Unpin post", description = "Unpin a post")
+    @RateLimit(key = "admin:forum-unpin", limit = 30, period = 60)
     @PostMapping("/posts/{id}/unpin")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> unpinPost(
@@ -66,6 +69,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Lock post", description = "Lock a post (no comments allowed)")
+    @RateLimit(key = "admin:forum-lock", limit = 30, period = 60)
     @PostMapping("/posts/{id}/lock")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> lockPost(
@@ -76,6 +80,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Unlock post", description = "Unlock a post")
+    @RateLimit(key = "admin:forum-unlock", limit = 30, period = 60)
     @PostMapping("/posts/{id}/unlock")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> unlockPost(
@@ -86,6 +91,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Flag post", description = "Flag a post for review")
+    @RateLimit(key = "admin:forum-flag", limit = 30, period = 60)
     @PostMapping("/posts/{id}/flag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> flagPost(
@@ -97,6 +103,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Unflag post", description = "Remove flag from a post")
+    @RateLimit(key = "admin:forum-unflag", limit = 30, period = 60)
     @PostMapping("/posts/{id}/unflag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> unflagPost(
@@ -107,6 +114,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Delete post", description = "Delete a post (soft delete)")
+    @RateLimit(key = "admin:forum-delete", limit = 30, period = 60)
     @DeleteMapping("/posts/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deletePost(
@@ -117,6 +125,7 @@ public class AdminForumController {
     }
 
     @Operation(summary = "Bulk action", description = "Perform action on multiple posts")
+    @RateLimit(key = "admin:forum-bulk", limit = 30, period = 60)
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BulkActionResult> bulkAction(

@@ -57,13 +57,15 @@ public class AuthServiceImpl implements AuthService {
 
         // Check if user is active
         if (!Boolean.TRUE.equals(user.getIsActive())) {
-            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Account is not active");
+            log.warn("Login attempt on inactive account: {}", user.getUsername());
+            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
         }
 
         // Check if user is banned
         if (Boolean.TRUE.equals(user.getIsBanned())) {
             if (user.getBannedUntil() == null || user.getBannedUntil().isAfter(LocalDateTime.now())) {
-                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Account is banned");
+                log.warn("Login attempt on banned account: {}", user.getUsername());
+                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
             }
         }
 
@@ -162,13 +164,15 @@ public class AuthServiceImpl implements AuthService {
 
         // Check if user is still active
         if (!Boolean.TRUE.equals(user.getIsActive())) {
-            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Account is not active");
+            log.warn("Token refresh on inactive account: {}", userId);
+            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
         }
 
         // Check if user is banned
         if (Boolean.TRUE.equals(user.getIsBanned())) {
             if (user.getBannedUntil() == null || user.getBannedUntil().isAfter(LocalDateTime.now())) {
-                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Account is banned");
+                log.warn("Token refresh on banned account: {}", userId);
+                throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS);
             }
         }
 

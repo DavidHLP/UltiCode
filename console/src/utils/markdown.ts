@@ -1,6 +1,7 @@
 import MarkdownIt from "markdown-it";
 import markdownItKatex from "markdown-it-katex";
 import hljs from "highlight.js";
+import { sanitizeHtml } from "@/utils/sanitize";
 
 
 const md = new MarkdownIt({
@@ -169,5 +170,5 @@ const groupFencesPlugin = (md: MarkdownIt) => {
 md.use(groupFencesPlugin);
 
 export function renderMarkdown(text: string): string {
-  return md.render(text || "");
+  return sanitizeHtml(md.render(text || ""));
 }

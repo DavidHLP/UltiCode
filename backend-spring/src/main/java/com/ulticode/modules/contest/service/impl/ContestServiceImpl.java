@@ -327,14 +327,7 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.CONTEST_REGISTRATION_CLOSED);
         }
 
-        // Check if contest is full
-        if (contest.getMaxParticipants() != null && contest.getRegisteredCount() != null) {
-            if (contest.getRegisteredCount() >= contest.getMaxParticipants()) {
-                throw new BusinessException(ErrorCode.CONTEST_FULL);
-            }
-        }
-
-        // Check if already registered
+        // Check if already registered (before atomic increment to fail fast)
         if (participantMapper.existsByContestIdAndUserId(contestId, userId)) {
             throw new BusinessException(ErrorCode.CONTEST_ALREADY_REGISTERED);
         }
@@ -349,8 +342,13 @@ public class ContestServiceImpl implements ContestService {
 
         participantMapper.insert(participant);
 
-        // Increment registered count
-        contestMapper.incrementRegisteredCount(contestId);
+        // Atomically increment registered count with capacity check (prevents race condition)
+        int updated = contestMapper.tryIncrementRegisteredCount(contestId);
+        if (updated == 0) {
+            // Contest became full between check and insert — rollback participant
+            participantMapper.deleteById(participant.getId());
+            throw new BusinessException(ErrorCode.CONTEST_FULL);
+        }
 
         log.info("User {} registered for contest {}", userId, contestId);
     }

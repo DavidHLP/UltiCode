@@ -36,8 +36,9 @@ export async function fetchForumPost(postId: string): Promise<ForumPost> {
 export async function fetchForumCommunities(options?: {
   featured?: boolean;
 }): Promise<ForumCommunity[]> {
-  const params = options?.featured ? "?featured=true" : "";
-  return apiGet<ForumCommunity[]>(`/forum/communities${params}`);
+  return apiGet<ForumCommunity[]>("/forum/communities", {
+    params: options?.featured ? { featured: "true" } : undefined,
+  });
 }
 
 export async function fetchForumCommunity(slugOrId: string): Promise<{
@@ -52,14 +53,15 @@ export async function fetchCommunityPosts(
   slug: string,
   options?: { sortBy?: "hot" | "new" | "top" },
 ): Promise<ForumPost[]> {
-  const params = options?.sortBy ? `?sortBy=${options.sortBy}` : "";
   const response = await apiGet<
     Array<{
       userId: string;
       authorUsername?: string;
       authorAvatar?: string;
     } & Omit<ForumPost, "author">>
-  >(`/forum/communities/${slug}/posts${params}`);
+  >(`/forum/communities/${slug}/posts`, {
+    params: options?.sortBy ? { sortBy: options.sortBy } : undefined,
+  });
 
   // Transform flat author fields to nested author object
   return response.map((post) => ({
@@ -86,12 +88,7 @@ export async function fetchForumQuickFilters(): Promise<
 
 export async function fetchForumThread(
   postId: string,
-  userId?: string,
 ): Promise<ForumThread> {
-  const url = userId
-    ? `/forum/posts/${postId}/thread?userId=${userId}`
-    : `/forum/posts/${postId}/thread`;
-
   // Transform API response from { post, comments } wrapper to flat ForumThread structure
   const response = await apiGet<{
     post: ForumThread & {

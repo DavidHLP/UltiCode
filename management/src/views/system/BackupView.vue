@@ -14,6 +14,8 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import {
   IconDatabase,
   IconDownload,
@@ -38,6 +40,7 @@ const showRestoreDialog = ref(false)
 const showDeleteDialog = ref(false)
 const restoring = ref(false)
 const deleting = ref(false)
+const restoreConfirmText = ref('')
 
 // Computed
 const completedBackups = computed(() => backups.value.filter((b) => b.status === 'COMPLETED'))
@@ -96,6 +99,7 @@ function openDeleteDialog(backup: Backup) {
 
 async function confirmRestore() {
   if (!selectedBackup.value) return
+  if (restoreConfirmText.value !== 'RESTORE') return
 
   restoring.value = true
   try {
@@ -323,7 +327,7 @@ onMounted(() => {
     </Card>
 
     <!-- Restore Dialog -->
-    <Dialog v-model:open="showRestoreDialog">
+    <Dialog v-model:open="showRestoreDialog" @update:open="(v: boolean) => { showRestoreDialog = v; if (!v) restoreConfirmText.value = '' }">
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{{ t('backup.restoreBackup') }}</DialogTitle>
@@ -336,13 +340,25 @@ onMounted(() => {
           <p class="mt-4 text-sm text-muted-foreground">
             {{ t('backup.restoreConfirm', { filename: selectedBackup?.filename }) }}
           </p>
+          <div class="mt-4 space-y-2">
+            <Label for="restore-confirm" class="text-sm text-destructive">
+              Type <span class="font-mono font-bold">RESTORE</span> to confirm
+            </Label>
+            <Input
+              id="restore-confirm"
+              v-model="restoreConfirmText"
+              placeholder="RESTORE"
+              class="font-mono"
+            />
+          </div>
         </div>
         <DialogFooter>
           <Button variant="outline" @click="showRestoreDialog = false">
             {{ t('common.cancel') }}
           </Button>
-          <Button :disabled="restoring" @click="confirmRestore">
+          <Button variant="destructive" :disabled="restoring || restoreConfirmText !== 'RESTORE'" @click="confirmRestore">
             <IconLoader2 v-if="restoring" class="h-4 w-4 mr-1 animate-spin" />
+            <IconAlertTriangle v-else class="h-4 w-4 mr-1" />
             {{ t('backup.restore') }}
           </Button>
         </DialogFooter>

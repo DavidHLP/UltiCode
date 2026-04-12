@@ -23,10 +23,11 @@ services:
     container_name: ulticode-redis
     ports:
       - "${REDIS_PORT:-26379}:6379"
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:-ulticode_redis}"]
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD:-ulticode_redis}", "ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -36,8 +37,6 @@ services:
     container_name: ulticode-nacos
     ports:
       - "${NACOS_PORT:-28848}:8848"
-      - "28080:8080"
-      - "29848:9848"
     environment:
       MODE: standalone
       SPRING_DATASOURCE_PLATFORM: mysql

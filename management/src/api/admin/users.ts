@@ -1,5 +1,4 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
-import { toast } from 'vue-sonner'
 
 export interface User {
   id: string
@@ -96,99 +95,72 @@ export interface BulkActionDto {
 
 export const usersApi = {
   async getUsers(params: UserQueryParams): Promise<PageResult<User>> {
-    // apiGet already unwraps response.data automatically
     return apiGet<PageResult<User>>('/admin/users', { params })
   },
 
   async getUser(id: string): Promise<User> {
-    // apiGet already unwraps response.data automatically
     return apiGet<User>(`/admin/users/${id}`)
   },
 
   async createUser(data: CreateUserDto): Promise<User> {
-    // apiPost already unwraps response.data automatically
-    const result = apiPost<User>('/admin/users', data)
-    toast.success('User created successfully')
-    return result
+    return apiPost<User>('/admin/users', data)
   },
 
   async updateUser(id: string, data: UpdateUserDto): Promise<User> {
-    // apiPatch already unwraps response.data automatically
-    const result = apiPatch<User>(`/admin/users/${id}`, data)
-    toast.success('User updated successfully')
-    return result
+    return apiPatch<User>(`/admin/users/${id}`, data)
   },
 
   async deleteUser(id: string): Promise<void> {
     await apiDelete(`/admin/users/${id}`)
-    toast.success('User deleted successfully')
   },
 
   async banUser(id: string, data: BanUserDto): Promise<User> {
-    // apiPost already unwraps response.data automatically
-    const result = apiPost<User>(`/admin/users/${id}/ban`, data)
-    toast.success('User has been banned')
-    return result
+    return apiPost<User>(`/admin/users/${id}/ban`, data)
   },
 
   async unbanUser(id: string): Promise<User> {
-    // apiPost already unwraps response.data automatically
-    const result = apiPost<User>(`/admin/users/${id}/unban`)
-    toast.success('User has been unbanned')
-    return result
+    return apiPost<User>(`/admin/users/${id}/unban`)
   },
 
   async grantPermission(id: string, data: GrantPermissionDto): Promise<void> {
     await apiPost(`/admin/users/${id}/permissions`, data)
-    toast.success('Permission granted successfully')
   },
 
   async revokePermission(id: string, action: string, resource: string): Promise<void> {
     await apiDelete(`/admin/users/${id}/permissions`, {
       data: { action, resource },
     })
-    toast.success('Permission revoked successfully')
   },
 
   async bulkBan(
     ids: string[],
     reason?: string,
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    // apiPost already unwraps response.data automatically
-    const result = apiPost<{ results: { id: string; success: boolean; error?: string }[] }>(
+    return apiPost<{ results: { id: string; success: boolean; error?: string }[] }>(
       '/admin/users/bulk-ban',
       { ids, reason },
     )
-    toast.success(`Batch operation processed for ${ids.length} users`)
-    return result
   },
 
   async bulkUnban(
     ids: string[],
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    // apiPost already unwraps response.data automatically
-    const result = apiPost<{ results: { id: string; success: boolean; error?: string }[] }>(
+    return apiPost<{ results: { id: string; success: boolean; error?: string }[] }>(
       '/admin/users/bulk-unban',
       { ids },
     )
-    toast.success(`Batch operation processed for ${ids.length} users`)
-    return result
   },
 
   async bulkDelete(
     ids: string[],
   ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    // apiDelete already unwraps response.data automatically
-    const result = apiDelete<{ results: { id: string; success: boolean; error?: string }[] }>(
+    return apiDelete<{ results: { id: string; success: boolean; error?: string }[] }>(
       '/admin/users/bulk-delete',
       { data: { ids } },
     )
-    toast.success(`Batch operation processed for ${ids.length} users`)
-    return result
   },
 
   async resetPassword(id: string, password: string): Promise<void> {
     await apiPost(`/admin/users/${id}/reset-password`, { password })
-    toast.success('Password reset successfully')
   },
 }

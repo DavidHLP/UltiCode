@@ -2,6 +2,7 @@ package com.ulticode.modules.recommendation.controller;
 
 import java.util.Map;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.recommendation.service.RecommendationDataService;
 
@@ -29,6 +30,7 @@ public class RecommendationDataController {
     private final RecommendationDataService recommendationDataService;
 
     @PostMapping("/seed")
+    @RateLimit(key = "admin:recommendation-seed", limit = 30, period = 60)
     @Operation(summary = "Seed Redis with recommendation data from MySQL")
     public Result<Map<String, Object>> seedRecommendationData() {
         log.info("Starting recommendation data seed to Redis...");
@@ -43,6 +45,7 @@ public class RecommendationDataController {
     }
 
     @PostMapping("/clear")
+    @RateLimit(key = "admin:recommendation-clear", limit = 30, period = 60)
     @Operation(summary = "Clear all recommendation data from Redis")
     public Result<String> clearRecommendationData() {
         log.info("Clearing recommendation data from Redis...");

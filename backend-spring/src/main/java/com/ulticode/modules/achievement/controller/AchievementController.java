@@ -1,5 +1,6 @@
 package com.ulticode.modules.achievement.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
@@ -53,12 +54,14 @@ public class AchievementController {
     }
 
     @Operation(summary = "Create achievement (admin only)")
+    @RateLimit(key = "achievement:create", limit = 30, period = 60)
     @PostMapping
     public Result<AchievementVO> create(@Valid @RequestBody AchievementDTO dto) {
         return Result.success(achievementService.create(dto));
     }
 
     @Operation(summary = "Update achievement (admin only)")
+    @RateLimit(key = "achievement:update", limit = 30, period = 60)
     @PutMapping("/{id}")
     public Result<AchievementVO> update(
             @PathVariable String id,
@@ -67,6 +70,7 @@ public class AchievementController {
     }
 
     @Operation(summary = "Delete achievement (admin only)")
+    @RateLimit(key = "achievement:delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     public Result<Void> delete(@PathVariable String id) {
         achievementService.delete(id);

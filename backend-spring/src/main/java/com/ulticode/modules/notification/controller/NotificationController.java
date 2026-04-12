@@ -1,5 +1,6 @@
 package com.ulticode.modules.notification.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
@@ -46,6 +47,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Update notification preferences")
+    @RateLimit(key = "notification:update-preferences", limit = 20, period = 60)
     @PatchMapping("/preferences")
     public Result<NotificationPreferenceVO> updatePreferences(
             @Valid @RequestBody UpdateNotificationPreferenceDTO dto) {
@@ -54,6 +56,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Mark all notifications as read")
+    @RateLimit(key = "notification:mark-all-read", limit = 20, period = 60)
     @PostMapping("/mark-all-read")
     public Result<Void> markAllRead() {
         String userId = SecurityUtil.getCurrentUserId();
@@ -62,6 +65,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Delete all notifications")
+    @RateLimit(key = "notification:clear-all", limit = 20, period = 60)
     @DeleteMapping("/clear")
     public Result<Void> clearAll() {
         String userId = SecurityUtil.getCurrentUserId();
@@ -70,6 +74,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Update a single notification")
+    @RateLimit(key = "notification:update", limit = 20, period = 60)
     @PatchMapping("/{id}")
     public Result<NotificationVO> updateNotification(
             @PathVariable String id,
@@ -79,6 +84,7 @@ public class NotificationController {
     }
 
     @Operation(summary = "Delete a single notification")
+    @RateLimit(key = "notification:delete", limit = 20, period = 60)
     @DeleteMapping("/{id}")
     public Result<Void> deleteNotification(@PathVariable String id) {
         String userId = SecurityUtil.getCurrentUserId();

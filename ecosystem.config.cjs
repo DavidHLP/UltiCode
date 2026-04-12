@@ -31,14 +31,14 @@ module.exports = {
       name: 'ulticode-9004',
       cwd: './recommendation',
       script: 'start-provider.cjs',
-      env: { NODE_ENV: 'development', NACOS_PORT: '28848', NACOS_USERNAME: 'nacos', NACOS_PASSWORD: 'nacos' },
+      env: { NODE_ENV: 'development', NACOS_PORT: '28848', NACOS_USERNAME: process.env.NACOS_USERNAME || '', NACOS_PASSWORD: process.env.NACOS_PASSWORD || '' },
     },
     // Recommendation - Web (port 9005)
     {
       name: 'ulticode-9005',
       cwd: './recommendation',
       script: 'start-web.cjs',
-      env: { NODE_ENV: 'development', NACOS_PORT: '28848', NACOS_USERNAME: 'nacos', NACOS_PASSWORD: 'nacos' },
+      env: { NODE_ENV: 'development', NACOS_PORT: '28848', NACOS_USERNAME: process.env.NACOS_USERNAME || '', NACOS_PASSWORD: process.env.NACOS_PASSWORD || '' },
     },
   ],
 }

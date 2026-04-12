@@ -22,6 +22,9 @@ public interface ForumPostMapper extends BaseMapper<ForumPost> {
      * @param communityId the community ID
      * @return list of posts ordered by creation time (newest first)
      */
+    @Select("SELECT * FROM forum_posts WHERE community_id = #{communityId} AND is_deleted = 0 ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<ForumPost> findByCommunityId(@Param("communityId") String communityId, @Param("limit") int limit, @Param("offset") int offset);
+
     @Select("SELECT * FROM forum_posts WHERE community_id = #{communityId} AND is_deleted = 0 ORDER BY created_at DESC")
     List<ForumPost> findByCommunityId(@Param("communityId") String communityId);
 
@@ -31,6 +34,9 @@ public interface ForumPostMapper extends BaseMapper<ForumPost> {
      * @param userId the user ID
      * @return list of posts ordered by creation time (newest first)
      */
+    @Select("SELECT * FROM forum_posts WHERE user_id = #{userId} AND is_deleted = 0 ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<ForumPost> findByUserId(@Param("userId") String userId, @Param("limit") int limit, @Param("offset") int offset);
+
     @Select("SELECT * FROM forum_posts WHERE user_id = #{userId} AND is_deleted = 0 ORDER BY created_at DESC")
     List<ForumPost> findByUserId(@Param("userId") String userId);
 
@@ -164,6 +170,9 @@ public interface ForumPostMapper extends BaseMapper<ForumPost> {
      * @param limit maximum number of posts to return
      * @return list of recent posts
      */
+    @Select("SELECT * FROM forum_posts WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT #{limit} OFFSET #{offset}")
+    List<ForumPost> findRecentPosts(@Param("limit") int limit, @Param("offset") int offset);
+
     @Select("SELECT * FROM forum_posts WHERE is_deleted = 0 ORDER BY created_at DESC LIMIT #{limit}")
     List<ForumPost> findRecentPosts(@Param("limit") int limit);
 

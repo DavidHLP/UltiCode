@@ -5,6 +5,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.i18n.constants.I18nConstants;
 import com.ulticode.modules.i18n.dto.BulkUpsertDTO;
+import com.ulticode.modules.i18n.dto.ParseLocaleRequest;
 import com.ulticode.modules.i18n.service.I18nService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -132,9 +133,8 @@ public class I18nController {
      */
     @Operation(summary = "Parse locale", description = "Parse Accept-Language header and return the best matching locale")
     @PostMapping("/parse-locale")
-    public Result<String> parseLocale(@RequestBody Map<String, String> body) {
-        String header = body.get("header");
-        String locale = i18nService.parseAcceptLanguage(header);
+    public Result<String> parseLocale(@Valid @RequestBody ParseLocaleRequest request) {
+        String locale = i18nService.parseAcceptLanguage(request.getHeader());
         return Result.success(locale);
     }
 }

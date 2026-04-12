@@ -95,7 +95,7 @@ public class OfflineEvaluationRunner {
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
         } catch (ClassNotFoundException e) {
-            System.err.println("ERROR: MySQL JDBC Driver not found!");
+            log.error("MySQL JDBC Driver not found");
             System.exit(1);
         }
 

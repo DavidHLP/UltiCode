@@ -40,10 +40,14 @@ public class ForumController {
      */
     @Operation(summary = "Get all posts", description = "Get all forum posts")
     @GetMapping("/posts")
-    public Result<List<ForumPostVO>> getAllPosts() {
+    public Result<PageResult<ForumPostVO>> getAllPosts(
+            @Parameter(description = "Page number (1-based)")
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Items per page")
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
         String userId = SecurityUtil.getCurrentUserId();
-        List<ForumPostVO> posts = forumService.findAllPosts(userId);
-        return Result.success(posts);
+        PageResult<ForumPostVO> result = forumService.findAllPosts(userId, page, pageSize);
+        return Result.success(result);
     }
 
     /**
@@ -73,10 +77,14 @@ public class ForumController {
     @Operation(summary = "Get my posts", description = "Get the current user's posts")
     @SecurityRequirement(name = "Bearer")
     @GetMapping("/me/posts")
-    public Result<List<ForumPostVO>> getMyPosts() {
+    public Result<PageResult<ForumPostVO>> getMyPosts(
+            @Parameter(description = "Page number (1-based)")
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Items per page")
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
         String userId = getCurrentUserIdOrThrow();
-        List<ForumPostVO> posts = forumService.findMyPosts(userId);
-        return Result.success(posts);
+        PageResult<ForumPostVO> result = forumService.findMyPosts(userId, page, pageSize);
+        return Result.success(result);
     }
 
     /**
@@ -302,15 +310,19 @@ public class ForumController {
      */
     @Operation(summary = "Get community posts", description = "Get posts for a specific community")
     @GetMapping("/communities/{slug}/posts")
-    public Result<List<ForumPostVO>> getCommunityPosts(
+    public Result<PageResult<ForumPostVO>> getCommunityPosts(
             @Parameter(description = "Community slug")
             @PathVariable String slug,
             @Parameter(description = "Sort by (hot, new, top)")
-            @RequestParam(required = false, defaultValue = "new") String sortBy) {
+            @RequestParam(required = false, defaultValue = "new") String sortBy,
+            @Parameter(description = "Page number (1-based)")
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Items per page")
+            @RequestParam(required = false, defaultValue = "20") Integer pageSize) {
 
         String userId = SecurityUtil.getCurrentUserId();
-        List<ForumPostVO> posts = forumService.findPostsByCommunity(slug, sortBy, userId);
-        return Result.success(posts);
+        PageResult<ForumPostVO> result = forumService.findPostsByCommunity(slug, sortBy, userId, page, pageSize);
+        return Result.success(result);
     }
 
     /**

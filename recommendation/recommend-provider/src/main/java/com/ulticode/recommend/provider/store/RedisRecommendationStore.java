@@ -32,6 +32,7 @@ public class RedisRecommendationStore {
     private static final String USER_PROBLEM_MATRIX_KEY = "recommend:user:problem:matrix";
     private static final String USER_PROFILES_KEY = "recommend:user:profiles";
     private static final String SIMILAR_PROBLEMS_PREFIX = "recommend:similar:problems:";
+    private static final int MAX_PAYLOAD_BYTES = 10 * 1024 * 1024; // 10MB safety limit
 
     private final StringRedisTemplate redis;
     private final ObjectMapper objectMapper;
@@ -110,6 +111,10 @@ public class RedisRecommendationStore {
                 log.debug("Redis key '{}' not found, returning empty list", key);
                 return List.of();
             }
+            if (json.length() > MAX_PAYLOAD_BYTES) {
+                log.warn("Redis key '{}' payload too large ({} bytes), returning empty list", key, json.length());
+                return List.of();
+            }
             return objectMapper.readValue(json, typeRef);
         } catch (JsonProcessingException e) {
             log.warn("Failed to parse Redis key '{}': {}", key, e.getMessage());
@@ -125,6 +130,10 @@ public class RedisRecommendationStore {
             String json = redis.opsForValue().get(key);
             if (json == null || json.isBlank()) {
                 log.debug("Redis key '{}' not found, returning empty map", key);
+                return Map.of();
+            }
+            if (json.length() > MAX_PAYLOAD_BYTES) {
+                log.warn("Redis key '{}' payload too large ({} bytes), returning empty map", key, json.length());
                 return Map.of();
             }
             return objectMapper.readValue(json, typeRef);

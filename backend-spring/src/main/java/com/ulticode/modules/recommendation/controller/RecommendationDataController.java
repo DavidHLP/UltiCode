@@ -2,7 +2,6 @@ package com.ulticode.modules.recommendation.controller;
 
 import java.util.Map;
 
-import com.ulticode.common.annotation.RequireRole;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.recommendation.service.RecommendationDataService;
 
@@ -10,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/recommendations/admin")
 @RequiredArgsConstructor
-@RequireRole("ADMIN")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
 @Tag(name = "Recommendation Admin", description = "Admin endpoints for recommendation data management")
 public class RecommendationDataController {
 

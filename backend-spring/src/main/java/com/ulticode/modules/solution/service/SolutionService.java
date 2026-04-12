@@ -1,9 +1,11 @@
 package com.ulticode.modules.solution.service;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
+import com.ulticode.modules.solution.dto.UpdateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
 import com.ulticode.modules.solution.entity.Solution;
 
@@ -38,6 +40,21 @@ public interface SolutionService {
      * @return list of comments
      */
     List<SolutionCommentVO> getComments(String solutionId);
+
+    /**
+     * Create a comment on a solution.
+     */
+    SolutionCommentVO createComment(String solutionId, String userId, CreateSolutionCommentDTO dto);
+
+    /**
+     * Update an existing comment.
+     */
+    SolutionCommentVO updateComment(String commentId, String userId, UpdateSolutionCommentDTO dto);
+
+    /**
+     * Soft-delete a comment.
+     */
+    void deleteComment(String commentId, String userId);
 
     /**
      * Find all solutions for a specific problem.

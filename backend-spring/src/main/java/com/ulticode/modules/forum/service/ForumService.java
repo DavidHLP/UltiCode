@@ -28,6 +28,16 @@ public interface ForumService {
     List<ForumPostVO> findAllPosts(String userId);
 
     /**
+     * Find all posts with pagination.
+     *
+     * @param userId   optional user ID for personalization
+     * @param page     page number (1-based)
+     * @param pageSize items per page
+     * @return paginated result
+     */
+    PageResult<ForumPostVO> findAllPosts(String userId, int page, int pageSize);
+
+    /**
      * Find a post by ID.
      *
      * @param id     the post ID
@@ -43,6 +53,16 @@ public interface ForumService {
      * @return list of user's posts
      */
     List<ForumPostVO> findMyPosts(String userId);
+
+    /**
+     * Find posts by current user with pagination.
+     *
+     * @param userId   the user ID
+     * @param page     page number (1-based)
+     * @param pageSize items per page
+     * @return paginated result
+     */
+    PageResult<ForumPostVO> findMyPosts(String userId, int page, int pageSize);
 
     /**
      * Create a new post.
@@ -155,6 +175,18 @@ public interface ForumService {
      * @return list of posts
      */
     List<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String userId);
+
+    /**
+     * Find posts by community slug with pagination.
+     *
+     * @param slug     the community slug
+     * @param sortBy   sort option (hot, new, top)
+     * @param userId   optional user ID for personalization
+     * @param page     page number (1-based)
+     * @param pageSize items per page
+     * @return paginated result
+     */
+    PageResult<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String userId, int page, int pageSize);
 
     /**
      * Join a community.

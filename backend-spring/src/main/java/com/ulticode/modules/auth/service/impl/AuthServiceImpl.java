@@ -11,6 +11,7 @@ import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.user.service.UserService;
+import com.ulticode.security.csrf.CsrfService;
 import com.ulticode.security.jwt.JwtProperties;
 import com.ulticode.security.jwt.JwtTokenProvider;
 import io.jsonwebtoken.ExpiredJwtException;
@@ -37,6 +38,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final JwtProperties jwtProperties;
     private final PasswordEncoder passwordEncoder;
+    private final CsrfService csrfService;
 
     @Override
     public LoginResponse login(LoginDTO loginDTO, HttpServletResponse response) {
@@ -85,7 +87,8 @@ public class AuthServiceImpl implements AuthService {
         userService.updateLastLoginAt(user.getId());
 
         // Build response
-        String csrfToken = IdUtil.simpleUUID();
+        String csrfToken = csrfService.generateToken(user.getId());
+        setCsrfCookie(response, csrfToken);
         UserVO userVO = userService.toVO(user);
 
         return LoginResponse.builder()
@@ -189,7 +192,8 @@ public class AuthServiceImpl implements AuthService {
         setRefreshTokenCookie(response, newRefreshToken);
 
         // Build response
-        String csrfToken = IdUtil.simpleUUID();
+        String csrfToken = csrfService.generateToken(user.getId());
+        setCsrfCookie(response, csrfToken);
         UserVO userVO = userService.toVO(user);
 
         return LoginResponse.builder()
@@ -271,5 +275,13 @@ public class AuthServiceImpl implements AuthService {
                 cookieConfig.getRefreshToken().getSameSite()
         );
         response.addHeader("Set-Cookie", refreshHeader);
+
+        // Clear csrf_token
+        response.addHeader("Set-Cookie", "csrf_token=; Path=/; Max-Age=0; SameSite=Lax");
+    }
+
+    private void setCsrfCookie(HttpServletResponse response, String csrfToken) {
+        String headerValue = String.format("csrf_token=%s; Path=/; Max-Age=86400; SameSite=Lax", csrfToken);
+        response.addHeader("Set-Cookie", headerValue);
     }
 }

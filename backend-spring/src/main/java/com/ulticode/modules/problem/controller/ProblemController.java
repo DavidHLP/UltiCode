@@ -1,8 +1,8 @@
 package com.ulticode.modules.problem.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
-import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
 import com.ulticode.modules.problem.dto.ProblemDetailResponse;
@@ -13,6 +13,7 @@ import com.ulticode.modules.problem.service.ProblemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
@@ -120,13 +121,10 @@ public class ProblemController {
      * @return the created problem
      */
     @Operation(summary = "Create problem", description = "Create a new problem (admin only)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @RateLimit(key = "problem:create", limit = 30, period = 60)
     @PostMapping
     public Result<ProblemVO> createProblem(@Valid @RequestBody CreateProblemDTO createDTO) {
-        // Admin role check
-        if (!SecurityUtil.hasRole("ADMIN") && !SecurityUtil.hasRole("SUPER_ADMIN")) {
-            return Result.error(40300, "Forbidden: Admin access required");
-        }
-
         ProblemVO problem = problemService.createProblem(createDTO);
         return Result.success(problem);
     }
@@ -140,16 +138,13 @@ public class ProblemController {
      * @return the updated problem
      */
     @Operation(summary = "Update problem", description = "Update an existing problem (admin only)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @RateLimit(key = "problem:update", limit = 30, period = 60)
     @PutMapping("/{id}")
     public Result<ProblemVO> updateProblem(
             @Parameter(description = "Problem ID")
             @PathVariable Long id,
             @Valid @RequestBody UpdateProblemDTO updateDTO) {
-        // Admin role check
-        if (!SecurityUtil.hasRole("ADMIN") && !SecurityUtil.hasRole("SUPER_ADMIN")) {
-            return Result.error(40300, "Forbidden: Admin access required");
-        }
-
         ProblemVO problem = problemService.updateProblem(id, updateDTO);
         return Result.success(problem);
     }
@@ -162,15 +157,12 @@ public class ProblemController {
      * @return success result
      */
     @Operation(summary = "Delete problem", description = "Delete a problem (admin only)")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @RateLimit(key = "problem:delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     public Result<Void> deleteProblem(
             @Parameter(description = "Problem ID")
             @PathVariable Long id) {
-        // Admin role check
-        if (!SecurityUtil.hasRole("ADMIN") && !SecurityUtil.hasRole("SUPER_ADMIN")) {
-            return Result.error(40300, "Forbidden: Admin access required");
-        }
-
         problemService.deleteProblem(id);
         return Result.success();
     }

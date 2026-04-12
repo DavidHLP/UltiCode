@@ -1,5 +1,6 @@
 package com.ulticode.modules.forum.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
@@ -96,6 +97,7 @@ public class ForumController {
      */
     @Operation(summary = "Create post", description = "Create a new forum post")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "forum:create-post", limit = 20, period = 60)
     @PostMapping("/posts")
     public Result<ForumPostVO> createPost(
             @Valid @RequestBody CreatePostDTO dto) {
@@ -115,6 +117,7 @@ public class ForumController {
      */
     @Operation(summary = "Update post", description = "Update an existing post")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "forum:update-post", limit = 20, period = 60)
     @PatchMapping("/posts/{id}")
     public Result<ForumPostVO> updatePost(
             @Parameter(description = "Post ID")
@@ -135,6 +138,7 @@ public class ForumController {
      */
     @Operation(summary = "Delete post", description = "Delete a post")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "forum:delete-post", limit = 20, period = 60)
     @DeleteMapping("/posts/{id}")
     public Result<Void> deletePost(
             @Parameter(description = "Post ID")
@@ -171,6 +175,7 @@ public class ForumController {
      * @return success result
      */
     @Operation(summary = "Record share", description = "Record a share action for a post")
+    @RateLimit(key = "forum:share", limit = 20, period = 60)
     @PostMapping("/posts/{id}/share")
     public Result<Void> recordShare(
             @Parameter(description = "Post ID")
@@ -188,6 +193,7 @@ public class ForumController {
      * @return success result
      */
     @Operation(summary = "Record view", description = "Record a view action for a post")
+    @RateLimit(key = "forum:view", limit = 20, period = 60)
     @PostMapping("/posts/{id}/view")
     public Result<Void> recordView(
             @Parameter(description = "Post ID")
@@ -211,6 +217,7 @@ public class ForumController {
      */
     @Operation(summary = "Create comment", description = "Create a comment on a post")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "forum:create-comment", limit = 20, period = 60)
     @PostMapping("/posts/{id}/comments")
     public Result<ForumCommentVO> createComment(
             @Parameter(description = "Post ID")
@@ -232,6 +239,7 @@ public class ForumController {
      */
     @Operation(summary = "Update comment", description = "Update an existing comment")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "forum:update-comment", limit = 20, period = 60)
     @PatchMapping("/comments/{id}")
     public Result<ForumCommentVO> updateComment(
             @Parameter(description = "Comment ID")
@@ -252,6 +260,7 @@ public class ForumController {
      */
     @Operation(summary = "Delete comment", description = "Delete a comment")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "forum:delete-comment", limit = 20, period = 60)
     @DeleteMapping("/comments/{id}")
     public Result<Void> deleteComment(
             @Parameter(description = "Comment ID")
@@ -334,6 +343,7 @@ public class ForumController {
      */
     @Operation(summary = "Join community", description = "Join a community")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "forum:join-community", limit = 20, period = 60)
     @PostMapping("/communities/{id}/join")
     public Result<Void> joinCommunity(
             @Parameter(description = "Community ID")
@@ -353,6 +363,7 @@ public class ForumController {
      */
     @Operation(summary = "Leave community", description = "Leave a community")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "forum:leave-community", limit = 20, period = 60)
     @PostMapping("/communities/{id}/leave")
     public Result<Void> leaveCommunity(
             @Parameter(description = "Community ID")

@@ -1,5 +1,6 @@
 package com.ulticode.modules.contest.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -43,6 +45,8 @@ public class ContestController {
      */
     @Operation(summary = "Create contest", description = "Create a new contest (admin only)")
     @SecurityRequirement(name = "Bearer")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @RateLimit(key = "contest:create", limit = 30, period = 60)
     @PostMapping
     public Result<ContestVO> createContest(
             @Valid @RequestBody CreateContestDTO dto) {
@@ -62,6 +66,8 @@ public class ContestController {
      */
     @Operation(summary = "Update contest", description = "Update an existing contest (admin only)")
     @SecurityRequirement(name = "Bearer")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @RateLimit(key = "contest:update", limit = 30, period = 60)
     @PutMapping("/{id}")
     public Result<ContestVO> updateContest(
             @Parameter(description = "Contest ID")
@@ -81,6 +87,8 @@ public class ContestController {
      */
     @Operation(summary = "Delete contest", description = "Delete a contest (admin only)")
     @SecurityRequirement(name = "Bearer")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @RateLimit(key = "contest:delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     public Result<Void> deleteContest(
             @Parameter(description = "Contest ID")
@@ -290,6 +298,7 @@ public class ContestController {
      */
     @Operation(summary = "Register for contest", description = "Register the current user for a contest")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "contest:register", limit = 20, period = 60)
     @PostMapping("/{id}/register")
     public Result<Void> registerForContest(
             @Parameter(description = "Contest ID")
@@ -309,6 +318,7 @@ public class ContestController {
      */
     @Operation(summary = "Unregister from contest", description = "Unregister the current user from a contest")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "contest:unregister", limit = 20, period = 60)
     @DeleteMapping("/{id}/register")
     public Result<Void> unregisterFromContest(
             @Parameter(description = "Contest ID")
@@ -351,6 +361,7 @@ public class ContestController {
      */
     @Operation(summary = "Start virtual contest", description = "Start a virtual participation for a past contest")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "contest:virtual-start", limit = 20, period = 60)
     @PostMapping("/{id}/virtual/start")
     public Result<ParticipationStatusDTO> startVirtualContest(
             @Parameter(description = "Contest ID")
@@ -390,6 +401,7 @@ public class ContestController {
      */
     @Operation(summary = "Finish virtual contest", description = "Finish a virtual contest session")
     @SecurityRequirement(name = "Bearer")
+    @RateLimit(key = "contest:virtual-finish", limit = 20, period = 60)
     @PostMapping("/{id}/virtual/finish")
     public Result<Void> finishVirtualContest(
             @Parameter(description = "Contest ID")

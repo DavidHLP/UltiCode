@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.controller;
 
 import jakarta.validation.Valid;
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.problem.*;
@@ -45,6 +46,7 @@ public class AdminProblemController {
     }
 
     @Operation(summary = "Create problem", description = "Create a new problem")
+    @RateLimit(key = "admin:problem-create", limit = 30, period = 60)
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> createProblem(@Valid @RequestBody CreateProblemDTO createDTO) {
@@ -52,6 +54,7 @@ public class AdminProblemController {
     }
 
     @Operation(summary = "Update problem", description = "Update an existing problem")
+    @RateLimit(key = "admin:problem-update", limit = 30, period = 60)
     @PatchMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> updateProblem(
@@ -61,6 +64,7 @@ public class AdminProblemController {
     }
 
     @Operation(summary = "Delete problem", description = "Delete a problem (soft delete)")
+    @RateLimit(key = "admin:problem-delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteProblem(@PathVariable Long id) {
@@ -69,6 +73,7 @@ public class AdminProblemController {
     }
 
     @Operation(summary = "Publish problem", description = "Publish a problem")
+    @RateLimit(key = "admin:problem-publish", limit = 30, period = 60)
     @PostMapping("/{id}/publish")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> publishProblem(@PathVariable Long id) {
@@ -76,6 +81,7 @@ public class AdminProblemController {
     }
 
     @Operation(summary = "Unpublish problem", description = "Unpublish a problem")
+    @RateLimit(key = "admin:problem-unpublish", limit = 30, period = 60)
     @PostMapping("/{id}/unpublish")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> unpublishProblem(@PathVariable Long id) {

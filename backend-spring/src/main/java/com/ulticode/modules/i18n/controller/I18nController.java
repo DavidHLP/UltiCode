@@ -1,6 +1,7 @@
 package com.ulticode.modules.i18n.controller;
 
 import com.ulticode.common.annotation.CurrentUser;
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.i18n.constants.I18nConstants;
@@ -76,6 +77,7 @@ public class I18nController {
      * @return the result with counts
      */
     @Operation(summary = "Bulk upsert translations", description = "Create or update multiple translations at once")
+    @RateLimit(key = "i18n:bulk-upsert", limit = 30, period = 60)
     @PostMapping("/translations/bulk")
     public Result<BulkUpsertDTO> bulkUpsert(
             @Valid @RequestBody BulkUpsertDTO dto,

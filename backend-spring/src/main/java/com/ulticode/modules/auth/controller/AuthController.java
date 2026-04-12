@@ -74,6 +74,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Refresh token", description = "Refresh access token using refresh token from cookie")
+    @RateLimit(key = "auth:refresh", limit = 20, period = 60)
     @PostMapping("/refresh")
     public Result<LoginResponse> refresh(
             HttpServletRequest request,
@@ -91,6 +92,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Forgot password", description = "Send password reset email")
+    @RateLimit(key = "auth:forgot-password", limit = 5, period = 60)
     @PostMapping("/forgot-password")
     public Result<Void> forgotPassword(@Valid @RequestBody ForgotPasswordDTO dto) {
         passwordResetService.forgotPassword(dto.getEmail());
@@ -98,6 +100,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Reset password", description = "Reset password using token from email")
+    @RateLimit(key = "auth:reset-password", limit = 5, period = 60)
     @PostMapping("/reset-password")
     public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO dto) {
         passwordResetService.resetPassword(dto.getToken(), dto.getNewPassword());

@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
@@ -50,6 +51,7 @@ public class AdminSolutionController {
     }
 
     @Operation(summary = "Flag solution", description = "Flag a solution for review")
+    @RateLimit(key = "admin:solution-flag", limit = 30, period = 60)
     @PostMapping("/{id}/flag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminSolutionVO> flagSolution(
@@ -60,6 +62,7 @@ public class AdminSolutionController {
     }
 
     @Operation(summary = "Unflag solution", description = "Remove flag from a solution")
+    @RateLimit(key = "admin:solution-unflag", limit = 30, period = 60)
     @PostMapping("/{id}/unflag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminSolutionVO> unflagSolution(@PathVariable String id) {
@@ -67,6 +70,7 @@ public class AdminSolutionController {
     }
 
     @Operation(summary = "Delete solution", description = "Permanently delete a solution")
+    @RateLimit(key = "admin:solution-delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteSolution(@PathVariable String id) {
@@ -75,6 +79,7 @@ public class AdminSolutionController {
     }
 
     @Operation(summary = "Bulk action", description = "Perform bulk action on multiple solutions")
+    @RateLimit(key = "admin:solution-bulk", limit = 30, period = 60)
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<List<AdminSolutionService.BulkActionResult>> bulkAction(

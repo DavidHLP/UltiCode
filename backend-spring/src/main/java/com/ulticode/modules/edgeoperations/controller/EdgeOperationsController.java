@@ -1,5 +1,6 @@
 package com.ulticode.modules.edgeoperations.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.edgeoperations.dto.EdgeOperationDTO;
@@ -32,6 +33,7 @@ public class EdgeOperationsController {
             description = "Perform an edge operation (vote, analyze, view, etc.) on a target. " +
                     "For vote operations (VOTE_UP, VOTE_DOWN), delegates to vote service with toggle logic. " +
                     "For other operations, creates the operation if not exists, deletes if exists.")
+    @RateLimit(key = "edge-operations:perform", limit = 20, period = 60)
     @PostMapping
     public Result<EdgeOperationResponseVO> performOperation(@Valid @RequestBody EdgeOperationDTO dto) {
         String userId = SecurityUtil.getCurrentUserId();
@@ -55,8 +57,8 @@ public class EdgeOperationsController {
     @GetMapping("/{targetType}/{targetId}")
     public Result<EdgeOperationResponseVO> getInteractionsByPath(
             @Parameter(description = "Target type") @PathVariable EdgeOperationTargetType targetType,
-            @Parameter(description = "Target ID") @PathVariable String targetId,
-            @RequestParam(required = false) String userId) {
+            @Parameter(description = "Target ID") @PathVariable String targetId) {
+        String userId = SecurityUtil.getCurrentUserId();
         return Result.success(edgeOperationsService.getInteractions(userId, targetId, targetType));
     }
 }

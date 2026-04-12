@@ -1,5 +1,6 @@
 package com.ulticode.modules.submission.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
@@ -39,6 +40,7 @@ public class SubmissionController {
      * @return the created submission
      */
     @Operation(summary = "Submit code", description = "Submit code for a problem")
+    @RateLimit(key = "submission:create", limit = 20, period = 60)
     @PostMapping
     public Result<SubmissionVO> submit(@Valid @RequestBody CreateSubmissionDTO createDTO) {
         String userId = SecurityUtil.getCurrentUserId();

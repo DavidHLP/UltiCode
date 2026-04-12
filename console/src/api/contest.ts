@@ -259,7 +259,8 @@ export async function fetchPastContests(
   pageSize: number = 10,
 ): Promise<{ data: ContestListItem[]; total: number }> {
   const result = await apiGet<{ data: ContestListItem[]; total: number }>(
-    `/contest/past?page=${page}&limit=${pageSize}`,
+    "/contest/past",
+    { params: { page, limit: pageSize } },
   );
   return {
     ...result,
@@ -284,7 +285,8 @@ export async function fetchContestRanking(
 ): Promise<PaginatedResult<ContestRankingEntry>> {
   const { page = 1, limit = 50, includeVirtual = true } = options || {};
   return apiGet<PaginatedResult<ContestRankingEntry>>(
-    `/contest/${contestId}/ranking?page=${page}&limit=${limit}&include_virtual=${includeVirtual}`,
+    `/contest/${contestId}/ranking`,
+    { params: { page, limit, include_virtual: includeVirtual } },
   );
 }
 
@@ -293,7 +295,8 @@ export async function fetchLiveRanking(
   limit: number = 100,
 ): Promise<ContestRankingEntry[]> {
   return apiGet<ContestRankingEntry[]>(
-    `/contest/${contestId}/live-ranking?limit=${limit}`,
+    `/contest/${contestId}/live-ranking`,
+    { params: { limit } },
   );
 }
 
@@ -303,11 +306,10 @@ export async function fetchGlobalRankings(options?: {
   country?: string;
 }): Promise<PaginatedResult<GlobalRankingEntry>> {
   const { page = 1, limit = 50, country } = options || {};
-  let url = `/rankings/global?page=${page}&limit=${limit}`;
-  if (country) {
-    url += `&country=${country}`;
-  }
-  const result = await apiGet<PaginatedResult<GlobalRankingEntry>>(url);
+  const result = await apiGet<PaginatedResult<GlobalRankingEntry>>(
+    "/rankings/global",
+    { params: country ? { page, limit, country } : { page, limit } },
+  );
   return {
     ...result,
     items: (result.items || []).map(mapGlobalRankingEntry),
@@ -365,7 +367,8 @@ export async function fetchUserContests(
   type: "registered" | "participated" | "virtual" = "participated",
 ): Promise<ContestListItem[]> {
   const result = await apiGet<ContestListItem[]>(
-    `/contest/user/my-contests?type=${type}`,
+    "/contest/user/my-contests",
+    { params: { type } },
   );
   return result.map(mapContestListItem);
 }
@@ -520,7 +523,8 @@ export async function getRanking(
 ): Promise<PaginatedResult<RankingEntry>> {
   const { page = 1, limit = 50, includeVirtual = true } = options || {};
   return apiGet<PaginatedResult<RankingEntry>>(
-    `/contest/${slug}/ranking?page=${page}&limit=${limit}&include_virtual=${includeVirtual}`,
+    `/contest/${slug}/ranking`,
+    { params: { page, limit, include_virtual: includeVirtual } },
   );
 }
 

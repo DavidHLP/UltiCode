@@ -5,6 +5,17 @@ import { toast } from 'vue-sonner'
 import { IconBan, IconCircleXFilled, IconPlus, IconUsers, IconTrash } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { IconAlertTriangle, IconLoader } from '@tabler/icons-vue'
 
 import { useUsersStore } from '@/stores/admin/users'
 import { useAuthStore } from '@/stores/auth'
@@ -36,6 +47,9 @@ const createDialogOpen = ref(false)
 const detailDrawerOpen = ref(false)
 const resetPasswordDialogOpen = ref(false)
 const banDialogOpen = ref(false)
+const bulkBanDialogOpen = ref(false)
+const bulkDeleteDialogOpen = ref(false)
+const bulkDeleteConfirmText = ref('')
 
 const bulkActionLoading = ref(false)
 
@@ -163,10 +177,12 @@ async function handleBanUser(id: string | number, reason?: string) {
 
 async function handleBulkBan() {
   if (selectedRows.value.length === 0) return
-  const ids = selectedRows.value.map((r) => r.id)
-  const reason = prompt(t('users.banReasonPrompt'))
-  if (reason === null) return
+  bulkBanDialogOpen.value = true
+}
 
+async function onBulkBanAction(_: string | number, reason?: string) {
+  if (!reason) return
+  const ids = selectedRows.value.map((r) => r.id)
   bulkActionLoading.value = true
   try {
     await usersStore.bulkBan(ids, reason)
@@ -197,15 +213,21 @@ async function handleBulkUnban() {
 
 async function handleBulkDelete() {
   if (selectedRows.value.length === 0) return
-  const ids = selectedRows.value.map((r) => r.id)
-  const count = ids.length
-  if (!confirm(t('users.deleteConfirm', { count }))) return
+  bulkDeleteConfirmText.value = ''
+  bulkDeleteDialogOpen.value = true
+}
 
+async function confirmBulkDelete() {
+  const expectedText = `DELETE ${selectedRows.value.length}`
+  if (bulkDeleteConfirmText.value !== expectedText) return
+
+  const ids = selectedRows.value.map((r) => r.id)
   bulkActionLoading.value = true
   try {
     await usersStore.bulkDelete(ids)
     await loadUsers()
     selectedRows.value = []
+    bulkDeleteDialogOpen.value = false
   } catch {
     toast.error(t('users.toast.bulkDeleteFailed'))
   } finally {
@@ -406,4 +428,55 @@ async function handleBulkDelete() {
     :on-action="handleBanUser"
     @success="loadUsers"
   />
+  <EntityActionDialog
+    v-model:open="bulkBanDialogOpen"
+    entity-id="bulk"
+    :entity-title="String(selectedRows.length)"
+    action="ban"
+    :title="t('users.actions.bulkBanUser')"
+    :description="t('users.deleteConfirm', { count: selectedRows.length })"
+    :reason-label="t('users.form.banReason')"
+    :reason-placeholder="t('users.form.banReasonPlaceholder')"
+    :on-action="onBulkBanAction"
+    @success="loadUsers"
+  />
+  <AlertDialog v-model:open="bulkDeleteDialogOpen">
+    <AlertDialogContent>
+      <AlertDialogHeader>
+        <AlertDialogTitle class="flex items-center gap-2 text-destructive">
+          <IconAlertTriangle class="h-5 w-5" />
+          {{ t('users.actions.deleteUsers') }}
+        </AlertDialogTitle>
+        <AlertDialogDescription>
+          {{ t('users.deleteConfirm', { count: selectedRows.length }) }}
+          <span class="mt-2 block font-mono text-sm text-destructive">
+            {{ t('users.typeToConfirm', { text: `DELETE ${selectedRows.length}` }) }}
+          </span>
+        </AlertDialogDescription>
+      </AlertDialogHeader>
+      <div class="py-2">
+        <Label for="bulk-delete-confirm">{{ t('users.typeConfirmLabel') }}</Label>
+        <Input
+          id="bulk-delete-confirm"
+          v-model="bulkDeleteConfirmText"
+          :placeholder="`DELETE ${selectedRows.length}`"
+          class="mt-1 font-mono"
+        />
+      </div>
+      <AlertDialogFooter>
+        <Button variant="outline" @click="bulkDeleteDialogOpen = false" :disabled="bulkActionLoading">
+          {{ t('common.cancel') }}
+        </Button>
+        <Button
+          variant="destructive"
+          :disabled="bulkActionLoading || bulkDeleteConfirmText !== `DELETE ${selectedRows.length}`"
+          @click="confirmBulkDelete"
+        >
+          <IconLoader v-if="bulkActionLoading" class="mr-2 h-4 w-4 animate-spin" />
+          <IconAlertTriangle v-else class="mr-2 h-4 w-4" />
+          {{ t('common.delete') }}
+        </Button>
+      </AlertDialogFooter>
+    </AlertDialogContent>
+  </AlertDialog>
 </template>

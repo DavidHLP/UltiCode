@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.*;
@@ -61,6 +62,7 @@ public class AdminSubmissionController {
     }
 
     @Operation(summary = "Rejudge submission", description = "Rejudge a single submission")
+    @RateLimit(key = "admin:submission-rejudge", limit = 30, period = 60)
     @PostMapping("/{id}/rejudge")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<RejudgeResult> rejudge(
@@ -70,6 +72,7 @@ public class AdminSubmissionController {
     }
 
     @Operation(summary = "Batch rejudge", description = "Rejudge multiple submissions")
+    @RateLimit(key = "admin:submission-batch-rejudge", limit = 30, period = 60)
     @PostMapping("/batch-rejudge")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BatchRejudgeResponse> batchRejudge(@RequestBody BatchRejudgeRequest request) {

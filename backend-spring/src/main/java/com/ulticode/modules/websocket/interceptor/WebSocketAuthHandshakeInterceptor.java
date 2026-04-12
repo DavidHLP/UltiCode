@@ -49,10 +49,11 @@ public class WebSocketAuthHandshakeInterceptor implements HandshakeInterceptor {
     var tokenOpt = tokenExtractor.extractToken(request);
     if (tokenOpt.isPresent()) {
       attributes.put("auth", tokenOpt.get());
-      log.info("Token extracted during handshake, token starts with: {}", 
+      log.info("Token extracted during handshake, token starts with: {}",
           tokenOpt.get().substring(0, Math.min(20, tokenOpt.get().length())));
     } else {
-      log.warn("No token found during handshake!");
+      log.warn("WebSocket handshake rejected: no authentication token found");
+      return false;
     }
 
     // Copy all query parameters to session attributes for downstream access

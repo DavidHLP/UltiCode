@@ -313,6 +313,8 @@ export const useContestStore = defineStore("contest", () => {
   // COUNTDOWN MANAGEMENT
   // =========================================================================
 
+  const timerHandles = new Map<string, number>();
+
   function startCountdownTimer(contestId: string, endTime: Date) {
     const timerId = window.setInterval(() => {
       const now = Date.now();
@@ -327,12 +329,16 @@ export const useContestStore = defineStore("contest", () => {
       }
     }, 1000);
 
-    // Store timer ID for cleanup
-    countdownTimers.value.set(contestId, 0);
+    timerHandles.set(contestId, timerId);
     return timerId;
   }
 
   function stopCountdownTimer(contestId: string) {
+    const handle = timerHandles.get(contestId);
+    if (handle) {
+      clearInterval(handle);
+      timerHandles.delete(contestId);
+    }
     countdownTimers.value.delete(contestId);
   }
 

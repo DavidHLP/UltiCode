@@ -122,6 +122,7 @@ async function handleRandom() {
             <div class="hidden group-hover/nav-back:block ml-0">
               <RouterLink
                 target="_blank"
+                rel="noopener noreferrer"
                 class="flex-none cursor-pointer justify-center flex items-center h-6 w-6 focus:outline-none focus:ring-0 focus:ring-offset-0 rounded no-underline -translate-x-3 hover:bg-gray-300 hover:text-gray-900 transition-colors duration-200"
                 :to="{ name: 'problemset' }"
               >

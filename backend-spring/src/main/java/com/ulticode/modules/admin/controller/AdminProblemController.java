@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.controller;
 
+import jakarta.validation.Valid;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.problem.*;
@@ -46,7 +47,7 @@ public class AdminProblemController {
     @Operation(summary = "Create problem", description = "Create a new problem")
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVO> createProblem(@RequestBody CreateProblemDTO createDTO) {
+    public Result<ProblemVO> createProblem(@Valid @RequestBody CreateProblemDTO createDTO) {
         return Result.success(problemService.createProblem(createDTO));
     }
 
@@ -55,7 +56,7 @@ public class AdminProblemController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> updateProblem(
             @PathVariable Long id,
-            @RequestBody UpdateProblemDTO updateDTO) {
+            @Valid @RequestBody UpdateProblemDTO updateDTO) {
         return Result.success(problemService.updateProblem(id, updateDTO));
     }
 

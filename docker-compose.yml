@@ -5,7 +5,7 @@ services:
     ports:
       - "23306:3306"
     environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
       MYSQL_DATABASE: ${DB_NAME:-ulticode}
       MYSQL_USER: ${DB_USER:-ulticode}
       MYSQL_PASSWORD: ${DB_PASSWORD:-ulticode}

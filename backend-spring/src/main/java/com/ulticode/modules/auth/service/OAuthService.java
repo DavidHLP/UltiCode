@@ -19,12 +19,15 @@ import com.ulticode.security.oauth.OAuthProperties;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Base64;
 
 /**
  * OAuth service for handling third-party authentication (GitHub and Google).
@@ -42,6 +45,10 @@ public class OAuthService {
     private final CsrfService csrfService;
     private final ObjectMapper objectMapper;
     private final UserService userService;
+    private final StringRedisTemplate redisTemplate;
+
+    private static final String OAUTH_STATE_PREFIX = "oauth:state:";
+    private static final Duration OAUTH_STATE_TTL = Duration.ofMinutes(5);
 
     // ==================== GitHub OAuth ====================
 
@@ -53,6 +60,7 @@ public class OAuthService {
     public String getGithubAuthUrl() {
         OAuthProperties.OAuthProvider github = oauthProperties.getGithub();
         String state = IdUtil.simpleUUID();
+        redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + "github:" + state, "1", OAUTH_STATE_TTL);
 
         return UriComponentsBuilder.fromHttpUrl(github.getAuthorizeUrl())
             .queryParam("client_id", github.getClientId())
@@ -66,19 +74,23 @@ public class OAuthService {
      * Handle GitHub OAuth callback.
      *
      * @param code     the authorization code
+     * @param state    the OAuth state parameter for CSRF validation
      * @param response the HTTP response
      * @return login response with tokens and user info
      */
-    public LoginResponse handleGithubCallback(String code, HttpServletResponse response) {
+    public LoginResponse handleGithubCallback(String code, String state, HttpServletResponse response) {
+        validateOAuthState("github", state);
         OAuthProperties.OAuthProvider github = oauthProperties.getGithub();
 
-        // 获取 access token
+        // Use RFC 6749 Basic Auth instead of plaintext body
+        String basicAuth = Base64.getEncoder().encodeToString(
+            (github.getClientId() + ":" + github.getClientSecret()).getBytes(StandardCharsets.UTF_8));
+
         String tokenResponse;
         try (HttpResponse resp = HttpRequest.post(github.getTokenUrl())
             .header("Accept", "application/json")
-            .body("client_id=" + github.getClientId() +
-                  "&client_secret=" + github.getClientSecret() +
-                  "&code=" + code +
+            .header("Authorization", "Basic " + basicAuth)
+            .body("code=" + code +
                   "&redirect_uri=" + URLEncoder.encode(github.getRedirectUri(), StandardCharsets.UTF_8))
             .execute()) {
             tokenResponse = resp.body();
@@ -128,6 +140,7 @@ public class OAuthService {
     public String getGoogleAuthUrl() {
         OAuthProperties.OAuthProvider google = oauthProperties.getGoogle();
         String state = IdUtil.simpleUUID();
+        redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + "google:" + state, "1", OAUTH_STATE_TTL);
 
         return UriComponentsBuilder.fromHttpUrl(google.getAuthorizeUrl())
             .queryParam("client_id", google.getClientId())
@@ -142,22 +155,26 @@ public class OAuthService {
      * Handle Google OAuth callback.
      *
      * @param code     the authorization code
+     * @param state    the OAuth state parameter for CSRF validation
      * @param response the HTTP response
      * @return login response with tokens and user info
      */
-    public LoginResponse handleGoogleCallback(String code, HttpServletResponse response) {
+    public LoginResponse handleGoogleCallback(String code, String state, HttpServletResponse response) {
+        validateOAuthState("google", state);
         OAuthProperties.OAuthProvider google = oauthProperties.getGoogle();
 
-        // 获取 access token
-        String tokenRequestBody = "client_id=" + google.getClientId() +
-              "&client_secret=" + google.getClientSecret() +
-              "&code=" + code +
+        // Use RFC 6749 Basic Auth instead of plaintext body
+        String basicAuth = Base64.getEncoder().encodeToString(
+            (google.getClientId() + ":" + google.getClientSecret()).getBytes(StandardCharsets.UTF_8));
+
+        String tokenRequestBody = "code=" + code +
               "&redirect_uri=" + URLEncoder.encode(google.getRedirectUri(), StandardCharsets.UTF_8) +
               "&grant_type=authorization_code";
 
         String tokenResponse;
         try (HttpResponse resp = HttpRequest.post(google.getTokenUrl())
             .header("Content-Type", "application/x-www-form-urlencoded")
+            .header("Authorization", "Basic " + basicAuth)
             .body(tokenRequestBody)
             .execute()) {
             tokenResponse = resp.body();
@@ -195,6 +212,18 @@ public class OAuthService {
     }
 
     // ==================== 用户创建/更新 ====================
+
+    private void validateOAuthState(String provider, String state) {
+        if (state == null || state.isBlank()) {
+            throw new RuntimeException("OAuth state parameter is missing");
+        }
+        String key = OAUTH_STATE_PREFIX + provider + ":" + state;
+        Boolean exists = redisTemplate.hasKey(key);
+        if (Boolean.FALSE.equals(exists)) {
+            throw new RuntimeException("Invalid or expired OAuth state parameter");
+        }
+        redisTemplate.delete(key);
+    }
 
     /**
      * Create or update a user from OAuth provider data.

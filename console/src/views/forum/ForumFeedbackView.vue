@@ -40,9 +40,6 @@ async function submitFeedback() {
   isSubmitting.value = true;
 
   try {
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
     toast.success(t("forum.feedback.success"));
 
     // Reset form

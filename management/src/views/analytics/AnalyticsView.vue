@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, onUnmounted, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -75,10 +75,14 @@ const formattedDate = computed(() => {
 })
 
 // Update time every minute
+let timeInterval: ReturnType<typeof setInterval>
 onMounted(() => {
-  setInterval(() => {
+  timeInterval = setInterval(() => {
     currentTime.value = new Date()
   }, 60000)
+})
+onUnmounted(() => {
+  clearInterval(timeInterval)
 })
 
 // Format utilities

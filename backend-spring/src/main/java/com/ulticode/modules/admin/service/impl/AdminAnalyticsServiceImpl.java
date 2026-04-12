@@ -2,6 +2,7 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.admin.dto.*;
+import com.ulticode.modules.admin.mapper.AuditLogMapper;
 import com.ulticode.modules.admin.service.AdminAnalyticsService;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
@@ -46,6 +47,7 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final SubscriptionMapper subscriptionMapper;
+    private final AuditLogMapper auditLogMapper;
 
     @Override
     public UserActivityReportVO getUserActivityReport(Integer days) {
@@ -54,27 +56,15 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
         UserActivityReportVO report = new UserActivityReportVO();
 
-        // Daily active users (based on submissions)
+        // Daily active users - single aggregated query replacing per-day N+1 loop
         List<UserActivityReportVO.DailyActiveUsers> dailyActiveUsers = new ArrayList<>();
-        for (int i = daysToAnalyze - 1; i >= 0; i--) {
-            LocalDateTime dayStart = LocalDateTime.now().minusDays(i).withHour(0).withMinute(0).withSecond(0);
-            LocalDateTime dayEnd = dayStart.plusDays(1);
-
-            LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
-            wrapper.ge(Submission::getCreatedAt, dayStart)
-                    .lt(Submission::getCreatedAt, dayEnd)
-                    .isNotNull(Submission::getUserId)
-                    .select(Submission::getUserId);
-
-            List<Submission> submissions = submissionMapper.selectList(wrapper);
-            long activeUsers = submissions.stream()
-                    .map(Submission::getUserId)
-                    .distinct()
-                    .count();
-
+        LocalDateTime overallStart = LocalDateTime.now().minusDays(daysToAnalyze).withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime overallEnd = LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0);
+        List<Map<String, Object>> dailyCounts = auditLogMapper.countDailyActiveUsers(overallStart, overallEnd);
+        for (Map<String, Object> row : dailyCounts) {
             dailyActiveUsers.add(new UserActivityReportVO.DailyActiveUsers(
-                    dayStart.toLocalDate().toString(),
-                    (int) activeUsers
+                    row.get("date").toString(),
+                    ((Number) row.get("count")).intValue()
             ));
         }
         report.setActiveUsersDaily(dailyActiveUsers);
@@ -208,7 +198,11 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         report.setByDifficulty(byDifficulty);
 
         // By tag (top 10)
-        List<ProblemTag> allTags = problemTagMapper.selectList(new LambdaQueryWrapper<>());
+        // NOTE: N+1 issue exists in the tag loop below (per-problem submission count queries).
+        // The LIMIT 1000 caps the outer result set to prevent unbounded memory usage.
+        // A future optimization should batch the per-problem queries into a single GROUP BY.
+        List<ProblemTag> allTags = problemTagMapper.selectList(
+                new LambdaQueryWrapper<ProblemTag>().last("LIMIT 1000"));
         List<ProblemCompletionReportVO.TagStats> byTag = allTags.stream()
                 .limit(10)
                 .map(tag -> {
@@ -510,39 +504,40 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
     /**
      * Calculate retention rate for a given day.
-     * Simplified calculation based on users who submitted on day 0 and day N.
+     * Uses COUNT queries instead of loading all submissions into memory.
+     * NOTE: This is an approximation using distinct user counts rather than
+     * a true set intersection. For exact retention, a dedicated
+     * subquery-based approach or materialized view is needed.
      */
     private Double calculateRetentionRate(int dayN) {
         LocalDateTime day0 = LocalDateTime.now().minusDays(dayN);
         LocalDateTime dayNDate = day0.plusDays(dayN);
 
-        // Users who submitted on day 0
-        LambdaQueryWrapper<Submission> day0Wrapper = new LambdaQueryWrapper<>();
-        day0Wrapper.ge(Submission::getCreatedAt, day0.withHour(0).withMinute(0).withSecond(0))
-                .lt(Submission::getCreatedAt, day0.withHour(23).withMinute(59).withSecond(59));
+        LocalDateTime day0Start = day0.withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime day0End = day0Start.plusDays(1);
+        LocalDateTime dayNStart = dayNDate.withHour(0).withMinute(0).withSecond(0);
+        LocalDateTime dayNEnd = dayNStart.plusDays(1);
 
-        List<Submission> day0Submissions = submissionMapper.selectList(day0Wrapper);
-        Set<String> day0Users = day0Submissions.stream()
-                .map(Submission::getUserId)
-                .collect(Collectors.toSet());
+        long day0DistinctUsers = submissionMapper.selectCount(
+                new LambdaQueryWrapper<Submission>()
+                        .ge(Submission::getCreatedAt, day0Start)
+                        .lt(Submission::getCreatedAt, day0End)
+                        .isNotNull(Submission::getUserId)
+                        .groupBy(Submission::getUserId));
 
-        if (day0Users.isEmpty()) {
+        if (day0DistinctUsers == 0) {
             return 0.0;
         }
 
-        // Users who submitted on day N
-        LambdaQueryWrapper<Submission> dayNWrapper = new LambdaQueryWrapper<>();
-        dayNWrapper.ge(Submission::getCreatedAt, dayNDate.withHour(0).withMinute(0).withSecond(0))
-                .lt(Submission::getCreatedAt, dayNDate.withHour(23).withMinute(59).withSecond(59));
+        long dayNDistinctUsers = submissionMapper.selectCount(
+                new LambdaQueryWrapper<Submission>()
+                        .ge(Submission::getCreatedAt, dayNStart)
+                        .lt(Submission::getCreatedAt, dayNEnd)
+                        .isNotNull(Submission::getUserId)
+                        .groupBy(Submission::getUserId));
 
-        List<Submission> dayNSubmissions = submissionMapper.selectList(dayNWrapper);
-        Set<String> dayNUsers = dayNSubmissions.stream()
-                .map(Submission::getUserId)
-                .collect(Collectors.toSet());
-
-        // Calculate retention
-        day0Users.retainAll(dayNUsers);
-        return day0Users.size() * 100.0 / day0Users.size();
+        // Approximate retention: ratio of distinct active users on day N vs day 0
+        return Math.min(dayNDistinctUsers * 100.0 / day0DistinctUsers, 100.0);
     }
 
     /**

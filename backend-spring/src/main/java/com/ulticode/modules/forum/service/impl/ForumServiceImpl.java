@@ -10,6 +10,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.forum.service.ForumService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
+import com.ulticode.modules.vote.dto.VoteResultVO;
+import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
+import com.ulticode.modules.vote.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +40,7 @@ public class ForumServiceImpl implements ForumService {
     private final ForumTagMapper tagMapper;
     private final ForumUserMapper forumUserMapper;
     private final UserService userService;
+    private final VoteService voteService;
 
     // =========================================================================
     // POST OPERATIONS
@@ -553,12 +557,26 @@ public class ForumServiceImpl implements ForumService {
         }
         vo.setExcerpt(post.getExcerpt());
         vo.setMedia(post.getMedia());
-        vo.setVoteState(post.getVoteState());
         vo.setIsSaved(post.getIsSaved());
         vo.setImpressions(post.getImpressions());
         vo.setIsPinned(post.getIsPinned());
         vo.setIsLocked(post.getIsLocked());
-        vo.setStats(post.getStats());
+
+        // Enrich with vote counts and user vote state from edge_operations
+        VoteResultVO voteResult = voteService.getVoteStatus(
+                userId, post.getId(), EdgeOperationTargetType.FORUM_POST);
+        int userVote = voteResult.getUserVote();
+        vo.setVoteState(userVote == 1 ? "upvoted" : userVote == -1 ? "downvoted" : "neutral");
+
+        if (post.getStats() instanceof Map) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> enrichedStats = new LinkedHashMap<>((Map<String, Object>) post.getStats());
+            enrichedStats.put("likes", voteResult.getLikes());
+            enrichedStats.put("dislikes", voteResult.getDislikes());
+            vo.setStats(enrichedStats);
+        } else {
+            vo.setStats(post.getStats());
+        }
         vo.setViews(post.getViews());
         vo.setIsFlagged(post.getIsFlagged());
         vo.setFlaggedReason(post.getFlaggedReason());

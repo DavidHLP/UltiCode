@@ -10,7 +10,11 @@ public enum EdgeOperationTargetType {
     PROBLEM("PROBLEM"),
     SOLUTION("SOLUTION"),
     POST("POST"),
-    COMMENT("COMMENT");
+    COMMENT("COMMENT"),
+    FORUM_POST("FORUM_POST"),
+    FORUM_COMMENT("FORUM_COMMENT"),
+    SOLUTION_COMMENT("SOLUTION_COMMENT"),
+    PROBLEM_LIST("PROBLEM_LIST");
 
     @EnumValue
     private final String value;

@@ -41,15 +41,15 @@ const commentTree = computed(() => {
   <div class="space-y-6 px-4 sm:px-6 pb-8">
     <div v-if="!isCommenting && !props.isLocked" class="mb-8">
       <div
-        class="w-full rounded-none border border-border bg-background px-5 py-3.5 text-sm text-muted-foreground/70 cursor-text hover:border-primary/30 focus:border-primary/50 transition-all duration-200 flex items-center gap-3 group"
+        class="w-full cursor-text border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)] hover:border-[var(--accent-electric)] px-5 py-3.5 transition-all duration-200 flex items-center gap-3 group"
         @click="isCommenting = true"
       >
         <div
-          class="h-8 w-8 rounded-none bg-muted border border-border flex items-center justify-center group-hover:text-primary group-hover:border-primary/30 transition-all"
+          class="h-8 w-8 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)] flex items-center justify-center group-hover:border-[var(--accent-electric)] group-hover:text-[var(--accent-electric)] transition-all duration-200"
         >
-          <MessageSquare class="h-4 w-4" />
+          <MessageSquare class="h-4 w-4 text-[var(--silver-500)] group-hover:text-[var(--accent-electric)]" />
         </div>
-        <span class="font-bold tracking-tight">{{
+        <span class="font-[family-name:var(--font-mono)] text-sm text-[var(--silver-500)] group-hover:text-[var(--foreground)] transition-colors duration-200">{{
           t("forum.comments.joinConversation")
         }}</span>
       </div>

@@ -2,12 +2,11 @@
 /**
  * ForgotPasswordView - Password reset request with AuthCard
  */
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { authApi } from "@/api/auth";
 import { Terminal } from "lucide-vue-next";
-import { sanitizeHtml } from "@/utils/sanitize";
 import AuthCard from "@/views/auth/components/AuthCard.vue";
 import AuthGrid from "@/views/auth/components/AuthGrid.vue";
 import AuthInput from "@/views/auth/components/AuthInput.vue";
@@ -16,8 +15,6 @@ import { toast } from "vue-sonner";
 
 const router = useRouter();
 const { t } = useI18n();
-
-const codingConsoleHtml = computed(() => sanitizeHtml(t('auth.layout.codingConsole')));
 
 const email = ref("");
 const loading = ref(false);
@@ -102,7 +99,7 @@ async function handleSubmit(e: Event) {
     <AuthGrid>
       <div class="auth-pattern-text">
         <div class="auth-pattern-text__prefix">$</div>
-        <h2 class="auth-pattern-text__title" v-html="codingConsoleHtml"></h2>
+        <h2 class="auth-pattern-text__title whitespace-pre-line">{{ t('auth.layout.codingConsole') }}</h2>
         <p class="auth-pattern-text__subtitle">{{ t('auth.layout.codingConsoleSubtitle') }}</p>
         <div class="auth-pattern-text__cursor"></div>
       </div>

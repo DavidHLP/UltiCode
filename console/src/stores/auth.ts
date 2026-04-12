@@ -7,7 +7,7 @@ import type {
   LoginResponse,
 } from "@/types/auth";
 import { apiGet, apiPost } from "@/utils/request";
-import { csrfManager } from "@/utils/csrf";
+import { csrfManager, getCsrfToken } from "@/utils/csrf";
 
 const isDevelopment = import.meta.env.DEV;
 
@@ -96,11 +96,14 @@ export const useAuthStore = defineStore("auth", () => {
     // Create and store the promise
     _initializationPromise = (async () => {
       try {
-        // Always attempt to restore session from httpOnly cookies.
-        // httpOnly cookies are NOT readable via document.cookie (browser security).
-        // The server reads cookies from the request headers directly.
-        // If no valid session exists, /auth/me returns 401 — handled gracefully.
-        await fetchUser();
+        // Only call /auth/me if a CSRF token exists (set by backend at login).
+        // No CSRF token = no session to restore, skip the unnecessary 401.
+        // Note: httpOnly cookies (access_token) can't be read from JS,
+        // but csrf_token is a non-httpOnly cookie that serves as a proxy signal.
+        const hasCsrf = !!getCsrfToken();
+        if (hasCsrf) {
+          await fetchUser();
+        }
         if (isDevelopment) {
         }
       } catch (err) {

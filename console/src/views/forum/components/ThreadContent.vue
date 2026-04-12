@@ -13,6 +13,7 @@ import { PostActions } from "@/components/edge-operations";
 import { computed, ref, watch } from "vue";
 import { useAvatar } from "@/composables/useAvatar";
 import { renderMarkdown } from "@/utils/markdown";
+import { sanitizeHtml } from "@/utils/sanitize";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { toggleBookmark, BookmarkType } from "@/api/bookmark";
 import { toast } from "vue-sonner";
@@ -271,7 +272,7 @@ async function handleShare() {
       <section
         v-if="thread.excerpt"
         class="text-sm leading-relaxed text-foreground/90 prose prose-sm dark:prose-invert max-w-none"
-        v-html="renderMarkdown(thread.excerpt)"
+        v-html="sanitizeHtml(renderMarkdown(thread.excerpt))"
       ></section>
 
       <section v-if="media" class="mt-4">
@@ -332,7 +333,7 @@ async function handleShare() {
           <div
             v-else-if="media.type === 'text'"
             class="p-4 text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none"
-            v-html="renderMarkdown(media.markdown || media.body || '')"
+            v-html="sanitizeHtml(renderMarkdown(media.markdown || media.body || ''))"
           ></div>
 
           <div v-else-if="media.type === 'video'" class="bg-black">

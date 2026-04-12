@@ -1,24 +1,27 @@
 <script setup lang="ts">
-import { onMounted } from "vue";
+import { onMounted, onUnmounted } from "vue";
 import { useRouter } from "vue-router";
 import PWAUpdatePrompt from "@/components/common/PWAUpdatePrompt.vue";
 
 const router = useRouter();
 const isDevelopment = import.meta.env.DEV;
 
+const handleError = (event: ErrorEvent) => {
+  console.error("[App.vue] Global error:", event.error);
+};
+
+const handleRejection = (event: PromiseRejectionEvent) => {
+  console.error("[App.vue] Unhandled promise rejection:", event.reason);
+};
+
 onMounted(() => {
-  if (isDevelopment) {
-  }
+  window.addEventListener("error", handleError);
+  window.addEventListener("unhandledrejection", handleRejection);
+});
 
-  // Global error handler
-  window.addEventListener("error", (event) => {
-    console.error("[App.vue] Global error:", event.error);
-  });
-
-  // Global unhandled promise rejection handler
-  window.addEventListener("unhandledrejection", (event) => {
-    console.error("[App.vue] Unhandled promise rejection:", event.reason);
-  });
+onUnmounted(() => {
+  window.removeEventListener("error", handleError);
+  window.removeEventListener("unhandledrejection", handleRejection);
 });
 </script>
 

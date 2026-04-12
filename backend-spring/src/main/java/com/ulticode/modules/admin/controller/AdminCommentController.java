@@ -6,6 +6,7 @@ import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
 import com.ulticode.modules.admin.dto.AdminCommentVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
 import com.ulticode.modules.admin.dto.BulkCommentActionRequest;
+import com.ulticode.modules.admin.dto.FlagRequest;
 import com.ulticode.modules.admin.service.AdminCommentService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,8 +16,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * Admin controller for comment management.
@@ -56,9 +55,8 @@ public class AdminCommentController {
             @PathVariable String type,
             @Parameter(description = "Comment ID")
             @PathVariable String id,
-            @RequestBody Map<String, String> request) {
-        String reason = request.get("reason");
-        adminCommentService.flagComment(id, type, reason);
+            @Valid @RequestBody FlagRequest request) {
+        adminCommentService.flagComment(id, type, request.getReason());
         return Result.success();
     }
 

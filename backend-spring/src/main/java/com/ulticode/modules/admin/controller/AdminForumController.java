@@ -6,6 +6,7 @@ import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 import com.ulticode.modules.admin.dto.BulkActionRequest;
 import com.ulticode.modules.admin.dto.BulkActionResult;
+import com.ulticode.modules.admin.dto.FlagRequest;
 import com.ulticode.modules.admin.service.AdminForumService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -15,8 +16,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
 
 /**
  * Admin controller for forum post management.
@@ -92,9 +91,8 @@ public class AdminForumController {
     public Result<Void> flagPost(
             @Parameter(description = "Post ID")
             @PathVariable String id,
-            @RequestBody Map<String, String> request) {
-        String reason = request.get("reason");
-        adminForumService.flagPost(id, reason);
+            @Valid @RequestBody FlagRequest request) {
+        adminForumService.flagPost(id, request.getReason());
         return Result.success();
     }
 

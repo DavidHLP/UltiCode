@@ -2,9 +2,11 @@ package com.ulticode.modules.forum.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.forum.dto.*;
 import com.ulticode.modules.forum.entity.*;
 import com.ulticode.modules.forum.mapper.*;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.modules.forum.service.ForumService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
@@ -42,12 +44,22 @@ public class ForumServiceImpl implements ForumService {
 
     @Override
     public List<ForumPostVO> findAllPosts(String userId) {
-        log.debug("Finding all posts for userId: {}", userId);
-        List<ForumPost> posts = postMapper.findRecentPosts(MAX_RECENT_POSTS);
+        return findAllPosts(userId, 1, MAX_RECENT_POSTS).getItems();
+    }
+
+    @Override
+    public PageResult<ForumPostVO> findAllPosts(String userId, int page, int pageSize) {
+        log.debug("Finding all posts for userId: {}, page: {}, pageSize: {}", userId, page, pageSize);
+        int limit = Math.min(pageSize, MAX_RECENT_POSTS);
+        int offset = (page - 1) * limit;
+        long total = postMapper.selectCount(
+                new LambdaQueryWrapper<ForumPost>().eq(ForumPost::getIsDeleted, 0));
+        List<ForumPost> posts = postMapper.findRecentPosts(limit, offset);
         Map<String, User> authorMap = batchLoadAuthors(posts);
-        return posts.stream()
+        List<ForumPostVO> items = posts.stream()
                 .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
                 .collect(Collectors.toList());
+        return PageResult.of(items, total, page, limit);
     }
 
     @Override
@@ -63,12 +75,21 @@ public class ForumServiceImpl implements ForumService {
 
     @Override
     public List<ForumPostVO> findMyPosts(String userId) {
-        log.debug("Finding posts for user: {}", userId);
-        List<ForumPost> posts = postMapper.findByUserId(userId);
+        return findMyPosts(userId, 1, MAX_RECENT_POSTS).getItems();
+    }
+
+    @Override
+    public PageResult<ForumPostVO> findMyPosts(String userId, int page, int pageSize) {
+        log.debug("Finding posts for user: {}, page: {}, pageSize: {}", userId, page, pageSize);
+        int limit = Math.min(pageSize, MAX_RECENT_POSTS);
+        int offset = (page - 1) * limit;
+        long total = postMapper.countByUserId(userId);
+        List<ForumPost> posts = postMapper.findByUserId(userId, limit, offset);
         Map<String, User> authorMap = batchLoadAuthors(posts);
-        return posts.stream()
+        List<ForumPostVO> items = posts.stream()
                 .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
                 .collect(Collectors.toList());
+        return PageResult.of(items, total, page, limit);
     }
 
     @Override
@@ -413,26 +434,28 @@ public class ForumServiceImpl implements ForumService {
 
     @Override
     public List<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String userId) {
-        log.debug("Finding posts by community: {} sortBy: {}", slug, sortBy);
+        return findPostsByCommunity(slug, sortBy, userId, 1, MAX_RECENT_POSTS).getItems();
+    }
+
+    @Override
+    public PageResult<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String userId, int page, int pageSize) {
+        log.debug("Finding posts by community: {} sortBy: {}, page: {}, pageSize: {}", slug, sortBy, page, pageSize);
 
         ForumCommunity community = communityMapper.findBySlug(slug);
         if (community == null) {
             throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
         }
 
-        List<ForumPost> posts = postMapper.findByCommunityId(community.getId());
-
-        // Apply sorting (simplified - in real implementation would use proper sorting algorithms)
-        if ("top".equals(sortBy)) {
-            // Sort by views/impressions (already sorted by created_at desc)
-            // For now, use default order
-        }
-        // 'hot' and 'new' use default created_at desc order
+        int limit = Math.min(pageSize, MAX_RECENT_POSTS);
+        int offset = (page - 1) * limit;
+        long total = postMapper.countByCommunityId(community.getId());
+        List<ForumPost> posts = postMapper.findByCommunityId(community.getId(), limit, offset);
 
         Map<String, User> authorMap = batchLoadAuthors(posts);
-        return posts.stream()
+        List<ForumPostVO> items = posts.stream()
                 .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
                 .collect(Collectors.toList());
+        return PageResult.of(items, total, page, limit);
     }
 
     @Override

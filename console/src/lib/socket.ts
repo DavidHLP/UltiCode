@@ -186,26 +186,15 @@ function createSocketManager(): SocketManager {
   const connect = () => {
     if (client?.connected) return;
 
-    const token = getTokenFromCookie();
-
-    // Don't connect if no token - user is not authenticated
-    if (!token) {
-      if (import.meta.env.DEV) {
-      }
-      notifyStatusChange("disconnected");
-      return;
-    }
-
     notifyStatusChange("connecting");
 
     const csrfToken = getCsrfToken();
 
-    // Token is passed via connectHeaders.Authorization (Cookie-based auth)
-    // URL does NOT contain token to prevent log leakage
+    // Auth relies on httpOnly cookies sent automatically by SockJS (withCredentials).
+    // Do NOT attempt to read access_token from document.cookie — httpOnly prevents JS access.
     client = new Client({
       webSocketFactory: () => new SockJS(`${API_BASE_URL}/ws/notifications`),
       connectHeaders: {
-        Authorization: token ? `Bearer ${token}` : "",
         "X-CSRF-Token": csrfToken || "",
       },
       debug: (str) => {

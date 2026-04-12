@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
@@ -35,6 +36,7 @@ public class AdminNotificationController {
     }
 
     @Operation(summary = "Create system notification", description = "Create a new system announcement and send to target users")
+    @RateLimit(key = "admin:notification-create", limit = 30, period = 60)
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminNotificationVO> createNotification(@Valid @RequestBody CreateSystemNotificationRequest request) {
@@ -42,6 +44,7 @@ public class AdminNotificationController {
     }
 
     @Operation(summary = "Delete notification", description = "Delete a system notification and all related user notifications")
+    @RateLimit(key = "admin:notification-delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteNotification(

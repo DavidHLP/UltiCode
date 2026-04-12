@@ -1,5 +1,8 @@
 package com.ulticode.modules.solution.controller;
 
+import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
@@ -61,6 +64,7 @@ public class SolutionController {
      * @return the created solution
      */
     @Operation(summary = "Create solution", description = "Create a new solution for a problem")
+    @RateLimit(key = "solution:create", limit = 20, period = 60)
     @PostMapping("/api/problems/{problemId}/solutions")
     public Result<SolutionVO> create(
             @Parameter(description = "Problem ID")
@@ -69,7 +73,7 @@ public class SolutionController {
 
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
-            return Result.error(40100, "Unauthorized");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         SolutionVO solution = solutionService.create(problemId, userId, createDTO);
@@ -102,6 +106,7 @@ public class SolutionController {
      * @return the updated solution
      */
     @Operation(summary = "Update solution", description = "Update an existing solution (author only)")
+    @RateLimit(key = "solution:update", limit = 20, period = 60)
     @PutMapping("/api/solutions/{id}")
     public Result<SolutionVO> update(
             @Parameter(description = "Solution ID")
@@ -110,7 +115,7 @@ public class SolutionController {
 
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
-            return Result.error(40100, "Unauthorized");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         SolutionVO solution = solutionService.update(id, userId, updateDTO);
@@ -125,6 +130,7 @@ public class SolutionController {
      * @return success result
      */
     @Operation(summary = "Delete solution", description = "Delete a solution (author only)")
+    @RateLimit(key = "solution:delete", limit = 20, period = 60)
     @DeleteMapping("/api/solutions/{id}")
     public Result<Void> delete(
             @Parameter(description = "Solution ID")
@@ -132,7 +138,7 @@ public class SolutionController {
 
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
-            return Result.error(40100, "Unauthorized");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
         solutionService.delete(id, userId);
@@ -168,6 +174,7 @@ public class SolutionController {
      * @return success result
      */
     @Operation(summary = "Record solution view", description = "Record a view for a solution")
+    @RateLimit(key = "solution:view", limit = 20, period = 60)
     @PostMapping("/api/views/solution/{solutionId}")
     public Result<Void> recordView(
             @Parameter(description = "Solution ID")

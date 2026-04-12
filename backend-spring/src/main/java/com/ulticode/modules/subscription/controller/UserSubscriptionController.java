@@ -1,5 +1,6 @@
 package com.ulticode.modules.subscription.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.subscription.dto.CreateSubscriptionDTO;
@@ -42,6 +43,7 @@ public class UserSubscriptionController {
      * @return the created subscription
      */
     @Operation(summary = "Create subscription", description = "Create a new subscription for the current user")
+    @RateLimit(key = "subscription:create", limit = 20, period = 60)
     @PostMapping
     public Result<SubscriptionDTO> createSubscription(@Valid @RequestBody CreateSubscriptionDTO dto) {
         String userId = SecurityUtil.getCurrentUserId();
@@ -59,6 +61,7 @@ public class UserSubscriptionController {
      * @return the cancelled subscription
      */
     @Operation(summary = "Cancel subscription", description = "Cancel an active subscription")
+    @RateLimit(key = "subscription:cancel", limit = 20, period = 60)
     @PostMapping("/{id}/cancel")
     public Result<SubscriptionDTO> cancelSubscription(@PathVariable String id) {
         String userId = SecurityUtil.getCurrentUserId();

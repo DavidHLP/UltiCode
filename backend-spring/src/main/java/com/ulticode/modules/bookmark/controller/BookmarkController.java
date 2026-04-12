@@ -1,5 +1,6 @@
 package com.ulticode.modules.bookmark.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.bookmark.dto.*;
@@ -27,6 +28,7 @@ public class BookmarkController {
     private final BookmarkService bookmarkService;
 
     @Operation(summary = "Quick favorite/unfavorite an item")
+    @RateLimit(key = "bookmark:quick", limit = 20, period = 60)
     @PostMapping("/quick")
     public Result<QuickFavoriteVO> quickFavorite(@Valid @RequestBody QuickFavoriteDTO dto) {
         String userId = SecurityUtil.getCurrentUserId();
@@ -48,6 +50,7 @@ public class BookmarkController {
     }
 
     @Operation(summary = "Create a new folder")
+    @RateLimit(key = "bookmark:create-folder", limit = 20, period = 60)
     @PostMapping("/folders")
     public Result<BookmarkFolderVO> createFolder(@Valid @RequestBody CreateFolderDTO dto) {
         String userId = SecurityUtil.getCurrentUserId();
@@ -55,6 +58,7 @@ public class BookmarkController {
     }
 
     @Operation(summary = "Update a folder")
+    @RateLimit(key = "bookmark:update-folder", limit = 20, period = 60)
     @PatchMapping("/folders/{id}")
     public Result<BookmarkFolderVO> updateFolder(
             @PathVariable String id,
@@ -64,6 +68,7 @@ public class BookmarkController {
     }
 
     @Operation(summary = "Delete a folder")
+    @RateLimit(key = "bookmark:delete-folder", limit = 20, period = 60)
     @DeleteMapping("/folders/{id}")
     public Result<Void> deleteFolder(@PathVariable String id) {
         String userId = SecurityUtil.getCurrentUserId();
@@ -72,6 +77,7 @@ public class BookmarkController {
     }
 
     @Operation(summary = "Add a bookmark to a folder")
+    @RateLimit(key = "bookmark:add", limit = 20, period = 60)
     @PostMapping("/folders/{folderId}/items")
     public Result<BookmarkVO> addBookmark(
             @PathVariable String folderId,
@@ -81,6 +87,7 @@ public class BookmarkController {
     }
 
     @Operation(summary = "Remove a bookmark from a folder")
+    @RateLimit(key = "bookmark:remove", limit = 20, period = 60)
     @DeleteMapping("/folders/{folderId}/items/{bookmarkId}")
     public Result<Void> removeBookmark(
             @PathVariable String folderId,
@@ -91,6 +98,7 @@ public class BookmarkController {
     }
 
     @Operation(summary = "Remove a bookmark by target")
+    @RateLimit(key = "bookmark:remove-by-target", limit = 20, period = 60)
     @DeleteMapping("/folders/{folderId}/items/target/{targetType}/{targetId}")
     public Result<Void> removeBookmarkByTarget(
             @PathVariable String folderId,
@@ -102,6 +110,7 @@ public class BookmarkController {
     }
 
     @Operation(summary = "Update a bookmark")
+    @RateLimit(key = "bookmark:update", limit = 20, period = 60)
     @PatchMapping("/folders/{folderId}/items/{bookmarkId}")
     public Result<BookmarkVO> updateBookmark(
             @PathVariable String folderId,
@@ -121,6 +130,7 @@ public class BookmarkController {
     }
 
     @Operation(summary = "Reorder folders")
+    @RateLimit(key = "bookmark:reorder", limit = 20, period = 60)
     @PostMapping("/folders/reorder")
     public Result<Void> reorderFolders(@Valid @RequestBody ReorderFoldersDTO dto) {
         String userId = SecurityUtil.getCurrentUserId();

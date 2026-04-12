@@ -94,6 +94,17 @@ public interface ContestMapper extends BaseMapper<Contest> {
     int incrementRegisteredCount(@Param("contestId") String contestId);
 
     /**
+     * Atomically increment registered count only if not full.
+     * Uses conditional UPDATE to prevent race conditions.
+     *
+     * @param contestId the contest ID
+     * @return number of rows affected (0 means contest is full)
+     */
+    @Update("UPDATE contests SET registered_count = registered_count + 1, updated_at = NOW() "
+            + "WHERE id = #{contestId} AND (max_participants IS NULL OR registered_count < max_participants)")
+    int tryIncrementRegisteredCount(@Param("contestId") String contestId);
+
+    /**
      * Atomically decrement registered count (minimum 0).
      *
      * @param contestId the contest ID

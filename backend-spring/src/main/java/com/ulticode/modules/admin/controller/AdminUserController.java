@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
@@ -42,6 +43,7 @@ public class AdminUserController {
     }
 
     @Operation(summary = "Ban user", description = "Ban a user from the platform")
+    @RateLimit(key = "admin:user-ban", limit = 30, period = 60)
     @PostMapping("/{id}/ban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> banUser(
@@ -53,6 +55,7 @@ public class AdminUserController {
     }
 
     @Operation(summary = "Unban user", description = "Remove ban from a user")
+    @RateLimit(key = "admin:user-unban", limit = 30, period = 60)
     @PostMapping("/{id}/unban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> unbanUser(@PathVariable String id) {
@@ -60,6 +63,7 @@ public class AdminUserController {
     }
 
     @Operation(summary = "Reset user password", description = "Reset a user's password")
+    @RateLimit(key = "admin:user-reset-password", limit = 30, period = 60)
     @PostMapping("/{id}/reset-password")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> resetPassword(
@@ -70,6 +74,7 @@ public class AdminUserController {
     }
 
     @Operation(summary = "Bulk ban users", description = "Ban multiple users at once")
+    @RateLimit(key = "admin:user-bulk-ban", limit = 30, period = 60)
     @PostMapping("/bulk-ban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<List<AdminUserService.BanResult>> bulkBan(@Valid @RequestBody BulkUserActionRequest request) {
@@ -77,6 +82,7 @@ public class AdminUserController {
     }
 
     @Operation(summary = "Bulk unban users", description = "Unban multiple users at once")
+    @RateLimit(key = "admin:user-bulk-unban", limit = 30, period = 60)
     @PostMapping("/bulk-unban")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<List<AdminUserService.BanResult>> bulkUnban(@Valid @RequestBody BulkUserActionRequest request) {
@@ -84,6 +90,7 @@ public class AdminUserController {
     }
 
     @Operation(summary = "Bulk delete users", description = "Delete multiple users at once")
+    @RateLimit(key = "admin:user-bulk-delete", limit = 30, period = 60)
     @DeleteMapping("/bulk-delete")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
     public Result<List<AdminUserService.DeleteResult>> bulkDelete(@Valid @RequestBody BulkUserActionRequest request) {

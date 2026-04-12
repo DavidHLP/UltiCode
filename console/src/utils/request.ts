@@ -80,6 +80,7 @@ interface ConfigWithMetadata
  * Pending requests map for deduplication
  */
 const pendingRequests = new Map<string, AbortController>();
+let isAuthErrorHandling = false;
 
 /**
  * URLs that should never be deduplicated
@@ -306,32 +307,36 @@ service.interceptors.response.use(
       }
     }
 
-    // Handle authentication errors (401/403)
+    // Handle authentication errors (401/403) — debounced to prevent concurrent redirects
     if (
       error.response &&
       (error.response.status === 401 || error.response.status === 403)
     ) {
-      const { useAuthStore } = await import("@/stores/auth");
-      const authStore = useAuthStore();
+      if (!isAuthErrorHandling) {
+        isAuthErrorHandling = true;
+        const { useAuthStore } = await import("@/stores/auth");
+        const authStore = useAuthStore();
 
-      // Only clear user state if user was authenticated
-      if (authStore.isAuthenticated) {
-        authStore.clearUser();
+        if (authStore.isAuthenticated) {
+          authStore.clearUser();
 
-        // Trigger session expired callback (e.g., redirect to login)
-        const { getSessionExpiredCallback } = await import(
-          "@/contexts/AuthContext"
-        );
-        const callback = getSessionExpiredCallback();
-        if (callback) {
-          callback();
-        }
-
-        if (isDevelopment) {
-          console.warn(
-            `[API Auth Error] ${error.response.status} on ${config?.url}`,
+          const { getSessionExpiredCallback } = await import(
+            "@/contexts/AuthContext"
           );
+          const callback = getSessionExpiredCallback();
+          if (callback) {
+            callback();
+          }
+
+          if (isDevelopment) {
+            console.warn(
+              `[API Auth Error] ${error.response.status} on ${config?.url}`,
+            );
+          }
         }
+
+        // Reset flag after a short delay to allow future auth errors to be handled
+        setTimeout(() => { isAuthErrorHandling = false; }, 1000);
       }
 
       return Promise.reject(ApiError.fromAxiosError(error));

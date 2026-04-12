@@ -1,5 +1,6 @@
 package com.ulticode.modules.email.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.email.dto.*;
@@ -27,6 +28,7 @@ public class EmailController {
      * Send an email
      */
     @Operation(summary = "Send an email")
+    @RateLimit(key = "email:send", limit = 5, period = 60)
     @PostMapping("/send")
     public Result<EmailLogDTO> sendEmail(@Valid @RequestBody SendEmailDTO dto) {
         EmailLogDTO result = emailService.sendEmail(dto);
@@ -57,6 +59,7 @@ public class EmailController {
      * Create a new email template
      */
     @Operation(summary = "Create a new email template")
+    @RateLimit(key = "email:create-template", limit = 30, period = 60)
     @PostMapping("/templates")
     public Result<EmailTemplateDTO> createTemplate(@Valid @RequestBody CreateTemplateDTO dto) {
         EmailTemplateDTO template = emailService.createTemplate(dto);
@@ -67,6 +70,7 @@ public class EmailController {
      * Update an email template
      */
     @Operation(summary = "Update an email template")
+    @RateLimit(key = "email:update-template", limit = 30, period = 60)
     @PutMapping("/templates/{id}")
     public Result<EmailTemplateDTO> updateTemplate(
             @PathVariable String id,
@@ -79,6 +83,7 @@ public class EmailController {
      * Delete an email template
      */
     @Operation(summary = "Delete an email template")
+    @RateLimit(key = "email:delete-template", limit = 30, period = 60)
     @DeleteMapping("/templates/{id}")
     public Result<Void> deleteTemplate(@PathVariable String id) {
         emailService.deleteTemplate(id);

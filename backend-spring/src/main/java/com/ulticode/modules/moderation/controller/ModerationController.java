@@ -1,5 +1,6 @@
 package com.ulticode.modules.moderation.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
@@ -51,6 +52,7 @@ public class ModerationController {
     }
 
     @Operation(summary = "Claim a queue item")
+    @RateLimit(key = "admin:moderation-claim", limit = 30, period = 60)
     @PostMapping("/queue/{id}/claim")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationQueueVO> claim(@PathVariable String id) {
@@ -59,6 +61,7 @@ public class ModerationController {
     }
 
     @Operation(summary = "Assign a queue item to a moderator")
+    @RateLimit(key = "admin:moderation-assign", limit = 30, period = 60)
     @PostMapping("/queue/{id}/assign")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationQueueVO> assign(@PathVariable String id, @Valid @RequestBody AssignDTO dto) {
@@ -67,6 +70,7 @@ public class ModerationController {
     }
 
     @Operation(summary = "Unassign a queue item")
+    @RateLimit(key = "admin:moderation-unassign", limit = 30, period = 60)
     @PatchMapping("/queue/{id}/unassign")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationQueueVO> unassign(@PathVariable String id) {
@@ -75,6 +79,7 @@ public class ModerationController {
     }
 
     @Operation(summary = "Perform moderation action")
+    @RateLimit(key = "admin:moderation-action", limit = 30, period = 60)
     @PostMapping("/queue/{id}/action")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationQueueVO> performAction(
@@ -94,6 +99,7 @@ public class ModerationController {
     }
 
     @Operation(summary = "Batch moderation action")
+    @RateLimit(key = "admin:moderation-batch", limit = 30, period = 60)
     @PostMapping("/queue/batch-action")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BatchActionResultVO> batchAction(@Valid @RequestBody BatchModerationActionDTO dto) {
@@ -104,6 +110,7 @@ public class ModerationController {
     // ==================== Report Operations ====================
 
     @Operation(summary = "Create a report")
+    @RateLimit(key = "moderation:create-report", limit = 20, period = 60)
     @PostMapping("/reports")
     public Result<Void> createReport(@Valid @RequestBody CreateReportDTO dto) {
         String reporterId = SecurityUtil.getCurrentUserId();
@@ -130,6 +137,7 @@ public class ModerationController {
     // ==================== Appeal Operations ====================
 
     @Operation(summary = "Create an appeal")
+    @RateLimit(key = "moderation:create-appeal", limit = 20, period = 60)
     @PostMapping("/appeals")
     public Result<AppealVO> createAppeal(@Valid @RequestBody CreateAppealDTO dto) {
         String appellantId = SecurityUtil.getCurrentUserId();
@@ -150,6 +158,7 @@ public class ModerationController {
     }
 
     @Operation(summary = "Review an appeal")
+    @RateLimit(key = "admin:moderation-review", limit = 30, period = 60)
     @PostMapping("/appeals/{id}/review")
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<AppealVO> reviewAppeal(

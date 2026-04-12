@@ -1,5 +1,6 @@
 package com.ulticode.modules.recommendation.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.recommendation.dto.GetRecommendationsDTO;
 import com.ulticode.modules.recommendation.dto.RecommendResponseVO;
@@ -32,6 +33,7 @@ public class RecommendationController {
      * @return recommendation response
      */
     @Operation(summary = "Get personalized recommendations", description = "Get personalized problem recommendations based on user's history and preferences")
+    @RateLimit(key = "recommendation:get", limit = 20, period = 60)
     @PostMapping
     public Result<RecommendResponseVO> getRecommendations(@Valid @RequestBody GetRecommendationsDTO dto) {
         RecommendResponseVO response = recommendationService.getRecommendations(dto);
@@ -117,6 +119,7 @@ public class RecommendationController {
      * Track user clicking on a recommended problem.
      */
     @Operation(summary = "Track recommendation click", description = "Record that the user clicked on a recommended problem")
+    @RateLimit(key = "recommendation:click", limit = 20, period = 60)
     @PostMapping("/{recommendationId}/click")
     public Result<Void> trackClick(@PathVariable String recommendationId) {
         dailyRecommendationMapper.updateClicked(recommendationId);
@@ -127,6 +130,7 @@ public class RecommendationController {
      * Track user solving a recommended problem.
      */
     @Operation(summary = "Track recommendation solve", description = "Record that the user solved a recommended problem")
+    @RateLimit(key = "recommendation:solve", limit = 20, period = 60)
     @PostMapping("/{recommendationId}/solve")
     public Result<Void> trackSolve(@PathVariable String recommendationId) {
         dailyRecommendationMapper.updateSolved(recommendationId);

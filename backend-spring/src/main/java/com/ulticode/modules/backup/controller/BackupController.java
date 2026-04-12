@@ -1,5 +1,6 @@
 package com.ulticode.modules.backup.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.backup.dto.BackupQueryDTO;
@@ -33,6 +34,7 @@ public class BackupController {
     private final BackupService backupService;
 
     @Operation(summary = "创建备份")
+    @RateLimit(key = "admin:backup-create", limit = 30, period = 60)
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BackupVO> createBackup(@Valid @RequestBody CreateBackupDTO dto) {
@@ -72,6 +74,7 @@ public class BackupController {
     }
 
     @Operation(summary = "从备份恢复")
+    @RateLimit(key = "admin:backup-restore", limit = 30, period = 60)
     @PostMapping("/{id}/restore")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BackupVO> restoreBackup(@PathVariable String id) {
@@ -81,6 +84,7 @@ public class BackupController {
     }
 
     @Operation(summary = "删除备份")
+    @RateLimit(key = "admin:backup-delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteBackup(@PathVariable String id) {

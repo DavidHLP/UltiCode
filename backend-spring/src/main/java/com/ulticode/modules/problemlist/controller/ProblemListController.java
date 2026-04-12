@@ -1,5 +1,6 @@
 package com.ulticode.modules.problemlist.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.problemlist.dto.*;
 import com.ulticode.modules.problemlist.service.ProblemListService;
@@ -42,6 +43,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Create a problem list")
+    @RateLimit(key = "problem-list:create", limit = 20, period = 60)
     @PostMapping
     @SecurityRequirement(name = "Bearer")
     public Result<ProblemListSummaryVO> createList(
@@ -51,6 +53,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Update a problem list")
+    @RateLimit(key = "problem-list:update", limit = 20, period = 60)
     @PatchMapping("/{id}")
     @SecurityRequirement(name = "Bearer")
     public Result<ProblemListSummaryVO> updateList(
@@ -61,6 +64,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Delete a problem list")
+    @RateLimit(key = "problem-list:delete", limit = 20, period = 60)
     @DeleteMapping("/{id}")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> deleteList(
@@ -71,6 +75,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Fork a problem list")
+    @RateLimit(key = "problem-list:fork", limit = 20, period = 60)
     @PostMapping("/{id}/fork")
     @SecurityRequirement(name = "Bearer")
     public Result<ForkResultVO> forkList(
@@ -81,6 +86,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Add a problem to a list")
+    @RateLimit(key = "problem-list:add-problem", limit = 20, period = 60)
     @PostMapping("/{id}/problems")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> addProblem(
@@ -92,6 +98,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Remove a problem from a list")
+    @RateLimit(key = "problem-list:remove-problem", limit = 20, period = 60)
     @DeleteMapping("/{id}/problems/{problemId}")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> removeProblem(
@@ -103,6 +110,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Save a problem list")
+    @RateLimit(key = "problem-list:save", limit = 20, period = 60)
     @PostMapping("/{id}/save")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> saveList(
@@ -114,6 +122,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Unsave a problem list")
+    @RateLimit(key = "problem-list:unsave", limit = 20, period = 60)
     @DeleteMapping("/{id}/save")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> unsaveList(
@@ -133,6 +142,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Batch add a problem to multiple lists")
+    @RateLimit(key = "problem-list:batch-add", limit = 20, period = 60)
     @PostMapping("/problems/{problemId}/batch-add")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> batchAddProblemToLists(
@@ -144,6 +154,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Batch remove a problem from multiple lists")
+    @RateLimit(key = "problem-list:batch-remove", limit = 20, period = 60)
     @PostMapping("/problems/{problemId}/batch-remove")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> batchRemoveProblemFromLists(
@@ -155,6 +166,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Move a list to a category")
+    @RateLimit(key = "problem-list:move-category", limit = 20, period = 60)
     @PatchMapping("/{id}/category")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> moveListToCategory(
@@ -168,6 +180,7 @@ public class ProblemListController {
     // ==================== Category Management ====================
 
     @Operation(summary = "Create a category")
+    @RateLimit(key = "problem-list:create-category", limit = 20, period = 60)
     @PostMapping("/categories")
     @SecurityRequirement(name = "Bearer")
     public Result<CategorySummaryVO> createCategory(
@@ -177,6 +190,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Update a category")
+    @RateLimit(key = "problem-list:update-category", limit = 20, period = 60)
     @PatchMapping("/categories/{categoryId}")
     @SecurityRequirement(name = "Bearer")
     public Result<CategorySummaryVO> updateCategory(
@@ -187,6 +201,7 @@ public class ProblemListController {
     }
 
     @Operation(summary = "Delete a category")
+    @RateLimit(key = "problem-list:delete-category", limit = 20, period = 60)
     @DeleteMapping("/categories/{categoryId}")
     @SecurityRequirement(name = "Bearer")
     public Result<Void> deleteCategory(

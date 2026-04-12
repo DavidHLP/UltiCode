@@ -1,5 +1,6 @@
 package com.ulticode.modules.admin.controller;
 
+import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
@@ -48,6 +49,7 @@ public class AdminCommentController {
     }
 
     @Operation(summary = "Flag comment", description = "Flag a comment for review")
+    @RateLimit(key = "admin:comment-flag", limit = 30, period = 60)
     @PatchMapping("/{type}/{id}/flag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> flagComment(
@@ -61,6 +63,7 @@ public class AdminCommentController {
     }
 
     @Operation(summary = "Unflag comment", description = "Remove flag from a comment")
+    @RateLimit(key = "admin:comment-unflag", limit = 30, period = 60)
     @PatchMapping("/{type}/{id}/unflag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> unflagComment(
@@ -73,6 +76,7 @@ public class AdminCommentController {
     }
 
     @Operation(summary = "Delete comment", description = "Delete a comment (soft delete)")
+    @RateLimit(key = "admin:comment-delete", limit = 30, period = 60)
     @DeleteMapping("/{type}/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteComment(
@@ -85,6 +89,7 @@ public class AdminCommentController {
     }
 
     @Operation(summary = "Bulk action", description = "Perform action on multiple comments")
+    @RateLimit(key = "admin:comment-bulk", limit = 30, period = 60)
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BulkActionResult> bulkAction(

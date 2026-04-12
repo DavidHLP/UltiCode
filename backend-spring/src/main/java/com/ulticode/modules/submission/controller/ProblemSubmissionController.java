@@ -7,13 +7,17 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
+import com.ulticode.modules.submission.dto.RunResultDTO;
+import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.Validator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,6 +32,8 @@ import org.springframework.web.bind.annotation.*;
 public class ProblemSubmissionController {
 
     private final SubmissionService submissionService;
+    private final CodeExecutionService codeExecutionService;
+    private final Validator validator;
 
     /**
      * List submissions for a specific problem.
@@ -97,17 +103,42 @@ public class ProblemSubmissionController {
     public Result<SubmissionVO> submitForProblem(
             @Parameter(description = "Problem ID")
             @PathVariable Long problemId,
-            @Valid @RequestBody CreateSubmissionDTO createDTO) {
+            @RequestBody CreateSubmissionDTO createDTO) {
 
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
-        // Set problem ID from path
+        // Set problem ID from path, then validate
         createDTO.setProblemId(problemId);
+        var violations = validator.validate(createDTO);
+        if (!violations.isEmpty()) {
+            String message = violations.stream()
+                    .map(v -> v.getMessage())
+                    .findFirst()
+                    .orElse("Validation failed");
+            throw new BusinessException(ErrorCode.BAD_REQUEST, message);
+        }
 
         SubmissionVO submission = submissionService.submit(userId, createDTO);
         return Result.success(submission);
+    }
+
+    @Operation(summary = "Run code", description = "Execute code against test cases synchronously")
+    @RateLimit(key = "submission:problem-run", limit = 30, period = 60)
+    @PostMapping("/run")
+    public Result<RunResultDTO> runCode(
+            @Parameter(description = "Problem ID")
+            @PathVariable Long problemId,
+            @Valid @RequestBody RunSubmissionDTO runDTO) {
+
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        RunResultDTO result = codeExecutionService.execute(runDTO, problemId, userId);
+        return Result.success(result);
     }
 }

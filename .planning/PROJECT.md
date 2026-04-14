@@ -1,5 +1,20 @@
 # UltiCode 技术债务清偿
 
+## Current Milestone: v1.0 Critical Security & Core Functionality
+
+**Goal:** 修复所有 CRITICAL 和 HIGH 级别的 9 项技术债务，确保平台安全基线可用
+
+**Target features:**
+- SEC-01: CSRF Spring Security 框架层修复
+- SEC-02: 密码重置邮件发送实现
+- SEC-03: UserDetailsServiceImpl 占位符处理
+- FUNC-01: Admin Rejudge 功能实现
+- SEC-04: Docker 沙箱 seccomp 隔离加固
+- SEC-05: JWT Secret 启动校验
+- SEC-06: XssFilter 正则替换为输出编码
+- QUAL-01: 拆分 14 个超 600 行 Vue 组件
+- TEST-01: 后端关键模块测试覆盖率提升
+
 ## What This Is
 
 系统性修复 UltiCode 在线编程平台代码库中已识别的 28 项技术债务，涵盖安全漏洞、功能缺失、性能瓶颈、代码质量和配置缺陷。基于 `.planning/codebase/CONCERNS.md` 中完整审计结果，按严重程度从 CRITICAL → HIGH → MEDIUM → LOW 分阶段修复，每个修复同步交付测试。
@@ -123,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 after initialization*
+*Last updated: 2026-04-14 — Milestone v1.0 started*

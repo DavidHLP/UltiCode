@@ -1,6 +1,8 @@
 package com.ulticode.common.config;
 
 import com.ulticode.security.AuthenticationEntryPointImpl;
+import com.ulticode.security.csrf.CsrfService;
+import com.ulticode.security.csrf.CsrfValidationFilter;
 import com.ulticode.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -31,6 +33,7 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationEntryPointImpl authenticationEntryPoint;
+    private final CsrfService csrfService;
 
     /**
      * Define public endpoints that don't require authentication.
@@ -135,7 +138,9 @@ public class SecurityConfig {
                 )
 
                 // Add JWT filter before UsernamePasswordAuthenticationFilter
-                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // Add CSRF validation filter after JWT authentication
+                .addFilterAfter(new CsrfValidationFilter(csrfService), JwtAuthenticationFilter.class);
 
         return http.build();
     }

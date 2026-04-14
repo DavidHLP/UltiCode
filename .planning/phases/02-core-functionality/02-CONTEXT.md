@@ -1,7 +1,7 @@
 # Phase 02: Core Functionality - Context
 
 **Gathered:** 2026-04-14
-**Updated:** 2026-04-15 (auto-refined: added D-17..D-20, corrected language list, clarified queue priority)
+**Updated:** 2026-04-15 (auto-refined: added D-17..D-24, updated code_context with memory tracking and new integration points)
 **Status:** Ready for planning
 
 <domain>
@@ -38,7 +38,11 @@ Wire existing service stubs to real functionality: password reset emails actuall
 - **D-20:** Language support clarification: ROADMAP mentions "JavaScript/Go" but actual SUPPORTED_LANGUAGES in CodeExecutionService are: `javascript`, `python`, `java`, `c`, `cpp` (5 languages, Go is NOT supported). Seccomp testing scope covers only these 5 languages.
 - **D-11:** Existing 5 supported languages must all continue to work after hardening
 - **D-15:** Seccomp profile strategy: start from Docker's default seccomp profile (~44 blocked syscalls), then add additional syscall blocks on top (incremental approach, lower risk of breaking language runtimes)
-- **D-16:** Resource limits review: review and tighten existing memory/CPU limits as part of hardening pass (comprehensive approach, reduce attack surface)
+- **D-16:** Resource limits: memory tracking now implemented via `/usr/bin/time` in sandbox (CodeExecutionService parses stderr for peak RSS). Remaining work: review and tighten CPU limits and per-language memory caps as part of hardening pass
+- **D-21:** `/usr/bin/time` is installed in sandbox Dockerfile — seccomp profile MUST allow its syscalls (wait4, times, getrusage). The `time` binary uses these to measure resource usage; blocking them would break memory tracking entirely
+- **D-22:** stderr is now redirected to a temp file (`sandbox-stderr-*.log`) instead of merged with stdout — seccomp profile must allow tempfile creation (openat, write, unlink on /tmp)
+- **D-23:** Submission entity now has `retry_count` field (default 0) — admin rejudge implementation should consider incrementing this when re-processing a submission
+- **D-24:** New `SubmissionService.updateSubmissionResult()` method added — admin rejudge should use this method to persist results instead of direct mapper calls, ensuring consistent result propagation
 
 ### Claude's Discretion
 - Exact seccomp profile syscall additions beyond the listed dangerous ones — determine which syscalls each language runtime needs via strace profiling
@@ -75,6 +79,11 @@ Wire existing service stubs to real functionality: password reset emails actuall
 ### Queue Infrastructure
 - `backend-spring/src/main/java/com/ulticode/modules/queue/config/QueueConfig.java` — Queue configuration (max concurrent jobs, queue names)
 - `backend-spring/src/main/java/com/ulticode/modules/queue/constants/` — Queue constant definitions
+
+### New Submission Integration Points (2026-04-15)
+- `backend-spring/src/main/java/com/ulticode/modules/submission/service/SubmissionService.java` — New `updateSubmissionResult()` method for result persistence
+- `backend-spring/src/main/java/com/ulticode/modules/submission/entity/Submission.java` — Added `retryCount` field, `TestCaseDetailListTypeHandler` for test_details
+- `backend-spring/src/main/java/com/ulticode/modules/submission/mapper/SubmissionMapper.java` — Typed DTOs for stats queries
 
 ### Phase 1 Context
 - `.planning/phases/01-security-filter-chain/01-SUMMARY.md` — Security filter chain changes (dependency)
@@ -121,6 +130,10 @@ Wire existing service stubs to real functionality: password reset emails actuall
 - `--network none` is ALREADY implemented in buildDockerCommand() — no change needed for network isolation
 - `--security-opt no-new-privileges:true` is ALREADY implemented
 - `--cap-drop ALL` is safe for C/C++ compilation: Docker capabilities != syscalls. Capabilities like CAP_SYS_ADMIN are removed but compilation syscalls (fork, execve, etc.) are allowed by the default seccomp profile. The custom seccomp profile adds defense-in-depth but should not block compilation.
+- **Memory tracking implemented (2026-04-15):** `/usr/bin/time` added to sandbox Dockerfile. CodeExecutionService now parses `/usr/bin/time` stderr output (`Maximum resident set size (kbytes): N`) via `MEMORY_PATTERN` regex. Peak memory across all test cases reported in RunResultDTO. This replaces the previous hardcoded `"0KB"` return.
+- **stderr handling changed (2026-04-15):** stderr redirected to temp file instead of merged with stdout. Runtime errors now read from stderr (more accurate). Seccomp profile must allow `/usr/bin/time` syscalls: `wait4`, `times`, `getrusage`.
+- **SubmissionMapper DTO refactor (2026-04-15):** Stats queries (`findSubmissionCountsByDate`, `findMonthlySubmissionStats`, `findLanguageStats`, `findWeeklyProgress`) now return typed DTOs instead of `Object[]`. New DTOs: `SubmissionDateCountDTO`, `MonthlySubmissionStatsDTO`, `LanguageStatsDTO`, `WeeklyProgressDTO`.
+- **New integration point (2026-04-15):** `SubmissionService.updateSubmissionResult()` added — accepts submissionId, status, runtime, memory, testDetails. Admin rejudge should use this for result persistence.
 
 </code_context>
 
@@ -146,4 +159,4 @@ Wire existing service stubs to real functionality: password reset emails actuall
 ---
 *Phase: 02-core-functionality*
 *Context gathered: 2026-04-14*
-*Auto-refined: 2026-04-14, 2026-04-15*
+*Auto-refined: 2026-04-14, 2026-04-15 (×2)*

@@ -150,3 +150,36 @@
 
 - Queue worker priority-aware polling (future enhancement)
 - Go language support (not in current scope)
+
+---
+
+## Session 3: 2026-04-15 (codebase change update)
+
+**Mode:** auto (assumptions-based re-analysis)
+**Trigger:** Uncommitted codebase changes affect Phase 2 context accuracy
+
+### Codebase Changes Detected
+
+| File | Change | Impact |
+|------|--------|--------|
+| CodeExecutionService.java | Memory tracking via `/usr/bin/time` stderr parsing | D-16 updated, seccomp must allow time syscalls |
+| docker/sandbox/Dockerfile | Added `time` package | Sandbox image dependency for memory tracking |
+| SubmissionService.java | New `updateSubmissionResult()` method | Admin rejudge integration point |
+| Submission.java | `retryCount` field, `TestCaseDetailListTypeHandler` | Rejudge should use retry_count |
+| SubmissionMapper.java | `Object[]` → typed DTOs for stats queries | Code quality, no functional impact |
+| WebSocketSessionListener.java | try/catch for immutable headers | Unrelated to Phase 2 |
+
+### New Decisions
+
+| Decision | Description | Auto-selected |
+|----------|-------------|---------------|
+| D-21 | Seccomp must allow `/usr/bin/time` syscalls (wait4, times, getrusage) | ✓ |
+| D-22 | Seccomp must allow temp file creation (openat, write, unlink on /tmp) for stderr capture | ✓ |
+| D-23 | Rejudge should increment `retryCount` on Submission entity | ✓ |
+| D-24 | Rejudge should use `SubmissionService.updateSubmissionResult()` for result persistence | ✓ |
+
+### Updated Decisions
+
+| Decision | Old | New |
+|----------|-----|-----|
+| D-16 | "Review and tighten existing memory/CPU limits" | "Memory tracking now implemented via `/usr/bin/time`. Remaining: review CPU limits and per-language memory caps" |

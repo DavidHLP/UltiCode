@@ -28,7 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. User-submitted content containing `eval()`, `javascript:`, or HTML tags passes through the backend uncorrupted (XssFilter no longer sanitizes parameters, headers, or query strings)
   3. Application refuses to start when JWT_SECRET environment variable is empty or missing, and logs a warning when it is shorter than 32 characters
   4. UserDetailsServiceImpl.java no longer exists in the codebase and the application starts without errors
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 01-01: Replace XssFilter input sanitization with output encoding (SEC-06)
@@ -44,7 +44,7 @@ Plans:
   2. Admin can trigger rejudge on a single submission or a batch of submissions, and the judge queue processes them at a controlled rate without blocking new user submissions
   3. Code submitted in any of the 5 supported languages (C, C++, Java, Python, JavaScript/Go) executes successfully inside the sandbox with `--cap-drop ALL` and a custom seccomp profile applied
   4. A submission that attempts to call dangerous syscalls (ptrace, mount, keyctl) fails with a clear error rather than escaping the sandbox
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 02-01: Wire password reset to actual email sending via EmailServiceImpl (SEC-02)
@@ -60,7 +60,7 @@ Plans:
   2. SubmissionServiceImpl and CodeExecutionService have integration tests that spin up real MySQL and Redis containers (Testcontainers) and verify submission creation, judge job enqueueing, and sandbox command building
   3. PasswordResetService and AdminSubmissionServiceImpl have tests covering the new email send and rejudge flows implemented in Phase 2
   4. All new tests pass both individually and as a full suite (no flaky tests from shared state)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 03-01: Auth and security module tests (AuthService, JwtTokenProvider, CsrfService, JwtProperties)
@@ -75,7 +75,7 @@ Plans:
   2. Every split component renders and functions identically to the original (same user-visible behavior for all views: problem lists, contest detail, submissions, analytics, settings, etc.)
   3. Extracted composables own their data fetching and state, child components receive data via props and emit events back (no prop mutation)
   4. The console and management frontends both build successfully with no TypeScript errors
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 04-01: Split console oversized components (ProblemListsView, ProblemListView, ContestDetailView, SubmissionsDetail, PersonalView, ProblemDetailView, ProblemExplorer, Calendars, SettingsView, HiddenTestCasesEditor)

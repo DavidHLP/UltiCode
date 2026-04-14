@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, watch, nextTick } from "vue";
+import { computed, ref, onMounted, onUnmounted, watch, nextTick } from "vue";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import MarkdownView from "@/components/markdown/MarkdownView.vue";
@@ -7,7 +7,8 @@ import type {
   SubmissionRecord,
   SubmissionStatusMeta,
 } from "@/types/submission";
-import { Clock, Microchip, ArrowLeft } from "lucide-vue-next";
+import { Clock, Microchip, ArrowLeft, Loader2 } from "lucide-vue-next";
+import { formatMemory } from "@/utils/format";
 import * as echarts from "echarts";
 import type { ECharts } from "echarts";
 import { useI18n } from "vue-i18n";
@@ -77,6 +78,52 @@ const isCompileError = computed(
 const isPending = computed(() =>
   ["Pending", "Judging"].includes(props.submission?.status ?? ""),
 );
+
+const pendingSeconds = ref(0);
+let pendingTimer: ReturnType<typeof setInterval> | null = null;
+
+const startPendingTimer = () => {
+  if (pendingTimer) return;
+  const created = new Date(
+    props.submission?.submittedAt ?? props.submission?.created_at ?? "",
+  ).getTime();
+  if (Number.isNaN(created)) return;
+  pendingTimer = setInterval(() => {
+    pendingSeconds.value = Math.floor(
+      (Date.now() - created) / 1000,
+    );
+  }, 1000);
+};
+
+const stopPendingTimer = () => {
+  if (pendingTimer) {
+    clearInterval(pendingTimer);
+    pendingTimer = null;
+  }
+  pendingSeconds.value = 0;
+};
+
+watch(isPending, (pending) => {
+  if (pending) startPendingTimer();
+  else stopPendingTimer();
+}, { immediate: true });
+
+onUnmounted(() => stopPendingTimer());
+
+const isStuck = computed(
+  () => props.submission?.status === "System Error",
+);
+
+const handleResubmit = () => {
+  if (props.submission?.problemId) {
+    const router = useRouter();
+    router.push({
+      name: "problem-detail",
+      params: { id: props.submission.problemId },
+      query: { resubmit: "true" },
+    });
+  }
+};
 const showCaseDetails = computed(
   () => !isAccepted.value && !isCompileError.value && !isPending.value,
 );
@@ -292,6 +339,46 @@ const initRuntimeChart = () => {
   }
 };
 
+const memoryDistBins = computed<number[]>(
+  () => props.submission?.memoryDistBinsMb?.map((b) => b.min) ?? [],
+);
+const memoryDistCounts = computed<number[]>(
+  () => props.submission?.memoryDistBinsMb?.map((b) => b.count) ?? [],
+);
+const memoryDistLength = computed(() =>
+  Math.min(memoryDistCounts.value.length, memoryDistBins.value.length),
+);
+const pairedMemoryDist = computed(() =>
+  Array.from({ length: memoryDistLength.value }, (_, i) => ({
+    i,
+    count: memoryDistCounts.value[i]!,
+    bin: memoryDistBins.value[i]!,
+  })),
+);
+const totalMemoryCount = computed(() =>
+  pairedMemoryDist.value.reduce(
+    (acc, d) => acc + (Number.isFinite(d.count) ? d.count : 0),
+    0,
+  ),
+);
+
+const memoryHighlightIndex = computed(() => {
+  const bins = memoryDistBins.value;
+  const val = props.submission?.memory;
+  if (!Array.isArray(bins) || bins.length === 0 || val == null) return -1;
+  let closest = 0;
+  let best = Math.abs((bins[0] ?? val) - val);
+  for (let i = 1; i < bins.length; i++) {
+    const bi = bins[i] ?? val;
+    const d = Math.abs(bi - val);
+    if (d < best) {
+      best = d;
+      closest = i;
+    }
+  }
+  return closest;
+});
+
 const initMemoryChart = () => {
   if (!memoryChartRef.value) return;
 
@@ -301,17 +388,7 @@ const initMemoryChart = () => {
 
   memoryChart = echarts.init(memoryChartRef.value);
 
-  // 模拟内存分布数据
-  const memoryBins = Array.from({ length: 80 }, (_, i) => {
-    const baseMemory = 43.42;
-    const step = 0.048;
-    return (baseMemory + i * step).toFixed(3);
-  });
-
-  const memoryCounts = Array.from({ length: 80 }, () =>
-    Math.floor(Math.random() * 100),
-  );
-  const userMemoryIndex = 40; // 用户位置索引
+  const userMemoryIndex = memoryHighlightIndex.value;
   const userAvatar =
     props.submission?.user?.avatar ||
     "https://assets.leetcode.cn/aliyun-lc-upload/default_avatar.png";
@@ -331,8 +408,12 @@ const initMemoryChart = () => {
         const dataArray = params as TooltipCallbackDataParams[];
         const data = dataArray[0];
         if (!data) return "";
+        const bin = memoryDistBins.value[data.dataIndex];
+        const count = memoryDistCounts.value[data.dataIndex] ?? 0;
+        const total = totalMemoryCount.value;
+        const percentage = total ? ((count / total) * 100).toFixed(2) : "0";
         const isUserPosition = data.dataIndex === userMemoryIndex;
-        return `${memoryBins[data.dataIndex]}MB<br/>${t("problem.layout.count")}: ${data.value}${isUserPosition ? `<br/><span style="color: hsl(var(--chart-series-1));">${t("problem.layout.userPosition")}</span>` : ""}`;
+        return `${bin}MB<br/>${t("problem.layout.count")}: ${count}<br/>${t("problem.layout.percentage")}: ${percentage}%${isUserPosition ? `<br/><span style="color: hsl(var(--chart-series-1));">${t("problem.layout.userPosition")}</span>` : ""}`;
       },
     },
     grid: {
@@ -344,12 +425,11 @@ const initMemoryChart = () => {
     },
     xAxis: {
       type: "category",
-      data: memoryBins,
+      data: memoryDistBins.value.map((bin) => `${bin}MB`),
       axisLabel: {
-        interval: Math.ceil(memoryBins.length / 8),
+        interval: Math.ceil(memoryDistBins.value.length / 8),
         rotate: 0,
         fontSize: 10,
-        formatter: (value: string) => `${value}mb`,
       },
       axisLine: {
         lineStyle: {
@@ -378,8 +458,8 @@ const initMemoryChart = () => {
     series: [
       {
         type: "bar",
-        data: memoryCounts.map((count, i) => ({
-          value: count,
+        data: pairedMemoryDist.value.map((d, i) => ({
+          value: d.count,
           itemStyle: {
             color:
               i === userMemoryIndex
@@ -431,7 +511,7 @@ const initMemoryChart = () => {
           markPoint: {
             data: [
               {
-                coord: [userMemoryIndex, memoryCounts[userMemoryIndex] ?? 0],
+                coord: [userMemoryIndex, pairedMemoryDist.value[userMemoryIndex]?.count ?? 0],
                 symbol: "image://" + circularAvatar,
                 symbolSize: 32,
                 symbolOffset: [0, -20],
@@ -510,7 +590,14 @@ const handleWriteSolution = () => {
             class="flex flex-1 items-center gap-1.5 text-lg font-medium leading-tight"
             :class="statusToneClass"
           >
+            <Loader2 v-if="isPending" class="h-4 w-4 animate-spin" />
             <span data-e2e-locator="submission-result">{{ statusLabel }}</span>
+            <span
+              v-if="isPending && pendingSeconds > 30"
+              class="text-xs text-muted-foreground"
+            >
+              ({{ pendingSeconds }}s)
+            </span>
           </div>
         </div>
 
@@ -571,10 +658,28 @@ const handleWriteSolution = () => {
         >
           {{ t("problem.solutions.writeSolution") }}
         </Button>
+        <Button
+          v-if="isStuck"
+          variant="outline"
+          size="sm"
+          class="h-7 text-xs"
+          @click="handleResubmit"
+        >
+          {{ t("problem.submissions.resubmit") }}
+        </Button>
       </div>
     </div>
 
     <!-- Content based on Status -->
+
+    <!-- Stuck pending warning -->
+    <div
+      v-if="isPending && pendingSeconds > 120"
+      class="rounded-none border border-[var(--terminal-amber)]/30 bg-[var(--terminal-amber)]/5 px-4 py-3 text-xs text-[var(--terminal-amber)]"
+    >
+      {{ t("problem.submissions.stuckWarning") }}
+    </div>
+
     <div
       v-if="showVerdictMeta"
       class="rounded-none border border-border bg-muted/40 px-4 py-3 text-xs"
@@ -707,7 +812,7 @@ const handleWriteSolution = () => {
               </div>
               <div class="mt-1.5 flex items-center gap-1">
                 <span class="font-medium text-foreground">
-                  {{ props.submission?.memory.toString().replace("MB", "") }} MB
+                  {{ formatMemory(props.submission?.memory) }}
                 </span>
                 <span class="text-muted-foreground">
                   {{

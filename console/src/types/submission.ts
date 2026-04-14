@@ -57,6 +57,7 @@ export interface SubmissionRecord {
   runtimeDist?: { distribution: [number, number][] };
   runtimePercentile?: number;
   memoryPercentile?: number;
+  memoryDistBinsMb?: { min: number; max: number; count: number }[];
   tests?: SubmissionTestRecord[];
   user?: {
     id: string;

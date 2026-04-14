@@ -16,6 +16,7 @@ interface BackendSubmissionRecord {
   runtimePercentile?: unknown;
   memory_percentile?: unknown;
   memoryPercentile?: unknown;
+  memoryDistBinsMb?: unknown;
   [key: string]: unknown;
 }
 
@@ -46,6 +47,7 @@ export function mapSubmission(sub: unknown): SubmissionRecord {
     memoryPercentile: (s.memory_percentile ?? s.memoryPercentile) as
       | number
       | undefined,
+    memoryDistBinsMb: s.memoryDistBinsMb as SubmissionRecord["memoryDistBinsMb"],
   } as SubmissionRecord;
 }
 

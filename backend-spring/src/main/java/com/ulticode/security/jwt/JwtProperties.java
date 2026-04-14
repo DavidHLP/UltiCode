@@ -1,6 +1,9 @@
 package com.ulticode.security.jwt;
 
+import jakarta.annotation.PostConstruct;
+import java.util.Objects;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -8,6 +11,7 @@ import org.springframework.stereotype.Component;
  * JWT configuration properties.
  * Binds to jwt.* properties in application.yml
  */
+@Slf4j
 @Data
 @Component
 @ConfigurationProperties(prefix = "jwt")
@@ -18,6 +22,23 @@ public class JwtProperties {
      * Must be at least 256 bits (32 characters) for HS256 algorithm.
      */
     private String secret;
+
+    /**
+     * Validate JWT secret at application startup.
+     * - Refuses to start if secret is null, empty, or blank
+     * - Warns if secret is shorter than 32 characters (insecure for HS256)
+     */
+    @PostConstruct
+    public void validateSecret() {
+        Objects.requireNonNull(secret, "JWT secret must not be null. Set the 'jwt.secret' property or JWT_SECRET environment variable.");
+        if (secret.isBlank()) {
+            throw new IllegalStateException("JWT secret must not be blank. Set the 'jwt.secret' property or JWT_SECRET environment variable.");
+        }
+        if (secret.length() < 32) {
+            log.warn("JWT secret is shorter than 32 characters ({} chars). This may be insecure for HS256 algorithm. Consider using a longer secret.", secret.length());
+        }
+        log.info("JWT secret validated successfully (length: {} chars)", secret.length());
+    }
 
     /**
      * Access token configuration

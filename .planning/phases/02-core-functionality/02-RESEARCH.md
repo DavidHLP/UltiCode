@@ -598,7 +598,7 @@ code-execution:
 | A5 | The existing `password_reset_token_hash` BCrypt lookup strategy (query by email + non-null hash, then verify with matches()) is performant enough | Password Reset (SEC-02) | Low -- email has a unique index, lookup is O(1). BCrypt matches() is intentionally slow (~100ms) but runs once per reset attempt, which is acceptable |
 | A6 | `docker/sandbox/` directory exists on the Docker host when seccomp profile is referenced | Sandbox Hardening (SEC-04) | Medium -- in development, the path must be absolute. In production deployment, profile must be placed on the Docker host. Config should allow path override via env var |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **RQueue Priority Enforcement**
    - What we know: RQueue is FIFO, JudgeJob.priority field is stored but ignored during polling

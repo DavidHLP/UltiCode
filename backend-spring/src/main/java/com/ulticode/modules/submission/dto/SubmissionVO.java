@@ -144,4 +144,9 @@ public class SubmissionVO {
         private Integer runtime;
         private Double memory;
     }
+
+    /**
+     * Memory distribution bins in MB (JSON)
+     */
+    private Object memoryDistBinsMb;
 }

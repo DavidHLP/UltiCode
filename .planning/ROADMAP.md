@@ -31,9 +31,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 3 plans
 
 Plans:
-- [ ] 01-01: Replace XssFilter input sanitization with output encoding (SEC-06)
-- [ ] 01-02: Migrate CSRF protection to Spring Security framework (SEC-01)
-- [ ] 01-03: Add JWT secret startup validation and remove UserDetailsServiceImpl placeholder (SEC-05, SEC-03)
+- [x] 01-01: Replace XssFilter input sanitization with output encoding (SEC-06)
+- [x] 01-02: Migrate CSRF protection to Spring Security framework (SEC-01)
+- [x] 01-03: Add JWT secret startup validation and remove UserDetailsServiceImpl placeholder (SEC-05, SEC-03)
 
 ### Phase 2: Core Functionality
 **Goal**: Users can reset their password via email link, admins can trigger rejudge with throttled batch processing, and the Docker sandbox restricts dangerous syscalls

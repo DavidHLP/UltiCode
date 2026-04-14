@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 02 context refined
-last_updated: "2026-04-14T16:22:06.504Z"
+stopped_at: Phase 02 plans created
+last_updated: "2026-04-14T16:44:49.323Z"
 last_activity: 2026-04-14 -- Phase 02 planning complete
 progress:
   total_phases: 4
@@ -21,7 +21,7 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-14)
 
 **Core value:** Platform security and functionality completeness -- users can safely use all existing features without known CSRF bypasses, JWT forgery, functional placeholders, or data inaccuracies
-**Current focus:** Phase 01 — security-filter-chain
+**Current focus:** Phase 02 — core-functionality
 
 ## Current Position
 
@@ -30,7 +30,7 @@ Plan: Not started
 Status: Ready to execute
 Last activity: 2026-04-14 -- Phase 02 planning complete
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [░░░░░░░░░░] 0% (phase)
 
 ## Performance Metrics
 
@@ -60,6 +60,10 @@ Progress: [░░░░░░░░░░] 0%
 Decisions are logged in PROJECT.md Key Decisions table.
 Recent decisions affecting current work:
 
+- D-17: Revoke all user sessions via Redis after password change
+- D-18: New forgot-password request overwrites previous token
+- D-19: Defer priority-aware queue polling; throttled enqueue provides sufficient protection
+- D-20: Only 5 languages (javascript, python, java, c, cpp) -- Go NOT supported
 - Roadmap: SEC-06 must precede SEC-01 (XssFilter header corruption blocks CSRF tokens)
 - Roadmap: SEC-05 should deploy in a separate cycle from SEC-01 (both touch auth pipeline)
 - Roadmap: TEST-01 as dedicated phase after Phases 1-2 (validates security fixes comprehensively)
@@ -71,12 +75,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- **SEC-05 production risk**: Current JWT secret length is unknown. If shorter than 32 chars, the new @PostConstruct validation could block startup. Mitigation: WARN for short-but-non-empty, crash only for empty.
-- **SEC-04 syscall profiling**: Custom seccomp profile requires strace profiling per language before writing deny rules. Start with Docker's default profile (~44 blocked syscalls) and add restrictions incrementally.
-- **Double-encoding risk**: User content in database may contain HTML-entity-encoded strings from the current XssFilter. Audit needed before removing input filter.
+- **SEC-04 syscall profiling**: Custom seccomp profile uses SCMP_ACT_ALLOW default with explicit blocks. D-15 incremental approach reduces risk. Plan 03 includes human-verify checkpoint for all 5 languages.
+- **RQueue FIFO limitation**: Per D-19, priority-aware polling deferred. Rejudge jobs enqueued with LOW priority field but processed FIFO. Throttled enqueue (D-05, D-06) provides adequate protection.
+- **Email SMTP configuration**: EmailServiceImpl wiring depends on SMTP being functional. If SMTP is misconfigured, email sending fails silently. Plan 02 task should verify SMTP settings.
 
 ## Session Continuity
 
-Last session: 2026-04-14T16:22:06.502Z
-Stopped at: Phase 02 context refined
+Last session: 2026-04-15T00:40:00.000Z
+Stopped at: Phase 02 plans created
 Resume file: .planning/phases/02-core-functionality/02-CONTEXT.md

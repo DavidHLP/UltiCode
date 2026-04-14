@@ -9,14 +9,18 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
+import com.ulticode.modules.submission.dto.LanguageStatsDTO;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
+import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
+import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.service.SubmissionService;
+import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +46,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final SubmissionMapper submissionMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
+    private final QueueService queueService;
 
     /**
      * Supported languages for submission.
@@ -100,8 +105,20 @@ public class SubmissionServiceImpl implements SubmissionService {
 
         log.info("Created submission {} for user {} and problem {}", submission.getId(), userId, createDTO.getProblemId());
 
-        // TODO: Add to judge queue for async processing
-        // For now, the submission stays in Pending status until the judge service processes it
+        try {
+            queueService.enqueueJudgeJob(
+                    submission.getId(),
+                    String.valueOf(createDTO.getProblemId()),
+                    userId,
+                    language,
+                    createDTO.getCode());
+            log.info("Enqueued judge job for submission {}", submission.getId());
+        } catch (Exception e) {
+            log.error("Failed to enqueue judge job for submission {}", submission.getId(), e);
+            submission.setStatus("System Error");
+            submission.setNotes("Judge queue unavailable — submission was not processed");
+            submissionMapper.updateById(submission);
+        }
 
         return toVO(submission);
     }
@@ -173,6 +190,23 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
+    public void updateSubmissionResult(String submissionId, String status, int runtime,
+                                        Double memory, List<Submission.TestCaseDetail> testDetails) {
+        Submission submission = submissionMapper.selectById(submissionId);
+        if (submission == null) {
+            log.warn("Cannot update result: submission {} not found", submissionId);
+            return;
+        }
+        submission.setStatus(status);
+        submission.setRuntime(runtime);
+        submission.setMemory(memory);
+        submission.setTestDetails(testDetails);
+        submissionMapper.updateById(submission);
+        log.info("Updated submission {} status={}, runtime={}ms, memory={}",
+                submissionId, status, runtime, memory != null ? memory + "MB" : "N/A");
+    }
+
+    @Override
     public SubmissionVO toVO(Submission submission) {
         SubmissionVO vo = new SubmissionVO();
 
@@ -189,6 +223,7 @@ public class SubmissionServiceImpl implements SubmissionService {
         vo.setCreatedAt(submission.getCreatedAt());
         vo.setRuntimePercentile(submission.getRuntimePercentile());
         vo.setMemoryPercentile(submission.getMemoryPercentile());
+        vo.setMemoryDistBinsMb(submission.getMemoryDistBinsMb());
 
         // Convert test details to test results
         if (submission.getTestDetails() != null && !submission.getTestDetails().isEmpty()) {
@@ -264,12 +299,12 @@ public class SubmissionServiceImpl implements SubmissionService {
         LearningProgressDTO progress = new LearningProgressDTO();
 
         // Get weekly progress
-        List<Object[]> weeklyData = submissionMapper.findWeeklyProgress(userId);
+        List<WeeklyProgressDTO> weeklyData = submissionMapper.findWeeklyProgress(userId);
         List<LearningProgressDTO.WeeklyProgress> weeklyProgress = weeklyData.stream()
                 .map(row -> new LearningProgressDTO.WeeklyProgress(
-                        (String) row[0],
-                        ((Number) row[1]).intValue(),
-                        ((Number) row[2]).doubleValue()))
+                        row.getWeekRange(),
+                        row.getSolvedCount(),
+                        row.getTimeSpentHours()))
                 .toList();
         progress.setWeeklyProgress(weeklyProgress);
 
@@ -304,21 +339,21 @@ public class SubmissionServiceImpl implements SubmissionService {
         SubmissionHistoryDTO history = new SubmissionHistoryDTO();
 
         // Get monthly stats
-        List<Object[]> monthlyData = submissionMapper.findMonthlySubmissionStats(userId);
+        List<MonthlySubmissionStatsDTO> monthlyData = submissionMapper.findMonthlySubmissionStats(userId);
         List<SubmissionHistoryDTO.MonthlySubmission> monthly = monthlyData.stream()
                 .map(row -> new SubmissionHistoryDTO.MonthlySubmission(
-                        (String) row[0],
-                        ((Number) row[1]).intValue(),
-                        ((Number) row[2]).intValue()))
+                        row.getMonth(),
+                        row.getTotalCount(),
+                        row.getAcceptedCount()))
                 .toList();
         history.setMonthly(monthly);
 
         // Get language stats
-        List<Object[]> languageData = submissionMapper.findLanguageStats(userId);
+        List<LanguageStatsDTO> languageData = submissionMapper.findLanguageStats(userId);
         List<SubmissionHistoryDTO.LanguageSubmission> languages = languageData.stream()
                 .map(row -> new SubmissionHistoryDTO.LanguageSubmission(
-                        (String) row[0],
-                        ((Number) row[1]).intValue()))
+                        row.getLanguage(),
+                        row.getCount()))
                 .toList();
         history.setLanguages(languages);
 

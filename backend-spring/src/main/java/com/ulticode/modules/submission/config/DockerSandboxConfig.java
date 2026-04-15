@@ -9,6 +9,7 @@ public record DockerSandboxConfig(
         String memory,
         String cpus,
         int timeout,
-        int pidsLimit
+        int pidsLimit,
+        String seccompProfilePath
 ) {
 }

@@ -3,8 +3,6 @@ import {
   computed,
   onMounted,
   onUnmounted,
-  ref,
-  watch,
   provide,
   h,
   defineComponent,
@@ -13,18 +11,13 @@ import {
   type Component,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { storeToRefs } from "pinia";
 
 import LayoutHeaderLeft from "./headers/LayoutHeaderLeft.vue";
 import LayoutHeaderCenter from "./headers/LayoutHeaderCenter.vue";
 import LayoutHeaderControls from "./headers/LayoutHeaderControls.vue";
 import LayoutTree from "@/features/layout/tree/LayoutTree.vue";
-import {
-  useHeaderStore,
-  type HeaderGroup,
-  type LayoutNode,
-} from "@/stores/headerStore";
-
+import { useProblemLayout } from "./composables/useProblemLayout";
+import { useProblemPanels } from "./composables/useProblemPanels";
 import { useProblemDetail } from "./useProblemDetail";
 
 import DescriptionView from "@/views/problems/description/DescriptionView.vue";
@@ -42,7 +35,7 @@ import {
 } from "@/components/ui/sheet";
 import ProblemListDrawer from "@/components/problem/ProblemListDrawer.vue";
 import ProblemNotesDrawer from "@/components/problem/ProblemNotesDrawer.vue";
-import { problemHooks, type ProblemLayout } from "@/hooks/problem-hooks";
+import { problemHooks } from "@/hooks/problem-hooks";
 import {
   ProblemContextKey,
   ToggleNotesKey,
@@ -56,15 +49,12 @@ import MobileProblemLayout from "./components/MobileProblemLayout.vue";
 
 const { t } = useI18n();
 const { isMobile } = useBreakpoints();
-const isSidePanelOpen = ref(false);
-const toggleSidePanel = () => {
-  isSidePanelOpen.value = !isSidePanelOpen.value;
-};
-
-const isNotesOpen = ref(false);
-const toggleNotes = () => {
-  isNotesOpen.value = !isNotesOpen.value;
-};
+const {
+  isSidePanelOpen,
+  isNotesOpen,
+  toggleSidePanel,
+  toggleNotes,
+} = useProblemPanels();
 
 provide(ToggleSidePanelKey, toggleSidePanel);
 provide(ToggleNotesKey, toggleNotes);
@@ -91,27 +81,16 @@ onMounted(() => {
 });
 
 // --- Context Provider ---
-// Provide problem and runResult to connector components
 provide(ProblemContextKey, { problem, runResult, contestId });
 
 // --- Connector Components ---
-// These wrappers adapt the injected context to the specific props required by the views
-
 const ConnectedDescriptionView = defineComponent({
   setup() {
     const { problem } = useProblemContext();
     return () =>
       problem.value
-        ? h(
-            "div",
-            { class: "px-1 py-2" },
-            h(DescriptionView, { problem: problem.value }),
-          )
-        : h(
-            "div",
-            { class: "flex items-center justify-center h-full" },
-            t("common.status.loading"),
-          );
+        ? h("div", { class: "px-1 py-2" }, h(DescriptionView, { problem: problem.value }))
+        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
   },
 });
 
@@ -120,19 +99,8 @@ const ConnectedSolutionsView = defineComponent({
     const { problem } = useProblemContext();
     return () =>
       problem.value
-        ? h(
-            "div",
-            { class: "px-1 py-2" },
-            h(ProblemSolutionsView, {
-              problemId: problem.value.id,
-              followUp: problem.value.followUp ?? "",
-            }),
-          )
-        : h(
-            "div",
-            { class: "flex items-center justify-center h-full" },
-            t("common.status.loading"),
-          );
+        ? h("div", { class: "px-1 py-2" }, h(ProblemSolutionsView, { problemId: problem.value.id, followUp: problem.value.followUp ?? "" }))
+        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
   },
 });
 
@@ -141,19 +109,8 @@ const ConnectedSubmissionsView = defineComponent({
     const { problem, contestId } = useProblemContext();
     return () =>
       problem.value
-        ? h(
-            "div",
-            { class: "px-1 py-2" },
-            h(SubmissionsView, {
-              problemId: problem.value.id,
-              contestId: contestId.value ?? undefined,
-            }),
-          )
-        : h(
-            "div",
-            { class: "flex items-center justify-center h-full" },
-            t("common.status.loading"),
-          );
+        ? h("div", { class: "px-1 py-2" }, h(SubmissionsView, { problemId: problem.value.id, contestId: contestId.value ?? undefined }))
+        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
   },
 });
 
@@ -162,17 +119,8 @@ const ConnectedCodeView = defineComponent({
     const { problem } = useProblemContext();
     return () =>
       problem.value && problem.value.languages.length
-        ? h(CodeView, {
-            key: problem.value.id,
-            languages: problem.value.languages,
-            starterNotes: problem.value.starterNotes ?? [],
-            problemKey: problem.value.slug,
-          })
-        : h(
-            "div",
-            { class: "flex items-center justify-center h-full" },
-            t("common.status.loading"),
-          );
+        ? h(CodeView, { key: problem.value.id, languages: problem.value.languages, starterNotes: problem.value.starterNotes ?? [], problemKey: problem.value.slug })
+        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
   },
 });
 
@@ -181,16 +129,8 @@ const ConnectedTestCaseView = defineComponent({
     const { problem } = useProblemContext();
     return () =>
       problem.value
-        ? h(
-            "div",
-            { class: "px-1 py-2" },
-            h(TestCaseView, { testCases: problem.value.testCases ?? [] }),
-          )
-        : h(
-            "div",
-            { class: "flex items-center justify-center h-full" },
-            t("common.status.loading"),
-          );
+        ? h("div", { class: "px-1 py-2" }, h(TestCaseView, { testCases: problem.value.testCases ?? [] }))
+        : h("div", { class: "flex items-center justify-center h-full" }, t("common.status.loading"));
   },
 });
 
@@ -198,11 +138,7 @@ const ConnectedTestResultsView = defineComponent({
   setup() {
     const { runResult } = useProblemContext();
     return () =>
-      h(
-        "div",
-        { class: "px-1 py-2" },
-        h(TestResultsView, { runResult: runResult.value }),
-      );
+      h("div", { class: "px-1 py-2" }, h(TestResultsView, { runResult: runResult.value }));
   },
 });
 
@@ -219,397 +155,20 @@ const panelComponentMap: Record<number, Component> = {
 provide(PanelComponentMapKey, panelComponentMap);
 
 // --- Layout Logic ---
-const headerStore = useHeaderStore();
-const { layoutConfig } = storeToRefs(headerStore);
-const currentLayout = ref<ProblemLayout>("leet");
-const lastTab = ref<string | null>(null);
-
-const createInitialHeaderGroups = (): HeaderGroup[] => {
-  return [
-    {
-      id: "problem-info",
-      name: t("problem.layout.problemInfo"),
-      headers: [
-        {
-          id: 1,
-          index: 0,
-          title: t("problem.layout.problemDescription"),
-          icon: "FileText",
-          iconColor: "oklch(0.6149 0.1394 244.9)",
-        },
-        {
-          id: 2,
-          index: 1,
-          title: t("problem.layout.solution"),
-          icon: "FlaskConical",
-          iconColor: "oklch(0.6149 0.1394 244.9)",
-        },
-        {
-          id: 3,
-          index: 2,
-          title: t("problem.layout.submissions"),
-          icon: "History",
-          iconColor: "oklch(0.6149 0.1394 244.9)",
-        },
-      ],
-    },
-    {
-      id: "code-editor",
-      name: t("problem.layout.codeEditor"),
-      headers: [
-        {
-          id: 4,
-          index: 0,
-          title: t("problem.layout.code"),
-          icon: "Code2",
-          iconColor: "oklch(0.6444 0.1508 118.6)",
-        },
-      ],
-    },
-    {
-      id: "test-info",
-      name: t("problem.layout.testInfo"),
-      headers: [
-        {
-          id: 5,
-          index: 0,
-          title: t("problem.layout.testCases"),
-          icon: "SquareCheck",
-          iconColor: "oklch(0.6444 0.1508 118.6)",
-        },
-        {
-          id: 6,
-          index: 1,
-          title: t("problem.layout.testResults"),
-          icon: "Terminal",
-          iconColor: "oklch(0.6444 0.1508 118.6)",
-        },
-      ],
-    },
-  ];
-};
-
-const getLeetLayoutConfig = () => {
-  const groups = createInitialHeaderGroups();
-  const layout: LayoutNode = markRaw({
-    id: "programming-root",
-    type: "container",
-    direction: "horizontal",
-    children: [
-      {
-        id: "programming-left",
-        type: "leaf",
-        size: 50,
-        groupId: "problem-info",
-        groupMetadata: {
-          id: "problem-info",
-          name: t("problem.layout.problemInfo"),
-        },
-      },
-      {
-        id: "programming-right",
-        type: "container",
-        direction: "vertical",
-        size: 50,
-        children: [
-          {
-            id: "programming-right-top",
-            type: "leaf",
-            size: 50,
-            groupId: "code-editor",
-            groupMetadata: {
-              id: "code-editor",
-              name: t("problem.layout.codeEditor"),
-            },
-          },
-          {
-            id: "programming-right-bottom",
-            type: "leaf",
-            size: 50,
-            groupId: "test-info",
-            groupMetadata: {
-              id: "test-info",
-              name: t("problem.layout.testInfo"),
-            },
-          },
-        ],
-      },
-    ],
-  });
-  return { groups, layout };
-};
-
-const getClassicLayoutConfig = () => {
-  const groups = createInitialHeaderGroups();
-  const layout: LayoutNode = markRaw({
-    id: "classic-root",
-    type: "container",
-    direction: "vertical",
-    children: [
-      {
-        id: "classic-top",
-        type: "leaf",
-        size: 40,
-        groupId: "problem-info",
-        groupMetadata: {
-          id: "problem-info",
-          name: t("problem.layout.problemInfo"),
-        },
-      },
-      {
-        id: "classic-bottom",
-        type: "container",
-        direction: "horizontal",
-        size: 60,
-        children: [
-          {
-            id: "classic-bottom-left",
-            type: "leaf",
-            size: 50,
-            groupId: "code-editor",
-            groupMetadata: {
-              id: "code-editor",
-              name: t("problem.layout.codeEditor"),
-            },
-          },
-          {
-            id: "classic-bottom-right",
-            type: "leaf",
-            size: 50,
-            groupId: "test-info",
-            groupMetadata: {
-              id: "test-info",
-              name: t("problem.layout.testInfo"),
-            },
-          },
-        ],
-      },
-    ],
-  });
-  return { groups, layout };
-};
-
-const getCompactLayoutConfig = () => {
-  const groups = createInitialHeaderGroups();
-  const layout: LayoutNode = markRaw({
-    id: "compact-root",
-    type: "container",
-    direction: "horizontal",
-    children: [
-      {
-        id: "compact-left",
-        type: "container",
-        direction: "vertical",
-        size: 30,
-        children: [
-          {
-            id: "compact-left-top",
-            type: "leaf",
-            size: 50,
-            groupId: "problem-info",
-            groupMetadata: {
-              id: "problem-info",
-              name: t("problem.layout.problemInfo"),
-            },
-          },
-          {
-            id: "compact-left-bottom",
-            type: "leaf",
-            size: 50,
-            groupId: "test-info",
-            groupMetadata: {
-              id: "test-info",
-              name: t("problem.layout.testInfo"),
-            },
-          },
-        ],
-      },
-      {
-        id: "compact-right",
-        type: "leaf",
-        size: 70,
-        groupId: "code-editor",
-        groupMetadata: {
-          id: "code-editor",
-          name: t("problem.layout.codeEditor"),
-        },
-      },
-    ],
-  });
-  return { groups, layout };
-};
-
-const getWideLayoutConfig = () => {
-  const groups = createInitialHeaderGroups();
-  const layout: LayoutNode = markRaw({
-    id: "wide-root",
-    type: "container",
-    direction: "horizontal",
-    children: [
-      {
-        id: "wide-left",
-        type: "leaf",
-        size: 25,
-        groupId: "problem-info",
-        groupMetadata: {
-          id: "problem-info",
-          name: t("problem.layout.problemInfo"),
-        },
-      },
-      {
-        id: "wide-center",
-        type: "leaf",
-        size: 50,
-        groupId: "code-editor",
-        groupMetadata: {
-          id: "code-editor",
-          name: t("problem.layout.codeEditor"),
-        },
-      },
-      {
-        id: "wide-right",
-        type: "leaf",
-        size: 25,
-        groupId: "test-info",
-        groupMetadata: { id: "test-info", name: t("problem.layout.testInfo") },
-      },
-    ],
-  });
-  return { groups, layout };
-};
-
-const handleLayoutChange = (newLayout: ProblemLayout) => {
-  currentLayout.value = newLayout;
-  let config;
-  switch (newLayout) {
-    case "leet":
-      config = getLeetLayoutConfig();
-      break;
-    case "classic":
-      config = getClassicLayoutConfig();
-      break;
-    case "compact":
-      config = getCompactLayoutConfig();
-      break;
-    case "wide":
-      config = getWideLayoutConfig();
-      break;
-  }
-  headerStore.initData(config.groups, config.layout);
-  void problemHooks.emit("problem:layout:change", { layout: newLayout });
-};
-
-const TAB_MAP: Record<string, number> = {
-  description: 1,
-  solutions: 2,
-  submissions: 3,
-};
-
-const REV_TAB_MAP: Record<number, string> = {
-  1: "description",
-  2: "solutions",
-  3: "submissions",
-};
-
-// Guards to prevent infinite loop between URL and store sync
-const isUpdatingFromRoute = ref(false);
-const isUpdatingFromStore = ref(false);
-
-// Sync URL to Store (when route changes, e.g. back button)
-watch(
-  () => route.params.tab,
-  (newTab) => {
-    // Skip if we're updating from store (prevent loop)
-    if (isUpdatingFromStore.value) return;
-
-    const tabName = Array.isArray(newTab) ? newTab[0] : newTab;
-    if (tabName && Object.prototype.hasOwnProperty.call(TAB_MAP, tabName)) {
-      const targetId = TAB_MAP[tabName];
-      if (
-        targetId !== undefined &&
-        headerStore.activeHeaderByGroup["problem-info"] !== targetId
-      ) {
-        isUpdatingFromRoute.value = true;
-        headerStore.setActiveHeader("problem-info", targetId);
-        // Reset flag after next tick to allow store update to complete
-        nextTick(() => {
-          isUpdatingFromRoute.value = false;
-        });
-      }
-    } else if (!tabName) {
-      // Default to description if no tab specified
-      if (headerStore.activeHeaderByGroup["problem-info"] !== 1) {
-        isUpdatingFromRoute.value = true;
-        headerStore.setActiveHeader("problem-info", 1);
-        nextTick(() => {
-          isUpdatingFromRoute.value = false;
-        });
-      }
-    }
-  },
-);
-
-// Sync Store to URL (when user clicks tabs)
-watch(
-  () => headerStore.activeHeaderByGroup["problem-info"],
-  (newHeaderId) => {
-    // Skip if we're updating from route (prevent loop)
-    if (isUpdatingFromRoute.value) return;
-
-    if (newHeaderId && newHeaderId in REV_TAB_MAP) {
-      const tabName = REV_TAB_MAP[newHeaderId];
-      if (!tabName) return;
-      if (tabName !== lastTab.value) {
-        void problemHooks.emit("problem:tab:change", {
-          from: lastTab.value,
-          to: tabName,
-        });
-        lastTab.value = tabName;
-      }
-      if (route.params.tab !== tabName) {
-        isUpdatingFromStore.value = true;
-        router
-          .push({
-            name: "problem-detail",
-            params: { ...route.params, tab: tabName },
-          })
-          .then(() => {
-            // Reset flag after navigation completes
-            nextTick(() => {
-              isUpdatingFromStore.value = false;
-            });
-          });
-      }
-    }
-  },
-);
-
-onMounted(() => {
-  const initialConfig = getLeetLayoutConfig();
-  headerStore.initData(initialConfig.groups, initialConfig.layout);
-
-  // Restore tab from URL
-  const tabParam = route.params.tab;
-  const tabName = Array.isArray(tabParam) ? tabParam[0] : tabParam;
-  if (tabName) {
-    const targetId = TAB_MAP[tabName];
-    if (targetId !== undefined) {
-      headerStore.setActiveHeader("problem-info", targetId);
-    }
-    lastTab.value = tabName;
-  } else {
-    lastTab.value = "description";
-  }
-});
+const { currentLayout, layoutConfig, handleLayoutChange, initLayout } = useProblemLayout();
 
 onUnmounted(() => {
   void problemHooks.emit("problem:view:unmount", { slug: slug.value });
+});
+
+// Initialize layout on mount
+onMounted(() => {
+  initLayout();
 });
 </script>
 
 <template>
   <div class="h-screen flex flex-col bg-[var(--background)] antialiased">
-    <!-- Skip to main content link for screen readers -->
     <a
       href="#main-content"
       class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-none"
@@ -620,14 +179,9 @@ onUnmounted(() => {
       <SheetContent side="left" class="p-0 w-[400px] sm:w-[540px]">
         <SheetHeader class="sr-only">
           <SheetTitle>{{ t("problem.drawer.problemList") }}</SheetTitle>
-          <SheetDescription>{{
-            t("problem.drawer.noProblemsFound")
-          }}</SheetDescription>
+          <SheetDescription>{{ t("problem.drawer.noProblemsFound") }}</SheetDescription>
         </SheetHeader>
-        <ProblemListDrawer
-          :current-problem-id="problem?.id"
-          @close="isSidePanelOpen = false"
-        />
+        <ProblemListDrawer :current-problem-id="problem?.id" @close="isSidePanelOpen = false" />
       </SheetContent>
     </Sheet>
 
@@ -635,58 +189,33 @@ onUnmounted(() => {
       <SheetContent side="right" class="p-0 w-[400px] sm:w-[500px]">
         <SheetHeader class="sr-only">
           <SheetTitle>{{ t("problem.notes.title") }}</SheetTitle>
-          <SheetDescription>
-            {{ t("problem.notes.description") }}
-          </SheetDescription>
+          <SheetDescription>{{ t("problem.notes.description") }}</SheetDescription>
         </SheetHeader>
-        <ProblemNotesDrawer
-          v-if="problem"
-          :problem-id="Number(problem.id)"
-          @close="isNotesOpen = false"
-        />
+        <ProblemNotesDrawer v-if="problem" :problem-id="Number(problem.id)" @close="isNotesOpen = false" />
       </SheetContent>
     </Sheet>
 
-    <header
-      class="relative flex h-12 w-full min-w-[100px] shrink-0 items-center justify-between gap-2 bg-[var(--background)] px-2.5"
-    >
-      <div
-        class="relative z-10 flex h-full min-w-[240px] flex-1 items-center overflow-hidden"
-      >
+    <header class="relative flex h-12 w-full min-w-[100px] shrink-0 items-center justify-between gap-2 bg-[var(--background)] px-2.5">
+      <div class="relative z-10 flex h-full min-w-[240px] flex-1 items-center overflow-hidden">
         <LayoutHeaderLeft />
       </div>
-      <div
-        class="pointer-events-none absolute inset-0 flex items-center justify-center"
-      >
+      <div class="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div class="pointer-events-auto">
           <LayoutHeaderCenter />
         </div>
       </div>
-      <div
-        class="relative z-10 ml-auto flex h-full flex-1 items-center justify-end gap-2"
-      >
-        <LayoutHeaderControls
-          :current-layout="currentLayout"
-          :problem="problem"
-          @layout-change="handleLayoutChange"
-        />
+      <div class="relative z-10 ml-auto flex h-full flex-1 items-center justify-end gap-2">
+        <LayoutHeaderControls :current-layout="currentLayout" :problem="problem" @layout-change="handleLayoutChange" />
       </div>
     </header>
 
-    <!-- Dynamic layout area - Mobile uses stacked tabs, Desktop uses split panes -->
     <main
       id="main-content"
       class="flex-1 min-h-0 overflow-hidden w-full p-4 pt-0"
       role="main"
     >
-      <!-- Mobile: Tab-based layout -->
       <MobileProblemLayout v-if="isMobile" />
-      <!-- Desktop: Split pane layout -->
-      <LayoutTree
-        v-else-if="layoutConfig"
-        :layout="layoutConfig"
-        class="h-full w-full"
-      />
+      <LayoutTree v-else-if="layoutConfig" :layout="layoutConfig" class="h-full w-full" />
     </main>
   </div>
 </template>

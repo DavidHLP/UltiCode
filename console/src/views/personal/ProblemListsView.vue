@@ -1,358 +1,150 @@
 <script setup lang="ts">
-import { useAuthStore } from "@/stores/auth";
-import { ref, onMounted, computed } from "vue";
-import { RouterLink, useRouter } from "vue-router";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
+import { ref } from "vue";
+import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Separator } from "@/components/ui/separator";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-  DropdownMenuSeparator,
-  DropdownMenuSub,
-  DropdownMenuSubContent,
-  DropdownMenuSubTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Plus,
-  MoreHorizontal,
-  Pencil,
-  Trash2,
-  List,
-  Globe,
-  Lock,
-  Bookmark,
-  BookmarkMinus,
-  FolderPlus,
-  FolderInput,
-  ChevronRight,
-  Star,
-  Folder,
-  GripVertical,
-  Save,
-  Loader2,
-  Search,
-  LayoutGrid,
-  MoreVertical,
-} from "lucide-vue-next";
-import { toast } from "vue-sonner";
+import { Search, Plus, FolderPlus, Loader2, Lock, Star, Save, BookmarkMinus, List } from "lucide-vue-next";
+import { useI18n } from "vue-i18n";
 import PersonalPageHeader from "./components/PersonalPageHeader.vue";
 import PersonalPageShell from "./components/PersonalPageShell.vue";
-import type {
-  ProblemList,
-  ProblemListCategory,
-  UserProblemListsResponse,
-} from "@/types/problem-list";
+import MyListsTab from "./components/MyListsTab.vue";
+import SavedListsTab from "./components/SavedListsTab.vue";
+import CategoriesTab from "./components/CategoriesTab.vue";
+import CreateListDialog from "./components/CreateListDialog.vue";
+import DeleteListDialog from "./components/DeleteListDialog.vue";
+import CreateCategoryDialog from "./components/CreateCategoryDialog.vue";
+import EditCategoryDialog from "./components/EditCategoryDialog.vue";
+import DeleteCategoryDialog from "./components/DeleteCategoryDialog.vue";
 import {
-  fetchProblemListsOverview,
-  createProblemList,
-  deleteProblemList,
-  unsaveList,
-  saveList,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-  moveListToCategory,
-} from "@/api/problem-list";
-import { useI18n } from "vue-i18n";
+  useProblemLists,
+} from "./composables/useProblemLists";
+import type { ProblemList, ProblemListCategory } from "@/types/problem-list";
 
 const router = useRouter();
 const { t } = useI18n();
-const loading = ref(true);
-const currentUserId = useAuthStore().fetchCurrentUserId();
+
+const {
+  loading,
+  currentUserId,
+  searchQuery,
+  data,
+  sortedMyLists,
+  sortedSavedLists,
+  totalSavedCount,
+  sortedCategories,
+  handleCreateList,
+  handleDeleteList,
+  handleUnsaveList,
+  handleSaveList,
+  handleMoveToCategory,
+  handleCreateCategory,
+  handleEditCategory,
+  handleDeleteCategory,
+} = useProblemLists();
+
 const activeTab = ref("my-lists");
-const searchQuery = ref("");
 
-// Data state
-const data = ref<UserProblemListsResponse>({
-  myLists: [],
-  savedLists: [],
-  featured: [],
-  categories: [],
-});
-
-// Create list dialog state
+// Dialog state (D-04: stays in parent)
 const isCreateOpen = ref(false);
 const isCreating = ref(false);
-const createForm = ref({
-  name: "",
-  description: "",
-  isPublic: false,
-});
-
-// Delete list dialog state
 const isDeleteListOpen = ref(false);
 const isDeletingList = ref(false);
 const listToDelete = ref<ProblemList | null>(null);
 
-// Create category dialog state
 const isCreateCategoryOpen = ref(false);
 const isCreatingCategory = ref(false);
-const createCategoryForm = ref({ name: "" });
 
-// Edit category dialog state
 const isEditCategoryOpen = ref(false);
 const isEditingCategory = ref(false);
 const categoryToEdit = ref<ProblemListCategory | null>(null);
-const editCategoryForm = ref({ name: "" });
 
-// Delete category dialog state
 const isDeleteCategoryOpen = ref(false);
 const isDeletingCategory = ref(false);
 const categoryToDelete = ref<ProblemListCategory | null>(null);
 
-// Computed
-const sortedMyLists = computed(() => {
-  let lists = [...data.value.myLists].sort(
-    (a, b) => b.problemCount - a.problemCount,
-  );
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase();
-    lists = lists.filter(
-      (l) =>
-        l.name.toLowerCase().includes(q) ||
-        l.description?.toLowerCase().includes(q),
-    );
-  }
-  return lists;
-});
-
-const sortedSavedLists = computed(() => {
-  // Filter out lists that are in categories
-  const inCategoryIds = new Set(
-    data.value.categories.flatMap((c) => c.lists.map((l) => l.id)),
-  );
-  let lists = data.value.savedLists.filter((l) => !inCategoryIds.has(l.id));
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase();
-    lists = lists.filter((l) => l.name.toLowerCase().includes(q));
-  }
-  return lists;
-});
-
-// Total saved lists count (uncategorized + in categories)
-const totalSavedCount = computed(() => {
-  return data.value.savedLists.length;
-});
-
-// Sort categories by sortOrder
-const sortedCategories = computed(() => {
-  return [...data.value.categories].sort((a, b) => a.sortOrder - b.sortOrder);
-});
-
-const loadData = async () => {
-  if (!currentUserId) {
-    loading.value = false;
-    return;
-  }
-  try {
-    data.value = await fetchProblemListsOverview(currentUserId);
-  } catch (e) {
-    console.error("Failed to load problem lists", e);
-    toast.error(t("personal.messages.loadFailed"));
-  } finally {
-    loading.value = false;
-  }
-};
-
 // --- Create List ---
-const handleCreateList = async () => {
-  if (!currentUserId || !createForm.value.name.trim()) return;
-
+function onCreateList(formData: { name: string; description: string; isPublic: boolean }) {
   isCreating.value = true;
-  try {
-    const newList = await createProblemList(currentUserId, {
-      name: createForm.value.name.trim(),
-      description: createForm.value.description.trim() || undefined,
-      isPublic: createForm.value.isPublic,
-    });
-    toast.success(t("personal.messages.folderCreated"));
-    isCreateOpen.value = false;
-    createForm.value = { name: "", description: "", isPublic: false };
-    router.push(`/problemset/list/${newList.id}`);
-  } catch (e) {
-    console.error("Failed to create problem list", e);
-    toast.error(t("personal.messages.saveFailed"));
-  } finally {
+  handleCreateList(formData, (newListId: number) => {
     isCreating.value = false;
-  }
-};
+    router.push(`/problemset/list/${newListId}`);
+  }, () => {
+    isCreating.value = false;
+    isCreateOpen.value = false;
+  });
+}
 
 // --- Delete List ---
-const openDeleteListDialog = (list: ProblemList) => {
+function openDeleteListDialog(list: ProblemList) {
   listToDelete.value = list;
   isDeleteListOpen.value = true;
-};
+}
 
-const handleDeleteList = async () => {
-  if (!currentUserId || !listToDelete.value) return;
-
+async function onDeleteListConfirm() {
+  if (!listToDelete.value) return;
   isDeletingList.value = true;
-  try {
-    await deleteProblemList(listToDelete.value.id, currentUserId);
-    toast.success(t("personal.messages.folderDeleted"));
-    isDeleteListOpen.value = false;
-    listToDelete.value = null;
-    await loadData();
-  } catch (e) {
-    console.error("Failed to delete problem list", e);
-    toast.error(t("personal.messages.saveFailed"));
-  } finally {
-    isDeletingList.value = false;
-  }
-};
-
-// --- Unsave List ---
-const handleUnsaveList = async (list: ProblemList) => {
-  if (!currentUserId) return;
-  try {
-    await unsaveList(list.id, currentUserId);
-    toast.success(t("personal.messages.bookmarkRemoved"));
-    await loadData();
-  } catch (e) {
-    console.error("Failed to unsave list", e);
-    toast.error(t("personal.messages.saveFailed"));
-  }
-};
-
-// --- Move List to Category ---
-const handleMoveToCategory = async (
-  list: ProblemList,
-  categoryId: string | null,
-) => {
-  if (!currentUserId) return;
-  try {
-    await moveListToCategory(list.id, currentUserId, categoryId);
-    toast.success(t("personal.messages.profileUpdated"));
-    await loadData();
-  } catch (e) {
-    console.error("Failed to move list", e);
-    toast.error(t("personal.messages.saveFailed"));
-  }
-};
-
-// --- Create Category ---
-const handleCreateCategory = async () => {
-  if (!currentUserId || !createCategoryForm.value.name.trim()) return;
-  isCreatingCategory.value = true;
-  try {
-    await createCategory(currentUserId, {
-      name: createCategoryForm.value.name.trim(),
-    });
-    toast.success(t("personal.messages.folderCreated"));
-    isCreateCategoryOpen.value = false;
-    createCategoryForm.value = { name: "" };
-    await loadData();
-  } catch (e) {
-    console.error("Failed to create category", e);
-    toast.error(t("personal.messages.saveFailed"));
-  } finally {
-    isCreatingCategory.value = false;
-  }
-};
-
-// --- Edit Category ---
-const openEditCategoryDialog = (category: ProblemListCategory) => {
-  categoryToEdit.value = category;
-  editCategoryForm.value = { name: category.name };
-  isEditCategoryOpen.value = true;
-};
-
-const handleEditCategory = async () => {
-  if (!currentUserId || !categoryToEdit.value) return;
-  if (!editCategoryForm.value.name.trim()) {
-    toast.error(t("personal.problemLists.dialogs.newName"));
-    return;
-  }
-  isEditingCategory.value = true;
-  try {
-    await updateCategory(categoryToEdit.value.id, currentUserId, {
-      name: editCategoryForm.value.name.trim(),
-    });
-    toast.success(t("personal.messages.profileUpdated"));
-    isEditCategoryOpen.value = false;
-    await loadData();
-  } catch (e) {
-    console.error("Failed to update category", e);
-    toast.error(t("personal.messages.saveFailed"));
-  } finally {
-    isEditingCategory.value = false;
-  }
-};
+  await handleDeleteList(listToDelete.value);
+  isDeletingList.value = false;
+  isDeleteListOpen.value = false;
+  listToDelete.value = null;
+}
 
 // --- Save Featured List ---
-const handleSaveList = async (list: ProblemList) => {
-  if (!currentUserId) return;
-  try {
-    await saveList(list.id, currentUserId);
-    toast.success(t("personal.messages.bookmarkAdded"));
-    await loadData();
-  } catch (e) {
-    console.error("Failed to save list", e);
-    toast.error(t("personal.messages.saveFailed"));
-  }
-};
+function onSaveList(list: ProblemList) {
+  handleSaveList(list);
+}
+
+// --- Create Category ---
+function onCreateCategory(formData: { name: string }) {
+  isCreatingCategory.value = true;
+  handleCreateCategory(formData, () => {
+    isCreatingCategory.value = false;
+    isCreateCategoryOpen.value = false;
+  });
+}
+
+// --- Edit Category ---
+function openEditCategoryDialog(category: ProblemListCategory) {
+  categoryToEdit.value = category;
+  isEditCategoryOpen.value = true;
+}
+
+function onEditCategory(name: string) {
+  if (!categoryToEdit.value) return;
+  isEditingCategory.value = true;
+  handleEditCategory(categoryToEdit.value, name, () => {
+    isEditingCategory.value = false;
+    isEditCategoryOpen.value = false;
+  });
+}
 
 // --- Delete Category ---
-const openDeleteCategoryDialog = (category: ProblemListCategory) => {
+function openDeleteCategoryDialog(category: ProblemListCategory) {
   categoryToDelete.value = category;
   isDeleteCategoryOpen.value = true;
-};
+}
 
-const handleDeleteCategory = async () => {
-  if (!currentUserId || !categoryToDelete.value) return;
+async function onDeleteCategoryConfirm() {
+  if (!categoryToDelete.value) return;
   isDeletingCategory.value = true;
-  try {
-    await deleteCategory(categoryToDelete.value.id, currentUserId);
-    toast.success(t("personal.messages.folderDeleted"));
-    isDeleteCategoryOpen.value = false;
-    await loadData();
-  } catch (e) {
-    console.error("Failed to delete category", e);
-    toast.error(t("personal.messages.saveFailed"));
-  } finally {
-    isDeletingCategory.value = false;
-  }
-};
+  await handleDeleteCategory(categoryToDelete.value);
+  isDeletingCategory.value = false;
+  isDeleteCategoryOpen.value = false;
+  categoryToDelete.value = null;
+}
 
-onMounted(loadData);
+// --- Categories Tab helpers (list-level operations need list ID + action) ---
+function onCategoryMoveToCategory(listId: string, categoryId: string | null) {
+  const list = [...data.value.savedLists, ...data.value.categories.flatMap(c => c.lists)].find(l => l.id === listId);
+  if (list) handleMoveToCategory(list, categoryId);
+}
+
+function onCategoryUnsave(listId: string) {
+  const list = [...data.value.savedLists, ...data.value.categories.flatMap(c => c.lists)].find(l => l.id === listId);
+  if (list) handleUnsaveList(list);
+}
 </script>
 
 <template>
@@ -412,7 +204,7 @@ onMounted(loadData);
         {{ t("personal.problemLists.loginToManage") }}
       </p>
       <Button as-child class="rounded-full px-8 h-10 font-bold">
-        <RouterLink to="/login">{{ t("personal.profile.signIn") }}</RouterLink>
+        <router-link to="/login">{{ t("personal.profile.signIn") }}</router-link>
       </Button>
     </div>
 
@@ -475,527 +267,36 @@ onMounted(loadData);
 
         <!-- My Lists Tab -->
         <TabsContent value="my-lists" class="mt-0">
-          <div
-            v-if="data.myLists.length === 0"
-            class="flex flex-col items-center justify-center py-24 text-center px-6 border-2 border-dashed border-muted/50 rounded-none bg-muted/5"
-          >
-            <div
-              class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4"
-            >
-              <LayoutGrid class="h-8 w-8 text-muted-foreground/50" />
-            </div>
-            <h4 class="text-xl font-bold">
-              {{ t("personal.problemLists.emptyStates.noLists") }}
-            </h4>
-            <p class="text-sm text-muted-foreground mt-1 max-w-[300px] mb-8">
-              {{ t("personal.problemLists.emptyStates.noListsDesc") }}
-            </p>
-            <Button
-              size="lg"
-              @click="isCreateOpen = true"
-              class="rounded-full gap-2 px-8 h-10 font-bold"
-            >
-              <Plus class="h-4 w-4" />
-              {{ t("personal.problemLists.emptyStates.createFirst") }}
-            </Button>
-          </div>
-
-          <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card
-              v-for="list in sortedMyLists"
-              :key="list.id"
-              class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 overflow-hidden flex flex-col rounded-none"
-            >
-              <CardHeader class="pb-3">
-                <div class="flex items-start justify-between">
-                  <div class="space-y-1.5 flex-1 min-w-0">
-                    <div class="flex items-center gap-2">
-                      <Badge
-                        v-if="list.isPublic"
-                        variant="secondary"
-                        class="h-5 px-1.5 text-[10px] font-semibold uppercase tracking-widest bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/20 rounded-none"
-                      >
-                        <Globe class="h-3 w-3 mr-1" />
-                        {{ t("personal.problemLists.listCard.public") }}
-                      </Badge>
-                      <Badge
-                        v-else
-                        variant="outline"
-                        class="h-5 px-1.5 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground border-muted-foreground/20 rounded-none"
-                      >
-                        <Lock class="h-3 w-3 mr-1" />
-                        {{ t("personal.problemLists.listCard.private") }}
-                      </Badge>
-                    </div>
-                    <CardTitle
-                      class="text-lg font-semibold group-hover:text-primary transition-colors truncate"
-                    >
-                      <RouterLink :to="`/problemset/list/${list.id}`">{{
-                        list.name
-                      }}</RouterLink>
-                    </CardTitle>
-                  </div>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger as-child>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        class="h-8 w-8 rounded-full"
-                      >
-                        <MoreHorizontal class="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" class="w-48">
-                      <DropdownMenuItem as-child class="gap-2">
-                        <RouterLink :to="`/problemset/list/${list.id}`">
-                          <Pencil class="h-4 w-4" />
-                          {{ t("personal.problemLists.actions.editList") }}
-                        </RouterLink>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        class="text-destructive focus:text-destructive gap-2"
-                        @click.prevent="openDeleteListDialog(list)"
-                      >
-                        <Trash2 class="h-4 w-4" />
-                        {{ t("personal.problemLists.actions.deleteList") }}
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </CardHeader>
-              <CardContent class="flex-1">
-                <p
-                  v-if="list.description"
-                  class="text-sm text-muted-foreground line-clamp-2 min-h-[40px]"
-                >
-                  {{ list.description }}
-                </p>
-                <p v-else class="text-sm text-muted-foreground/40 italic">
-                  {{ t("personal.problemLists.listCard.noDescription") }}
-                </p>
-              </CardContent>
-              <CardFooter class="bg-muted/20 border-t py-3 px-6">
-                <div
-                  class="flex items-center gap-2 text-xs font-bold text-muted-foreground"
-                >
-                  <List class="h-4 w-4 text-primary/70" />
-                  {{
-                    t("personal.problemLists.listCard.problemCount", {
-                      count: list.problemCount,
-                    })
-                  }}
-                </div>
-              </CardFooter>
-            </Card>
-          </div>
+          <MyListsTab
+            :lists="sortedMyLists"
+            @delete="openDeleteListDialog"
+            @create="isCreateOpen = true"
+          />
         </TabsContent>
 
         <!-- Saved Lists Tab -->
-        <TabsContent value="saved" class="mt-0 space-y-8">
-          <!-- Uncategorized Saved Lists -->
-          <div v-if="sortedSavedLists.length > 0">
-            <div class="flex items-center gap-3 mb-4">
-              <h3
-                class="text-lg font-black uppercase tracking-widest text-muted-foreground"
-              >
-                {{ t("personal.problemLists.categories.uncategorized") }}
-              </h3>
-              <Separator class="flex-1" />
-            </div>
-            <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              <Card
-                v-for="list in sortedSavedLists"
-                :key="list.id"
-                class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none"
-              >
-                <CardHeader class="pb-3">
-                  <div class="flex items-start justify-between">
-                    <div class="space-y-1.5 flex-1 min-w-0">
-                      <Badge
-                        variant="secondary"
-                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 rounded-none"
-                      >
-                        {{ t("personal.problemLists.listCard.saved") }}
-                      </Badge>
-                      <CardTitle
-                        class="text-lg font-bold group-hover:text-primary transition-colors truncate"
-                      >
-                        <RouterLink :to="`/problemset/list/${list.id}`">{{
-                          list.name
-                        }}</RouterLink>
-                      </CardTitle>
-                    </div>
-
-                    <DropdownMenu>
-                      <DropdownMenuTrigger as-child>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          class="h-8 w-8 rounded-full"
-                        >
-                          <MoreHorizontal class="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" class="w-56">
-                        <DropdownMenuSub v-if="data.categories.length > 0">
-                          <DropdownMenuSubTrigger class="gap-2">
-                            <FolderInput class="h-4 w-4" />
-                            {{
-                              t("personal.problemLists.actions.moveToCategory")
-                            }}
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem
-                              v-for="cat in data.categories"
-                              :key="cat.id"
-                              @click.prevent="
-                                handleMoveToCategory(list, cat.id)
-                              "
-                            >
-                              {{ cat.name }}
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuItem
-                          @click.prevent="handleUnsaveList(list)"
-                          class="text-muted-foreground gap-2"
-                        >
-                          <BookmarkMinus class="h-4 w-4" />
-                          {{ t("personal.problemLists.actions.unsaveList") }}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </CardHeader>
-                <CardContent class="flex-1">
-                  <p
-                    v-if="list.description"
-                    class="text-sm text-muted-foreground line-clamp-2"
-                  >
-                    {{ list.description }}
-                  </p>
-                </CardContent>
-                <CardFooter class="bg-muted/20 border-t py-3 px-6">
-                  <div
-                    class="flex items-center gap-2 text-xs font-bold text-muted-foreground"
-                  >
-                    <List class="h-4 w-4 text-primary/70" />
-                    {{
-                      t("personal.problemLists.listCard.problemCount", {
-                        count: list.problemCount,
-                      })
-                    }}
-                  </div>
-                </CardFooter>
-              </Card>
-            </div>
-          </div>
-
-          <!-- Categories with their lists -->
-          <div
-            v-for="category in data.categories"
-            :key="category.id"
-            class="space-y-4"
-          >
-            <Collapsible :default-open="true">
-              <div class="flex items-center gap-3 mb-2 group/cat">
-                <CollapsibleTrigger
-                  class="flex items-center gap-3 hover:text-primary transition-colors"
-                >
-                  <ChevronRight
-                    class="h-5 w-5 transition-transform duration-300 ui-open:rotate-90 text-muted-foreground"
-                  />
-                  <h3 class="text-lg font-black uppercase tracking-widest">
-                    {{ category.name }}
-                  </h3>
-                  <Badge
-                    variant="secondary"
-                    class="h-5 px-1.5 rounded-full text-[10px]"
-                    >{{ category.lists.length }}</Badge
-                  >
-                </CollapsibleTrigger>
-                <Separator class="flex-1 opacity-50" />
-                <DropdownMenu>
-                  <DropdownMenuTrigger as-child>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      class="h-8 w-8 rounded-full opacity-0 group-hover/cat:opacity-100 transition-opacity"
-                    >
-                      <MoreVertical class="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      @click="openEditCategoryDialog(category)"
-                      class="gap-2"
-                    >
-                      <Pencil class="h-4 w-4" />
-                      {{ t("personal.problemLists.actions.renameCategory") }}
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      class="text-destructive focus:text-destructive gap-2"
-                      @click="openDeleteCategoryDialog(category)"
-                    >
-                      <Trash2 class="h-4 w-4" />
-                      {{ t("personal.problemLists.actions.deleteCategory") }}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-
-              <CollapsibleContent class="pt-4 pb-8">
-                <div
-                  v-if="category.lists.length === 0"
-                  class="flex flex-col items-center justify-center py-12 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-muted-foreground"
-                >
-                  <FolderInput class="h-10 w-10 opacity-20 mb-3" />
-                  <p class="text-sm font-medium">
-                    {{
-                      t("personal.problemLists.emptyStates.noListsInCategory")
-                    }}
-                  </p>
-                </div>
-                <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  <Card
-                    v-for="list in category.lists"
-                    :key="list.id"
-                    class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none"
-                  >
-                    <CardHeader class="pb-3">
-                      <div class="flex items-start justify-between">
-                        <CardTitle
-                          class="text-lg font-bold group-hover:text-primary transition-colors truncate"
-                        >
-                          <RouterLink :to="`/problemset/list/${list.id}`">{{
-                            list.name
-                          }}</RouterLink>
-                        </CardTitle>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger as-child>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              class="h-8 w-8 rounded-full"
-                            >
-                              <MoreHorizontal class="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" class="w-56">
-                            <DropdownMenuItem
-                              @click.prevent="handleMoveToCategory(list, null)"
-                              class="gap-2"
-                            >
-                              <FolderInput class="h-4 w-4" />
-                              {{
-                                t(
-                                  "personal.problemLists.actions.removeFromCategory",
-                                )
-                              }}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              @click.prevent="handleUnsaveList(list)"
-                              class="text-muted-foreground gap-2"
-                            >
-                              <BookmarkMinus class="h-4 w-4" />
-                              {{
-                                t("personal.problemLists.actions.unsaveList")
-                              }}
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </CardHeader>
-                    <CardFooter class="bg-muted/20 border-t py-3 px-6 mt-auto">
-                      <div
-                        class="flex items-center gap-2 text-xs font-bold text-muted-foreground"
-                      >
-                        <List class="h-4 w-4 text-primary/70" />
-                        {{
-                          t("personal.problemLists.listCard.problemCount", {
-                            count: list.problemCount,
-                          })
-                        }}
-                      </div>
-                    </CardFooter>
-                  </Card>
-                </div>
-              </CollapsibleContent>
-            </Collapsible>
-          </div>
-
-          <!-- Empty State for Saved -->
-          <div
-            v-if="data.savedLists.length === 0 && data.categories.length === 0"
-            class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center px-6"
-          >
-            <div
-              class="p-0 flex items-center justify-center w-16 h-16 rounded-none bg-muted/50 mb-4 text-muted-foreground/40"
-            >
-              <Bookmark class="h-8 w-8" />
-            </div>
-            <h4 class="text-xl font-bold">
-              {{ t("personal.problemLists.emptyStates.noSaved") }}
-            </h4>
-            <p class="text-sm text-muted-foreground mt-1 max-w-[300px]">
-              {{ t("personal.problemLists.emptyStates.noSavedDesc") }}
-            </p>
-          </div>
+        <TabsContent value="saved" class="mt-0">
+          <SavedListsTab
+            :saved-lists="sortedSavedLists"
+            :categories="data.categories"
+            :all-saved-count="totalSavedCount"
+            @unsave="handleUnsaveList"
+            @move-to-category="handleMoveToCategory"
+            @edit-category="openEditCategoryDialog"
+            @delete-category="openDeleteCategoryDialog"
+          />
         </TabsContent>
 
         <!-- Categories Tab -->
-        <TabsContent value="categories" class="mt-0 space-y-8">
-          <div class="grid gap-6">
-            <Card
-              v-for="category in sortedCategories"
-              :key="category.id"
-              class="border-muted/60 hover:shadow-[var(--shadow-float)] transition-shadow duration-300 rounded-none overflow-hidden"
-            >
-              <div
-                class="flex items-center justify-between px-6 py-4 bg-muted/30"
-              >
-                <div class="flex items-center gap-4">
-                  <GripVertical
-                    class="h-5 w-5 text-muted-foreground/30 cursor-grab"
-                  />
-                  <div
-                    class="h-10 w-10 rounded-none bg-primary/10 flex items-center justify-center"
-                  >
-                    <Folder class="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <h4 class="text-lg font-black tracking-tight">
-                      {{ category.name }}
-                    </h4>
-                    <p
-                      class="text-xs font-bold text-muted-foreground uppercase tracking-widest"
-                    >
-                      {{
-                        t("personal.problemLists.categories.listCount", {
-                          count: category.lists.length,
-                          s: category.lists.length !== 1 ? "S" : "",
-                        })
-                      }}
-                    </p>
-                  </div>
-                </div>
-                <div class="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="rounded-full"
-                    @click="openEditCategoryDialog(category)"
-                  >
-                    <Pencil class="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    class="rounded-full text-destructive hover:text-destructive"
-                    @click="openDeleteCategoryDialog(category)"
-                  >
-                    <Trash2 class="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
-              <div class="p-4 sm:p-6">
-                <div
-                  v-if="category.lists.length === 0"
-                  class="text-center py-10 bg-muted/10 rounded-none border-2 border-dashed"
-                >
-                  <p class="text-sm text-muted-foreground italic">
-                    {{
-                      t(
-                        "personal.problemLists.emptyStates.noListsInCategoryDesc",
-                      )
-                    }}
-                  </p>
-                </div>
-                <div v-else class="grid gap-3">
-                  <div
-                    v-for="list in category.lists"
-                    :key="list.id"
-                    class="flex items-center justify-between p-4 rounded-none bg-muted/20 hover:bg-muted/40 transition-all group"
-                  >
-                    <RouterLink
-                      :to="`/problemset/list/${list.id}`"
-                      class="flex items-center gap-4 flex-1 min-w-0"
-                    >
-                      <List class="h-4 w-4 text-primary/60" />
-                      <span class="font-bold truncate">{{ list.name }}</span>
-                      <Badge
-                        variant="secondary"
-                        class="h-5 px-1.5 rounded-full text-[10px]"
-                      >
-                        {{
-                          t("personal.problemLists.listCard.problemsCount", {
-                            count: list.problemCount,
-                          })
-                        }}
-                      </Badge>
-                    </RouterLink>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger as-child>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          class="h-8 w-8 rounded-full opacity-0 group-hover:opacity-100"
-                        >
-                          <MoreHorizontal class="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" class="w-56">
-                        <DropdownMenuSub v-if="data.categories.length > 1">
-                          <DropdownMenuSubTrigger class="gap-2">
-                            <FolderInput class="h-4 w-4" />
-                            {{
-                              t("personal.problemLists.actions.moveToAnother")
-                            }}
-                          </DropdownMenuSubTrigger>
-                          <DropdownMenuSubContent>
-                            <DropdownMenuItem
-                              v-for="cat in data.categories.filter(
-                                (c) => c.id !== category.id,
-                              )"
-                              :key="cat.id"
-                              @click="handleMoveToCategory(list, cat.id)"
-                            >
-                              {{ cat.name }}
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
-                        <DropdownMenuItem
-                          @click="handleMoveToCategory(list, null)"
-                          class="gap-2"
-                        >
-                          <FolderInput class="h-4 w-4" />
-                          {{
-                            t(
-                              "personal.problemLists.actions.removeFromCategory",
-                            )
-                          }}
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          @click="handleUnsaveList(list)"
-                          class="text-muted-foreground gap-2"
-                        >
-                          <BookmarkMinus class="h-4 w-4" />
-                          {{ t("personal.problemLists.actions.unsaveList") }}
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          </div>
+        <TabsContent value="categories" class="mt-0">
+          <CategoriesTab
+            :categories="sortedCategories"
+            :all-categories="data.categories"
+            @edit="openEditCategoryDialog"
+            @delete="openDeleteCategoryDialog"
+            @move-to-category="onCategoryMoveToCategory"
+            @unsave="onCategoryUnsave"
+          />
         </TabsContent>
 
         <!-- Featured Tab -->
@@ -1018,339 +319,121 @@ onMounted(loadData);
           </div>
 
           <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            <Card
+            <div
               v-for="list in data.featured"
               :key="list.id"
-              class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none"
+              class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none bg-background text-foreground"
             >
-              <CardHeader class="pb-3">
+              <div class="pb-3 px-6 pt-6">
                 <div class="flex items-start justify-between">
                   <div class="space-y-1.5 flex-1 min-w-0">
                     <div class="flex items-center gap-2">
-                      <Badge
-                        variant="secondary"
-                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/20 rounded-none"
+                      <span
+                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border border-[var(--terminal-amber)]/20 rounded-none inline-flex items-center"
                       >
                         {{ t("personal.problemLists.listCard.featured") }}
-                      </Badge>
-                      <Badge
+                      </span>
+                      <span
                         v-if="list.isSaved"
-                        variant="secondary"
-                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border-[var(--accent-electric)]/20 rounded-none"
+                        class="h-5 px-1.5 text-[10px] font-bold uppercase tracking-widest bg-[var(--accent-electric)]/10 text-[var(--accent-electric)] border border-[var(--accent-electric)]/20 rounded-none inline-flex items-center"
                       >
                         {{ t("personal.problemLists.listCard.saved") }}
-                      </Badge>
+                      </span>
                     </div>
-                    <CardTitle
+                    <h3
                       class="text-lg font-bold group-hover:text-primary transition-colors truncate"
                     >
-                      <RouterLink
+                      <router-link
                         :to="`/problemset/list/${list.id}`"
                         class="flex items-center gap-2"
                       >
                         {{ list.name }}
                         <Star class="h-4 w-4 text-[var(--terminal-amber)] fill-[var(--terminal-amber)]" />
-                      </RouterLink>
-                    </CardTitle>
+                      </router-link>
+                    </h3>
                   </div>
 
-                  <Button
+                  <button
                     v-if="!list.isSaved"
-                    variant="outline"
-                    size="sm"
-                    class="rounded-full gap-1.5 h-8 font-bold text-[10px] opacity-0 group-hover:opacity-100 transition-all"
-                    @click="handleSaveList(list)"
+                    class="rounded-full gap-1.5 h-8 font-bold text-[10px] opacity-0 group-hover:opacity-100 transition-all border border-border bg-background hover:bg-muted px-2 inline-flex items-center"
+                    @click="onSaveList(list)"
                   >
                     <Save class="h-3.5 w-3.5" />
                     {{ t("personal.problemLists.actions.save") }}
-                  </Button>
-                  <Button
+                  </button>
+                  <button
                     v-else
-                    variant="ghost"
-                    size="sm"
-                    class="rounded-full gap-1.5 h-8 font-bold text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-all"
+                    class="rounded-full gap-1.5 h-8 font-bold text-[10px] text-muted-foreground opacity-0 group-hover:opacity-100 transition-all bg-transparent hover:bg-muted px-2 inline-flex items-center"
                     @click="handleUnsaveList(list)"
                   >
                     <BookmarkMinus class="h-3.5 w-3.5" />
                     {{ t("personal.problemLists.actions.unsave") }}
-                  </Button>
+                  </button>
                 </div>
-              </CardHeader>
-              <CardContent class="flex-1">
+              </div>
+              <div class="flex-1 px-6">
                 <p
                   v-if="list.description"
                   class="text-sm text-muted-foreground line-clamp-2"
                 >
                   {{ list.description }}
                 </p>
-              </CardContent>
-              <CardFooter class="bg-muted/20 border-t py-3 px-6 mt-auto">
-                <div
-                  class="flex items-center gap-2 text-xs font-bold text-muted-foreground"
-                >
-                  <List class="h-4 w-4 text-primary/70" />
-                  {{
-                    t("personal.problemLists.listCard.problemCount", {
-                      count: list.problemCount,
-                    })
-                  }}
-                </div>
-              </CardFooter>
-            </Card>
+              </div>
+              <div class="bg-muted/20 border-t py-3 px-6 mt-auto flex items-center gap-2 text-xs font-bold text-muted-foreground">
+                <List class="h-4 w-4 text-primary/70" />
+                {{
+                  t("personal.problemLists.listCard.problemCount", {
+                    count: list.problemCount,
+                  })
+                }}
+              </div>
+            </div>
           </div>
         </TabsContent>
       </Tabs>
     </div>
 
     <!-- Create List Dialog -->
-    <Dialog v-model:open="isCreateOpen">
-      <DialogContent class="sm:max-w-[425px] rounded-none">
-        <DialogHeader>
-          <DialogTitle class="text-2xl font-black tracking-tight">{{
-            t("personal.problemLists.dialogs.createList")
-          }}</DialogTitle>
-          <DialogDescription>
-            {{ t("personal.problemLists.dialogs.createListDesc") }}
-          </DialogDescription>
-        </DialogHeader>
-        <div class="space-y-6 py-4">
-          <div class="space-y-2">
-            <Label
-              for="create-name"
-              class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-              >{{ t("personal.problemLists.dialogs.listName") }}</Label
-            >
-            <Input
-              id="create-name"
-              v-model="createForm.name"
-              :placeholder="
-                t('personal.problemLists.dialogs.listNamePlaceholder')
-              "
-              class="h-11 rounded-none"
-            />
-          </div>
-          <div class="space-y-2">
-            <Label
-              for="create-description"
-              class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-              >{{ t("personal.problemLists.dialogs.description") }}</Label
-            >
-            <Textarea
-              id="create-description"
-              v-model="createForm.description"
-              :placeholder="
-                t('personal.problemLists.dialogs.descriptionPlaceholder')
-              "
-              class="min-h-[100px] resize-none rounded-none"
-            />
-          </div>
-          <div
-            class="flex items-center justify-between p-4 rounded-none bg-muted/30 border"
-          >
-            <div class="space-y-0.5">
-              <Label for="create-public" class="text-sm font-bold">{{
-                t("personal.problemLists.dialogs.publicList")
-              }}</Label>
-              <p class="text-xs text-muted-foreground">
-                {{ t("personal.problemLists.dialogs.publicListDesc") }}
-              </p>
-            </div>
-            <Switch id="create-public" v-model:checked="createForm.isPublic" />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            @click="isCreateOpen = false"
-            class="rounded-full"
-            >{{ t("common.actions.cancel") }}</Button
-          >
-          <Button
-            @click="handleCreateList"
-            :disabled="isCreating || !createForm.name.trim()"
-            class="rounded-full px-8"
-          >
-            {{
-              isCreating
-                ? t("personal.problemLists.dialogs.creating")
-                : t("personal.problemLists.dialogs.createButton")
-            }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-
-    <!-- AlertDialogs (Delete List, Create Category, etc.) - Styling updates -->
-    <!-- (I'll keep the logic but the template is already significantly improved above) -->
+    <CreateListDialog
+      :open="isCreateOpen"
+      :loading="isCreating"
+      @update:open="isCreateOpen = $event"
+      @submit="onCreateList"
+    />
 
     <!-- Delete List Confirmation -->
-    <AlertDialog v-model:open="isDeleteListOpen">
-      <AlertDialogContent class="rounded-none">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{{
-            t("personal.problemLists.dialogs.deleteList")
-          }}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {{
-              t("personal.problemLists.dialogs.deleteListConfirm", {
-                name: listToDelete?.name,
-              })
-            }}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel :disabled="isDeletingList" class="rounded-full">{{
-            t("common.actions.cancel")
-          }}</AlertDialogCancel>
-          <AlertDialogAction
-            class="bg-destructive text-white hover:bg-destructive/90 rounded-full"
-            @click="handleDeleteList"
-            :disabled="isDeletingList"
-          >
-            {{
-              isDeletingList
-                ? t("common.status.saving")
-                : t("common.actions.confirm")
-            }}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <DeleteListDialog
+      :open="isDeleteListOpen"
+      :list-name="listToDelete?.name"
+      :loading="isDeletingList"
+      @update:open="isDeleteListOpen = $event"
+      @confirm="onDeleteListConfirm"
+    />
 
     <!-- Create Category Dialog -->
-    <Dialog v-model:open="isCreateCategoryOpen">
-      <DialogContent class="sm:max-w-md rounded-none">
-        <DialogHeader>
-          <DialogTitle class="text-2xl font-black tracking-tight">{{
-            t("personal.problemLists.dialogs.newCategory")
-          }}</DialogTitle>
-          <DialogDescription>
-            {{ t("personal.problemLists.dialogs.newCategoryDesc") }}
-          </DialogDescription>
-        </DialogHeader>
-        <div class="space-y-4 py-4">
-          <div class="space-y-2">
-            <Label
-              for="category-name"
-              class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-              >{{ t("personal.problemLists.dialogs.categoryName") }}</Label
-            >
-            <Input
-              id="category-name"
-              v-model="createCategoryForm.name"
-              :placeholder="
-                t('personal.problemLists.dialogs.categoryNamePlaceholder')
-              "
-              class="h-11 rounded-none"
-              @keydown.enter="handleCreateCategory"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            @click="isCreateCategoryOpen = false"
-            :disabled="isCreatingCategory"
-            class="rounded-full"
-          >
-            {{ t("common.actions.cancel") }}
-          </Button>
-          <Button
-            @click="handleCreateCategory"
-            :disabled="isCreatingCategory || !createCategoryForm.name.trim()"
-            class="rounded-full px-8"
-          >
-            {{
-              isCreatingCategory
-                ? t("personal.problemLists.dialogs.creating")
-                : t("personal.problemLists.dialogs.createCategory")
-            }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <CreateCategoryDialog
+      :open="isCreateCategoryOpen"
+      :loading="isCreatingCategory"
+      @update:open="isCreateCategoryOpen = $event"
+      @submit="onCreateCategory"
+    />
 
     <!-- Edit Category Dialog -->
-    <Dialog v-model:open="isEditCategoryOpen">
-      <DialogContent class="sm:max-w-md rounded-none">
-        <DialogHeader>
-          <DialogTitle class="text-2xl font-black tracking-tight">{{
-            t("personal.problemLists.dialogs.renameCategory")
-          }}</DialogTitle>
-        </DialogHeader>
-        <div class="space-y-4 py-4">
-          <div class="space-y-2">
-            <Label
-              for="edit-category-name"
-              class="text-xs font-bold uppercase tracking-widest text-muted-foreground"
-              >{{ t("personal.problemLists.dialogs.newName") }}</Label
-            >
-            <Input
-              id="edit-category-name"
-              v-model="editCategoryForm.name"
-              class="h-11 rounded-none"
-              @keydown.enter="handleEditCategory"
-            />
-          </div>
-        </div>
-        <DialogFooter>
-          <Button
-            variant="outline"
-            @click="isEditCategoryOpen = false"
-            :disabled="isEditingCategory"
-            class="rounded-full"
-          >
-            {{ t("common.actions.cancel") }}
-          </Button>
-          <Button
-            @click="handleEditCategory"
-            :disabled="isEditingCategory || !editCategoryForm.name.trim()"
-            class="rounded-full px-8"
-          >
-            {{
-              isEditingCategory
-                ? t("common.status.saving")
-                : t("common.actions.save")
-            }}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+    <EditCategoryDialog
+      :open="isEditCategoryOpen"
+      :loading="isEditingCategory"
+      :category-name="categoryToEdit?.name ?? ''"
+      @update:open="isEditCategoryOpen = $event"
+      @submit="onEditCategory"
+    />
 
     <!-- Delete Category Confirmation -->
-    <AlertDialog v-model:open="isDeleteCategoryOpen">
-      <AlertDialogContent class="rounded-none">
-        <AlertDialogHeader>
-          <AlertDialogTitle>{{
-            t("personal.problemLists.dialogs.deleteCategory")
-          }}</AlertDialogTitle>
-          <AlertDialogDescription>
-            {{
-              t("personal.problemLists.dialogs.deleteCategoryConfirm", {
-                name: categoryToDelete?.name,
-              })
-            }}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel
-            :disabled="isDeletingCategory"
-            class="rounded-full"
-            >{{ t("common.actions.cancel") }}</AlertDialogCancel
-          >
-          <AlertDialogAction
-            class="bg-destructive text-white hover:bg-destructive/90 rounded-full"
-            @click="handleDeleteCategory"
-            :disabled="isDeletingCategory"
-          >
-            {{
-              isDeletingCategory
-                ? t("common.status.saving")
-                : t("common.actions.confirm")
-            }}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+    <DeleteCategoryDialog
+      :open="isDeleteCategoryOpen"
+      :category-name="categoryToDelete?.name"
+      :loading="isDeletingCategory"
+      @update:open="isDeleteCategoryOpen = $event"
+      @confirm="onDeleteCategoryConfirm"
+    />
   </PersonalPageShell>
 </template>

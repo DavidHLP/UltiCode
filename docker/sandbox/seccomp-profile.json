@@ -1,6 +1,6 @@
 {
     "defaultAction": "SCMP_ACT_ALLOW",
-    "architectures": ["SCMP_ARCH_X86_64", "SCMP_ARCH_X86_32", "SCMP_ARCH_AARCH64"],
+    "architectures": ["SCMP_ARCH_X86_64", "SCMP_ARCH_X86", "SCMP_ARCH_AARCH64"],
     "syscalls": [
         {
             "names": [

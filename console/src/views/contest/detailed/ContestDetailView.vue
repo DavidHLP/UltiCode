@@ -146,7 +146,7 @@ function getErrorMessage(error: unknown, fallback: string) {
         :is-registered="isRegistered"
         :registering="registering"
         :starting-virtual="startingVirtual"
-        :virtual-session-active="virtualSessionActive"
+        :virtual-session-active="!!virtualSessionActive"
         @register="handleRegister"
         @unregister="handleUnregister"
         @start-virtual="handleStartVirtual"

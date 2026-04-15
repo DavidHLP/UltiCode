@@ -43,7 +43,7 @@ const { t } = useI18n();
           <Label for="name" class="text-right">{{
             t("problem.problemList.dialogs.listName")
           }}</Label>
-          <Input id="name" :model-value="form.name" class="col-span-3" @update:model-value="form.name = $event" />
+          <Input id="name" :model-value="form.name" class="col-span-3" @update:model-value="form.name = String($event)" />
         </div>
         <div class="grid grid-cols-4 items-center gap-4">
           <Label for="description" class="text-right">{{
@@ -53,7 +53,7 @@ const { t } = useI18n();
             id="description"
             :model-value="form.description"
             class="col-span-3"
-            @update:model-value="form.description = $event"
+            @update:model-value="form.description = String($event)"
           />
         </div>
         <div class="grid grid-cols-4 items-center gap-4">

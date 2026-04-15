@@ -67,7 +67,7 @@ const categoryToDelete = ref<ProblemListCategory | null>(null);
 // --- Create List ---
 function onCreateList(formData: { name: string; description: string; isPublic: boolean }) {
   isCreating.value = true;
-  handleCreateList(formData, (newListId: number) => {
+  handleCreateList(formData, (newListId: string) => {
     isCreating.value = false;
     router.push(`/problemset/list/${newListId}`);
   }, () => {

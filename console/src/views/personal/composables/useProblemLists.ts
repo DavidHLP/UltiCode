@@ -87,7 +87,7 @@ export function useProblemLists() {
   // --- Create List ---
   const handleCreateList = async (
     form: { name: string; description: string; isPublic: boolean },
-    onSuccess: (newListId: number) => void,
+    onSuccess: (newListId: string) => void,
     onClose: () => void,
   ) => {
     if (!currentUserId || !form.name.trim()) return;

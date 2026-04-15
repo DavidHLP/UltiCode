@@ -1,0 +1,211 @@
+package com.ulticode.modules.admin.service.impl;
+
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
+import com.ulticode.modules.admin.dto.RejudgeResult;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.queue.service.QueueService;
+import com.ulticode.modules.submission.entity.Submission;
+import com.ulticode.modules.submission.mapper.SubmissionMapper;
+import com.ulticode.modules.user.mapper.UserMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+@DisplayName("AdminSubmissionServiceImpl")
+class AdminSubmissionServiceImplTest {
+
+    @Mock
+    private SubmissionMapper submissionMapper;
+
+    @Mock
+    private UserMapper userMapper;
+
+    @Mock
+    private ProblemMapper problemMapper;
+
+    @Mock
+    private QueueService queueService;
+
+    private AdminSubmissionServiceImpl adminSubmissionService;
+
+    @BeforeEach
+    void setUp() {
+        adminSubmissionService = new AdminSubmissionServiceImpl(
+                submissionMapper, userMapper, problemMapper, queueService);
+    }
+
+    private Submission createValidSubmission() {
+        Submission submission = new Submission();
+        submission.setId("sub-123");
+        submission.setProblemId(1L);
+        submission.setUserId("user-456");
+        submission.setLanguage("java");
+        submission.setCode("public class Main {}");
+        submission.setStatus("Accepted");
+        submission.setRetryCount(0);
+        return submission;
+    }
+
+    @Nested
+    @DisplayName("rejudge()")
+    class Rejudge {
+
+        @Test
+        @DisplayName("calls queueService.enqueueJudgeJob and resets status to Pending")
+        void rejudge_existingSubmission_enqueuesJob() {
+            Submission submission = createValidSubmission();
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(), anyString(), anyString()))
+                    .thenReturn("job-789");
+
+            RejudgeResult result = adminSubmissionService.rejudge("sub-123", false);
+
+            assertThat(result.getSuccess()).isTrue();
+            assertThat(result.getSubmissionId()).isEqualTo("sub-123");
+            assertThat(result.getOldStatus()).isEqualTo("Accepted");
+            assertThat(result.getNewStatus()).isEqualTo("Pending");
+            assertThat(submission.getStatus()).isEqualTo("Pending");
+
+            verify(queueService).enqueueJudgeJob(
+                    "sub-123", "1", "user-456", "java", "public class Main {}");
+            verify(submissionMapper).updateById(submission);
+        }
+
+        @Test
+        @DisplayName("non-existent submission returns RejudgeResult with success=false")
+        void rejudge_nonExistent_returnsNotFound() {
+            when(submissionMapper.selectById("nonexistent")).thenReturn(null);
+
+            RejudgeResult result = adminSubmissionService.rejudge("nonexistent", false);
+
+            assertThat(result.getSuccess()).isFalse();
+            assertThat(result.getError()).isEqualTo("Submission not found");
+            assertThat(result.getSubmissionId()).isEqualTo("nonexistent");
+            verify(queueService, never()).enqueueJudgeJob(anyString(), anyString(),
+                    anyString(), anyString(), anyString());
+        }
+
+        @Test
+        @DisplayName("increments retryCount by 1 (D-23)")
+        void rejudge_incrementsRetryCount() {
+            Submission submission = createValidSubmission();
+            submission.setRetryCount(3);
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(),
+                    anyString(), anyString())).thenReturn("job-789");
+
+            adminSubmissionService.rejudge("sub-123", false);
+
+            assertThat(submission.getRetryCount()).isEqualTo(4);
+            verify(submissionMapper).updateById(submission);
+        }
+
+        @Test
+        @DisplayName("sets retryCount to 1 when null (D-23 null safety)")
+        void rejudge_nullRetryCount_setsToOne() {
+            Submission submission = createValidSubmission();
+            submission.setRetryCount(null);
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(),
+                    anyString(), anyString())).thenReturn("job-789");
+
+            adminSubmissionService.rejudge("sub-123", false);
+
+            assertThat(submission.getRetryCount()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("enqueue failure returns RejudgeResult with success=false")
+        void rejudge_enqueueFailure_returnsFailed() {
+            Submission submission = createValidSubmission();
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(),
+                    anyString(), anyString()))
+                    .thenThrow(new RuntimeException("Queue unavailable"));
+
+            RejudgeResult result = adminSubmissionService.rejudge("sub-123", false);
+
+            assertThat(result.getSuccess()).isFalse();
+            assertThat(result.getError()).isEqualTo("Queue unavailable");
+        }
+    }
+
+    @Nested
+    @DisplayName("batchRejudge()")
+    class BatchRejudge {
+
+        @Test
+        @DisplayName("rejects batch with more than 50 IDs")
+        void batchRejudge_exceeds50_throwsValidationFailed() {
+            List<String> ids = java.util.Collections.nCopies(51, "sub-id");
+
+            assertThatThrownBy(() -> adminSubmissionService.batchRejudge(ids, false))
+                    .isInstanceOf(BusinessException.class)
+                    .satisfies(ex -> {
+                        BusinessException be = (BusinessException) ex;
+                        assertThat(be.getErrorCode()).isEqualTo(ErrorCode.VALIDATION_FAILED);
+                    });
+        }
+
+        @Test
+        @DisplayName("iterates over all IDs and returns success/failure counts")
+        void batchRejudge_validBatch_returnsCounts() {
+            Submission sub1 = createValidSubmission();
+            sub1.setId("sub-1");
+            Submission sub2 = createValidSubmission();
+            sub2.setId("sub-2");
+
+            when(submissionMapper.selectById("sub-1")).thenReturn(sub1);
+            when(submissionMapper.selectById("sub-2")).thenReturn(sub2);
+            when(queueService.enqueueJudgeJob(anyString(), anyString(), anyString(),
+                    anyString(), anyString())).thenReturn("job-1");
+
+            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(
+                    List.of("sub-1", "sub-2"), false);
+
+            assertThat(response.getTotal()).isEqualTo(2);
+            assertThat(response.getSuccessful()).isEqualTo(2);
+            assertThat(response.getFailed()).isEqualTo(0);
+            assertThat(response.getResults()).hasSize(2);
+        }
+
+        @Test
+        @DisplayName("empty list returns total=0, successful=0, failed=0")
+        void batchRejudge_emptyList_returnsZeroCounts() {
+            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(
+                    List.of(), false);
+
+            assertThat(response.getTotal()).isEqualTo(0);
+            assertThat(response.getSuccessful()).isEqualTo(0);
+            assertThat(response.getFailed()).isEqualTo(0);
+            assertThat(response.getResults()).isEmpty();
+        }
+
+        @Test
+        @DisplayName("batch with 50 IDs is accepted (boundary)")
+        void batchRejudge_exactly50_isAccepted() {
+            List<String> ids = java.util.Collections.nCopies(50, "sub-id");
+            when(submissionMapper.selectById("sub-id")).thenReturn(null);
+
+            BatchRejudgeResponse response = adminSubmissionService.batchRejudge(ids, false);
+
+            assertThat(response.getTotal()).isEqualTo(50);
+            assertThat(response.getFailed()).isEqualTo(50);
+            assertThat(response.getSuccessful()).isEqualTo(0);
+        }
+    }
+}

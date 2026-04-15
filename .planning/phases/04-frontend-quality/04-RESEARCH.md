@@ -672,17 +672,13 @@ export const ProblemContextKey: InjectionKey<ProblemContext> = Symbol("ProblemCo
 | A4 | Console has no SettingsView component (only editor settings store) -- this is a ROADMAP error | Location Corrections | If a SettingsView is added later, plan scope would need adjustment |
 | A5 | No external component imports co-located components from ProblemListsView, ProblemListView, etc. (only parent imports them) | Pitfall 5 | If external imports exist, moving files would break them -- need to grep before moving |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **QUAL-01 scope clarification: Does "14 个超过 600 行的 Vue 组件" include the Pinia store?**
-   - What we know: 13 Vue components exceed 600 lines + 1 store at exactly 600 lines = 14 items
-   - What's unclear: Whether the REQUIREMENTS.md considers a .ts store file as a "Vue component"
-   - Recommendation: Include the store (D-14 explicitly mentions it), making 14 total items. If store is excluded, only 13 items need splitting.
+1. **RESOLVED: QUAL-01 scope clarification — Store included.**
+   The Pinia moderation store is included in the 14-item count per D-14. Plans 01+02 cover all 13 Vue components + 1 store = 14 items.
 
-2. **Plan boundary correction: ROADMAP plan 04-01 lists SettingsView and HiddenTestCasesEditor as console components, but they are in management.**
-   - What we know: File system scan confirms both are in management/
-   - What's unclear: Whether the ROADMAP descriptions were intentionally wrong or a documentation error
-   - Recommendation: Planner must reassign: 04-01 = 8 console components, 04-02 = 5 management components + 1 store. Document this correction in the plan.
+2. **RESOLVED: Plan boundary correction — SettingsView and HiddenTestCasesEditor assigned to management.**
+   Both files exist in management/ (verified by file system scan). Plan 01 covers 8 console components; Plan 02 covers 5 management components + 1 store. ROADMAP plan descriptions were updated to reflect correct assignments.
 
 ## Environment Availability
 

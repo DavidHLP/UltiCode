@@ -111,4 +111,16 @@ public interface SubmissionService {
      * @return list of submission status metadata
      */
     List<SubmissionStatusMeta> getStatuses();
+
+    /**
+     * Update submission result after judge processing.
+     *
+     * @param submissionId the submission ID
+     * @param status       the new status
+     * @param runtime      runtime in milliseconds
+     * @param memory       memory usage in MB
+     * @param testDetails  test case execution details
+     */
+    void updateSubmissionResult(String submissionId, String status, int runtime,
+                                Double memory, List<Submission.TestCaseDetail> testDetails);
 }

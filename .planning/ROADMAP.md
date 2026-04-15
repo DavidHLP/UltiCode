@@ -47,9 +47,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Wire password reset to actual email sending via EmailServiceImpl (SEC-02)
-- [ ] 02-02: Implement admin rejudge with batch size limits and throttled enqueue (FUNC-01)
-- [ ] 02-03: Harden Docker sandbox with seccomp profile and capability drop (SEC-04)
+- [x] 02-01: Wire password reset to actual email sending via EmailServiceImpl (SEC-02)
+- [x] 02-02: Implement admin rejudge with batch size limits and throttled enqueue (FUNC-01)
+- [x] 02-03: Harden Docker sandbox with seccomp profile and capability drop (SEC-04)
 
 ### Phase 3: Test Coverage
 **Goal**: Auth, submission, and code execution critical modules have integration tests using real MySQL and Redis via Testcontainers, providing regression safety for the security fixes from Phases 1-2

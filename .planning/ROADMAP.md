@@ -64,7 +64,7 @@ Plans:
 
 Plans:
 - [ ] 03-01: Auth and security module tests (AuthService, JwtTokenProvider, CsrfService, JwtProperties, PasswordResetService)
-- [ ] 03-02: Submission and code execution module tests + Testcontainers infrastructure (SubmissionService, CodeExecutionService, AdminSubmissionService verification)
+- [x] 03-02: Submission and code execution module tests + Testcontainers infrastructure (SubmissionService, CodeExecutionService, AdminSubmissionService verification)
 - [ ] 03-03: Testcontainers integration tests for SubmissionServiceImpl (real MySQL + Redis)
 
 ### Phase 4: Frontend Quality

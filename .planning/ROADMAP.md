@@ -79,8 +79,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Split console oversized components (ProblemListsView, ProblemListView, ContestDetailView, SubmissionsDetail, PersonalView, ProblemDetailView, ProblemExplorer, Calendars, SettingsView, HiddenTestCasesEditor)
-- [ ] 04-02: Split management oversized components (ProblemsListView, AnalyticsView, ModerationQueueView) and moderation store
+- [ ] 04-01: Split console oversized components (ProblemListsView, ProblemListView, ContestDetailView, SubmissionsDetail, PersonalView, ProblemDetailView, ProblemExplorer, Calendars)
+- [ ] 04-02: Split management oversized components (ProblemsListView, AnalyticsView, ModerationQueueView, SettingsView, HiddenTestCasesEditor) and moderation store
 
 ## Progress
 

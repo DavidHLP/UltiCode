@@ -26,7 +26,7 @@ Requirements for milestone v1.0. Each maps to roadmap phases.
 ### Quality
 
 - [ ] **QUAL-01**: 14 个超过 600 行的 Vue 组件被拆分为更小的组合式组件，保持功能不变
-- [ ] **TEST-01**: auth、submission、CodeExecution 三个关键模块具有 Testcontainers 集成测试和单元测试，覆盖率显著提升
+- [x] **TEST-01**: auth、submission、CodeExecution 三个关键模块具有 Testcontainers 集成测试和单元测试，覆盖率显著提升
 
 ## v2 Requirements
 
@@ -92,7 +92,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SEC-02 | Phase 2 | Pending |
 | FUNC-01 | Phase 2 | Pending |
 | SEC-04 | Phase 2 | Pending |
-| TEST-01 | Phase 3 | Pending |
+| TEST-01 | Phase 3 | Complete |
 | QUAL-01 | Phase 4 | Pending |
 
 **Coverage:**

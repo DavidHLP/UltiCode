@@ -142,14 +142,16 @@ public class CodeExecutionService {
         List<String> cmd = new ArrayList<>(List.of(
                 "docker", "run", "--rm", "-i",
                 "--network", "none",
+                "--cap-drop", "ALL",
                 "--memory", sandboxConfig.memory(),
                 "--cpus", sandboxConfig.cpus(),
                 "--pids-limit", String.valueOf(sandboxConfig.pidsLimit()),
                 "--ulimit", "nofile=128:128",
                 "--read-only",
-                "--tmpfs", "/tmp:rw,size=64m",
+                "--tmpfs", "/tmp:rw,exec,size=64m",
                 "--user", "1000:1000",
                 "--security-opt", "no-new-privileges:true",
+                "--security-opt", "seccomp=" + sandboxConfig.seccompProfilePath(),
                 sandboxConfig.image()
         ));
 

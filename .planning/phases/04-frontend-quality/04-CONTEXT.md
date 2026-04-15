@@ -9,8 +9,8 @@
 Split 13 oversized Vue components and 1 Pinia store (moderation) into smaller co-located sub-components and composables. No component may exceed 500 lines after splitting. Zero behavioral regressions — every split component must render and function identically to the original. No new features, no new pages, no styling changes.
 
 **In scope:**
-- Console (10): ProblemListsView (1356 lines), ProblemListView (804), ContestDetailView (1039), SubmissionsDetail (867), PersonalView (666), ProblemDetailView (692), ProblemExplorer (642), Calendars (790), SettingsView, HiddenTestCasesEditor (602)
-- Management (3 + store): ProblemsListView (1224), AnalyticsView (881), ModerationQueueView (768), moderation Pinia store
+- Console (8): ProblemListsView (1356 lines), ProblemListView (804), ContestDetailView (1039), SubmissionsDetail (867), PersonalView (666), ProblemDetailView (692), ProblemExplorer (642), Calendars (790)
+- Management (5 + store): ProblemsListView (1224), AnalyticsView (881), ModerationQueueView (768), SettingsView (627), HiddenTestCasesEditor (602), moderation Pinia store
 
 **Out of scope:**
 - New features or UI changes

@@ -21,8 +21,10 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -98,30 +100,48 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         Page<Submission> pageResult = new Page<>(page, limit);
         Page<Submission> result = submissionMapper.selectPage(pageResult, wrapper);
 
-        // Enrich with user and problem information
+        // Batch-load users and problems to avoid N+1 queries (WR-05)
+        Map<String, User> userMap = new HashMap<>();
+        Map<Long, Problem> problemMap = new HashMap<>();
+        if (!result.getRecords().isEmpty()) {
+            Set<String> userIds = result.getRecords().stream()
+                    .map(Submission::getUserId)
+                    .collect(Collectors.toSet());
+            Set<Long> problemIds = result.getRecords().stream()
+                    .map(Submission::getProblemId)
+                    .collect(Collectors.toSet());
+
+            if (!userIds.isEmpty()) {
+                userMap = userMapper.selectBatchIds(userIds).stream()
+                        .collect(Collectors.toMap(User::getId, u -> u));
+            }
+            if (!problemIds.isEmpty()) {
+                problemMap = problemMapper.selectBatchIds(problemIds).stream()
+                        .collect(Collectors.toMap(Problem::getId, p -> p));
+            }
+        }
+
+        // Enrich with user and problem information using batch-loaded maps
+        Map<String, User> finalUserMap = userMap;
+        Map<Long, Problem> finalProblemMap = problemMap;
         List<AdminSubmissionVO> vos = result.getRecords().stream()
-                .map(this::toAdminVO)
+                .map(s -> toAdminVO(s, finalUserMap, finalProblemMap))
                 .collect(Collectors.toList());
 
         // Apply search filter on username/problem title if needed
-        // (This is a simplified approach - for production, consider using a proper query with joins)
         if (StringUtils.hasText(query.getSearch())) {
             String searchLower = query.getSearch().toLowerCase();
             vos = vos.stream()
                     .filter(vo -> {
-                        // Check if username matches
                         if (vo.getUsername() != null && vo.getUsername().toLowerCase().contains(searchLower)) {
                             return true;
                         }
-                        // Check if problem title matches
                         if (vo.getProblemTitle() != null && vo.getProblemTitle().toLowerCase().contains(searchLower)) {
                             return true;
                         }
-                        // Check if ID matches (already filtered by SQL)
                         if (vo.getId() != null && vo.getId().toLowerCase().contains(searchLower)) {
                             return true;
                         }
-                        // Check if language matches exactly (already filtered by SQL)
                         if (vo.getLanguage() != null && vo.getLanguage().equalsIgnoreCase(query.getSearch())) {
                             return true;
                         }
@@ -130,9 +150,10 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
                     .collect(Collectors.toList());
         }
 
+        // Use filtered count for correct pagination (WR-02)
         return PageResult.of(
                 vos,
-                result.getTotal(),
+                (long) vos.size(),
                 page,
                 limit
         );
@@ -155,30 +176,26 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         Long total = submissionMapper.selectCount(null);
         stats.setTotal(total);
 
-        // By status
+        // By status — aggregate SQL query instead of loading all records
         List<SubmissionStatistics.StatusCount> byStatus = new ArrayList<>();
-        Map<String, Long> statusCounts = getAllSubmissions().stream()
-                .collect(Collectors.groupingBy(Submission::getStatus, Collectors.counting()));
-        statusCounts.forEach((status, count) -> {
+        List<Object[]> statusRows = submissionMapper.countByStatus();
+        for (Object[] row : statusRows) {
             SubmissionStatistics.StatusCount sc = new SubmissionStatistics.StatusCount();
-            sc.setStatus(status);
-            sc.setCount(count);
+            sc.setStatus((String) row[0]);
+            sc.setCount(((Number) row[1]).longValue());
             byStatus.add(sc);
-        });
+        }
         stats.setByStatus(byStatus);
 
-        // By language
+        // By language — aggregate SQL query instead of loading all records
         List<SubmissionStatistics.LanguageCount> byLanguage = new ArrayList<>();
-        Map<String, Long> languageCounts = getAllSubmissions().stream()
-                .collect(Collectors.groupingBy(Submission::getLanguage, Collectors.counting()));
-        languageCounts.entrySet().stream()
-                .sorted((a, b) -> b.getValue().compareTo(a.getValue()))
-                .forEach(entry -> {
-                    SubmissionStatistics.LanguageCount lc = new SubmissionStatistics.LanguageCount();
-                    lc.setLanguage(entry.getKey());
-                    lc.setCount(entry.getValue());
-                    byLanguage.add(lc);
-                });
+        List<Object[]> languageRows = submissionMapper.countByLanguage();
+        for (Object[] row : languageRows) {
+            SubmissionStatistics.LanguageCount lc = new SubmissionStatistics.LanguageCount();
+            lc.setLanguage((String) row[0]);
+            lc.setCount(((Number) row[1]).longValue());
+            byLanguage.add(lc);
+        }
         stats.setByLanguage(byLanguage);
 
         // Last 24 hours
@@ -255,11 +272,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
     @Override
     public List<String> getLanguages() {
-        return getAllSubmissions().stream()
-                .map(Submission::getLanguage)
-                .distinct()
-                .sorted()
-                .collect(Collectors.toList());
+        return submissionMapper.findDistinctLanguages();
     }
 
     @Override
@@ -312,6 +325,15 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
     @Override
     public BatchRejudgeResponse batchRejudge(List<String> ids, boolean notifyUsers) {
+        if (ids == null || ids.isEmpty()) {
+            BatchRejudgeResponse response = new BatchRejudgeResponse();
+            response.setTotal(0);
+            response.setSuccessful(0);
+            response.setFailed(0);
+            response.setResults(new ArrayList<>());
+            return response;
+        }
+
         // D-05: Batch size limit of 50
         if (ids.size() > 50) {
             throw new BusinessException(ErrorCode.VALIDATION_FAILED,
@@ -337,6 +359,39 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         response.setSuccessful(successful);
         response.setFailed(failed);
         return response;
+    }
+
+    /**
+     * Convert Submission entity to AdminSubmissionVO using pre-loaded maps (batch).
+     */
+    private AdminSubmissionVO toAdminVO(Submission submission, Map<String, User> userMap, Map<Long, Problem> problemMap) {
+        if (submission == null) {
+            return null;
+        }
+
+        AdminSubmissionVO vo = new AdminSubmissionVO();
+        vo.setId(submission.getId());
+        vo.setProblemId(submission.getProblemId());
+        vo.setUserId(submission.getUserId());
+        vo.setLanguage(submission.getLanguage());
+        vo.setStatus(submission.getStatus());
+        vo.setRuntime(submission.getRuntime());
+        vo.setMemory(submission.getMemory());
+        vo.setCreatedAt(submission.getCreatedAt());
+        vo.setCodeLength(submission.getCode() != null ? submission.getCode().length() : 0);
+
+        User user = userMap.get(submission.getUserId());
+        if (user != null) {
+            vo.setUsername(user.getUsername());
+        }
+
+        Problem problem = problemMap.get(submission.getProblemId());
+        if (problem != null) {
+            vo.setProblemTitle(problem.getTitle());
+            vo.setProblemSlug(problem.getSlug());
+        }
+
+        return vo;
     }
 
     /**
@@ -393,13 +448,4 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         return vo;
     }
 
-    /**
-     * Get all submissions (for statistics).
-     * In production, this should use optimized queries instead of loading all records.
-     */
-    private List<Submission> getAllSubmissions() {
-        // Use a reasonable limit for statistics
-        Page<Submission> page = new Page<>(1, 10000);
-        return submissionMapper.selectPage(page, null).getRecords();
-    }
 }

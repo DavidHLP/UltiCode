@@ -217,4 +217,28 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             "GROUP BY week_range " +
             "ORDER BY week_range DESC")
     List<WeeklyProgressDTO> findWeeklyProgress(@Param("userId") String userId);
+
+    /**
+     * Count submissions grouped by status (for admin statistics).
+     *
+     * @return list of Object arrays containing [status, count]
+     */
+    @Select("SELECT status, COUNT(*) as count FROM submissions GROUP BY status")
+    List<Object[]> countByStatus();
+
+    /**
+     * Count submissions grouped by language (for admin statistics).
+     *
+     * @return list of Object arrays containing [language, count]
+     */
+    @Select("SELECT language, COUNT(*) as count FROM submissions GROUP BY language ORDER BY count DESC")
+    List<Object[]> countByLanguage();
+
+    /**
+     * Find distinct languages used in submissions.
+     *
+     * @return list of distinct language strings
+     */
+    @Select("SELECT DISTINCT language FROM submissions ORDER BY language")
+    List<String> findDistinctLanguages();
 }

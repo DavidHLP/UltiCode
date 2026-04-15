@@ -12,8 +12,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -25,14 +25,6 @@ public class CodeExecutionService {
 
     private static final Set<String> SUPPORTED_LANGUAGES = Set.of(
             "javascript", "python", "java", "c", "cpp"
-    );
-
-    private static final Map<String, String> LANGUAGE_RUNNERS = Map.of(
-            "javascript", "node",
-            "python", "python3",
-            "java", "java",
-            "c", "gcc",
-            "cpp", "g++"
     );
 
     private final DockerSandboxConfig sandboxConfig;
@@ -54,10 +46,13 @@ public class CodeExecutionService {
         List<RunResultDTO.RunCaseResult> results = new ArrayList<>();
         int passedCases = 0;
 
+        if (!sandboxConfig.enabled()) {
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR,
+                    "Code execution is disabled: sandbox mode is required");
+        }
+
         for (RunSubmissionDTO.RunTestCase testCase : testCases) {
-            RunResultDTO.RunCaseResult caseResult = sandboxConfig.enabled()
-                    ? executeInSandbox(language, request.getCode(), testCase, runId, userId)
-                    : executeDirect(language, request.getCode(), testCase, runId, userId);
+            RunResultDTO.RunCaseResult caseResult = executeInSandbox(language, request.getCode(), testCase, runId, userId);
             results.add(caseResult);
             if ("Accepted".equals(caseResult.getStatus())) {
                 passedCases++;
@@ -124,9 +119,13 @@ public class CodeExecutionService {
                     passed ? "Accepted" : "Wrong Answer",
                     elapsedMs, stdout, null);
 
-        } catch (IOException | InterruptedException e) {
+        } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Sandbox execution failed for language={}", language, e);
+            log.error("Sandbox execution interrupted for language={}", language, e);
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR,
+                    "Sandbox execution interrupted");
+        } catch (IOException e) {
+            log.error("Sandbox execution I/O failed for language={}", language, e);
             String detail = e.getMessage();
             if (detail != null && detail.contains("Unable to find image")) {
                 throw new BusinessException(ErrorCode.SANDBOX_IMAGE_NOT_FOUND,
@@ -166,8 +165,11 @@ public class CodeExecutionService {
             }
             case "java" -> {
                 String wrapped = wrapJava(code);
+                // Use base64 encoding to avoid shell injection via user code
+                String b64 = Base64.getEncoder().encodeToString(
+                        wrapped.getBytes(StandardCharsets.UTF_8));
                 cmd.addAll(List.of("sh", "-c",
-                        "echo '" + escapeSingleQuote(wrapped) + "' > /tmp/Main.java && "
+                        "echo '" + b64 + "' | base64 -d > /tmp/Main.java && "
                                 + "javac /tmp/Main.java && java -cp /tmp Main"));
             }
             case "c" -> {
@@ -182,70 +184,6 @@ public class CodeExecutionService {
         }
 
         return cmd;
-    }
-
-    private String escapeSingleQuote(String s) {
-        return s.replace("'", "'\\''");
-    }
-
-    // ==================== Direct ProcessBuilder Execution (Fallback) ====================
-
-    private RunResultDTO.RunCaseResult executeDirect(String language, String code,
-                                                     RunSubmissionDTO.RunTestCase testCase,
-                                                     String runId, String userId) {
-        try {
-            String runnerCmd = LANGUAGE_RUNNERS.get(language);
-            List<String> command = buildDirectCommand(runnerCmd, language, code);
-            String inputsJson = buildInputsJson(testCase);
-
-            long startTime = System.nanoTime();
-            ProcessBuilder pb = new ProcessBuilder(command);
-            pb.redirectErrorStream(true);
-            Process process = pb.start();
-
-            process.getOutputStream().write(inputsJson.getBytes(StandardCharsets.UTF_8));
-            process.getOutputStream().flush();
-            process.getOutputStream().close();
-
-            boolean finished = process.waitFor(sandboxConfig.timeout(), TimeUnit.SECONDS);
-            long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
-
-            if (!finished) {
-                process.destroyForcibly();
-                return buildCaseResult(testCase, runId, userId, "Time Limit Exceeded",
-                        elapsedMs, null, "Execution timed out after " + sandboxConfig.timeout() + "s");
-            }
-
-            String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
-            int exitCode = process.exitValue();
-
-            if (exitCode != 0) {
-                return buildCaseResult(testCase, runId, userId, "Runtime Error",
-                        elapsedMs, null, stdout);
-            }
-
-            String expected = testCase.getOutput() != null ? testCase.getOutput().trim() : "";
-            boolean passed = normalizeOutput(stdout).equals(normalizeOutput(expected));
-
-            return buildCaseResult(testCase, runId, userId,
-                    passed ? "Accepted" : "Wrong Answer",
-                    elapsedMs, stdout, null);
-
-        } catch (IOException | InterruptedException e) {
-            Thread.currentThread().interrupt();
-            log.error("Direct execution failed for language={}", language, e);
-            return buildCaseResult(testCase, runId, userId, "Runtime Error",
-                    0, null, e.getMessage());
-        }
-    }
-
-    private List<String> buildDirectCommand(String runner, String language, String code) {
-        return switch (language) {
-            case "javascript" -> List.of(runner, "-e", wrapJavaScript(code));
-            case "python" -> List.of(runner, "-c", wrapPython(code));
-            case "java" -> List.of(runner, wrapJava(code));
-            default -> throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED);
-        };
     }
 
     // ==================== Code Wrappers ====================

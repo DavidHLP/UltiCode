@@ -60,11 +60,12 @@ Plans:
   2. SubmissionServiceImpl and CodeExecutionService have integration tests that spin up real MySQL and Redis containers (Testcontainers) and verify submission creation, judge job enqueueing, and sandbox command building
   3. PasswordResetService and AdminSubmissionServiceImpl have tests covering the new email send and rejudge flows implemented in Phase 2
   4. All new tests pass both individually and as a full suite (no flaky tests from shared state)
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [ ] 03-01: Auth and security module tests (AuthService, JwtTokenProvider, CsrfService, JwtProperties, PasswordResetService)
-- [ ] 03-02: Submission and code execution module tests (SubmissionService, CodeExecutionService, AdminSubmissionService verification)
+- [ ] 03-02: Submission and code execution module tests + Testcontainers infrastructure (SubmissionService, CodeExecutionService, AdminSubmissionService verification)
+- [ ] 03-03: Testcontainers integration tests for SubmissionServiceImpl (real MySQL + Redis)
 
 ### Phase 4: Frontend Quality
 **Goal**: No Vue component exceeds 500 lines; all 14 oversized components are split into smaller co-located sub-components and composables with no behavioral regressions
@@ -88,5 +89,5 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. Security Filter Chain | 0/3 | Not started | - |
 | 2. Core Functionality | 3/3 | Complete with critical issues | - |
-| 3. Test Coverage | 0/2 | Not started | - |
+| 3. Test Coverage | 0/3 | Not started | - |
 | 4. Frontend Quality | 0/2 | Not started | - |

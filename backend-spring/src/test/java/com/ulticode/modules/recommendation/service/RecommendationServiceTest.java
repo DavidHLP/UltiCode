@@ -12,36 +12,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.util.ReflectionTestUtils;
-import org.springframework.web.client.RestClientException;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for RecommendationService.
+ *
+ * Note: Tests referencing the old RestTemplate-based implementation (serviceUrl, healthCheck)
+ * were removed when the service was migrated to Dubbo RPC. See git history for original file.
  */
 @ExtendWith(MockitoExtension.class)
 class RecommendationServiceTest {
 
     @Mock
     private RecommendationConfig recommendationConfig;
-
-    @Mock
-    private RestTemplate restTemplate;
 
     @InjectMocks
     private RecommendationServiceImpl recommendationService;
@@ -62,34 +50,17 @@ class RecommendationServiceTest {
         @Test
         @DisplayName("should return false when recommendation is disabled")
         void shouldReturnFalseWhenDisabled() {
-            when(recommendationConfig.isEnabled()).thenReturn(false);
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", false);
 
             assertFalse(recommendationService.isAvailable());
         }
 
         @Test
-        @DisplayName("should return false when service URL is null")
-        void shouldReturnFalseWhenServiceUrlIsNull() {
-            when(recommendationConfig.isEnabled()).thenReturn(true);
-            when(recommendationConfig.getServiceUrl()).thenReturn(null);
-
-            assertFalse(recommendationService.isAvailable());
-        }
-
-        @Test
-        @DisplayName("should return false when service URL is blank")
-        void shouldReturnFalseWhenServiceUrlIsBlank() {
-            when(recommendationConfig.isEnabled()).thenReturn(true);
-            when(recommendationConfig.getServiceUrl()).thenReturn("  ");
-
-            assertFalse(recommendationService.isAvailable());
-        }
-
-        @Test
-        @DisplayName("should return true when service is properly configured")
-        void shouldReturnTrueWhenConfigured() {
-            when(recommendationConfig.isEnabled()).thenReturn(true);
-            when(recommendationConfig.getServiceUrl()).thenReturn("http://recommendation-service:8080");
+        @DisplayName("should return true when recommendation is enabled")
+        void shouldReturnTrueWhenEnabled() {
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", true);
 
             assertTrue(recommendationService.isAvailable());
         }
@@ -102,7 +73,8 @@ class RecommendationServiceTest {
         @Test
         @DisplayName("should return empty list when service is disabled")
         void shouldReturnEmptyListWhenDisabled() {
-            when(recommendationConfig.isEnabled()).thenReturn(false);
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", false);
 
             RecommendResponseVO response = recommendationService.getDailyRecommendations(10);
 
@@ -111,24 +83,6 @@ class RecommendationServiceTest {
             assertNotNull(response.getData());
             assertTrue(response.getData().getItems().isEmpty());
         }
-
-        @Test
-        @DisplayName("should return error when user not authenticated")
-        void shouldReturnErrorWhenNotAuthenticated() {
-            when(recommendationConfig.isEnabled()).thenReturn(true);
-            when(recommendationConfig.getServiceUrl()).thenReturn("http://recommendation-service:8080");
-
-            // SecurityUtil will return null when not authenticated
-            // This test verifies the authentication check is in place
-
-            // Note: In a real test environment with Spring Security context,
-            // we would need to mock the security context
-            RecommendResponseVO response = recommendationService.getDailyRecommendations(10);
-
-            // Since we can't mock SecurityUtil.getCurrentUserId() directly,
-            // the test will either return an error or success based on the context
-            assertNotNull(response);
-        }
     }
 
     @Nested
@@ -136,22 +90,10 @@ class RecommendationServiceTest {
     class SimilarProblemsTests {
 
         @Test
-        @DisplayName("should return error when problem ID is null")
-        void shouldReturnErrorWhenProblemIdIsNull() {
-            when(recommendationConfig.isEnabled()).thenReturn(true);
-            when(recommendationConfig.getServiceUrl()).thenReturn("http://recommendation-service:8080");
-
-            RecommendResponseVO response = recommendationService.getSimilarProblems(null, 10);
-
-            assertNotNull(response);
-            assertFalse(response.getSuccess());
-            assertEquals(40000, response.getCode());
-        }
-
-        @Test
         @DisplayName("should return empty list when service is disabled")
         void shouldReturnEmptyListWhenDisabled() {
-            when(recommendationConfig.isEnabled()).thenReturn(false);
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", false);
 
             RecommendResponseVO response = recommendationService.getSimilarProblems(1L, 10);
 
@@ -167,7 +109,8 @@ class RecommendationServiceTest {
         @Test
         @DisplayName("should return empty list when service is disabled")
         void shouldReturnEmptyListWhenDisabled() {
-            when(recommendationConfig.isEnabled()).thenReturn(false);
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", false);
 
             RecommendResponseVO response = recommendationService.getWeakPointRecommendations(10);
 
@@ -183,61 +126,13 @@ class RecommendationServiceTest {
         @Test
         @DisplayName("should return empty list when service is disabled")
         void shouldReturnEmptyListWhenDisabled() {
-            when(recommendationConfig.isEnabled()).thenReturn(false);
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", false);
 
             RecommendResponseVO response = recommendationService.getChallengeRecommendations(10);
 
             assertNotNull(response);
             assertTrue(response.getSuccess());
-        }
-    }
-
-    @Nested
-    @DisplayName("Health Check Tests")
-    class HealthCheckTests {
-
-        @Test
-        @DisplayName("should return disabled message when service is disabled")
-        void shouldReturnDisabledMessageWhenDisabled() {
-            when(recommendationConfig.isEnabled()).thenReturn(false);
-
-            RecommendResponseVO response = recommendationService.healthCheck();
-
-            assertNotNull(response);
-            assertTrue(response.getSuccess());
-            assertEquals(200, response.getCode());
-            assertTrue(response.getMessage().contains("disabled"));
-        }
-
-        @Test
-        @DisplayName("should return healthy when service responds")
-        void shouldReturnHealthyWhenServiceResponds() {
-            when(recommendationConfig.isEnabled()).thenReturn(true);
-            when(recommendationConfig.getServiceUrl()).thenReturn("http://recommendation-service:8080");
-
-            ResponseEntity<Map> mockResponse = new ResponseEntity<>(new java.util.HashMap<>(), HttpStatus.OK);
-            when(restTemplate.getForEntity(anyString(), eq(Map.class))).thenReturn(mockResponse);
-
-            RecommendResponseVO response = recommendationService.healthCheck();
-
-            assertNotNull(response);
-            assertTrue(response.getSuccess());
-            assertEquals(200, response.getCode());
-        }
-
-        @Test
-        @DisplayName("should return error when service is unavailable")
-        void shouldReturnErrorWhenServiceUnavailable() {
-            when(recommendationConfig.isEnabled()).thenReturn(true);
-            when(recommendationConfig.getServiceUrl()).thenReturn("http://recommendation-service:8080");
-            when(restTemplate.getForEntity(anyString(), eq(Map.class)))
-                    .thenThrow(new RestClientException("Connection refused"));
-
-            RecommendResponseVO response = recommendationService.healthCheck();
-
-            assertNotNull(response);
-            assertFalse(response.getSuccess());
-            assertEquals(50000, response.getCode());
         }
     }
 
@@ -248,7 +143,8 @@ class RecommendationServiceTest {
         @Test
         @DisplayName("should return empty list when service is disabled")
         void shouldReturnEmptyListWhenDisabled() {
-            when(recommendationConfig.isEnabled()).thenReturn(false);
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", false);
 
             RecommendResponseVO response = recommendationService.getRecommendations(dto);
 
@@ -262,12 +158,12 @@ class RecommendationServiceTest {
         @DisplayName("should use DAILY as default scenario")
         void shouldUseDailyAsDefaultScenario() {
             dto.setScenario(null);
-            when(recommendationConfig.isEnabled()).thenReturn(false);
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", false);
 
             RecommendResponseVO response = recommendationService.getRecommendations(dto);
 
             assertNotNull(response);
-            // Default scenario is applied internally
         }
 
         @Test
@@ -275,7 +171,8 @@ class RecommendationServiceTest {
         void shouldHandleSimilarScenarioWithProblemId() {
             dto.setScenario("SIMILAR");
             dto.setProblemId(1L);
-            when(recommendationConfig.isEnabled()).thenReturn(false);
+            org.springframework.test.util.ReflectionTestUtils.setField(
+                    recommendationService, "enabled", false);
 
             RecommendResponseVO response = recommendationService.getRecommendations(dto);
 

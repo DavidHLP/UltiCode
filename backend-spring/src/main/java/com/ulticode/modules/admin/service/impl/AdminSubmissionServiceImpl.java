@@ -47,15 +47,30 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
         LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
 
-        // Search filter (username or problem title - need to join tables)
-        // For now, we'll do a basic search and then enrich the results
+        // Search filter — resolve at DB level by pre-fetching matching user/problem IDs
         if (StringUtils.hasText(query.getSearch())) {
-            // Search by submission ID or language (direct fields)
-            // For username/problem title, we'll need to fetch and filter
-            wrapper.and(w -> w
-                    .like(Submission::getId, "%" + query.getSearch() + "%")
-                    .or()
-                    .eq(Submission::getLanguage, query.getSearch()));
+            String search = query.getSearch();
+
+            // Find user IDs matching the search term
+            List<String> matchingUserIds = userMapper.selectList(
+                    new LambdaQueryWrapper<User>().like(User::getUsername, search)
+            ).stream().map(User::getId).collect(Collectors.toList());
+
+            // Find problem IDs matching the search term
+            List<Long> matchingProblemIds = problemMapper.selectList(
+                    new LambdaQueryWrapper<Problem>().like(Problem::getTitle, search)
+            ).stream().map(Problem::getId).collect(Collectors.toList());
+
+            wrapper.and(w -> {
+                w.like(Submission::getId, search)
+                        .or().eq(Submission::getLanguage, search);
+                if (!matchingUserIds.isEmpty()) {
+                    w.or().in(Submission::getUserId, matchingUserIds);
+                }
+                if (!matchingProblemIds.isEmpty()) {
+                    w.or().in(Submission::getProblemId, matchingProblemIds);
+                }
+            });
         }
 
         // User ID filter
@@ -128,32 +143,10 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
                 .map(s -> toAdminVO(s, finalUserMap, finalProblemMap))
                 .collect(Collectors.toList());
 
-        // Apply search filter on username/problem title if needed
-        if (StringUtils.hasText(query.getSearch())) {
-            String searchLower = query.getSearch().toLowerCase();
-            vos = vos.stream()
-                    .filter(vo -> {
-                        if (vo.getUsername() != null && vo.getUsername().toLowerCase().contains(searchLower)) {
-                            return true;
-                        }
-                        if (vo.getProblemTitle() != null && vo.getProblemTitle().toLowerCase().contains(searchLower)) {
-                            return true;
-                        }
-                        if (vo.getId() != null && vo.getId().toLowerCase().contains(searchLower)) {
-                            return true;
-                        }
-                        if (vo.getLanguage() != null && vo.getLanguage().equalsIgnoreCase(query.getSearch())) {
-                            return true;
-                        }
-                        return false;
-                    })
-                    .collect(Collectors.toList());
-        }
-
-        // Use filtered count for correct pagination (WR-02)
+        // All filtering now at DB level — use database total for correct pagination
         return PageResult.of(
                 vos,
-                (long) vos.size(),
+                result.getTotal(),
                 page,
                 limit
         );
@@ -291,16 +284,6 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         result.setOldStatus(submission.getStatus());
 
         try {
-            // D-04: Reuse existing QueueService.enqueueJudgeJob()
-            // D-14: LOW priority as marker (D-19: FIFO queue ignores priority -- worker enhancement deferred)
-            queueService.enqueueJudgeJob(
-                submission.getId(),
-                String.valueOf(submission.getProblemId()),
-                submission.getUserId(),
-                submission.getLanguage(),
-                submission.getCode()
-            );
-
             // Reset submission status to Pending for re-evaluation
             submission.setStatus("Pending");
 
@@ -309,6 +292,15 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
                 submission.getRetryCount() != null ? submission.getRetryCount() + 1 : 1
             );
             submissionMapper.updateById(submission);
+
+            // D-04: Enqueue after DB update to avoid orphaned jobs on DB failure
+            queueService.enqueueJudgeJob(
+                submission.getId(),
+                String.valueOf(submission.getProblemId()),
+                submission.getUserId(),
+                submission.getLanguage(),
+                submission.getCode()
+            );
 
             result.setSuccess(true);
             result.setNewStatus("Pending");

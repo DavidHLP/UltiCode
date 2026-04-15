@@ -60,11 +60,11 @@ Plans:
   2. SubmissionServiceImpl and CodeExecutionService have integration tests that spin up real MySQL and Redis containers (Testcontainers) and verify submission creation, judge job enqueueing, and sandbox command building
   3. PasswordResetService and AdminSubmissionServiceImpl have tests covering the new email send and rejudge flows implemented in Phase 2
   4. All new tests pass both individually and as a full suite (no flaky tests from shared state)
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
-- [ ] 03-01: Auth and security module tests (AuthService, JwtTokenProvider, CsrfService, JwtProperties)
-- [ ] 03-02: Submission and code execution module tests (SubmissionService, CodeExecutionService, AdminSubmissionService)
+- [ ] 03-01: Auth and security module tests (AuthService, JwtTokenProvider, CsrfService, JwtProperties, PasswordResetService)
+- [ ] 03-02: Submission and code execution module tests (SubmissionService, CodeExecutionService, AdminSubmissionService verification)
 
 ### Phase 4: Frontend Quality
 **Goal**: No Vue component exceeds 500 lines; all 14 oversized components are split into smaller co-located sub-components and composables with no behavioral regressions
@@ -75,7 +75,7 @@ Plans:
   2. Every split component renders and functions identically to the original (same user-visible behavior for all views: problem lists, contest detail, submissions, analytics, settings, etc.)
   3. Extracted composables own their data fetching and state, child components receive data via props and emit events back (no prop mutation)
   4. The console and management frontends both build successfully with no TypeScript errors
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [ ] 04-01: Split console oversized components (ProblemListsView, ProblemListView, ContestDetailView, SubmissionsDetail, PersonalView, ProblemDetailView, ProblemExplorer, Calendars, SettingsView, HiddenTestCasesEditor)

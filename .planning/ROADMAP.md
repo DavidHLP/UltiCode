@@ -65,7 +65,7 @@ Plans:
 Plans:
 - [x] 03-01: Auth and security module tests (AuthService, JwtTokenProvider, CsrfService, JwtProperties, PasswordResetService)
 - [x] 03-02: Submission and code execution module tests + Testcontainers infrastructure (SubmissionService, CodeExecutionService, AdminSubmissionService verification)
-- [ ] 03-03: Testcontainers integration tests for SubmissionServiceImpl (real MySQL + Redis)
+- [x] 03-03: Testcontainers integration tests for SubmissionServiceImpl (real MySQL + Redis)
 
 ### Phase 4: Frontend Quality
 **Goal**: No Vue component exceeds 500 lines; all 14 oversized components are split into smaller co-located sub-components and composables with no behavioral regressions

@@ -64,6 +64,13 @@ public class Submission {
     private String notes;
 
     /**
+     * Number of times this submission has been rejudged by an admin.
+     * Incremented each time an admin triggers a rejudge.
+     */
+    @TableField("retry_count")
+    private Integer retryCount = 0;
+
+    /**
      * Submission creation timestamp
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)

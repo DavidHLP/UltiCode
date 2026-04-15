@@ -624,15 +624,15 @@ class PasswordResetServiceTest {
 
 ## Open Questions
 
-1. **Should CodeExecutionService integration tests actually execute Docker containers?**
-   - What we know: Success criteria says "verify submission creation, judge job enqueueing, and sandbox command building." Command building can be tested as pure unit tests (verify the List<String> output). Actual Docker execution requires the `ulticode-sandbox:latest` image to be built.
-   - What's unclear: Whether the team wants end-to-end Docker execution tests or whether unit-testing `buildDockerCommand()` output is sufficient.
-   - Recommendation: Split into (1) unit tests for `buildDockerCommand()` that verify command structure without executing, and (2) optional integration tests guarded by `@EnabledIfSystemProperty` for actual execution.
+1. **Should CodeExecutionService integration tests actually execute Docker containers?** -- RESOLVED
+   - **Decision:** No Docker container execution in this phase. Unit test `buildDockerCommand()` via reflection to verify command structure (security flags, language wrappers) without executing containers. Integration tests for actual Docker sandbox execution are deferred because they require the `ulticode-sandbox:latest` image to be pre-built locally, which is not guaranteed in CI/dev environments.
+   - If Docker execution tests are needed in a future phase, guard with `@EnabledIfSystemProperty(named = "sandbox.image.available", matches = "true")`.
+   - **Resolved by:** Plan 03-02 Task 2 (CodeExecutionServiceTest with reflection-based buildDockerCommand tests).
 
-2. **Should integration tests use @SpringBootTest or manual DataSource configuration?**
-   - What we know: The project uses MyBatis-Plus with mapper scanning. Getting this to work outside Spring context requires manual `SqlSessionFactory` setup.
-   - What's unclear: Performance tolerance -- `@SpringBootTest` adds 10-30s per test class but is simpler to set up.
-   - Recommendation: Use manual DataSource + `SqlSessionFactory` for submission integration tests since only 1-2 mappers need to be tested. This avoids loading the entire Spring context (Nacos, Dubbo, Redisson, etc.).
+2. **Should integration tests use @SpringBootTest or manual DataSource configuration?** -- RESOLVED
+   - **Decision:** Manual DataSource + MyBatis SqlSessionFactory for integration tests. This is lighter than @SpringBootTest (avoids loading Nacos, Dubbo, Redisson, etc.), provides faster startup, and gives more explicit control over which beans are loaded. Only SubmissionMapper, UserMapper, and ProblemMapper need to be scanned.
+   - If future integration tests need the full Spring context (e.g., testing @Transactional behavior with AOP proxies), @SpringBootTest can be introduced then.
+   - **Resolved by:** Plan 03-03 Task 1 (SubmissionServiceImplIT with manual DataSource setup).
 
 ## Environment Availability
 

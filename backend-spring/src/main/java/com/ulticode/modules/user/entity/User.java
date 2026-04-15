@@ -151,4 +151,16 @@ public class User {
      */
     @TableField("deleted_by")
     private String deletedBy;
+
+    /**
+     * BCrypt hash of the password reset token (null when no reset in progress)
+     */
+    @TableField("password_reset_token_hash")
+    private String passwordResetTokenHash;
+
+    /**
+     * Expiration timestamp for the password reset token
+     */
+    @TableField("password_reset_expires_at")
+    private LocalDateTime passwordResetExpiresAt;
 }

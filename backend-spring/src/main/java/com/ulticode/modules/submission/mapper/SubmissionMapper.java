@@ -3,10 +3,15 @@ package com.ulticode.modules.submission.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.modules.submission.dto.LanguageStatsDTO;
+import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
+import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
@@ -161,34 +166,48 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      * Find monthly submission statistics for a user.
      *
      * @param userId user ID
-     * @return list of Object arrays containing [month, totalCount, acceptedCount]
+     * @return list of MonthlySubmissionStatsDTO containing [month, totalCount, acceptedCount]
      */
+    @Results({
+            @Result(property = "month", column = "month"),
+            @Result(property = "totalCount", column = "total_count"),
+            @Result(property = "acceptedCount", column = "accepted_count")
+    })
     @Select("SELECT DATE_FORMAT(created_at, '%Y-%m') as month, " +
             "COUNT(*) as total_count, " +
             "SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) as accepted_count " +
             "FROM submissions WHERE user_id = #{userId} " +
             "GROUP BY DATE_FORMAT(created_at, '%Y-%m') " +
             "ORDER BY month DESC")
-    List<Object[]> findMonthlySubmissionStats(@Param("userId") String userId);
+    List<MonthlySubmissionStatsDTO> findMonthlySubmissionStats(@Param("userId") String userId);
 
     /**
      * Find submission statistics by programming language for a user.
      *
      * @param userId user ID
-     * @return list of Object arrays containing [language, count]
+     * @return list of LanguageStatsDTO containing [language, count]
      */
+    @Results({
+            @Result(property = "language", column = "language"),
+            @Result(property = "count", column = "count")
+    })
     @Select("SELECT language, COUNT(*) as count FROM submissions " +
             "WHERE user_id = #{userId} " +
             "GROUP BY language " +
             "ORDER BY count DESC")
-    List<Object[]> findLanguageStats(@Param("userId") String userId);
+    List<LanguageStatsDTO> findLanguageStats(@Param("userId") String userId);
 
     /**
      * Find weekly progress (solved problems per week) for a user.
      *
      * @param userId user ID
-     * @return list of Object arrays containing [week, solvedCount, timeSpentHours]
+     * @return list of WeeklyProgressDTO containing [weekRange, solvedCount, timeSpentHours]
      */
+    @Results({
+            @Result(property = "weekRange", column = "week_range"),
+            @Result(property = "solvedCount", column = "solved_count"),
+            @Result(property = "timeSpentHours", column = "time_spent_hours")
+    })
     @Select("SELECT CONCAT(DATE_FORMAT(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), '%Y-%m-%d'), ' to ', " +
             "DATE_FORMAT(DATE_ADD(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY), INTERVAL 6 DAY), '%Y-%m-%d')) as week_range, " +
             "COUNT(DISTINCT CASE WHEN status = 'Accepted' THEN problem_id END) as solved_count, " +
@@ -197,5 +216,5 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             "WHERE user_id = #{userId} " +
             "GROUP BY week_range " +
             "ORDER BY week_range DESC")
-    List<Object[]> findWeeklyProgress(@Param("userId") String userId);
+    List<WeeklyProgressDTO> findWeeklyProgress(@Param("userId") String userId);
 }

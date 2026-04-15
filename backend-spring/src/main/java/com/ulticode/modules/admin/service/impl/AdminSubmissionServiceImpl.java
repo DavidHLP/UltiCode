@@ -9,6 +9,7 @@ import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
@@ -35,6 +36,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     private final SubmissionMapper submissionMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
+    private final QueueService queueService;
 
     @Override
     public PageResult<AdminSubmissionVO> getSubmissions(AdminSubmissionQueryDTO query) {
@@ -264,7 +266,11 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     public RejudgeResult rejudge(String id, boolean notifyUser) {
         Submission submission = submissionMapper.selectById(id);
         if (submission == null) {
-            throw new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND);
+            RejudgeResult result = new RejudgeResult();
+            result.setSubmissionId(id);
+            result.setSuccess(false);
+            result.setError("Submission not found");
+            return result;
         }
 
         RejudgeResult result = new RejudgeResult();
@@ -272,19 +278,31 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         result.setOldStatus(submission.getStatus());
 
         try {
-            // TODO: Implement actual rejudge logic
-            // This would typically involve:
-            // 1. Reset submission status to Pending
-            // 2. Add to judge queue
-            // 3. Optionally send notification to user
+            // D-04: Reuse existing QueueService.enqueueJudgeJob()
+            // D-14: LOW priority as marker (D-19: FIFO queue ignores priority -- worker enhancement deferred)
+            queueService.enqueueJudgeJob(
+                submission.getId(),
+                String.valueOf(submission.getProblemId()),
+                submission.getUserId(),
+                submission.getLanguage(),
+                submission.getCode()
+            );
 
-            // For now, just return success with a note
+            // Reset submission status to Pending for re-evaluation
+            submission.setStatus("Pending");
+
+            // D-23: Increment retry count to track rejudge attempts
+            submission.setRetryCount(
+                submission.getRetryCount() != null ? submission.getRetryCount() + 1 : 1
+            );
+            submissionMapper.updateById(submission);
+
             result.setSuccess(true);
-            result.setNewStatus("Pending"); // Will be updated after rejudge
-
-            log.info("Rejudge initiated for submission: {}", id);
+            result.setNewStatus("Pending");
+            log.info("Rejudge initiated for submission: {} (retryCount={})",
+                id, submission.getRetryCount());
         } catch (Exception e) {
-            log.error("Failed to rejudge submission: {}", id, e);
+            log.error("Failed to enqueue rejudge for submission: {}", id, e);
             result.setSuccess(false);
             result.setError(e.getMessage());
         }
@@ -294,22 +312,30 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
     @Override
     public BatchRejudgeResponse batchRejudge(List<String> ids, boolean notifyUsers) {
+        // D-05: Batch size limit of 50
+        if (ids.size() > 50) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                "Batch size exceeds maximum of 50");
+        }
+
         BatchRejudgeResponse response = new BatchRejudgeResponse();
         response.setTotal(ids.size());
         response.setResults(new ArrayList<>());
-        response.setSuccessful(0);
-        response.setFailed(0);
+        int successful = 0;
+        int failed = 0;
 
         for (String id : ids) {
             RejudgeResult result = rejudge(id, notifyUsers);
             response.getResults().add(result);
             if (result.getSuccess()) {
-                response.setSuccessful(response.getSuccessful() + 1);
+                successful++;
             } else {
-                response.setFailed(response.getFailed() + 1);
+                failed++;
             }
         }
 
+        response.setSuccessful(successful);
+        response.setFailed(failed);
         return response;
     }
 

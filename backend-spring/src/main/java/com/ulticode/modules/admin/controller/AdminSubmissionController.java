@@ -62,7 +62,7 @@ public class AdminSubmissionController {
     }
 
     @Operation(summary = "Rejudge submission", description = "Rejudge a single submission")
-    @RateLimit(key = "admin:submission-rejudge", limit = 30, period = 60)
+    @RateLimit(key = "admin:submission-rejudge", limit = 5, period = 60)
     @PostMapping("/{id}/rejudge")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<RejudgeResult> rejudge(
@@ -72,7 +72,7 @@ public class AdminSubmissionController {
     }
 
     @Operation(summary = "Batch rejudge", description = "Rejudge multiple submissions")
-    @RateLimit(key = "admin:submission-batch-rejudge", limit = 30, period = 60)
+    @RateLimit(key = "admin:submission-batch-rejudge", limit = 5, period = 60)
     @PostMapping("/batch-rejudge")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BatchRejudgeResponse> batchRejudge(@RequestBody BatchRejudgeRequest request) {

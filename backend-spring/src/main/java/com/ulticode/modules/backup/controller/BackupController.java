@@ -3,6 +3,7 @@ package com.ulticode.modules.backup.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.backup.dto.BackupQueryDTO;
 import com.ulticode.modules.backup.dto.BackupVO;
 import com.ulticode.modules.backup.dto.CreateBackupDTO;
@@ -38,8 +39,10 @@ public class BackupController {
     @PostMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BackupVO> createBackup(@Valid @RequestBody CreateBackupDTO dto) {
-        // TODO: Get current user ID from security context
-        String userId = "system"; // Will be replaced with actual user ID from JWT
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            userId = "anonymous";
+        }
         return Result.success(backupService.createBackup(userId, dto));
     }
 
@@ -78,8 +81,10 @@ public class BackupController {
     @PostMapping("/{id}/restore")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<BackupVO> restoreBackup(@PathVariable String id) {
-        // TODO: Get current user ID from security context
-        String userId = "system"; // Will be replaced with actual user ID from JWT
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            userId = "anonymous";
+        }
         return Result.success(backupService.restoreBackup(id, userId));
     }
 

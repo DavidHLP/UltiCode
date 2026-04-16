@@ -1,5 +1,7 @@
 package com.ulticode.modules.submission.service;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
@@ -14,9 +16,11 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -28,6 +32,7 @@ public class CodeExecutionService {
     );
 
     private final DockerSandboxConfig sandboxConfig;
+    private final ObjectMapper objectMapper;
 
     public RunResultDTO execute(RunSubmissionDTO request, Long problemId, String userId) {
         String language = request.getLanguage().toLowerCase().trim();
@@ -184,6 +189,150 @@ public class CodeExecutionService {
         }
 
         return cmd;
+    }
+
+    // ==================== Batch Docker Execution ====================
+
+    /**
+     * Execute all test cases in a single Docker container.
+     * Generates a wrapper script that processes each test case sequentially.
+     */
+    private List<RunResultDTO.RunCaseResult> executeBatch(
+            String language, String code,
+            List<RunSubmissionDTO.RunTestCase> testCases,
+            String runId, String userId) {
+
+        try {
+            String testCasesJson = buildBatchInputsJson(testCases);
+            String wrapperScript = buildWrapperScript(language, code, testCases);
+            List<String> command = buildBatchDockerCommand(language, wrapperScript);
+
+            long startTime = System.nanoTime();
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.redirectErrorStream(true);
+            Process process = pb.start();
+
+            // Send all test case inputs via stdin
+            process.getOutputStream().write(testCasesJson.getBytes(StandardCharsets.UTF_8));
+            process.getOutputStream().flush();
+            process.getOutputStream().close();
+
+            boolean finished = process.waitFor(sandboxConfig.timeout(), TimeUnit.SECONDS);
+            long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
+
+            if (!finished) {
+                process.destroyForcibly();
+                return testCases.stream()
+                        .map(tc -> buildCaseResult(tc, runId, userId, "Time Limit Exceeded",
+                                elapsedMs / testCases.size(), null,
+                                "Batch execution timed out after " + sandboxConfig.timeout() + "s"))
+                        .collect(Collectors.toList());
+            }
+
+            String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
+            int exitCode = process.exitValue();
+
+            if (exitCode != 0) {
+                return testCases.stream()
+                        .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
+                                elapsedMs / testCases.size(), null, sanitizeSandboxOutput(stdout)))
+                        .collect(Collectors.toList());
+            }
+
+            return parseBatchResults(stdout, testCases, runId, userId);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "Batch execution interrupted");
+        } catch (IOException e) {
+            throw new BusinessException(ErrorCode.SANDBOX_ERROR, "Batch execution failed: " + e.getMessage());
+        }
+    }
+
+    // Stub — implemented in Task 2 with language-specific batch wrappers
+    private String buildWrapperScript(String language, String code,
+                                       List<RunSubmissionDTO.RunTestCase> testCases) {
+        throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED,
+                "Batch wrapper not yet implemented for: " + language);
+    }
+
+    private List<String> buildBatchDockerCommand(String language, String wrapperScript) {
+        return new ArrayList<>(List.of(
+                "docker", "run", "--rm", "-i",
+                "--network", "none",
+                "--cap-drop", "ALL",
+                "--memory", sandboxConfig.memory(),
+                "--cpus", sandboxConfig.cpus(),
+                "--pids-limit", String.valueOf(sandboxConfig.pidsLimit()),
+                "--ulimit", "nofile=128:128",
+                "--read-only",
+                "--tmpfs", "/tmp:rw,exec,size=64m",
+                "--user", "1000:1000",
+                "--security-opt", "no-new-privileges:true",
+                "--security-opt", "seccomp=" + sandboxConfig.seccompProfilePath(),
+                sandboxConfig.image(),
+                "sh", "-c", wrapperScript
+        ));
+    }
+
+    private String buildBatchInputsJson(List<RunSubmissionDTO.RunTestCase> testCases) {
+        StringBuilder json = new StringBuilder("[");
+        for (int i = 0; i < testCases.size(); i++) {
+            if (i > 0) json.append(",");
+            json.append(buildInputsJson(testCases.get(i)));
+        }
+        json.append("]");
+        return json.toString();
+    }
+
+    private List<RunResultDTO.RunCaseResult> parseBatchResults(
+            String stdout, List<RunSubmissionDTO.RunTestCase> testCases,
+            String runId, String userId) {
+        try {
+            // Extract JSON array from stdout (may contain compilation output before the JSON)
+            int jsonStart = stdout.lastIndexOf('[');
+            int jsonEnd = stdout.lastIndexOf(']');
+            if (jsonStart < 0 || jsonEnd < 0 || jsonEnd <= jsonStart) {
+                return testCases.stream()
+                        .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
+                                0, null, "Failed to parse batch results: " + sanitizeSandboxOutput(stdout)))
+                        .collect(Collectors.toList());
+            }
+
+            String jsonArray = stdout.substring(jsonStart, jsonEnd + 1);
+            List<Map<String, Object>> results = objectMapper.readValue(jsonArray,
+                    new TypeReference<List<Map<String, Object>>>() {});
+
+            List<RunResultDTO.RunCaseResult> caseResults = new ArrayList<>();
+            for (int i = 0; i < testCases.size() && i < results.size(); i++) {
+                Map<String, Object> result = results.get(i);
+                RunSubmissionDTO.RunTestCase testCase = testCases.get(i);
+
+                String output = result.get("output") != null ? result.get("output").toString() : "";
+                long runtime = result.get("runtime") != null ? ((Number) result.get("runtime")).longValue() : 0;
+                String status = result.get("status") != null ? result.get("status").toString() : "error";
+
+                if ("timeout".equals(status)) {
+                    caseResults.add(buildCaseResult(testCase, runId, userId,
+                            "Time Limit Exceeded", runtime, null, "Per-case timeout exceeded"));
+                } else if ("error".equals(status)) {
+                    caseResults.add(buildCaseResult(testCase, runId, userId,
+                            "Runtime Error", runtime, null, sanitizeSandboxOutput(output)));
+                } else {
+                    String expected = testCase.getOutput() != null ? testCase.getOutput().trim() : "";
+                    boolean passed = normalizeOutput(output).equals(normalizeOutput(expected));
+                    caseResults.add(buildCaseResult(testCase, runId, userId,
+                            passed ? "Accepted" : "Wrong Answer", runtime, output, null));
+                }
+            }
+            return caseResults;
+        } catch (Exception e) {
+            log.error("Failed to parse batch results", e);
+            return testCases.stream()
+                    .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
+                            0, null, "Result parsing failed: " + e.getMessage()))
+                    .collect(Collectors.toList());
+        }
     }
 
     // ==================== Code Wrappers ====================

@@ -390,7 +390,7 @@ MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD:?MYSQL_ROOT_PASSWORD is required}
 
 **If this table is empty:** All claims in this research were verified or cited -- no user confirmation needed.
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should WebSocket CORS origins share the same config property as HTTP CORS?**
    - What we know: `WebSocketProperties.java` has its own `allowedOrigins` field with `http://localhost:9002, http://localhost:9003` defaults.

@@ -13,6 +13,7 @@ import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
+import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +32,7 @@ import java.util.stream.Collectors;
 public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     private final ProblemListMapper problemListMapper;
+    private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemListService problemListService;
 
     @Override
@@ -123,8 +125,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         vo.setUpdatedAt(list.getUpdatedAt());
 
         // Count problems
-        // TODO: Implement problem count
-        vo.setProblemCount(0);
+        vo.setProblemCount((int) problemListProblemMapper.countByListId(list.getId()));
 
         return vo;
     }

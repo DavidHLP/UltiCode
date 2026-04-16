@@ -139,9 +139,7 @@ public class AdminForumController {
     public Result<PageResult<AdminForumCommunityVO>> getCommunities(
             @Parameter(description = "Page number") @RequestParam(defaultValue = "1") Integer page,
             @Parameter(description = "Page size") @RequestParam(defaultValue = "20") Integer limit) {
-        // For now, return empty page result
-        // TODO: Implement actual communities query
-        return Result.success(PageResult.of(java.util.Collections.emptyList(), 0L, page, limit));
+        return Result.success(adminForumService.getCommunities(page, limit));
     }
 
     /**

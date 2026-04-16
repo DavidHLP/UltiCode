@@ -78,13 +78,12 @@ Plans:
   2. AdminAnalyticsServiceImpl is split into focused service classes, each under 300 lines, with clear single responsibilities
   3. No `console.log` or `console.warn` statements exist in production frontend code (console.error for error logging is acceptable)
   4. `management/.env` is not tracked by git, and `pom.xml` contains no SNAPSHOT dependencies
-**Plans**: 5 plans
+**Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: Replace broad catch(Exception e) with specific exception types (QUAL-02)
+- [ ] 07-01: Replace broad catch(Exception e) with specific exception types + D-03 comments for legitimate broad catches (QUAL-02)
 - [ ] 07-02: Split AdminAnalyticsServiceImpl into focused service classes (QUAL-03)
-- [ ] 07-03: Clean console.log statements from production code (QUAL-04)
-- [ ] 07-04: Remove git-tracked .env, replace SNAPSHOT deps, evaluate SockJS (DEP-01, DEP-02, DEP-03)
+- [ ] 07-03: Clean console.log/warn from frontend production code, replace SNAPSHOT deps, untrack management/.env (QUAL-04, DEP-01, DEP-02, DEP-03)
 
 ### Phase 8: Testing
 **Goal**: Frontend Console and Management apps have key-path tests covering API layers and stores, and backend critical controllers have @WebMvcTest integration tests validating request/response contracts
@@ -113,6 +112,6 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 3. Test Coverage | v1.0 | 3/3 | Complete | 2026-04-15 |
 | 4. Frontend Quality | v1.0 | 2/2 | Complete | 2026-04-15 |
 | 5. Security Configuration | v1.1 | 4/4 | Complete    | 2026-04-16 |
-| 6. Admin Functionality & Performance | v1.1 | 0/5 | Not started | - |
-| 7. Code Quality & Dependencies | v1.1 | 0/4 | Not started | - |
+| 6. Admin Functionality & Performance | v1.1 | 5/5 | Complete | 2026-04-16 |
+| 7. Code Quality & Dependencies | v1.1 | 0/3 | Not started | - |
 | 8. Testing | v1.1 | 0/3 | Not started | - |

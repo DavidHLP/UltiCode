@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
 milestone: v1.0
-milestone_name: milestone
-status: executing
-stopped_at: Completed 04-01
-last_updated: "2026-04-15T16:17:49.644Z"
-last_activity: 2026-04-15
+milestone_name: Technical Debt Remediation
+status: completed
+stopped_at: Milestone v1.0 complete
+last_updated: "2026-04-16T11:06:00.000Z"
+last_activity: 2026-04-16
 progress:
   total_phases: 4
   completed_phases: 4
@@ -18,83 +18,52 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-14)
+See: .planning/PROJECT.md (updated 2026-04-16)
 
 **Core value:** Platform security and functionality completeness -- users can safely use all existing features without known CSRF bypasses, JWT forgery, functional placeholders, or data inaccuracies
-**Current focus:** Phase 04 — frontend-quality
+**Current focus:** Milestone v1.0 shipped. Planning next milestone.
 
 ## Current Position
 
-Phase: 04 (frontend-quality) — EXECUTING
-Plan: 2 of 2
-Status: Ready to execute
-Last activity: 2026-04-15
+Phase: None (milestone complete)
+Status: v1.0 Technical Debt Remediation shipped 2026-04-16
+Last activity: 2026-04-16
 
-Progress: [░░░░░░░░░░] 0% (phase)
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 6
-- Average duration: -
-- Total execution time: 0 hours
+- Total plans completed: 11
+- Total execution time: 3 days (2026-04-14 to 2026-04-16)
 
 **By Phase:**
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 01 | 3 | - | - |
-| 02 | 3 | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: -
-- Trend: -
-
-*Updated after each plan completion*
-| Phase 03 P02 | 398 | 2 tasks | 4 files |
-| Phase 03 P01 | 14min | 2 tasks | 5 files |
-| Phase 03 P03 | 24min | 1 tasks | 1 files |
-| Phase 04 P01 | 46min | 2 tasks | 42 files |
+| Phase | Plans | Completed |
+|-------|-------|-----------|
+| 01 Security Filter Chain | 3 | 2026-04-14 |
+| 02 Core Functionality | 3 | 2026-04-15 |
+| 03 Test Coverage | 3 | 2026-04-15 |
+| 04 Frontend Quality | 2 | 2026-04-15 |
 
 ## Accumulated Context
 
 ### Decisions
 
 Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- D-17: Revoke all user sessions via Redis after password change
-- D-18: New forgot-password request overwrites previous token
-- D-19: Defer priority-aware queue polling; throttled enqueue provides sufficient protection
-- D-20: Only 5 languages (javascript, python, java, c, cpp) -- Go NOT supported
-- Roadmap: SEC-06 must precede SEC-01 (XssFilter header corruption blocks CSRF tokens)
-- Roadmap: SEC-05 should deploy in a separate cycle from SEC-01 (both touch auth pipeline)
-- Roadmap: TEST-01 as dedicated phase after Phases 1-2 (validates security fixes comprehensively)
-- Roadmap: QUAL-01 last (highest file count, zero security impact, avoid merge conflicts)
-- [Phase 03]: Used assembly as unsupported language test value (source supports 13 languages including rust)
-- [Phase 03]: Used @Spy JwtProperties instead of @Mock for ReflectionTestUtils config injection
-- [Phase 03]: PasswordResetServiceTest matches main repo version (EmailService + BCrypt)
-- [Phase 03]: AuthServiceImpl uses AUTH_INVALID_CREDENTIALS for inactive/banned users
-- [Phase 03]: Manual DataSource + MyBatis-Plus SqlSessionFactory for Testcontainers (not @SpringBootTest)
-- [Phase 03]: SqlSession must stay open per test to avoid 'Executor was closed' in non-Spring MyBatis-Plus
-- [Phase 04]: Dialog open/close state stays in parent per D-04; content extracted to child
-- [Phase 04]: ECharts rendering kept inline in SubmissionsDetail due to template ref coupling
-- [Phase 04]: Co-located composables pattern: views/{feature}/composables/use{Feature}.ts
+All v1.0 decisions recorded -- see PROJECT.md for full table.
 
 ### Pending Todos
 
-None yet.
+None.
 
 ### Blockers/Concerns
 
-- **SEC-04 syscall profiling**: Custom seccomp profile uses SCMP_ACT_ALLOW default with explicit blocks. D-15 incremental approach reduces risk. Plan 03 includes human-verify checkpoint for all 5 languages.
-- **RQueue FIFO limitation**: Per D-19, priority-aware polling deferred. Rejudge jobs enqueued with LOW priority field but processed FIFO. Throttled enqueue (D-05, D-06) provides adequate protection.
-- **Email SMTP configuration**: EmailServiceImpl wiring depends on SMTP being functional. If SMTP is misconfigured, email sending fails silently. Plan 02 task should verify SMTP settings.
+None -- all v1.0 blockers resolved.
 
 ## Session Continuity
 
-Last session: 2026-04-15T16:17:49.639Z
-Stopped at: Completed 04-01
-Resume file: None
+Last session: 2026-04-16
+Milestone: v1.0 shipped
+Next step: /gsd-new-milestone to start v1.1

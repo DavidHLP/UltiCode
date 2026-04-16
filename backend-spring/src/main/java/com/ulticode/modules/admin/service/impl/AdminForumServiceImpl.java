@@ -8,6 +8,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
+import com.ulticode.modules.admin.controller.AdminForumController.AdminForumCommunityVO;
 import com.ulticode.modules.admin.service.AdminForumService;
 import com.ulticode.modules.forum.entity.ForumCommunity;
 import com.ulticode.modules.forum.entity.ForumPost;
@@ -181,6 +182,31 @@ public class AdminForumServiceImpl implements AdminForumService {
         post.setDeletedAt(LocalDateTime.now());
         forumPostMapper.updateById(post);
         log.info("Post deleted: {}", id);
+    }
+
+    @Override
+    public PageResult<AdminForumCommunityVO> getCommunities(int page, int limit) {
+        int safeLimit = limit > 0 ? Math.min(limit, 100) : 20;
+        int safePage = page > 0 ? page : 1;
+
+        Page<ForumCommunity> pageResult = new Page<>(safePage, safeLimit);
+        Page<ForumCommunity> result = forumCommunityMapper.selectPage(pageResult,
+                new LambdaQueryWrapper<ForumCommunity>().orderByDesc(ForumCommunity::getMembers));
+
+        List<AdminForumCommunityVO> voList = result.getRecords().stream()
+                .map(c -> {
+                    AdminForumCommunityVO vo = new AdminForumCommunityVO();
+                    vo.setId(c.getId());
+                    vo.setName(c.getName());
+                    vo.setSlug(c.getSlug());
+                    vo.setDescription(c.getDescription());
+                    vo.setPostCount(c.getPostsCount() != null ? c.getPostsCount() : 0);
+                    vo.setMemberCount(c.getMembers() != null ? c.getMembers() : 0);
+                    return vo;
+                })
+                .collect(Collectors.toList());
+
+        return PageResult.of(voList, result.getTotal(), safePage, safeLimit);
     }
 
     @Override

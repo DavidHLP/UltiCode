@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -110,7 +111,7 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (StringUtils.hasText(until)) {
             try {
                 wrapper.set(User::getBannedUntil, LocalDateTime.parse(until));
-            } catch (Exception e) {
+            } catch (DateTimeParseException e) {
                 log.warn("Failed to parse banned_until date: {}", until);
             }
         }
@@ -167,6 +168,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             try {
                 banUser(id, reason, null);
                 results.add(new BanResult(id, true, null));
+            // broad catch: bulk operation must report per-item failures
             } catch (Exception e) {
                 log.error("Failed to ban user {}: {}", id, e.getMessage());
                 results.add(new BanResult(id, false, e.getMessage()));
@@ -185,6 +187,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             try {
                 unbanUser(id);
                 results.add(new BanResult(id, true, null));
+            // broad catch: bulk operation must report per-item failures
             } catch (Exception e) {
                 log.error("Failed to unban user {}: {}", id, e.getMessage());
                 results.add(new BanResult(id, false, e.getMessage()));
@@ -207,6 +210,7 @@ public class AdminUserServiceImpl implements AdminUserService {
                 } else {
                     results.add(new DeleteResult(id, false, "User not found"));
                 }
+            // broad catch: bulk operation must report per-item failures
             } catch (Exception e) {
                 log.error("Failed to delete user {}: {}", id, e.getMessage());
                 results.add(new DeleteResult(id, false, e.getMessage()));

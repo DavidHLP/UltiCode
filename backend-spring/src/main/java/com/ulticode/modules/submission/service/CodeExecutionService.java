@@ -433,6 +433,7 @@ public class CodeExecutionService {
                 }
             }
             return caseResults;
+        // broad catch: JSON parsing and result extraction may throw multiple exception types
         } catch (Exception e) {
             log.error("Failed to parse batch results", e);
             return testCases.stream()

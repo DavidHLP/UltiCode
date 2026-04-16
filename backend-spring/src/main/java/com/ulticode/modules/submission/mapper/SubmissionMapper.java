@@ -14,7 +14,9 @@ import org.apache.ibatis.annotations.Result;
 import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -241,4 +243,119 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      */
     @Select("SELECT DISTINCT language FROM submissions ORDER BY language")
     List<String> findDistinctLanguages();
+
+    // ==================== Admin Analytics Aggregation Methods ====================
+
+    /**
+     * Weekly active users aggregation (replaces N+1 per-week loop).
+     * Groups submissions by ISO week and counts distinct users per week.
+     *
+     * @param startDate start of analysis period
+     * @return list of rows with yearweek, week_start, count
+     */
+    @Select("SELECT YEARWEEK(created_at, 3) as yearweek, "
+            + "DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as week_start, "
+            + "COUNT(DISTINCT user_id) as count "
+            + "FROM submissions "
+            + "WHERE created_at >= #{startDate} "
+            + "GROUP BY YEARWEEK(created_at, 3) "
+            + "ORDER BY yearweek")
+    List<Map<String, Object>> countWeeklyActiveUsers(@Param("startDate") LocalDateTime startDate);
+
+    /**
+     * Peak active hours aggregation (replaces 24 individual COUNT queries).
+     * Groups submissions by hour of day and counts distinct users.
+     *
+     * @param startDate start of analysis period
+     * @return list of rows with hour, count
+     */
+    @Select("SELECT HOUR(created_at) as hour, COUNT(DISTINCT user_id) as count "
+            + "FROM submissions "
+            + "WHERE created_at >= #{startDate} "
+            + "GROUP BY HOUR(created_at) "
+            + "ORDER BY hour")
+    List<Map<String, Object>> countActiveUsersByHour(@Param("startDate") LocalDateTime startDate);
+
+    /**
+     * Top active users by submission count (replaces load-all + Java groupBy + N user lookups).
+     * Groups submissions by user_id and returns top N submitters.
+     *
+     * @param startDate start of analysis period
+     * @param limit     max number of users to return
+     * @return list of rows with user_id, submission_count
+     */
+    @Select("SELECT user_id, COUNT(*) as submission_count "
+            + "FROM submissions "
+            + "WHERE created_at >= #{startDate} "
+            + "GROUP BY user_id "
+            + "ORDER BY submission_count DESC "
+            + "LIMIT #{limit}")
+    List<Map<String, Object>> findTopActiveUsers(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("limit") int limit);
+
+    /**
+     * Problem completion by difficulty (replaces N+1 per-problem per-difficulty loop).
+     * Joins problems with accepted submissions and aggregates by difficulty level.
+     *
+     * @return list of rows with difficulty, total_problems, solved_problems
+     */
+    @Select("SELECT p.difficulty, "
+            + "COUNT(DISTINCT p.id) as total_problems, "
+            + "COUNT(DISTINCT CASE WHEN s.status = 'Accepted' THEN p.id END) as solved_problems "
+            + "FROM problems p "
+            + "LEFT JOIN submissions s ON s.problem_id = p.id AND s.status = 'Accepted' "
+            + "WHERE p.status = 'PUBLISHED' AND p.difficulty IS NOT NULL "
+            + "GROUP BY p.difficulty")
+    List<Map<String, Object>> countProblemCompletionByDifficulty();
+
+    /**
+     * Trending problems (replaces load-all + Java groupBy + N problem lookups).
+     * Groups submissions by problem_id and returns top N most attempted problems
+     * with their acceptance counts.
+     *
+     * @param startDate start of analysis period
+     * @param limit     max number of problems to return
+     * @return list of rows with problem_id, attempt_count, accepted_count
+     */
+    @Select("SELECT problem_id, COUNT(*) as attempt_count, "
+            + "SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) as accepted_count "
+            + "FROM submissions "
+            + "WHERE created_at >= #{startDate} "
+            + "GROUP BY problem_id "
+            + "ORDER BY attempt_count DESC "
+            + "LIMIT #{limit}")
+    List<Map<String, Object>> findTrendingProblems(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("limit") int limit);
+
+    /**
+     * Retention rate helper: count distinct users in a date range.
+     * Replaces buggy selectCount with groupBy (returns count of first group,
+     * not total distinct users) with proper COUNT(DISTINCT user_id).
+     *
+     * @param startDate range start (inclusive)
+     * @param endDate   range end (exclusive)
+     * @return count of distinct users who submitted in the range
+     */
+    @Select("SELECT COUNT(DISTINCT user_id) FROM submissions "
+            + "WHERE created_at >= #{startDate} AND created_at < #{endDate}")
+    long countDistinctUsersInRange(
+            @Param("startDate") LocalDateTime startDate,
+            @Param("endDate") LocalDateTime endDate);
+
+    /**
+     * Contest participation aggregation (replaces N+1 per-contest participant loading).
+     * NOTE: Uses ${contestIds} (string interpolation) because MyBatis #{} cannot
+     * expand comma-separated IN-lists. The calling code MUST construct the contestIds
+     * string safely from validated Long IDs to prevent SQL injection. Only pass numeric IDs.
+     *
+     * @param contestIds comma-separated contest IDs (e.g., "1,2,3")
+     * @return list of rows with contest_id, participant_count
+     */
+    @Select("SELECT contest_id, COUNT(DISTINCT user_id) as participant_count "
+            + "FROM contest_participants "
+            + "WHERE contest_id IN (${contestIds}) "
+            + "GROUP BY contest_id")
+    List<Map<String, Object>> countParticipantsByContest(@Param("contestIds") String contestIds);
 }

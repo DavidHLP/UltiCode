@@ -30,7 +30,6 @@ export function useLocale() {
    */
   function setLocale(newLocale: SupportedLocale) {
     if (!SUPPORTED_LOCALES.includes(newLocale)) {
-      console.warn(`Unsupported locale: ${newLocale}`);
       return;
     }
 

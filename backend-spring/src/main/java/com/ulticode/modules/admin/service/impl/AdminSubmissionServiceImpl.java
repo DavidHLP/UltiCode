@@ -306,6 +306,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
             result.setNewStatus("Pending");
             log.info("Rejudge initiated for submission: {} (retryCount={})",
                 id, submission.getRetryCount());
+        // broad catch: all failures map to same error response
         } catch (Exception e) {
             log.error("Failed to enqueue rejudge for submission: {}", id, e);
             result.setSuccess(false);

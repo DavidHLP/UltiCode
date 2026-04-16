@@ -1,5 +1,7 @@
 package com.ulticode.infrastructure.redis;
 
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -31,9 +33,10 @@ public class RedisService {
     public void set(String key, Object value) {
         try {
             redisTemplate.opsForValue().set(key, value);
+        // broad catch: all Redis failures map to same error response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis set error for key: {}", key, e);
-            throw new RuntimeException("Failed to set value in Redis", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis operation failed", e);
         }
     }
 
@@ -48,9 +51,10 @@ public class RedisService {
     public void set(String key, Object value, long timeout, TimeUnit unit) {
         try {
             redisTemplate.opsForValue().set(key, value, timeout, unit);
+        // broad catch: all Redis failures map to same error response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis set with TTL error for key: {}", key, e);
-            throw new RuntimeException("Failed to set value with TTL in Redis", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis operation failed", e);
         }
     }
 
@@ -74,6 +78,7 @@ public class RedisService {
     public Object get(String key) {
         try {
             return redisTemplate.opsForValue().get(key);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis get error for key: {}", key, e);
             return null;
@@ -96,6 +101,7 @@ public class RedisService {
                 return (T) value;
             }
             return null;
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis get error for key: {}", key, e);
             return null;
@@ -117,6 +123,7 @@ public class RedisService {
                 return redisTemplate.delete(keys[0]) ? 1L : 0L;
             }
             return redisTemplate.delete(java.util.Arrays.asList(keys));
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis delete error for keys: {}", (Object) keys, e);
             return 0L;
@@ -135,6 +142,7 @@ public class RedisService {
                 return 0L;
             }
             return redisTemplate.delete(keys);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis delete error for keys: {}", keys, e);
             return 0L;
@@ -150,6 +158,7 @@ public class RedisService {
     public boolean hasKey(String key) {
         try {
             return Boolean.TRUE.equals(redisTemplate.hasKey(key));
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hasKey error for key: {}", key, e);
             return false;
@@ -167,6 +176,7 @@ public class RedisService {
     public boolean expire(String key, long timeout, TimeUnit unit) {
         try {
             return Boolean.TRUE.equals(redisTemplate.expire(key, timeout, unit));
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis expire error for key: {}", key, e);
             return false;
@@ -182,6 +192,7 @@ public class RedisService {
     public Long getExpire(String key) {
         try {
             return redisTemplate.getExpire(key, TimeUnit.SECONDS);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis getExpire error for key: {}", key, e);
             return -2L;
@@ -197,9 +208,10 @@ public class RedisService {
     public Long increment(String key) {
         try {
             return redisTemplate.opsForValue().increment(key);
+        // broad catch: all Redis failures map to same error response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis increment error for key: {}", key, e);
-            throw new RuntimeException("Failed to increment value in Redis", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis operation failed", e);
         }
     }
 
@@ -213,9 +225,10 @@ public class RedisService {
     public Long increment(String key, long delta) {
         try {
             return redisTemplate.opsForValue().increment(key, delta);
+        // broad catch: all Redis failures map to same error response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis increment error for key: {} with delta: {}", key, delta, e);
-            throw new RuntimeException("Failed to increment value in Redis", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis operation failed", e);
         }
     }
 
@@ -228,9 +241,10 @@ public class RedisService {
     public Long decrement(String key) {
         try {
             return redisTemplate.opsForValue().decrement(key);
+        // broad catch: all Redis failures map to same error response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis decrement error for key: {}", key, e);
-            throw new RuntimeException("Failed to decrement value in Redis", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis operation failed", e);
         }
     }
 
@@ -246,9 +260,10 @@ public class RedisService {
     public void hSet(String key, String field, Object value) {
         try {
             redisTemplate.opsForHash().put(key, field, value);
+        // broad catch: all Redis failures map to same error response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hSet error for key: {}, field: {}", key, field, e);
-            throw new RuntimeException("Failed to set hash field in Redis", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis operation failed", e);
         }
     }
 
@@ -261,9 +276,10 @@ public class RedisService {
     public void hSetAll(String key, Map<String, Object> map) {
         try {
             redisTemplate.opsForHash().putAll(key, map);
+        // broad catch: all Redis failures map to same error response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hSetAll error for key: {}", key, e);
-            throw new RuntimeException("Failed to set hash fields in Redis", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis operation failed", e);
         }
     }
 
@@ -277,6 +293,7 @@ public class RedisService {
     public Object hGet(String key, String field) {
         try {
             return redisTemplate.opsForHash().get(key, field);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hGet error for key: {}, field: {}", key, field, e);
             return null;
@@ -292,6 +309,7 @@ public class RedisService {
     public Map<Object, Object> hGetAll(String key) {
         try {
             return redisTemplate.opsForHash().entries(key);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hGetAll error for key: {}", key, e);
             return Map.of();
@@ -308,6 +326,7 @@ public class RedisService {
     public Long hDelete(String key, Object... fields) {
         try {
             return redisTemplate.opsForHash().delete(key, fields);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hDelete error for key: {}", key, e);
             return 0L;
@@ -324,6 +343,7 @@ public class RedisService {
     public boolean hHasKey(String key, String field) {
         try {
             return redisTemplate.opsForHash().hasKey(key, field);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hHasKey error for key: {}, field: {}", key, field, e);
             return false;
@@ -341,9 +361,10 @@ public class RedisService {
     public Long hIncrement(String key, String field, long delta) {
         try {
             return redisTemplate.opsForHash().increment(key, field, delta);
+        // broad catch: all Redis failures map to same error response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hIncrement error for key: {}, field: {}", key, field, e);
-            throw new RuntimeException("Failed to increment hash field in Redis", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis operation failed", e);
         }
     }
 
@@ -356,6 +377,7 @@ public class RedisService {
     public Long hSize(String key) {
         try {
             return redisTemplate.opsForHash().size(key);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis hSize error for key: {}", key, e);
             return 0L;
@@ -374,6 +396,7 @@ public class RedisService {
     public Long sAdd(String key, Object... values) {
         try {
             return redisTemplate.opsForSet().add(key, values);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis sAdd error for key: {}", key, e);
             return 0L;
@@ -390,6 +413,7 @@ public class RedisService {
     public Long sRemove(String key, Object... values) {
         try {
             return redisTemplate.opsForSet().remove(key, values);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis sRemove error for key: {}", key, e);
             return 0L;
@@ -406,6 +430,7 @@ public class RedisService {
     public boolean sIsMember(String key, Object value) {
         try {
             return Boolean.TRUE.equals(redisTemplate.opsForSet().isMember(key, value));
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis sIsMember error for key: {}", key, e);
             return false;
@@ -421,6 +446,7 @@ public class RedisService {
     public Long sSize(String key) {
         try {
             return redisTemplate.opsForSet().size(key);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis sSize error for key: {}", key, e);
             return 0L;
@@ -439,6 +465,7 @@ public class RedisService {
     public Long lPush(String key, Object value) {
         try {
             return redisTemplate.opsForList().leftPush(key, value);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis lPush error for key: {}", key, e);
             return 0L;
@@ -455,6 +482,7 @@ public class RedisService {
     public Long rPush(String key, Object value) {
         try {
             return redisTemplate.opsForList().rightPush(key, value);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis rPush error for key: {}", key, e);
             return 0L;
@@ -470,6 +498,7 @@ public class RedisService {
     public Object lPop(String key) {
         try {
             return redisTemplate.opsForList().leftPop(key);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis lPop error for key: {}", key, e);
             return null;
@@ -485,6 +514,7 @@ public class RedisService {
     public Object rPop(String key) {
         try {
             return redisTemplate.opsForList().rightPop(key);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis rPop error for key: {}", key, e);
             return null;
@@ -500,6 +530,7 @@ public class RedisService {
     public Long lSize(String key) {
         try {
             return redisTemplate.opsForList().size(key);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis lSize error for key: {}", key, e);
             return 0L;
@@ -518,6 +549,7 @@ public class RedisService {
     public java.util.Set<String> keys(String pattern) {
         try {
             return redisTemplate.keys(pattern);
+        // broad catch: all Redis failures map to same degraded response (infrastructure boundary)
         } catch (Exception e) {
             log.error("Redis keys error for pattern: {}", pattern, e);
             return java.util.Set.of();

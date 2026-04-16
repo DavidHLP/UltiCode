@@ -68,6 +68,7 @@ public class QueueServiceImpl implements QueueService {
             return job.getId();
         } catch (BusinessException e) {
             throw e;
+        // broad catch: all queue failures map to same error response
         } catch (Exception e) {
             log.error("Failed to enqueue judge job for submission: {}", job.getSubmissionId(), e);
             throw new BusinessException(ErrorCode.QUEUE_OPERATION_FAILED,
@@ -121,6 +122,7 @@ public class QueueServiceImpl implements QueueService {
             return jobId;
         } catch (BusinessException e) {
             throw e;
+        // broad catch: all queue failures map to same error response
         } catch (Exception e) {
             log.error("Failed to enqueue job to queue: {}", queueName, e);
             throw new BusinessException(ErrorCode.QUEUE_OPERATION_FAILED,

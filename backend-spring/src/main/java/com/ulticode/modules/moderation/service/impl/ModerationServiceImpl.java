@@ -222,6 +222,7 @@ public class ModerationServiceImpl implements ModerationService {
 
                 performAction(queueId, actionDto, moderatorId);
                 successCount++;
+            // broad catch: all failures map to same error response
             } catch (Exception e) {
                 errors.add(new BatchActionResultVO.BatchError(queueId, e.getMessage()));
             }

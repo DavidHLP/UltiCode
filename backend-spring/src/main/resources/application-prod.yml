@@ -20,6 +20,17 @@ jwt:
     refresh-token:
       secure: true
 
+# Actuator - restrict endpoints in production
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+      show-components: never
+
 logging:
   level:
     com.ulticode: INFO

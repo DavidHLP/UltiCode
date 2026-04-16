@@ -27,7 +27,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 **Milestone Goal:** Clear all 19 remaining MEDIUM/LOW technical debt items deferred from v1.0, bringing the platform to production-ready state.
 
-- [ ] **Phase 5: Security Configuration** — Externalize CORS, harden JWT cookies, create production profile, remove default passwords
+- [x] **Phase 5: Security Configuration** — Externalize CORS, harden JWT cookies, create production profile, remove default passwords (completed 2026-04-16)
 - [ ] **Phase 6: Admin Functionality & Performance** — Real admin data, audit trails, DB aggregation, batch test execution
 - [ ] **Phase 7: Code Quality & Dependencies** — Precise exception handling, service splits, debug cleanup, stable deps
 - [ ] **Phase 8: Testing** — Frontend key-path tests, backend @WebMvcTest controller tests
@@ -46,10 +46,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 4 plans
 
 Plans:
-- [ ] 05-01: Externalize CORS origins to environment variables (SEC-07)
-- [ ] 05-02: Stop XssFilter from cleaning request headers (SEC-08)
-- [ ] 05-03: Harden JWT cookie Secure flag and create application-prod.yml (CONF-01, CONF-02)
-- [ ] 05-04: Remove weak default passwords from docker-compose.yml (CONF-03)
+- [x] 05-01: Externalize CORS origins to environment variables (SEC-07)
+- [x] 05-02: Stop XssFilter from cleaning request headers (SEC-08)
+- [x] 05-03: Harden JWT cookie Secure flag and create application-prod.yml (CONF-01, CONF-02)
+- [x] 05-04: Remove weak default passwords from docker-compose.yml (CONF-03)
 
 ### Phase 6: Admin Functionality & Performance
 **Goal**: Admin panel displays real data instead of TODO stubs, audit trails capture the actual authenticated user, analytics use efficient database queries, and test case execution is faster through batch processing
@@ -112,7 +112,7 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 2. Core Functionality | v1.0 | 3/3 | Complete | 2026-04-15 |
 | 3. Test Coverage | v1.0 | 3/3 | Complete | 2026-04-15 |
 | 4. Frontend Quality | v1.0 | 2/2 | Complete | 2026-04-15 |
-| 5. Security Configuration | v1.1 | 0/4 | Not started | - |
+| 5. Security Configuration | v1.1 | 4/4 | Complete   | 2026-04-16 |
 | 6. Admin Functionality & Performance | v1.1 | 0/5 | Not started | - |
 | 7. Code Quality & Dependencies | v1.1 | 0/4 | Not started | - |
 | 8. Testing | v1.1 | 0/3 | Not started | - |

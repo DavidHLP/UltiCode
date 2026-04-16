@@ -1,4 +1,9 @@
 # Production Profile Configuration
+
+# CORS Configuration for Production
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:9002,http://localhost:9003}
+
 server:
   port: ${SERVER_PORT:9001}
 

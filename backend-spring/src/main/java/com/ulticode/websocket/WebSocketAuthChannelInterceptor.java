@@ -1,6 +1,10 @@
 package com.ulticode.websocket;
 
 import com.ulticode.security.jwt.JwtTokenProvider;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.Message;
@@ -58,8 +62,10 @@ public class WebSocketAuthChannelInterceptor implements ChannelInterceptor {
                     } else {
                         log.warn("Invalid JWT token for WebSocket connection");
                     }
-                } catch (Exception e) {
-                    log.error("Error authenticating WebSocket connection: {}", e.getMessage());
+                } catch (ExpiredJwtException e) {
+                    log.debug("WebSocket JWT token expired: {}", e.getMessage());
+                } catch (MalformedJwtException | SignatureException | UnsupportedJwtException | IllegalArgumentException e) {
+                    log.error("Invalid JWT token for WebSocket connection: {}", e.getMessage());
                 }
             } else {
                 log.warn("No valid Authorization header found in WebSocket CONNECT message");

@@ -4,8 +4,11 @@ import cn.hutool.core.util.IdUtil;
 import cn.hutool.http.HttpRequest;
 import cn.hutool.http.HttpResponse;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.auth.dto.LoginResponse;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
@@ -100,9 +103,9 @@ public class OAuthService {
         try {
             JsonNode tokenNode = objectMapper.readTree(tokenResponse);
             accessToken = tokenNode.get("access_token").asText();
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.error("Failed to parse GitHub token response", e);
-            throw new RuntimeException("GitHub OAuth failed");
+            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "OAuth token exchange failed", e);
         }
 
         // 获取用户信息
@@ -124,9 +127,9 @@ public class OAuthService {
             String avatar = userNode.has("avatar_url") ? userNode.get("avatar_url").asText() : null;
 
             return createOrUpdateUser(githubId, login, email, avatar, "github", response);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.error("Failed to parse GitHub user response", e);
-            throw new RuntimeException("Failed to get GitHub user info");
+            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Failed to get GitHub user info", e);
         }
     }
 
@@ -184,9 +187,9 @@ public class OAuthService {
         try {
             JsonNode tokenNode = objectMapper.readTree(tokenResponse);
             accessToken = tokenNode.get("access_token").asText();
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.error("Failed to parse Google token response", e);
-            throw new RuntimeException("Google OAuth failed");
+            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "OAuth token exchange failed", e);
         }
 
         // 获取用户信息
@@ -205,9 +208,9 @@ public class OAuthService {
             String avatar = userNode.has("picture") ? userNode.get("picture").asText() : null;
 
             return createOrUpdateUser(googleId, name, email, avatar, "google", response);
-        } catch (Exception e) {
+        } catch (JsonProcessingException e) {
             log.error("Failed to parse Google user response", e);
-            throw new RuntimeException("Failed to get Google user info");
+            throw new BusinessException(ErrorCode.AUTH_INVALID_CREDENTIALS, "Failed to get Google user info", e);
         }
     }
 
@@ -215,12 +218,12 @@ public class OAuthService {
 
     private void validateOAuthState(String provider, String state) {
         if (state == null || state.isBlank()) {
-            throw new RuntimeException("OAuth state parameter is missing");
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "OAuth state parameter is missing");
         }
         String key = OAUTH_STATE_PREFIX + provider + ":" + state;
         Boolean exists = redisTemplate.hasKey(key);
         if (Boolean.FALSE.equals(exists)) {
-            throw new RuntimeException("Invalid or expired OAuth state parameter");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED, "Invalid or expired OAuth state parameter");
         }
         redisTemplate.delete(key);
     }

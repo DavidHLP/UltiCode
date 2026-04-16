@@ -25,6 +25,7 @@ import com.ulticode.recommend.api.enums.RecommendScenario;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.dubbo.config.annotation.DubboReference;
+import org.apache.dubbo.rpc.RpcException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -143,7 +144,7 @@ public class RecommendationServiceImpl implements RecommendationService {
             response.setCode(200);
             response.setMessage("Recommendation service is healthy");
             return response;
-        } catch (Exception e) {
+        } catch (RpcException e) {
             log.warn("Recommendation service health check failed: {}", e.getMessage());
             return RecommendResponseVO.error(50000, "Recommendation service unavailable");
         }
@@ -177,6 +178,7 @@ public class RecommendationServiceImpl implements RecommendationService {
                         response.getCode(), response.getMessage());
                 return fallbackToPopularProblems(limit, scenario);
             }
+        // broad catch: Dubbo RPC failure falls back to MySQL popular problems
         } catch (Exception e) {
             log.warn("Dubbo recommendation service unavailable, falling back to popular problems: {}", e.getMessage());
             return fallbackToPopularProblems(limit, scenario);

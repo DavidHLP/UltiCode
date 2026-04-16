@@ -321,7 +321,11 @@ public class BackupServiceImpl implements BackupService {
                 backupMapper.updateById(backup);
                 log.error("Backup failed: {}, exit code: {}, output: {}", backupId, exitCode, output);
             }
+        // broad catch: backup execution involves process I/O, file I/O, and DB updates
         } catch (Exception e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
             log.error("Backup execution failed for: {}", backupId, e);
             backup.setStatus(BackupStatus.FAILED);
             backup.setCompletedAt(LocalDateTime.now());
@@ -415,6 +419,7 @@ public class BackupServiceImpl implements BackupService {
                     info.host = hostPort;
                 }
             }
+        // broad catch: URL string parsing may throw NumberFormatException or StringIndexOutOfBoundsException
         } catch (Exception e) {
             log.error("Failed to parse datasource URL: {}", url, e);
             throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to parse database connection configuration");

@@ -25,6 +25,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryUsage;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.*;
@@ -468,34 +470,28 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         long uptimeMillis = ManagementFactory.getRuntimeMXBean().getUptime();
         report.setSystemUptime(uptimeMillis / 1000);
 
-        // Resource usage (placeholder values - in production would use actual monitoring)
+        // Resource usage
         PerformanceReportVO.ResourceUsage resourceUsage = new PerformanceReportVO.ResourceUsage();
-        resourceUsage.setCpu(25.0);   // Placeholder
-        resourceUsage.setMemory(45.0); // Placeholder
-        resourceUsage.setDisk(60.0);   // Placeholder
+        MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
+        MemoryUsage heapUsage = memoryMXBean.getHeapMemoryUsage();
+        long maxMemory = heapUsage.getMax() > 0 ? heapUsage.getMax() : 1;
+        double memoryUsagePercent = (heapUsage.getUsed() * 100.0) / maxMemory;
+        resourceUsage.setCpu(-1.0); // CPU requires OS-level access; -1 indicates unavailable in-app
+        resourceUsage.setMemory(Math.round(memoryUsagePercent * 100.0) / 100.0);
+        resourceUsage.setDisk(-1.0); // Disk requires OS-level access; -1 indicates unavailable in-app
         report.setResourceUsage(resourceUsage);
 
-        // Performance metrics (placeholders)
-        report.setAverageResponseTime(150.0); // 150ms average
-        report.setErrorRate(0.5); // 0.5% error rate
-        report.setThroughput(10000L); // 10k requests per 24h
-        report.setCacheHitRate(85.0); // 85% cache hit rate
+        // Performance metrics - these require external monitoring (APM tool); -1 indicates unavailable
+        report.setAverageResponseTime(-1.0);
+        report.setErrorRate(-1.0);
+        report.setThroughput(-1L);
+        report.setCacheHitRate(-1.0);
 
-        // Slowest endpoints (placeholder data)
-        List<PerformanceReportVO.SlowEndpoint> slowEndpoints = Arrays.asList(
-                new PerformanceReportVO.SlowEndpoint("/api/problems", 350.0, 1500),
-                new PerformanceReportVO.SlowEndpoint("/api/submissions", 280.0, 2300),
-                new PerformanceReportVO.SlowEndpoint("/api/contests", 220.0, 800)
-        );
-        report.setSlowestEndpoints(slowEndpoints);
+        // Slowest endpoints - requires request timing middleware
+        report.setSlowestEndpoints(Collections.emptyList());
 
-        // Error breakdown (placeholder data)
-        List<PerformanceReportVO.ErrorBreakdown> errorBreakdown = Arrays.asList(
-                new PerformanceReportVO.ErrorBreakdown("400 Bad Request", 15, 30.0),
-                new PerformanceReportVO.ErrorBreakdown("401 Unauthorized", 25, 50.0),
-                new PerformanceReportVO.ErrorBreakdown("404 Not Found", 10, 20.0)
-        );
-        report.setErrorBreakdown(errorBreakdown);
+        // Error breakdown - requires error tracking integration
+        report.setErrorBreakdown(Collections.emptyList());
 
         return report;
     }

@@ -1,23 +1,13 @@
 # UltiCode 技术债务清偿
 
-## Current Milestone: v1.0 Critical Security & Core Functionality
+## Current State
 
-**Goal:** 修复所有 CRITICAL 和 HIGH 级别的 9 项技术债务，确保平台安全基线可用
-
-**Target features:**
-- SEC-01: CSRF Spring Security 框架层修复
-- SEC-02: 密码重置邮件发送实现
-- SEC-03: UserDetailsServiceImpl 占位符处理
-- FUNC-01: Admin Rejudge 功能实现
-- SEC-04: Docker 沙箱 seccomp 隔离加固
-- SEC-05: JWT Secret 启动校验
-- SEC-06: XssFilter 正则替换为输出编码
-- QUAL-01: 拆分 14 个超 600 行 Vue 组件
-- TEST-01: 后端关键模块测试覆盖率提升
+**Shipped:** v1.0 Technical Debt Remediation (2026-04-16)
+**Status:** All 9 CRITICAL/HIGH technical debt items resolved across 4 phases (11 plans, 20 tasks)
 
 ## What This Is
 
-系统性修复 UltiCode 在线编程平台代码库中已识别的 28 项技术债务，涵盖安全漏洞、功能缺失、性能瓶颈、代码质量和配置缺陷。基于 `.planning/codebase/CONCERNS.md` 中完整审计结果，按严重程度从 CRITICAL → HIGH → MEDIUM → LOW 分阶段修复，每个修复同步交付测试。
+系统性修复 UltiCode 在线编程平台代码库中已识别的 28 项技术债务，涵盖安全漏洞、功能缺失、性能瓶颈、代码质量和配置缺陷。v1.0 已完成全部 9 项 CRITICAL 和 HIGH 级别修复，包括安全过滤链（CSRF/XSS/JWT）、核心功能（密码重置/Rejudge/Docker 沙箱加固）、测试覆盖率和前端组件拆分。剩余 19 项 MEDIUM/LOW 级别债务延后至未来里程碑。
 
 ## Core Value
 
@@ -27,98 +17,69 @@
 
 ### Validated
 
-<!-- 已有且正常工作的功能 -->
-
-- ✓ 用户注册/登录（JWT + CSRF）— existing
-- ✓ 题目浏览、提交代码、查看结果 — existing
-- ✓ 比赛系统 — existing
-- ✓ 论坛帖子 CRUD — existing
-- ✓ 管理后台基础功能 — existing
-- ✓ Docker 沙箱代码执行 — existing
-- ✓ WebSocket 实时通知 — existing
-- ✓ 前端 Console（Vue 3 + Tailwind）— existing
-- ✓ 前端 Management（Vue 3 + Tailwind）— existing
-- ✓ Spring Boot 后端（MyBatis-Plus + Redis）— existing
-- ✓ Flyway 数据库迁移 — existing
+- ✓ SEC-06: XssFilter 替换为输出编码 (OWASP Encoder) — v1.0 Phase 1
+- ✓ SEC-01: CSRF 迁移至 Spring Security CsrfValidationFilter — v1.0 Phase 1
+- ✓ SEC-05: JWT Secret @PostConstruct 启动校验 — v1.0 Phase 1
+- ✓ SEC-03: 移除 UserDetailsServiceImpl 占位符 — v1.0 Phase 1
+- ✓ SEC-02: 密码重置邮件实际发送 (BCrypt token + DB storage) — v1.0 Phase 2
+- ✓ FUNC-01: Admin Rejudge 批量操作 + 限流 — v1.0 Phase 2
+- ✓ SEC-04: Docker 沙箱 seccomp + cap-drop ALL — v1.0 Phase 2
+- ✓ TEST-01: 71 个测试 (48 单元 + 18 模块 + 5 集成) 覆盖关键模块 — v1.0 Phase 3
+- ✓ QUAL-01: 14 个超大 Vue 组件拆分为 59 个子组件 + 14 composables — v1.0 Phase 4
 
 ### Active
 
-<!-- 本次要修复的 28 项技术债务，按严重程度排列 -->
-
-**CRITICAL（4 项）：**
-- [ ] SEC-01: 修复 CSRF 在 Spring Security 框架层被全局禁用的问题，确保自定义拦截器覆盖所有状态变更端点
-- [ ] SEC-02: 实现密码重置邮件发送功能（当前只打日志不发送）
-- [ ] SEC-03: 实现或移除 UserDetailsServiceImpl 占位符（当前始终抛异常）
-- [ ] FUNC-01: 实现 Admin Rejudge 功能（当前为 TODO 占位符）
-
-**HIGH（5 项）：**
-- [ ] SEC-04: 加强 Docker 沙箱隔离（添加 seccomp profile、cap-drop ALL）
-- [ ] SEC-05: JWT Secret 启动校验（空 secret 时阻止应用启动）
-- [ ] SEC-06: 替换 XssFilter 的正则清理为正确的输出编码
-- [ ] QUAL-01: 拆分 14 个超过 600 行的 Vue 组件
-- [ ] TEST-01: 提升后端关键模块测试覆盖率（auth、submission、CodeExecution）
-
-**MEDIUM（11 项）：**
-- [ ] SEC-07: CORS 允许来源外部化为环境变量
-- [ ] SEC-08: XssFilter 停止清理请求 Header
-- [ ] AUDIT-01: BackupController 使用实际认证用户 ID 替代硬编码 "system"
-- [ ] PERF-01: 测试用例批量执行替代逐个 Docker 容器启动
-- [ ] PERF-02: Admin Analytics 使用数据库聚合替代全量实体加载
-- [ ] DEP-01: 移除 git 跟踪的 management/.env
-- [ ] DEP-02: 替换 SNAPSHOT 依赖为稳定版本
-- [ ] CONF-01: JWT Cookie Secure 标志在生产环境默认为 true
-- [ ] FUNC-02: 实现 5 个 Admin TODO 桩（论坛社区、题目计数、论坛数据、审核详情）
-- [ ] QUAL-02: 修复 30+ 处宽泛 catch(Exception e) 为具体异常类型
-- [ ] QUAL-03: 拆分 AdminAnalyticsServiceImpl（553 行）
-
-**LOW（8 项）：**
-- [ ] CONF-02: 创建 application-prod.yml 生产配置（禁用 Swagger、actuator 端点）
-- [ ] CONF-03: docker-compose.yml 移除弱默认密码
-- [ ] QUAL-04: 清理生产代码中的 console.log 语句
-- [ ] DEP-03: 评估并移除 SockJS 客户端依赖
-- [ ] TEST-02: 补充前端 Console 关键路径测试（API 层、stores）
-- [ ] TEST-03: 补充前端 Management 关键路径测试
-- [ ] TEST-04: 添加后端 Controller 集成测试（@WebMvcTest）
-- [ ] FUNC-03: 实现审核平均解决时间计算（当前硬编码 0.0）
+_(待 v1.1 里程碑定义)_
 
 ### Out of Scope
 
 - 新功能开发（比赛系统增强、推荐系统完善等）— 本轮只清偿技术债务
-- UI/UX 重设计 — 除非拆分大组件时必要
-- 性能优化基准测试 — 只修已识别的具体问题
 - CI/CD 流水线搭建 — 不在本次范围内
 - 第三方安全审计 — 自查修复，不引入外部审计
+- UI/UX 重设计 — 拆分组件时仅做结构优化
 
 ## Context
 
-**代码库现状：**
+**代码库现状 (post-v1.0)：**
 - 后端 Spring Boot 3.5 + MyBatis-Plus，26+ 模块
-- 前端 Console（Vue 3）约 200+ 源文件，Management（Vue 3）约 100+ 源文件
-- 代码库映射完成于 2026-04-13，详见 `.planning/codebase/`
-- CONCERNS.md 审计发现 28 项问题，其中 4 CRITICAL、5 HIGH、11 MEDIUM、8 LOW
+- 前端 Console (Vue 3) ~200+ 源文件，Management (Vue 3) ~100+ 源文件
+- v1.0 变更: 378 files changed, +31,958 / -18,490 LOC
+- 安全基线: CSRF → Spring Security, XSS → OWASP Encoder, JWT → fail-fast validation
+- 测试: Testcontainers BOM 1.21.3, 71 新测试覆盖 auth/submission/code-execution
+- 前端: 所有 Vue 组件 < 500 行, co-located composables 模式建立
 
-**已知风险：**
-- CSRF 框架层禁用 + 自定义拦截器的覆盖范围不明确
-- JWT Secret 可能为空导致认证完全可绕过
-- 密码重置流程不可用（用户无法恢复账号）
-- 测试覆盖率极低（Console 7%, Management 1%, Backend ~15%）
+**已知风险 (deferred to v2)：**
+- CORS 允许来源硬编码 (SEC-07)
+- 部分宽泛 catch(Exception e) 未修复 (QUAL-02)
+- 前端测试覆盖率仍低 (TEST-02/03)
+- Admin 功能仍有 5 个 TODO 桩 (FUNC-02)
 
 ## Constraints
 
-- **安全修复优先**：CRITICAL 和 HIGH 级安全问题必须在其他修复之前完成
-- **修复 + 测试同步**：每个修复必须带对应测试，不允许只修不测
-- **不引入新依赖**：优先使用已有依赖解决问题（如 DOMPurify 已在前端依赖中）
-- **向后兼容**：API 变更需保持现有前端兼容（内部重构不影响外部接口）
-- **分阶段交付**：每阶段独立可验证，可独立合入
+- **安全修复优先**：CRITICAL 和 HIGH 级安全问题必须在其他修复之前完成 ✓ (v1.0 done)
+- **修复 + 测试同步**：每个修复必须带对应测试 ✓ (v1.0 done)
+- **不引入新依赖**：仅新增 OWASP Java Encoder ✓
+- **向后兼容**：API 变更保持前端兼容 ✓
+- **分阶段交付**：4 个阶段独立可验证 ✓
 
 ## Key Decisions
 
 | Decision | Rationale | Outcome |
 |----------|-----------|---------|
-| 按严重程度递减排序 | 安全风险影响最大，必须最先处理 | — Pending |
-| 修复同步测试 | 测试覆盖率低是已知问题，不趁修债务时补测试只会更难 | — Pending |
-| 不引入新依赖 | 减少变更面，降低引入新问题的风险 | — Pending |
-| 分阶段交付 | 28 个问题一次性修完风险太高，分阶段可控制回滚范围 | — Pending |
+| 按严重程度递减排序 | 安全风险影响最大，必须最先处理 | ✓ Good — 安全漏洞全部修复 |
+| 修复同步测试 | 测试覆盖率低是已知问题 | ✓ Good — 71 新测试，Phase 3 专项 |
+| 不引入新依赖 | 减少变更面 | ✓ Good — 仅 OWASP Encoder |
+| 分阶段交付 | 28 个问题一次修完风险太高 | ✓ Good — 4 phase, 11 plan |
+| SEC-06 先于 SEC-01 | XssFilter header 损坏阻塞 CSRF token | ✓ Good — 正确依赖顺序 |
+| TEST-01 独立阶段 | 全面验证 Phase 1-2 安全修复 | ✓ Good — Testcontainers 集成测试 |
+| QUAL-01 最后执行 | 文件数最多，零安全影响，避免合并冲突 | ✓ Good — 无冲突完成 |
+| D-17: Redis session revocation | 密码修改后立即撤销所有会话 | ✓ Good |
+| D-18: 新 token 覆盖旧 token | 防止多次 forgot-password 积累 | ✓ Good |
+| D-19: 延迟优先队列 | FIFO + 限流足够保护 | ⚠ Revisit — 规模增长后可能需优先级 |
+| D-20: 仅 5 种语言 | Go 不在支持范围 | ✓ Good |
+| Manual MyBatis + Testcontainers | 避免 @SpringBootTest 加载 Nacos/Dubbo | ✓ Good — 隔离性好 |
+| Co-located composables 模式 | views/{feature}/composables/ + components/ | ✓ Good — 前端标准模式 |
+| Dialog state stays in parent | D-04 保持父组件控制 | ✓ Good |
 
 ## Evolution
 
@@ -138,4 +99,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-14 — Milestone v1.0 started*
+*Last updated: 2026-04-16 after v1.0 milestone*

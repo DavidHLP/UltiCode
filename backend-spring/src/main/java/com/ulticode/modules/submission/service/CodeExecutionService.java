@@ -56,12 +56,19 @@ public class CodeExecutionService {
                     "Code execution is disabled: sandbox mode is required");
         }
 
-        for (RunSubmissionDTO.RunTestCase testCase : testCases) {
-            RunResultDTO.RunCaseResult caseResult = executeInSandbox(language, request.getCode(), testCase, runId, userId);
+        if (testCases.size() == 1) {
+            // Single test case: use existing per-case method (no overhead difference)
+            RunResultDTO.RunCaseResult caseResult = executeInSandbox(language, request.getCode(), testCases.get(0), runId, userId);
             results.add(caseResult);
             if ("Accepted".equals(caseResult.getStatus())) {
                 passedCases++;
             }
+        } else {
+            // Multiple test cases: batch execution in single container
+            results = executeBatch(language, request.getCode(), testCases, runId, userId);
+            passedCases = (int) results.stream()
+                    .filter(r -> "Accepted".equals(r.getStatus()))
+                    .count();
         }
 
         String verdict = passedCases == testCases.size() ? "Accepted" : "Wrong Answer";
@@ -249,11 +256,111 @@ public class CodeExecutionService {
         }
     }
 
-    // Stub — implemented in Task 2 with language-specific batch wrappers
     private String buildWrapperScript(String language, String code,
                                        List<RunSubmissionDTO.RunTestCase> testCases) {
-        throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED,
-                "Batch wrapper not yet implemented for: " + language);
+        return switch (language) {
+            case "javascript" -> buildJavaScriptBatchWrapper(code, testCases);
+            case "python" -> buildPythonBatchWrapper(code, testCases);
+            case "java" -> buildJavaBatchWrapper(code, testCases);
+            case "c" -> buildCBatchWrapper(code, testCases);
+            case "cpp" -> buildCppBatchWrapper(code, testCases);
+            default -> throw new BusinessException(ErrorCode.SUBMISSION_LANGUAGE_UNSUPPORTED);
+        };
+    }
+
+    private String buildJavaScriptBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
+        String funcName = extractFunctionName(code, "function ");
+        return code + "\n" +
+                "const input = JSON.parse(require('fs').readFileSync('/dev/stdin', 'utf8'));\n" +
+                "const results = input.map(args => {\n" +
+                "  const start = Date.now();\n" +
+                "  try {\n" +
+                "    const result = " + funcName + "(...args);\n" +
+                "    return {output: JSON.stringify(result), runtime: Date.now() - start, status: 'ok'};\n" +
+                "  } catch(e) {\n" +
+                "    return {output: e.message, runtime: Date.now() - start, status: 'error'};\n" +
+                "  }\n" +
+                "});\n" +
+                "process.stdout.write(JSON.stringify(results));\n";
+    }
+
+    private String buildPythonBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
+        String funcName = extractFunctionName(code, "def ");
+        return "import json, sys, time\n" +
+                code + "\n" +
+                "input_data = json.loads(sys.stdin.read())\n" +
+                "results = []\n" +
+                "for args in input_data:\n" +
+                "    start = time.time() * 1000\n" +
+                "    try:\n" +
+                "        result = " + funcName + "(*args)\n" +
+                "        elapsed = time.time() * 1000 - start\n" +
+                "        results.append({'output': json.dumps(result), 'runtime': int(elapsed), 'status': 'ok'})\n" +
+                "    except Exception as e:\n" +
+                "        elapsed = time.time() * 1000 - start\n" +
+                "        results.append({'output': str(e), 'runtime': int(elapsed), 'status': 'error'})\n" +
+                "print(json.dumps(results))\n";
+    }
+
+    private String buildCBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
+        int perCaseTimeout = sandboxConfig.timeout() / Math.max(testCases.size(), 1);
+        return "cat > /tmp/solution.c && gcc -o /tmp/solution /tmp/solution.c && " +
+                "cat | python3 -c \"" +
+                "import json,sys,subprocess,time\\n" +
+                "inputs=json.loads(sys.stdin.read())\\n" +
+                "results=[]\\n" +
+                "for args in inputs:\\n" +
+                "  start=time.time()*1000\\n" +
+                "  try:\\n" +
+                "    p=subprocess.run(['/tmp/solution'],input=json.dumps(args),capture_output=True,text=True,timeout=" + perCaseTimeout + ")\\n" +
+                "    elapsed=time.time()*1000-start\\n" +
+                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error'})\\n" +
+                "  except subprocess.TimeoutExpired:\\n" +
+                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout'})\\n" +
+                "  except Exception as e:\\n" +
+                "    results.append({'output':str(e),'runtime':0,'status':'error'})\\n" +
+                "print(json.dumps(results))\"";
+    }
+
+    private String buildCppBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
+        int perCaseTimeout = sandboxConfig.timeout() / Math.max(testCases.size(), 1);
+        return "cat > /tmp/solution.cpp && g++ -o /tmp/solution /tmp/solution.cpp && " +
+                "cat | python3 -c \"" +
+                "import json,sys,subprocess,time\\n" +
+                "inputs=json.loads(sys.stdin.read())\\n" +
+                "results=[]\\n" +
+                "for args in inputs:\\n" +
+                "  start=time.time()*1000\\n" +
+                "  try:\\n" +
+                "    p=subprocess.run(['/tmp/solution'],input=json.dumps(args),capture_output=True,text=True,timeout=" + perCaseTimeout + ")\\n" +
+                "    elapsed=time.time()*1000-start\\n" +
+                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error'})\\n" +
+                "  except subprocess.TimeoutExpired:\\n" +
+                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout'})\\n" +
+                "  except Exception as e:\\n" +
+                "    results.append({'output':str(e),'runtime':0,'status':'error'})\\n" +
+                "print(json.dumps(results))\"";
+    }
+
+    private String buildJavaBatchWrapper(String code, List<RunSubmissionDTO.RunTestCase> testCases) {
+        String b64 = Base64.getEncoder().encodeToString(code.getBytes(StandardCharsets.UTF_8));
+        int perCaseTimeout = sandboxConfig.timeout() / Math.max(testCases.size(), 1);
+        return "echo '" + b64 + "' | base64 -d > /tmp/Main.java && javac /tmp/Main.java && " +
+                "cat | python3 -c \"" +
+                "import json,sys,subprocess,time\\n" +
+                "inputs=json.loads(sys.stdin.read())\\n" +
+                "results=[]\\n" +
+                "for args in inputs:\\n" +
+                "  start=time.time()*1000\\n" +
+                "  try:\\n" +
+                "    p=subprocess.run(['java','-cp','/tmp','Main'],input=json.dumps(args),capture_output=True,text=True,timeout=" + perCaseTimeout + ")\\n" +
+                "    elapsed=time.time()*1000-start\\n" +
+                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error'})\\n" +
+                "  except subprocess.TimeoutExpired:\\n" +
+                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout'})\\n" +
+                "  except Exception as e:\\n" +
+                "    results.append({'output':str(e),'runtime':0,'status':'error'})\\n" +
+                "print(json.dumps(results))\"";
     }
 
     private List<String> buildBatchDockerCommand(String language, String wrapperScript) {

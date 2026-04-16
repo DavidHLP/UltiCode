@@ -113,6 +113,7 @@ public class SubmissionServiceImpl implements SubmissionService {
                     language,
                     createDTO.getCode());
             log.info("Enqueued judge job for submission {}", submission.getId());
+        // broad catch: enqueue failure falls back to system error status
         } catch (Exception e) {
             log.error("Failed to enqueue judge job for submission {}", submission.getId(), e);
             submission.setStatus("System Error");

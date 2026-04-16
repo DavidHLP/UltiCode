@@ -238,6 +238,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 }
                 item.setSuccess(true);
                 response.setSuccessful(response.getSuccessful() + 1);
+            // broad catch: all failures map to same error response
             } catch (Exception e) {
                 log.error("Failed to perform action {} on comment {}", request.getAction(), id, e);
                 item.setSuccess(false);

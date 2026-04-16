@@ -30,6 +30,7 @@ public class BackupScheduler {
             dto.setType(BackupType.FULL);
             backupService.createBackup("system", dto);
             log.info("Scheduled backup completed successfully");
+        // broad catch: scheduler resilience -- log and continue
         } catch (Exception e) {
             log.error("Scheduled backup failed: {}", e.getMessage(), e);
         }

@@ -60,6 +60,7 @@ public class RecommendationScheduler {
         try {
             Map<String, Object> stats = recommendationDataService.syncAll();
             log.info("Scheduled Redis data sync completed: {}", stats);
+        // broad catch: scheduler resilience -- log failure and continue
         } catch (Exception e) {
             log.error("Scheduled Redis data sync failed: {}", e.getMessage(), e);
         }
@@ -102,6 +103,7 @@ public class RecommendationScheduler {
                 try {
                     int generated = generateForUser(userId, now, expiresAt);
                     totalGenerated += generated;
+                // broad catch: scheduler resilience -- log failure and continue
                 } catch (Exception e) {
                     failedUsers++;
                     log.warn("Failed to generate recommendations for user {}: {}", userId, e.getMessage());
@@ -128,6 +130,7 @@ public class RecommendationScheduler {
         try {
             int deleted = dailyRecommendationMapper.deleteExpired(LocalDateTime.now());
             log.info("Expired recommendation cleanup completed: {} entries removed", deleted);
+        // broad catch: scheduler resilience -- log failure and continue
         } catch (Exception e) {
             log.error("Error during recommendation cleanup: {}", e.getMessage(), e);
         }
@@ -174,6 +177,7 @@ public class RecommendationScheduler {
                         total++;
                     }
                 }
+            // broad catch: scheduler resilience -- log failure and continue
             } catch (Exception e) {
                 log.debug("Failed to generate {} recommendations for user {}: {}",
                         scenario, userId, e.getMessage());

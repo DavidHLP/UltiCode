@@ -223,6 +223,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
                         results.add(BulkActionResult.failure(id, "Unknown action: " + action));
                     }
                 }
+            // broad catch: all failures map to same error response
             } catch (Exception e) {
                 log.error("Failed to perform action {} on solution {}: {}", action, id, e.getMessage());
                 results.add(BulkActionResult.failure(id, e.getMessage()));

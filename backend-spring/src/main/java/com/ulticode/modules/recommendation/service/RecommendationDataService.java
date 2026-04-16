@@ -10,6 +10,8 @@ import java.util.stream.Collectors;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.contest.entity.GlobalRanking;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.problem.entity.Problem;
@@ -90,9 +92,10 @@ public class RecommendationDataService {
             redisTemplate.opsForValue().set(AVAILABLE_PROBLEMS_KEY, json);
             log.info("Synced {} available problems to Redis", problemItems.size());
             return problemItems.size();
+        // broad catch: data collection failure -- log and use defaults
         } catch (Exception e) {
             log.error("Failed to sync available problems to Redis", e);
-            throw new RuntimeException("Redis sync failed for available problems", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis sync failed for available problems", e);
         }
     }
 
@@ -120,9 +123,10 @@ public class RecommendationDataService {
             redisTemplate.opsForValue().set(USER_PROBLEM_MATRIX_KEY, json);
             log.info("Synced user-problem matrix for {} users to Redis", userMatrix.size());
             return userMatrix.size();
+        // broad catch: data collection failure -- log and use defaults
         } catch (Exception e) {
             log.error("Failed to sync user-problem matrix to Redis", e);
-            throw new RuntimeException("Redis sync failed for user-problem matrix", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis sync failed for user-problem matrix", e);
         }
     }
 
@@ -154,9 +158,10 @@ public class RecommendationDataService {
             redisTemplate.opsForValue().set(USER_PROFILES_KEY, json);
             log.info("Synced user profiles for {} users to Redis", profiles.size());
             return profiles.size();
+        // broad catch: data collection failure -- log and use defaults
         } catch (Exception e) {
             log.error("Failed to sync user profiles to Redis", e);
-            throw new RuntimeException("Redis sync failed for user profiles", e);
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Redis sync failed for user profiles", e);
         }
     }
 
@@ -212,6 +217,7 @@ public class RecommendationDataService {
                     String key = SIMILAR_PROBLEMS_PREFIX + p.getId();
                     redisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(similar));
                     totalEntries++;
+                // broad catch: data collection failure -- log and use defaults
                 } catch (Exception e) {
                     log.error("Failed to sync similar problems for problem {}", p.getId(), e);
                 }

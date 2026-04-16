@@ -1,9 +1,21 @@
 # UltiCode 技术债务清偿
 
+## Current Milestone: v1.1 Technical Debt Remediation II
+
+**Goal:** 清偿 v1.0 延后的全部 19 项 MEDIUM/LOW 级别技术债务，使平台达到生产就绪状态
+
+**Target features (19 items, 6 categories):**
+- 安全配置加固: SEC-07, SEC-08, CONF-01, CONF-02, CONF-03
+- Admin 功能补全: AUDIT-01, FUNC-02, FUNC-03
+- 性能优化: PERF-01, PERF-02
+- 代码质量: QUAL-02, QUAL-03, QUAL-04
+- 依赖清理: DEP-01, DEP-02, DEP-03
+- 测试补充: TEST-02, TEST-03, TEST-04
+
 ## Current State
 
 **Shipped:** v1.0 Technical Debt Remediation (2026-04-16)
-**Status:** All 9 CRITICAL/HIGH technical debt items resolved across 4 phases (11 plans, 20 tasks)
+**Status:** v1.1 in progress — 19 MEDIUM/LOW technical debt items
 
 ## What This Is
 
@@ -29,18 +41,47 @@
 
 ### Active
 
-_(待 v1.1 里程碑定义)_
+**安全配置加固:**
+- SEC-07: CORS 允许来源外部化为环境变量
+- SEC-08: XssFilter 停止清理请求 Header
+- CONF-01: JWT Cookie Secure 标志在生产环境默认为 true
+- CONF-02: 创建 application-prod.yml 生产配置（禁用 Swagger、actuator 端点）
+- CONF-03: docker-compose.yml 移除弱默认密码
+
+**Admin 功能补全:**
+- AUDIT-01: BackupController 使用实际认证用户 ID 替代硬编码 "system"
+- FUNC-02: 实现 5 个 Admin TODO 桩（论坛社区、题目计数、论坛数据、审核详情）
+- FUNC-03: 实现审核平均解决时间计算（当前硬编码 0.0）
+
+**性能优化:**
+- PERF-01: 测试用例批量执行替代逐个 Docker 容器启动
+- PERF-02: Admin Analytics 使用数据库聚合替代全量实体加载
+
+**代码质量:**
+- QUAL-02: 修复 30+ 处宽泛 catch(Exception e) 为具体异常类型
+- QUAL-03: 拆分 AdminAnalyticsServiceImpl（553 行）
+- QUAL-04: 清理生产代码中的 console.log 语句
+
+**依赖清理:**
+- DEP-01: 移除 git 跟踪的 management/.env
+- DEP-02: 替换 SNAPSHOT 依赖为稳定版本
+- DEP-03: 评估并移除 SockJS 客户端依赖
+
+**测试补充:**
+- TEST-02: 补充前端 Console 关键路径测试（API 层、stores）
+- TEST-03: 补充前端 Management 关键路径测试
+- TEST-04: 添加后端 Controller 集成测试（@WebMvcTest）
 
 ### Out of Scope
 
-- 新功能开发（比赛系统增强、推荐系统完善等）— 本轮只清偿技术债务
-- CI/CD 流水线搭建 — 不在本次范围内
+- 新功能开发（比赛系统增强、推荐系统完善等）— v1.x 系列只清偿技术债务
+- CI/CD 流水线搭建 — 独立里程碑处理
 - 第三方安全审计 — 自查修复，不引入外部审计
 - UI/UX 重设计 — 拆分组件时仅做结构优化
 
 ## Context
 
-**代码库现状 (post-v1.0)：**
+**代码库现状 (post-v1.0, pre-v1.1)：**
 - 后端 Spring Boot 3.5 + MyBatis-Plus，26+ 模块
 - 前端 Console (Vue 3) ~200+ 源文件，Management (Vue 3) ~100+ 源文件
 - v1.0 变更: 378 files changed, +31,958 / -18,490 LOC
@@ -48,11 +89,13 @@ _(待 v1.1 里程碑定义)_
 - 测试: Testcontainers BOM 1.21.3, 71 新测试覆盖 auth/submission/code-execution
 - 前端: 所有 Vue 组件 < 500 行, co-located composables 模式建立
 
-**已知风险 (deferred to v2)：**
-- CORS 允许来源硬编码 (SEC-07)
-- 部分宽泛 catch(Exception e) 未修复 (QUAL-02)
-- 前端测试覆盖率仍低 (TEST-02/03)
-- Admin 功能仍有 5 个 TODO 桩 (FUNC-02)
+**v1.1 待解决 (19 items from v1.0 deferred)：**
+- 安全配置: CORS 外部化, Header 清理, 生产配置 (5 items)
+- Admin: TODO 桩实现, 审核时间计算, 备份用户 ID (3 items)
+- 性能: 批量测试执行, 数据库聚合 (2 items)
+- 代码质量: 异常处理, 大文件拆分, console.log (3 items)
+- 依赖: .env 清理, SNAPSHOT 替换, SockJS 评估 (3 items)
+- 测试: Console/Management 前端测试 + Controller 集成测试 (3 items)
 
 ## Constraints
 
@@ -99,4 +142,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-16 after v1.0 milestone*
+*Last updated: 2026-04-16 starting v1.1 milestone*

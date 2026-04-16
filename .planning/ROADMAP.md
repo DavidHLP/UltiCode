@@ -96,9 +96,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 08-01: Console frontend key-path tests — API layer, auth store, problem store (TEST-02)
-- [ ] 08-02: Management frontend key-path tests — API layer, admin store (TEST-03)
-- [ ] 08-03: Backend Controller @WebMvcTest integration tests (TEST-04)
+- [x] 08-01: Console frontend key-path tests — API layer, auth store, problem store (TEST-02)
+- [x] 08-02: Management frontend key-path tests — API layer, admin store (TEST-03)
+- [x] 08-03: Backend Controller @WebMvcTest integration tests (TEST-04)
 
 ## Progress
 

@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.service;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.admin.controller.AdminForumController.AdminForumCommunityVO;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
@@ -86,4 +87,13 @@ public interface AdminForumService {
      * @return bulk action result
      */
     BulkActionResult bulkAction(List<String> ids, String action);
+
+    /**
+     * Get paginated list of forum communities.
+     *
+     * @param page  page number (1-based)
+     * @param limit page size
+     * @return paginated result of admin forum community VOs
+     */
+    PageResult<AdminForumCommunityVO> getCommunities(int page, int limit);
 }

@@ -81,9 +81,9 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 07-01: Replace broad catch(Exception e) with specific exception types + D-03 comments for legitimate broad catches (QUAL-02)
-- [ ] 07-02: Split AdminAnalyticsServiceImpl into focused service classes (QUAL-03)
-- [ ] 07-03: Clean console.log/warn from frontend production code, replace SNAPSHOT deps, untrack management/.env (QUAL-04, DEP-01, DEP-02, DEP-03)
+- [x] 07-01: Replace broad catch(Exception e) with specific exception types + D-03 comments for legitimate broad catches (QUAL-02)
+- [x] 07-02: Split AdminAnalyticsServiceImpl into focused service classes (QUAL-03)
+- [x] 07-03: Clean console.log/warn from frontend production code, replace SNAPSHOT deps, untrack management/.env (QUAL-04, DEP-01, DEP-02, DEP-03)
 
 ### Phase 8: Testing
 **Goal**: Frontend Console and Management apps have key-path tests covering API layers and stores, and backend critical controllers have @WebMvcTest integration tests validating request/response contracts

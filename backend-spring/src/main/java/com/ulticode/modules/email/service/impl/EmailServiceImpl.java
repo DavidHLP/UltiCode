@@ -100,6 +100,7 @@ public class EmailServiceImpl implements EmailService {
             logMapper.updateById(emailLog);
 
             return toLogDTO(emailLog);
+        // broad catch: SMTP send + DB status update failures both map to failed email status
         } catch (Exception e) {
             log.error("Failed to send email to {}: {}", dto.getTo(), e.getMessage(), e);
 

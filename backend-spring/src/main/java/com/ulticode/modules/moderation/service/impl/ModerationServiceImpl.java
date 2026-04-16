@@ -81,7 +81,7 @@ public class ModerationServiceImpl implements ModerationService {
         stats.setUnderReviewCount(queueMapper.countUnderReview());
         stats.setResolvedToday(queueMapper.countResolvedToday());
         stats.setPendingAppealsCount(appealMapper.countPending());
-        stats.setAvgResolutionTimeHours(0.0); // TODO: Calculate from historical data
+        stats.setAvgResolutionTimeHours(queueMapper.avgResolutionTimeHours());
         return stats;
     }
 

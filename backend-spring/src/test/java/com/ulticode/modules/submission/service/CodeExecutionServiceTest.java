@@ -1,5 +1,6 @@
 package com.ulticode.modules.submission.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.submission.config.DockerSandboxConfig;
@@ -32,7 +33,7 @@ class CodeExecutionServiceTest {
 
     @BeforeEach
     void setUp() {
-        codeExecutionService = new CodeExecutionService(sandboxConfig);
+        codeExecutionService = new CodeExecutionService(sandboxConfig, new ObjectMapper());
     }
 
     private RunSubmissionDTO.RunTestCase createTestCase(String id, String output) {

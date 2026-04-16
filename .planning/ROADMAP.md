@@ -63,11 +63,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 06-01: Replace BackupController hardcoded "system" with actual authenticated user ID (AUDIT-01)
-- [ ] 06-02: Implement 5 Admin TODO stubs with real data (FUNC-02)
-- [ ] 06-03: Implement moderation average resolution time calculation (FUNC-03)
-- [ ] 06-04: Optimize admin analytics with database aggregation queries (PERF-02)
-- [ ] 06-05: Batch test case execution in single Docker container (PERF-01)
+- [x] 06-01: Replace BackupController hardcoded "system" with actual authenticated user ID (AUDIT-01)
+- [x] 06-02: Implement 5 Admin TODO stubs with real data (FUNC-02)
+- [x] 06-03: Implement moderation average resolution time calculation (FUNC-03)
+- [x] 06-04: Optimize admin analytics with database aggregation queries (PERF-02)
+- [x] 06-05: Batch test case execution in single Docker container (PERF-01)
 
 ### Phase 7: Code Quality & Dependencies
 **Goal**: Backend exception handling is precise (no broad `catch(Exception e)`), oversized service classes are split, debug logging is cleaned from production code, and all dependencies are stable versions with no git-tracked secrets

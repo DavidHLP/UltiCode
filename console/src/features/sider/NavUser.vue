@@ -70,7 +70,7 @@ onMounted(async () => {
   } catch (error) {
     // Don't show error toast for notification count failures
     // It's a non-critical UI element
-    console.warn("Failed to load notification count:", error);
+    // Failed to load notification count - non-critical UI element
   }
 });
 

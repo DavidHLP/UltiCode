@@ -63,7 +63,7 @@ async function fetchScoringRules() {
   } catch (error) {
     // Don't show error toast for permission issues - scoring rules are optional
     // The contest creation will work with default scoring
-    console.warn('Failed to load scoring rules:', error)
+    // Failed to load scoring rules - continue with default
     scoringRules.value = []
   } finally {
     loading.value = false

@@ -85,4 +85,15 @@ public interface ModerationQueueMapper extends BaseMapper<ModerationQueue> {
      */
     @Select("SELECT * FROM moderation_queue WHERE assigned_to_id = #{assignedToId} ORDER BY priority DESC, created_at ASC")
     List<ModerationQueue> findByAssignedTo(@Param("assignedToId") String assignedToId);
+
+    /**
+     * Calculate the average resolution time in hours for resolved moderation items.
+     * Returns 0.0 when no resolved items exist (COALESCE handles NULL from empty AVG).
+     *
+     * @return average resolution time in hours
+     */
+    @Select("SELECT COALESCE(AVG(TIMESTAMPDIFF(HOUR, created_at, resolved_at)), 0) "
+        + "FROM moderation_queue "
+        + "WHERE status = 'RESOLVED' AND resolved_at IS NOT NULL")
+    double avgResolutionTimeHours();
 }

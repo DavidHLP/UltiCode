@@ -21,6 +21,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.Collections;
 
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
+
 /**
  * JWT authentication filter that extracts and validates JWT tokens from requests.
  * Tokens can be provided via HTTP-only cookies (primary) or Authorization header (fallback).
@@ -79,8 +84,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
                     log.debug("Authenticated user: {} (userId: {}, role: {})", username, userId, role);
                 }
-            } catch (Exception e) {
-                log.error("Failed to authenticate user with JWT token: {}", e.getMessage());
+            } catch (ExpiredJwtException e) {
+                log.debug("JWT token expired during authentication: {}", e.getMessage());
+                SecurityContextHolder.clearContext();
+            } catch (MalformedJwtException | SignatureException | UnsupportedJwtException | IllegalArgumentException e) {
+                log.error("Invalid JWT token during authentication: {}", e.getMessage());
                 SecurityContextHolder.clearContext();
             }
         }

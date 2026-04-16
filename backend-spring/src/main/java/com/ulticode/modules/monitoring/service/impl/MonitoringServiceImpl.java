@@ -22,8 +22,10 @@ import java.lang.management.OperatingSystemMXBean;
 import java.lang.management.RuntimeMXBean;
 import java.lang.management.ThreadMXBean;
 import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -63,7 +65,7 @@ public class MonitoringServiceImpl implements MonitoringService {
         String hostname = "unknown";
         try {
             hostname = InetAddress.getLocalHost().getHostName();
-        } catch (Exception e) {
+        } catch (UnknownHostException e) {
             log.warn("Could not determine hostname", e);
         }
 
@@ -130,7 +132,7 @@ public class MonitoringServiceImpl implements MonitoringService {
             }
 
             status = "healthy";
-        } catch (Exception e) {
+        } catch (SQLException e) {
             log.error("Failed to get database stats", e);
             status = "unhealthy";
         }

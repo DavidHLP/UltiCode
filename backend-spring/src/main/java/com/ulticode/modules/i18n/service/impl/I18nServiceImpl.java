@@ -90,7 +90,7 @@ public class I18nServiceImpl implements I18nService {
                         field.setAccessible(true);
                         field.set(entity, translatedValue);
                     }
-                } catch (Exception e) {
+                } catch (IllegalAccessException e) {
                     log.debug("Could not apply translation to field '{}': {}", fieldName, e.getMessage());
                 }
             }

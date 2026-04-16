@@ -34,14 +34,9 @@ public class RecommendationDataController {
     @Operation(summary = "Seed Redis with recommendation data from MySQL")
     public Result<Map<String, Object>> seedRecommendationData() {
         log.info("Starting recommendation data seed to Redis...");
-        try {
-            Map<String, Object> stats = recommendationDataService.syncAll();
-            log.info("Recommendation data seed completed: {}", stats);
-            return Result.success(stats);
-        } catch (Exception e) {
-            log.error("Failed to seed recommendation data", e);
-            return Result.error(500, "Seed failed: " + e.getMessage());
-        }
+        Map<String, Object> stats = recommendationDataService.syncAll();
+        log.info("Recommendation data seed completed: {}", stats);
+        return Result.success(stats);
     }
 
     @PostMapping("/clear")
@@ -49,12 +44,7 @@ public class RecommendationDataController {
     @Operation(summary = "Clear all recommendation data from Redis")
     public Result<String> clearRecommendationData() {
         log.info("Clearing recommendation data from Redis...");
-        try {
-            recommendationDataService.clearAll();
-            return Result.success("Cleared successfully");
-        } catch (Exception e) {
-            log.error("Failed to clear recommendation data", e);
-            return Result.error(500, "Clear failed: " + e.getMessage());
-        }
+        recommendationDataService.clearAll();
+        return Result.success("Cleared successfully");
     }
 }

@@ -8,6 +8,10 @@ import com.ulticode.modules.user.service.UserService;
 import com.ulticode.modules.websocket.dto.SocketClientData;
 import com.ulticode.modules.websocket.util.TokenExtractor;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.MalformedJwtException;
+import io.jsonwebtoken.UnsupportedJwtException;
+import io.jsonwebtoken.security.SignatureException;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -67,11 +71,14 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
         validateUserSession(accessor, command);
       }
     } catch (WebSocketAuthenticationException e) {
-      log.error("WebSocket auth error for session {}: {} - {}", 
+      log.error("WebSocket auth error for session {}: {} - {}",
           accessor.getSessionId(), e.getErrorCode(), e.getMessage());
       throw e;
-    } catch (Exception e) {
-      log.error("WebSocket error for session {}: {}", accessor.getSessionId(), e.getMessage(), e);
+    } catch (ExpiredJwtException e) {
+      log.error("WebSocket JWT expired for session {}: {}", accessor.getSessionId(), e.getMessage());
+      throw e;
+    } catch (MalformedJwtException | SignatureException | UnsupportedJwtException | IllegalArgumentException e) {
+      log.error("WebSocket invalid JWT for session {}: {}", accessor.getSessionId(), e.getMessage());
       throw e;
     }
 
@@ -84,19 +91,23 @@ public class JwtChannelInterceptor implements ChannelInterceptor {
   private Message<?> handleConnect(StompHeaderAccessor accessor, Message<?> message, MessageChannel channel) {
     log.debug("=== Handling CONNECT for sessionId: {} ===", accessor.getSessionId());
     log.debug("Session attributes BEFORE auth: {}", accessor.getSessionAttributes());
-    
+
     try {
       authenticateConnection(accessor);
       log.debug("=== CONNECT authenticated successfully for sessionId: {} ===", accessor.getSessionId());
       log.debug("Session attributes AFTER auth: {}", accessor.getSessionAttributes());
       log.debug("User principal AFTER auth: {}", accessor.getUser());
     } catch (WebSocketAuthenticationException e) {
-      log.error("=== CONNECT auth FAILED for sessionId: {}: {} ===", 
+      log.error("=== CONNECT auth FAILED for sessionId: {}: {} ===",
           accessor.getSessionId(), e.getErrorCode());
       throw e;
-    } catch (Exception e) {
-      log.error("=== Unexpected error in CONNECT for sessionId: {}: {} ===", 
-          accessor.getSessionId(), e.getMessage(), e);
+    } catch (ExpiredJwtException e) {
+      log.error("=== JWT expired in CONNECT for sessionId: {}: {} ===",
+          accessor.getSessionId(), e.getMessage());
+      throw e;
+    } catch (MalformedJwtException | SignatureException | UnsupportedJwtException | IllegalArgumentException e) {
+      log.error("=== Invalid JWT in CONNECT for sessionId: {}: {} ===",
+          accessor.getSessionId(), e.getMessage());
       throw e;
     }
     

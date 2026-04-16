@@ -17,7 +17,7 @@ Does NOT cover: New admin features, UI redesign, new API endpoints beyond replac
 ## Implementation Decisions
 
 ### Audit Trail User Resolution
-- **D-01:** Use existing `@CurrentUser` annotation in BackupController to inject authenticated user. Pattern already established in 10+ controllers (AuthController, ModerationController, ContestServiceImpl, etc.). Replace `String userId = "system"` with `@CurrentUser User user` parameter, pass `user.getId()`.
+- **D-01:** Use `SecurityUtil.getCurrentUserId()` in BackupController (NOT `@CurrentUser` — the annotation has no registered HandlerMethodArgumentResolver; WebMvcConfig.java and WebConfig.java are empty). The `SecurityUtil` static method is the working pattern. Replace `String userId = "system"` with `SecurityUtil.getCurrentUserId()`.
 
 ### Admin TODO Stub Implementation
 - **D-02:** Extend existing MyBatis-Plus mappers with new query methods rather than creating new mapper classes. All stubs are in admin module which already has access to all entity mappers (forum, problem, moderation, etc.).

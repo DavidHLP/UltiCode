@@ -261,7 +261,6 @@ function createSocketManager(): SocketManager {
 
         if (isAuthError) {
           // Auth error means user is not logged in - stop reconnecting
-          console.warn("[WebSocket] Auth error - stopping reconnect attempts");
           reconnectAttempts = maxReconnectAttempts; // Prevent further reconnect
           // Deactivate to stop reconnection attempts
           if (client) {
@@ -331,7 +330,6 @@ function createSocketManager(): SocketManager {
 
   const subscribeToContest = (contestId: string) => {
     if (!client?.connected) {
-      console.warn("[WebSocket] Cannot subscribe to contest: not connected");
       return;
     }
 
@@ -376,7 +374,6 @@ function createSocketManager(): SocketManager {
 
   const subscribeToCommunity = (communityId: string) => {
     if (!client?.connected) {
-      console.warn("[WebSocket] Cannot subscribe to community: not connected");
       return;
     }
 

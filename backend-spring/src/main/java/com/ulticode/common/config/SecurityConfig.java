@@ -17,9 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.header.writers.XXssProtectionHeaderWriter;
-import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 /**
  * Spring Security configuration.
@@ -34,6 +32,7 @@ public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final AuthenticationEntryPointImpl authenticationEntryPoint;
     private final CsrfService csrfService;
+    private final CorsProperties corsProperties;
 
     /**
      * Define public endpoints that don't require authentication.
@@ -147,43 +146,13 @@ public class SecurityConfig {
 
     /**
      * CORS configuration source for Spring Security.
+     * Delegates to CorsProperties for externalized origin configuration.
      *
      * @return the CORS configuration source
      */
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration config = new CorsConfiguration();
-
-        // Allow credentials (cookies, authorization headers)
-        config.setAllowCredentials(true);
-
-        // Allowed origins
-        config.setAllowedOriginPatterns(java.util.Arrays.asList(
-                "http://localhost:9002",
-                "http://localhost:9003",
-                "http://127.0.0.1:9002",
-                "http://127.0.0.1:9003"
-        ));
-
-        // Allowed HTTP methods
-        config.setAllowedMethods(java.util.Arrays.asList(
-                "GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"
-        ));
-
-        // Allowed headers (all)
-        config.setAllowedHeaders(java.util.Collections.singletonList("*"));
-
-        // Exposed headers
-        config.setExposedHeaders(java.util.Arrays.asList(
-                "Authorization", "Set-Cookie", "Content-Disposition", "X-New-CSRF-Token"
-        ));
-
-        // Max age for preflight cache (1 hour)
-        config.setMaxAge(3600L);
-
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", config);
-        return source;
+        return corsProperties.toConfigurationSource();
     }
 
     /**

@@ -18,7 +18,8 @@ public class WebSocketProperties {
   /** Enable first solve notifications feature. */
   private FeatureConfig firstSolveNotifications = new FeatureConfig(true);
 
-  /** Allowed CORS origins for WebSocket connections. */
+  /** Allowed CORS origins for WebSocket connections. Reads from shared cors.allowed-origins property. */
+  @org.springframework.beans.factory.annotation.Value("${cors.allowed-origins:http://localhost:9002,http://localhost:9003}")
   private String[] allowedOrigins = {"http://localhost:9002", "http://localhost:9003"};
 
   // Getters and setters

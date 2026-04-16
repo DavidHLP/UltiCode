@@ -233,6 +233,7 @@ public class AdminForumServiceImpl implements AdminForumService {
                 }
                 item.setSuccess(true);
                 response.setSuccessful(response.getSuccessful() + 1);
+            // broad catch: all failures map to same error response
             } catch (Exception e) {
                 log.error("Failed to perform action {} on post {}", action, id, e);
                 item.setSuccess(false);

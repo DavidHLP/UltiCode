@@ -60,6 +60,7 @@ public class SearchServiceImpl implements SearchService {
         if (isMeiliSearchAvailable()) {
             try {
                 return searchWithMeiliSearch(queryDTO);
+            // broad catch: fallback to database search on MeiliSearch failure
             } catch (Exception e) {
                 log.warn("MeiliSearch search failed, falling back to database: {}", e.getMessage());
             }
@@ -143,6 +144,7 @@ public class SearchServiceImpl implements SearchService {
             }
 
             return items.toArray(new SearchResponseVO.SearchResultItem[0]);
+        // broad catch: fallback to database search on MeiliSearch failure
         } catch (Exception e) {
             log.error("Error searching MeiliSearch index {}: {}", indexType.getIndexName(), e.getMessage());
             return new SearchResponseVO.SearchResultItem[0];

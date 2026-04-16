@@ -99,6 +99,7 @@ public class ProblemListServiceImpl implements ProblemListService {
             result.setCategories(categories.stream()
                     .map(this::toCategorySummaryVO)
                     .collect(Collectors.toList()));
+        // broad catch: table may not exist in all deployments
         } catch (Exception e) {
             log.warn("Categories table may not exist: {}", e.getMessage());
             result.setCategories(Collections.emptyList());

@@ -157,6 +157,7 @@ public class MonitoringServiceImpl implements MonitoringService {
             try {
                 QueueStatsVO queueStats = getQueueStats(queueName);
                 queues.add(queueStats);
+            // broad catch: any failure means service is unhealthy
             } catch (Exception e) {
                 log.warn("Could not get stats for queue: {}", queueName, e);
                 queues.add(QueueStatsVO.builder()
@@ -207,6 +208,7 @@ public class MonitoringServiceImpl implements MonitoringService {
                     .totalKeys(totalKeys)
                     .uptimeInSeconds(uptime)
                     .build();
+        // broad catch: any failure means service is unhealthy
         } catch (Exception e) {
             log.error("Failed to get Redis stats", e);
             return RedisStatsVO.builder()
@@ -255,6 +257,7 @@ public class MonitoringServiceImpl implements MonitoringService {
                     .latency(latency)
                     .message("Database responding normally")
                     .build();
+        // broad catch: any failure means service is unhealthy
         } catch (Exception e) {
             long latency = System.currentTimeMillis() - start;
             return SystemHealthVO.HealthCheck.builder()
@@ -288,6 +291,7 @@ public class MonitoringServiceImpl implements MonitoringService {
                         .message("Redis returned unexpected response: " + pong)
                         .build();
             }
+        // broad catch: any failure means service is unhealthy
         } catch (Exception e) {
             long latency = System.currentTimeMillis() - start;
             return SystemHealthVO.HealthCheck.builder()
@@ -320,6 +324,7 @@ public class MonitoringServiceImpl implements MonitoringService {
                     .latency(0L)
                     .message("Queues operating normally")
                     .build();
+        // broad catch: any failure means service is unhealthy
         } catch (Exception e) {
             return SystemHealthVO.HealthCheck.builder()
                     .service("queues")
@@ -349,6 +354,7 @@ public class MonitoringServiceImpl implements MonitoringService {
             RuntimeMXBean runtimeMXBean = ManagementFactory.getRuntimeMXBean();
             String jvmName = runtimeMXBean.getName();
             return Long.parseLong(jvmName.split("@")[0]);
+        // broad catch: JVM runtime access may fail in restricted environments
         } catch (Exception e) {
             return -1L;
         }
@@ -359,6 +365,7 @@ public class MonitoringServiceImpl implements MonitoringService {
             com.sun.management.OperatingSystemMXBean osBean =
                     (com.sun.management.OperatingSystemMXBean) ManagementFactory.getOperatingSystemMXBean();
             return osBean.getProcessCpuLoad();
+        // broad catch: JVM runtime access may fail in restricted environments
         } catch (Exception e) {
             return -1.0;
         }
@@ -369,6 +376,7 @@ public class MonitoringServiceImpl implements MonitoringService {
             com.sun.management.OperatingSystemMXBean osBean =
                     (com.sun.management.OperatingSystemMXBean) osMXBean;
             return osBean.getCpuLoad();
+        // broad catch: JVM runtime access may fail in restricted environments
         } catch (Exception e) {
             // Fallback to system load average
             double loadAverage = osMXBean.getSystemLoadAverage();
@@ -418,6 +426,7 @@ public class MonitoringServiceImpl implements MonitoringService {
                 Long size = connection.setCommands().sCard(key.getBytes());
                 return size != null ? size : 0L;
             });
+        // broad catch: Redis operation failure returns default
         } catch (Exception e) {
             return 0L;
         }
@@ -429,6 +438,7 @@ public class MonitoringServiceImpl implements MonitoringService {
                 return connection.listCommands().lLen(key.getBytes());
             });
             return length != null ? length : 0L;
+        // broad catch: Redis operation failure returns default
         } catch (Exception e) {
             return 0L;
         }

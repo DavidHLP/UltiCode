@@ -43,7 +43,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. XssFilter no longer strips or modifies request headers, so CSRF tokens in headers pass through unmodified
   3. In production profile, JWT cookies are sent with `Secure=true` and Swagger UI is inaccessible
   4. docker-compose.yml contains no plaintext passwords; all credentials are injected via environment variables or .env files
-**Plans**: 5 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 05-01: Externalize CORS origins to environment variables (SEC-07)
@@ -60,7 +60,7 @@ Plans:
   2. Admin analytics pages display real computed values (forum community stats, problem counts, moderation average resolution time) instead of placeholder zeros or TODO stubs
   3. Admin analytics dashboard loads without loading the entire database into memory — response time improves measurably for large datasets
   4. Code submission test cases execute in a single Docker container startup rather than one container per test case, reducing total judging time
-**Plans**: 5 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 06-01: Replace BackupController hardcoded "system" with actual authenticated user ID (AUDIT-01)
@@ -93,7 +93,7 @@ Plans:
   1. Console frontend has tests covering the request API layer, auth store login/refresh flow, and problem store data fetching
   2. Management frontend has tests covering the admin API layer and at least one admin store with CRUD operations
   3. Backend AuthController and ProblemController have @WebMvcTest integration tests verifying endpoint authentication, request validation, and response format
-**Plans**: 5 plans
+**Plans**: 3 plans
 
 Plans:
 - [ ] 08-01: Console frontend key-path tests — API layer, auth store, problem store (TEST-02)

@@ -1,5 +1,9 @@
 # Development Profile Configuration
 
+# CORS Configuration for Development
+cors:
+  allowed-origins: http://localhost:9002,http://localhost:9003,http://127.0.0.1:9002,http://127.0.0.1:9003
+
 server:
   port: ${SERVER_PORT:9001}
 

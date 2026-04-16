@@ -71,26 +71,15 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         }
         report.setActiveUsersDaily(dailyActiveUsers);
 
-        // Weekly active users
+        // Weekly active users - single aggregation query replacing per-week N+1 loop
         List<UserActivityReportVO.DailyActiveUsers> weeklyActiveUsers = new ArrayList<>();
-        for (int i = (daysToAnalyze / 7); i >= 0; i--) {
-            LocalDateTime weekStart = LocalDateTime.now().minusWeeks(i).withHour(0).withMinute(0).withSecond(0);
-            LocalDateTime weekEnd = weekStart.plusWeeks(1);
-
-            LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
-            wrapper.ge(Submission::getCreatedAt, weekStart)
-                    .lt(Submission::getCreatedAt, weekEnd);
-
-            List<Submission> submissions = submissionMapper.selectList(wrapper);
-            long activeUsers = submissions.stream()
-                    .map(Submission::getUserId)
-                    .distinct()
-                    .count();
-
-            weeklyActiveUsers.add(new UserActivityReportVO.DailyActiveUsers(
-                    weekStart.toLocalDate().toString(),
-                    (int) activeUsers
-            ));
+        List<Map<String, Object>> weeklyCounts = submissionMapper.countWeeklyActiveUsers(startDate);
+        for (Map<String, Object> row : weeklyCounts) {
+            String weekStart = row.get("week_start") != null
+                    ? row.get("week_start").toString()
+                    : row.get("yearweek").toString();
+            int count = ((Number) row.get("count")).intValue();
+            weeklyActiveUsers.add(new UserActivityReportVO.DailyActiveUsers(weekStart, count));
         }
         report.setActiveUsersWeekly(weeklyActiveUsers);
 
@@ -101,46 +90,31 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         retention.setDay30(calculateRetentionRate(30));
         report.setUserRetention(retention);
 
-        // Peak active hours
+        // Peak active hours - single aggregation query replacing 24 individual COUNT queries
         List<UserActivityReportVO.PeakActiveHour> peakHours = new ArrayList<>();
-        for (int hour = 0; hour < 24; hour++) {
-            LocalDateTime hourStart = LocalDateTime.now().withHour(hour).withMinute(0).withSecond(0);
-            LocalDateTime hourEnd = hourStart.plusHours(1);
-
-            LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
-            wrapper.ge(Submission::getCreatedAt, hourStart)
-                    .lt(Submission::getCreatedAt, hourEnd);
-
-            long count = submissionMapper.selectCount(wrapper);
-            peakHours.add(new UserActivityReportVO.PeakActiveHour(hour, (int) count));
+        List<Map<String, Object>> hourCounts = submissionMapper.countActiveUsersByHour(LocalDateTime.now().minusDays(30));
+        for (Map<String, Object> row : hourCounts) {
+            int hour = ((Number) row.get("hour")).intValue();
+            int count = ((Number) row.get("count")).intValue();
+            peakHours.add(new UserActivityReportVO.PeakActiveHour(hour, count));
         }
-        // Sort by count descending and take top 24
         peakHours.sort((a, b) -> Long.compare(b.getCount(), a.getCount()));
         report.setPeakActiveHours(peakHours.stream().limit(24).collect(Collectors.toList()));
 
-        // Top active users (by submission count)
-        Map<String, Long> userSubmissionCounts = new HashMap<>();
-        LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
-        wrapper.ge(Submission::getCreatedAt, startDate);
-
-        List<Submission> recentSubmissions = submissionMapper.selectList(wrapper);
-        for (Submission submission : recentSubmissions) {
-            userSubmissionCounts.merge(submission.getUserId(), 1L, Long::sum);
+        // Top active users - single aggregation query replacing load-all + Java groupBy + N user lookups
+        List<UserActivityReportVO.TopActiveUser> topUsers = new ArrayList<>();
+        List<Map<String, Object>> topUserCounts = submissionMapper.findTopActiveUsers(startDate, 10);
+        for (Map<String, Object> row : topUserCounts) {
+            String userId = row.get("user_id").toString();
+            int count = ((Number) row.get("submission_count")).intValue();
+            User user = userMapper.selectById(userId);
+            topUsers.add(new UserActivityReportVO.TopActiveUser(
+                    userId,
+                    user != null ? user.getUsername() : "Unknown",
+                    count,
+                    user != null ? user.getLastLoginAt() : null
+            ));
         }
-
-        List<UserActivityReportVO.TopActiveUser> topUsers = userSubmissionCounts.entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
-                .limit(10)
-                .map(entry -> {
-                    User user = userMapper.selectById(entry.getKey());
-                    return new UserActivityReportVO.TopActiveUser(
-                            entry.getKey(),
-                            user != null ? user.getUsername() : "Unknown",
-                            entry.getValue().intValue(),
-                            user != null ? user.getLastLoginAt() : null
-                    );
-                })
-                .collect(Collectors.toList());
         report.setTopActiveUsers(topUsers);
 
         // Average session duration (default value)
@@ -173,30 +147,18 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         double overallRate = totalAttempts > 0 ? (successfulAttempts * 100.0 / totalAttempts) : 0.0;
         report.setOverallCompletionRate(overallRate);
 
-        // By difficulty
-        List<ProblemCompletionReportVO.DifficultyStats> byDifficulty = Arrays.asList("EASY", "MEDIUM", "HARD").stream()
-                .map(difficulty -> {
-                    LambdaQueryWrapper<Problem> problemWrapper = new LambdaQueryWrapper<>();
-                    problemWrapper.eq(Problem::getDifficulty, difficulty)
-                            .eq(Problem::getStatus, "PUBLISHED");
-
-                    List<Problem> problems = problemMapper.selectList(problemWrapper);
-                    int totalProblems = problems.size();
-
-                    int solvedProblems = 0;
-                    for (Problem problem : problems) {
-                        LambdaQueryWrapper<Submission> subWrapper = new LambdaQueryWrapper<>();
-                        subWrapper.eq(Submission::getProblemId, problem.getId())
-                                .eq(Submission::getStatus, "Accepted");
-                        if (submissionMapper.selectCount(subWrapper) > 0) {
-                            solvedProblems++;
-                        }
-                    }
-
-                    double rate = totalProblems > 0 ? (solvedProblems * 100.0 / totalProblems) : 0.0;
-                    return new ProblemCompletionReportVO.DifficultyStats(difficulty, totalProblems, solvedProblems, rate);
-                })
-                .collect(Collectors.toList());
+        // By difficulty - single aggregation query replacing per-difficulty per-problem N+1 loop
+        List<ProblemCompletionReportVO.DifficultyStats> byDifficulty = new ArrayList<>();
+        List<Map<String, Object>> diffStats = submissionMapper.countProblemCompletionByDifficulty();
+        Map<String, Map<String, Object>> diffMap = diffStats.stream()
+                .collect(Collectors.toMap(row -> row.get("difficulty").toString(), row -> row));
+        for (String difficulty : Arrays.asList("EASY", "MEDIUM", "HARD")) {
+            Map<String, Object> stats = diffMap.get(difficulty);
+            int totalProblems = stats != null ? ((Number) stats.get("total_problems")).intValue() : 0;
+            int solvedProblems = stats != null ? ((Number) stats.get("solved_problems")).intValue() : 0;
+            double rate = totalProblems > 0 ? (solvedProblems * 100.0 / totalProblems) : 0.0;
+            byDifficulty.add(new ProblemCompletionReportVO.DifficultyStats(difficulty, totalProblems, solvedProblems, rate));
+        }
         report.setByDifficulty(byDifficulty);
 
         // By tag (top 10)
@@ -232,31 +194,22 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
                 .collect(Collectors.toList());
         report.setByTag(byTag);
 
-        // Trending problems (most attempted)
-        Map<Long, Long> problemAttempts = new HashMap<>();
-        for (Submission submission : submissionMapper.selectList(allWrapper)) {
-            problemAttempts.merge(submission.getProblemId(), 1L, Long::sum);
+        // Trending problems - single aggregation query replacing load-all + Java groupBy + N lookups
+        List<ProblemCompletionReportVO.TrendingProblem> trendingProblems = new ArrayList<>();
+        List<Map<String, Object>> trendingData = submissionMapper.findTrendingProblems(startDate, 10);
+        for (Map<String, Object> row : trendingData) {
+            long problemId = ((Number) row.get("problem_id")).longValue();
+            int attemptCount = ((Number) row.get("attempt_count")).intValue();
+            int acceptedCount = ((Number) row.get("accepted_count")).intValue();
+            double rate = attemptCount > 0 ? (acceptedCount * 100.0 / attemptCount) : 0.0;
+            Problem problem = problemMapper.selectById(problemId);
+            trendingProblems.add(new ProblemCompletionReportVO.TrendingProblem(
+                    String.valueOf(problemId),
+                    problem != null ? problem.getTitle() : "Problem " + problemId,
+                    attemptCount,
+                    rate
+            ));
         }
-
-        List<ProblemCompletionReportVO.TrendingProblem> trendingProblems = problemAttempts.entrySet().stream()
-                .sorted(Map.Entry.<Long, Long>comparingByValue().reversed())
-                .limit(10)
-                .map(entry -> {
-                    Problem problem = problemMapper.selectById(entry.getKey());
-                    long acceptedCount = submissionMapper.selectCount(
-                            new LambdaQueryWrapper<Submission>()
-                                    .eq(Submission::getProblemId, entry.getKey())
-                                    .eq(Submission::getStatus, "Accepted")
-                    );
-                    double rate = entry.getValue() > 0 ? (acceptedCount * 100.0 / entry.getValue()) : 0.0;
-                    return new ProblemCompletionReportVO.TrendingProblem(
-                            entry.getKey().toString(),
-                            problem != null ? problem.getTitle() : "Problem " + entry.getKey(),
-                            entry.getValue().intValue(),
-                            rate
-                    );
-                })
-                .collect(Collectors.toList());
         report.setTrendingProblems(trendingProblems);
 
         // Hardest problems (lowest completion rate)
@@ -500,7 +453,10 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
 
     /**
      * Calculate retention rate for a given day.
-     * Uses COUNT queries instead of loading all submissions into memory.
+     * Uses COUNT(DISTINCT user_id) aggregation queries for accurate distinct user counting.
+     * Previous implementation used selectCount with groupBy which returns the count of the
+     * first group only, not the total distinct user count (MyBatis-Plus Pitfall 4).
+     *
      * NOTE: This is an approximation using distinct user counts rather than
      * a true set intersection. For exact retention, a dedicated
      * subquery-based approach or materialized view is needed.
@@ -514,23 +470,13 @@ public class AdminAnalyticsServiceImpl implements AdminAnalyticsService {
         LocalDateTime dayNStart = dayNDate.withHour(0).withMinute(0).withSecond(0);
         LocalDateTime dayNEnd = dayNStart.plusDays(1);
 
-        long day0DistinctUsers = submissionMapper.selectCount(
-                new LambdaQueryWrapper<Submission>()
-                        .ge(Submission::getCreatedAt, day0Start)
-                        .lt(Submission::getCreatedAt, day0End)
-                        .isNotNull(Submission::getUserId)
-                        .groupBy(Submission::getUserId));
+        long day0DistinctUsers = submissionMapper.countDistinctUsersInRange(day0Start, day0End);
 
         if (day0DistinctUsers == 0) {
             return 0.0;
         }
 
-        long dayNDistinctUsers = submissionMapper.selectCount(
-                new LambdaQueryWrapper<Submission>()
-                        .ge(Submission::getCreatedAt, dayNStart)
-                        .lt(Submission::getCreatedAt, dayNEnd)
-                        .isNotNull(Submission::getUserId)
-                        .groupBy(Submission::getUserId));
+        long dayNDistinctUsers = submissionMapper.countDistinctUsersInRange(dayNStart, dayNEnd);
 
         // Approximate retention: ratio of distinct active users on day N vs day 0
         return Math.min(dayNDistinctUsers * 100.0 / day0DistinctUsers, 100.0);

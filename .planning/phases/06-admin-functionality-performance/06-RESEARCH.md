@@ -393,7 +393,7 @@ TEST_CASES=$(cat)
 | A5 | Docker sandbox image supports all 5 languages | PERF-01 | HIGH -- verified by reading Dockerfile which installs nodejs, python3, openjdk-17, gcc, g++. Image must be built before use. |
 | A6 | Spring Boot 3.5.12 `RuntimeMXBean` provides memory metrics | FUNC-02 (D-05) | LOW -- `ManagementFactory.getRuntimeMXBean().getUptime()` is already used in the codebase (L468). Memory metrics available via `MemoryMXBean`. |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should the batch wrapper script be a separate file or embedded in the Java code?**
    - What we know: The wrapper needs to handle 5 languages with different compilation/execution models.

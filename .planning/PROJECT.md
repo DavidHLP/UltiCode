@@ -1,8 +1,14 @@
 # UltiCode 技术债务清偿
 
-## Current Milestone: (Next milestone TBD)
+## Current Milestone: v1.2 CI/CD Pipeline
 
-**Goal:** 待规划下一里程碑
+**Goal:** Build automated CI/CD pipeline with GitHub Actions — lint/test on PR, Docker image build + push to registry, auto-deploy via Docker Compose to VPS.
+
+**Target features:**
+- CI Pipeline: lint, type-check, test on every PR/push
+- CD Pipeline: auto-deploy via Docker Compose after merge to main
+- Container Registry: Docker image build + push for all 3 services
+- Services in scope: Backend (9001), Console (9002), Management (9003)
 
 ## Current State
 
@@ -57,9 +63,10 @@
 ### Out of Scope
 
 - 新功能开发（比赛系统增强、推荐系统完善等）— v1.x 系列只清偿技术债务
-- CI/CD 流水线搭建 — 独立里程碑处理
 - 第三方安全审计 — 自查修复，不引入外部审计
 - UI/UX 重设计 — 拆分组件时仅做结构优化
+- Kubernetes 部署 — Docker Compose 先满足需求
+- Branch protection rules — 可手动在 GitHub 配置
 
 ## Context
 

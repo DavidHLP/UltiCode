@@ -1,134 +1,245 @@
-# Feature Landscape: Critical Security & Core Functionality Fixes
+# Feature Research: CI/CD Pipeline with GitHub Actions + Docker Compose
 
-**Domain:** Technical debt remediation for an online judge platform (Spring Boot + Vue 3)
-**Researched:** 2026-04-14
-**Overall confidence:** HIGH -- findings based on direct codebase inspection, existing CONCERNS.md audit, and source code analysis
+**Domain:** CI/CD Pipeline for Spring Boot + Vue 3 Monorepo
+**Researched:** 2026-04-17
+**Confidence:** HIGH
 
-## Executive Summary
+## Feature Landscape
 
-This document maps the expected behavior, complexity, and dependencies for 9 fixes scoped in Milestone v1.0. These are not new features -- they are corrections to existing code that is either broken, insecure, or a non-functional placeholder. The fixes fall into two categories: **security hardening** (6 items) where the expected behavior is that the platform becomes resistant to known attack vectors, and **functional completion** (3 items) where the expected behavior is that existing stubs/TODOs become working features.
+### Table Stakes (Users Expect These)
 
-The codebase already has the building blocks for every fix: `spring-boot-starter-mail` and `EmailServiceImpl` exist for SEC-02, `QueueService.enqueueJudgeJob()` exists for FUNC-01, `CsrfService` + `CsrfInterceptor` exist for SEC-01. The work is integration and wiring, not greenfield development.
+Features any CI/CD pipeline for this stack must have. Missing these = the pipeline is not production-viable.
 
-## Table Stakes (Must-Fix for Security Baseline)
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| **PR Lint/Type-Check** | Catches regressions before merge | LOW | Both frontends already have `pnpm lint` + `vue-tsc --build` scripts. Backend has Maven. Path-filter so only changed components run checks. |
+| **PR Test Execution** | Validates correctness before merge | MEDIUM | Backend uses Testcontainers (MySQL) requiring service containers in CI. 34 test classes exist. Frontends use Vitest. |
+| **Docker Image Build** | Creates deployable artifacts from multi-stage Dockerfiles | LOW | Three Dockerfiles already exist (backend-spring, console, management). All use multi-stage builds with non-root users and healthchecks. |
+| **Image Push to GHCR** | Stores versioned images for deployment | LOW | `docker-compose.prod.yml` already references `${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend:${IMAGE_TAG:-latest}` pattern. Use `docker/build-push-action` with `type=gha` cache. |
+| **Path-Based Triggering** | Avoids running backend CI when only console changed | LOW | Use `paths:` filters on workflow triggers. Three source trees: `backend-spring/`, `console/`, `management/`. |
+| **Environment Secrets** | Credentials never in repo | LOW | GitHub Secrets for JWT_SECRET, DB_PASSWORD, GHCR_TOKEN. `.env.example` files already exist as templates. `.env` and `backend-spring/.env` are gitignored. |
+| **Build Caching** | CI runs under 10 min, not 30+ | MEDIUM | Maven `dependency:go-offline` layer in backend Dockerfile. pnpm store cache for frontends. `actions/cache` or Docker BuildKit `type=gha` cache. |
+| **Status Checks on PR** | Branch protection gates merge on passing CI | LOW | Set `ci.yml` as required status check. Separate lint, test, and build jobs for granular failure diagnosis. |
 
-These fixes are non-negotiable. Without them, the platform has known security vulnerabilities or non-functional core features. Missing any one of these means the platform is not production-ready.
+### Differentiators (Competitive Advantage)
 
-| Fix ID | Fix | Why Required | Complexity | Current State | Expected Behavior After Fix |
-|--------|-----|-------------|------------|---------------|---------------------------|
-| SEC-01 | CSRF Spring Security framework integration | CSRF is disabled at framework level; custom interceptor coverage is unknown; any uncovered endpoint is vulnerable | Medium | `SecurityConfig.java:90` calls `AbstractHttpConfigurer::disable()`. Custom `CsrfInterceptor` + `CsrfService` (Redis-backed token rotation) exist but live outside Spring Security's filter chain | Spring Security's CSRF protection is enabled and integrated with the existing `CsrfService`. Token is generated/validated at framework level. All state-changing endpoints (POST/PUT/PATCH/DELETE) require valid CSRF token. Cookie-based or session-based CSRF token is issued on GET requests and validated on mutating requests. |
-| SEC-02 | Password reset email sending | Password reset flow is non-functional; users cannot recover accounts in production | Low | `PasswordResetService.forgotPassword()` generates reset token and logs URL to server logs. `// TODO: Send email (Phase 3 full implementation)`. `EmailServiceImpl` already exists with `sendEmail()`, template rendering, SMTP support, and `JavaMailSender`. | `PasswordResetService.forgotPassword()` calls `EmailServiceImpl.sendEmail()` with a password-reset template containing the reset URL. User receives an email with a clickable link. The `app.email.enabled` flag gates between SMTP and log-only mode. Email log is recorded in `email_log` table with SENT/FAILED status. |
-| SEC-03 | UserDetailsServiceImpl resolution | Placeholder `@Service` always throws `UsernameNotFoundException`; if any code path invokes Spring Security's `UserDetailsService`, authentication breaks | Low | `UserDetailsServiceImpl.java` is annotated `@Service` and implements `UserDetailsService`. `loadUserByUsername()` always throws. JWT auth works independently of this class. `UserMapper` exists in `modules/user/mapper/`. | Either: (a) Implement `loadUserByUsername()` to query `UserMapper` and return `UserDetails` with correct authorities, or (b) Remove `@Service` annotation / add `@ConditionalOnProperty` so Spring Security does not register a broken `UserDetailsService`. If JWT-only auth is confirmed, option (b) is preferred to reduce attack surface. |
-| SEC-04 | Docker sandbox seccomp isolation | Sandbox container runs arbitrary user code without seccomp profile, AppArmor, or capability restrictions beyond default Docker | Medium | `Dockerfile` installs gcc, g++, openjdk-17-jdk-headless, nodejs, python3. Runs as non-root user `sandbox`. `--network=none` is used. No seccomp, no `--cap-drop`, no resource limits beyond Docker defaults. `CodeExecutionService.java:160-202` builds Docker run commands. | A custom seccomp JSON profile blocks dangerous syscalls (`ptrace`, `mount`, `keyctl`, `clone`, `unshare`, `pivot_root`, etc.) while allowing necessary ones for compilation and execution. Docker commands include `--cap-drop=ALL` and `--security-opt seccomp=profile.json`. Sandbox still compiles and executes C/C++, Java, Python, JavaScript, and Go correctly. |
-| SEC-05 | JWT secret startup validation | `jwt.secret: ${JWT_SECRET:}` has empty default; app starts with empty secret, making tokens trivially forgeable | Low | `JwtProperties.java` has `private String secret` with no validation. `application.yml:48` defines `jwt.secret: ${JWT_SECRET:}`. `JwtTokenProvider.java` uses `secret` for HMAC signing. | `JwtProperties` (or `JwtTokenProvider`) has a `@PostConstruct` method that throws `IllegalStateException` if `secret` is null, empty, or shorter than 32 characters (256 bits for HS256). Application fails to start with a clear error message if `JWT_SECRET` is not configured. |
-| SEC-06 | XSS protection via output encoding | `XssFilter` uses regex to strip `<script>`, `on*=`, `javascript:`, `eval(` patterns. Regex XSS prevention is fundamentally incomplete. Filter also corrupts legitimate data (code submissions containing `eval`) and sanitizes headers | Medium | `XssFilter.java` wraps `HttpServletRequest`, applies regex replacement on `getParameter()` and `getHeader()` values. Global filter registered for all requests. `dompurify` (v3.3.x) is already a dependency in both `console/` and `management/`. | Backend `XssFilter` is either removed entirely (output encoding is the correct defense) or narrowed to only specific user-content endpoints (forum posts, comments -- not code submissions). Frontend uses `DOMPurify.sanitize()` for all user-generated HTML rendering. No global request sanitization. Headers are never modified by XSS filter. |
+Features that go beyond basics. Valuable but not required for v1.
 
-## Differentiators (Completing Core Functionality)
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| **Reusable Composite Actions** | Shared setup logic across workflows, single source of truth for pnpm/Maven/JDK versions | MEDIUM | `.github/actions/setup-node/action.yml` and `.github/actions/setup-java/action.yml`. Reduces duplication when adding new workflows. |
+| **Docker Compose Deploy via SSH** | One-command production deployment to remote server | MEDIUM | `appleboy/ssh-action` to run `docker compose pull && docker compose up -d` on remote host. `docker-compose.prod.yml` already structured for this. |
+| **Automatic Image Tagging** | Every build gets `sha-<short>`, `latest` on main, semver on tags | LOW | `docker/metadata-action@v5` handles this. Already standard pattern for GHCR. |
+| **Concurrency Groups** | Prevents parallel deploys to same environment | LOW | `concurrency: { group: deploy-production, cancel-in-progress: false }` on deploy workflow. |
+| **Deploy Preview on PR** | Spin up ephemeral environment per PR for visual review | HIGH | Requires a staging server or ephemeral containers. Overkill for v1 but valuable later. |
+| **Dependabot for Actions** | Auto-updates GitHub Actions versions | LOW | `.github/dependabot.yml` with `github-actions` ecosystem. Security patch automation. |
+| **Slack/Discord Notification** | Team visibility into deploy status | LOW | Webhook on workflow completion. Nice but not critical. |
+| **Rollback Strategy** | Revert to previous image tag on failed deploy | MEDIUM | Tag each deploy with timestamp, keep last N images, `docker compose up --force-recreate` with previous tag. |
 
-These are not typical "differentiators" but rather functional completions. They turn non-functional stubs into working features, which is table stakes for the admin workflow.
+### Anti-Features (Commonly Requested, Often Problematic)
 
-| Fix ID | Fix | Value Proposition | Complexity | Current State | Expected Behavior After Fix |
-|--------|-----|-------------------|------------|---------------|---------------------------|
-| FUNC-01 | Admin Rejudge implementation | Admins can trigger re-evaluation of submissions after updating problem test cases | Medium | `AdminSubmissionServiceImpl.rejudge()` has `// TODO: Implement actual rejudge logic`. Returns success with hardcoded `newStatus="Pending"` but does not enqueue anything. `QueueService.enqueueJudgeJob(submissionId, problemId, userId, language, code)` exists and is fully functional. `Submission` entity has all needed fields. | Admin calls rejudge -> submission status resets to "Pending" -> `QueueService.enqueueJudgeJob()` is called with the original submission's code, language, problemId, userId -> `JudgeWorker` picks up the job and re-executes against current test cases -> submission status/result is updated. Batch rejudge works the same way for multiple submissions. Optional notification is sent to the user. |
-
-## Quality Improvements (Maintainability)
-
-| Fix ID | Fix | Value Proposition | Complexity | Current State | Expected Behavior After Fix |
-|--------|-----|-------------------|------------|---------------|---------------------------|
-| QUAL-01 | Split oversized Vue components | 14 Vue components exceed 600 lines (2 exceed 1200). Harder to maintain, test, and review. Increases merge conflict likelihood. | High | `ProblemListsView.vue` (1356 lines), `ProblemsListView.vue` (1224 lines), `ContestDetailView.vue` (1039 lines), `SubmissionsDetail.vue` (867 lines), `AnalyticsView.vue` (881 lines), plus 9 more at 600-804 lines. | Each oversized component is split into focused sub-components under `components/<feature>/` directories. Parent component imports and composes sub-components. Composables extract reusable logic. No component exceeds 400-500 lines. Functionality and appearance remain identical. |
-| TEST-01 | Backend critical module test coverage | Auth, submission, and CodeExecution modules have zero tests. Regressions from fixes will go undetected. | High | Test directories exist for `achievement`, `backup`, `email`, `queue`, `user`, `vote`, `websocket` etc. but NO test directories for `auth`, `submission`, or `security`. Console has 15 test files (~7% coverage), Management has 1 (~1%), Backend has 22 files (~15%). | `AuthServiceTest.java`: login success/failure, token generation/validation, password reset flow. `SubmissionServiceTest.java`: create submission, status transitions, judge result handling. `CodeExecutionServiceTest.java`: Docker command construction, timeout handling, result parsing, language-specific compilation. `SecurityConfigTest.java`: CSRF token required on POST, JWT authentication on protected endpoints, public endpoints accessible without auth. |
-
-## Anti-Features (Explicitly Do NOT Build)
-
-| Anti-Feature | Why Avoid | What to Do Instead |
-|-------------|-----------|-------------------|
-| New CSRF token storage mechanism | `CsrfService` with Redis already works correctly | Integrate existing `CsrfService` into Spring Security's `CsrfTokenRepository` interface |
-| New email sending library | `spring-boot-starter-mail` + `EmailServiceImpl` already handle templates, SMTP, logging | Wire `PasswordResetService` to use existing `EmailService.sendEmail()` |
-| New XSS sanitization library on backend | Output encoding is the correct defense, not input sanitization | Remove/reduce `XssFilter`, rely on frontend `DOMPurify` for HTML content |
-| New queue system for rejudge | `QueueService` + `JudgeWorker` + Redis queue already exist | Call existing `enqueueJudgeJob()` from admin rejudge |
-| Writing E2E tests for Vue component splits | Refactoring is internal; E2E tests verify existing user flows, not component structure | Write focused unit tests for extracted sub-components |
-| Adding AppArmor profiles for sandbox | Adds complexity and OS dependency beyond Docker portability | Seccomp profile alone provides sufficient syscall restriction |
+| Feature | Why Requested | Why Problematic | Alternative |
+|---------|---------------|-----------------|-------------|
+| **Blue-Green Deployment** | Zero-downtime deploys sound professional | Requires load balancer (nginx/traefik), double resources, complex health check orchestration | Rolling update via `docker compose up -d` with healthcheck delays is sufficient for this scale |
+| **Kubernetes Manifests** | "Cloud-native" sounds good | Massive complexity for a single-server deployment. Adds Helm/Kustomize/K8s knowledge burden for no practical benefit | Docker Compose on a VPS is the right tool for this scale |
+| **Self-Hosted GitHub Runner** | Avoids 2000 min/month free tier limits | Requires VM maintenance, security patching, Docker socket exposure. Not justified until >2000 min/month usage | Stay on `ubuntu-latest` hosted runners. Free tier is 2000 min/month private repos, unlimited public. |
+| **Monorepo Build Tool (Nx/Turborepo)** | "Smart caching" and "affected detection" | Adds dependency, learning curve, and lock-in. The repo only has 3 independent apps, not 50. Path filters in GitHub Actions handle this fine | Simple `paths:` filters on workflow triggers. No extra tooling needed. |
+| **Docker-in-Docker for Tests** | Run Testcontainers in CI | Privileged mode security risk, layering complexity. Docker-in-Docker has known isolation issues | Use GitHub Actions `services:` with MySQL/Redis containers directly. Run backend tests with service containers, not Testcontainers. |
+| **Separate CI and CD Repos** | "Separation of concerns" | Double the repo management, version drift between pipeline code and app code | Keep `.github/workflows/` in the same repo. Single source of truth. |
 
 ## Feature Dependencies
 
 ```
-SEC-05 (JWT secret validation) --> SEC-01 (CSRF) (SEC-01 should work first to ensure request safety)
-SEC-03 (UserDetailsService) --> SEC-01 (CSRF) (CSRF fix must not depend on broken UserDetailsService)
+[GitHub Actions Workflows]
+    |---requires---> [Dockerfiles (EXISTING)]
+    |---requires---> [docker-compose.yml (EXISTING)]
+    |---requires---> [docker-compose.prod.yml (EXISTING)]
+    |---requires---> [.env.example templates (EXISTING)]
+    |---requires---> [GitHub Secrets configured]
 
-SEC-02 (Password reset email) --> existing EmailService (no new dependency)
-FUNC-01 (Admin Rejudge) --> existing QueueService + JudgeWorker (no new dependency)
+[PR CI Pipeline]
+    |---requires---> [Lint scripts (EXISTING: pnpm lint, ./mvnw checkstyle)]
+    |---requires---> [Test commands (EXISTING: pnpm test, ./mvnw test)]
+    |---requires---> [Build commands (EXISTING: pnpm build, ./mvnw package)]
+    |---requires---> [Service containers (MySQL, Redis) for backend tests]
 
-SEC-06 (XSS fix) --> QUAL-01 (Vue splits) (simplified XssFilter reduces risk when splitting components)
-SEC-04 (Docker seccomp) --> TEST-01 (CodeExecution tests) (seccomp changes must be tested to ensure compilation still works)
+[Docker Build + Push]
+    |---requires---> [PR CI Pipeline (builds first)]
+    |---requires---> [GHCR package write permissions]
+    |---enhances---> [Build caching (GHA cache type)]
 
-TEST-01 should be written ALONGSIDE each fix, not after
+[Docker Compose Deploy]
+    |---requires---> [Docker Build + Push (images exist)]
+    |---requires---> [SSH access to production server]
+    |---requires---> [docker-compose.prod.yml on server]
+    |---requires---> [Production .env on server]
+    |---enhances---> [Concurrency groups (prevent parallel deploys)]
+    |---enhances---> [Automatic image tagging]
+    |---enhances---> [Rollback strategy]
 ```
 
-## Fix Complexity Analysis
+### Dependency Notes
 
-### Low Complexity (1-2 files each, clear implementation path)
+- **Dockerfiles already exist:** `backend-spring/Dockerfile`, `console/Dockerfile`, `management/Dockerfile` all use multi-stage builds with non-root users, healthchecks, and proper layering. No Dockerfile creation needed.
+- **docker-compose.prod.yml already references GHCR images:** The pattern `${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend:${IMAGE_TAG:-latest}` is already defined. The deploy workflow just needs to set `IMAGE_TAG` and run `docker compose pull && docker compose up -d`.
+- **Backend tests use Testcontainers:** This means backend tests in CI need Docker service containers OR a restructured test config. Testcontainers with `docker.sock` in GitHub Actions requires `docker:dind` service which has security implications. The better approach is to use GitHub Actions `services:` (mysql, redis) and configure Spring profiles to use them directly, bypassing Testcontainers in CI.
+- **Frontend builds are independent:** Console and management have zero dependency on the backend. They can be linted, tested, and built in parallel.
 
-| Fix | Estimated Files Changed | Risk Level | Why Low |
-|-----|------------------------|------------|---------|
-| SEC-02 | 2-3 files | Low | `EmailService.sendEmail()` exists. Just wire `PasswordResetService` to call it with template. |
-| SEC-03 | 1-2 files | Low | Either delete a file or implement a straightforward DB lookup using existing `UserMapper`. |
-| SEC-05 | 1-2 files | Low | Add `@PostConstruct` validation to `JwtProperties` or `JwtTokenProvider`. 5-10 lines of code. |
+## MVP Definition
 
-### Medium Complexity (3-5 files, some architectural consideration)
+### Launch With (v1)
 
-| Fix | Estimated Files Changed | Risk Level | Why Medium |
-|-----|------------------------|------------|-------------|
-| SEC-01 | 4-6 files | Medium | Must integrate `CsrfService` with Spring Security's `CsrfTokenRepository`. Need to verify no JWT auth conflicts. Must test all state-changing endpoints. |
-| SEC-04 | 3-4 files | Medium | Need to create seccomp JSON profile, test with all 5 supported languages (C, C++, Java, Python, JavaScript, Go), ensure compilation still works with restricted syscalls. |
-| SEC-06 | 3-5 files | Medium | Remove/reduce `XssFilter`, add `DOMPurify` usage in frontend components rendering user content. Must audit which endpoints need protection and which (code submissions) must be excluded. |
-| FUNC-01 | 3-4 files | Medium | Wire admin rejudge to existing `QueueService`. Need to reset submission state, re-fetch problem test cases, and handle edge cases (already-pending submissions, rate limiting). |
+Minimum viable CI/CD -- what prevents manual deployment pain.
 
-### High Complexity (Many files, structural changes)
+- [ ] **PR CI workflow** -- Lint, type-check, test, and build for all three components on every PR. Path-filtered. This is the highest-value single workflow.
+- [ ] **Docker build + push on main merge** -- Build and push images to GHCR on push to `main`. Triggered after CI passes.
+- [ ] **Docker Compose deploy via SSH** -- Deploy to production server using `docker-compose.prod.yml` on main merge. Single target server.
+- [ ] **GitHub Secrets configuration** -- Document required secrets (SSH key, server host, JWT_SECRET, DB credentials). Provide setup guide.
+- [ ] **Branch protection rules** -- Require CI pass before PR merge. Document in CONTRIBUTING.md or README.
 
-| Fix | Estimated Files Changed | Risk Level | Why High |
-|-----|------------------------|------------|------------|
-| QUAL-01 | 14-30+ files | High | 14 components to split, each requiring extraction of sub-components, composables, and testing. High touch count means high regression risk. Should be done incrementally, one component at a time. |
-| TEST-01 | 5-10 new test files | High | Writing meaningful tests for auth flows requires understanding JWT lifecycle, CSRF token flow, and submission lifecycle. Mocking Docker for CodeExecutionService tests requires care. |
+### Add After Validation (v1.x)
 
-## MVP Recommendation (Phase Ordering)
+Features to add once the basic pipeline is running reliably.
 
-The fixes should be ordered to minimize dependencies and maximize early security wins:
+- [ ] **Dependabot for Actions** -- Auto-update GitHub Actions versions. Low effort, high security value.
+- [ ] **Concurrency groups on deploy** -- Prevent parallel deployments to same environment.
+- [ ] **Rollback workflow** -- Manual trigger or failed-deploy auto-rollback to previous image tag.
+- [ ] **Composite actions for shared setup** -- Extract JDK/pnpm setup into reusable actions when a 4th+ workflow is needed.
+- [ ] **Slack/Discord notifications** -- Deploy success/failure alerts.
 
-### Phase 1: Startup Guard Rails (foundation)
-1. **SEC-05** -- JWT secret validation (prevents running with broken auth, 1 file)
-2. **SEC-03** -- UserDetailsService resolution (removes broken placeholder, 1-2 files)
+### Future Consideration (v2+)
 
-Rationale: These are the simplest fixes and prevent the application from running in a dangerous or confusing state.
+Features to defer until the project outgrows single-server deployment.
 
-### Phase 2: Authentication & Session Security
-3. **SEC-01** -- CSRF framework integration (most complex security fix, builds on Phase 1)
-4. **SEC-06** -- XSS protection via output encoding (complements CSRF fix)
+- [ ] **Deploy preview environments** -- Ephemeral environments per PR. Requires infrastructure investment.
+- [ ] **Multi-environment support** -- Staging + production pipelines with promotion workflow.
+- [ ] **Self-hosted runners** -- Only when free tier is exhausted (2000 min/month).
+- [ ] **Container registry cleanup** -- Automated old-image pruning via GitHub Actions cron or GHCR retention policies.
 
-Rationale: CSRF and XSS are the two primary web app vulnerabilities. Fix both together to establish a complete session security baseline.
+## Feature Prioritization Matrix
 
-### Phase 3: Core Functionality Completion
-5. **SEC-02** -- Password reset email (uses existing email infrastructure)
-6. **FUNC-01** -- Admin rejudge (uses existing queue infrastructure)
-7. **SEC-04** -- Docker sandbox seccomp (independent, but benefits from test infrastructure in Phase 4)
+| Feature | User Value | Implementation Cost | Priority |
+|---------|------------|---------------------|----------|
+| PR CI (lint/test/build) | HIGH -- catches bugs before merge | MEDIUM -- 3 components, Testcontainers complication | P1 |
+| Docker build + push to GHCR | HIGH -- enables automated deployment | LOW -- Dockerfiles exist, standard actions | P1 |
+| Docker Compose deploy via SSH | HIGH -- eliminates manual deploy | MEDIUM -- SSH setup, env management on server | P1 |
+| GitHub Secrets + branch protection | HIGH -- security gate | LOW -- documentation + GitHub UI config | P1 |
+| Build caching | MEDIUM -- 2-3x faster CI | LOW -- `actions/cache` or Docker GHA cache | P2 |
+| Dependabot for Actions | MEDIUM -- security hygiene | LOW -- single YAML file | P2 |
+| Concurrency groups | MEDIUM -- deploy safety | LOW -- single `concurrency:` block | P2 |
+| Automatic image tagging | MEDIUM -- version tracking | LOW -- `docker/metadata-action` | P2 |
+| Rollback strategy | MEDIUM -- deploy recovery | MEDIUM -- tag management, manual trigger workflow | P2 |
+| Composite actions | LOW -- reduces duplication | MEDIUM -- YAML abstraction, testing overhead | P3 |
+| Deploy preview environments | HIGH -- but premature | HIGH -- infra provisioning per PR | P3 |
+| Multi-environment pipelines | MEDIUM -- not needed yet | HIGH -- promotion workflows, separate envs | P3 |
 
-Rationale: These complete non-functional features. Each uses existing infrastructure, reducing implementation risk.
+**Priority key:**
+- P1: Must have for launch (first milestone)
+- P2: Should have, add when pipeline is stable
+- P3: Nice to have, future consideration
 
-### Phase 4: Quality & Testing
-8. **QUAL-01** -- Vue component splitting (structural, no security impact)
-9. **TEST-01** -- Backend test coverage (validates all previous fixes)
+## Workflow Architecture Recommendation
 
-Rationale: Splitting components after security fixes avoids merge conflicts. Tests should validate the security fixes from Phases 1-3.
+### File Structure
 
-**Defer to future milestones:**
-- MEDIUM items (11): CORS externalization, header sanitization removal, backup audit trail, performance fixes, dependency cleanup, admin TODO stubs, broad exception catching, large service splitting
-- LOW items (8): Production config profile, default credentials, console.log cleanup, SockJS removal, frontend tests, integration tests, moderation metrics
+```
+.github/
+  workflows/
+    ci.yml                    # P1: PR checks (lint, test, build)
+    docker-publish.yml        # P1: Build + push images to GHCR
+    deploy.yml                # P1: Deploy via SSH to production
+  dependabot.yml              # P2: Auto-update actions
+```
+
+### ci.yml -- PR Checks
+
+Three parallel jobs with path filters:
+
+```
+ci.yml
+  on: pull_request
+  jobs:
+    backend-check:
+      paths: backend-spring/**
+      steps: setup JDK 17 -> mvnw test (with services: mysql, redis)
+
+    console-check:
+      paths: console/**
+      steps: setup Node 22 + pnpm -> lint -> type-check -> test -> build
+
+    management-check:
+      paths: management/**
+      steps: setup Node 22 + pnpm -> lint -> type-check -> test -> build
+```
+
+Key design decisions:
+- **Backend tests need service containers** (mysql:9.1, redis:7-alpine) via `services:` key. This avoids Docker-in-Docker. Requires a `application-ci.yml` Spring profile pointing to `localhost:3306` and `localhost:6379`.
+- **Frontend tests run headless** (Vitest, no browser). No E2E tests yet.
+- **All three jobs run in parallel** when their respective paths change. A change to `console/` does NOT trigger backend CI.
+
+### docker-publish.yml -- Image Build + Push
+
+Triggered on push to `main` (after merge) and optionally on tag creation:
+
+```
+docker-publish.yml
+  on: push to main
+  jobs:
+    build-backend:    # Build backend-spring/Dockerfile -> ghcr.io/.../backend:sha-xxx
+    build-console:    # Build console/Dockerfile -> ghcr.io/.../console:sha-xxx
+    build-management: # Build management/Dockerfile -> ghcr.io/.../management:sha-xxx
+```
+
+Key design decisions:
+- **Three separate build jobs** (not one monolith) for parallel execution and independent failure isolation.
+- **`docker/metadata-action@v5`** for automatic tagging: `sha-<short>` always, `latest` on main, semver on tags.
+- **`cache-from: type=gha, cache-to: type=gha,mode=max`** for BuildKit layer caching.
+- **`permissions: contents: read, packages: write`** for GHCR push via `GITHUB_TOKEN`.
+- **No build on PR** (wastes resources). Build only on merge to main.
+
+### deploy.yml -- Production Deploy
+
+Triggered after successful docker-publish:
+
+```
+deploy.yml
+  on: workflow_run (docker-publish, completed: success)
+  or: workflow_dispatch (manual trigger)
+  jobs:
+    deploy:
+      steps: SSH to server -> docker compose pull -> docker compose up -d
+```
+
+Key design decisions:
+- **`workflow_run` trigger** ensures deploy only happens after images are successfully pushed.
+- **`concurrency: deploy-production`** prevents parallel deploys.
+- **SSH via `appleboy/ssh-action@v1`** with key from GitHub Secrets.
+- **Server must have `docker-compose.prod.yml` + `.env` pre-configured.** The deploy workflow does NOT copy files -- it only pulls new images and restarts.
+- **`docker compose pull` then `docker compose up -d`** is the standard rolling update pattern.
+
+## Competitor Feature Analysis
+
+| Feature | LeetCode-style Platform (Typical) | Our Approach |
+|---------|-----------------------------------|--------------|
+| PR CI | Lint + unit test + build | Same. Lint + type-check + test + build for all 3 components. |
+| Docker Build | Multi-stage Dockerfiles, push to registry | Same. 3 separate images to GHCR. |
+| Deployment | K8s or Docker Compose on VPS | Docker Compose on VPS via SSH. Matches current `docker-compose.prod.yml` design. |
+| Environment Management | Multiple environments (staging, prod) | Single production environment initially. Add staging later. |
+| Secrets | GitHub Secrets + vault integration | GitHub Secrets only. Sufficient for this scale. |
+| Rollback | Manual image tag revert | Manual rollback via SSH with previous tag. Automate in v1.x. |
 
 ## Sources
 
-- HIGH confidence: Direct codebase inspection of all 9 fix areas
-- HIGH confidence: CONCERNS.md audit (2026-04-13) with file-level references
-- HIGH confidence: Existing `EmailServiceImpl.java` confirms mail infrastructure readiness
-- HIGH confidence: Existing `QueueService.java` interface confirms rejudge infrastructure readiness
-- HIGH confidence: `dompurify` v3.3.x confirmed in both `console/package.json` and `management/package.json`
-- HIGH confidence: `spring-boot-starter-mail` confirmed in `backend-spring/pom.xml`
-- MEDIUM confidence: Seccomp profile syscall list needs testing against all 5 languages (standard syscall restriction patterns well-documented but language-specific requirements need empirical validation)
+- [GitHub Actions in 2026: The Complete Guide to Monorepo CI/CD](https://dev.to/pockit_tools/github-actions-in-2026-the-complete-guide-to-monorepo-cicd-and-self-hosted-runners-1jop) -- MEDIUM confidence, current year monorepo patterns
+- [GitHub Actions CI/CD Best Practices (Official GitHub Guide)](https://github.com/github/awesome-copilot/blob/main/instructions/github-actions-ci-cd-best-practices.instructions.md) -- HIGH confidence, official source
+- [GitHub Actions Advanced Patterns: Reusable Workflows, Composite Actions & Monorepo](https://www.youngju.dev/blog/devops/2026-03-12-github-actions-reusable-workflows-composite-actions-monorepo.en) -- MEDIUM confidence, 2026-03 publication
+- [How to Configure GitHub Actions for Monorepos](https://oneuptime.com/blog/post/2026-02-02-github-actions-monorepos/view) -- MEDIUM confidence, 2026-02 publication
+- [GitHub Docs: Publishing Docker Images](https://docs.github.com/en/actions/packaging-with-github-actions/publishing-and-installing-a-package-with-github-actions-publishing-docker-images) -- HIGH confidence, official source
+- [appleboy/ssh-action](https://github.com/appleboy/ssh-action) -- HIGH confidence, well-maintained action
+- [docker/build-push-action](https://github.com/docker/build-push-action) -- HIGH confidence, official Docker action
+- [docker/metadata-action](https://github.com/docker/metadata-action) -- HIGH confidence, official Docker action
+- Existing project files: `docker-compose.prod.yml`, `docker-compose.yml`, `backend-spring/Dockerfile`, `console/Dockerfile`, `management/Dockerfile`, `ecosystem.config.cjs`, `console/package.json`, `management/package.json`, `backend-spring/pom.xml`, `.env.example` -- HIGH confidence, direct inspection
+
+---
+*Feature research for: CI/CD Pipeline with GitHub Actions + Docker Compose*
+*Researched: 2026-04-17*

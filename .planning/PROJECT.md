@@ -1,21 +1,13 @@
 # UltiCode 技术债务清偿
 
-## Current Milestone: v1.1 Technical Debt Remediation II
+## Current Milestone: (Next milestone TBD)
 
-**Goal:** 清偿 v1.0 延后的全部 19 项 MEDIUM/LOW 级别技术债务，使平台达到生产就绪状态
-
-**Target features (19 items, 6 categories):**
-- 安全配置加固: SEC-07, SEC-08, CONF-01, CONF-02, CONF-03
-- Admin 功能补全: AUDIT-01, FUNC-02, FUNC-03
-- 性能优化: PERF-01, PERF-02
-- 代码质量: QUAL-02, QUAL-03, QUAL-04
-- 依赖清理: DEP-01, DEP-02, DEP-03
-- 测试补充: TEST-02, TEST-03, TEST-04
+**Goal:** 待规划下一里程碑
 
 ## Current State
 
-**Shipped:** v1.0 Technical Debt Remediation (2026-04-16)
-**Status:** v1.1 in progress — Phase 08 (Testing) complete — 70 new tests across console, management, backend
+**Shipped:** v1.1 Technical Debt Remediation II (2026-04-17)
+**Status:** All 28 technical debt items resolved. Platform production-ready.
 
 ## What This Is
 
@@ -38,39 +30,29 @@
 - ✓ SEC-04: Docker 沙箱 seccomp + cap-drop ALL — v1.0 Phase 2
 - ✓ TEST-01: 71 个测试 (48 单元 + 18 模块 + 5 集成) 覆盖关键模块 — v1.0 Phase 3
 - ✓ QUAL-01: 14 个超大 Vue 组件拆分为 59 个子组件 + 14 composables — v1.0 Phase 4
+- ✓ SEC-07: CORS 允许来源外部化为环境变量 — v1.1 Phase 5
+- ✓ SEC-08: XssFilter 停止清理请求 Header — v1.1 Phase 5
+- ✓ CONF-01: JWT Cookie Secure 标志在生产环境默认为 true — v1.1 Phase 5
+- ✓ CONF-02: 创建 application-prod.yml 生产配置 — v1.1 Phase 5
+- ✓ CONF-03: docker-compose.yml 移除弱默认密码 — v1.1 Phase 5
+- ✓ AUDIT-01: BackupController 使用实际认证用户 ID — v1.1 Phase 6
+- ✓ FUNC-02: 实现 5 个 Admin TODO 桩 — v1.1 Phase 6
+- ✓ FUNC-03: 实现审核平均解决时间计算 — v1.1 Phase 6
+- ✓ PERF-01: 测试用例批量执行 — v1.1 Phase 6
+- ✓ PERF-02: Admin Analytics 数据库聚合 — v1.1 Phase 6
+- ✓ QUAL-02: 修复 26 处宽泛 catch 块 — v1.1 Phase 7
+- ✓ QUAL-03: 拆分 AdminAnalyticsServiceImpl 为 3 个服务 — v1.1 Phase 7
+- ✓ QUAL-04: 清理前端 console.log — v1.1 Phase 7
+- ✓ DEP-01: 移除 git 跟踪的 management/.env — v1.1 Phase 7
+- ✓ DEP-02: 替换 SNAPSHOT 依赖为 1.0.0 — v1.1 Phase 7
+- ✓ DEP-03: 评估 SockJS 依赖 — v1.1 Phase 7
+- ✓ TEST-02: Console 前端关键路径测试 (35 tests) — v1.1 Phase 8
+- ✓ TEST-03: Management 前端关键路径测试 (23 tests) — v1.1 Phase 8
+- ✓ TEST-04: 后端 Controller @WebMvcTest 集成测试 (12 tests) — v1.1 Phase 8
 
 ### Active
 
-**安全配置加固:**
-- SEC-07: CORS 允许来源外部化为环境变量
-- SEC-08: XssFilter 停止清理请求 Header
-- CONF-01: JWT Cookie Secure 标志在生产环境默认为 true
-- CONF-02: 创建 application-prod.yml 生产配置（禁用 Swagger、actuator 端点）
-- CONF-03: docker-compose.yml 移除弱默认密码
-
-**Admin 功能补全:**
-- AUDIT-01: BackupController 使用实际认证用户 ID 替代硬编码 "system"
-- FUNC-02: 实现 5 个 Admin TODO 桩（论坛社区、题目计数、论坛数据、审核详情）
-- FUNC-03: 实现审核平均解决时间计算（当前硬编码 0.0）
-
-**性能优化:**
-- PERF-01: 测试用例批量执行替代逐个 Docker 容器启动
-- PERF-02: Admin Analytics 使用数据库聚合替代全量实体加载
-
-**代码质量:**
-- QUAL-02: 修复 30+ 处宽泛 catch(Exception e) 为具体异常类型
-- QUAL-03: 拆分 AdminAnalyticsServiceImpl（553 行）
-- QUAL-04: 清理生产代码中的 console.log 语句
-
-**依赖清理:**
-- DEP-01: 移除 git 跟踪的 management/.env
-- DEP-02: 替换 SNAPSHOT 依赖为稳定版本
-- DEP-03: 评估并移除 SockJS 客户端依赖
-
-**测试补充:**
-- TEST-02: 补充前端 Console 关键路径测试（API 层、stores）
-- TEST-03: 补充前端 Management 关键路径测试
-- TEST-04: 添加后端 Controller 集成测试（@WebMvcTest）
+(No active requirements — next milestone TBD)
 
 ### Out of Scope
 
@@ -81,21 +63,15 @@
 
 ## Context
 
-**代码库现状 (post-v1.0, pre-v1.1)：**
+**代码库现状 (post-v1.1)：**
 - 后端 Spring Boot 3.5 + MyBatis-Plus，26+ 模块
 - 前端 Console (Vue 3) ~200+ 源文件，Management (Vue 3) ~100+ 源文件
 - v1.0 变更: 378 files changed, +31,958 / -18,490 LOC
-- 安全基线: CSRF → Spring Security, XSS → OWASP Encoder, JWT → fail-fast validation
-- 测试: Testcontainers BOM 1.21.3, 71 新测试覆盖 auth/submission/code-execution
-- 前端: 所有 Vue 组件 < 500 行, co-located composables 模式建立
-
-**v1.1 待解决 (19 items from v1.0 deferred)：**
-- 安全配置: CORS 外部化, Header 清理, 生产配置 (5 items)
-- Admin: TODO 桩实现, 审核时间计算, 备份用户 ID (3 items)
-- 性能: 批量测试执行, 数据库聚合 (2 items)
-- 代码质量: 异常处理, 大文件拆分, console.log (3 items)
-- 依赖: .env 清理, SNAPSHOT 替换, SockJS 评估 (3 items)
-- 测试: Console/Management 前端测试 + Controller 集成测试 (3 items)
+- v1.1 变更: Phases 5-8, 15 plans, 141 total tests (71 v1.0 + 70 v1.1)
+- 安全基线: CSRF/XSS/JWT 全链路加固, 生产配置 profile 就绪
+- 测试: Testcontainers BOM 1.21.3, 141 tests (71 + 35 console + 23 management + 12 backend)
+- 前端: 所有 Vue 组件 < 500 行, console.log 清理完毕, SNAPSHOT deps → 1.0.0
+- 所有 28 项技术债务已清偿
 
 ## Constraints
 
@@ -123,6 +99,10 @@
 | Manual MyBatis + Testcontainers | 避免 @SpringBootTest 加载 Nacos/Dubbo | ✓ Good — 隔离性好 |
 | Co-located composables 模式 | views/{feature}/composables/ + components/ | ✓ Good — 前端标准模式 |
 | Dialog state stays in parent | D-04 保持父组件控制 | ✓ Good |
+| CORS 外部化到 CorsProperties | 环境变量驱动，非硬编码 | ✓ Good — v1.1 Phase 5 |
+| AdminAnalytics 拆分为 facade + 3 服务 | 495→3 focused services | ✓ Good — v1.1 Phase 7 |
+| Vitest 独立配置 per frontend | Console/Management 各自测试配置 | ✓ Good — v1.1 Phase 8 |
+| Batch Docker test execution | 单容器多测试用例 | ✓ Good — v1.1 Phase 6 |
 
 ## Evolution
 
@@ -142,4 +122,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 after Phase 08 (Testing — 70 new tests)
+*Last updated: 2026-04-17 after v1.1 milestone*

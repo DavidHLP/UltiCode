@@ -1,411 +1,429 @@
-# Domain Pitfalls: Technical Debt Remediation in a Brownfield Spring Boot + Vue Platform
+# Pitfalls Research: CI/CD Pipeline with GitHub Actions + Docker Compose
 
-**Domain:** Security hardening, functionality completion, and code quality fixes in an existing online judge platform
-**Researched:** 2026-04-14
-**Confidence:** MEDIUM -- findings combine official documentation, community patterns, and domain-specific knowledge for competitive programming platforms
+**Domain:** CI/CD pipeline for existing Spring Boot + Vue 3 monorepo
+**Researched:** 2026-04-17
+**Confidence:** HIGH
+
+## Executive Summary
+
+This document catalogs pitfalls specific to adding GitHub Actions CI/CD with Docker Compose deployment to the UltiCode platform -- an existing Java 17 / Spring Boot 3.5 backend, two Vue 3 + Vite frontends (console + management), a Dubbo recommendation service, MySQL, Redis, and Nacos. The project currently deploys manually via PM2 with Docker Compose for infrastructure services only. The research covers Dockerfile build issues, workflow trigger design, deployment automation gaps, secrets management, and Docker Compose production deployment traps.
+
+The most critical finding is that the existing backend Dockerfile references `ulticode-backend-0.0.1-SNAPSHOT.jar` while the `pom.xml` declares `<version>1.0.0</version>` -- this mismatch will cause every CI build to fail silently in the COPY stage. Several other pitfalls stem from the gap between the current PM2-based dev workflow and what Docker Compose production deployment requires.
 
 ---
 
 ## Critical Pitfalls
 
-Mistakes that cause rewrites, security regressions, or production outages.
+Mistakes that cause CI build failures, broken deployments, or security breaches.
 
 ---
 
-### Pitfall 1: Dual CSRF Protection Causes Silent 403 Errors
+### Pitfall 1: Hardcoded JAR Name Mismatch in Backend Dockerfile
 
-**What goes wrong:** Enabling Spring Security's built-in `CsrfFilter` while the existing custom `CsrfService` (Redis-backed token rotation) remains active creates double CSRF validation. The custom interceptor checks one token format; Spring Security checks another. Either or both reject legitimate requests with 403, but the error appears generic and is hard to diagnose.
+**What goes wrong:**
+The backend `Dockerfile` line 27 copies:
+```
+COPY --from=builder /app/target/ulticode-backend-0.0.1-SNAPSHOT.jar ./app.jar
+```
+But `pom.xml` declares `<version>1.0.0</version>`. The actual built artifact is `ulticode-backend-1.0.0.jar`. The COPY instruction will fail with "file not found" and the entire Docker build will fail.
 
-**Why it happens:** The project already has a working custom CSRF interceptor. SEC-01 calls for integrating Spring Security's CSRF mechanism. Without careful ordering, both mechanisms run in the filter chain. The custom interceptor expects tokens in a specific header format (`tokenId:tokenValue`); Spring Security's `CsrfFilter` expects session-stored or cookie-based `CsrfToken`. They will not agree on what constitutes a valid token.
+**Why it happens:**
+The Dockerfile was written during early prototyping when the version was `0.0.1-SNAPSHOT`. The pom.xml version was later bumped to `1.0.0` for release but the Dockerfile was never updated. This is a classic drift between build definition and artifact version.
 
-**Consequences:**
-- All POST/PUT/DELETE/PATCH requests from existing frontend sessions return 403 after the change.
-- Users are logged out and cannot recover without clearing cookies.
-- Debugging is painful because two independent CSRF checks produce identical HTTP 403 responses.
-- Rolling back one without the other leaves gaps.
+**How to avoid:**
+Use a glob pattern or a Maven property to avoid hardcoding the version:
+```dockerfile
+COPY --from=builder /app/target/*.jar ./app.jar
+```
+Or better, use Spring Boot's layered JAR support with `spring-boot-maven-plugin` and copy the extracted layers. For multi-module safety, use:
+```dockerfile
+RUN ./mvnw package -DskipTests -B && \
+    mv target/*.jar app.jar
+```
 
-**Prevention:**
-1. **Do NOT enable Spring Security CSRF alongside the custom interceptor.** Choose one.
-2. **Recommended path:** Replace the custom `CsrfService` interceptor entirely with Spring Security's `CsrfFilter`, configured to use Redis-backed token storage (implement `CsrfTokenRepository` backed by Redis) so the existing frontend token flow continues to work.
-3. **Order matters:** If keeping the custom interceptor temporarily, ensure it runs at `SecurityContextHolderAwareRequestWrapper` level and disable Spring Security CSRF explicitly to avoid double-checking.
-4. **Test every state-changing endpoint** with the existing frontend session tokens before and after the change.
-5. **Frontend impact:** The frontend already reads CSRF from localStorage and sends `X-CSRF-Token`. Verify this header name matches what the new `CsrfTokenRepository` expects (Spring Security defaults to `X-CSRF-TOKEN` with a hyphen).
+**Warning signs:**
+- Any version change in `pom.xml` requires checking the Dockerfile
+- Local Docker builds fail with "no source files" or "file not found" in COPY step
+- CI build passes Maven compile but fails at Docker image build stage
 
-**Detection:**
-- Unexpected 403 responses after deployment on POST/PUT/DELETE/PATCH endpoints.
-- Browser dev tools show the CSRF token being sent but rejected.
-- Spring Security debug logs show `Invalid CSRF token found for <endpoint>` when the token was actually valid for the custom interceptor.
-
-**Relevant phase:** SEC-01 (CSRF fix)
-
----
-
-### Pitfall 2: JWT Secret Validation Rejects Valid Production Sessions
-
-**What goes wrong:** Adding `@PostConstruct` validation that the JWT secret is non-empty and >= 256 bits is correct, but if the current production secret does not meet the new minimum length requirement, the application refuses to start. Meanwhile, all existing user sessions (tokens signed with the current secret) become permanently invalid with no migration path.
-
-**Why it happens:** SEC-05 requires startup validation. If validation is implemented as a hard fail (throw `IllegalStateException`), and the existing production secret is shorter than the new threshold, the application cannot start. Even if it starts, there is no plan for rotating secrets -- all existing tokens become invalid immediately.
-
-**Consequences:**
-- Application startup failure in production if current `JWT_SECRET` does not meet new constraints.
-- All existing users logged out simultaneously if secret is changed.
-- No graceful rotation window means users with active sessions (remember-me, long-lived refresh tokens) lose access.
-- Race condition: some nodes in a multi-instance deployment pick up the new secret while others still use the old one, causing intermittent auth failures.
-
-**Prevention:**
-1. **Validate secret exists and is non-empty at startup** (this is the safe minimum). A 256-bit minimum is good practice but check the current secret length first -- if the existing secret is shorter, set a migration window.
-2. **Support dual-key verification** during rotation: accept tokens signed by either the old or new secret for a configurable overlap period (24-72 hours). This requires a `JwtDecoder` that tries both keys.
-3. **Log a WARN, not crash,** if the secret is shorter than recommended but non-empty. Upgrade to ERROR/block in a future release after confirming all environments meet the bar.
-4. **Test with existing tokens:** Export a production token and verify it still validates after the change.
-5. **Coordinate with frontend:** The frontend's refresh token flow must be tested to ensure it works through a secret rotation.
-
-**Detection:**
-- `IllegalStateException` on application startup.
-- All API calls return 401 after deployment.
-- Users report being logged out unexpectedly.
-
-**Relevant phase:** SEC-05 (JWT secret validation)
+**Phase to address:**
+CI/CD Phase 1 (Foundation) -- fix this before writing any workflow files, or all builds will fail.
 
 ---
 
-### Pitfall 3: XssFilter Removal Exposes Unprotected Content
+### Pitfall 2: Monorepo Path Filtering "Skipped but Merged" Silent Failure
 
-**What goes wrong:** Removing the regex-based `XssFilter` without ensuring output encoding is in place at every consumption point creates an XSS window. The current filter sanitizes request parameters globally -- even though it is incomplete, it does catch basic vectors. Removing it first and adding encoding later leaves a gap.
+**What goes wrong:**
+In a monorepo with 5+ services (backend, console, management, recommend-provider, recommend-web), using GitHub Actions `paths` filters on `on.push` can cause workflows to be silently skipped when a PR is merged. If path filtering determines that no relevant files changed, GitHub skips the workflow entirely -- even if you need it to run (e.g., a shared dependency change or a workflow file change).
 
-**Why it happens:** SEC-06 requires replacing the regex filter with proper output encoding. The natural instinct is to remove the bad filter and then add the good approach. But "remove then add" creates a window where neither protection exists.
+For UltiCode specifically: a change to `db-manager/migrations/` should trigger a backend rebuild (the schema changed), but `paths: ['backend-spring/**']` would miss it. A change to `.env.example` should trigger redeployment validation but no path filter catches it.
 
-**Consequences:**
-- During the transition, previously-sanitized inputs pass through raw to the frontend.
-- User-generated content (forum posts, problem descriptions, solution titles) that contained `<script>` or `onerror=` patterns was silently stripped before -- now it renders as executable HTML.
-- Code submissions containing `eval()` or `javascript:` strings were previously corrupted by the filter -- removing the filter "fixes" this data corruption but simultaneously exposes a real XSS surface if the frontend is not already encoding.
+**Why it happens:**
+GitHub's native `paths` filter evaluates file changes in isolation. It cannot express "if file A changes, also rebuild service B." This is a well-known GitHub Actions limitation for monorepos.
 
-**Prevention:**
-1. **Add output encoding BEFORE removing the input filter.** The OWASP-recommended defense-in-depth approach is: keep input validation (even if imperfect) while adding output encoding. Remove input filtering only after confirming output encoding covers all contexts.
-2. **For this project specifically:** DOMPurify is already a frontend dependency. Verify it is applied to all user-generated content rendering points (forum posts, comments, solution titles). The code editor and submission display do NOT need DOMPurify (code should render as-is in a text context).
-3. **Exempt code-related endpoints immediately:** The XssFilter currently corrupts code submissions by stripping `eval(` and `javascript:` strings. Add an exclusion list for `/api/submissions/**`, `/api/problems/*/testcases` and similar code-handling endpoints. Do this FIRST as a standalone fix -- it fixes data corruption without opening XSS.
-4. **Stop sanitizing headers:** The XssFilter wraps `getHeader()` and sanitizes header values. This can corrupt the CSRF token (`tokenId:tokenValue`) if the token value matches a pattern. Remove header sanitization from the filter before anything else.
+**How to avoid:**
+Use a two-stage approach with `dorny/paths-filter` action:
+```yaml
+jobs:
+  detect-changes:
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      console: ${{ steps.filter.outputs.console }}
+      management: ${{ steps.filter.outputs.management }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend-spring/**'
+              - 'db-manager/migrations/**'
+              - 'docker-compose*.yml'
+              - '.github/workflows/**'
+            console:
+              - 'console/**'
+              - 'docker-compose*.yml'
+            management:
+              - 'management/**'
+              - 'docker-compose*.yml'
+```
+Always include `workflow_dispatch` for manual hotfix builds.
 
-**Detection:**
-- Code submissions containing `eval` or `javascript` suddenly work (the current filter strips these).
-- Forum posts render with unescaped HTML after the filter is removed.
-- CSRF tokens fail validation intermittently (header corruption).
+**Warning signs:**
+- Merged PRs don't trigger builds even though they should
+- Changes to shared configs (docker-compose, env) don't rebuild services
+- Workflow file changes use the old version, not the new one
 
-**Relevant phase:** SEC-06 (XSS filter replacement), SEC-08 (header sanitization removal)
-
----
-
-### Pitfall 4: Docker Seccomp Profile Breaks All Language Compilations
-
-**What goes wrong:** A custom seccomp profile that blocks `execve`, `fork`, `clone`, or `mprotect` will prevent C/C++ compilation (`gcc`/`g++`), Java compilation (`javac`), and Python execution. Conversely, a profile that allows all of these may be too permissive to provide meaningful security.
-
-**Why it happens:** The sandbox currently runs 5 languages: C, C++, Java, Python, and Go (inferred from Dockerfile). Each has different syscall requirements:
-- **C/C++ compilation:** needs `fork`/`execve` (compiler spawning assembler/linker), `mmap`/`mprotect` (dynamic linker), `open`/`read` (reading source files), `write` (writing output binaries).
-- **Java:** needs `clone`/`execve` (JVM launching), extensive `mmap` usage (JIT compilation), `futex` (thread synchronization), `epoll_create` (NIO).
-- **Python:** needs `execve` (subprocess module), `mmap` (loading .so modules), `socket` (some stdlib modules).
-- **Go:** statically compiled, but still needs `clone` (goroutines), `epoll_create` (networking even if unused).
-
-A seccomp profile blocking `ptrace` and `mount` is safe. Blocking `execve` breaks everything. The difficulty is in the middle ground.
-
-**Consequences:**
-- Submissions for specific languages fail with "syscall blocked" errors that look like runtime failures, not security blocks.
-- Debugging is extremely difficult because seccomp violations produce generic `EPERM` errors with no clear indication that seccomp is the cause.
-- Users report "my correct solution got Wrong Answer" when it actually never ran.
-- Reverting the seccomp profile requires rebuilding the Docker image and redeploying.
-
-**Prevention:**
-1. **Start with Docker's default seccomp profile** (blocks ~44 dangerous syscalls) and verify all 5 languages still work. Do NOT create a custom profile without testing.
-2. **Test each language independently** after adding any syscall restriction. Create a test matrix: C hello world, C++ STL, Java hello world, Python basic I/O, and if Go is supported, Go hello world.
-3. **Use `strace` or `auditd`** to profile which syscalls each compilation chain actually uses before writing restrictions. `docker run --security-opt seccomp=unconfined strace -f gcc test.c` will show the full syscall trace.
-4. **Block only the clearly dangerous syscalls** in the first iteration: `ptrace`, `mount`, `umount2`, `keyctl`, `add_key`, `request_key`, `acct`, `swapon`, `pivot_root`, `unshare` (partial), `name_to_handle_at`.
-5. **Keep `--cap-drop=ALL`** and add back only `CAP_SETUID`/`CAP_SETGID` if needed for running as non-root (the sandbox already runs as non-root, so this may not be needed).
-6. **Version the seccomp profile** and keep the unconfined fallback as an option. Add a health check endpoint that runs a test submission in each language after sandbox startup.
-
-**Detection:**
-- Submissions fail with `EPERM` or `Operation not permitted` for specific languages only.
-- `dmesg` or Docker logs show `SECCOMP` audit messages.
-- Language-specific compilation fails but execution of pre-compiled binaries works.
-
-**Relevant phase:** SEC-04 (Docker sandbox hardening)
+**Phase to address:**
+CI/CD Phase 1 (Foundation) -- the workflow trigger architecture must be designed correctly from the start.
 
 ---
 
-### Pitfall 5: Password Reset Email Spam Enables Account Harassment
+### Pitfall 3: Nginx CSP Blocks API Calls in Docker Network
 
-**What goes wrong:** Implementing the email send without rate limiting allows an attacker to spam a victim's email inbox with hundreds of "reset your password" emails. This is not just annoying -- it can desensitize the victim to phishing attempts or be used as a harassment vector.
+**What goes wrong:**
+Both `console/nginx.conf` and `management/nginx.conf` have:
+```nginx
+proxy_pass http://backend:9001;
+```
+This uses the Docker Compose service name `backend` which only resolves inside the Docker network. This is correct for production Docker Compose deployment. However, the CSP header uses `${API_ORIGIN:-}` which defaults to empty string, meaning `connect-src` will not allow API calls in production.
 
-**Why it happens:** SEC-02 requires implementing the actual email send (currently logs only). The `@RateLimit` annotation exists in the project but may not be applied to the forgot-password endpoint. The endpoint accepts an email address and the response time is identical whether the email exists or not (good), but without rate limiting, the attacker can send unlimited requests.
+Additionally, the Dockerfile sets `ENV API_ORIGIN="http://localhost:9001"` but in Docker Compose the backend is at `http://backend:9001`. The CSP will block all API requests from the browser because the actual origin (`http://backend:9001`) is not in the `connect-src` directive.
 
-**Consequences:**
-- Victim's inbox flooded with reset emails.
-- Reset tokens accumulate in Redis, consuming memory.
-- If the reset token has no expiry or a long expiry, multiple valid tokens exist simultaneously, increasing brute-force surface.
-- Email service provider (SES, SendGrid, etc.) may throttle or block the project's sending domain for spam-like behavior.
+**Why it happens:**
+The nginx.conf was written for a mixed setup where the frontend might be served locally (PM2/Vite dev server) against localhost, or in Docker where the service name is different. The CSP environment variable substitution happens at container start via nginx templates, but the Dockerfile sets the wrong default for the Docker Compose context.
 
-**Prevention:**
-1. **Apply rate limiting at two levels:** per email address (e.g., max 3 requests per hour per email) and per IP address (e.g., max 10 requests per hour per IP). Use Redis-backed counters -- the project already uses Redis for rate limiting.
-2. **Token expiry:** Set reset tokens to expire in 15-30 minutes. Delete them from Redis after use (one-time use).
-3. **Generic response:** Always return the same message regardless of whether the email exists: "If an account with this email exists, a reset link has been sent." Do NOT reveal account existence.
-4. **Email throttling:** Configure the `JavaMailSender` connection pool to limit outbound email rate. Add a `@Scheduled` task to clean expired tokens from Redis.
-5. **Log the token ONLY in development profile.** The current implementation logs the reset URL to server logs. In production, this must be disabled -- it is a security leak if logs are accessible.
+**How to avoid:**
+In the Dockerfile, do not set `API_ORIGIN` -- let docker-compose.prod.yml pass it:
+```dockerfile
+# Remove this line from Dockerfile:
+# ENV API_ORIGIN="http://localhost:9001"
+```
+In `docker-compose.prod.yml`, pass the correct internal origin:
+```yaml
+console:
+  environment:
+    - API_ORIGIN=http://backend:9001
+management:
+  environment:
+    - API_ORIGIN=http://backend:9001
+```
 
-**Detection:**
-- Spike in Redis keys matching the reset token pattern.
-- Email service provider sends warnings about unusual sending volume.
-- Users report receiving unexpected password reset emails.
+**Warning signs:**
+- Browser console shows CSP violations for API calls
+- Frontend loads but all API requests are blocked
+- Works in dev (localhost) but not in Docker deployment
 
-**Relevant phase:** SEC-02 (Password reset email)
-
----
-
-## Moderate Pitfalls
-
-Mistakes that cause significant bugs, data issues, or degraded user experience.
-
----
-
-### Pitfall 6: Admin Rejudge Triggers Thundering Herd on Judge Queue
-
-**What goes wrong:** Rejudging all submissions for a problem (potentially thousands) enqueues them all at once, consuming all available Docker worker slots and blocking new user submissions from being judged.
-
-**Why it happens:** FUNC-01 requires implementing rejudge. The naive implementation resets submission status to PENDING and enqueues each via `QueueService.enqueueJudgeJob()`. With no throttling, a problem with 500 submissions sends 500 Docker container spawn requests simultaneously.
-
-**Consequences:**
-- New user submissions queue behind the rejudge backlog and appear "stuck."
-- Judge workers may OOM if multiple memory-intensive submissions run concurrently.
-- The WebSocket notification system floods users with status updates as thousands of submissions transition PENDING -> JUDGING -> ACCEPTED/WA/TLE.
-- Database write contention from concurrent verdict updates.
-
-**Prevention:**
-1. **Add a rate limiter to the rejudge queue:** Process rejudge submissions at a configurable rate (e.g., 5-10 per second) with a dedicated queue or lower priority than live submissions.
-2. **Mark the problem as "rejudging in progress"** and display this state to users. Freeze the affected problem's submission status display until rejudge completes.
-3. **Batch enqueueing:** Do not enqueue all at once. Use a `@Scheduled` task or a dedicated rejudge worker that pulls submissions from a "pending rejudge" set and enqueues them gradually.
-4. **Idempotent verdict updates:** Use optimistic locking (version column on submission records) to prevent concurrent verdict writes from corrupting data.
-5. **Limit rejudge scope:** The admin UI should show the count of affected submissions and require confirmation before proceeding. Cap the maximum number of submissions per rejudge operation (e.g., 1000).
-
-**Detection:**
-- New submissions take unusually long to judge after a rejudge is triggered.
-- WebSocket message rate spikes.
-- Docker container spawn rate exceeds normal patterns.
-
-**Relevant phase:** FUNC-01 (Admin rejudge)
+**Phase to address:**
+CI/CD Phase 1 (Foundation) -- fix before first production deployment.
 
 ---
 
-### Pitfall 7: Vue Component Splitting Breaks Reactive State Chains
+### Pitfall 4: Docker Compose Has No Native Zero-Downtime Deployment
 
-**What goes wrong:** Extracting sub-components from oversized Vue files (QUAL-01) can break reactive state when `ref`/`reactive` objects are passed to child components that mutate them directly, violating Vue's one-way data flow. This causes subtle bugs where the parent's state is not updated, or the child silently fails to react to changes.
+**What goes wrong:**
+`docker compose up -d` stops old containers before starting new ones, causing 1-30 seconds of downtime per service during deployment. For UltiCode with 5 services, a full deployment means sequential downtime across backend, console, management, and recommendation services.
 
-**Why it happens:** The 14 oversized components (up to 1356 lines) likely have deeply interleaved template and script logic. When splitting, developers may extract a section that directly mutates a parent's `reactive` object via prop, or rely on `v-model` bindings that assume shared mutable state. Vue 3 warns about this ("Avoid mutating a prop directly") but does not prevent it at runtime.
+Users in the middle of a coding session (the core use case of a LeetCode-like platform) will lose their work or see errors during deployment.
 
-**Consequences:**
-- Parent component state becomes stale after child interaction (e.g., form submission does not update the parent's data table).
-- Computed properties in the parent do not re-trigger when a child modifies a nested reactive object.
-- Error messages from Vue warnings in browser console but no visible error in the UI.
-- Regressions that only appear in specific user interaction sequences (hard to catch in code review).
+**Why it happens:**
+Docker Compose is designed for development and single-node orchestration. It does not have built-in rolling update support like Docker Swarm or Kubernetes. The `restart: unless-stopped` policy helps with crashes but not with planned updates.
 
-**Prevention:**
-1. **Use composables to extract logic, not just sub-components.** For example, extract `useProblemList()` composable that owns the data fetching, pagination, and filtering state. Child components receive data via props and emit events back.
-2. **Avoid deep prop drilling for mutable state.** Use `provide/inject` for state that is shared across multiple levels of extracted components. Use Pinia stores only for truly global state (auth, notifications) -- do not over-reach.
-3. **Test BEFORE splitting:** For each oversized component, write integration tests that verify the key user interactions BEFORE refactoring. These tests become the regression safety net.
-4. **Split incrementally:** Start with the largest component (ProblemListsView at 1356 lines). Extract one section at a time (e.g., the filter bar), verify it works, then extract the next.
-5. **Watch for `v-model` on custom components:** Vue 3's `v-model` on custom components compiles to `modelValue` prop + `update:modelValue` event. Ensure child components implement this correctly rather than directly mutating the prop.
+**How to avoid:**
+For the initial CI/CD setup, accept brief downtime with a maintenance page strategy:
+1. Deploy during low-traffic windows
+2. Use `docker compose up -d --no-deps backend` to update services independently
+3. Order: backend first, then frontends (frontends show errors gracefully while backend restarts)
 
-**Detection:**
-- Vue devtools shows parent state not updating after child interaction.
-- Browser console warnings: "Set operation on key 'xxx' failed: target is readonly."
-- Unit tests for the extracted composable pass but integration tests for the parent component fail.
+For later improvement, consider:
+- `docker-rollout` CLI plugin for rolling updates on single node
+- Or migrate to Docker Swarm mode which has native rolling updates
 
-**Relevant phase:** QUAL-01 (Vue component splitting)
+**Warning signs:**
+- Users report errors during deployment windows
+- Health checks fail during container restart
+- WebSocket connections (used for real-time features) drop unexpectedly
 
----
-
-### Pitfall 8: Double Encoding Corrupts User-Generated Content
-
-**What goes wrong:** When migrating from regex-based input sanitization to output encoding, data that was previously stored in a sanitized form (HTML entities like `&lt;script&gt;`) gets encoded again on output, producing `&amp;lt;script&amp;gt;` visible in the UI.
-
-**Why it happens:** The XssFilter has been running for some time. User-generated content in the database may already contain HTML-entity-encoded strings (the filter replaces `<` with `&lt;`). If output encoding is then applied, it encodes the `&` in `&lt;` to `&amp;lt;`, resulting in double-encoded content displayed as raw text.
-
-**Consequences:**
-- Forum posts, comments, and problem descriptions that previously displayed correctly now show HTML entity codes as literal text.
-- Code snippets in solutions that contain `<` or `>` characters (common in C++ template code, HTML examples) become unreadable.
-- The fix is not simply "add encoding" -- it requires a data migration to decode previously-sanitized content.
-
-**Prevention:**
-1. **Audit the database for double-encoded content BEFORE making changes.** Query for records containing `&lt;`, `&gt;`, `&amp;` in user-generated fields (forum posts, comments, problem descriptions). This reveals how many records are affected.
-2. **If significant data is double-encoded:** Write a one-time migration script to decode HTML entities in affected fields. Run it as a Flyway migration with a rollback path.
-3. **Apply encoding at the output layer only** (Vue templates, API responses for HTML contexts). Do NOT encode data before storing it.
-4. **For JSON API responses:** Do NOT HTML-encode JSON fields. The frontend is responsible for encoding when rendering HTML. Setting `Content-Type: application/json` ensures browsers do not interpret the response as HTML.
-5. **Test with real data:** After the migration, render a page that contains code snippets with `<` and `>` characters (C++ templates, HTML in problem descriptions) and verify they display correctly.
-
-**Detection:**
-- User reports of "garbled text" or "weird characters" in forum posts or problem descriptions.
-- Database queries show `&lt;` and `&amp;` in text fields.
-- Browser "View Source" shows encoded entities that should have been rendered.
-
-**Relevant phase:** SEC-06 (XSS filter replacement)
+**Phase to address:**
+CI/CD Phase 2 (Deployment) -- implement ordered deployment with health check waits. Zero-downtime can be a later enhancement.
 
 ---
 
-### Pitfall 9: Test Suite Becomes Flaky After Adding Integration Tests
+### Pitfall 5: Maven `.mvn/` Wrapper Not Fully Committed, Breaking CI Build
 
-**What goes wrong:** Adding `@SpringBootTest` integration tests for the auth and submission modules (TEST-01) in a brownfield project with shared database state causes test interdependencies. Tests pass individually but fail when run together due to residual data, Redis key pollution, or Spring context caching conflicts.
+**What goes wrong:**
+The backend Dockerfile copies `backend-spring/.mvn/` and `backend-spring/mvnw` for the build, but the backend `.gitignore` includes `.mvn/wrapper/maven-wrapper.jar`. If the Maven wrapper files are not committed properly, the CI runner cannot execute `./mvnw` and the build fails immediately.
 
-**Why it happens:** The project currently has 22 backend test files (all unit tests with Mockito). Adding integration tests means loading the Spring application context, connecting to a real database (or Testcontainers), and hitting Redis. If tests do not clean up after themselves, data from test A affects test B. Spring's test context caching can also cause issues if different test classes require different configurations.
+**Why it happens:**
+The `.mvn/wrapper/maven-wrapper.jar` is gitignored (line 3 of backend-spring/.gitignore), which is correct for the JAR but the wrapper properties file and shell scripts must be present. If a developer ran `mvn wrapper:wrapper` locally and only the JAR was generated, the shell script and properties may not be committed.
 
-**Consequences:**
-- CI pipeline fails intermittently ("flaky red"), destroying developer trust in the test suite.
-- Developers start ignoring test failures, negating the purpose of adding tests.
-- Debugging flaky tests is extremely time-consuming in a brownfield project with many modules.
+**How to avoid:**
+Verify that `backend-spring/.mvn/wrapper/maven-wrapper.properties` and `backend-spring/mvnw` are committed. In CI, bypass the wrapper entirely by using `actions/setup-java` which installs Maven automatically:
+```yaml
+- name: Set up JDK 17
+  uses: actions/setup-java@v4
+  with:
+    java-version: '17'
+    distribution: 'temurin'
+    cache: 'maven'
+```
 
-**Prevention:**
-1. **Use Testcontainers for database tests,** not the shared development database. Each test class gets its own ephemeral MySQL container. This eliminates shared-state issues.
-2. **Clean Redis between tests:** Use `@DirtiesContext` or a custom test listener that flushes Redis keys matching the test's namespace after each test method.
-3. **Prefer `@WebMvcTest` over `@SpringBootTest`** for controller tests. This loads only the web layer (controllers, filters, Security config) without the full application context. It is faster and more isolated.
-4. **Use `@Transactional` on test methods** that modify the database -- the transaction rolls back automatically after the test, leaving the database clean.
-5. **Avoid over-mocking:** Mock external services (email, Docker) but do NOT mock the database, Redis, or security filters in integration tests. The value of integration tests is testing real interactions. Over-mocked integration tests are just slow unit tests.
-6. **Name tests by behavior, not implementation:** `should_authenticate_with_valid_credentials()` not `should_call_userDetailsService_with_correct_username()`. This makes tests resilient to internal refactoring.
+**Warning signs:**
+- CI fails with "mvnw: permission denied" or "mvnw: No such file or directory"
+- Local builds work but CI fails
+- `.mvn/wrapper/maven-wrapper.properties` is missing from git
 
-**Detection:**
-- Tests pass when run individually (`./mvnw test -Dtest=AuthServiceTest`) but fail in the full suite (`./mvnw test`).
-- Test order sensitivity: reordering test classes changes which ones fail.
-- CI builds show intermittent failures with no code changes.
-
-**Relevant phase:** TEST-01 (Backend test coverage)
-
----
-
-## Minor Pitfalls
-
-Mistakes that cause inconvenience, technical debt, or minor regressions.
+**Phase to address:**
+CI/CD Phase 1 (Foundation) -- use `actions/setup-java` instead of the Maven wrapper in CI.
 
 ---
 
-### Pitfall 10: CORS Configuration Change Breaks Development Workflow
+### Pitfall 6: Environment Variable Drift Between Dev (PM2) and Prod (Docker)
 
-**What goes wrong:** Externalizing CORS allowed origins to environment variables (SEC-07/MEDIUM) without providing sensible defaults breaks the local development setup if the `.env` file is not configured.
+**What goes wrong:**
+The current PM2 `ecosystem.config.cjs` reads from `.env` and passes variables like `NACOS_PORT=28848` and `REDIS_PASSWORD` to processes. Docker Compose production uses different hostnames (`mysql` instead of `localhost`, `redis` instead of `localhost`, port `3306` instead of `23306`). Secrets in GitHub Actions secrets are a flat key-value store that must be mapped correctly to each service's environment.
 
-**Why it happens:** The current CORS config hardcodes `localhost:9002` and `localhost:9003`. Externalizing to `CORS_ALLOWED_ORIGINS` means developers must set this variable. If the default is empty (secure but unusable) or missing from `.env.example`, new contributors cannot start the frontend.
+If the CI/CD workflow passes the wrong variable names or values, the backend will fail to connect to MySQL, Redis, or Nacos. The health check will pass (because Spring Boot starts even without DB connection) but the application will be non-functional.
 
-**Prevention:** Set the default to `http://localhost:9002,http://localhost:9003` (the current values) so development works out of the box. Override in production via environment variables. Document the variable in `.env.example`.
+**Why it happens:**
+There are currently 5 different environments for configuration:
+1. `.env` (root) -- Docker Compose infrastructure
+2. `backend-spring/.env` -- Spring Boot application
+3. `console/.env` / `management/.env` -- Vite frontends
+4. `ecosystem.config.cjs` -- PM2 process manager
+5. `docker-compose.prod.yml` -- Production Docker Compose
 
-**Relevant phase:** SEC-07 (CORS externalization)
+Each uses slightly different variable names and default values. The CI/CD workflow introduces a 6th source (GitHub Secrets).
 
----
+**How to avoid:**
+Create a single source-of-truth mapping document and enforce it:
+```yaml
+# .github/env-mapping.yml (reference, not committed)
+# GitHub Secret Name -> Docker Compose Environment Variable
+GHCR_TOKEN -> GHCR_REGISTRY auth
+DB_PASSWORD -> DB_PASSWORD (shared across mysql + backend)
+JWT_SECRET -> backend JWT_SECRET
+REDIS_PASSWORD -> REDIS_PASSWORD (shared across redis + backend)
+```
+In the CI workflow, map GitHub secrets to a `.env.prod` file on the runner, then pass it to `docker compose --env-file .env.prod`.
 
-### Pitfall 11: UserDetailsServiceImpl Removal Breaks Spring Security Auto-Config
+**Warning signs:**
+- Backend starts but cannot connect to MySQL/Redis
+- Nacos registration fails
+- "Connection refused" errors in logs
+- Health check passes but API returns 500
 
-**What goes wrong:** Removing the `UserDetailsServiceImpl` placeholder (SEC-03) without understanding which Spring Security flows depend on it may break authentication flows that use `DaoAuthenticationProvider` or password reset flows that call `UserDetailsService.loadUserByUsername()`.
-
-**Why it happens:** Even though the placeholder always throws `UsernameNotFoundException`, its existence as a `@Service` bean registers it in the Spring application context. If any auto-configuration or filter chain references `UserDetailsService` by type, removing the bean causes a `NoSuchBeanDefinitionException` at startup.
-
-**Prevention:**
-1. **Search for all references to `UserDetailsService`** across the codebase before removing. Check `SecurityConfig.java`, any `AuthenticationProvider` beans, and password reset service.
-2. **If JWT-only auth is confirmed:** Verify that `DaoAuthenticationProvider` is not auto-configured. If it is, explicitly disable it or replace with a no-op implementation.
-3. **Conditional removal:** Use `@ConditionalOnProperty(name = "auth.user-details.enabled", havingValue = "false", matchIfMissing = "false")` to disable the placeholder without deleting it. This is safer than removal.
-4. **Test auth flow end-to-end after the change:** Login, token refresh, and password reset (when implemented).
-
-**Relevant phase:** SEC-03 (UserDetailsService placeholder)
-
----
-
-### Pitfall 12: console.log Removal Accidentally Deletes Error Logging
-
-**What goes wrong:** Cleaning up `console.log` statements (QUAL-04/LOW) with an overly aggressive find-and-replace also removes `console.error` and `console.warn` statements that are needed for production error reporting.
-
-**Why it happens:** A regex like `console\.log\(.*\)` might be applied too broadly, or a developer manually deletes all `console.*` calls in a file without distinguishing between debug logs and error logs.
-
-**Prevention:**
-1. Only remove `console.log` and `console.debug`. Preserve `console.error` and `console.warn`.
-2. Use ESLint's `no-console` rule configured to allow `console.error` and `console.warn` while disallowing `console.log` in production builds. This enforces the policy automatically.
-3. Consider a logging utility (`src/utils/logger.ts`) that wraps `console` and strips debug messages in production builds via Vite's `define` config.
-
-**Relevant phase:** QUAL-04 (console.log cleanup)
+**Phase to address:**
+CI/CD Phase 1 (Foundation) -- create the environment mapping before any deployment workflow.
 
 ---
 
-### Pitfall 13: BackupController Audit Fix Uses Wrong Security Context
+### Pitfall 7: Docker Build Cache Not Leveraged in CI, Causing 15+ Minute Builds
 
-**What goes wrong:** Replacing the hardcoded `"system"` user ID with `@CurrentUser` or `SecurityContextHolder` (AUDIT-01/MEDIUM) may return `null` if the controller endpoint is called by a system process (e.g., a scheduled backup task) that does not have an authenticated security context.
+**What goes wrong:**
+Without build caching, every CI run downloads all Maven dependencies (~500MB for Spring Boot + MyBatis-Plus + Dubbo) and all npm dependencies for two frontends. The Spring Boot backend alone can take 8-10 minutes for a cold build. Total CI build time without caching: 15-25 minutes per run.
 
-**Why it happens:** The `@CurrentUser` annotation extracts the user from the JWT authentication token in the security context. Scheduled tasks, Actuator endpoints, and system-initiated API calls may not have an authentication token, causing `null` user IDs to be recorded.
+**Why it happens:**
+GitHub Actions runners start with a clean environment. The existing Dockerfiles have multi-stage builds with dependency caching in the Docker layer (copy pom.xml first, run `dependency:go-offline`), but GitHub Actions discards Docker layer cache between runs unless explicitly configured.
 
-**Prevention:**
-1. **Distinguish between user-initiated and system-initiated operations.** For user-initiated backup/restore, use `@CurrentUser`. For system-initiated operations, use a dedicated system user constant (e.g., `"SYSTEM_SCHEDULER"` with a clear audit comment explaining why).
-2. **Add a fallback:** If `@CurrentUser` returns null, either throw an `AuthenticationException` (for user-initiated endpoints) or use a well-defined system identifier (for scheduled tasks).
+**How to avoid:**
+Use `docker/build-push-action` with GitHub Actions cache backend:
+```yaml
+- uses: docker/build-push-action@v6
+  with:
+    context: .
+    file: backend-spring/Dockerfile
+    push: true
+    tags: ghcr.io/${{ github.repository }}/backend:${{ github.sha }}
+    cache-from: type=gha,scope=backend
+    cache-to: type=gha,mode=max,scope=backend
+```
+Also use `actions/setup-java` with Maven cache and `actions/setup-node` with pnpm cache for frontends.
 
-**Relevant phase:** AUDIT-01 (BackupController audit trail)
+**Warning signs:**
+- CI builds consistently take 15+ minutes
+- Maven dependency download logs show full downloads (not cached)
+- GitHub Actions minutes burn through free tier quickly
+
+**Phase to address:**
+CI/CD Phase 1 (Foundation) -- configure caching in the first workflow version.
 
 ---
+
+## Technical Debt Patterns
+
+Shortcuts that seem reasonable when adding CI/CD to an existing project but create long-term problems.
+
+| Shortcut | Immediate Benefit | Long-Term Cost | When Acceptable |
+|----------|-------------------|----------------|-----------------|
+| Single monolithic workflow for all services | Simple to set up, one file to maintain | Every change triggers full build; slow feedback; hard to debug | First PR only, refactor immediately after |
+| Hardcoded image tags (`latest`) | No tag management needed | Cannot rollback; cache poisoning; non-deterministic deployments | Never in production |
+| Using `repository` secrets instead of `environment` secrets | Simpler setup | No deployment protection rules, no staging/prod separation | Dev/staging only, never for production secrets |
+| SSH-based deployment (`ssh deploy@server docker compose up`) | No registry needed, simple mental model | Server credentials in CI secrets, no audit trail, no rollback | MVP/demo only, migrate to GHCR + pull-based deployment |
+| Skipping integration tests in CI to save time | Faster builds | Bugs reach production, false confidence in CI | Never -- run at least smoke tests |
+| Using `docker compose` without health check waits | Simpler deployment script | Services start before dependencies are ready, intermittent failures | Never in production |
+| Duplicating `.env` values as GitHub Secrets | Quick to set up | Drift between sources, hard to audit, no single source of truth | First setup only, must create mapping document |
+
+## Integration Gotchas
+
+Common mistakes when connecting CI/CD components.
+
+| Integration | Common Mistake | Correct Approach |
+|-------------|----------------|------------------|
+| GHCR (GitHub Container Registry) | Not setting `packages: write` permission in workflow | Add `permissions: packages: write` to the workflow job |
+| GHCR | Using `GITHUB_TOKEN` without logging in | Run `echo $GITHUB_TOKEN \| docker login ghcr.io -u ${{ github.actor }} --password-stdin` |
+| Docker Buildx | Not creating a builder instance | Use `docker/setup-buildx-action` before build-push-action |
+| docker-compose.prod.yml | Missing `networks:` definition for recommend-provider/recommend-web | Define `app-network` in docker-compose.yml or add `networks: [default]` |
+| Flyway migrations | Running migrations in CI without a database | Use Testcontainers in backend tests; run Flyway as a separate deployment step on the production DB |
+| Nacos service discovery | Backend registers with Nacos but CI-deployed containers cannot reach Nacos | Ensure all services share the same Docker network; use `depends_on` with health checks |
+| Recommendation service | `RECOMMEND_IMAGE_TAG` and `RECOMMEND_WEB_IMAGE_TAG` in docker-compose.prod.yml don't reference GHCR | Either build recommendation images in CI or use a separate registry reference |
+| Spring Boot Actuator | Health endpoint returns `DOWN` because DB is not yet accessible | Use `start_period` in healthcheck to give Spring Boot time to initialize connections |
+| Frontend Dockerfile | Missing `pnpm-lock.yaml` in COPY step, causing `--frozen-lockfile` to fail | Copy both `package.json` and `pnpm-lock.yaml` before running `pnpm install` |
+| nginx.conf template | CSP uses `${API_ORIGIN:-}` but nginx templates only substitute `$API_ORIGIN` (no braces) | Use `envsubst` or change nginx template syntax to `$API_ORIGIN` without braces |
+
+## Performance Traps
+
+Patterns that work in dev but fail as CI/CD usage grows.
+
+| Trap | Symptoms | Prevention | When It Breaks |
+|------|----------|------------|----------------|
+| No parallel job execution | Sequential builds take 25+ minutes | Use `needs:` DAG to build independent services in parallel | Immediately -- backend and frontends have no build dependency |
+| Not using `concurrency` groups | Multiple PR pushes create duplicate CI runs | Add `concurrency: { group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: true }` | Active development with frequent pushes |
+| Full rebuild on every push | CI minutes exhausted, slow feedback | Use path filtering + Docker layer caching + Maven/npm caches | After 10+ pushes per day |
+| Pulling base images without caching | Alpine/JDK base image pulls add 2-3 minutes per build | Use `cache-from: type=registry` to cache base image layers | Always in CI |
+| Not limiting log output | Giant Maven dependency download logs consume storage | Use `--batch-mode` and `--quiet` flags in Maven | Large dependency trees |
+| Maven `dependency:go-offline` on every build | Downloads transitive dependencies even when unchanged | Rely on Docker layer cache + `cache-from: type=gha` instead of re-downloading | Multi-module projects with large dependency trees |
+
+## Security Mistakes
+
+Domain-specific security issues for CI/CD pipelines.
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Using `::add-mask::` incorrectly or not at all | Secrets leak into GitHub Actions logs visible to all repo collaborators | Mask all secrets before use; never `echo ${{ secrets.X }}` directly |
+| Pinning actions to tags instead of SHA | Supply chain attack -- tag can be reassigned to malicious commit | Pin to full commit SHA: `uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11` |
+| Over-permissive `GITHUB_TOKEN` | Compromised workflow can push to any branch, modify secrets | Scope permissions minimally: `permissions: { contents: read, packages: write }` |
+| `.env` file with real secrets committed to git | Secrets in git history, accessible forever | Ensure `.env` is in `.gitignore`; use `git filter-branch` or BFG if leaked |
+| Docker Compose with default Nacos credentials (`nacos/nacos`) | Nacos exposed with known credentials on production | docker-compose.prod.yml uses `${NACOS_USERNAME}` and `${NACOS_PASSWORD}` -- always override in production |
+| Passing secrets as Docker build args | Secrets visible in `docker history` | Use Docker BuildKit secret mounts: `--secret id=mysecret,src=./secret.txt` |
+| Not rotating GHCR push token | Long-lived token can be compromised if runner is compromised | Use `GITHUB_TOKEN` which auto-rotates per workflow run |
+| Exposing Docker socket in CI | Container escape, root access on runner | Never mount `/var/run/docker.sock` in CI; use DinD (Docker-in-Docker) only if necessary with security constraints |
+| Workflow triggers on all branches with deployment | Feature branch pushes trigger production deployment | Use branch filters: `branches: [main]` for deployment; `branches: ['**']` for CI only |
+| `pull_request_target` with untrusted checkout | Arbitrary code execution from fork PRs | Never use `pull_request_target` with `persist-credentials: true` for public repos |
+
+## "Looks Done But Isn't" Checklist
+
+Things that appear complete when CI/CD is added but are missing critical pieces.
+
+- [ ] **Docker build succeeds locally but fails in CI:** Verify Maven wrapper files are committed, check that `actions/setup-java` version matches local JDK, confirm Docker BuildKit is enabled on runner.
+- [ ] **CI workflow triggers on push:** Verify it also triggers on `pull_request`; test with a non-main branch push; confirm path filters don't silently skip needed builds.
+- [ ] **Docker image pushed to GHCR:** Verify the image is actually runnable (`docker pull && docker run`); check that the correct architecture is built (CI runs on `linux/amd64`, local might be `arm64`).
+- [ ] **Docker Compose deployment works:** Verify all services pass health checks; test with `docker compose -f docker-compose.yml -f docker-compose.prod.yml config` to validate composition; test actual API calls, not just container startup.
+- [ ] **Frontend can reach backend API:** Test from a browser, not just `curl localhost`; CSP headers must allow the actual API origin; check browser console for CORS or CSP errors.
+- [ ] **Database migrations run before backend starts:** Flyway migrations must complete before Spring Boot connects; either run migrations as a separate CI step or use Spring Boot's built-in Flyway auto-migration with `spring.flyway.enabled=true`.
+- [ ] **Secrets are not in git history:** Run `git log --all --full-history -- '*.env'` to check; use `trufflehog` or `gitleaks` to scan history.
+- [ ] **Rollback is possible:** Verify you can deploy a previous image tag; test `IMAGE_TAG=sha-abc123 docker compose up -d`; ensure database migrations are backward-compatible.
+- [ ] **Workflow file changes are tested:** Push a workflow change to a feature branch and verify it runs correctly; remember that the old version of a workflow runs on the push that modifies it.
+- [ ] **Recommendation service is included or explicitly excluded:** docker-compose.prod.yml references `${RECOMMEND_IMAGE_TAG:-latest}` but there is no CI job building this image; either add a build job or document that it is excluded from CI/CD.
+- [ ] **pnpm-lock.yaml is committed:** The frontend Dockerfiles use `pnpm install --frozen-lockfile` which requires the lock file to be present; if it is gitignored, builds will fail.
+- [ ] **Health checks use correct internal hostnames:** The healthcheck in docker-compose.prod.yml uses `curl -f http://localhost:9001/actuator/health` which is correct (container-local), but nginx proxy_pass uses `http://backend:9001` which requires Docker network resolution.
+
+## Recovery Strategies
+
+When pitfalls occur despite prevention, how to recover.
+
+| Pitfall | Recovery Cost | Recovery Steps |
+|---------|---------------|----------------|
+| JAR name mismatch in Dockerfile | LOW | Update Dockerfile to use glob `*.jar`; rebuild |
+| Workflow silently skipped due to path filter | LOW | Add `workflow_dispatch` trigger; manually trigger; then fix path filters |
+| CSP blocks API calls in production | MEDIUM | Update `API_ORIGIN` env var in docker-compose.prod.yml; restart frontend containers |
+| Deployed broken image to production | MEDIUM | Re-tag previous known-good image; `docker compose pull` and `up -d` with old tag |
+| Secrets leaked in git history | HIGH | Rotate all leaked secrets immediately; use BFG Repo Cleaner to rewrite history; force push (coordinate with team) |
+| Database migration fails mid-deployment | HIGH | Connect to MySQL directly; check Flyway schema history; manually fix or revert migration; `FLYWAY_REPAIR=true` |
+| GHCR authentication fails | LOW | Regenerate PAT; update GitHub secret; re-run workflow |
+| Docker Compose network isolation breaks | MEDIUM | Verify all services are on the same network; check `docker network inspect`; add `networks:` definition |
+| CI runner out of disk space | LOW | Clean Docker images and caches; add `docker system prune` step to workflow |
+| pnpm-lock.yaml missing from repo | LOW | Run `pnpm install` locally to regenerate; commit the lock file |
+
+## Pitfall-to-Phase Mapping
+
+How CI/CD roadmap phases should address these pitfalls.
+
+| Pitfall | Prevention Phase | Verification |
+|---------|------------------|--------------|
+| JAR name mismatch (Pitfall 1) | Phase 1: Foundation | Local `docker build` succeeds before any CI workflow is written |
+| Monorepo path filtering (Pitfall 2) | Phase 1: Foundation | Push changes to individual service dirs; verify only affected jobs run |
+| Nginx CSP/API proxy (Pitfall 3) | Phase 1: Foundation | Full Docker Compose stack starts; browser DevTools shows no CSP errors |
+| Zero-downtime deployment (Pitfall 4) | Phase 2: Deployment | Monitor health checks during deployment; measure downtime |
+| Maven wrapper in CI (Pitfall 5) | Phase 1: Foundation | CI workflow runs `./mvnw` or `mvn` successfully |
+| Environment variable drift (Pitfall 6) | Phase 1: Foundation | Create env mapping doc; test with a fresh `.env.prod` from GitHub Secrets |
+| Docker build cache (Pitfall 7) | Phase 1: Foundation | Second CI run is significantly faster than first; check cache hit logs |
+| Recommendation service excluded | Phase 2: Deployment | Decision documented: include in CI or exclude with explicit rationale |
+| Rollback capability | Phase 2: Deployment | Test deploying previous image tag; verify it works |
 
 ## Phase-Specific Warnings
 
-| Phase / Fix ID | Likely Pitfall | Mitigation Priority |
-|---|---|---|
-| SEC-01 (CSRF migration) | Dual protection causing 403 (Pitfall 1) | HIGH -- plan filter ordering carefully |
-| SEC-02 (Password reset email) | Email spam abuse (Pitfall 5) | HIGH -- add rate limiting before deploying |
-| SEC-03 (UserDetailsService) | Bean removal breaks auto-config (Pitfall 11) | MEDIUM -- search all references first |
-| SEC-04 (Docker seccomp) | Breaking language compilation (Pitfall 4) | HIGH -- test all 5 languages |
-| SEC-05 (JWT validation) | Breaking existing sessions (Pitfall 2) | HIGH -- plan rotation window |
-| SEC-06 (XSS filter) | XSS window during migration (Pitfall 3) + double encoding (Pitfall 8) | HIGH -- encode before removing |
-| FUNC-01 (Admin rejudge) | Thundering herd on queue (Pitfall 6) | MEDIUM -- add rate limiting |
-| QUAL-01 (Vue splitting) | Broken reactive state (Pitfall 7) | MEDIUM -- write tests before splitting |
-| TEST-01 (Backend tests) | Flaky test suite (Pitfall 9) | MEDIUM -- use Testcontainers |
-| SEC-07 (CORS) | Dev workflow broken (Pitfall 10) | LOW -- set sensible defaults |
-| SEC-08 (Header sanitization) | CSRF token corruption | MEDIUM -- remove immediately, low risk |
-| AUDIT-01 (Backup audit) | Null user in system context (Pitfall 13) | LOW -- add fallback |
-| QUAL-04 (console.log) | Accidental error log removal (Pitfall 12) | LOW -- use ESLint rule |
-
----
-
-## Integration Pitfalls (Cross-Phase)
-
-### Dependency Order Matters
-
-Some fixes depend on others. Getting the order wrong causes cascading failures:
-
-1. **SEC-06 (XSS filter) must precede or be concurrent with SEC-08 (header sanitization removal).** Removing header sanitization from the XSS filter is a subset of the XSS filter overhaul. Do them together to avoid touching the filter twice.
-
-2. **SEC-01 (CSRF) should be done after or with SEC-03 (UserDetailsService).** Both touch the `SecurityConfig.java` filter chain. Modifying the filter chain twice in quick succession increases merge conflict risk and makes it harder to isolate which change caused a problem.
-
-3. **TEST-01 (backend tests) should be added AFTER each individual fix, not as a separate phase.** The project constraint states "every fix must come with tests." Adding tests for auth while SEC-01 and SEC-05 are both in flight creates conflicting test setups. Instead, write tests as part of each fix phase.
-
-4. **SEC-05 (JWT validation) should precede any secret rotation.** Do not change the secret until validation is in place. Otherwise you add validation that rejects the current (too-short) secret and the app cannot start.
-
-5. **FUNC-01 (Admin rejudge) should come after PERF-01 (test case batching).** If rejudge sends thousands of submissions to the judge queue, and each submission spawns a Docker container per test case (PERF-01 issue), the resource impact is multiplied. Batching test cases first reduces the blast radius.
-
-### Riskiest Combined Scenario
-
-The most dangerous combination is changing CSRF (SEC-01) and JWT validation (SEC-05) in the same deployment. Both affect the authentication/authorization pipeline. If either breaks, users cannot interact with the application. If both break, debugging is extremely difficult because error symptoms overlap (both cause 403/401 responses).
-
-**Recommendation:** Deploy SEC-01 and SEC-05 in separate release cycles with at least 24 hours of production monitoring between them.
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Workflow trigger design | Silent skips on monorepo path filters | Use `dorny/paths-filter` two-stage approach |
+| Docker image build | JAR name mismatch, missing lock files | Fix Dockerfile before writing workflows |
+| Secrets setup | Environment variable name drift | Create mapping document; validate against docker-compose.prod.yml |
+| GHCR push | Missing `packages: write` permission | Add explicit `permissions` block to workflow |
+| Docker Compose deployment | No zero-downtime, health check ordering | Deploy backend first, wait for healthy, then frontends |
+| Frontend Docker build | CSP template substitution failure | Remove `API_ORIGIN` default from Dockerfile; test nginx template rendering |
+| Recommendation service | Image tag not built by CI | Either add build job or document exclusion decision |
+| Flyway migrations | Running against wrong database | Use Testcontainers for CI tests; separate migration step for prod |
 
 ---
 
 ## Sources
 
 | Source | Confidence | URL |
-|---|---|---|
-| Spring Security CSRF Documentation | HIGH | https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html |
-| Spring Boot 2->3 CSRF Migration (Reddit) | MEDIUM | https://www.reddit.com/r/SpringBoot/comments/1cwzf8m/spring_boot_23_csrf_woes/ |
-| Spring Security Filter Chain Migration (GitHub #11337) | MEDIUM | https://github.com/spring-projects/spring-security/issues/11337 |
-| OWASP XSS Prevention Cheat Sheet | HIGH | https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html |
-| OWASP XSS Filter Evasion Cheat Sheet | HIGH | https://cheatsheetseries.owasp.org/cheatsheets/XSS_Filter_Evasion_Cheat_Sheet.html |
-| OWASP Java Encoder (Invicti) | MEDIUM | https://www.invicti.com/blog/web-security/how-to-prevent-xss-in-java |
-| Docker Seccomp Research (Cyera) | MEDIUM | https://www.cyera.com/research/one-megabyte-to-root-how-a-size-check-broke-dockers-last-line-of-defense |
-| Docker Seccomp Practical Guide (Behrad Taher) | MEDIUM | https://behradtaher.dev/Sandboxing-Code-Execution/ |
-| Custom Seccomp Profiles (OneUpTime) | MEDIUM | https://oneuptime.com/blog/post/2026-02-08-how-to-create-custom-seccomp-profiles-for-docker-containers/view |
-| Seccomp Customization Difficulty (GitHub container-libs) | MEDIUM | https://github.com/containers/container-libs/issues/62 |
-| JWT Security Pitfalls (42Crunch) | MEDIUM | https://42crunch.com/7-ways-to-avoid-jwt-pitfalls/ |
-| JWT Mistakes in Spring Boot (BuildBaseKit) | LOW | https://buildbasekit.com/blogs/jwt-mistakes-spring-boot/ |
-| Spring Boot Testing Pitfalls (Baeldung) | HIGH | https://www.baeldung.com/spring-boot-testing-pitfalls |
-| Over-Mocking Downsides (Vinted Engineering) | MEDIUM | https://vinted.engineering/2023/10/02/mocking-framework-downside/ |
-| Vue Prop Drilling Solutions (alexop.dev) | MEDIUM | https://alexop.dev/posts/solving-prop-drilling-in-vue/ |
-| Password Reset Token Expiry (Stack Overflow) | MEDIUM | https://stackoverflow.com/questions/46827014/expiration-time-of-password-reset-tokens |
-| Email Spam via Forgot Password (Keycloak GitHub) | MEDIUM | https://github.com/keycloak/keycloak/issues/45678 |
-| Online Judge System Architecture (ResearchGate) | LOW | https://www.researchgate.net/publication/360861928_Online_Judge_System_Requirements_Architecture_and_Experiences |
+|--------|------------|-----|
+| GitHub Community: Common Problems with GitHub Actions and Docker | HIGH | https://github.com/orgs/community/discussions/118365 |
+| GitHub Community: Docker & CI Security Mistakes | HIGH | https://github.com/orgs/community/discussions/184822 |
+| Docker Build Cache Management for GitHub Actions (Official) | HIGH | https://docs.docker.com/build/ci/github-actions/cache/ |
+| docker/build-push-action (Official GitHub Action) | HIGH | https://github.com/docker/build-push-action |
+| dorny/paths-filter (Community Action) | HIGH | https://github.com/dorny/paths-filter |
+| docker-rollout: Zero Downtime Deployment for Docker Compose | MEDIUM | https://github.com/wowu/docker-rollout |
+| Stack Overflow: Zero-Downtime Deployments Using Docker Compose | HIGH | https://stackoverflow.com/questions/59483549/zero-down-time-deployments-using-docker-compose |
+| Baeldung: Multi-Module Maven Projects in Docker | HIGH | https://www.baeldung.com/docker-maven-build-multi-module-projects |
+| Top 5 Mistakes Developers Make When Using GitHub Actions | MEDIUM | https://javascript.plainenglish.io/top-5-mistakes-developers-make-when-using-github-actions-and-how-i-fixed-them-ec28a836f78e |
+| Resolving Docker Multi-stage Build Errors on GitHub Actions | MEDIUM | https://thadaw.com/posts/resolving-docker-multi-stage-build-errors-on-github-actions/ |
+| 15 Common Docker Mistakes (Stackademic) | MEDIUM | https://blog.stackademic.com/15-common-docker-mistakes-and-how-to-avoid-them-525b803d00f9 |
+| GitHub Actions Troubleshooting (Official) | HIGH | https://docs.github.com/en/actions/how-tos/troubleshoot-workflows |
+| GitHub Actions CI/CD Best Practices (GitHub) | HIGH | https://github.com/github/awesome-copilot/blob/main/instructions/github-actions-ci-cd-best-practices.instructions.md |
+| Speeding Up Slow Docker Builds in GitHub Actions | MEDIUM | https://medium.com/@FrankGoortani/speeding-up-slow-docker-builds-in-github-actions-24ca574fac45 |
+| Docker Multi-stage Build Errors on GitHub Actions (Thadaw) | MEDIUM | https://thadaw.com/posts/resolving-docker-multi-stage-build-errors-on-github-actions/ |
+| UltiCode codebase analysis (direct inspection) | HIGH | Dockerfiles, docker-compose.yml, docker-compose.prod.yml, pom.xml, nginx configs, ecosystem.config.cjs, .gitignore, .env.example |
 
 **Gaps to address with phase-specific research:**
-- Exact list of syscalls used by each supported language in the sandbox (requires `strace` profiling on the actual Docker image).
-- Current JWT secret length in production (needed to determine if SEC-05's minimum-length check will block startup).
-- Current state of user-generated content in the database (how many records contain HTML-entity-encoded text from the XssFilter).
-- Exact `QueueService.enqueueJudgeJob()` implementation to understand rejudge queue capacity.
+- Exact `docker compose config` validation output for the combined docker-compose.yml + docker-compose.prod.yml to catch missing network definitions before deployment.
+- Current state of pnpm-lock.yaml files -- are they committed or gitignored?
+- Whether the recommendation service should be included in CI/CD scope or excluded as a separate deployment concern.
+- Exact GitHub Actions runner specs (disk, memory) to determine if Maven dependency caching fits within the 14GB free tier storage.
+
+---
+*Pitfalls research for: CI/CD Pipeline with GitHub Actions + Docker Compose*
+*Researched: 2026-04-17*

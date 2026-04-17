@@ -1,5 +1,28 @@
 # Milestones
 
+## v1.1 Technical Debt Remediation II (Shipped: 2026-04-17)
+
+**Phases completed:** 4 phases, 15 plans, 20 tasks
+
+**Key accomplishments:**
+
+- CorsProperties.java (new):
+- Verified XssFilter is a pure pass-through that does not modify request headers, confirming SEC-08 is already satisfied
+- Actuator endpoints restricted to health-only in production profile with no detail leakage; JWT cookie secure flags verified as pre-existing
+- Removed all weak password fallbacks from docker-compose.yml, enforcing required env vars with ${VAR:?message} syntax and adding CHANGE_ME placeholders to .env.example
+- Forum communities pagination via service layer, real problem counts via countByListId, and JVM heap memory metrics replacing all hardcoded placeholders in admin analytics performance report
+- SQL AVG(TIMESTAMPDIFF) aggregation with COALESCE NULL-safety replacing hardcoded 0.0 in moderation stats
+- SQL aggregation queries replacing N+1 loops and fixing retention rate bug in AdminAnalyticsServiceImpl
+- 1. [Rule 3 - Blocking] Added buildWrapperScript stub to enable compilation in Task 1
+- 12 files, 26 catch blocks addressed:
+- Split 495-line monolithic analytics service into 3 focused services + facade, reducing complexity while preserving the public interface unchanged
+- Removed 9 unguarded console.warn statements from production frontend, stabilized all Maven SNAPSHOT versions to 1.0.0, and untracked management/.env from git
+- 35 console frontend tests covering auth API boundary, problem-detail routing logic, and auth store state machine transitions
+- Management frontend vitest configuration with admin problems API and store CRUD test suites (23 new tests)
+- 1. [Rule 3 - Blocking] Pre-existing CodeExecutionServiceTest compilation error
+
+---
+
 ## v1.0 Technical Debt Remediation (Shipped: 2026-04-16)
 
 **Phases completed:** 4 phases, 11 plans, 20 tasks

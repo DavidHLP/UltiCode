@@ -66,31 +66,31 @@ Requirements for milestone v1.2. Each maps to roadmap phases.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| FOUND-01 | — | Pending |
-| FOUND-02 | — | Pending |
-| FOUND-03 | — | Pending |
-| FOUND-04 | — | Pending |
-| FOUND-05 | — | Pending |
-| FOUND-06 | — | Pending |
-| CI-01 | — | Pending |
-| CI-02 | — | Pending |
-| CI-03 | — | Pending |
-| CI-04 | — | Pending |
-| CI-05 | — | Pending |
-| CI-06 | — | Pending |
-| CD-01 | — | Pending |
-| CD-02 | — | Pending |
-| CD-03 | — | Pending |
-| CD-04 | — | Pending |
-| CD-05 | — | Pending |
-| HARD-01 | — | Pending |
-| HARD-02 | — | Pending |
+| FOUND-01 | Phase 9 | Pending |
+| FOUND-02 | Phase 9 | Pending |
+| FOUND-03 | Phase 9 | Pending |
+| FOUND-04 | Phase 9 | Pending |
+| FOUND-05 | Phase 9 | Pending |
+| FOUND-06 | Phase 9 | Pending |
+| CI-01 | Phase 9 | Pending |
+| CI-02 | Phase 9 | Pending |
+| CI-03 | Phase 9 | Pending |
+| CI-04 | Phase 9 | Pending |
+| CI-05 | Phase 9 | Pending |
+| CI-06 | Phase 9 | Pending |
+| CD-01 | Phase 10 | Pending |
+| CD-02 | Phase 10 | Pending |
+| CD-03 | Phase 10 | Pending |
+| CD-04 | Phase 10 | Pending |
+| CD-05 | Phase 10 | Pending |
+| HARD-01 | Phase 11 | Pending |
+| HARD-02 | Phase 11 | Pending |
 
 **Coverage:**
 - v1 requirements: 19 total
-- Mapped to phases: 0
-- Unmapped: 19 (to be mapped by roadmapper)
+- Mapped to phases: 19
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-17*
-*Last updated: 2026-04-17 after initial definition*
+*Last updated: 2026-04-17 after roadmap creation*

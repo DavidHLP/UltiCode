@@ -1,409 +1,237 @@
-# Technology Stack -- Security Fixes & Testing Milestone
-
-**Project:** UltiCode Technical Debt v1.0
-**Researched:** 2026-04-14
-**Mode:** Stack additions/changes for 9 critical/high fixes
-
-## Executive Summary
-
-This milestone requires **zero new runtime dependencies** and **three new test-scoped dependencies**. The 9 fixes are achievable by leveraging already-installed libraries more effectively and adding test infrastructure only. The PROJECT.md constraint "no new dependencies" is largely achievable for production code -- the only addition needed is `org.owasp.encoder:encoder` to replace the regex-based XssFilter, which is a direct security dependency justified by the fix itself.
-
-The existing stack already has `spring-boot-starter-security`, `spring-boot-starter-data-redis`, `jjwt 0.12.5`, `spring-boot-starter-mail`, and `spring-boot-starter-test`+`spring-security-test`. These cover all CSRF, JWT validation, email, and backend testing needs without adding new production dependencies (except the OWASP encoder).
-
----
-
-## Fix-by-Fix Stack Analysis
-
-### SEC-01: CSRF Spring Security Framework Integration
-
-**Current state:**
-- `SecurityConfig.java:90` calls `AbstractHttpConfigurer::disable` -- CSRF completely disabled at the framework layer.
-- Custom `CsrfInterceptor` (HandlerInterceptor) registered via `WebMvcConfig` validates `X-CSRF-Token` header against Redis-backed `CsrfService`.
-- `CsrfService` already implements token generation, validation, rotation, and cleanup with Redis (24h TTL).
-- Frontend sends CSRF via `X-CSRF-Token` header (read from localStorage).
-
-**Recommended approach: No new dependencies.**
-
-Implement a custom `CsrfTokenRepository` that delegates to the existing `CsrfService`. This integrates the existing Redis-backed token logic into Spring Security's CSRF filter chain while preserving the current frontend contract (`X-CSRF-Token` header).
-
-```java
-// New class: RedisCsrfTokenRepository implements CsrfTokenRepository
-// Delegates to existing CsrfService for load/save/generate/validate
-```
-
-**Key integration points:**
-- Enable CSRF in `SecurityConfig`: remove `AbstractHttpConfigurer::disable`, configure `.csrf(csrf -> csrf.csrfTokenRepository(redisCsrfTokenRepository()))`
-- Remove the separate `CsrfInterceptor` from `WebMvcConfig` (Spring Security's filter handles it)
-- Frontend contract unchanged: still sends `X-CSRF-Token` header
-- Existing `CsrfService.generateToken()`, `validateAndRotateToken()`, `clearUserTokens()` remain the backing implementation
-
-**Why this works without new deps:** `spring-boot-starter-security` already includes `CsrfTokenRepository`, `DefaultCsrfToken`, `CsrfFilter` -- all the framework plumbing is present. The custom repository is ~80 lines of glue code.
-
-| Technology | Version | Purpose | Source |
-|-----------|---------|---------|--------|
-| spring-boot-starter-security | 3.5.12 (managed) | CsrfTokenRepository interface, CsrfFilter | Already in pom.xml |
-
----
-
-### SEC-05: JWT Secret Startup Validation
-
-**Current state:**
-- `application.yml:47` defines `jwt.secret: ${JWT_SECRET:}` with empty default.
-- `JwtProperties` has no validation -- `secret` can be null or empty string.
-- `JwtTokenProvider.getSigningKey()` calls `jwtProperties.getSecret().getBytes()` which throws NPE if secret is null.
-
-**Recommended approach: No new dependencies.**
-
-Add `@PostConstruct` validation in `JwtTokenProvider` (or a dedicated `JwtSecretValidator` component):
-
-```java
-@PostConstruct
-void validateSecret() {
-    String secret = jwtProperties.getSecret();
-    if (secret == null || secret.isBlank()) {
-        throw new IllegalStateException(
-            "JWT secret is not configured. Set JWT_SECRET environment variable. " +
-            "Generate one with: openssl rand -base64 32");
-    }
-    if (secret.length() < 32) {
-        throw new IllegalStateException(
-            "JWT secret must be at least 256 bits (32 characters). Current length: " + secret.length());
-    }
-    // Verify the secret actually produces a valid HMAC key
-    Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
-}
-```
-
-| Technology | Version | Purpose | Source |
-|-----------|---------|---------|--------|
-| jjwt-api/impl | 0.12.5 | `Keys.hmacShaKeyFor()` for key validation | Already in pom.xml |
-| javax.annotation (Jakarta) | managed by Spring Boot | `@PostConstruct` | Already available |
-
----
-
-### SEC-06: XSS Output Encoding (Replace Regex-Based XssFilter)
-
-**Current state:**
-- `XssFilter.java` wraps all `HttpServletRequest` objects with regex-based sanitization.
-- 6 regex patterns strip `<script>`, `on*=`, `javascript:`, `vbscript:`, `eval(`, `expression(`.
-- Sanitizes `getParameter()`, `getParameterValues()`, `getHeader()`, `getQueryString()`.
-- Known problems: regex bypass, corrupts code submissions (e.g., `eval` in user code), sanitizes headers unnecessarily.
-
-**Recommended approach: Add ONE dependency: OWASP Java Encoder 1.3.0.**
-
-The fix has two parts:
-
-1. **Replace the XssFilter entirely** with a more targeted approach:
-   - Remove global regex sanitization from `XssFilter`.
-   - Apply output encoding at the response level using `Encode.forHtml()` for HTML contexts.
-   - Exclude code execution endpoints from any input filtering (code submissions contain `eval`, `javascript` legitimately).
-   - Stop sanitizing request headers.
-
-2. **Use OWASP Java Encoder** for context-aware output encoding:
-   - `Encode.forHtml()` -- HTML body context
-   - `Encode.forHtmlAttribute()` -- HTML attribute context
-   - `Encode.forJavaScript()` -- JavaScript context
-   - `Encode.forUriComponent()` -- URL context
-
-| Technology | Version | Purpose | Why |
-|-----------|---------|---------|-----|
-| org.owasp.encoder:encoder | 1.3.0 | Context-aware output encoding | OWASP-recommended, zero dependencies, high-performance. Replaces fundamentally broken regex approach. |
-| dompurify | 3.3.x | Frontend HTML sanitization | Already in console and management. Frontend should continue using DOMPurify for rich text content rendering. |
-
-**Why OWASP Java Encoder and not ESAPI:**
-- ESAPI is heavier, more complex, and provides far more than needed (file upload, crypto, etc.)
-- OWASP Java Encoder is focused: just encoding, ~50KB, no transitive dependencies
-- Both are OWASP projects, but Encoder is the modern recommendation for output encoding specifically
-
-**Maven addition:**
-```xml
-<dependency>
-    <groupId>org.owasp.encoder</groupId>
-    <artifactId>encoder</artifactId>
-    <version>1.3.0</version>
-</dependency>
-```
-
-**Confidence:** HIGH -- OWASP Java Encoder 1.3.0 is confirmed on Maven Central, actively maintained, and specifically designed for this use case.
-
----
-
-### SEC-04: Docker Seccomp Profile for Java Sandbox
-
-**Current state:**
-- `docker/sandbox/Dockerfile` installs nodejs, python3, openjdk-17-jdk-headless, gcc, g++.
-- Runs as non-root user (UID 1000).
-- `CodeExecutionService.buildDockerCommand()` already applies: `--network none`, `--memory`, `--cpus`, `--pids-limit 128`, `--ulimit nofile=128:128`, `--read-only`, `--tmpfs /tmp:rw,size=64m`, `--user 1000:1000`, `--security-opt no-new-privileges:true`.
-- No seccomp profile. No `--cap-drop ALL`.
-
-**Recommended approach: No new dependencies. Pure Docker configuration files.**
-
-Add two files to the project (no code dependencies):
-
-1. **`docker/sandbox/seccomp-profile.json`** -- Custom seccomp profile that:
-   - Blocks dangerous syscalls: `ptrace`, `mount`, `umount2`, `pivot_root`, `keyctl`, `acct`, `add_key`, `request_key`, `syslog`, `unshare`, `clone` (new namespaces), `kexec_load`, `reboot`, `swapon`, `swapoff`, `init_module`, `finit_module`, `delete_module`, `iopl`, `ioperm`
-   - Allows necessary syscalls for compilation and execution: `execve`, `fork`, `wait4`, `read`, `write`, `open`, `openat`, `close`, `stat`, `fstat`, `mmap`, `munmap`, `brk`, `arch_prctl`, `set_tid_address`, `exit_group`, `exit`, `rt_sigaction`, `rt_sigprocmask`, `access`, `getpid`, `gettid`, `socketpair`, `pipe2`, `dup2`, `fcntl`, `getdents64`, `lseek`, `ioctl` (limited)
-   - Default action: `SCMP_ACT_ERRNO` (return EPERM for unlisted syscalls)
-
-2. **Modify `CodeExecutionService.buildDockerCommand()`** to add:
-   - `--security-opt seccomp=/path/to/seccomp-profile.json`
-   - `--cap-drop ALL`
-
-**Why no external library:** Seccomp profiles are JSON files passed to Docker's runtime. No Java library needed. The profile is a static resource file deployed alongside the application.
-
-**Recommended seccomp approach:** Start with Docker's default seccomp profile (already restrictive) as the base, then add explicit deny rules for dangerous syscalls. This is safer than allowlisting because Docker's default already covers most attack vectors. The default profile blocks ~44 of ~300+ syscalls.
-
-| Technology | Version | Purpose | Source |
-|-----------|---------|---------|--------|
-| Docker seccomp (JSON profile) | Built-in | Syscall restriction | No dependency -- Docker runtime feature |
-
-**Note on `--cap-drop ALL`:** Can safely be added because the sandbox does not need any Linux capabilities (no network, no device access, no privilege escalation). The `no-new-privileges` flag is already set.
-
----
-
-### QUAL-01: Vue Component Splitting (14 Components Over 600 Lines)
-
-**Current state:**
-- 14 Vue components range from 602 to 1356 lines.
-- Worst offenders: `ProblemListsView.vue` (1356 lines), `ProblemsListView.vue` (1224 lines).
-- Both frontends use Vue 3 Composition API with `<script setup>`.
-
-**Recommended approach: No new dependencies.**
-
-Use existing Vue 3 patterns already present in the codebase:
-
-1. **Composables (`use*.ts`)** for extracting reactive logic:
-   - `useProblemFilters()`, `useSubmissionTable()`, `useContestTimer()`, etc.
-   - The project already has composables in `console/src/composables/` (e.g., `useCodeTemplates`, `useMarkdown`).
-
-2. **Sub-components** for template decomposition:
-   - Extract table sections, filter bars, detail panels, dialogs into separate `.vue` files.
-   - Place in co-located `components/` directories (e.g., `console/src/views/problems/components/`).
-
-3. **Pattern -- Container/Presentational split:**
-   - Container component handles data fetching and state.
-   - Presentational sub-components receive props and emit events.
-
-| Technology | Version | Purpose | Why |
-|-----------|---------|---------|-----|
-| Vue 3 Composition API | 3.5.x | Composables, `<script setup>` | Already in use. No new lib needed. |
-| @vueuse/core | 14.1.x | Utility composables | Already installed. `useDebounce`, `useStorage`, etc. |
-
-**Target structure for a 1200-line view:**
-```
-views/problems/
-  ProblemListView.vue          (~200 lines - container)
-  components/
-    ProblemTable.vue           (~200 lines - table)
-    ProblemFilters.vue         (~150 lines - filter bar)
-    ProblemDetailDrawer.vue    (~200 lines - side panel)
-    ProblemStats.vue           (~100 lines - statistics)
-  composables/
-    useProblemList.ts          (~150 lines - data logic)
-    useProblemFilters.ts       (~100 lines - filter state)
-```
-
----
-
-### TEST-01: Backend Testing Stack (auth, submission, CodeExecution)
-
-**Current state:**
-- 22 existing test files, all pure unit tests with `@ExtendWith(MockitoExtension.class)`.
-- `spring-boot-starter-test` (includes JUnit 5, Mockito, AssertJ, Spring Test) and `spring-security-test` are in pom.xml.
-- No test resources directory (`src/test/resources/` does not exist).
-- Missing test coverage: `AuthController`, `AuthServiceImpl`, `JwtTokenProvider`, `CsrfService`, `CsrfInterceptor`, `SubmissionServiceImpl`, `CodeExecutionService`, `XssFilter`.
-- No `@WebMvcTest` or `@SpringBootTest` anywhere.
-
-**Recommended approach: Add three test-scoped dependencies.**
-
-| Library | Version | Purpose | Why |
-|---------|---------|---------|-----|
-| spring-boot-testcontainers | managed by Spring Boot 3.5 BOM | Spring Boot integration with Testcontainers | `@ServiceConnection` auto-wiring for MySQL and Redis containers. Spring Boot 3.1+ native support. |
-| org.testcontainers:mysql | 1.20.x (BOM-managed) | MySQL Testcontainer | Integration tests with real MySQL instead of mocking all MyBatis mappers. |
-| org.testcontainers:junit-jupiter | 1.20.x (BOM-managed) | JUnit 5 lifecycle management | `@Testcontainers`, `@Container` annotations for container lifecycle. |
-
-**Maven additions:**
-```xml
-<!-- Test dependencies -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-testcontainers</artifactId>
-    <scope>test</scope>
-</dependency>
-<dependency>
-    <groupId>org.testcontainers</groupId>
-    <artifactId>mysql</artifactId>
-    <scope>test</scope>
-</dependency>
-<dependency>
-    <groupId>org.testcontainers</groupId>
-    <artifactId>junit-jupiter</artifactId>
-    <scope>test</scope>
-</dependency>
-```
-
-**Testing strategy per module:**
-
-| Module | Test Type | Tooling | What It Tests |
-|--------|-----------|---------|---------------|
-| `JwtTokenProvider` | Unit | Mockito, JUnit 5 | Token generation, validation, expiration, key validation |
-| `CsrfService` | Unit | Mockito (mock RedisTemplate) | Token generation, validation, rotation, cleanup |
-| `CsrfInterceptor` | Unit | MockMvc + Spring Security Test | CSRF enforcement, method filtering, header extraction |
-| `AuthServiceImpl` | Unit | Mockito (mock UserMapper, PasswordEncoder) | Login, register, token generation |
-| `AuthController` | Integration | `@WebMvcTest` + MockMvc | HTTP request/response, validation, error handling |
-| `SubmissionServiceImpl` | Unit | Mockito (mock SubmissionMapper, QueueService) | Submission flow, status management |
-| `CodeExecutionService` | Unit | Mockito (mock DockerSandboxConfig, ProcessBuilder) | Docker command building, result parsing |
-| `UserDetailsService` | Integration | `@WebMvcTest` | If kept: verify actual DB user loading |
-
-**Testcontainers usage (optional, for deeper integration tests):**
-- Spin up real MySQL + Redis for `AuthServiceImpl` integration tests
-- Verify actual SQL queries work via MyBatis-Plus
-- Test CSRF token persistence in Redis
-- Use `@ServiceConnection` (Spring Boot 3.2+) for automatic property mapping
-
-**Why Testcontainers and not H2:**
-- H2 has SQL dialect differences from MySQL (e.g., `INSERT ... ON DUPLICATE KEY`, `LIMIT`, date functions)
-- MyBatis-Plus queries written for MySQL may behave differently on H2
-- Testcontainers gives MySQL-accurate results, catching real query issues
-- Spring Boot 3.5 has first-class Testcontainers support -- minimal configuration
-
-**Confidence:** HIGH -- Spring Boot 3.5.12 BOM manages Testcontainers versions. `@ServiceConnection` is stable since 3.2.
-
----
-
-## Complete Dependency Changes Summary
-
-### Production Dependencies (pom.xml)
-
-| Action | GroupId | ArtifactId | Version | Fix |
-|--------|---------|-----------|---------|-----|
-| ADD | org.owasp.encoder | encoder | 1.3.0 | SEC-06 (XSS output encoding) |
-
-That is the **only** new production dependency.
-
-### Test Dependencies (pom.xml)
-
-| Action | GroupId | ArtifactId | Version | Fix |
-|--------|---------|-----------|---------|-----|
-| ADD | org.springframework.boot | spring-boot-testcontainers | BOM-managed | TEST-01 |
-| ADD | org.testcontainers | mysql | BOM-managed | TEST-01 |
-| ADD | org.testcontainers | junit-jupiter | BOM-managed | TEST-01 |
-
-### New Configuration Files (no code dependency)
-
-| File | Location | Fix |
-|------|----------|-----|
-| `seccomp-profile.json` | `docker/sandbox/seccomp-profile.json` | SEC-04 |
-
-### New Java Classes (using existing dependencies)
-
-| Class | Location | Fix |
-|-------|----------|-----|
-| `RedisCsrfTokenRepository` | `security/csrf/RedisCsrfTokenRepository.java` | SEC-01 |
-| (Modify) `SecurityConfig` | `common/config/SecurityConfig.java` | SEC-01 |
-| (Modify) `WebMvcConfig` | `common/config/WebMvcConfig.java` | SEC-01 |
-| (Modify) `JwtTokenProvider` | `security/jwt/JwtTokenProvider.java` | SEC-05 |
-| (Modify) `XssFilter` | `common/filter/XssFilter.java` | SEC-06 |
-| (Modify) `CodeExecutionService` | `submission/service/CodeExecutionService.java` | SEC-04 |
-
----
-
-## Alternatives Considered
-
-### CSRF: Spring Security's CookieCsrfTokenRepository
-
-| Criterion | Custom Redis Repository (Recommended) | CookieCsrfTokenRepository (Built-in) |
-|-----------|---------------------------------------|--------------------------------------|
-| Server-side state | Yes (Redis) -- can invalidate tokens | No -- double-submit cookie only |
-| Token rotation | Already implemented in `CsrfService` | Not supported natively |
-| Cluster support | Yes (Redis shared state) | Yes (stateless cookies) |
-| Frontend changes | None (same X-CSRF-Token header) | Requires frontend changes (X-XSRF-TOKEN header, cookie reading) |
-| Logout cleanup | `clearUserTokens()` already works | No server-side cleanup |
-
-**Decision:** Custom `RedisCsrfTokenRepository` wrapping existing `CsrfService`. Zero frontend changes, preserves token rotation and logout cleanup.
-
-### XSS: ESAPI vs OWASP Encoder
-
-| Criterion | OWASP Encoder 1.3.0 (Recommended) | ESAPI 2.5.x |
-|-----------|-------------------------------------|-------------|
-| Bundle size | ~50KB | ~2MB |
-| Dependencies | None | Many (commons-beanutils, etc.) |
-| Focus | Output encoding only | Full security toolkit (overkill) |
-| Maintenance | Active, lightweight | Slower release cycle |
-| Spring Boot compatibility | Perfect (no conflicts) | Known classloading issues |
-
-**Decision:** OWASP Java Encoder. Smaller, focused, no conflicts with Spring Boot 3.5.
-
-### Testing: H2 vs Testcontainers
-
-| Criterion | Testcontainers + MySQL (Recommended) | H2 In-Memory |
-|-----------|--------------------------------------|--------------|
-| SQL accuracy | Exact MySQL behavior | MySQL compatibility mode (incomplete) |
-| MyBatis-Plus compatibility | Full | May differ (LIMIT syntax, date functions) |
-| Setup complexity | Docker required (already available) | Zero setup |
-| Test speed | Slower (~5-10s container startup) | Fast (~1s) |
-| Confidence | HIGH -- tests real DB | MEDIUM -- may miss DB-specific issues |
-
-**Decision:** Testcontainers for integration tests, Mockito for pure unit tests. Use both: unit tests for fast feedback, Testcontainers for critical paths (auth, submission).
-
-### Docker Sandbox: nsjail vs seccomp profile
-
-| Criterion | Custom seccomp profile (Recommended) | nsjail |
-|-----------|---------------------------------------|--------|
-| Integration effort | Low (JSON file + Docker flag) | High (new binary, complex config) |
-| Security | Good (syscall filtering) | Excellent (full isolation with namespaces) |
-| Maintenance | Low (static JSON) | High (external dependency, version updates) |
-| Compatibility | Works with existing Docker setup | Requires installing nsjail in the container |
-
-**Decision:** Custom seccomp profile. Lower effort, good security improvement for now. nsjail can be a future enhancement if stricter isolation is needed.
-
----
+# Technology Stack: CI/CD Pipeline Additions
+
+**Project:** UltiCode v1.2 CI/CD Pipeline
+**Researched:** 2026-04-17
+**Confidence:** HIGH
+
+## Recommended Stack
+
+This document covers **only new additions** required for the v1.2 CI/CD milestone. The existing validated stack (Spring Boot 3.5, Vue 3, MyBatis-Plus, MySQL, Redis, Nacos, PM2, Docker) is not re-researched here.
+
+### Core Technologies
+
+| Technology | Version | Purpose | Why Recommended |
+|------------|---------|---------|-----------------|
+| GitHub Actions | Runner v2.327.1+ (Node 24 runtime) | CI/CD orchestration | Already hosting the repo on GitHub; zero additional infra cost; native integration with PRs, branches, and GHCR. Free tier: 2000 min/month for private repos, unlimited for public. |
+| Docker Buildx | v0.20+ (via setup-buildx-action v4.0.0) | Multi-platform builds, layer caching | Required by `docker/build-push-action` v7. Enables BuildKit features: cache export/import, multi-stage parallelism, attestations. |
+| GitHub Container Registry (GHCR) | `ghcr.io/{owner}/{image}` | Docker image storage | Free for public images, 500MB storage for private. Tight integration with GitHub Actions -- no separate credentials. Packages tab in repo for image management. |
+| Docker Compose | v2.x (deploy target) | Production deployment on VPS | Already used for local dev (`docker-compose.yml`). Same compose files can drive production deployment with env-var overrides. |
+
+### GitHub Actions
+
+| Action | Version | Purpose | Notes |
+|--------|---------|---------|-------|
+| `actions/checkout` | v6.0.2 | Clone repository | Default for all workflows |
+| `actions/setup-java` | v5.2.0 | Install JDK for backend build | Use `distribution: 'temurin'`, `java-version: '17'` to match existing Dockerfile |
+| `actions/setup-node` | v6.3.0 | Install Node.js for frontend builds | Use `node-version: '22'` to match existing Dockerfiles. Supports `cache: 'pnpm'` natively. |
+| `pnpm/action-setup` | v5.0.0 | Install pnpm package manager | Use `version: 9` to match existing Dockerfiles. Run before `actions/setup-node` with `cache` disabled (let setup-node handle caching). |
+| `actions/cache` | v5.0.5 | Arbitrary caching (Maven, Testcontainers) | Use for Maven local repo (`~/.m2/repository`) and Testcontainers images. |
+| `docker/login-action` | v4.1.0 | Authenticate to GHCR | Use `registry: ghcr.io`, token: `${{ secrets.GITHUB_TOKEN }}` |
+| `docker/metadata-action` | v6.0.0 | Generate Docker image tags | Auto-tags: `sha-<commit>`, `latest` on main, semver on tags. Avoids tag collisions with `sep:` and `prefix:` options. |
+| `docker/setup-buildx-action` | v4.0.0 | Create Buildx builder | **Requires Actions Runner v2.327.1+** (Node 24 runtime). Use `driver-opts: network=host` for local registry access during caching. |
+| `docker/build-push-action` | v7.1.0 | Build and push Docker images | **Requires Actions Runner v2.327.1+**. Use `context: .`, `file: ./path/to/Dockerfile`, `push: true`, `cache-from/to: type=gha`. |
+| `actions/upload-artifact` | v8.0.1 | Share files between jobs | Use for passing build reports, coverage artifacts between CI jobs. |
+| `actions/download-artifact` | v7.0.1 | Retrieve shared files | Merged into `actions/upload-artifact` v5+ ecosystem; use `github` namespace. |
+| `softprops/action-gh-release` | v3.0.0 | Create GitHub releases | Optional: for tagged releases with image manifests. |
+
+### Deployment Actions
+
+| Action | Version | Purpose | Notes |
+|--------|---------|---------|-------|
+| `appleboy/ssh-action` | v1.2.5 | SSH-based remote deployment | Execute `docker compose pull && docker compose up -d` on VPS. Use `env:` for secrets injection. |
+
+### Development Tools
+
+| Tool | Purpose | Notes |
+|------|---------|-------|
+| `act` | Local GitHub Actions testing | Run workflows locally before pushing. Supports most actions but not Docker layer caching. Use for smoke testing workflow syntax. |
+| `actionlint` | Workflow linting | Catch YAML errors, shellcheck issues, and typos in workflow files. Install via `brew install actionlint` or Go. |
 
 ## Installation
 
-```xml
-<!-- Add to backend-spring/pom.xml <dependencies> section -->
+No new project dependencies to install. CI/CD runs entirely in GitHub Actions runners using existing Dockerfiles.
 
-<!-- SEC-06: OWASP Java Encoder for output encoding (replaces regex XssFilter) -->
-<dependency>
-    <groupId>org.owasp.encoder</groupId>
-    <artifactId>encoder</artifactId>
-    <version>1.3.0</version>
-</dependency>
+### Workflow Files (to be created)
 
-<!-- TEST-01: Testcontainers for integration testing -->
-<dependency>
-    <groupId>org.springframework.boot</groupId>
-    <artifactId>spring-boot-testcontainers</artifactId>
-    <scope>test</scope>
-</dependency>
-<dependency>
-    <groupId>org.testcontainers</groupId>
-    <artifactId>mysql</artifactId>
-    <scope>test</scope>
-</dependency>
-<dependency>
-    <groupId>org.testcontainers</groupId>
-    <artifactId>junit-jupiter</artifactId>
-    <scope>test</scope>
-</dependency>
+```
+.github/
+  workflows/
+    ci.yml              # Lint, type-check, test on PR/push
+    cd.yml              # Build images, push to GHCR, deploy
 ```
 
-Testcontainers version is managed by Spring Boot 3.5.12 BOM -- no explicit version needed.
+## Alternatives Considered
 
----
+| Recommended | Alternative | Why Not |
+|-------------|-------------|---------|
+| GitHub Actions | GitLab CI | Repo is on GitHub; moving to GitLab CI would require hosting migration. GitLab CI is excellent but only relevant if the repo moves. |
+| GitHub Actions | Jenkins | Heavyweight for this project size. Requires self-hosted server, plugin maintenance. Overkill for a 3-service monorepo. |
+| GHCR | Docker Hub | Docker Hub has rate limits (200 pulls/6h for free). GHCR has no rate limits for GitHub Actions. GHCR integrates natively with `GITHUB_TOKEN`. |
+| GHCR | AWS ECR / GCP Artifact Registry | Adds cloud provider dependency. GHCR is sufficient and free for this scale. Revisit if deploying to cloud later. |
+| `docker/build-push-action` | Kaniko | Kaniko runs in-cluster (Kubernetes). This project uses Docker Compose on a VPS -- Buildx is the natural fit. |
+| SSH deploy via `appleboy/ssh-action` | Self-hosted runner on VPS | Self-hosted runners add maintenance burden (updates, security, disk cleanup). SSH deploy is simpler and more secure for a single VPS. |
+| GHA caching (`type=gha`) | Registry-based caching (`type=registry`) | GHA caching is free, simpler to configure, and automatically managed. Registry caching requires a separate cache registry. Use registry caching only if GHA cache fills up (>10GB). |
+| `docker/metadata-action` | Manual tagging | Manual tags are error-prone and inconsistent. `metadata-action` generates deterministic tags from git context (branch, SHA, semver). |
+
+## What NOT to Use
+
+| Avoid | Why | Use Instead |
+|-------|-----|-------------|
+| `latest` tag in production | Non-reproducible; rolling back requires knowing the previous SHA | `sha-<commit>` tags always; `latest` only on `main` for dev environments |
+| Docker Hub free tier | 200 pulls/6h rate limit will hit with 3 services pulling on every deploy | GHCR (no rate limit for GHA, 500MB private storage) |
+| Self-hosted runners initially | Adds infra complexity before the pipeline is proven | GitHub-hosted runners (`ubuntu-24.04`). Add self-hosted later if build times exceed 6min or need persistent Docker layer cache. |
+| `ubuntu-latest` as pinned version | It can change without notice (currently 24.04, was 22.04) | Pin explicitly: `ubuntu-24.04` for reproducibility |
+| `main` branch as sole deployment target | Accidental deploys from force-pushes or history rewrites | Use tag-based deployment (`on: push: tags: ['v*']`) or explicit `workflow_dispatch` with branch input |
+| Nested workflows (`workflow_call`) for initial setup | Adds indirection that complicates debugging during first iteration | Single-file workflows first. Extract reusable actions via `workflow_call` once patterns stabilize. |
+| Branch protection via workflow | Workflow-level checks can be bypassed by repo admins | Use GitHub UI Settings > Branches > Branch protection rules. Mention in docs but do not implement in code. |
+| Large ephemeral test containers in CI | Docker Compose for infra + app containers in CI is slow and resource-heavy | Run backend tests with H2/Testcontainers (existing pattern). Frontend tests are Vitest unit tests (no containers needed). |
+
+## Stack Patterns by Variant
+
+### CI Pipeline (ci.yml)
+
+**Trigger:** `pull_request` + `push` to `main` with path filters.
+
+```yaml
+on:
+  pull_request:
+    paths:
+      - 'backend-spring/**'
+      - 'console/**'
+      - 'management/**'
+  push:
+    branches: [main]
+    paths:
+      - 'backend-spring/**'
+      - 'console/**'
+      - 'management/**'
+```
+
+**Pattern:**
+- Path-based triggers prevent unnecessary runs when only docs change.
+- Three parallel jobs: `backend-lint-test`, `console-lint-test`, `management-lint-test`.
+- Backend job: `actions/setup-java` + `./mvnw verify` (runs Checkstyle if configured, unit tests, integration tests).
+- Frontend jobs: `pnpm/action-setup` + `actions/setup-node` + `pnpm install --frozen-lockfile` + `pnpm lint` + `pnpm test`.
+- Maven cache via `actions/cache` key: `maven-${{ runner.os }}-${{ hashFiles('backend-spring/pom.xml') }}`.
+- pnpm cache via `actions/setup-node` with `cache: 'pnpm'`.
+
+### CD Pipeline (cd.yml)
+
+**Trigger:** `push` to `main` (after CI passes) or `workflow_dispatch`.
+
+**Pattern:**
+- Single job with sequential steps: build all 3 images, push to GHCR, deploy via SSH.
+- Three `docker/build-push-action` steps, one per service, using existing Dockerfiles.
+- GHA cache (`cache-from: type=gha,scope=backend`, `cache-to: type=gha,mode=max,scope=backend`) for layer reuse.
+- `docker/metadata-action` per service for deterministic tagging.
+- Concurrency group per environment to prevent overlapping deployments:
+  ```yaml
+  concurrency:
+    group: deploy-production
+    cancel-in-progress: false  # Never cancel a deploy in progress
+  ```
+- Deploy step: `appleboy/ssh-action` to run `docker compose pull && docker compose up -d` on VPS.
+
+### Production Docker Compose Override
+
+The existing `docker-compose.yml` defines infrastructure (MySQL, Redis, Nacos). Production deployment needs an **override file** (`docker-compose.prod.yml`) that adds application services:
+
+```yaml
+# docker-compose.prod.yml (to be created)
+services:
+  backend:
+    image: ghcr.io/{owner}/ulticode-backend:sha-${{ github.sha }}
+    ports: ["9001:9001"]
+    env_file: .env.production
+    depends_on: [mysql, redis, nacos]
+
+  console:
+    image: ghcr.io/{owner}/ulticode-console:sha-${{ github.sha }}
+    ports: ["9002:8080"]
+    depends_on: [backend]
+
+  management:
+    image: ghcr.io/{owner}/ulticode-management:sha-${{ github.sha }}
+    ports: ["9003:8080"]
+    depends_on: [backend]
+```
+
+**Critical integration note:** The nginx configs in `console/nginx.conf` and `management/nginx.conf` proxy to `http://backend:9001` using Docker network hostnames. The production compose file must name the backend service `backend` (not `ulticode-9001`) for this to work, or update the nginx configs to use the production service name.
+
+## Version Compatibility
+
+| Package | Compatible With | Notes |
+|---------|-----------------|-------|
+| `docker/build-push-action@v7.x` | Actions Runner v2.327.1+ | Node 24 runtime required. GitHub-hosted runners updated 2025-08-14. If on older runner, pin to v6.1.0. |
+| `docker/setup-buildx-action@v4.x` | Actions Runner v2.327.1+ | Same requirement as build-push-action v7. |
+| `docker/metadata-action@v6.x` | Actions Runner v2.327.1+ | Node 24 runtime. |
+| `actions/checkout@v6.x` | All runners | Node 24 runtime. Pin to v4 if runner is older than v2.327.1. |
+| `actions/setup-java@v5.x` | All runners | Works on all runner versions. |
+| `actions/setup-node@v6.x` | All runners | Works on all runner versions. |
+| `pnpm/action-setup@v5.x` | All runners | Works on all runner versions. |
+| `actions/cache@v5.x` | All runners | Works on all runner versions. |
+| `docker/login-action@v4.x` | All runners | Works on all runner versions. |
+| JDK 17 (temurin) | Spring Boot 3.5.x | Matches existing `eclipse-temurin:17-jdk-alpine` in Dockerfile. |
+| Node 22 | Vue 3 + Vite | Matches existing `node:22-alpine` in frontend Dockerfiles. |
+| pnpm 9 | Vue 3 workspaces | Matches existing `corepack prepare pnpm@9` in Dockerfiles. |
+
+### Runner Version Decision Matrix
+
+| GitHub-hosted runner | Version | Docker actions v7 safe? |
+|---------------------|---------|------------------------|
+| `ubuntu-latest` (current) | v2.327.1+ | YES |
+| `ubuntu-24.04` | v2.327.1+ | YES |
+| `ubuntu-22.04` (deprecated) | v2.313.0 | NO -- pin Docker actions to v6/v3 |
+
+**Recommendation:** Use `ubuntu-24.04` explicitly. Do not use `ubuntu-22.04` (deprecated, cannot run Docker actions v7).
+
+## Integration with Existing Infrastructure
+
+### Existing Dockerfiles (no changes needed for CI)
+
+The project already has production-ready multi-stage Dockerfiles:
+
+| Service | Dockerfile | Build context | Runtime image | Port |
+|---------|-----------|---------------|---------------|------|
+| Backend | `backend-spring/Dockerfile` | Project root (`.`) | `eclipse-temurin:17-jre-alpine` | 9001 |
+| Console | `console/Dockerfile` | Project root (`.`) | `nginx:alpine` | 8080 |
+| Management | `management/Dockerfile` | Project root (`.`) | `nginx:alpine` | 8080 |
+
+All three already include:
+- Multi-stage builds (smaller final images)
+- Non-root users (security best practice)
+- Health checks (Docker native + Kubernetes-ready)
+- Dependency caching (Maven `go-offline`, pnpm `--frozen-lockfile`)
+
+### Existing docker-compose.yml (extend, don't replace)
+
+The existing `docker-compose.yml` defines infrastructure services only (MySQL, Redis, Nacos). The CD pipeline should use `docker compose -f docker-compose.yml -f docker-compose.prod.yml` to merge infrastructure + application services.
+
+### Existing PM2 config (dev only)
+
+`ecosystem.config.cjs` is for local development via PM2. It should NOT be used in production Docker containers. The CD pipeline deploys via Docker Compose, not PM2.
+
+## Secrets Required
+
+| Secret Name | GitHub Secret? | VPS env file? | Purpose |
+|-------------|---------------|---------------|---------|
+| `GITHUB_TOKEN` | Built-in | N/A | Push to GHCR, create releases. No configuration needed. |
+| `VPS_HOST` | Yes (repo secret) | N/A | VPS IP or hostname for SSH deploy. |
+| `VPS_USER` | Yes (repo secret) | N/A | SSH username on VPS. |
+| `VPS_SSH_KEY` | Yes (repo secret) | N/A | SSH private key for deployment. |
+| `VPS_DEPLOY_PATH` | Yes (repo secret) | N/A | Path to docker-compose files on VPS (e.g., `/opt/ulticode`). |
+| `.env.production` | No | Yes (on VPS) | All app credentials (DB, Redis, JWT, Nacos). Never store in GitHub. |
 
 ## Sources
 
-- [OWASP Java Encoder on Maven Central](https://mvnrepository.com/artifact/org.owasp.encoder/encoder) -- Version 1.3.0 confirmed (HIGH confidence)
-- [OWASP Java Encoder GitHub](https://github.com/OWASP/owasp-java-encoder) -- Active project, Java 17 build requirement (HIGH confidence)
-- [Spring Boot Testcontainers docs](https://docs.spring.io/spring-boot/reference/testing/testcontainers.html) -- Official Spring Boot 3.1+ integration guide (HIGH confidence)
-- [Testcontainers Official Site](https://java.testcontainers.org/) -- Latest version ~1.20.x, BOM-managed by Spring Boot 3.5 (HIGH confidence)
-- [Spring Security CSRF documentation](https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html) -- CsrfTokenRepository interface, CookieCsrfTokenRepository (HIGH confidence)
-- [Baeldung: Prevent XSS in Spring](https://www.baeldung.com/spring-prevent-xss) -- OWASP Encoder usage patterns (MEDIUM confidence)
-- [Docker seccomp profile reference](https://docs.docker.com/engine/security/seccomp/) -- Default profile and custom profiles (HIGH confidence)
-- [Stack Overflow: Sandboxing for Online Judges](https://stackoverflow.com/questions/36191589/sandboxing-for-online-judges) -- Community best practices for judge sandboxes (MEDIUM confidence)
+- `gh api repos/{owner}/{repo}/releases/latest` -- all action versions verified via GitHub Releases API on 2026-04-17
+- GitHub Docs: "Using GitHub Actions" -- https://docs.github.com/en/actions
+- Docker Docs: "Build with GitHub Actions" -- https://docs.docker.com/build/ci/github-actions/multi-platform/
+- Docker build-push-action v7.0.0 release notes -- Actions Runner v2.327.1+ requirement
+- Existing project Dockerfiles (`backend-spring/Dockerfile`, `console/Dockerfile`, `management/Dockerfile`) -- analyzed directly
+- Existing `docker-compose.yml` -- analyzed directly
+- Existing `ecosystem.config.cjs` -- analyzed directly
 
 ---
-
-*Stack research: 2026-04-14*
+*Stack research for: UltiCode CI/CD Pipeline (v1.2 milestone)*
+*Researched: 2026-04-17*

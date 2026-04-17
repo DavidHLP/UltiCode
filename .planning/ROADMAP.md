@@ -1,9 +1,10 @@
-# Roadmap: UltiCode Technical Debt Remediation
+# Roadmap: UltiCode
 
 ## Milestones
 
 - ✅ **v1.0 Technical Debt Remediation** — Phases 1-4 (shipped 2026-04-16)
 - ✅ **v1.1 Technical Debt Remediation II** — Phases 5-8 (shipped 2026-04-17)
+- 🚧 **v1.2 CI/CD Pipeline** — Phases 9-11 (in progress)
 
 ## Phases
 
@@ -13,38 +14,66 @@
 
 Decimal phases appear between their surrounding integers in numeric order.
 
+- [x] **Phase 1: Security Filter Chain** - CSRF/XSS/JWT filter chain hardening (v1.0)
+- [x] **Phase 2: Core Functionality** - Password reset, rejudge, Docker sandbox (v1.0)
+- [x] **Phase 3: Test Coverage** - Unit + integration tests for security fixes (v1.0)
+- [x] **Phase 4: Frontend Quality** - Oversized Vue component split (v1.0)
+- [x] **Phase 5: Security Configuration** - CORS, CSP, JWT cookie, prod profile (v1.1)
+- [x] **Phase 6: Admin Functionality** - Analytics, pagination, batch test execution (v1.1)
+- [x] **Phase 7: Code Quality** - Catch blocks, service split, console cleanup (v1.1)
+- [x] **Phase 8: Frontend Test Coverage** - Console + Management + Backend controller tests (v1.1)
+- [ ] **Phase 9: Foundation + CI** - Fix blocking Dockerfile/config bugs, create CI workflow
+- [ ] **Phase 10: CD Pipeline** - Docker image publish to GHCR, SSH deploy to VPS
+- [ ] **Phase 11: Hardening** - Dependabot, rollback workflow
+
+## Phase Details
+
 <details>
 <summary>✅ v1.0 Technical Debt Remediation (Phases 1-4) — SHIPPED 2026-04-16</summary>
 
-- [x] Phase 1: Security Filter Chain (3/3 plans) — completed 2026-04-14
-- [x] Phase 2: Core Functionality (3/3 plans) — completed 2026-04-15
-- [x] Phase 3: Test Coverage (3/3 plans) — completed 2026-04-15
-- [x] Phase 4: Frontend Quality (2/2 plans) — completed 2026-04-15
+### Phase 1: Security Filter Chain
+**Goal**: CSRF/XSS/JWT filter chain hardening
+**Plans**: 3 plans
+
+Plans:
+- [x] 01-01: Replace XssFilter with OWASP Encoder output encoding (SEC-06)
+- [x] 01-02: Migrate CSRF to Spring Security CsrfValidationFilter (SEC-01)
+- [x] 01-03: JWT secret fail-fast validation + remove UserDetailsServiceImpl (SEC-05, SEC-03)
+
+### Phase 2: Core Functionality
+**Goal**: Password reset, rejudge, Docker sandbox hardening
+**Plans**: 3 plans
+
+Plans:
+- [x] 02-01: Password reset with BCrypt token + email delivery (SEC-02)
+- [x] 02-02: Admin rejudge/batch-rejudge with rate limiting (FUNC-01)
+- [x] 02-03: Docker sandbox seccomp profile + cap-drop ALL (SEC-04)
+
+### Phase 3: Test Coverage
+**Goal**: Unit + integration tests for security and core fixes
+**Plans**: 3 plans
+
+Plans:
+- [x] 03-01: JWT/CSRF/Auth unit tests (48 tests)
+- [x] 03-02: Submission + CodeExecution unit tests (18 tests)
+- [x] 03-03: Testcontainers integration tests (5 tests)
+
+### Phase 4: Frontend Quality
+**Goal**: Oversized Vue component split
+**Plans**: 2 plans
+
+Plans:
+- [x] 04-01: Console component split (14 components → 34 sub-components + 8 composables)
+- [x] 04-02: Management component + Pinia store split (6 components → 25 sub-components + 6 composables + 5 store modules)
 
 </details>
 
 <details>
 <summary>✅ v1.1 Technical Debt Remediation II (Phases 5-8) — SHIPPED 2026-04-17</summary>
 
-**Milestone Goal:** Clear all 19 remaining MEDIUM/LOW technical debt items deferred from v1.0, bringing the platform to production-ready state.
-
-- [x] **Phase 5: Security Configuration** — Externalize CORS, harden JWT cookies, create production profile, remove default passwords (completed 2026-04-16)
-- [x] **Phase 6: Admin Functionality & Performance** — Real admin data, audit trails, DB aggregation, batch test execution (completed 2026-04-16)
-- [x] **Phase 7: Code Quality & Dependencies** — Precise exception handling, service splits, debug cleanup, stable deps (completed 2026-04-16)
-- [x] **Phase 8: Testing** — Frontend key-path tests, backend @WebMvcTest controller tests (completed 2026-04-17)
-
-## Phase Details
-
 ### Phase 5: Security Configuration
-**Goal**: Platform security configuration is externalized and production-hardened — CORS origins, JWT cookie flags, actuator endpoints, and Docker credentials are all driven by environment variables with secure defaults
-**Depends on**: Phase 4
-**Requirements**: SEC-07, SEC-08, CONF-01, CONF-02, CONF-03
-**Success Criteria** (what must be TRUE):
-  1. CORS allowed origins are loaded from environment variables (not hardcoded), and the application rejects requests from origins not in the allowed list
-  2. XssFilter no longer strips or modifies request headers, so CSRF tokens in headers pass through unmodified
-  3. In production profile, JWT cookies are sent with `Secure=true` and Swagger UI is inaccessible
-  4. docker-compose.yml contains no plaintext passwords; all credentials are injected via environment variables or .env files
-**Plans**: 3 plans
+**Goal**: Platform security configuration is externalized and production-hardened
+**Plans**: 4 plans
 
 Plans:
 - [x] 05-01: Externalize CORS origins to environment variables (SEC-07)
@@ -53,15 +82,8 @@ Plans:
 - [x] 05-04: Remove weak default passwords from docker-compose.yml (CONF-03)
 
 ### Phase 6: Admin Functionality & Performance
-**Goal**: Admin panel displays real data instead of TODO stubs, audit trails capture the actual authenticated user, analytics use efficient database queries, and test case execution is faster through batch processing
-**Depends on**: Phase 5
-**Requirements**: AUDIT-01, FUNC-02, FUNC-03, PERF-01, PERF-02
-**Success Criteria** (what must be TRUE):
-  1. Backup audit logs show the actual admin username (not "system") who triggered the backup
-  2. Admin analytics pages display real computed values (forum community stats, problem counts, moderation average resolution time) instead of placeholder zeros or TODO stubs
-  3. Admin analytics dashboard loads without loading the entire database into memory — response time improves measurably for large datasets
-  4. Code submission test cases execute in a single Docker container startup rather than one container per test case, reducing total judging time
-**Plans**: 3 plans
+**Goal**: Admin panel displays real data, audit trails capture authenticated user, analytics use DB aggregation
+**Plans**: 5 plans
 
 Plans:
 - [x] 06-01: Replace BackupController hardcoded "system" with actual authenticated user ID (AUDIT-01)
@@ -71,29 +93,16 @@ Plans:
 - [x] 06-05: Batch test case execution in single Docker container (PERF-01)
 
 ### Phase 7: Code Quality & Dependencies
-**Goal**: Backend exception handling is precise (no broad `catch(Exception e)`), oversized service classes are split, debug logging is cleaned from production code, and all dependencies are stable versions with no git-tracked secrets
-**Depends on**: Phase 6
-**Requirements**: QUAL-02, QUAL-03, QUAL-04, DEP-01, DEP-02, DEP-03
-**Success Criteria** (what must be TRUE):
-  1. No `catch(Exception e)` or `catch(Throwable e)` blocks remain in production backend code — all catches target specific exception types
-  2. AdminAnalyticsServiceImpl is split into focused service classes, each under 300 lines, with clear single responsibilities
-  3. No `console.log` or `console.warn` statements exist in production frontend code (console.error for error logging is acceptable)
-  4. `management/.env` is not tracked by git, and `pom.xml` contains no SNAPSHOT dependencies
+**Goal**: Precise exception handling, service splits, debug cleanup, stable deps
 **Plans**: 3 plans
 
 Plans:
-- [x] 07-01: Replace broad catch(Exception e) with specific exception types + D-03 comments for legitimate broad catches (QUAL-02)
+- [x] 07-01: Replace broad catch(Exception e) with specific exception types (QUAL-02)
 - [x] 07-02: Split AdminAnalyticsServiceImpl into focused service classes (QUAL-03)
-- [x] 07-03: Clean console.log/warn from frontend production code, replace SNAPSHOT deps, untrack management/.env (QUAL-04, DEP-01, DEP-02, DEP-03)
+- [x] 07-03: Clean console.log/warn, replace SNAPSHOT deps, untrack management/.env (QUAL-04, DEP-01, DEP-02, DEP-03)
 
 ### Phase 8: Testing
-**Goal**: Frontend Console and Management apps have key-path tests covering API layers and stores, and backend critical controllers have @WebMvcTest integration tests validating request/response contracts
-**Depends on**: Phase 7
-**Requirements**: TEST-02, TEST-03, TEST-04
-**Success Criteria** (what must be TRUE):
-  1. Console frontend has tests covering the request API layer, auth store login/refresh flow, and problem store data fetching
-  2. Management frontend has tests covering the admin API layer and at least one admin store with CRUD operations
-  3. Backend AuthController and ProblemController have @WebMvcTest integration tests verifying endpoint authentication, request validation, and response format
+**Goal**: Frontend key-path tests and backend @WebMvcTest controller tests
 **Plans**: 3 plans
 
 Plans:
@@ -103,10 +112,61 @@ Plans:
 
 </details>
 
+### 🚧 v1.2 CI/CD Pipeline (In Progress)
+
+**Milestone Goal:** Automated CI/CD pipeline — every PR is linted, tested, and validated; every merge to main triggers Docker build and deployment via Docker Compose.
+
+#### Phase 9: Foundation + CI
+**Goal**: All pre-existing Dockerfile and configuration bugs are fixed, and a working CI workflow validates every PR with lint, type-check, and test across all 3 services
+**Depends on**: Phase 8
+**Requirements**: FOUND-01, FOUND-02, FOUND-03, FOUND-04, FOUND-05, FOUND-06, CI-01, CI-02, CI-03, CI-04, CI-05, CI-06
+**Success Criteria** (what must be TRUE):
+  1. `docker build` succeeds for all 3 service Dockerfiles (backend, console, management) with no JAR name mismatch or missing lockfile errors
+  2. Every pull request to the repository triggers automated lint, type-check, and test jobs for the changed service(s)
+  3. Backend tests pass in CI using GitHub Actions services: containers for MySQL and Redis (not Testcontainers Docker-in-Docker)
+  4. Console and management frontend lint + type-check + test run only when their respective paths change
+  5. A secrets mapping document exists that cross-references all configuration sources (GitHub Secrets, Docker Compose, Spring profiles, Vite env vars)
+**Plans**: TBD
+
+Plans:
+- [ ] 09-01: Fix Dockerfile bugs and create .dockerignore (FOUND-01, FOUND-02, FOUND-03, FOUND-04)
+- [ ] 09-02: Create application-ci.yml profile and secrets mapping document (FOUND-05, FOUND-06)
+- [ ] 09-03: Write ci.yml workflow with path-filtered parallel jobs and build caching (CI-01, CI-02, CI-03, CI-04, CI-05, CI-06)
+
+#### Phase 10: CD Pipeline
+**Goal**: Every merge to main automatically builds Docker images, pushes them to GHCR, and deploys to the VPS via Docker Compose with ordered service restarts
+**Depends on**: Phase 9
+**Requirements**: CD-01, CD-02, CD-03, CD-04, CD-05
+**Success Criteria** (what must be TRUE):
+  1. Merging a PR to main triggers automatic Docker image build and push to GHCR for all 3 services
+  2. Each pushed Docker image is tagged with both the git SHA short hash and "latest" for traceability
+  3. After a successful image push, the VPS automatically pulls new images and restarts services via Docker Compose
+  4. Backend service starts and passes health checks before frontend services are restarted (ordered restart)
+  5. A docker-compose.prod.yml exists that references GHCR images with a configurable IMAGE_TAG variable
+**Plans**: TBD
+
+Plans:
+- [ ] 10-01: Write docker-publish.yml with GHCR push and deterministic image tagging (CD-01, CD-02)
+- [ ] 10-02: Create docker-compose.prod.yml referencing GHCR images (CD-05)
+- [ ] 10-03: Write deploy.yml with SSH deploy and ordered health check restart (CD-03, CD-04)
+
+#### Phase 11: Hardening
+**Goal**: The CI/CD pipeline is self-maintaining with automated dependency updates and a manual rollback capability for failed deployments
+**Depends on**: Phase 10
+**Requirements**: HARD-01, HARD-02
+**Success Criteria** (what must be TRUE):
+  1. Dependabot automatically opens PRs for GitHub Actions version updates and npm/Maven dependency updates
+  2. A rollback workflow exists that can be manually triggered via workflow_dispatch to redeploy a previous image tag
+**Plans**: TBD
+
+Plans:
+- [ ] 11-01: Configure Dependabot for Actions and dependency updates (HARD-01)
+- [ ] 11-02: Create rollback workflow with manual image tag redeployment (HARD-02)
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 5 → 6 → 7 → 8
+Phases execute in numeric order: 9 → 10 → 11
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -114,7 +174,14 @@ Phases execute in numeric order: 5 → 6 → 7 → 8
 | 2. Core Functionality | v1.0 | 3/3 | Complete | 2026-04-15 |
 | 3. Test Coverage | v1.0 | 3/3 | Complete | 2026-04-15 |
 | 4. Frontend Quality | v1.0 | 2/2 | Complete | 2026-04-15 |
-| 5. Security Configuration | v1.1 | 4/4 | Complete    | 2026-04-16 |
+| 5. Security Configuration | v1.1 | 4/4 | Complete | 2026-04-16 |
 | 6. Admin Functionality & Performance | v1.1 | 5/5 | Complete | 2026-04-16 |
 | 7. Code Quality & Dependencies | v1.1 | 3/3 | Complete | 2026-04-16 |
 | 8. Testing | v1.1 | 3/3 | Complete | 2026-04-17 |
+| 9. Foundation + CI | v1.2 | 0/3 | Not started | - |
+| 10. CD Pipeline | v1.2 | 0/3 | Not started | - |
+| 11. Hardening | v1.2 | 0/2 | Not started | - |
+
+---
+*Roadmap created: 2026-04-17*
+*Last updated: 2026-04-17*

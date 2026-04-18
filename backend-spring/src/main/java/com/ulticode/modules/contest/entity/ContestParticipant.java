@@ -20,7 +20,7 @@ public class ContestParticipant {
     private String userId;
 
     /**
-     * Participant status: REGISTERED, PARTICIPATING, COMPLETED, DISQUALIFIED
+     * Participant status: REGISTERED, STARTED, FINISHED, DISQUALIFIED
      */
     private String status;
 

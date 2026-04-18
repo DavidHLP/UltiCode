@@ -147,7 +147,7 @@ Plans:
 
 Plans:
 - [x] 10-01: Write docker-publish.yml with GHCR push and deterministic image tagging (CD-01, CD-02)
-- [ ] 10-02: Create docker-compose.prod.yml referencing GHCR images (CD-05)
+- [x] 10-02: Create docker-compose.prod.yml referencing GHCR images (CD-05)
 - [ ] 10-03: Write deploy.yml with SSH deploy and ordered health check restart (CD-03, CD-04)
 
 #### Phase 11: Hardening
@@ -179,7 +179,7 @@ Phases execute in numeric order: 9 → 10 → 11
 | 7. Code Quality & Dependencies | v1.1 | 3/3 | Complete | 2026-04-16 |
 | 8. Testing | v1.1 | 3/3 | Complete | 2026-04-17 |
 | 9. Foundation + CI | v1.2 | 0/3 | Not started | - |
-| 10. CD Pipeline | v1.2 | 1/3 | In Progress|  |
+| 10. CD Pipeline | v1.2 | 2/3 | In Progress|  |
 | 11. Hardening | v1.2 | 0/2 | Not started | - |
 
 ---

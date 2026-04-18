@@ -4,7 +4,7 @@
 
 - ✅ **v1.0 Technical Debt Remediation** — Phases 1-4 (shipped 2026-04-16)
 - ✅ **v1.1 Technical Debt Remediation II** — Phases 5-8 (shipped 2026-04-17)
-- 🚧 **v1.2 CI/CD Pipeline** — Phases 9-11 (in progress)
+- ✅ **v1.2 CI/CD Pipeline** — Phases 9-11 (shipped 2026-04-18)
 
 ## Phases
 
@@ -22,9 +22,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Admin Functionality** - Analytics, pagination, batch test execution (v1.1)
 - [x] **Phase 7: Code Quality** - Catch blocks, service split, console cleanup (v1.1)
 - [x] **Phase 8: Frontend Test Coverage** - Console + Management + Backend controller tests (v1.1)
-- [ ] **Phase 9: Foundation + CI** - Fix blocking Dockerfile/config bugs, create CI workflow
-- [ ] **Phase 10: CD Pipeline** - Docker image publish to GHCR, SSH deploy to VPS
-- [x] **Phase 11: Hardening** - Dependabot, rollback workflow (completed 2026-04-18)
+- [x] **Phase 9: Foundation + CI** - Fix blocking Dockerfile/config bugs, create CI workflow (v1.2)
+- [x] **Phase 10: CD Pipeline** - Docker image publish to GHCR, SSH deploy to VPS (v1.2)
+- [x] **Phase 11: Hardening** - Dependabot, rollback workflow (v1.2)
 
 ## Phase Details
 
@@ -112,61 +112,41 @@ Plans:
 
 </details>
 
-### 🚧 v1.2 CI/CD Pipeline (In Progress)
+<details>
+<summary>✅ v1.2 CI/CD Pipeline (Phases 9-11) — SHIPPED 2026-04-18</summary>
 
-**Milestone Goal:** Automated CI/CD pipeline — every PR is linted, tested, and validated; every merge to main triggers Docker build and deployment via Docker Compose.
-
-#### Phase 9: Foundation + CI
+### Phase 9: Foundation + CI
 **Goal**: All pre-existing Dockerfile and configuration bugs are fixed, and a working CI workflow validates every PR with lint, type-check, and test across all 3 services
-**Depends on**: Phase 8
-**Requirements**: FOUND-01, FOUND-02, FOUND-03, FOUND-04, FOUND-05, FOUND-06, CI-01, CI-02, CI-03, CI-04, CI-05, CI-06
-**Success Criteria** (what must be TRUE):
-  1. `docker build` succeeds for all 3 service Dockerfiles (backend, console, management) with no JAR name mismatch or missing lockfile errors
-  2. Every pull request to the repository triggers automated lint, type-check, and test jobs for the changed service(s)
-  3. Backend tests pass in CI using GitHub Actions services: containers for MySQL and Redis (not Testcontainers Docker-in-Docker)
-  4. Console and management frontend lint + type-check + test run only when their respective paths change
-  5. A secrets mapping document exists that cross-references all configuration sources (GitHub Secrets, Docker Compose, Spring profiles, Vite env vars)
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 09-01: Fix Dockerfile bugs and create .dockerignore (FOUND-01, FOUND-02, FOUND-03, FOUND-04)
 - [x] 09-02: Create application-ci.yml profile and secrets mapping document (FOUND-05, FOUND-06)
 - [x] 09-03: Write ci.yml workflow with path-filtered parallel jobs and build caching (CI-01, CI-02, CI-03, CI-04, CI-05, CI-06)
 
-#### Phase 10: CD Pipeline
+### Phase 10: CD Pipeline
 **Goal**: Every merge to main automatically builds Docker images, pushes them to GHCR, and deploys to the VPS via Docker Compose with ordered service restarts
-**Depends on**: Phase 9
-**Requirements**: CD-01, CD-02, CD-03, CD-04, CD-05
-**Success Criteria** (what must be TRUE):
-  1. Merging a PR to main triggers automatic Docker image build and push to GHCR for all 3 services
-  2. Each pushed Docker image is tagged with both the git SHA short hash and "latest" for traceability
-  3. After a successful image push, the VPS automatically pulls new images and restarts services via Docker Compose
-  4. Backend service starts and passes health checks before frontend services are restarted (ordered restart)
-  5. A docker-compose.prod.yml exists that references GHCR images with a configurable IMAGE_TAG variable
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 10-01: Write docker-publish.yml with GHCR push and deterministic image tagging (CD-01, CD-02)
 - [x] 10-02: Create docker-compose.prod.yml referencing GHCR images (CD-05)
 - [x] 10-03: Write deploy.yml with SSH deploy and ordered health check restart (CD-03, CD-04)
 
-#### Phase 11: Hardening
+### Phase 11: Hardening
 **Goal**: The CI/CD pipeline is self-maintaining with automated dependency updates and a manual rollback capability for failed deployments
-**Depends on**: Phase 10
-**Requirements**: HARD-01, HARD-02
-**Success Criteria** (what must be TRUE):
-  1. Dependabot automatically opens PRs for GitHub Actions version updates and npm/Maven dependency updates
-  2. A rollback workflow exists that can be manually triggered via workflow_dispatch to redeploy a previous image tag
 **Plans**: 2 plans
 
 Plans:
 - [x] 11-01: Configure Dependabot for Actions and dependency updates (HARD-01)
 - [x] 11-02: Create rollback workflow with manual image tag redeployment (HARD-02)
 
+</details>
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 9 → 10 → 11
+Phases execute in numeric order: 1 → 11
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -178,9 +158,9 @@ Phases execute in numeric order: 9 → 10 → 11
 | 6. Admin Functionality & Performance | v1.1 | 5/5 | Complete | 2026-04-16 |
 | 7. Code Quality & Dependencies | v1.1 | 3/3 | Complete | 2026-04-16 |
 | 8. Testing | v1.1 | 3/3 | Complete | 2026-04-17 |
-| 9. Foundation + CI | v1.2 | 3/3 | Complete   | 2026-04-18 |
-| 10. CD Pipeline | v1.2 | 3/3 | Complete   | 2026-04-18 |
-| 11. Hardening | v1.2 | 2/2 | Complete    | 2026-04-18 |
+| 9. Foundation + CI | v1.2 | 3/3 | Complete | 2026-04-18 |
+| 10. CD Pipeline | v1.2 | 3/3 | Complete | 2026-04-18 |
+| 11. Hardening | v1.2 | 2/2 | Complete | 2026-04-18 |
 
 ---
 *Roadmap created: 2026-04-17*

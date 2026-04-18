@@ -192,15 +192,22 @@ jobs:
 
       - name: Install Flyway CLI
         run: |
-          # The maven central flyway bundle includes an Alpine JRE which fails on Ubuntu.
-          # Also, its classpath misses lib/flyway/*.jar. We patch both issues.
+          # The maven central flyway 11.3.4 bundle has a broken Alpine JRE on Ubuntu.
+          # We extract the bundle, then write a wrapper that invokes Java directly
+          # with the correct classpath (skipping the broken shell script JRE detection).
           curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz
           tar -xzf /tmp/flyway.tar.gz -C /tmp
-          # Patch 1: skip bundled JRE → use system Java
-          awk '{gsub(/if \[ -x "\$INSTALLDIR\/jre\/bin\/java" \]; then/, "if false; then")}1' /tmp/flyway-11.3.4/flyway > /tmp/flyway-patched && mv /tmp/flyway-patched /tmp/flyway-11.3.4/flyway
-          # Patch 2: add lib/flyway/* to classpath (Main class jar lives there)
-          awk '{gsub(/\$INSTALLDIR\/lib\/\*:/, "$INSTALLDIR/lib/*:$INSTALLDIR/lib/flyway/*:")}1' /tmp/flyway-11.3.4/flyway > /tmp/flyway-patched && mv /tmp/flyway-patched /tmp/flyway-11.3.4/flyway
-          sudo cp /tmp/flyway-11.3.4/flyway /usr/local/bin/ && sudo chmod +x /usr/local/bin/flyway
+          # Write a wrapper that bypasses the broken JRE detection entirely
+          cat > /tmp/flyway-wrapper.sh << 'WRAPPER'
+          #!/usr/bin/env bash
+          FLYWAY_DIR="${FLYWAY_DIR:-/tmp/flyway-11.3.4}"
+          JAVA_CMD="${JAVA_HOME:-$(which java)}/bin/java"
+          CP="$FLYWAY_DIR/lib/*:$FLYWAY_DIR/lib/flyway/*:$FLYWAY_DIR/lib/aad/*:$FLYWAY_DIR/lib/plugins/*:$FLYWAY_DIR/lib/netty/*:$FLYWAY_DIR/lib/opentelemetry/*:$FLYWAY_DIR/drivers/*"
+          exec "$JAVA_CMD" -Djava.security.egd=file:/dev/../dev/urandom -cp "$CP" org.flywaydb.commandline.Main "$@"
+          WRAPPER
+          chmod +x /tmp/flyway-wrapper.sh
+          sudo cp /tmp/flyway-wrapper.sh /usr/local/bin/flyway
+          sudo chmod +x /usr/local/bin/flyway
           flyway --version
 
       - name: Wait for MySQL

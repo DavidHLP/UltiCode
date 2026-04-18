@@ -446,17 +446,15 @@ $SSH_CMD "cd $DEPLOY_PATH && \
 | A2 | The existing cd-deploy.yml health check ports (80 for console/management) are a bug -- should be 9002/9003 | Common Pitfalls #2 | If the VPS has port forwarding or a reverse proxy on port 80, port 80 checks would be correct. Need to verify VPS network setup |
 | A3 | docker-compose.prod.yml already satisfies CD-05 and only needs verification, not creation | Phase Requirements (CD-05) | If GHCR image paths are wrong or IMAGE_TAG interpolation fails, Plan 10-02 scope increases |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **VPS network configuration -- are frontend ports exposed as 80 or 9002/9003?**
+1. **VPS network configuration -- are frontend ports exposed as 80 or 9002/9003?** (RESOLVED: No reverse proxy assumed. Fixed to host ports 9002/9003 in Plan 10-03 health check step.)
    - What we know: cd-deploy.yml health check uses `console:80` and `management:80`. docker-compose.prod.yml maps console to `9002:8080` and management to `9003:8080`.
-   - What's unclear: Does the VPS have a reverse proxy (nginx/caddy) that forwards port 80 to 9002/9003? Or is the health check checking the wrong ports?
-   - Recommendation: Verify VPS network setup before implementing Plan 10-03. If no reverse proxy, fix health check ports to 9002 and 9003. If there is a reverse proxy, port 80 checks are correct.
+   - Resolution: Plan 10-03 fixes health check endpoints to use host-mapped ports (9002 for console, 9003 for management) matching docker-compose.prod.yml port mappings.
 
-2. **Should docker-publish.yml add a concurrency group?**
+2. **Should docker-publish.yml add a concurrency group?** (RESOLVED: Concurrency group added in Plan 10-01 with `cancel-in-progress: true`.)
    - What we know: ci.yml has `concurrency: group: ${{ github.workflow }}-${{ github.ref }}, cancel-in-progress: true`. cd-deploy.yml has `concurrency: group: deploy-${{ github.event.inputs.environment }}, cancel-in-progress: false`.
-   - What's unclear: Should docker-publish.yml cancel previous runs when a new push to main arrives? For CD, this is usually desired (only deploy the latest).
-   - Recommendation: Add `concurrency: group: docker-publish, cancel-in-progress: true` to docker-publish.yml. Only the latest push to main should produce images.
+   - Resolution: Plan 10-01 adds `concurrency: group: docker-publish-${{ github.ref }}, cancel-in-progress: true` to docker-publish.yml. Only the latest push to main should produce images.
 
 ## Environment Availability
 

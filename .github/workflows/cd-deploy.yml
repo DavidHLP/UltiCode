@@ -76,29 +76,47 @@ jobs:
           # Login to GHCR on remote
           $SSH_CMD "echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin"
 
-          # Deploy via docker compose
+          # Pull and deploy with IMAGE_TAG exported in the same shell session
           $SSH_CMD "cd ${{ secrets.DEPLOY_PATH }} && \
+                    export IMAGE_TAG=${{ github.event.inputs.image_tag || 'latest' }} && \
                     docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
                     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans"
 
-      - name: Health check
+      - name: Health check - backend (fail fast)
         run: |
           SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
-          SERVICES=("backend:9001/actuator/health" "console:80" "management:80")
+          echo "Checking backend health..."
+          for i in $(seq 1 15); do
+            if $SSH_CMD "curl -sf http://localhost:9001/actuator/health > /dev/null 2>&1"; then
+              echo "  Backend is healthy"
+              break
+            fi
+            if [ "$i" -eq 15 ]; then
+              echo "::error::Backend failed health check after 75 seconds"
+              exit 1
+            fi
+            echo "  Waiting for backend... ($i/15)"
+            sleep 5
+          done
 
+      - name: Health check - frontends
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SERVICES=("console:9002" "management:9003")
           for svc in "${SERVICES[@]}"; do
             NAME="${svc%%:*}"
-            ENDPOINT="${svc#*:}"
+            PORT="${svc#*:}"
             echo "Checking $NAME..."
             for i in $(seq 1 15); do
-              if $SSH_CMD "curl -sf http://localhost:$ENDPOINT > /dev/null 2>&1"; then
+              if $SSH_CMD "curl -sf http://localhost:$PORT > /dev/null 2>&1"; then
                 echo "  $NAME is healthy"
                 break
               fi
               if [ "$i" -eq 15 ]; then
-                echo "  ERROR: $NAME failed health check"
+                echo "::error::$NAME failed health check after 75 seconds"
                 exit 1
               fi
+              echo "  Waiting for $NAME... ($i/15)"
               sleep 5
             done
           done

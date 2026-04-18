@@ -5,15 +5,26 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.service.AdminContestService;
+import com.ulticode.modules.contest.dto.CreateContestDTO;
+import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestProblem;
+import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
+import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
 
 /**
  * Implementation of AdminContestService.
@@ -24,6 +35,7 @@ import org.springframework.util.StringUtils;
 public class AdminContestServiceImpl implements AdminContestService {
 
     private final ContestMapper contestMapper;
+    private final ContestProblemMapper contestProblemMapper;
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
@@ -84,6 +96,168 @@ public class AdminContestServiceImpl implements AdminContestService {
         return toAdminVO(contest);
     }
 
+    @Override
+    @Transactional
+    public AdminContestVO createContest(CreateContestDTO dto, String userId) {
+        Contest contest = new Contest();
+        contest.setTitle(dto.getTitle());
+        contest.setDescription(dto.getDescription());
+        contest.setStartTime(dto.getStartTime());
+        contest.setDurationMinutes(dto.getDuration());
+        contest.setEndTime(dto.getStartTime().plusMinutes(dto.getDuration()));
+        contest.setMaxParticipants(dto.getMaxParticipants());
+        contest.setIsVisible(dto.getIsPublished() != null ? dto.getIsPublished() : false);
+        contest.setCreatedBy(userId);
+        contest.setStatus(ContestStatus.UPCOMING.name());
+        contest.setRegisteredCount(0);
+        contest.setParticipantCount(0);
+        contest.setSubmissionCount(0);
+        contest.setIsDeleted(false);
+
+        String slug = generateSlug(dto.getTitle());
+        contest.setSlug(slug);
+
+        contestMapper.insert(contest);
+
+        // Bulk-insert contest problems if provided
+        List<Long> problemIds = dto.getProblemIds();
+        if (problemIds != null && !problemIds.isEmpty()) {
+            for (int i = 0; i < problemIds.size(); i++) {
+                ContestProblem cp = new ContestProblem();
+                cp.setContestId(contest.getId());
+                cp.setProblemId(problemIds.get(i));
+                cp.setProblemIndex("Q" + (i + 1));
+                cp.setScore(0);
+                cp.setBaseScore(100);
+                cp.setSolvedCount(0);
+                cp.setSubmissionCount(0);
+                contestProblemMapper.insert(cp);
+            }
+        }
+
+        log.info("Admin created contest: {} by user {}", contest.getId(), userId);
+        return toAdminVO(contest);
+    }
+
+    @Override
+    @Transactional
+    public AdminContestVO updateContest(String id, UpdateContestDTO dto) {
+        Contest contest = contestMapper.selectById(id);
+        if (contest == null) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+        }
+
+        if (dto.getTitle() != null) {
+            contest.setTitle(dto.getTitle());
+        }
+        if (dto.getDescription() != null) {
+            contest.setDescription(dto.getDescription());
+        }
+        if (dto.getStartTime() != null) {
+            contest.setStartTime(dto.getStartTime());
+        }
+        if (dto.getDuration() != null) {
+            contest.setDurationMinutes(dto.getDuration());
+            contest.setEndTime(dto.getStartTime() != null
+                    ? dto.getStartTime().plusMinutes(dto.getDuration())
+                    : contest.getStartTime().plusMinutes(dto.getDuration()));
+        }
+        if (dto.getMaxParticipants() != null) {
+            contest.setMaxParticipants(dto.getMaxParticipants());
+        }
+        if (dto.getIsPublished() != null) {
+            contest.setIsVisible(dto.getIsPublished());
+        }
+
+        // Replace contest problems if problemIds is provided
+        if (dto.getProblemIds() != null) {
+            contestProblemMapper.deleteByContestId(id);
+            List<Long> problemIds = dto.getProblemIds();
+            for (int i = 0; i < problemIds.size(); i++) {
+                ContestProblem cp = new ContestProblem();
+                cp.setContestId(id);
+                cp.setProblemId(problemIds.get(i));
+                cp.setProblemIndex("Q" + (i + 1));
+                cp.setScore(0);
+                cp.setBaseScore(100);
+                cp.setSolvedCount(0);
+                cp.setSubmissionCount(0);
+                contestProblemMapper.insert(cp);
+            }
+        }
+
+        contestMapper.updateById(contest);
+
+        log.info("Admin updated contest: {}", id);
+        return toAdminVO(contest);
+    }
+
+    @Override
+    public void deleteContest(String id) {
+        Contest contest = contestMapper.selectById(id);
+        if (contest == null) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        String status = contest.getStatus();
+        if (!ContestStatus.UPCOMING.name().equals(status)
+                && !ContestStatus.FINISHED.name().equals(status)) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        contest.setIsDeleted(true);
+        contest.setDeletedAt(LocalDateTime.now());
+        contest.setDeletedBy(SecurityUtil.getCurrentUserId());
+        contestMapper.updateById(contest);
+
+        log.info("Admin deleted contest: {}", id);
+    }
+
+    @Override
+    public AdminContestVO startContest(String id) {
+        Contest contest = contestMapper.selectById(id);
+        if (contest == null) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED);
+        }
+
+        long problemCount = contestProblemMapper.countByContestId(id);
+        if (problemCount == 0) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        contest.setStatus(ContestStatus.RUNNING.name());
+        contestMapper.updateById(contest);
+
+        log.info("Admin started contest: {}", id);
+        return toAdminVO(contest);
+    }
+
+    @Override
+    public AdminContestVO endContest(String id) {
+        Contest contest = contestMapper.selectById(id);
+        if (contest == null) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTEST_ENDED);
+        }
+
+        contest.setStatus(ContestStatus.FINISHED.name());
+        contestMapper.updateById(contest);
+
+        log.info("Admin ended contest: {}", id);
+        return toAdminVO(contest);
+    }
+
     /**
      * Convert Contest entity to AdminContestVO.
      */
@@ -106,7 +280,28 @@ public class AdminContestServiceImpl implements AdminContestService {
         vo.setParticipantCount(contest.getParticipantCount());
         vo.setCreatedAt(contest.getCreatedAt());
         vo.setUpdatedAt(contest.getUpdatedAt());
+        vo.setProblemCount((int) contestProblemMapper.countByContestId(contest.getId()));
 
         return vo;
+    }
+
+    /**
+     * Generate a URL-friendly slug from a title.
+     */
+    private String generateSlug(String title) {
+        if (title == null || title.isBlank()) {
+            return "contest-" + UUID.randomUUID().toString().substring(0, 8);
+        }
+        String slug = title.toLowerCase()
+                .replaceAll("[^a-z0-9\\s-]", "")
+                .replaceAll("\\s+", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+
+        if (slug.length() < 3) {
+            slug = slug + "-" + UUID.randomUUID().toString().substring(0, 8);
+        }
+
+        return slug;
     }
 }

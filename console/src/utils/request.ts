@@ -290,11 +290,11 @@ service.interceptors.response.use(
       if (isCsrfError) {
         try {
           // Fetch fresh CSRF token (GET request, no CSRF validation needed)
-          const meResponse = await service.get("/auth/me", {
+          const meResponse = await service.get<unknown, { csrfToken?: string }>("/auth/me", {
             skipErrorHandler: true,
-          });
+          } as RequestConfig);
           if (meResponse?.csrfToken) {
-            csrfManager.refreshFromResponse(meResponse);
+            csrfManager.refreshFromResponse(meResponse as { csrfToken: string });
           }
 
           // Retry original request once with fresh token

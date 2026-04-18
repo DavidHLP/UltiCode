@@ -64,27 +64,25 @@
 
 ## Traceability
 
-*Filled by roadmap — maps each requirement to the phase that delivers it.*
-
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| JUDGE-01 | — | — |
-| JUDGE-02 | — | — |
-| JUDGE-03 | — | — |
-| JUDGE-04 | — | — |
-| CONTEST-01 | — | — |
-| CONTEST-02 | — | — |
-| CONTEST-03 | — | — |
-| CONTEST-04 | — | — |
-| CONTEST-05 | — | — |
-| CONTEST-06 | — | — |
-| CONTEST-07 | — | — |
-| PROB-01 | — | — |
-| PROB-02 | — | — |
-| PROB-03 | — | — |
-| PROB-04 | — | — |
-| USER-01 | — | — |
-| USER-02 | — | — |
-| USER-03 | — | — |
-| USER-04 | — | — |
-| USER-05 | — | — |
+| JUDGE-01 | Phase 12 | Pending |
+| JUDGE-02 | Phase 12 | Pending |
+| JUDGE-03 | Phase 12 | Pending |
+| JUDGE-04 | Phase 14 | Pending |
+| CONTEST-01 | Phase 13 | Pending |
+| CONTEST-02 | Phase 13 | Pending |
+| CONTEST-03 | Phase 14 | Pending |
+| CONTEST-04 | Phase 14 | Pending |
+| CONTEST-05 | Phase 13 | Pending |
+| CONTEST-06 | Phase 14 | Pending |
+| CONTEST-07 | Phase 13 | Pending |
+| PROB-01 | Phase 15 | Pending |
+| PROB-02 | Phase 15 | Pending |
+| PROB-03 | Phase 15 | Pending |
+| PROB-04 | Phase 15 | Pending |
+| USER-01 | Phase 15 | Pending |
+| USER-02 | Phase 15 | Pending |
+| USER-03 | Phase 15 | Pending |
+| USER-04 | Phase 15 | Pending |
+| USER-05 | Phase 15 | Pending |

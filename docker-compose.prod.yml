@@ -7,6 +7,14 @@
 #   REDIS_HOST, REDIS_PORT
 #   JWT_SECRET
 #   GHCR_REGISTRY (optional, defaults to ghcr.io/davidhlp/ulticode-public-next)
+#
+# IMAGE_TAG usage:
+#   export IMAGE_TAG=sha-abc1234  (or 'latest')
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# The cd-deploy.yml workflow sets IMAGE_TAG via:
+#   env.IMAGE_TAG = github.event.inputs.image_tag || 'latest'
 
 services:
   nacos:

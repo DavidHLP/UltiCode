@@ -132,7 +132,7 @@ public class MonitoringServiceImpl implements MonitoringService {
             }
 
             status = "healthy";
-        } catch (SQLException e) {
+        } catch (Exception e) {
             log.error("Failed to get database stats", e);
             status = "unhealthy";
         }

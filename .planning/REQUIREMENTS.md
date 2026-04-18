@@ -8,7 +8,7 @@
 
 ### 判题系统 (JUDGE)
 
-- [ ] **JUDGE-01**: 实现 Judge Worker — 后台定时轮询 Redis `judge_queue`，取出 JudgeJob，调用 CodeExecutionService 执行全部测试用例，写入判题结果到 Submission 实体，更新状态为 Accepted/Wrong Answer/TLE/MLE/RE 等。当前提交后永远停留在 Pending，这是平台的核心阻塞问题。
+- [x] **JUDGE-01**: 实现 Judge Worker — 后台定时轮询 Redis `judge_queue`，取出 JudgeJob，调用 CodeExecutionService 执行全部测试用例，写入判题结果到 Submission 实体，更新状态为 Accepted/Wrong Answer/TLE/MLE/RE 等。当前提交后永远停留在 Pending，这是平台的核心阻塞问题。
 - [x] **JUDGE-02**: 修复语言支持不一致 — SubmissionServiceImpl 接受 13 种语言但 CodeExecutionService 只支持 5 种（JS, Python, Java, C, C++）。将提交接口限制为 5 种受支持语言，或从下拉列表中移除不受支持的语言选项。
 - [x] **JUDGE-03**: Docker 沙箱添加内存使用测量 — 当前 execute() 方法始终返回 "0KB" 内存。通过 cgroup 统计或 /usr/bin/time 获取实际内存消耗。
 - [ ] **JUDGE-04**: 提交状态变更 WebSocket 推送 — 当前前端通过轮询 GET /submissions/{id} 检查判题结果。利用已有 WebSocket 基础设施，在 Judge Worker 完成判题后主动推送状态变更。
@@ -66,7 +66,7 @@
 
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
-| JUDGE-01 | Phase 12 | Pending |
+| JUDGE-01 | Phase 12 | Complete |
 | JUDGE-02 | Phase 12 | Complete |
 | JUDGE-03 | Phase 12 | Complete |
 | JUDGE-04 | Phase 14 | Pending |

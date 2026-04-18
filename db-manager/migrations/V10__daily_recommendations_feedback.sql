@@ -3,11 +3,11 @@ SET FOREIGN_KEY_CHECKS=0;
 -- Add feedback tracking fields to DailyRecommendation table
 --
 -- MySQL 9 does not allow NOW() or DATE_ADD(NOW(), ...) in DEFAULT or GENERATED
--- COLUMN expressions (Error 3763). Instead we use a default of 0 (Unix epoch)
+-- COLUMN expressions (Error 3763). Instead we use a default of '1970-01-01'
 -- and require the application layer to set expires_at = NOW() + 1 day at insert time.
 
 ALTER TABLE `DailyRecommendation`
-  ADD COLUMN `expires_at` DATETIME(3) DEFAULT 0 COMMENT '推荐过期时间，插入时由应用层设置为 NOW() + 1 day',
+  ADD COLUMN `expires_at` DATETIME(3) DEFAULT '1970-01-01 00:00:00' COMMENT '推荐过期时间，插入时由应用层设置为 NOW() + 1 day',
   ADD COLUMN `is_clicked` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '用户是否点击',
   ADD COLUMN `is_solved` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '用户是否完成';
 

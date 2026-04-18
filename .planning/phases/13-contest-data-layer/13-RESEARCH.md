@@ -618,22 +618,25 @@ public AdminContestVO startContest(String id) {
 | A4 | `problem_id` in `contest_problems` references `problems.id` which is `bigint` | Entity Design | Low -- verified from V3 schema DDL and seed data (problem_id values are 1, 2, 3, 5). |
 | A5 | Management frontend sends `POST /admin/contests/{id}/start` and `POST /admin/contests/{id}/end` | Frontend Contract | Verified in management/src/api/admin/contests.ts |
 
-## Open Questions
+## Open Questions (ALL RESOLVED)
 
-1. **Contest creation status: DRAFT vs UPCOMING?**
+1. **RESOLVED** ~~Contest creation status: DRAFT vs UPCOMING?~~
    - What we know: `ContestStatus` enum has DRAFT, UPCOMING, RUNNING, FINISHED, CANCELLED. Current `ContestServiceImpl.createContest()` sets status to DRAFT. But D-07 says start validation requires UPCOMING.
-   - What's unclear: Should admin create set status to UPCOMING directly (skipping DRAFT)? Or should there be a separate "publish" action to go from DRAFT to UPCOMING?
+   - What's unclear: Should admin create set status to UPCOMING directly (skipping DRAFT)? Or should there be a separate "publish" action to go from DRAFT to UPCOMING? 
+   > **RESOLVED:** Admin creates contests with status UPCOMING directly -- Plan 13-01 already does this implicitly.
    - Recommendation: Set status to UPCOMING on creation via admin endpoint. The DRAFT status can be used later if needed for draft workflows. This avoids adding a publish endpoint.
 
-2. **ContestParticipant status mapping: DB enum vs Java enum mismatch?**
+2. **RESOLVED** ~~ContestParticipant status mapping: DB enum vs Java enum mismatch?~~
    - What we know: DB `contest_participants.status` is `enum('REGISTERED','STARTED','FINISHED','DISQUALIFIED')`. Java `ContestParticipantStatus` has `REGISTERED, PARTICIPATING, COMPLETED, DISQUALIFIED`.
    - What's unclear: Is `STARTED` in DB mapped to `PARTICIPATING` in Java? And `FINISHED` to `COMPLETED`?
-   - Recommendation: Verify by checking how the existing registration flow sets the status. The Java code uses `ContestParticipantStatus.REGISTERED.name()` which would write "REGISTERED" to DB (matches). Need to confirm the PARTICIPATING vs STARTED mapping.
+   - Recommendation: Verify by checking how the existing registration flow sets the status. The Java code uses `ContestParticipantStatus.REGISTERED.name()` which would write "REGISTERED" to DB (matches). Need to confirm the PARTICIPATING vs STARTED mapping. 
+   > **RESOLVED:** Java enum renamed to match DB: PARTICIPATING→STARTED, COMPLETED→FINISHED. Plan 13-01 Task 1 includes this fix.
 
-3. **Admin create vs user-facing create: which handles problemIds?**
+3. **RESOLVED** ~~Admin create vs user-facing create: which handles problemIds?~~
    - What we know: `ContestController` (user-facing) already has POST /contest that calls `ContestService.createContest()`. Management frontend calls POST /admin/contests.
    - What's unclear: Should both paths support problemIds, or only the admin path?
-   - Recommendation: Only the admin path (`AdminContestService`) needs problem assignment per D-02. The user-facing path can remain as-is (it's admin-only anyway via `@PreAuthorize`).
+   - Recommendation: Only the admin path (`AdminContestService`) needs problem assignment per D-02. The user-facing path can remain as-is (it's admin-only anyway via `@PreAuthorize`). 
+   > **RESOLVED:** Admin-only creation handles problemIds -- Plan 13-01 Task 2 implements this.
 
 ## Environment Availability
 

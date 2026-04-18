@@ -246,7 +246,6 @@ jobs:
         if: steps.should-run.outputs.run == 'true'
         working-directory: ${{ matrix.app }}
         run: |
-          pnpm approve-builds --all
           pnpm install
 
       - name: Run lint

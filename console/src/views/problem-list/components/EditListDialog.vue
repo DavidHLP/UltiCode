@@ -13,8 +13,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { ref, watch } from "vue";
 
-defineProps<{
+const props = defineProps<{
   open: boolean;
   form: { name: string; description: string; isPublic: boolean };
 }>();
@@ -25,6 +26,27 @@ const emit = defineEmits<{
 }>();
 
 const { t } = useI18n();
+
+// Local form state to avoid mutating prop
+const localForm = ref({ ...props.form });
+
+// Sync local form when prop changes
+watch(() => props.form, (newForm) => {
+  localForm.value = { ...newForm };
+}, { deep: true });
+
+// Emit form updates to parent
+function updateName(value: string | number) {
+  localForm.value.name = String(value);
+}
+
+function updateDescription(value: string | number) {
+  localForm.value.description = String(value);
+}
+
+function updateIsPublic(value: boolean) {
+  localForm.value.isPublic = value;
+}
 </script>
 
 <template>
@@ -43,7 +65,7 @@ const { t } = useI18n();
           <Label for="name" class="text-right">{{
             t("problem.problemList.dialogs.listName")
           }}</Label>
-          <Input id="name" :model-value="form.name" class="col-span-3" @update:model-value="form.name = String($event)" />
+          <Input id="name" :model-value="localForm.name" class="col-span-3" @update:model-value="updateName" />
         </div>
         <div class="grid grid-cols-4 items-center gap-4">
           <Label for="description" class="text-right">{{
@@ -51,9 +73,9 @@ const { t } = useI18n();
           }}</Label>
           <Textarea
             id="description"
-            :model-value="form.description"
+            :model-value="localForm.description"
             class="col-span-3"
-            @update:model-value="form.description = String($event)"
+            @update:model-value="updateDescription"
           />
         </div>
         <div class="grid grid-cols-4 items-center gap-4">
@@ -61,9 +83,9 @@ const { t } = useI18n();
             t("problem.problemList.dialogs.publicList")
           }}</Label>
           <div class="col-span-3 flex items-center space-x-2">
-            <Switch id="public" :checked="form.isPublic" @update:checked="form.isPublic = $event" />
+            <Switch id="public" :checked="localForm.isPublic" @update:checked="updateIsPublic" />
             <span class="text-sm text-muted-foreground">{{
-              form.isPublic
+              localForm.isPublic
                 ? t("problem.problemList.detail.publicHint")
                 : t("problem.problemList.detail.privateHint")
             }}</span>

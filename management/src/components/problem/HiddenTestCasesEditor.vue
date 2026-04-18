@@ -11,7 +11,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog'
-import { IconFlask, IconPlus, IconUpload, IconDownload, IconEyeOff, IconLoader2 } from '@tabler/icons-vue'
+import { IconFlask, IconPlus, IconUpload, IconDownload, IconLoader2 } from '@tabler/icons-vue'
 import { useTestCases } from './composables/useTestCases'
 import TestCaseList from './components/TestCaseList.vue'
 import TestCaseDetail from './components/TestCaseDetail.vue'
@@ -21,9 +21,6 @@ const props = defineProps<{
   problemId: string
 }>()
 
-const emit = defineEmits<{
-  change: []
-}>()
 
 const {
   testCases,

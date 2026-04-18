@@ -171,12 +171,12 @@ export const useNotificationStore = defineStore("notification", () => {
     unreadCount.value += 1;
   }
 
-  function handleSubmissionResult(payload: SubmissionResultPayload) {
-    // This can be used to trigger toast notifications or update UI
-  }
+  // handleSubmissionResult - WebSocket callback placeholder
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleSubmissionResult = (_: SubmissionResultPayload) => { };
 
-  function handleBadgeEarned(payload: BadgeEarnedPayload) {
-  }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const handleBadgeEarned = (_: BadgeEarnedPayload) => { };
 
   /**
    * Setup WebSocket listeners

@@ -10,7 +10,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
   const reports = useReportsModule(queue.abortControllers)
   const appeals = useAppealsModule(queue.abortControllers, queue.actionLoading)
 
-  const actions = useActionsModule(queue.queueLoading)
+  const actions = useActionsModule()
 
   return {
     // Queue

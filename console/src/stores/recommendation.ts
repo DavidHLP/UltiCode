@@ -11,7 +11,6 @@ const cache = new Map<string, { data: RecommendItem[]; timestamp: number }>();
 const TTL_DAILY = 30 * 60 * 1000; // 30 min
 const TTL_WEAK = 10 * 60 * 1000; // 10 min
 const TTL_CHALLENGE = 15 * 60 * 1000; // 15 min
-const TTL_SIMILAR = 0; // No cache — per-problem
 
 function getCached(key: string, ttl: number): RecommendItem[] | null {
   const entry = cache.get(key);

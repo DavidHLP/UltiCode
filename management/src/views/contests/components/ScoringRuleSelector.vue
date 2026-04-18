@@ -60,7 +60,7 @@ async function fetchScoringRules() {
         emit('update:modelValue', scoringRules.value[0].id)
       }
     }
-  } catch (error) {
+  } catch {
     // Don't show error toast for permission issues - scoring rules are optional
     // The contest creation will work with default scoring
     // Failed to load scoring rules - continue with default

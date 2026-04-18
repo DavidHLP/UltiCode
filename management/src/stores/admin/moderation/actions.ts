@@ -5,7 +5,7 @@ import type {
   ModeratableEntityType,
 } from '@/api/admin/moderation'
 
-export function useActionsModule(queueLoading: { value: boolean }) {
+export function useActionsModule() {
   const filters = ref<{
     status?: ModerationStatus
     category?: ReportCategory

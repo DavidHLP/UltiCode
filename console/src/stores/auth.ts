@@ -106,8 +106,7 @@ export const useAuthStore = defineStore("auth", () => {
         }
         if (isDevelopment) {
         }
-      } catch (err) {
-        // Backend unavailable or not authenticated - still mark as ready
+      } catch { // Backend unavailable or not authenticated - still mark as ready
         // App will function in guest mode
         if (isDevelopment) {
         }
@@ -182,10 +181,7 @@ export const useAuthStore = defineStore("auth", () => {
       }
 
       return response.user;
-    } catch (err) {
-      if (isDevelopment) {
-      }
-      // 401 means no valid session - clear state
+    } catch { if (isDevelopment) {} // 401 means no valid session - clear state
       user.value = null;
       return null;
     }
@@ -349,10 +345,7 @@ export const useAuthStore = defineStore("auth", () => {
       permissions.value = new Set(response || []);
       if (isDevelopment) {
       }
-    } catch (error) {
-      if (isDevelopment) {
-      }
-      permissions.value.clear();
+    } catch { if (isDevelopment) {} permissions.value.clear();
     }
   }
 

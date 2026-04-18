@@ -194,9 +194,7 @@ function createSocketManager(): SocketManager {
       connectHeaders: {
         "X-CSRF-Token": csrfToken || "",
       },
-      debug: (str) => {
-        if (import.meta.env.DEV) {
-        }
+      debug: () => {
       },
       reconnectDelay: 1000,
       maxReconnectDelay: 5000,

@@ -35,7 +35,15 @@ import { useI18n } from "vue-i18n";
 
 const { t } = useI18n();
 
-const props = defineProps<{
+const emit = defineEmits<{
+  deleteList: [list: ProblemList];
+  unsaveList: [list: ProblemList];
+  moveListToCategory: [list: ProblemList, categoryId: string | null];
+  editCategory: [category: ProblemListCategory];
+  deleteCategory: [category: ProblemListCategory];
+}>();
+
+defineProps<{
   data: {
     myLists: ProblemList[];
     savedLists: ProblemList[];
@@ -43,14 +51,6 @@ const props = defineProps<{
     categories: (ProblemListCategory & { lists: ProblemList[] })[];
   };
   allCategories: ProblemListCategory[];
-}>();
-
-const emit = defineEmits<{
-  deleteList: [list: ProblemList];
-  unsaveList: [list: ProblemList];
-  moveListToCategory: [list: ProblemList, categoryId: string | null];
-  editCategory: [category: ProblemListCategory];
-  deleteCategory: [category: ProblemListCategory];
 }>();
 </script>
 

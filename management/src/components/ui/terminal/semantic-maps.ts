@@ -1,5 +1,4 @@
 import type { SemanticColor } from './semantic-types'
-import type { Difficulty } from '@/api/admin/problems'
 
 // ─── Difficulty ────────────────────────────────────────────
 

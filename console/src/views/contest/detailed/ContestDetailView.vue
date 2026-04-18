@@ -3,7 +3,6 @@ import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useContestStore } from "@/stores/contest";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -13,7 +12,6 @@ import {
   Calendar,
   Clock,
   Users,
-  Award,
 } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import VirtualContestTimer from "../components/VirtualContestTimer.vue";

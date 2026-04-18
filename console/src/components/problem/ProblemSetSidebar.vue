@@ -8,7 +8,7 @@ import {
   today,
 } from "@internationalized/date";
 import { Badge } from "@/components/ui/badge";
-import { type Ref, ref, computed, onMounted } from "vue";
+import { type Ref, ref, onMounted } from "vue";
 import { Trophy } from "lucide-vue-next";
 import { fetchDailyActivity } from "@/api/submission";
 import { useI18n } from "vue-i18n";
@@ -16,16 +16,7 @@ import { useI18n } from "vue-i18n";
 const date = ref(today(getLocalTimeZone())) as Ref<DateValue>;
 const completedDates = ref<string[]>([]);
 
-const { t, locale } = useI18n();
-
-const displayMonth = computed(() => {
-  const d = date.value;
-  return new Intl.DateTimeFormat(locale.value, {
-    month: "short",
-    year: "numeric",
-  }).format(d.toDate(getLocalTimeZone()));
-});
-
+const { t } = useI18n();
 onMounted(async () => {
   if (useAuthStore().isAuthenticated) {
     try {

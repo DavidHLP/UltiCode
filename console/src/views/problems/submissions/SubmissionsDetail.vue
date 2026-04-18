@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted, watch, nextTick } from "vue";
+import { computed, ref, onMounted, watch, nextTick } from "vue";
 import { useRouter } from "vue-router";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -44,7 +44,6 @@ const { t } = useI18n();
 const router = useRouter();
 
 const {
-  runtimeMs,
   statusMeta,
   statusLabel,
   statusToneClass,
@@ -87,8 +86,7 @@ function buildChartOption(
   userIndex: number,
   unit: string,
 ) {
-  const userAvatar =
-    props.submission?.user?.avatar ||
+  // userAvatar was unused
     "https://assets.leetcode.cn/aliyun-lc-upload/default_avatar.png";
 
   return {

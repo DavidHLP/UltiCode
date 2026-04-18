@@ -17,7 +17,7 @@ import { useI18n } from 'vue-i18n'
 
 const { t } = useI18n()
 
-const props = defineProps<{
+defineProps<{
   open: boolean
   editingTestCase: TestCase | null
   formData: CreateTestCaseDto
@@ -57,7 +57,7 @@ const emit = defineEmits<{
           <Label class="text-sm text-muted-foreground mb-1 block">{{ t('testCases.input') }} *</Label>
           <Textarea
             :model-value="formData.input_text"
-            @update:model-value="emit('update:formData', { ...formData, input_text: $event })"
+            @update:model-value="emit('update:formData', { ...formData, input_text: $event as string })"
             :placeholder="t('testCases.inputPlaceholder')"
             class="font-mono text-sm min-h-[120px]"
           />
@@ -67,7 +67,7 @@ const emit = defineEmits<{
           <Label class="text-sm text-muted-foreground mb-1 block">{{ t('testCases.output') }} *</Label>
           <Textarea
             :model-value="formData.output_text"
-            @update:model-value="emit('update:formData', { ...formData, output_text: $event })"
+            @update:model-value="emit('update:formData', { ...formData, output_text: $event as string })"
             :placeholder="t('testCases.outputPlaceholder')"
             class="font-mono text-sm min-h-[120px]"
           />
@@ -79,7 +79,7 @@ const emit = defineEmits<{
           </Label>
           <Input
             :model-value="formData.explanation"
-            @update:model-value="emit('update:formData', { ...formData, explanation: $event })"
+            @update:model-value="emit('update:formData', { ...formData, explanation: $event as string })"
             :placeholder="t('testCases.explanationPlaceholder')"
           />
         </div>

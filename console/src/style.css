@@ -821,6 +821,12 @@
   border: 1px solid color-mix(in oklch, var(--silver-500) 30%, transparent);
 }
 
+.terminal-badge-primary {
+  background: color-mix(in oklch, var(--accent-primary) 15%, transparent);
+  color: var(--accent-primary);
+  border: 1px solid color-mix(in oklch, var(--accent-primary) 40%, transparent);
+}
+
 .animate-pulse-subtle {
   animation: subtle-pulse 2s ease-in-out infinite;
 }

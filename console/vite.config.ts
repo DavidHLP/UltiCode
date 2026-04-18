@@ -4,7 +4,6 @@ import tailwindcss from '@tailwindcss/vite'
 import { defineConfig, searchForWorkspaceRoot, type PluginOption } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
-import vueDevTools from 'vite-plugin-vue-devtools'
 import Icons from 'unplugin-icons/vite'
 import { VitePWA } from 'vite-plugin-pwa'
 
@@ -18,7 +17,6 @@ export default defineConfig({
     vue(),
     vueJsx(),
     tailwindcss(),
-    vueDevTools(),
     Icons({ compiler: 'vue3', autoInstall: true }) as PluginOption,
     VitePWA({
       registerType: 'prompt',

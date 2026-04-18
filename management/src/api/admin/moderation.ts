@@ -328,8 +328,8 @@ export interface RevokeBanDto {
 // ============================================================================
 
 export interface PaginatedResponse<T> {
-  data: T[]
-  // Legacy format (flat) - for backward compatibility
+  items: T[]
+  // Legacy format (flat)
   total?: number
   page?: number
   limit?: number

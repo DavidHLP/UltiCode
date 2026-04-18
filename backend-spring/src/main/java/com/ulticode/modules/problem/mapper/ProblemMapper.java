@@ -3,6 +3,8 @@ package com.ulticode.modules.problem.mapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
+import org.apache.ibatis.annotations.Arg;
+import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
@@ -21,6 +23,10 @@ public interface ProblemMapper extends BaseMapper<Problem> {
      *
      * @return list of DifficultyCountDTO containing [difficulty, count]
      */
+    @ConstructorArgs({
+            @Arg(column = "difficulty", javaType = String.class),
+            @Arg(column = "count", javaType = Long.class)
+    })
     @Select("SELECT difficulty, COUNT(*) as count FROM problems " +
             "WHERE is_deleted = false AND is_published = true " +
             "GROUP BY difficulty")

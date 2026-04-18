@@ -32,7 +32,7 @@ export function useReportsModule(abortControllers: Ref<Map<string, AbortControll
     try {
       const response = await reportsApi.getReports(params, controller.signal)
       if (controller.signal.aborted) return
-      reports.value = response.data ?? response.data ?? (Array.isArray(response) ? response : [])
+      reports.value = response.items ?? []
       reportsTotal.value = response.total ?? response.meta?.total ?? 0
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return

@@ -54,7 +54,7 @@ export function useQueueModule() {
       const queryParams: QueryModerationQueueParams = { ...params }
       const response = await moderationQueueApi.getQueue(queryParams, controller.signal)
       if (controller.signal.aborted) return
-      queueItems.value = response.data ?? response.data ?? (Array.isArray(response) ? response : [])
+      queueItems.value = response.items ?? []
       queueTotal.value = response.total ?? response.meta?.total ?? 0
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return
@@ -81,7 +81,8 @@ export function useQueueModule() {
       console.error('[ModerationStore] Failed to fetch queue item:', err)
       return null
     } finally {
-      if (abortControllers.value.get('queueItem') === controller) currentQueueItemLoading.value = false
+      if (abortControllers.value.get('queueItem') === controller)
+        currentQueueItemLoading.value = false
     }
   }
 

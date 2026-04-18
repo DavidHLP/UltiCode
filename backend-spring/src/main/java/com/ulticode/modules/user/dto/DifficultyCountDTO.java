@@ -1,22 +1,13 @@
 package com.ulticode.modules.user.dto;
 
-/**
- * DTO for difficulty count queries.
- */
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class DifficultyCountDTO {
-    private final String difficulty;
-    private final Long count;
-
-    public DifficultyCountDTO(String difficulty, Long count) {
-        this.difficulty = difficulty;
-        this.count = count;
-    }
-
-    public String getDifficulty() {
-        return difficulty;
-    }
-
-    public Long getCount() {
-        return count;
-    }
+    private String difficulty;
+    private Long count;
 }

@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Core Features
-status: executing
-stopped_at: Completed 12-01-PLAN.md
-last_updated: "2026-04-18T13:41:11.470Z"
+status: verifying
+stopped_at: Completed 12-02-PLAN.md
+last_updated: "2026-04-18T13:56:12.641Z"
 last_activity: 2026-04-18
 progress:
   total_phases: 4
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 
 Phase: 12 (Judge Worker) — EXECUTING
 Plan: 2 of 2
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-04-18
 
 Progress: [          ] 0%
@@ -55,6 +55,7 @@ Progress: [          ] 0%
 
 *Updated after each plan completion*
 | Phase 12 P01 | 194 | 2 tasks | 2 files |
+| Phase 12 P02 | 11min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -68,6 +69,7 @@ Recent decisions affecting current work:
 - v1.2: CI/CD pipeline — 3 phases (Foundation+CI, CD, Hardening), 8 plans
 - [Phase 12]: Language whitelist restricted to 5 entries (javascript, python, java, c, cpp) matching CodeExecutionService
 - [Phase 12]: Memory measured via cgroup v2 /sys/fs/cgroup/memory.current in Docker wrappers, reported as String X.XMB format
+- [Phase 12]: Used @ConditionalOnProperty(matchIfMissing=true) so judge worker enabled by default; AtomicInteger activeJobs for concurrency guard; exponential backoff 2s*2^attempts with max 3 retries; compile errors not retried
 
 ### Pending Todos
 
@@ -92,6 +94,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T13:41:11.468Z
-Stopped at: Completed 12-01-PLAN.md
+Last session: 2026-04-18T13:56:12.639Z
+Stopped at: Completed 12-02-PLAN.md
 Resume file: None

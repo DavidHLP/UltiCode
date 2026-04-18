@@ -23,13 +23,13 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Vue ecosystem
-          'vue-vendor': ['vue', 'vue-router', 'pinia'],
-          // UI libraries
-          'ui-vendor': ['reka-ui', 'lucide-vue-next', '@tabler/icons-vue'],
-          // Markdown
-          markdown: ['markdown-it'],
+        // Vite 7 requires manualChunks to be a function, not an object
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) return 'vue-vendor'
+            if (id.includes('reka-ui') || id.includes('lucide-vue-next') || id.includes('@tabler')) return 'ui-vendor'
+            if (id.includes('markdown-it')) return 'markdown'
+          }
         },
       },
     },

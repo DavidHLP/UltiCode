@@ -16,6 +16,9 @@ RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --no-f
 # Copy source code
 COPY management ./management
 
+# Copy shared directory (used by management via @/shared alias)
+COPY shared ./management/src/shared
+
 # Build application
 WORKDIR /app/management
 RUN pnpm build

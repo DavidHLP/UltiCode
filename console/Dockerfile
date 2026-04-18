@@ -16,6 +16,9 @@ RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --no-f
 # Copy source code
 COPY console ./console
 
+# Copy shared directory (used by console via @/shared alias)
+COPY shared ./console/src/shared
+
 # Build application
 WORKDIR /app/console
 RUN pnpm build

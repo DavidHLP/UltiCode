@@ -8,17 +8,18 @@ COPY backend-spring/.mvn/ ./.mvn/
 COPY backend-spring/mvnw ./mvnw
 COPY backend-spring/pom.xml ./pom.xml
 
-# Copy recommendation-api module (local dependency not in Maven Central)
-COPY recommendation/pom.xml ./recommend-pom.xml
-COPY recommendation/recommend-api ./recommend-api
+# Copy recommendation module (contains parent pom for recommend-api)
+COPY recommendation/pom.xml ./recommendation/pom.xml
+COPY recommendation/recommend-api ./recommendation/recommend-api
+COPY recommendation/recommend-core ./recommendation/recommend-core
 
-# Copy Maven wrapper to recommend-api (it doesn't have its own)
-COPY backend-spring/mvnw ./recommend-api/mvnw
-COPY backend-spring/.mvn/ ./recommend-api/.mvn
+# Build parent pom (recommend-module) to local Maven repo first
+WORKDIR /app/recommendation
+RUN chmod +x ../mvnw && ../mvnw install -N -DskipTests -B
 
-# Build and install recommend-api to local Maven repository
-WORKDIR /app/recommend-api
-RUN chmod +x ./mvnw && ./mvnw install -DskipTests -B
+# Build recommend-api (depends on recommend-module parent)
+WORKDIR /app/recommendation/recommend-api
+RUN chmod +x ../../mvnw && ../../mvnw install -DskipTests -B
 
 # Return to app directory and download backend dependencies
 WORKDIR /app

@@ -39,7 +39,6 @@ export default defineConfig({
     exclude: [...configDefaults.exclude, "e2e/**"],
     root: fileURLToPath(new URL("./src", import.meta.url)),
     globals: true,
-    setupFiles: ["./test/setup.ts"],
   },
   resolve: {
     alias: {

@@ -161,7 +161,11 @@ Plans:
   2. Submission page displays actual memory consumption (e.g., "4.2 MB") instead of "0KB"
   3. The language dropdown on the submission form only shows the 5 supported languages (JS, Python, Java, C, C++)
   4. Judge Worker processes jobs from Redis queue reliably, handling errors and retries without crashing
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
+- [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
 
 ### Phase 13: Contest Data Layer
 **Goal**: Admins can fully manage contests (create, update, delete, start, stop) and contest announcements through the management dashboard, with proper entity persistence for contest problems and submissions
@@ -172,7 +176,11 @@ Plans:
   2. Admin can start and stop a contest via the management dashboard, and the contest status updates correctly
   3. Admin can create, edit, and delete contest announcements, which are visible to contest participants
   4. When a user submits code during a contest, the submission is recorded in both submissions and contest_submissions tables
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
+- [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
 
 ### Phase 14: Contest Engine
 **Goal**: Contests run automatically with correct lifecycle transitions, participants earn accurate ratings after contests end, and real-time ranking updates are delivered via WebSocket
@@ -183,7 +191,11 @@ Plans:
   2. After a contest ends, all participants' ratings are recalculated and updated in global_rankings with correct title promotions/demotions
   3. Contest ranking page updates in real-time as participants submit solutions, without page refresh
   4. Submission status changes from Pending to final verdict are pushed to the browser via WebSocket without polling
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
+- [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
 **UI hint**: yes
 
 ### Phase 15: Problem + User Enhancements
@@ -196,7 +208,11 @@ Plans:
   3. Admin can select multiple problems and perform bulk actions (publish/unpublish/delete/edit difficulty)
   4. User can visit /users/:id and see another user's public profile with stats, solved problems, and submission count
   5. User's own profile page shows global rank, acceptance rate, and total submission count — all populated from the backend
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
+- [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
 **UI hint**: yes
 
 ## Progress
@@ -217,7 +233,7 @@ Phases execute in numeric order: 1 → 15
 | 9. Foundation + CI | v1.2 | 3/3 | Complete | 2026-04-18 |
 | 10. CD Pipeline | v1.2 | 3/3 | Complete | 2026-04-18 |
 | 11. Hardening | v1.2 | 2/2 | Complete | 2026-04-18 |
-| 12. Judge Worker | v1.3 | 0/? | Not started | - |
+| 12. Judge Worker | v1.3 | 0/2 | Planned | - |
 | 13. Contest Data Layer | v1.3 | 0/? | Not started | - |
 | 14. Contest Engine | v1.3 | 0/? | Not started | - |
 | 15. Problem + User Enhancements | v1.3 | 0/? | Not started | - |

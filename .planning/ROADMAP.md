@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### Phase 1: Security Filter Chain
 **Goal**: CSRF/XSS/JWT filter chain hardening
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [x] 01-01: Replace XssFilter with OWASP Encoder output encoding (SEC-06)
@@ -42,7 +42,7 @@ Plans:
 
 ### Phase 2: Core Functionality
 **Goal**: Password reset, rejudge, Docker sandbox hardening
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [x] 02-01: Password reset with BCrypt token + email delivery (SEC-02)
@@ -51,7 +51,7 @@ Plans:
 
 ### Phase 3: Test Coverage
 **Goal**: Unit + integration tests for security and core fixes
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [x] 03-01: JWT/CSRF/Auth unit tests (48 tests)
@@ -94,7 +94,7 @@ Plans:
 
 ### Phase 7: Code Quality & Dependencies
 **Goal**: Precise exception handling, service splits, debug cleanup, stable deps
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [x] 07-01: Replace broad catch(Exception e) with specific exception types (QUAL-02)
@@ -103,7 +103,7 @@ Plans:
 
 ### Phase 8: Testing
 **Goal**: Frontend key-path tests and backend @WebMvcTest controller tests
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [x] 08-01: Console frontend key-path tests — API layer, auth store, problem store (TEST-02)
@@ -126,7 +126,7 @@ Plans:
   3. Backend tests pass in CI using GitHub Actions services: containers for MySQL and Redis (not Testcontainers Docker-in-Docker)
   4. Console and management frontend lint + type-check + test run only when their respective paths change
   5. A secrets mapping document exists that cross-references all configuration sources (GitHub Secrets, Docker Compose, Spring profiles, Vite env vars)
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [ ] 09-01: Fix Dockerfile bugs and create .dockerignore (FOUND-01, FOUND-02, FOUND-03, FOUND-04)
@@ -143,7 +143,7 @@ Plans:
   3. After a successful image push, the VPS automatically pulls new images and restarts services via Docker Compose
   4. Backend service starts and passes health checks before frontend services are restarted (ordered restart)
   5. A docker-compose.prod.yml exists that references GHCR images with a configurable IMAGE_TAG variable
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [x] 10-01: Write docker-publish.yml with GHCR push and deterministic image tagging (CD-01, CD-02)
@@ -157,7 +157,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Dependabot automatically opens PRs for GitHub Actions version updates and npm/Maven dependency updates
   2. A rollback workflow exists that can be manually triggered via workflow_dispatch to redeploy a previous image tag
-**Plans**: 3 plans
+**Plans**: 2 plans
 
 Plans:
 - [ ] 11-01: Configure Dependabot for Actions and dependency updates (HARD-01)
@@ -184,4 +184,4 @@ Phases execute in numeric order: 9 → 10 → 11
 
 ---
 *Roadmap created: 2026-04-17*
-*Last updated: 2026-04-17*
+*Last updated: 2026-04-18*

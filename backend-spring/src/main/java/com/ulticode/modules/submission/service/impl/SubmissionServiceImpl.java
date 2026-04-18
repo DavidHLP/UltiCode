@@ -52,8 +52,7 @@ public class SubmissionServiceImpl implements SubmissionService {
      * Supported languages for submission.
      */
     private static final List<String> SUPPORTED_LANGUAGES = List.of(
-            "javascript", "typescript", "python", "java", "cpp", "c",
-            "go", "rust", "csharp", "php", "ruby", "swift", "kotlin"
+            "javascript", "python", "java", "c", "cpp"
     );
 
     @Override

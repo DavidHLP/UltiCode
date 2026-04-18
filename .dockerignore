@@ -55,9 +55,6 @@ LICENSE
 # Planning
 .planning/
 
-# Recommendation service (separate build context)
-recommendation/
-
 # CI/CD
 .github
 .husky

@@ -228,11 +228,9 @@ jobs:
         if: steps.should-run.outputs.run == 'true'
         uses: actions/checkout@v6
 
-      - name: Setup pnpm
+      - name: Enable pnpm via corepack
         if: steps.should-run.outputs.run == 'true'
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: Setup Node.js
         if: steps.should-run.outputs.run == 'true'
@@ -275,11 +273,9 @@ jobs:
         if: steps.should-run.outputs.run == 'true'
         uses: actions/checkout@v6
 
-      - name: Setup pnpm
+      - name: Enable pnpm via corepack
         if: steps.should-run.outputs.run == 'true'
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: Setup Node.js
         if: steps.should-run.outputs.run == 'true'
@@ -322,11 +318,9 @@ jobs:
         if: steps.should-run.outputs.run == 'true'
         uses: actions/checkout@v6
 
-      - name: Setup pnpm
+      - name: Enable pnpm via corepack
         if: steps.should-run.outputs.run == 'true'
-        uses: pnpm/action-setup@v6
-        with:
-          version: ${{ env.PNPM_VERSION }}
+        run: corepack enable && corepack prepare pnpm@${{ env.PNPM_VERSION }} --activate
 
       - name: Setup Node.js
         if: steps.should-run.outputs.run == 'true'

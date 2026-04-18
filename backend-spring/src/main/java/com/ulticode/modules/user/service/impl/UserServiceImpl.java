@@ -8,6 +8,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
+import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
@@ -234,18 +235,18 @@ public class UserServiceImpl implements UserService {
 
         // Get heatmap data for current year
         int currentYear = Year.now().getValue();
-        List<Object[]> heatmapData = submissionMapper.findSubmissionCountsByDate(id, currentYear);
+        List<SubmissionDateCountDTO> heatmapData = submissionMapper.findSubmissionCountsByDate(id, currentYear);
 
         // Find max submissions for level calculation
         int maxCount = heatmapData.stream()
-                .mapToInt(row -> ((Number) row[1]).intValue())
+                .mapToInt(row -> row.getCount().intValue())
                 .max()
                 .orElse(1);
 
         List<UserStatsDTO.HeatmapEntry> heatmap = heatmapData.stream()
                 .map(row -> {
-                    String date = (String) row[0];
-                    int count = ((Number) row[1]).intValue();
+                    String date = row.getDate();
+                    int count = row.getCount().intValue();
                     // Calculate level (0-4) based on submission count
                     int level = (count == 0) ? 0 : Math.min(4, (int) Math.ceil((double) count / maxCount * 4));
                     return new UserStatsDTO.HeatmapEntry(date, level);

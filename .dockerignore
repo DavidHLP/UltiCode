@@ -49,6 +49,15 @@ coverage
 !README.md
 LICENSE
 
+# AI tools
+.claude/
+
+# Planning
+.planning/
+
+# Recommendation service (separate build context)
+recommendation/
+
 # CI/CD
 .github
 .husky
@@ -58,6 +67,9 @@ shell
 
 # Worktrees
 .worktrees
+
+# Archives
+*.tar.gz
 
 # Docker
 # Note: Do NOT exclude Dockerfile* or docker-compose*.yml here.

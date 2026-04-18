@@ -126,7 +126,7 @@ Plans:
   3. Backend tests pass in CI using GitHub Actions services: containers for MySQL and Redis (not Testcontainers Docker-in-Docker)
   4. Console and management frontend lint + type-check + test run only when their respective paths change
   5. A secrets mapping document exists that cross-references all configuration sources (GitHub Secrets, Docker Compose, Spring profiles, Vite env vars)
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 09-01: Fix Dockerfile bugs and create .dockerignore (FOUND-01, FOUND-02, FOUND-03, FOUND-04)
@@ -143,7 +143,7 @@ Plans:
   3. After a successful image push, the VPS automatically pulls new images and restarts services via Docker Compose
   4. Backend service starts and passes health checks before frontend services are restarted (ordered restart)
   5. A docker-compose.prod.yml exists that references GHCR images with a configurable IMAGE_TAG variable
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 10-01: Write docker-publish.yml with GHCR push and deterministic image tagging (CD-01, CD-02)
@@ -157,7 +157,7 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. Dependabot automatically opens PRs for GitHub Actions version updates and npm/Maven dependency updates
   2. A rollback workflow exists that can be manually triggered via workflow_dispatch to redeploy a previous image tag
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
 - [ ] 11-01: Configure Dependabot for Actions and dependency updates (HARD-01)

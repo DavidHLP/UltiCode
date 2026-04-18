@@ -552,17 +552,13 @@ fi
 | A3 | GitHub Packages REST API returns `metadata.container.tags` in version listings | Code Examples | LOW -- Confirmed by GitHub Community Discussion #26279 |
 | A4 | `rebase-strategy: "disabled"` is valid for all ecosystems including github-actions | Code Examples | LOW -- GitHub Docs confirm this option is available for all ecosystems |
 
-## Open Questions
+## Open Questions (RESOLVED)
 
 1. **Should Dependabot exclude ci-recommendation.yml via `exclude-paths` or `ignore`?**
-   - What we know: `exclude-paths` is available for all ecosystems and supports glob patterns
-   - What's unclear: Whether `exclude-paths` works specifically for the github-actions ecosystem to skip individual workflow files
-   - Recommendation: Use `exclude-paths` first (cleaner approach); if it doesn't work for github-actions, fall back to `ignore` with `dependency-name: "actions used only in ci-recommendation.yml"`
+   RESOLVED: Use `exclude-paths` with pattern `.github/workflows/ci-recommendation.yml` on the github-actions entry (cleaner approach). Plans implement this in Plan 11-01 Task 1.
 
 2. **Should the rollback workflow list available tags on failure?**
-   - What we know: The tag verification step can list tags from the API response
-   - What's unclear: Whether listing all tags is helpful or just noisy (could be hundreds)
-   - Recommendation: List the 10 most recent SHA tags only (filter by `sha-` prefix) to help the user pick the right one
+   RESOLVED: List the 10 most recent SHA tags only (filter by `sha-` prefix) on tag verification failure. Plans implement this in Plan 11-02 Task 1.
 
 ## Environment Availability
 

@@ -1,0 +1,131 @@
+name: CD Rollback
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to roll back to (e.g., sha-abc1234)'
+        required: true
+        type: string
+      services:
+        description: 'Services to roll back'
+        required: true
+        type: choice
+        options:
+          - all
+          - backend
+          - console
+          - management
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_TAG: ${{ github.event.inputs.image_tag }}
+
+permissions:
+  packages: read
+
+jobs:
+  verify-tag:
+    name: Verify image tag exists in GHCR
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check tag existence
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ github.event.inputs.image_tag }}"
+          OWNER="${{ github.repository_owner }}"
+          REPO="${{ github.repository }}"
+          SERVICES=("backend" "console" "management")
+
+          for SVC in "${SERVICES[@]}"; do
+            echo "Checking ${SVC}:${TAG}..."
+            RESPONSE=$(curl -sf -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              "https://api.github.com/orgs/${OWNER}/packages/container/${REPO##*/}%2F${SVC}/versions?per_page=100" 2>/dev/null || echo "[]")
+
+            if echo "$RESPONSE" | jq -r '.[].metadata.container.tags[]' 2>/dev/null | grep -qx "$TAG"; then
+              echo "  Tag ${TAG} found for ${SVC}"
+            else
+              echo "::error::Tag ${TAG} not found in GHCR for ${SVC}. Available recent tags:"
+              echo "$RESPONSE" | jq -r '.[].metadata.container.tags[]' 2>/dev/null | grep '^sha-' | head -10
+              exit 1
+            fi
+          done
+          echo "All service images verified for tag ${TAG}"
+
+  rollback:
+    name: Rollback to ${{ github.event.inputs.image_tag }}
+    runs-on: ubuntu-latest
+    needs: verify-tag
+    environment: production
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -H ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Pull and deploy services
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
+
+          # Login to GHCR on remote
+          $SSH_CMD "echo ${{ secrets.GITHUB_TOKEN }} | docker login ${{ env.REGISTRY }} -u ${{ github.actor }} --password-stdin"
+
+          # Pull and deploy with rollback IMAGE_TAG
+          $SSH_CMD "cd ${{ secrets.DEPLOY_PATH }} && \
+                    export IMAGE_TAG=${{ env.IMAGE_TAG }} && \
+                    docker compose -f docker-compose.yml -f docker-compose.prod.yml pull && \
+                    docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --remove-orphans"
+
+      - name: Health check - backend (fail fast)
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          echo "Checking backend health..."
+          for i in $(seq 1 15); do
+            if $SSH_CMD "curl -sf http://localhost:9001/actuator/health > /dev/null 2>&1"; then
+              echo "  Backend is healthy"
+              break
+            fi
+            if [ "$i" -eq 15 ]; then
+              echo "::error::Backend failed health check after 75 seconds"
+              exit 1
+            fi
+            echo "  Waiting for backend... ($i/15)"
+            sleep 5
+          done
+
+      - name: Health check - frontends
+        run: |
+          SSH_CMD="ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} -p ${{ secrets.DEPLOY_PORT || 22 }}"
+          SERVICES=("console:9002" "management:9003")
+          for svc in "${SERVICES[@]}"; do
+            NAME="${svc%%:*}"
+            PORT="${svc#*:}"
+            echo "Checking $NAME..."
+            for i in $(seq 1 15); do
+              if $SSH_CMD "curl -sf http://localhost:$PORT > /dev/null 2>&1"; then
+                echo "  $NAME is healthy"
+                break
+              fi
+              if [ "$i" -eq 15 ]; then
+                echo "::error::$NAME failed health check after 75 seconds"
+                exit 1
+              fi
+              echo "  Waiting for $NAME... ($i/15)"
+              sleep 5
+            done
+          done
+
+      - name: Notify failure
+        if: failure()
+        run: |
+          echo "::error::Rollback to ${{ github.event.inputs.image_tag }} failed. Check logs for details."

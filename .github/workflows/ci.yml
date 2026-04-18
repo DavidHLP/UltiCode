@@ -78,6 +78,12 @@ jobs:
       - name: Grant Maven wrapper execute permission
         run: chmod +x backend-spring/mvnw
 
+      - name: Build recommend-api
+        run: |
+          cd recommendation
+          ../backend-spring/mvnw -f pom.xml install -DskipTests -B
+          ../backend-spring/mvnw -f recommend-api/pom.xml install -DskipTests -B
+
       - name: Build with Maven
         run: cd backend-spring && ./mvnw compile -B
 
@@ -186,7 +192,7 @@ jobs:
 
       - name: Install Flyway CLI
         run: |
-          curl -L https://github.com/flyway/flyway/releases/download/flyway-11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz
+          curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz
           tar -xzf /tmp/flyway.tar.gz -C /tmp
           sudo cp /tmp/flyway-11.3.4/flyway /usr/local/bin/
           sudo chmod +x /usr/local/bin/flyway

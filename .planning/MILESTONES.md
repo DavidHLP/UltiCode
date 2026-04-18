@@ -1,5 +1,19 @@
 # Milestones
 
+## v1.2 CI/CD Pipeline (Shipped: 2026-04-18)
+
+**Phases completed:** 3 phases, 8 plans, 9 tasks
+
+**Key accomplishments:**
+
+- Unified ci.yml with dorny/paths-filter@v4 replacing separate ci-backend.yml and ci-frontend.yml, with path-filtered parallel jobs for all 3 services
+- GHCR image push workflow with SHA+latest tagging via docker/metadata-action@v5 and matrix strategy for 3 services
+- Verified docker-compose.prod.yml with 3 GHCR image refs, IMAGE_TAG interpolation, and ordered depends_on health check chain -- added IMAGE_TAG usage documentation
+- Ordered health check verification with backend-first fail fast, IMAGE_TAG SSH export fix, and corrected frontend ports (9002/9003)
+- Dependabot v2 config covering github-actions, npm (console + management), and Maven (backend-spring) with weekly grouped PRs and 5-PR limits
+
+---
+
 ## v1.1 Technical Debt Remediation II (Shipped: 2026-04-17)
 
 **Phases completed:** 4 phases, 15 plans, 20 tasks

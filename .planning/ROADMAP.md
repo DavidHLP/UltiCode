@@ -179,8 +179,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [x] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
-- [x] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
+- [ ] 13-01: Create contest entities, mappers, and admin contest lifecycle CRUD (CONTEST-01, CONTEST-05)
+- [ ] 13-02: Add contest submission recording and announcement CRUD with WebSocket push (CONTEST-02, CONTEST-07)
 
 ### Phase 14: Contest Engine
 **Goal**: Contests run automatically with correct lifecycle transitions, participants earn accurate ratings after contests end, and real-time ranking updates are delivered via WebSocket
@@ -234,7 +234,7 @@ Phases execute in numeric order: 1 → 15
 | 10. CD Pipeline | v1.2 | 3/3 | Complete | 2026-04-18 |
 | 11. Hardening | v1.2 | 2/2 | Complete | 2026-04-18 |
 | 12. Judge Worker | v1.3 | 2/2 | Complete    | 2026-04-18 |
-| 13. Contest Data Layer | v1.3 | 0/? | Not started | - |
+| 13. Contest Data Layer | v1.3 | 0/2 | In progress | - |
 | 14. Contest Engine | v1.3 | 0/? | Not started | - |
 | 15. Problem + User Enhancements | v1.3 | 0/? | Not started | - |
 

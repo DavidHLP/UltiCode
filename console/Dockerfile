@@ -11,7 +11,7 @@ COPY console/package.json ./console/
 COPY console/pnpm-lock.yaml ./console/
 
 # Install dependencies
-RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --frozen-lockfile
+RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --frozen-lockfile --dir ./console
 
 # Copy source code
 COPY console ./console

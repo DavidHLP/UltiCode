@@ -31,7 +31,7 @@ Requirements for milestone v1.2. Each maps to roadmap phases.
 - [x] **CD-02**: Docker images tagged with git SHA short hash and "latest" for traceability
 - [ ] **CD-03**: deploy.yml workflow deploys to VPS via SSH with docker compose pull && up -d
 - [ ] **CD-04**: Deployment uses ordered restart with health check waits (backend starts first, then frontends)
-- [ ] **CD-05**: docker-compose.prod.yml created/updated to reference GHCR images with IMAGE_TAG variable
+- [x] **CD-05**: docker-compose.prod.yml created/updated to reference GHCR images with IMAGE_TAG variable
 
 ### Hardening
 
@@ -82,7 +82,7 @@ Requirements for milestone v1.2. Each maps to roadmap phases.
 | CD-02 | Phase 10 | Complete |
 | CD-03 | Phase 10 | Pending |
 | CD-04 | Phase 10 | Pending |
-| CD-05 | Phase 10 | Pending |
+| CD-05 | Phase 10 | Complete |
 | HARD-01 | Phase 11 | Pending |
 | HARD-02 | Phase 11 | Pending |
 

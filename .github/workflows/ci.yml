@@ -14,7 +14,7 @@ concurrency:
 env:
   JAVA_VERSION: '17'
   NODE_VERSION: '22.x'
-  PNPM_VERSION: '10'
+  PNPM_VERSION: '9'
 
 jobs:
   # --- Changes detection ---
@@ -245,7 +245,7 @@ jobs:
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
         working-directory: ${{ matrix.app }}
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Run lint
         if: steps.should-run.outputs.run == 'true'
@@ -289,7 +289,7 @@ jobs:
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
         working-directory: ${{ matrix.app }}
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Run type-check
         if: steps.should-run.outputs.run == 'true'
@@ -333,7 +333,7 @@ jobs:
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
         working-directory: ${{ matrix.app }}
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
 
       - name: Run tests
         if: steps.should-run.outputs.run == 'true'

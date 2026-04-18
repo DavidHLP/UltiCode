@@ -192,10 +192,13 @@ jobs:
 
       - name: Install Flyway CLI
         run: |
-          curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz
-          tar -xzf /tmp/flyway.tar.gz -C /tmp
-          sudo cp /tmp/flyway-11.3.4/flyway /usr/local/bin/
-          sudo chmod +x /usr/local/bin/flyway
+          # Try apt first (fastest), fall back to manual download
+          sudo apt-get update -qq && sudo apt-get install -y -qq flyway 2>/dev/null || \
+          (curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz && \
+           tar -xzf /tmp/flyway.tar.gz -C /tmp && \
+           sudo cp /tmp/flyway-11.3.4/flyway /usr/local/bin/ && \
+           sudo chmod +x /usr/local/bin/flyway)
+          flyway --version
 
       - name: Wait for MySQL
         run: |

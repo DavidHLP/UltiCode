@@ -192,12 +192,15 @@ jobs:
 
       - name: Install Flyway CLI
         run: |
-          # Try apt first (fastest), fall back to manual download
-          sudo apt-get update -qq && sudo apt-get install -y -qq flyway 2>/dev/null || \
-          (curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz && \
-           tar -xzf /tmp/flyway.tar.gz -C /tmp && \
-           sudo cp /tmp/flyway-11.3.4/flyway /usr/local/bin/ && \
-           sudo chmod +x /usr/local/bin/flyway)
+          # The maven central flyway bundle includes an Alpine JRE which fails on Ubuntu.
+          # Also, its classpath misses lib/flyway/*.jar. We patch both issues.
+          curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz
+          tar -xzf /tmp/flyway.tar.gz -C /tmp
+          # Patch 1: skip bundled JRE check → use system Java
+          sed -i 's|if \[ -x "\$INSTALLDIR/jre/bin/java" \]; then|if false; then|' /tmp/flyway-11.3.4/flyway
+          # Patch 2: add lib/flyway/* to classpath (jar Main class lives there)
+          sed -i 's|\$INSTALLDIR/lib/\*:|\$INSTALLDIR/lib/*:\$INSTALLDIR/lib/flyway/*:|g' /tmp/flyway-11.3.4/flyway
+          sudo cp /tmp/flyway-11.3.4/flyway /usr/local/bin/ && sudo chmod +x /usr/local/bin/flyway
           flyway --version
 
       - name: Wait for MySQL

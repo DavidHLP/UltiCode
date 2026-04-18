@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: Core Features
-status: defining_requirements
-stopped_at: Defining requirements
-last_updated: "2026-04-18T20:41:00.000Z"
+status: roadmap_created
+stopped_at: Roadmap created, ready for planning
+last_updated: "2026-04-18T20:48:00.000Z"
 last_activity: 2026-04-18
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-18)
 
 **Core value:** 补全四大核心功能的关键缺失，使平台可完整运行
-**Current focus:** Defining requirements for v1.3
+**Current focus:** Phase 12 — Judge Worker
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 12 of 15 (Judge Worker)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-04-18 — Milestone v1.3 started
+Status: Roadmap created, ready to plan
+Last activity: 2026-04-18 — v1.3 roadmap created with 4 phases
 
 Progress: [          ] 0%
 
@@ -72,10 +72,10 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Judge Worker missing (CRITICAL):** Submissions stay Pending forever, no queue consumer exists
-- **Contest backend 60% missing:** No entities/scheduler/rating engine, Admin API mismatch
-- **Achievement API path mismatch:** Frontend `/achievements/my` vs backend `/achievements/user/me`
-- **Language support mismatch:** 13 accepted but only 5 supported in sandbox
+- **Judge Worker missing (CRITICAL):** Submissions stay Pending forever, no queue consumer exists — Phase 12
+- **Contest backend 60% missing:** No entities/scheduler/rating engine, Admin API mismatch — Phases 13-14
+- **Achievement API path mismatch:** Frontend `/achievements/my` vs backend `/achievements/user/me` — Phase 15
+- **Language support mismatch:** 13 accepted but only 5 supported in sandbox — Phase 12
 
 ## Deferred Items
 
@@ -89,5 +89,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-04-18T20:41:00.000Z
-Stopped at: Defining requirements
+Last session: 2026-04-18T20:48:00.000Z
+Stopped at: Roadmap created for v1.3, 4 phases (12-15), 20 requirements mapped
+Resume file: None

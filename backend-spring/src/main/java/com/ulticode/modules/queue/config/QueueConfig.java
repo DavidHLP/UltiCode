@@ -38,6 +38,11 @@ public class QueueConfig {
     private long pollIntervalMs = 1000;
 
     /**
+     * Enable judge worker processing.
+     */
+    private boolean judgeEnabled = true;
+
+    /**
      * Create the judge queue bean.
      *
      * @param redissonClient the Redisson client

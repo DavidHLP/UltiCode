@@ -103,7 +103,7 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      * @param limit     maximum number of participants to return
      * @return list of top participants
      */
-    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND status = 'COMPLETED' ORDER BY total_score DESC, total_penalty ASC LIMIT #{limit}")
+    @Select("SELECT * FROM contest_participants WHERE contest_id = #{contestId} AND status = 'FINISHED' ORDER BY total_score DESC, total_penalty ASC LIMIT #{limit}")
     List<ContestParticipant> findTopParticipants(
             @Param("contestId") String contestId,
             @Param("limit") int limit

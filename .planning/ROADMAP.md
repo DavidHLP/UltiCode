@@ -26,7 +26,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Foundation + CI** - Fix blocking Dockerfile/config bugs, create CI workflow (v1.2)
 - [x] **Phase 10: CD Pipeline** - Docker image publish to GHCR, SSH deploy to VPS (v1.2)
 - [x] **Phase 11: Hardening** - Dependabot, rollback workflow (v1.2)
-- [ ] **Phase 12: Judge Worker** - Implement judge queue consumer, fix language support, add memory measurement (v1.3)
+- [x] **Phase 12: Judge Worker** - Implement judge queue consumer, fix language support, add memory measurement (v1.3) (completed 2026-04-18)
 - [ ] **Phase 13: Contest Data Layer** - Contest entities, admin CRUD, announcements (v1.3)
 - [ ] **Phase 14: Contest Engine** - Scheduler, rating engine, real-time WebSocket (v1.3)
 - [ ] **Phase 15: Problem + User Enhancements** - Random problems, acceptance rates, public profiles, admin bulk ops (v1.3)
@@ -180,7 +180,7 @@ Plans:
 
 Plans:
 - [x] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
-- [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
+- [x] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
 
 ### Phase 14: Contest Engine
 **Goal**: Contests run automatically with correct lifecycle transitions, participants earn accurate ratings after contests end, and real-time ranking updates are delivered via WebSocket
@@ -194,7 +194,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
+- [x] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
 - [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
 **UI hint**: yes
 
@@ -233,7 +233,7 @@ Phases execute in numeric order: 1 → 15
 | 9. Foundation + CI | v1.2 | 3/3 | Complete | 2026-04-18 |
 | 10. CD Pipeline | v1.2 | 3/3 | Complete | 2026-04-18 |
 | 11. Hardening | v1.2 | 2/2 | Complete | 2026-04-18 |
-| 12. Judge Worker | v1.3 | 2/2 | Complete   | 2026-04-18 |
+| 12. Judge Worker | v1.3 | 2/2 | Complete    | 2026-04-18 |
 | 13. Contest Data Layer | v1.3 | 0/? | Not started | - |
 | 14. Contest Engine | v1.3 | 0/? | Not started | - |
 | 15. Problem + User Enhancements | v1.3 | 0/? | Not started | - |

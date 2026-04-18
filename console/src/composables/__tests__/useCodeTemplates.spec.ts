@@ -295,7 +295,7 @@ describe("useCodeTemplates", () => {
 
       const template = getTemplateById("js-main");
       expect(template?.code).toContain("function main");
-      expect(template?.code).toContain("console.log");
+      expect(template?.code).toContain("// Example usage");
     });
 
     it("should have Python main function template", () => {

@@ -8,7 +8,16 @@ COPY backend-spring/.mvn/ ./.mvn/
 COPY backend-spring/mvnw ./mvnw
 COPY backend-spring/pom.xml ./pom.xml
 
-# Download dependencies (cached layer)
+# Copy recommendation-api module (local dependency not in Maven Central)
+COPY recommendation/pom.xml ./recommend-pom.xml
+COPY recommendation/recommend-api ./recommend-api
+
+# Build and install recommend-api to local Maven repository using system mvn
+WORKDIR /app/recommend-api
+RUN mvn install -DskipTests -B
+
+# Return to app directory and download backend dependencies
+WORKDIR /app
 RUN chmod +x ./mvnw && ./mvnw dependency:go-offline -B
 
 # Copy source and build

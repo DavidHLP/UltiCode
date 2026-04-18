@@ -11,7 +11,7 @@ COPY management/package.json ./management/
 COPY management/pnpm-lock.yaml ./management/
 
 # Install dependencies
-RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --frozen-lockfile
+RUN corepack enable && corepack prepare pnpm@9 --activate && pnpm install --frozen-lockfile --dir ./management
 
 # Copy source code
 COPY management ./management

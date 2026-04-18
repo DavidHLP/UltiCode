@@ -63,7 +63,7 @@ export function useSWR<T>(options: SWROptions<T>): {
   const error = ref<Error | null>(null);
   const loading = ref(false);
 
-  let stale = false;
+  const stale = false;
 
   function isExpired(entry: CacheEntry<unknown>): boolean {
     return Date.now() - entry.timestamp > ttl;

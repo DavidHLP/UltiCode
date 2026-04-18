@@ -68,7 +68,7 @@ class JudgeWorkerProcessorTest {
     @BeforeEach
     void setUp() {
         sampleJob = JudgeJob.create("sub-1", "100", "user-1", "javascript", "console.log('hello');");
-        when(queueConfig.getMaxConcurrentJobs()).thenReturn(10);
+        lenient().when(queueConfig.getMaxConcurrentJobs()).thenReturn(10);
     }
 
     // === getJobType ===

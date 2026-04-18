@@ -1,14 +1,21 @@
 # UltiCode 技术债务清偿
 
-## Current Milestone: Awaiting Next Milestone
+## Current Milestone: v1.3 Core Features
 
-**Last Shipped:** v1.2 CI/CD Pipeline (2026-04-18)
-**Status:** All 3 milestones complete. Platform production-ready with automated CI/CD pipeline.
+**Goal:** 补全四大核心功能（判题、竞赛、题目浏览、用户中心）的关键缺失，使平台可完整运行
+
+**Target features:**
+- 判题系统：实现 Judge Worker，解决提交永久 Pending 问题
+- 竞赛系统：补全后端实体、调度器、Rating 计算、Admin API
+- 题目浏览：随机题目、通过率计算、Admin 批量操作
+- 用户中心：全局排名、公开主页、前后端 API 一致性修复
+
+**Key context:** 前端 UI 大部分已就绪，主要工作量在后端 API 补全
 
 ## Current State
 
-**Shipped:** v1.2 CI/CD Pipeline (2026-04-18)
-**Status:** Automated CI/CD pipeline operational — lint/test on every PR, Docker image build + push to GHCR on merge to main, SSH deploy with ordered restarts, Dependabot for dependency updates.
+**In Progress:** v1.3 Core Features (started 2026-04-18)
+**Status:** 定义需求和路线图阶段。前三个里程碑（v1.0~v1.2）已完成，技术债务清偿和 CI/CD 管道均已就绪。
 
 ## What This Is
 

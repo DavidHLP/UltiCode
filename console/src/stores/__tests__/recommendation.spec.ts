@@ -1,7 +1,7 @@
 // console/src/stores/__tests__/recommendation.spec.ts
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import { setActivePinia, createPinia } from "pinia";
-import { useRecommendationStore } from "../recommendation";
+import { useRecommendationStore, invalidateRecommendationCache } from "../recommendation";
 import * as api from "@/api/recommendation";
 
 vi.mock("@/api/recommendation", () => ({
@@ -34,6 +34,7 @@ describe("useRecommendationStore", () => {
   beforeEach(() => {
     setActivePinia(createPinia());
     vi.clearAllMocks();
+    invalidateRecommendationCache();
   });
 
   describe("initial state", () => {

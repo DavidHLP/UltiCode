@@ -24,7 +24,7 @@ WORKDIR /app
 RUN apk add --no-cache curl
 
 # Copy built JAR
-COPY --from=builder /app/target/ulticode-backend-0.0.1-SNAPSHOT.jar ./app.jar
+COPY --from=builder /app/target/app.jar ./app.jar
 
 # Create non-root user
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

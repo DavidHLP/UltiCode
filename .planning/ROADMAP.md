@@ -24,7 +24,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 8: Frontend Test Coverage** - Console + Management + Backend controller tests (v1.1)
 - [ ] **Phase 9: Foundation + CI** - Fix blocking Dockerfile/config bugs, create CI workflow
 - [ ] **Phase 10: CD Pipeline** - Docker image publish to GHCR, SSH deploy to VPS
-- [ ] **Phase 11: Hardening** - Dependabot, rollback workflow
+- [x] **Phase 11: Hardening** - Dependabot, rollback workflow (completed 2026-04-18)
 
 ## Phase Details
 
@@ -160,8 +160,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 11-01: Configure Dependabot for Actions and dependency updates (HARD-01)
-- [ ] 11-02: Create rollback workflow with manual image tag redeployment (HARD-02)
+- [x] 11-01: Configure Dependabot for Actions and dependency updates (HARD-01)
+- [x] 11-02: Create rollback workflow with manual image tag redeployment (HARD-02)
 
 ## Progress
 
@@ -180,7 +180,7 @@ Phases execute in numeric order: 9 → 10 → 11
 | 8. Testing | v1.1 | 3/3 | Complete | 2026-04-17 |
 | 9. Foundation + CI | v1.2 | 0/3 | Not started | - |
 | 10. CD Pipeline | v1.2 | 3/3 | Complete   | 2026-04-18 |
-| 11. Hardening | v1.2 | 0/2 | Not started | - |
+| 11. Hardening | v1.2 | 2/2 | Complete    | 2026-04-18 |
 
 ---
 *Roadmap created: 2026-04-17*

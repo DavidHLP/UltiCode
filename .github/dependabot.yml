@@ -1,0 +1,68 @@
+version: 2
+
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    exclude-paths:
+      - ".github/workflows/ci-recommendation.yml"
+    groups:
+      all-actions:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "automated"
+    open-pull-requests-limit: 5
+    rebase-strategy: "disabled"
+
+  - package-ecosystem: "npm"
+    directory: "/console"
+    schedule:
+      interval: "weekly"
+    groups:
+      console-production:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      console-development:
+        dependency-type: "development"
+    labels:
+      - "dependencies"
+      - "automated"
+    open-pull-requests-limit: 5
+    rebase-strategy: "disabled"
+
+  - package-ecosystem: "npm"
+    directory: "/management"
+    schedule:
+      interval: "weekly"
+    groups:
+      management-production:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      management-development:
+        dependency-type: "development"
+    labels:
+      - "dependencies"
+      - "automated"
+    open-pull-requests-limit: 5
+    rebase-strategy: "disabled"
+
+  - package-ecosystem: "maven"
+    directory: "/backend-spring"
+    schedule:
+      interval: "weekly"
+    groups:
+      all-maven:
+        patterns:
+          - "*"
+    labels:
+      - "dependencies"
+      - "automated"
+    open-pull-requests-limit: 5
+    rebase-strategy: "disabled"

@@ -196,10 +196,10 @@ jobs:
           # Also, its classpath misses lib/flyway/*.jar. We patch both issues.
           curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz
           tar -xzf /tmp/flyway.tar.gz -C /tmp
-          # Patch 1: skip bundled JRE check → use system Java
-          sed -i 's|if \[ -x "\$INSTALLDIR/jre/bin/java" \]; then|if false; then|' /tmp/flyway-11.3.4/flyway
-          # Patch 2: add lib/flyway/* to classpath (jar Main class lives there)
-          sed -i 's|\$INSTALLDIR/lib/\*:|\$INSTALLDIR/lib/*:\$INSTALLDIR/lib/flyway/*:|g' /tmp/flyway-11.3.4/flyway
+          # Patch 1: skip bundled JRE → use system Java
+          awk '{gsub(/if \[ -x "\$INSTALLDIR\/jre\/bin\/java" \]; then/, "if false; then")}1' /tmp/flyway-11.3.4/flyway > /tmp/flyway-patched && mv /tmp/flyway-patched /tmp/flyway-11.3.4/flyway
+          # Patch 2: add lib/flyway/* to classpath (Main class jar lives there)
+          awk '{gsub(/\$INSTALLDIR\/lib\/\*:/, "$INSTALLDIR/lib/*:$INSTALLDIR/lib/flyway/*:")}1' /tmp/flyway-11.3.4/flyway > /tmp/flyway-patched && mv /tmp/flyway-patched /tmp/flyway-11.3.4/flyway
           sudo cp /tmp/flyway-11.3.4/flyway /usr/local/bin/ && sudo chmod +x /usr/local/bin/flyway
           flyway --version
 

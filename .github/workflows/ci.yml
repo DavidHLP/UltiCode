@@ -247,6 +247,7 @@ jobs:
         working-directory: ${{ matrix.app }}
         env:
           CI: "false"
+          GITHUB_ACTIONS: "false"
         run: pnpm install
 
       - name: Run lint
@@ -293,6 +294,7 @@ jobs:
         working-directory: ${{ matrix.app }}
         env:
           CI: "false"
+          GITHUB_ACTIONS: "false"
         run: pnpm install
 
       - name: Run type-check
@@ -339,6 +341,7 @@ jobs:
         working-directory: ${{ matrix.app }}
         env:
           CI: "false"
+          GITHUB_ACTIONS: "false"
         run: pnpm install
 
       - name: Run tests

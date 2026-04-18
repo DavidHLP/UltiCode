@@ -56,11 +56,6 @@ const endpointBarItems = computed<BarListItem[]>(() =>
   })),
 )
 
-function getBarColor(value: number): string {
-  if (value > 80) return 'var(--status-error)'
-  if (value > 60) return 'var(--status-warning)'
-  return 'var(--status-success)'
-}
 </script>
 
 <template>

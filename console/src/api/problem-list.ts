@@ -6,7 +6,6 @@ import type {
   ProblemListItem,
   ProblemList,
   ProblemListCategory,
-  ProblemListCategoryOption,
   UserProblemListsResponse,
   ProblemListDetailResponse,
 } from "@/types/problem-list";

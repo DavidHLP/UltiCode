@@ -327,7 +327,7 @@ onMounted(() => {
     </Card>
 
     <!-- Restore Dialog -->
-    <Dialog v-model:open="showRestoreDialog" @update:open="(v: boolean) => { showRestoreDialog = v; if (!v) restoreConfirmText.value = '' }">
+    <Dialog v-model:open="showRestoreDialog" @update:open="(v: boolean) => { showRestoreDialog = v; if (!v) restoreConfirmText = '' }">
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{{ t('backup.restoreBackup') }}</DialogTitle>

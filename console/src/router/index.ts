@@ -4,7 +4,6 @@ import {
   type RouteRecordRaw,
 } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
-import { ApiError } from "@/utils/request";
 
 const forumRoutes: RouteRecordRaw = {
   path: "/forum",

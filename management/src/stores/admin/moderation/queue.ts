@@ -1,4 +1,4 @@
-import { type Ref, ref, computed } from 'vue'
+import { ref, computed } from 'vue'
 import {
   moderationQueueApi,
   type ModerationQueueItem,

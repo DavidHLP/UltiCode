@@ -1,10 +1,9 @@
-import { ref, onMounted, nextTick, watch, markRaw, type Ref } from "vue";
+import { ref, nextTick, watch, markRaw } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { storeToRefs } from "pinia";
 import {
   useHeaderStore,
   type HeaderGroup,
-  type LayoutNode,
 } from "@/stores/headerStore";
 import type { LayoutNode as LayoutNodeType } from "@/types/header";
 import { problemHooks, type ProblemLayout } from "@/hooks/problem-hooks";

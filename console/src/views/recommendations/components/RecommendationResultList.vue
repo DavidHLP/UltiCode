@@ -1,6 +1,6 @@
 <!-- console/src/views/recommendations/components/RecommendationResultList.vue -->
 <script setup lang="ts">
-import { computed } from "vue";
+
 import { useI18n } from "vue-i18n";
 import { DataTable, type ColumnDef } from "@/components/common/data-table";
 import type { RecommendItem } from "@/types/recommendation";

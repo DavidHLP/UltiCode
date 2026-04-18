@@ -10,7 +10,7 @@ import {
 import { IconGripVertical, IconDotsVertical } from '@tabler/icons-vue'
 import type { TestCase } from '@/api/admin/test-cases'
 
-const props = defineProps<{
+defineProps<{
   testCases: TestCase[]
   activeId: string | null
 }>()

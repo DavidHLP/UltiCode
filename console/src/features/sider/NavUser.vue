@@ -50,7 +50,7 @@ const { user, isAuthenticated } = defineProps<{
 }>();
 
 const { t } = useI18n();
-const { availableLocales, setLocale, isCurrentLocale } = useLocale();
+const { } = useLocale();
 const { isMobile } = useSidebar();
 const router = useRouter();
 const authStore = useAuthStore();
@@ -67,8 +67,7 @@ onMounted(async () => {
 
   try {
     await notificationStore.loadUnreadCount();
-  } catch (error) {
-    // Don't show error toast for notification count failures
+  } catch { // Don't show error toast for notification count failures
     // It's a non-critical UI element
     // Failed to load notification count - non-critical UI element
   }

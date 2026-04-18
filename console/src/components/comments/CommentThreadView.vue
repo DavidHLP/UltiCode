@@ -105,6 +105,5 @@ onMounted(() => {
   fetchComments();
 });
 
-const handleReply = (parentId: number | string, content: string) => {
-};
+const handleReply = () => {};
 </script>

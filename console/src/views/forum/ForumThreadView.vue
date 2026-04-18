@@ -42,7 +42,7 @@ async function loadThread(postId: string) {
   if (!postId) return;
   isLoading.value = true;
   try {
-    const userId = useAuthStore().fetchCurrentUserId();
+    
     thread.value = await fetchForumThread(postId);
   } catch (error) {
     console.error("Failed to load forum thread", error);

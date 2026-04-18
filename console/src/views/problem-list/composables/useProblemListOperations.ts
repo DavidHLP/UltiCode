@@ -5,7 +5,6 @@ import { toast } from "vue-sonner";
 import { useI18n } from "vue-i18n";
 import type { Problem } from "@/types/problem";
 import type { ProblemList, ProblemListCategoryOption } from "@/types/problem-list";
-import { searchProblems } from "@/api/problem";
 import {
   fetchProblemListOverview,
   forkProblemList,

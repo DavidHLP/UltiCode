@@ -1,27 +1,22 @@
 # UltiCode 技术债务清偿
 
-## Current Milestone: v1.2 CI/CD Pipeline
+## Current Milestone: Awaiting Next Milestone
 
-**Goal:** Build automated CI/CD pipeline with GitHub Actions — lint/test on PR, Docker image build + push to registry, auto-deploy via Docker Compose to VPS.
-
-**Target features:**
-- CI Pipeline: lint, type-check, test on every PR/push
-- CD Pipeline: auto-deploy via Docker Compose after merge to main
-- Container Registry: Docker image build + push for all 3 services
-- Services in scope: Backend (9001), Console (9002), Management (9003)
+**Last Shipped:** v1.2 CI/CD Pipeline (2026-04-18)
+**Status:** All 3 milestones complete. Platform production-ready with automated CI/CD pipeline.
 
 ## Current State
 
-**Shipped:** v1.1 Technical Debt Remediation II (2026-04-17)
-**Status:** All 28 technical debt items resolved. Platform production-ready.
+**Shipped:** v1.2 CI/CD Pipeline (2026-04-18)
+**Status:** Automated CI/CD pipeline operational — lint/test on every PR, Docker image build + push to GHCR on merge to main, SSH deploy with ordered restarts, Dependabot for dependency updates.
 
 ## What This Is
 
-系统性修复 UltiCode 在线编程平台代码库中已识别的 28 项技术债务，涵盖安全漏洞、功能缺失、性能瓶颈、代码质量和配置缺陷。v1.0 已完成全部 9 项 CRITICAL 和 HIGH 级别修复，包括安全过滤链（CSRF/XSS/JWT）、核心功能（密码重置/Rejudge/Docker 沙箱加固）、测试覆盖率和前端组件拆分。剩余 19 项 MEDIUM/LOW 级别债务延后至未来里程碑。
+系统性修复 UltiCode 在线编程平台代码库中已识别的技术债务，并建立自动化 CI/CD 流水线。涵盖安全漏洞修复、功能缺失填补、性能优化、代码质量提升、配置加固、测试覆盖和自动化部署。v1.0~v1.2 共完成 11 个 phase、34 个 plan，全面清偿了平台的技术债务并建立了持续交付能力。
 
 ## Core Value
 
-平台安全性和功能完整性——用户能安全使用所有已有功能，不存在已知的 CSRF 绕过、JWT 伪造、功能占位符或数据不准确的问题。
+平台安全性、功能完整性和交付自动化——用户能安全使用所有功能，每个 PR 都经过自动化验证，每次合并都自动部署。
 
 ## Requirements
 
@@ -55,6 +50,11 @@
 - ✓ TEST-02: Console 前端关键路径测试 (35 tests) — v1.1 Phase 8
 - ✓ TEST-03: Management 前端关键路径测试 (23 tests) — v1.1 Phase 8
 - ✓ TEST-04: 后端 Controller @WebMvcTest 集成测试 (12 tests) — v1.1 Phase 8
+- ✓ FOUND-01~06: Dockerfile 修复、.dockerignore、CSP、CI profile、secrets mapping — v1.2 Phase 9
+- ✓ CI-01~06: 统一 ci.yml with paths-filter、parallel jobs、build caching — v1.2 Phase 9
+- ✓ CD-01~05: GHCR push、image tagging、docker-compose.prod.yml、SSH deploy、ordered restart — v1.2 Phase 10
+- ✓ HARD-01: Dependabot 配置 (Actions + npm + Maven) — v1.2 Phase 11
+- ✓ HARD-02: Rollback workflow (workflow_dispatch) — v1.2 Phase 11
 
 ### Active
 
@@ -67,18 +67,23 @@
 - UI/UX 重设计 — 拆分组件时仅做结构优化
 - Kubernetes 部署 — Docker Compose 先满足需求
 - Branch protection rules — 可手动在 GitHub 配置
+- Recommendation service CI/CD — Optional service, not in docker-compose.prod.yml scope
+- Blue-green / canary deployment — Overkill for single VPS deployment
+- Multi-environment (staging + prod) — Single production environment sufficient for now
 
 ## Context
 
-**代码库现状 (post-v1.1)：**
+**代码库现状 (post-v1.2)：**
 - 后端 Spring Boot 3.5 + MyBatis-Plus，26+ 模块
 - 前端 Console (Vue 3) ~200+ 源文件，Management (Vue 3) ~100+ 源文件
 - v1.0 变更: 378 files changed, +31,958 / -18,490 LOC
 - v1.1 变更: Phases 5-8, 15 plans, 141 total tests (71 v1.0 + 70 v1.1)
+- v1.2 变更: Phases 9-11, 8 plans, 259 files changed, +13,074 / -26,140 LOC
 - 安全基线: CSRF/XSS/JWT 全链路加固, 生产配置 profile 就绪
 - 测试: Testcontainers BOM 1.21.3, 141 tests (71 + 35 console + 23 management + 12 backend)
 - 前端: 所有 Vue 组件 < 500 行, console.log 清理完毕, SNAPSHOT deps → 1.0.0
-- 所有 28 项技术债务已清偿
+- CI/CD: ci.yml (path-filtered parallel jobs), docker-publish.yml (GHCR), deploy.yml (SSH + ordered restart), rollback.yml (manual), Dependabot v2
+- 所有 28+19 项技术债务及 CI/CD 需求已清偿
 
 ## Constraints
 
@@ -86,7 +91,9 @@
 - **修复 + 测试同步**：每个修复必须带对应测试 ✓ (v1.0 done)
 - **不引入新依赖**：仅新增 OWASP Java Encoder ✓
 - **向后兼容**：API 变更保持前端兼容 ✓
-- **分阶段交付**：4 个阶段独立可验证 ✓
+- **分阶段交付**：11 个阶段独立可验证 ✓
+- **Docker Compose 先于 Kubernetes** — 当前规模足够 ✓ (v1.2 done)
+- **GitHub-hosted runners** — 项目规模适合 ✓ (v1.2 done)
 
 ## Key Decisions
 
@@ -95,7 +102,7 @@
 | 按严重程度递减排序 | 安全风险影响最大，必须最先处理 | ✓ Good — 安全漏洞全部修复 |
 | 修复同步测试 | 测试覆盖率低是已知问题 | ✓ Good — 71 新测试，Phase 3 专项 |
 | 不引入新依赖 | 减少变更面 | ✓ Good — 仅 OWASP Encoder |
-| 分阶段交付 | 28 个问题一次修完风险太高 | ✓ Good — 4 phase, 11 plan |
+| 分阶段交付 | 28 个问题一次修完风险太高 | ✓ Good — 11 phases, 34 plans |
 | SEC-06 先于 SEC-01 | XssFilter header 损坏阻塞 CSRF token | ✓ Good — 正确依赖顺序 |
 | TEST-01 独立阶段 | 全面验证 Phase 1-2 安全修复 | ✓ Good — Testcontainers 集成测试 |
 | QUAL-01 最后执行 | 文件数最多，零安全影响，避免合并冲突 | ✓ Good — 无冲突完成 |
@@ -110,6 +117,11 @@
 | AdminAnalytics 拆分为 facade + 3 服务 | 495→3 focused services | ✓ Good — v1.1 Phase 7 |
 | Vitest 独立配置 per frontend | Console/Management 各自测试配置 | ✓ Good — v1.1 Phase 8 |
 | Batch Docker test execution | 单容器多测试用例 | ✓ Good — v1.1 Phase 6 |
+| 统一 ci.yml 替代分散工作流 | dorny/paths-filter monorepo 路径检测 | ✓ Good — v1.2 Phase 9 |
+| GHCR + SHA+latest 双标签 | 可追溯 + 可回滚 | ✓ Good — v1.2 Phase 10 |
+| Backend-first ordered restart | 后端健康检查通过再启动前端 | ✓ Good — v1.2 Phase 10 |
+| application-ci.yml profile | 避免 Testcontainers Docker-in-Docker | ✓ Good — v1.2 Phase 9 |
+| Dependabot v2 grouped updates | 减少 PR 噪音，weekly 分组 | ✓ Good — v1.2 Phase 11 |
 
 ## Evolution
 
@@ -129,4 +141,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-17 after v1.1 milestone*
+*Last updated: 2026-04-18 after v1.2 milestone*

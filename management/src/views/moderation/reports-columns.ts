@@ -17,7 +17,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { badge, MODERATION_STATUS_COLOR_MAP } from '@/components/ui/terminal'
+import { badge } from '@/components/ui/terminal'
 import type { SemanticColor } from '@/components/ui/terminal'
 import {
   type Report,

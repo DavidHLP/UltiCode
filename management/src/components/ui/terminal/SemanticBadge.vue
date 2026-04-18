@@ -5,10 +5,10 @@
  * Replaces all ad-hoc badge renderers across the management dashboard.
  * Uses `.terminal-badge-{color}` CSS classes for consistent styling.
  */
-import type { BadgeOptions, SemanticColor } from './semantic-types'
+import type { SemanticColor } from './semantic-types'
 import { cn } from '@/lib/utils'
 
-const props = withDefaults(
+withDefaults(
   defineProps<{
     color: SemanticColor
     label?: string

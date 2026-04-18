@@ -40,7 +40,7 @@ function renderStatusBadge(post: ForumPost) {
   return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
 }
 
-function renderPinLockBadge(post: ForumPost, t: (key: string) => string) {
+function renderPinLockBadge(post: ForumPost) {
   const badges: ReturnType<typeof h>[] = []
   if (post.isPinned) badges.push(badge({ color: 'info', label: 'PIN', size: 'xs', icon: IconPin }))
   if (post.isLocked) badges.push(badge({ color: 'warning', label: 'LOCK', size: 'xs', icon: IconLock }))
@@ -102,7 +102,7 @@ export function createColumns(
         return h('div', { class: 'flex flex-col gap-1.5 py-1' }, [
           h('div', { class: 'flex items-center gap-2' }, [
             h('span', { class: 'font-medium text-sm text-[var(--foreground)]' }, post.title),
-            renderPinLockBadge(post, t),
+            renderPinLockBadge(post),
           ]),
           h('div', { class: 'flex items-center gap-1.5 text-xs text-[var(--silver-400)]' }, [
             h(IconUser, { class: 'h-3 w-3' }),

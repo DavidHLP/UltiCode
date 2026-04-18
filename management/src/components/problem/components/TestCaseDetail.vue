@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import type { TestCase } from '@/api/admin/test-cases'
 
-const props = defineProps<{
+defineProps<{
   testCase: TestCase
 }>()
 

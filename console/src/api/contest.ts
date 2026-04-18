@@ -6,7 +6,6 @@ import type {
   ContestRankingEntry,
   ContestProblemSummary,
   GlobalRankingEntry,
-  ContestStats,
   ParticipationStatus,
   VirtualContestSession,
   UserContestHistory,

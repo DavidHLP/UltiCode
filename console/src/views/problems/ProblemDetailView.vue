@@ -6,11 +6,9 @@ import {
   provide,
   h,
   defineComponent,
-  markRaw,
-  nextTick,
   type Component,
 } from "vue";
-import { useRoute, useRouter } from "vue-router";
+import { useRoute } from "vue-router";
 
 import LayoutHeaderLeft from "./headers/LayoutHeaderLeft.vue";
 import LayoutHeaderCenter from "./headers/LayoutHeaderCenter.vue";
@@ -61,7 +59,6 @@ provide(ToggleNotesKey, toggleNotes);
 
 // --- Data Fetching ---
 const route = useRoute();
-const router = useRouter();
 const slug = computed(() => {
   const slugParam = route.params.slug;
   const resolved = Array.isArray(slugParam) ? slugParam[0] : slugParam;

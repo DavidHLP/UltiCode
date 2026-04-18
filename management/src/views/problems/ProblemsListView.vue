@@ -100,7 +100,6 @@ const {
   selectedProblemForFlagTitle,
   flagInfoDialogOpen,
   selectedProblemForFlagInfo,
-  importing,
   importDialogOpen,
   selectedRows,
   bulkActionDialogOpen,

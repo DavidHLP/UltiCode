@@ -1,10 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from "vue";
-import { useRouter } from "vue-router";
 import PWAUpdatePrompt from "@/components/common/PWAUpdatePrompt.vue";
 
-const router = useRouter();
-const isDevelopment = import.meta.env.DEV;
 
 const handleError = (event: ErrorEvent) => {
   console.error("[App.vue] Global error:", event.error);

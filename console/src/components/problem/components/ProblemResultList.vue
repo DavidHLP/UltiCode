@@ -2,15 +2,13 @@
 import { Button } from "@/components/ui/button";
 import { Video, Lock, Trash2 } from "lucide-vue-next";
 import { DataTable, type ColumnDef } from "@/components/common/data-table";
-import { useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import type { Problem } from "@/types/problem";
 import type { EnrichedProblem } from "../composables/useProblemExplorer";
 
 const { t } = useI18n();
-const router = useRouter();
 
-const props = defineProps<{
+defineProps<{
   displayedProblems: EnrichedProblem[];
   columns: ColumnDef[];
   hasMore: boolean;

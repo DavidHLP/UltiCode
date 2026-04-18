@@ -4,7 +4,6 @@ import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import { useAuthStore } from "@/stores/auth";
 import type { RankingEntry } from "@/types/contest";
-import { getTokenFromCookie } from "@/lib/socket";
 import { getCsrfToken } from "@/utils/csrf";
 
 // ============================================================================
@@ -190,7 +189,6 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
     return stompClient;
   }
 
-  const token = getTokenFromCookie();
   const csrfToken = getCsrfToken();
 
   connectionStatus = "connecting";
@@ -203,10 +201,8 @@ function getContestSocket(options: Required<UseContestSocketOptions>): Client {
     connectHeaders: {
       "X-CSRF-Token": csrfToken || "",
     },
-    debug: (str) => {
-      if (import.meta.env.DEV) {
-      }
-    },
+    debug: () => {
+    }, 
     reconnectDelay: options.reconnectionDelay,
     maxReconnectDelay: 5000,
     heartbeatIncoming: 10000,

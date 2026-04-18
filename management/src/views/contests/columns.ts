@@ -26,7 +26,7 @@ import {
 import type { Contest } from '@/api/admin/contests'
 import { formatDate } from '@/lib/format/date'
 import { badge, CONTEST_TYPE_COLOR_MAP, CONTEST_STATUS_COLOR_MAP } from '@/components/ui/terminal'
-import type { SemanticColor } from '@/components/ui/terminal'
+
 
 export interface ContestActions {
   viewContest: (contest: Contest) => void

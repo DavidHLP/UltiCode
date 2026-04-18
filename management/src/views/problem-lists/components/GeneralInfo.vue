@@ -146,7 +146,7 @@ const bannerThemes = [
                 class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] rounded-md bg-[var(--surface-sunken)]"
               >
                 <Checkbox
-                  :checked="value"
+                  :checked="value === true"
                   @update:checked="handleChange"
                   class="data-[state=checked]:bg-[var(--terminal-green)] data-[state=checked]:border-[var(--terminal-green)]"
                 />
@@ -171,7 +171,7 @@ const bannerThemes = [
                 class="flex items-center gap-3 h-9 px-3 border border-[var(--silver-200)] rounded-md bg-[var(--surface-sunken)]"
               >
                 <Checkbox
-                  :checked="value"
+                  :checked="value === true"
                   @update:checked="handleChange"
                   class="data-[state=checked]:bg-[var(--terminal-amber)] data-[state=checked]:border-[var(--terminal-amber)]"
                 />

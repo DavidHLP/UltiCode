@@ -39,7 +39,7 @@ export function useAppealsModule(
     try {
       const response = await appealsApi.getAppeals(params, controller.signal)
       if (controller.signal.aborted) return
-      appeals.value = response.data ?? response.data ?? (Array.isArray(response) ? response : [])
+      appeals.value = response.items ?? []
       appealsTotal.value = response.total ?? response.meta?.total ?? 0
     } catch (err: unknown) {
       if ((err as Error).name === 'AbortError') return

@@ -5,9 +5,12 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.modules.submission.dto.LanguageStatsDTO;
 import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
+import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
 import com.ulticode.modules.submission.dto.WeeklyProgressDTO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
+import org.apache.ibatis.annotations.Arg;
+import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Result;
@@ -113,6 +116,10 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      * @param userId user ID
      * @return list of DifficultyCountDTO containing [difficulty, count]
      */
+    @ConstructorArgs({
+            @Arg(column = "difficulty", javaType = String.class),
+            @Arg(column = "count", javaType = Long.class)
+    })
     @Select("SELECT p.difficulty, COUNT(DISTINCT s.problem_id) as count " +
             "FROM submissions s " +
             "JOIN problems p ON s.problem_id = p.id " +
@@ -128,12 +135,16 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      * @param year   the year to filter by
      * @return list of Object arrays containing [date, count]
      */
+    @Results({
+            @Result(property = "date", column = "date"),
+            @Result(property = "count", column = "count")
+    })
     @Select("SELECT DATE_FORMAT(created_at, '%Y-%m-%d') as date, COUNT(*) as count " +
             "FROM submissions " +
             "WHERE user_id = #{userId} AND YEAR(created_at) = #{year} " +
             "GROUP BY DATE_FORMAT(created_at, '%Y-%m-%d') " +
             "ORDER BY date")
-    List<Object[]> findSubmissionCountsByDate(@Param("userId") String userId, @Param("year") Integer year);
+    List<SubmissionDateCountDTO> findSubmissionCountsByDate(@Param("userId") String userId, @Param("year") Integer year);
 
     /**
      * Calculate the current streak (consecutive days with submissions ending today/yesterday).
@@ -254,7 +265,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      * @return list of rows with yearweek, week_start, count
      */
     @Select("SELECT YEARWEEK(created_at, 3) as yearweek, "
-            + "DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY)) as week_start, "
+            + "ANY_VALUE(DATE(DATE_SUB(created_at, INTERVAL WEEKDAY(created_at) DAY))) as week_start, "
             + "COUNT(DISTINCT user_id) as count "
             + "FROM submissions "
             + "WHERE created_at >= #{startDate} "

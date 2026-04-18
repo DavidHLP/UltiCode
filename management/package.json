@@ -76,5 +76,13 @@
     "vite-plugin-vue-devtools": "^8.0.5",
     "vitest": "^4.0.15",
     "vue-tsc": "^3.2.1"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild",
+      "maplibre-gl",
+      "msw",
+      "vue-demi"
+    ]
   }
 }

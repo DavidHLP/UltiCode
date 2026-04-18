@@ -12,10 +12,14 @@ import com.ulticode.modules.admin.service.AdminContestService;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
+import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -36,6 +40,8 @@ public class AdminContestServiceImpl implements AdminContestService {
 
     private final ContestMapper contestMapper;
     private final ContestProblemMapper contestProblemMapper;
+    private final ContestAnnouncementMapper contestAnnouncementMapper;
+    private final RealtimeService realtimeService;
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
@@ -256,6 +262,68 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         log.info("Admin ended contest: {}", id);
         return toAdminVO(contest);
+    }
+
+    @Override
+    public ContestAnnouncement createAnnouncement(String contestId, String title, String content, Boolean isPinned) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        ContestAnnouncement announcement = new ContestAnnouncement();
+        announcement.setContestId(contestId);
+        announcement.setTitle(title);
+        announcement.setContent(content);
+        announcement.setIsPinned(isPinned != null ? isPinned : false);
+
+        contestAnnouncementMapper.insert(announcement);
+
+        // WebSocket push (D-12)
+        realtimeService.emitAnnouncement(AnnouncementPayload.of(announcement.getId(), contestId, title, content));
+
+        log.info("Admin created announcement {} for contest {}", announcement.getId(), contestId);
+        return announcement;
+    }
+
+    @Override
+    public ContestAnnouncement updateAnnouncement(String contestId, String announcementId, String title, String content, Boolean isPinned) {
+        ContestAnnouncement announcement = contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
+        if (announcement == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST);
+        }
+
+        if (title != null) {
+            announcement.setTitle(title);
+        }
+        if (content != null) {
+            announcement.setContent(content);
+        }
+        if (isPinned != null) {
+            announcement.setIsPinned(isPinned);
+        }
+
+        contestAnnouncementMapper.updateById(announcement);
+
+        log.info("Admin updated announcement {} for contest {}", announcementId, contestId);
+        return announcement;
+    }
+
+    @Override
+    public void deleteAnnouncement(String contestId, String announcementId) {
+        ContestAnnouncement announcement = contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
+        if (announcement == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST);
+        }
+
+        contestAnnouncementMapper.deleteById(announcementId);
+
+        log.info("Admin deleted announcement {} for contest {}", announcementId, contestId);
+    }
+
+    @Override
+    public List<ContestAnnouncement> getAnnouncements(String contestId) {
+        return contestAnnouncementMapper.findByContestIdOrderByCreatedAtDesc(contestId);
     }
 
     /**

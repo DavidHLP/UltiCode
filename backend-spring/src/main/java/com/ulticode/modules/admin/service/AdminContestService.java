@@ -5,6 +5,9 @@ import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.dto.UpdateContestDTO;
+import com.ulticode.modules.contest.entity.ContestAnnouncement;
+
+import java.util.List;
 
 /**
  * Service interface for admin contest operations.
@@ -67,4 +70,45 @@ public interface AdminContestService {
      * @return the updated contest VO
      */
     AdminContestVO endContest(String id);
+
+    // Announcement CRUD (D-11)
+
+    /**
+     * Create a contest announcement and push via WebSocket.
+     *
+     * @param contestId the contest ID
+     * @param title     the announcement title
+     * @param content   the announcement content
+     * @param isPinned  whether to pin the announcement
+     * @return the created announcement
+     */
+    ContestAnnouncement createAnnouncement(String contestId, String title, String content, Boolean isPinned);
+
+    /**
+     * Update an existing contest announcement.
+     *
+     * @param contestId      the contest ID
+     * @param announcementId the announcement ID
+     * @param title          the new title (optional)
+     * @param content        the new content (optional)
+     * @param isPinned       the new pinned status (optional)
+     * @return the updated announcement
+     */
+    ContestAnnouncement updateAnnouncement(String contestId, String announcementId, String title, String content, Boolean isPinned);
+
+    /**
+     * Delete a contest announcement.
+     *
+     * @param contestId      the contest ID
+     * @param announcementId the announcement ID
+     */
+    void deleteAnnouncement(String contestId, String announcementId);
+
+    /**
+     * Get all announcements for a contest, ordered by pinned status then creation time.
+     *
+     * @param contestId the contest ID
+     * @return list of announcements
+     */
+    List<ContestAnnouncement> getAnnouncements(String contestId);
 }

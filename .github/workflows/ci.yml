@@ -246,7 +246,7 @@ jobs:
         if: steps.should-run.outputs.run == 'true'
         working-directory: ${{ matrix.app }}
         run: |
-          pnpm install --ignore-scripts
+          CI=false pnpm install
 
       - name: Run lint
         if: steps.should-run.outputs.run == 'true'
@@ -290,7 +290,7 @@ jobs:
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
         working-directory: ${{ matrix.app }}
-        run: pnpm install --ignore-scripts
+        run: CI=false pnpm install
 
       - name: Run type-check
         if: steps.should-run.outputs.run == 'true'
@@ -334,7 +334,7 @@ jobs:
       - name: Install dependencies
         if: steps.should-run.outputs.run == 'true'
         working-directory: ${{ matrix.app }}
-        run: pnpm install --ignore-scripts
+        run: CI=false pnpm install
 
       - name: Run tests
         if: steps.should-run.outputs.run == 'true'

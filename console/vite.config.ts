@@ -109,15 +109,14 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        manualChunks: {
-          // Split Monaco Editor into its own chunk (large dependency)
-          'monaco-editor': ['monaco-editor'],
-          // Vue ecosystem
-          'vue-vendor': ['vue', 'vue-router', 'pinia'],
-          // UI libraries
-          'ui-vendor': ['reka-ui', 'lucide-vue-next', '@tabler/icons-vue'],
-          // Markdown and code highlighting
-          'markdown': ['markdown-it', 'highlight.js', 'katex'],
+        // Vite 7 requires manualChunks to be a function, not an object
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('monaco-editor')) return 'monaco-editor'
+            if (id.includes('vue') || id.includes('pinia') || id.includes('vue-router')) return 'vue-vendor'
+            if (id.includes('reka-ui') || id.includes('lucide-vue-next') || id.includes('@tabler')) return 'ui-vendor'
+            if (id.includes('markdown-it') || id.includes('highlight.js') || id.includes('katex')) return 'markdown'
+          }
         },
       },
     },

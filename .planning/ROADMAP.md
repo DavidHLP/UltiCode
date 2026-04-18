@@ -129,9 +129,9 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 09-01: Fix Dockerfile bugs and create .dockerignore (FOUND-01, FOUND-02, FOUND-03, FOUND-04)
-- [ ] 09-02: Create application-ci.yml profile and secrets mapping document (FOUND-05, FOUND-06)
-- [ ] 09-03: Write ci.yml workflow with path-filtered parallel jobs and build caching (CI-01, CI-02, CI-03, CI-04, CI-05, CI-06)
+- [x] 09-01: Fix Dockerfile bugs and create .dockerignore (FOUND-01, FOUND-02, FOUND-03, FOUND-04)
+- [x] 09-02: Create application-ci.yml profile and secrets mapping document (FOUND-05, FOUND-06)
+- [x] 09-03: Write ci.yml workflow with path-filtered parallel jobs and build caching (CI-01, CI-02, CI-03, CI-04, CI-05, CI-06)
 
 #### Phase 10: CD Pipeline
 **Goal**: Every merge to main automatically builds Docker images, pushes them to GHCR, and deploys to the VPS via Docker Compose with ordered service restarts
@@ -178,7 +178,7 @@ Phases execute in numeric order: 9 → 10 → 11
 | 6. Admin Functionality & Performance | v1.1 | 5/5 | Complete | 2026-04-16 |
 | 7. Code Quality & Dependencies | v1.1 | 3/3 | Complete | 2026-04-16 |
 | 8. Testing | v1.1 | 3/3 | Complete | 2026-04-17 |
-| 9. Foundation + CI | v1.2 | 0/3 | Not started | - |
+| 9. Foundation + CI | v1.2 | 3/3 | Complete   | 2026-04-18 |
 | 10. CD Pipeline | v1.2 | 3/3 | Complete   | 2026-04-18 |
 | 11. Hardening | v1.2 | 2/2 | Complete    | 2026-04-18 |
 

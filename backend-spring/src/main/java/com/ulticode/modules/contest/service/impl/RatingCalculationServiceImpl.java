@@ -58,11 +58,11 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
         // 4. Calculate and update ratings (CF Elo variant)
         // Only rate participants who have a global_ranking record (D-11)
         for (ContestParticipant participant : participants) {
-            String oderId = participant.getUserId();
-            Optional<GlobalRanking> grOpt = globalRankingMapper.findByUserId(oderId);
+            String userId = participant.getUserId();
+            Optional<GlobalRanking> grOpt = globalRankingMapper.findByUserId(userId);
             if (grOpt.isEmpty()) {
                 // D-11: Skip users without global_ranking record
-                log.debug("Skipping rating for user {} -- no global_ranking record", oderId);
+                log.debug("Skipping rating for user {} -- no global_ranking record", userId);
                 continue;
             }
             GlobalRanking gr = grOpt.get();
@@ -75,14 +75,14 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
             RatingTitle newTitle = fromRating(newRating);
 
             // Update global_ranking
-            globalRankingMapper.updateRating(oderId, newRating, newTitle.name(), contestId);
+            globalRankingMapper.updateRating(userId, newRating, newTitle.name(), contestId);
 
             // Update max rating title if new max achieved
             if (newRating > gr.getMaxRating()) {
-                globalRankingMapper.updateMaxRatingTitle(newTitle.name(), oderId);
+                globalRankingMapper.updateMaxRatingTitle(newTitle.name(), userId);
             }
 
-            log.debug("User {} rating: {} -> {} (title: {})", oderId, oldRating, newRating, newTitle);
+            log.debug("User {} rating: {} -> {} (title: {})", userId, oldRating, newRating, newTitle);
         }
 
         // 5. Recalculate global ranks (global_rank column)
@@ -94,6 +94,7 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
     private int calculateNewRating(int myRating, List<ContestParticipant> allParticipants,
                                     ContestParticipant me) {
         double totalExpected = 0.0;
+        double totalActual = 0.0;
 
         for (ContestParticipant opponent : allParticipants) {
             if (opponent.getUserId().equals(me.getUserId())) continue;
@@ -104,13 +105,21 @@ public class RatingCalculationServiceImpl implements RatingCalculationService {
             int oppRating = oppGr.get().getRating() != null ? oppGr.get().getRating() : 1500;
             double expected = 1.0 / (1.0 + Math.pow(10, (oppRating - myRating) / 400.0));
             totalExpected += expected;
+
+            // Actual score: 1 if me.rank < opponent.rank (placed higher), 0 otherwise
+            int myRank = me.getFinalRank() != null ? me.getFinalRank() : Integer.MAX_VALUE;
+            int oppRank = opponent.getFinalRank() != null ? opponent.getFinalRank() : Integer.MAX_VALUE;
+            double actual = myRank < oppRank ? 1.0 : 0.0;
+            totalActual += actual;
         }
 
-        int participantCount = allParticipants.size();
-        double avgExpected = participantCount > 1 ? totalExpected / (participantCount - 1) : 0.5;
+        int opponentCount = allParticipants.size() - 1;
+        if (opponentCount <= 0) {
+            return myRating;
+        }
 
         int k = determineKFactor(myRating);
-        int change = (int) Math.round(k * (1.0 - avgExpected));
+        int change = (int) Math.round(k * (totalActual - totalExpected));
         return Math.max(0, Math.min(3500, myRating + change));
     }
 

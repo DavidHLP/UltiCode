@@ -191,8 +191,8 @@
     },
     {
       "path": ".planning/REQUIREMENTS.md",
-      "accessCount": 34,
-      "lastAccessed": 1776559086546,
+      "accessCount": 35,
+      "lastAccessed": 1776560336974,
       "type": "file"
     },
     {
@@ -203,8 +203,8 @@
     },
     {
       "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java",
-      "accessCount": 25,
-      "lastAccessed": 1776559641988,
+      "accessCount": 28,
+      "lastAccessed": 1776560417108,
       "type": "file"
     },
     {
@@ -227,8 +227,8 @@
     },
     {
       "path": "backend-spring/src/main/java/com/ulticode/modules/contest/entity/Contest.java",
-      "accessCount": 13,
-      "lastAccessed": 1776560042514,
+      "accessCount": 15,
+      "lastAccessed": 1776560357334,
       "type": "file"
     },
     {

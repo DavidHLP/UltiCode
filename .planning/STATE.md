@@ -8,9 +8,9 @@ last_updated: "2026-04-19T09:50:00.000Z"
 last_activity: 2026-04-19
 progress:
   total_phases: 4
-  completed_phases: 3
-  total_plans: 6
-  completed_plans: 6
+  completed_phases: 4
+  total_plans: 8
+  completed_plans: 8
   percent: 100
 ---
 
@@ -26,8 +26,8 @@ See: .planning/PROJECT.md (updated 2026-04-18)
 ## Current Position
 
 Phase: 15
-Plan: Plans ready (2 waves)
-Status: Phase 15 plans committed — ready for execution
+Plan: Complete (2 waves)
+Status: Phase 15 complete
 Last activity: 2026-04-19
 
 Progress: Phase 14 complete [100%]
@@ -81,7 +81,7 @@ None yet.
 
 - **Judge Worker missing (CRITICAL):** Submissions stay Pending forever, no queue consumer exists — Phase 12
 - **Contest backend 60% missing:** No entities/scheduler/rating engine, Admin API mismatch — Phases 13-14
-- **Achievement API path mismatch:** Frontend `/achievements/my` vs backend `/achievements/user/me` — Phase 15
+- **Achievement API path mismatch:** Fixed in Phase 15 — aliases added
 - **Language support mismatch:** 13 accepted but only 5 supported in sandbox — Phase 12
 
 ## Deferred Items

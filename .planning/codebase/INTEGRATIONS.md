@@ -1,262 +1,158 @@
-# 服务集成 (INTEGRATIONS)
+# External Integrations
 
-## 架构概览
+**Analysis Date:** 2026-04-19
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Frontend Layer                           │
-├────────────────────────┬────────────────────────────────────────┤
-│  Console (9002)        │  Management (9003)                    │
-│  Vue 3 + Vite           │  Vue 3 + Vite                          │
-│  Tailwind CSS 4        │  Tailwind CSS 4                        │
-└────────────┬───────────┴──────────────────┬─────────────────────┘
-             │                              │
-             └──────────────┬───────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Backend (9001)                                │
-│                    Spring Boot 3.2.5                            │
-├─────────────────────────────────────────────────────────────────┤
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────────┐ │
-│  │ MyBatis-Plus│  │   Redisson  │  │      Dubbo 3.2.14        │ │
-│  │  ORM Layer   │  │ Redis Client│  │  (→ Recommendation Svc)  │ │
-│  └──────┬────── ┘  └──────┬──────┘  └────────────┬────────────┘ │
-│         │                 │                      │              │
-└─────────┼─────────────────┼──────────────────────┼──────────────┘
-          │                 │                      │
-          ▼                 ▼                      ▼
-┌──────────────┐    ┌──────────────┐    ┌──────────────────────────┐
-│    MySQL     │    │    Redis     │    │    Recommendation (Dubbo) │
-│   (23306)    │    │   (26379)    │    │         (9004/9005)      │
-│   9.1        │    │  7-alpine    │    │    Dubbo3 + Spark 3.5.1  │
-└──────────────┘    └──────────────┘    └──────────────────────────┘
-                                                ▲
-                                                │
-                          ┌─────────────────────┴───────────────┐
-                          │           Nacos (28848)              │
-                          │        Service Discovery             │
-                          └─────────────────────────────────────┘
-```
+## APIs & External Services
 
----
+**Code Execution Sandbox:**
+- Docker-based code execution
+- Configured via `code-execution.sandbox.*` in `application.yml`
+- Environment vars: `SANDBOX_ENABLED`, `SANDBOX_IMAGE`, `SANDBOX_MEMORY`, `SANDBOX_CPUS`, `SANDBOX_TIMEOUT`
 
-## MySQL (主数据库)
+**Full-text Search:**
+- MeiliSearch (optional)
+- SDK: `com.meilisearch.sdk:meilisearch-java` 0.20.0
+- Configured via `meilisearch.*` in `application.yml`
+- Environment vars: `MEILISEARCH_ENABLED`, `MEILISEARCH_HOST`, `MEILISEARCH_API_KEY`
 
-### 连接信息
+**Recommendation Service:**
+- Dubbo3 RPC service (optional)
+- Apache Spark for offline processing
+- Service discovery via Nacos
+- Configured via `recommendation.*` in `application.yml`
+- Environment vars: `RECOMMENDATION_ENABLED`, `RECOMMENDATION_SERVICE_URL`, `RECOMMENDATION_NACOS_ENABLED`
 
-```yaml
-host: localhost
-port: 23306
-database: ulticode
-user: ulticode
-password: ${DB_PASSWORD}
-```
+## Data Storage
 
-### 特性
+**Primary Database:**
+- MySQL 9.1
+- Connection: `jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}`
+- ORM: MyBatis-Plus 3.5.16
+- Default credentials: `ulticode:ulticode` (dev)
+- Container: `ulticode-mysql` on port 23306
 
-- **ORM**: MyBatis-Plus 3.5.16
-- **迁移**: Flyway (通过 db-manager)
-- **连接池**: HikariCP (Spring Boot 默认)
-- **字符集**: UTF-8 with `characterEncoding=utf8`
+**Cache & Sessions:**
+- Redis 7 (Alpine)
+- Connection: `redis://${REDIS_HOST:localhost}:${REDIS_PORT:26379}`
+- Client: Redisson 4.3.1 (distributed locks), Lettuce (Spring Data Redis)
+- Auth: `REDIS_PASSWORD` required
+- Container: `ulticode-redis` on port 26379
 
-### 数据分布 (Seed Data)
+**File Storage:**
+- Local filesystem (backup directory)
+- Configured via `backup.dir` in `application.yml`
+- Default: `/tmp/backups`
 
-- **V1**: users, submissions, permissions
-- **V2**: problems, tags, lists
-- **V3**: contests, rankings
-- **V4**: forum
-- **V8**: collections
-- **V9**: solutions
+## Authentication & Identity
 
----
+**Primary Auth:**
+- Custom JWT-based authentication
+- Access token: 15 minutes expiry
+- Refresh token: 7 days expiry
+- Stored in httpOnly cookies (`access_token`, `refresh_token`)
+- CSRF protection via `X-CSRF-Token` header
 
-## Redis (缓存/会话/限流)
+**OAuth 2.0 Providers:**
+- GitHub OAuth
+  - Config: `oauth.github.*` in `application.yml`
+  - Env vars: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+  - Scopes: `user:email`
+- Google OAuth
+  - Config: `oauth.google.*` in `application.yml`
+  - Env vars: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+  - Scopes: `email,profile`
 
-### 连接信息
+## Service Discovery
 
-```yaml
-host: localhost
-port: 26379
-password: ${REDIS_PASSWORD}
-```
+**Nacos (Service Registry):**
+- Nacos 2.3.2 (standalone mode)
+- Container: `ulticode-nacos` on ports 8848, 9848
+- Used for: Dubbo service registration/discovery
+- Env vars: `NACOS_HOST`, `NACOS_PORT`, `NACOS_USERNAME`, `NACOS_PASSWORD`
+- Database: `nacos_config` in MySQL
 
-### 用途
+## Monitoring & Observability
 
-| 用途 | 实现 |
-|------|------|
-| 会话存储 | Redisson Session |
-| 分布式锁 | Redisson Lock |
-| 限流 | Bucket4j + Redisson |
-| 缓存 | Spring Cache Abstraction |
+**Error Tracking:**
+- Not detected (no Sentry, Bugsnag, or similar)
 
-### 配置
+**Logs:**
+- Spring Boot logging to stdout
+- Pattern: `%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n`
+- Log level: `INFO` (root), configurable per package
 
-```yaml
-# Spring Boot Data Redis
-spring:
-  data:
-    redis:
-      host: ${REDIS_HOST:localhost}
-      port: ${REDIS_PORT:26379}
-      password: ${REDIS_PASSWORD}
-```
+**Health Checks:**
+- Spring Actuator: `/actuator/health`
+- Docker health checks on MySQL and Redis
 
----
+## CI/CD & Deployment
 
-## Nacos (服务发现与配置)
+**Container Orchestration:**
+- Docker Compose (development)
+- `docker-compose.yml` - MySQL, Redis, Nacos
+- `docker-compose.prod.yml` - Production stack
 
-### 连接信息
+**Process Management:**
+- PM2 (via `ecosystem.config.cjs`)
+- Services: `ulticode-9001` (backend), `ulticode-9002` (console), `ulticode-9003` (management), `ulticode-9004/9005` (recommendation)
 
-```yaml
-host: localhost
-port: 28848
-username: ${NACOS_USERNAME}
-password: ${NACOS_PASSWORD}
-```
+**Database Migrations:**
+- Flyway (via `db-manager` CLI)
+- Migrations: `db-manager/migrations/*.sql`
+- Commands: `python -m db_manager.cli migrate|status|info|repair`
 
-### 用途
+## Environment Configuration
 
-- **服务注册**: Recommendation 服务注册到 Nacos
-- **配置管理**: 分布式配置集中管理
-- **模式**: 单机模式 (standalone)
+**Required Environment Variables:**
 
-### 服务发现配置
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `DB_HOST` | MySQL host | `localhost` |
+| `DB_PORT` | MySQL port | `23306` |
+| `DB_NAME` | Database name | `ulticode` |
+| `DB_USER` | Database user | `ulticode` |
+| `DB_PASSWORD` | Database password | `***` |
+| `REDIS_HOST` | Redis host | `localhost` |
+| `REDIS_PORT` | Redis port | `26379` |
+| `REDIS_PASSWORD` | Redis auth | `***` |
+| `JWT_SECRET` | JWT signing key | `***` |
+| `NACOS_HOST` | Nacos host | `localhost` |
+| `NACOS_PORT` | Nacos port | `28848` |
 
-```yaml
-dubbo:
-  registry:
-    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:28848}
-    group: DEFAULT_GROUP
-    parameters:
-      enable-empty-protection: "true"
-```
+**Optional Environment Variables:**
 
----
+| Variable | Purpose | Default |
+|----------|---------|---------|
+| `MEILISEARCH_ENABLED` | Enable MeiliSearch | `false` |
+| `MEILISEARCH_HOST` | MeiliSearch URL | - |
+| `MEILISEARCH_API_KEY` | MeiliSearch API key | - |
+| `RECOMMENDATION_ENABLED` | Enable recommendation | `false` |
+| `RECOMMENDATION_SERVICE_URL` | Recommendation Dubbo URL | - |
+| `SMTP_HOST` | Mail server | `localhost` |
+| `SMTP_PORT` | Mail port | `587` |
+| `SMTP_USER` | Mail username | - |
+| `SMTP_PASSWORD` | Mail password | - |
+| `EMAIL_ENABLED` | Enable email | `false` |
+| `GITHUB_CLIENT_ID` | GitHub OAuth ID | - |
+| `GITHUB_CLIENT_SECRET` | GitHub OAuth secret | - |
+| `GOOGLE_CLIENT_ID` | Google OAuth ID | - |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth secret | - |
+| `CORS_ALLOWED_ORIGINS` | CORS origins | `http://localhost:9002,http://localhost:9003` |
+| `JWT_COOKIE_SECURE` | Secure cookies | `false` |
 
-## Recommendation Service (Dubbo3 + Spark)
+**Secrets Location:**
+- `backend-spring/.env` - Backend environment (gitignored)
+- `.env` - Root environment (gitignored)
+- `.env.example` - Templates (committed, no secrets)
 
-### 服务架构
+## Webhooks & Callbacks
 
-```
-Backend (9001)  ──Dubbo RPC──►  Recommend-Provider (9004)
-                                       │
-                                       ▼
-                              Nacos (28848)
-                              Service Registration
-                                       │
-                                       ▼
-                              Recommend-Web (9005)
-                                       │
-                                       ▼
-                              Spark 3.5.1 Offline Computing
-```
+**Incoming:**
+- OAuth callbacks: `/auth/{provider}/callback` (GitHub, Google)
 
-### Dubbo 版本
-
-- **Provider**: Dubbo 3.2.14
-- **Consumer (Backend)**: Dubbo 3.2.14
-
-### 接口定义
-
-- `recommend-api` 模块定义服务接口
-- Backend 通过 Dubbo RPC 调用推荐服务
-
-### Spark 组件
-
-| 组件 | 版本 |
-|------|------|
-| spark-core | 3.5.1 |
-| spark-sql | 3.5.1 |
-| spark-mllib | 3.5.1 |
-| scala-binary | 2.13 |
+**Outgoing:**
+- Not detected (no outbound webhooks)
 
 ---
 
-## MeiliSearch (搜索服务)
-
-### 用途
-
-- 问题搜索
-- 全文检索
-
-### 依赖
-
-```xml
-<dependency>
-    <groupId>com.meilisearch.sdk</groupId>
-    <artifactId>meilisearch-java</artifactId>
-    <version>0.20.0</version>
-</dependency>
-```
-
----
-
-## 前端集成
-
-### API 调用
-
-- **Base URL**: `http://localhost:9001`
-- **请求库**: Axios
-- **响应格式**: `{ code, message, data, traceId }`
-
-### 认证流程
-
-```
-1. Login → JWT Token (httpOnly Cookie)
-2. Refresh Token → 续期机制
-3. CSRF Token → X-CSRF-Token Header
-```
-
-### 环境变量
-
-```yaml
-# Console (.env)
-VITE_API_BASE_URL=http://localhost:9001
-
-# Management (.env)
-VITE_API_BASE_URL=http://localhost:9001
-```
-
----
-
-## Docker 容器
-
-### 容器列表
-
-| 容器名 | 镜像 | 端口 |
-|--------|------|------|
-| ulticode-mysql | mysql:9.1 | 23306 |
-| ulticode-redis | redis:7-alpine | 26379 |
-| ulticode-nacos | nacos/nacos-server:v2.3.2 | 28848, 29848 |
-
-### 启动命令
-
-```bash
-# PM2 启动所有服务
-pm2 start ecosystem.config.cjs
-
-# Docker 容器独立管理
-docker compose up -d
-```
-
----
-
-## 环境变量清单
-
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `DB_HOST` | localhost | MySQL 主机 |
-| `DB_PORT` | 23306 | MySQL 端口 |
-| `DB_NAME` | ulticode | 数据库名 |
-| `DB_USER` | ulticode | 数据库用户 |
-| `DB_PASSWORD` | - | 数据库密码 |
-| `REDIS_HOST` | localhost | Redis 主机 |
-| `REDIS_PORT` | 26379 | Redis 端口 |
-| `REDIS_PASSWORD` | - | Redis 密码 |
-| `NACOS_HOST` | localhost | Nacos 主机 |
-| `NACOS_PORT` | 28848 | Nacos 端口 |
-| `NACOS_USERNAME` | - | Nacos 用户名 |
-| `NACOS_PASSWORD` | - | Nacos 密码 |
-| `JWT_SECRET` | - | JWT 密钥 |
-| `SPRING_PROFILES_ACTIVE` | dev | Spring 环境 |
-| `RECOMMENDATION_ENABLED` | true | 推荐服务开关 |
+*Integration audit: 2026-04-19*

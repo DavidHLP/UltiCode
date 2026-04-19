@@ -192,10 +192,9 @@ Plans:
   3. Contest ranking page updates in real-time as participants submit solutions, without page refresh
   4. Submission status changes from Pending to final verdict are pushed to the browser via WebSocket without polling
 **Plans**: 2 plans
-
 Plans:
-- [x] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
-- [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
+- [ ] 14-01: Add throttle infrastructure (markDirty + flushPendingRankings), wire submission verdict to dirty tracking, fix contestId in SubmissionResultPayload (JUDGE-04, CONTEST-04)
+- [ ] 14-02: Create ContestScheduler (@Scheduled 10s lifecycle polling) and RatingCalculationService (CF Elo rating engine) (CONTEST-03, CONTEST-06)
 **UI hint**: yes
 
 ### Phase 15: Problem + User Enhancements

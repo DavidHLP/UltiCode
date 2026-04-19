@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +35,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final ObjectMapper objectMapper;
+    private final com.ulticode.modules.problem.service.ProblemService problemService;
 
     @Override
     public HeaderDataVO getHeaderData(Long id) {
@@ -140,6 +142,37 @@ public class AdminProblemServiceImpl implements AdminProblemService {
         vo.setTags(findTagsByProblemId(id));
 
         return vo;
+    }
+
+    @Override
+    public List<BulkProblemResultDTO> bulkAction(BulkProblemRequestDTO request) {
+        List<BulkProblemResultDTO> results = new ArrayList<>();
+        for (String idStr : request.getIds()) {
+            try {
+                Long id = Long.parseLong(idStr);
+                switch (request.getAction()) {
+                    case publish -> problemService.publishProblem(id);
+                    case unpublish -> problemService.unpublishProblem(id);
+                    case delete -> problemService.deleteProblem(id);
+                    case edit -> {
+                        var params = request.getParams();
+                        if (params != null && params.containsKey("difficulty")) {
+                            // Update difficulty via the Problem entity
+                            Problem problem = problemMapper.selectById(id);
+                            if (problem != null) {
+                                problem.setDifficulty((String) params.get("difficulty"));
+                                problemMapper.updateById(problem);
+                            }
+                        }
+                    }
+                }
+                results.add(new BulkProblemResultDTO(idStr, true, null));
+            } catch (Exception e) {
+                log.error("Bulk action failed for problem id={}: {}", idStr, e.getMessage(), e);
+                results.add(new BulkProblemResultDTO(idStr, false, e.getMessage()));
+            }
+        }
+        return results;
     }
 
     // ========== Private Helper Methods ==========

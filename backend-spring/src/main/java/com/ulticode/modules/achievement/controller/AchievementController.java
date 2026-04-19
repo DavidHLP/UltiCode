@@ -53,6 +53,20 @@ public class AchievementController {
         return Result.success(achievementService.getUserPoints(userId));
     }
 
+    // ========== Path Aliases for Frontend ==========
+
+    @Operation(summary = "Alias for /achievements/user/me - get current user's achievements")
+    @GetMapping("/my")
+    public Result<List<AchievementProgressDTO>> getCurrentUserAchievementsAlias() {
+        return getCurrentUserAchievements();
+    }
+
+    @Operation(summary = "Alias for /achievements/user/me/points - get current user's points")
+    @GetMapping("/points")
+    public Result<UserPointsVO> getCurrentUserPointsAlias() {
+        return getCurrentUserPoints();
+    }
+
     @Operation(summary = "Create achievement (admin only)")
     @RateLimit(key = "achievement:create", limit = 30, period = 60)
     @PostMapping

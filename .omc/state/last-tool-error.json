@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"rtk git add backend-spring/src/main/java/com/ulticode/modules/contest/scheduler/ContestScheduler.java backend-spring/src/main/java/com/ulticode/modules/contest/entity/Contest.java db-manag...",
-  "error": "Exit code 127\nok 3 files changed, 123 insertions(+)\n/bin/bash: 行 1: gsd-sdk: 未找到命令",
-  "timestamp": "2026-04-19T00:55:01.641Z",
-  "retry_count": 1
-}

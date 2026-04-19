@@ -14,7 +14,7 @@
 ## Current State
 
 **Last shipped:** v1.3 Core Features (2026-04-19)
-**Total plans completed:** 47 (v1.0: 11, v1.1: 16, v1.2: 8, v1.3: 12)
+**Total plans completed:** 48 (v1.0: 11, v1.1: 16, v1.2: 8, v1.3: 12, v1.5: 1)
 **Status:** Ready for next milestone planning
 
 ## What This Is

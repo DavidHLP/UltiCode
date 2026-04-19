@@ -18,7 +18,7 @@
 | 9-11  | v1.2      | All           | Complete |
 | 12-15 | v1.3      | All           | Complete |
 | 16-18 | v1.4      | All           | Complete |
-| 19    | 1/1 | Complete   | 2026-04-19 |
+| 19    | 1/1 | Complete    | 2026-04-19 |
 | 20    | v1.5      | 0/3           | Not started |
 | 21    | v1.5      | 0/7           | Not started |
 | 22    | v1.5      | 0/5           | Not started |
@@ -74,7 +74,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
+- [x] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
 
 ### Phase 21: Security Hardening
 

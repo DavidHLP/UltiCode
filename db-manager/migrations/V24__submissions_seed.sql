@@ -181,7 +181,7 @@ INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),19,'user-sara','python','// two pointers',            'AC',65,42.5,NULL,'2025-05-17 10:00:00',68.2,58.5);
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),19,'user-max','java','// count and remove',         'AC',68,44.2,NULL,'2025-05-18 14:30:00',65.5,55.8);
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),19,'user-alex','cpp','// dummy node',                'AC',62,41.8,NULL,'2025-05-19 09:00:00',72.1,62.5);
-INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at',`runtime_percentile`,`memory_percentile`) VALUES (UUID(),19,'user-chen','typescript','// fast-slow',                'WA',0,0,NULL,'2025-05-20 11:00:00',0,0);
+INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),19,'user-chen','typescript','// fast-slow',                'WA',0,0,NULL,'2025-05-20 11:00:00',0,0);
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),19,'user-raj','javascript','// recursion',                'RE',0,0,NULL,'2025-05-21 08:30:00',0,0);
 
 -- ============================================================================
@@ -330,7 +330,7 @@ INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),4,'user-sara','python','// undefined variable',       'CE',0,0,NULL,'2025-02-16 14:00:00',0,0);
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),4,'user-mike','java','// stack overflow',           'RE',0,0,NULL,'2025-02-17 09:30:00',0,0);
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),4,'user-chen','cpp','// division by zero',         'RE',0,0,NULL,'2025-02-18 11:00:00',0,0);
-INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at',`runtime_percentile`,`memory_percentile`) VALUES (UUID(),4,'user-raj','typescript','// off by one',              'WA',0,0,NULL,'2025-02-19 08:30:00',0,0);
+INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),4,'user-raj','typescript','// off by one',              'WA',0,0,NULL,'2025-02-19 08:30:00',0,0);
 
 -- Problem 5: More varied
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),5,'user-john','python','// recursion depth',           'RE',0,0,NULL,'2025-02-25 14:00:00',0,0);
@@ -341,13 +341,13 @@ INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status
 -- Problem 6: Add more
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),6,'user-mike','javascript','// type error',               'CE',0,0,NULL,'2025-03-06 14:00:00',0,0);
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),6,'user-lisa','python','// wrong row order',          'WA',0,0,NULL,'2025-03-07 09:30:00',0,0);
-INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at',`runtime_percentile`,`memory_percentile`) VALUES (UUID(),6,'user-bob','java','// array out of bounds',    'RE',0,0,NULL,'2025-03-08 11:00:00',0,0);
+INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),6,'user-bob','java','// array out of bounds',    'RE',0,0,NULL,'2025-03-08 11:00:00',0,0);
 
 -- Problem 7-10: Additional varied attempts
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),7,'user-mike','python','// negative handling',        'WA',0,0,NULL,'2025-03-15 14:00:00',0,0);
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),8,'user-lisa','cpp','// whitespace bug',            'WA',0,0,NULL,'2025-03-20 09:30:00',0,0);
 INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),9,'user-bob','typescript','// edge case 0',             'WA',0,0,NULL,'2025-03-25 11:00:00',0,0);
-INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at',`runtime_percentile`,`memory_percentile`) VALUES (UUID(),10,'user-alice','java','// pattern mismatch',         'WA',0,0,NULL,'2025-04-01 08:30:00',0,0);
+INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,`runtime`,`memory`,`notes`,`created_at`,`runtime_percentile`,`memory_percentile`) VALUES (UUID(),10,'user-alice','java','// pattern mismatch',         'WA',0,0,NULL,'2025-04-01 08:30:00',0,0);
 
 COMMIT;
 SET FOREIGN_KEY_CHECKS=1;

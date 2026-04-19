@@ -174,6 +174,25 @@ export const exampleApi = {
 - Frontend reads CSRF from localStorage and sends as `X-CSRF-Token` header
 - Login response includes both `access_token` (cookie) and `csrf_token` (response body)
 
+### Testing Authenticated APIs with curl
+
+```bash
+# 1. Login to get session cookie
+curl -s -X POST http://localhost:9001/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"admin123"}' \
+  -c /tmp/cookies.txt
+
+# 2. Use cookie for authenticated requests
+curl -s http://localhost:9001/users/u-admin-001/stats \
+  -b /tmp/cookies.txt | jq .
+```
+
+- Login returns `csrfToken` in response body (not a JWT token)
+- Authenticated endpoints require the session cookie, not Bearer token
+- Use `-c /tmp/cookies.txt` to save cookie, `-b /tmp/cookies.txt` to send cookie
+- JSON解析：jq解析失败时用 `curl -s ... | python3 -m json.tool` 备用
+
 ### Backend Module Structure
 
 ```
@@ -247,6 +266,19 @@ Frontend uses Vite env vars (`VITE_API_BASE_URL`).
 - Management logs: `tail -f /tmp/ulticode-management.log`
 - Swagger UI: `http://localhost:9001/swagger-ui.html`
 - Health check: `curl http://localhost:9001/actuator/health`
+- API docs: `http://localhost:9001/api-docs` (springdoc path: `/api-docs`)
+- Backend debug: `pm2 logs ulticode-9001 --lines 50 --nostream 2>/dev/null | grep -i error`
+- Query DB during API testing: `docker exec ulticode-mysql mysql -u ulticode -pulticode ulticode -e "SELECT ..."`
+
+## Backend Startup Issues
+
+- `./mvnw spring-boot:run -Dmaven.test.skip=true` - 验证后端启动（跳过测试编译）
+- PM2 restart 后环境变量重载：`pm2 restart ulticode-9001 --update-env`，否则 .env 修改不生效
+- PM2 环境变量：ecosystem.config.cjs 的 dotenv fallback 实现需手动解析 .env，否则 JWT_SECRET/REDIS_PASSWORD 会丢失
+- springdoc 版本：2.7.0 与 Spring Boot 3.2.5 不兼容（LiteWebJarsResourceResolver 缺失），降级到 2.6.0
+- Flyway 迁移失败：db-manager 不支持 `-outOfOrder`，直接用 `docker exec ulticode-mysql mysql ...` 执行 SQL
+- `db-manager/.venv/bin/python -m db_manager.cli repair` - 修复 Flyway checksum 不匹配
+- Redis 密码变更后需 `docker compose up -d redis` 重启容器，不能只 restart 容器
 
 ## Code Search Tools
 

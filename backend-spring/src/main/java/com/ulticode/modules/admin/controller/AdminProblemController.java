@@ -1,6 +1,8 @@
 package com.ulticode.modules.admin.controller;
 
 import jakarta.validation.Valid;
+
+import java.util.List;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
@@ -86,6 +88,14 @@ public class AdminProblemController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemVO> unpublishProblem(@PathVariable Long id) {
         return Result.success(problemService.unpublishProblem(id));
+    }
+
+    @Operation(summary = "Bulk problem action", description = "Perform bulk action on multiple problems (publish, unpublish, delete, edit)")
+    @RateLimit(key = "admin:problem-bulk", limit = 10, period = 60)
+    @PostMapping("/bulk")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<List<BulkProblemResultDTO>> bulkAction(@Valid @RequestBody BulkProblemRequestDTO request) {
+        return Result.success(adminProblemService.bulkAction(request));
     }
 
     // ========== Tab-specific Endpoints ==========

@@ -2,6 +2,8 @@ package com.ulticode.modules.admin.service;
 
 import com.ulticode.modules.admin.dto.problem.*;
 
+import java.util.List;
+
 /**
  * Admin service for problem management with tab-specific data.
  */
@@ -38,4 +40,12 @@ public interface AdminProblemService {
      * @return Cases data with examples, constraints, and hints
      */
     CasesDataVO getCasesData(Long id);
+
+    /**
+     * Perform bulk action on multiple problems.
+     *
+     * @param request Bulk operation request containing IDs and action
+     * @return List of results per problem ID
+     */
+    List<BulkProblemResultDTO> bulkAction(BulkProblemRequestDTO request);
 }

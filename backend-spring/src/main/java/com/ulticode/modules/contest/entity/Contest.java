@@ -28,6 +28,10 @@ public class Contest {
 
     private LocalDateTime endTime;
 
+    private LocalDateTime actualStartTime;
+
+    private LocalDateTime actualEndTime;
+
     private Integer durationMinutes;
 
     private LocalDateTime registrationStart;

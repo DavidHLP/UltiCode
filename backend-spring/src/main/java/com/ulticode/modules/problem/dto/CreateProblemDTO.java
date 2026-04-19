@@ -7,6 +7,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * DTO for creating a new problem.
  */
@@ -35,4 +37,25 @@ public class CreateProblemDTO {
 
     @Schema(description = "Whether the problem is published", example = "true")
     private Boolean isPublished;
+
+    @Schema(description = "Problem summary")
+    private String summary;
+
+    @Schema(description = "Problem content (markdown)")
+    private String content;
+
+    @Schema(description = "Examples as JSON array", example = "[{\"input\":\"...\", \"output\":\"...\", \"explanation\":\"...\"}]")
+    private String examples;
+
+    @Schema(description = "Constraints")
+    private String constraints;
+
+    @Schema(description = "Hints as JSON array", example = "[\"hint1\", \"hint2\"]")
+    private String hints;
+
+    @Schema(description = "Supported languages as JSON array", example = "[\"javascript\", \"python\", \"java\", \"c\", \"cpp\"]")
+    private List<String> languages;
+
+    @Schema(description = "Tags as JSON array", example = "[\"array\", \"dynamic-programming\"]")
+    private List<String> tags;
 }

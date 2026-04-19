@@ -10,10 +10,13 @@ import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.event.ContestStatusEvent;
 import com.ulticode.modules.websocket.event.ContestStatusEvent.ContestStatus;
 import com.ulticode.modules.websocket.util.WebSocketUtils;
+import com.ulticode.modules.contest.service.RankingService;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -43,6 +46,7 @@ public class RealtimeService {
 
   private final SimpMessagingTemplate messagingTemplate;
   private final WebSocketProperties properties;
+  private final RankingService rankingService;
 
   /** Track last push time per contest for throttling. */
   private final Map<String, Long> lastRankingPushTime = new ConcurrentHashMap<>();
@@ -50,9 +54,11 @@ public class RealtimeService {
   /** Pending ranking updates that need to be pushed. */
   private final Map<String, Boolean> pendingRankingUpdates = new ConcurrentHashMap<>();
 
-  public RealtimeService(SimpMessagingTemplate messagingTemplate, WebSocketProperties properties) {
+  public RealtimeService(SimpMessagingTemplate messagingTemplate, WebSocketProperties properties,
+                        RankingService rankingService) {
     this.messagingTemplate = messagingTemplate;
     this.properties = properties;
+    this.rankingService = rankingService;
   }
 
   /**
@@ -143,6 +149,48 @@ public class RealtimeService {
     messagingTemplate.convertAndSendToUser(userId, WebSocketConstants.USER_QUEUE_SUBMISSION, payload);
 
     log.debug("Submission result sent to user {}: {}", userId, payload.status());
+  }
+
+  /**
+   * Mark a contest's ranking as dirty, requiring a flush on next throttle tick.
+   *
+   * @param contestId the contest ID
+   */
+  public void markDirty(String contestId) {
+    pendingRankingUpdates.putIfAbsent(contestId, true);
+  }
+
+  /**
+   * Flush pending ranking updates, emitting at most once per second per contest.
+   * Called every second by the scheduler.
+   */
+  @Scheduled(fixedRate = 1000)
+  public void flushPendingRankings() {
+    Set<String> dirty = Set.copyOf(pendingRankingUpdates.keySet());
+    pendingRankingUpdates.clear();
+
+    for (String contestId : dirty) {
+      Long lastPush = lastRankingPushTime.get(contestId);
+      long elapsed = System.currentTimeMillis() - (lastPush != null ? lastPush : 0);
+
+      if (elapsed >= RANKING_THROTTLE_MS) {
+        List<RankingItem> rankings = rankingService.getLiveRanking(contestId, 200).stream()
+                .map(vo -> new RankingItem(
+                        vo.getRank() != null ? vo.getRank() : 0,
+                        vo.getUserId() != null ? vo.getUserId().toString() : "",
+                        vo.getUsername() != null ? vo.getUsername() : "",
+                        vo.getScore() != null ? vo.getScore().doubleValue() : 0.0,
+                        vo.getPenalty() != null ? vo.getPenalty().intValue() : 0,
+                        vo.getProblemsSolved() != null ? vo.getProblemsSolved() : 0
+                ))
+                .collect(Collectors.toList());
+        emitRankingUpdate(contestId, rankings);
+        lastRankingPushTime.put(contestId, System.currentTimeMillis());
+      } else {
+        // Re-mark as dirty for next flush cycle
+        pendingRankingUpdates.putIfAbsent(contestId, true);
+      }
+    }
   }
 
   /**

@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"cd backend-spring && ./mvnw test -Dtest=\\\"MonitoringServiceTest\\\\$GetDatabaseStatsTests\\\" -B 2>&1 | tail -20\",\"timeout\":120000,\"description\":\"Run getDatabaseStats tests with nested class\"}",
+  "error": "Exit code 1\n/bin/bash: 第 1 行：cd: backend-spring: 没有那个文件或目录",
+  "timestamp": "2026-04-18T11:39:41.008Z",
+  "retry_count": 1
+}

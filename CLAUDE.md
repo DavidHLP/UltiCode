@@ -94,6 +94,13 @@ cd management && pnpm build
 cd backend-spring && ./mvnw package -DskipTests
 ```
 
+### Known Pitfalls
+
+- **ESLint compatibility**: Console uses ESLint 9.x — `eslint-plugin-vue` must be `^9.30.0`, not 10.x (TypeScript peer dep conflict)
+- **vitest setupFiles**: Do not add setup file paths that don't exist; vitest will fail to resolve them
+- **pnpm build scripts**: Use `.npmrc` `onlyBuiltDependencies` field instead of `pnpm approve-builds` for CI
+- **Recommendation build order**: `recommendation` module must be built (`mvn install -DskipTests`) BEFORE `backend-spring` — backend depends on `recommend-api`
+
 ## Service Architecture
 
 ```
@@ -123,7 +130,7 @@ cd backend-spring && ./mvnw package -DskipTests
 ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────────┐
 │ MySQL (23306)   │ │ Redis (26379)   │ │ Recommendation Service  │
 │ Primary DB      │ │ Cache, Sessions │ │ Dubbo3 + Spark (9004)   │
-│ Prisma schema   │ │ Rate Limiting   │ │ Optional, Nacos (28848) │
+│ MyBatis-Plus    │ │ Rate Limiting   │ │ Optional, Nacos (28848) │
 └─────────────────┘ └─────────────────┘ └─────────────────────────┘
 ```
 
@@ -241,6 +248,70 @@ Frontend uses Vite env vars (`VITE_API_BASE_URL`).
 - Swagger UI: `http://localhost:9001/swagger-ui.html`
 - Health check: `curl http://localhost:9001/actuator/health`
 
+## Code Search Tools
+
+### Grep (ripgrep)
+
+Built-in `Grep` tool wraps ripgrep — always prefer it over `grep`/`rg` Bash commands.
+
+```yaml
+# 按内容搜索文件
+pattern: "TODO|FIXME"
+glob: "*.java"              # 按文件类型过滤
+path: "backend-spring"      # 限定目录
+output_mode: "content"      # content | files_with_matches | count
+-i: true                    # 忽略大小写
+context: 3                   # 上下文行数（等同 -C）
+
+# 常用模式
+pattern: "class\\s+\\w+Controller"   # 正则匹配 Controller 类
+pattern: "apiGet|apiPost"            # 搜索 API 调用
+glob: "*.{vue,ts}"                   # 多种扩展名
+multiline: true                      # 跨行匹配
+```
+
+**经验法则**：
+- 精确路径 → `Glob`（按文件名模式找文件）
+- 精确内容 → `Grep`（按内容搜索）
+- 模糊/多轮搜索 → Agent（`Explore` 类型，适合复杂探索）
+
+### ast-grep (AST 模式搜索与替换)
+
+ast-grep 基于 AST 匹配，比文本正则更精确。通过 MCP 工具 `ast_grep_search` / `ast_grep_replace` 使用。
+
+**元变量**：`$NAME` 匹配单个节点，`$$$ARGS` 匹配多个节点。
+
+```yaml
+# 搜索模式
+pattern: "console.log($MSG)"           # 找所有 console.log
+pattern: "function $NAME($$$ARGS)"     # 找所有函数声明
+pattern: "$X === null"                 # 找 null 相等检查
+pattern: "if ($COND) { $$$BODY }"      # 找所有 if 语句
+language: "typescript"                 # javascript|typescript|tsx|python|java|kotlin|go|rust|c|cpp|html|css|json|yaml
+path: "console/src"                    # 限定目录
+maxResults: 20                         # 限制结果数
+
+# 替换模式（dryRun=true 默认只预览，设 false 应用）
+pattern: "console.log($MSG)"
+replacement: "logger.info($MSG)"
+language: "typescript"
+dryRun: false                          # 设为 false 实际执行
+
+# Java 示例 — 查找 @GetMapping 方法
+pattern: "@GetMapping($PATH)$$$PUBLIC $RET $NAME($$$ARGS) { $$$BODY }"
+language: "java"
+
+# Vue/TSX 示例 — 查找 v-if 指令对
+pattern: "class=\"$CLS\""
+replacement: "className=\"$CLS\""
+language: "tsx"
+```
+
+**适用场景**：
+- 精确重构（重命名模式、批量替换）→ `ast_grep_replace`
+- 查找特定代码结构（所有 catch 块、所有 import）→ `ast_grep_search`
+- 纯文本/关键字搜索 → `Grep` 更轻量
+
 ## Frontend Design System
 
 Both `console/` and `management/` share a unified Solarized color palette using OKLCH color space with `--radius: 0` (sharp corners). Reference the local skills for detailed specs:
@@ -349,3 +420,65 @@ Do not skip skills, ignore gstack errors, or work around missing gstack.
 Using gstack skills: After install, skills like /qa, /ship, /review, /investigate,
 and /browse are available. Use /browse for all web browsing.
 Use ~/.claude/skills/gstack/... for gstack file paths (the global path).
+
+## Behavioral Guidelines
+
+These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+### Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+### Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+### Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+### Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+These guidelines are working if fewer unnecessary changes appear in diffs, fewer rewrites are needed due to overcomplication, and clarifying questions come before implementation rather than after mistakes.

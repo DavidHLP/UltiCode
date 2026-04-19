@@ -3,10 +3,10 @@ gsd_state_version: 1.0
 milestone: v1.5
 milestone_name: 技术债务清偿 III
 status: in_progress
-last_updated: "2026-04-20T00:02:00.000Z"
+last_updated: "2026-04-20T00:15:00.000Z"
 last_activity: 2026-04-20
 progress:
-  total_phases: 0
+  total_phases: 7
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -24,18 +24,22 @@ See: .planning/PROJECT.md (updated 2026-04-19)
 
 ## Current Position
 
-Phase: Not started (planning v1.5)
-Plan: —
+Phase: Phase 19 (planning)
+Plan: Roadmap created, awaiting plan-phase for Phase 19
 Status: v1.5 milestone initializing
 Last activity: 2026-04-20
 
 ## Phase Summary
 
-| Phase | Goal | Status |
-|-------|------|--------|
-| 16. Solutions Seed (V23) | ~100 solutions, 1-3 per problem | ✅ Complete |
-| 17. Submissions Seed (V24) | ~200 submissions, varied statuses | ✅ Complete |
-| 18. Collections Seed (V25) | ~50 collections by scenario | ✅ Complete |
+| Phase | Goal | Requirements | Status |
+|-------|------|-------------|--------|
+| 19. Rate Limiting | Redisson AOP rate limit | RATE-01~03 | Roadmap pending |
+| 20. JaCoCo Baseline | Maven coverage enforcement | TEST-01~03 | Roadmap pending |
+| 21. Security Hardening | Logging, stats, springdoc, CI URL | SEC-01~04, FRAG-01~03 | Roadmap pending |
+| 22. Redis Caching | @Cacheable layer | CACHE-01~05 | Roadmap pending |
+| 23. N+1 Query Opt | JOIN FETCH fixes | PERF-01~03 | Roadmap pending |
+| 24. Build Infra | PM2 dotenv + Maven order | INFRA-01~02 | Roadmap pending |
+| 25. Large File Refactor | Service decomposition | REF-01~03 | Roadmap pending |
 
 ## Milestone History
 
@@ -46,7 +50,8 @@ Last activity: 2026-04-20
 | v1.2 CI/CD Pipeline | 2026-04-18 | 9-11 | Shipped |
 | v1.3 Core Features | 2026-04-19 | 12-15 | Shipped |
 | v1.4 Seed Data | 2026-04-19 | 16-18 | Complete |
+| v1.5 Technical Debt III | 2026-04-20 | 19-25 | In progress |
 
 ## Session Continuity
 
-Next action: `/gsd-new-milestone` to begin v1.5 planning — CONCERNS.md known issues
+Next action: `/gsd-plan-phase 19` to begin Phase 19 planning

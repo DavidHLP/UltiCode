@@ -21,6 +21,17 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.queue.service.QueueService;
+import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestParticipant;
+import com.ulticode.modules.contest.entity.ContestProblem;
+import com.ulticode.modules.contest.entity.ContestSubmission;
+import com.ulticode.modules.contest.entity.enums.ContestStatus;
+import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
+import com.ulticode.modules.contest.mapper.ContestMapper;
+import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
+import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +40,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -47,13 +59,17 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
     private final QueueService queueService;
+    private final RealtimeService realtimeService;
+    private final ContestProblemMapper contestProblemMapper;
+    private final ContestSubmissionMapper contestSubmissionMapper;
+    private final ContestMapper contestMapper;
+    private final ContestParticipantMapper contestParticipantMapper;
 
     /**
      * Supported languages for submission.
      */
     private static final List<String> SUPPORTED_LANGUAGES = List.of(
-            "javascript", "typescript", "python", "java", "cpp", "c",
-            "go", "rust", "csharp", "php", "ruby", "swift", "kotlin"
+            "javascript", "python", "java", "c", "cpp"
     );
 
     @Override
@@ -104,6 +120,14 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionMapper.insert(submission);
 
         log.info("Created submission {} for user {} and problem {}", submission.getId(), userId, createDTO.getProblemId());
+
+        // --- Contest submission recording (D-04, D-05, D-06) ---
+        try {
+            recordContestSubmissionIfNeeded(submission.getId(), userId, createDTO.getProblemId());
+        } catch (Exception e) {
+            log.warn("Failed to record contest submission for submission {}", submission.getId(), e);
+            // Don't fail the main submission -- contest recording is supplementary
+        }
 
         try {
             queueService.enqueueJudgeJob(
@@ -521,5 +545,47 @@ public class SubmissionServiceImpl implements SubmissionService {
         statuses.add(systemError);
 
         return statuses;
+    }
+
+    /**
+     * Record contest submission if user is participating in an active contest containing this problem.
+     * Per D-04: creates ContestSubmission alongside regular Submission in same transaction.
+     * Per D-06: only records if user has STARTED status (matches DB enum).
+     */
+    private void recordContestSubmissionIfNeeded(String submissionId, String userId, Long problemId) {
+        // 1. Find contest_problems containing this problem
+        List<ContestProblem> contestProblems = contestProblemMapper.findByProblemId(problemId);
+
+        for (ContestProblem cp : contestProblems) {
+            // 2. Check if contest is RUNNING
+            Contest contest = contestMapper.selectById(cp.getContestId());
+            if (contest == null || !ContestStatus.RUNNING.name().equals(contest.getStatus())) {
+                continue;
+            }
+
+            // 3. Check if user has STARTED status (D-06 -- matches DB enum 'STARTED')
+            Optional<ContestParticipant> participant = contestParticipantMapper
+                    .findByContestIdAndUserId(cp.getContestId(), userId);
+            if (participant.isEmpty() ||
+                    !ContestParticipantStatus.STARTED.name().equals(participant.get().getStatus())) {
+                continue;
+            }
+
+            // 4. Create ContestSubmission (D-05)
+            ContestSubmission cs = new ContestSubmission();
+            cs.setSubmissionId(submissionId);
+            cs.setContestId(cp.getContestId());
+            cs.setContestProblemId(cp.getId());
+            cs.setParticipantId(participant.get().getId());
+            cs.setTimeFromStart((int) Duration.between(
+                    contest.getStartTime(), LocalDateTime.now()).getSeconds());
+            cs.setIsAccepted(false); // Will be updated when judge completes
+            cs.setSubmittedAt(LocalDateTime.now());
+            contestSubmissionMapper.insert(cs);
+            realtimeService.markDirty(contest.getId());
+
+            // Only record for the first matching active contest
+            break;
+        }
     }
 }

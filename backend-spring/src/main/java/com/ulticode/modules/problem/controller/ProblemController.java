@@ -114,6 +114,18 @@ public class ProblemController {
     }
 
     /**
+     * Get a random published problem.
+     * Public endpoint - accessible without authentication.
+     *
+     * @return a random published problem
+     */
+    @Operation(summary = "Get a random published problem")
+    @GetMapping("/random")
+    public Result<ProblemVO> getRandomProblem() {
+        return Result.success(problemService.findRandomPublished());
+    }
+
+    /**
      * Create a new problem.
      * Admin only - requires ADMIN or SUPER_ADMIN role.
      *

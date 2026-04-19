@@ -2,6 +2,7 @@ package com.ulticode.modules.problem.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.ulticode.modules.problem.entity.Problem;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -172,6 +173,59 @@ public class ProblemVO {
      */
     @JsonProperty("updated_at")
     private LocalDateTime updatedAt;
+
+    /**
+     * Create a ProblemVO from a Problem entity.
+     *
+     * @param problem the problem entity
+     * @return the problem view object
+     */
+    public static ProblemVO from(Problem problem) {
+        if (problem == null) {
+            return null;
+        }
+        ProblemVO vo = new ProblemVO();
+        vo.setId(problem.getId());
+        vo.setSlug(problem.getSlug());
+        vo.setTitle(problem.getTitle());
+        vo.setDifficulty(problem.getDifficulty() != null ? problem.getDifficulty().toUpperCase() : null);
+        vo.setAcceptanceRate(problem.getAcceptanceRate());
+        vo.setStatus(problem.getStatus());
+        vo.setIsPremium(problem.getIsPremium());
+        vo.setHasSolution(problem.getHasSolution());
+        vo.setIsPublished(problem.getIsPublished());
+        vo.setPublishedAt(problem.getPublishedAt());
+        vo.setPublishedBy(problem.getPublishedBy());
+        vo.setIsDeleted(problem.getIsDeleted());
+        vo.setDeletedAt(problem.getDeletedAt());
+        vo.setIsFlagged(problem.getIsFlagged());
+        vo.setFlagReason(problem.getFlagReason());
+        vo.setFlagReportedBy(problem.getFlagReportedBy());
+        vo.setFlagReportedAt(problem.getFlagReportedAt());
+        vo.setFlagStatus(problem.getFlagStatus());
+        vo.setFlagReviewedBy(problem.getFlagReviewedBy());
+        vo.setFlagReviewedAt(problem.getFlagReviewedAt());
+        vo.setFlagNotes(problem.getFlagNotes());
+        vo.setCreatedAt(problem.getCreatedAt());
+        vo.setUpdatedAt(problem.getUpdatedAt());
+        vo.setSubmissionCount(0L);
+        vo.setSolutionCount(0L);
+        vo.setTags(List.of());
+        return vo;
+    }
+
+    /**
+     * Create a ProblemVO from a Problem entity with acceptance rate override.
+     *
+     * @param problem the problem entity
+     * @param acceptanceRate the acceptance rate to set (overrides entity value)
+     * @return the problem view object
+     */
+    public static ProblemVO from(Problem problem, BigDecimal acceptanceRate) {
+        ProblemVO vo = from(problem);
+        vo.setAcceptanceRate(acceptanceRate);
+        return vo;
+    }
 
     /**
      * Inner class for tag information in problem list

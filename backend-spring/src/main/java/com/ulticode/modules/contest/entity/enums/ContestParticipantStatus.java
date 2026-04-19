@@ -5,7 +5,7 @@ package com.ulticode.modules.contest.entity.enums;
  */
 public enum ContestParticipantStatus {
     REGISTERED,
-    PARTICIPATING,
-    COMPLETED,
+    STARTED,
+    FINISHED,
     DISQUALIFIED
 }

@@ -1,14 +1,14 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: CI/CD Pipeline
+milestone: v1.3
+milestone_name: Core Features
 status: executing
-stopped_at: Phase 11 context gathered
-last_updated: "2026-04-18T04:32:10.224Z"
-last_activity: 2026-04-18
+stopped_at: Phase 15 context gathered
+last_updated: "2026-04-19T09:50:00.000Z"
+last_activity: 2026-04-19
 progress:
-  total_phases: 3
-  completed_phases: 3
+  total_phases: 4
+  completed_phases: 4
   total_plans: 8
   completed_plans: 8
   percent: 100
@@ -18,25 +18,25 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-17)
+See: .planning/PROJECT.md (updated 2026-04-18)
 
-**Core value:** Automated CI/CD pipeline — every PR is linted, tested, and validated; every merge to main triggers Docker build and deployment via Docker Compose.
-**Current focus:** Phase 09 — foundation-ci
+**Core value:** 补全四大核心功能的关键缺失，使平台可完整运行
+**Current focus:** Phase 15 — Problem + User Enhancements
 
 ## Current Position
 
-Phase: 10
-Plan: Not started
-Status: Executing Phase 09
-Last activity: 2026-04-18
+Phase: 15
+Plan: Complete (2 waves)
+Status: Phase 15 complete
+Last activity: 2026-04-19
 
-Progress: [░░░░░░░░░░] 0%
+Progress: Phase 14 complete [100%]
 
 ## Performance Metrics
 
 **Velocity:**
 
-- Total plans completed: 30 (v1.0: 11, v1.1: 16)
+- Total plans completed: 39 (v1.0: 11, v1.1: 16, v1.2: 8)
 - Average duration: —
 - Total execution time: —
 
@@ -46,8 +46,9 @@ Progress: [░░░░░░░░░░] 0%
 |-------|-------|-------|----------|
 | 1-4 (v1.0) | 11 | — | — |
 | 5-8 (v1.1) | 16 | — | — |
-| 9-11 (v1.2) | 0 | — | — |
-| 09 | 3 | - | - |
+| 9-11 (v1.2) | 8 | — | — |
+| 12 | 2 | - | - |
+| 13 | 2 | - | - |
 
 **Recent Trend:**
 
@@ -55,9 +56,8 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
-| Phase 10 P01 | 64 | 1 tasks | 1 files |
-| Phase 10 P02 | 83 | 1 tasks | 1 files |
-| Phase 10 P03 | 1min | 1 tasks | 1 files |
+| Phase 12 P01 | 194 | 2 tasks | 2 files |
+| Phase 12 P02 | 11min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -69,9 +69,9 @@ Recent decisions affecting current work:
 - v1.0: All 28 technical debt items resolved across 4 phases
 - v1.1: 16 additional plans across 4 phases, 141 total tests
 - v1.2: CI/CD pipeline — 3 phases (Foundation+CI, CD, Hardening), 8 plans
-- [Phase 10]: Split health check into backend-first (fail fast) and frontends steps for ordered verification
-- [Phase 10]: Fixed frontend health check ports to match docker-compose.prod.yml host port mappings (9002/9003)
-- [Phase 10]: Export IMAGE_TAG in same SSH session as docker compose commands for proper variable interpolation
+- [Phase 12]: Language whitelist restricted to 5 entries (javascript, python, java, c, cpp) matching CodeExecutionService
+- [Phase 12]: Memory measured via cgroup v2 /sys/fs/cgroup/memory.current in Docker wrappers, reported as String X.XMB format
+- [Phase 12]: Used @ConditionalOnProperty(matchIfMissing=true) so judge worker enabled by default; AtomicInteger activeJobs for concurrency guard; exponential backoff 2s*2^attempts with max 3 retries; compile errors not retried
 
 ### Pending Todos
 
@@ -79,12 +79,12 @@ None yet.
 
 ### Blockers/Concerns
 
-- **Phase 9 research flag**: Backend tests use Testcontainers; decision needed on restructuring to GitHub Actions `services:` or keeping Testcontainers with Docker socket exposure. `application-ci.yml` profile is the recommended approach (FOUND-05).
-- **pnpm-lock.yaml status**: Must verify lockfiles are committed to git before CI runs (FOUND-02).
+- **Judge Worker missing (CRITICAL):** Submissions stay Pending forever, no queue consumer exists — Phase 12
+- **Contest backend 60% missing:** No entities/scheduler/rating engine, Admin API mismatch — Phases 13-14
+- **Achievement API path mismatch:** Fixed in Phase 15 — aliases added
+- **Language support mismatch:** 13 accepted but only 5 supported in sandbox — Phase 12
 
 ## Deferred Items
-
-Items acknowledged and carried forward from previous milestones:
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
@@ -96,6 +96,6 @@ Items acknowledged and carried forward from previous milestones:
 
 ## Session Continuity
 
-Last session: 2026-04-18T03:29:31.281Z
-Stopped at: Phase 11 context gathered
-Resume file: .planning/phases/11-hardening/11-CONTEXT.md
+Last session: 2026-04-18T15:52:29.141Z
+Stopped at: Phase 14 context gathered
+Resume file: .planning/phases/14-contest-engine/14-CONTEXT.md

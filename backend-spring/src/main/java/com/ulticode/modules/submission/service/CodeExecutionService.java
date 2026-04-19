@@ -82,7 +82,10 @@ public class CodeExecutionService {
                 .userId(userId)
                 .verdict(verdict)
                 .runtime(totalRuntimeMs + "ms")
-                .memory("0KB")
+                .memory(results.stream()
+                        .map(RunResultDTO.RunCaseResult::getMemory)
+                        .max(String::compareTo)
+                        .orElse("0.0MB"))
                 .cases(results)
                 .passedCases(passedCases)
                 .totalCases(testCases.size())
@@ -113,7 +116,7 @@ public class CodeExecutionService {
             if (!finished) {
                 process.destroyForcibly();
                 return buildCaseResult(testCase, runId, userId, "Time Limit Exceeded",
-                        elapsedMs, null, "Execution timed out after " + sandboxConfig.timeout() + "s");
+                        elapsedMs, null, "Execution timed out after " + sandboxConfig.timeout() + "s", 0.0);
             }
 
             String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
@@ -121,7 +124,7 @@ public class CodeExecutionService {
 
             if (exitCode != 0) {
                 return buildCaseResult(testCase, runId, userId, "Runtime Error",
-                        elapsedMs, null, sanitizeSandboxOutput(stdout));
+                        elapsedMs, null, sanitizeSandboxOutput(stdout), 0.0);
             }
 
             String expected = testCase.getOutput() != null ? testCase.getOutput().trim() : "";
@@ -129,7 +132,7 @@ public class CodeExecutionService {
 
             return buildCaseResult(testCase, runId, userId,
                     passed ? "Accepted" : "Wrong Answer",
-                    elapsedMs, stdout, null);
+                    elapsedMs, stdout, null, 0.0);
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -232,7 +235,7 @@ public class CodeExecutionService {
                 return testCases.stream()
                         .map(tc -> buildCaseResult(tc, runId, userId, "Time Limit Exceeded",
                                 elapsedMs / testCases.size(), null,
-                                "Batch execution timed out after " + sandboxConfig.timeout() + "s"))
+                                "Batch execution timed out after " + sandboxConfig.timeout() + "s", 0.0))
                         .collect(Collectors.toList());
             }
 
@@ -242,7 +245,7 @@ public class CodeExecutionService {
             if (exitCode != 0) {
                 return testCases.stream()
                         .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
-                                elapsedMs / testCases.size(), null, sanitizeSandboxOutput(stdout)))
+                                elapsedMs / testCases.size(), null, sanitizeSandboxOutput(stdout), 0.0))
                         .collect(Collectors.toList());
             }
 
@@ -276,9 +279,10 @@ public class CodeExecutionService {
                 "  const start = Date.now();\n" +
                 "  try {\n" +
                 "    const result = " + funcName + "(...args);\n" +
-                "    return {output: JSON.stringify(result), runtime: Date.now() - start, status: 'ok'};\n" +
+                "    const mem = require('fs').readFileSync('/sys/fs/cgroup/memory.current', 'utf8').trim();\n" +
+                "    return {output: JSON.stringify(result), runtime: Date.now() - start, status: 'ok', memory: parseInt(mem)};\n" +
                 "  } catch(e) {\n" +
-                "    return {output: e.message, runtime: Date.now() - start, status: 'error'};\n" +
+                "    return {output: e.message, runtime: Date.now() - start, status: 'error', memory: 0};\n" +
                 "  }\n" +
                 "});\n" +
                 "process.stdout.write(JSON.stringify(results));\n";
@@ -295,10 +299,12 @@ public class CodeExecutionService {
                 "    try:\n" +
                 "        result = " + funcName + "(*args)\n" +
                 "        elapsed = time.time() * 1000 - start\n" +
-                "        results.append({'output': json.dumps(result), 'runtime': int(elapsed), 'status': 'ok'})\n" +
+                "        with open('/sys/fs/cgroup/memory.current') as f:\n" +
+                "            mem = int(f.read().strip())\n" +
+                "        results.append({'output': json.dumps(result), 'runtime': int(elapsed), 'status': 'ok', 'memory': mem})\n" +
                 "    except Exception as e:\n" +
                 "        elapsed = time.time() * 1000 - start\n" +
-                "        results.append({'output': str(e), 'runtime': int(elapsed), 'status': 'error'})\n" +
+                "        results.append({'output': str(e), 'runtime': int(elapsed), 'status': 'error', 'memory': 0})\n" +
                 "print(json.dumps(results))\n";
     }
 
@@ -314,11 +320,16 @@ public class CodeExecutionService {
                 "  try:\\n" +
                 "    p=subprocess.run(['/tmp/solution'],input=json.dumps(args),capture_output=True,text=True,timeout=" + perCaseTimeout + ")\\n" +
                 "    elapsed=time.time()*1000-start\\n" +
-                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error'})\\n" +
+                "    try:\\n" +
+                "      with open('/sys/fs/cgroup/memory.current') as f:\\n" +
+                "        mem=int(f.read().strip())\\n" +
+                "    except:\\n" +
+                "      mem=0\\n" +
+                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error','memory':mem})\\n" +
                 "  except subprocess.TimeoutExpired:\\n" +
-                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout'})\\n" +
+                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout','memory':0})\\n" +
                 "  except Exception as e:\\n" +
-                "    results.append({'output':str(e),'runtime':0,'status':'error'})\\n" +
+                "    results.append({'output':str(e),'runtime':0,'status':'error','memory':0})\\n" +
                 "print(json.dumps(results))\"";
     }
 
@@ -334,11 +345,16 @@ public class CodeExecutionService {
                 "  try:\\n" +
                 "    p=subprocess.run(['/tmp/solution'],input=json.dumps(args),capture_output=True,text=True,timeout=" + perCaseTimeout + ")\\n" +
                 "    elapsed=time.time()*1000-start\\n" +
-                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error'})\\n" +
+                "    try:\\n" +
+                "      with open('/sys/fs/cgroup/memory.current') as f:\\n" +
+                "        mem=int(f.read().strip())\\n" +
+                "    except:\\n" +
+                "      mem=0\\n" +
+                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error','memory':mem})\\n" +
                 "  except subprocess.TimeoutExpired:\\n" +
-                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout'})\\n" +
+                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout','memory':0})\\n" +
                 "  except Exception as e:\\n" +
-                "    results.append({'output':str(e),'runtime':0,'status':'error'})\\n" +
+                "    results.append({'output':str(e),'runtime':0,'status':'error','memory':0})\\n" +
                 "print(json.dumps(results))\"";
     }
 
@@ -355,11 +371,16 @@ public class CodeExecutionService {
                 "  try:\\n" +
                 "    p=subprocess.run(['java','-cp','/tmp','Main'],input=json.dumps(args),capture_output=True,text=True,timeout=" + perCaseTimeout + ")\\n" +
                 "    elapsed=time.time()*1000-start\\n" +
-                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error'})\\n" +
+                "    try:\\n" +
+                "      with open('/sys/fs/cgroup/memory.current') as f:\\n" +
+                "        mem=int(f.read().strip())\\n" +
+                "    except:\\n" +
+                "      mem=0\\n" +
+                "    results.append({'output':p.stdout.strip(),'runtime':int(elapsed),'status':'ok' if p.returncode==0 else 'error','memory':mem})\\n" +
                 "  except subprocess.TimeoutExpired:\\n" +
-                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout'})\\n" +
+                "    results.append({'output':'','runtime':" + perCaseTimeout * 1000 + ",'status':'timeout','memory':0})\\n" +
                 "  except Exception as e:\\n" +
-                "    results.append({'output':str(e),'runtime':0,'status':'error'})\\n" +
+                "    results.append({'output':str(e),'runtime':0,'status':'error','memory':0})\\n" +
                 "print(json.dumps(results))\"";
     }
 
@@ -402,7 +423,7 @@ public class CodeExecutionService {
             if (jsonStart < 0 || jsonEnd < 0 || jsonEnd <= jsonStart) {
                 return testCases.stream()
                         .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
-                                0, null, "Failed to parse batch results: " + sanitizeSandboxOutput(stdout)))
+                                0, null, "Failed to parse batch results: " + sanitizeSandboxOutput(stdout), 0.0))
                         .collect(Collectors.toList());
             }
 
@@ -418,18 +439,21 @@ public class CodeExecutionService {
                 String output = result.get("output") != null ? result.get("output").toString() : "";
                 long runtime = result.get("runtime") != null ? ((Number) result.get("runtime")).longValue() : 0;
                 String status = result.get("status") != null ? result.get("status").toString() : "error";
+                long memoryBytes = result.get("memory") != null
+                        ? ((Number) result.get("memory")).longValue() : 0;
+                double memoryMb = memoryBytes / (1024.0 * 1024.0);
 
                 if ("timeout".equals(status)) {
                     caseResults.add(buildCaseResult(testCase, runId, userId,
-                            "Time Limit Exceeded", runtime, null, "Per-case timeout exceeded"));
+                            "Time Limit Exceeded", runtime, null, "Per-case timeout exceeded", 0.0));
                 } else if ("error".equals(status)) {
                     caseResults.add(buildCaseResult(testCase, runId, userId,
-                            "Runtime Error", runtime, null, sanitizeSandboxOutput(output)));
+                            "Runtime Error", runtime, null, sanitizeSandboxOutput(output), 0.0));
                 } else {
                     String expected = testCase.getOutput() != null ? testCase.getOutput().trim() : "";
                     boolean passed = normalizeOutput(output).equals(normalizeOutput(expected));
                     caseResults.add(buildCaseResult(testCase, runId, userId,
-                            passed ? "Accepted" : "Wrong Answer", runtime, output, null));
+                            passed ? "Accepted" : "Wrong Answer", runtime, output, null, memoryMb));
                 }
             }
             return caseResults;
@@ -438,7 +462,7 @@ public class CodeExecutionService {
             log.error("Failed to parse batch results", e);
             return testCases.stream()
                     .map(tc -> buildCaseResult(tc, runId, userId, "Runtime Error",
-                            0, null, "Result parsing failed: " + e.getMessage()))
+                            0, null, "Result parsing failed: " + e.getMessage(), 0.0))
                     .collect(Collectors.toList());
         }
     }
@@ -577,7 +601,7 @@ public class CodeExecutionService {
                 .userId(userId)
                 .verdict("Accepted")
                 .runtime("0ms")
-                .memory("0KB")
+                .memory("0.0MB")
                 .cases(List.of())
                 .passedCases(0)
                 .totalCases(0)
@@ -587,7 +611,8 @@ public class CodeExecutionService {
     private RunResultDTO.RunCaseResult buildCaseResult(RunSubmissionDTO.RunTestCase testCase,
                                                         String runId, String userId,
                                                         String status, long runtimeMs,
-                                                        String output, String detail) {
+                                                        String output, String detail,
+                                                        double memoryMb) {
         List<RunResultDTO.RunCaseResult.InputParam> inputs = null;
         if (testCase.getInputs() != null) {
             inputs = testCase.getInputs().stream()
@@ -608,7 +633,7 @@ public class CodeExecutionService {
                 .caseLabel(testCase.getLabel() != null ? testCase.getLabel() : testCase.getId())
                 .status(status)
                 .runtime(runtimeMs + "ms")
-                .memory("0KB")
+                .memory(String.format("%.1fMB", memoryMb))
                 .output(output)
                 .expectedOutput(testCase.getOutput())
                 .detail(detail)

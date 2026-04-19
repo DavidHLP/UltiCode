@@ -409,8 +409,8 @@ public class ContestServiceImpl implements ContestService {
         status.setRanking(participant.getFinalRank());
         status.setScore(participant.getTotalScore() != null ? participant.getTotalScore().longValue() : null);
         status.setHasStarted(participant.getStartedAt() != null);
-        status.setIsCompleted(ContestParticipantStatus.COMPLETED.name().equals(participant.getStatus()));
-        status.setIsActive(ContestParticipantStatus.PARTICIPATING.name().equals(participant.getStatus()));
+        status.setIsCompleted(ContestParticipantStatus.FINISHED.name().equals(participant.getStatus()));
+        status.setIsActive(ContestParticipantStatus.STARTED.name().equals(participant.getStatus()));
 
         return status;
     }
@@ -433,8 +433,8 @@ public class ContestServiceImpl implements ContestService {
             case "participated":
             default:
                 participants = participantMapper.findByUserId(userId).stream()
-                        .filter(p -> ContestParticipantStatus.COMPLETED.name().equals(p.getStatus()) ||
-                                ContestParticipantStatus.PARTICIPATING.name().equals(p.getStatus()))
+                        .filter(p -> ContestParticipantStatus.FINISHED.name().equals(p.getStatus()) ||
+                                ContestParticipantStatus.STARTED.name().equals(p.getStatus()))
                         .collect(Collectors.toList());
                 break;
         }
@@ -476,7 +476,7 @@ public class ContestServiceImpl implements ContestService {
         ContestParticipant participant = new ContestParticipant();
         participant.setContestId(contestId);
         participant.setUserId(userId);
-        participant.setStatus(ContestParticipantStatus.PARTICIPATING.name());
+        participant.setStatus(ContestParticipantStatus.STARTED.name());
         participant.setRegisteredAt(now);
         participant.setStartedAt(now);
         participant.setIsVirtual(true);
@@ -509,8 +509,8 @@ public class ContestServiceImpl implements ContestService {
         status.setStartTime(participant.getStartedAt());
         status.setEndTime(participant.getStartedAt().plusMinutes(contest.getDurationMinutes()));
         status.setHasStarted(true);
-        status.setIsActive(ContestParticipantStatus.PARTICIPATING.name().equals(participant.getStatus()));
-        status.setIsCompleted(ContestParticipantStatus.COMPLETED.name().equals(participant.getStatus()));
+        status.setIsActive(ContestParticipantStatus.STARTED.name().equals(participant.getStatus()));
+        status.setIsCompleted(ContestParticipantStatus.FINISHED.name().equals(participant.getStatus()));
 
         return status;
     }
@@ -534,7 +534,7 @@ public class ContestServiceImpl implements ContestService {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
 
-        participant.setStatus(ContestParticipantStatus.COMPLETED.name());
+        participant.setStatus(ContestParticipantStatus.FINISHED.name());
         participant.setFinishedAt(LocalDateTime.now());
 
         participantMapper.updateById(participant);

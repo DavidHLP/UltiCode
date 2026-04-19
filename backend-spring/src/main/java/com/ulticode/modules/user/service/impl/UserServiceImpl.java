@@ -255,6 +255,18 @@ public class UserServiceImpl implements UserService {
 
         stats.setHeatmap(heatmap);
 
+        // Get global rank from global_rankings
+        Integer globalRank = submissionMapper.findGlobalRankByUserId(id);
+        stats.setGlobalRank(globalRank);
+
+        // Get acceptance rate
+        Double acceptanceRate = submissionMapper.calculateAcceptanceRateByUserId(id);
+        stats.setAcceptanceRate(acceptanceRate);
+
+        // Get total submission count
+        Long submissionCount = submissionMapper.countTotalSubmissionsByUserId(id);
+        stats.setSubmissionCount(submissionCount);
+
         return stats;
     }
 

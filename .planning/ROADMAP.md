@@ -4,7 +4,8 @@
 
 - ✅ **v1.0 Technical Debt Remediation** — Phases 1-4 (shipped 2026-04-16)
 - ✅ **v1.1 Technical Debt Remediation II** — Phases 5-8 (shipped 2026-04-17)
-- 🚧 **v1.2 CI/CD Pipeline** — Phases 9-11 (in progress)
+- ✅ **v1.2 CI/CD Pipeline** — Phases 9-11 (shipped 2026-04-18)
+- 🚧 **v1.3 Core Features** — Phases 12-15 (in progress)
 
 ## Phases
 
@@ -22,9 +23,13 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 6: Admin Functionality** - Analytics, pagination, batch test execution (v1.1)
 - [x] **Phase 7: Code Quality** - Catch blocks, service split, console cleanup (v1.1)
 - [x] **Phase 8: Frontend Test Coverage** - Console + Management + Backend controller tests (v1.1)
-- [ ] **Phase 9: Foundation + CI** - Fix blocking Dockerfile/config bugs, create CI workflow
-- [ ] **Phase 10: CD Pipeline** - Docker image publish to GHCR, SSH deploy to VPS
-- [x] **Phase 11: Hardening** - Dependabot, rollback workflow (completed 2026-04-18)
+- [x] **Phase 9: Foundation + CI** - Fix blocking Dockerfile/config bugs, create CI workflow (v1.2)
+- [x] **Phase 10: CD Pipeline** - Docker image publish to GHCR, SSH deploy to VPS (v1.2)
+- [x] **Phase 11: Hardening** - Dependabot, rollback workflow (v1.2)
+- [x] **Phase 12: Judge Worker** - Implement judge queue consumer, fix language support, add memory measurement (v1.3) (completed 2026-04-18)
+- [x] **Phase 13: Contest Data Layer** - Contest entities, admin CRUD, announcements (v1.3) (completed 2026-04-18)
+- [x] **Phase 14: Contest Engine** - Scheduler, rating engine, real-time WebSocket (v1.3)
+- [ ] **Phase 15: Problem + User Enhancements** - Random problems, acceptance rates, public profiles, admin bulk ops (v1.3)
 
 ## Phase Details
 
@@ -33,7 +38,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 ### Phase 1: Security Filter Chain
 **Goal**: CSRF/XSS/JWT filter chain hardening
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 01-01: Replace XssFilter with OWASP Encoder output encoding (SEC-06)
@@ -42,7 +47,7 @@ Plans:
 
 ### Phase 2: Core Functionality
 **Goal**: Password reset, rejudge, Docker sandbox hardening
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 02-01: Password reset with BCrypt token + email delivery (SEC-02)
@@ -51,7 +56,7 @@ Plans:
 
 ### Phase 3: Test Coverage
 **Goal**: Unit + integration tests for security and core fixes
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 03-01: JWT/CSRF/Auth unit tests (48 tests)
@@ -94,7 +99,7 @@ Plans:
 
 ### Phase 7: Code Quality & Dependencies
 **Goal**: Precise exception handling, service splits, debug cleanup, stable deps
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 07-01: Replace broad catch(Exception e) with specific exception types (QUAL-02)
@@ -103,7 +108,7 @@ Plans:
 
 ### Phase 8: Testing
 **Goal**: Frontend key-path tests and backend @WebMvcTest controller tests
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 08-01: Console frontend key-path tests — API layer, auth store, problem store (TEST-02)
@@ -112,61 +117,107 @@ Plans:
 
 </details>
 
-### 🚧 v1.2 CI/CD Pipeline (In Progress)
+<details>
+<summary>✅ v1.2 CI/CD Pipeline (Phases 9-11) — SHIPPED 2026-04-18</summary>
 
-**Milestone Goal:** Automated CI/CD pipeline — every PR is linted, tested, and validated; every merge to main triggers Docker build and deployment via Docker Compose.
-
-#### Phase 9: Foundation + CI
+### Phase 9: Foundation + CI
 **Goal**: All pre-existing Dockerfile and configuration bugs are fixed, and a working CI workflow validates every PR with lint, type-check, and test across all 3 services
-**Depends on**: Phase 8
-**Requirements**: FOUND-01, FOUND-02, FOUND-03, FOUND-04, FOUND-05, FOUND-06, CI-01, CI-02, CI-03, CI-04, CI-05, CI-06
-**Success Criteria** (what must be TRUE):
-  1. `docker build` succeeds for all 3 service Dockerfiles (backend, console, management) with no JAR name mismatch or missing lockfile errors
-  2. Every pull request to the repository triggers automated lint, type-check, and test jobs for the changed service(s)
-  3. Backend tests pass in CI using GitHub Actions services: containers for MySQL and Redis (not Testcontainers Docker-in-Docker)
-  4. Console and management frontend lint + type-check + test run only when their respective paths change
-  5. A secrets mapping document exists that cross-references all configuration sources (GitHub Secrets, Docker Compose, Spring profiles, Vite env vars)
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 09-01: Fix Dockerfile bugs and create .dockerignore (FOUND-01, FOUND-02, FOUND-03, FOUND-04)
 - [x] 09-02: Create application-ci.yml profile and secrets mapping document (FOUND-05, FOUND-06)
 - [x] 09-03: Write ci.yml workflow with path-filtered parallel jobs and build caching (CI-01, CI-02, CI-03, CI-04, CI-05, CI-06)
 
-#### Phase 10: CD Pipeline
+### Phase 10: CD Pipeline
 **Goal**: Every merge to main automatically builds Docker images, pushes them to GHCR, and deploys to the VPS via Docker Compose with ordered service restarts
-**Depends on**: Phase 9
-**Requirements**: CD-01, CD-02, CD-03, CD-04, CD-05
-**Success Criteria** (what must be TRUE):
-  1. Merging a PR to main triggers automatic Docker image build and push to GHCR for all 3 services
-  2. Each pushed Docker image is tagged with both the git SHA short hash and "latest" for traceability
-  3. After a successful image push, the VPS automatically pulls new images and restarts services via Docker Compose
-  4. Backend service starts and passes health checks before frontend services are restarted (ordered restart)
-  5. A docker-compose.prod.yml exists that references GHCR images with a configurable IMAGE_TAG variable
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [x] 10-01: Write docker-publish.yml with GHCR push and deterministic image tagging (CD-01, CD-02)
 - [x] 10-02: Create docker-compose.prod.yml referencing GHCR images (CD-05)
 - [x] 10-03: Write deploy.yml with SSH deploy and ordered health check restart (CD-03, CD-04)
 
-#### Phase 11: Hardening
+### Phase 11: Hardening
 **Goal**: The CI/CD pipeline is self-maintaining with automated dependency updates and a manual rollback capability for failed deployments
-**Depends on**: Phase 10
-**Requirements**: HARD-01, HARD-02
-**Success Criteria** (what must be TRUE):
-  1. Dependabot automatically opens PRs for GitHub Actions version updates and npm/Maven dependency updates
-  2. A rollback workflow exists that can be manually triggered via workflow_dispatch to redeploy a previous image tag
 **Plans**: 2 plans
 
 Plans:
 - [x] 11-01: Configure Dependabot for Actions and dependency updates (HARD-01)
 - [x] 11-02: Create rollback workflow with manual image tag redeployment (HARD-02)
 
+</details>
+
+### 🚧 v1.3 Core Features (In Progress)
+
+**Milestone Goal:** 补全四大核心功能（判题、竞赛、题目浏览、用户中心）的关键缺失，使平台可完整运行
+
+### Phase 12: Judge Worker
+**Goal**: Submissions are judged automatically — users see results instead of permanent Pending, memory usage is measured accurately, and only supported languages can be submitted
+**Depends on**: Phase 11 (CI/CD complete, platform deployed)
+**Requirements**: JUDGE-01, JUDGE-02, JUDGE-03
+**Success Criteria** (what must be TRUE):
+  1. User submits code for a problem and sees the verdict (Accepted/WA/TLE/MLE/RE) within seconds, not Pending forever
+  2. Submission page displays actual memory consumption (e.g., "4.2 MB") instead of "0KB"
+  3. The language dropdown on the submission form only shows the 5 supported languages (JS, Python, Java, C, C++)
+  4. Judge Worker processes jobs from Redis queue reliably, handling errors and retries without crashing
+**Plans**: 2 plans
+
+Plans:
+- [x] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
+- [x] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
+
+### Phase 13: Contest Data Layer
+**Goal**: Admins can fully manage contests (create, update, delete, start, stop) and contest announcements through the management dashboard, with proper entity persistence for contest problems and submissions
+**Depends on**: Phase 12 (Judge Worker operational — contest submissions need judging)
+**Requirements**: CONTEST-01, CONTEST-02, CONTEST-05, CONTEST-07
+**Success Criteria** (what must be TRUE):
+  1. Admin can create a contest, assign problems to it, and see the contest problem list in the management dashboard
+  2. Admin can start and stop a contest via the management dashboard, and the contest status updates correctly
+  3. Admin can create, edit, and delete contest announcements, which are visible to contest participants
+  4. When a user submits code during a contest, the submission is recorded in both submissions and contest_submissions tables
+**Plans**: 2 plans
+
+Plans:
+- [x] 13-01: Create contest entities, mappers, and admin contest lifecycle CRUD (CONTEST-01, CONTEST-05)
+- [x] 13-02: Add contest submission recording and announcement CRUD with WebSocket push (CONTEST-02, CONTEST-07)
+
+### Phase 14: Contest Engine
+**Goal**: Contests run automatically with correct lifecycle transitions, participants earn accurate ratings after contests end, and real-time ranking updates are delivered via WebSocket
+**Depends on**: Phase 13 (Contest entities and admin API operational)
+**Requirements**: CONTEST-03, CONTEST-04, CONTEST-06, JUDGE-04
+**Success Criteria** (what must be TRUE):
+  1. A contest automatically transitions from UPCOMING to RUNNING at start_time and to FINISHED at end_time without manual intervention
+  2. After a contest ends, all participants' ratings are recalculated and updated in global_rankings with correct title promotions/demotions
+  3. Contest ranking page updates in real-time as participants submit solutions, without page refresh
+  4. Submission status changes from Pending to final verdict are pushed to the browser via WebSocket without polling
+**Plans**: 2 plans
+Plans:
+- [ ] 14-01: Add throttle infrastructure (markDirty + flushPendingRankings), wire submission verdict to dirty tracking, fix contestId in SubmissionResultPayload (JUDGE-04, CONTEST-04)
+- [ ] 14-02: Create ContestScheduler (@Scheduled 10s lifecycle polling) and RatingCalculationService (CF Elo rating engine) (CONTEST-03, CONTEST-06)
+**UI hint**: yes
+
+### Phase 15: Problem + User Enhancements
+**Goal**: Users can browse random problems, see accurate acceptance rates, view public profiles of other users, and admins can manage problems efficiently with bulk operations
+**Depends on**: Phase 12 (Judge Worker — needed for accurate acceptance rate calculations)
+**Requirements**: PROB-01, PROB-02, PROB-03, PROB-04, USER-01, USER-02, USER-03, USER-04, USER-05
+**Success Criteria** (what must be TRUE):
+  1. User can click a "Random Problem" button and get a published problem they haven't necessarily seen before
+  2. Problem list shows accurate acceptance rates calculated from actual submission data, not hardcoded values
+  3. Admin can select multiple problems and perform bulk actions (publish/unpublish/delete/edit difficulty)
+  4. User can visit /users/:id and see another user's public profile with stats, solved problems, and submission count
+  5. User's own profile page shows global rank, acceptance rate, and total submission count — all populated from the backend
+**Plans**: 2 plans
+
+Plans:
+- [ ] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
+- [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
+**UI hint**: yes
+
 ## Progress
 
 **Execution Order:**
-Phases execute in numeric order: 9 → 10 → 11
+Phases execute in numeric order: 1 → 15
 
 | Phase | Milestone | Plans Complete | Status | Completed |
 |-------|-----------|----------------|--------|-----------|
@@ -178,9 +229,13 @@ Phases execute in numeric order: 9 → 10 → 11
 | 6. Admin Functionality & Performance | v1.1 | 5/5 | Complete | 2026-04-16 |
 | 7. Code Quality & Dependencies | v1.1 | 3/3 | Complete | 2026-04-16 |
 | 8. Testing | v1.1 | 3/3 | Complete | 2026-04-17 |
-| 9. Foundation + CI | v1.2 | 3/3 | Complete   | 2026-04-18 |
-| 10. CD Pipeline | v1.2 | 3/3 | Complete   | 2026-04-18 |
-| 11. Hardening | v1.2 | 2/2 | Complete    | 2026-04-18 |
+| 9. Foundation + CI | v1.2 | 3/3 | Complete | 2026-04-18 |
+| 10. CD Pipeline | v1.2 | 3/3 | Complete | 2026-04-18 |
+| 11. Hardening | v1.2 | 2/2 | Complete | 2026-04-18 |
+| 12. Judge Worker | v1.3 | 2/2 | Complete    | 2026-04-18 |
+| 13. Contest Data Layer | v1.3 | 2/2 | Complete    | 2026-04-18 |
+| 14. Contest Engine | v1.3 | 2/2 | Complete | 2026-04-19 |
+| 15. Problem + User Enhancements | v1.3 | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-04-17*

@@ -299,6 +299,13 @@ const router = createRouter({
     },
     personalRoutes,
     recommendationRoutes,
+    // Public user profile route
+    {
+      path: "/users/:id",
+      name: "user-profile",
+      component: () => import("@/views/users/UserProfileView.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 });
 

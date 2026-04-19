@@ -502,4 +502,16 @@ public class ProblemServiceImpl implements ProblemService {
                 nextProblem != null ? nextProblem.getSlug() : null
         );
     }
+
+    @Override
+    public ProblemVO findRandomPublished() {
+        LambdaQueryWrapper<Problem> wrapper = new LambdaQueryWrapper<Problem>()
+                .eq(Problem::getIsPublished, true)
+                .last("ORDER BY RAND() LIMIT 1");
+        Problem problem = problemMapper.selectOne(wrapper);
+        if (problem == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND, "No published problems available");
+        }
+        return ProblemVO.from(problem);
+    }
 }

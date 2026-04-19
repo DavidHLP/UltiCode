@@ -1,245 +1,188 @@
-# Feature Research: CI/CD Pipeline with GitHub Actions + Docker Compose
+# Feature Landscape: Seed Data Expansion
 
-**Domain:** CI/CD Pipeline for Spring Boot + Vue 3 Monorepo
-**Researched:** 2026-04-17
-**Confidence:** HIGH
+**Domain:** Online programming platform (LeetCode-like) seed data
+**Researched:** 2026-04-19
+**Confidence:** HIGH (based on existing schema and seed data patterns)
 
-## Feature Landscape
+## Executive Summary
 
-### Table Stakes (Users Expect These)
+The existing platform has 8 solutions (heavily concentrated on problem 1), ~400 submissions from V17 seed data, and 6 collections with 7 items. The expansion targets ~100 solutions (scattered across 32 problems), diverse submission statuses, and ~50 collections organized by category. The existing V9 and V17 migrations provide the seed data pattern to follow. All foreign key constraints are enforced -- solutions depend on problems and users, collections depend on users, collection_items reference existing problem_lists or other targets.
 
-Features any CI/CD pipeline for this stack must have. Missing these = the pipeline is not production-viable.
+## Current State (Baseline)
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| **PR Lint/Type-Check** | Catches regressions before merge | LOW | Both frontends already have `pnpm lint` + `vue-tsc --build` scripts. Backend has Maven. Path-filter so only changed components run checks. |
-| **PR Test Execution** | Validates correctness before merge | MEDIUM | Backend uses Testcontainers (MySQL) requiring service containers in CI. 34 test classes exist. Frontends use Vitest. |
-| **Docker Image Build** | Creates deployable artifacts from multi-stage Dockerfiles | LOW | Three Dockerfiles already exist (backend-spring, console, management). All use multi-stage builds with non-root users and healthchecks. |
-| **Image Push to GHCR** | Stores versioned images for deployment | LOW | `docker-compose.prod.yml` already references `${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend:${IMAGE_TAG:-latest}` pattern. Use `docker/build-push-action` with `type=gha` cache. |
-| **Path-Based Triggering** | Avoids running backend CI when only console changed | LOW | Use `paths:` filters on workflow triggers. Three source trees: `backend-spring/`, `console/`, `management/`. |
-| **Environment Secrets** | Credentials never in repo | LOW | GitHub Secrets for JWT_SECRET, DB_PASSWORD, GHCR_TOKEN. `.env.example` files already exist as templates. `.env` and `backend-spring/.env` are gitignored. |
-| **Build Caching** | CI runs under 10 min, not 30+ | MEDIUM | Maven `dependency:go-offline` layer in backend Dockerfile. pnpm store cache for frontends. `actions/cache` or Docker BuildKit `type=gha` cache. |
-| **Status Checks on PR** | Branch protection gates merge on passing CI | LOW | Set `ci.yml` as required status check. Separate lint, test, and build jobs for granular failure diagnosis. |
+| Entity | Current | Target | Gap |
+|--------|---------|--------|-----|
+| Solutions | 8 | ~100 | +92 |
+| Submissions | ~400 (from V17) | diverse statuses | WA/MLE/RE/TLE underrepresented |
+| Collections | 6 (17 items) | ~50 | +44 collections |
+| Collection Items | 7 | many | items referencing lists/problems |
 
-### Differentiators (Competitive Advantage)
+## Solutions Seed Data
 
-Features that go beyond basics. Valuable but not required for v1.
+### Schema Summary
 
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| **Reusable Composite Actions** | Shared setup logic across workflows, single source of truth for pnpm/Maven/JDK versions | MEDIUM | `.github/actions/setup-node/action.yml` and `.github/actions/setup-java/action.yml`. Reduces duplication when adding new workflows. |
-| **Docker Compose Deploy via SSH** | One-command production deployment to remote server | MEDIUM | `appleboy/ssh-action` to run `docker compose pull && docker compose up -d` on remote host. `docker-compose.prod.yml` already structured for this. |
-| **Automatic Image Tagging** | Every build gets `sha-<short>`, `latest` on main, semver on tags | LOW | `docker/metadata-action@v5` handles this. Already standard pattern for GHCR. |
-| **Concurrency Groups** | Prevents parallel deploys to same environment | LOW | `concurrency: { group: deploy-production, cancel-in-progress: false }` on deploy workflow. |
-| **Deploy Preview on PR** | Spin up ephemeral environment per PR for visual review | HIGH | Requires a staging server or ephemeral containers. Overkill for v1 but valuable later. |
-| **Dependabot for Actions** | Auto-updates GitHub Actions versions | LOW | `.github/dependabot.yml` with `github-actions` ecosystem. Security patch automation. |
-| **Slack/Discord Notification** | Team visibility into deploy status | LOW | Webhook on workflow completion. Nice but not critical. |
-| **Rollback Strategy** | Revert to previous image tag on failed deploy | MEDIUM | Tag each deploy with timestamp, keep last N images, `docker compose up --force-recreate` with previous tag. |
+`solutions` table: `id`, `problem_id`, `user_id`, `title`, `content` (markdown), `summary`, `language`, `tags` (JSON array), `views`, `is_published`, `published_at`, `published_by`, `is_flagged`, `is_deleted`.
 
-### Anti-Features (Commonly Requested, Often Problematic)
+`solution_comments` table: threaded comments with `parent_id` self-reference for nesting.
 
-| Feature | Why Requested | Why Problematic | Alternative |
-|---------|---------------|-----------------|-------------|
-| **Blue-Green Deployment** | Zero-downtime deploys sound professional | Requires load balancer (nginx/traefik), double resources, complex health check orchestration | Rolling update via `docker compose up -d` with healthcheck delays is sufficient for this scale |
-| **Kubernetes Manifests** | "Cloud-native" sounds good | Massive complexity for a single-server deployment. Adds Helm/Kustomize/K8s knowledge burden for no practical benefit | Docker Compose on a VPS is the right tool for this scale |
-| **Self-Hosted GitHub Runner** | Avoids 2000 min/month free tier limits | Requires VM maintenance, security patching, Docker socket exposure. Not justified until >2000 min/month usage | Stay on `ubuntu-latest` hosted runners. Free tier is 2000 min/month private repos, unlimited public. |
-| **Monorepo Build Tool (Nx/Turborepo)** | "Smart caching" and "affected detection" | Adds dependency, learning curve, and lock-in. The repo only has 3 independent apps, not 50. Path filters in GitHub Actions handle this fine | Simple `paths:` filters on workflow triggers. No extra tooling needed. |
-| **Docker-in-Docker for Tests** | Run Testcontainers in CI | Privileged mode security risk, layering complexity. Docker-in-Docker has known isolation issues | Use GitHub Actions `services:` with MySQL/Redis containers directly. Run backend tests with service containers, not Testcontainers. |
-| **Separate CI and CD Repos** | "Separation of concerns" | Double the repo management, version drift between pipeline code and app code | Keep `.github/workflows/` in the same repo. Single source of truth. |
+### Distribution Targets
 
-## Feature Dependencies
+| Problem Difficulty | Solutions per Problem | Rationale |
+|-------------------|----------------------|-----------|
+| Easy (problems 1-10) | 2-3 solutions | High traffic, beginner audience benefits from multiple approaches |
+| Medium (problems 11-24) | 1-2 solutions | Standard coverage |
+| Hard (problems 25-32) | 1-2 solutions | Fewer solvers, quality over quantity |
 
-```
-[GitHub Actions Workflows]
-    |---requires---> [Dockerfiles (EXISTING)]
-    |---requires---> [docker-compose.yml (EXISTING)]
-    |---requires---> [docker-compose.prod.yml (EXISTING)]
-    |---requires---> [.env.example templates (EXISTING)]
-    |---requires---> [GitHub Secrets configured]
+### Language Mix
 
-[PR CI Pipeline]
-    |---requires---> [Lint scripts (EXISTING: pnpm lint, ./mvnw checkstyle)]
-    |---requires---> [Test commands (EXISTING: pnpm test, ./mvnw test)]
-    |---requires---> [Build commands (EXISTING: pnpm build, ./mvnw package)]
-    |---requires---> [Service containers (MySQL, Redis) for backend tests]
+The 5 supported languages are: TypeScript, JavaScript, Java, Python, C++. Seed data should reflect the existing distribution in V9 -- TypeScript and JavaScript dominate. Do not seed C++/Java/Python solutions for Easy problems; save them for Medium/Hard to showcase real language usage patterns.
 
-[Docker Build + Push]
-    |---requires---> [PR CI Pipeline (builds first)]
-    |---requires---> [GHCR package write permissions]
-    |---enhances---> [Build caching (GHA cache type)]
+### Content Quality Bar
 
-[Docker Compose Deploy]
-    |---requires---> [Docker Build + Push (images exist)]
-    |---requires---> [SSH access to production server]
-    |---requires---> [docker-compose.prod.yml on server]
-    |---requires---> [Production .env on server]
-    |---enhances---> [Concurrency groups (prevent parallel deploys)]
-    |---enhances---> [Automatic image tagging]
-    |---enhances---> [Rollback strategy]
-```
+- **Title**: Descriptive, includes algorithm/pattern name (e.g., "哈希表解法 -- O(n) 时间复杂度")
+- **Content**: Full markdown with code block, explanation of approach, time/space complexity
+- **Summary**: 1-2 sentence description (used in cards/search results)
+- **Tags**: 2-4 relevant tags from existing tag vocabulary (hash-table, array, binary-search, sliding-window, etc.)
+- **Views**: Realistic distribution (0-500 range), vary by solution quality
+- **Code**: Must be syntactically correct, runnable starter-like code (not just comments)
 
-### Dependency Notes
+### Anti-Features (Do Not Seed)
 
-- **Dockerfiles already exist:** `backend-spring/Dockerfile`, `console/Dockerfile`, `management/Dockerfile` all use multi-stage builds with non-root users, healthchecks, and proper layering. No Dockerfile creation needed.
-- **docker-compose.prod.yml already references GHCR images:** The pattern `${GHCR_REGISTRY:-ghcr.io/davidhlp/ulticode-public-next}/backend:${IMAGE_TAG:-latest}` is already defined. The deploy workflow just needs to set `IMAGE_TAG` and run `docker compose pull && docker compose up -d`.
-- **Backend tests use Testcontainers:** This means backend tests in CI need Docker service containers OR a restructured test config. Testcontainers with `docker.sock` in GitHub Actions requires `docker:dind` service which has security implications. The better approach is to use GitHub Actions `services:` (mysql, redis) and configure Spring profiles to use them directly, bypassing Testcontainers in CI.
-- **Frontend builds are independent:** Console and management have zero dependency on the backend. They can be linted, tested, and built in parallel.
+- Placeholder content ("TODO", "write solution here")
+- Duplicate approaches for the same problem with no differentiation
+- Solutions referencing non-existent problem_ids or user_ids
+- Hardcoded timestamps that create impossible sequences (e.g., comment before solution creation)
+- Solutions with `is_deleted=1` or `is_flagged=1` -- keep these clean
 
-## MVP Definition
+## Submissions Seed Data
 
-### Launch With (v1)
+### Status Distribution
 
-Minimum viable CI/CD -- what prevents manual deployment pain.
+The existing V17 seed data already establishes a skill-based distribution (beginner ~30% AC, intermediate ~60% AC, advanced ~85% AC). This is the right model.
 
-- [ ] **PR CI workflow** -- Lint, type-check, test, and build for all three components on every PR. Path-filtered. This is the highest-value single workflow.
-- [ ] **Docker build + push on main merge** -- Build and push images to GHCR on push to `main`. Triggered after CI passes.
-- [ ] **Docker Compose deploy via SSH** -- Deploy to production server using `docker-compose.prod.yml` on main merge. Single target server.
-- [ ] **GitHub Secrets configuration** -- Document required secrets (SSH key, server host, JWT_SECRET, DB credentials). Provide setup guide.
-- [ ] **Branch protection rules** -- Require CI pass before PR merge. Document in CONTRIBUTING.md or README.
+Target overall distribution across all ~400 existing + new submissions:
 
-### Add After Validation (v1.x)
+| Status | Target % | Notes |
+|--------|----------|-------|
+| Accepted (AC) | 45-55% | Platform should feel encouraging |
+| Wrong Answer (WA) | 20-30% | Most common failure mode |
+| Time Limit Exceeded (TLE) | 8-12% | Common for O(n^2) attempts on Hard |
+| Runtime Error (RE) | 5-10% | Edge case bugs, uninitialized variables |
+| Memory Limit Exceeded (MLE) | 3-5% | O(n^2) space solutions, large arrays |
+| Compilation Error (CE) | 2-5% | Syntax errors, type mismatches |
+| Presentation Error (PE) | 1-2% | Output format issues |
+| System Error (SE) | <1% | Judge infrastructure issues, almost never shown to users |
 
-Features to add once the basic pipeline is running reliably.
+### Code Content
 
-- [ ] **Dependabot for Actions** -- Auto-update GitHub Actions versions. Low effort, high security value.
-- [ ] **Concurrency groups on deploy** -- Prevent parallel deployments to same environment.
-- [ ] **Rollback workflow** -- Manual trigger or failed-deploy auto-rollback to previous image tag.
-- [ ] **Composite actions for shared setup** -- Extract JDK/pnpm setup into reusable actions when a 4th+ workflow is needed.
-- [ ] **Slack/Discord notifications** -- Deploy success/failure alerts.
+Submissions should contain plausible code:
+- Include actual code snippets (not just comments)
+- For WA: code that compiles but produces wrong output on edge cases
+- For TLE: nested loops where an O(n) solution exists
+- For RE: missing null checks, array index out of bounds, uninitialized variables
+- For MLE: storing full Cartesian product in memory
+- For CE: syntax errors, missing imports, wrong types
+- The `code` field is a TEXT column -- can store full solutions
 
-### Future Consideration (v2+)
+### Runtime and Memory Percentiles
 
-Features to defer until the project outgrows single-server deployment.
+V17 seed data includes `runtime_percentile` and `memory_percentile`. Seed realistic values:
+- AC submissions: runtime 20-95%, memory 30-90%
+- Non-AC submissions: runtime/memory typically 0 or very low
 
-- [ ] **Deploy preview environments** -- Ephemeral environments per PR. Requires infrastructure investment.
-- [ ] **Multi-environment support** -- Staging + production pipelines with promotion workflow.
-- [ ] **Self-hosted runners** -- Only when free tier is exhausted (2000 min/month).
-- [ ] **Container registry cleanup** -- Automated old-image pruning via GitHub Actions cron or GHCR retention policies.
+## Collections Seed Data
 
-## Feature Prioritization Matrix
+### Schema Summary
 
-| Feature | User Value | Implementation Cost | Priority |
-|---------|------------|---------------------|----------|
-| PR CI (lint/test/build) | HIGH -- catches bugs before merge | MEDIUM -- 3 components, Testcontainers complication | P1 |
-| Docker build + push to GHCR | HIGH -- enables automated deployment | LOW -- Dockerfiles exist, standard actions | P1 |
-| Docker Compose deploy via SSH | HIGH -- eliminates manual deploy | MEDIUM -- SSH setup, env management on server | P1 |
-| GitHub Secrets + branch protection | HIGH -- security gate | LOW -- documentation + GitHub UI config | P1 |
-| Build caching | MEDIUM -- 2-3x faster CI | LOW -- `actions/cache` or Docker GHA cache | P2 |
-| Dependabot for Actions | MEDIUM -- security hygiene | LOW -- single YAML file | P2 |
-| Concurrency groups | MEDIUM -- deploy safety | LOW -- single `concurrency:` block | P2 |
-| Automatic image tagging | MEDIUM -- version tracking | LOW -- `docker/metadata-action` | P2 |
-| Rollback strategy | MEDIUM -- deploy recovery | MEDIUM -- tag management, manual trigger workflow | P2 |
-| Composite actions | LOW -- reduces duplication | MEDIUM -- YAML abstraction, testing overhead | P3 |
-| Deploy preview environments | HIGH -- but premature | HIGH -- infra provisioning per PR | P3 |
-| Multi-environment pipelines | MEDIUM -- not needed yet | HIGH -- promotion workflows, separate envs | P3 |
+`collections`: `id`, `user_id`, `name`, `description`, `icon`, `color`, `sort_order`, `is_default`
+`collection_items`: `id`, `collection_id`, `target_id`, `target_type`, `sort_order`, `note`
 
-**Priority key:**
-- P1: Must have for launch (first milestone)
-- P2: Should have, add when pipeline is stable
-- P3: Nice to have, future consideration
+target_type enum: `PROBLEM`, `SOLUTION`, `FORUM_POST`, `PROBLEM_LIST`, `SOLUTION_COMMENT`, `FORUM_COMMENT`
 
-## Workflow Architecture Recommendation
+### Category Strategy
 
-### File Structure
+Target ~50 collections across these categories:
 
-```
-.github/
-  workflows/
-    ci.yml                    # P1: PR checks (lint, test, build)
-    docker-publish.yml        # P1: Build + push images to GHCR
-    deploy.yml                # P1: Deploy via SSH to production
-  dependabot.yml              # P2: Auto-update actions
-```
+| Category | Examples | Count Target |
+|----------|----------|-------------|
+| Difficulty-based | "Easy 热身", "Medium 进阶", "Hard 挑战" | 6 (2 per difficulty) |
+| Company-tagged | "字节跳动高频", "Meta 面试", "Amazon 必刷" | 10-15 |
+| Pattern-tagged | "滑动窗口专项", "二分查找专项", "动态规划入门" | 8-10 |
+| Problem-list-backed | Collections referencing existing problem_lists (list-interview-100, list-essentials, etc.) | 10-15 |
+| Contest-themed | "周赛练习", "双周赛回顾" | 3-5 |
+| Personal study | "面试倒计时 30 天", "寒假刷题计划" | 5-10 |
 
-### ci.yml -- PR Checks
+### Collection Items per Collection
 
-Three parallel jobs with path filters:
+- Minimum: 3 items (collections with fewer look unmaintained)
+- Typical: 5-15 items
+- Maximum: 30 items (beyond that should probably be split)
 
-```
-ci.yml
-  on: pull_request
-  jobs:
-    backend-check:
-      paths: backend-spring/**
-      steps: setup JDK 17 -> mvnw test (with services: mysql, redis)
+### Icons and Colors
 
-    console-check:
-      paths: console/**
-      steps: setup Node 22 + pnpm -> lint -> type-check -> test -> build
+Use Lucide icon names and Tailwind-compatible color names. Existing seed uses `icon: NULL, color: NULL` which is acceptable but plain. For richer collections, use real values:
 
-    management-check:
-      paths: management/**
-      steps: setup Node 22 + pnpm -> lint -> type-check -> test -> build
-```
+Icons: `Trophy`, `Code2`, `ArrowUpDown`, `Database`, `Clock`, `Star`, `Bookmark`, `Folder`
+Colors: `amber`, `sky`, `emerald`, `slate`, `rose`, `violet`
 
-Key design decisions:
-- **Backend tests need service containers** (mysql:9.1, redis:7-alpine) via `services:` key. This avoids Docker-in-Docker. Requires a `application-ci.yml` Spring profile pointing to `localhost:3306` and `localhost:6379`.
-- **Frontend tests run headless** (Vitest, no browser). No E2E tests yet.
-- **All three jobs run in parallel** when their respective paths change. A change to `console/` does NOT trigger backend CI.
+## Dependencies and Constraints
 
-### docker-publish.yml -- Image Build + Push
+### Foreign Key Requirements
 
-Triggered on push to `main` (after merge) and optionally on tag creation:
+All seed data must respect foreign keys:
 
-```
-docker-publish.yml
-  on: push to main
-  jobs:
-    build-backend:    # Build backend-spring/Dockerfile -> ghcr.io/.../backend:sha-xxx
-    build-console:    # Build console/Dockerfile -> ghcr.io/.../console:sha-xxx
-    build-management: # Build management/Dockerfile -> ghcr.io/.../management:sha-xxx
-```
+1. **solutions.problem_id** -> `problems.id` (32 existing problems, IDs 1-32)
+2. **solutions.user_id** -> `users.id` (existing seeded users: user-yuki, user-alex, user-chen, user-sara, user-max, user-petr, user-tourist, user-lily, user-emma, user-david, user-tom, user-scott)
+3. **collection_items.target_id** -> existing targets (problem_lists IDs like list-essentials, list-interview-100, list-sliding-window, list-graph-dfs, list-hard-bench, list-database, list-concurrency, list-graph-advanced)
+4. **collections.user_id** -> `users.id`
 
-Key design decisions:
-- **Three separate build jobs** (not one monolith) for parallel execution and independent failure isolation.
-- **`docker/metadata-action@v5`** for automatic tagging: `sha-<short>` always, `latest` on main, semver on tags.
-- **`cache-from: type=gha, cache-to: type=gha,mode=max`** for BuildKit layer caching.
-- **`permissions: contents: read, packages: write`** for GHCR push via `GITHUB_TOKEN`.
-- **No build on PR** (wastes resources). Build only on merge to main.
+### Tag Vocabulary (Existing)
 
-### deploy.yml -- Production Deploy
+Use only these existing tags to avoid FK violations:
+algorithms, array, backtracking, bfs, binary-search, bit-manipulation, concurrency, database, design, dfs, divide-and-conquer, dynamic-programming, graph, greedy, hash-table, heap, intervals, linked-list, math, matrix, queue, recursion, shell, sliding-window, sorting, stack, string, tree, two-pointers, union-find
 
-Triggered after successful docker-publish:
+### Language Vocabulary
 
-```
-deploy.yml
-  on: workflow_run (docker-publish, completed: success)
-  or: workflow_dispatch (manual trigger)
-  jobs:
-    deploy:
-      steps: SSH to server -> docker compose pull -> docker compose up -d
-```
+Use only: `typescript`, `javascript`, `java`, `python`, `cpp` (not `c`, not `c++`)
 
-Key design decisions:
-- **`workflow_run` trigger** ensures deploy only happens after images are successfully pushed.
-- **`concurrency: deploy-production`** prevents parallel deploys.
-- **SSH via `appleboy/ssh-action@v1`** with key from GitHub Secrets.
-- **Server must have `docker-compose.prod.yml` + `.env` pre-configured.** The deploy workflow does NOT copy files -- it only pulls new images and restarts.
-- **`docker compose pull` then `docker compose up -d`** is the standard rolling update pattern.
+### Submission Status Vocabulary
 
-## Competitor Feature Analysis
+Use exact strings from SubmissionStatusMeta: `Pending`, `Judging`, `Accepted`, `Wrong Answer`, `Time Limit Exceeded`, `Memory Limit Exceeded`, `Output Limit Exceeded`, `Runtime Error`, `Compilation Error`, `Presentation Error`, `System Error`
 
-| Feature | LeetCode-style Platform (Typical) | Our Approach |
-|---------|-----------------------------------|--------------|
-| PR CI | Lint + unit test + build | Same. Lint + type-check + test + build for all 3 components. |
-| Docker Build | Multi-stage Dockerfiles, push to registry | Same. 3 separate images to GHCR. |
-| Deployment | K8s or Docker Compose on VPS | Docker Compose on VPS via SSH. Matches current `docker-compose.prod.yml` design. |
-| Environment Management | Multiple environments (staging, prod) | Single production environment initially. Add staging later. |
-| Secrets | GitHub Secrets + vault integration | GitHub Secrets only. Sufficient for this scale. |
-| Rollback | Manual image tag revert | Manual rollback via SSH with previous tag. Automate in v1.x. |
+## Seed Data Quality Checklist
+
+Before accepting seed data as complete:
+
+- [ ] Solutions: All 32 problems have at least 1 solution
+- [ ] Solutions: Problems 1-10 have 2-3 solutions each
+- [ ] Solutions: Title + content + summary are all non-empty and substantive
+- [ ] Solutions: Tags are valid (from existing vocabulary)
+- [ ] Solutions: Languages are from the 5-language whitelist
+- [ ] Submissions: At least 6 different status types represented
+- [ ] Submissions: Code field contains actual code, not just comments
+- [ ] Submissions: Timestamps are chronologically plausible
+- [ ] Collections: Each has at least 3 items
+- [ ] Collections: Category names are descriptive (not generic "收藏夹" for all)
+- [ ] Collections: Icon and color are set (or explicitly NULL if no theme)
+- [ ] All foreign key references resolve to existing records
+- [ ] No orphaned records (e.g., solution_comments referencing non-existent solution_id)
+- [ ] SET FOREIGN_KEY_CHECKS=0/1 wrapper present in SQL
+- [ ] Migration follows V{number}_ descriptive naming convention
+
+## Gap Analysis
+
+| Area | Current | Target | Realistic per Sprint |
+|------|---------|--------|---------------------|
+| Solutions | 8 | ~100 | 20-25 per week |
+| Collection items | 7 | ~300+ | 50-75 per week |
+| New collections | 6 | ~50 | 8-10 per week |
+| Submission statuses | AC-dominant | Balanced | Already handled by V17 |
 
 ## Sources
 
-- [GitHub Actions in 2026: The Complete Guide to Monorepo CI/CD](https://dev.to/pockit_tools/github-actions-in-2026-the-complete-guide-to-monorepo-cicd-and-self-hosted-runners-1jop) -- MEDIUM confidence, current year monorepo patterns
-- [GitHub Actions CI/CD Best Practices (Official GitHub Guide)](https://github.com/github/awesome-copilot/blob/main/instructions/github-actions-ci-cd-best-practices.instructions.md) -- HIGH confidence, official source
-- [GitHub Actions Advanced Patterns: Reusable Workflows, Composite Actions & Monorepo](https://www.youngju.dev/blog/devops/2026-03-12-github-actions-reusable-workflows-composite-actions-monorepo.en) -- MEDIUM confidence, 2026-03 publication
-- [How to Configure GitHub Actions for Monorepos](https://oneuptime.com/blog/post/2026-02-02-github-actions-monorepos/view) -- MEDIUM confidence, 2026-02 publication
-- [GitHub Docs: Publishing Docker Images](https://docs.github.com/en/actions/packaging-with-github-actions/publishing-and-installing-a-package-with-github-actions-publishing-docker-images) -- HIGH confidence, official source
-- [appleboy/ssh-action](https://github.com/appleboy/ssh-action) -- HIGH confidence, well-maintained action
-- [docker/build-push-action](https://github.com/docker/build-push-action) -- HIGH confidence, official Docker action
-- [docker/metadata-action](https://github.com/docker/metadata-action) -- HIGH confidence, official Docker action
-- Existing project files: `docker-compose.prod.yml`, `docker-compose.yml`, `backend-spring/Dockerfile`, `console/Dockerfile`, `management/Dockerfile`, `ecosystem.config.cjs`, `console/package.json`, `management/package.json`, `backend-spring/pom.xml`, `.env.example` -- HIGH confidence, direct inspection
-
----
-*Feature research for: CI/CD Pipeline with GitHub Actions + Docker Compose*
-*Researched: 2026-04-17*
+- db-manager/migrations/V9__solution_schema.sql (existing solution seed pattern)
+- db-manager/migrations/V17__recommendation_seed_submissions.sql (submission distribution model)
+- db-manager/migrations/V8__collection_schema.sql (collection/collection_item pattern)
+- db-manager/migrations/V15__featured_problem_lists.sql (existing problem_lists for collection_items)
+- backend-spring/modules/submission/service/impl/SubmissionServiceImpl.java (SubmissionStatusMeta enum values)
+- db-manager/migrations/V2__problem_schema.sql (problem_tags, problem_lists existing data)

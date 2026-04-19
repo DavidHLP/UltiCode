@@ -96,7 +96,7 @@ public class ContestScheduler {
         // Emit WebSocket status
         realtimeService.emitContestStatus(
                 contest.getId(),
-                ContestStatus.FINISHED,
+                ContestStatus.ENDED,
                 null,
                 contest.getActualEndTime() != null ? contest.getActualEndTime().atZone(java.time.ZoneId.systemDefault()).toInstant() : null,
                 null

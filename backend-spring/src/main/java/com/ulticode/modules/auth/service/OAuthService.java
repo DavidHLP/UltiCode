@@ -65,7 +65,7 @@ public class OAuthService {
         String state = IdUtil.simpleUUID();
         redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + "github:" + state, "1", OAUTH_STATE_TTL);
 
-        return UriComponentsBuilder.fromHttpUrl(github.getAuthorizeUrl())
+        return UriComponentsBuilder.fromUriString(github.getAuthorizeUrl())
             .queryParam("client_id", github.getClientId())
             .queryParam("redirect_uri", github.getRedirectUri())
             .queryParam("scope", github.getScopes())
@@ -145,7 +145,7 @@ public class OAuthService {
         String state = IdUtil.simpleUUID();
         redisTemplate.opsForValue().set(OAUTH_STATE_PREFIX + "google:" + state, "1", OAUTH_STATE_TTL);
 
-        return UriComponentsBuilder.fromHttpUrl(google.getAuthorizeUrl())
+        return UriComponentsBuilder.fromUriString(google.getAuthorizeUrl())
             .queryParam("client_id", google.getClientId())
             .queryParam("redirect_uri", google.getRedirectUri())
             .queryParam("response_type", "code")

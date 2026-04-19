@@ -1,8 +1,15 @@
 # UltiCode 技术债务清偿
 
-## Current Milestone: v1.4 TBD
+## Current Milestone: v1.4 Seed Data 扩充
 
-**Status:** Awaiting next milestone definition. v1.3 shipped 2026-04-19.
+**Goal:** 扩充平台种子数据体量，提升数据质量和场景覆盖度
+
+**Target features:**
+- Solutions — 每题至少 1 篇题解，中等难度题 2-3 篇
+- Submissions — 多样化，增加 WA/MLE/RE 等非 AC 结果
+- Collections — 场景化，按难度/标签/面试公司组织
+
+**Status:** Defining requirements
 
 ## Current State
 

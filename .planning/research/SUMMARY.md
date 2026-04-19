@@ -1,161 +1,158 @@
 # Project Research Summary
 
-**Project:** UltiCode v1.4 Seed Data Expansion
-**Domain:** Flyway database migration patterns for seed data expansion
-**Researched:** 2026-04-19
-**Confidence:** HIGH
+**Project:** UltiCode v1.5 Technical Debt Remediation
+**Domain:** Online Judge Platform — Spring Boot Backend Remediation
+**Researched:** 2026-04-20
+**Confidence:** MEDIUM-HIGH
 
 ## Executive Summary
 
-UltiCode v1.4 focuses on expanding seed data for three core entities: Solutions (8 to ~100), Submissions (~400 with more diverse statuses), and Collections (6 to ~50). Research confirms that Flyway migrations are the correct approach, with seed data living in SQL migration files that run via `db-manager`. The recommended stack is Python Faker + Jinja2 to generate realistic seed data, outputting Flyway-compatible SQL migrations. Foreign key dependencies drive phase ordering: users (V1) must exist before solutions and submissions; problems (V2/V16) must exist before submissions; solutions must exist before solution_comments. The existing V9 and V17 migrations provide battle-tested patterns to follow.
+UltiCode v1.5 addresses critical infrastructure gaps in an existing Spring Boot 3.2.5 + MyBatis-Plus online judge platform. The remediation targets 23 issues across 7 categories, with the highest priority being distributed rate limiting and code coverage enforcement. Research indicates the codebase has proper foundations (Redisson already in stack, annotation stubs exist) but lacks implementations.
 
-Key risks include FK constraint violations (critical), invalid submission status values, and datetime precision mismatches. The known V17 bug (leading space in `' Accepted'`) must be fixed before expanding submissions seed data.
+The recommended approach follows a dependency-ordered sequence: rate limiting first (protects infrastructure), then JaCoCo (establishes baseline), then security fixes, caching layer, and finally N+1 query optimization. Key risks include race conditions in rate limiter implementation (must use atomic operations), cache stampede on miss (requires jittered TTLs), and coverage gates blocking all work (start at 50%, not 80%).
+
+This is a technical debt remediation project, not a new feature launch. The goal is to harden production infrastructure with tested patterns before adding new functionality.
 
 ## Key Findings
 
 ### Recommended Stack
 
-**Approach:** Python script generator using `Faker` + Jinja2 templates, output as Flyway-compatible SQL migration files. This avoids JVM complexity (datafaker-java), tedium (handwritten SQL), and application bloat (in-application seeding).
+**Core framework:** Spring Boot 3.2.5 (existing, do not upgrade), MyBatis-Plus 3.5.16, Redisson 4.3.1. All rate limiting and caching leverages Redisson which is already a dependency. No new external services required.
 
 **Core technologies:**
-- `Faker` 18.x — Generate realistic names, text, UUIDs, dates with `locale='zh_CN'`
-- `Jinja2` 3.x — Template SQL INSERT statements
-- `UUID()` — All varchar(40) primary keys
-- `NOW(3)` — datetime(3) timestamp precision (not `NOW()` or `NOW(6)`)
-
-**Output structure:**
-```
-db-manager/scripts/
-├── generate_seed_data.py      # Main entry point
-├── faker_providers.py         # Custom providers (language names, problem slugs)
-└── templates/
-    ├── solutions.sql.j2
-    ├── submissions.sql.j2
-    └── collections.sql.j2
-```
+- Redisson RRateLimiter — distributed rate limiting via atomic Lua scripts
+- Spring Cache + RedissonCacheManager — standard caching abstraction with Redis backend
+- JaCoCo 0.8.11+ Maven plugin — coverage enforcement with threshold gates
+- MyBatis XML mappers — explicit JOIN queries to avoid N+1 (MyBatis-Plus wrapper alone insufficient)
 
 ### Expected Features
 
-**Seed data targets:**
+**Must have (table stakes for production):**
+- Rate limiting on all public endpoints — 429 response with Retry-After header when exceeded
+- JaCoCo coverage enforcement at 50% line / 40% branch minimum
+- Spring Cache configured with Redis backend for read-heavy queries
 
-| Entity | Current | Target | Gap |
-|--------|---------|--------|-----|
-| Solutions | 8 | ~100 | +92 |
-| Submissions | ~400 | diverse statuses | WA/TLE/MLE/RE underrepresented |
-| Collections | 6 | ~50 | +44 |
-
-**Must have:**
-- Solutions distributed across all 32 problems (Easy: 2-3 each, Medium/Hard: 1-2 each)
-- Submissions with diverse status distribution (AC 45-55%, WA 20-30%, TLE 8-12%, RE 5-10%, MLE 3-5%, CE 2-5%)
-- Collections organized by category (difficulty, company-tagged, pattern-tagged, problem-list-backed)
-- All foreign key references to existing users, problems, and solutions
-
-**Should have:**
-- Collection items minimum 3 per collection (avoid unmaintained look)
-- Realistic code content in submissions (not just comments)
-- Chinese commentary with markdown code blocks in solutions
-- Icon and color set for collections (Lucide names, Tailwind colors)
+**Should have (reliability improvements):**
+- N+1 query fixes via JOIN FETCH in contest rankings, problem lists, submission queries
+- System.out.println removal in favor of structured logging
+- Hardcoded forum statistics replaced with actual queries
 
 **Defer (v2+):**
-- Solution comments expansion (tightly coupled to solution growth)
-- Contest-related collections (separate domain)
+- Large file refactoring (ForumServiceImpl, CodeExecutionService, ContestServiceImpl)
+- Advanced caching patterns (cache-aside locking, multi-level)
 
 ### Architecture Approach
 
-Flyway migrations with strict ordering and referential integrity enforcement. Two migration patterns exist:
+The architecture follows standard Spring Boot AOP patterns for cross-cutting concerns. RateLimitAspect intercepts @RateLimit annotations using @Around advice, acquiring permits atomically from Redisson before allowing request to proceed. Cache operations sit at the service layer (not controller) to keep cache keys domain-aligned and invalidation straightforward.
 
-1. **Schema + Seed Combined** (V8, V9) — Used when table creation and initial data are tightly coupled
-2. **Seed Data Only** (V11, V12, V17) — Used for standalone seed data
-
-Every migration follows this structure:
-```sql
-SET FOREIGN_KEY_CHECKS=0;
-START TRANSACTION;
--- INSERT statements
-COMMIT;
-SET FOREIGN_KEY_CHECKS=1;
-```
-
-**Migration ordering (confirmed):**
-```
-V22 (achievement_schema) -> V23 (solutions) -> V24 (submissions_expanded) -> V25 (collections)
-```
+**Major components:**
+1. RateLimitAspect — AOP aspect using Redisson RRateLimiter for distributed rate limiting
+2. RedisCacheConfig — RedissonCacheManager with per-cache TTL configuration
+3. JaCoCo Maven plugin — bytecode instrumentation for coverage reporting and gates
+4. MyBatis XML mappers — explicit JOIN queries replacing lazy-loading N+1 patterns
 
 ### Critical Pitfalls
 
-1. **Foreign Key Constraint Violations** — FK references must be verified before migration. Query users and problems first to get valid IDs.
-2. **Invalid Submission Status Values** — Use exact keys from `submission_statuses` table. V17 has a bug (leading space in `' Accepted'`).
-3. **Duplicate Primary Key Violations** — Use `UUID()` for submissions, prefix solution IDs (e.g., `sol-v1-001`).
-4. **Datetime Precision Mismatch** — Use `NOW(3)` for `datetime(3)` columns, not `NOW()` or `NOW(6)`.
-5. **JSON Column Encoding** — Ensure UTF-8 encoding for Chinese characters in `tags` JSON columns.
+1. **Race condition in rate limiter** — Non-atomic tryAcquire causes burst bypass under load. Must use Redisson's atomic tryAcquire() with no check-then-act separation.
+
+2. **Cache stampede on miss** — Multiple simultaneous requests hit DB when cache expires. Prevention: jittered TTLs or cache-aside locking pattern.
+
+3. **MyBatis-Plus N+1 in list queries** — Accessing relations in loops triggers O(n) queries. Prevention: EXPLAIN ANALYZE every list endpoint; use JOIN FETCH in XML mappers.
+
+4. **JaCoCo coverage gate blocking all work** — Setting 80% threshold immediately fails build on legacy codebase. Prevention: Start at 50% line coverage, increment gradually.
+
+5. **Cache invalidation missing on updates** — @CacheEvict required on all mutation methods or stale data persists for full TTL.
 
 ## Implications for Roadmap
 
-### Phase 1: Solutions Seed Migration (V23)
-**Rationale:** Solutions have FK dependencies on both users (V1) and problems (V2/V16), which already exist. No other seed data depends on solutions yet, making this safe to expand first.
+Based on research, the following phase structure addresses dependencies and avoids critical pitfalls:
 
-**Delivers:** ~100 solutions across all 32 problems
-**Uses:** Faker + Jinja2 generator, V9 as template pattern
-**Avoids:** FK violations by querying existing problem IDs first
+### Phase 1: Rate Limiting Infrastructure
+**Rationale:** Must come first — protects all downstream infrastructure from abuse. Annotation stub exists but implementation missing.
+**Delivers:** RateLimitAspect with Redisson RRateLimiter, @RateLimit on all public endpoints, 429 responses with Retry-After header.
+**Addresses:** MISS-01 (annotation exists, impl missing)
+**Avoids:** Race condition pitfall — atomic tryAcquire only
 
-### Phase 2: Submissions Seed Expansion (V24)
-**Rationale:** Submissions depend on users and problems. Status distribution must be diverse (not AC-dominant). Fix the V17 status bug first.
+### Phase 2: JaCoCo Coverage Baseline
+**Rationale:** Establishes baseline before adding new code; low complexity, no external dependencies.
+**Delivers:** jacoco-maven-plugin in pom.xml, 50% line / 40% branch thresholds, exclusions configured.
+**Addresses:** MISS-02 (tests exist, no enforcement)
+**Avoids:** Coverage gate pitfall — start at 50%, not 80%
 
-**Delivers:** ~200 additional submissions with diverse statuses
-**Uses:** V17 pattern with corrected status values
-**Avoids:** Invalid status values, datetime precision errors
+### Phase 3: Security Hardening
+**Rationale:** Removes information leakage and fragile debug patterns. Independent of other phases.
+**Delivers:** System.out.println replaced with structured logging, forum stats returning actual counts.
+**Addresses:** HARD-01, HARD-02, SCALE-02
 
-### Phase 3: Collections Seed Migration (V25)
-**Rationale:** Collections depend on users. Collection_items reference problem_lists (from V15) and potentially solutions. Safe to do last since nothing depends on collections.
+### Phase 4: Redis Caching Layer
+**Rationale:** Protects database from read-heavy queries; requires rate limiting in place first to prevent cache abuse.
+**Delivers:** @Cacheable on problem/user/contest queries, @CacheEvict on mutations, RedisCacheManager configured.
+**Addresses:** SCALE-01, MISS-03
+**Avoids:** Cache stampede pitfall (jittered TTLs), invalidation pitfall (@CacheEvict on all mutations)
 
-**Delivers:** ~50 collections with ~150 items
-**Uses:** V8 pattern for structure
-**Avoids:** Orphaned collection_items, FK violations to problem_lists
+### Phase 5: N+1 Query Optimization
+**Rationale:** Requires careful mapper XML changes; best done after caching layer is tested.
+**Delivers:** JOIN FETCH in contest rankings, problem lists, submission queries; EXPLAIN ANALYZE verification.
+**Addresses:** PERF-01
+**Avoids:** Breaking existing queries — add mapper tests before changes
+
+### Phase 6: Large File Refactoring
+**Rationale:** LOW priority; dependent on coverage baseline to safely refactor.
+**Delivers:** Split ForumServiceImpl, CodeExecutionService, ContestServiceImpl into smaller modules.
 
 ### Phase Ordering Rationale
 
-- **Dependencies drive order:** Users (V1) -> Problems (V2/V16) -> Solutions (V23) -> Submissions (V24) -> Collections (V25). Nothing depends on collections, so it comes last.
-- **Migration file pattern:** Each phase outputs a separate V{n} migration file, following existing convention.
-- **Known bug mitigation:** V17 status bug must be fixed before Phase 2.
+- Rate limiting must precede caching (rate limit protects cache layer)
+- JaCoCo should be added early (establishes baseline before code changes)
+- N+1 fixes require mapper XML changes (coordinate with feature work to avoid conflicts)
+- Caching should be added after rate limiting to protect cache infrastructure
+- Large file refactoring deferred until coverage baseline established
 
 ### Research Flags
 
 Phases likely needing deeper research during planning:
-- **Phase 2 (Submissions):** May need to verify V17 status bug fix didn't break anything; recommend running validation queries
+- **Phase 4 (Caching):** May need additional research on RedissonCacheManager TTL jittering for cache stampede prevention
+- **Phase 5 (N+1):** Contest ranking query optimization may need MyBatis XML examples specific to existing mapper structure
 
 Phases with standard patterns (skip research-phase):
-- **All phases:** Flyway migration patterns are well-established by existing V8, V9, V17 migrations
+- **Phase 1 (Rate Limiting):** Redisson AOP patterns well-documented
+- **Phase 2 (JaCoCo):** Maven plugin configuration is standard
+- **Phase 3 (Security):** Logging replacement is straightforward
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Direct evidence from existing V17 migration; Faker + Jinja2 is standard practice |
-| Features | HIGH | Based on existing schema analysis and FEATURES.md gap analysis |
-| Architecture | HIGH | Confirmed by existing migrations V8, V9, V17; FK dependencies verified |
-| Pitfalls | HIGH | All pitfalls identified from actual migration analysis; V17 bug confirmed |
+| Stack | HIGH | Uses existing dependencies; no new external services |
+| Features | HIGH | Based on CONCERNS.md analysis of actual codebase |
+| Architecture | MEDIUM | Spring AOP + Redisson patterns well-documented; specific TTL values may need tuning |
+| Pitfalls | HIGH | Based on established best practices and common Spring/Redisson mistakes |
 
-**Overall confidence:** HIGH
+**Overall confidence:** MEDIUM-HIGH
 
 ### Gaps to Address
 
-- **V17 status bug:** Leading space in `' Accepted'` must be corrected before Phase 2. Verify via `SELECT key FROM submission_statuses` query.
-- **Problem ID gaps:** V17 appears to skip problem IDs 8 and 12. Verify which IDs are valid before seeding submissions.
-- **Timestamp spanning:** Submissions should span 2025-11 to 2026-02 for recommendation engine time-range queries - confirm this requirement with recommendation service owner.
+- **JaCoCo current baseline:** Unknown current coverage percentage. Phase 2 should measure baseline first before setting thresholds.
+- **Specific N+1 queries:** Only contest mappers identified. Full audit of all list queries needed during Phase 5 planning.
+- **Cache invalidation scope:** Not all mutation methods identified. Full audit of create/update/delete needed during Phase 4.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- `db-manager/migrations/V17__recommendation_seed_submissions.sql` - Submission seed pattern with UUID(), FK references
-- `db-manager/migrations/V9__solution_schema.sql` - Solution seed pattern with markdown content
-- `db-manager/migrations/V8__collection_schema.sql` - Collection/collection_item pattern
-- `db-manager/migrations/V16__recommendation_seed_problems.sql` - Valid problem IDs for FK resolution
+- CONCERNS.md — v1.5 backlog, 23 issues with categories and priority
+- RateLimitAspect.java — existing implementation stub
+- RedisService.java — existing Redis operations
+- pom.xml — existing dependencies
 
-### Secondary (HIGH confidence)
-- `V1__core_schema.sql` lines 511-521 - Valid submission status values
-- `backend-spring/modules/submission/service/impl/SubmissionServiceImpl.java` - SubmissionStatusMeta enum values
-- `db-manager/migrations/V15__featured_problem_lists.sql` - Valid problem_lists for collection_items
+### Secondary (MEDIUM confidence)
+- Context7: Spring Boot 3.2 AOP documentation — rate limiting aspect patterns
+- Context7: Redisson 4.3.1 documentation — RRateLimiter atomic operations
+- Context7: Spring Cache with Redisson — CacheManager configuration
+
+### Tertiary (LOW confidence)
+- MyBatis-Plus N+1 patterns — inferred from MyBatis behavior; specific mapper changes need verification
 
 ---
-*Research completed: 2026-04-19*
+
+*Research completed: 2026-04-20*
 *Ready for roadmap: yes*

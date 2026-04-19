@@ -369,4 +369,33 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
             + "WHERE contest_id IN (${contestIds}) "
             + "GROUP BY contest_id")
     List<Map<String, Object>> countParticipantsByContest(@Param("contestIds") String contestIds);
+
+    /**
+     * Get global rank for a user from global_rankings table.
+     *
+     * @param userId user ID
+     * @return the global rank, or null if user not in rankings
+     */
+    @Select("SELECT global_rank FROM global_rankings WHERE user_id = #{userId}")
+    Integer findGlobalRankByUserId(@Param("userId") String userId);
+
+    /**
+     * Calculate acceptance rate for a user (percentage of accepted submissions).
+     *
+     * @param userId user ID
+     * @return the acceptance rate as a percentage (0-100), or null if no submissions
+     */
+    @Select("SELECT " +
+            "SUM(CASE WHEN status = 'Accepted' THEN 1 ELSE 0 END) * 100.0 / NULLIF(COUNT(*), 0) " +
+            "FROM submissions WHERE user_id = #{userId}")
+    Double calculateAcceptanceRateByUserId(@Param("userId") String userId);
+
+    /**
+     * Count total submissions for a user.
+     *
+     * @param userId user ID
+     * @return the total number of submissions
+     */
+    @Select("SELECT COUNT(*) FROM submissions WHERE user_id = #{userId}")
+    Long countTotalSubmissionsByUserId(@Param("userId") String userId);
 }

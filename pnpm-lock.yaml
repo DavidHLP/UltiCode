@@ -1,0 +1,22 @@
+lockfileVersion: '9.0'
+
+settings:
+  autoInstallPeers: true
+  excludeLinksFromLockfile: false
+
+importers:
+
+  .:
+    dependencies:
+      '@letta-ai/letta-client':
+        specifier: ^1.10.3
+        version: 1.10.3
+
+packages:
+
+  '@letta-ai/letta-client@1.10.3':
+    resolution: {integrity: sha512-E0nDGWZ00nkn43iIM1vlFuL84FhefstJnGqNuMamI3e0NzAtnpF5Z/BVxUnIPd1kVBRyId+QWSqVp8p66aztzQ==}
+
+snapshots:
+
+  '@letta-ai/letta-client@1.10.3': {}

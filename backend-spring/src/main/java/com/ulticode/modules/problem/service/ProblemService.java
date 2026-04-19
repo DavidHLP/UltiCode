@@ -127,4 +127,12 @@ public interface ProblemService {
      * @return the adjacent problems response with prev and next problem IDs (slugs)
      */
     AdjacentProblemsVO getAdjacentProblems(Long id);
+
+    /**
+     * Get a random published problem.
+     *
+     * @return a random published problem view object
+     * @throws BusinessException if no published problems are available
+     */
+    ProblemVO findRandomPublished();
 }

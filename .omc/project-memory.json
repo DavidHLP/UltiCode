@@ -1,0 +1,482 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1776509884493,
+  "projectRoot": "/home/davidhlp/project/UltiCode-Public-Next",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      }
+    ],
+    "frameworks": [],
+    "packageManager": "pnpm",
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": null,
+    "lintCommand": null,
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "backend-spring": {
+      "path": "backend-spring",
+      "purpose": null,
+      "fileCount": 9,
+      "lastAccessed": 1776509884488,
+      "keyFiles": [
+        "Dockerfile",
+        "mvnw",
+        "mvnw.cmd",
+        "pom.xml",
+        "start.cjs"
+      ]
+    },
+    "console": {
+      "path": "console",
+      "purpose": null,
+      "fileCount": 20,
+      "lastAccessed": 1776509884489,
+      "keyFiles": [
+        "Dockerfile",
+        "components.json",
+        "env.d.ts",
+        "eslint.config.ts",
+        "index.html"
+      ]
+    },
+    "db-manager": {
+      "path": "db-manager",
+      "purpose": null,
+      "fileCount": 2,
+      "lastAccessed": 1776509884491,
+      "keyFiles": [
+        "README.md",
+        "pyproject.toml"
+      ]
+    },
+    "docker": {
+      "path": "docker",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1776509884491,
+      "keyFiles": []
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 1,
+      "lastAccessed": 1776509884492,
+      "keyFiles": [
+        "secrets-mapping.md"
+      ]
+    },
+    "management": {
+      "path": "management",
+      "purpose": null,
+      "fileCount": 22,
+      "lastAccessed": 1776509884492,
+      "keyFiles": [
+        "Dockerfile",
+        "components.json",
+        "env.d.ts",
+        "eslint.config.ts",
+        "index.html"
+      ]
+    },
+    "recommendation": {
+      "path": "recommendation",
+      "purpose": null,
+      "fileCount": 7,
+      "lastAccessed": 1776509884492,
+      "keyFiles": [
+        "1h7xZM",
+        "README.md",
+        "pom.xml",
+        "run-evaluation.sh",
+        "start-provider.cjs"
+      ]
+    },
+    "shared": {
+      "path": "shared",
+      "purpose": null,
+      "fileCount": 0,
+      "lastAccessed": 1776509884492,
+      "keyFiles": []
+    },
+    "backend-spring/src": {
+      "path": "backend-spring/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1776509884492,
+      "keyFiles": []
+    },
+    "console/dist": {
+      "path": "console/dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 6,
+      "lastAccessed": 1776509884492,
+      "keyFiles": [
+        "favicon.ico",
+        "index.html",
+        "manifest.webmanifest"
+      ]
+    },
+    "db-manager/migrations": {
+      "path": "db-manager/migrations",
+      "purpose": "Database migrations",
+      "fileCount": 21,
+      "lastAccessed": 1776509884492,
+      "keyFiles": [
+        "V10__daily_recommendations_feedback.sql",
+        "V10a__edge_schema.sql",
+        "V11__moderation_seed_data.sql"
+      ]
+    },
+    "db-manager/src": {
+      "path": "db-manager/src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1776509884493,
+      "keyFiles": []
+    },
+    "recommendation/docs": {
+      "path": "recommendation/docs",
+      "purpose": "Documentation",
+      "fileCount": 3,
+      "lastAccessed": 1776509884493,
+      "keyFiles": [
+        "API.md",
+        "DEPLOYMENT.md",
+        "PROJECT_OVERVIEW.md"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java",
+      "accessCount": 54,
+      "lastAccessed": 1776520852590,
+      "type": "file"
+    },
+    {
+      "path": ".planning/ROADMAP.md",
+      "accessCount": 38,
+      "lastAccessed": 1776560654457,
+      "type": "file"
+    },
+    {
+      "path": ".planning/REQUIREMENTS.md",
+      "accessCount": 35,
+      "lastAccessed": 1776560336974,
+      "type": "file"
+    },
+    {
+      "path": ".planning/STATE.md",
+      "accessCount": 35,
+      "lastAccessed": 1776560702467,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java",
+      "accessCount": 28,
+      "lastAccessed": 1776560417108,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 21,
+      "lastAccessed": 1776559429469,
+      "type": "directory"
+    },
+    {
+      "path": ".planning/PROJECT.md",
+      "accessCount": 19,
+      "lastAccessed": 1776559899039,
+      "type": "file"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 18,
+      "lastAccessed": 1776559555409,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/entity/Contest.java",
+      "accessCount": 15,
+      "lastAccessed": 1776560357334,
+      "type": "file"
+    },
+    {
+      "path": "db-manager/migrations/V3__contest_schema.sql",
+      "accessCount": 13,
+      "lastAccessed": 1776560066045,
+      "type": "file"
+    },
+    {
+      "path": "console/src/types/submission.ts",
+      "accessCount": 8,
+      "lastAccessed": 1776521678637,
+      "type": "file"
+    },
+    {
+      "path": ".planning/milestones/v1.2-REQUIREMENTS.md",
+      "accessCount": 7,
+      "lastAccessed": 1776514081616,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/RankingServiceImpl.java",
+      "accessCount": 7,
+      "lastAccessed": 1776559111600,
+      "type": "file"
+    },
+    {
+      "path": "console/src/api/submission.ts",
+      "accessCount": 6,
+      "lastAccessed": 1776515065776,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/entity/Submission.java",
+      "accessCount": 5,
+      "lastAccessed": 1776519762752,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/controller/ContestController.java",
+      "accessCount": 5,
+      "lastAccessed": 1776521619119,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/ContestService.java",
+      "accessCount": 5,
+      "lastAccessed": 1776558765345,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/entity/ContestParticipant.java",
+      "accessCount": 5,
+      "lastAccessed": 1776559914468,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/problem/controller/ProblemController.java",
+      "accessCount": 4,
+      "lastAccessed": 1776514973874,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/controller/SubmissionController.java",
+      "accessCount": 4,
+      "lastAccessed": 1776517204846,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/SubmissionService.java",
+      "accessCount": 4,
+      "lastAccessed": 1776517204963,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java",
+      "accessCount": 4,
+      "lastAccessed": 1776517205014,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/ContestServiceImpl.java",
+      "accessCount": 4,
+      "lastAccessed": 1776558512349,
+      "type": "file"
+    },
+    {
+      "path": "console/src/stores/__tests__/recommendation.spec.ts",
+      "accessCount": 3,
+      "lastAccessed": 1776511194379,
+      "type": "file"
+    },
+    {
+      "path": "console/src/composables/contest/useContestSocket.ts",
+      "accessCount": 3,
+      "lastAccessed": 1776515005552,
+      "type": "file"
+    },
+    {
+      "path": "console/src/api/contest.ts",
+      "accessCount": 3,
+      "lastAccessed": 1776515005606,
+      "type": "file"
+    },
+    {
+      "path": "console/src/stores/contest.ts",
+      "accessCount": 3,
+      "lastAccessed": 1776515005747,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/UserService.java",
+      "accessCount": 3,
+      "lastAccessed": 1776515009753,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/impl/UserServiceImpl.java",
+      "accessCount": 3,
+      "lastAccessed": 1776515009773,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/entity/User.java",
+      "accessCount": 3,
+      "lastAccessed": 1776515009867,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/controller/UserController.java",
+      "accessCount": 3,
+      "lastAccessed": 1776515009902,
+      "type": "file"
+    },
+    {
+      "path": "console/src/composables/__tests__/useCodeTemplates.spec.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776511210263,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/monitoring/service/impl/MonitoringServiceImpl.java",
+      "accessCount": 2,
+      "lastAccessed": 1776512345592,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/controller/AchievementController.java",
+      "accessCount": 2,
+      "lastAccessed": 1776515009809,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/bookmark/controller/BookmarkController.java",
+      "accessCount": 2,
+      "lastAccessed": 1776515009919,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/config/DockerSandboxConfig.java",
+      "accessCount": 2,
+      "lastAccessed": 1776517187056,
+      "type": "file"
+    },
+    {
+      "path": "console/src/types/contest.ts",
+      "accessCount": 2,
+      "lastAccessed": 1776521637181,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/RankingService.java",
+      "accessCount": 2,
+      "lastAccessed": 1776559562745,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/problem/controller",
+      "accessCount": 1,
+      "lastAccessed": 1776514966987,
+      "type": "directory"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/mapper/UserMapper.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514968073,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserStatsDTO.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514968130,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserVO.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514968175,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserSkillsDTO.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514968198,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UpdateUserDTO.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514968231,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/DifficultyCountDTO.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514968326,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/service/AchievementService.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514981882,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/constants/AchievementType.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514981999,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/entity/Achievement.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514982050,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/entity/UserAchievement.java",
+      "accessCount": 1,
+      "lastAccessed": 1776514982071,
+      "type": "file"
+    },
+    {
+      "path": "console/src/views/contest/detailed/components/ContestRankingTable.vue",
+      "accessCount": 1,
+      "lastAccessed": 1776514992285,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

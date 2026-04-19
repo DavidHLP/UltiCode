@@ -33,7 +33,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 15: Problem + User Enhancements** - Random problems, acceptance rates, admin bulk ops, globalRank (v1.3)
 - [x] **Phase 16: Solutions Seed (V23)** - ~100 solutions, 1-3 per problem, Chinese + Markdown (v1.4)
 - [x] **Phase 17: Submissions Seed (V24)** - ~200 submissions, varied statuses (AC/WA/TLE/MLE/RE/CE) (v1.4)
-- [ ] **Phase 18: Collections Seed (V25)** - ~50 collections by scenario (difficulty/tags/companies) (v1.4)
+- [x] **Phase 18: Collections Seed (V25)** - ~50 collections by scenario (difficulty/tags/companies) (v1.4)
 
 ## Phase Details
 

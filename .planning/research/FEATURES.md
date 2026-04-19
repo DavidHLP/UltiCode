@@ -1,188 +1,222 @@
-# Feature Landscape: Seed Data Expansion
+# Feature Landscape: Technical Debt Remediation (v1.5)
 
-**Domain:** Online programming platform (LeetCode-like) seed data
-**Researched:** 2026-04-19
-**Confidence:** HIGH (based on existing schema and seed data patterns)
+**Domain:** Online Judge Platform Remediation
+**Researched:** 2026-04-20
+**Confidence:** MEDIUM-HIGH (based on existing codebase analysis)
 
-## Executive Summary
+## Remediation Categories
 
-The existing platform has 8 solutions (heavily concentrated on problem 1), ~400 submissions from V17 seed data, and 6 collections with 7 items. The expansion targets ~100 solutions (scattered across 32 problems), diverse submission statuses, and ~50 collections organized by category. The existing V9 and V17 migrations provide the seed data pattern to follow. All foreign key constraints are enforced -- solutions depend on problems and users, collections depend on users, collection_items reference existing problem_lists or other targets.
+Based on CONCERNS.md analysis, the 23 issues fall into these categories:
 
-## Current State (Baseline)
+| Category | Count | Priority |
+|----------|-------|----------|
+| Performance (N+1, Caching) | 3 | HIGH |
+| Missing Infrastructure (Rate Limit, JaCoCo) | 2 | HIGH |
+| Security (System.out, Hardcoded Zeros) | 3 | MEDIUM |
+| Tech Debt (Build Order, Config) | 3 | MEDIUM |
+| Large Files | 2 | LOW |
+| Fragile Code | 3 | LOW |
+| CI/CD | 2 | MEDIUM |
 
-| Entity | Current | Target | Gap |
-|--------|---------|--------|-----|
-| Solutions | 8 | ~100 | +92 |
-| Submissions | ~400 (from V17) | diverse statuses | WA/MLE/RE/TLE underrepresented |
-| Collections | 6 (17 items) | ~50 | +44 collections |
-| Collection Items | 7 | many | items referencing lists/problems |
+---
 
-## Solutions Seed Data
+## Category 1: Rate Limiting with Redis
 
-### Schema Summary
+**Severity:** HIGH (MISS-01)
+**Status:** Annotation exists, implementation missing
 
-`solutions` table: `id`, `problem_id`, `user_id`, `title`, `content` (markdown), `summary`, `language`, `tags` (JSON array), `views`, `is_published`, `published_at`, `published_by`, `is_flagged`, `is_deleted`.
+### Current State
 
-`solution_comments` table: threaded comments with `parent_id` self-reference for nesting.
+```java
+// backend-spring/src/main/java/com/ulticode/common/annotation/RateLimit.java
+@Target({ElementType.METHOD, ElementType.TYPE})
+@Retention(RetentionPolicy.RUNTIME)
+public @interface RateLimit {
+    String key() default "";
+    int limit() default 100;
+    int period() default 60;
+}
+```
 
-### Distribution Targets
+`RateLimitAspect.java` exists but needs Redis-backed implementation with Lua script for atomicity.
 
-| Problem Difficulty | Solutions per Problem | Rationale |
-|-------------------|----------------------|-----------|
-| Easy (problems 1-10) | 2-3 solutions | High traffic, beginner audience benefits from multiple approaches |
-| Medium (problems 11-24) | 1-2 solutions | Standard coverage |
-| Hard (problems 25-32) | 1-2 solutions | Fewer solvers, quality over quantity |
+### What "Done" Looks Like
 
-### Language Mix
+- [ ] All public endpoints annotated with `@RateLimit` (key, limit, period)
+- [ ] RateLimitAspect implemented using Redisson RRateLimiter
+- [ ] Lua script executes atomically (no race conditions)
+- [ ] Returns 429 Too Many Requests with `Retry-After` header when exceeded
+- [ ] Rate limit key includes user ID (authenticated) or IP (anonymous)
+- [ ] Graceful degradation if Redis unavailable (allow request, log warning)
 
-The 5 supported languages are: TypeScript, JavaScript, Java, Python, C++. Seed data should reflect the existing distribution in V9 -- TypeScript and JavaScript dominate. Do not seed C++/Java/Python solutions for Easy problems; save them for Medium/Hard to showcase real language usage patterns.
+### Complexity: MEDIUM
 
-### Content Quality Bar
+**Dependencies:** Redis connection (already exists in `RedisService`), `spring-boot-starter-cache`
 
-- **Title**: Descriptive, includes algorithm/pattern name (e.g., "哈希表解法 -- O(n) 时间复杂度")
-- **Content**: Full markdown with code block, explanation of approach, time/space complexity
-- **Summary**: 1-2 sentence description (used in cards/search results)
-- **Tags**: 2-4 relevant tags from existing tag vocabulary (hash-table, array, binary-search, sliding-window, etc.)
-- **Views**: Realistic distribution (0-500 range), vary by solution quality
-- **Code**: Must be syntactically correct, runnable starter-like code (not just comments)
+---
 
-### Anti-Features (Do Not Seed)
+## Category 2: JaCoCo Coverage Enforcement
 
-- Placeholder content ("TODO", "write solution here")
-- Duplicate approaches for the same problem with no differentiation
-- Solutions referencing non-existent problem_ids or user_ids
-- Hardcoded timestamps that create impossible sequences (e.g., comment before solution creation)
-- Solutions with `is_deleted=1` or `is_flagged=1` -- keep these clean
+**Severity:** MEDIUM (MISS-02)
+**Status:** Tests exist, no enforcement
 
-## Submissions Seed Data
+### Current State
 
-### Status Distribution
+Tests exist in `backend-spring/src/test/java/` but:
+- No JaCoCo plugin in pom.xml
+- No coverage thresholds
+- Unknown coverage percentage
 
-The existing V17 seed data already establishes a skill-based distribution (beginner ~30% AC, intermediate ~60% AC, advanced ~85% AC). This is the right model.
+### What "Done" Looks Like
 
-Target overall distribution across all ~400 existing + new submissions:
+- [ ] JaCoCo plugin configured in `backend-spring/pom.xml`
+- [ ] Minimum coverage thresholds:
+  - Line coverage: 50% (initial), target 60%
+  - Branch coverage: 40% (initial), target 50%
+- [ ] Exclusions configured:
+  - `*Application.java`
+  - `*Config.java`
+  - `*Exception.java`
+  - `*VO.java`, `*DTO.java`, `*Request.java`, `*Response.java`
+  - Generated mapper classes
+- [ ] Maven fails build if coverage below threshold (`mvn verify`)
+- [ ] Coverage report generated at `target/site/jacoco/index.html`
 
-| Status | Target % | Notes |
-|--------|----------|-------|
-| Accepted (AC) | 45-55% | Platform should feel encouraging |
-| Wrong Answer (WA) | 20-30% | Most common failure mode |
-| Time Limit Exceeded (TLE) | 8-12% | Common for O(n^2) attempts on Hard |
-| Runtime Error (RE) | 5-10% | Edge case bugs, uninitialized variables |
-| Memory Limit Exceeded (MLE) | 3-5% | O(n^2) space solutions, large arrays |
-| Compilation Error (CE) | 2-5% | Syntax errors, type mismatches |
-| Presentation Error (PE) | 1-2% | Output format issues |
-| System Error (SE) | <1% | Judge infrastructure issues, almost never shown to users |
+### Complexity: LOW
 
-### Code Content
+**Dependencies:** `jacoco-maven-plugin`, no external services needed
 
-Submissions should contain plausible code:
-- Include actual code snippets (not just comments)
-- For WA: code that compiles but produces wrong output on edge cases
-- For TLE: nested loops where an O(n) solution exists
-- For RE: missing null checks, array index out of bounds, uninitialized variables
-- For MLE: storing full Cartesian product in memory
-- For CE: syntax errors, missing imports, wrong types
-- The `code` field is a TEXT column -- can store full solutions
+---
 
-### Runtime and Memory Percentiles
+## Category 3: Redis Caching for Read-Heavy Queries
 
-V17 seed data includes `runtime_percentile` and `memory_percentile`. Seed realistic values:
-- AC submissions: runtime 20-95%, memory 30-90%
-- Non-AC submissions: runtime/memory typically 0 or very low
+**Severity:** MEDIUM (SCALE-01)
+**Status:** No caching annotations found anywhere
 
-## Collections Seed Data
+### Current State
 
-### Schema Summary
+Every request hits MySQL:
+- Problem lists
+- User profiles
+- Contest rankings
+- Forum posts
 
-`collections`: `id`, `user_id`, `name`, `description`, `icon`, `color`, `sort_order`, `is_default`
-`collection_items`: `id`, `collection_id`, `target_id`, `target_type`, `sort_order`, `note`
+### What to Cache
 
-target_type enum: `PROBLEM`, `SOLUTION`, `FORUM_POST`, `PROBLEM_LIST`, `SOLUTION_COMMENT`, `FORUM_COMMENT`
+| Data | TTL | Invalidation |
+|------|-----|--------------|
+| Problem list (public) | 5 min | On problem create/update |
+| Problem detail | 10 min | On problem update |
+| User profile | 15 min | On profile update |
+| Contest rankings | 1 min | On new submission |
+| Contest details | 5 min | On contest update |
+| Forum post list | 2 min | On new post/comment |
+| Tag list | 30 min | On tag create |
 
-### Category Strategy
+### What "Done" Looks Like
 
-Target ~50 collections across these categories:
+- [ ] Spring Cache abstraction enabled (`spring-boot-starter-cache`)
+- [ ] `@Cacheable` on service methods returning read-heavy data
+- [ ] `@CacheEvict` on mutation methods (create/update/delete)
+- [ ] `@CachePut` when updating changes the cached value
+- [ ] Cache key follows pattern: `{entity}:{id}` or `{entity}:list:{query-hash}`
+- [ ] Redis as cache backend (already configured in `RedisConfig`)
+- [ ] Cache errors do not crash requests (fallback to DB)
 
-| Category | Examples | Count Target |
-|----------|----------|-------------|
-| Difficulty-based | "Easy 热身", "Medium 进阶", "Hard 挑战" | 6 (2 per difficulty) |
-| Company-tagged | "字节跳动高频", "Meta 面试", "Amazon 必刷" | 10-15 |
-| Pattern-tagged | "滑动窗口专项", "二分查找专项", "动态规划入门" | 8-10 |
-| Problem-list-backed | Collections referencing existing problem_lists (list-interview-100, list-essentials, etc.) | 10-15 |
-| Contest-themed | "周赛练习", "双周赛回顾" | 3-5 |
-| Personal study | "面试倒计时 30 天", "寒假刷题计划" | 5-10 |
+### Complexity: MEDIUM
 
-### Collection Items per Collection
+**Dependencies:** `spring-boot-starter-cache`, existing RedisTemplate
 
-- Minimum: 3 items (collections with fewer look unmaintained)
-- Typical: 5-15 items
-- Maximum: 30 items (beyond that should probably be split)
+---
 
-### Icons and Colors
+## Category 4: N+1 Query Fixes
 
-Use Lucide icon names and Tailwind-compatible color names. Existing seed uses `icon: NULL, color: NULL` which is acceptable but plain. For richer collections, use real values:
+**Severity:** MEDIUM (PERF-01)
+**Status:** Contest mappers identified, likely other modules
 
-Icons: `Trophy`, `Code2`, `ArrowUpDown`, `Database`, `Clock`, `Star`, `Bookmark`, `Folder`
-Colors: `amber`, `sky`, `emerald`, `slate`, `rose`, `violet`
+### Current State
 
-## Dependencies and Constraints
+```java
+// ContestMapper - potential N+1
+@Select("SELECT * FROM contest_submissions WHERE contest_id = #{contestId} ...")
+List<ContestSubmission> selectByContestId(...);
+// If ContestSubmission has nested objects fetched separately
+```
 
-### Foreign Key Requirements
+### Fix Strategy: JOIN + Batch Fetch
 
-All seed data must respect foreign keys:
+| Approach | When to Use |
+|----------|-------------|
+| **JOIN FETCH** | Single query with related entities (1:1, N:1) |
+| **@BatchSize** | Collection fetching (1:N) - MyBatis-Plus batches |
+| **Custom DTO projection** | Read-only queries returning multiple entities |
 
-1. **solutions.problem_id** -> `problems.id` (32 existing problems, IDs 1-32)
-2. **solutions.user_id** -> `users.id` (existing seeded users: user-yuki, user-alex, user-chen, user-sara, user-max, user-petr, user-tourist, user-lily, user-emma, user-david, user-tom, user-scott)
-3. **collection_items.target_id** -> existing targets (problem_lists IDs like list-essentials, list-interview-100, list-sliding-window, list-graph-dfs, list-hard-bench, list-database, list-concurrency, list-graph-advanced)
-4. **collections.user_id** -> `users.id`
+### What "Done" Looks Like
 
-### Tag Vocabulary (Existing)
+- [ ] Contest rankings: Single query with JOIN FETCH for participant data
+- [ ] Submission list: Batch fetch or JOIN for problem details
+- [ ] Problem list: JOIN for difficulty/tags if needed
+- [ ] No lazy loading triggers in list queries
+- [ ] EXPLAIN ANALYZE confirms single-digit query count per request
 
-Use only these existing tags to avoid FK violations:
-algorithms, array, backtracking, bfs, binary-search, bit-manipulation, concurrency, database, design, dfs, divide-and-conquer, dynamic-programming, graph, greedy, hash-table, heap, intervals, linked-list, math, matrix, queue, recursion, shell, sliding-window, sorting, stack, string, tree, two-pointers, union-find
+### Complexity: MEDIUM
 
-### Language Vocabulary
+**Tools needed:** MyBatis-Plus `QueryWrapper` with JOINs, or MyBatis XML with resultMaps
 
-Use only: `typescript`, `javascript`, `java`, `python`, `cpp` (not `c`, not `c++`)
+---
 
-### Submission Status Vocabulary
+## MVP Recommendation
 
-Use exact strings from SubmissionStatusMeta: `Pending`, `Judging`, `Accepted`, `Wrong Answer`, `Time Limit Exceeded`, `Memory Limit Exceeded`, `Output Limit Exceeded`, `Runtime Error`, `Compilation Error`, `Presentation Error`, `System Error`
+Prioritize in this order:
 
-## Seed Data Quality Checklist
+### Phase 1: Rate Limiting (HIGH Priority)
+1. Implement Redisson RRateLimiter in `RateLimitAspect`
+2. Add `@RateLimit` to all public API endpoints
+3. Test 429 responses and header behavior
 
-Before accepting seed data as complete:
+### Phase 2: JaCoCo Setup (MEDIUM Priority)
+1. Add JaCoCo plugin to `pom.xml`
+2. Configure exclusions and thresholds
+3. Verify current coverage baseline
+4. Set initial thresholds (50% line, 40% branch)
 
-- [ ] Solutions: All 32 problems have at least 1 solution
-- [ ] Solutions: Problems 1-10 have 2-3 solutions each
-- [ ] Solutions: Title + content + summary are all non-empty and substantive
-- [ ] Solutions: Tags are valid (from existing vocabulary)
-- [ ] Solutions: Languages are from the 5-language whitelist
-- [ ] Submissions: At least 6 different status types represented
-- [ ] Submissions: Code field contains actual code, not just comments
-- [ ] Submissions: Timestamps are chronologically plausible
-- [ ] Collections: Each has at least 3 items
-- [ ] Collections: Category names are descriptive (not generic "收藏夹" for all)
-- [ ] Collections: Icon and color are set (or explicitly NULL if no theme)
-- [ ] All foreign key references resolve to existing records
-- [ ] No orphaned records (e.g., solution_comments referencing non-existent solution_id)
-- [ ] SET FOREIGN_KEY_CHECKS=0/1 wrapper present in SQL
-- [ ] Migration follows V{number}_ descriptive naming convention
+### Phase 3: Security Fixes (MEDIUM Priority)
+1. Replace `System.out.println` with proper logging
+2. Fix hardcoded forum stats
+3. Add tests for fixed paths
 
-## Gap Analysis
+### Phase 4: Caching Layer (MEDIUM Priority)
+1. Enable Spring Cache
+2. Add `@Cacheable` to problem/user/contest queries
+3. Add `@CacheEvict` to mutations
 
-| Area | Current | Target | Realistic per Sprint |
-|------|---------|--------|---------------------|
-| Solutions | 8 | ~100 | 20-25 per week |
-| Collection items | 7 | ~300+ | 50-75 per week |
-| New collections | 6 | ~50 | 8-10 per week |
-| Submission statuses | AC-dominant | Balanced | Already handled by V17 |
+### Phase 5: N+1 Fixes (MEDIUM Priority)
+1. Audit all mapper queries for N+1 potential
+2. Add JOIN FETCH or batch size to contest rankings
+3. Verify with EXPLAIN ANALYZE
+
+### Phase 6: Large File Refactoring (LOW Priority)
+1. Split ForumServiceImpl
+2. Split CodeExecutionService
+3. Split ContestServiceImpl
+
+---
+
+## Dependencies on Existing Infrastructure
+
+| Component | Already Exists | What's Needed |
+|-----------|---------------|---------------|
+| Redis | Yes (`RedisService`) | Rate limit Lua script, cache config |
+| RateLimit annotation | Yes | Implementation in Aspect |
+| MyBatis-Plus | Yes | JOIN optimization in XML |
+| Spring Cache | No | Add starter, configure Redis backend |
+| JaCoCo | No | Add Maven plugin |
+
+---
 
 ## Sources
 
-- db-manager/migrations/V9__solution_schema.sql (existing solution seed pattern)
-- db-manager/migrations/V17__recommendation_seed_submissions.sql (submission distribution model)
-- db-manager/migrations/V8__collection_schema.sql (collection/collection_item pattern)
-- db-manager/migrations/V15__featured_problem_lists.sql (existing problem_lists for collection_items)
-- backend-spring/modules/submission/service/impl/SubmissionServiceImpl.java (SubmissionStatusMeta enum values)
-- db-manager/migrations/V2__problem_schema.sql (problem_tags, problem_lists existing data)
+- CONCERNS.md (v1.5 backlog, 2026-04-19)
+- RateLimitAspect.java (existing implementation stub)
+- RedisService.java (existing Redis operations)
+- pom.xml (existing dependencies)

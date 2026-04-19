@@ -371,12 +371,18 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
     List<Map<String, Object>> countParticipantsByContest(@Param("contestIds") String contestIds);
 
     /**
-     * Get global rank for a user from global_rankings table.
+     * Get global rank for a user based on accepted submission count.
+     * Rank = number of users with more accepted submissions + 1.
+     * Returns null if user has no accepted submissions.
      *
      * @param userId user ID
-     * @return the global rank, or null if user not in rankings
+     * @return the global rank based on AC count, or null if user has no accepted submissions
      */
-    @Select("SELECT global_rank FROM global_rankings WHERE user_id = #{userId}")
+    @Select("SELECT COUNT(*) + 1 FROM submissions s1 " +
+            "WHERE s1.user_id != #{userId} " +
+            "AND s1.status = 'Accepted' " +
+            "AND (SELECT COUNT(*) FROM submissions s2 WHERE s2.user_id = #{userId} AND s2.status = 'Accepted') < " +
+            "(SELECT COUNT(*) FROM submissions s3 WHERE s3.user_id = s1.user_id AND s3.status = 'Accepted')")
     Integer findGlobalRankByUserId(@Param("userId") String userId);
 
     /**

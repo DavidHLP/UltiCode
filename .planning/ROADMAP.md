@@ -31,7 +31,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 13: Contest Data Layer** - Contest entities, admin CRUD, announcement system (v1.3)
 - [x] **Phase 14: Contest Engine** - Scheduler, CF Elo rating, real-time ranking throttle (v1.3)
 - [x] **Phase 15: Problem + User Enhancements** - Random problems, acceptance rates, admin bulk ops, globalRank (v1.3)
-- [ ] **Phase 16: Solutions Seed (V23)** - ~100 solutions, 1-3 per problem, Chinese + Markdown (v1.4)
+- [x] **Phase 16: Solutions Seed (V23)** - ~100 solutions, 1-3 per problem, Chinese + Markdown (v1.4)
 - [ ] **Phase 17: Submissions Seed (V24)** - ~200 submissions, varied statuses (AC/WA/TLE/MLE/RE/CE) (v1.4)
 - [ ] **Phase 18: Collections Seed (V25)** - ~50 collections by scenario (difficulty/tags/companies) (v1.4)
 
@@ -52,7 +52,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. Medium difficulty problems have 2-3 solutions, totaling approximately 100 solutions across all 32 problems
 
 **Plans**: 1 plan
-- [x] 16-01-PLAN.md -- Generate ~92 solution INSERTs with Chinese Markdown content, valid FKs
+- [x] 16-01-PLAN.md -- Generate ~92 solution INSERTs with Chinese Markdown content, valid FKs (COMPLETE: 97 solutions)
 
 ---
 
@@ -116,7 +116,7 @@ Phases execute in numeric order: 1 → 18
 | 13. Contest Data Layer | v1.3 | 2/2 | Complete | 2026-04-18 |
 | 14. Contest Engine | v1.3 | 2/2 | Complete | 2026-04-19 |
 | 15. Problem + User Enhancements | v1.3 | 2/2 | Complete | 2026-04-19 |
-| 16. Solutions Seed (V23) | v1.4 | 0/? | Not started | - |
+| 16. Solutions Seed (V23) | v1.4 | 1/1 | Complete | 2026-04-19 |
 | 17. Submissions Seed (V24) | v1.4 | 0/? | Not started | - |
 | 18. Collections Seed (V25) | v1.4 | 0/? | Not started | - |
 
@@ -126,9 +126,9 @@ Phases execute in numeric order: 1 → 18
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| SOL-01 | Phase 16 | Pending |
-| SOL-02 | Phase 16 | Pending |
-| SOL-03 | Phase 16 | Pending |
+| SOL-01 | Phase 16 | Done |
+| SOL-02 | Phase 16 | Done |
+| SOL-03 | Phase 16 | Done |
 | SUB-01 | Phase 17 | Pending |
 | SUB-02 | Phase 17 | Pending |
 | SUB-03 | Phase 17 | Pending |

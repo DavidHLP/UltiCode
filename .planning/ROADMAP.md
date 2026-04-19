@@ -51,7 +51,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. User can verify each solution references a valid problem_id and user_id (no orphaned FKs)
 4. Medium difficulty problems have 2-3 solutions, totaling approximately 100 solutions across all 32 problems
 
-**Plans**: TBD
+**Plans**: 1 plan
+- [x] 16-01-PLAN.md -- Generate ~92 solution INSERTs with Chinese Markdown content, valid FKs
 
 ---
 
@@ -69,7 +70,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. User can confirm all status values have no leading/trailing whitespace (exact match to submission_statuses table)
 4. User can verify each submission references a valid user_id and problem_id (no orphaned FKs)
 
-**Plans**: TBD
+**Plans**: 1 plan
+- [x] 16-01-PLAN.md -- Generate ~92 solution INSERTs with Chinese Markdown content, valid FKs
 
 ---
 
@@ -87,7 +89,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 3. User can verify each collection contains at least 3 problem items
 4. User can verify each collection item references a valid problem_list_id from the database
 
-**Plans**: TBD
+**Plans**: 1 plan
+- [x] 16-01-PLAN.md -- Generate ~92 solution INSERTs with Chinese Markdown content, valid FKs
 
 ---
 

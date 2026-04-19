@@ -1,13 +1,13 @@
 # UltiCode 技术债务清偿
 
-## Current Milestone: v1.4 Seed Data 扩充
+## Current Milestone: v1.5 技术债务清偿 III
 
-**Goal:** 扩充平台种子数据体量，提升数据质量和场景覆盖度
+**Goal:** 清扫 CONCERNS.md 中 23 项已识别问题，建立更健壮的平台基线
 
 **Target features:**
-- Solutions — 每题至少 1 篇题解，中等难度题 2-3 篇
-- Submissions — 多样化，增加 WA/MLE/RE 等非 AC 结果
-- Collections — 场景化，按难度/标签/面试公司组织
+- HIGH: Swagger B-01, CI/CD Flyway CI-01, Rate Limiting SEC-01 (MISS-01), springdoc DEPS-01
+- MEDIUM: Forum stats B-02, PM2 env TD-01, Maven build TD-02, Dubbo config TD-03, N+1 PERF-01, Caching SCALE-01, Forum service SCALE-02, JaCoCo MISS-02, 3 test gaps
+- LOW: Large files TD-04/TD-05, System.out SEC-02, JWT/Redis null FRAG-01/FRAG-02, Volatile FRAG-03, CI caching CI-02
 
 **Status:** Defining requirements
 
@@ -177,4 +177,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-19 after v1.3 milestone*
+*Last updated: 2026-04-20 after v1.4 milestone (v1.5 initializing)*

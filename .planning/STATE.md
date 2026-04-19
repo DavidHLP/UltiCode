@@ -1,101 +1,39 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: Core Features
-status: executing
-stopped_at: Phase 15 context gathered
-last_updated: "2026-04-19T09:50:00.000Z"
+milestone: v1.4
+milestone_name: TBD
+status: planning
+stopped_at: v1.3 Core Features shipped, awaiting next milestone definition
+last_updated: "2026-04-19T10:15:00.000Z"
 last_activity: 2026-04-19
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-04-18)
+See: .planning/PROJECT.md (updated 2026-04-19)
 
-**Core value:** 补全四大核心功能的关键缺失，使平台可完整运行
-**Current focus:** Phase 15 — Problem + User Enhancements
+**Core value:** 平台安全性、功能完整性和交付自动化
+**Current focus:** Awaiting next milestone definition — v1.3 shipped 2026-04-19
 
 ## Current Position
 
-Phase: 15
-Plan: Complete (2 waves)
-Status: Phase 15 complete
-Last activity: 2026-04-19
+Milestone: v1.3 Core Features — SHIPPED
+All 4 phases complete (12-15), all 8 plans done.
 
-Progress: Phase 14 complete [100%]
-
-## Performance Metrics
-
-**Velocity:**
-
-- Total plans completed: 39 (v1.0: 11, v1.1: 16, v1.2: 8)
-- Average duration: —
-- Total execution time: —
-
-**By Phase:**
-
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| 1-4 (v1.0) | 11 | — | — |
-| 5-8 (v1.1) | 16 | — | — |
-| 9-11 (v1.2) | 8 | — | — |
-| 12 | 2 | - | - |
-| 13 | 2 | - | - |
-
-**Recent Trend:**
-
-- Last 5 plans: —
-- Trend: —
-
-*Updated after each plan completion*
-| Phase 12 P01 | 194 | 2 tasks | 2 files |
-| Phase 12 P02 | 11min | 2 tasks | 3 files |
-
-## Accumulated Context
-
-### Decisions
-
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- v1.0: All 28 technical debt items resolved across 4 phases
-- v1.1: 16 additional plans across 4 phases, 141 total tests
-- v1.2: CI/CD pipeline — 3 phases (Foundation+CI, CD, Hardening), 8 plans
-- [Phase 12]: Language whitelist restricted to 5 entries (javascript, python, java, c, cpp) matching CodeExecutionService
-- [Phase 12]: Memory measured via cgroup v2 /sys/fs/cgroup/memory.current in Docker wrappers, reported as String X.XMB format
-- [Phase 12]: Used @ConditionalOnProperty(matchIfMissing=true) so judge worker enabled by default; AtomicInteger activeJobs for concurrency guard; exponential backoff 2s*2^attempts with max 3 retries; compile errors not retried
-
-### Pending Todos
-
-None yet.
-
-### Blockers/Concerns
-
-- **Judge Worker missing (CRITICAL):** Submissions stay Pending forever, no queue consumer exists — Phase 12
-- **Contest backend 60% missing:** No entities/scheduler/rating engine, Admin API mismatch — Phases 13-14
-- **Achievement API path mismatch:** Fixed in Phase 15 — aliases added
-- **Language support mismatch:** 13 accepted but only 5 supported in sandbox — Phase 12
-
-## Deferred Items
+## Deferred Items (from v1.3)
 
 | Category | Item | Status | Deferred At |
 |----------|------|--------|-------------|
-| v2 Monitoring | MON-01: Deployment notifications | Deferred | v1.2 |
-| v2 Monitoring | MON-02: Deployment history log | Deferred | v1.2 |
-| v2 Advanced CI | ADVCI-01: Concurrency groups | Deferred | v1.2 |
-| v2 Advanced CI | ADVCI-02: Test result artifacts | Deferred | v1.2 |
-| v2 Advanced CI | ADVCI-03: Deploy previews | Deferred | v1.2 |
-
-## Session Continuity
-
-Last session: 2026-04-18T15:52:29.141Z
-Stopped at: Phase 14 context gathered
-Resume file: .planning/phases/14-contest-engine/14-CONTEXT.md
+| JUDGE | JUDGE-04: WebSocket submission verdict | Pending | v1.3 |
+| CONTEST | CONTEST-03: Contest scheduler | Pending | v1.3 |
+| CONTEST | CONTEST-06: Real-time ranking WebSocket | Pending | v1.3 |
+| PROBLEM | PROB-04: CreateProblemDTO extension | Pending | v1.3 |
+| USER | USER-03: Public profile page | Pending | v1.3 |

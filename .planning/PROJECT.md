@@ -1,21 +1,14 @@
 # UltiCode 技术债务清偿
 
-## Current Milestone: v1.3 Core Features
+## Current Milestone: v1.4 TBD
 
-**Goal:** 补全四大核心功能（判题、竞赛、题目浏览、用户中心）的关键缺失，使平台可完整运行
-
-**Target features:**
-- 判题系统：实现 Judge Worker，解决提交永久 Pending 问题
-- 竞赛系统：补全后端实体、调度器、Rating 计算、Admin API
-- 题目浏览：随机题目、通过率计算、Admin 批量操作
-- 用户中心：全局排名、公开主页、前后端 API 一致性修复
-
-**Key context:** 前端 UI 大部分已就绪，主要工作量在后端 API 补全
+**Status:** Awaiting next milestone definition. v1.3 shipped 2026-04-19.
 
 ## Current State
 
-**In Progress:** v1.3 Core Features (started 2026-04-18)
-**Status:** 定义需求和路线图阶段。前三个里程碑（v1.0~v1.2）已完成，技术债务清偿和 CI/CD 管道均已就绪。
+**Last shipped:** v1.3 Core Features (2026-04-19)
+**Total plans completed:** 47 (v1.0: 11, v1.1: 16, v1.2: 8, v1.3: 12)
+**Status:** Ready for next milestone planning
 
 ## What This Is
 
@@ -62,10 +55,29 @@
 - ✓ CD-01~05: GHCR push、image tagging、docker-compose.prod.yml、SSH deploy、ordered restart — v1.2 Phase 10
 - ✓ HARD-01: Dependabot 配置 (Actions + npm + Maven) — v1.2 Phase 11
 - ✓ HARD-02: Rollback workflow (workflow_dispatch) — v1.2 Phase 11
+- ✓ JUDGE-01: JudgeWorkerProcessor 自动判题 via Redis queue — v1.3 Phase 12
+- ✓ JUDGE-02: cgroup v2 内存测量 — v1.3 Phase 12
+- ✓ JUDGE-03: Language whitelist 5种语言 — v1.3 Phase 12
+- ✓ CONTEST-01: Admin contest CRUD — v1.3 Phase 13
+- ✓ CONTEST-02: Contest submission recording — v1.3 Phase 13
+- ✓ CONTEST-04: Live ranking dirty tracking (markDirty + flushPendingRankings) — v1.3 Phase 14
+- ✓ CONTEST-05: Contest problem management — v1.3 Phase 13
+- ✓ CONTEST-07: Announcement CRUD + WebSocket push — v1.3 Phase 13
+- ✓ PROB-01: Random problem browsing — v1.3 Phase 15
+- ✓ PROB-02: Acceptance rate from real submission data — v1.3 Phase 15
+- ✓ PROB-03: Admin bulk operations — v1.3 Phase 15
+- ✓ USER-01: User stats endpoint — v1.3 Phase 15
+- ✓ USER-02: globalRank AC-count-based ranking — v1.3 Phase 15
+- ✓ USER-04: Achievement aliases — v1.3 Phase 15
+- ✓ USER-05: Profile acceptance rate — v1.3 Phase 15
 
 ### Active
 
-(No active requirements — next milestone TBD)
+- [ ] JUDGE-04: WebSocket submission verdict push (deferred from v1.3)
+- [ ] CONTEST-03: Contest scheduler (deferred from v1.3)
+- [ ] CONTEST-06: Real-time ranking WebSocket (deferred from v1.3)
+- [ ] PROB-04: CreateProblemDTO extension (deferred from v1.3)
+- [ ] USER-03: Public profile page (deferred from v1.3)
 
 ### Out of Scope
 
@@ -80,12 +92,16 @@
 
 ## Context
 
-**代码库现状 (post-v1.2)：**
+**代码库现状 (post-v1.3)：**
 - 后端 Spring Boot 3.5 + MyBatis-Plus，26+ 模块
 - 前端 Console (Vue 3) ~200+ 源文件，Management (Vue 3) ~100+ 源文件
 - v1.0 变更: 378 files changed, +31,958 / -18,490 LOC
 - v1.1 变更: Phases 5-8, 15 plans, 141 total tests (71 v1.0 + 70 v1.1)
 - v1.2 变更: Phases 9-11, 8 plans, 259 files changed, +13,074 / -26,140 LOC
+- v1.3 变更: Phases 12-15, 12 plans, 351 files changed, +20,288 / -28,279 LOC
+- 判题系统就绪: Judge Worker 自动处理 Redis queue, 内存测量, 5语言白名单
+- 竞赛系统后端就绪: 实体/CRUD/公告/评分/实时排名基础设施
+- 用户数据就绪: globalRank AC排名, acceptance rate, user stats API
 - 安全基线: CSRF/XSS/JWT 全链路加固, 生产配置 profile 就绪
 - 测试: Testcontainers BOM 1.21.3, 141 tests (71 + 35 console + 23 management + 12 backend)
 - 前端: 所有 Vue 组件 < 500 行, console.log 清理完毕, SNAPSHOT deps → 1.0.0
@@ -129,6 +145,12 @@
 | Backend-first ordered restart | 后端健康检查通过再启动前端 | ✓ Good — v1.2 Phase 10 |
 | application-ci.yml profile | 避免 Testcontainers Docker-in-Docker | ✓ Good — v1.2 Phase 9 |
 | Dependabot v2 grouped updates | 减少 PR 噪音，weekly 分组 | ✓ Good — v1.2 Phase 11 |
+| cgroup v2 memory measurement | /sys/fs/cgroup/memory.current in Docker wrappers | ✓ Good — v1.3 Phase 12 |
+| Admin contests → UPCOMING directly | 去掉 DRAFT 状态简化流程 | ✓ Good — v1.3 Phase 13 |
+| Contest submission try-catch guard | 记录不阻塞主提交流程 | ✓ Good — v1.3 Phase 13 |
+| Exponential backoff retry | 2s*2^attempts, max 3 retries | ✓ Good — v1.3 Phase 12 |
+| AC-count globalRank | 无需 contest participation 也能计算排名 | ✓ Good — v1.3 Phase 15 |
+| Throttle pending rankings | 1s flush interval 防止 WebSocket风暴 | ⚠ Revisit — v1.3 Phase 14 |
 
 ## Evolution
 
@@ -148,4 +170,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-04-18 after v1.2 milestone*
+*Last updated: 2026-04-19 after v1.3 milestone*

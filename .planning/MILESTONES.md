@@ -1,5 +1,22 @@
 # Milestones
 
+## v1.3 Core Features — 2026-04-19
+
+**Shipped:** 2026-04-19
+**Phases:** 12-15 (4 phases, 8 plans)
+**Files changed:** 351 files, +20,288 / -28,279 LOC
+
+**Key accomplishments:**
+- Judge Worker: 自动判题 via Redis queue, cgroup v2 内存测量, 5语言白名单
+- Contest Data Layer: 实体/CRUD/公告/跨模块提交记录
+- Contest Engine: CF Elo评分, 实时排名throttle基础设施
+- Problem + User: Random题目, acceptance rate, globalRank AC排名, admin bulk ops
+
+**Deferred to v1.4:** JUDGE-04, CONTEST-03, CONTEST-06, PROB-04, USER-03
+
+---
+
+
 ## v1.2 CI/CD Pipeline (Shipped: 2026-04-18)
 
 **Phases completed:** 3 phases, 8 plans, 9 tasks

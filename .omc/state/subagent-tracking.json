@@ -1,0 +1,44 @@
+{
+  "agents": [
+    {
+      "agent_id": "a07ed1515afd928e8",
+      "agent_type": "gsd-executor",
+      "started_at": "2026-04-19T00:45:50.255Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-19T00:51:20.028Z",
+      "duration_ms": 329773
+    },
+    {
+      "agent_id": "a4b9cc5e740a0a450",
+      "agent_type": "gsd-executor",
+      "started_at": "2026-04-19T00:51:34.570Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-19T00:56:37.167Z",
+      "duration_ms": 302597
+    },
+    {
+      "agent_id": "a42d2b69dac36ae3f",
+      "agent_type": "gsd-verifier",
+      "started_at": "2026-04-19T00:58:50.357Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-19T01:01:23.228Z",
+      "duration_ms": 152871
+    },
+    {
+      "agent_id": "a49816ba3402a87d8",
+      "agent_type": "gsd-code-reviewer",
+      "started_at": "2026-04-19T00:59:01.167Z",
+      "parent_mode": "none",
+      "status": "completed",
+      "completed_at": "2026-04-19T01:00:42.778Z",
+      "duration_ms": 101611
+    }
+  ],
+  "total_spawned": 4,
+  "total_completed": 4,
+  "total_failed": 0,
+  "last_updated": "2026-04-19T01:01:23.329Z"
+}

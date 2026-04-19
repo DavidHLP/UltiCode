@@ -28,7 +28,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 11: Hardening** - Dependabot, rollback workflow (v1.2)
 - [x] **Phase 12: Judge Worker** - Implement judge queue consumer, fix language support, add memory measurement (v1.3) (completed 2026-04-18)
 - [x] **Phase 13: Contest Data Layer** - Contest entities, admin CRUD, announcements (v1.3) (completed 2026-04-18)
-- [ ] **Phase 14: Contest Engine** - Scheduler, rating engine, real-time WebSocket (v1.3)
+- [x] **Phase 14: Contest Engine** - Scheduler, rating engine, real-time WebSocket (v1.3)
 - [ ] **Phase 15: Problem + User Enhancements** - Random problems, acceptance rates, public profiles, admin bulk ops (v1.3)
 
 ## Phase Details
@@ -234,7 +234,7 @@ Phases execute in numeric order: 1 → 15
 | 11. Hardening | v1.2 | 2/2 | Complete | 2026-04-18 |
 | 12. Judge Worker | v1.3 | 2/2 | Complete    | 2026-04-18 |
 | 13. Contest Data Layer | v1.3 | 2/2 | Complete    | 2026-04-18 |
-| 14. Contest Engine | v1.3 | 0/? | Not started | - |
+| 14. Contest Engine | v1.3 | 2/2 | Complete | 2026-04-19 |
 | 15. Problem + User Enhancements | v1.3 | 0/? | Not started | - |
 
 ---

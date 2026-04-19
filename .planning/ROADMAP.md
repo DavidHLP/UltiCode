@@ -5,7 +5,7 @@
 - ✅ **v1.0 Technical Debt Remediation** — Phases 1-4 (shipped 2026-04-16)
 - ✅ **v1.1 Technical Debt Remediation II** — Phases 5-8 (shipped 2026-04-17)
 - ✅ **v1.2 CI/CD Pipeline** — Phases 9-11 (shipped 2026-04-18)
-- 🚧 **v1.3 Core Features** — Phases 12-15 (in progress)
+- ✅ **v1.3 Core Features** — Phases 12-15 (shipped 2026-04-19)
 
 ## Phases
 
@@ -26,193 +26,10 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 9: Foundation + CI** - Fix blocking Dockerfile/config bugs, create CI workflow (v1.2)
 - [x] **Phase 10: CD Pipeline** - Docker image publish to GHCR, SSH deploy to VPS (v1.2)
 - [x] **Phase 11: Hardening** - Dependabot, rollback workflow (v1.2)
-- [x] **Phase 12: Judge Worker** - Implement judge queue consumer, fix language support, add memory measurement (v1.3) (completed 2026-04-18)
-- [x] **Phase 13: Contest Data Layer** - Contest entities, admin CRUD, announcements (v1.3) (completed 2026-04-18)
-- [x] **Phase 14: Contest Engine** - Scheduler, rating engine, real-time WebSocket (v1.3)
-- [ ] **Phase 15: Problem + User Enhancements** - Random problems, acceptance rates, public profiles, admin bulk ops (v1.3)
-
-## Phase Details
-
-<details>
-<summary>✅ v1.0 Technical Debt Remediation (Phases 1-4) — SHIPPED 2026-04-16</summary>
-
-### Phase 1: Security Filter Chain
-**Goal**: CSRF/XSS/JWT filter chain hardening
-**Plans**: 3 plans
-
-Plans:
-- [x] 01-01: Replace XssFilter with OWASP Encoder output encoding (SEC-06)
-- [x] 01-02: Migrate CSRF to Spring Security CsrfValidationFilter (SEC-01)
-- [x] 01-03: JWT secret fail-fast validation + remove UserDetailsServiceImpl (SEC-05, SEC-03)
-
-### Phase 2: Core Functionality
-**Goal**: Password reset, rejudge, Docker sandbox hardening
-**Plans**: 3 plans
-
-Plans:
-- [x] 02-01: Password reset with BCrypt token + email delivery (SEC-02)
-- [x] 02-02: Admin rejudge/batch-rejudge with rate limiting (FUNC-01)
-- [x] 02-03: Docker sandbox seccomp profile + cap-drop ALL (SEC-04)
-
-### Phase 3: Test Coverage
-**Goal**: Unit + integration tests for security and core fixes
-**Plans**: 3 plans
-
-Plans:
-- [x] 03-01: JWT/CSRF/Auth unit tests (48 tests)
-- [x] 03-02: Submission + CodeExecution unit tests (18 tests)
-- [x] 03-03: Testcontainers integration tests (5 tests)
-
-### Phase 4: Frontend Quality
-**Goal**: Oversized Vue component split
-**Plans**: 2 plans
-
-Plans:
-- [x] 04-01: Console component split (14 components → 34 sub-components + 8 composables)
-- [x] 04-02: Management component + Pinia store split (6 components → 25 sub-components + 6 composables + 5 store modules)
-
-</details>
-
-<details>
-<summary>✅ v1.1 Technical Debt Remediation II (Phases 5-8) — SHIPPED 2026-04-17</summary>
-
-### Phase 5: Security Configuration
-**Goal**: Platform security configuration is externalized and production-hardened
-**Plans**: 4 plans
-
-Plans:
-- [x] 05-01: Externalize CORS origins to environment variables (SEC-07)
-- [x] 05-02: Stop XssFilter from cleaning request headers (SEC-08)
-- [x] 05-03: Harden JWT cookie Secure flag and create application-prod.yml (CONF-01, CONF-02)
-- [x] 05-04: Remove weak default passwords from docker-compose.yml (CONF-03)
-
-### Phase 6: Admin Functionality & Performance
-**Goal**: Admin panel displays real data, audit trails capture authenticated user, analytics use DB aggregation
-**Plans**: 5 plans
-
-Plans:
-- [x] 06-01: Replace BackupController hardcoded "system" with actual authenticated user ID (AUDIT-01)
-- [x] 06-02: Implement 5 Admin TODO stubs with real data (FUNC-02)
-- [x] 06-03: Implement moderation average resolution time calculation (FUNC-03)
-- [x] 06-04: Optimize admin analytics with database aggregation queries (PERF-02)
-- [x] 06-05: Batch test case execution in single Docker container (PERF-01)
-
-### Phase 7: Code Quality & Dependencies
-**Goal**: Precise exception handling, service splits, debug cleanup, stable deps
-**Plans**: 3 plans
-
-Plans:
-- [x] 07-01: Replace broad catch(Exception e) with specific exception types (QUAL-02)
-- [x] 07-02: Split AdminAnalyticsServiceImpl into focused service classes (QUAL-03)
-- [x] 07-03: Clean console.log/warn, replace SNAPSHOT deps, untrack management/.env (QUAL-04, DEP-01, DEP-02, DEP-03)
-
-### Phase 8: Testing
-**Goal**: Frontend key-path tests and backend @WebMvcTest controller tests
-**Plans**: 3 plans
-
-Plans:
-- [x] 08-01: Console frontend key-path tests — API layer, auth store, problem store (TEST-02)
-- [x] 08-02: Management frontend key-path tests — API layer, admin store (TEST-03)
-- [x] 08-03: Backend Controller @WebMvcTest integration tests (TEST-04)
-
-</details>
-
-<details>
-<summary>✅ v1.2 CI/CD Pipeline (Phases 9-11) — SHIPPED 2026-04-18</summary>
-
-### Phase 9: Foundation + CI
-**Goal**: All pre-existing Dockerfile and configuration bugs are fixed, and a working CI workflow validates every PR with lint, type-check, and test across all 3 services
-**Plans**: 3 plans
-
-Plans:
-- [x] 09-01: Fix Dockerfile bugs and create .dockerignore (FOUND-01, FOUND-02, FOUND-03, FOUND-04)
-- [x] 09-02: Create application-ci.yml profile and secrets mapping document (FOUND-05, FOUND-06)
-- [x] 09-03: Write ci.yml workflow with path-filtered parallel jobs and build caching (CI-01, CI-02, CI-03, CI-04, CI-05, CI-06)
-
-### Phase 10: CD Pipeline
-**Goal**: Every merge to main automatically builds Docker images, pushes them to GHCR, and deploys to the VPS via Docker Compose with ordered service restarts
-**Plans**: 3 plans
-
-Plans:
-- [x] 10-01: Write docker-publish.yml with GHCR push and deterministic image tagging (CD-01, CD-02)
-- [x] 10-02: Create docker-compose.prod.yml referencing GHCR images (CD-05)
-- [x] 10-03: Write deploy.yml with SSH deploy and ordered health check restart (CD-03, CD-04)
-
-### Phase 11: Hardening
-**Goal**: The CI/CD pipeline is self-maintaining with automated dependency updates and a manual rollback capability for failed deployments
-**Plans**: 2 plans
-
-Plans:
-- [x] 11-01: Configure Dependabot for Actions and dependency updates (HARD-01)
-- [x] 11-02: Create rollback workflow with manual image tag redeployment (HARD-02)
-
-</details>
-
-### 🚧 v1.3 Core Features (In Progress)
-
-**Milestone Goal:** 补全四大核心功能（判题、竞赛、题目浏览、用户中心）的关键缺失，使平台可完整运行
-
-### Phase 12: Judge Worker
-**Goal**: Submissions are judged automatically — users see results instead of permanent Pending, memory usage is measured accurately, and only supported languages can be submitted
-**Depends on**: Phase 11 (CI/CD complete, platform deployed)
-**Requirements**: JUDGE-01, JUDGE-02, JUDGE-03
-**Success Criteria** (what must be TRUE):
-  1. User submits code for a problem and sees the verdict (Accepted/WA/TLE/MLE/RE) within seconds, not Pending forever
-  2. Submission page displays actual memory consumption (e.g., "4.2 MB") instead of "0KB"
-  3. The language dropdown on the submission form only shows the 5 supported languages (JS, Python, Java, C, C++)
-  4. Judge Worker processes jobs from Redis queue reliably, handling errors and retries without crashing
-**Plans**: 2 plans
-
-Plans:
-- [x] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
-- [x] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
-
-### Phase 13: Contest Data Layer
-**Goal**: Admins can fully manage contests (create, update, delete, start, stop) and contest announcements through the management dashboard, with proper entity persistence for contest problems and submissions
-**Depends on**: Phase 12 (Judge Worker operational — contest submissions need judging)
-**Requirements**: CONTEST-01, CONTEST-02, CONTEST-05, CONTEST-07
-**Success Criteria** (what must be TRUE):
-  1. Admin can create a contest, assign problems to it, and see the contest problem list in the management dashboard
-  2. Admin can start and stop a contest via the management dashboard, and the contest status updates correctly
-  3. Admin can create, edit, and delete contest announcements, which are visible to contest participants
-  4. When a user submits code during a contest, the submission is recorded in both submissions and contest_submissions tables
-**Plans**: 2 plans
-
-Plans:
-- [x] 13-01: Create contest entities, mappers, and admin contest lifecycle CRUD (CONTEST-01, CONTEST-05)
-- [x] 13-02: Add contest submission recording and announcement CRUD with WebSocket push (CONTEST-02, CONTEST-07)
-
-### Phase 14: Contest Engine
-**Goal**: Contests run automatically with correct lifecycle transitions, participants earn accurate ratings after contests end, and real-time ranking updates are delivered via WebSocket
-**Depends on**: Phase 13 (Contest entities and admin API operational)
-**Requirements**: CONTEST-03, CONTEST-04, CONTEST-06, JUDGE-04
-**Success Criteria** (what must be TRUE):
-  1. A contest automatically transitions from UPCOMING to RUNNING at start_time and to FINISHED at end_time without manual intervention
-  2. After a contest ends, all participants' ratings are recalculated and updated in global_rankings with correct title promotions/demotions
-  3. Contest ranking page updates in real-time as participants submit solutions, without page refresh
-  4. Submission status changes from Pending to final verdict are pushed to the browser via WebSocket without polling
-**Plans**: 2 plans
-Plans:
-- [ ] 14-01: Add throttle infrastructure (markDirty + flushPendingRankings), wire submission verdict to dirty tracking, fix contestId in SubmissionResultPayload (JUDGE-04, CONTEST-04)
-- [ ] 14-02: Create ContestScheduler (@Scheduled 10s lifecycle polling) and RatingCalculationService (CF Elo rating engine) (CONTEST-03, CONTEST-06)
-**UI hint**: yes
-
-### Phase 15: Problem + User Enhancements
-**Goal**: Users can browse random problems, see accurate acceptance rates, view public profiles of other users, and admins can manage problems efficiently with bulk operations
-**Depends on**: Phase 12 (Judge Worker — needed for accurate acceptance rate calculations)
-**Requirements**: PROB-01, PROB-02, PROB-03, PROB-04, USER-01, USER-02, USER-03, USER-04, USER-05
-**Success Criteria** (what must be TRUE):
-  1. User can click a "Random Problem" button and get a published problem they haven't necessarily seen before
-  2. Problem list shows accurate acceptance rates calculated from actual submission data, not hardcoded values
-  3. Admin can select multiple problems and perform bulk actions (publish/unpublish/delete/edit difficulty)
-  4. User can visit /users/:id and see another user's public profile with stats, solved problems, and submission count
-  5. User's own profile page shows global rank, acceptance rate, and total submission count — all populated from the backend
-**Plans**: 2 plans
-
-Plans:
-- [ ] 12-01: Fix language support mismatch + add cgroup v2 memory measurement (JUDGE-02, JUDGE-03)
-- [ ] 12-02: Implement JudgeWorkerProcessor with verdict logic, retry, and WebSocket push (JUDGE-01)
-**UI hint**: yes
+- [x] **Phase 12: Judge Worker** - Auto-judge via Redis queue, cgroup v2 memory, language whitelist (v1.3)
+- [x] **Phase 13: Contest Data Layer** - Contest entities, admin CRUD, announcement system (v1.3)
+- [x] **Phase 14: Contest Engine** - Scheduler, CF Elo rating, real-time ranking throttle (v1.3)
+- [x] **Phase 15: Problem + User Enhancements** - Random problems, acceptance rates, admin bulk ops, globalRank (v1.3)
 
 ## Progress
 
@@ -232,11 +49,11 @@ Phases execute in numeric order: 1 → 15
 | 9. Foundation + CI | v1.2 | 3/3 | Complete | 2026-04-18 |
 | 10. CD Pipeline | v1.2 | 3/3 | Complete | 2026-04-18 |
 | 11. Hardening | v1.2 | 2/2 | Complete | 2026-04-18 |
-| 12. Judge Worker | v1.3 | 2/2 | Complete    | 2026-04-18 |
-| 13. Contest Data Layer | v1.3 | 2/2 | Complete    | 2026-04-18 |
+| 12. Judge Worker | v1.3 | 2/2 | Complete | 2026-04-18 |
+| 13. Contest Data Layer | v1.3 | 2/2 | Complete | 2026-04-18 |
 | 14. Contest Engine | v1.3 | 2/2 | Complete | 2026-04-19 |
-| 15. Problem + User Enhancements | v1.3 | 0/? | Not started | - |
+| 15. Problem + User Enhancements | v1.3 | 2/2 | Complete | 2026-04-19 |
 
 ---
 *Roadmap created: 2026-04-17*
-*Last updated: 2026-04-18*
+*Last updated: 2026-04-19 after v1.3 milestone*

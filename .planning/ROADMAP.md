@@ -18,7 +18,7 @@
 | 9-11  | v1.2      | All           | Complete |
 | 12-15 | v1.3      | All           | Complete |
 | 16-18 | v1.4      | All           | Complete |
-| 19    | v1.5      | 0/3           | Not started |
+| 19    | v1.5      | 1/1           | In progress |
 | 20    | v1.5      | 0/3           | Not started |
 | 21    | v1.5      | 0/7           | Not started |
 | 22    | v1.5      | 0/5           | Not started |
@@ -53,7 +53,10 @@
 2. User exceeding rate limit receives HTTP 429 with Retry-After header
 3. Rate limiting applies to auth, problem, submission, and contest endpoint groups
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
 
 ### Phase 20: JaCoCo Coverage Baseline
 
@@ -68,7 +71,10 @@
 2. `mvn verify` fails when branch coverage drops below 40%
 3. JaCoCo report excludes generated mapper classes, entities, DTOs, and config classes
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
 
 ### Phase 21: Security Hardening
 
@@ -87,7 +93,10 @@
 6. Redis Service null returns are explicitly handled by callers
 7. MonitoringServiceImpl volatile counter uses AtomicLong for thread safety
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
 
 ### Phase 22: Redis Caching Layer
 
@@ -104,7 +113,10 @@
 4. All create/update/delete operations use @CacheEvict to invalidate stale entries
 5. Cache TTLs include jitter to prevent cache stampede on expiration
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
 
 ### Phase 23: N+1 Query Optimization
 
@@ -119,7 +131,10 @@
 2. Problem list page loads tags and difficulty in single query (not N+1 lazy loads)
 3. Submission list page loads problem metadata in single query with JOIN FETCH
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
 
 ### Phase 24: PM2 / Build Infrastructure
 
@@ -133,7 +148,10 @@
 1. PM2 ecosystem.config.cjs uses dotenv npm package instead of custom .env parser
 2. Build documentation specifies recommend-api must `mvn install` before backend-spring
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
 
 ### Phase 25: Large File Refactoring
 
@@ -148,7 +166,10 @@
 2. CodeExecutionService extraction produces CodeExecutionHelper or SandboxService
 3. ContestServiceImpl is split into ContestRankingService, ContestSchedulerService
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
 
 ---
 

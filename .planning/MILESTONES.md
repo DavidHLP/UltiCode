@@ -1,5 +1,15 @@
 # Milestones
 
+## v1.4 Seed Data Expansion (Shipped: 2026-04-19)
+
+**Phases completed:** 3 phases, 3 plans, 0 tasks
+
+**Key accomplishments:**
+
+- 1. [Rule 3 - Blocking] Fixed SQL syntax errors
+
+---
+
 ## v1.3 Core Features — 2026-04-19
 
 **Shipped:** 2026-04-19
@@ -7,6 +17,7 @@
 **Files changed:** 351 files, +20,288 / -28,279 LOC
 
 **Key accomplishments:**
+
 - Judge Worker: 自动判题 via Redis queue, cgroup v2 内存测量, 5语言白名单
 - Contest Data Layer: 实体/CRUD/公告/跨模块提交记录
 - Contest Engine: CF Elo评分, 实时排名throttle基础设施
@@ -15,7 +26,6 @@
 **Deferred to v1.4:** JUDGE-04, CONTEST-03, CONTEST-06, PROB-04, USER-03
 
 ---
-
 
 ## v1.2 CI/CD Pipeline (Shipped: 2026-04-18)
 
@@ -73,3 +83,16 @@
 - Split 5 oversized management components (1224, 881, 768, 627, 602 lines) and 1 Pinia store (600 lines) into 25 co-located sub-components, 6 composables, and 5 domain store modules, all under 500 lines
 
 ---
+
+---
+
+## v1.4 Seed Data Expansion (Shipped: 2026-04-19)
+
+**Phases completed:** 3 phases, 3 plans
+
+**Key accomplishments:**
+
+- Solutions Seed (V23): 97 solutions across 32 problems with Chinese Markdown content
+- Submissions Seed (V24): ~200 submissions with realistic status distribution (AC/WA/TLE/MLE/RE/CE)
+- Collections Seed (V25): ~50 scenario-based collections organized by difficulty/tags/interview companies
+- SQL syntax errors in Phase 17 seed fixed before execution

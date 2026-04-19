@@ -1,57 +1,121 @@
-# Code Conventions
+# Coding Conventions
 
-## Overview
+**Analysis Date:** 2026-04-19
 
-This document defines coding conventions for the UltiCode project across all layers.
+## Languages
 
-## Backend (Spring Boot)
+**Backend:**
+- Java 17 - Spring Boot 3.2.5
 
-### Technology Stack
+**Frontend:**
+- TypeScript ~6.0.3 - Vue 3 (Console and Management)
+- CSS Framework: Tailwind CSS v4 with `@tailwindcss/vite` plugin
 
-- **Framework**: Spring Boot 3.2.5 (Java 17)
-- **ORM**: MyBatis-Plus 3.5.16
-- **API Docs**: SpringDoc OpenAPI 2.6.0
-- **Build**: Maven with `./mvnw` wrapper
+## Formatting
 
-### Java Coding Standards
+**Frontend (ESLint + Prettier):**
+- ESLint 9.x (Console), 10.x (Management) with `@vue/eslint-config-typescript`
+- Prettier configuration (`management/.prettierrc.json`):
+  - `semi: false`
+  - `singleQuote: true`
+  - `printWidth: 100`
 
-1. **Immutability**: Always create new objects; never mutate existing ones
-2. **Error Handling**: Comprehensive try-catch with safe `unknown` narrowing
-3. **Input Validation**: Use `@Valid` annotations and Bean Validation
-4. **Naming**:
-   - Classes: `PascalCase` (e.g., `UserService`)
-   - Methods: `camelCase` (e.g., `findById`)
-   - Constants: `UPPER_SNAKE_CASE`
-   - DTOs:Suffix with `DTO`, `VO`, `Request`, `Response`
-5. **File Organization**: Follow module structure under `com.ulticode.modules.<domain>`
+**Backend (Java):**
+- No explicit formatter configured in pom.xml
+- Lombok for reducing boilerplate
+- MapStruct for DTO mapping
 
-### Backend Module Structure
+## Naming Conventions
 
+**Files:**
+- Vue components: `PascalCase.vue` (e.g., `UserProfileView.vue`, `DataTable.vue`)
+- TypeScript files: `camelCase.ts` (e.g., `useRetry.ts`, `auth.spec.ts`)
+- Java classes: `PascalCase.java`
+
+**Functions/Variables:**
+- TypeScript: `camelCase`
+- Java: `camelCase`
+- Constants: `SCREAMING_SNAKE_CASE` (both)
+
+**Types/Interfaces:**
+- TypeScript: `PascalCase` (e.g., `interface UserProfile`, `type UserRole`)
+- Java: `PascalCase` (classes, interfaces, records)
+
+**Path Aliases:**
+- Frontend: `@` maps to `./src/` (e.g., `@/stores/auth`, `@/components/ui/button`)
+
+## Import Organization
+
+**Frontend (Vue/TypeScript):**
+```typescript
+// 1. Vue core
+import { ref, computed, watch } from "vue";
+import { useRoute } from "vue-router";
+import { useI18n } from "vue-i18n";
+
+// 2. External libraries
+import axios from "axios";
+import { useDebounceFn } from "@vueuse/core";
+
+// 3. Internal - aliased (@)
+import { useAuthStore } from "@/stores/auth";
+import { apiGet, apiPost } from "@/utils/request";
+import type { User } from "@/types/auth";
+
+// 4. UI components
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// 5. Icons
+import { Trophy, Flame, Target } from "lucide-vue-next";
 ```
-com.ulticode/
-├── common/           # Shared utilities, configs, exceptions
-│   ├── response/      # Result wrapper, PageResult
-│   ├── exception/     # GlobalExceptionHandler, BusinessException
-│   └── config/       # SecurityConfig, WebConfig, RedisConfig
-├── security/         # JWT filters, CSRF service
-└── modules/          # Feature modules
-    ├── auth/
-    ├── user/
-    ├── problem/
-    └── ...
+
+## Error Handling
+
+**Backend (Spring Boot):**
+- `Result<T>` wrapper class for all API responses
+- Structure: `{ code: number, message: string, data: T, traceId: string }`
+- `code: 0` indicates success; non-zero indicates error
+- `BusinessException` with `ErrorCode` enum for domain errors
+- Global exception handler in `com.ulticode.common.exception`
+
+**Frontend (Vue/TypeScript):**
+- Stores handle error states with `status: 'idle' | 'loading' | 'ready' | 'error'`
+- API errors propagate as thrown exceptions
+- CSRF token management for authentication errors
+
+## State Management
+
+**Frontend (Pinia):**
+- Stores in `src/stores/` directory
+- Setup stores using `defineStore` with composition API
+- Example: `useAuthStore`, `useRecommendationStore`
+
+## Component Patterns
+
+**Vue Components:**
+- Single File Components (`.vue` files) with `<script setup lang="ts">`
+- Props defined with `defineProps<Props>()` or `withDefaults`
+- Emits defined with `defineEmits<Emits>()`
+
+**UI Components:**
+- Base components in `src/components/ui/` (Button, Dialog, etc.)
+- Compound components organized in subdirectories (e.g., `accordion/Accordion.vue`)
+- Feature-specific components in `src/components/{feature}/`
+
+## API Patterns
+
+**Frontend Request Utility:**
+```typescript
+// src/utils/request.ts
+import { apiGet, apiPost } from "@/utils/request";
+
+// Usage
+const user = await apiGet<User>("/users/u-admin-001/stats");
+await apiPost("/auth/login", { username, password });
 ```
 
-Each module contains:
-- `controller/` - REST endpoints
-- `service/` - Business logic
-- `entity/` - Database entities (MyBatis-Plus)
-- `mapper/` - MyBatis mappers
-- `dto/` - Request/Response DTOs
-
-### API Response Format
-
-All APIs use `Result<T>` wrapper:
-
+**Response Format:**
 ```json
 {
   "code": 0,
@@ -61,109 +125,33 @@ All APIs use `Result<T>` wrapper:
 }
 ```
 
-- `code: 0` = success, non-zero = error
-- Frontend `request.ts` unwraps automatically
+## Logging
 
-### Recommended Hooks
+**Backend:**
+- SLF4J with Logback (Spring Boot default)
+- Structured logging with trace IDs for request tracking
 
-Configure in `~/.claude/settings.json`:
-- **google-java-format**: Auto-format `.java` files after edit
-- **checkstyle**: Run style checks after editing Java files
-- **./mvnw compile**: Verify compilation after changes
+**Frontend:**
+- No `console.log` statements in production code
+- PWA update prompts handled via `virtual:pwa-register`
 
-## Frontend (Vue 3 + Vite + Tailwind)
+## Module Structure
 
-### Technology Stack
-
-- **Framework**: Vue 3 + TypeScript
-- **Build**: Vite
-- **Styling**: Tailwind CSS v4 with OKLCH colors
-- **Components**: shadcn-vue + Radix Vue + Lucide icons
-- **Testing**: Vitest + Playwright
-
-### TypeScript Standards
-
-1. **Types**: Explicit types on public APIs, infer local variables
-2. **Interfaces vs Types**:
-   - `interface` for object shapes that may be extended
-   - `type` for unions, intersections, utility types
-3. **Avoid `any`**: Use `unknown` for external input, narrow safely
-4. **Immutability**: Use spread operator for updates
-5. **Props**: Define with named `interface` or `type`, not `React.FC`
-
-### Naming Conventions
-
-| Type | Convention | Example |
-|------|------------|---------|
-| Components | PascalCase | `UserCard.vue`, `ProblemList.vue` |
-| Hooks | camelCase with `use` prefix | `useAuth.ts`, `useProblem.ts` |
-| CSS classes | kebab-case | `problem-card`, `submit-btn` |
-| Constants | UPPER_SNAKE_CASE | `MAX_SUBMISSIONS` |
-| Variables | camelCase | `isLoading`, `problemList` |
-
-### ESLint Configuration
-
-- Config: `eslint.config.ts` (flat config)
-- Extends: `@vue/eslint-config-typescript`
-- Plugin: `eslint-plugin-vue`
-- Ignores: `dist/`, `dist-ssr/`, `coverage/`
-
-```typescript
-// Key rules
-'vue/multi-word-component-names': 'off'  // Allow single-word components
+**Backend Module Pattern:**
+```
+backend-spring/src/main/java/com/ulticode/
+├── common/           # Shared utilities, configs, exceptions
+│   ├── response/     # Result wrapper, PageResult
+│   ├── exception/    # GlobalExceptionHandler, BusinessException
+│   ├── config/       # SecurityConfig, WebConfig, RedisConfig
+│   └── annotation/   # @CurrentUser, @RequireRole, @RateLimit
+├── modules/          # Feature modules
+│   ├── auth/         # Authentication, login, OAuth
+│   ├── user/         # User CRUD, profile
+│   └── ...
+└── security/         # JWT filters, CSRF service
 ```
 
-### Prettier Configuration
+---
 
-- Config: `.prettierrc.json`
-- `semi: false` - No semicolons
-- `singleQuote: true` - Single quotes
-- `printWidth: 100` - 100 character line width
-
-### File Organization
-
-Organize by feature/surface, not by type:
-
-```
-src/
-├── components/
-│   ├── hero/
-│   │   ├── Hero.tsx
-│   │   └── hero.css
-│   └── ui/
-│       ├── Button.tsx
-│       └── Card.tsx
-├── hooks/
-│   ├── useAuth.ts
-│   └── useProblem.ts
-├── api/
-│   └── problem.ts
-└── styles/
-    └── tokens.css
-```
-
-## Git Workflow
-
-### Commit Message Format
-
-```
-<type>: <description>
-
-<optional body>
-```
-
-Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
-
-### Pull Request Workflow
-
-1. Analyze full commit history with `git diff [base-branch]...HEAD`
-2. Draft comprehensive PR summary
-3. Include test plan with TODOs
-4. Push with `-u` flag if new branch
-5. All automated checks (CI/CD) must pass before merge
-
-## CI/CD
-
-- **Backend**: Maven build with `./mvnw`
-- **Frontend**: Vite build (`pnpm build`)
-- **Testing**: Vitest for unit tests, Playwright for E2E
+*Convention analysis: 2026-04-19*

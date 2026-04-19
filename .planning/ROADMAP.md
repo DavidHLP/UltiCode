@@ -71,7 +71,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 4. User can verify each submission references a valid user_id and problem_id (no orphaned FKs)
 
 **Plans**: 1 plan
-- [x] 16-01-PLAN.md -- Generate ~92 solution INSERTs with Chinese Markdown content, valid FKs
+- [x] 17-01-PLAN.md -- Generate ~200 submission INSERTs with status distribution, valid FKs
 
 ---
 
@@ -117,7 +117,7 @@ Phases execute in numeric order: 1 → 18
 | 14. Contest Engine | v1.3 | 2/2 | Complete | 2026-04-19 |
 | 15. Problem + User Enhancements | v1.3 | 2/2 | Complete | 2026-04-19 |
 | 16. Solutions Seed (V23) | v1.4 | 1/1 | Complete | 2026-04-19 |
-| 17. Submissions Seed (V24) | v1.4 | 0/? | Not started | - |
+| 17. Submissions Seed (V24) | v1.4 | 1/? | Planned | - |
 | 18. Collections Seed (V25) | v1.4 | 0/? | Not started | - |
 
 ## Coverage

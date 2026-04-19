@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.4
-milestone_name: Seed Data 扩充
+milestone: v1.5
+milestone_name: 技术债务清偿 III
 status: in_progress
-stopped_at: Phase 18 complete
-last_updated: "2026-04-19T11:55:00.000Z"
-last_activity: 2026-04-19
+last_updated: "2026-04-20T00:02:00.000Z"
+last_activity: 2026-04-20
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -21,14 +20,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-04-19)
 
 **Core value:** 平台安全性、功能完整性和交付自动化
-**Current focus:** v1.4 Seed Data 扩充
+**Current focus:** v1.5 技术债务清偿 III（聚焦 CONCERNS.md 已知问题）
 
 ## Current Position
 
-Phase: Phase 18 complete
-Plan: 18-01 complete
-Status: v1.4 milestone complete — all 3 phases executed
-Last activity: 2026-04-19 — Phase 18 (Collections Seed) complete
+Phase: Not started (planning v1.5)
+Plan: —
+Status: v1.5 milestone initializing
+Last activity: 2026-04-20
 
 ## Phase Summary
 
@@ -50,4 +49,4 @@ Last activity: 2026-04-19 — Phase 18 (Collections Seed) complete
 
 ## Session Continuity
 
-Next action: `/gsd-complete-milestone` to archive v1.4 and initialize v1.5
+Next action: `/gsd-new-milestone` to begin v1.5 planning — CONCERNS.md known issues

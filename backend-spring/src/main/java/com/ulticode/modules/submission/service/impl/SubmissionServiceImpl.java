@@ -21,6 +21,7 @@ import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.queue.service.QueueService;
+import com.ulticode.modules.websocket.service.RealtimeService;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
@@ -58,6 +59,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
     private final QueueService queueService;
+    private final RealtimeService realtimeService;
     private final ContestProblemMapper contestProblemMapper;
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ContestMapper contestMapper;
@@ -580,6 +582,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             cs.setIsAccepted(false); // Will be updated when judge completes
             cs.setSubmittedAt(LocalDateTime.now());
             contestSubmissionMapper.insert(cs);
+            realtimeService.markDirty(contest.getId());
 
             // Only record for the first matching active contest
             break;

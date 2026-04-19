@@ -17,6 +17,8 @@ import com.ulticode.modules.submission.service.CodeExecutionService;
 import com.ulticode.modules.submission.service.SubmissionService;
 import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.service.RealtimeService;
+import com.ulticode.modules.contest.entity.ContestSubmission;
+import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -65,6 +67,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final CodeExecutionService codeExecutionService;
     private final SubmissionService submissionService;
     private final RealtimeService realtimeService;
+    private final ContestSubmissionMapper contestSubmissionMapper;
     private final TestCaseMapper testCaseMapper;
     private final QueueConfig queueConfig;
 
@@ -122,7 +125,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             if (testCases == null || testCases.isEmpty()) {
                 log.warn("No test cases found for problem {}", problemId);
                 submissionService.updateSubmissionResult(submissionId, "System Error", 0, 0.0, null);
-                pushResult(userId, submissionId, problemId, "System Error", 0, 0L);
+                pushResult(userId, submissionId, problemId, "System Error", 0, 0L, null);
                 return;
             }
 
@@ -162,7 +165,8 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
 
             // Push WebSocket
             long memoryBytes = (long) (maxMemoryMb * 1024 * 1024);
-            pushResult(userId, submissionId, problemId, verdict, (int) maxRuntimeMs, memoryBytes);
+            String contestId = findContestIdBySubmissionId(submissionId);
+            pushResult(userId, submissionId, problemId, verdict, (int) maxRuntimeMs, memoryBytes, contestId);
 
         } catch (Exception e) {
             log.error("Failed to process judge job for submission {}", submissionId, e);
@@ -211,8 +215,9 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             log.error("All retries exhausted for judge job {}, marking as System Error", job.getId(), error);
             submissionService.updateSubmissionResult(
                     job.getSubmissionId(), "System Error", 0, 0.0, null);
+            String failedContestId = findContestIdBySubmissionId(job.getSubmissionId());
             pushResult(job.getUserId(), job.getSubmissionId(), job.getProblemId(),
-                    "System Error", 0, 0L);
+                    "System Error", 0, 0L, failedContestId);
         }
     }
 
@@ -289,9 +294,16 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     }
 
     private void pushResult(String userId, String submissionId, String problemId,
-                            String status, int timeUsed, long memoryUsed) {
+                            String status, int timeUsed, long memoryUsed, String contestId) {
         SubmissionResultPayload payload = SubmissionResultPayload.of(
-                submissionId, null, problemId, userId, status, 0, timeUsed, memoryUsed);
+                submissionId, contestId, problemId, userId, status, 0, timeUsed, memoryUsed);
         realtimeService.emitSubmissionResult(userId, payload);
+    }
+
+    private String findContestIdBySubmissionId(String submissionId) {
+        ContestSubmission cs = contestSubmissionMapper.selectOne(
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ContestSubmission>()
+                        .eq(ContestSubmission::getSubmissionId, submissionId));
+        return cs != null ? cs.getContestId() : null;
     }
 }

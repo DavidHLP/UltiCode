@@ -32,6 +32,21 @@ public class UserStatsDTO {
     private int totalSolved;
 
     /**
+     * Global rank based on contest rating.
+     */
+    private Integer globalRank;
+
+    /**
+     * Acceptance rate (percentage of submissions that were accepted).
+     */
+    private Double acceptanceRate;
+
+    /**
+     * Total number of submissions made by the user.
+     */
+    private Long submissionCount;
+
+    /**
      * Heatmap data showing submission activity by date.
      */
     private List<HeatmapEntry> heatmap;

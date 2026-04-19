@@ -1,224 +1,324 @@
-# Architecture: Seed Data Expansion
+# Architecture Patterns: v1.5 Technical Debt Remediation
 
-**Domain:** Flyway migration patterns for database seed data
+**Domain:** Spring Boot 3.2.5 + MyBatis-Plus + Redis integration
 **Researched:** 2026-04-19
-**Overall confidence:** HIGH (direct evidence from existing migrations)
 
-## Executive Summary
+## Integration Architecture
 
-UltiCode uses Flyway for database migrations with a clear pattern: schema migrations (tables, indexes, constraints) are separated from seed data migrations. Seed data for Solutions, Submissions, and Collections should be added as new migration files (V23, V24) following the established `V{n}__{description}.sql` naming convention. Referential integrity is maintained through foreign key constraints that reference existing `users.id`, `problems.id`, `solutions.id`, and `collections.id` records.
+### Component Boundaries
 
-## Migration Version Discovery
+| Component | Responsibility | Communicates With |
+|-----------|---------------|-------------------|
+| RateLimitAspect | Intercepts @RateLimit annotations, enforces limits via Redis | RedissonClient, HttpServletResponse |
+| RedisCacheConfig | Configures Spring Cache with Redisson backing | RedissonClient, CacheManager |
+| JaCoCoConfig | Configures coverage reporting and thresholds | Maven plugin (build-time only) |
+| N+1 Mapper Refactoring | Explicit JOIN queries in XML mappers | MyBatis-Plus QueryWrapper |
 
-**Current highest version:** V22 (`V22__achievement_schema.sql`)
-
-**Next seed migration should be:** V23
-
-Existing seed-only migrations:
-| Version | File | Content |
-|---------|------|---------|
-| V11 | `V11__moderation_seed_data.sql` | Moderation seed data |
-| V12 | `V12__notification_seed_data.sql` | Notification seed data |
-| V16 | `V16__recommendation_seed_problems.sql` | Problem seed data for recommendations |
-| V17 | `V17__recommendation_seed_submissions.sql` | Submission seed data (~400 rows) |
-
-## Migration File Pattern
-
-### Standard Structure
-
-Every migration file follows this pattern:
-
-```sql
-SET FOREIGN_KEY_CHECKS=0;
-
--- UltiCode Migration: V{n}__{description}
--- [Optional: Generated from... or Purpose comment]
-
--- [Schema definitions if applicable]
-CREATE TABLE ...
-
--- [Seed Data if applicable]
-INSERT INTO `table` ...
-
-SET FOREIGN_KEY_CHECKS=1;
-```
-
-### File Naming Convention
+### Data Flow
 
 ```
-V{version}__{description}.sql
+Request → Filter Chain → RateLimitAspect (@RateLimit) → Controller → Service → Mapper (JOIN query)
+                                    ↓
+                              Redisson RRateLimiter (atomic)
 ```
 
-Examples:
-- `V8__collection_schema.sql` - Schema creation (tables)
-- `V9__solution_schema.sql` - Schema + seed data (mixed)
-- `V17__recommendation_seed_submissions.sql` - Seed data only
-
-**Important:** The CLAUDE.md notes that `db-manager` does not support `-outOfOrder`, so migrations must be sequential. V23 must come after V22.
-
-## Seed Data Migration Patterns
-
-### Pattern 1: Schema + Seed Combined (V8, V9)
-
-Used when table creation and initial data are tightly coupled.
-
-```sql
-SET FOREIGN_KEY_CHECKS=0;
-
-CREATE TABLE `solutions` (
-  `id` varchar(40) ...,
-  `problem_id` bigint NOT NULL,
-  `user_id` varchar(40) ...,
-  ...,
-  CONSTRAINT `solutions_problem_id_fkey` FOREIGN KEY (`problem_id`) REFERENCES `problems` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `solutions_user_id_fkey` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE
-);
-
--- Seed Data
-INSERT INTO `solutions` ...;
-INSERT INTO `solution_comments` ...;
-
-SET FOREIGN_KEY_CHECKS=1;
+```
+Read Request → @Cacheable → Redis Cache Hit? → Return cached
+                    ↓ No
+               MyBatis Mapper → Return + Cache result
 ```
 
-### Pattern 2: Seed Data Only (V11, V12, V17)
+## Pattern 1: Rate Limiting with AOP
 
-Used for standalone seed data that does not create tables.
+### Integration Point
 
-```sql
-SET FOREIGN_KEY_CHECKS=0;
--- UltiCode Migration: V17__recommendation_seed_submissions
--- Seed submission data for recommendation engine testing
--- ~400 submissions across 19 users and 40 problems
+The `@RateLimit` annotation is on methods/classes. The `RateLimitAspect` should run AFTER the Spring Security filter chain (so authenticated user context is available) but BEFORE the controller method executes.
 
--- Section comments for organization
--- ============================================================================
+**Spring AOP vs AspectJ:** Use Spring AOP (proxy-based). It integrates cleanly with Spring Security's filter chain and doesn't require AspectJ compiler.
 
--- user-emma: mostly Easy with some WA
-INSERT INTO `submissions` ...;
-INSERT INTO `submissions` ...;
+### Recommended Aspect Structure
 
-SET FOREIGN_KEY_CHECKS=1;
+```java
+@Aspect
+@Component
+@Slf4j
+public class RateLimitAspect {
+
+    private final RedissonClient redissonClient;
+
+    // Pointcut: all controllers with @RateLimit
+    @Around("@annotation(rateLimit) || @within(rateLimit)")
+    public Object around(ProceedingJoinPoint joinPoint, RateLimit rateLimit) throws Throwable {
+        // 1. Extract key (user ID from SecurityContext or IP)
+        // 2. Get or create RRateLimiter
+        // 3. tryAcquire() - non-blocking
+        // 4. If denied: return 429 with Retry-After header
+        // 5. If acquired: proceed with request
+    }
+}
 ```
 
-## Referential Integrity Requirements
+### Why Filter Chain vs AOP?
 
-### User References (user_id)
+| Approach | Pros | Cons |
+|----------|------|------|
+| **AOP (recommended)** | Annotation-driven, flexible per-method config, easy to disable per endpoint | Slight overhead from proxy |
+| Filter | Fast, centralized | Less granular, harder to configure per-endpoint |
 
-All seed data referencing users must use **existing user IDs** from V1:
+The existing `@RateLimit` annotation design supports method-level configuration, so AOP is the natural fit.
 
-| user_id | Source Migration |
-|---------|------------------|
-| user-chen | V1 (seed) |
-| user-yuki | V1 (seed) |
-| user-alex | V1 (seed) |
-| user-tourist | V1 (seed) |
-| user-sara | V1 (seed) |
-| user-max | V1 (seed) |
-| user-petr | V1 (seed) |
-| user-emma | V1 (seed) |
-| user-lily | V1 (seed) |
-| user-scott | V1 (seed) |
-| user-tom | V1 (seed) |
-| user-david | V1 (seed) |
-| user-kevin | V1 (seed) |
-| user-benq | V1 (seed) |
-| u-001 | V1 (seed) |
-| u-002 | V1 (seed) |
-| user-ecnerwala | V1 (seed) |
-| user-jiangly | V1 (seed) |
-| user-um_nik | V1 (seed) |
+## Pattern 2: Redis Caching at Service Layer
 
-### Problem References (problem_id)
+### Integration Point
 
-All seed data referencing problems must use **existing problem IDs** from V2 or V16:
+Caching at the service layer (not controller) keeps the cache key close to business logic and allows invalidation when domain objects change.
 
-| problem_id range | Source Migration |
-|------------------|------------------|
-| 1-40 | V16 (recommendation problems) |
+### Recommended Cache Configuration
 
-V17 seed submissions use problem_id values 1-40, confirming this range is valid.
+```java
+@Configuration
+@EnableCaching
+public class RedisCacheConfig {
 
-### Solution References (solution_id)
+    @Bean
+    public CacheManager cacheManager(RedissonClient redissonClient) {
+        Map<String, CacheConfig> configs = new HashMap<>();
 
-For `solution_comments`, the `solution_id` must reference an existing `solutions.id`:
+        // Problem cache: 5 minute TTL
+        configs.put("problems", new CacheConfig(
+            Duration.ofMinutes(5), null));
 
-```sql
-INSERT INTO `solution_comments` (`id`, `solution_id`, `parent_id`, `user_id`, ...) VALUES
-('comment-001', 'sol-001', NULL, 'user-max', ...),
-('comment-002', 'sol-001', 'comment-001', 'user-yuki', ...);  -- parent_id references comment-001
+        // User cache: 15 minute TTL
+        configs.put("users", new CacheConfig(
+            Duration.ofMinutes(15), null));
+
+        // Rankings: 1 minute TTL (frequently changing)
+        configs.put("rankings", new CacheConfig(
+            Duration.ofMinutes(1), null));
+
+        return new RedissonCacheManager(redissonClient, configs);
+    }
+}
 ```
 
-### Collection References
+### Service Layer Annotation Pattern
 
-For `collection_items`, the `collection_id` must reference an existing `collections.id`:
+```java
+@Service
+@Slf4j
+public class ProblemServiceImpl implements ProblemService {
 
-```sql
-INSERT INTO `collection_items` (`id`, `collection_id`, `target_id`, `target_type`, ...) VALUES
-('3a6a9426...', 'd550db4c...', 'list-sliding-window', 'PROBLEM_LIST', ...);
+    @Cacheable(value = "problems", key = "#id", unless = "#result == null")
+    public Optional<Problem> findById(Long id) {
+        return Optional.ofNullable(problemMapper.selectById(id));
+    }
+
+    @CacheEvict(value = "problems", key = "#result.id")
+    public Problem updateProblem(Long id, UpdateProblemDTO dto) {
+        // ...
+    }
+
+    @CacheEvict(value = "problems", allEntries = true)
+    public void clearProblemCache() {
+        // Bulk invalidation
+    }
+}
 ```
 
-Where `d550db4c...` is a valid collection ID from the `collections` table.
+## Pattern 3: MyBatis-Plus N+1 Fixes
 
-## UUID Generation Pattern
+### The Problem
 
-V17 uses `UUID()` for submission IDs:
+MyBatis-Plus does NOT support JPA-style entity graphs. When you fetch a list of entities and access a lazy-loaded collection, MyBatis issues a separate query per entity.
 
-```sql
-INSERT INTO `submissions` (`id`,`problem_id`,`user_id`,`language`,`code`,`status`,...) VALUES
-(UUID(),1,'user-emma','typescript','// two-sum solution', 'Accepted',...);
+### Solution: Explicit JOIN in XML Mapper
+
+```xml
+<!-- ProblemMapper.xml -->
+<resultMap id="ProblemWithTagsMap" type="com.ulticode.modules.problem.entity.Problem">
+    <id property="id" column="id"/>
+    <result property="title" column="title"/>
+    <!-- ... other fields ... -->
+    <!-- Manual association for tags (avoids N+1) -->
+    <collection property="tags" column="id"
+        select="selectTagsByProblemId"/>
+</resultMap>
+
+<!-- Instead, use JOIN for batch loading -->
+<select id="selectProblemsWithTags" resultMap="ProblemWithTagsMap">
+    SELECT p.*, GROUP_CONCAT(t.label) as tag_labels
+    FROM problems p
+    LEFT JOIN problem_tag_relations ptr ON p.id = ptr.problem_id
+    LEFT JOIN problem_tags t ON ptr.tag_id = t.id
+    WHERE p.is_published = 1
+    GROUP BY p.id
+</select>
 ```
 
-For new seed data, use `UUID()` for primary keys to avoid collisions.
+### Batch Fetch Alternative (for complex scenarios)
 
-## Timing Considerations
+```java
+// In service: batch load related entities
+public List<ProblemVO> listProblemsWithTags(ProblemQueryDTO query) {
+    // Step 1: Fetch problem IDs
+    List<Problem> problems = problemMapper.selectList(wrapper);
 
-### Dependencies Graph
+    // Step 2: Batch fetch tags for all problem IDs
+    if (!problems.isEmpty()) {
+        List<Long> ids = problems.stream().map(Problem::getId).collect(Collectors.toList());
+        List<Tag> allTags = tagMapper.selectByProblemIds(ids);  // WHERE problem_id IN (ids)
 
+        // Step 3: Group tags by problem ID
+        Map<Long, List<Tag>> tagsByProblemId = allTags.stream()
+            .collect(Collectors.groupingBy(Tag::getProblemId));
+
+        // Step 4: Attach to problem VOs
+        // ...
+    }
+}
 ```
-V1 (users) --> V9 (solutions references users)
-             --> V8 (collections references users)
-             --> V17 (submissions references users)
 
-V2 (problems) --> V9 (solutions references problems)
-                --> V17 (submissions references problems)
+### MyBatis-Plus QueryWrapper JOIN Pattern
 
-V8 (collections) --> V8 (collection_items references collections)
+```java
+public List<ProblemVO> listProblemsJoinTags(ProblemQueryDTO query) {
+    LambdaQueryWrapper<Problem> wrapper = new LambdaQueryWrapper<>();
 
-V9 (solutions) --> V9 (solution_comments references solutions)
+    // Use MyBatis-Plus's join capability
+    return problemMapper.selectMaps(wrapper)
+        .stream()
+        .map(this::convertToVO)
+        .collect(Collectors.toList());
+}
 ```
 
-### Seed Data Insertion Order
+## Pattern 4: JaCoCo Maven Configuration
 
-When adding new seed data for Solutions, Submissions, or Collections:
+### Integration Point
 
-1. **Users must exist first** (V1) - verified by existing migrations
-2. **Problems must exist first** (V16) - verified by existing migrations
-3. **Solutions must exist before solution_comments** - parent solution must exist
-4. **Collections must exist before collection_items** - parent collection must exist
+Build phase - JaCoCo is a Maven plugin that instruments bytecode during the `prepare-agent` phase and generates reports during `report` phase.
 
-## New Seed Migration Recommendation
+### Recommended pom.xml Configuration
 
-For adding Solutions, Submissions, and Collections seed data:
+```xml
+<build>
+    <finalName>app</finalName>
+    <plugins>
+        <!-- Existing plugins... -->
 
-| New Migration | Content | Dependencies |
-|---------------|---------|--------------|
-| V23 | Solutions seed (if expanding beyond V9) | V1 users, V2 problems |
-| V24 | Submissions seed (if expanding beyond V17) | V1 users, V2 problems |
-| V25 | Collection_items seed (if expanding beyond V8) | V8 collections |
+        <!-- JaCoCo Coverage -->
+        <plugin>
+            <groupId>org.jacoco</groupId>
+            <artifactId>jacoco-maven-plugin</artifactId>
+            <version>0.8.11</version>
+            <executions>
+                <!-- Prepare agent for instrumentation -->
+                <execution>
+                    <id>prepare-agent</id>
+                    <goals>
+                        <goal>prepare-agent</goal>
+                    </goals>
+                </execution>
+                <!-- Check coverage thresholds -->
+                <execution>
+                    <id>check</id>
+                    <goals>
+                        <goal>check</goal>
+                    </goals>
+                    <configuration>
+                        <rules>
+                            <rule>
+                                <element>BUNDLE</element>
+                                <limits>
+                                    <limit>
+                                        <counter>LINE</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>0.50</minimum>  <!-- 50% initial -->
+                                    </limit>
+                                    <limit>
+                                        <counter>BRANCH</counter>
+                                        <value>COVEREDRATIO</value>
+                                        <minimum>0.40</minimum>  <!-- 40% initial -->
+                                    </limit>
+                                </limits>
+                            </rule>
+                        </rules>
+                        <excludes>
+                            <!-- Exclude configuration and value objects -->
+                            <exclude>**/*Application.class</exclude>
+                            <exclude>**/*Config.class</exclude>
+                            <exclude>**/*Exception.class</exclude>
+                            <exclude>**/dto/**</exclude>
+                            <exclude>**/vo/**</exclude>
+                            <exclude>**/entity/**</exclude>
+                            <exclude>**/mapper/**</exclude>
+                        </excludes>
+                    </configuration>
+                </execution>
+                <!-- Generate HTML report -->
+                <execution>
+                    <id>report</id>
+                    <goals>
+                        <goal>report</goal>
+                    </goals>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+```
+
+### Exclusions Rationale
+
+| Pattern | Why Excluded |
+|---------|--------------|
+| `*Application.class` | Entry point, no business logic |
+| `*Config.class` | Spring configuration, not testable |
+| `*Exception.class` | Simple error wrappers |
+| `dto/` `vo/` `entity/` | Data transfer objects - getters/setters don't need coverage |
+| `mapper/` | MyBatis generated implementations |
 
 ## Anti-Patterns to Avoid
 
-1. **Do not use `-outOfOrder`** - db-manager does not support it; new migrations must be sequential
-2. **Do not disable foreign key checks permanently** - Only wrap seed inserts
-3. **Do not reference non-existent user_id/problem_id** - Will cause FK constraint failure
-4. **Do not mix schema changes with seed data unless tightly coupled** - Keep separate for clarity
-5. **Do not use literal IDs for users** - Use the seed user IDs (user-yuki, user-alex, etc.)
+### Anti-Pattern 1: Caching at Controller Layer
+**Why bad:** Cache keys become URL-centric, loses domain meaning. Invalidating becomes harder.
+
+**Instead:** Cache at service layer where domain objects are managed.
+
+### Anti-Pattern 2: Using @Cacheable on Methods Returning Entity Objects
+**Why bad:** Entity objects may be mutated later, corrupting cache.
+
+**Instead:** Return DTOs/VOes from cached methods, or use defensive copies.
+
+### Anti-Pattern 3: N+1 with MyBatis-Plus Wrapper Alone
+**Why bad:** MyBatis-Plus's `selectList` doesn't support JPA-style entity graphs. Accessing relations triggers individual queries.
+
+**Instead:** Write explicit JOINs in XML mappers or use batch fetch.
+
+### Anti-Pattern 4: Enforcing 80% Coverage Cold Turkey
+**Why bad:** Existing codebase likely below threshold. Build will fail immediately, blocking all work.
+
+**Instead:** Start at 50%, increment gradually (50% -> 60% -> 70% -> 80%).
+
+## Scalability Considerations
+
+| Concern | At 100 users | At 10K users | At 1M users |
+|---------|--------------|--------------|-------------|
+| Rate Limiting | Local in-memory sufficient | Redis-backed required | Redis cluster needed |
+| Cache | Single Redis instance | Redis with replicas | Redis cluster + local cache |
+| N+1 Queries | Acceptable | Need JOIN optimization | Need query result limits |
+| Coverage | 50% threshold | 60% threshold | 80% threshold |
+
+## Build Order Considerations
+
+1. **Rate Limiting** must come before Caching (provides infrastructure)
+2. **JaCoCo** should be added early (establishes baseline before adding code)
+3. **N+1 Fixes** require mapper XML changes - coordinate with feature work
+4. **Caching** should be added after rate limiting to protect cache layer from abuse
 
 ## Sources
 
-- `db-manager/migrations/V8__collection_schema.sql` - Collection schema + seed pattern
-- `db-manager/migrations/V9__solution_schema.sql` - Solution schema + seed pattern
-- `db-manager/migrations/V17__recommendation_seed_submissions.sql` - Seed-only pattern
-- `db-manager/migrations/V11__moderation_seed_data.sql` - Seed-only pattern
-- `db-manager/migrations/V12__notification_seed_data.sql` - Seed-only pattern
+- Context7: Spring Boot 3.2 AOP documentation
+- Context7: Spring Cache with Redisson
+- Context7: MyBatis-Plus query optimization
+- Official JaCoCo Maven plugin documentation

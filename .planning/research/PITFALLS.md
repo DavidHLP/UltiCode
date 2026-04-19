@@ -1,6 +1,6 @@
-# Domain Pitfalls: Seed Data Expansion (v1.4)
+# Domain Pitfalls: v1.5 Technical Debt Remediation
 
-**Domain:** Flyway SQL seed migrations for Solutions, Submissions, Collections
+**Domain:** Spring Boot + MyBatis-Plus + Redis integration
 **Researched:** 2026-04-19
 **Confidence:** HIGH
 
@@ -8,355 +8,252 @@
 
 ## Critical Pitfalls
 
-Mistakes that cause migration failures or data integrity violations.
+Mistakes that cause production issues or require significant rework.
 
-### Pitfall 1: Foreign Key Constraint Violations
+### Pitfall 1: Rate Limiter Bypassed Under Load
 
-**What goes wrong:** `Cannot add or update a child row: a foreign key constraint fails`
+**What goes wrong:** Rate limiting works at low traffic but fails under concurrent load.
 
-**Why it happens:** Referenced entity (user, problem, solution) does not exist in parent table.
+**Why it happens:** Non-atomic check-then-acquire pattern creates race condition window.
 
-**Consequences:** Migration halts. Flyway marks migration as failed. Requires `db-manager repair` to recover.
+**Consequences:** Limit exceeded by burst of requests that all see "available" simultaneously.
 
-**Prevention:**
+**Prevention:** Use Redisson's atomic `tryAcquire()`:
 
-```sql
--- BEFORE inserting child rows, verify parent exists
--- User FK reference check
-SELECT id FROM users WHERE id = 'user-emma';  -- Must return exactly 1 row
+```java
+// WRONG - race condition
+if (rateLimiter.tryAcquire(1)) {  // Check
+    // Another thread may have acquired here
+    proceed();                     // Act
+}
 
--- Problem FK reference check
-SELECT id FROM problems WHERE id = 1;  -- Must return exactly 1 row
-
--- Solution FK reference check (for solution_comments)
-SELECT id FROM solutions WHERE id = 'sol-001';  -- Must return exactly 1 row
+// CORRECT - atomic
+if (rateLimiter.tryAcquire(1)) {  // Check+Act together
+    proceed();
+}
 ```
 
-**Detection:** Run this query before migration:
+**Detection:** Load test with `wrk` or `ab` sending concurrent requests.
 
-```sql
--- Verify all user FKs in seed data exist
-SELECT DISTINCT user_id FROM (
-    SELECT DISTINCT user_id FROM solutions
-    UNION ALL
-    SELECT DISTINCT user_id FROM solution_comments
-    UNION ALL
-    SELECT DISTINCT user_id FROM submissions
-) AS seed_users
-WHERE user_id NOT IN (SELECT id FROM users);
--- Expected result: Empty (0 rows)
+---
 
--- Verify all problem FKs in seed data exist
-SELECT DISTINCT problem_id FROM submissions
-WHERE problem_id NOT IN (SELECT id FROM problems);
--- Expected result: Empty (0 rows)
+### Pitfall 2: Cache Stampede
+
+**What goes wrong:** Cache miss causes multiple simultaneous requests to hit the database.
+
+**Why it happens:** Multiple requests discover cache empty at the same time, all query DB.
+
+**Consequences:** Database overwhelmed when popular content expires.
+
+**Prevention:** Use cache-aside with jittered TTL:
+
+```java
+@Cacheable(value = "problems", key = "#id", unless = "#result == null")
+public Optional<Problem> findById(Long id) {
+    // Add small random delay to prevent all caches expiring at once
+    return Optional.ofNullable(problemMapper.selectById(id));
+}
+
+// In Redis cache config, use jitter:
+// config.setTTL(Duration.ofMinutes(5 + RandomUtils.nextInt(60)));
+```
+
+**Alternative:** Use Redisson's `getCached` with lock:
+
+```java
+V value = redissonClient.getCache("problems:" + id).get(key, expiry, loader);
 ```
 
 ---
 
-### Pitfall 2: Invalid Submission Status Values
+### Pitfall 3: MyBatis-Plus N+1 in List Queries
 
-**What goes wrong:** `Duplicate entry for key 'PRIMARY'` if status key is wrong, or silent acceptance of invalid statuses.
+**What goes wrong:** Fetching 100 problems triggers 101 queries (1 + 100 tag lookups).
 
-**Why it happens:** Status column references `submission_statuses(key)` as FK, but seed data uses values not in that table.
+**Why it happens:** MyBatis-Plus `selectById` doesn't auto-join relations. Accessing `problem.getTags()` in loop triggers lazy query per entity.
 
-**Valid status keys** (from `V1__core_schema.sql` lines 511-521):
+**Consequences:** O(n) database queries, unacceptable for large lists.
 
-| Key | Code | Category |
-|-----|------|----------|
-| Accepted | AC | success |
-| Compile Error | CE | error |
-| Judging | JDG | pending |
-| Memory Limit Exceeded | MLE | error |
-| Output Limit Exceeded | OLE | error |
-| Pending | PD | pending |
-| Presentation Error | PE | error |
-| Runtime Error | RE | error |
-| System Error | SE | system |
-| Time Limit Exceeded | TLE | error |
-| Wrong Answer | WA | error |
-
-**Prevention:** Always use exact key values from `submission_statuses` table. Query before writing:
+**Prevention:** Always analyze list queries with EXPLAIN:
 
 ```sql
-SELECT `key` FROM submission_statuses;
+EXPLAIN SELECT * FROM problems WHERE is_published = 1 LIMIT 20;
+-- If query count > 1 for a list endpoint, N+1 exists
 ```
 
-**Existing migration bug in V17:** Line 12 has leading space in `' Accepted'` -- this is incorrect. Must match exactly.
+**Fix:** Use JOIN in XML mapper or batch fetch service-side.
 
 ---
 
-### Pitfall 3: Duplicate Primary Key Violations
+### Pitfall 4: Coverage Gate Blocking All Work
 
-**What goes wrong:** `Duplicate entry for key 'PRIMARY'` when ID already exists.
+**What goes wrong:** JaCoCo fails build at 30% coverage, blocking all commits.
 
-**Why it happens:**
-- Re-running migration with same ID values
-- ID collision with existing seed data
-- Copy-paste error with duplicate ID
+**Why it happens:** Setting 80% threshold immediately on legacy codebase with no coverage.
 
-**Prevention:**
-- Use `UUID()` for submission IDs (already used in V17)
-- Prefix solution IDs with version: `sol-v1-001`
-- Check max existing ID before inserting:
+**Consequences:** Team cannot merge any code until coverage is raised.
 
-```sql
--- For solutions
-SELECT id FROM solutions ORDER BY id DESC LIMIT 5;
+**Prevention:** Start low, increment gradually:
 
--- For submissions
-SELECT id FROM submissions ORDER BY id DESC LIMIT 5;
+```xml
+<!-- Phase 1: 30% to establish baseline -->
+<minimum>0.30</minimum>
+
+<!-- Phase 2: 40% after 3 months -->
+<minimum>0.40</minimum>
+
+<!-- Phase 3: 50% after 6 months -->
+<minimum>0.50</minimum>
 ```
-
----
-
-### Pitfall 4: Non-Existent Problem ID References
-
-**What goes wrong:** Submission or solution references a problem ID that does not exist.
-
-**Why it happens:** Problem IDs in seed data do not match existing problems.
-
-**Prevention:** Query available problem IDs before writing seed:
-
-```sql
-SELECT id, slug, difficulty FROM problems ORDER BY id;
-```
-
-**Known valid problem IDs** (from V2 seed): 1, 2, 3, 4, 5, 6, 7, 9, 10, 11, 13, 14, 16, 17, 20, 22, 23, 24, 30, 31, 33, 35, 36, 40
-
-**Note:** Problem ID 8 and 12 appear to be missing from V17 seed data. Verify before adding submissions for them.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 5: Foreign Key Check Toggle Errors
+### Pitfall 5: Cache Invalidation Missing on Updates
 
-**What goes wrong:** `SET FOREIGN_KEY_CHECKS=0` does not disable all constraints, or migration fails if toggle is not properly reset.
+**What goes wrong:** Updated problem shows stale data for up to TTL duration.
 
-**Why it happens:** `FOREIGN_KEY_CHECKS=0` only affects the current session. If connection resets or migration runs in separate transactions, constraints still apply.
+**Why it happens:** `@CacheEvict` not added to all mutation methods.
+
+**Prevention:** Audit all create/update/delete methods:
+
+```java
+@CacheEvict(value = "problems", key = "#result.id")  // On update
+public Problem updateProblem(Long id, UpdateProblemDTO dto) { }
+
+@CacheEvict(value = "problems", key = "#id")         // On delete
+public void deleteProblem(Long id) { }
+
+@CacheEvict(value = "problems", allEntries = true)   // On bulk operation
+public void importProblems(List<ProblemDTO> problems) { }
+```
+
+---
+
+### Pitfall 6: Entity Objects in Cache
+
+**What goes wrong:** Cached entity mutated elsewhere, corrupting cache.
+
+**Why it happens:** Returning raw entity from `@Cacheable` method.
+
+**Prevention:** Return DTOs/records, not entities:
+
+```java
+// WRONG - entity in cache
+@Cacheable(value = "problems", key = "#id")
+public Problem findById(Long id) {
+    return problemMapper.selectById(id);  // Returns entity
+}
+
+// CORRECT - DTO in cache
+@Cacheable(value = "problems", key = "#id")
+public ProblemVO findById(Long id) {
+    return ProblemVO.from(problemMapper.selectById(id));  // Returns copy
+}
+```
+
+---
+
+### Pitfall 7: Redis Connection Exhaustion
+
+**What goes wrong:** Too many open Redis connections crashes rate limiter and cache.
+
+**Why it happens:** Creating new RedissonClient per request instead of reusing singleton.
+
+**Prevention:** RedissonClient is thread-safe singleton:
+
+```java
+@Configuration
+public class RedisConfig {
+    @Bean(destroyMethod = "shutdown")
+    public RedissonClient redissonClient() {
+        return Redisson.create(config);
+    }
+}
+```
+
+---
+
+### Pitfall 8: MyBatis XML Changes Breaking Existing Queries
+
+**What goes wrong:** Modifying XML mapper breaks existing functionality.
+
+**Why it happens:** No test coverage on mapper XML queries.
 
 **Prevention:**
-- Always wrap in transaction:
-
-```sql
-SET FOREIGN_KEY_CHECKS=0;
-START TRANSACTION;
--- INSERT statements
-COMMIT;
-SET FOREIGN_KEY_CHECKS=1;
-```
-
-- Use `START TRANSACTION` before inserts, `COMMIT` after all, then re-enable
-
----
-
-### Pitfall 6: Incorrect Datetime Precision
-
-**What goes wrong:** `Incorrect datetime value` or truncation warnings.
-
-**Why it happens:** Tables use `datetime(3)` (millisecond precision) but seed data uses `NOW()` instead of `NOW(3)`.
-
-**Prevention:** Always use `NOW(3)` for datetime(3) columns:
-
-```sql
--- Correct
-created_at datetime(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
-
--- Use
-NOW(3)
-
--- Not
-NOW()          -- This is second precision only
-NOW(6)         -- This is microsecond, will truncate
-```
-
----
-
-### Pitfall 7: JSON Column Encoding Issues
-
-**What goes wrong:** Chinese characters in JSON columns appear as garbage or `null`.
-
-**Why it happens:** Migration file encoding mismatch (UTF-8 vs Latin-1) or missing `CHARSET=utf8mb4`.
-
-**Prevention:**
-- Ensure migration file is saved as UTF-8
-- Include `COLLATE utf8mb4_unicode_ci` in column definitions
-- Verify with:
-
-```sql
-SELECT id, tags FROM solutions WHERE JSON_VALID(tags) = 0;
--- Should return 0 rows
-```
-
----
-
-### Pitfall 8: Parent-Child Table Ordering
-
-**What goes wrong:** `Cannot add or update a child row` when child table is migrated before parent.
-
-**Why it happens:** Inserting `solution_comments` before `solutions`, or `submissions` before `problems`.
-
-**Prevention:** Follow dependency order:
-
-```
-1. users (V1)
-2. problems (V2)
-3. solutions (V9)
-4. solution_comments (V9, after solutions)
-5. submissions (V17)
-```
-
----
-
-### Pitfall 9: ID Format Mismatch
-
-**What goes wrong:** `id` column is `varchar(40)` but using numeric ID causes silent truncation or comparison issues.
-
-**Why it happens:** Solutions use string IDs (`sol-001`) while submissions use `UUID()`. Both are `varchar(40)`.
-
-**Prevention:**
-- Use consistent ID format per table
-- For solutions: `sol-{number}` format
-- For comments: `comment-{number}` format
-- For submissions: `UUID()` (already used in V17)
-
----
-
-### Pitfall 10: Logical Deletion Mismatch
-
-**What goes wrong:** Seed data has `is_deleted=0` but parent entity is soft-deleted, causing orphaned relationships.
-
-**Why it happens:** Queries filter out `is_deleted=1` but seed data was inserted without checking parent deletion status.
-
-**Prevention:** Verify parent `is_deleted=0` before inserting child:
-
-```sql
-SELECT id, is_deleted FROM solutions WHERE id = 'sol-001';
--- Verify is_deleted = 0 before inserting comments
-```
+1. Write integration tests for each mapper query
+2. Use MyBatis-Plus wrapper for simple queries (less error-prone)
+3. Keep XML changes minimal and targeted
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 11: Column Order Mismatch
+### Pitfall 9: Rate Limit Key Collision
 
-**What goes wrong:** `Column count doesn't match` error in INSERT.
+**What goes wrong:** Different endpoints share same rate limit key.
 
-**Why it happens:** INSERT column list does not match VALUES tuple count.
+**Why it happens:** Key only includes user ID, not endpoint path.
 
-**Prevention:** Always specify columns explicitly:
+**Prevention:** Include endpoint in key:
 
-```sql
--- GOOD
-INSERT INTO solutions (`id`, `problem_id`, `user_id`, `title`, `content`, `summary`, `language`, `tags`, `views`, `created_at`, `updated_at`, `is_published`, `published_at`, `published_by`, `is_flagged`, `flagged_reason`, `flagged_at`, `is_deleted`, `deleted_at`, `deleted_by`)
-VALUES (...);
-
--- BAD (depends on column order)
-INSERT INTO solutions VALUES (...);
+```java
+String key = "rate:user:" + userId + ":" + request.getRequestURI();
 ```
 
 ---
 
-### Pitfall 12: Missing Optional Fields
+### Pitfall 10: Coverage Exclusions Too Broad
 
-**What goes wrong:** `Field 'xxx' doesn't have a default value`.
+**What goes wrong:** Excluding too many classes lowers effective coverage.
 
-**Why it happens:** Column is NOT NULL but no default, and not included in INSERT.
+**Why it happens:** Overzealous exclusion of entities, DTOs.
 
-**Prevention:** Check schema before inserting:
+**Prevention:** Only exclude truly untestable code:
 
-```sql
-DESCRIBE solutions;
--- Note which columns are NOT NULL without default
-```
-
----
-
-### Pitfall 13: Runtime/Memory Zero for Non-Accepted
-
-**What goes wrong:** In V17, non-Accepted submissions have `runtime=0` and `memory=0`. This may be semantically incorrect (indicating the judge never ran).
-
-**Why it happens:** Placeholder values used for failed submissions.
-
-**Prevention:** Consider using `NULL` for runtime/memory when submission failed before execution:
-
-```sql
--- For WA/TLE/RE submissions where judge ran
-VALUES (UUID(), 1, 'user-emma', 'typescript', '// code', 'Wrong Answer', 45, 42.3, NULL, ...)
-
--- For submissions that errored before judge ran
-VALUES (UUID(), 1, 'user-emma', 'typescript', '// code', 'System Error', NULL, NULL, NULL, ...)
-```
+| Exclude | Yes/No | Reason |
+|---------|--------|--------|
+| Application.java | Yes | Entry point |
+| *Config.java | Yes | Framework config |
+| *Exception.java | Marginal | May contain business logic |
+| *DTO.java | No | May have validation logic |
+| *Entity.java | No | Domain logic in getters |
+| *Mapper.java | Yes | MyBatis generated |
 
 ---
 
-## Validation Checklist
+### Pitfall 11: Hardcoded Cache TTLs
 
-Run before executing seed migration:
+**What goes wrong:** 5-minute TTL everywhere, regardless of data change frequency.
 
-```sql
--- 1. Verify all referenced users exist
-SELECT DISTINCT user_id FROM (
-    SELECT user_id FROM solutions
-    UNION SELECT user_id FROM solution_comments
-    UNION SELECT user_id FROM submissions
-) t
-WHERE user_id NOT IN (SELECT id FROM users);
+**Why it happens:** Copy-paste cache configuration.
 
--- 2. Verify all referenced problems exist
-SELECT DISTINCT problem_id FROM submissions
-WHERE problem_id NOT IN (SELECT id FROM problems);
+**Prevention:** Match TTL to data volatility:
 
--- 3. Verify all solution_ids exist for solution_comments
-SELECT DISTINCT solution_id FROM solution_comments
-WHERE solution_id NOT IN (SELECT id FROM solutions);
-
--- 4. Verify status values are valid
-SELECT DISTINCT status FROM submissions
-WHERE status NOT IN (SELECT `key` FROM submission_statuses);
-
--- 5. Verify no duplicate IDs
-SELECT id, COUNT(*) as cnt FROM solutions GROUP BY id HAVING cnt > 1;
-SELECT id, COUNT(*) as cnt FROM submissions GROUP BY id HAVING cnt > 1;
-
--- 6. Verify JSON validity
-SELECT id, tags FROM solutions WHERE JSON_VALID(tags) = 0;
-
--- 7. Verify no orphaned deleted parents
-SELECT s.id FROM solutions s WHERE s.is_deleted = 1
-AND EXISTS (SELECT 1 FROM solution_comments c WHERE c.solution_id = s.id AND c.is_deleted = 0);
-```
-
-Expected result for all checks: **Empty set (0 rows)**
+| Data Type | TTL | Rationale |
+|-----------|-----|-----------|
+| User session | 30 min | User activity period |
+| Problem detail | 10 min | Rarely changes |
+| Leaderboard | 1 min | Updates on every submission |
+| Tag list | 30 min | Rarely changes |
 
 ---
 
 ## Phase-Specific Warnings
 
-| Phase | Pitfall | Mitigation |
-|-------|---------|------------|
-| Solutions seed | FK to problems.users | Query problem IDs first |
-| Solution comments seed | FK to solutions, users | Seed solutions before comments |
-| Submissions seed | FK to users, problems | Query both tables first |
-| Collections seed | FK to users, problems, tags | Verify tag entity exists |
-
----
-
-## Known Issues in Existing Migrations
-
-| Migration | Issue | Severity |
-|-----------|-------|----------|
-| V17__recommendation_seed_submissions.sql:12 | Leading space in `' Accepted'` | HIGH - will cause FK error |
-| V17 | TLE/MLE/RE have `runtime=0, memory=0` | MEDIUM - unclear if judge ran |
-| V9 | Chinese comments use emoji | LOW - ensure utf8mb4 encoding |
+| Phase Topic | Likely Pitfall | Mitigation |
+|-------------|---------------|------------|
+| Rate Limiting | Race conditions | Use atomic tryAcquire only |
+| Caching | Stampede on miss | Jittered TTL, cache-aside locking |
+| N+1 Fixes | Breaking existing queries | Add mapper tests before changes |
+| JaCoCo | Coverage gate blocking work | Start at 30%, increment gradually |
 
 ---
 
 ## Sources
 
-- `V1__core_schema.sql` lines 511-521: Valid submission status values
-- `V1__core_schema.sql` lines 349-370: Valid user IDs
-- `V9__solution_schema.sql`: Solution schema with FK constraints
-- `V17__recommendation_seed_submissions.sql`: Existing submission seed pattern
+- Context7: Redisson rate limiter documentation
+- Context7: Spring Cache best practices
+- Context7: MyBatis-Plus N+1 patterns
+- Official JaCoCo documentation on exclusions

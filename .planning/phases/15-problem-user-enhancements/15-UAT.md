@@ -1,5 +1,5 @@
 ---
-status: complete
+status: resolved
 phase: 15-problem-user-enhancements
 source:
   - .planning/phases/15-problem-user-enhancements/15-01-SUMMARY.md
@@ -68,7 +68,7 @@ blocked: 0
 ## Gaps
 
 - truth: "GET /users/{id}/stats returns an Integer globalRank based on total AC submissions"
-  status: failed
-  reason: "globalRank returns null for u-admin-001. User has no entry in global_rankings table (which is based on contest rating, not AC submissions). Field correctly returns null but test expectation may not match actual implementation."
+  status: resolved
+  reason: "findGlobalRankByUserId SQL replaced with AC-count-based ranking. GET /users/u-admin-001/stats now returns globalRank=261 (non-null). Verification: curl output confirmed."
   severity: major
   test: 3

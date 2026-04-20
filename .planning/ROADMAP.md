@@ -24,7 +24,7 @@
 | 22    | v1.5      | 1/1           | In progress |
 | 23    | v1.5      | 0/3           | Not started |
 | 24    | v1.5      | 0/2           | Not started |
-| 25    | v1.5      | 0/3           | Not started |
+| 25    | v1.5      | 0/1           | Not started |
 
 ## Phases
 

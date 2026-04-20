@@ -105,6 +105,16 @@ public class AdminForumServiceImpl implements AdminForumService {
                 .map(this::toAdminVO)
                 .collect(Collectors.toList());
 
+        // Sort by commentCount if requested
+        if ("commentCount".equals(sortBy)) {
+            final boolean asc = isAsc;
+            vos.sort((a, b) -> {
+                int countA = a.getCommentCount() != null ? a.getCommentCount() : 0;
+                int countB = b.getCommentCount() != null ? b.getCommentCount() : 0;
+                return asc ? Integer.compare(countA, countB) : Integer.compare(countB, countA);
+            });
+        }
+
         return PageResult.of(
                 vos,
                 result.getTotal(),

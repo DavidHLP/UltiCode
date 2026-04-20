@@ -22,7 +22,7 @@ progress:
 
 ## Phases
 
-- [ ] **Phase 26: Follow System** - Follow/unfollow, follower/following lists, achievement integration
+- [x] **Phase 26: Follow System** - Follow/unfollow, follower/following lists, achievement integration
 - [ ] **Phase 27: Profile Backend** - User profile endpoint, profile edit, avatar upload
 - [ ] **Phase 28: Achievement Backend** - Achievement triggers, progress indicators, categories, WebSocket notifications
 - [ ] **Phase 29: Social Frontend** - Profile page, follow button, achievements display
@@ -41,7 +41,8 @@ progress:
   3. User can view paginated follower list via GET /users/{id}/followers
   4. User can view paginated following list via GET /users/{id}/following
   5. Follower milestone achievements trigger automatically when follow count thresholds are reached
-**Plans:** TBD
+**Plans:** 1 plan
+- [ ] 26-01-PLAN.md - Follow system implementation (entity, mapper, service, controller)
 
 ### Phase 27: Profile Backend
 **Goal:** Users can view and edit user profiles with social stats
@@ -52,7 +53,8 @@ progress:
   2. User can edit their own bio, company, location, website via PUT /users/me/profile
   3. User can upload avatar via MultipartFile upload endpoint
   4. Profile includes aggregated stats: problems solved count, submissions count, contest rating, follower/following counts
-**Plans:** TBD
+**Plans:** 1 plan
+- [ ] 26-01-PLAN.md - Follow system implementation (entity, mapper, service, controller)
 
 ### Phase 28: Achievement Backend
 **Goal:** Achievement system is complete with triggers, progress tracking, categories, and real-time notifications
@@ -63,7 +65,8 @@ progress:
   2. User can view progress toward unearned achievements via GET /users/me/achievements/progress with current count, percentage, and next milestone
   3. User can browse achievements by category via GET /achievements?category={category}
   4. User receives WebSocket notification immediately upon earning an achievement with name, badge, and rarity
-**Plans:** TBD
+**Plans:** 1 plan
+- [ ] 26-01-PLAN.md - Follow system implementation (entity, mapper, service, controller)
 **UI hint:** yes
 
 ### Phase 29: Social Frontend
@@ -75,7 +78,8 @@ progress:
   2. Follow button shows "Follow" state when not following, "Following" with hover-to-unfollow when following
   3. Profile displays earned achievements as cards with badge icons and rarity tiers
   4. Follow button is visible only when viewing other users' profiles (not own profile)
-**Plans:** TBD
+**Plans:** 1 plan
+- [ ] 26-01-PLAN.md - Follow system implementation (entity, mapper, service, controller)
 **UI hint:** yes
 
 ---

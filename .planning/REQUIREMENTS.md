@@ -40,8 +40,8 @@
 
 ### PM2 / Build Infrastructure
 
-- [ ] **INFRA-01**: PM2 ecosystem.config.cjs replaces custom .env parser with dotenv npm package
-- [ ] **INFRA-02**: Maven build order documented (recommend-api must mvn install before backend-spring)
+- [x] **INFRA-01**: PM2 ecosystem.config.cjs replaces custom .env parser with dotenv npm package
+- [x] **INFRA-02**: Maven build order documented (recommend-api must mvn install before backend-spring)
 
 ### Fragile Code Fixes
 
@@ -98,8 +98,8 @@ Explicitly excluded from v1.5:
 | PERF-01 | Phase 23 | Pending |
 | PERF-02 | Phase 23 | Pending |
 | PERF-03 | Phase 23 | Pending |
-| INFRA-01 | Phase 24 | Pending |
-| INFRA-02 | Phase 24 | Pending |
+| INFRA-01 | Phase 24 | Complete |
+| INFRA-02 | Phase 24 | Complete |
 | FRAG-01 | Phase 21 | Pending |
 | FRAG-02 | Phase 21 | Pending |
 | FRAG-03 | Phase 21 | Pending |

@@ -23,7 +23,7 @@
 | 21    | v1.5      | 0/7           | Not started |
 | 22    | v1.5      | 1/1           | In progress |
 | 23    | v1.5      | 0/3           | Not started |
-| 24    | v1.5      | 0/2           | Not started |
+| 24    | 1/1 | Complete    | 2026-04-20 |
 | 25    | v1.5      | 0/1           | Not started |
 
 ## Phases
@@ -33,7 +33,7 @@
 - [ ] **Phase 21: Security Hardening** — Logging fixes, forum stats, springdoc version, CI URL
 - [ ] **Phase 22: Redis Caching Layer** — Spring Cache with @Cacheable/@CacheEvict on service methods
 - [ ] **Phase 23: N+1 Query Optimization** — JOIN FETCH in contest, problem, and submission mappers
-- [ ] **Phase 24: PM2 / Build Infrastructure** — dotenv package, Maven build order documentation
+- [x] **Phase 24: PM2 / Build Infrastructure** — dotenv package, Maven build order documentation (completed 2026-04-20)
 - [ ] **Phase 25: Large File Refactoring** — ForumServiceImpl, CodeExecutionService, ContestServiceImpl split
 
 ---
@@ -151,7 +151,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 24-01-PLAN.md — dotenv npm swap + Maven build order documentation
+- [x] 24-01-PLAN.md — dotenv npm swap + Maven build order documentation
 
 ### Phase 25: Large File Refactoring
 

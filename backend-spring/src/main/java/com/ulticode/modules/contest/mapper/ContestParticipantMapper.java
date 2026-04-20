@@ -2,8 +2,11 @@ package com.ulticode.modules.contest.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.contest.entity.ContestParticipant;
+import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Result;
+import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
@@ -146,4 +149,56 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
      */
     @Select("SELECT * FROM contest_participants WHERE virtual_session_id = #{virtualSessionId} ORDER BY registered_at ASC")
     List<ContestParticipant> findByVirtualSessionId(@Param("virtualSessionId") String virtualSessionId);
+
+    /**
+     * DTO record holding ContestParticipant fields plus joined user data.
+     */
+    record ContestParticipantWithUser(
+            String id,
+            String contestId,
+            String userId,
+            String status,
+            Integer finalRank,
+            Integer totalScore,
+            Integer totalPenalty,
+            Integer totalTime,
+            Integer attemptCount,
+            String registeredAt,
+            String updatedAt,
+            String virtualSessionId,
+            String username,
+            String name,
+            String avatar
+    ) {}
+
+    /**
+     * Find participants by contest ID with user data joined.
+     * Eliminates N+1 by fetching username/name/avatar in a single query.
+     *
+     * @param contestId the contest ID
+     * @return list of participants with user data
+     */
+    @Results({
+            @Result(column = "id", property = "id"),
+            @Result(column = "contest_id", property = "contestId"),
+            @Result(column = "user_id", property = "userId"),
+            @Result(column = "status", property = "status"),
+            @Result(column = "final_rank", property = "finalRank"),
+            @Result(column = "total_score", property = "totalScore"),
+            @Result(column = "total_penalty", property = "totalPenalty"),
+            @Result(column = "total_time", property = "totalTime"),
+            @Result(column = "attempt_count", property = "attemptCount"),
+            @Result(column = "registered_at", property = "registeredAt"),
+            @Result(column = "updated_at", property = "updatedAt"),
+            @Result(column = "virtual_session_id", property = "virtualSessionId"),
+            @Result(column = "username", property = "username"),
+            @Result(column = "name", property = "name"),
+            @Result(column = "avatar", property = "avatar")
+    })
+    @Select("SELECT cp.*, u.username, u.name, u.avatar " +
+            "FROM contest_participants cp " +
+            "LEFT JOIN users u ON cp.user_id = u.id " +
+            "WHERE cp.contest_id = #{contestId} " +
+            "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC")
+    List<ContestParticipantWithUser> selectParticipantsWithUserByContestId(@Param("contestId") String contestId);
 }

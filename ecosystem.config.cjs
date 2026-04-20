@@ -1,24 +1,5 @@
-// Load .env for PM2 process environment (fallback without dotenv)
-try {
-  const fs = require('fs');
-  const envPath = require('path').resolve('.env');
-  if (fs.existsSync(envPath)) {
-    const envContent = fs.readFileSync(envPath, 'utf8');
-    envContent.split('\n').forEach(line => {
-      const trimmed = line.trim();
-      if (trimmed && !trimmed.startsWith('#')) {
-        const eqIdx = trimmed.indexOf('=');
-        if (eqIdx > 0) {
-          const key = trimmed.slice(0, eqIdx).trim();
-          const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
-          if (!(key in process.env)) process.env[key] = val;
-        }
-      }
-    });
-  }
-} catch (e) {
-  // env vars must be set externally
-}
+// Load .env for PM2 process environment
+require('dotenv').config();
 
 module.exports = {
   apps: [

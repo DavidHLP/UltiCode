@@ -8,7 +8,12 @@
       "Bash(docker compose up:*)",
       "Bash(docker compose ps:*)",
       "Bash(docker exec ulticode-mysql:*)",
-      "Bash(docker restart:*)"
+      "Bash(docker restart:*)",
+      "Bash(echo 'export REDIS_PASSWORD=ulticode_redis')",
+      "Bash(export REDIS_PASSWORD=ulticode_redis)",
+      "Bash(pm2 kill *)",
+      "Bash(pm2 start *)",
+      "Bash(rtk curl *)"
     ]
   }
 }

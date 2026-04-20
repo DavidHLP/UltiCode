@@ -1,8 +1,23 @@
-// Load .env for PM2 process environment
+// Load .env for PM2 process environment (fallback without dotenv)
 try {
-  require('dotenv').config({ override: true });
+  const fs = require('fs');
+  const envPath = require('path').resolve('.env');
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    envContent.split('\n').forEach(line => {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#')) {
+        const eqIdx = trimmed.indexOf('=');
+        if (eqIdx > 0) {
+          const key = trimmed.slice(0, eqIdx).trim();
+          const val = trimmed.slice(eqIdx + 1).trim().replace(/^["']|["']$/g, '');
+          if (!(key in process.env)) process.env[key] = val;
+        }
+      }
+    });
+  }
 } catch (e) {
-  // dotenv not available, env vars must be set externally
+  // env vars must be set externally
 }
 
 module.exports = {
@@ -15,7 +30,7 @@ module.exports = {
       name: 'ulticode-9001',
       cwd: './backend-spring',
       script: 'start.cjs',
-      env: { NODE_ENV: 'development', SPRING_PROFILES_ACTIVE: 'dev', NACOS_PORT: process.env.NACOS_PORT || '28848', RECOMMENDATION_ENABLED: 'true', REDIS_PASSWORD: process.env.REDIS_PASSWORD || '', NACOS_USERNAME: process.env.NACOS_USERNAME || '', NACOS_PASSWORD: process.env.NACOS_PASSWORD || '' },
+      env: { NODE_ENV: 'development', SPRING_PROFILES_ACTIVE: 'dev', NACOS_PORT: process.env.NACOS_PORT || '28848', RECOMMENDATION_ENABLED: 'true', REDIS_PASSWORD: process.env.REDIS_PASSWORD || '', JWT_SECRET: process.env.JWT_SECRET || '', NACOS_USERNAME: process.env.NACOS_USERNAME || '', NACOS_PASSWORD: process.env.NACOS_PASSWORD || '' },
     },
     // Frontend - Console (port 9002)
     {

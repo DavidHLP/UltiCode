@@ -19,6 +19,8 @@ import com.ulticode.modules.contest.service.ContestService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -46,6 +48,7 @@ public class ContestServiceImpl implements ContestService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
     public ContestVO createContest(CreateContestDTO dto, String userId) {
         // Verify admin role
         if (!SecurityUtil.hasRole("ADMIN")) {
@@ -80,6 +83,7 @@ public class ContestServiceImpl implements ContestService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
     public ContestVO updateContest(String id, UpdateContestDTO dto) {
         // Verify admin role
         if (!SecurityUtil.hasRole("ADMIN")) {
@@ -127,6 +131,7 @@ public class ContestServiceImpl implements ContestService {
 
     @Override
     @Transactional
+    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
     public void deleteContest(String id) {
         // Verify admin role
         if (!SecurityUtil.hasRole("ADMIN")) {
@@ -301,6 +306,7 @@ public class ContestServiceImpl implements ContestService {
     }
 
     @Override
+    @Cacheable(value = "contestRanking", key = "'getGlobalRanking:' + #limit")
     public List<ContestRankingVO> getGlobalRanking(Integer limit) {
         int maxResults = (limit != null && limit > 0) ? Math.min(limit, 100) : 10;
         List<GlobalRanking> rankings = globalRankingMapper.findTopRankings(maxResults);
@@ -312,6 +318,7 @@ public class ContestServiceImpl implements ContestService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "contestRanking", allEntries = true)
     public void registerForContest(String contestId, String userId) {
         // Verify contest exists and is upcoming
         Contest contest = findById(contestId)

@@ -1,6 +1,5 @@
 package com.ulticode.security.csrf;
 
-import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -13,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Set;
 
 /**
@@ -32,6 +32,8 @@ public class CsrfValidationFilter extends OncePerRequestFilter {
     private final CsrfService csrfService;
 
     private static final Set<String> CSRF_METHODS = Set.of("POST", "PUT", "DELETE", "PATCH");
+    private static final String JSON_RESPONSE_TEMPLATE =
+            "{\"code\":%d,\"message\":\"%s\",\"data\":null,\"traceId\":\"%s\"}";
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -58,17 +60,37 @@ public class CsrfValidationFilter extends OncePerRequestFilter {
         String csrfToken = request.getHeader("X-CSRF-Token");
         if (csrfToken == null || csrfToken.isEmpty()) {
             log.warn("CSRF token missing for user {} on {} {}", userId, method, request.getRequestURI());
-            throw new BusinessException(ErrorCode.FORBIDDEN, "CSRF token is required");
+            writeErrorResponse(response, ErrorCode.FORBIDDEN.getCode(), "CSRF token is required");
+            return;
         }
 
         String newToken = csrfService.validateAndRotateToken(userId, csrfToken);
         if (newToken == null) {
             log.warn("Invalid CSRF token for user {} on {} {}", userId, method, request.getRequestURI());
-            throw new BusinessException(ErrorCode.FORBIDDEN, "Invalid CSRF token");
+            writeErrorResponse(response, ErrorCode.FORBIDDEN.getCode(), "Invalid CSRF token");
+            return;
         }
 
         response.setHeader("X-New-CSRF-Token", newToken);
         log.debug("CSRF validation and rotation passed for user {} on {} {}", userId, method, request.getRequestURI());
         filterChain.doFilter(request, response);
+    }
+
+    private void writeErrorResponse(HttpServletResponse response, int code, String message) throws IOException {
+        response.setContentType("application/json");
+        response.setCharacterEncoding(StandardCharsets.UTF_8.name());
+        response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+        String traceId = "t-" + System.currentTimeMillis();
+        String body = String.format(JSON_RESPONSE_TEMPLATE, code, escapeJson(message), traceId);
+        response.getWriter().write(body);
+    }
+
+    private static String escapeJson(String s) {
+        if (s == null) return "";
+        return s.replace("\\", "\\\\")
+                .replace("\"", "\\\"")
+                .replace("\n", "\\n")
+                .replace("\r", "\\r")
+                .replace("\t", "\\t");
     }
 }

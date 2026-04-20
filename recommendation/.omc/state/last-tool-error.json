@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"sleep 40 && rtk curl -s --connect-timeout 5 http://localhost:9001/actuator/health\",\"timeout\":60000,\"description\":\"Wait 40s for backend startup\"}",
+  "error": "Exit code 7\nFAILED: curl",
+  "timestamp": "2026-04-19T04:55:09.887Z",
+  "retry_count": 3
+}

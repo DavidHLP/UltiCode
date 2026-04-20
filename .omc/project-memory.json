@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776509884493,
+  "lastScanned": 1776597393002,
   "projectRoot": "/home/davidhlp/project/UltiCode-Public-Next",
   "techStack": {
     "languages": [
@@ -47,7 +47,7 @@
       "path": "backend-spring",
       "purpose": null,
       "fileCount": 9,
-      "lastAccessed": 1776509884488,
+      "lastAccessed": 1776597392998,
       "keyFiles": [
         "Dockerfile",
         "mvnw",
@@ -60,7 +60,7 @@
       "path": "console",
       "purpose": null,
       "fileCount": 20,
-      "lastAccessed": 1776509884489,
+      "lastAccessed": 1776597392999,
       "keyFiles": [
         "Dockerfile",
         "components.json",
@@ -73,7 +73,7 @@
       "path": "db-manager",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1776509884491,
+      "lastAccessed": 1776597393000,
       "keyFiles": [
         "README.md",
         "pyproject.toml"
@@ -83,14 +83,14 @@
       "path": "docker",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776509884491,
+      "lastAccessed": 1776597393001,
       "keyFiles": []
     },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 1,
-      "lastAccessed": 1776509884492,
+      "lastAccessed": 1776597393001,
       "keyFiles": [
         "secrets-mapping.md"
       ]
@@ -99,7 +99,7 @@
       "path": "management",
       "purpose": null,
       "fileCount": 22,
-      "lastAccessed": 1776509884492,
+      "lastAccessed": 1776597393001,
       "keyFiles": [
         "Dockerfile",
         "components.json",
@@ -112,7 +112,7 @@
       "path": "recommendation",
       "purpose": null,
       "fileCount": 7,
-      "lastAccessed": 1776509884492,
+      "lastAccessed": 1776597393001,
       "keyFiles": [
         "1h7xZM",
         "README.md",
@@ -125,21 +125,14 @@
       "path": "shared",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776509884492,
-      "keyFiles": []
-    },
-    "backend-spring/src": {
-      "path": "backend-spring/src",
-      "purpose": "Source code",
-      "fileCount": 0,
-      "lastAccessed": 1776509884492,
+      "lastAccessed": 1776597393001,
       "keyFiles": []
     },
     "console/dist": {
       "path": "console/dist",
       "purpose": "Distribution/build output",
       "fileCount": 6,
-      "lastAccessed": 1776509884492,
+      "lastAccessed": 1776597393002,
       "keyFiles": [
         "favicon.ico",
         "index.html",
@@ -149,11 +142,11 @@
     "db-manager/migrations": {
       "path": "db-manager/migrations",
       "purpose": "Database migrations",
-      "fileCount": 21,
-      "lastAccessed": 1776509884492,
+      "fileCount": 24,
+      "lastAccessed": 1776597393002,
       "keyFiles": [
+        "V10.1__edge_schema.sql",
         "V10__daily_recommendations_feedback.sql",
-        "V10a__edge_schema.sql",
         "V11__moderation_seed_data.sql"
       ]
     },
@@ -161,14 +154,14 @@
       "path": "db-manager/src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1776509884493,
+      "lastAccessed": 1776597393002,
       "keyFiles": []
     },
     "recommendation/docs": {
       "path": "recommendation/docs",
       "purpose": "Documentation",
       "fileCount": 3,
-      "lastAccessed": 1776509884493,
+      "lastAccessed": 1776597393002,
       "keyFiles": [
         "API.md",
         "DEPLOYMENT.md",
@@ -178,27 +171,45 @@
   },
   "hotPaths": [
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java",
-      "accessCount": 54,
-      "lastAccessed": 1776520852590,
-      "type": "file"
-    },
-    {
       "path": ".planning/ROADMAP.md",
-      "accessCount": 38,
-      "lastAccessed": 1776560654457,
-      "type": "file"
-    },
-    {
-      "path": ".planning/REQUIREMENTS.md",
-      "accessCount": 35,
-      "lastAccessed": 1776560336974,
+      "accessCount": 116,
+      "lastAccessed": 1776659252779,
       "type": "file"
     },
     {
       "path": ".planning/STATE.md",
-      "accessCount": 35,
-      "lastAccessed": 1776560702467,
+      "accessCount": 105,
+      "lastAccessed": 1776659462502,
+      "type": "file"
+    },
+    {
+      "path": ".planning/REQUIREMENTS.md",
+      "accessCount": 62,
+      "lastAccessed": 1776659158886,
+      "type": "file"
+    },
+    {
+      "path": ".planning/PROJECT.md",
+      "accessCount": 57,
+      "lastAccessed": 1776654151975,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java",
+      "accessCount": 57,
+      "lastAccessed": 1776658957268,
+      "type": "file"
+    },
+    {
+      "path": "",
+      "accessCount": 55,
+      "lastAccessed": 1776658974166,
+      "type": "directory"
+    },
+    {
+      "path": "CLAUDE.md",
+      "accessCount": 38,
+      "lastAccessed": 1776592189127,
       "type": "file"
     },
     {
@@ -208,33 +219,33 @@
       "type": "file"
     },
     {
-      "path": "",
-      "accessCount": 21,
-      "lastAccessed": 1776559429469,
-      "type": "directory"
-    },
-    {
-      "path": ".planning/PROJECT.md",
-      "accessCount": 19,
-      "lastAccessed": 1776559899039,
-      "type": "file"
-    },
-    {
-      "path": "CLAUDE.md",
-      "accessCount": 18,
-      "lastAccessed": 1776559555409,
-      "type": "file"
-    },
-    {
       "path": "backend-spring/src/main/java/com/ulticode/modules/contest/entity/Contest.java",
       "accessCount": 15,
       "lastAccessed": 1776560357334,
       "type": "file"
     },
     {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/monitoring/service/impl/MonitoringServiceImpl.java",
+      "accessCount": 14,
+      "lastAccessed": 1776659380742,
+      "type": "file"
+    },
+    {
       "path": "db-manager/migrations/V3__contest_schema.sql",
       "accessCount": 13,
       "lastAccessed": 1776560066045,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/problem/controller/ProblemController.java",
+      "accessCount": 9,
+      "lastAccessed": 1776615820326,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/controller/ContestController.java",
+      "accessCount": 9,
+      "lastAccessed": 1776615820352,
       "type": "file"
     },
     {
@@ -256,6 +267,30 @@
       "type": "file"
     },
     {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/controller/UserController.java",
+      "accessCount": 7,
+      "lastAccessed": 1776589145239,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/controller/AchievementController.java",
+      "accessCount": 7,
+      "lastAccessed": 1776590187287,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/impl/UserServiceImpl.java",
+      "accessCount": 7,
+      "lastAccessed": 1776591578417,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java",
+      "accessCount": 7,
+      "lastAccessed": 1776615800345,
+      "type": "file"
+    },
+    {
       "path": "console/src/api/submission.ts",
       "accessCount": 6,
       "lastAccessed": 1776515065776,
@@ -265,12 +300,6 @@
       "path": "backend-spring/src/main/java/com/ulticode/modules/submission/entity/Submission.java",
       "accessCount": 5,
       "lastAccessed": 1776519762752,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/controller/ContestController.java",
-      "accessCount": 5,
-      "lastAccessed": 1776521619119,
       "type": "file"
     },
     {
@@ -286,15 +315,9 @@
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/problem/controller/ProblemController.java",
-      "accessCount": 4,
-      "lastAccessed": 1776514973874,
-      "type": "file"
-    },
-    {
       "path": "backend-spring/src/main/java/com/ulticode/modules/submission/controller/SubmissionController.java",
-      "accessCount": 4,
-      "lastAccessed": 1776517204846,
+      "accessCount": 5,
+      "lastAccessed": 1776615832389,
       "type": "file"
     },
     {
@@ -304,15 +327,21 @@
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java",
-      "accessCount": 4,
-      "lastAccessed": 1776517205014,
-      "type": "file"
-    },
-    {
       "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/ContestServiceImpl.java",
       "accessCount": 4,
       "lastAccessed": 1776558512349,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/UserService.java",
+      "accessCount": 4,
+      "lastAccessed": 1776567873344,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserStatsDTO.java",
+      "accessCount": 4,
+      "lastAccessed": 1776589154330,
       "type": "file"
     },
     {
@@ -340,45 +369,15 @@
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/UserService.java",
-      "accessCount": 3,
-      "lastAccessed": 1776515009753,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/impl/UserServiceImpl.java",
-      "accessCount": 3,
-      "lastAccessed": 1776515009773,
-      "type": "file"
-    },
-    {
       "path": "backend-spring/src/main/java/com/ulticode/modules/user/entity/User.java",
       "accessCount": 3,
       "lastAccessed": 1776515009867,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/controller/UserController.java",
-      "accessCount": 3,
-      "lastAccessed": 1776515009902,
-      "type": "file"
-    },
-    {
       "path": "console/src/composables/__tests__/useCodeTemplates.spec.ts",
       "accessCount": 2,
       "lastAccessed": 1776511210263,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/monitoring/service/impl/MonitoringServiceImpl.java",
-      "accessCount": 2,
-      "lastAccessed": 1776512345592,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/controller/AchievementController.java",
-      "accessCount": 2,
-      "lastAccessed": 1776515009809,
       "type": "file"
     },
     {
@@ -406,21 +405,27 @@
       "type": "file"
     },
     {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/entity/UserAchievement.java",
+      "accessCount": 2,
+      "lastAccessed": 1776590241943,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/entity/Achievement.java",
+      "accessCount": 2,
+      "lastAccessed": 1776590241948,
+      "type": "file"
+    },
+    {
       "path": "backend-spring/src/main/java/com/ulticode/modules/problem/controller",
-      "accessCount": 1,
-      "lastAccessed": 1776514966987,
+      "accessCount": 2,
+      "lastAccessed": 1776616005947,
       "type": "directory"
     },
     {
       "path": "backend-spring/src/main/java/com/ulticode/modules/user/mapper/UserMapper.java",
       "accessCount": 1,
       "lastAccessed": 1776514968073,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserStatsDTO.java",
-      "accessCount": 1,
-      "lastAccessed": 1776514968130,
       "type": "file"
     },
     {
@@ -457,18 +462,6 @@
       "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/constants/AchievementType.java",
       "accessCount": 1,
       "lastAccessed": 1776514981999,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/entity/Achievement.java",
-      "accessCount": 1,
-      "lastAccessed": 1776514982050,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/entity/UserAchievement.java",
-      "accessCount": 1,
-      "lastAccessed": 1776514982071,
       "type": "file"
     },
     {

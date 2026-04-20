@@ -31,6 +31,8 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.service.ProblemService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -133,6 +135,7 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     @Override
+    @Cacheable(value = "problem", key = "'getProblemById:' + #id")
     public ProblemVO getProblemById(Long id) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
@@ -321,6 +324,7 @@ public class ProblemServiceImpl implements ProblemService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "problem", allEntries = true)
     public ProblemVO createProblem(CreateProblemDTO createDTO) {
         // Check if slug already exists
         Optional<Problem> existingProblem = findBySlug(createDTO.getSlug());
@@ -355,6 +359,7 @@ public class ProblemServiceImpl implements ProblemService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "problem", allEntries = true)
     public ProblemVO updateProblem(Long id, UpdateProblemDTO updateDTO) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
@@ -397,6 +402,7 @@ public class ProblemServiceImpl implements ProblemService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "problem", allEntries = true)
     public void deleteProblem(Long id) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));

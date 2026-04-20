@@ -151,7 +151,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 23-01-PLAN.md — JOIN FETCH for contest rankings, problem tags, and submission lists
+- [ ] 24-01-PLAN.md — dotenv npm swap + Maven build order documentation
 
 ### Phase 25: Large File Refactoring
 

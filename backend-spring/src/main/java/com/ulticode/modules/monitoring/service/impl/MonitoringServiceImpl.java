@@ -33,6 +33,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Implementation of the MonitoringService interface.
@@ -55,7 +56,7 @@ public class MonitoringServiceImpl implements MonitoringService {
     @Value("${spring.profiles.active:development}")
     private String activeProfile;
 
-    private volatile long queryCount = 0;
+    private final AtomicLong queryCount = new AtomicLong(0);
 
     @Override
     public SystemInfoVO getSystemInfo() {
@@ -140,7 +141,7 @@ public class MonitoringServiceImpl implements MonitoringService {
         return DatabaseStatsVO.builder()
                 .activeConnections(activeConnections)
                 .maxConnections(maxConnections)
-                .queryCount(queryCount)
+                .queryCount(queryCount.get())
                 .slowQueries(0) // Would require query logging to track
                 .status(status)
                 .build();
@@ -448,6 +449,6 @@ public class MonitoringServiceImpl implements MonitoringService {
      * Increment query count (can be called by query interceptors).
      */
     public void incrementQueryCount() {
-        queryCount++;
+        queryCount.incrementAndGet();
     }
 }

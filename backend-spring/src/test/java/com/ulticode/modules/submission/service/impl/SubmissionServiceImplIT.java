@@ -51,15 +51,13 @@ import static org.mockito.Mockito.when;
 class SubmissionServiceImplIT {
 
     @Container
-    private static final MySQLContainer<?> mysql = new MySQLContainer<>(
-            DockerImageName.parse("mysql:8.0"))
+    private static final MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0")
             .withDatabaseName("ulticode_test")
             .withUsername("test")
             .withPassword("test");
 
     @Container
-    private static final GenericContainer<?> redis = new GenericContainer<>(
-            DockerImageName.parse("redis:7-alpine"))
+    private static final GenericContainer<?> redis = new GenericContainer<>("redis:7-alpine")
             .withExposedPorts(6379);
 
     private static DataSource dataSource;
@@ -72,6 +70,16 @@ class SubmissionServiceImplIT {
 
     @Mock
     private QueueService queueService;
+    @Mock
+    private com.ulticode.modules.websocket.service.RealtimeService realtimeService;
+    @Mock
+    private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
+    @Mock
+    private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
+    @Mock
+    private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
+    @Mock
+    private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
 
     private SubmissionServiceImpl submissionService;
 
@@ -227,7 +235,8 @@ class SubmissionServiceImplIT {
 
         // Create service with real mappers + mocked queueService
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, queueService);
+                submissionMapper, userMapper, problemMapper, queueService, realtimeService,
+                contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper);
     }
 
     @AfterEach

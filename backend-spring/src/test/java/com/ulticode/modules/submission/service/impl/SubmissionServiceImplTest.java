@@ -31,17 +31,15 @@ import static org.mockito.Mockito.*;
 @DisplayName("SubmissionServiceImpl")
 class SubmissionServiceImplTest {
 
-    @Mock
-    private SubmissionMapper submissionMapper;
-
-    @Mock
-    private UserMapper userMapper;
-
-    @Mock
-    private ProblemMapper problemMapper;
-
-    @Mock
-    private QueueService queueService;
+    @Mock private SubmissionMapper submissionMapper;
+    @Mock private UserMapper userMapper;
+    @Mock private ProblemMapper problemMapper;
+    @Mock private QueueService queueService;
+    @Mock private com.ulticode.modules.websocket.service.RealtimeService realtimeService;
+    @Mock private com.ulticode.modules.contest.mapper.ContestProblemMapper contestProblemMapper;
+    @Mock private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
+    @Mock private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
+    @Mock private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
 
     private SubmissionServiceImpl submissionService;
 
@@ -53,7 +51,8 @@ class SubmissionServiceImplTest {
     @BeforeEach
     void setUp() {
         submissionService = new SubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, queueService);
+                submissionMapper, userMapper, problemMapper, queueService, realtimeService,
+                contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper);
     }
 
     private Submission createValidSubmission() {

@@ -2,23 +2,23 @@
 
 **Milestone:** v1.6 User & Social
 **Date:** 2026-04-21
-**Status:** Draft
+**Status:** Ready for Planning
 
 ## Traceability
 
 | REQ-ID | Requirement | Phase | Status |
 |--------|-------------|-------|--------|
-| PROF-01 | | | |
-| PROF-02 | | | |
-| PROF-03 | | | |
-| ACHV-01 | | | |
-| ACHV-02 | | | |
-| ACHV-03 | | | |
-| ACHV-04 | | | |
-| FOLLOW-01 | | | |
-| FOLLOW-02 | | | |
-| FOLLOW-03 | | | |
-| FOLLOW-04 | | | |
+| PROF-01 | User Profile Endpoint | Phase 27 | Pending |
+| PROF-02 | Profile Page Frontend | Phase 29 | Pending |
+| PROF-03 | Profile Edit | Phase 27 | Pending |
+| ACHV-01 | Achievement Trigger Completion | Phase 28 | Pending |
+| ACHV-02 | Achievement Progress Indicators | Phase 28 | Pending |
+| ACHV-03 | Achievement Categories and Filtering | Phase 28 | Pending |
+| ACHV-04 | Real-time Achievement Notification | Phase 28 | Pending |
+| FOLLOW-01 | Follow/Unfollow | Phase 26 | Pending |
+| FOLLOW-02 | Follower/Following Lists | Phase 26 | Pending |
+| FOLLOW-03 | Follow Button State | Phase 29 | Pending |
+| FOLLOW-04 | Achievement Integration | Phase 26 | Pending |
 
 ---
 

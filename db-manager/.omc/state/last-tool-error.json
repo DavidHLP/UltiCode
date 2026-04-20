@@ -1,0 +1,7 @@
+{
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"rtk ls -la .planning/codebase/ && rtk wc -l .planning/codebase/*.md\"}",
+  "error": "Exit code 1\n(empty)\n\nwc: '.planning/codebase/*.md': 没有那个文件或目录",
+  "timestamp": "2026-04-19T14:50:53.621Z",
+  "retry_count": 1
+}

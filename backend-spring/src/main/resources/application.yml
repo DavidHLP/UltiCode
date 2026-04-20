@@ -8,6 +8,11 @@ cors:
 spring:
   application:
     name: ulticode-backend
+  main:
+    allow-bean-definition-overriding: true
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.web.servlet.error.ErrorMvcAutoConfiguration
 
   # Redisson Configuration (distributed locks, queues)
   redis:

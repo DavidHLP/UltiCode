@@ -1,0 +1,11 @@
+{"t":0,"agent":"a816abc","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"a12bdff","agent_type":"unknown","event":"agent_stop","success":true}
+{"t":0,"agent":"system","event":"skill_invoked","skill_name":"gsd-map-codebase"}
+{"t":0,"agent":"a7c3142","agent_type":"gsd-codebase-mapper","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a5ae40d","agent_type":"gsd-codebase-mapper","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"a6587bb","agent_type":"gsd-codebase-mapper","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ae6aae2","agent_type":"gsd-codebase-mapper","event":"agent_start","parent_mode":"none"}
+{"t":0,"agent":"ae6aae2","agent_type":"gsd-codebase-mapper","event":"agent_stop","success":true,"duration_ms":106826}
+{"t":0,"agent":"a5ae40d","agent_type":"gsd-codebase-mapper","event":"agent_stop","success":true,"duration_ms":136193}
+{"t":0,"agent":"a6587bb","agent_type":"gsd-codebase-mapper","event":"agent_stop","success":true,"duration_ms":137073}
+{"t":0,"agent":"a7c3142","agent_type":"gsd-codebase-mapper","event":"agent_stop","success":true,"duration_ms":231707}

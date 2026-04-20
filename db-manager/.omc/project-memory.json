@@ -1,0 +1,97 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1776609872581,
+  "projectRoot": "/home/davidhlp/project/UltiCode-Public-Next/db-manager",
+  "techStack": {
+    "languages": [
+      {
+        "name": "Python",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "pyproject.toml"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "pytest",
+        "version": null,
+        "category": "testing"
+      }
+    ],
+    "packageManager": null,
+    "runtime": null
+  },
+  "build": {
+    "buildCommand": null,
+    "testCommand": "pytest",
+    "lintCommand": "ruff check",
+    "devCommand": null,
+    "scripts": {}
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": null
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "flyway": {
+      "path": "flyway",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1776609872579,
+      "keyFiles": [
+        "README.txt",
+        "flyway",
+        "flyway.cmd"
+      ]
+    },
+    "migrations": {
+      "path": "migrations",
+      "purpose": "Database migrations",
+      "fileCount": 26,
+      "lastAccessed": 1776609872579,
+      "keyFiles": [
+        "V10__daily_recommendations_feedback.sql",
+        "V11__moderation_seed_data.sql",
+        "V12__notification_seed_data.sql",
+        "V13__solution_enrich_content.sql",
+        "V14__solution_stats.sql"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1776609872580,
+      "keyFiles": []
+    },
+    "flyway/lib": {
+      "path": "flyway/lib",
+      "purpose": "Library code",
+      "fileCount": 21,
+      "lastAccessed": 1776609872580,
+      "keyFiles": [
+        "accessors-smart-2.4.9.jar",
+        "commons-text-1.10.0.jar",
+        "content-type-2.2.jar"
+      ]
+    }
+  },
+  "hotPaths": [],
+  "userDirectives": []
+}

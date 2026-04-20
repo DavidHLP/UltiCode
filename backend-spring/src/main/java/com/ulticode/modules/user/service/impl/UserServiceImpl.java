@@ -21,6 +21,8 @@ import com.ulticode.modules.user.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -98,6 +100,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
+    @CacheEvict(value = "userStats", allEntries = true)
     public UserVO updateCurrentUser(UpdateUserDTO updateDTO) {
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {
@@ -187,6 +190,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Cacheable(value = "userStats", key = "'getUserStatsById:' + #id")
     public UserStatsDTO getUserStatsById(String id) {
         // Verify user exists
         if (findById(id).isEmpty()) {

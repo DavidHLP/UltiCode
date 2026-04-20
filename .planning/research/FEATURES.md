@@ -1,222 +1,265 @@
-# Feature Landscape: Technical Debt Remediation (v1.5)
+# Feature Landscape: User Profiles, Achievements, and Follow System (v1.6)
 
-**Domain:** Online Judge Platform Remediation
-**Researched:** 2026-04-20
-**Confidence:** MEDIUM-HIGH (based on existing codebase analysis)
+**Domain:** Online Programming Platform - User Social Features
+**Researched:** 2026-04-21
+**Confidence:** HIGH (based on existing codebase analysis + platform conventions)
 
-## Remediation Categories
+## Executive Summary
 
-Based on CONCERNS.md analysis, the 23 issues fall into these categories:
-
-| Category | Count | Priority |
-|----------|-------|----------|
-| Performance (N+1, Caching) | 3 | HIGH |
-| Missing Infrastructure (Rate Limit, JaCoCo) | 2 | HIGH |
-| Security (System.out, Hardcoded Zeros) | 3 | MEDIUM |
-| Tech Debt (Build Order, Config) | 3 | MEDIUM |
-| Large Files | 2 | LOW |
-| Fragile Code | 3 | LOW |
-| CI/CD | 2 | MEDIUM |
+UltiCode v1.6 adds user profiles, achievement/badge system, and follow/social features to the existing platform. The achievement infrastructure is substantially built; the follow system and profile frontend are new. This research maps table stakes vs differentiators, identifies dependencies on existing modules, and surfaces complexity for each feature area.
 
 ---
 
-## Category 1: Rate Limiting with Redis
+## 1. User Profiles
 
-**Severity:** HIGH (MISS-01)
-**Status:** Annotation exists, implementation missing
+### Table Stakes (Must-Have)
 
-### Current State
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Profile page with avatar | Identity on platform | LOW | User entity already has `avatar` field |
+| Display name and username | Basic identification | LOW | User entity has `name` and `username` |
+| Bio/description | Context about user | LOW | User entity has `bio` field |
+| Join date | Credibility signal | LOW | User entity has `joinedAt` |
+| Problems solved count | Core metric | LOW | Aggregatable from submissions |
+| Contest participation history | Activity proof | MEDIUM | Depends on contest module |
+| Total submissions | Activity signal | LOW | Aggregatable from submissions |
+| Preferred language | Helps others understand style | LOW | User entity has `preferredLanguage` |
 
-```java
-// backend-spring/src/main/java/com/ulticode/common/annotation/RateLimit.java
-@Target({ElementType.METHOD, ElementType.TYPE})
-@Retention(RetentionPolicy.RUNTIME)
-public @interface RateLimit {
-    String key() default "";
-    int limit() default 100;
-    int period() default 60;
-}
+### Differentiators (Valued but Not Expected)
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Activity heatmap (GitHub-style) | Visual engagement, gamification | MEDIUM | Requires submission date tracking |
+| Real-time stats widget | Freshness, live feel | MEDIUM | Depends on WebSocket infrastructure |
+| Social proof badges | Trust signals | LOW | Ties into achievement system |
+| Solution showcase | Demonstrates expertise | MEDIUM | Depends on solution module |
+| Profile customizability | Self-expression | LOW | Already supports avatar, bio, links |
+
+### Anti-Features (Avoid)
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| Profile themes/customization | Scope creep for v1.6 | Stick to existing avatar/bio/links |
+| Profile views counter | Adds complexity, marginal value | Defer to future milestone |
+| Endorsements/skill votes | Complex moderation, easy to abuse | Ties to solution quality instead |
+
+### Dependencies on Existing Infrastructure
+
+| Data Needed | Source Module | Status |
+|-------------|---------------|--------|
+| Problems solved | `submission` module | Aggregation query needed |
+| Contest history | `contest` module | Already has rankings |
+| Forum posts | `forum` module | Already has post counts |
+| Solutions written | `solution` module | Already exists |
+| User achievements | `achievement` module | Fully built |
+
+---
+
+## 2. Achievement / Badge System
+
+### Table Stakes (Must-Have)
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Achievement list page | Browse all badges | LOW | Achievement entity already exists |
+| Earned badges on profile | Social proof | LOW | UserAchievement entity exists |
+| Badge tier levels (bronze/silver/gold/platinum) | Progression feel | LOW | Achievement.tier already modeled |
+| Points display | Accumulation reward | LOW | Achievement.points exists |
+| Real-time badge notification | Delight moment | MEDIUM | WebSocket already built (BadgeEarnedPayload) |
+
+### Differentiators (Valued but Not Expected)
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Progress indicators (X/Y toward next badge) | Motivation to continue | MEDIUM | AchievementTriggerService can be extended |
+| Rare/exclusive badge designation | Status symbol | LOW | Add `isExclusive` flag to Achievement |
+| Badge categories with filtering | Browsability | LOW | Achievement.category already exists |
+| Achievement streaks | Daily engagement hook | MEDIUM | STREAK_DAYS trigger already exists |
+| Contest ranking achievements | Competitive recognition | MEDIUM | CONTEST_WINS, CONTEST_PLACED triggers exist |
+| Social sharing of achievements | Viral growth | MEDIUM | Share link generation |
+| Achievement leaderboard | Competition between users | MEDIUM | Aggregatable from UserAchievement |
+
+### Existing Achievement Types (Already Built)
+
+Based on `AchievementType.java` and `AchievementTriggerServiceImpl`:
+
+| AchievementType | Trigger | Status |
+|-----------------|---------|--------|
+| PROBLEMS_SOLVED | onProblemSolved | Built |
+| SUBMISSIONS_MADE | onSubmissionMade | Built |
+| CONTEST_PARTICIPATION | onContestJoined | Built |
+| CONTEST_WINS | onContestWon | Built |
+| CONTEST_PLACED | onContestPlaced | Built |
+| FORUM_POSTS | onForumPostCreated | Built |
+| SOLUTIONS_WRITTEN | onSolutionWritten | Built |
+| STREAK_DAYS | onStreakUpdated | Built |
+| RATING_MILESTONE | onRatingUpdated | Built |
+
+### Missing Achievement Triggers
+
+| Trigger | Use Case | Complexity |
+|---------|----------|------------|
+| First problem solved | Onboarding win | LOW |
+| Language-specific milestones | Python 100, Java 100 | LOW |
+| Easy/Medium/Hard problem ratios | Diversity signal | MEDIUM |
+| Solution upvotes received | Quality recognition | MEDIUM |
+| Follower count milestones | Social growth | LOW (follow system needed first) |
+
+### Anti-Features (Avoid)
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| Paywalled/premium badges | Fractures community | Keep all badges free |
+| Badge trading/selling | Gameable, moderation nightmare | N/A |
+| Badge revocation | Complexity, user frustration | Keep badges permanent |
+
+### Dependencies on Existing Infrastructure
+
+| Component | Status | What's Needed |
+|-----------|--------|---------------|
+| Achievement entity | Built | None |
+| UserAchievement entity | Built | None |
+| AchievementType enum | Built | None |
+| AchievementService | Built | None |
+| AchievementTriggerService | Built | Extend with missing triggers |
+| WebSocket notification | Built | BadgeEarnedPayload already exists |
+| AchievementTriggerService events | Built | Publish events on triggers |
+
+---
+
+## 3. Follow System
+
+### Table Stakes (Must-Have)
+
+| Feature | Why Expected | Complexity | Notes |
+|---------|--------------|------------|-------|
+| Follow button on user profiles | Core social action | MEDIUM | NEW - needs module |
+| Followers list (who follows me) | Social proof | MEDIUM | NEW - needs module |
+| Following list (who I follow) | Social graph | MEDIUM | NEW - needs module |
+| Follower/following count on profile | Quick social signal | LOW | NEW - aggregate queries |
+| Unfollow action | Flexibility | LOW | NEW |
+
+### Differentiators (Valued but Not Expected)
+
+| Feature | Value Proposition | Complexity | Notes |
+|---------|-------------------|------------|-------|
+| Activity feed | Reasons to return | HIGH | NEW - significant complexity |
+| Follow notifications | Engagement | MEDIUM | NEW - ties to notification module |
+| Mutual followers highlighting | Social connection | LOW | NEW |
+| Suggested users to follow | Discovery | HIGH | Could use recommendation service |
+| Follow user activity timeline | See what others solved | MEDIUM | NEW - activity aggregation |
+
+### Anti-Features (Avoid)
+
+| Anti-Feature | Why Avoid | What to Do Instead |
+|--------------|-----------|-------------------|
+| Private accounts | Complexity, moderation | Keep all accounts public for v1.6 |
+| Block functionality | Scope creep | Defer to v1.7 moderation |
+| Follow requests (approval) | Adds friction, complexity | N/A |
+| Follower counts hidden | Counter to social proof | Show publicly |
+
+### Data Model Recommendations
+
+```
+users (existing)
+follows
+  - id
+  - follower_id (user who follows)
+  - following_id (user being followed)
+  - created_at
+
+Indexes:
+- UNIQUE(follower_id, following_id) -- prevent duplicate follows
+- INDEX(follower_id) -- who's my following
+- INDEX(following_id) -- my followers
 ```
 
-`RateLimitAspect.java` exists but needs Redis-backed implementation with Lua script for atomicity.
+### Dependencies on Existing Infrastructure
 
-### What "Done" Looks Like
-
-- [ ] All public endpoints annotated with `@RateLimit` (key, limit, period)
-- [ ] RateLimitAspect implemented using Redisson RRateLimiter
-- [ ] Lua script executes atomically (no race conditions)
-- [ ] Returns 429 Too Many Requests with `Retry-After` header when exceeded
-- [ ] Rate limit key includes user ID (authenticated) or IP (anonymous)
-- [ ] Graceful degradation if Redis unavailable (allow request, log warning)
-
-### Complexity: MEDIUM
-
-**Dependencies:** Redis connection (already exists in `RedisService`), `spring-boot-starter-cache`
+| Component | Status | What's Needed |
+|-----------|--------|---------------|
+| User entity | Built | None |
+| Notification module | Built | Extend for follow notifications |
+| WebSocket | Built | Can reuse for real-time feed updates |
 
 ---
 
-## Category 2: JaCoCo Coverage Enforcement
+## 4. Feature Dependencies and Ordering
 
-**Severity:** MEDIUM (MISS-02)
-**Status:** Tests exist, no enforcement
+```
+User Profile
+├── User data (avatar, bio, links) ────────────────── EXISTING (User entity)
+├── Problems solved count ───────────────────────────── EXISTING (aggregation needed)
+├── Contest history ────────────────────────────────── EXISTING (contest module)
+├── Achievements earned ─────────────────────────────── EXISTING (achievement module)
+└── Followers/Following counts ─────────────────────── NEW (follow module)
 
-### Current State
+Achievement System
+├── Achievement definitions ─────────────────────────── EXISTING (Achievement entity)
+├── User achievements ──────────────────────────────── EXISTING (UserAchievement entity)
+├── Achievement triggers ───────────────────────────── EXISTING (AchievementTriggerService)
+├── Missing triggers ──────────────────────────────── NEW (extend AchievementTriggerService)
+└── Progress indicators ────────────────────────────── NEW (UI + calculation)
 
-Tests exist in `backend-spring/src/test/java/` but:
-- No JaCoCo plugin in pom.xml
-- No coverage thresholds
-- Unknown coverage percentage
-
-### What "Done" Looks Like
-
-- [ ] JaCoCo plugin configured in `backend-spring/pom.xml`
-- [ ] Minimum coverage thresholds:
-  - Line coverage: 50% (initial), target 60%
-  - Branch coverage: 40% (initial), target 50%
-- [ ] Exclusions configured:
-  - `*Application.java`
-  - `*Config.java`
-  - `*Exception.java`
-  - `*VO.java`, `*DTO.java`, `*Request.java`, `*Response.java`
-  - Generated mapper classes
-- [ ] Maven fails build if coverage below threshold (`mvn verify`)
-- [ ] Coverage report generated at `target/site/jacoco/index.html`
-
-### Complexity: LOW
-
-**Dependencies:** `jacoco-maven-plugin`, no external services needed
-
----
-
-## Category 3: Redis Caching for Read-Heavy Queries
-
-**Severity:** MEDIUM (SCALE-01)
-**Status:** No caching annotations found anywhere
-
-### Current State
-
-Every request hits MySQL:
-- Problem lists
-- User profiles
-- Contest rankings
-- Forum posts
-
-### What to Cache
-
-| Data | TTL | Invalidation |
-|------|-----|--------------|
-| Problem list (public) | 5 min | On problem create/update |
-| Problem detail | 10 min | On problem update |
-| User profile | 15 min | On profile update |
-| Contest rankings | 1 min | On new submission |
-| Contest details | 5 min | On contest update |
-| Forum post list | 2 min | On new post/comment |
-| Tag list | 30 min | On tag create |
-
-### What "Done" Looks Like
-
-- [ ] Spring Cache abstraction enabled (`spring-boot-starter-cache`)
-- [ ] `@Cacheable` on service methods returning read-heavy data
-- [ ] `@CacheEvict` on mutation methods (create/update/delete)
-- [ ] `@CachePut` when updating changes the cached value
-- [ ] Cache key follows pattern: `{entity}:{id}` or `{entity}:list:{query-hash}`
-- [ ] Redis as cache backend (already configured in `RedisConfig`)
-- [ ] Cache errors do not crash requests (fallback to DB)
-
-### Complexity: MEDIUM
-
-**Dependencies:** `spring-boot-starter-cache`, existing RedisTemplate
-
----
-
-## Category 4: N+1 Query Fixes
-
-**Severity:** MEDIUM (PERF-01)
-**Status:** Contest mappers identified, likely other modules
-
-### Current State
-
-```java
-// ContestMapper - potential N+1
-@Select("SELECT * FROM contest_submissions WHERE contest_id = #{contestId} ...")
-List<ContestSubmission> selectByContestId(...);
-// If ContestSubmission has nested objects fetched separately
+Follow System
+├── Follow table ─────────────────────────────────── NEW (new module)
+├── Follow/Unfollow API ────────────────────────────── NEW (new module)
+├── Follower list API ─────────────────────────────── NEW (new module)
+├── Following list API ────────────────────────────── NEW (new module)
+├── Follow notifications ──────────────────────────── EXISTING (notification module)
+└── Activity feed (defer to later) ────────────────── DEFERRED
 ```
 
-### Fix Strategy: JOIN + Batch Fetch
+---
 
-| Approach | When to Use |
-|----------|-------------|
-| **JOIN FETCH** | Single query with related entities (1:1, N:1) |
-| **@BatchSize** | Collection fetching (1:N) - MyBatis-Plus batches |
-| **Custom DTO projection** | Read-only queries returning multiple entities |
+## 5. MVP Recommendation
 
-### What "Done" Looks Like
+### Phase 1: User Profile (Low Risk, Foundation)
+Priority order:
+1. Profile API endpoints (GET /users/{id}, PUT /users/{id}/profile)
+2. Profile page frontend (avatar, name, bio, links, join date)
+3. Stats aggregation (problems solved, contests, submissions)
+4. Achievements display on profile
 
-- [ ] Contest rankings: Single query with JOIN FETCH for participant data
-- [ ] Submission list: Batch fetch or JOIN for problem details
-- [ ] Problem list: JOIN for difficulty/tags if needed
-- [ ] No lazy loading triggers in list queries
-- [ ] EXPLAIN ANALYZE confirms single-digit query count per request
+### Phase 2: Achievement System Enhancement (Medium Risk)
+Priority order:
+1. Missing achievement triggers (first problem, language milestones)
+2. Progress indicators for in-progress achievements
+3. Achievement notification (already built, verify)
+4. Achievement categories with filtering
 
-### Complexity: MEDIUM
+### Phase 3: Follow System (Medium Risk, Social Layer)
+Priority order:
+1. Follow table and basic CRUD
+2. Follow/Unfollow API
+3. Followers/Following list endpoints
+4. Follower count on profile
+5. Follow notifications
 
-**Tools needed:** MyBatis-Plus `QueryWrapper` with JOINs, or MyBatis XML with resultMaps
+### Defer to v1.7:
+- Activity feed (high complexity, new paradigm)
+- Suggested users to follow (needs recommendation integration)
+- Social sharing of achievements
 
 ---
 
-## MVP Recommendation
+## 6. Complexity Assessment
 
-Prioritize in this order:
-
-### Phase 1: Rate Limiting (HIGH Priority)
-1. Implement Redisson RRateLimiter in `RateLimitAspect`
-2. Add `@RateLimit` to all public API endpoints
-3. Test 429 responses and header behavior
-
-### Phase 2: JaCoCo Setup (MEDIUM Priority)
-1. Add JaCoCo plugin to `pom.xml`
-2. Configure exclusions and thresholds
-3. Verify current coverage baseline
-4. Set initial thresholds (50% line, 40% branch)
-
-### Phase 3: Security Fixes (MEDIUM Priority)
-1. Replace `System.out.println` with proper logging
-2. Fix hardcoded forum stats
-3. Add tests for fixed paths
-
-### Phase 4: Caching Layer (MEDIUM Priority)
-1. Enable Spring Cache
-2. Add `@Cacheable` to problem/user/contest queries
-3. Add `@CacheEvict` to mutations
-
-### Phase 5: N+1 Fixes (MEDIUM Priority)
-1. Audit all mapper queries for N+1 potential
-2. Add JOIN FETCH or batch size to contest rankings
-3. Verify with EXPLAIN ANALYZE
-
-### Phase 6: Large File Refactoring (LOW Priority)
-1. Split ForumServiceImpl
-2. Split CodeExecutionService
-3. Split ContestServiceImpl
+| Feature | Complexity | Risk | Reason |
+|---------|------------|------|--------|
+| Profile page frontend | MEDIUM | LOW | Standard CRUD, existing user data |
+| Stats aggregation | MEDIUM | MEDIUM | N+1 potential, needs optimization |
+| Achievement triggers | LOW | LOW | Pattern already established |
+| Progress indicators | MEDIUM | MEDIUM | Calculation logic, caching |
+| Follow module | MEDIUM | MEDIUM | New table, new API, consistency |
+| Follower list API | LOW | LOW | Standard pagination |
+| Activity feed | HIGH | HIGH | Complex aggregation, defer |
 
 ---
 
-## Dependencies on Existing Infrastructure
+## 7. Sources
 
-| Component | Already Exists | What's Needed |
-|-----------|---------------|---------------|
-| Redis | Yes (`RedisService`) | Rate limit Lua script, cache config |
-| RateLimit annotation | Yes | Implementation in Aspect |
-| MyBatis-Plus | Yes | JOIN optimization in XML |
-| Spring Cache | No | Add starter, configure Redis backend |
-| JaCoCo | No | Add Maven plugin |
-
----
-
-## Sources
-
-- CONCERNS.md (v1.5 backlog, 2026-04-19)
-- RateLimitAspect.java (existing implementation stub)
-- RedisService.java (existing Redis operations)
-- pom.xml (existing dependencies)
+- Existing `backend-spring/src/main/java/com/ulticode/modules/achievement/` (entity, service, trigger)
+- Existing `backend-spring/src/main/java/com/ulticode/modules/user/entity/User.java`
+- Existing `backend-spring/src/main/java/com/ulticode/modules/websocket/notification/dto/BadgeEarnedPayload.java`
+- PROJECT.md v1.6 milestone definition

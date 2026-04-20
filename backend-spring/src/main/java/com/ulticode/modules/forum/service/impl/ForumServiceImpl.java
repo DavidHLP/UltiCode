@@ -6,688 +6,75 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.forum.dto.*;
 import com.ulticode.modules.forum.entity.*;
 import com.ulticode.modules.forum.mapper.*;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.modules.forum.service.ForumCommentService;
+import com.ulticode.modules.forum.service.ForumPostService;
 import com.ulticode.modules.forum.service.ForumService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
-import com.ulticode.modules.vote.dto.VoteResultVO;
-import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
-import com.ulticode.modules.vote.service.VoteService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-/**
- * Forum Service Implementation.
- * Implements business logic for forum operations.
- */
-@Service
-@RequiredArgsConstructor
-@Slf4j
+@Slf4j @Service @RequiredArgsConstructor
 public class ForumServiceImpl implements ForumService {
 
-    private static final int MAX_RECENT_POSTS = 50;
-
-    private final ForumPostMapper postMapper;
-    private final ForumCommentMapper commentMapper;
+    private final ForumPostService forumPostService;
+    private final ForumCommentService forumCommentService;
     private final ForumCommunityMapper communityMapper;
     private final ForumCommunityMemberMapper memberMapper;
     private final ForumTagMapper tagMapper;
-    private final ForumUserMapper forumUserMapper;
+    private final ForumCommentMapper commentMapper;
+    private final ForumPostMapper postMapper;
     private final UserService userService;
-    private final VoteService voteService;
 
-    // =========================================================================
-    // POST OPERATIONS
-    // =========================================================================
-
-    @Override
-    public List<ForumPostVO> findAllPosts(String userId) {
-        return findAllPosts(userId, 1, MAX_RECENT_POSTS).getItems();
+    @Override public List<ForumPostVO> findAllPosts(String u) { return forumPostService.findAllPosts(u); }
+    @Override public PageResult<ForumPostVO> findAllPosts(String u, int p, int ps) { return forumPostService.findAllPosts(u, p, ps); }
+    @Override public ForumPostVO findPostById(String id, String u) { return forumPostService.findPostById(id, u); }
+    @Override public List<ForumPostVO> findMyPosts(String u) { return forumPostService.findMyPosts(u); }
+    @Override public PageResult<ForumPostVO> findMyPosts(String u, int p, int ps) { return forumPostService.findMyPosts(u, p, ps); }
+    @Override public ForumPostVO createPost(CreatePostDTO d, String u) { return forumPostService.createPost(d, u); }
+    @Override public ForumPostVO updatePost(String id, UpdatePostDTO d, String u) { return forumPostService.updatePost(id, d, u); }
+    @Override public void deletePost(String id, String u) { forumPostService.deletePost(id, u); }
+    @Override public void recordShare(String id) { forumPostService.recordShare(id); }
+    @Override public void recordView(String id) { forumPostService.recordView(id); }
+    @Override public ForumPostThreadVO getPostThread(String postId, String userId) {
+        ForumPostThreadVO thread = forumPostService.getPostThread(postId, userId);
+        List<ForumComment> cs = commentMapper.findByPostId(postId);
+        Set<String> ids = new HashSet<>(); cs.forEach(c -> ids.add(c.getAuthorId()));
+        ForumPost p = postMapper.selectById(postId); if (p != null && p.getUserId() != null) ids.add(p.getUserId());
+        thread.setComments(forumCommentService.buildCommentTree(cs, userService.findAllById(ids))); return thread;
     }
-
-    @Override
-    public PageResult<ForumPostVO> findAllPosts(String userId, int page, int pageSize) {
-        log.debug("Finding all posts for userId: {}, page: {}, pageSize: {}", userId, page, pageSize);
-        int limit = Math.min(pageSize, MAX_RECENT_POSTS);
-        int offset = (page - 1) * limit;
-        long total = postMapper.selectCount(
-                new LambdaQueryWrapper<ForumPost>().eq(ForumPost::getIsDeleted, 0));
-        List<ForumPost> posts = postMapper.findRecentPosts(limit, offset);
-        Map<String, User> authorMap = batchLoadAuthors(posts);
-        List<ForumPostVO> items = posts.stream()
-                .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
-                .collect(Collectors.toList());
-        return PageResult.of(items, total, page, limit);
+    @Override public ForumCommentVO createComment(String pid, CreateCommentDTO d, String u) { return forumCommentService.createComment(pid, d, u); }
+    @Override public ForumCommentVO updateComment(String id, UpdateCommentDTO d, String u) { return forumCommentService.updateComment(id, d, u); }
+    @Override public void deleteComment(String id, String u) { forumCommentService.deleteComment(id, u); }
+    @Override public List<ForumCommunityVO> findAllCommunities(boolean f) {
+        return (f ? communityMapper.findFeaturedCommunities() : communityMapper.findPublicCommunities()).stream().map(forumPostService::toCommunityVO).collect(Collectors.toList());
     }
-
-    @Override
-    public ForumPostVO findPostById(String id, String userId) {
-        log.debug("Finding post by id: {} for userId: {}", id, userId);
-        ForumPost post = postMapper.selectById(id);
-        if (post == null) {
-            throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
-        }
-        User author = userService.findById(post.getUserId()).orElse(null);
-        return convertToPostVO(post, userId, author);
+    @Override public ForumCommunityDetailVO findCommunityBySlugOrId(String s) {
+        ForumCommunity c = communityMapper.findBySlug(s); if (c == null) c = communityMapper.selectById(s);
+        if (c == null) throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
+        ForumCommunityDetailVO d = new ForumCommunityDetailVO();
+        d.setCommunity(forumPostService.toCommunityVO(c)); d.setRules(Collections.emptyList()); d.setLinks(Collections.emptyList()); return d;
     }
-
-    @Override
-    public List<ForumPostVO> findMyPosts(String userId) {
-        return findMyPosts(userId, 1, MAX_RECENT_POSTS).getItems();
+    @Override public List<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String u) { return findPostsByCommunity(slug, sortBy, u, 1, 50).getItems(); }
+    @Override public PageResult<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String u, int page, int pageSize) {
+        ForumCommunity c = communityMapper.findBySlug(slug); if (c == null) throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
+        int limit = Math.min(pageSize, 50), offset = (page - 1) * limit;
+        List<ForumPost> ps = forumPostService.findByCommunityId(c.getId(), limit, offset);
+        Map<String, User> am = forumPostService.batchLoadAuthors(ps);
+        return PageResult.of(ps.stream().map(p -> forumPostService.convertToPostVO(p, u, am.get(p.getUserId()))).collect(Collectors.toList()),
+                forumPostService.countByCommunityId(c.getId()), page, limit);
     }
-
-    @Override
-    public PageResult<ForumPostVO> findMyPosts(String userId, int page, int pageSize) {
-        log.debug("Finding posts for user: {}, page: {}, pageSize: {}", userId, page, pageSize);
-        int limit = Math.min(pageSize, MAX_RECENT_POSTS);
-        int offset = (page - 1) * limit;
-        long total = postMapper.countByUserId(userId);
-        List<ForumPost> posts = postMapper.findByUserId(userId, limit, offset);
-        Map<String, User> authorMap = batchLoadAuthors(posts);
-        List<ForumPostVO> items = posts.stream()
-                .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
-                .collect(Collectors.toList());
-        return PageResult.of(items, total, page, limit);
+    @Override @Transactional public void joinCommunity(String cid, String uid) {
+        if (communityMapper.selectById(cid) == null) throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
+        if (!memberMapper.isMember(cid, uid)) { ForumCommunityMember m = new ForumCommunityMember();
+            m.setCommunityId(cid); m.setUserId(uid); m.setRole("MEMBER"); m.setJoinedAt(java.time.LocalDateTime.now());
+            memberMapper.insert(m); communityMapper.incrementMembers(cid); }
     }
-
-    @Override
-    @Transactional
-    public ForumPostVO createPost(CreatePostDTO dto, String userId) {
-        log.debug("Creating post for user: {}", userId);
-
-        // Validate community exists
-        ForumCommunity community = communityMapper.selectById(dto.getCommunityId());
-        if (community == null) {
-            throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
-        }
-
-        // Check if community is restricted (private)
-        if ("PRIVATE".equals(community.getVisibility())) {
-            // Check if user is a member
-            if (!memberMapper.isMember(dto.getCommunityId(), userId)) {
-                throw new BusinessException(ErrorCode.FORUM_COMMUNITY_RESTRICTED);
-            }
-        }
-
-        // Ensure forum user exists (find or create) - forum_posts.user_id references forum_users.id
-        String forumUserId = ensureForumUserExists(userId);
-
-        ForumPost post = new ForumPost();
-        post.setCommunityId(dto.getCommunityId());
-        post.setUserId(forumUserId);
-        post.setPermalink(generatePermalink());
-        post.setTitle(dto.getTitle());
-        post.setFlairType(dto.getFlairType());
-        post.setFlairLabel(dto.getFlairLabel());
-        post.setTags(dto.getTags());
-        post.setExcerpt(dto.getExcerpt() != null ? dto.getExcerpt() : dto.getBody());
-        post.setMedia(dto.getMedia());
-        post.setVoteState("neutral");
-        post.setIsSaved(false);
-        post.setImpressions(0);
-        post.setIsPinned(false);
-        post.setIsLocked(false);
-        post.setViews(0);
-        post.setIsFlagged(false);
-
-        postMapper.insert(post);
-
-        // Increment community post count
-        communityMapper.incrementPostsCount(dto.getCommunityId());
-
-        User author = userService.findById(post.getUserId()).orElse(null);
-        return convertToPostVO(post, userId, author);
-    }
-
-    @Override
-    @Transactional
-    public ForumPostVO updatePost(String id, UpdatePostDTO dto, String userId) {
-        log.debug("Updating post: {} for user: {}", id, userId);
-
-        ForumPost post = postMapper.selectById(id);
-        if (post == null) {
-            throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
-        }
-
-        // Check ownership
-        if (!post.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORUM_CANNOT_EDIT_POST);
-        }
-
-        // Check if post is locked
-        if (Boolean.TRUE.equals(post.getIsLocked())) {
-            throw new BusinessException(ErrorCode.FORUM_POST_LOCKED);
-        }
-
-        // Update fields
-        if (dto.getTitle() != null) {
-            post.setTitle(dto.getTitle());
-        }
-        if (dto.getExcerpt() != null) {
-            post.setExcerpt(dto.getExcerpt());
-        }
-        if (dto.getTags() != null) {
-            post.setTags(dto.getTags());
-        }
-        if (dto.getFlairType() != null) {
-            post.setFlairType(dto.getFlairType());
-        }
-        if (dto.getFlairLabel() != null) {
-            post.setFlairLabel(dto.getFlairLabel());
-        }
-        if (dto.getMedia() != null) {
-            post.setMedia(dto.getMedia());
-        }
-        if (dto.getIsPinned() != null) {
-            post.setIsPinned(dto.getIsPinned());
-        }
-        if (dto.getIsLocked() != null) {
-            post.setIsLocked(dto.getIsLocked());
-        }
-
-        postMapper.updateById(post);
-
-        User author = userService.findById(post.getUserId()).orElse(null);
-        return convertToPostVO(post, userId, author);
-    }
-
-    @Override
-    @Transactional
-    public void deletePost(String id, String userId) {
-        log.debug("Deleting post: {} for user: {}", id, userId);
-
-        ForumPost post = postMapper.selectById(id);
-        if (post == null) {
-            throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
-        }
-
-        // Check ownership
-        if (!post.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORUM_CANNOT_DELETE_POST);
-        }
-
-        // Soft delete
-        postMapper.softDelete(id, userId);
-
-        // Decrement community post count
-        communityMapper.decrementPostsCount(post.getCommunityId());
-    }
-
-    @Override
-    public ForumPostThreadVO getPostThread(String postId, String userId) {
-        log.debug("Getting thread for post: {} for userId: {}", postId, userId);
-
-        ForumPost post = postMapper.selectById(postId);
-        if (post == null) {
-            throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
-        }
-
-        // Get all comments for the post
-        List<ForumComment> comments = commentMapper.findByPostId(postId);
-
-        // Batch fetch all authors to avoid N+1 queries (including post author)
-        Set<String> authorIds = comments.stream()
-                .map(ForumComment::getAuthorId)
-                .collect(Collectors.toSet());
-        authorIds.add(post.getUserId()); // Include post author
-
-        Map<String, User> authorMap = new HashMap<>();
-        for (String authorId : authorIds) {
-            userService.findById(authorId).ifPresent(user -> authorMap.put(authorId, user));
-        }
-
-        // Build comment tree with author info
-        List<ForumCommentVO> commentVOs = buildCommentTree(comments, authorMap);
-
-        ForumPostThreadVO thread = new ForumPostThreadVO();
-        thread.setPost(convertToPostVO(post, userId, authorMap.get(post.getUserId())));
-        thread.setComments(commentVOs);
-
-        return thread;
-    }
-
-    @Override
-    @Transactional
-    public void recordShare(String postId) {
-        log.debug("Recording share for post: {}", postId);
-        // In a real implementation, this would track share metrics
-        // For now, we just increment impressions as a simple implementation
-        postMapper.incrementImpressions(postId);
-    }
-
-    @Override
-    @Transactional
-    public void recordView(String postId) {
-        log.debug("Recording view for post: {}", postId);
-        postMapper.incrementViews(postId);
-    }
-
-    // =========================================================================
-    // COMMENT OPERATIONS
-    // =========================================================================
-
-    @Override
-    @Transactional
-    public ForumCommentVO createComment(String postId, CreateCommentDTO dto, String userId) {
-        log.debug("Creating comment on post: {} for user: {}", postId, userId);
-
-        // Check post exists
-        ForumPost post = postMapper.selectById(postId);
-        if (post == null) {
-            throw new BusinessException(ErrorCode.FORUM_POST_NOT_FOUND);
-        }
-
-        // Check if post is locked
-        if (Boolean.TRUE.equals(post.getIsLocked())) {
-            throw new BusinessException(ErrorCode.FORUM_POST_LOCKED);
-        }
-
-        // Ensure forum user exists (find or create) - forum_users.id must exist for FK constraint
-        String forumUserId = ensureForumUserExists(userId);
-
-        ForumComment comment = new ForumComment();
-        comment.setPostId(postId);
-        comment.setParentId(dto.getParentId());
-        comment.setAuthorId(forumUserId);
-        comment.setBody(dto.getBody());
-        comment.setMarkdown(dto.getBody());
-        comment.setIsPinned(false);
-        comment.setIsLocked(false);
-        comment.setIsFlagged(false);
-
-        commentMapper.insert(comment);
-
-        // Fetch author info for the response
-        Map<String, User> authorMap = new HashMap<>();
-        userService.findById(userId).ifPresent(user -> authorMap.put(userId, user));
-
-        return convertToCommentVO(comment, authorMap);
-    }
-
-    /**
-     * Ensures a forum_users entry exists for the given user.
-     * If not exists, creates one using the main user's information.
-     *
-     * @param userId the main users table ID (UUID)
-     * @return the forum_users.id to use for forum operations
-     */
-    private String ensureForumUserExists(String userId) {
-        // Check if forum user already exists
-        ForumUser forumUser = forumUserMapper.selectById(userId);
-        if (forumUser != null) {
-            return forumUser.getId();
-        }
-
-        // Need to create forum user entry - fetch main user info
-        User user = userService.findById(userId)
-                .orElseThrow(() -> {
-                    log.error("User not found when creating forum user: {}", userId);
-                    return new BusinessException(ErrorCode.USER_NOT_FOUND);
-                });
-
-        // Create forum user with same ID as main user
-        ForumUser newForumUser = new ForumUser();
-        newForumUser.setId(userId);
-        newForumUser.setUsername(user.getUsername());
-        newForumUser.setAvatar(user.getAvatar());
-        newForumUser.setKarma(0);
-        newForumUser.setCreatedAt(LocalDateTime.now());
-
-        forumUserMapper.insert(newForumUser);
-        log.debug("Created forum user entry for user: {} with id: {}", user.getUsername(), userId);
-
-        return newForumUser.getId();
-    }
-
-    @Override
-    @Transactional
-    public ForumCommentVO updateComment(String id, UpdateCommentDTO dto, String userId) {
-        log.debug("Updating comment: {} for user: {}", id, userId);
-
-        ForumComment comment = commentMapper.selectById(id);
-        if (comment == null) {
-            throw new BusinessException(ErrorCode.FORUM_COMMENT_NOT_FOUND);
-        }
-
-        // Check ownership
-        if (!comment.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORUM_CANNOT_EDIT_POST);
-        }
-
-        comment.setBody(dto.getBody());
-        comment.setMarkdown(dto.getBody());
-        commentMapper.updateById(comment);
-        commentMapper.markAsEdited(id);
-
-        // Fetch author info for the response
-        Map<String, User> authorMap = new HashMap<>();
-        userService.findById(comment.getAuthorId()).ifPresent(user -> authorMap.put(comment.getAuthorId(), user));
-
-        return convertToCommentVO(comment, authorMap);
-    }
-
-    @Override
-    @Transactional
-    public void deleteComment(String id, String userId) {
-        log.debug("Deleting comment: {} for user: {}", id, userId);
-
-        ForumComment comment = commentMapper.selectById(id);
-        if (comment == null) {
-            throw new BusinessException(ErrorCode.FORUM_COMMENT_NOT_FOUND);
-        }
-
-        // Check ownership
-        if (!comment.getAuthorId().equals(userId)) {
-            throw new BusinessException(ErrorCode.FORUM_CANNOT_DELETE_POST);
-        }
-
-        // Soft delete
-        commentMapper.softDelete(id, userId);
-    }
-
-    // =========================================================================
-    // COMMUNITY OPERATIONS
-    // =========================================================================
-
-    @Override
-    public List<ForumCommunityVO> findAllCommunities(boolean featuredOnly) {
-        log.debug("Finding all communities, featuredOnly: {}", featuredOnly);
-        List<ForumCommunity> communities;
-        if (featuredOnly) {
-            communities = communityMapper.findFeaturedCommunities();
-        } else {
-            communities = communityMapper.findPublicCommunities();
-        }
-        return communities.stream()
-                .map(this::convertToCommunityVO)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public ForumCommunityDetailVO findCommunityBySlugOrId(String slugOrId) {
-        log.debug("Finding community by slug or id: {}", slugOrId);
-
-        ForumCommunity community;
-        // Try to find by slug first
-        community = communityMapper.findBySlug(slugOrId);
-
-        // If not found by slug, try by ID
-        if (community == null) {
-            community = communityMapper.selectById(slugOrId);
-        }
-
-        if (community == null) {
-            throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
-        }
-
-        // Convert to detail VO
-        // In a real implementation, this would include rules and links from related tables
-        ForumCommunityDetailVO detailVO = new ForumCommunityDetailVO();
-        detailVO.setCommunity(convertToCommunityVO(community));
-        detailVO.setRules(Collections.emptyList());
-        detailVO.setLinks(Collections.emptyList());
-
-        return detailVO;
-    }
-
-    @Override
-    public List<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String userId) {
-        return findPostsByCommunity(slug, sortBy, userId, 1, MAX_RECENT_POSTS).getItems();
-    }
-
-    @Override
-    public PageResult<ForumPostVO> findPostsByCommunity(String slug, String sortBy, String userId, int page, int pageSize) {
-        log.debug("Finding posts by community: {} sortBy: {}, page: {}, pageSize: {}", slug, sortBy, page, pageSize);
-
-        ForumCommunity community = communityMapper.findBySlug(slug);
-        if (community == null) {
-            throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
-        }
-
-        int limit = Math.min(pageSize, MAX_RECENT_POSTS);
-        int offset = (page - 1) * limit;
-        long total = postMapper.countByCommunityId(community.getId());
-        List<ForumPost> posts = postMapper.findByCommunityId(community.getId(), limit, offset);
-
-        Map<String, User> authorMap = batchLoadAuthors(posts);
-        List<ForumPostVO> items = posts.stream()
-                .map(post -> convertToPostVO(post, userId, authorMap.get(post.getUserId())))
-                .collect(Collectors.toList());
-        return PageResult.of(items, total, page, limit);
-    }
-
-    @Override
-    @Transactional
-    public void joinCommunity(String communityId, String userId) {
-        log.debug("User {} joining community: {}", userId, communityId);
-
-        ForumCommunity community = communityMapper.selectById(communityId);
-        if (community == null) {
-            throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);
-        }
-
-        // Check if already a member
-        if (memberMapper.isMember(communityId, userId)) {
-            log.debug("User {} is already a member of community {}", userId, communityId);
-            return;
-        }
-
-        ForumCommunityMember member = new ForumCommunityMember();
-        member.setCommunityId(communityId);
-        member.setUserId(userId);
-        member.setRole("MEMBER");
-        member.setJoinedAt(LocalDateTime.now());
-
-        memberMapper.insert(member);
-        communityMapper.incrementMembers(communityId);
-    }
-
-    @Override
-    @Transactional
-    public void leaveCommunity(String communityId, String userId) {
-        log.debug("User {} leaving community: {}", userId, communityId);
-
-        memberMapper.deleteByCommunityIdAndUserId(communityId, userId);
-        communityMapper.decrementMembers(communityId);
-    }
-
-    // =========================================================================
-    // TAG OPERATIONS
-    // =========================================================================
-
-    @Override
-    public List<ForumTagVO> findAllTags() {
-        log.debug("Finding all tags");
-        List<ForumTag> tags = tagMapper.findAllOrderByUsage();
-        return tags.stream()
-                .map(this::convertToTagVO)
-                .collect(Collectors.toList());
-    }
-
-    // =========================================================================
-    // QUICK FILTER OPERATIONS
-    // =========================================================================
-
-    @Override
-    public List<QuickFilterDTO> getQuickFilters() {
-        log.debug("Getting quick filters");
-        // Returns the available filter options for forum posts
-        // The label will be translated on the frontend using i18n
-        return List.of(
-                new QuickFilterDTO("Hot", "hot"),
-                new QuickFilterDTO("New", "new"),
-                new QuickFilterDTO("Top", "top")
-        );
-    }
-
-    // =========================================================================
-    // HELPER METHODS
-    // =========================================================================
-
-    private Map<String, User> batchLoadAuthors(List<ForumPost> posts) {
-        Set<String> authorIds = posts.stream()
-                .map(ForumPost::getUserId)
-                .filter(Objects::nonNull)
-                .collect(Collectors.toSet());
-        return userService.findAllById(authorIds);
-    }
-
-    private ForumPostVO convertToPostVO(ForumPost post, String userId, User author) {
-        ForumPostVO vo = new ForumPostVO();
-        vo.setId(post.getId());
-        vo.setCommunityId(post.getCommunityId());
-        vo.setUserId(post.getUserId());
-        vo.setPermalink(post.getPermalink());
-        vo.setTitle(post.getTitle());
-        vo.setFlairType(post.getFlairType());
-        vo.setFlairLabel(post.getFlairLabel());
-        // Convert tags from Object to List<String>
-        if (post.getTags() instanceof List) {
-            @SuppressWarnings("unchecked")
-            List<String> tags = (List<String>) post.getTags();
-            vo.setTags(tags);
-        } else {
-            vo.setTags(Collections.emptyList());
-        }
-        vo.setExcerpt(post.getExcerpt());
-        vo.setMedia(post.getMedia());
-        vo.setIsSaved(post.getIsSaved());
-        vo.setImpressions(post.getImpressions());
-        vo.setIsPinned(post.getIsPinned());
-        vo.setIsLocked(post.getIsLocked());
-
-        // Enrich with vote counts and user vote state from edge_operations
-        VoteResultVO voteResult = voteService.getVoteStatus(
-                userId, post.getId(), EdgeOperationTargetType.FORUM_POST);
-        int userVote = voteResult.getUserVote();
-        vo.setVoteState(userVote == 1 ? "upvoted" : userVote == -1 ? "downvoted" : "neutral");
-
-        if (post.getStats() instanceof Map) {
-            @SuppressWarnings("unchecked")
-            Map<String, Object> enrichedStats = new LinkedHashMap<>((Map<String, Object>) post.getStats());
-            enrichedStats.put("likes", voteResult.getLikes());
-            enrichedStats.put("dislikes", voteResult.getDislikes());
-            vo.setStats(enrichedStats);
-        } else {
-            vo.setStats(post.getStats());
-        }
-        vo.setViews(post.getViews());
-        vo.setIsFlagged(post.getIsFlagged());
-        vo.setFlaggedReason(post.getFlaggedReason());
-        vo.setFlaggedAt(post.getFlaggedAt());
-        vo.setCreatedAt(post.getCreatedAt());
-
-        // Populate author info if available
-        if (author != null) {
-            vo.setAuthorUsername(author.getUsername());
-            vo.setAuthorAvatar(author.getAvatar());
-        }
-
-        // Check if user is member of community (if userId provided)
-        if (userId != null) {
-            vo.setIsMember(memberMapper.isMember(post.getCommunityId(), userId));
-        }
-
-        return vo;
-    }
-
-    private ForumCommentVO convertToCommentVO(ForumComment comment, Map<String, User> authorMap) {
-        ForumCommentVO vo = new ForumCommentVO();
-        vo.setId(comment.getId());
-        vo.setPostId(comment.getPostId());
-        vo.setParentId(comment.getParentId());
-        vo.setAuthorId(comment.getAuthorId());
-
-        // Populate author info from author map
-        User author = authorMap.get(comment.getAuthorId());
-        if (author != null) {
-            vo.setAuthorUsername(author.getUsername());
-            vo.setAuthorAvatar(author.getAvatar());
-        }
-
-        vo.setBody(comment.getBody());
-        vo.setMarkdown(comment.getMarkdown());
-        vo.setCreatedAt(comment.getCreatedAt());
-        vo.setEditedAt(comment.getEditedAt());
-        vo.setIsPinned(comment.getIsPinned());
-        vo.setIsLocked(comment.getIsLocked());
-        vo.setIsFlagged(comment.getIsFlagged());
-        vo.setFlaggedReason(comment.getFlaggedReason());
-        vo.setFlaggedAt(comment.getFlaggedAt());
-        return vo;
-    }
-
-    private ForumCommunityVO convertToCommunityVO(ForumCommunity community) {
-        ForumCommunityVO vo = new ForumCommunityVO();
-        vo.setId(community.getId());
-        vo.setName(community.getName());
-        vo.setSlug(community.getSlug());
-        vo.setDescription(community.getDescription());
-        vo.setMembers(community.getMembers());
-        vo.setOnline(community.getOnline());
-        vo.setIcon(community.getIcon());
-        vo.setColor(community.getColor());
-        vo.setBanner(community.getBanner());
-        vo.setPostsCount(community.getPostsCount());
-        vo.setPostsToday(community.getPostsToday());
-        vo.setPostsWeek(community.getPostsWeek());
-        vo.setIsOfficial(community.getIsOfficial());
-        vo.setIsFeatured(community.getIsFeatured());
-        vo.setSortOrder(community.getSortOrder());
-        vo.setCreatedAt(community.getCreatedAt());
-        vo.setVisibility(community.getVisibility());
-        return vo;
-    }
-
-    private ForumTagVO convertToTagVO(ForumTag tag) {
-        ForumTagVO vo = new ForumTagVO();
-        vo.setId(tag.getId());
-        vo.setName(tag.getName());
-        vo.setSlug(tag.getSlug());
-        vo.setDescription(tag.getDescription());
-        vo.setColor(tag.getColor());
-        vo.setUsageCount(tag.getUsageCount());
-        vo.setCreatedAt(tag.getCreatedAt());
-        return vo;
-    }
-
-    private List<ForumCommentVO> buildCommentTree(List<ForumComment> comments, Map<String, User> authorMap) {
-        // Separate top-level comments and replies
-        List<ForumComment> topLevelComments = comments.stream()
-                .filter(c -> c.getParentId() == null)
-                .collect(Collectors.toList());
-
-        return topLevelComments.stream()
-                .map(c -> {
-                    ForumCommentVO vo = convertToCommentVO(c, authorMap);
-                    // Recursively build replies
-                    List<ForumCommentVO> replies = findReplies(c.getId(), comments, authorMap);
-                    if (!replies.isEmpty()) {
-                        vo.setReplies(replies);
-                    }
-                    return vo;
-                })
-                .collect(Collectors.toList());
-    }
-
-    private List<ForumCommentVO> findReplies(String parentId, List<ForumComment> allComments, Map<String, User> authorMap) {
-        return allComments.stream()
-                .filter(c -> parentId.equals(c.getParentId()))
-                .map(c -> {
-                    ForumCommentVO vo = convertToCommentVO(c, authorMap);
-                    vo.setReplies(findReplies(c.getId(), allComments, authorMap));
-                    return vo;
-                })
-                .collect(Collectors.toList());
-    }
-
-    private String generatePermalink() {
-        return UUID.randomUUID().toString().replace("-", "").substring(0, 12);
-    }
+    @Override @Transactional public void leaveCommunity(String cid, String uid) { memberMapper.deleteByCommunityIdAndUserId(cid, uid); communityMapper.decrementMembers(cid); }
+    @Override public List<ForumTagVO> findAllTags() { return tagMapper.findAllOrderByUsage().stream().map(forumPostService::toTagVO).collect(Collectors.toList()); }
+    @Override public List<QuickFilterDTO> getQuickFilters() { return List.of(new QuickFilterDTO("Hot", "hot"), new QuickFilterDTO("New", "new"), new QuickFilterDTO("Top", "top")); }
 }

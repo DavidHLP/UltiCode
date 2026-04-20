@@ -1,8 +1,8 @@
-# Domain Pitfalls: v1.5 Technical Debt Remediation
+# Domain Pitfalls: User Profiles, Achievements, and Follow System (v1.6)
 
-**Domain:** Spring Boot + MyBatis-Plus + Redis integration
-**Researched:** 2026-04-19
-**Confidence:** HIGH
+**Domain:** Online Programming Platform - Social Features
+**Researched:** 2026-04-21
+**Confidence:** MEDIUM-HIGH (based on existing achievement module analysis + known social system patterns)
 
 ---
 
@@ -10,233 +10,371 @@
 
 Mistakes that cause production issues or require significant rework.
 
-### Pitfall 1: Rate Limiter Bypassed Under Load
+---
 
-**What goes wrong:** Rate limiting works at low traffic but fails under concurrent load.
+### Pitfall 1: Synchronous Achievement Triggering Blocks User Actions
 
-**Why it happens:** Non-atomic check-then-acquire pattern creates race condition window.
+**What goes wrong:** Calling `achievementTriggerService.checkAndAwardAchievements()` inside submission/contest handlers makes the user wait for achievement evaluation.
 
-**Consequences:** Limit exceeded by burst of requests that all see "available" simultaneously.
-
-**Prevention:** Use Redisson's atomic `tryAcquire()`:
+**Why it happens:** The `AchievementTriggerServiceImpl.checkAndAwardAchievements()` runs a full table scan on every problem solve, contest join, or submission:
 
 ```java
-// WRONG - race condition
-if (rateLimiter.tryAcquire(1)) {  // Check
-    // Another thread may have acquired here
-    proceed();                     // Act
+// Current implementation at line 90:
+List<Achievement> allAchievements = achievementMapper.findAllActive(); // Full table scan EVERY event
+```
+
+**Consequences:**
+- Submission latency spikes on every solve (N achievements checked synchronously)
+- User-facing API timeouts when achievement logic is slow
+- Compound effect: 1000 users solving problems simultaneously all trigger achievement scans
+
+**Prevention:** Defer achievement checking to async:
+
+```java
+// WRONG - blocking the submission response
+public void onProblemSolved(String userId, int count) {
+    List<String> awarded = triggerService.checkAndAwardAchievements(...); // Blocks here
 }
 
-// CORRECT - atomic
-if (rateLimiter.tryAcquire(1)) {  // Check+Act together
-    proceed();
+// CORRECT - fire-and-forget event
+public void onProblemSolved(String userId, int count) {
+    applicationEventPublisher.publishEvent(new ProblemSolvedEvent(userId, count));
+}
+
+// Separate listener (async):
+@Async
+@EventListener
+public void handleProblemSolved(ProblemSolvedEvent event) {
+    triggerService.checkAndAwardAchievements(...);
 }
 ```
 
-**Detection:** Load test with `wrk` or `ab` sending concurrent requests.
+**Phase:** Achievement implementation must be async from day one.
 
 ---
 
-### Pitfall 2: Cache Stampede
+### Pitfall 2: N+1 When Loading User Achievement History
 
-**What goes wrong:** Cache miss causes multiple simultaneous requests to hit the database.
+**What goes wrong:** Displaying a user's profile with achievements triggers 1 query for user + N queries for each achievement detail.
 
-**Why it happens:** Multiple requests discover cache empty at the same time, all query DB.
+**Why it happens:** `UserAchievement` stores only `achievementId` (UUID). Displaying achievement name/icon requires joining to `achievements` table per row, or lazy loading in a loop.
 
-**Consequences:** Database overwhelmed when popular content expires.
+**Current schema:**
+```sql
+-- user_achievements table
+user_id | achievement_id | earned_at
 
-**Prevention:** Use cache-aside with jittered TTL:
-
-```java
-@Cacheable(value = "problems", key = "#id", unless = "#result == null")
-public Optional<Problem> findById(Long id) {
-    // Add small random delay to prevent all caches expiring at once
-    return Optional.ofNullable(problemMapper.selectById(id));
-}
-
-// In Redis cache config, use jitter:
-// config.setTTL(Duration.ofMinutes(5 + RandomUtils.nextInt(60)));
+-- achievements table
+id | key | name | icon | description | ...
 ```
 
-**Alternative:** Use Redisson's `getCached` with lock:
+**Prevention:** Use JOIN FETCH or batch fetch:
 
 ```java
-V value = redissonClient.getCache("problems:" + id).get(key, expiry, loader);
+// WRONG - N+1
+List<UserAchievement> userAchievements = userAchievementMapper.selectByUserId(userId);
+userAchievements.forEach(ua -> {
+    Achievement detail = achievementMapper.selectById(ua.getAchievementId()); // N queries
+});
+
+// CORRECT - single query with JOIN
+@Select("SELECT ua.*, a.key, a.name, a.icon, a.description, a.tier, a.points " +
+        "FROM user_achievements ua JOIN achievements a ON ua.achievement_id = a.id " +
+        "WHERE ua.user_id = #{userId} ORDER BY ua.earned_at DESC")
+List<UserAchievementVO> selectUserAchievementsWithDetails(String userId);
 ```
+
+**Phase:** User Profile display phase.
 
 ---
 
-### Pitfall 3: MyBatis-Plus N+1 in List Queries
+### Pitfall 3: Follow System Missing Index Causes Slow Queries on Popular Users
 
-**What goes wrong:** Fetching 100 problems triggers 101 queries (1 + 100 tag lookups).
+**What goes wrong:** Querying "who does this popular user follow" or "who follows this popular user" times out when the user has 10K+ followers.
 
-**Why it happens:** MyBatis-Plus `selectById` doesn't auto-join relations. Accessing `problem.getTags()` in loop triggers lazy query per entity.
+**Why it happens:** No index on `(follower_id, following_id)` or `(following_id, follower_id)` pairs. MySQL does full table scan.
 
-**Consequences:** O(n) database queries, unacceptable for large lists.
+**Consequences:**
+- Profile page for popular users (celebrity programmers) loads in 10+ seconds
+- Following a popular user takes 5+ seconds
+- Unbounded query on `user_follows` table grows to millions of rows
 
-**Prevention:** Always analyze list queries with EXPLAIN:
+**Prevention:** Add composite indexes before shipping:
 
 ```sql
-EXPLAIN SELECT * FROM problems WHERE is_published = 1 LIMIT 20;
--- If query count > 1 for a list endpoint, N+1 exists
+-- In Flyway migration for follow feature
+CREATE TABLE user_follows (
+    id VARCHAR(36) PRIMARY KEY,
+    follower_id VARCHAR(36) NOT NULL,
+    following_id VARCHAR(36) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uk_follow (follower_id, following_id),  -- prevents duplicate follows
+    INDEX idx_following (following_id, created_at),       -- "who follows X" ordered by time
+    INDEX idx_follower (follower_id, created_at)          -- "who does X follow" ordered by time
+);
 ```
 
-**Fix:** Use JOIN in XML mapper or batch fetch service-side.
+**Phase:** Follow system database migration phase.
 
 ---
 
-### Pitfall 4: Coverage Gate Blocking All Work
+### Pitfall 4: Fan-Out on Write Explodes for Popular Users
 
-**What goes wrong:** JaCoCo fails build at 30% coverage, blocking all commits.
+**What goes wrong:** When a popular user posts/solves a problem, sending notifications to all followers takes forever.
 
-**Why it happens:** Setting 80% threshold immediately on legacy codebase with no coverage.
+**Why it happens:** Naive implementation inserts a notification row per follower:
 
-**Consequences:** Team cannot merge any code until coverage is raised.
-
-**Prevention:** Start low, increment gradually:
-
-```xml
-<!-- Phase 1: 30% to establish baseline -->
-<minimum>0.30</minimum>
-
-<!-- Phase 2: 40% after 3 months -->
-<minimum>0.40</minimum>
-
-<!-- Phase 3: 50% after 6 months -->
-<minimum>0.50</minimum>
+```java
+// WRONG - O(followers) write per action
+for (String followerId : followers) {
+    notificationService.notify(followerId, event); // 10K writes for celebrity
+}
 ```
+
+**Consequences:**
+- Contest announcement to 50K followers times out
+- User solves problem -> notification write blocks for 30 seconds
+- Database connection pool exhausted during fan-out
+
+**Prevention:** Use async fan-out queue:
+
+```java
+// CORRECT - O(1) write, O(followers) async delivery
+notificationQueue.publish(new FanOutEvent(userId, "CONTEST_WON", contestId));
+
+// Separate worker processes fan-out
+@Async
+public void processFanOut(FanOutEvent event) {
+    List<String> followers = followMapper.findFollowerIds(event.getUserId());
+    for (String followerId : followers) {
+        notificationService.sendToUser(followerId, event);
+    }
+}
+```
+
+**Phase:** Follow + Notification integration phase.
+
+---
+
+### Pitfall 5: Achievement Criteria JSON Prevents Database Indexing
+
+**What goes wrong:** Current `Achievement.criteria` is `Map<String, Object>` stored as JSON. Searching for "all achievements of type CONTEST_WINS" requires JSON parsing every row.
+
+**Current schema:**
+```java
+@TableField(typeHandler = JacksonTypeHandler.class)
+private Map<String, Object> criteria;  // {"type": "contest_wins", "target": 10}
+```
+
+**Why it happens:** MySQL cannot index JSON columns efficiently for this query pattern.
+
+**Consequences:**
+- `findAllActive()` in `checkAndAwardAchievements()` does full table scan every time a user solves a problem
+- Adding new achievement types requires application-side filtering
+- Cannot efficiently query "how many users earned achievement X"
+
+**Prevention:** Normalize criteria into separate columns:
+
+```sql
+ALTER TABLE achievements ADD COLUMN criteria_type VARCHAR(50) NOT NULL;
+ALTER TABLE achievements ADD COLUMN criteria_target INT NOT NULL DEFAULT 0;
+ALTER TABLE achievements ADD INDEX idx_criteria_type (criteria_type);
+
+-- Keep JSON for additional flexibility, but index the common query fields
+```
+
+**Phase:** Achievement data model phase.
 
 ---
 
 ## Moderate Pitfalls
 
-### Pitfall 5: Cache Invalidation Missing on Updates
+---
 
-**What goes wrong:** Updated problem shows stale data for up to TTL duration.
+### Pitfall 6: Profile Stats Recomputed on Every Read
 
-**Why it happens:** `@CacheEvict` not added to all mutation methods.
+**What goes wrong:** User profile page shows submission count, problems solved, contest rating - computed with aggregation queries on every page load.
 
-**Prevention:** Audit all create/update/delete methods:
+**Why it happens:** Stats stored in `users` table are not kept in sync, or stats are derived from other tables on every request.
 
-```java
-@CacheEvict(value = "problems", key = "#result.id")  // On update
-public Problem updateProblem(Long id, UpdateProblemDTO dto) { }
+**Prevention:** Maintain denormalized counters:
 
-@CacheEvict(value = "problems", key = "#id")         // On delete
-public void deleteProblem(Long id) { }
+```sql
+-- Add to users table or a user_stats table
+total_submissions INT DEFAULT 0,
+problems_solved INT DEFAULT 0,
+contest_rating INT DEFAULT 0,
+follower_count INT DEFAULT 0,
+following_count INT DEFAULT 0,
+last_updated TIMESTAMP
 
-@CacheEvict(value = "problems", allEntries = true)   // On bulk operation
-public void importProblems(List<ProblemDTO> problems) { }
+-- Update atomically when events happen:
+UPDATE users SET problems_solved = problems_solved + 1 WHERE id = #{userId}
 ```
+
+**Phase:** User Profile display phase.
 
 ---
 
-### Pitfall 6: Entity Objects in Cache
+### Pitfall 7: Avatar Upload Without Size/Type Validation
 
-**What goes wrong:** Cached entity mutated elsewhere, corrupting cache.
+**What goes wrong:** Users upload multi-megabyte images or malicious file types as avatars.
 
-**Why it happens:** Returning raw entity from `@Cacheable` method.
+**Why it happens:** File validation done client-side only, or server trusts client-reported dimensions.
 
-**Prevention:** Return DTOs/records, not entities:
-
-```java
-// WRONG - entity in cache
-@Cacheable(value = "problems", key = "#id")
-public Problem findById(Long id) {
-    return problemMapper.selectById(id);  // Returns entity
-}
-
-// CORRECT - DTO in cache
-@Cacheable(value = "problems", key = "#id")
-public ProblemVO findById(Long id) {
-    return ProblemVO.from(problemMapper.selectById(id));  // Returns copy
-}
-```
-
----
-
-### Pitfall 7: Redis Connection Exhaustion
-
-**What goes wrong:** Too many open Redis connections crashes rate limiter and cache.
-
-**Why it happens:** Creating new RedissonClient per request instead of reusing singleton.
-
-**Prevention:** RedissonClient is thread-safe singleton:
+**Prevention:** Server-side validation:
 
 ```java
-@Configuration
-public class RedisConfig {
-    @Bean(destroyMethod = "shutdown")
-    public RedissonClient redissonClient() {
-        return Redisson.create(config);
+public String uploadAvatar(MultipartFile file) {
+    // Validate size (max 2MB)
+    if (file.getSize() > 2 * 1024 * 1024) {
+        throw new BadRequestException("Avatar must be under 2MB");
     }
+    // Validate content type
+    String contentType = file.getContentType();
+    if (!Set.of("image/jpeg", "image/png", "image/webp").contains(contentType)) {
+        throw new BadRequestException("Avatar must be JPEG, PNG, or WebP");
+    }
+    // Validate actual image dimensions
+    BufferedImage img = ImageIO.read(file.getInputStream());
+    if (img.getWidth() > 2000 || img.getHeight() > 2000) {
+        throw new BadRequestException("Avatar must be under 2000x2000 pixels");
+    }
+    // Process and store
 }
 ```
 
+**Phase:** User Profile CRUD phase.
+
 ---
 
-### Pitfall 8: MyBatis XML Changes Breaking Existing Queries
+### Pitfall 8: Race Condition in Follow/Unfollow
 
-**What goes wrong:** Modifying XML mapper breaks existing functionality.
+**What goes wrong:** Double-follow or inconsistent state when user spam-clicks follow button.
 
-**Why it happens:** No test coverage on mapper XML queries.
+**Why it happens:** No unique constraint or no optimistic locking.
 
-**Prevention:**
-1. Write integration tests for each mapper query
-2. Use MyBatis-Plus wrapper for simple queries (less error-prone)
-3. Keep XML changes minimal and targeted
+**Current schema (from user entity):**
+```sql
+-- If no UNIQUE constraint on (follower_id, following_id):
+-- Two rapid clicks -> two follow records inserted
+```
+
+**Prevention:** Add unique constraint + idempotent service method:
+
+```java
+@Transactional
+public void follow(String followerId, String followingId) {
+    if (followMapper.exists(followerId, followingId)) {
+        return; // Idempotent - already following
+    }
+    followMapper.insert(followerId, followingId);
+    // Also increment denormalized counter
+}
+```
+
+**Phase:** Follow system implementation phase.
+
+---
+
+### Pitfall 9: WebSocket Notification Failures Silently Swallowed
+
+**What goes wrong:** `realtimeService.sendNotification()` fails but the achievement is still "awarded" - user never sees the badge notification.
+
+**Why it happens:** In `AchievementTriggerServiceImpl.sendBadgeEarnedNotification()`, failure to send WebSocket does not propagate:
+
+```java
+// Line 154: If this throws, the achievement is still awarded but caller may not know
+realtimeService.sendNotification(userId, payload);  // Fire-and-forget pattern missing try/catch
+```
+
+**Prevention:** Log failures explicitly, do not let them cascade:
+
+```java
+try {
+    realtimeService.sendNotification(userId, payload);
+} catch (Exception e) {
+    log.warn("Failed to send badge notification to user {}: {}", userId, e.getMessage());
+    // Achievement is still awarded - notification is best-effort
+}
+```
+
+**Phase:** Achievement notification integration phase.
+
+---
+
+### Pitfall 10: Achievement Progress Lost on Concurrent Submissions
+
+**What goes wrong:** User solves 3 problems simultaneously, but `problemsSolvedCount` passed to trigger is stale due to race.
+
+**Why it happens:** Achievement trigger receives a count derived from submissions table that does not account for concurrent submissions by same user.
+
+**Current pattern:**
+```java
+int count = submissionMapper.countByUserId(userId);  // May not see other in-flight submissions
+triggerService.onProblemSolved(userId, count);        // Stale count
+```
+
+**Prevention:** Pass the delta, not the absolute:
+
+```java
+// Instead of passing current total, trigger checks the actual DB count inside transaction
+triggerService.onProblemSolvedAsync(userId);  // Queries current count inside async job
+```
+
+**Phase:** Achievement trigger integration with submission flow.
 
 ---
 
 ## Minor Pitfalls
 
-### Pitfall 9: Rate Limit Key Collision
+---
 
-**What goes wrong:** Different endpoints share same rate limit key.
+### Pitfall 11: Profile Privacy Settings Missing
 
-**Why it happens:** Key only includes user ID, not endpoint path.
+**What goes wrong:** No way to make profile/stats private. Users cannot hide their activity from employers viewing public profile.
 
-**Prevention:** Include endpoint in key:
-
+**Prevention:** Add boolean fields to user profile:
 ```java
-String key = "rate:user:" + userId + ":" + request.getRequestURI();
+private Boolean profilePublic = true;
+private Boolean statsPublic = true;
+private Boolean activityPublic = true;
 ```
 
----
-
-### Pitfall 10: Coverage Exclusions Too Broad
-
-**What goes wrong:** Excluding too many classes lowers effective coverage.
-
-**Why it happens:** Overzealous exclusion of entities, DTOs.
-
-**Prevention:** Only exclude truly untestable code:
-
-| Exclude | Yes/No | Reason |
-|---------|--------|--------|
-| Application.java | Yes | Entry point |
-| *Config.java | Yes | Framework config |
-| *Exception.java | Marginal | May contain business logic |
-| *DTO.java | No | May have validation logic |
-| *Entity.java | No | Domain logic in getters |
-| *Mapper.java | Yes | MyBatis generated |
+**Phase:** User Profile settings phase.
 
 ---
 
-### Pitfall 11: Hardcoded Cache TTLs
+### Pitfall 12: Follow System Without Block/Mute
 
-**What goes wrong:** 5-minute TTL everywhere, regardless of data change frequency.
+**What goes wrong:** Toxic users can follow victims to harass them via notifications.
 
-**Why it happens:** Copy-paste cache configuration.
+**Prevention:** Add block/mute lists before shipping follow feature:
+```sql
+ALTER TABLE user_follows ADD COLUMN status VARCHAR(20) DEFAULT 'ACTIVE';
+-- Blocked users have status = 'BLOCKED'
+```
 
-**Prevention:** Match TTL to data volatility:
+**Phase:** Follow system must include block/mute from MVP.
 
-| Data Type | TTL | Rationale |
-|-----------|-----|-----------|
-| User session | 30 min | User activity period |
-| Problem detail | 10 min | Rarely changes |
-| Leaderboard | 1 min | Updates on every submission |
-| Tag list | 30 min | Rarely changes |
+---
+
+### Pitfall 13: Achievement Display Without Translation
+
+**What goes wrong:** Achievement names/descriptions hardcoded in English, platform has i18n support already.
+
+**Current code:**
+```java
+// Line 148: achievement.getName() - returns English only
+BadgeEarnedPayload.of(achievement.getName(), achievement.getDescription(), ...)
+```
+
+**Prevention:** Use existing i18n system:
+```java
+String name = i18nService.translate("achievement." + achievement.getKey() + ".name", locale);
+```
+
+**Phase:** Achievement display phase.
 
 ---
 
@@ -244,16 +382,24 @@ String key = "rate:user:" + userId + ":" + request.getRequestURI();
 
 | Phase Topic | Likely Pitfall | Mitigation |
 |-------------|---------------|------------|
-| Rate Limiting | Race conditions | Use atomic tryAcquire only |
-| Caching | Stampede on miss | Jittered TTL, cache-aside locking |
-| N+1 Fixes | Breaking existing queries | Add mapper tests before changes |
-| JaCoCo | Coverage gate blocking work | Start at 30%, increment gradually |
+| Achievement Triggering | Blocking user action on every solve | Make async from day 1 |
+| Achievement Data Model | JSON criteria prevents indexing | Add indexed columns for type/target |
+| User Profile Stats | Recomputed on every read | Denormalized counters |
+| Follow Table | Missing index on (follower, following) | Add composite indexes in migration |
+| Follow Fan-out | O(n) write to notify all followers | Async queue-based fan-out |
+| Avatar Upload | No server-side validation | Size, type, dimension checks |
+| Follow/Unfollow Race | Duplicate follow records | Unique constraint + idempotent method |
+| Achievement Progress | Stale count with concurrent submissions | Pass delta, not absolute count |
+| WebSocket Notifications | Silent failure on send | Explicit try/catch with logging |
+| Achievement i18n | Hardcoded English strings | Use existing i18n service |
 
 ---
 
 ## Sources
 
-- Context7: Redisson rate limiter documentation
-- Context7: Spring Cache best practices
-- Context7: MyBatis-Plus N+1 patterns
-- Official JaCoCo documentation on exclusions
+- Context7: Spring Boot async event handling (`@Async`, `ApplicationEventPublisher`)
+- Context7: MyBatis-Plus JOIN FETCH patterns
+- Official MySQL documentation on composite indexes
+- Existing `AchievementTriggerServiceImpl.java` analysis (lines 89-141)
+- Existing `Achievement.java` entity analysis (criteria as JSON Map)
+- Existing `BadgeEarnedPayload.java` WebSocket notification pattern

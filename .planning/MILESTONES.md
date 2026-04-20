@@ -1,5 +1,23 @@
 # Milestones
 
+## v1.5 Coverage — SHIPPED 2026-04-20
+
+**Phases:** 7 (19-25)
+**Plans:** 7
+**Requirements:** 25/25 complete
+
+**Key accomplishments:**
+1. Rate limiting via Redisson AOP on all public endpoints
+2. JaCoCo coverage enforcement at 50% line / 40% branch
+3. Redis caching layer with Spring Cache + Redisson backend
+4. N+1 query elimination via JOIN FETCH
+5. PM2 dotenv + Maven build order documented
+6. ForumServiceImpl (693 lines) → facade + ForumPostService + ForumCommentService + ForumVoteService
+7. CodeExecutionService (643 lines) → facade + SandboxService + CodeExecutionHelper
+8. ContestServiceImpl (633 lines) → facade + ContestSchedulerService
+
+**Known deferred items:** 0
+
 ## v1.4 Seed Data Expansion (Shipped: 2026-04-19)
 
 **Phases completed:** 3 phases, 3 plans, 0 tasks

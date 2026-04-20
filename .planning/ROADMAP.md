@@ -19,7 +19,7 @@
 | 12-15 | v1.3      | All           | Complete |
 | 16-18 | v1.4      | All           | Complete |
 | 19    | v1.5      | 1/1           | Complete |
-| 20    | v1.5      | 1/1           | In progress |
+| 20    | v1.5      | 1/1           | Complete |
 | 21    | v1.5      | 0/7           | Not started |
 | 22    | v1.5      | 0/5           | Not started |
 | 23    | v1.5      | 0/3           | Not started |

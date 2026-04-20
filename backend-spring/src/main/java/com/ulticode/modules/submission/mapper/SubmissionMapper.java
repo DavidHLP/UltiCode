@@ -404,4 +404,105 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      */
     @Select("SELECT COUNT(*) FROM submissions WHERE user_id = #{userId}")
     Long countTotalSubmissionsByUserId(@Param("userId") String userId);
+
+    /**
+     * DTO record holding Submission fields plus joined problem data.
+     */
+    record SubmissionWithProblem(
+            String id,
+            Long problemId,
+            String userId,
+            String language,
+            String code,
+            String status,
+            Integer runtime,
+            Double memory,
+            String notes,
+            Integer retryCount,
+            LocalDateTime createdAt,
+            Double runtimePercentile,
+            Double memoryPercentile,
+            Object testDetails,
+            Object memoryDistBinsMb,
+            Object runtimeDistBinsMs,
+            String problemTitle,
+            String problemSlug
+    ) {}
+
+    /**
+     * Find submissions by user ID with problem data joined.
+     * Eliminates N+1 problem lookups in list views.
+     *
+     * @param userId user ID
+     * @param page   pagination object
+     * @return paginated submissions with problem title/slug
+     */
+    @Results({
+            @Result(column = "id", property = "id"),
+            @Result(column = "problem_id", property = "problemId"),
+            @Result(column = "user_id", property = "userId"),
+            @Result(column = "language", property = "language"),
+            @Result(column = "code", property = "code"),
+            @Result(column = "status", property = "status"),
+            @Result(column = "runtime", property = "runtime"),
+            @Result(column = "memory", property = "memory"),
+            @Result(column = "notes", property = "notes"),
+            @Result(column = "retry_count", property = "retryCount"),
+            @Result(column = "created_at", property = "createdAt"),
+            @Result(column = "runtime_percentile", property = "runtimePercentile"),
+            @Result(column = "memory_percentile", property = "memoryPercentile"),
+            @Result(column = "test_details", property = "testDetails"),
+            @Result(column = "memory_dist_bins_mb", property = "memoryDistBinsMb"),
+            @Result(column = "runtime_dist_bins_ms", property = "runtimeDistBinsMs"),
+            @Result(column = "title", property = "problemTitle"),
+            @Result(column = "slug", property = "problemSlug")
+    })
+    @Select("SELECT s.*, p.title, p.slug " +
+            "FROM submissions s " +
+            "LEFT JOIN problems p ON s.problem_id = p.id " +
+            "WHERE s.user_id = #{userId} " +
+            "ORDER BY s.created_at DESC")
+    IPage<SubmissionWithProblem> findByUserIdWithProblem(@Param("userId") String userId, Page<Submission> page);
+
+    /**
+     * Find submissions by problem ID with problem data joined.
+     * Eliminates N+1 problem lookups in list views.
+     *
+     * @param problemId problem ID
+     * @param userId   user ID (optional filter)
+     * @param page     pagination object
+     * @return paginated submissions with problem title/slug
+     */
+    @Results({
+            @Result(column = "id", property = "id"),
+            @Result(column = "problem_id", property = "problemId"),
+            @Result(column = "user_id", property = "userId"),
+            @Result(column = "language", property = "language"),
+            @Result(column = "code", property = "code"),
+            @Result(column = "status", property = "status"),
+            @Result(column = "runtime", property = "runtime"),
+            @Result(column = "memory", property = "memory"),
+            @Result(column = "notes", property = "notes"),
+            @Result(column = "retry_count", property = "retryCount"),
+            @Result(column = "created_at", property = "createdAt"),
+            @Result(column = "runtime_percentile", property = "runtimePercentile"),
+            @Result(column = "memory_percentile", property = "memoryPercentile"),
+            @Result(column = "test_details", property = "testDetails"),
+            @Result(column = "memory_dist_bins_mb", property = "memoryDistBinsMb"),
+            @Result(column = "runtime_dist_bins_ms", property = "runtimeDistBinsMs"),
+            @Result(column = "title", property = "problemTitle"),
+            @Result(column = "slug", property = "problemSlug")
+    })
+    @Select("<script>" +
+            "SELECT s.*, p.title, p.slug " +
+            "FROM submissions s " +
+            "LEFT JOIN problems p ON s.problem_id = p.id " +
+            "WHERE s.problem_id = #{problemId} " +
+            "<if test='userId != null'> AND s.user_id = #{userId}</if>" +
+            " ORDER BY s.created_at DESC" +
+            "</script>")
+    IPage<SubmissionWithProblem> findByProblemIdWithProblem(
+            @Param("problemId") Long problemId,
+            @Param("userId") String userId,
+            Page<Submission> page);
 }

@@ -41,6 +41,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -126,9 +127,15 @@ public class ProblemServiceImpl implements ProblemService {
         Page<Problem> problemPage = new Page<>(currentPage, currentPageSize);
         Page<Problem> result = problemMapper.selectPage(problemPage, queryWrapper);
 
+        // Batch-fetch all tags for the page (eliminates N+1 tag queries)
+        List<Long> problemIds = result.getRecords().stream()
+                .map(Problem::getId)
+                .collect(Collectors.toList());
+        Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = batchFetchTags(problemIds);
+
         // Convert to VO
         List<ProblemVO> problemVOList = result.getRecords().stream()
-                .map(this::toVO)
+                .map(p -> toVO(p, tagMap))
                 .collect(Collectors.toList());
 
         return PageResult.of(problemVOList, result.getTotal(), currentPage, currentPageSize);
@@ -445,8 +452,10 @@ public class ProblemServiceImpl implements ProblemService {
         return toVO(problem);
     }
 
-    @Override
-    public ProblemVO toVO(Problem problem) {
+    /**
+     * Overload: convert Problem to VO with pre-loaded tags.
+     */
+    public ProblemVO toVO(Problem problem, Map<Long, List<ProblemVO.ProblemTagVO>> tagMap) {
         if (problem == null) {
             return null;
         }
@@ -480,9 +489,17 @@ public class ProblemServiceImpl implements ProblemService {
         // Set default values for new fields not yet populated
         vo.setSubmissionCount(0L);
         vo.setSolutionCount(0L);
-        vo.setTags(List.of());
+        vo.setTags(tagMap.getOrDefault(problem.getId(), List.of()));
 
         return vo;
+    }
+
+    /**
+     * Convert Problem to VO (no tags loaded).
+     */
+    @Override
+    public ProblemVO toVO(Problem problem) {
+        return toVO(problem, Map.of());
     }
 
     @Override
@@ -519,5 +536,26 @@ public class ProblemServiceImpl implements ProblemService {
             throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND, "No published problems available");
         }
         return ProblemVO.from(problem);
+    }
+
+    /**
+     * Batch-fetch all tags for a list of problem IDs in a single query.
+     * Groups results into a map of problemId -> list of ProblemTagVO.
+     */
+    private Map<Long, List<ProblemVO.ProblemTagVO>> batchFetchTags(List<Long> problemIds) {
+        if (problemIds == null || problemIds.isEmpty()) {
+            return Map.of();
+        }
+        List<ProblemMapper.ProblemTagDTO> tagDTOs = problemMapper.selectTagsByProblemIds(problemIds);
+        return tagDTOs.stream()
+                .collect(Collectors.groupingBy(
+                        ProblemMapper.ProblemTagDTO::problemId,
+                        Collectors.mapping(dto -> {
+                        ProblemVO.ProblemTagVO tagVO = new ProblemVO.ProblemTagVO();
+                        tagVO.setId(dto.tagName());
+                        tagVO.setLabel(dto.tagName());
+                        return tagVO;
+                    }, Collectors.toList())
+                ));
     }
 }

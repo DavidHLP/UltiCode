@@ -21,7 +21,7 @@
 | 19    | v1.5      | 1/1           | Complete |
 | 20    | v1.5      | 1/1           | Complete |
 | 21    | v1.5      | 0/7           | Not started |
-| 22    | v1.5      | 0/5           | Not started |
+| 22    | v1.5      | 1/1           | In progress |
 | 23    | v1.5      | 0/3           | Not started |
 | 24    | v1.5      | 0/2           | Not started |
 | 25    | v1.5      | 0/3           | Not started |
@@ -116,7 +116,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
+[-] 22-01-PLAN.md -- Enable Spring Cache with Redisson backend + @Cacheable on ProblemServiceImpl
 
 ### Phase 23: N+1 Query Optimization
 

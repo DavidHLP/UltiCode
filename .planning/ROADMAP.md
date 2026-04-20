@@ -96,7 +96,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
+- [ ] 23-01-PLAN.md — JOIN FETCH for contest rankings, problem tags, and submission lists
 
 ### Phase 22: Redis Caching Layer
 
@@ -134,7 +134,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
+- [ ] 23-01-PLAN.md — JOIN FETCH for contest rankings, problem tags, and submission lists
 
 ### Phase 24: PM2 / Build Infrastructure
 
@@ -151,7 +151,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
+- [ ] 23-01-PLAN.md — JOIN FETCH for contest rankings, problem tags, and submission lists
 
 ### Phase 25: Large File Refactoring
 
@@ -169,7 +169,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
+- [ ] 23-01-PLAN.md — JOIN FETCH for contest rankings, problem tags, and submission lists
 
 ---
 

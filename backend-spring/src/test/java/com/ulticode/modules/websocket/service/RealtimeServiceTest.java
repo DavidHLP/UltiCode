@@ -24,6 +24,7 @@ import org.springframework.messaging.simp.SimpMessagingTemplate;
 class RealtimeServiceTest {
 
   @Mock private SimpMessagingTemplate messagingTemplate;
+  @Mock private com.ulticode.modules.contest.service.RankingService rankingService;
 
   private RealtimeService realtimeService;
   private WebSocketProperties properties;
@@ -31,7 +32,7 @@ class RealtimeServiceTest {
   @BeforeEach
   void setUp() {
     properties = new WebSocketProperties();
-    realtimeService = new RealtimeService(messagingTemplate, properties);
+    realtimeService = new RealtimeService(messagingTemplate, properties, rankingService);
   }
 
   @Test

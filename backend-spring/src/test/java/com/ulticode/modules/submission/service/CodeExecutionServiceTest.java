@@ -1,9 +1,7 @@
 package com.ulticode.modules.submission.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.modules.submission.config.DockerSandboxConfig;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,13 +11,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.test.util.ReflectionTestUtils;
 
-import java.lang.reflect.Method;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,13 +24,16 @@ import static org.mockito.Mockito.when;
 class CodeExecutionServiceTest {
 
     @Mock
-    private DockerSandboxConfig sandboxConfig;
+    private SandboxService sandboxService;
+
+    @Mock
+    private CodeExecutionHelper helper;
 
     private CodeExecutionService codeExecutionService;
 
     @BeforeEach
     void setUp() {
-        codeExecutionService = new CodeExecutionService(sandboxConfig, new ObjectMapper());
+        codeExecutionService = new CodeExecutionService(sandboxService, helper);
     }
 
     private RunSubmissionDTO.RunTestCase createTestCase(String id, String output) {
@@ -67,143 +67,71 @@ class CodeExecutionServiceTest {
         }
 
         @Test
-        @DisplayName("sandbox disabled throws SANDBOX_ERROR")
-        void execute_sandboxDisabled_throwsException() {
-            when(sandboxConfig.enabled()).thenReturn(false);
-            RunSubmissionDTO request = createRequest("java", "class Main {}", List.of(createTestCase("tc-1", "expected")));
-
-            assertThatThrownBy(() -> codeExecutionService.execute(request, 1L, "user-1"))
-                    .isInstanceOf(BusinessException.class)
-                    .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
-                            .isEqualTo(ErrorCode.SANDBOX_ERROR));
-        }
-
-        @Test
-        @DisplayName("empty test cases returns accepted result with zero cases")
+        @DisplayName("empty test cases delegates to helper.emptyResult")
         void execute_emptyTestCases_returnsEmptyResult() {
             RunSubmissionDTO request = createRequest("python", "print('hello')", List.of());
+            RunResultDTO emptyResult = RunResultDTO.builder()
+                    .verdict("Accepted").passedCases(0).totalCases(0).cases(List.of()).build();
+            when(helper.emptyResult(1L, "user-1")).thenReturn(emptyResult);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
-            assertThat(result).isNotNull();
             assertThat(result.getVerdict()).isEqualTo("Accepted");
-            assertThat(result.getPassedCases()).isEqualTo(0);
             assertThat(result.getTotalCases()).isEqualTo(0);
-            assertThat(result.getCases()).isEmpty();
         }
 
         @Test
-        @DisplayName("null test cases returns accepted result with zero cases")
+        @DisplayName("null test cases delegates to helper.emptyResult")
         void execute_nullTestCases_returnsEmptyResult() {
             RunSubmissionDTO request = new RunSubmissionDTO();
             request.setLanguage("python");
             request.setCode("print('hello')");
             request.setTestCases(null);
+            RunResultDTO emptyResult = RunResultDTO.builder()
+                    .verdict("Accepted").passedCases(0).totalCases(0).cases(List.of()).build();
+            when(helper.emptyResult(1L, "user-1")).thenReturn(emptyResult);
 
             RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
-            assertThat(result).isNotNull();
             assertThat(result.getVerdict()).isEqualTo("Accepted");
-            assertThat(result.getTotalCases()).isEqualTo(0);
-        }
-    }
-
-    @Nested
-    @DisplayName("buildDockerCommand()")
-    class BuildDockerCommand {
-
-        private Method buildDockerCommandMethod;
-
-        @BeforeEach
-        void setUpReflection() throws Exception {
-            buildDockerCommandMethod = CodeExecutionService.class.getDeclaredMethod(
-                    "buildDockerCommand", String.class, String.class);
-            buildDockerCommandMethod.setAccessible(true);
-        }
-
-        @SuppressWarnings("unchecked")
-        private List<String> invokeBuildDockerCommand(String language, String code) throws Exception {
-            return (List<String>) buildDockerCommandMethod.invoke(codeExecutionService, language, code);
-        }
-
-        @BeforeEach
-        void configureSandboxDefaults() {
-            when(sandboxConfig.memory()).thenReturn("128m");
-            when(sandboxConfig.cpus()).thenReturn("1");
-            when(sandboxConfig.pidsLimit()).thenReturn(64);
-            when(sandboxConfig.seccompProfilePath()).thenReturn("/etc/seccomp/profile.json");
-            when(sandboxConfig.image()).thenReturn("ulticode-sandbox:latest");
         }
 
         @Test
-        @DisplayName("java command includes base64 compile-and-run wrapper")
-        void buildDockerCommand_java_includesJavaWrapper() throws Exception {
-            List<String> command = invokeBuildDockerCommand("java", "public class Solution { }");
+        @DisplayName("single test case delegates to sandboxService.executeInSandbox")
+        void execute_singleTestCase_delegatesToSandbox() {
+            RunSubmissionDTO.RunTestCase tc = createTestCase("tc-1", "42");
+            RunSubmissionDTO request = createRequest("python", "def solution(): pass", List.of(tc));
+            RunResultDTO.RunCaseResult caseResult = RunResultDTO.RunCaseResult.builder()
+                    .status("Accepted").runtime("10ms").memory("1.0MB").build();
+            when(sandboxService.executeInSandbox(eq("python"), eq("def solution(): pass"), eq(tc), anyString(), eq("user-1")))
+                    .thenReturn(caseResult);
+            when(helper.parseRuntimeMs("10ms")).thenReturn(10L);
 
-            assertThat(command).contains("docker", "run", "--rm", "-i");
-            assertThat(command).contains("ulticode-sandbox:latest");
-            assertThat(command).contains("sh", "-c");
-            assertThat(command.stream().anyMatch(s -> s.contains("javac") && s.contains("java -cp /tmp Main")))
-                    .isTrue();
+            RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
+
+            assertThat(result.getVerdict()).isEqualTo("Accepted");
+            assertThat(result.getPassedCases()).isEqualTo(1);
+            assertThat(result.getTotalCases()).isEqualTo(1);
         }
 
         @Test
-        @DisplayName("python command includes python3 -c wrapper")
-        void buildDockerCommand_python_includesPythonWrapper() throws Exception {
-            List<String> command = invokeBuildDockerCommand("python", "def solution(): pass");
+        @DisplayName("multiple test cases delegates to sandboxService.executeBatch")
+        void execute_multipleTestCases_delegatesToSandbox() {
+            RunSubmissionDTO.RunTestCase tc1 = createTestCase("tc-1", "42");
+            RunSubmissionDTO.RunTestCase tc2 = createTestCase("tc-2", "10");
+            RunSubmissionDTO request = createRequest("python", "def solution(): pass", List.of(tc1, tc2));
+            RunResultDTO.RunCaseResult r1 = RunResultDTO.RunCaseResult.builder().status("Accepted").runtime("10ms").memory("1.0MB").build();
+            RunResultDTO.RunCaseResult r2 = RunResultDTO.RunCaseResult.builder().status("Wrong Answer").runtime("8ms").memory("1.0MB").build();
+            when(sandboxService.executeBatch(eq("python"), eq("def solution(): pass"), eq(List.of(tc1, tc2)), anyString(), eq("user-1")))
+                    .thenReturn(List.of(r1, r2));
+            when(helper.parseRuntimeMs("10ms")).thenReturn(10L);
+            when(helper.parseRuntimeMs("8ms")).thenReturn(8L);
 
-            assertThat(command).contains("python3", "-c");
-            assertThat(command).contains("ulticode-sandbox:latest");
-        }
+            RunResultDTO result = codeExecutionService.execute(request, 1L, "user-1");
 
-        @Test
-        @DisplayName("javascript command includes node -e wrapper")
-        void buildDockerCommand_javascript_includesNodeWrapper() throws Exception {
-            List<String> command = invokeBuildDockerCommand("javascript", "function solution() {}");
-
-            assertThat(command).contains("node", "-e");
-            assertThat(command).contains("ulticode-sandbox:latest");
-        }
-
-        @Test
-        @DisplayName("c command includes gcc compile step")
-        void buildDockerCommand_c_includesGccCompile() throws Exception {
-            List<String> command = invokeBuildDockerCommand("c", "#include <stdio.h>");
-
-            assertThat(command).contains("sh", "-c");
-            assertThat(command.stream().anyMatch(s -> s.contains("gcc") && s.contains("/tmp/solution.c")))
-                    .isTrue();
-            assertThat(command).contains("ulticode-sandbox:latest");
-        }
-
-        @Test
-        @DisplayName("cpp command includes g++ compile step")
-        void buildDockerCommand_cpp_includesGppCompile() throws Exception {
-            List<String> command = invokeBuildDockerCommand("cpp", "#include <iostream>");
-
-            assertThat(command).contains("sh", "-c");
-            assertThat(command.stream().anyMatch(s -> s.contains("g++") && s.contains("/tmp/solution.cpp")))
-                    .isTrue();
-            assertThat(command).contains("ulticode-sandbox:latest");
-        }
-
-        @Test
-        @DisplayName("all commands include Docker security flags")
-        void buildDockerCommand_allIncludesSecurityFlags() throws Exception {
-            List<String> command = invokeBuildDockerCommand("python", "print('hello')");
-
-            assertThat(command).contains("--cap-drop", "ALL");
-            assertThat(command).contains("--network", "none");
-            assertThat(command).contains("--read-only");
-            assertThat(command).contains("--user", "1000:1000");
-            assertThat(command).contains("--security-opt", "no-new-privileges:true");
-            assertThat(command.stream().anyMatch(s -> s.contains("seccomp=")))
-                    .isTrue();
-            assertThat(command).contains("--memory", "128m");
-            assertThat(command).contains("--cpus", "1");
-            assertThat(command).contains("--pids-limit", "64");
-            assertThat(command).contains("--ulimit", "nofile=128:128");
-            assertThat(command).contains("--tmpfs", "/tmp:rw,exec,size=64m");
+            assertThat(result.getVerdict()).isEqualTo("Wrong Answer");
+            assertThat(result.getPassedCases()).isEqualTo(1);
+            assertThat(result.getTotalCases()).isEqualTo(2);
         }
     }
 }

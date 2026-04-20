@@ -25,7 +25,9 @@ public enum AchievementType {
   /** Rating milestone reached */
   RATING_MILESTONE("rating_milestone"),
   /** Community contributor achievements */
-  COMMUNITY_CONTRIBUTOR("community_contributor");
+  COMMUNITY_CONTRIBUTOR("community_contributor"),
+  /** Follower count */
+  FOLLOWER_COUNT("follower_count");
 
   private final String value;
 

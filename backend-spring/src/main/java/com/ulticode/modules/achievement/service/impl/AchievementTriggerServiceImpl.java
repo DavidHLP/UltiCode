@@ -85,6 +85,11 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
     }
 
     @Override
+    public List<String> onFollowCountUpdated(String userId, int followerCount) {
+        return checkAndAwardAchievements(userId, AchievementType.FOLLOWER_COUNT, followerCount);
+    }
+
+    @Override
     @Transactional
     public List<String> checkAndAwardAchievements(String userId, AchievementType type, int currentValue) {
         List<Achievement> allAchievements = achievementMapper.findAllActive();

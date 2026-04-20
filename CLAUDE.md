@@ -279,6 +279,10 @@ Frontend uses Vite env vars (`VITE_API_BASE_URL`).
 - Flyway 迁移失败：db-manager 不支持 `-outOfOrder`，直接用 `docker exec ulticode-mysql mysql ...` 执行 SQL
 - `db-manager/.venv/bin/python -m db_manager.cli repair` - 修复 Flyway checksum 不匹配
 - Redis 密码变更后需 `docker compose up -d redis` 重启容器，不能只 restart 容器
+- Maven Build Order: `recommend-api` 模块必须在 `backend-spring` 之前构建。执行顺序：
+  1. `cd recommendation && mvn install -DskipTests` — 安装 recommend-api 到本地 Maven 仓库
+  2. `cd backend-spring && ./mvnw spring-boot:run` — 启动后端（此时能找到 recommend-api）
+  本地开发和 CI/CD 流水线都需要遵守此顺序
 
 ## Code Search Tools
 

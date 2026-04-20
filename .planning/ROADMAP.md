@@ -18,8 +18,8 @@
 | 9-11  | v1.2      | All           | Complete |
 | 12-15 | v1.3      | All           | Complete |
 | 16-18 | v1.4      | All           | Complete |
-| 19    | 1/1 | Complete    | 2026-04-19 |
-| 20    | v1.5      | 0/3           | Not started |
+| 19    | v1.5      | 1/1           | Complete |
+| 20    | v1.5      | 1/1           | In progress |
 | 21    | v1.5      | 0/7           | Not started |
 | 22    | v1.5      | 0/5           | Not started |
 | 23    | v1.5      | 0/3           | Not started |
@@ -29,7 +29,7 @@
 ## Phases
 
 - [x] **Phase 19: Rate Limiting Infrastructure** — Redisson AOP rate limiting on all public endpoints (completed 2026-04-19)
-- [ ] **Phase 20: JaCoCo Coverage Baseline** — Maven coverage enforcement at 50% line / 40% branch
+- [x] **Phase 20: JaCoCo Coverage Baseline** — Maven coverage enforcement at 50% line / 40% branch
 - [ ] **Phase 21: Security Hardening** — Logging fixes, forum stats, springdoc version, CI URL
 - [ ] **Phase 22: Redis Caching Layer** — Spring Cache with @Cacheable/@CacheEvict on service methods
 - [ ] **Phase 23: N+1 Query Optimization** — JOIN FETCH in contest, problem, and submission mappers
@@ -74,7 +74,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [x] 19-01-PLAN.md — Add Retry-After header to HTTP 429 responses for rate limit errors
+- [x] 20-01-PLAN.md — Configure JaCoCo coverage enforcement in Maven build
 
 ### Phase 21: Security Hardening
 

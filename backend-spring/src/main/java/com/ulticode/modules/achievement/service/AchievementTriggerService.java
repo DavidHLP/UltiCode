@@ -94,6 +94,15 @@ public interface AchievementTriggerService {
     List<String> onRatingUpdated(String userId, int rating);
 
     /**
+     * Check and award achievements when a user's follower count changes.
+     *
+     * @param userId the user ID
+     * @param followerCount the current follower count
+     * @return list of achievement IDs that were awarded
+     */
+    List<String> onFollowCountUpdated(String userId, int followerCount);
+
+    /**
      * Check and award achievements for any achievement type.
      *
      * @param userId the user ID

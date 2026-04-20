@@ -174,7 +174,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         int pageSize = query.getPageSize() != null ? query.getPageSize() : 10;
 
         Page<Submission> pageParam = new Page<>(page, pageSize);
-        IPage<Submission> result = submissionMapper.findByUserId(pageParam, userId);
+        IPage<SubmissionMapper.SubmissionWithProblem> result =
+                submissionMapper.findByUserIdWithProblem(userId, pageParam);
 
         List<SubmissionVO> voList = result.getRecords().stream()
                 .map(this::toVO)
@@ -189,7 +190,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         int pageSize = query.getPageSize() != null ? query.getPageSize() : 10;
 
         Page<Submission> pageParam = new Page<>(page, pageSize);
-        IPage<Submission> result = submissionMapper.findByProblemId(pageParam, problemId, userId);
+        IPage<SubmissionMapper.SubmissionWithProblem> result =
+                submissionMapper.findByProblemIdWithProblem(problemId, userId, pageParam);
 
         List<SubmissionVO> voList = result.getRecords().stream()
                 .map(this::toVO)
@@ -229,6 +231,50 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionMapper.updateById(submission);
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
                 submissionId, status, runtime, memory != null ? memory + "MB" : "N/A");
+    }
+
+    /**
+     * Overload: convert SubmissionWithProblem DTO to SubmissionVO using pre-loaded problem data.
+     * Eliminates N+1 problem lookups in list views.
+     */
+    public SubmissionVO toVO(SubmissionMapper.SubmissionWithProblem submission) {
+        SubmissionVO vo = new SubmissionVO();
+
+        // Basic fields
+        vo.setId(submission.id());
+        vo.setProblemId(submission.problemId());
+        vo.setUserId(submission.userId());
+        vo.setLanguage(submission.language());
+        vo.setCode(submission.code());
+        vo.setStatus(submission.status());
+        vo.setRuntime(submission.runtime());
+        vo.setMemory(submission.memory());
+        vo.setNotes(submission.notes());
+        vo.setCreatedAt(submission.createdAt());
+        vo.setRuntimePercentile(submission.runtimePercentile());
+        vo.setMemoryPercentile(submission.memoryPercentile());
+        vo.setMemoryDistBinsMb(submission.memoryDistBinsMb());
+
+        // Add user info (still fetched per-submission for user data)
+        User user = userMapper.selectById(submission.userId());
+        if (user != null) {
+            SubmissionVO.UserInfo userInfo = new SubmissionVO.UserInfo();
+            userInfo.setId(user.getId());
+            userInfo.setUsername(user.getUsername());
+            userInfo.setAvatar(user.getAvatar());
+            vo.setUser(userInfo);
+        }
+
+        // Add problem info from pre-loaded DTO (eliminates N+1)
+        if (submission.problemTitle() != null) {
+            SubmissionVO.ProblemInfo problemInfo = new SubmissionVO.ProblemInfo();
+            problemInfo.setId(submission.problemId());
+            problemInfo.setTitle(submission.problemTitle());
+            problemInfo.setSlug(submission.problemSlug());
+            vo.setProblem(problemInfo);
+        }
+
+        return vo;
     }
 
     @Override

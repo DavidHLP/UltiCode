@@ -33,19 +33,25 @@ public class RankingServiceImpl implements RankingService {
         // Limit page size
         currentLimit = Math.min(currentLimit, 100);
 
-        LambdaQueryWrapper<ContestParticipant> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(ContestParticipant::getContestId, contestId)
-                .isNotNull(ContestParticipant::getFinalRank)
-                .orderByAsc(ContestParticipant::getFinalRank);
+        // Fetch all participants with user data in single query (eliminates N+1)
+        List<ContestParticipantMapper.ContestParticipantWithUser> allParticipants =
+                participantMapper.selectParticipantsWithUserByContestId(contestId);
 
-        Page<ContestParticipant> participantPage = new Page<>(currentPage, currentLimit);
-        Page<ContestParticipant> result = participantMapper.selectPage(participantPage, queryWrapper);
+        // Filter to only ranked participants and apply manual pagination
+        List<ContestParticipantMapper.ContestParticipantWithUser> rankedParticipants =
+                allParticipants.stream()
+                        .filter(p -> p.finalRank() != null)
+                        .collect(Collectors.toList());
 
-        List<ContestRankingVO> rankingList = result.getRecords().stream()
+        int total = rankedParticipants.size();
+        int skip = (currentPage - 1) * currentLimit;
+        List<ContestRankingVO> rankingList = rankedParticipants.stream()
+                .skip(skip)
+                .limit(currentLimit)
                 .map(this::toRankingVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(rankingList, result.getTotal(), currentPage, currentLimit);
+        return PageResult.of(rankingList, (long) total, currentPage, currentLimit);
     }
 
     @Override
@@ -89,13 +95,12 @@ public class RankingServiceImpl implements RankingService {
     }
 
     /**
-     * Convert ContestParticipant to ContestRankingVO.
+     * Convert ContestParticipant entity to ContestRankingVO (no user data).
      */
     private ContestRankingVO toRankingVO(ContestParticipant participant) {
         if (participant == null) {
             return null;
         }
-
         ContestRankingVO vo = new ContestRankingVO();
         vo.setRank(participant.getFinalRank());
         vo.setUserId(Long.parseLong(participant.getUserId()));
@@ -103,6 +108,27 @@ public class RankingServiceImpl implements RankingService {
         vo.setPenalty(participant.getTotalPenalty() != null ? participant.getTotalPenalty().longValue() : null);
         vo.setProblemsSolved(participant.getAttemptCount() != null ? participant.getAttemptCount() : 0);
         vo.setIsParticipating(true);
+        return vo;
+    }
+
+    /**
+     * Convert ContestParticipantWithUser DTO to ContestRankingVO.
+     */
+    private ContestRankingVO toRankingVO(ContestParticipantMapper.ContestParticipantWithUser participant) {
+        if (participant == null) {
+            return null;
+        }
+
+        ContestRankingVO vo = new ContestRankingVO();
+        vo.setRank(participant.finalRank());
+        vo.setUserId(Long.parseLong(participant.userId()));
+        vo.setScore(participant.totalScore() != null ? participant.totalScore().longValue() : null);
+        vo.setPenalty(participant.totalPenalty() != null ? participant.totalPenalty().longValue() : null);
+        vo.setProblemsSolved(participant.attemptCount() != null ? participant.attemptCount() : 0);
+        vo.setIsParticipating(true);
+        vo.setUsername(participant.username());
+        vo.setName(participant.name());
+        vo.setAvatar(participant.avatar());
         return vo;
     }
 }

@@ -49,7 +49,7 @@ Deferred to future release. Tracked but not in current roadmap.
 
 ## Traceability
 
-Which phases cover which requirements. Updated during roadmap creation.
+Which phases cover which requirements.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
@@ -60,9 +60,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 **Coverage:**
 - v1 requirements: 4 total
-- Mapped to phases: 0 (pending roadmap)
-- Unmapped: 0 ✓
+- Mapped to phases: 4/4
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-04-21*
-*Last updated: 2026-04-21 after v1.8 milestone started*
+*Last updated: 2026-04-21 after v1.8 roadmap created*

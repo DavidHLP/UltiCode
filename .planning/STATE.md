@@ -4,14 +4,14 @@ milestone: v1.7
 milestone_name: Notifications
 current_phase: 30 (planning)
 status: planning
-last_updated: "2026-04-21T11:43:22.435Z"
+last_updated: "2026-04-21T11:46:13.373Z"
 last_activity: 2026-04-21 — Milestone v1.7 roadmap created
 progress:
   total_phases: 4
   completed_phases: 1
-  total_plans: 1
+  total_plans: 2
   completed_plans: 1
-  percent: 100
+  percent: 50
 ---
 
 # STATE.md
@@ -65,3 +65,5 @@ Last activity: 2026-04-21 — Milestone v1.7 roadmap created
 | v1.4 Seed Data | 2026-04-19 | Phase 18 | Shipped |
 | v1.5 Coverage | 2026-04-20 | Phase 25 | Shipped |
 | v1.6 User & Social | 2026-04-21 | Phase 29 | Shipped |
+
+**Planned Phase:** 31 (follow-notification-trigger) — 1 plans — 2026-04-21T11:46:13.370Z

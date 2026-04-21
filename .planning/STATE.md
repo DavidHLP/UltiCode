@@ -1,27 +1,26 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.6
-milestone_name: User & Social
-current_phase: "29"
-status: complete
-last_updated: "2026-04-21T17:10:00.000Z"
+milestone: v1.7
+milestone_name: Notifications
+current_phase: "30"
+status: planning
+last_updated: "2026-04-21"
 last_activity: 2026-04-21
 progress:
   total_phases: 4
-  completed_phases: 4
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md
 
 **Project:** UltiCode - Online Programming Platform
-**Current Milestone:** v1.6 User & Social
-**Current Phase:** 29 (Social Frontend)
-**Status:** Milestone Complete
+**Current Milestone:** v1.7 Notifications
+**Current Phase:** 30 (planning)
+**Status:** Planning
 **Started:** 2026-04-21
-**Completed:** 2026-04-21
 
 ---
 
@@ -29,51 +28,29 @@ progress:
 
 **Core Value:** Online programming platform (LeetCode like) with problems, contests, submissions, achievements, and social features.
 
-**Current Focus:** v1.6 milestone complete — all 4 phases shipped
+**Current Focus:** v1.7 Notifications — full notification system with real-time WebSocket push
 
 ---
 
 ## Current Position
 
-Phase: 29 (Social Frontend) — COMPLETE
-**Milestone:** v1.6 User & Social
-**Status:** 4/4 phases complete, 100%
-**Last activity:** 2026-04-21
+Phase: 30 — WebSocket Push Wiring
+Plan: —
+Status: Planning
+Last activity: 2026-04-21 — Milestone v1.7 roadmap created
 
 ---
 
 ## Milestone Progress
 
-### v1.6 User & Social
+### v1.7 Notifications
 
 | Phase | Goal | Requirements | Status |
-|-------|------|-------------|--------|
-| 26 | Follow System | FOLLOW-01, FOLLOW-02, FOLLOW-04 | Completed |
-| 27 | Profile Backend | PROFILE-01, PROFILE-03 | Completed |
-| 28 | Achievement Backend | ACHV-01, ACHV-02, ACHV-03, ACHV-04 | Completed |
-| 29 | Social Frontend | PROFILE-02, FOLLOW-03 | Completed |
-
-**Overall:** 4/4 phases complete
-**Requirements:** 11/11 complete
-
----
-
-## Performance Metrics
-
-| Metric | Value |
-|--------|-------|
-| Phases Completed (v1.6) | 4 |
-| Requirements Done (v1.6) | 11/11 |
-| Plans Created (v1.6) | 5 |
-| Plans Completed (v1.6) | 5 |
-
----
-
-## Session Continuity
-
-- Milestone v1.6 started fresh on 2026-04-21
-- All 4 phases completed in single session
-- Previous milestone v1.5 ended at Phase 25
+|-------|------|--------------|--------|
+| 30 | WebSocket Push Wiring | NOTIF-01, NOTIF-02 | Not started |
+| 31 | Follow Notification Trigger | NOTIF-03 | Not started |
+| 32 | Contest Reminder Trigger | NOTIF-04 | Not started |
+| 33 | Submission Result Trigger | NOTIF-05 | Not started |
 
 ---
 

@@ -17,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,14 +50,15 @@ public class FollowServiceImpl implements FollowService {
             log.info("User {} followed user {}", currentUserId, targetUserId);
 
             // D-10: Only notify on first follow (idempotent insert)
+            User currentUser = userMapper.selectById(currentUserId);
             try {
                 notificationService.createNotification(
                     targetUserId,
                     "FOLLOW",
-                    "social",
-                    target.getUsername() + " followed you",
+                    "COMMUNICATION",
+                    currentUser.getUsername() + " followed you",
                     "",
-                    "/profile/" + target.getUsername()
+                    "/profile/" + currentUser.getUsername()
                 );
                 log.debug("Created follow notification for user {}", targetUserId);
             } catch (Exception e) {

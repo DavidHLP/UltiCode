@@ -44,8 +44,8 @@ progress:
 
 - [ ] **Phase 30: WebSocket Push Wiring** - Wire NotificationServiceImpl and AchievementNotificationListener to RealtimeService
 - [ ] **Phase 31: Follow Notification Trigger** - Add follow notification trigger to FollowServiceImpl
-- [ ] **Phase 32: Contest Reminder Trigger** - Wire ContestSchedulerService to notification service
-- [ ] **Phase 33: Submission Result Trigger** - Wire SubmissionServiceImpl to notification service
+- [x] **Phase 32: Contest Reminder Trigger** - Wire ContestScheduler to notification service for 24h and 1h reminders (completed 2026-04-21)
+- [x] **Phase 33: Submission Result Trigger** - Wire SubmissionServiceImpl to notification service (completed 2026-04-21)
 
 ---
 
@@ -70,7 +70,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. User receives in-app notification when another user follows them
   2. Notification is persisted to DB and pushed via WebSocket
-**Plans**: TBD
+**Plans**: 1
+
+Plans:
+- [x] 32-01-PLAN.md — Wire ContestScheduler to notification service for 24h and 1h reminders
 
 ### Phase 32: Contest Reminder Trigger
 **Goal**: Users receive notifications before contests they registered for start
@@ -79,7 +82,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. User receives notification 24 hours before a registered contest starts
   2. User receives notification 1 hour before a registered contest starts
-**Plans**: TBD
+**Plans**: 1
+
+Plans:
+- [ ] 32-01-PLAN.md — Wire ContestScheduler to notification service for 24h and 1h reminders
 
 ### Phase 33: Submission Result Trigger
 **Goal**: Users receive notifications when their submission is judged
@@ -88,7 +94,10 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. User receives notification when their submission is judged (AC/WA/TLE/etc.)
   2. Notification includes submission status and problem context
-**Plans**: TBD
+**Plans**: 1
+
+Plans:
+- [ ] 32-01-PLAN.md — Wire ContestScheduler to notification service for 24h and 1h reminders
 
 ---
 _Archived milestones: `.planning/milestones/`

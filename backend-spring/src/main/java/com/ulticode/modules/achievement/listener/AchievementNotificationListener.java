@@ -2,6 +2,8 @@ package com.ulticode.modules.achievement.listener;
 
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
 import com.ulticode.modules.notification.service.NotificationService;
+import com.ulticode.modules.websocket.notification.dto.BadgeEarnedPayload;
+import com.ulticode.modules.websocket.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
@@ -20,6 +22,7 @@ import org.springframework.stereotype.Service;
 public class AchievementNotificationListener {
 
     private final NotificationService notificationService;
+    private final RealtimeService realtimeService;
 
     /**
      * Handle achievement earned events asynchronously.
@@ -38,8 +41,20 @@ public class AchievementNotificationListener {
                     "badge_earned",
                     "Achievement Earned: " + event.achievementName(),
                     event.achievementDescription() + " - " + tierStr + " badge, +" + event.points() + " points",
-                    "/achievements"
+                    "/achievements",
+                    null
             );
+
+            // Also push via WebSocket (per D-05)
+            realtimeService.sendNotification(event.userId(),
+                BadgeEarnedPayload.of(
+                    event.achievementKey(),
+                    event.achievementName(),
+                    event.achievementDescription(),
+                    null, // badgeIcon not available in event
+                    getTierString(event.achievementTier()).toLowerCase(),
+                    event.userId()
+                ));
 
             log.debug("Created achievement notification for user {}: {}",
                     event.userId(), event.achievementKey());

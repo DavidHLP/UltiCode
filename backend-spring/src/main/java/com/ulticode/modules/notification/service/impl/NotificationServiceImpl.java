@@ -11,6 +11,8 @@ import com.ulticode.modules.notification.entity.NotificationPreference;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
 import com.ulticode.modules.notification.mapper.NotificationPreferenceMapper;
 import com.ulticode.modules.notification.service.NotificationService;
+import com.ulticode.modules.websocket.notification.dto.NotificationPayload;
+import com.ulticode.modules.websocket.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +33,7 @@ public class NotificationServiceImpl implements NotificationService {
 
     private final NotificationMapper notificationMapper;
     private final NotificationPreferenceMapper preferenceMapper;
+    private final RealtimeService realtimeService;
 
     @Override
     public PageResult<NotificationVO> list(String userId, NotificationQueryDTO query) {
@@ -156,7 +160,8 @@ public class NotificationServiceImpl implements NotificationService {
     @Override
     @Transactional
     public NotificationVO createNotification(String userId, String type, String category,
-                                              String title, String body, String link) {
+                                              String title, String body, String link,
+                                              Map<String, Object> metadata) {
         Notification notification = new Notification();
         notification.setUserId(userId);
         notification.setType(type);
@@ -165,9 +170,25 @@ public class NotificationServiceImpl implements NotificationService {
         notification.setBody(body);
         notification.setLink(link);
         notification.setIsRead(false);
+        notification.setMetadata(metadata);
 
         notificationMapper.insert(notification);
         log.debug("Created notification {} for user {}", notification.getId(), userId);
+
+        // WebSocket push (fire-and-forget per D-11)
+        try {
+            realtimeService.sendNotification(userId,
+                NotificationPayload.of(
+                    notification.getId(),
+                    notification.getType(),
+                    notification.getTitle(),
+                    notification.getBody(),
+                    notification.getMetadata()
+                ));
+        } catch (Exception e) {
+            log.warn("Failed to push notification via WebSocket for user {}: {}", userId, e.getMessage());
+        }
+
         return toVO(notification);
     }
 

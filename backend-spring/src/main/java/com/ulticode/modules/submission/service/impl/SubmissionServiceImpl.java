@@ -253,6 +253,29 @@ public class SubmissionServiceImpl implements SubmissionService {
                 log.warn("Failed to trigger achievements for submission {}: {}", submissionId, e.getMessage());
             }
         }
+
+        // Send submission result notification (fire-and-notify per D-11)
+        try {
+            notificationService.createNotification(
+                    submission.getUserId(),
+                    "SUBMISSION",
+                    "SYSTEM",
+                    "Submission judged: " + status,
+                    "",
+                    "/submissions/" + submission.getId(),
+                    java.util.Map.of(
+                            "submissionId", submission.getId(),
+                            "problemId", submission.getProblemId(),
+                            "problemTitle", problemMapper.selectById(submission.getProblemId()) != null
+                                    ? problemMapper.selectById(submission.getProblemId()).getTitle()
+                                    : "",
+                            "status", status,
+                            "isAccepted", "Accepted".equals(status)
+                    ));
+        } catch (Exception e) {
+            log.warn("Failed to create submission notification for submission {}: {}",
+                    submission.getId(), e.getMessage());
+        }
     }
 
     /**

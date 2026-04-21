@@ -25,7 +25,7 @@ progress:
 - [x] **Phase 26: Follow System** - Follow/unfollow, follower/following lists, achievement integration
 - [x] **Phase 27: Profile Backend** - User profile endpoint, profile edit, avatar upload (completed 2026-04-21)
 - [x] **Phase 28: Achievement Backend** - Achievement triggers, progress indicators, categories, WebSocket notifications (completed 2026-04-21)
-- [ ] **Phase 29: Social Frontend** - Profile page, follow button, achievements display
+- [x] **Phase 29: Social Frontend** - Profile page, follow button, achievements display (completed 2026-04-21)
 
 ---
 

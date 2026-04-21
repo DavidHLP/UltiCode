@@ -15,6 +15,7 @@ import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestService;
+import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -42,6 +43,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestParticipantMapper participantMapper;
     private final GlobalRankingMapper globalRankingMapper;
     private final ContestSchedulerService schedulerService;
+    private final AchievementTriggerService achievementTriggerService;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -199,6 +201,14 @@ public class ContestServiceImpl implements ContestService {
     @Override
     public void registerForContest(String contestId, String userId) {
         schedulerService.registerForContest(contestId, userId);
+
+        // Trigger contest participation achievement
+        try {
+            long participationCount = participantMapper.countByUserId(userId);
+            achievementTriggerService.onContestJoined(userId, (int) participationCount);
+        } catch (Exception e) {
+            log.warn("Failed to trigger contest achievement for user {}: {}", userId, e.getMessage());
+        }
     }
 
     @Override

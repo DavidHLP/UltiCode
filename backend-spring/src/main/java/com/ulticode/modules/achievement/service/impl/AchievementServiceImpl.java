@@ -5,12 +5,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.achievement.constants.AchievementType;
 import com.ulticode.modules.achievement.dto.*;
 import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
 import com.ulticode.modules.achievement.service.AchievementService;
+import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -31,6 +34,109 @@ public class AchievementServiceImpl implements AchievementService {
 
     private final AchievementMapper achievementMapper;
     private final UserAchievementMapper userAchievementMapper;
+    private final SubmissionMapper submissionMapper;
+    private final ContestParticipantMapper contestParticipantMapper;
+
+    @Override
+    public List<AchievementProgressVO> getUserProgress(String userId) {
+        List<Achievement> achievements = achievementMapper.findAllActive();
+        List<UserAchievement> userAchievements = userAchievementMapper.findByUserId(userId);
+
+        // Build earned achievement IDs set
+        Map<String, UserAchievement> earnedMap = userAchievements.stream()
+                .collect(Collectors.toMap(UserAchievement::getAchievementId, ua -> ua));
+
+        // Pre-fetch current counts for progress calculation
+        long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(userId);
+        long submissionsMade = submissionMapper.countByUserId(userId);
+
+        return achievements.stream()
+                .map(a -> buildProgressVO(a, earnedMap.get(a.getId()), problemsSolved, submissionsMade))
+                .collect(Collectors.toList());
+    }
+
+    private AchievementProgressVO buildProgressVO(Achievement a, UserAchievement earned,
+            long problemsSolved, long submissionsMade) {
+        String type = getTypeFromCriteria(a.getCriteria());
+        int currentValue = calculateCurrentValue(type, earned, problemsSolved, submissionsMade);
+        int target = getTargetFromCriteria(a.getCriteria());
+        int percentage = target > 0 ? Math.min(100, (currentValue * 100) / target) : 0;
+        String nextMilestone = calculateNextMilestone(type, currentValue);
+
+        return new AchievementProgressVO(
+                a.getId(),
+                a.getKey(),
+                a.getName(),
+                a.getIcon(),
+                a.getTier(),
+                a.getCategory(),
+                currentValue,
+                target,
+                percentage,
+                nextMilestone
+        );
+    }
+
+    private String getTypeFromCriteria(Map<String, Object> criteria) {
+        if (criteria == null) {
+            return null;
+        }
+        return (String) criteria.get("type");
+    }
+
+    private int getTargetFromCriteria(Map<String, Object> criteria) {
+        if (criteria == null || !criteria.containsKey("target")) {
+            return 0;
+        }
+        Object targetObj = criteria.get("target");
+        if (targetObj instanceof Number) {
+            return ((Number) targetObj).intValue();
+        }
+        return 0;
+    }
+
+    private int calculateCurrentValue(String type, UserAchievement earned,
+            long problemsSolved, long submissionsMade) {
+        if (type == null) {
+            return 0;
+        }
+
+        int currentValue = switch (type) {
+            case "problems_solved" -> (int) problemsSolved;
+            case "submissions_made" -> (int) submissionsMade;
+            default -> 0;
+        };
+
+        return currentValue;
+    }
+
+    private String calculateNextMilestone(String type, int currentValue) {
+        if (type == null) {
+            return null;
+        }
+
+        return switch (type) {
+            case "problems_solved" -> {
+                int[] milestones = {1, 10, 50, 100, 200, 500};
+                for (int m : milestones) {
+                    if (currentValue < m) {
+                        yield m + " problems";
+                    }
+                }
+                yield "Max milestone reached";
+            }
+            case "submissions_made" -> {
+                int[] milestones = {1, 10, 50, 100, 500, 1000};
+                for (int m : milestones) {
+                    if (currentValue < m) {
+                        yield m + " submissions";
+                    }
+                }
+                yield "Max milestone reached";
+            }
+            default -> null;
+        };
+    }
 
     @Override
     @Transactional
@@ -60,6 +166,14 @@ public class AchievementServiceImpl implements AchievementService {
 
     @Override
     public PageResult<AchievementVO> list(AchievementQueryDTO query) {
+        // Validate category if provided
+        if (query.getCategory() != null && !query.getCategory().isEmpty()) {
+            List<String> validCategories = List.of("problems", "contests", "social", "streaks", "special");
+            if (!validCategories.contains(query.getCategory())) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid category. Must be one of: " + validCategories);
+            }
+        }
+
         LambdaQueryWrapper<Achievement> wrapper = new LambdaQueryWrapper<>();
 
         if (query.getCategory() != null && !query.getCategory().isEmpty()) {

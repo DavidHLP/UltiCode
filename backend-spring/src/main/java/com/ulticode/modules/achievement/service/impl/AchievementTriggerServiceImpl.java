@@ -90,6 +90,16 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
     }
 
     @Override
+    public List<String> onFirstProblemSolved(String userId) {
+        return checkAndAwardAchievements(userId, AchievementType.FIRST_PROBLEM, 1);
+    }
+
+    @Override
+    public List<String> onLanguageMilestone(String userId, String language, int count) {
+        return checkAndAwardAchievements(userId, AchievementType.LANGUAGE_SOLVED, count);
+    }
+
+    @Override
     @Transactional
     public List<String> checkAndAwardAchievements(String userId, AchievementType type, int currentValue) {
         List<Achievement> allAchievements = achievementMapper.findAllActive();

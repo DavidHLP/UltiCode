@@ -103,6 +103,25 @@ public interface AchievementTriggerService {
     List<String> onFollowCountUpdated(String userId, int followerCount);
 
     /**
+     * Check and award achievements when a user solves their first problem.
+     *
+     * @param userId the user ID
+     * @return list of achievement IDs that were awarded
+     */
+    List<String> onFirstProblemSolved(String userId);
+
+    /**
+     * Check and award achievements when a user reaches a language milestone
+     * (e.g., 10 problems solved in Python).
+     *
+     * @param userId the user ID
+     * @param language the programming language
+     * @param count the current count of problems solved in that language
+     * @return list of achievement IDs that were awarded
+     */
+    List<String> onLanguageMilestone(String userId, String language, int count);
+
+    /**
      * Check and award achievements for any achievement type.
      *
      * @param userId the user ID

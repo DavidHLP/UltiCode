@@ -11,5 +11,6 @@ public enum NotificationType {
     FOLLOW,
     SYSTEM,
     SUBMISSION,
-    CONTEST
+    CONTEST,
+CONTEST_REMINDER
 }

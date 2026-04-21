@@ -7,5 +7,6 @@ public enum NotificationCategory {
     COMMUNICATION,
     MARKETING,
     SECURITY,
-    SYSTEM
+    SYSTEM,
+    CONTEST
 }

@@ -78,9 +78,11 @@ progress:
   2. Follow button shows "Follow" state when not following, "Following" with hover-to-unfollow when following
   3. Profile displays earned achievements as cards with badge icons and rarity tiers
   4. Follow button is visible only when viewing other users' profiles (not own profile)
-**Plans:** 1 plan
-- [ ] 26-01-PLAN.md - Follow system implementation (entity, mapper, service, controller)
-**UI hint:** yes
+**Plans:** 2 plans
+
+Plans:
+- [ ] 29-01-PLAN.md — Backend API endpoints and frontend API/composable layer
+- [ ] 29-02-PLAN.md — Profile page and follow button UI components
 
 ---
 
@@ -88,10 +90,10 @@ progress:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 26. Follow System | 0/3 | Not started | - |
+| 26. Follow System | 0/1 | Not started | - |
 | 27. Profile Backend | 1/1 | Complete    | 2026-04-21 |
-| 28. Achievement Backend | 0/4 | Not started | - |
-| 29. Social Frontend | 0/4 | Not started | - |
+| 28. Achievement Backend | 0/1 | Not started | - |
+| 29. Social Frontend | 0/2 | Not started | - |
 
 ---
 

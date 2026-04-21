@@ -3,6 +3,8 @@ package com.ulticode.modules.user.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.achievement.dto.AchievementProgressVO;
+import com.ulticode.modules.achievement.service.AchievementService;
 import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
@@ -17,6 +19,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 /**
  * REST controller for user-related operations.
  */
@@ -27,6 +31,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class UserController {
 
     private final UserService userService;
+    private final AchievementService achievementService;
 
     /**
      * Get the current authenticated user's profile.
@@ -147,5 +152,18 @@ public class UserController {
             @RequestParam("file") MultipartFile file) {
         String avatarUrl = userService.uploadAvatar(file);
         return Result.success(avatarUrl);
+    }
+
+    /**
+     * Get the current user's achievement progress.
+     *
+     * @return list of achievement progress view objects
+     */
+    @Operation(summary = "Get achievement progress", description = "Get the current user's achievement progress for all achievements")
+    @GetMapping("/me/achievements/progress")
+    public Result<List<AchievementProgressVO>> getAchievementProgress() {
+        String userId = userService.getCurrentUser().getId();
+        List<AchievementProgressVO> progress = achievementService.getUserProgress(userId);
+        return Result.success(progress);
     }
 }

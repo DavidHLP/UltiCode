@@ -34,6 +34,7 @@ import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -64,6 +65,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper contestParticipantMapper;
+    private final AchievementTriggerService achievementTriggerService;
 
     /**
      * Supported languages for submission.
@@ -231,6 +233,24 @@ public class SubmissionServiceImpl implements SubmissionService {
         submissionMapper.updateById(submission);
         log.info("Updated submission {} status={}, runtime={}ms, memory={}",
                 submissionId, status, runtime, memory != null ? memory + "MB" : "N/A");
+
+        // Trigger achievement checks for accepted submissions
+        if ("Accepted".equals(status)) {
+            try {
+                Long problemsSolved = submissionMapper.countAcceptedProblemsByUserId(submission.getUserId());
+                achievementTriggerService.onProblemSolved(submission.getUserId(), problemsSolved != null ? problemsSolved.intValue() : 0);
+                achievementTriggerService.onFirstProblemSolved(submission.getUserId());
+
+                // Language milestone
+                String language = submission.getLanguage();
+                if (language != null && !language.isBlank()) {
+                    Long languageCount = submissionMapper.countByUserIdAndLanguage(submission.getUserId(), language);
+                    achievementTriggerService.onLanguageMilestone(submission.getUserId(), language, languageCount != null ? languageCount.intValue() : 0);
+                }
+            } catch (Exception e) {
+                log.warn("Failed to trigger achievements for submission {}: {}", submissionId, e.getMessage());
+            }
+        }
     }
 
     /**

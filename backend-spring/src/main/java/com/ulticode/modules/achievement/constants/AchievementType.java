@@ -27,7 +27,11 @@ public enum AchievementType {
   /** Community contributor achievements */
   COMMUNITY_CONTRIBUTOR("community_contributor"),
   /** Follower count */
-  FOLLOWER_COUNT("follower_count");
+  FOLLOWER_COUNT("follower_count"),
+  /** First problem solved */
+  FIRST_PROBLEM("first_problem"),
+  /** Language milestone for solved problems */
+  LANGUAGE_SOLVED("language_solved");
 
   private final String value;
 

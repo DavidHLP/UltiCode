@@ -87,6 +87,15 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     );
 
     /**
+     * Count total contests a user has participated in.
+     *
+     * @param userId the user ID
+     * @return count of contests the user has registered for
+     */
+    @Select("SELECT COUNT(*) FROM contest_participants WHERE user_id = #{userId}")
+    long countByUserId(@Param("userId") String userId);
+
+    /**
      * Check if user is registered for a contest.
      *
      * @param contestId the contest ID

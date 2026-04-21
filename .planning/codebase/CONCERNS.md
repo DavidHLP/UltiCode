@@ -1,6 +1,6 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-04-19
+**Analysis Date:** 2026-04-21
 
 ## Tech Debt
 
@@ -47,22 +47,22 @@ enable-empty-protection: "true"  # Must be in dubbo.registry.parameters map
 
 ---
 
-### TD-04: Large Files Over 500 Lines
+### TD-04: Large Files Over 500 Lines (Java)
 **Severity:** LOW
 **Files:**
 - `backend-spring/src/main/java/com/ulticode/modules/forum/service/impl/ForumServiceImpl.java` (693 lines)
 - `backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java` (643 lines)
 - `backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/ContestServiceImpl.java` (626 lines)
-- `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java` (591 lines)
+- `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java` (682 lines)
 - `backend-spring/src/main/java/com/ulticode/modules/moderation/service/impl/ModerationServiceImpl.java` (578 lines)
 
-**Issue:** Multiple service implementations exceed 500 lines, violating the 800-line max guideline.
+**Issue:** Multiple service implementations exceed 500 lines, violating best practice guidelines.
 
 **Fix approach:** Extract related methods into separate service classes or utility classes.
 
 ---
 
-### TD-05: Frontend Large Files
+### TD-05: Large Files Over 500 Lines (Frontend)
 **Severity:** LOW
 **Files:**
 - `console/src/composables/contest/useContestSocket.ts` (608 lines)
@@ -93,7 +93,7 @@ enable-empty-protection: "true"  # Must be in dubbo.registry.parameters map
 
 ### B-02: Admin Forum Stats Return Hardcoded Zeros
 **Severity:** MEDIUM
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java` (lines 276-278)
+**Files:** `backend-spring/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java` (lines 286-288)
 
 **Symptoms:** Admin dashboard shows incorrect forum engagement metrics (commentCount, upvotes, downvotes all show 0).
 
@@ -124,13 +124,30 @@ vo.setDownvotes(0); // TODO: Query from forum_votes table
 
 ### SEC-02: System.out.println in Code Execution
 **Severity:** LOW
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java:506`
+**Files:** `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/CodeExecutionHelperImpl.java:252`
 
 **Observation:** `System.out.print(result)` found in code execution path.
 
 **Risk:** Could leak submission output to stdout logs.
 
 **Fix approach:** Replace with proper logging framework.
+
+---
+
+### SEC-03: Console.error in Production Vue Code
+**Severity:** LOW
+**Files:** Multiple Vue components in `console/` and `management/`
+
+**Observation:** `console.error()` calls found in production code for error handling in views:
+- `management/src/views/tags/TagMergeDialog.vue:70`
+- `management/src/views/system/BackupView.vue:59,73,85,110,127`
+- `management/src/views/system/MonitoringView.vue:71`
+- `management/src/views/system/EmailView.vue:78,113,171,186`
+- `management/src/views/submissions/SubmissionsView.vue:123,148,177`
+
+**Risk:** Debug output in production browser consoles.
+
+**Fix approach:** Replace with proper error handling/logging utilities.
 
 ---
 
@@ -151,13 +168,25 @@ vo.setDownvotes(0); // TODO: Query from forum_votes table
 
 ---
 
+### PERF-02: No Spring Caching Annotations
+**Severity:** MEDIUM
+**Files:** None using `@Cacheable`, `@CacheEvict`, `@CachePut`
+
+**Issue:** No caching annotations found in the codebase. Every request for frequently accessed data (problems, user stats, contest rankings) hits the database.
+
+**Impact:** High traffic could overwhelm MySQL.
+
+**Fix approach:** Add caching for read-heavy operations like problem lists, user profiles, and contest data.
+
+---
+
 ## Fragile Areas
 
 ### FRAG-01: JWT Token Provider Returns Null
 **Severity:** MEDIUM
 **Files:** `backend-spring/src/main/java/com/ulticode/security/jwt/JwtTokenProvider.java:108`
 
-**Observation:** `return null` found in token validation path. Multiple `return null` statements in authentication filters.
+**Observation:** `return null` found in token validation path. Multiple `return null` statements in authentication filters (`JwtAuthenticationFilter.java:127,137,151`, `CsrfService.java:70,76,87`).
 
 **Why fragile:** Silent authentication failures could cause confusing UX where users appear logged out intermittently.
 
@@ -167,7 +196,7 @@ vo.setDownvotes(0); // TODO: Query from forum_votes table
 
 ### FRAG-02: Redis Service Returns Null
 **Severity:** LOW
-**Files:** `backend-spring/src/main/java/com/ulticode/infrastructure/redis/RedisService.java` (multiple return null points)
+**Files:** `backend-spring/src/main/java/com/ulticode/infrastructure/redis/RedisService.java` (multiple return null points: lines 84, 103, 107, 299, 504, 520)
 
 **Observation:** Multiple `return null` statements in cache operations.
 
@@ -189,21 +218,24 @@ vo.setDownvotes(0); // TODO: Query from forum_votes table
 
 ---
 
-## Scaling Limits
+### FRAG-04: Synchronous Achievement Triggering
+**Severity:** HIGH
+**Files:** `backend-spring/src/main/java/com/ulticode/modules/achievement/service/impl/AchievementTriggerServiceImpl.java:90`
 
-### SCALE-01: No Caching Annotations Detected
-**Severity:** MEDIUM
-**Files:** None using `@Cacheable`, `@CacheEvict`, `@CachePut`
+**Issue:** `achievementTriggerService.checkAndAwardAchievements()` runs a full table scan on every problem solve, contest join, or submission:
+```java
+List<Achievement> allAchievements = achievementMapper.findAllActive(); // Full table scan EVERY event
+```
 
-**Issue:** No Spring caching annotations found in the codebase. Every request for frequently accessed data (problems, user stats, contest rankings) hits the database.
+**Why fragile:** Blocks user-facing API when achievements are evaluated synchronously. Compound effect under load.
 
-**Impact:** High traffic could overwhelm MySQL.
-
-**Fix approach:** Add caching for read-heavy operations like problem lists, user profiles, and contest data.
+**Safe modification:** Defer to async event processing.
 
 ---
 
-### SCALE-02: Forum Service Size
+## Scaling Limits
+
+### SCALE-01: Forum Service Size
 **Severity:** MEDIUM
 **Files:** `backend-spring/src/main/java/com/ulticode/modules/forum/service/impl/ForumServiceImpl.java` (693 lines)
 
@@ -306,6 +338,60 @@ vo.setDownvotes(0); // TODO: Query from forum_votes table
 
 ---
 
+## Domain Pitfalls (From Research)
+
+### PITFALL-01: Achievement Triggering Blocks User Actions
+**Severity:** HIGH
+**Files:** `backend-spring/src/main/java/com/ulticode/modules/achievement/service/impl/AchievementTriggerServiceImpl.java`
+
+**Issue:** Synchronous achievement checking on every submission/contest event causes latency spikes.
+
+**Impact:** Submission latency spikes on every solve; compound effect under load.
+
+**Fix approach:** Use async event publishing with `@Async` and `@EventListener(phase = AFTER_COMMIT)`.
+
+---
+
+### PITFALL-02: N+1 When Loading User Achievement History
+**Severity:** MEDIUM
+**Files:** Achievement loading in user profile
+
+**Issue:** Displaying user achievements triggers 1 query for user + N queries for each achievement detail.
+
+**Fix approach:** Use JOIN FETCH in mapper query.
+
+---
+
+### PITFALL-03: Follow System Missing Index
+**Severity:** MEDIUM
+**Files:** `user_follows` table (if exists)
+
+**Issue:** No composite index on `(follower_id, following_id)` pairs causing slow queries on popular users.
+
+**Fix approach:** Add UNIQUE constraint and composite indexes in migration.
+
+---
+
+### PITFALL-04: Fan-Out on Write for Popular Users
+**Severity:** MEDIUM
+**Files:** Notification fan-out logic
+
+**Issue:** Naive O(followers) write when sending notifications to popular users.
+
+**Fix approach:** Use async queue-based fan-out.
+
+---
+
+### PITFALL-05: Achievement Criteria JSON Prevents Indexing
+**Severity:** MEDIUM
+**Files:** `Achievement.criteria` field
+
+**Issue:** `Map<String, Object>` stored as JSON cannot be indexed for type queries.
+
+**Fix approach:** Normalize criteria into separate indexed columns (criteria_type, criteria_target).
+
+---
+
 ## Already Resolved (Historical Reference)
 
 These issues were identified and fixed but documented for awareness:
@@ -327,20 +413,26 @@ These issues were identified and fixed but documented for awareness:
 | CI-01 | HIGH | CI/CD | Flyway URL obsolete |
 | SEC-01 | HIGH | Security | Rate limiting not implemented |
 | DEPS-01 | HIGH | Dependency | springdoc incompatibility |
+| PITFALL-01 | HIGH | Pitfall | Achievement blocking |
 | B-02 | MEDIUM | Bug | Forum stats hardcoded |
 | TD-01 | MEDIUM | Tech Debt | PM2 env parsing |
 | TD-02 | MEDIUM | Tech Debt | Maven build order |
 | TD-03 | MEDIUM | Tech Debt | Dubbo configuration |
 | PERF-01 | MEDIUM | Performance | N+1 query potential |
-| SCALE-01 | MEDIUM | Scaling | No caching annotations |
-| SCALE-02 | MEDIUM | Scaling | Forum service size |
+| PERF-02 | MEDIUM | Performance | No caching annotations |
+| SCALE-01 | MEDIUM | Scaling | Forum service size |
 | MISS-02 | MEDIUM | Missing | No test coverage enforcement |
 | TEST-01 | MEDIUM | Testing | Admin forum stats untested |
 | TEST-02 | MEDIUM | Testing | Code execution untested |
 | TEST-03 | MEDIUM | Testing | Contest scheduler untested |
+| PITFALL-02 | MEDIUM | Pitfall | Achievement N+1 |
+| PITFALL-03 | MEDIUM | Pitfall | Follow index missing |
+| PITFALL-04 | MEDIUM | Pitfall | Fan-out scaling |
+| PITFALL-05 | MEDIUM | Pitfall | Achievement JSON indexing |
 | TD-04 | LOW | Tech Debt | Large Java files |
 | TD-05 | LOW | Tech Debt | Large frontend files |
 | SEC-02 | LOW | Security | System.out.println in code exec |
+| SEC-03 | LOW | Security | Console.error in Vue |
 | FRAG-01 | LOW | Fragile | JWT null returns |
 | FRAG-02 | LOW | Fragile | Redis null returns |
 | FRAG-03 | LOW | Fragile | Volatile counter |
@@ -348,4 +440,4 @@ These issues were identified and fixed but documented for awareness:
 
 ---
 
-*Concerns audit: 2026-04-19*
+*Concerns audit: 2026-04-21*

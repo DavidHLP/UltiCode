@@ -20,12 +20,17 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("SubmissionServiceImpl")
@@ -40,6 +45,8 @@ class SubmissionServiceImplTest {
     @Mock private com.ulticode.modules.contest.mapper.ContestSubmissionMapper contestSubmissionMapper;
     @Mock private com.ulticode.modules.contest.mapper.ContestMapper contestMapper;
     @Mock private com.ulticode.modules.contest.mapper.ContestParticipantMapper contestParticipantMapper;
+    @Mock private com.ulticode.modules.achievement.service.AchievementTriggerService achievementTriggerService;
+    @Mock private com.ulticode.modules.notification.service.NotificationService notificationService;
 
     private SubmissionServiceImpl submissionService;
 
@@ -52,7 +59,8 @@ class SubmissionServiceImplTest {
     void setUp() {
         submissionService = new SubmissionServiceImpl(
                 submissionMapper, userMapper, problemMapper, queueService, realtimeService,
-                contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper);
+                contestProblemMapper, contestSubmissionMapper, contestMapper, contestParticipantMapper,
+                achievementTriggerService, notificationService);
     }
 
     private Submission createValidSubmission() {
@@ -203,6 +211,73 @@ class SubmissionServiceImplTest {
                     .isInstanceOf(BusinessException.class)
                     .satisfies(ex -> assertThat(((BusinessException) ex).getErrorCode())
                             .isEqualTo(ErrorCode.SUBMISSION_NOT_FOUND));
+        }
+    }
+
+    @Nested
+    @DisplayName("updateSubmissionResult()")
+    class UpdateSubmissionResultNotificationTest {
+
+        @Test
+        @DisplayName("creates notification for Accepted status")
+        void updateSubmissionResult_Accepted_createsNotification() {
+            Submission submission = createValidSubmission();
+            submission.setStatus("Pending");
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+
+            submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
+
+            verify(notificationService).createNotification(
+                    eq(USER_ID),
+                    eq("SUBMISSION"),
+                    eq("SYSTEM"),
+                    eq("Submission judged: Accepted"),
+                    eq(""),
+                    eq("/submissions/sub-123"),
+                    argThat(map -> map.containsKey("submissionId")
+                            && map.containsKey("isAccepted")
+                            && Boolean.TRUE.equals(map.get("isAccepted"))));
+        }
+
+        @Test
+        @DisplayName("creates notification for Wrong Answer status")
+        void updateSubmissionResult_WrongAnswer_createsNotification() {
+            Submission submission = createValidSubmission();
+            submission.setStatus("Pending");
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+
+            submissionService.updateSubmissionResult("sub-123", "Wrong Answer", 50, 128.0, List.of());
+
+            verify(notificationService).createNotification(
+                    eq(USER_ID),
+                    eq("SUBMISSION"),
+                    eq("SYSTEM"),
+                    eq("Submission judged: Wrong Answer"),
+                    eq(""),
+                    eq("/submissions/sub-123"),
+                    argThat(map -> map.containsKey("submissionId")
+                            && map.containsKey("isAccepted")
+                            && Boolean.FALSE.equals(map.get("isAccepted"))));
+        }
+
+        @Test
+        @DisplayName("notification failure does not throw")
+        void updateSubmissionResult_notificationFailure_doesNotThrow() {
+            Submission submission = createValidSubmission();
+            submission.setStatus("Pending");
+            when(submissionMapper.selectById("sub-123")).thenReturn(submission);
+            when(problemMapper.selectById(PROBLEM_ID)).thenReturn(createValidProblem());
+            doThrow(new RuntimeException("DB error"))
+                    .when(notificationService).createNotification(
+                            anyString(), anyString(), anyString(), anyString(),
+                            anyString(), anyString(), any(Map.class));
+
+            // Should not throw
+            submissionService.updateSubmissionResult("sub-123", "Accepted", 100, 256.0, List.of());
+
+            verify(submissionMapper).updateById(submission);
         }
     }
 }

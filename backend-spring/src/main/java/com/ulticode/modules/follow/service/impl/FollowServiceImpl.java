@@ -58,6 +58,10 @@ public class FollowServiceImpl implements FollowService {
 
     @Override
     public FollowStatsDTO unfollow(String currentUserId, String targetUserId) {
+        if (currentUserId.equals(targetUserId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "Cannot unfollow yourself");
+        }
+
         User target = userMapper.selectById(targetUserId);
         if (target == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);

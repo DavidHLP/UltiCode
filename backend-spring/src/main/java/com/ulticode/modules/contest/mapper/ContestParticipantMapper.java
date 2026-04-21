@@ -210,4 +210,16 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             "WHERE cp.contest_id = #{contestId} " +
             "ORDER BY cp.final_rank ASC, cp.total_score DESC, cp.total_penalty ASC")
     List<ContestParticipantWithUser> selectParticipantsWithUserByContestId(@Param("contestId") String contestId);
+
+    /**
+     * Find all participants for a list of contest IDs.
+     * Used by ContestScheduler to find participants for reminder notifications.
+     *
+     * @param contestIds list of contest IDs
+     * @return list of participants for those contests
+     */
+    @Select("<script>SELECT * FROM contest_participants WHERE contest_id IN " +
+            "<foreach item='item' collection='contestIds' open='(' separator=',' close=')'>" +
+            "#{item}</foreach> ORDER BY contest_id, registered_at ASC</script>")
+    List<ContestParticipant> findByContestIds(@Param("contestIds") List<String> contestIds);
 }

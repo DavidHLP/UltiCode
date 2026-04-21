@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Technical Debt III
-current_phase: 0
+current_phase: 34
 status: milestone_started
 last_updated: "2026-04-21T00:00:00Z"
 last_activity: 2026-04-21
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -17,25 +17,30 @@ progress:
 # STATE.md
 
 **Project:** UltiCode - Online Programming Platform
-**Current Milestone:** v1.8 Technical Debt III (STARTED)
-**Current Phase:** 0 (defining requirements)
-**Status:** Defining requirements
+**Current Milestone:** v1.8 Technical Debt III (IN PROGRESS)
+**Current Phase:** 34 (Swagger UI 修复)
+**Status:** Ready to plan
 **Started:** 2026-04-21
 
 ---
 
 ## Project Reference
 
-**Core Value:** Online programming platform (LeetCode like) with problems, contests, submissions, achievements, and social features.
+**Core Value:** 平台安全性、功能完整性和交付自动化
 
-**Current Focus:** v1.8 Technical Debt III — 修复 CONCERNS.md 中剩余的高优先级技术债
+**Current Focus:** Phase 34 - Swagger UI 修复
 
 ---
 
 ## Current Position
 
-Milestone v1.8 Technical Debt III: **STARTED**
-- Phase 0: Defining requirements
+Milestone v1.8 Technical Debt III: **IN PROGRESS**
+- Phase 34: Swagger UI 修复 (Ready to plan)
+- Phase 35: Flyway URL 修复
+- Phase 36: Achievement 异步化
+- Phase 37: Forum Stats 真实数据
+
+Progress: [░░░░░░░░░░] 0%
 
 ---
 
@@ -51,30 +56,59 @@ Milestone v1.8 Technical Debt III: **STARTED**
 | v1.5 Coverage | 2026-04-20 | Phase 25 | Shipped |
 | v1.6 User & Social | 2026-04-21 | Phase 29 | Shipped |
 | v1.7 Notifications | 2026-04-21 | Phase 33 | Shipped |
-| v1.8 Technical Debt III | 2026-04-21 | Phase 0 | Started |
+| v1.8 Technical Debt III | 2026-04-21 | Phase 34 | In Progress |
 
 ---
 
-## v1.8 Target Issues (from CONCERNS.md)
+## v1.8 Requirements Coverage
 
-| ID | Severity | Issue | Status |
-|----|----------|-------|--------|
-| B-01 | HIGH | Swagger/Springdoc Disabled | Pending |
-| CI-01 | HIGH | Flyway Download URL Obsolete | Pending |
-| DEPS-01 | HIGH | springdoc OpenAPI incompatibility | Pending |
-| PITFALL-01 | HIGH | Achievement Synchronous Blocking | Pending |
-| B-02 | MEDIUM | Admin Forum Stats Hardcoded Zeros | Pending |
+| Phase | Requirement | Description |
+|-------|-------------|-------------|
+| 34 | DEPS-01 | Swagger UI 修复 (springdoc 版本) |
+| 35 | DEPS-02 | Flyway URL 修复 (CI workflow) |
+| 36 | PITFALL-01 | Achievement 异步化 (@Async + @EventListener) |
+| 37 | BUG-01 / PITFALL-02 | Forum Stats 真实数据 |
+
+**Coverage:** 4/4 requirements mapped to 4 phases
+
+---
+
+## v1.8 Success Criteria
+
+**Phase 34 - Swagger UI 修复:**
+1. Swagger UI 页面可正常加载（HTTP 200）
+2. API 文档显示所有 REST endpoints
+3. Try-out 功能可正常发送请求
+
+**Phase 35 - Flyway URL 修复:**
+1. CI workflow run 显示 Flyway 下载成功
+2. Flyway migration job 不再因 URL 404 失败
+3. 数据库迁移在 CI 环境正常执行
+
+**Phase 36 - Achievement 异步化:**
+1. Achievement 检查在 @Async 线程执行
+2. @EventListener 在 AFTER_COMMIT 阶段触发
+3. 主线程不等待 Achievement 检查完成
+
+**Phase 37 - Forum Stats 真实数据:**
+1. Admin dashboard Forum Stats 显示 forum_comments 表真实 count
+2. Admin dashboard Forum Stats 显示 forum_votes 表真实 count
+3. Stats 数据随实际数据变化而更新（非硬编码）
 
 ---
 
 ## Deferred Items
 
-Items acknowledged at v1.7 milestone close:
+Items acknowledged and carried forward:
 
-| Category | Item | Status |
-|----------|------|--------|
-| debug | db-migration-validation-fail | unknown (historical, pre-v1.7) |
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| Dependencies | DEPS-03: springdoc 3.x 升级 | Pending | v2 |
+| Performance | PERF-01: Achievement N+1 查询优化 | Pending | v2 |
+| Performance | PERF-02: Follow System 索引优化 | Pending | v2 |
+| Missing | MISS-01: 测试覆盖率强制执行 | Pending | v2 |
+| Missing | MISS-02: Rate Limiting 端到端测试 | Pending | v2 |
 
 ---
 
-*Last updated: 2026-04-21 after v1.8 Technical Debt III milestone started*
+*Last updated: 2026-04-21 after v1.8 roadmap created*

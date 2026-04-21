@@ -18,6 +18,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
+import java.util.Map;
+
 @ExtendWith(MockitoExtension.class)
 class FollowServiceImplTest {
 
@@ -74,7 +76,8 @@ class FollowServiceImplTest {
             eq("social"),
             eq("alice followed you"),
             eq(""),
-            eq("/profile/alice")
+            eq("/profile/alice"),
+            any(Map.class)
         );
     }
 
@@ -95,7 +98,7 @@ class FollowServiceImplTest {
 
         assertThat(result).isNotNull();
         verify(notificationService, never()).createNotification(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyString()
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(Map.class)
         );
     }
 
@@ -114,7 +117,7 @@ class FollowServiceImplTest {
 
         doThrow(new RuntimeException("Notification service unavailable"))
             .when(notificationService).createNotification(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString()
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(Map.class)
             );
 
         FollowStatsDTO result = followService.follow(currentUserId, targetUserId);
@@ -126,7 +129,8 @@ class FollowServiceImplTest {
             eq("social"),
             eq("alice followed you"),
             eq(""),
-            eq("/profile/alice")
+            eq("/profile/alice"),
+            any(Map.class)
         );
     }
 

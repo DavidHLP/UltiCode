@@ -1,5 +1,19 @@
 # Milestones
 
+## v1.6 User & Social (Shipped: 2026-04-21)
+
+**Phases:** 4 (26-29)
+**Plans:** 5
+**Requirements:** 11/11 complete
+
+**Key accomplishments:**
+1. Follow System (Phase 26): Follow/unfollow endpoints, follower/following lists, achievement integration
+2. Profile Backend (Phase 27): User profile endpoint, profile edit, avatar upload
+3. Achievement Backend (Phase 28): Achievement triggers, progress indicators, categories, WebSocket notifications
+4. Social Frontend (Phase 29): Profile page at /profile/{username}, FollowButton with 3-state toggle, achievements display
+
+---
+
 ## v1.5 Coverage — SHIPPED 2026-04-20
 
 **Phases:** 7 (19-25)

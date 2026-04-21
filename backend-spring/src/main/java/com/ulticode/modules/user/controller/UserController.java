@@ -3,6 +3,7 @@ package com.ulticode.modules.user.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;
@@ -14,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * REST controller for user-related operations.
@@ -114,5 +116,36 @@ public class UserController {
             @PathVariable String id) {
         UserSkillsDTO skills = userService.getUserSkillsById(id);
         return Result.success(skills);
+    }
+
+    /**
+     * Get a user's full profile including stats and social counts.
+     *
+     * @param id the user ID
+     * @return the user profile view object
+     */
+    @Operation(summary = "Get user profile", description = "Get a user's full profile with stats and social counts")
+    @GetMapping("/{id}/profile")
+    public Result<ProfileVO> getUserProfile(
+            @Parameter(description = "User ID")
+            @PathVariable String id) {
+        ProfileVO profile = userService.getUserProfile(id);
+        return Result.success(profile);
+    }
+
+    /**
+     * Upload the current user's avatar image.
+     *
+     * @param file the avatar image file
+     * @return the URL of the uploaded avatar
+     */
+    @Operation(summary = "Upload avatar", description = "Upload and set the current user's avatar image")
+    @RateLimit(key = "user:avatar", limit = 10, period = 60)
+    @PostMapping("/me/avatar")
+    public Result<String> uploadAvatar(
+            @Parameter(description = "Avatar image file")
+            @RequestParam("file") MultipartFile file) {
+        String avatarUrl = userService.uploadAvatar(file);
+        return Result.success(avatarUrl);
     }
 }

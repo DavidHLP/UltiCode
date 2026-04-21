@@ -1,6 +1,7 @@
 package com.ulticode.modules.user.service;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;

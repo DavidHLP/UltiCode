@@ -418,7 +418,7 @@ public class UserServiceImpl implements UserService {
             file.transferTo(filePath.toFile());
         } catch (IOException e) {
             log.error("Failed to save avatar for user {}: {}", userId, e.getMessage());
-            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save avatar");
+            throw new BusinessException(ErrorCode.UNKNOWN_ERROR, "Failed to save avatar");
         }
 
         String avatarUrl = "/uploads/avatars/" + filename;

@@ -35,6 +35,7 @@ import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
+import com.ulticode.modules.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -66,6 +67,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper contestParticipantMapper;
     private final AchievementTriggerService achievementTriggerService;
+    private final NotificationService notificationService;
 
     /**
      * Supported languages for submission.

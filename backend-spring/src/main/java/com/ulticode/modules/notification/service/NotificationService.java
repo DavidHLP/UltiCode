@@ -3,6 +3,8 @@ package com.ulticode.modules.notification.service;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.notification.dto.*;
 
+import java.util.Map;
+
 /**
  * Service interface for notification operations.
  */
@@ -83,8 +85,10 @@ public interface NotificationService {
      * @param title    the notification title
      * @param body     the notification body
      * @param link     the notification link
+     * @param metadata additional metadata to attach to the notification
      * @return created notification
      */
     NotificationVO createNotification(String userId, String type, String category,
-                                       String title, String body, String link);
+                                       String title, String body, String link,
+                                       Map<String, Object> metadata);
 }

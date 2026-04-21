@@ -20,8 +20,8 @@ Add follow notification trigger to `FollowServiceImpl.follow()`. When User A fol
 
 ### Notification content
 - **D-04:** `type = "FOLLOW"` — already exists in `NotificationType` enum
-- **D-05:** `category = "social"` — follows the social category established in Phase 28 achievement categories (D-07)
-- **D-06:** `title = "{username} followed you"` — username of the follower
+- **D-05:** `category = "COMMUNICATION"` — NOT "social". The notifications DB enum only has COMMUNICATION, MARKETING, SECURITY, SYSTEM. "social" was based on Phase 28 achievement categories but the notification category enum is separate.
+- **D-06:** `title = "{followerUsername} followed you"` — uses currentUser's username (the follower), fetched via `userMapper.selectById(currentUserId)` inside the idempotent block
 - **D-07:** `body = ""` — empty body is acceptable for follow notifications (title is self-explanatory)
 - **D-08:** `link = "/profile/{followerUsername}"` — deep link to follower's profile for click-through
 - **D-09:** `metadata` includes: `followerUsername`, `followerAvatar` (string URL) — enables frontend to display avatar without additional API call

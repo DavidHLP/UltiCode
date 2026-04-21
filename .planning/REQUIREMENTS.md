@@ -13,8 +13,9 @@
 ### Notification Triggers
 
 - [ ] **NOTIF-03**: User receives notification when someone follows them (follow trigger wired to notification service)
-- [ ] **NOTIF-04**: User receives notification when a contest they registered for starts soon (24h and 1h reminder)
-- [ ] **NOTIF-05**: User receives notification when their submission is judged (AC/WA/TLE/etc.)
+- [x] **NOTIF-04
+**: User receives notification when a contest they registered for starts soon (24h and 1h reminder)
+- [x] **NOTIF-05**: User receives notification when their submission is judged (AC/WA/TLE/etc.)
 
 ## v2 Requirements
 
@@ -49,8 +50,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | NOTIF-01 | Phase 30 | Pending |
 | NOTIF-02 | Phase 30 | Pending |
 | NOTIF-03 | Phase 31 | Pending |
-| NOTIF-04 | Phase 32 | Pending |
-| NOTIF-05 | Phase 33 | Pending |
+| NOTIF-04 | Phase 32 | Complete |
+| NOTIF-05 | Phase 33 | Complete |
 
 **Coverage:**
 - v1 requirements: 5 total

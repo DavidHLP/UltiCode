@@ -37,10 +37,9 @@ progress:
 | 16-18 | v1.4 | - | Complete | 2026-04-19 |
 | 19-25 | v1.5 | - | Complete | 2026-04-20 |
 | 26-29 | v1.6 | 5 | Complete | 2026-04-21 |
-| 30-33 | v1.7 | TBD | Planning | - |
+| 30-33 | v1.7 | 1 | Planning | - |
 
 ---
-
 ## Phases
 
 - [ ] **Phase 30: WebSocket Push Wiring** - Wire NotificationServiceImpl and AchievementNotificationListener to RealtimeService
@@ -59,7 +58,10 @@ progress:
 **Success Criteria** (what must be TRUE):
   1. User receives real-time WebSocket push when any notification is created via NotificationServiceImpl.createNotification()
   2. User receives real-time WebSocket push when an achievement is earned (AchievementNotificationListener fixed)
-**Plans**: TBD
+**Plans**: 1
+
+Plans:
+- [ ] 30-01-PLAN.md — Wire NotificationServiceImpl and AchievementNotificationListener to RealtimeService
 
 ### Phase 31: Follow Notification Trigger
 **Goal**: Users receive notifications when someone follows them
@@ -89,5 +91,4 @@ progress:
 **Plans**: TBD
 
 ---
-
-_Archived milestones: `.planning/milestones/`_
+_Archived milestones: `.planning/milestones/`

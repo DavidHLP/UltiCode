@@ -54,4 +54,13 @@ public interface FollowService {
      * @return follow stats
      */
     FollowStatsDTO getFollowStats(String userId);
+
+    /**
+     * Check if the current user follows a target user.
+     *
+     * @param currentUserId the current user's ID
+     * @param targetUserId the target user's ID
+     * @return true if the current user follows the target user
+     */
+    boolean isFollowing(String currentUserId, String targetUserId);
 }

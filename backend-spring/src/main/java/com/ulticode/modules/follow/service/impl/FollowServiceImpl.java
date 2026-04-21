@@ -145,6 +145,11 @@ public class FollowServiceImpl implements FollowService {
         return dto;
     }
 
+    @Override
+    public boolean isFollowing(String currentUserId, String targetUserId) {
+        return followMapper.exists(currentUserId, targetUserId);
+    }
+
     @Async
     public void triggerFollowerAchievement(String userId, int count) {
         try {

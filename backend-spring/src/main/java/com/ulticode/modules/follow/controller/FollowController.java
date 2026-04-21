@@ -3,6 +3,7 @@ package com.ulticode.modules.follow.controller;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.follow.dto.FollowStatusDTO;
 import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.dto.UserSummaryDTO;
 import com.ulticode.modules.follow.service.FollowService;
@@ -61,5 +62,17 @@ public class FollowController {
             @RequestParam(defaultValue = "20") int pageSize) {
         PageResult<UserSummaryDTO> result = followService.getFollowing(userId, page, pageSize);
         return Result.success(result);
+    }
+
+    /**
+     * Check if the current user follows a specific user.
+     */
+    @GetMapping("/{id}/follow/status")
+    public Result<FollowStatusDTO> getFollowStatus(@PathVariable("id") String userId) {
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        boolean isFollowing = followService.isFollowing(currentUserId, userId);
+        FollowStatusDTO dto = new FollowStatusDTO();
+        dto.setFollowing(isFollowing);
+        return Result.success(dto);
     }
 }

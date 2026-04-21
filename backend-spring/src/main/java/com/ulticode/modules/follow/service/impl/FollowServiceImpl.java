@@ -58,7 +58,8 @@ public class FollowServiceImpl implements FollowService {
                     "COMMUNICATION",
                     currentUser.getUsername() + " followed you",
                     "",
-                    "/profile/" + currentUser.getUsername()
+                    "/profile/" + currentUser.getUsername(),
+                    null
                 );
                 log.debug("Created follow notification for user {}", targetUserId);
             } catch (Exception e) {

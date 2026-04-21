@@ -133,8 +133,8 @@ public class ContestScheduler {
                     "CONTEST",
                     title,
                     "",  // body empty per D-06
-                    "/contest/" + contest.getId()  // link per D-07
-            );
+                    "/contest/" + contest.getId(),  // link per D-07
+                    metadata);
             log.debug("Sent {} reminder for contest {} to user {}", reminderType, contest.getId(), participant.getUserId());
         } catch (Exception e) {
             log.warn("Failed to send {} reminder for contest {} to user {}: {}",

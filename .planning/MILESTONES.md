@@ -1,5 +1,16 @@
 # Milestones
 
+## v1.7 Notifications (Shipped: 2026-04-21)
+
+**Phases completed:** 4 phases, 5 plans, 5 tasks
+
+**Key accomplishments:**
+
+- Phase:
+- 1. [Rule 3 - Blocking] Fixed two additional callers missing metadata parameter
+
+---
+
 ## v1.6 User & Social (Shipped: 2026-04-21)
 
 **Phases:** 4 (26-29)
@@ -7,6 +18,7 @@
 **Requirements:** 11/11 complete
 
 **Key accomplishments:**
+
 1. Follow System (Phase 26): Follow/unfollow endpoints, follower/following lists, achievement integration
 2. Profile Backend (Phase 27): User profile endpoint, profile edit, avatar upload
 3. Achievement Backend (Phase 28): Achievement triggers, progress indicators, categories, WebSocket notifications
@@ -21,6 +33,7 @@
 **Requirements:** 25/25 complete
 
 **Key accomplishments:**
+
 1. Rate limiting via Redisson AOP on all public endpoints
 2. JaCoCo coverage enforcement at 50% line / 40% branch
 3. Redis caching layer with Spring Cache + Redisson backend

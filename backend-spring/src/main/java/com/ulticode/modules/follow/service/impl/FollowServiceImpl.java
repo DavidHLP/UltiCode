@@ -9,6 +9,7 @@ import com.ulticode.modules.follow.dto.UserSummaryDTO;
 import com.ulticode.modules.follow.entity.UserFollow;
 import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.follow.service.FollowService;
+import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,6 +33,7 @@ public class FollowServiceImpl implements FollowService {
     private final FollowMapper followMapper;
     private final UserMapper userMapper;
     private final AchievementTriggerService achievementTriggerService;
+    private final NotificationService notificationService;
 
     @Override
     public FollowStatsDTO follow(String currentUserId, String targetUserId) {
@@ -46,6 +49,21 @@ public class FollowServiceImpl implements FollowService {
         if (!followMapper.exists(currentUserId, targetUserId)) {
             followMapper.insertIdempotent(currentUserId, targetUserId);
             log.info("User {} followed user {}", currentUserId, targetUserId);
+
+            // D-10: Only notify on first follow (idempotent insert)
+            try {
+                notificationService.createNotification(
+                    targetUserId,
+                    "FOLLOW",
+                    "social",
+                    target.getUsername() + " followed you",
+                    "",
+                    "/profile/" + target.getUsername()
+                );
+                log.debug("Created follow notification for user {}", targetUserId);
+            } catch (Exception e) {
+                log.warn("Failed to create follow notification for user {}: {}", targetUserId, e.getMessage());
+            }
         }
 
         FollowStatsDTO stats = getFollowStats(targetUserId);

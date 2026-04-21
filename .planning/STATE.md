@@ -3,24 +3,24 @@ gsd_state_version: 1.0
 milestone: v1.7
 milestone_name: Notifications
 current_phase: 33
-status: milestone_complete
-last_updated: "2026-04-21T13:26:52.935Z"
+status: milestone_shipped
+last_updated: "2026-04-21T14:30:00Z"
 last_activity: 2026-04-21
 progress:
   total_phases: 4
   completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
+  total_plans: 5
+  completed_plans: 5
   percent: 100
 ---
 
 # STATE.md
 
 **Project:** UltiCode - Online Programming Platform
-**Current Milestone:** v1.7 Notifications
-**Current Phase:** 33
-**Status:** Milestone complete
-**Started:** 2026-04-21
+**Current Milestone:** v1.7 Notifications (SHIPPED)
+**Current Phase:** 33 (complete)
+**Status:** Milestone shipped
+**Shipped:** 2026-04-21
 
 ---
 
@@ -28,29 +28,17 @@ progress:
 
 **Core Value:** Online programming platform (LeetCode like) with problems, contests, submissions, achievements, and social features.
 
-**Current Focus:** v1.7 Notifications — full notification system with real-time WebSocket push
+**Current Focus:** v1.7 shipped — Next milestone not yet planned
 
 ---
 
 ## Current Position
 
-Phase: 30 — WebSocket Push Wiring
-Plan: Not started
-Status: Planning
-Last activity: 2026-04-21
-
----
-
-## Milestone Progress
-
-### v1.7 Notifications
-
-| Phase | Goal | Requirements | Status |
-|-------|------|--------------|--------|
-| 30 | WebSocket Push Wiring | NOTIF-01, NOTIF-02 | Not started |
-| 31 | Follow Notification Trigger | NOTIF-03 | Not started |
-| 32 | Contest Reminder Trigger | NOTIF-04 | Not started |
-| 33 | Submission Result Trigger | NOTIF-05 | Not started |
+Milestone v1.7 Notifications: **SHIPPED**
+- Phase 30: WebSocket Push Wiring — complete
+- Phase 31: Follow Notification Trigger — complete
+- Phase 32: Contest Reminder Trigger — complete
+- Phase 33: Submission Result Trigger — complete
 
 ---
 
@@ -65,5 +53,18 @@ Last activity: 2026-04-21
 | v1.4 Seed Data | 2026-04-19 | Phase 18 | Shipped |
 | v1.5 Coverage | 2026-04-20 | Phase 25 | Shipped |
 | v1.6 User & Social | 2026-04-21 | Phase 29 | Shipped |
+| v1.7 Notifications | 2026-04-21 | Phase 33 | Shipped |
 
-**Planned Phase:** 32 (Contest Reminder Trigger) — 1 plans — 2026-04-21T12:35:33.826Z
+---
+
+## Deferred Items
+
+Items acknowledged at v1.7 milestone close:
+
+| Category | Item | Status |
+|----------|------|--------|
+| debug | db-migration-validation-fail | unknown (historical, pre-v1.7) |
+
+---
+
+*Last updated: 2026-04-21 after v1.7 Notifications milestone shipped*

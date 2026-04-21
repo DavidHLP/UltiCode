@@ -7,6 +7,8 @@ import com.ulticode.modules.user.dto.UserStatsDTO;
 import com.ulticode.modules.user.dto.UserVO;
 import com.ulticode.modules.user.entity.User;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -120,4 +122,20 @@ public interface UserService {
      * @return the user view object
      */
     UserVO toVO(User user);
+
+    /**
+     * Get a user's full profile including stats and social counts.
+     *
+     * @param id the user ID
+     * @return the user profile view object
+     */
+    ProfileVO getUserProfile(String id);
+
+    /**
+     * Upload and update the current user's avatar.
+     *
+     * @param file the avatar image file
+     * @return the URL of the uploaded avatar
+     */
+    String uploadAvatar(MultipartFile file);
 }

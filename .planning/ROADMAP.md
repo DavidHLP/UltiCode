@@ -23,8 +23,8 @@ progress:
 ## Phases
 
 - [x] **Phase 26: Follow System** - Follow/unfollow, follower/following lists, achievement integration
-- [ ] **Phase 27: Profile Backend** - User profile endpoint, profile edit, avatar upload
-- [ ] **Phase 28: Achievement Backend** - Achievement triggers, progress indicators, categories, WebSocket notifications
+- [x] **Phase 27: Profile Backend** - User profile endpoint, profile edit, avatar upload (completed 2026-04-21)
+- [x] **Phase 28: Achievement Backend** - Achievement triggers, progress indicators, categories, WebSocket notifications (completed 2026-04-21)
 - [ ] **Phase 29: Social Frontend** - Profile page, follow button, achievements display
 
 ---
@@ -53,7 +53,7 @@ progress:
   2. User can edit their own bio, company, location, website via PUT /users/me/profile
   3. User can upload avatar via MultipartFile upload endpoint
   4. Profile includes aggregated stats: problems solved count, submissions count, contest rating, follower/following counts
-**Plans:** 1 plan
+**Plans:** 1/1 plans complete
 - [ ] 26-01-PLAN.md - Follow system implementation (entity, mapper, service, controller)
 
 ### Phase 28: Achievement Backend
@@ -89,7 +89,7 @@ progress:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 26. Follow System | 0/3 | Not started | - |
-| 27. Profile Backend | 1/1 | ✓ Complete | 2026-04-21 |
+| 27. Profile Backend | 1/1 | Complete    | 2026-04-21 |
 | 28. Achievement Backend | 0/4 | Not started | - |
 | 29. Social Frontend | 0/4 | Not started | - |
 

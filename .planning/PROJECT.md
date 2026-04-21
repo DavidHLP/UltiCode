@@ -6,8 +6,8 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 
 ## Current State
 
-**Last shipped:** v1.6 User & Social (2026-04-21)
-**Total phases completed:** 29 (across v1.0–v1.6)
+**Last shipped:** v1.7 Notifications (2026-04-21)
+**Total phases completed:** 33 (across v1.0–v1.7)
 
 ## Core Value
 
@@ -31,6 +31,14 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 | v1.4 Seed Data | 2026-04-19 | Problem/tag/contest seed data expansion |
 | v1.5 Coverage | 2026-04-20 | Rate limiting, JaCoCo, Redis caching, N+1, large file refactoring |
 | v1.6 User & Social | 2026-04-21 | Follow system, user profiles, achievements backend, social frontend |
+| v1.7 Notifications | 2026-04-21 | WebSocket push, follow/contest/submission notification triggers |
+
+## v1.7 Accomplishments
+
+- **WebSocket Push Wiring** (Phase 30): NotificationServiceImpl and AchievementNotificationListener wired to RealtimeService for real-time push
+- **Follow Notification Trigger** (Phase 31): First-follow creates FOLLOW notification, idempotent insert, fire-and-forget pattern
+- **Contest Reminder Trigger** (Phase 32): T-24h and T-1h dual windows, metadata persistence for dedup
+- **Submission Result Trigger** (Phase 33): AC/WA/TLE/etc. results push via WebSocket with metadata
 
 ## v1.6 Accomplishments
 
@@ -38,13 +46,6 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 - Profile backend: ProfileVO with 17 fields, avatar upload, profile edit endpoint
 - Achievement backend: async WebSocket notifications, progress tracking, FIRST_PROBLEM/LANGUAGE_SOLVED triggers
 - Social frontend: ProfileView at /profile/{username}, FollowButton with optimistic toggle, 6 StatsCards
-
-- Rate limiting via Redisson AOP on all public endpoints
-- JaCoCo coverage enforcement at 50% line / 40% branch
-- Redis caching layer with Spring Cache + Redisson backend
-- N+1 query elimination via JOIN FETCH
-- PM2 dotenv + Maven build order documented
-- ForumServiceImpl, CodeExecutionService, ContestServiceImpl decomposed
 
 ## Technical Debt Status
 
@@ -60,12 +61,12 @@ Major technical debt清偿 from v1.0–v1.5:
 
 ## Known Issues
 
-- Pre-existing test failures in JudgeWorkerProcessorTest and MonitoringServiceTest (unrelated to v1.5 refactoring)
+- Pre-existing test failures in JudgeWorkerProcessorTest and MonitoringServiceTest (unrelated to current milestone)
 
 ## Next Milestone
 
-Planning begins with `/gsd-new-milestone`.
+Next milestone not yet planned. Use `/gsd-new-milestone` to start.
 
 ---
 
-*Last updated: 2026-04-21 after v1.6 milestone*
+*Last updated: 2026-04-21 after v1.7 Notifications milestone*

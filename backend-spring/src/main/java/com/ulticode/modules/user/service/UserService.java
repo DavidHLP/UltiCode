@@ -133,6 +133,14 @@ public interface UserService {
     ProfileVO getUserProfile(String id);
 
     /**
+     * Get a user's full profile by their username.
+     *
+     * @param username the username
+     * @return the user profile view object
+     */
+    ProfileVO getUserProfileByUsername(String username);
+
+    /**
      * Upload and update the current user's avatar.
      *
      * @param file the avatar image file

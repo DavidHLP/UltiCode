@@ -389,6 +389,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public ProfileVO getUserProfileByUsername(String username) {
+        User user = findByUsername(username)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        return getUserProfile(user.getId());
+    }
+
+    @Override
     public String uploadAvatar(MultipartFile file) {
         String userId = SecurityUtil.getCurrentUserId();
         if (userId == null) {

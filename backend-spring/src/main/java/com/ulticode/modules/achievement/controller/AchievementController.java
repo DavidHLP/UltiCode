@@ -67,6 +67,12 @@ public class AchievementController {
         return getCurrentUserPoints();
     }
 
+    @Operation(summary = "Get a user's achievements by user ID", description = "Get achievement progress for any user by their ID")
+    @GetMapping("/user/{id}")
+    public Result<List<AchievementProgressDTO>> getUserAchievementsById(@PathVariable String id) {
+        return Result.success(achievementService.getUserAchievements(id));
+    }
+
     @Operation(summary = "Create achievement (admin only)")
     @RateLimit(key = "achievement:create", limit = 30, period = 60)
     @PostMapping

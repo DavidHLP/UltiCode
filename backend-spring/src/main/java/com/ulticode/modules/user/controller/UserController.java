@@ -139,6 +139,21 @@ public class UserController {
     }
 
     /**
+     * Get a user's profile by username.
+     *
+     * @param username the username
+     * @return the user profile view object
+     */
+    @Operation(summary = "Get user profile by username", description = "Get a user's full profile by their username")
+    @GetMapping("/by-username/{username}/profile")
+    public Result<ProfileVO> getUserProfileByUsername(
+            @Parameter(description = "Username")
+            @PathVariable String username) {
+        ProfileVO profile = userService.getUserProfileByUsername(username);
+        return Result.success(profile);
+    }
+
+    /**
      * Upload the current user's avatar image.
      *
      * @param file the avatar image file

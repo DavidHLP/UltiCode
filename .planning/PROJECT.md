@@ -6,8 +6,8 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 
 ## Current State
 
-**Last shipped:** v1.5 Coverage (2026-04-20)
-**Total phases completed:** 25 (across v1.0–v1.5)
+**Last shipped:** v1.6 User & Social (2026-04-21)
+**Total phases completed:** 29 (across v1.0–v1.6)
 
 ## Core Value
 
@@ -30,8 +30,14 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 | v1.3 Core Features | 2026-04-19 | User stats, contest system, submission features |
 | v1.4 Seed Data | 2026-04-19 | Problem/tag/contest seed data expansion |
 | v1.5 Coverage | 2026-04-20 | Rate limiting, JaCoCo, Redis caching, N+1, large file refactoring |
+| v1.6 User & Social | 2026-04-21 | Follow system, user profiles, achievements backend, social frontend |
 
-## v1.5 Accomplishments
+## v1.6 Accomplishments
+
+- Follow system: idempotent follow/unfollow, paginated follower/following lists, @Async achievement triggers
+- Profile backend: ProfileVO with 17 fields, avatar upload, profile edit endpoint
+- Achievement backend: async WebSocket notifications, progress tracking, FIRST_PROBLEM/LANGUAGE_SOLVED triggers
+- Social frontend: ProfileView at /profile/{username}, FollowButton with optimistic toggle, 6 StatsCards
 
 - Rate limiting via Redisson AOP on all public endpoints
 - JaCoCo coverage enforcement at 50% line / 40% branch
@@ -62,4 +68,4 @@ Planning begins with `/gsd-new-milestone`.
 
 ---
 
-*Last updated: 2026-04-20 after v1.5 milestone*
+*Last updated: 2026-04-21 after v1.6 milestone*

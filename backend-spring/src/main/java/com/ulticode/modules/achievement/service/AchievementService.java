@@ -12,6 +12,14 @@ import java.util.List;
 public interface AchievementService {
 
     /**
+     * Get user's progress for all achievements (earned and unearned).
+     *
+     * @param userId the user ID
+     * @return list of achievement progress view objects
+     */
+    List<AchievementProgressVO> getUserProgress(String userId);
+
+    /**
      * Create a new achievement.
      *
      * @param dto the achievement data

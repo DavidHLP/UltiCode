@@ -99,6 +99,16 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
     Long countByUserId(@Param("userId") String userId);
 
     /**
+     * Count submissions by user and language.
+     *
+     * @param userId user ID
+     * @param language the programming language
+     * @return count of submissions in the given language
+     */
+    @Select("SELECT COUNT(*) FROM submissions WHERE user_id = #{userId} AND language = #{language}")
+    Long countByUserIdAndLanguage(@Param("userId") String userId, @Param("language") String language);
+
+    /**
      * Find distinct submission dates for a user in a given year.
      *
      * @param userId user ID

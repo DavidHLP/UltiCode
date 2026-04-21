@@ -89,7 +89,7 @@ progress:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 26. Follow System | 0/3 | Not started | - |
-| 27. Profile Backend | 0/2 | Not started | - |
+| 27. Profile Backend | 1/1 | ✓ Complete | 2026-04-21 |
 | 28. Achievement Backend | 0/4 | Not started | - |
 | 29. Social Frontend | 0/4 | Not started | - |
 

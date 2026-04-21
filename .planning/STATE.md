@@ -18,9 +18,9 @@ progress:
 
 **Project:** UltiCode - Online Programming Platform
 **Current Milestone:** v1.6 User & Social
-**Current Phase:** 26 (Follow System)
+**Current Phase:** 27 (Profile Backend)
 **Status:** Completed
-**Plan:** 26-01 (completed)
+**Plan:** 27-01 (completed)
 **Started:** 2026-04-21
 
 ---

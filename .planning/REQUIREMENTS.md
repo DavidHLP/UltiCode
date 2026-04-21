@@ -9,10 +9,10 @@
 
 - [ ] **NOTIF-01**: User receives real-time in-app notification via WebSocket when a notification is created
 - [ ] **NOTIF-02**: User receives real-time WebSocket push when an achievement is earned (fix AchievementNotificationListener)
-- [ ] **NOTIF-03**: User receives notification when someone follows them (follow trigger wired to notification service)
 
 ### Notification Triggers
 
+- [ ] **NOTIF-03**: User receives notification when someone follows them (follow trigger wired to notification service)
 - [ ] **NOTIF-04**: User receives notification when a contest they registered for starts soon (24h and 1h reminder)
 - [ ] **NOTIF-05**: User receives notification when their submission is judged (AC/WA/TLE/etc.)
 
@@ -59,4 +59,4 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 ---
 *Requirements defined: 2026-04-21*
-*Last updated: 2026-04-21 after initial definition*
+*Last updated: 2026-04-21 after roadmap creation*

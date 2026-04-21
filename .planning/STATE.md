@@ -1,26 +1,26 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.7
-milestone_name: Notifications
-current_phase: 33
-status: milestone_shipped
-last_updated: "2026-04-21T14:30:00Z"
+milestone: v1.8
+milestone_name: Technical Debt III
+current_phase: 0
+status: milestone_started
+last_updated: "2026-04-21T00:00:00Z"
 last_activity: 2026-04-21
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md
 
 **Project:** UltiCode - Online Programming Platform
-**Current Milestone:** v1.7 Notifications (SHIPPED)
-**Current Phase:** 33 (complete)
-**Status:** Milestone shipped
-**Shipped:** 2026-04-21
+**Current Milestone:** v1.8 Technical Debt III (STARTED)
+**Current Phase:** 0 (defining requirements)
+**Status:** Defining requirements
+**Started:** 2026-04-21
 
 ---
 
@@ -28,17 +28,14 @@ progress:
 
 **Core Value:** Online programming platform (LeetCode like) with problems, contests, submissions, achievements, and social features.
 
-**Current Focus:** v1.7 shipped — Next milestone not yet planned
+**Current Focus:** v1.8 Technical Debt III — 修复 CONCERNS.md 中剩余的高优先级技术债
 
 ---
 
 ## Current Position
 
-Milestone v1.7 Notifications: **SHIPPED**
-- Phase 30: WebSocket Push Wiring — complete
-- Phase 31: Follow Notification Trigger — complete
-- Phase 32: Contest Reminder Trigger — complete
-- Phase 33: Submission Result Trigger — complete
+Milestone v1.8 Technical Debt III: **STARTED**
+- Phase 0: Defining requirements
 
 ---
 
@@ -54,6 +51,19 @@ Milestone v1.7 Notifications: **SHIPPED**
 | v1.5 Coverage | 2026-04-20 | Phase 25 | Shipped |
 | v1.6 User & Social | 2026-04-21 | Phase 29 | Shipped |
 | v1.7 Notifications | 2026-04-21 | Phase 33 | Shipped |
+| v1.8 Technical Debt III | 2026-04-21 | Phase 0 | Started |
+
+---
+
+## v1.8 Target Issues (from CONCERNS.md)
+
+| ID | Severity | Issue | Status |
+|----|----------|-------|--------|
+| B-01 | HIGH | Swagger/Springdoc Disabled | Pending |
+| CI-01 | HIGH | Flyway Download URL Obsolete | Pending |
+| DEPS-01 | HIGH | springdoc OpenAPI incompatibility | Pending |
+| PITFALL-01 | HIGH | Achievement Synchronous Blocking | Pending |
+| B-02 | MEDIUM | Admin Forum Stats Hardcoded Zeros | Pending |
 
 ---
 
@@ -67,4 +77,4 @@ Items acknowledged at v1.7 milestone close:
 
 ---
 
-*Last updated: 2026-04-21 after v1.7 Notifications milestone shipped*
+*Last updated: 2026-04-21 after v1.8 Technical Debt III milestone started*

@@ -20,6 +20,16 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 - **Frontend Management**: Vue 3 + Vite + Tailwind CSS (admin)
 - **Database**: MySQL with Flyway migrations
 
+## Current Milestone: v1.8 技术债修复 II
+
+**Goal:** 修复 CONCERNS.md 中剩余的高优先级技术债
+
+**Target features:**
+- B-01/DEPS-01: 修复 Swagger disabled（springdoc 版本兼容问题）
+- CI-01: 修复 Flyway URL obsolete（CI workflow 下载 URL 返回 404）
+- PITFALL-01: 修复 Achievement 同步阻塞问题（改为异步事件处理）
+- B-02: 修复 Admin Forum Stats 返回硬编码零值
+
 ## Recent Milestones
 
 | Milestone | Date | Summary |
@@ -32,6 +42,7 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 | v1.5 Coverage | 2026-04-20 | Rate limiting, JaCoCo, Redis caching, N+1, large file refactoring |
 | v1.6 User & Social | 2026-04-21 | Follow system, user profiles, achievements backend, social frontend |
 | v1.7 Notifications | 2026-04-21 | WebSocket push, follow/contest/submission notification triggers |
+| v1.8 Technical Debt III | 2026-04-21 | Swagger, Flyway URL, Achievement async, Forum stats |
 
 ## v1.7 Accomplishments
 
@@ -69,4 +80,4 @@ Next milestone not yet planned. Use `/gsd-new-milestone` to start.
 
 ---
 
-*Last updated: 2026-04-21 after v1.7 Notifications milestone*
+*Last updated: 2026-04-21 after v1.8 Technical Debt III milestone started*

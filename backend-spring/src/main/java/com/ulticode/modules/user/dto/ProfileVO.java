@@ -1,6 +1,7 @@
 package com.ulticode.modules.user.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.ulticode.modules.user.entity.User;
 import lombok.Data;
 
 import java.time.LocalDateTime;

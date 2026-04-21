@@ -399,6 +399,11 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "File is required");
         }
 
+        long maxSize = 5 * 1024 * 1024;
+        if (file.getSize() > maxSize) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "File size exceeds 5MB limit");
+        }
+
         String contentType = file.getContentType();
         if (contentType == null || !contentType.startsWith("image/")) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Only image files are allowed");
@@ -407,7 +412,13 @@ public class UserServiceImpl implements UserService {
         String originalFilename = file.getOriginalFilename();
         String ext = "";
         if (originalFilename != null && originalFilename.contains(".")) {
-            ext = originalFilename.substring(originalFilename.lastIndexOf("."));
+            String rawExt = originalFilename.substring(originalFilename.lastIndexOf(".")).toLowerCase();
+            ext = rawExt.replaceAll("[^a-z0-9]", "");
+            if (!ext.isEmpty() && !ext.equals("jpg") && !ext.equals("jpeg") &&
+                !ext.equals("png") && !ext.equals("gif") && !ext.equals("webp")) {
+                throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid file extension");
+            }
+            ext = "." + ext;
         }
         String filename = UUID.randomUUID().toString() + ext;
 
@@ -423,8 +434,8 @@ public class UserServiceImpl implements UserService {
 
         String avatarUrl = "/uploads/avatars/" + filename;
 
-        User user = findById(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        User user = new User();
+        user.setId(userId);
         user.setAvatar(avatarUrl);
         userMapper.updateById(user);
 

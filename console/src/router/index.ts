@@ -306,6 +306,13 @@ const router = createRouter({
       component: () => import("@/views/users/UserProfileView.vue"),
       meta: { requiresAuth: true },
     },
+    // Public profile route by username
+    {
+      path: "/profile/:username",
+      name: "public-profile",
+      component: () => import("@/views/profile/ProfileView.vue"),
+      meta: { requiresAuth: true },
+    },
   ],
 });
 

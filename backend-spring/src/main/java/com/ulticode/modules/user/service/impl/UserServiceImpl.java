@@ -6,11 +6,13 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.follow.mapper.FollowMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.submission.dto.SubmissionDateCountDTO;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.dto.DifficultyCountDTO;
+import com.ulticode.modules.user.dto.ProfileVO;
 import com.ulticode.modules.user.dto.UpdateUserDTO;
 import com.ulticode.modules.user.dto.UserSkillsDTO;
 import com.ulticode.modules.user.dto.UserStatsDTO;
@@ -25,7 +27,12 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.Collection;
@@ -33,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -47,6 +55,7 @@ public class UserServiceImpl implements UserService {
     private final SubmissionMapper submissionMapper;
     private final ProblemMapper problemMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
+    private final FollowMapper followMapper;
 
     @Override
     public Optional<User> findById(String id) {
@@ -354,5 +363,72 @@ public class UserServiceImpl implements UserService {
         skillsDTO.setTotalSolved(totalSolved != null ? totalSolved.intValue() : 0);
 
         return skillsDTO;
+    }
+
+    @Override
+    public ProfileVO getUserProfile(String id) {
+        User user = findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+
+        UserStatsDTO stats = getUserStatsById(id);
+
+        int followerCount = 0;
+        int followingCount = 0;
+        try {
+            if (followMapper != null) {
+                // countByFollowingId: how many users follow this user (follower count)
+                followerCount = followMapper.countByFollowingId(id);
+                // countByFollowerId: how many users this user follows (following count)
+                followingCount = followMapper.countByFollowerId(id);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to get follow counts for user {}: {}", id, e.getMessage());
+        }
+
+        return ProfileVO.fromUser(user, stats, followerCount, followingCount, 0);
+    }
+
+    @Override
+    public String uploadAvatar(MultipartFile file) {
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "File is required");
+        }
+
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.startsWith("image/")) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Only image files are allowed");
+        }
+
+        String originalFilename = file.getOriginalFilename();
+        String ext = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            ext = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String filename = UUID.randomUUID().toString() + ext;
+
+        Path uploadDir = Paths.get("uploads/avatars");
+        try {
+            Files.createDirectories(uploadDir);
+            Path filePath = uploadDir.resolve(filename);
+            file.transferTo(filePath.toFile());
+        } catch (IOException e) {
+            log.error("Failed to save avatar for user {}: {}", userId, e.getMessage());
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR, "Failed to save avatar");
+        }
+
+        String avatarUrl = "/uploads/avatars/" + filename;
+
+        User user = findById(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.USER_NOT_FOUND));
+        user.setAvatar(avatarUrl);
+        userMapper.updateById(user);
+
+        log.info("Avatar uploaded for user {}: {}", userId, avatarUrl);
+        return avatarUrl;
     }
 }

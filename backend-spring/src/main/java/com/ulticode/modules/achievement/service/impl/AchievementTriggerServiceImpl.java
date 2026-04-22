@@ -1,9 +1,9 @@
 package com.ulticode.modules.achievement.service.impl;
 
 import com.ulticode.modules.achievement.constants.AchievementType;
-import com.ulticode.modules.achievement.dto.AchievementProgressDTO;
 import com.ulticode.modules.achievement.entity.Achievement;
 import com.ulticode.modules.achievement.entity.UserAchievement;
+import com.ulticode.modules.achievement.event.AchievementCheckEvent;
 import com.ulticode.modules.achievement.event.AchievementEarnedEvent;
 import com.ulticode.modules.achievement.mapper.AchievementMapper;
 import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
@@ -14,6 +14,7 @@ import com.ulticode.modules.websocket.service.RealtimeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,8 +26,8 @@ import java.util.Map;
 /**
  * Implementation of AchievementTriggerService.
  *
- * <p>This service is responsible for checking and awarding achievements
- * when users perform certain actions.
+ * <p>Trigger methods publish AchievementCheckEvent for async processing.
+ * checkAndAwardAchievements runs after transaction commits via AchievementCheckListener.
  */
 @Slf4j
 @Service
@@ -40,63 +41,75 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
     private final ApplicationEventPublisher eventPublisher;
 
     @Override
-    public List<String> onProblemSolved(String userId, int problemsSolvedCount) {
-        return checkAndAwardAchievements(userId, AchievementType.PROBLEMS_SOLVED, problemsSolvedCount);
+    @Async
+    public void onProblemSolved(String userId, int problemsSolvedCount) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.PROBLEMS_SOLVED, problemsSolvedCount));
     }
 
     @Override
-    public List<String> onSubmissionMade(String userId, int submissionsCount) {
-        return checkAndAwardAchievements(userId, AchievementType.SUBMISSIONS_MADE, submissionsCount);
+    @Async
+    public void onSubmissionMade(String userId, int submissionsCount) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.SUBMISSIONS_MADE, submissionsCount));
     }
 
     @Override
-    public List<String> onContestJoined(String userId, int contestParticipationCount) {
-        return checkAndAwardAchievements(userId, AchievementType.CONTEST_PARTICIPATION, contestParticipationCount);
+    @Async
+    public void onContestJoined(String userId, int contestParticipationCount) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.CONTEST_PARTICIPATION, contestParticipationCount));
     }
 
     @Override
-    public List<String> onContestWon(String userId, int contestWinsCount) {
-        return checkAndAwardAchievements(userId, AchievementType.CONTEST_WINS, contestWinsCount);
+    @Async
+    public void onContestWon(String userId, int contestWinsCount) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.CONTEST_WINS, contestWinsCount));
     }
 
     @Override
-    public List<String> onContestPlaced(String userId, int contestPlacedCount) {
-        return checkAndAwardAchievements(userId, AchievementType.CONTEST_PLACED, contestPlacedCount);
+    @Async
+    public void onContestPlaced(String userId, int contestPlacedCount) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.CONTEST_PLACED, contestPlacedCount));
     }
 
     @Override
-    public List<String> onForumPostCreated(String userId, int forumPostsCount) {
-        return checkAndAwardAchievements(userId, AchievementType.FORUM_POSTS, forumPostsCount);
+    @Async
+    public void onForumPostCreated(String userId, int forumPostsCount) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.FORUM_POSTS, forumPostsCount));
     }
 
     @Override
-    public List<String> onSolutionWritten(String userId, int solutionsCount) {
-        return checkAndAwardAchievements(userId, AchievementType.SOLUTIONS_WRITTEN, solutionsCount);
+    @Async
+    public void onSolutionWritten(String userId, int solutionsCount) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.SOLUTIONS_WRITTEN, solutionsCount));
     }
 
     @Override
-    public List<String> onStreakUpdated(String userId, int streakDays) {
-        return checkAndAwardAchievements(userId, AchievementType.STREAK_DAYS, streakDays);
+    @Async
+    public void onStreakUpdated(String userId, int streakDays) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.STREAK_DAYS, streakDays));
     }
 
     @Override
-    public List<String> onRatingUpdated(String userId, int rating) {
-        return checkAndAwardAchievements(userId, AchievementType.RATING_MILESTONE, rating);
+    @Async
+    public void onRatingUpdated(String userId, int rating) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.RATING_MILESTONE, rating));
     }
 
     @Override
-    public List<String> onFollowCountUpdated(String userId, int followerCount) {
-        return checkAndAwardAchievements(userId, AchievementType.FOLLOWER_COUNT, followerCount);
+    @Async
+    public void onFollowCountUpdated(String userId, int followerCount) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.FOLLOWER_COUNT, followerCount));
     }
 
     @Override
-    public List<String> onFirstProblemSolved(String userId) {
-        return checkAndAwardAchievements(userId, AchievementType.FIRST_PROBLEM, 1);
+    @Async
+    public void onFirstProblemSolved(String userId) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.FIRST_PROBLEM, 1));
     }
 
     @Override
-    public List<String> onLanguageMilestone(String userId, String language, int count) {
-        return checkAndAwardAchievements(userId, AchievementType.LANGUAGE_SOLVED, count);
+    @Async
+    public void onLanguageMilestone(String userId, String language, int count) {
+        eventPublisher.publishEvent(new AchievementCheckEvent(userId, AchievementType.LANGUAGE_SOLVED, count));
     }
 
     @Override
@@ -104,7 +117,6 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
     public List<String> checkAndAwardAchievements(String userId, AchievementType type, int currentValue) {
         List<Achievement> allAchievements = achievementMapper.findAllActive();
 
-        // Filter achievements matching the criteria type
         List<Achievement> matchingAchievements = allAchievements.stream()
                 .filter(a -> {
                     Map<String, Object> criteria = a.getCriteria();
@@ -127,12 +139,10 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
             }
 
             if (currentValue >= target) {
-                // Check if already earned
                 UserAchievement existing = userAchievementMapper.findByUserAndAchievement(
                         userId, achievement.getId());
 
                 if (existing == null) {
-                    // Award the achievement
                     UserAchievement userAchievement = new UserAchievement();
                     userAchievement.setUserId(userId);
                     userAchievement.setAchievementId(achievement.getId());
@@ -141,10 +151,7 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
 
                     awardedIds.add(achievement.getId());
 
-                    // Send real-time notification via WebSocket
                     sendBadgeEarnedNotification(userId, achievement);
-
-                    // Publish event
                     publishAchievementEarnedEvent(userId, achievement);
 
                     log.info("Awarded achievement {} to user {}", achievement.getKey(), userId);

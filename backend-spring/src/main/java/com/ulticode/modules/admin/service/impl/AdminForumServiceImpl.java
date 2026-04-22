@@ -12,10 +12,14 @@ import com.ulticode.modules.admin.controller.AdminForumController.AdminForumComm
 import com.ulticode.modules.admin.service.AdminForumService;
 import com.ulticode.modules.forum.entity.ForumCommunity;
 import com.ulticode.modules.forum.entity.ForumPost;
+import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
+import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
+import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
+import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,8 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final ForumPostMapper forumPostMapper;
     private final UserMapper userMapper;
     private final ForumCommunityMapper forumCommunityMapper;
+    private final ForumCommentMapper forumCommentMapper;
+    private final EdgeOperationMapper edgeOperationMapper;
 
     @Override
     public PageResult<AdminForumPostVO> getPosts(AdminForumPostQueryDTO query) {
@@ -283,9 +289,11 @@ public class AdminForumServiceImpl implements AdminForumService {
         vo.setUserId(post.getUserId());
         vo.setCommunityId(post.getCommunityId());
         vo.setViewCount(post.getViews() != null ? post.getViews() : 0);
-        vo.setCommentCount(0); // TODO: Query from forum_comments table
-        vo.setUpvotes(0); // TODO: Query from forum_votes table
-        vo.setDownvotes(0); // TODO: Query from forum_votes table
+        vo.setCommentCount((int) forumCommentMapper.countByPostId(post.getId()));
+        vo.setUpvotes(edgeOperationMapper.countByTargetAndOperation(
+                post.getId(), EdgeOperationTargetType.FORUM_POST.name(), EdgeOperationType.VOTE_UP.name()));
+        vo.setDownvotes(edgeOperationMapper.countByTargetAndOperation(
+                post.getId(), EdgeOperationTargetType.FORUM_POST.name(), EdgeOperationType.VOTE_DOWN.name()));
         vo.setIsPinned(post.getIsPinned() != null ? post.getIsPinned() : false);
         vo.setIsLocked(post.getIsLocked() != null ? post.getIsLocked() : false);
         vo.setIsFlagged(post.getIsFlagged() != null ? post.getIsFlagged() : false);

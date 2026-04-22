@@ -1,7 +1,7 @@
 ---
 gsd_state_version: 1.0
 milestone: v3.0
-milestone_name: TBD
+milestone_name: 平台质量与用户体验
 status: planning
 last_updated: "2026-04-22"
 progress:
@@ -15,8 +15,8 @@ progress:
 # STATE.md
 
 **Project:** UltiCode - Online Programming Platform
-**Current Milestone:** v2.0 Dependencies & Quality — Complete
-**Status:** Milestone shipped
+**Current Milestone:** v3.0 平台质量与用户体验 — Planning
+**Status:** Defining requirements
 
 ---
 
@@ -35,7 +35,8 @@ progress:
 | v1.8 Technical Debt III | 2026-04-22 | Phase 37 | Shipped |
 | v1.9 Performance & Quality | 2026-04-22 | Phase 40 | Shipped |
 | v2.0 Dependencies & Quality | 2026-04-22 | Phase 44 | Shipped |
+| v3.0 平台质量与用户体验 | TBD | — | Planning |
 
 ---
 
-*Last updated: 2026-04-22 after v2.0 milestone shipped*
+*Last updated: 2026-04-22 after v3.0 milestone started*

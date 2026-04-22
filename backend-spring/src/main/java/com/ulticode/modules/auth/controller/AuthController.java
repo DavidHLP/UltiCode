@@ -19,6 +19,9 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.service.UserService;
 import com.ulticode.security.csrf.CsrfService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -54,6 +57,8 @@ public class AuthController {
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
 
     @Operation(summary = "Login", description = "Authenticate user with username and password")
+    @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Invalid credentials")
     @PostMapping("/login")
     @RateLimit(key = "login", limit = 10, period = 60)
     public Result<LoginResponse> login(
@@ -64,6 +69,9 @@ public class AuthController {
     }
 
     @Operation(summary = "Register", description = "Register a new user account")
+    @ApiResponse(responseCode = "200", description = "Registration successful", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "409", description = "Username already exists")
     @PostMapping("/register")
     @RateLimit(key = "register", limit = 5, period = 60)
     public Result<LoginResponse> register(
@@ -74,6 +82,8 @@ public class AuthController {
     }
 
     @Operation(summary = "Refresh token", description = "Refresh access token using refresh token from cookie")
+    @ApiResponse(responseCode = "200", description = "Token refreshed", content = @Content(schema = @Schema(implementation = LoginResponse.class)))
+    @ApiResponse(responseCode = "401", description = "Invalid or expired refresh token")
     @RateLimit(key = "auth:refresh", limit = 20, period = 60)
     @PostMapping("/refresh")
     public Result<LoginResponse> refresh(
@@ -85,6 +95,7 @@ public class AuthController {
     }
 
     @Operation(summary = "Logout", description = "Logout current user and clear auth cookie")
+    @ApiResponse(responseCode = "200", description = "Logout successful")
     @PostMapping("/logout")
     public Result<Void> logout(HttpServletResponse response) {
         authService.logout(response);
@@ -92,6 +103,8 @@ public class AuthController {
     }
 
     @Operation(summary = "Forgot password", description = "Send password reset email")
+    @ApiResponse(responseCode = "200", description = "Reset email sent")
+    @ApiResponse(responseCode = "404", description = "User not found")
     @RateLimit(key = "auth:forgot-password", limit = 5, period = 60)
     @PostMapping("/forgot-password")
     public Result<Void> forgotPassword(@Valid @RequestBody ForgotPasswordDTO dto) {
@@ -100,6 +113,8 @@ public class AuthController {
     }
 
     @Operation(summary = "Reset password", description = "Reset password using token from email")
+    @ApiResponse(responseCode = "200", description = "Password reset successful")
+    @ApiResponse(responseCode = "400", description = "Invalid or expired reset token")
     @RateLimit(key = "auth:reset-password", limit = 5, period = 60)
     @PostMapping("/reset-password")
     public Result<Void> resetPassword(@Valid @RequestBody ResetPasswordDTO dto) {
@@ -108,6 +123,8 @@ public class AuthController {
     }
 
     @Operation(summary = "Get current user", description = "Get the authenticated user profile with CSRF token")
+    @ApiResponse(responseCode = "200", description = "Current user retrieved", content = @Content(schema = @Schema(implementation = UserWithCsrfVO.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/me")
     public Result<UserWithCsrfVO> getCurrentUser(Principal principal) {
         String userId = principal.getName();
@@ -125,6 +142,8 @@ public class AuthController {
     }
 
     @Operation(summary = "Get user permissions", description = "Get all permissions for the authenticated user")
+    @ApiResponse(responseCode = "200", description = "Permissions retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/permissions")
     public Result<List<String>> getPermissions(Principal principal) {
         String userId = principal.getName();

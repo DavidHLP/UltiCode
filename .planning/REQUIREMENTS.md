@@ -10,11 +10,12 @@
 ### Performance
 
 - [ ] **PERF-01**: Achievement N+1 查询优化（AchievementServiceImpl.getUserPoints() 使用 selectBatchIds() 批量查询替代循环 selectById）
-- [ ] **PERF-02**: Follow System 索引优化（user_follows 表添加 (following_id, created_at) 和 (follower_id, created_at) 复合索引；修复 toUserSummary() 的 N+1 问题）
+- [x] **PERF-02**: Follow System 索引优化（user_follows 表添加 (following_id, created_at) 和 (follower_id, created_at) 复合索引；修复 toUserSummary() 的 N+1 问题）
 
 ### Quality
 
-- [ ] **MISS-01**: 测试覆盖率强制执行（JaCoCo pom.xml 配置 jacoco:check 绑定到 verify phase）
+- [x] **MISS-01
+**: 测试覆盖率强制执行（JaCoCo pom.xml 配置 jacoco:check 绑定到 verify phase）
 
 ## v2 Requirements
 
@@ -42,7 +43,7 @@ Which phases cover which requirements.
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | PERF-01 | Phase 38 | Pending |
-| PERF-02 | Phase 39 | Pending |
+| PERF-02 | Phase 39 | Complete |
 | MISS-01 | Phase 40 | Pending |
 
 **Coverage:**

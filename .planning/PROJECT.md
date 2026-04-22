@@ -4,11 +4,6 @@
 
 UltiCode is an online programming platform (similar to LeetCode) built with Spring Boot + Vue 3, featuring problem solving, contests, forum discussions, and code execution.
 
-## Current State
-
-**Last shipped:** v1.8 Technical Debt III (2026-04-22)
-**Total phases completed:** 37 (across v1.0–v1.8)
-
 ## Core Value
 
 平台安全性、功能完整性和交付自动化
@@ -20,12 +15,23 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 - **Frontend Management**: Vue 3 + Vite + Tailwind CSS (admin)
 - **Database**: MySQL with Flyway migrations
 
-## v1.8 Accomplishments
+## Current State
 
-- **Swagger UI (Phase 34)**: 启用 SwaggerConfig.java，springdoc 降级到 2.6.0 修复与 Spring Boot 3.2.5 兼容性
-- **Flyway URL (Phase 35)**: Flyway 11.3.4 → 10.17.0 修复 CI 下载 404
-- **Achievement Async (Phase 36)**: Achievement 检查通过 @Async + @TransactionalEventListener(AFTER_COMMIT) 异步化
-- **Forum Stats (Phase 37)**: AdminForumServiceImpl 硬编码零值替换为真实 DB count 查询
+**Last shipped:** v1.8 Technical Debt III (2026-04-22)
+**Total phases completed:** 37 (across v1.0–v1.8)
+
+## Current Milestone: v1.9 Performance & Quality
+
+**Goal:** 修复性能问题（Achievement N+1, Follow索引优化）+ 强制测试覆盖率验证
+
+**Target features:**
+- **PERF-01**: Achievement N+1 查询优化（JOIN FETCH）
+- **PERF-02**: Follow System 索引优化（composite index on user_follows）
+- **MISS-01**: 测试覆盖率强制执行（JaCoCo thresholds 已配置但需验证）
+
+**Deferred to v2.0:**
+- **DEPS-03**: springdoc 3.x 升级（等待官方 Spring Boot 3.2.x 兼容版本）
+- **MISS-02**: Rate Limiting 端到端测试
 
 ## Milestone History
 
@@ -41,22 +47,42 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 | v1.7 Notifications | 2026-04-21 | WebSocket push, follow/contest/submission notification triggers |
 | v1.8 Technical Debt III | 2026-04-22 | Swagger, Flyway URL, Achievement async, Forum stats |
 
+## v1.8 Accomplishments
+
+- **Swagger UI (Phase 34)**: 启用 SwaggerConfig.java，springdoc 降级到 2.6.0 修复与 Spring Boot 3.2.5 兼容性
+- **Flyway URL (Phase 35)**: Flyway 11.3.4 → 10.17.0 修复 CI 下载 404
+- **Achievement Async (Phase 36)**: Achievement 检查通过 @Async + @TransactionalEventListener(AFTER_COMMIT) 异步化
+- **Forum Stats (Phase 37)**: AdminForumServiceImpl 硬编码零值替换为真实 DB count 查询
+
 ## Deferred Items
 
 Items acknowledged and carried forward from v1.8:
 
 | Category | Item | Status |
 |----------|------|--------|
-| Dependencies | DEPS-03: springdoc 3.x 升级 | Pending |
-| Performance | PERF-01: Achievement N+1 查询优化 | Pending |
-| Performance | PERF-02: Follow System 索引优化 | Pending |
-| Missing | MISS-01: 测试覆盖率强制执行 | Pending |
-| Missing | MISS-02: Rate Limiting 端到端测试 | Pending |
+| Dependencies | DEPS-03: springdoc 3.x 升级 | Deferred to v2.0 |
+| Performance | PERF-01: Achievement N+1 查询优化 | In v1.9 |
+| Performance | PERF-02: Follow System 索引优化 | In v1.9 |
+| Missing | MISS-01: 测试覆盖率强制执行 | In v1.9 |
+| Missing | MISS-02: Rate Limiting 端到端测试 | Deferred to v2.0 |
 
-## Next Milestone
+## Evolution
 
-Next milestone not yet planned. Use `/gsd-new-milestone` to start.
+This document evolves at phase transitions and milestone boundaries.
+
+**After each phase transition** (via `/gsd-transition`):
+1. Requirements invalidated? → Move to Out of Scope with reason
+2. Requirements validated? → Move to Validated with phase reference
+3. New requirements emerged? → Add to Active
+4. Decisions to log? → Add to Key Decisions
+5. "What This Is" still accurate? → Update if drifted
+
+**After each milestone** (via `/gsd-complete-milestone`):
+1. Full review of all sections
+2. Core Value check — still the right priority?
+3. Audit Out of Scope — reasons still valid?
+4. Update Context with current state
 
 ---
 
-*Last updated: 2026-04-22 after v1.8 Technical Debt III milestone shipped*
+*Last updated: 2026-04-22 after v1.9 Performance & Quality milestone started*

@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v3.0
-milestone_name: 平台质量与用户体验
-status: planning
-last_updated: "2026-04-22"
+milestone: v1.0
+milestone_name: milestone
+status: completed
+last_updated: "2026-04-22T14:23:56.658Z"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 1
   completed_plans: 1
-  percent: 33
+  percent: 100
 ---
 
 # STATE.md
@@ -28,7 +28,7 @@ progress:
 | Phase | Name | Status |
 |-------|------|--------|
 | 45 | API Documentation | Completed |
-| 46 | Sandbox Hardening | Not started |
+| 46 | Sandbox Hardening | Context gathered |
 | 47 | Frontend i18n | Not started |
 
 ---
@@ -59,21 +59,29 @@ progress:
 - **Annotations added:** @ApiResponse to all non-void methods in auth, user, problem, submission, contest controllers
 - **Verification:** Swagger UI HTTP 302, OpenAPI 3.0.1, all 5 tags present
 
+## Phase 46 Summary
+
+- **Context gathered:** 2026-04-22
+- **Decisions:** Flag ordering fix (--read-only after --tmpfs), seccomp volume mount, per-language limits (Java 10s/256m, Python 5s/128m, C/C++ 5s/128m, Go 8s/256m, Rust 8s/256m, JS 3s/64m), tmpfs size=64m already correct, namespace isolation integration test required
+
 ---
 
 ## Accumulated Context
 
 ### Phase Dependencies
+
 - Phase 45: No dependencies (standalone) ✓ COMPLETED
 - Phase 46: Depends on Phase 45 ✓ READY
 - Phase 47: Depends on Phase 46
 
 ### Requirements Coverage
+
 - API-01, API-02, API-03 → Phase 45 ✓ COMPLETED
 - SAND-01, SAND-02, SAND-03, SAND-04, SAND-05 → Phase 46
 - I18N-01, I18N-02, I18N-03, I18N-04, I18N-05 → Phase 47
 
 ### Notes
+
 - springdoc 2.8.17 requires Spring Boot 3.5.x — incompatible with current SB 3.2.5
 - bubblewrap sandbox fixes require careful flag ordering (Phase 46)
 - vue-i18n upgrade aligns Management with Console (Phase 47)

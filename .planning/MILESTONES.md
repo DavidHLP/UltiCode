@@ -1,5 +1,20 @@
 # Milestones
 
+## v1.8 Technical Debt III (Shipped: 2026-04-22)
+
+**Phases:** 4 (34-37)
+**Plans:** 4
+**Requirements:** 4/4 complete
+
+**Key accomplishments:**
+
+1. Phase 34 (Swagger UI): 启用 SwaggerConfig.java，springdoc 降级到 2.6.0 修复与 Spring Boot 3.2.5 兼容性
+2. Phase 35 (Flyway URL): Flyway 11.3.4 → 10.17.0 修复 CI 下载 404
+3. Phase 36 (Achievement Async): Achievement 检查通过 @Async + @TransactionalEventListener(AFTER_COMMIT) 异步化
+4. Phase 37 (Forum Stats): AdminForumServiceImpl 硬编码零值替换为 ForumCommentMapper/VoteMapper count() 查询
+
+---
+
 ## v1.7 Notifications (Shipped: 2026-04-21)
 
 **Phases completed:** 4 phases, 5 plans, 5 tasks
@@ -44,6 +59,8 @@
 8. ContestServiceImpl (633 lines) → facade + ContestSchedulerService
 
 **Known deferred items:** 0
+
+---
 
 ## v1.4 Seed Data Expansion (Shipped: 2026-04-19)
 
@@ -126,8 +143,6 @@
 - 5 Testcontainers integration tests for SubmissionServiceImpl verifying persistence to real MySQL and queue failure fallback, with manual MyBatis-Plus SqlSessionFactory setup avoiding full Spring context
 - 8 oversized console Vue components split into 34 co-located sub-components and 8 composables with all parents under 500 lines
 - Split 5 oversized management components (1224, 881, 768, 627, 602 lines) and 1 Pinia store (600 lines) into 25 co-located sub-components, 6 composables, and 5 domain store modules, all under 500 lines
-
----
 
 ---
 

@@ -1,75 +1,87 @@
-import { computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { getActiveLocale, setLocale, type SupportedLocale } from '../i18n'
-import { LOCALE_CONFIGS } from '../i18n/types'
-import { getSupportedLocales } from '../i18n/utils'
+import { computed } from "vue";
+import { useI18n } from "vue-i18n";
+import {
+  SUPPORTED_LOCALES,
+  LOCALE_CONFIGS,
+  type SupportedLocale,
+} from "@/i18n";
+import { setStoredLocale } from "@/i18n/utils/storage";
+import { apiPatch } from "@/utils/request";
 
 /**
- * Composable for locale management
- * Provides type-safe access to i18n functionality
+ * Composable for managing application locale
+ * Matches Console's useLocale API surface exactly
  */
 export function useLocale() {
-  const { t } = useI18n()
+  const { locale, t, te, tm, rt, n, d } = useI18n();
 
-  // Current locale
-  const currentLocale = computed<SupportedLocale>(() => {
-    const active = getActiveLocale()
-    return active as SupportedLocale
-  })
+  const currentLocale = computed<SupportedLocale>(
+    () => locale.value as SupportedLocale,
+  );
 
-  // Current locale configuration
-  const localeConfig = computed(() => {
-    const locale = currentLocale.value
-    return LOCALE_CONFIGS[locale]
-  })
+  const currentLocaleConfig = computed(
+    () => LOCALE_CONFIGS[currentLocale.value],
+  );
 
-  // All supported locales
-  const supportedLocales = computed(() => getSupportedLocales())
+  const availableLocales = computed(() =>
+    SUPPORTED_LOCALES.map((code) => LOCALE_CONFIGS[code]),
+  );
 
-  // Check if current locale is RTL
-  const isRtl = computed(() => localeConfig.value.dir === 'rtl')
+  /**
+   * Set the application locale
+   * Persists to localStorage and syncs to backend
+   */
+  function setLocale(newLocale: SupportedLocale) {
+    if (!SUPPORTED_LOCALES.includes(newLocale)) {
+      return;
+    }
 
-  // Switch locale
-  const switchLocale = (newLocale: SupportedLocale) => {
-    setLocale(newLocale)
+    locale.value = newLocale;
+    setStoredLocale(newLocale);
+    document.documentElement.lang = newLocale;
+
+    // Sync to backend (fire and forget, errors are silently ignored)
+    apiPatch("/users/me", { locale: newLocale }).catch(() => {
+      // Silently ignore - locale already changed locally
+    });
   }
 
-  // Check if a specific locale is active
-  const isLocale = (locale: SupportedLocale): boolean => {
-    return currentLocale.value === locale
+  /**
+   * Toggle between available locales
+   */
+  function toggleLocale() {
+    const currentIndex = SUPPORTED_LOCALES.indexOf(currentLocale.value);
+    const nextIndex = (currentIndex + 1) % SUPPORTED_LOCALES.length;
+    const nextLocale = SUPPORTED_LOCALES[nextIndex];
+    if (nextLocale) {
+      setLocale(nextLocale);
+    }
+  }
+
+  /**
+   * Check if a specific locale is the current one
+   */
+  function isCurrentLocale(localeCode: SupportedLocale) {
+    return currentLocale.value === localeCode;
   }
 
   return {
-    // Translation function
+    // Current state
+    locale: currentLocale,
+    localeConfig: currentLocaleConfig,
+    availableLocales,
+
+    // Actions
+    setLocale,
+    toggleLocale,
+    isCurrentLocale,
+
+    // i18n utilities
     t,
-
-    // Locale state
-    currentLocale,
-    localeConfig,
-    supportedLocales,
-    isRtl,
-
-    // Locale actions
-    switchLocale,
-    isLocale,
-  }
-}
-
-/**
- * Type-safe translation keys helper
- * Use this to get autocomplete for translation keys
- */
-export type TranslationKey = string
-
-/**
- * Create a typed translation function for a specific namespace
- */
-export function useNamespacedTranslations(namespace: string) {
-  const { t } = useI18n()
-
-  const tt = (key: string, params?: Record<string, unknown>) => {
-    return t(`${namespace}.${key}`, params ?? {})
-  }
-
-  return { t: tt }
+    te, // Translation exists
+    tm, // Translation message
+    rt, // Resolve translation
+    n, // Number formatting
+    d, // Date formatting
+  };
 }

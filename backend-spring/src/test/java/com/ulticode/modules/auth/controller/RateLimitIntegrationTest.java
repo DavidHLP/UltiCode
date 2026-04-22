@@ -52,7 +52,7 @@ class RateLimitIntegrationTest {
     @DynamicPropertySource
     static void overrideRedisProperties(DynamicPropertyRegistry registry) {
         GenericContainer container = REDIS_CONTAINER;
-        registry.add("spring.data.redis.host", () -> container.getTestHostIpAddress());
+        registry.add("spring.data.redis.host", () -> "localhost");
         registry.add("spring.data.redis.port", () -> container.getFirstMappedPort());
     }
 

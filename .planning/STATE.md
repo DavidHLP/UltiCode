@@ -2,14 +2,14 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Technical Debt III
-current_phase: 34 (Swagger UI 修复)
-status: planning
-last_updated: "2026-04-22T01:59:09.472Z"
+current_phase: 35 (Flyway URL 修复)
+status: complete
+last_updated: "2026-04-22T02:10:00.000Z"
 progress:
   total_phases: 4
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
+  completed_phases: 3
+  total_plans: 2
+  completed_plans: 2
   percent: 100
 ---
 
@@ -17,8 +17,8 @@ progress:
 
 **Project:** UltiCode - Online Programming Platform
 **Current Milestone:** v1.8 Technical Debt III (IN PROGRESS)
-**Current Phase:** 34 (Swagger UI 修复)
-**Status:** Ready to plan
+**Current Phase:** 35 (Flyway URL 修复)
+**Status:** Complete
 **Started:** 2026-04-21
 
 ---
@@ -27,7 +27,7 @@ progress:
 
 **Core Value:** 平台安全性、功能完整性和交付自动化
 
-**Current Focus:** Phase 34 - Swagger UI 修复
+**Current Focus:** Phase 35 - Flyway URL 修复 (Complete)
 
 ---
 
@@ -35,9 +35,10 @@ progress:
 
 Milestone v1.8 Technical Debt III: **IN PROGRESS**
 
-- Phase 34: Swagger UI 修复 (Ready to plan)
-- Phase 35: Flyway URL 修复
+- Phase 34: Swagger UI 修复 (Complete)
+- Phase 35: Flyway URL 修复 (Complete)
 - Phase 36: Achievement 异步化
+- Phase 37: Forum Stats 真实数据
 - Phase 37: Forum Stats 真实数据
 
 Progress: [░░░░░░░░░░] 0%
@@ -117,4 +118,4 @@ Items acknowledged and carried forward:
 
 *Last updated: 2026-04-21 after v1.8 roadmap created*
 
-**Planned Phase:** 34 (Swagger UI 修复) — 1 plans — 2026-04-21T15:05:10.904Z
+**Planned Phase:** 35 (flyway-url) — 1 plans — 2026-04-22T02:00:42.102Z

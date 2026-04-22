@@ -39,6 +39,11 @@ public class SandboxServiceImpl implements SandboxService {
             String inputsJson = helper.buildInputsJson(testCase);
             List<String> command = buildDockerCommand(language, code);
 
+            DockerSandboxConfig.LanguageLimit langLimit = sandboxConfig.languages() != null
+                    ? sandboxConfig.languages().get(language)
+                    : null;
+            int effectiveTimeout = langLimit != null ? langLimit.timeoutSeconds() : sandboxConfig.timeout();
+
             long startTime = System.nanoTime();
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);
@@ -48,13 +53,13 @@ public class SandboxServiceImpl implements SandboxService {
             process.getOutputStream().flush();
             process.getOutputStream().close();
 
-            boolean finished = process.waitFor(sandboxConfig.timeout(), java.util.concurrent.TimeUnit.SECONDS);
+            boolean finished = process.waitFor(effectiveTimeout, java.util.concurrent.TimeUnit.SECONDS);
             long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
 
             if (!finished) {
                 process.destroyForcibly();
                 return helper.buildCaseResult(testCase, runId, userId, "Time Limit Exceeded",
-                        elapsedMs, null, "Execution timed out after " + sandboxConfig.timeout() + "s", 0.0);
+                        elapsedMs, null, "Execution timed out after " + effectiveTimeout + "s", 0.0);
             }
 
             String stdout = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
@@ -97,6 +102,11 @@ public class SandboxServiceImpl implements SandboxService {
             String wrapperScript = helper.buildWrapperScript(language, code, testCases);
             List<String> command = buildBatchDockerCommand(language, wrapperScript);
 
+            DockerSandboxConfig.LanguageLimit langLimit = sandboxConfig.languages() != null
+                    ? sandboxConfig.languages().get(language)
+                    : null;
+            int effectiveTimeout = langLimit != null ? langLimit.timeoutSeconds() : sandboxConfig.timeout();
+
             long startTime = System.nanoTime();
             ProcessBuilder pb = new ProcessBuilder(command);
             pb.redirectErrorStream(true);
@@ -106,7 +116,7 @@ public class SandboxServiceImpl implements SandboxService {
             process.getOutputStream().flush();
             process.getOutputStream().close();
 
-            boolean finished = process.waitFor(sandboxConfig.timeout(), java.util.concurrent.TimeUnit.SECONDS);
+            boolean finished = process.waitFor(effectiveTimeout, java.util.concurrent.TimeUnit.SECONDS);
             long elapsedMs = (System.nanoTime() - startTime) / 1_000_000;
 
             if (!finished) {
@@ -114,7 +124,7 @@ public class SandboxServiceImpl implements SandboxService {
                 return testCases.stream()
                         .map(tc -> helper.buildCaseResult(tc, runId, userId, "Time Limit Exceeded",
                                 elapsedMs / testCases.size(), null,
-                                "Batch execution timed out after " + sandboxConfig.timeout() + "s", 0.0))
+                                "Batch execution timed out after " + effectiveTimeout + "s", 0.0))
                         .collect(Collectors.toList());
             }
 
@@ -140,19 +150,26 @@ public class SandboxServiceImpl implements SandboxService {
 
     @Override
     public List<String> buildDockerCommand(String language, String code) {
+        DockerSandboxConfig.LanguageLimit langLimit = sandboxConfig.languages() != null
+                ? sandboxConfig.languages().get(language)
+                : null;
+        String effectiveMemory = langLimit != null ? langLimit.memory() : sandboxConfig.memory();
+        int effectiveTimeout = langLimit != null ? langLimit.timeoutSeconds() : sandboxConfig.timeout();
+
         List<String> cmd = new ArrayList<>(List.of(
                 "docker", "run", "--rm", "-i",
                 "--network", "none",
                 "--cap-drop", "ALL",
-                "--memory", sandboxConfig.memory(),
+                "--memory", effectiveMemory,
                 "--cpus", sandboxConfig.cpus(),
                 "--pids-limit", String.valueOf(sandboxConfig.pidsLimit()),
                 "--ulimit", "nofile=128:128",
-                "--read-only",
                 "--tmpfs", "/tmp:rw,exec,size=64m",
+                "--read-only",
                 "--user", "1000:1000",
                 "--security-opt", "no-new-privileges:true",
-                "--security-opt", "seccomp=" + sandboxConfig.seccompProfilePath(),
+                "--security-opt", "seccomp=/seccomp-profile/seccomp-profile.json",
+                "--volume", "$(pwd)/docker/sandbox:/seccomp-profile:ro",
                 sandboxConfig.image()
         ));
 
@@ -176,19 +193,25 @@ public class SandboxServiceImpl implements SandboxService {
 
     @Override
     public List<String> buildBatchDockerCommand(String language, String wrapperScript) {
+        DockerSandboxConfig.LanguageLimit langLimit = sandboxConfig.languages() != null
+                ? sandboxConfig.languages().get(language)
+                : null;
+        String effectiveMemory = langLimit != null ? langLimit.memory() : sandboxConfig.memory();
+
         return new ArrayList<>(List.of(
                 "docker", "run", "--rm", "-i",
                 "--network", "none",
                 "--cap-drop", "ALL",
-                "--memory", sandboxConfig.memory(),
+                "--memory", effectiveMemory,
                 "--cpus", sandboxConfig.cpus(),
                 "--pids-limit", String.valueOf(sandboxConfig.pidsLimit()),
                 "--ulimit", "nofile=128:128",
-                "--read-only",
                 "--tmpfs", "/tmp:rw,exec,size=64m",
+                "--read-only",
                 "--user", "1000:1000",
                 "--security-opt", "no-new-privileges:true",
-                "--security-opt", "seccomp=" + sandboxConfig.seccompProfilePath(),
+                "--security-opt", "seccomp=/seccomp-profile/seccomp-profile.json",
+                "--volume", "$(pwd)/docker/sandbox:/seccomp-profile:ro",
                 sandboxConfig.image(),
                 "sh", "-c", wrapperScript
         ));

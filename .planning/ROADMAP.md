@@ -13,120 +13,71 @@
 - [x] **v1.8 Technical Debt III** — Phases 34-37 (shipped 2026-04-22)
 - [x] **v1.9 Performance & Quality** — Phases 38-40 (shipped 2026-04-22)
 - [x] **v2.0 Dependencies & Quality** — Phases 41-44 (shipped 2026-04-22)
+- [ ] **v3.0 Platform Quality & UX** — Phases 45-47
 
 ## Phases
 
-- [x] **Phase 38: Achievement N+1 Query Optimization** — Fix getUserPoints() and checkAndAwardAchievements() N+1 with batch fetch
-- [x] **Phase 39: Follow System Optimization** — Add composite indexes and fix toUserSummary() N+1
-- [x] **Phase 40: JaCoCo Coverage Enforcement** — Bind jacoco:check to verify phase (2/2 plans complete)
-- [x] **Phase 41: Dependency Upgrades** — springdoc 2.6.0 retained, testcontainers-redis added (1/1 plan complete)
-- [x] **Phase 42: Rate Limiting E2E** — RateLimitIntegrationTest.java created with Testcontainers Redis (1/1 plan complete)
-- [x] **Phase 43: JaCoCo Threshold Raise** — LINE 3%→5%, BRANCH 1%→2% (1/1 plan complete)
-- [x] **Phase 44: Testcontainers Upgrade** — BOM 1.11.3→1.21.4 (1/1 plan complete)
+- [ ] **Phase 45: API Documentation** — SpringDoc 2.8.17 upgrade + OpenAPI annotations + Swagger UI
+- [ ] **Phase 46: Sandbox Hardening** — bubblewrap bug fixes + per-language limits + namespace isolation tests
+- [ ] **Phase 47: Frontend i18n** — vue-i18n upgrade + useLocale composable + language switcher
 
-**Plans:**
-- 40-01: Bind jacoco:check to verify phase — COMPLETED (`b9ef81c2f`)
-- 40-02: Lower JaCoCo thresholds to realistic values — COMPLETED (`f5e37dcb7`, LINE 3%, BRANCH 1%)
+---
 
 ## Phase Details
 
-### Phase 38: Achievement N+1 Query Optimization
+### Phase 45: API Documentation
 
-**Goal**: Achievement queries execute in constant queries regardless of achievement count
+**Goal**: SpringDoc upgraded to 2.8.17 with annotated endpoints and accessible Swagger UI
 
-**Depends on**: Nothing (standalone backend fix)
+**Depends on**: Nothing (standalone backend work)
 
-**Requirements**: PERF-01
+**Requirements**: API-01, API-02, API-03
 
 **Success Criteria** (what must be TRUE):
-1. AchievementServiceImpl.getUserPoints() uses batch fetch (selectBatchIds) instead of loop selectById
-2. checkAndAwardAchievements() does not execute selectById in loop
-3. Achievement queries scale O(1) not O(n) with user achievement count
-4. Existing achievement-related tests continue to pass after refactor
+1. pom.xml shows springdoc.version set to 2.8.17
+2. Critical endpoints (auth, user, problem, submission, contest) have @Operation and @ApiResponse annotations
+3. Swagger UI loads and displays API docs at /swagger-ui.html
+4. OpenAPI 3.0 spec is valid and includes all annotated endpoints
 
-**Plans**: 1 plan
+**Plans**: TBD
 
 ---
 
-### Phase 39: Follow System Optimization
+### Phase 46: Sandbox Hardening
 
-**Goal**: Follow queries execute efficiently with proper indexes and no N+1 in user summaries
+**Goal**: Code execution sandbox is hardened with correct bubblewrap invocation and resource limits
 
-**Depends on**: Phase 38
+**Depends on**: Phase 45
 
-**Requirements**: PERF-02
+**Requirements**: SAND-01, SAND-02, SAND-03, SAND-04, SAND-05
 
 **Success Criteria** (what must be TRUE):
-1. Flyway migration V101 creates (following_id, created_at) and (follower_id, created_at) composite indexes on user_follows
-2. Follower/following list queries use the new indexes (EXPLAIN shows index usage)
-3. toUserSummary() does not execute count queries per user (batch or JOIN to eliminate N+1)
-4. Follow system functionality (follow/unfollow/list) continues to work correctly
+1. bubblewrap command uses --read-only after --tmpfs flag (not before)
+2. seccomp profile path is correctly volume-mounted into container
+3. Each language (java, python, cpp, go, rust) has distinct timeout and memory limits
+4. /tmp is mounted as tmpfs with size=64m enforcement
+5. Integration test validates namespace isolation (user/pid/network namespaces separate)
 
-**Plans**: 1 plan
+**Plans**: TBD
 
 ---
 
-### Phase 40: JaCoCo Coverage Enforcement
+### Phase 47: Frontend i18n
 
-**Goal**: Build fails when coverage thresholds are not met
+**Goal**: Consistent internationalization across Console and Management with lazy-loaded translations and language switcher
 
-**Depends on**: Phase 39
+**Depends on**: Phase 46
 
-**Requirements**: MISS-01
-
-**Success Criteria** (what must be TRUE):
-1. `mvn verify` triggers `jacoco:check` execution
-2. Build fails when coverage is below thresholds
-3. Build succeeds when coverage thresholds are met
-4. Coverage report generates correctly at target/site/jacoco/index.html
-5. Thresholds set below current coverage (LINE 3%, BRANCH 1%) to unblock verify
-
-**Plans**: 1 plan
-
-Plans:
-- [ ] 41-01-PLAN.md — springdoc 2.8.17 upgrade + Testcontainers Redis
-
----
-
-### Phase 42: Rate Limiting E2E Tests
-
-**Goal**: Verify rate limiting via E2E tests with Testcontainers Redis
-
-**Depends on**: Phase 41
-
-**Requirements**: TEST-01
+**Requirements**: I18N-01, I18N-02, I18N-03, I18N-04, I18N-05
 
 **Success Criteria** (what must be TRUE):
-1. E2E test class runs with Testcontainers Redis container
-2. Rate-limited endpoint returns 429 after exceeding limit
-3. Each test flushes Redis keys to avoid false 429s
-4. Auth endpoint rate limit tier verified (auth/register = 5/min)
+1. Management frontend uses vue-i18n 11.3.2 (matching Console)
+2. useLocale composable persists selected locale to localStorage and syncs with backend
+3. Non-active locale translation files load on-demand (dynamic import)
+4. Console header displays language switcher toggling between zh-CN and en-US
+5. Missing translation keys produce console warnings in development (missingWarn enabled)
 
-**Plans**: 1 plan
-
-Plans:
-- [ ] 41-01-PLAN.md — springdoc 2.8.17 upgrade + Testcontainers Redis
-
----
-
-### Phase 43: JaCoCo Threshold Raise
-
-**Goal**: Raise coverage thresholds incrementally to improve quality signal
-
-**Depends on**: Phase 42
-
-**Requirements**: JAC-01
-
-**Success Criteria** (what must be TRUE):
-1. pom.xml JaCoCo LINE threshold updated from 3% to 5%
-2. pom.xml JaCoCo BRANCH threshold updated from 1% to 3%
-3. `mvn verify` fails if coverage falls below thresholds
-4. CI build passes with new thresholds (coverage from Phase 42 tests)
-
-**Plans**: 1 plan
-
-Plans:
-- [ ] 41-01-PLAN.md — springdoc 2.8.17 upgrade + Testcontainers Redis
+**Plans**: TBD
 
 ---
 
@@ -143,13 +94,11 @@ Plans:
 | 26-29 | v1.6 | 5 | Complete | 2026-04-21 |
 | 30-33 | v1.7 | 4 | Complete | 2026-04-21 |
 | 34-37 | v1.8 | 4 | Complete | 2026-04-22 |
-| 38 | v1.9 | 1/1 | Complete    | 2026-04-22 |
-| 39 | v1.9 | 1/1 | Complete    | 2026-04-22 |
-| 40 | v1.9 | 2/2 | Complete    | 2026-04-22 |
-| 41 | v2.0 | 1/1 | Complete | 2026-04-22 |
-| 42 | v2.0 | 1/1 | Complete    | 2026-04-22 |
-| 43 | v2.0 | 1/  | Complete    | 2026-04-22 |
-| 44 | v2.0 | 1/1 | Complete    | 2026-04-22 |
+| 38-40 | v1.9 | 4 | Complete | 2026-04-22 |
+| 41-44 | v2.0 | 4 | Complete | 2026-04-22 |
+| 45 | v3.0 | 0 | Not started | - |
+| 46 | v3.0 | 0 | Not started | - |
+| 47 | v3.0 | 0 | Not started | - |
 
 ---
 
@@ -269,8 +218,8 @@ Plans:
 
 ## Next Milestone
 
-**v3.0 — TBD** (run `/gsd-new-milestone` to define)
+_Archived milestones: `.planning/milestones/`_
 
 ---
 
-_Archived milestones: `.planning/milestones/`_
+_Generated: 2026-04-22_

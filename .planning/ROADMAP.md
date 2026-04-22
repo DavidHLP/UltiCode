@@ -15,8 +15,8 @@
 
 ## Phases
 
-- [ ] **Phase 38: Achievement N+1 Query Optimization** — Fix getUserPoints() and checkAndAwardAchievements() N+1 with batch fetch
-- [ ] **Phase 39: Follow System Optimization** — Add composite indexes and fix toUserSummary() N+1
+- [x] **Phase 38: Achievement N+1 Query Optimization** — Fix getUserPoints() and checkAndAwardAchievements() N+1 with batch fetch
+- [x] **Phase 39: Follow System Optimization** — Add composite indexes and fix toUserSummary() N+1
 - [ ] **Phase 40: JaCoCo Coverage Enforcement** — Bind jacoco:check to verify phase
 
 ## Phase Details
@@ -35,7 +35,7 @@
 3. Achievement queries scale O(1) not O(n) with user achievement count
 4. Existing achievement-related tests continue to pass after refactor
 
-**Plans**: TBD
+**Plans**: 1 plan
 
 ---
 
@@ -88,8 +88,8 @@
 | 26-29 | v1.6 | 5 | Complete | 2026-04-21 |
 | 30-33 | v1.7 | 4 | Complete | 2026-04-21 |
 | 34-37 | v1.8 | 4 | Complete | 2026-04-22 |
-| 38 | v1.9 | 0 | Not started | - |
-| 39 | v1.9 | 1 | In progress | - |
+| 38 | v1.9 | 1/1 | Complete    | 2026-04-22 |
+| 39 | v1.9 | 1/1 | Complete    | 2026-04-22 |
 | 40 | v1.9 | 0 | Not started | - |
 
 ---

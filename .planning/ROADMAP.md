@@ -53,7 +53,7 @@
 3. toUserSummary() does not execute count queries per user (batch or JOIN to eliminate N+1)
 4. Follow system functionality (follow/unfollow/list) continues to work correctly
 
-**Plans**: TBD
+**Plans**: 1 plan
 
 ---
 
@@ -89,7 +89,7 @@
 | 30-33 | v1.7 | 4 | Complete | 2026-04-21 |
 | 34-37 | v1.8 | 4 | Complete | 2026-04-22 |
 | 38 | v1.9 | 0 | Not started | - |
-| 39 | v1.9 | 0 | Not started | - |
+| 39 | v1.9 | 1 | In progress | - |
 | 40 | v1.9 | 0 | Not started | - |
 
 ---

@@ -12,7 +12,7 @@
 - [x] **v1.7 Notifications** — Phases 30-33 (shipped 2026-04-21)
 - [x] **v1.8 Technical Debt III** — Phases 34-37 (shipped 2026-04-22)
 - [x] **v1.9 Performance & Quality** — Phases 38-40 (shipped 2026-04-22)
-- [ ] **v2.0 Dependencies & Quality** — Phases 41-43 (in progress)
+- [ ] **v2.0 Dependencies & Quality** — Phases 41-44 (in progress)
 
 ## Phases
 
@@ -80,24 +80,10 @@
 4. Coverage report generates correctly at target/site/jacoco/index.html
 5. Thresholds set below current coverage (LINE 3%, BRANCH 1%) to unblock verify
 
-**Plans**: TBD
+**Plans**: 1 plan
 
----
-
-### Phase 41: Dependency Upgrades
-
-**Goal**: Update springdoc to 2.8.17 and add Testcontainers Redis dependency
-
-**Depends on**: Nothing
-
-**Requirements**: DEPS-01, DEPS-02
-
-**Success Criteria** (what must be TRUE):
-1. swagger-ui loads at /swagger-ui.html without errors
-2. /api-docs returns valid OpenAPI JSON with no breaking changes
-3. Testcontainers Redis dependency present in pom.xml with no compile errors
-
-**Plans**: TBD
+Plans:
+- [ ] 41-01-PLAN.md — springdoc 2.8.17 upgrade + Testcontainers Redis
 
 ---
 
@@ -115,7 +101,10 @@
 3. Each test flushes Redis keys to avoid false 429s
 4. Auth endpoint rate limit tier verified (auth/register = 5/min)
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 41-01-PLAN.md — springdoc 2.8.17 upgrade + Testcontainers Redis
 
 ---
 
@@ -133,7 +122,10 @@
 3. `mvn verify` fails if coverage falls below thresholds
 4. CI build passes with new thresholds (coverage from Phase 42 tests)
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 41-01-PLAN.md — springdoc 2.8.17 upgrade + Testcontainers Redis
 
 ---
 
@@ -153,9 +145,10 @@
 | 38 | v1.9 | 1/1 | Complete    | 2026-04-22 |
 | 39 | v1.9 | 1/1 | Complete    | 2026-04-22 |
 | 40 | v1.9 | 2/2 | Complete    | 2026-04-22 |
-| 41 | v2.0 | 0/  | In Progress | - |
-| 42 | v2.0 | 0/  | Pending     | - |
-| 43 | v2.0 | 0/  | Pending     | - |
+| 41 | v2.0 | 1/  | In Progress | - |
+| 42 | v2.0 | 1/1 | Complete    | 2026-04-22 |
+| 43 | v2.0 | 1/  | Complete    | 2026-04-22 |
+| 44 | v2.0 | 0/  | Pending     | - |
 
 ---
 
@@ -265,13 +258,23 @@
 
 ## Next Milestone
 
-**v2.0 Dependencies & Quality** — Phases 41-43
+**v2.0 Dependencies & Quality** — Phases 41-44
 
 | Phase | Name | Requirements |
 |--------|------|--------------|
 | 41 | Dependency Upgrades | DEPS-01, DEPS-02 |
 | 42 | Rate Limiting E2E | TEST-01 |
 | 43 | JaCoCo Threshold Raise | JAC-01 |
+| 44 | Testcontainers Upgrade | TBD |
+
+### Phase 44: Testcontainers Upgrade
+
+**Goal**: Upgrade testcontainers-bom and testcontainers from 1.11.3 to latest stable 11.x. Fix any API breaking changes.
+**Depends on**: Phase 42
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 44 to break down)
 
 ---
 

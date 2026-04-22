@@ -143,7 +143,7 @@
   1. Achievement 检查在 @Async 线程执行
   2. @EventListener 在 AFTER_COMMIT 阶段触发
   3. 主线程不等待 Achievement 检查完成
-**Plans**: TBD
+**Plans**: 1/1
 
 ### Phase 37: Forum Stats 真实数据
 **Goal**: Admin Forum Stats 返回真实统计而非硬编码零值

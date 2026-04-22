@@ -123,7 +123,7 @@
   1. Swagger UI 页面可正常加载（HTTP 200）
   2. API 文档显示所有 REST endpoints
   3. Try-out 功能可正常发送请求
-**Plans**: TBD
+**Plans**: 1/1 ✓
 
 ### Phase 35: Flyway URL 修复
 **Goal**: CI workflow 中 Flyway 下载不再返回 404

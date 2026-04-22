@@ -16,6 +16,9 @@ import com.ulticode.modules.submission.service.SubmissionService;
 import java.util.List;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,6 +43,10 @@ public class SubmissionController {
      * @return the created submission
      */
     @Operation(summary = "Submit code", description = "Submit code for a problem")
+    @ApiResponse(responseCode = "200", description = "Submission created", content = @Content(schema = @Schema(implementation = SubmissionVO.class)))
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Problem not found")
     @RateLimit(key = "submission:create", limit = 20, period = 60)
     @PostMapping
     public Result<SubmissionVO> submit(@Valid @RequestBody CreateSubmissionDTO createDTO) {
@@ -60,6 +67,9 @@ public class SubmissionController {
      * @return the submission details
      */
     @Operation(summary = "Get submission by ID", description = "Retrieve a specific submission")
+    @ApiResponse(responseCode = "200", description = "Submission retrieved", content = @Content(schema = @Schema(implementation = SubmissionVO.class)))
+    @ApiResponse(responseCode = "403", description = "Not authorized to view this submission")
+    @ApiResponse(responseCode = "404", description = "Submission not found")
     @GetMapping("/{id}")
     public Result<SubmissionVO> getSubmission(
             @Parameter(description = "Submission ID")
@@ -83,6 +93,8 @@ public class SubmissionController {
      * @return paginated list of submissions
      */
     @Operation(summary = "List user submissions", description = "Get paginated submissions for the authenticated user")
+    @ApiResponse(responseCode = "200", description = "Submissions retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping
     public Result<PageResult<SubmissionVO>> listUserSubmissions(
             @Parameter(description = "Page number (1-based)")
@@ -114,6 +126,8 @@ public class SubmissionController {
      * @return list of date strings (YYYY-MM-DD) with submissions
      */
     @Operation(summary = "Get submission calendar", description = "Get dates with submissions for the authenticated user")
+    @ApiResponse(responseCode = "200", description = "Calendar retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/calendar")
     public Result<List<String>> getSubmissionCalendar(
             @Parameter(description = "Year to filter by")
@@ -134,6 +148,9 @@ public class SubmissionController {
      * @return the best submission, or null if not found
      */
     @Operation(summary = "Get best submission", description = "Get the best accepted submission for a problem")
+    @ApiResponse(responseCode = "200", description = "Best submission retrieved", content = @Content(schema = @Schema(implementation = SubmissionVO.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "No accepted submission found")
     @GetMapping("/best")
     public Result<SubmissionVO> getBestSubmission(
             @Parameter(description = "Problem ID")
@@ -155,6 +172,8 @@ public class SubmissionController {
      * @return learning progress data including weekly progress, difficulty breakdown, and streaks
      */
     @Operation(summary = "Get learning progress", description = "Get learning progress for the authenticated user")
+    @ApiResponse(responseCode = "200", description = "Learning progress retrieved", content = @Content(schema = @Schema(implementation = LearningProgressDTO.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/learning-progress")
     public Result<LearningProgressDTO> getLearningProgress() {
         String userId = SecurityUtil.getCurrentUserId();
@@ -172,6 +191,8 @@ public class SubmissionController {
      * @return submission history data including monthly stats and language breakdown
      */
     @Operation(summary = "Get submission history", description = "Get submission history for the authenticated user")
+    @ApiResponse(responseCode = "200", description = "Submission history retrieved", content = @Content(schema = @Schema(implementation = SubmissionHistoryDTO.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @GetMapping("/history")
     public Result<SubmissionHistoryDTO> getSubmissionHistory() {
         String userId = SecurityUtil.getCurrentUserId();
@@ -189,6 +210,7 @@ public class SubmissionController {
      * @return list of submission status metadata
      */
     @Operation(summary = "Get submission statuses", description = "Get available submission status options")
+    @ApiResponse(responseCode = "200", description = "Statuses retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
     @GetMapping("/statuses")
     public Result<List<SubmissionStatusMeta>> getSubmissionStatuses() {
         List<SubmissionStatusMeta> statuses = submissionService.getStatuses();

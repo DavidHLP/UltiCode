@@ -1,231 +1,217 @@
-# Technology Stack Additions: v1.6 User & Social
+# Technology Stack Additions: v1.9 Performance & Quality
 
-**Project:** UltiCode v1.6 User & Social
-**Researched:** 2026-04-21
-**Confidence:** HIGH
+**Project:** UltiCode
+**Researched:** 2026-04-22
+**Confidence:** HIGH (verified against existing codebase and official docs)
 
 ## Executive Summary
 
-The v1.6 User & Social features (user profiles, achievements, follow system) require **zero new backend dependencies**. The profile fields already exist on the User entity, the achievement module is already scaffolded, and the follow system uses MyBatis-Plus with a self-referential many-to-many table. Frontend needs only the existing Vue 3 + Tailwind CSS + shadcn-vue stack already in use.
+v1.9 requires only code changes, not new dependencies. MyBatis-Plus 3.5.16 already includes `selectBatchIds()` for batch fetching. JaCoCo 0.8.12 is already in pom.xml. The missing piece is the `jacoco:check` goal bound to the `verify` phase -- currently only `prepare-agent` and `report` are configured.
 
----
+## MyBatis-Plus N+1 Resolution
 
-## Existing Stack (No Changes Needed)
+### The Problem
 
-| Layer | Technology | Version | Notes |
-|-------|------------|---------|-------|
-| Backend Framework | Spring Boot | 3.2.5 | NOT 3.5 (PROJECT.md has stale version) |
-| ORM | MyBatis-Plus | 3.5.16 | Handles all relational operations |
-| Database | MySQL | 8.x | Flyway migrations in place |
-| Cache/Locks | Redis + Redisson | 4.3.1 | Rate limiting already working |
-| File Upload | Spring Boot multipart | Built-in | `spring-boot-starter-web` includes `MultipartFile` |
-| JSON | Jackson | Bundled with Spring Boot | `JacksonTypeHandler` already used in Achievement entity |
-| Events | Spring ApplicationEventPublisher | Built-in | Achievement module uses this pattern |
-| API Docs | SpringDoc OpenAPI | 2.6.0 | Already configured |
+In `AchievementServiceImpl.getUserPoints()` (line 318-329), each `UserAchievement` triggers a separate `achievementMapper.selectById()` call:
 
-**No version changes required to any existing dependencies.**
-
----
-
-## New Backend Dependencies: NONE
-
-### Why Zero New Dependencies
-
-| Feature | Implementation | Why No Library Needed |
-|---------|---------------|----------------------|
-| **Avatar upload** | `MultipartFile` + local storage | Spring Boot web starter handles multipart natively. Store avatars as files, save URL to existing `avatar` column. |
-| **Achievements** | MyBatis-Plus entities + Spring Events | Module already scaffolded (`Achievement.java`, `UserAchievement.java`, `AchievementService`). Need only business logic, not libraries. |
-| **Follow system** | Self-referential `user_follows` table | MyBatis-Plus handles `@ManyToMany` through join table. No graph DB needed at this scale. |
-
----
-
-## Avatar Upload: Stack Decision
-
-### Option A: Local File System (Recommended for MVP)
-
-```xml
-<!-- No new dependency - use Spring Boot's built-in MultipartFile -->
-<!-- Store files in /var/ulticode/uploads/avatars/ or similar -->
+```java
+for (UserAchievement ua : userAchievements) {
+    Achievement achievement = achievementMapper.selectById(ua.getAchievementId()); // N+1!
+}
 ```
 
-**Pros:** Zero infrastructure, simple implementation
-**Cons:** Requires manual file cleanup, not clustered-friendly
-**Verdict:** MVP only. File storage path configured via `app.upload.avatar-dir` in `.env`.
+### The Fix: selectBatchIds()
 
-### Option B: MinIO / S3 (Production Path)
+MyBatis-Plus provides `selectBatchIds()` which translates to `SELECT * FROM table WHERE id IN (?, ?, ...)`. This is already available via `BaseMapper` -- no new dependencies.
 
-```xml
-<!-- Only add when local storage becomes a bottleneck -->
-<dependency>
-    <groupId>io.minio</groupId>
-    <artifactId>minio</artifactId>
-    <version>8.5.12</version>
-</dependency>
+**No MyBatis-Plus version change needed.** The `mybatis-plus-spring-boot3-starter` 3.5.16 already includes this.
+
+### Code Pattern
+
+```java
+// BEFORE (N+1)
+for (UserAchievement ua : userAchievements) {
+    Achievement achievement = achievementMapper.selectById(ua.getAchievementId());
+    if (achievement != null && achievement.getPoints() != null) {
+        totalPoints += achievement.getPoints();
+    }
+}
+
+// AFTER (batch fetch)
+List<String> achievementIds = userAchievements.stream()
+    .map(UserAchievement::getAchievementId)
+    .toList();
+
+Map<String, Achievement> achievementMap = achievementMapper.selectBatchIds(achievementIds)
+    .stream()
+    .collect(Collectors.toMap(Achievement::getId, a -> a));
+
+for (UserAchievement ua : userAchievements) {
+    Achievement achievement = achievementMap.get(ua.getAchievementId());
+    if (achievement != null && achievement.getPoints() != null) {
+        totalPoints += achievement.getPoints();
+    }
+}
 ```
 
-**Verdict:** Defer to future phase. Current user scale does not warrant object storage.
+### Integration Points
 
-### What NOT to Add
+- `AchievementServiceImpl.getUserPoints()` -- primary target
+- No entity changes needed (UserAchievement entity already correct)
+- No mapper interface changes needed (selectBatchIds is inherited from BaseMapper)
+- No new dependencies
 
-| Library | Why Avoid |
-|---------|-----------|
-| `thumbnailator` / `java.imageio` | Offload image resizing to frontend (CSS `object-fit: cover`). Backend stores original only. |
-| `spring-cloud-azure-storage` | Overkill for MVP avatar storage |
-| `imgscalr` | Same as above - frontend handles display sizing |
+## MySQL Composite Index for Follow System
 
----
-
-## Achievement System: Existing Module
-
-The achievement module is already created at `com.ulticode.modules.achievement`:
-
-| File | Status |
-|------|--------|
-| `Achievement.java` entity | DONE - defines `id, key, name, description, icon, category, tier, criteria, points` |
-| `UserAchievement.java` entity | DONE - tracks user-achievement ManyToMany |
-| `AchievementService.java` | DONE |
-| `AchievementTriggerService.java` | DONE - event-driven triggers |
-| `AchievementController.java` | DONE |
-
-**What remains:** Business logic implementation (achievement unlock conditions, progress tracking, notification on unlock).
-
-**No new dependencies needed.** Uses existing:
-- `ApplicationEventPublisher` for `AchievementEarnedEvent`
-- `JacksonTypeHandler` (already in pom.xml) for `criteria` JSON column
-- MyBatis-Plus `ManyToMany` via join entity `UserAchievement`
-
----
-
-## Follow System: New Module Required
-
-### Database Design
+### Current State (V100__follow_schema.sql)
 
 ```sql
 CREATE TABLE user_follows (
-    follower_id   VARCHAR(36) NOT NULL,  -- the user who follows
-    following_id  VARCHAR(36) NOT NULL,  -- the user being followed
-    created_at    DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    PRIMARY KEY (follower_id, following_id),
-    INDEX idx_following_id (following_id),
-    CONSTRAINT fk_follower FOREIGN KEY (follower_id) REFERENCES users(id) ON DELETE CASCADE,
-    CONSTRAINT fk_following FOREIGN KEY (following_id) REFERENCES users(id) ON DELETE CASCADE
+    follower_id VARCHAR(50) NOT NULL,
+    following_id VARCHAR(50) NOT NULL,
+    created_at DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    PRIMARY KEY (follower_id, following_id),  -- composite PK
+    INDEX idx_user_follows_follower (follower_id),
+    INDEX idx_user_follows_following (following_id),
+    INDEX idx_user_follows_created (created_at),
+    ...
 );
 ```
 
-### Entity Design
+### Analysis
+
+The existing indexes are suboptimal for the `getFollowers()` and `getFollowing()` paginated queries:
 
 ```java
-@Data
-@TableName("user_follows")
-@KeySequence("user_follows") // For MySQL sequence
-public class UserFollow {
-    @TableId(type = IdType.INPUT)
-    private String followerId;
+// FollowMapper.java
+@Select("SELECT * FROM user_follows WHERE following_id = #{followingId} ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
+List<UserFollow> selectByFollowingIdPaged(...);
 
-    @TableId(type = IdType.INPUT)
-    private String followingId;
-
-    private LocalDateTime createdAt;
-}
+@Select("SELECT * FROM user_follows WHERE follower_id = #{followerId} ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
+List<UserFollow> selectByFollowerIdPaged(...);
 ```
 
-**No new libraries needed.** MyBatis-Plus handles composite primary keys via `@TableId(type = IdType.INPUT)`.
+These queries filter by `following_id` or `follower_id` AND sort by `created_at`. The current single-column indexes can satisfy the WHERE but the ORDER BY requires a filesort.
 
----
+### Recommended Composite Indexes
 
-## Frontend Stack Additions: NONE
+Two new composite indexes cover the paginated queries:
 
-| Feature | Frontend Approach | Existing Support |
-|---------|------------------|------------------|
-| Profile page | Vue 3 component + Tailwind CSS | Already in use |
-| Achievement badges | Vue component rendering `icon` URL | Already in use |
-| Follow button | Vue reactive component | Already in use |
-| Avatar upload | `multipart/form-data` POST to backend | Fetch API already in use |
-| Follower/following lists | Paginated API responses | `Result<PageResult<T>>` already exists |
+```sql
+-- For getFollowers: WHERE following_id = ? ORDER BY created_at DESC
+CREATE INDEX idx_user_follows_following_created ON user_follows (following_id, created_at DESC);
 
-The frontend already has:
-- Vue 3 + Vite
-- Tailwind CSS v4 with OKLCH design tokens
-- shadcn-vue components
-- Lucide icons
-- Fetch API with request.ts wrapper
-
-**No npm packages needed for v1.6.**
-
----
-
-## Integration Points
-
-### Backend Controller Entry Points (New)
-
-```
-POST   /users/{id}/avatar          # Upload avatar
-GET    /users/{id}/profile         # Public profile view
-GET    /users/{id}/achievements    # User's earned achievements
-GET    /users/{id}/followers       # Paginated follower list
-GET    /users/{id}/following       # Paginated following list
-POST   /users/{id}/follow          # Follow a user
-DELETE /users/{id}/follow          # Unfollow a user
+-- For getFollowing: WHERE follower_id = ? ORDER BY created_at DESC
+CREATE INDEX idx_user_follows_follower_created ON user_follows (follower_id, created_at DESC);
 ```
 
-### Achievement Integration (Existing Triggers)
+### Migration File Naming
 
-Achievement triggers integrate with existing submission/contest modules via `AchievementTriggerService`:
+Use Flyway V101 or later (after V100__follow_schema.sql):
 
-```java
-// Integration with SubmissionService - trigger on accepted submission
-public void onSubmissionAccepted(String userId, String problemId) {
-    eventPublisher.publishEvent(new SubmissionAcceptedEvent(userId, problemId));
-}
-
-// AchievementTriggerService listens and updates progress
-@EventListener
-public void handleSubmissionAccepted(SubmissionAcceptedEvent event) {
-    achievementTriggerService.incrementProgress(event.userId(), "problems_solved");
-}
+```sql
+-- V101__follow_composite_indexes.sql
+ALTER TABLE user_follows
+    ADD INDEX idx_user_follows_following_created (following_id, created_at DESC),
+    ADD INDEX idx_user_follows_follower_created (follower_id, created_at DESC);
 ```
 
-### Caching (Existing Redis Setup)
+**Why DESC?** MySQL InnoDB indexes store in ascending order. For `ORDER BY created_at DESC`, MySQL can scan the index in reverse. A composite index `(following_id, created_at)` with `ORDER BY created_at DESC` is still efficient because MySQL's optimizer can read it backward.
 
-Follow counts and achievement progress can use the existing Redis caching layer:
+### No New Dependencies
 
-```java
-@Cacheable(value = "user:follow:counts", key = "#userId")
-public FollowCounts getFollowCounts(String userId);
+MySQL 8.x supports descending indexes explicitly (`created_at DESC`), but the standard ascending index also works for reverse scans. No driver or library changes needed.
+
+## JaCoCo Enforcement Configuration
+
+### Current State
+
+JaCoCo 0.8.12 is already configured in pom.xml:
+
+```xml
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.12</version>
+    <configuration>
+        <!-- excludes only -->
+    </configuration>
+    <executions>
+        <execution>id="prepare-agent" phase="initialize"</execution>
+        <execution>id="report" phase="verify"</execution>
+    </executions>
+</plugin>
 ```
 
-Existing `spring-boot-starter-cache` + Redisson backend already in place.
+**Problem:** The `<rules>` block with LINE/BRANCH limits is inside `<configuration>` but there is no `check` goal execution. The limits only apply to report generation, not enforcement.
 
----
+### Required Change
 
-## Anti-Patterns to Avoid
+Add a `check` goal execution bound to `verify` phase:
 
-| Anti-Pattern | Why | Instead |
-|--------------|-----|---------|
-| Adding Spring Social | Deprecated, heavy | Custom follow module with MyBatis-Plus |
-| Adding Neo4j/graph DB | Overkill for follower counts | MySQL join table |
-| Adding image processing library | Complexity, not needed | Frontend CSS handles sizing |
-| Adding notification library | Existing WebSocket module can emit events | Reuse `websocket` module |
-| Adding activity feed library | Scope creep for v1.6 | Defer to future phase |
+```xml
+<executions>
+    <execution>
+        <id>prepare-agent</id>
+        <phase>initialize</phase>
+        <goals><goal>prepare-agent</goal></goals>
+    </execution>
+    <execution>
+        <id>report</id>
+        <phase>verify</phase>
+        <goals><goal>report</goal></goals>
+    </execution>
+    <execution>
+        <id>check</id>
+        <phase>verify</phase>
+        <goals><goal>check</goal></goals>
+        <configuration>
+            <rules>
+                <rule>
+                    <element>BUNDLE</element>
+                    <limits>
+                        <limit>
+                            <counter>LINE</counter>
+                            <value>COVEREDRATIO</value>
+                            <minimum>0.50</minimum>
+                        </limit>
+                        <limit>
+                            <counter>BRANCH</counter>
+                            <value>COVEREDRATIO</value>
+                            <minimum>0.40</minimum>
+                        </limit>
+                    </limits>
+                </rule>
+            </rules>
+        </configuration>
+    </execution>
+</executions>
+```
 
----
+### Key Points
 
-## Version Summary
+- `haltOnFailure` defaults to `true` -- build fails when thresholds not met
+- Move the `<rules>` block into the `check` execution's `<configuration>` (currently it is in the outer `<configuration>` which only applies to report)
+- Keep existing thresholds (LINE 50%, BRANCH 40%) as floor, not ceiling
+- No version change needed (0.8.12 supports all required features)
 
-| Component | Current | Needed for v1.6 | Change |
-|-----------|---------|-----------------|--------|
-| Spring Boot | 3.2.5 | 3.2.5 | None |
-| MyBatis-Plus | 3.5.16 | 3.5.16 | None |
-| Redisson | 4.3.1 | 4.3.1 | None |
-| Hutool | 5.8.44 | 5.8.44 | None |
-| Frontend deps | existing | existing | None |
+## Stack Delta Summary
 
----
+| Area | Current State | Change Required | Confidence |
+|------|--------------|-----------------|------------|
+| MyBatis-Plus batch fetch | `selectBatchIds()` available via BaseMapper | Code change only (no new dep) | HIGH |
+| Achievement N+1 | `for` loop with `selectById()` | Refactor to batch fetch pattern | HIGH |
+| Follow indexes | Single-column idx on follower_id/following_id | Add composite indexes via migration | HIGH |
+| JaCoCo enforcement | `jacoco-maven-plugin` 0.8.12 present but not enforcing | Add `<execution id="check">` with `<goal>check</goal>` | HIGH |
+
+## No New Dependencies Required
+
+All three features (batch fetch, composite indexes, JaCoCo enforcement) can be implemented with:
+- MyBatis-Plus 3.5.16 (already in pom.xml)
+- MySQL 8.x (already in use)
+- JaCoCo 0.8.12 (already in pom.xml)
 
 ## Sources
 
-- Spring Boot 3.2.5 multipart file upload: built-in `MultipartFile` support via `spring-boot-starter-web`
-- MyBatis-Plus composite key: `@TableId(type = IdType.INPUT)` for `@ManyToMany` join entities
-- Achievement module: verified existing at `com.ulticode.modules.achievement`
-- User entity profile fields: verified existing (`avatar`, `bio`, `company`, `github`, `twitter`, `location`)
-- pom.xml: verified no avatar/upload library present, none needed
+- [MyBatis-Plus selectBatchIds()](https://github.com/baomidou/mybatis-plus-doc/blob/master/src/content/docs/guides/data-interface.mdx)
+- [JaCoCo check goal documentation](https://www.jacoco.org/jacoco/trunk/doc/check-mojo.html)

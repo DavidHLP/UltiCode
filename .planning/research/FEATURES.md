@@ -1,265 +1,226 @@
-# Feature Landscape: User Profiles, Achievements, and Follow System (v1.6)
+# Feature Landscape: v1.9 Performance & Quality
 
-**Domain:** Online Programming Platform - User Social Features
-**Researched:** 2026-04-21
-**Confidence:** HIGH (based on existing codebase analysis + platform conventions)
+**Domain:** Performance optimization and quality enforcement for Spring Boot + MyBatis-Plus backend
+**Researched:** 2026-04-22
+**Overall confidence:** HIGH
 
 ## Executive Summary
 
-UltiCode v1.6 adds user profiles, achievement/badge system, and follow/social features to the existing platform. The achievement infrastructure is substantially built; the follow system and profile frontend are new. This research maps table stakes vs differentiators, identifies dependencies on existing modules, and surfaces complexity for each feature area.
+This milestone addresses three performance/quality gaps: (1) an N+1 query in AchievementService.getUserPoints(), (2) missing composite indexes on the user_follows table, and (3) JaCoCo coverage thresholds configured but not enforced in the build lifecycle. All three have clear, low-risk solutions using standard MyBatis-Plus and MySQL patterns.
 
 ---
 
-## 1. User Profiles
+## 1. N+1 Query Optimization (AchievementService)
 
-### Table Stakes (Must-Have)
+### Problem: getUserPoints() method (lines 318-330)
 
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Profile page with avatar | Identity on platform | LOW | User entity already has `avatar` field |
-| Display name and username | Basic identification | LOW | User entity has `name` and `username` |
-| Bio/description | Context about user | LOW | User entity has `bio` field |
-| Join date | Credibility signal | LOW | User entity has `joinedAt` |
-| Problems solved count | Core metric | LOW | Aggregatable from submissions |
-| Contest participation history | Activity proof | MEDIUM | Depends on contest module |
-| Total submissions | Activity signal | LOW | Aggregatable from submissions |
-| Preferred language | Helps others understand style | LOW | User entity has `preferredLanguage` |
-
-### Differentiators (Valued but Not Expected)
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Activity heatmap (GitHub-style) | Visual engagement, gamification | MEDIUM | Requires submission date tracking |
-| Real-time stats widget | Freshness, live feel | MEDIUM | Depends on WebSocket infrastructure |
-| Social proof badges | Trust signals | LOW | Ties into achievement system |
-| Solution showcase | Demonstrates expertise | MEDIUM | Depends on solution module |
-| Profile customizability | Self-expression | LOW | Already supports avatar, bio, links |
-
-### Anti-Features (Avoid)
-
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Profile themes/customization | Scope creep for v1.6 | Stick to existing avatar/bio/links |
-| Profile views counter | Adds complexity, marginal value | Defer to future milestone |
-| Endorsements/skill votes | Complex moderation, easy to abuse | Ties to solution quality instead |
-
-### Dependencies on Existing Infrastructure
-
-| Data Needed | Source Module | Status |
-|-------------|---------------|--------|
-| Problems solved | `submission` module | Aggregation query needed |
-| Contest history | `contest` module | Already has rankings |
-| Forum posts | `forum` module | Already has post counts |
-| Solutions written | `solution` module | Already exists |
-| User achievements | `achievement` module | Fully built |
-
----
-
-## 2. Achievement / Badge System
-
-### Table Stakes (Must-Have)
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Achievement list page | Browse all badges | LOW | Achievement entity already exists |
-| Earned badges on profile | Social proof | LOW | UserAchievement entity exists |
-| Badge tier levels (bronze/silver/gold/platinum) | Progression feel | LOW | Achievement.tier already modeled |
-| Points display | Accumulation reward | LOW | Achievement.points exists |
-| Real-time badge notification | Delight moment | MEDIUM | WebSocket already built (BadgeEarnedPayload) |
-
-### Differentiators (Valued but Not Expected)
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Progress indicators (X/Y toward next badge) | Motivation to continue | MEDIUM | AchievementTriggerService can be extended |
-| Rare/exclusive badge designation | Status symbol | LOW | Add `isExclusive` flag to Achievement |
-| Badge categories with filtering | Browsability | LOW | Achievement.category already exists |
-| Achievement streaks | Daily engagement hook | MEDIUM | STREAK_DAYS trigger already exists |
-| Contest ranking achievements | Competitive recognition | MEDIUM | CONTEST_WINS, CONTEST_PLACED triggers exist |
-| Social sharing of achievements | Viral growth | MEDIUM | Share link generation |
-| Achievement leaderboard | Competition between users | MEDIUM | Aggregatable from UserAchievement |
-
-### Existing Achievement Types (Already Built)
-
-Based on `AchievementType.java` and `AchievementTriggerServiceImpl`:
-
-| AchievementType | Trigger | Status |
-|-----------------|---------|--------|
-| PROBLEMS_SOLVED | onProblemSolved | Built |
-| SUBMISSIONS_MADE | onSubmissionMade | Built |
-| CONTEST_PARTICIPATION | onContestJoined | Built |
-| CONTEST_WINS | onContestWon | Built |
-| CONTEST_PLACED | onContestPlaced | Built |
-| FORUM_POSTS | onForumPostCreated | Built |
-| SOLUTIONS_WRITTEN | onSolutionWritten | Built |
-| STREAK_DAYS | onStreakUpdated | Built |
-| RATING_MILESTONE | onRatingUpdated | Built |
-
-### Missing Achievement Triggers
-
-| Trigger | Use Case | Complexity |
-|---------|----------|------------|
-| First problem solved | Onboarding win | LOW |
-| Language-specific milestones | Python 100, Java 100 | LOW |
-| Easy/Medium/Hard problem ratios | Diversity signal | MEDIUM |
-| Solution upvotes received | Quality recognition | MEDIUM |
-| Follower count milestones | Social growth | LOW (follow system needed first) |
-
-### Anti-Features (Avoid)
-
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Paywalled/premium badges | Fractures community | Keep all badges free |
-| Badge trading/selling | Gameable, moderation nightmare | N/A |
-| Badge revocation | Complexity, user frustration | Keep badges permanent |
-
-### Dependencies on Existing Infrastructure
-
-| Component | Status | What's Needed |
-|-----------|--------|---------------|
-| Achievement entity | Built | None |
-| UserAchievement entity | Built | None |
-| AchievementType enum | Built | None |
-| AchievementService | Built | None |
-| AchievementTriggerService | Built | Extend with missing triggers |
-| WebSocket notification | Built | BadgeEarnedPayload already exists |
-| AchievementTriggerService events | Built | Publish events on triggers |
-
----
-
-## 3. Follow System
-
-### Table Stakes (Must-Have)
-
-| Feature | Why Expected | Complexity | Notes |
-|---------|--------------|------------|-------|
-| Follow button on user profiles | Core social action | MEDIUM | NEW - needs module |
-| Followers list (who follows me) | Social proof | MEDIUM | NEW - needs module |
-| Following list (who I follow) | Social graph | MEDIUM | NEW - needs module |
-| Follower/following count on profile | Quick social signal | LOW | NEW - aggregate queries |
-| Unfollow action | Flexibility | LOW | NEW |
-
-### Differentiators (Valued but Not Expected)
-
-| Feature | Value Proposition | Complexity | Notes |
-|---------|-------------------|------------|-------|
-| Activity feed | Reasons to return | HIGH | NEW - significant complexity |
-| Follow notifications | Engagement | MEDIUM | NEW - ties to notification module |
-| Mutual followers highlighting | Social connection | LOW | NEW |
-| Suggested users to follow | Discovery | HIGH | Could use recommendation service |
-| Follow user activity timeline | See what others solved | MEDIUM | NEW - activity aggregation |
-
-### Anti-Features (Avoid)
-
-| Anti-Feature | Why Avoid | What to Do Instead |
-|--------------|-----------|-------------------|
-| Private accounts | Complexity, moderation | Keep all accounts public for v1.6 |
-| Block functionality | Scope creep | Defer to v1.7 moderation |
-| Follow requests (approval) | Adds friction, complexity | N/A |
-| Follower counts hidden | Counter to social proof | Show publicly |
-
-### Data Model Recommendations
-
-```
-users (existing)
-follows
-  - id
-  - follower_id (user who follows)
-  - following_id (user being followed)
-  - created_at
-
-Indexes:
-- UNIQUE(follower_id, following_id) -- prevent duplicate follows
-- INDEX(follower_id) -- who's my following
-- INDEX(following_id) -- my followers
+```java
+public UserPointsVO getUserPoints(String userId) {
+    List<UserAchievement> userAchievements = userAchievementMapper.findByUserId(userId);
+    int totalPoints = 0;
+    for (UserAchievement ua : userAchievements) {
+        Achievement achievement = achievementMapper.selectById(ua.getAchievementId()); // N+1!
+        if (achievement != null && achievement.getPoints() != null) {
+            totalPoints += achievement.getPoints();
+        }
+    }
+    return new UserPointsVO(totalPoints, userAchievements.size());
+}
 ```
 
-### Dependencies on Existing Infrastructure
+**Root cause:** Iterates over userAchievements, issuing one SELECT per achievement.
 
-| Component | Status | What's Needed |
-|-----------|--------|---------------|
-| User entity | Built | None |
-| Notification module | Built | Extend for follow notifications |
-| WebSocket | Built | Can reuse for real-time feed updates |
+**Solution options:**
+
+| Approach | How | Tradeoff |
+|----------|-----|----------|
+| JOIN FETCH via XML | Custom resultMap with nested association | Most flexible, requires XML |
+| MyBatis-Plus-Join | `MPJBaseMapper` with `selectMS` | Additional dependency |
+| Batch fetch (IN clause) | Collect IDs, single query | Simple, 2 queries total |
+| @OneToMany lazy + batch size | Entity lazy loading with global config | Transparent but complex |
+
+**Recommended:** Batch fetch (IN clause) - simplest and most maintainable:
+
+```java
+// In AchievementServiceImpl.getUserPoints():
+List<String> achievementIds = userAchievements.stream()
+    .map(UserAchievement::getAchievementId)
+    .toList();
+if (achievementIds.isEmpty()) {
+    return new UserPointsVO(0, 0);
+}
+Map<String, Achievement> achievementMap = achievementMapper.selectBatchIds(achievementIds)
+    .stream().collect(Collectors.toMap(Achievement::getId, a -> a));
+```
+
+### Verification Approach
+
+After fix, measure:
+- Query count: should drop from N+1 to 2 (userAchievements + batch select)
+- Response time: measurable improvement for users with many achievements
 
 ---
 
-## 4. Feature Dependencies and Ordering
+## 2. Composite Index Design (Follow System)
+
+### Current State
+
+The `user_follows` table has a composite primary key `(follower_id, following_id)` but the entity has no explicit index definitions. The FollowMapper uses these queries:
+
+| Query | SQL Pattern | Needs Index |
+|-------|------------|-------------|
+| getFollowers (paginated) | `WHERE following_id = ? ORDER BY created_at DESC LIMIT ?` | `(following_id, created_at)` |
+| getFollowing (paginated) | `WHERE follower_id = ? ORDER BY created_at DESC LIMIT ?` | `(follower_id, created_at)` |
+| count followers | `WHERE following_id = ?` | covered by above |
+| count following | `WHERE follower_id = ?` | covered by above |
+| exists check | `WHERE follower_id = ? AND following_id = ?` | covered by PK |
+
+### Recommended Indexes
+
+**Migration file needed:**
+
+```sql
+-- Flyway migration for follow system indexes
+CREATE INDEX idx_user_follows_following_created ON user_follows(following_id, created_at DESC);
+CREATE INDEX idx_user_follows_follower_created ON user_follows(follower_id, created_at DESC);
+```
+
+### Covering Index Consideration
+
+For paginated queries, `(following_id, created_at)` is a covering index - MySQL can satisfy `ORDER BY created_at DESC` entirely from the index without touching table rows, reducing I/O.
+
+### Leftmost Prefix Rule
+
+The composite primary key `(follower_id, following_id)` satisfies equality lookups on `follower_id` alone, but does NOT help with `ORDER BY created_at` or range scans on `created_at`. This is why separate indexes are needed.
+
+### Verification Approach
+
+After indexes added:
+- Run `EXPLAIN` on paginated follow queries - should show `Using index` (covering) not `Using index condition`
+- Response time improvement on follower/following lists
+
+---
+
+## 3. JaCoCo Coverage Enforcement
+
+### Current Configuration (pom.xml lines 259-311)
+
+JaCoCo is configured with thresholds but the `check` goal is NOT bound to the verify lifecycle:
+
+```xml
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>0.8.12</version>
+    <configuration>
+        <rules>
+            <rule>
+                <element>BUNDLE</element>
+                <limits>
+                    <limit>
+                        <counter>LINE</counter>
+                        <value>COVEREDRATIO</value>
+                        <minimum>0.50</minimum>
+                    </limit>
+                    <limit>
+                        <counter>BRANCH</counter>
+                        <value>COVEREDRATIO</value>
+                        <minimum>0.40</minimum>
+                    </limit>
+                </limits>
+            </rule>
+        </rules>
+    </configuration>
+    <executions>
+        <execution>
+            <id>prepare-agent</id>
+            <phase>initialize</phase>
+            <goals><goal>prepare-agent</goal></goals>
+        </execution>
+        <execution>
+            <id>report</id>
+            <phase>verify</phase>
+            <goals><goal>report</goal></goals>
+        </execution>
+        <!-- MISSING: check goal binding! -->
+    </executions>
+</plugin>
+```
+
+### Problem
+
+Only `report` goal runs. Coverage is generated but never checked - builds pass regardless of coverage.
+
+### Fix Required
+
+Add check goal execution:
+
+```xml
+<execution>
+    <id>check</id>
+    <phase>verify</phase>
+    <goals>
+        <goal>check</goal>
+    </goals>
+</execution>
+```
+
+JaCoCo will automatically read the `<rules>` configuration from the plugin's `<configuration>` block and fail the build if coverage is below thresholds.
+
+### CI/CD Integration
+
+The `check` goal binds to the `verify` phase, which runs:
+- Locally: `./mvnw verify` or `./mvnw test`
+- In CI: automatically when using the `verify` or `install` lifecycle
+
+**No additional CI configuration needed** - the Maven plugin handles enforcement.
+
+### Important Note on forkCount
+
+JaCoCo documentation states: "When using maven-surefire-plugin or maven-failsafe-plugin you must not use a forkCount of 0 or set forkMode to never as this would prevent the execution of the tests with the javaagent set." The current surefire configuration (implicit default) is compatible.
+
+---
+
+## Feature Dependencies
 
 ```
-User Profile
-├── User data (avatar, bio, links) ────────────────── EXISTING (User entity)
-├── Problems solved count ───────────────────────────── EXISTING (aggregation needed)
-├── Contest history ────────────────────────────────── EXISTING (contest module)
-├── Achievements earned ─────────────────────────────── EXISTING (achievement module)
-└── Followers/Following counts ─────────────────────── NEW (follow module)
+Achievement N+1 fix
+  └─> AchievementServiceImpl.getUserPoints() modification
+  └─> No schema change needed
 
-Achievement System
-├── Achievement definitions ─────────────────────────── EXISTING (Achievement entity)
-├── User achievements ──────────────────────────────── EXISTING (UserAchievement entity)
-├── Achievement triggers ───────────────────────────── EXISTING (AchievementTriggerService)
-├── Missing triggers ──────────────────────────────── NEW (extend AchievementTriggerService)
-└── Progress indicators ────────────────────────────── NEW (UI + calculation)
+Follow composite indexes
+  └─> Flyway migration (V{n}__add_follow_indexes.sql)
+  └─> No code change
 
-Follow System
-├── Follow table ─────────────────────────────────── NEW (new module)
-├── Follow/Unfollow API ────────────────────────────── NEW (new module)
-├── Follower list API ─────────────────────────────── NEW (new module)
-├── Following list API ────────────────────────────── NEW (new module)
-├── Follow notifications ──────────────────────────── EXISTING (notification module)
-└── Activity feed (defer to later) ────────────────── DEFERRED
+JaCoCo enforcement
+  └─> pom.xml check goal binding
+  └─> No CI changes
 ```
 
 ---
 
-## 5. MVP Recommendation
+## MVP Recommendation
 
-### Phase 1: User Profile (Low Risk, Foundation)
-Priority order:
-1. Profile API endpoints (GET /users/{id}, PUT /users/{id}/profile)
-2. Profile page frontend (avatar, name, bio, links, join date)
-3. Stats aggregation (problems solved, contests, submissions)
-4. Achievements display on profile
+**Priority order:**
+1. **JaCoCo enforcement** - Minimal change (add 1 execution block), immediate quality feedback
+2. **Follow composite indexes** - Flyway migration, validates with EXPLAIN
+3. **Achievement N+1 fix** - Service layer change, validates with query count logging
 
-### Phase 2: Achievement System Enhancement (Medium Risk)
-Priority order:
-1. Missing achievement triggers (first problem, language milestones)
-2. Progress indicators for in-progress achievements
-3. Achievement notification (already built, verify)
-4. Achievement categories with filtering
-
-### Phase 3: Follow System (Medium Risk, Social Layer)
-Priority order:
-1. Follow table and basic CRUD
-2. Follow/Unfollow API
-3. Followers/Following list endpoints
-4. Follower count on profile
-5. Follow notifications
-
-### Defer to v1.7:
-- Activity feed (high complexity, new paradigm)
-- Suggested users to follow (needs recommendation integration)
-- Social sharing of achievements
+All three are independent and can ship in any order within the milestone.
 
 ---
 
-## 6. Complexity Assessment
+## Confidence Assessment
 
-| Feature | Complexity | Risk | Reason |
-|---------|------------|------|--------|
-| Profile page frontend | MEDIUM | LOW | Standard CRUD, existing user data |
-| Stats aggregation | MEDIUM | MEDIUM | N+1 potential, needs optimization |
-| Achievement triggers | LOW | LOW | Pattern already established |
-| Progress indicators | MEDIUM | MEDIUM | Calculation logic, caching |
-| Follow module | MEDIUM | MEDIUM | New table, new API, consistency |
-| Follower list API | LOW | LOW | Standard pagination |
-| Activity feed | HIGH | HIGH | Complex aggregation, defer |
+| Area | Confidence | Reason |
+|------|------------|--------|
+| N+1 solution | HIGH | Standard MyBatis-Plus pattern, no new dependencies |
+| Composite indexes | HIGH | Standard MySQL, leftmost prefix rule well understood |
+| JaCoCo enforcement | HIGH | Official JaCoCo docs confirm check goal behavior |
+| Query verification | MEDIUM | Will need EXPLAIN and runtime measurement |
 
----
+## Sources
 
-## 7. Sources
-
-- Existing `backend-spring/src/main/java/com/ulticode/modules/achievement/` (entity, service, trigger)
-- Existing `backend-spring/src/main/java/com/ulticode/modules/user/entity/User.java`
-- Existing `backend-spring/src/main/java/com/ulticode/modules/websocket/notification/dto/BadgeEarnedPayload.java`
-- PROJECT.md v1.6 milestone definition
+- MyBatis-Plus documentation (Context7: `/baomidou/mybatis-plus-doc`)
+- MySQL 8.4 indexes documentation (official)
+- JaCoCo 0.8.12 Maven plugin documentation (official: `jacoco.org/jacoco/trunk/doc/check-mojo.html`)

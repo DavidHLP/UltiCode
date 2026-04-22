@@ -169,7 +169,7 @@ class AchievementServiceTest {
         void shouldFilterAchievementsByCategory() {
             // Arrange
             AchievementQueryDTO query = new AchievementQueryDTO();
-            query.setCategory("problem_solving");
+            query.setCategory("problems");
 
             Page<Achievement> mockPage = new Page<>(1, 20);
             mockPage.setRecords(Collections.emptyList());
@@ -311,7 +311,7 @@ class AchievementServiceTest {
             userAchievement.setEarnedAt(LocalDateTime.now());
 
             when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of(userAchievement));
-            when(achievementMapper.selectById(ACHIEVEMENT_ID)).thenReturn(achievement);
+            when(achievementMapper.selectBatchIds(List.of(ACHIEVEMENT_ID))).thenReturn(List.of(achievement));
 
             // Act
             UserPointsVO result = achievementServiceImpl.getUserPoints(USER_ID);
@@ -350,7 +350,7 @@ class AchievementServiceTest {
             // Arrange
             Achievement achievement = createTestAchievement();
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
-            when(userAchievementMapper.findByUserAndAchievement(USER_ID, ACHIEVEMENT_ID)).thenReturn(null);
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
             // Act — trigger methods are now void + async; call checkAndAwardAchievements directly in tests
@@ -389,7 +389,7 @@ class AchievementServiceTest {
             existing.setUserId(USER_ID);
 
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
-            when(userAchievementMapper.findByUserAndAchievement(USER_ID, ACHIEVEMENT_ID)).thenReturn(existing);
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(List.of(existing));
 
             // Act
             List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.PROBLEMS_SOLVED, 1);
@@ -418,7 +418,7 @@ class AchievementServiceTest {
             achievement.setCriteria(criteria);
 
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
-            when(userAchievementMapper.findByUserAndAchievement(USER_ID, "contest-achievement")).thenReturn(null);
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
             // Act
@@ -447,7 +447,7 @@ class AchievementServiceTest {
             achievement.setCriteria(criteria);
 
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
-            when(userAchievementMapper.findByUserAndAchievement(USER_ID, "solution-achievement")).thenReturn(null);
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
             // Act
@@ -476,7 +476,7 @@ class AchievementServiceTest {
             achievement.setCriteria(criteria);
 
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
-            when(userAchievementMapper.findByUserAndAchievement(USER_ID, "streak-achievement")).thenReturn(null);
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
             // Act
@@ -505,7 +505,7 @@ class AchievementServiceTest {
             achievement.setCriteria(criteria);
 
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
-            when(userAchievementMapper.findByUserAndAchievement(USER_ID, "rating-achievement")).thenReturn(null);
+            when(userAchievementMapper.findByUserId(USER_ID)).thenReturn(Collections.emptyList());
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
             // Act

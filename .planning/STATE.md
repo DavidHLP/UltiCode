@@ -3,13 +3,13 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: completed
-last_updated: "2026-04-22T15:10:18.976Z"
+last_updated: "2026-04-22T15:14:49.052Z"
 progress:
   total_phases: 3
   completed_phases: 1
   total_plans: 6
-  completed_plans: 2
-  percent: 33
+  completed_plans: 4
+  percent: 67
 ---
 
 # STATE.md
@@ -29,7 +29,7 @@ progress:
 |-------|------|--------|
 | 45 | API Documentation | Completed |
 | 46 | Sandbox Hardening | Context gathered |
-| 47 | Frontend i18n | Not started |
+| 47 | Frontend i18n | Completed |
 
 ---
 
@@ -66,6 +66,18 @@ progress:
 
 ---
 
+## Phase 47 Summary
+
+- **Completed:** 2026-04-22
+- **vue-i18n:** Management upgraded 10.0.8 → 11.3.2 (matching Console)
+- **useLocale composable:** Management unified to match Console API (setLocale, toggleLocale, isCurrentLocale)
+- **storage.ts:** Robust localStorage → sessionStorage → memory fallback chain created in Management
+- **Lazy loading:** Non-active locale loaded via dynamic import()
+- **missingWarn:** Enabled in both Console and Management (import.meta.env.DEV)
+- **LanguageSwitcher:** Already existed in Console header
+
+---
+
 ## Accumulated Context
 
 ### Phase Dependencies
@@ -78,7 +90,7 @@ progress:
 
 - API-01, API-02, API-03 → Phase 45 ✓ COMPLETED
 - SAND-01, SAND-02, SAND-03, SAND-04, SAND-05 → Phase 46
-- I18N-01, I18N-02, I18N-03, I18N-04, I18N-05 → Phase 47
+- I18N-01, I18N-02, I18N-03, I18N-04, I18N-05 → Phase 47 ✓ COMPLETED
 
 ### Notes
 

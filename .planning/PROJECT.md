@@ -17,12 +17,12 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 
 ## Current State
 
-**Last shipped:** v1.8 Technical Debt III (2026-04-22)
-**Total phases completed:** 37 (across v1.0–v1.8)
+**Last shipped:** v1.9 Performance & Quality (2026-04-22)
+**Total phases completed:** 40 (across v1.0–v1.9)
 
-## Current Milestone: v1.9 Performance & Quality
+## Current Milestone: Next Milestone — TBD
 
-**Goal:** 修复性能问题（Achievement N+1, Follow索引优化）+ 强制测试覆盖率验证
+**Goal:** TBD
 
 **Target features:**
 - **PERF-01**: Achievement N+1 查询优化（JOIN FETCH）

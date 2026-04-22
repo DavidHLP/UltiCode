@@ -201,12 +201,12 @@ jobs:
           # The maven central flyway 11.3.4 bundle has a broken Alpine JRE on Ubuntu.
           # We extract the bundle, then write a wrapper that invokes Java directly
           # with the correct classpath (skipping the broken shell script JRE detection).
-          curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/11.3.4/flyway-commandline-11.3.4-linux-x64.tar.gz -o /tmp/flyway.tar.gz
+          curl -L https://repo1.maven.org/maven2/org/flywaydb/flyway-commandline/10.17.0/flyway-commandline-10.17.0-linux-x64.tar.gz -o /tmp/flyway.tar.gz
           tar -xzf /tmp/flyway.tar.gz -C /tmp
           # Write a wrapper that bypasses the broken JRE detection entirely
           cat > /tmp/flyway-wrapper.sh << 'WRAPPER'
           #!/usr/bin/env bash
-          FLYWAY_DIR="${FLYWAY_DIR:-/tmp/flyway-11.3.4}"
+          FLYWAY_DIR="${FLYWAY_DIR:-/tmp/flyway-10.17.0}"
           JAVA_CMD="${JAVA_HOME:-$(which java)}/bin/java"
           CP="$FLYWAY_DIR/lib/*:$FLYWAY_DIR/lib/flyway/*:$FLYWAY_DIR/lib/aad/*:$FLYWAY_DIR/lib/plugins/*:$FLYWAY_DIR/lib/netty/*:$FLYWAY_DIR/lib/opentelemetry/*:$FLYWAY_DIR/drivers/*"
           exec "$JAVA_CMD" -Djava.security.egd=file:/dev/../dev/urandom -cp "$CP" org.flywaydb.commandline.Main "$@"

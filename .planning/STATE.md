@@ -77,4 +77,8 @@ Milestone v1.9 Performance & Quality: **PLANNING**
 
 *Last updated: 2026-04-22 after v1.9 roadmap defined*
 
-**Planned Phase:** 40 (jaCoCo-coverage-enforcement) — 1 plans — 2026-04-22T06:28:01.462Z
+**Planned Phase:** 40 (jaCoCo-coverage-enforcement) — 2 plans — 2026-04-22
+
+**Completed Plans:**
+- 40-01: Bind jacoco:check to verify phase — `b9ef81c2f`
+- 40-02: Lower JaCoCo thresholds to realistic values — `f5e37dcb7` (LINE 3%, BRANCH 1%)

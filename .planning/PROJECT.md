@@ -17,8 +17,8 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 
 ## Current State
 
-**Last shipped:** v2.0 Dependencies & Quality (in progress)
-**Total phases completed:** 40 (across v1.0–v1.9)
+**Last shipped:** v2.0 Dependencies & Quality (shipped 2026-04-22)
+**Total phases completed:** 44 (across v1.0–v2.0)
 
 ## Milestone History
 
@@ -33,6 +33,7 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 | v1.6 User & Social | 2026-04-21 | Follow system, user profiles, achievements backend, social frontend |
 | v1.7 Notifications | 2026-04-21 | WebSocket push, follow/contest/submission notification triggers |
 | v1.9 Performance & Quality | 2026-04-22 | Achievement N+1, Follow indexes, JaCoCo enforcement |
+| v2.0 Dependencies & Quality | 2026-04-22 | springdoc retention, testcontainers-redis, RateLimitIntegrationTest, JaCoCo 5%/2%, testcontainers BOM 1.21.4 |
 
 ## v1.8 Accomplishments
 
@@ -47,24 +48,26 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 - **Follow System (Phase 39)**: V101 composite indexes + batch count queries (2 queries vs 2N) eliminate N+1 in user summaries
 - **JaCoCo Enforcement (Phase 40)**: Coverage check bound to verify phase, thresholds lowered to LINE 3%, BRANCH 1% to unblock CI
 
+## v2.0 Accomplishments
+
+- **Dependency Upgrades (Phase 41)**: springdoc 2.6.0 retained (2.8.17 blocked by Spring Boot 3.2.5 incompatibility), testcontainers-redis added
+- **Rate Limiting E2E (Phase 42)**: RateLimitIntegrationTest with Testcontainers Redis, @BeforeEach flushDb(), HTTP 429 assertions
+- **JaCoCo Threshold Raise (Phase 43)**: LINE 3%→5%, BRANCH 1%→2%
+- **Testcontainers Upgrade (Phase 44)**: BOM 1.11.3→1.21.4, getFirstMappedPort()→getMappedPort(6379)
+
 ## Active Requirements
 
-Items from v1.9 carried forward to v2.0:
+Items from v2.0 carried forward:
 
 | Category | Item | Status |
 |----------|------|--------|
-| Dependencies | DEPS-03: springdoc 3.x 升级 | Active — v2.0 |
-| Missing | MISS-02: Rate Limiting 端到端测试 | Active — v2.0 |
-| Quality | JaCoCo thresholds at 3%/1% | Active — v2.0 (need test coverage to raise) |
+| Dependencies | DEPS-03: springdoc 3.x 升级 | Active — v3.0 (needs Spring Boot 4.x) |
+| Quality | Maven Testcontainers infrastructure | Deferred — needs both MySQL+Redis containers in test |
+| Quality | JaCoCo BRANCH coverage improvement | Active — need more test coverage |
 
-## Current Milestone: v2.0 Dependencies & Quality
+## Current Milestone: TBD
 
-**Goal:** 升级关键依赖并提高测试覆盖率
-
-**Target features:**
-- springdoc 3.x 升级（DEPS-03）
-- Rate Limiting 端到端测试（MISS-02）
-- JaCoCo 覆盖率阈值提高
+**Next milestone:** Run `/gsd-new-milestone` to define
 
 ## Evolution
 
@@ -85,4 +88,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-04-22 after v2.0 started*
+*Last updated: 2026-04-22 after v2.0 milestone shipped*

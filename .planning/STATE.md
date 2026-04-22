@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: Dependencies & Quality
-status: milestone_complete
+milestone: v3.0
+milestone_name: TBD
+status: planning
 last_updated: "2026-04-22"
 progress:
-  total_phases: 4
-  completed_phases: 4
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md
@@ -17,20 +17,6 @@ progress:
 **Project:** UltiCode - Online Programming Platform
 **Current Milestone:** v2.0 Dependencies & Quality — Complete
 **Status:** Milestone shipped
-
----
-
-## Current Position
-
-Milestone: **v2.0 Dependencies & Quality — COMPLETE**
-All 4 phases finished (41, 42, 43, 44).
-
-| Phase | Name | Plans | Status |
-|-------|------|-------|--------|
-| 41 | Dependency Upgrades | 1/1 | Complete |
-| 42 | Rate Limiting E2E | 1/1 | Complete |
-| 43 | JaCoCo Threshold Raise | 1/1 | Complete |
-| 44 | Testcontainers Upgrade | 1/1 | Complete |
 
 ---
 
@@ -52,4 +38,4 @@ All 4 phases finished (41, 42, 43, 44).
 
 ---
 
-*Last updated: 2026-04-22 after Phase 44 complete*
+*Last updated: 2026-04-22 after v2.0 milestone shipped*

@@ -1,9 +1,7 @@
 import { createI18n } from 'vue-i18n'
-import { isRef } from 'vue'
-// Import from modular directory structure (zh-CN/index.ts, en-US/index.ts)
-// These use separate module files for better organization
+// Default locale (zh-CN) is eagerly loaded
 import zhCN from './locales/zh-CN/'
-import enUS from './locales/en-US/'
+// Non-active locale (en-US) is lazily loaded via dynamic import()
 
 // Re-export types and constants from types.ts (single source of truth)
 export {
@@ -48,6 +46,25 @@ function getInitialLocale(): string {
   return 'zh-CN' // Default locale
 }
 
+// Lazily loaded messages object
+// Only the initial locale is eagerly loaded; the other is loaded on demand
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const messages: Record<string, any> = {
+  'zh-CN': zhCN,
+  'en-US': {},
+}
+
+// Dynamic import for lazy locale loading
+export async function loadLocale(locale: 'zh-CN' | 'en-US'): Promise<void> {
+  if (locale === 'en-US' && Object.keys(messages['en-US']).length === 0) {
+    const module = await import('./locales/en-US/')
+    messages['en-US'] = module.default
+  } else if (locale === 'zh-CN' && Object.keys(messages['zh-CN']).length === 0) {
+    const module = await import('./locales/zh-CN/')
+    messages['zh-CN'] = module.default
+  }
+}
+
 // Create i18n instance
 export const i18n = createI18n({
   legacy: false, // Use Composition API
@@ -55,21 +72,16 @@ export const i18n = createI18n({
   locale: getInitialLocale(),
   fallbackLocale: 'zh-CN',
   silentTranslationWarn: true, // Suppress warnings in production
-  missingWarn: false, // Suppress missing key warnings
+  missingWarn: import.meta.env.DEV, // true in development, false in production
   fallbackWarn: false, // Suppress fallback warnings
-  messages: {
-    'zh-CN': zhCN,
-    'en-US': enUS,
-  },
+  messages,
 })
 
 // Get active locale from i18n instance
 export function getActiveLocale(): string {
-  const localeRef = i18n.global.locale
-  const localeValue = isRef(localeRef) ? localeRef.value : localeRef
-
-  if (['zh-CN', 'en-US'].includes(localeValue)) {
-    return localeValue
+  const locale = i18n.global.locale.value as string
+  if (['zh-CN', 'en-US'].includes(locale)) {
+    return locale
   }
 
   return 'zh-CN'
@@ -77,6 +89,13 @@ export function getActiveLocale(): string {
 
 // Set locale and persist to localStorage
 export function setLocale(locale: 'zh-CN' | 'en-US'): void {
+  // Lazily load the locale if not already loaded
+  if (locale === 'en-US' && Object.keys(messages['en-US']).length === 0) {
+    import('./locales/en-US/').then((module) => {
+      messages['en-US'] = module.default
+    })
+  }
+
   i18n.global.locale.value = locale
 
   try {
@@ -85,17 +104,13 @@ export function setLocale(locale: 'zh-CN' | 'en-US'): void {
     // Ignore localStorage errors
   }
 
-  // Update HTML lang attribute
+  // Update HTML lang attribute for accessibility
   document.documentElement.lang = locale
 }
 
 // Type-safe translation helper
 export function t(key: string, params?: Record<string, unknown>): string {
   const result = i18n.global.t(key, params ?? {})
-  // Debug: log if translation returns the key itself (missing translation)
-  if (result === key && import.meta.env.DEV) {
-    console.warn(`[i18n] Missing translation for key: ${key}`)
-  }
   return result
 }
 

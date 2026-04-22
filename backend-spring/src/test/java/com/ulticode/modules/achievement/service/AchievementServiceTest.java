@@ -353,8 +353,8 @@ class AchievementServiceTest {
             when(userAchievementMapper.findByUserAndAchievement(USER_ID, ACHIEVEMENT_ID)).thenReturn(null);
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
-            // Act
-            List<String> awarded = achievementTriggerService.onProblemSolved(USER_ID, 1);
+            // Act — trigger methods are now void + async; call checkAndAwardAchievements directly in tests
+            List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.PROBLEMS_SOLVED, 1);
 
             // Assert
             assertEquals(1, awarded.size());
@@ -372,7 +372,7 @@ class AchievementServiceTest {
             when(achievementMapper.findAllActive()).thenReturn(List.of(achievement));
 
             // Act
-            List<String> awarded = achievementTriggerService.onProblemSolved(USER_ID, 0);
+            List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.PROBLEMS_SOLVED, 0);
 
             // Assert
             assertTrue(awarded.isEmpty());
@@ -392,7 +392,7 @@ class AchievementServiceTest {
             when(userAchievementMapper.findByUserAndAchievement(USER_ID, ACHIEVEMENT_ID)).thenReturn(existing);
 
             // Act
-            List<String> awarded = achievementTriggerService.onProblemSolved(USER_ID, 1);
+            List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.PROBLEMS_SOLVED, 1);
 
             // Assert
             assertTrue(awarded.isEmpty());
@@ -422,7 +422,7 @@ class AchievementServiceTest {
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
             // Act
-            List<String> awarded = achievementTriggerService.onContestJoined(USER_ID, 1);
+            List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.CONTEST_PARTICIPATION, 1);
 
             // Assert
             assertEquals(1, awarded.size());
@@ -451,7 +451,7 @@ class AchievementServiceTest {
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
             // Act
-            List<String> awarded = achievementTriggerService.onSolutionWritten(USER_ID, 1);
+            List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.SOLUTIONS_WRITTEN, 1);
 
             // Assert
             assertEquals(1, awarded.size());
@@ -480,7 +480,7 @@ class AchievementServiceTest {
             when(userAchievementMapper.insert(any(UserAchievement.class))).thenReturn(1);
 
             // Act
-            List<String> awarded = achievementTriggerService.onStreakUpdated(USER_ID, 7);
+            List<String> awarded = achievementTriggerService.checkAndAwardAchievements(USER_ID, AchievementType.STREAK_DAYS, 7);
 
             // Assert
             assertEquals(1, awarded.size());

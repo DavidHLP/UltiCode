@@ -2,16 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.8
 milestone_name: Technical Debt III
-current_phase: 34
-status: milestone_started
-last_updated: "2026-04-21T00:00:00Z"
-last_activity: 2026-04-21
+current_phase: 34 (Swagger UI 修复)
+status: planning
+last_updated: "2026-04-22T01:59:09.472Z"
 progress:
   total_phases: 4
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  completed_phases: 1
+  total_plans: 1
+  completed_plans: 1
+  percent: 100
 ---
 
 # STATE.md
@@ -35,6 +34,7 @@ progress:
 ## Current Position
 
 Milestone v1.8 Technical Debt III: **IN PROGRESS**
+
 - Phase 34: Swagger UI 修复 (Ready to plan)
 - Phase 35: Flyway URL 修复
 - Phase 36: Achievement 异步化
@@ -76,21 +76,25 @@ Progress: [░░░░░░░░░░] 0%
 ## v1.8 Success Criteria
 
 **Phase 34 - Swagger UI 修复:**
+
 1. Swagger UI 页面可正常加载（HTTP 200）
 2. API 文档显示所有 REST endpoints
 3. Try-out 功能可正常发送请求
 
 **Phase 35 - Flyway URL 修复:**
+
 1. CI workflow run 显示 Flyway 下载成功
 2. Flyway migration job 不再因 URL 404 失败
 3. 数据库迁移在 CI 环境正常执行
 
 **Phase 36 - Achievement 异步化:**
+
 1. Achievement 检查在 @Async 线程执行
 2. @EventListener 在 AFTER_COMMIT 阶段触发
 3. 主线程不等待 Achievement 检查完成
 
 **Phase 37 - Forum Stats 真实数据:**
+
 1. Admin dashboard Forum Stats 显示 forum_comments 表真实 count
 2. Admin dashboard Forum Stats 显示 forum_votes 表真实 count
 3. Stats 数据随实际数据变化而更新（非硬编码）
@@ -112,3 +116,5 @@ Items acknowledged and carried forward:
 ---
 
 *Last updated: 2026-04-21 after v1.8 roadmap created*
+
+**Planned Phase:** 34 (Swagger UI 修复) — 1 plans — 2026-04-21T15:05:10.904Z

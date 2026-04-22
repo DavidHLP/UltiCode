@@ -153,7 +153,9 @@
   1. Admin dashboard Forum Stats 显示 forum_comments 表真实 count
   2. Admin dashboard Forum Stats 显示 forum_votes 表真实 count
   3. Stats 数据随实际数据变化而更新（非硬编码）
-**Plans**: TBD
+**Plans**: 1/1
+Plans:
+- [ ] 37-01-PLAN.md — Fix hardcoded zeros in AdminForumServiceImpl.toAdminVO()
 
 ---
 

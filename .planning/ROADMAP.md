@@ -18,7 +18,7 @@
 
 - [x] **Phase 38: Achievement N+1 Query Optimization** — Fix getUserPoints() and checkAndAwardAchievements() N+1 with batch fetch
 - [x] **Phase 39: Follow System Optimization** — Add composite indexes and fix toUserSummary() N+1
-- [ ] **Phase 40: JaCoCo Coverage Enforcement** — Bind jacoco:check to verify phase (2/2 plans complete)
+- [x] **Phase 40: JaCoCo Coverage Enforcement** — Bind jacoco:check to verify phase (2/2 plans complete)
 
 **Plans:**
 - 40-01: Bind jacoco:check to verify phase — COMPLETED (`b9ef81c2f`)

@@ -23,9 +23,12 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Frontend i18n
 
-- [ ] **I18N-01**: Management vue-i18n 10.0.8 → 11.3.2 与 Console 对齐
-- [ ] **I18N-02**: 构建 useLocale composable（localStorage 持久化 + 后端同步）
-- [ ] **I18N-03**: 翻译文件 lazy loading（非 active locale 动态 import）
+- [x] **I18N-01
+**: Management vue-i18n 10.0.8 → 11.3.2 与 Console 对齐
+- [x] **I18N-02
+**: 构建 useLocale composable（localStorage 持久化 + 后端同步）
+- [x] **I18N-03
+**: 翻译文件 lazy loading（非 active locale 动态 import）
 - [ ] **I18N-04**: Console header 添加 language switcher（zh-CN / en-US）
 - [ ] **I18N-05**: 启用 missingWarn 使 missing translation keys 在开发时可见
 

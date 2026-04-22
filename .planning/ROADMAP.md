@@ -77,7 +77,7 @@
 4. Console header displays language switcher toggling between zh-CN and en-US
 5. Missing translation keys produce console warnings in development (missingWarn enabled)
 
-**Plans**: 1 plan
+**Plans**: 3 plans
 
 ---
 
@@ -96,9 +96,9 @@
 | 34-37 | v1.8 | 4 | Complete | 2026-04-22 |
 | 38-40 | v1.9 | 4 | Complete | 2026-04-22 |
 | 41-44 | v2.0 | 4 | Complete | 2026-04-22 |
-| 45 | v3.0 | 1 | Not started | - |
+| 45 | v3.0 | 1 | Complete | 2026-04-22 |
 | 46 | v3.0 | 0 | Not started | - |
-| 47 | v3.0 | 0 | Not started | - |
+| 47 | v3.0 | 3 | Not started | - |
 
 ---
 

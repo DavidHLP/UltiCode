@@ -17,7 +17,7 @@
 
 ## Phases
 
-- [ ] **Phase 45: API Documentation** — SpringDoc 2.8.17 upgrade + OpenAPI annotations + Swagger UI
+- [ ] **Phase 45: API Documentation** — SpringDoc 2.6.0 + @ApiResponse annotations + Swagger UI
 - [ ] **Phase 46: Sandbox Hardening** — bubblewrap bug fixes + per-language limits + namespace isolation tests
 - [ ] **Phase 47: Frontend i18n** — vue-i18n upgrade + useLocale composable + language switcher
 
@@ -27,19 +27,19 @@
 
 ### Phase 45: API Documentation
 
-**Goal**: SpringDoc upgraded to 2.8.17 with annotated endpoints and accessible Swagger UI
+**Goal**: SpringDoc annotations complete with accessible Swagger UI
 
 **Depends on**: Nothing (standalone backend work)
 
 **Requirements**: API-01, API-02, API-03
 
 **Success Criteria** (what must be TRUE):
-1. pom.xml shows springdoc.version set to 2.8.17
+1. pom.xml springdoc.version is 2.6.0 (springdoc 2.8.17 requires Spring Boot 3.5+; 2.6.0 is last compatible with SB 3.2.5)
 2. Critical endpoints (auth, user, problem, submission, contest) have @Operation and @ApiResponse annotations
 3. Swagger UI loads and displays API docs at /swagger-ui.html
-4. OpenAPI 3.0 spec is valid and includes all annotated endpoints
+4. OpenAPI 3.0.1 spec is valid and includes all annotated endpoints
 
-**Plans**: TBD
+**Plans**: 1 plan
 
 ---
 
@@ -58,7 +58,7 @@
 4. /tmp is mounted as tmpfs with size=64m enforcement
 5. Integration test validates namespace isolation (user/pid/network namespaces separate)
 
-**Plans**: TBD
+**Plans**: 1 plan
 
 ---
 
@@ -77,7 +77,7 @@
 4. Console header displays language switcher toggling between zh-CN and en-US
 5. Missing translation keys produce console warnings in development (missingWarn enabled)
 
-**Plans**: TBD
+**Plans**: 1 plan
 
 ---
 
@@ -96,7 +96,7 @@
 | 34-37 | v1.8 | 4 | Complete | 2026-04-22 |
 | 38-40 | v1.9 | 4 | Complete | 2026-04-22 |
 | 41-44 | v2.0 | 4 | Complete | 2026-04-22 |
-| 45 | v3.0 | 0 | Not started | - |
+| 45 | v3.0 | 1 | Not started | - |
 | 46 | v3.0 | 0 | Not started | - |
 | 47 | v3.0 | 0 | Not started | - |
 

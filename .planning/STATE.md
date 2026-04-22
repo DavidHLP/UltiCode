@@ -1,10 +1,10 @@
 ---
 gsd_state_version: 1.0
-milestone: null
-milestone_name: null
+milestone: v1.9
+milestone_name: Performance & Quality
 current_phase: null
 status: planning
-last_updated: "2026-04-22T03:40:00.000Z"
+last_updated: "2026-04-22T04:00:00.000Z"
 progress:
   total_phases: 0
   completed_phases: 37
@@ -16,9 +16,8 @@ progress:
 # STATE.md
 
 **Project:** UltiCode - Online Programming Platform
-**Last Milestone:** v1.8 Technical Debt III (SHIPPED 2026-04-22)
-**Total Phases Completed:** 37 (across v1.0–v1.8)
-**Status:** Ready for next milestone
+**Current Milestone:** v1.9 Performance & Quality (IN PROGRESS)
+**Status:** Defining requirements
 
 ---
 
@@ -26,13 +25,28 @@ progress:
 
 **Core Value:** 平台安全性、功能完整性和交付自动化
 
-**Current Focus:** Planning next milestone
+**Current Focus:** Planning v1.9 milestone
 
 ---
 
 ## Current Position
 
-All milestones through v1.8 complete. Ready to start new milestone.
+Milestone v1.9 Performance & Quality: **IN PROGRESS**
+
+- Phase 38: TBD (Achievement N+1 优化)
+- Phase 39: TBD (Follow System 索引优化)
+- Phase 40: TBD (测试覆盖率强制执行)
+- Phase 41: TBD (可选)
+
+---
+
+## v1.9 Target Requirements
+
+| REQ-ID | Requirement | Phase |
+|---------|-------------|-------|
+| PERF-01 | Achievement N+1 查询优化（JOIN FETCH） | TBD |
+| PERF-02 | Follow System 索引优化（composite index） | TBD |
+| MISS-01 | 测试覆盖率强制执行（JaCoCo thresholds） | TBD |
 
 ---
 
@@ -54,16 +68,11 @@ All milestones through v1.8 complete. Ready to start new milestone.
 
 ## Deferred Items
 
-Items acknowledged and carried forward:
-
 | Category | Item | Status |
 |----------|------|--------|
-| Dependencies | DEPS-03: springdoc 3.x 升级 | Pending |
-| Performance | PERF-01: Achievement N+1 查询优化 | Pending |
-| Performance | PERF-02: Follow System 索引优化 | Pending |
-| Missing | MISS-01: 测试覆盖率强制执行 | Pending |
-| Missing | MISS-02: Rate Limiting 端到端测试 | Pending |
+| Dependencies | DEPS-03: springdoc 3.x 升级 | Deferred to v2.0 |
+| Missing | MISS-02: Rate Limiting 端到端测试 | Deferred to v2.0 |
 
 ---
 
-*Last updated: 2026-04-22 after v1.8 milestone shipped*
+*Last updated: 2026-04-22 after v1.9 milestone started*

@@ -10,7 +10,7 @@
 - ✅ **v1.5 Coverage** — Phases 19-25 (shipped 2026-04-20)
 - ✅ **v1.6 User & Social** — Phases 26-29 (shipped 2026-04-21)
 - ✅ **v1.7 Notifications** — Phases 30-33 (shipped 2026-04-21)
-- 🚧 **v1.8 Technical Debt III** — Phases 34-37 (in progress)
+- ✅ **v1.8 Technical Debt III** — Phases 34-37 (shipped 2026-04-22)
 
 ## Phase Progress
 
@@ -24,11 +24,21 @@
 | 19-25 | v1.5 | - | Complete | 2026-04-20 |
 | 26-29 | v1.6 | 5 | Complete | 2026-04-21 |
 | 30-33 | v1.7 | 4 | Complete | 2026-04-21 |
-| 34-37 | v1.8 | 0 | Not started | - |
+| 34-37 | v1.8 | 4 | Complete | 2026-04-22 |
 
 ---
 
 ## Completed Milestones
+
+<details>
+<summary>✅ v1.8 Technical Debt III (Phases 34-37) — SHIPPED 2026-04-22</summary>
+
+- [x] Phase 34: Swagger UI 修复 (1/1 plan) — completed 2026-04-21
+- [x] Phase 35: Flyway URL 修复 (1/1 plan) — completed 2026-04-22
+- [x] Phase 36: Achievement 异步化 (1/1 plan) — completed 2026-04-22
+- [x] Phase 37: Forum Stats 真实数据 (1/1 plan) — completed 2026-04-22
+
+</details>
 
 <details>
 <summary>✅ v1.7 Notifications (Phases 30-33) — SHIPPED 2026-04-21</summary>
@@ -113,55 +123,10 @@
 
 ---
 
-## v1.8 Technical Debt III (In Progress)
-
-### Phase 34: Swagger UI 修复
-**Goal**: Swagger UI 可通过 /swagger-ui.html 正常访问
-**Depends on**: Nothing
-**Requirements**: DEPS-01
-**Success Criteria** (what must be TRUE):
-  1. Swagger UI 页面可正常加载（HTTP 200）
-  2. API 文档显示所有 REST endpoints
-  3. Try-out 功能可正常发送请求
-**Plans**: 1/1 ✓
-
-### Phase 35: Flyway URL 修复
-**Goal**: CI workflow 中 Flyway 下载不再返回 404
-**Depends on**: Nothing
-**Requirements**: DEPS-02
-**Success Criteria** (what must be TRUE):
-  1. CI workflow run 显示 Flyway 下载成功
-  2. Flyway migration job 不再因 URL 404 失败
-  3. 数据库迁移在 CI 环境正常执行
-**Plans**: TBD
-
-### Phase 36: Achievement 异步化
-**Goal**: Achievement 检查不再阻塞主线程
-**Depends on**: Nothing
-**Requirements**: PITFALL-01
-**Success Criteria** (what must be TRUE):
-  1. Achievement 检查在 @Async 线程执行
-  2. @EventListener 在 AFTER_COMMIT 阶段触发
-  3. 主线程不等待 Achievement 检查完成
-**Plans**: 1/1
-
-### Phase 37: Forum Stats 真实数据
-**Goal**: Admin Forum Stats 返回真实统计而非硬编码零值
-**Depends on**: Nothing
-**Requirements**: BUG-01, PITFALL-02
-**Success Criteria** (what must be TRUE):
-  1. Admin dashboard Forum Stats 显示 forum_comments 表真实 count
-  2. Admin dashboard Forum Stats 显示 forum_votes 表真实 count
-  3. Stats 数据随实际数据变化而更新（非硬编码）
-**Plans**: 1/1
-Plans:
-- [ ] 37-01-PLAN.md — Fix hardcoded zeros in AdminForumServiceImpl.toAdminVO()
-
----
-
 ## Next Milestone
 
 Next milestone not yet planned. Use `/gsd-new-milestone` to start.
 
 ---
+
 _Archived milestones: `.planning/milestones/`_

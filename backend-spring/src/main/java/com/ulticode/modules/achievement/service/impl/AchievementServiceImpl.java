@@ -318,9 +318,21 @@ public class AchievementServiceImpl implements AchievementService {
     public UserPointsVO getUserPoints(String userId) {
         List<UserAchievement> userAchievements = userAchievementMapper.findByUserId(userId);
 
+        if (userAchievements.isEmpty()) {
+            return new UserPointsVO(0, 0);
+        }
+
+        List<String> achievementIds = userAchievements.stream()
+                .map(UserAchievement::getAchievementId)
+                .collect(Collectors.toList());
+
+        Map<String, Achievement> achievementMap = achievementMapper.selectBatchIds(achievementIds)
+                .stream()
+                .collect(Collectors.toMap(Achievement::getId, a -> a));
+
         int totalPoints = 0;
         for (UserAchievement ua : userAchievements) {
-            Achievement achievement = achievementMapper.selectById(ua.getAchievementId());
+            Achievement achievement = achievementMap.get(ua.getAchievementId());
             if (achievement != null && achievement.getPoints() != null) {
                 totalPoints += achievement.getPoints();
             }

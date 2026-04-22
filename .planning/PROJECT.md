@@ -55,19 +55,24 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 - **JaCoCo Threshold Raise (Phase 43)**: LINE 3%→5%, BRANCH 1%→2%
 - **Testcontainers Upgrade (Phase 44)**: BOM 1.11.3→1.21.4, getFirstMappedPort()→getMappedPort(6379)
 
+## Current Milestone: v3.0 平台质量与用户体验
+
+**Goal:** 提升平台质量、安全性与国际化能力
+
+**Target features:**
+- SpringDoc 升级 — OpenAPI 3.1 支持
+- 沙盒隔离继续加强
+- 前端多语言支持（Console/Management i18n）
+
 ## Active Requirements
 
 Items from v2.0 carried forward:
 
 | Category | Item | Status |
 |----------|------|--------|
-| Dependencies | DEPS-03: springdoc 3.x 升级 | Active — v3.0 (needs Spring Boot 4.x) |
-| Quality | Maven Testcontainers infrastructure | Deferred — needs both MySQL+Redis containers in test |
+| Dependencies | DEPS-03: springdoc 3.x 升级 | Active — v3.0 |
+| Quality | Maven Testcontainers infrastructure | Deferred — needs MySQL+Redis containers in test |
 | Quality | JaCoCo BRANCH coverage improvement | Active — need more test coverage |
-
-## Current Milestone: TBD
-
-**Next milestone:** Run `/gsd-new-milestone` to define
 
 ## Evolution
 
@@ -88,4 +93,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-04-22 after v2.0 milestone shipped*
+*Last updated: 2026-04-22 after v3.0 milestone started*

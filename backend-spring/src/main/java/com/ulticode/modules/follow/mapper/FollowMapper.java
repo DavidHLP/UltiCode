@@ -39,4 +39,34 @@ public interface FollowMapper extends BaseMapper<UserFollow> {
 
     @Select("SELECT * FROM user_follows WHERE follower_id = #{followerId} ORDER BY created_at DESC LIMIT #{offset}, #{limit}")
     List<UserFollow> selectByFollowerIdPaged(@Param("followerId") String followerId, @Param("offset") long offset, @Param("limit") long limit);
+
+    @Select("""
+        SELECT uf.following_id AS userId,
+               COUNT(DISTINCT uf.follower_id) AS followerCount
+        FROM user_follows uf
+        WHERE uf.following_id IN <foreach collection="userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        GROUP BY uf.following_id
+        """)
+    @Results({
+        @Result(property = "userId", column = "userId"),
+        @Result(property = "followerCount", column = "followerCount"),
+        @Result(property = "followingCount", column = "followingCount")
+    })
+    List<FollowCountDTO> batchFollowCounts(@Param("userIds") List<String> userIds);
+
+    @Select("""
+        SELECT uf.follower_id AS userId,
+               COUNT(DISTINCT uf.following_id) AS followingCount
+        FROM user_follows uf
+        WHERE uf.follower_id IN <foreach collection="userIds" item="id" open="(" separator="," close=")">#{id}</foreach>
+        GROUP BY uf.follower_id
+        """)
+    @Results({
+        @Result(property = "userId", column = "userId"),
+        @Result(property = "followerCount", column = "followerCount"),
+        @Result(property = "followingCount", column = "followingCount")
+    })
+    List<FollowCountDTO> batchFollowingCounts(@Param("userIds") List<String> userIds);
+
+    record FollowCountDTO(String userId, int followerCount, int followingCount) {}
 }

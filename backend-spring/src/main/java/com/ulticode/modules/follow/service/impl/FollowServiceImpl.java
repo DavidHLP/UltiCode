@@ -8,6 +8,7 @@ import com.ulticode.modules.follow.dto.FollowStatsDTO;
 import com.ulticode.modules.follow.dto.UserSummaryDTO;
 import com.ulticode.modules.follow.entity.UserFollow;
 import com.ulticode.modules.follow.mapper.FollowMapper;
+import com.ulticode.modules.follow.mapper.FollowMapper.FollowCountDTO;
 import com.ulticode.modules.follow.service.FollowService;
 import com.ulticode.modules.notification.service.NotificationService;
 import com.ulticode.modules.user.entity.User;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -114,8 +116,26 @@ public class FollowServiceImpl implements FollowService {
         Map<String, User> userMap = userMapper.selectBatchIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
 
+        // Batch fetch follower/following counts for all users in 2 queries total
+        Map<String, FollowCountDTO> countMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<FollowCountDTO> followerCounts = followMapper.batchFollowCounts(userIds);
+            List<FollowCountDTO> followingCounts = followMapper.batchFollowingCounts(userIds);
+            for (FollowCountDTO fc : followerCounts) {
+                countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), fc.followerCount(), 0));
+            }
+            for (FollowCountDTO fc : followingCounts) {
+                FollowCountDTO existing = countMap.get(fc.userId());
+                if (existing != null) {
+                    countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), existing.followerCount(), fc.followingCount()));
+                } else {
+                    countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), 0, fc.followingCount()));
+                }
+            }
+        }
+
         List<UserSummaryDTO> summaries = follows.stream()
-                .map(f -> toUserSummary(userMap.get(f.getFollowerId())))
+                .map(f -> toUserSummary(userMap.get(f.getFollowerId()), countMap))
                 .toList();
 
         return PageResult.of(summaries, total, currentPage, currentPageSize);
@@ -138,8 +158,26 @@ public class FollowServiceImpl implements FollowService {
         Map<String, User> userMap = userMapper.selectBatchIds(userIds).stream()
                 .collect(Collectors.toMap(User::getId, u -> u));
 
+        // Batch fetch follower/following counts for all users in 2 queries total
+        Map<String, FollowCountDTO> countMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            List<FollowCountDTO> followerCounts = followMapper.batchFollowCounts(userIds);
+            List<FollowCountDTO> followingCounts = followMapper.batchFollowingCounts(userIds);
+            for (FollowCountDTO fc : followerCounts) {
+                countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), fc.followerCount(), 0));
+            }
+            for (FollowCountDTO fc : followingCounts) {
+                FollowCountDTO existing = countMap.get(fc.userId());
+                if (existing != null) {
+                    countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), existing.followerCount(), fc.followingCount()));
+                } else {
+                    countMap.put(fc.userId(), new FollowCountDTO(fc.userId(), 0, fc.followingCount()));
+                }
+            }
+        }
+
         List<UserSummaryDTO> summaries = follows.stream()
-                .map(f -> toUserSummary(userMap.get(f.getFollowingId())))
+                .map(f -> toUserSummary(userMap.get(f.getFollowingId()), countMap))
                 .toList();
 
         return PageResult.of(summaries, total, currentPage, currentPageSize);
@@ -153,7 +191,7 @@ public class FollowServiceImpl implements FollowService {
         return stats;
     }
 
-    private UserSummaryDTO toUserSummary(User user) {
+    private UserSummaryDTO toUserSummary(User user, Map<String, FollowCountDTO> countMap) {
         if (user == null) {
             return null;
         }
@@ -163,8 +201,10 @@ public class FollowServiceImpl implements FollowService {
         dto.setAvatar(user.getAvatar());
         String bio = user.getBio();
         dto.setBio(bio != null && bio.length() > 100 ? bio.substring(0, 100) : bio);
-        dto.setFollowerCount(followMapper.countByFollowingId(user.getId()));
-        dto.setFollowingCount(followMapper.countByFollowerId(user.getId()));
+
+        FollowCountDTO counts = countMap.get(user.getId());
+        dto.setFollowerCount(counts != null ? counts.followerCount() : 0);
+        dto.setFollowingCount(counts != null ? counts.followingCount() : 0);
         return dto;
     }
 

@@ -22,6 +22,8 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of AchievementTriggerService.
@@ -130,6 +132,12 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
 
         List<String> awardedIds = new ArrayList<>();
 
+        // Batch fetch all existing user achievements to avoid N+1 inside loop
+        Set<String> earnedAchievementIds = userAchievementMapper.findByUserId(userId)
+                .stream()
+                .map(UserAchievement::getAchievementId)
+                .collect(Collectors.toSet());
+
         for (Achievement achievement : matchingAchievements) {
             Map<String, Object> criteria = achievement.getCriteria();
             Object targetObj = criteria.get("target");
@@ -139,10 +147,7 @@ public class AchievementTriggerServiceImpl implements AchievementTriggerService 
             }
 
             if (currentValue >= target) {
-                UserAchievement existing = userAchievementMapper.findByUserAndAchievement(
-                        userId, achievement.getId());
-
-                if (existing == null) {
+                if (!earnedAchievementIds.contains(achievement.getId())) {
                     UserAchievement userAchievement = new UserAchievement();
                     userAchievement.setUserId(userId);
                     userAchievement.setAchievementId(achievement.getId());

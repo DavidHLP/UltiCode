@@ -1,40 +1,36 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: Defining requirements
-last_updated: "2026-04-22T10:36:25.816Z"
+milestone: v2.0
+milestone_name: Dependencies & Quality
+status: milestone_complete
+last_updated: "2026-04-22"
 progress:
-  total_phases: 5
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
+  total_phases: 4
+  completed_phases: 4
+  total_plans: 4
+  completed_plans: 4
+  percent: 100
 ---
 
 # STATE.md
 
 **Project:** UltiCode - Online Programming Platform
-**Current Milestone:** v2.0 Dependencies & Quality — In Progress
-**Status:** Defining requirements
-
----
-
-## Project Reference
-
-**Core Value:** 平台安全性、功能完整性和交付自动化
-
-**Current focus:** v2.0 milestone — dependency upgrades and quality improvements
+**Current Milestone:** v2.0 Dependencies & Quality — Complete
+**Status:** Milestone shipped
 
 ---
 
 ## Current Position
 
-v2.0 Dependencies & Quality: **IN PROGRESS**
+Milestone: **v2.0 Dependencies & Quality — COMPLETE**
+All 4 phases finished (41, 42, 43, 44).
 
-- Phase: Not started (defining requirements)
-- Plan: —
-- Status: Defining requirements
-- Last activity: 2026-04-22 — Milestone v2.0 started
+| Phase | Name | Plans | Status |
+|-------|------|-------|--------|
+| 41 | Dependency Upgrades | 1/1 | Complete |
+| 42 | Rate Limiting E2E | 1/1 | Complete |
+| 43 | JaCoCo Threshold Raise | 1/1 | Complete |
+| 44 | Testcontainers Upgrade | 1/1 | Complete |
 
 ---
 
@@ -52,18 +48,8 @@ v2.0 Dependencies & Quality: **IN PROGRESS**
 | v1.7 Notifications | 2026-04-21 | Phase 33 | Shipped |
 | v1.8 Technical Debt III | 2026-04-22 | Phase 37 | Shipped |
 | v1.9 Performance & Quality | 2026-04-22 | Phase 40 | Shipped |
-| v2.0 Dependencies & Quality | 2026-04-22 | — | In Progress |
+| v2.0 Dependencies & Quality | 2026-04-22 | Phase 44 | Shipped |
 
 ---
 
-## Active Requirements
-
-| Category | Item | Status |
-|----------|------|--------|
-| Dependencies | DEPS-03: springdoc 3.x 升级 | Active — v2.0 |
-| Missing | MISS-02: Rate Limiting 端到端测试 | Active — v2.0 |
-| Quality | JaCoCo thresholds at 3%/1% | Active — v2.0 |
-
----
-
-*Last updated: 2026-04-22 after v2.0 started*
+*Last updated: 2026-04-22 after Phase 44 complete*

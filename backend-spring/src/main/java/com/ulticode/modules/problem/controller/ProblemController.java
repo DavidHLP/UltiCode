@@ -12,6 +12,9 @@ import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.service.ProblemService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.security.access.prepost.PreAuthorize;
 import jakarta.validation.Valid;
@@ -41,6 +44,7 @@ public class ProblemController {
      * @return paginated list of problems
      */
     @Operation(summary = "List problems", description = "Get a paginated list of problems with optional filters")
+    @ApiResponse(responseCode = "200", description = "Problems retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping
     public Result<PageResult<ProblemVO>> listProblems(
             @Parameter(description = "Page number (1-based)")
@@ -73,6 +77,8 @@ public class ProblemController {
      * @return the problem details
      */
     @Operation(summary = "Get problem by ID", description = "Get a problem's details by its ID")
+    @ApiResponse(responseCode = "200", description = "Problem retrieved", content = @Content(schema = @Schema(implementation = ProblemDetailResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Problem not found")
     @GetMapping("/{id}")
     public Result<ProblemDetailResponse> getProblemById(
             @Parameter(description = "Problem ID")
@@ -89,6 +95,8 @@ public class ProblemController {
      * @return the problem details
      */
     @Operation(summary = "Get problem by slug", description = "Get a problem's details by its slug")
+    @ApiResponse(responseCode = "200", description = "Problem retrieved", content = @Content(schema = @Schema(implementation = ProblemDetailResponse.class)))
+    @ApiResponse(responseCode = "404", description = "Problem not found")
     @GetMapping("/slug/{slug}")
     public Result<ProblemDetailResponse> getProblemBySlug(
             @Parameter(description = "Problem slug")
@@ -105,6 +113,8 @@ public class ProblemController {
      * @return the previous and next problem slugs
      */
     @Operation(summary = "Get adjacent problems", description = "Get previous and next problem slugs for navigation")
+    @ApiResponse(responseCode = "200", description = "Adjacent problems retrieved", content = @Content(schema = @Schema(implementation = AdjacentProblemsVO.class)))
+    @ApiResponse(responseCode = "404", description = "Problem not found")
     @GetMapping("/{id}/adjacent")
     public Result<AdjacentProblemsVO> getAdjacentProblems(
             @Parameter(description = "Current problem ID")
@@ -120,6 +130,8 @@ public class ProblemController {
      * @return a random published problem
      */
     @Operation(summary = "Get a random published problem")
+    @ApiResponse(responseCode = "200", description = "Random problem retrieved", content = @Content(schema = @Schema(implementation = ProblemVO.class)))
+    @ApiResponse(responseCode = "404", description = "No published problems available")
     @GetMapping("/random")
     public Result<ProblemVO> getRandomProblem() {
         return Result.success(problemService.findRandomPublished());
@@ -133,6 +145,10 @@ public class ProblemController {
      * @return the created problem
      */
     @Operation(summary = "Create problem", description = "Create a new problem (admin only)")
+    @ApiResponse(responseCode = "200", description = "Problem created", content = @Content(schema = @Schema(implementation = ProblemVO.class)))
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "problem:create", limit = 30, period = 60)
     @PostMapping
@@ -150,6 +166,10 @@ public class ProblemController {
      * @return the updated problem
      */
     @Operation(summary = "Update problem", description = "Update an existing problem (admin only)")
+    @ApiResponse(responseCode = "200", description = "Problem updated", content = @Content(schema = @Schema(implementation = ProblemVO.class)))
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
+    @ApiResponse(responseCode = "404", description = "Problem not found")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "problem:update", limit = 30, period = 60)
     @PutMapping("/{id}")
@@ -169,6 +189,9 @@ public class ProblemController {
      * @return success result
      */
     @Operation(summary = "Delete problem", description = "Delete a problem (admin only)")
+    @ApiResponse(responseCode = "200", description = "Problem deleted")
+    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
+    @ApiResponse(responseCode = "404", description = "Problem not found")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "problem:delete", limit = 30, period = 60)
     @DeleteMapping("/{id}")

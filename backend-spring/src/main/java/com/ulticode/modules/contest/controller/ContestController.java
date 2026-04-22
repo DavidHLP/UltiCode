@@ -11,6 +11,9 @@ import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -44,6 +47,9 @@ public class ContestController {
      * @return the created contest
      */
     @Operation(summary = "Create contest", description = "Create a new contest (admin only)")
+    @ApiResponse(responseCode = "200", description = "Contest created", content = @Content(schema = @Schema(implementation = ContestVO.class)))
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
     @SecurityRequirement(name = "Bearer")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "contest:create", limit = 30, period = 60)
@@ -65,6 +71,10 @@ public class ContestController {
      * @return the updated contest
      */
     @Operation(summary = "Update contest", description = "Update an existing contest (admin only)")
+    @ApiResponse(responseCode = "200", description = "Contest updated", content = @Content(schema = @Schema(implementation = ContestVO.class)))
+    @ApiResponse(responseCode = "400", description = "Validation error")
+    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @SecurityRequirement(name = "Bearer")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "contest:update", limit = 30, period = 60)
@@ -86,6 +96,9 @@ public class ContestController {
      * @return success result
      */
     @Operation(summary = "Delete contest", description = "Delete a contest (admin only)")
+    @ApiResponse(responseCode = "200", description = "Contest deleted")
+    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @SecurityRequirement(name = "Bearer")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @RateLimit(key = "contest:delete", limit = 30, period = 60)
@@ -115,6 +128,7 @@ public class ContestController {
      * @return paginated list of contests
      */
     @Operation(summary = "Get contest list", description = "Get a paginated list of contests with optional filters")
+    @ApiResponse(responseCode = "200", description = "Contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping("/list")
     public Result<PageResult<ContestVO>> getContestList(
             @Parameter(description = "Page number (1-based)")
@@ -151,6 +165,7 @@ public class ContestController {
      * @return list of upcoming contests
      */
     @Operation(summary = "Get upcoming contests", description = "Get a list of upcoming contests")
+    @ApiResponse(responseCode = "200", description = "Upcoming contests retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
     @GetMapping("/upcoming")
     public Result<List<ContestVO>> getUpcomingContests() {
         String userId = SecurityUtil.getCurrentUserId();
@@ -165,6 +180,7 @@ public class ContestController {
      * @return list of running contests
      */
     @Operation(summary = "Get running contests", description = "Get a list of currently running contests")
+    @ApiResponse(responseCode = "200", description = "Running contests retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
     @GetMapping("/running")
     public Result<List<ContestVO>> getRunningContests() {
         String userId = SecurityUtil.getCurrentUserId();
@@ -181,6 +197,7 @@ public class ContestController {
      * @return paginated list of past contests
      */
     @Operation(summary = "Get past contests", description = "Get a paginated list of past contests")
+    @ApiResponse(responseCode = "200", description = "Past contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping("/past")
     public Result<PageResult<ContestVO>> getPastContests(
             @Parameter(description = "Page number (1-based)")
@@ -200,6 +217,7 @@ public class ContestController {
      * @return contest statistics
      */
     @Operation(summary = "Get contest statistics", description = "Get overall contest statistics")
+    @ApiResponse(responseCode = "200", description = "Statistics retrieved", content = @Content(schema = @Schema(implementation = ContestStatsVO.class)))
     @GetMapping("/stats")
     public Result<ContestStatsVO> getContestStats() {
         ContestStatsVO stats = contestService.getStats();
@@ -214,6 +232,7 @@ public class ContestController {
      * @return list of global rankings
      */
     @Operation(summary = "Get global ranking", description = "Get the global leaderboard")
+    @ApiResponse(responseCode = "200", description = "Global ranking retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
     @GetMapping("/global-ranking")
     public Result<List<ContestRankingVO>> getGlobalRanking(
             @Parameter(description = "Maximum number of rankings to return")
@@ -231,6 +250,8 @@ public class ContestController {
      * @return the contest details
      */
     @Operation(summary = "Get contest by ID", description = "Get a contest's details by its ID")
+    @ApiResponse(responseCode = "200", description = "Contest retrieved", content = @Content(schema = @Schema(implementation = ContestVO.class)))
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @GetMapping("/{id}")
     public Result<ContestVO> getContestById(
             @Parameter(description = "Contest ID")
@@ -252,6 +273,8 @@ public class ContestController {
      * @return paginated list of rankings
      */
     @Operation(summary = "Get contest ranking", description = "Get the ranking for a specific contest")
+    @ApiResponse(responseCode = "200", description = "Ranking retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @GetMapping("/{id}/ranking")
     public Result<PageResult<ContestRankingVO>> getContestRanking(
             @Parameter(description = "Contest ID")
@@ -274,6 +297,9 @@ public class ContestController {
      * @return list of live rankings
      */
     @Operation(summary = "Get live ranking", description = "Get the live ranking for a running contest")
+    @ApiResponse(responseCode = "200", description = "Live ranking retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "403", description = "Contest is not currently running")
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @GetMapping("/{id}/live-ranking")
     public Result<List<ContestRankingVO>> getLiveRanking(
             @Parameter(description = "Contest ID")
@@ -297,6 +323,10 @@ public class ContestController {
      * @return success result
      */
     @Operation(summary = "Register for contest", description = "Register the current user for a contest")
+    @ApiResponse(responseCode = "200", description = "Registration successful")
+    @ApiResponse(responseCode = "400", description = "Already registered or contest not open")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @SecurityRequirement(name = "Bearer")
     @RateLimit(key = "contest:register", limit = 20, period = 60)
     @PostMapping("/{id}/register")
@@ -317,6 +347,10 @@ public class ContestController {
      * @return success result
      */
     @Operation(summary = "Unregister from contest", description = "Unregister the current user from a contest")
+    @ApiResponse(responseCode = "200", description = "Unregistration successful")
+    @ApiResponse(responseCode = "400", description = "Not registered for this contest")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @SecurityRequirement(name = "Bearer")
     @RateLimit(key = "contest:unregister", limit = 20, period = 60)
     @DeleteMapping("/{id}/register")
@@ -337,6 +371,9 @@ public class ContestController {
      * @return the participation status
      */
     @Operation(summary = "Get participation status", description = "Get the current user's participation status for a contest")
+    @ApiResponse(responseCode = "200", description = "Participation status retrieved", content = @Content(schema = @Schema(implementation = ParticipationStatusDTO.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @SecurityRequirement(name = "Bearer")
     @GetMapping("/{id}/participation")
     public Result<ParticipationStatusDTO> getParticipationStatus(
@@ -360,6 +397,10 @@ public class ContestController {
      * @return the virtual session information
      */
     @Operation(summary = "Start virtual contest", description = "Start a virtual participation for a past contest")
+    @ApiResponse(responseCode = "200", description = "Virtual contest started", content = @Content(schema = @Schema(implementation = ParticipationStatusDTO.class)))
+    @ApiResponse(responseCode = "400", description = "Cannot start virtual contest for non-past contest")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Contest not found")
     @SecurityRequirement(name = "Bearer")
     @RateLimit(key = "contest:virtual-start", limit = 20, period = 60)
     @PostMapping("/{id}/virtual/start")
@@ -380,6 +421,9 @@ public class ContestController {
      * @return the virtual session status
      */
     @Operation(summary = "Get virtual session", description = "Get the current virtual contest session status")
+    @ApiResponse(responseCode = "200", description = "Virtual session retrieved", content = @Content(schema = @Schema(implementation = ParticipationStatusDTO.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Virtual session not found")
     @SecurityRequirement(name = "Bearer")
     @GetMapping("/{id}/virtual/session")
     public Result<ParticipationStatusDTO> getVirtualSession(
@@ -400,6 +444,10 @@ public class ContestController {
      * @return success result
      */
     @Operation(summary = "Finish virtual contest", description = "Finish a virtual contest session")
+    @ApiResponse(responseCode = "200", description = "Virtual contest finished")
+    @ApiResponse(responseCode = "400", description = "No active virtual session")
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
+    @ApiResponse(responseCode = "404", description = "Virtual session not found")
     @SecurityRequirement(name = "Bearer")
     @RateLimit(key = "contest:virtual-finish", limit = 20, period = 60)
     @PostMapping("/{id}/virtual/finish")
@@ -426,6 +474,8 @@ public class ContestController {
      * @return list of contests
      */
     @Operation(summary = "Get my contests", description = "Get the current user's contests")
+    @ApiResponse(responseCode = "200", description = "User's contests retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @SecurityRequirement(name = "Bearer")
     @GetMapping("/user/my-contests")
     public Result<List<ContestVO>> getMyContests(
@@ -444,6 +494,8 @@ public class ContestController {
      * @return list of contest history
      */
     @Operation(summary = "Get contest history", description = "Get the current user's contest participation history")
+    @ApiResponse(responseCode = "200", description = "Contest history retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @SecurityRequirement(name = "Bearer")
     @GetMapping("/user/history")
     public Result<List<ContestRankingVO>> getContestHistory() {
@@ -459,6 +511,8 @@ public class ContestController {
      * @return list of rating history
      */
     @Operation(summary = "Get rating history", description = "Get the current user's rating change history")
+    @ApiResponse(responseCode = "200", description = "Rating history retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "401", description = "Not authenticated")
     @SecurityRequirement(name = "Bearer")
     @GetMapping("/user/rating-history")
     public Result<List<ContestRankingVO>> getRatingHistory() {

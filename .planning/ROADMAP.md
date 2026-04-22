@@ -12,13 +12,16 @@
 - [x] **v1.7 Notifications** — Phases 30-33 (shipped 2026-04-21)
 - [x] **v1.8 Technical Debt III** — Phases 34-37 (shipped 2026-04-22)
 - [x] **v1.9 Performance & Quality** — Phases 38-40 (shipped 2026-04-22)
-- [ ] **Next Milestone** — TBD
+- [ ] **v2.0 Dependencies & Quality** — Phases 41-43 (in progress)
 
 ## Phases
 
 - [x] **Phase 38: Achievement N+1 Query Optimization** — Fix getUserPoints() and checkAndAwardAchievements() N+1 with batch fetch
 - [x] **Phase 39: Follow System Optimization** — Add composite indexes and fix toUserSummary() N+1
 - [x] **Phase 40: JaCoCo Coverage Enforcement** — Bind jacoco:check to verify phase (2/2 plans complete)
+- [ ] **Phase 41: Dependency Upgrades** — springdoc 2.8.17 upgrade + Testcontainers Redis
+- [ ] **Phase 42: Rate Limiting E2E** — E2E tests for rate limiting with Testcontainers Redis
+- [ ] **Phase 43: JaCoCo Threshold Raise** — Raise thresholds to 5%/3%
 
 **Plans:**
 - 40-01: Bind jacoco:check to verify phase — COMPLETED (`b9ef81c2f`)
@@ -81,6 +84,59 @@
 
 ---
 
+### Phase 41: Dependency Upgrades
+
+**Goal**: Update springdoc to 2.8.17 and add Testcontainers Redis dependency
+
+**Depends on**: Nothing
+
+**Requirements**: DEPS-01, DEPS-02
+
+**Success Criteria** (what must be TRUE):
+1. swagger-ui loads at /swagger-ui.html without errors
+2. /api-docs returns valid OpenAPI JSON with no breaking changes
+3. Testcontainers Redis dependency present in pom.xml with no compile errors
+
+**Plans**: TBD
+
+---
+
+### Phase 42: Rate Limiting E2E Tests
+
+**Goal**: Verify rate limiting via E2E tests with Testcontainers Redis
+
+**Depends on**: Phase 41
+
+**Requirements**: TEST-01
+
+**Success Criteria** (what must be TRUE):
+1. E2E test class runs with Testcontainers Redis container
+2. Rate-limited endpoint returns 429 after exceeding limit
+3. Each test flushes Redis keys to avoid false 429s
+4. Auth endpoint rate limit tier verified (auth/register = 5/min)
+
+**Plans**: TBD
+
+---
+
+### Phase 43: JaCoCo Threshold Raise
+
+**Goal**: Raise coverage thresholds incrementally to improve quality signal
+
+**Depends on**: Phase 42
+
+**Requirements**: JAC-01
+
+**Success Criteria** (what must be TRUE):
+1. pom.xml JaCoCo LINE threshold updated from 3% to 5%
+2. pom.xml JaCoCo BRANCH threshold updated from 1% to 3%
+3. `mvn verify` fails if coverage falls below thresholds
+4. CI build passes with new thresholds (coverage from Phase 42 tests)
+
+**Plans**: TBD
+
+---
+
 ## Phase Progress
 
 | Phase | Milestone | Plans | Status | Completed |
@@ -97,6 +153,9 @@
 | 38 | v1.9 | 1/1 | Complete    | 2026-04-22 |
 | 39 | v1.9 | 1/1 | Complete    | 2026-04-22 |
 | 40 | v1.9 | 2/2 | Complete    | 2026-04-22 |
+| 41 | v2.0 | 0/  | In Progress | - |
+| 42 | v2.0 | 0/  | Pending     | - |
+| 43 | v2.0 | 0/  | Pending     | - |
 
 ---
 
@@ -206,7 +265,13 @@
 
 ## Next Milestone
 
-Next milestone not yet planned. Use `/gsd-new-milestone` to start.
+**v2.0 Dependencies & Quality** — Phases 41-43
+
+| Phase | Name | Requirements |
+|--------|------|--------------|
+| 41 | Dependency Upgrades | DEPS-01, DEPS-02 |
+| 42 | Rate Limiting E2E | TEST-01 |
+| 43 | JaCoCo Threshold Raise | JAC-01 |
 
 ---
 

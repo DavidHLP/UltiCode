@@ -148,7 +148,7 @@ Plans:
 | 41 | v2.0 | 1/  | In Progress | - |
 | 42 | v2.0 | 1/1 | Complete    | 2026-04-22 |
 | 43 | v2.0 | 1/  | Complete    | 2026-04-22 |
-| 44 | v2.0 | 0/  | Pending     | - |
+| 44 | v2.0 | 1/1 | Complete    | 2026-04-22 |
 
 ---
 
@@ -271,10 +271,11 @@ Plans:
 
 **Goal**: Upgrade testcontainers-bom and testcontainers from 1.11.3 to latest stable 11.x. Fix any API breaking changes.
 **Depends on**: Phase 42
-**Plans:** 0 plans
+**Plans:** 1/1 plans complete
+**Status:** ✅ Complete (verified 2026-04-22)
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 44 to break down)
+- [x] TBD (run /gsd-plan-phase 44 to break down) (completed 2026-04-22)
 
 ---
 

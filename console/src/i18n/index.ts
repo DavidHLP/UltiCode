@@ -22,6 +22,7 @@ export const i18n = createI18n({
   globalInjection: true, // Inject $t globally
   locale: getInitialLocale(),
   fallbackLocale: FALLBACK_LOCALE,
+  missingWarn: import.meta.env.DEV, // true in development, false in production
   messages: {
     "zh-CN": zhCN,
     "en-US": enUS,

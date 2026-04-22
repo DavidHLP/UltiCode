@@ -2,132 +2,95 @@ package com.ulticode.modules.achievement.service;
 
 import com.ulticode.modules.achievement.constants.AchievementType;
 
-import java.util.List;
-
 /**
  * Service interface for achievement trigger operations.
  *
- * <p>This service is responsible for checking and awarding achievements
- * when users perform certain actions.
+ * <p>Trigger methods are fire-and-forget: they publish an AchievementCheckEvent
+ * and return immediately. Achievement checks run asynchronously after the
+ * main transaction commits via AchievementCheckListener.
  */
 public interface AchievementTriggerService {
 
     /**
-     * Check and award achievements when a user solves a problem.
-     *
-     * @param userId the user ID
-     * @param problemsSolvedCount the current count of problems solved
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user solves a problem.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onProblemSolved(String userId, int problemsSolvedCount);
+    void onProblemSolved(String userId, int problemsSolvedCount);
 
     /**
-     * Check and award achievements when a user makes a submission.
-     *
-     * @param userId the user ID
-     * @param submissionsCount the current count of submissions made
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user makes a submission.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onSubmissionMade(String userId, int submissionsCount);
+    void onSubmissionMade(String userId, int submissionsCount);
 
     /**
-     * Check and award achievements when a user joins a contest.
-     *
-     * @param userId the user ID
-     * @param contestParticipationCount the current count of contests participated
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user joins a contest.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onContestJoined(String userId, int contestParticipationCount);
+    void onContestJoined(String userId, int contestParticipationCount);
 
     /**
-     * Check and award achievements when a user wins a contest.
-     *
-     * @param userId the user ID
-     * @param contestWinsCount the current count of contests won
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user wins a contest.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onContestWon(String userId, int contestWinsCount);
+    void onContestWon(String userId, int contestWinsCount);
 
     /**
-     * Check and award achievements when a user places in a contest.
-     *
-     * @param userId the user ID
-     * @param contestPlacedCount the current count of contest placements
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user places in a contest.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onContestPlaced(String userId, int contestPlacedCount);
+    void onContestPlaced(String userId, int contestPlacedCount);
 
     /**
-     * Check and award achievements when a user creates a forum post.
-     *
-     * @param userId the user ID
-     * @param forumPostsCount the current count of forum posts
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user creates a forum post.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onForumPostCreated(String userId, int forumPostsCount);
+    void onForumPostCreated(String userId, int forumPostsCount);
 
     /**
-     * Check and award achievements when a user writes a solution.
-     *
-     * @param userId the user ID
-     * @param solutionsCount the current count of solutions written
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user writes a solution.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onSolutionWritten(String userId, int solutionsCount);
+    void onSolutionWritten(String userId, int solutionsCount);
 
     /**
-     * Check and award achievements for streak days.
-     *
-     * @param userId the user ID
-     * @param streakDays the current streak days
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check for streak days.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onStreakUpdated(String userId, int streakDays);
+    void onStreakUpdated(String userId, int streakDays);
 
     /**
-     * Check and award achievements for rating milestone.
-     *
-     * @param userId the user ID
-     * @param rating the current rating
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check for rating milestone.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onRatingUpdated(String userId, int rating);
+    void onRatingUpdated(String userId, int rating);
 
     /**
-     * Check and award achievements when a user's follower count changes.
-     *
-     * @param userId the user ID
-     * @param followerCount the current follower count
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user's follower count changes.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onFollowCountUpdated(String userId, int followerCount);
+    void onFollowCountUpdated(String userId, int followerCount);
 
     /**
-     * Check and award achievements when a user solves their first problem.
-     *
-     * @param userId the user ID
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user solves their first problem.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onFirstProblemSolved(String userId);
+    void onFirstProblemSolved(String userId);
 
     /**
-     * Check and award achievements when a user reaches a language milestone
-     * (e.g., 10 problems solved in Python).
-     *
-     * @param userId the user ID
-     * @param language the programming language
-     * @param count the current count of problems solved in that language
-     * @return list of achievement IDs that were awarded
+     * Request async achievement check when a user reaches a language milestone.
+     * Fire-and-forget: publishes AchievementCheckEvent and returns immediately.
      */
-    List<String> onLanguageMilestone(String userId, String language, int count);
+    void onLanguageMilestone(String userId, String language, int count);
 
     /**
      * Check and award achievements for any achievement type.
+     * Called by AchievementCheckListener after transaction commits.
      *
      * @param userId the user ID
      * @param type the achievement type
      * @param currentValue the current value for the type
      * @return list of achievement IDs that were awarded
      */
-    List<String> checkAndAwardAchievements(String userId, AchievementType type, int currentValue);
+    java.util.List<String> checkAndAwardAchievements(String userId, AchievementType type, int currentValue);
 }

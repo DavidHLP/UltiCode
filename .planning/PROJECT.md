@@ -17,7 +17,7 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 
 ## Current State
 
-**Last shipped:** v1.9 Performance & Quality (2026-04-22)
+**Last shipped:** v2.0 Dependencies & Quality (in progress)
 **Total phases completed:** 40 (across v1.0–v1.9)
 
 ## Milestone History
@@ -32,7 +32,7 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 | v1.5 Coverage | 2026-04-20 | Rate limiting, JaCoCo, Redis caching, N+1, large file refactoring |
 | v1.6 User & Social | 2026-04-21 | Follow system, user profiles, achievements backend, social frontend |
 | v1.7 Notifications | 2026-04-21 | WebSocket push, follow/contest/submission notification triggers |
-| v1.8 Technical Debt III | 2026-04-22 | Swagger, Flyway URL, Achievement async, Forum stats |
+| v1.9 Performance & Quality | 2026-04-22 | Achievement N+1, Follow indexes, JaCoCo enforcement |
 
 ## v1.8 Accomplishments
 
@@ -47,15 +47,24 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 - **Follow System (Phase 39)**: V101 composite indexes + batch count queries (2 queries vs 2N) eliminate N+1 in user summaries
 - **JaCoCo Enforcement (Phase 40)**: Coverage check bound to verify phase, thresholds lowered to LINE 3%, BRANCH 1% to unblock CI
 
-## Deferred Items
+## Active Requirements
 
-Items acknowledged and carried forward from v1.9:
+Items from v1.9 carried forward to v2.0:
 
 | Category | Item | Status |
 |----------|------|--------|
-| Dependencies | DEPS-03: springdoc 3.x 升级 | Deferred to v2.0 |
-| Missing | MISS-02: Rate Limiting 端到端测试 | Deferred to v2.0 |
-| Quality | JaCoCo thresholds at 3%/1% (need test coverage to raise) | Deferred to future phase |
+| Dependencies | DEPS-03: springdoc 3.x 升级 | Active — v2.0 |
+| Missing | MISS-02: Rate Limiting 端到端测试 | Active — v2.0 |
+| Quality | JaCoCo thresholds at 3%/1% | Active — v2.0 (need test coverage to raise) |
+
+## Current Milestone: v2.0 Dependencies & Quality
+
+**Goal:** 升级关键依赖并提高测试覆盖率
+
+**Target features:**
+- springdoc 3.x 升级（DEPS-03）
+- Rate Limiting 端到端测试（MISS-02）
+- JaCoCo 覆盖率阈值提高
 
 ## Evolution
 
@@ -76,4 +85,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-04-22 after v1.9 Performance & Quality milestone shipped*
+*Last updated: 2026-04-22 after v2.0 started*

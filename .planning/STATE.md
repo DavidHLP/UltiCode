@@ -1,22 +1,22 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: executing
-last_updated: "2026-04-22T06:29:17.906Z"
+milestone: v2.0
+milestone_name: Dependencies & Quality
+status: defining_requirements
+last_updated: "2026-04-22"
 progress:
-  total_phases: 3
-  completed_phases: 3
-  total_plans: 3
-  completed_plans: 3
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # STATE.md
 
 **Project:** UltiCode - Online Programming Platform
-**Current Milestone:** v1.9 Performance & Quality (IN PROGRESS)
-**Status:** Executing Phase --phase
+**Current Milestone:** v2.0 Dependencies & Quality — In Progress
+**Status:** Defining requirements
 
 ---
 
@@ -24,29 +24,18 @@ progress:
 
 **Core Value:** 平台安全性、功能完整性和交付自动化
 
-**Current Focus:** Phase --phase — 38
+**Current focus:** v2.0 milestone — dependency upgrades and quality improvements
 
 ---
 
 ## Current Position
 
-Phase: --phase (38) — EXECUTING
-Plan: 1 of --name
-Milestone v1.9 Performance & Quality: **PLANNING**
+v2.0 Dependencies & Quality: **IN PROGRESS**
 
-- Phase 38: Achievement N+1 Query Optimization (PERF-01)
-- Phase 39: Follow System Optimization (PERF-02)
-- Phase 40: JaCoCo Coverage Enforcement (MISS-01)
-
----
-
-## v1.9 Target Requirements
-
-| REQ-ID | Requirement | Phase | Status |
-|---------|-------------|-------|--------|
-| PERF-01 | Achievement N+1 查询优化 | Phase 38 | Pending |
-| PERF-02 | Follow System 索引优化 | Phase 39 | Pending |
-| MISS-01 | 测试覆盖率强制执行 | Phase 40 | Pending |
+- Phase: Not started (defining requirements)
+- Plan: —
+- Status: Defining requirements
+- Last activity: 2026-04-22 — Milestone v2.0 started
 
 ---
 
@@ -63,22 +52,19 @@ Milestone v1.9 Performance & Quality: **PLANNING**
 | v1.6 User & Social | 2026-04-21 | Phase 29 | Shipped |
 | v1.7 Notifications | 2026-04-21 | Phase 33 | Shipped |
 | v1.8 Technical Debt III | 2026-04-22 | Phase 37 | Shipped |
+| v1.9 Performance & Quality | 2026-04-22 | Phase 40 | Shipped |
+| v2.0 Dependencies & Quality | 2026-04-22 | — | In Progress |
 
 ---
 
-## Deferred Items
+## Active Requirements
 
 | Category | Item | Status |
 |----------|------|--------|
-| Dependencies | DEPS-03: springdoc 3.x 升级 | Deferred to v2.0 |
-| Missing | MISS-02: Rate Limiting 端到端测试 | Deferred to v2.0 |
+| Dependencies | DEPS-03: springdoc 3.x 升级 | Active — v2.0 |
+| Missing | MISS-02: Rate Limiting 端到端测试 | Active — v2.0 |
+| Quality | JaCoCo thresholds at 3%/1% | Active — v2.0 |
 
 ---
 
-*Last updated: 2026-04-22 after v1.9 roadmap defined*
-
-**Planned Phase:** 40 (jaCoCo-coverage-enforcement) — 2 plans — 2026-04-22
-
-**Completed Plans:**
-- 40-01: Bind jacoco:check to verify phase — `b9ef81c2f`
-- 40-02: Lower JaCoCo thresholds to realistic values — `f5e37dcb7` (LINE 3%, BRANCH 1%)
+*Last updated: 2026-04-22 after v2.0 started*

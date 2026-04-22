@@ -129,6 +129,28 @@ code-execution:
     timeout: ${SANDBOX_TIMEOUT:10}
     pids-limit: ${SANDBOX_PIDS_LIMIT:128}
     seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:docker/sandbox/seccomp-profile.json}
+    languages:
+      java:
+        timeout-seconds: 10
+        memory: 256m
+      python:
+        timeout-seconds: 5
+        memory: 128m
+      c:
+        timeout-seconds: 5
+        memory: 128m
+      cpp:
+        timeout-seconds: 5
+        memory: 128m
+      go:
+        timeout-seconds: 8
+        memory: 256m
+      rust:
+        timeout-seconds: 8
+        memory: 256m
+      javascript:
+        timeout-seconds: 3
+        memory: 64m
 
 # Backup Configuration
 backup:

@@ -14,7 +14,7 @@ Upgrade testcontainers-bom and testcontainers from 1.11.3 to latest stable 11.x.
 ## Implementation Decisions
 
 ### Version Target
-- **D-01:** Upgrade to latest stable testcontainers 11.x — exact version resolved by Maven during dependency resolution
+- **D-01:** Upgrade to testcontainers 1.21.4 — last stable 1.x release (11.x is 2.x naming scheme incompatible)
 
 ### Dependency Updates
 - **D-02:** testcontainers-bom: 1.11.3 → latest stable 11.x

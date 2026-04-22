@@ -1,5 +1,23 @@
 # Milestones
 
+## v2.0 Dependencies & Quality (Shipped: 2026-04-22)
+
+**Phases:** 4 (41-44)
+**Plans:** 4
+**Requirements:** 2/4 complete, 2 partial/blocked
+
+**Key accomplishments:**
+
+1. Phase 41 (Dependency Upgrades): springdoc 2.6.0 retained (2.8.17 blocked by Spring Boot 3.2.5 incompatibility), testcontainers-redis added
+2. Phase 42 (Rate Limiting E2E): RateLimitIntegrationTest.java with Testcontainers Redis, @BeforeEach flushDb(), HTTP 429 assertions
+3. Phase 43 (JaCoCo Threshold Raise): LINE 3%→5%, BRANCH 1%→2%
+4. Phase 44 (Testcontainers Upgrade): BOM 1.11.3→1.21.4, getFirstMappedPort()→getMappedPort(6379)
+
+**Known deferred items:** 1
+- RateLimitIntegrationTest Maven infrastructure (needs MySQL+Redis Testcontainers)
+
+---
+
 ## v1.8 Technical Debt III (Shipped: 2026-04-22)
 
 **Phases:** 4 (34-37)

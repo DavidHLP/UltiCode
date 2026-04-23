@@ -23,9 +23,9 @@ progress:
 ## Current Position
 
 Phase: 47
-Plan: Not started
+Plan: 4 plans (47-01,47-02,47-03 complete; 47-04 gap closure ready)
 **Milestone:** v3.0 — Phase 45 completed, Phase 46 next
-**Focus:** Phase 46 (Sandbox Hardening)
+**Focus:** Phase 47 (Frontend i18n) — gap closure plan ready
 
 | Phase | Name | Status |
 |-------|------|--------|

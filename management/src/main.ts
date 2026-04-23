@@ -33,16 +33,16 @@ async function bootstrap() {
   // Initialize locale from stored preference on app startup
   // This ensures document.documentElement.lang is set even before any component mounts
   // and persists correctly to localStorage
-  const storedLocale = localStorage.getItem('ulticode-locale') as 'zh-CN' | 'en-US' | null;
+  const storedLocale = localStorage.getItem('ulticode-locale') as 'zh-CN' | 'en-US' | null
   if (storedLocale === 'zh-CN' || storedLocale === 'en-US') {
-    setLocale(storedLocale);
+    setLocale(storedLocale)
   } else {
     // Detect browser preference
-    const browserLang = navigator.language;
+    const browserLang = navigator.language
     if (browserLang.startsWith('zh')) {
-      setLocale('zh-CN');
+      setLocale('zh-CN')
     } else {
-      setLocale('en-US');
+      setLocale('en-US')
     }
   }
 
@@ -62,7 +62,6 @@ async function bootstrap() {
   app.use(router)
 
   app.mount('#app')
-
 }
 
 // Start the application

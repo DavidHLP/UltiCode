@@ -1,66 +1,82 @@
 # External Integrations
 
-**Analysis Date:** 2026-04-19
+**Analysis Date:** 2026-04-22
 
 ## APIs & External Services
 
 **Code Execution Sandbox:**
 - Docker-based code execution
 - Configured via `code-execution.sandbox.*` in `application.yml`
-- Environment vars: `SANDBOX_ENABLED`, `SANDBOX_IMAGE`, `SANDBOX_MEMORY`, `SANDBOX_CPUS`, `SANDBOX_TIMEOUT`
+- Environment vars: `JUDGE_CONTAINER_ENABLED`, `JUDGE_CONTAINER_IMAGE`, `JUDGE_CONTAINER_POOL_SIZE`
+- Uses Docker socket: `/var/run/docker.sock`
 
 **Full-text Search:**
-- MeiliSearch (optional)
-- SDK: `com.meilisearch.sdk:meilisearch-java` 0.20.0
-- Configured via `meilisearch.*` in `application.yml`
-- Environment vars: `MEILISEARCH_ENABLED`, `MEILISEARCH_HOST`, `MEILISEARCH_API_KEY`
+- MeiliSearch
+  - SDK: `com.meilisearch.sdk:meilisearch-java:0.20.0`
+  - Env vars: `MEILISEARCH_ENABLED`, `MEILISEARCH_HOST` (optional)
+  - Used for: Problem search, user search
 
 **Recommendation Service:**
-- Dubbo3 RPC service (optional)
-- Apache Spark for offline processing
-- Service discovery via Nacos
-- Configured via `recommendation.*` in `application.yml`
-- Environment vars: `RECOMMENDATION_ENABLED`, `RECOMMENDATION_SERVICE_URL`, `RECOMMENDATION_NACOS_ENABLED`
+- Dubbo3 RPC - Internal microservices
+  - Service: `recommend-web` (port 9005)
+  - Registry: Nacos (localhost:28848)
+  - Protocol: dubbo (native)
+  - Implementation: `com.ulticode:recommend-api:1.0.0`
+  - Fallback URL: `http://localhost:28081`
+
+**Payment (Optional):**
+- Stripe - Payment processing
+  - Env vars: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`
+  - Products: `STRIPE_PRICE_PREMIUM_MONTHLY`, `STRIPE_PRICE_PREMIUM_YEARLY`
+  - Status: Configured but disabled
+
+**OAuth (Optional):**
+- GitHub OAuth
+  - Env vars: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
+  - Callback: `http://localhost:9001/auth/github/callback`
+- Google OAuth
+  - Env vars: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
+  - Callback: `http://localhost:9001/auth/google/callback`
+
+**Email (Optional):**
+- SMTP - Email delivery
+  - Env vars: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`
+  - Status: Configured but disabled (`EMAIL_ENABLED=false`)
 
 ## Data Storage
 
-**Primary Database:**
+**Database:**
 - MySQL 9.1
-- Connection: `jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}`
-- ORM: MyBatis-Plus 3.5.16
-- Default credentials: `ulticode:ulticode` (dev)
-- Container: `ulticode-mysql` on port 23306
+  - Host: localhost:23306
+  - Connection: `mysql://ulticode:*@localhost:23306/ulticode`
+  - ORM: MyBatis-Plus 3.5.16
+  - Migration: Flyway (via db-manager CLI)
 
-**Cache & Sessions:**
+**Cache:**
 - Redis 7 (Alpine)
-- Connection: `redis://${REDIS_HOST:localhost}:${REDIS_PORT:26379}`
-- Client: Redisson 4.3.1 (distributed locks), Lettuce (Spring Data Redis)
-- Auth: `REDIS_PASSWORD` required
-- Container: `ulticode-redis` on port 26379
+  - Host: localhost:26379
+  - Auth: `REDIS_PASSWORD` required
+  - Uses: Session store, rate limiting, caching
 
 **File Storage:**
-- Local filesystem (backup directory)
-- Configured via `backup.dir` in `application.yml`
-- Default: `/tmp/backups`
+- Local filesystem via Docker volumes
+  - `mysql_data` volume for MySQL data
+  - `nacos_logs` volume for Nacos logs
+  - `redis_data` volume for Redis persistence
 
 ## Authentication & Identity
 
-**Primary Auth:**
+**Auth Provider:**
 - Custom JWT-based authentication
-- Access token: 15 minutes expiry
-- Refresh token: 7 days expiry
-- Stored in httpOnly cookies (`access_token`, `refresh_token`)
-- CSRF protection via `X-CSRF-Token` header
+  - Access token: httpOnly cookie (15 min expiry)
+  - Refresh token: httpOnly cookie (7 day expiry)
+  - CSRF protection via `X-CSRF-Token` header
+  - Implementation: `com.ulticode.backend.security` module
+  - Cookie secure flag: `JWT_COOKIE_SECURE` (default false for dev)
 
-**OAuth 2.0 Providers:**
-- GitHub OAuth
-  - Config: `oauth.github.*` in `application.yml`
-  - Env vars: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
-  - Scopes: `user:email`
-- Google OAuth
-  - Config: `oauth.google.*` in `application.yml`
-  - Env vars: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-  - Scopes: `email,profile`
+**Session Management:**
+- Redis-backed sessions via Redisson
+- Cookie-based JWT storage
 
 ## Service Discovery
 
@@ -68,38 +84,45 @@
 - Nacos 2.3.2 (standalone mode)
 - Container: `ulticode-nacos` on ports 8848, 9848
 - Used for: Dubbo service registration/discovery
-- Env vars: `NACOS_HOST`, `NACOS_PORT`, `NACOS_USERNAME`, `NACOS_PASSWORD`
 - Database: `nacos_config` in MySQL
+- Env vars: `NACOS_HOST`, `NACOS_PORT`, `NACOS_NAMESPACE`, `NACOS_GROUP`
 
 ## Monitoring & Observability
 
 **Error Tracking:**
-- Not detected (no Sentry, Bugsnag, or similar)
+- Not explicitly configured
 
 **Logs:**
 - Spring Boot logging to stdout
-- Pattern: `%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n`
-- Log level: `INFO` (root), configurable per package
+- PM2 process logs
+- Nacos embedded logging
 
 **Health Checks:**
-- Spring Actuator: `/actuator/health`
-- Docker health checks on MySQL and Redis
+- Spring Actuator: `http://localhost:9001/actuator/health`
+- Swagger UI: `http://localhost:9001/swagger-ui.html`
+- API docs: `http://localhost:9001/api-docs`
+- Docker healthchecks for MySQL, Redis, Nacos
 
 ## CI/CD & Deployment
 
+**Hosting:**
+- Self-hosted via Docker and PM2
+- No cloud platform specified
+
 **Container Orchestration:**
 - Docker Compose (development)
-- `docker-compose.yml` - MySQL, Redis, Nacos
-- `docker-compose.prod.yml` - Production stack
+  - `docker-compose.yml` - MySQL, Redis, Nacos
+  - `docker-compose.prod.yml` - Production stack
 
 **Process Management:**
 - PM2 (via `ecosystem.config.cjs`)
-- Services: `ulticode-9001` (backend), `ulticode-9002` (console), `ulticode-9003` (management), `ulticode-9004/9005` (recommendation)
+  - ulticode-9001 (backend), ulticode-9002 (console), ulticode-9003 (management)
+  - ulticode-9004, ulticode-9005 (recommendation, optional)
 
 **Database Migrations:**
 - Flyway (via `db-manager` CLI)
 - Migrations: `db-manager/migrations/*.sql`
-- Commands: `python -m db_manager.cli migrate|status|info|repair`
+- Commands: `db-manager/.venv/bin/python -m db_manager.cli migrate|status|info|repair`
 
 ## Environment Configuration
 
@@ -115,7 +138,7 @@
 | `REDIS_HOST` | Redis host | `localhost` |
 | `REDIS_PORT` | Redis port | `26379` |
 | `REDIS_PASSWORD` | Redis auth | `***` |
-| `JWT_SECRET` | JWT signing key | `***` |
+| `JWT_SECRET` | JWT signing key (min 32 chars) | `***` |
 | `NACOS_HOST` | Nacos host | `localhost` |
 | `NACOS_PORT` | Nacos port | `28848` |
 
@@ -125,9 +148,10 @@
 |----------|---------|---------|
 | `MEILISEARCH_ENABLED` | Enable MeiliSearch | `false` |
 | `MEILISEARCH_HOST` | MeiliSearch URL | - |
-| `MEILISEARCH_API_KEY` | MeiliSearch API key | - |
-| `RECOMMENDATION_ENABLED` | Enable recommendation | `false` |
-| `RECOMMENDATION_SERVICE_URL` | Recommendation Dubbo URL | - |
+| `RECOMMENDATION_ENABLED` | Enable recommendation | `true` |
+| `RECOMMENDATION_SERVICE_NAME` | Dubbo service name | `recommend-web` |
+| `RECOMMENDATION_TIMEOUT` | RPC timeout (ms) | `5000` |
+| `RECOMMENDATION_FALLBACK_URL` | Fallback URL | `http://localhost:28081` |
 | `SMTP_HOST` | Mail server | `localhost` |
 | `SMTP_PORT` | Mail port | `587` |
 | `SMTP_USER` | Mail username | - |
@@ -139,6 +163,8 @@
 | `GOOGLE_CLIENT_SECRET` | Google OAuth secret | - |
 | `CORS_ALLOWED_ORIGINS` | CORS origins | `http://localhost:9002,http://localhost:9003` |
 | `JWT_COOKIE_SECURE` | Secure cookies | `false` |
+| `JUDGE_CONTAINER_ENABLED` | Enable Docker sandbox | `true` |
+| `JUDGE_CONTAINER_IMAGE` | Sandbox image | `ulticode-judge:latest` |
 
 **Secrets Location:**
 - `backend-spring/.env` - Backend environment (gitignored)
@@ -149,10 +175,11 @@
 
 **Incoming:**
 - OAuth callbacks: `/auth/{provider}/callback` (GitHub, Google)
+- Stripe webhooks (configured but not enabled)
 
 **Outgoing:**
-- Not detected (no outbound webhooks)
+- Nacos service registration (Dubbo)
 
 ---
 
-*Integration audit: 2026-04-19*
+*Integration audit: 2026-04-22*

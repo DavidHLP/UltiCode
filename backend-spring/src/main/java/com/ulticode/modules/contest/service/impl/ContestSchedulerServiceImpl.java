@@ -11,9 +11,9 @@ import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
-import com.ulticode.modules.contest.service.ContestService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +34,6 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
 
     private final ContestMapper contestMapper;
     private final ContestParticipantMapper participantMapper;
-    private final ContestService contestService;
 
     @Override
     @Transactional
@@ -133,7 +132,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
 
         return filtered.stream().map(p -> {
             Contest contest = contestMapper.selectById(p.getContestId());
-            ContestVO vo = contestService.toVO(contest, userId);
+            ContestVO vo = toContestVO(contest, userId);
             vo.setUserRanking(p.getFinalRank());
             vo.setUserScore(p.getTotalScore() != null ? p.getTotalScore().longValue() : null);
             return vo;
@@ -207,5 +206,29 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         participantMapper.updateById(participant);
 
         log.info("User {} finished virtual contest {} session {}", userId, contestId, sessionId);
+    }
+
+    private ContestVO toContestVO(Contest contest, String userId) {
+        if (contest == null) return null;
+        ContestVO vo = new ContestVO();
+        BeanUtils.copyProperties(contest, vo);
+        vo.setId(contest.getId());
+        vo.setDuration(contest.getDurationMinutes());
+        vo.setCurrentParticipants(contest.getParticipantCount());
+        vo.setIsPremium(false);
+        vo.setIsPublished(contest.getIsVisible());
+        vo.setCreatedById(contest.getCreatedBy() != null ? Long.parseLong(contest.getCreatedBy()) : null);
+        if (userId != null && !userId.isBlank()) {
+            Optional<?> participantOpt = participantMapper.findByContestIdAndUserId(contest.getId(), userId);
+            if (participantOpt.isPresent()) {
+                var p = (ContestParticipant) participantOpt.get();
+                vo.setIsParticipating(true);
+                vo.setUserRanking(p.getFinalRank());
+                vo.setUserScore(p.getTotalScore() != null ? p.getTotalScore().longValue() : null);
+            } else {
+                vo.setIsParticipating(false);
+            }
+        }
+        return vo;
     }
 }

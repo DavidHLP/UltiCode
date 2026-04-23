@@ -1,261 +1,347 @@
 # Testing Patterns
 
-**Analysis Date:** 2026-04-19
+**Analysis Date:** 2026-04-22
 
-## Test Frameworks
+## Test Framework Overview
 
-**Frontend (Console & Management):**
-- **Framework:** Vitest 4.x
-- **Environment:** jsdom
-- **Component Testing:** @vue/test-utils
-- **Configuration:** `vitest.config.ts` in project root
+### Backend (Java - Spring Boot)
 
-**Backend (Spring Boot):**
-- **Framework:** JUnit 5 (`@Test`, `@Nested`, `@DisplayName`)
-- **Assertions:** AssertJ for fluent assertions
-- **Mocking:** Mockito with `@ExtendWith(MockitoExtension.class)`
-- **Integration:** Testcontainers 1.11.3 for MySQL integration tests
+**Framework:** JUnit 5 with Mockito
 
-## Test File Organization
+**Key Dependencies:**
+- `junit-jupiter` - Test runner
+- `mockito-core` - Mocking framework
+- `mockito-junit-jupiter` - MockitoExtension for JUnit 5
 
-**Frontend:**
-- Tests co-located in `__tests__/` subdirectories
-- Pattern: `src/stores/__tests__/auth.spec.ts`
-- Pattern: `src/composables/__tests__/useRetry.spec.ts`
-- Pattern: `src/components/common/loading/__tests__/ErrorBoundary.spec.ts`
+**Location:** `backend-spring/src/test/java/com/ulticode/`
 
-**Backend:**
-- Mirror main source structure in `src/test/java/`
-- Pattern: `src/test/java/com/ulticode/modules/user/service/UserServiceTest.java`
-- Pattern: `src/test/java/com/ulticode/common/response/ResultTest.java`
+### Frontend (TypeScript/Vue - Vite)
+
+**Framework:** Vitest with Vue Test Utils
+
+**Key Dependencies:**
+- `vitest` - Test runner
+- `@vue/test-utils` - Vue component testing
+- `jsdom` - DOM environment
+
+**Location:**
+- `console/src/**/*.spec.ts` and `console/src/**/__tests__/*.spec.ts`
+- `management/src/**/*.spec.ts` and `management/src/**/__tests__/*.spec.ts`
+
+### Recommendation Service (Java)
+
+**Framework:** JUnit 5 with Maven
+
+**Location:** `recommendation/**/src/test/java/`
 
 ## Run Commands
 
-**Frontend:**
+### Backend
+
 ```bash
-pnpm test                  # Run all tests (vitest --run --passWithNoTests)
-pnpm test:watch           # Watch mode (vitest)
-pnpm test:coverage        # Coverage report (vitest --coverage)
+cd backend-spring && ./mvnw test
 ```
 
-**Backend:**
+### Frontend - Console
+
 ```bash
-cd backend-spring && ./mvnw test                    # Run all tests
-cd backend-spring && ./mvnw test -Dtest=UserServiceTest  # Run specific test
+cd console && pnpm test                  # Run all tests
+cd console && pnpm test:watch            # Watch mode
+cd console && pnpm test:coverage         # With coverage
+```
+
+### Frontend - Management
+
+```bash
+cd management && pnpm test                  # Run all tests
+cd management && pnpm test:watch            # Watch mode
+cd management && pnpm test:coverage         # With coverage
+```
+
+### Root Level
+
+```bash
+pnpm test                  # Run all frontend tests
+pnpm quality               # lint + type-check + test
 ```
 
 ## Test Structure
 
-**Frontend (Vitest - AAA Pattern):**
-```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
+### Backend Unit Tests
 
-describe("useRetry", () => {
-  beforeEach(() => {
-    vi.useFakeTimers();
-  });
+**Pattern:** `@ExtendWith(MockitoExtension.class)` with `@Mock` and `@InjectMocks`
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
+**Example from `backend-spring/src/test/java/com/ulticode/modules/user/service/UserServiceTest.java`:**
 
-  it("should return result on first successful attempt", async () => {
-    // Arrange
-    const fn = vi.fn().mockResolvedValue("success");
-
-    // Act
-    const result = await retry(fn);
-
-    // Assert
-    expect(result).toBe("success");
-    expect(fn).toHaveBeenCalledTimes(1);
-  });
-});
-```
-
-**Backend (JUnit 5 - Nested Classes):**
 ```java
 @ExtendWith(MockitoExtension.class)
-@DisplayName("AuthServiceImpl")
-class AuthServiceImplTest {
+class UserServiceTest {
 
     @Mock
     private UserMapper userMapper;
 
     @InjectMocks
-    private AuthServiceImpl authService;
+    private UserServiceImpl userService;
+
+    private User testUser;
+
+    @BeforeEach
+    void setUp() {
+        testUser = new User();
+        testUser.setId("test-user-id");
+        testUser.setUsername("testuser");
+        // ...
+    }
 
     @Nested
-    @DisplayName("login()")
-    class LoginTests {
+    @DisplayName("findById")
+    class FindByIdTests {
 
         @Test
-        @DisplayName("successful login returns response with csrf token")
-        void login_validCredentials_returnsLoginResponse() {
+        @DisplayName("should return user when found")
+        void shouldReturnUserWhenFound() {
             // Arrange
-            LoginDTO loginDTO = new LoginDTO();
-            loginDTO.setUsername(USERNAME);
-            loginDTO.setPassword(PASSWORD);
-            User user = createActiveUser();
-            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
+            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
 
             // Act
-            LoginResponse response = authService.login(loginDTO, mockResponse());
+            Optional<User> result = userService.findById("test-user-id");
 
             // Assert
-            assertThat(response.getCsrfToken()).isEqualTo(CSRF_TOKEN);
+            assertTrue(result.isPresent());
+            assertEquals("test-user-id", result.get().getId());
         }
     }
 }
 ```
 
-## Mocking Patterns
+**Key Patterns:**
+- `@Nested` for grouping related tests
+- `@DisplayName` for human-readable test names
+- Arrange/Act/Assert pattern
+- `try (MockedStatic<SecurityUtil.class>)` for static mocking
 
-**Frontend (Vitest):**
+### Frontend Unit Tests (Vitest)
+
+**Pattern:** `describe` blocks with `it` or `test`, `beforeEach` for setup
+
+**Example from `console/src/api/__tests__/auth.spec.ts`:**
+
 ```typescript
-// Mock entire module
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { apiGet, apiPost } from "@/utils/request";
+import { authApi } from "@/api/auth";
+
 vi.mock("@/utils/request", () => ({
   apiGet: vi.fn(),
   apiPost: vi.fn(),
 }));
 
-// Mock specific function
-vi.mocked(apiPost).mockResolvedValue({ user: mockUser });
+describe("authApi", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
-// Mock with return value
-vi.mocked(getCsrfToken).mockReturnValue("test-csrf-token");
+  describe("login", () => {
+    it("calls apiPost with /auth/login and credentials", async () => {
+      const credentials = { username: "testuser", password: "password123" };
+      const loginResponse = { csrfToken: "csrf-123", user: mockUser };
+      vi.mocked(apiPost).mockResolvedValue(loginResponse);
 
-// Clear mocks between tests
-beforeEach(() => {
-  vi.clearAllMocks();
+      const result = await authApi.login(credentials);
+
+      expect(apiPost).toHaveBeenCalledWith("/auth/login", credentials);
+      expect(result).toEqual(loginResponse);
+    });
+  });
 });
 ```
 
-**Backend (Mockito):**
+### Frontend Component Tests
+
+**Example from `console/src/components/common/loading/__tests__/ErrorBoundary.spec.ts`:**
+
+```typescript
+import { describe, it, expect, vi } from "vitest";
+import { mount } from "@vue/test-utils";
+import { defineComponent, h } from "vue";
+import ErrorBoundary from "../ErrorBoundary.vue";
+
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
+describe("ErrorBoundary", () => {
+  it("should render children when no error", () => {
+    const wrapper = mount(ErrorBoundary, {
+      slots: {
+        default: () => h(NormalComponent),
+      },
+    });
+
+    expect(wrapper.text()).toContain("Normal content");
+  });
+});
+```
+
+## Mocking Patterns
+
+### Backend
+
+**Mocking Mappers/Services:**
 ```java
 @Mock
 private UserMapper userMapper;
 
-// When-then pattern
-when(userMapper.selectById("test-user-id")).thenReturn(testUser);
+when(userMapper.selectById(anyString())).thenReturn(testUser);
 when(userMapper.selectById("non-existent")).thenReturn(null);
+```
 
-// Argument matchers
-when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(testUser);
-
-// Verify interactions
-verify(userMapper).updateById(any(User.class));
-verify(userMapper, never()).updateById(any(User.class));
-
-// Static mocking
+**Mocking Static Methods:**
+```java
 try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
     securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn("test-user-id");
     // test code
 }
 ```
 
-## Test Data Fixtures
+### Frontend
 
-**Frontend:**
+**Mocking Modules:**
 ```typescript
-const mockUser: User = {
-  id: "1",
-  username: "testuser",
-  name: "Test User",
-  email: "test@example.com",
-  role: "USER",
-  isActive: true,
-  joinedAt: "2026-01-01T00:00:00Z",
-};
+vi.mock("@/utils/request", () => ({
+  apiGet: vi.fn(),
+  apiPost: vi.fn(),
+}));
+
+vi.mocked(apiPost).mockResolvedValue(mockData);
 ```
 
-**Backend:**
-```java
-private User createActiveUser() {
-    User user = new User();
-    user.setId(USER_ID);
-    user.setUsername(USERNAME);
-    user.setPassword("encoded-password");
-    user.setRole("USER");
-    user.setIsActive(true);
-    user.setIsBanned(false);
-    return user;
-}
-```
-
-## Async Testing
-
-**Frontend (Vitest with fake timers):**
+**Mocking Vue i18n:**
 ```typescript
-beforeEach(() => {
-  vi.useFakeTimers();
-});
+vi.mock("vue-i18n", () => ({
+  useI18n: () => ({
+    t: (key: string) => key,
+  }),
+}));
+```
 
-afterEach(() => {
-  vi.useRealTimers();
-});
+## Vitest Configuration
 
-it("should retry with exponential backoff", async () => {
-  vi.useRealTimers(); // Use real timers for async test
+### Console (`console/vitest.config.ts`)
 
-  const fn = vi.fn()
-    .mockRejectedValueOnce(new Error("Error 1"))
-    .mockRejectedValueOnce(new Error("Error 2"))
-    .mockResolvedValue("success");
-
-  const result = await retry(fn);
-  expect(result).toBe("success");
-
-  vi.useFakeTimers(); // Restore fake timers
+```typescript
+export default defineConfig({
+  plugins: [vue(), vueJsx()],
+  test: {
+    environment: "jsdom",
+    exclude: [...configDefaults.exclude, "e2e/**"],
+    globals: true,
+  },
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
 });
 ```
 
-**Backend:**
-- Standard async/await with JUnit 5
+### Management (`management/vitest.config.ts`)
+
+```typescript
+export default defineConfig({
+  plugins: [vue()],
+  test: {
+    environment: "jsdom",
+    globals: true,
+  },
+  resolve: {
+    alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
+    },
+  },
+});
+```
+
+## Test File Organization
+
+### Backend
+
+```
+backend-spring/src/test/java/com/ulticode/
+├── common/
+│   └── response/ResultTest.java
+├── modules/
+│   ├── auth/
+│   │   ├── controller/AuthControllerTest.java
+│   │   └── service/
+│   │       ├── impl/AuthServiceImplTest.java
+│   │       └── PasswordResetServiceTest.java
+│   ├── user/
+│   │   └── service/UserServiceTest.java
+│   └── ...
+```
+
+**Naming:** `{ClassName}Test.java`
+
+**Structure mirrors:** `src/main/java/com/ulticode/modules/`
+
+### Frontend
+
+```
+console/src/
+├── api/__tests__/auth.spec.ts
+├── components/common/loading/__tests__/
+│   ├── ErrorBoundary.spec.ts
+│   ├── LoadingOverlay.spec.ts
+│   └── RetryButton.spec.ts
+├── composables/__tests__/
+│   ├── useEditorThemes.spec.ts
+│   ├── useLoading.spec.ts
+│   └── useRetry.spec.ts
+└── stores/__tests__/
+    ├── auth.spec.ts
+    └── editorSettings.spec.ts
+```
+
+**Naming:** `*.spec.ts` or `*.test.ts`
 
 ## Coverage
 
-**Frontend:**
-- Vitest coverage via `@vitest/coverage-v8`
-- Command: `pnpm test:coverage`
-- No enforced coverage threshold observed in config
+### Frontend Coverage Commands
 
-**Backend:**
-- JaCoCo for coverage (via spring-boot-starter-test)
-- Target: Not explicitly enforced in pom.xml
+```bash
+# Console
+cd console && pnpm test:coverage
 
-## Test Naming
+# Management
+cd management && pnpm test:coverage
+```
 
-**Frontend:**
-- `describe("useAuthStore")` for the thing being tested
-- `it("transitions idle -> loading -> ready on success")` for behavior
+### Backend Coverage
 
-**Backend:**
-- `@DisplayName("AuthServiceImpl")` on class
-- `@DisplayName("login()")` on nested class
-- `void login_validCredentials_returnsLoginResponse()` for method name pattern
-
-## Integration Testing
-
-**Backend with Testcontainers:**
-```java
-@Testcontainers
-class MyRepositoryIT {
-    @Container
-    static MySQLContainer<?> mysql = new MySQLContainer<>("mysql:8.0");
-
-    @Test
-    void save_and_findById() {
-        // Integration test with real MySQL
-    }
-}
+JaCoCo is integrated via Maven:
+```bash
+cd backend-spring && ./mvnw test
+# Coverage report in target/site/jacoco/
 ```
 
 ## E2E Testing
 
-- No E2E framework currently configured
-- Manual testing with curl examples in CLAUDE.md
+**Framework:** Not currently implemented in this codebase
+
+**Note:** The vitest config excludes `e2e/**` pattern, indicating E2E tests would be placed there if added.
+
+## Test Best Practices Observed
+
+1. **Arrange-Act-Assert** - Clear separation of test phases
+2. **Descriptive Names** - `@DisplayName` for Java, clear `it()` descriptions for TypeScript
+3. **Nested Groups** - `@Nested` classes in Java group related tests
+4. **Mock Cleanup** - `vi.clearAllMocks()` in `beforeEach`
+5. **Test Isolation** - Each test sets up its own mocks
+6. **Meaningful Assertions** - Specific assertions, not just truthy checks
 
 ---
 
-*Testing analysis: 2026-04-19*
+*Testing analysis: 2026-04-22*

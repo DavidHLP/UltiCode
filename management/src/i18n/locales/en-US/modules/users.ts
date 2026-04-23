@@ -58,6 +58,9 @@ export default {
     createUser: 'Create User',
     noReasonProvided: 'No reason provided',
     unknown: 'Unknown',
+    newPassword: 'New Password',
+    newPasswordPlaceholder: 'Enter a new password',
+    targetUser: 'Target User',
   },
 
   // Stats
@@ -76,6 +79,11 @@ export default {
     unbanUser: 'Unban User',
     banUserDescription: 'Please provide a reason for banning {username}.',
     thisUser: 'this user',
+    resetPasswordDescription: 'Set a new login password for {username}.',
+    resetPasswordWarning: 'The new password takes effect immediately. Notify the user securely.',
+    cancel: 'Cancel',
+    resetting: 'Resetting...',
+    resetPasswordAction: 'Confirm Reset Password',
   },
 
   // Bulk actions

@@ -6,6 +6,7 @@ import 'vue-sonner/style.css'
 import App from './App.vue'
 import router from './router'
 import i18n from './i18n'
+import { setLocale } from './i18n'
 
 /**
  * Application Bootstrap
@@ -29,6 +30,22 @@ async function bootstrap() {
   app.use(pinia)
   app.use(i18n)
 
+  // Initialize locale from stored preference on app startup
+  // This ensures document.documentElement.lang is set even before any component mounts
+  // and persists correctly to localStorage
+  const storedLocale = localStorage.getItem('ulticode-locale') as 'zh-CN' | 'en-US' | null;
+  if (storedLocale === 'zh-CN' || storedLocale === 'en-US') {
+    setLocale(storedLocale);
+  } else {
+    // Detect browser preference
+    const browserLang = navigator.language;
+    if (browserLang.startsWith('zh')) {
+      setLocale('zh-CN');
+    } else {
+      setLocale('en-US');
+    }
+  }
+
   // Initialize auth BEFORE router installation
   // This ensures auth status is known when router guards run
   const { useAuthStore } = await import('@/stores/auth')
@@ -43,11 +60,6 @@ async function bootstrap() {
 
   // Now install router (auth status is already determined)
   app.use(router)
-
-  // Set initial document language
-  document.documentElement.lang = (
-    i18n.global.locale as unknown as { value: string }
-  ).value
 
   app.mount('#app')
 

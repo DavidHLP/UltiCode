@@ -17,8 +17,8 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 
 ## Current State
 
-**Last shipped:** v2.0 Dependencies & Quality (shipped 2026-04-22)
-**Total phases completed:** 44 (across v1.0–v2.0)
+**Last shipped:** v3.0 Platform Quality & UX (shipped 2026-04-23)
+**Total phases completed:** 47 (across v1.0–v3.0)
 
 ## Milestone History
 
@@ -34,6 +34,7 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 | v1.7 Notifications | 2026-04-21 | WebSocket push, follow/contest/submission notification triggers |
 | v1.9 Performance & Quality | 2026-04-22 | Achievement N+1, Follow indexes, JaCoCo enforcement |
 | v2.0 Dependencies & Quality | 2026-04-22 | springdoc retention, testcontainers-redis, RateLimitIntegrationTest, JaCoCo 5%/2%, testcontainers BOM 1.21.4 |
+| v3.0 Platform Quality & UX | 2026-04-23 | SpringDoc annotations, sandbox hardening, vue-i18n upgrade + LanguageSwitcher UI |
 
 ## v1.8 Accomplishments
 
@@ -74,6 +75,24 @@ Items from v2.0 carried forward:
 | Quality | Maven Testcontainers infrastructure | Deferred — needs MySQL+Redis containers in test |
 | Quality | JaCoCo BRANCH coverage improvement | Active — need more test coverage |
 
+### v3.0 i18n Requirements — Validated in Phase 47
+
+| ID | Requirement | Status |
+|----|-------------|--------|
+| I18N-01 | vue-i18n 11.x upgrade in Management | ✓ Validated — Phase 47-01 |
+| I18N-02 | Unified useLocale composable (Console/Management) | ✓ Validated — Phase 47-02 |
+| I18N-03 | Lazy-loaded locale messages | ✓ Validated — Phase 47-01/47-02 |
+| I18N-04 | LanguageSwitcher UI for Management | ✓ Validated — Phase 47-04 |
+| I18N-05 | missingWarn: import.meta.env.DEV | ✓ Validated — Phase 47-03 |
+
+## Key Decisions
+
+| ID | Decision | Rationale | Status |
+|----|---------|-----------|--------|
+| D-03 | Storage key `ulticode-locale` | Consistent locale preference key across frontends | Active |
+| D-06 | Non-active locale via dynamic import() | Reduce initial bundle size | Active |
+| D-11 | missingWarn: import.meta.env.DEV | Suppress warnings in prod only | Active |
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -93,4 +112,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-04-22 after v3.0 milestone started*
+*Last updated: 2026-04-23 after Phase 47 (frontend-i18n)*

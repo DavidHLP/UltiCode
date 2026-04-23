@@ -30,7 +30,7 @@ Plan: Not started
 | Phase | Name | Status |
 |-------|------|--------|
 | 45 | API Documentation | Completed |
-| 46 | Sandbox Hardening | Context gathered |
+| 46 | Sandbox Hardening | Completed |
 | 47 | Frontend i18n | Completed |
 
 ---

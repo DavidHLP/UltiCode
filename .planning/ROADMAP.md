@@ -13,78 +13,16 @@
 - [x] **v1.8 Technical Debt III** — Phases 34-37 (shipped 2026-04-22)
 - [x] **v1.9 Performance & Quality** — Phases 38-40 (shipped 2026-04-22)
 - [x] **v2.0 Dependencies & Quality** — Phases 41-44 (shipped 2026-04-22)
-- [ ] **v3.0 Platform Quality & UX** — Phases 45-47
+- [x] **v3.0 Platform Quality & UX** — Phases 45-47 (shipped 2026-04-23)
 
 ## Phases
 
-- [ ] **Phase 45: API Documentation** — SpringDoc 2.6.0 + @ApiResponse annotations + Swagger UI
-- [ ] **Phase 46: Sandbox Hardening** — bubblewrap bug fixes + per-language limits + namespace isolation tests
-- [ ] **Phase 47: Frontend i18n** — vue-i18n upgrade + useLocale composable + language switcher
-
----
-
-## Phase Details
-
-### Phase 45: API Documentation
-
-**Goal**: SpringDoc annotations complete with accessible Swagger UI
-
-**Depends on**: Nothing (standalone backend work)
-
-**Requirements**: API-01, API-02, API-03
-
-**Success Criteria** (what must be TRUE):
-1. pom.xml springdoc.version is 2.6.0 (springdoc 2.8.17 requires Spring Boot 3.5+; 2.6.0 is last compatible with SB 3.2.5)
-2. Critical endpoints (auth, user, problem, submission, contest) have @Operation and @ApiResponse annotations
-3. Swagger UI loads and displays API docs at /swagger-ui.html
-4. OpenAPI 3.0.1 spec is valid and includes all annotated endpoints
-
-**Plans**: 1 plan
-
----
-
-### Phase 46: Sandbox Hardening
-
-**Goal**: Code execution sandbox is hardened with correct bubblewrap invocation and resource limits
-
-**Depends on**: Phase 45
-
-**Requirements**: SAND-01, SAND-02, SAND-03, SAND-04, SAND-05
-
-**Success Criteria** (what must be TRUE):
-1. bubblewrap command uses --read-only after --tmpfs flag (not before)
-2. seccomp profile path is correctly volume-mounted into container
-3. Each language (java, python, cpp, go, rust) has distinct timeout and memory limits
-4. /tmp is mounted as tmpfs with size=64m enforcement
-5. Integration test validates namespace isolation (user/pid/network namespaces separate)
-
-**Plans**: 1 plan
-
----
-
-### Phase 47: Frontend i18n
-
-**Goal**: Consistent internationalization across Console and Management with lazy-loaded translations and language switcher
-
-**Depends on**: Phase 46
-
-**Requirements**: I18N-01, I18N-02, I18N-03, I18N-04, I18N-05
-
-**Success Criteria** (what must be TRUE):
-1. Management frontend uses vue-i18n 11.3.2 (matching Console)
-2. useLocale composable persists selected locale to localStorage and syncs with backend
-3. Non-active locale translation files load on-demand (dynamic import)
-4. Console header displays language switcher toggling between zh-CN and en-US
-5. Missing translation keys produce console warnings in development (missingWarn enabled)
-
-**Plans**: 3 plans
-
----
+_Next milestone not yet defined — run `/gsd-new-milestone` to start planning_
 
 ## Phase Progress
 
 | Phase | Milestone | Plans | Status | Completed |
-|-------|-----------|-------|--------|-----------|
+|-------|-----------|-------|--------|----------|
 | 1-4 | v1.0 | - | Complete | 2026-04-16 |
 | 5-8 | v1.1 | - | Complete | 2026-04-17 |
 | 9-11 | v1.2 | - | Complete | 2026-04-18 |
@@ -96,13 +34,22 @@
 | 34-37 | v1.8 | 4 | Complete | 2026-04-22 |
 | 38-40 | v1.9 | 4 | Complete | 2026-04-22 |
 | 41-44 | v2.0 | 4 | Complete | 2026-04-22 |
-| 45 | v3.0 | 1 | Complete | 2026-04-22 |
-| 46 | v3.0 | 1/1 | Complete    | 2026-04-23 |
-| 47 | v3.0 | 4/4 | Complete    | 2026-04-23 |
+| 45 | v3.0 | 1/1 | Complete | 2026-04-22 |
+| 46 | v3.0 | 1/1 | Complete | 2026-04-23 |
+| 47 | v3.0 | 4/4 | Complete | 2026-04-23 |
 
 ---
 
 ## Completed Milestones
+
+<details>
+<summary>✅ v3.0 Platform Quality & UX (Phases 45-47) — SHIPPED 2026-04-23</summary>
+
+- [x] Phase 45: API Documentation (1/1 plan) — completed 2026-04-22
+- [x] Phase 46: Sandbox Hardening (1/1 plan) — completed 2026-04-23
+- [x] Phase 47: Frontend i18n (4/4 plans) — completed 2026-04-23
+
+</details>
 
 <details>
 <summary>✅ v2.0 Dependencies & Quality (Phases 41-44) — SHIPPED 2026-04-22</summary>
@@ -222,4 +169,4 @@ _Archived milestones: `.planning/milestones/`_
 
 ---
 
-_Generated: 2026-04-22_
+_Generated: 2026-04-24_

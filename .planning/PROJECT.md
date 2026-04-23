@@ -36,12 +36,11 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 | v2.0 Dependencies & Quality | 2026-04-22 | springdoc retention, testcontainers-redis, RateLimitIntegrationTest, JaCoCo 5%/2%, testcontainers BOM 1.21.4 |
 | v3.0 Platform Quality & UX | 2026-04-23 | SpringDoc annotations, sandbox hardening, vue-i18n upgrade + LanguageSwitcher UI |
 
-## v1.8 Accomplishments
+## v3.0 Accomplishments
 
-- **Swagger UI (Phase 34)**: 启用 SwaggerConfig.java，springdoc 降级到 2.6.0 修复与 Spring Boot 3.2.5 兼容性
-- **Flyway URL (Phase 35)**: Flyway 11.3.4 → 10.17.0 修复 CI 下载 404
-- **Achievement Async (Phase 36)**: Achievement 检查通过 @Async + @TransactionalEventListener(AFTER_COMMIT) 异步化
-- **Forum Stats (Phase 37)**: AdminForumServiceImpl 硬编码零值替换为真实 DB count 查询
+- **SpringDoc (Phase 45)**: 126 @ApiResponse annotations across 5 controllers; springdoc 2.6.0 retained (2.8.17 blocked by SB 3.2.5 incompatibility)
+- **Sandbox Hardening (Phase 46)**: bubblewrap flag ordering fixed, per-language limits (Java 10s/256m, Python 5s/128m, C/C++ 5s/128m, Go/Rust 8s/256m, JS 3s/64m), namespace isolation
+- **Frontend i18n (Phase 47)**: vue-i18n 11.3.2 unified across frontends, useLocale composable with localStorage→sessionStorage→memory fallback, lazy-loaded translations, Console LanguageSwitcher, missingWarn enabled
 
 ## v1.9 Accomplishments
 
@@ -56,34 +55,30 @@ UltiCode is an online programming platform (similar to LeetCode) built with Spri
 - **JaCoCo Threshold Raise (Phase 43)**: LINE 3%→5%, BRANCH 1%→2%
 - **Testcontainers Upgrade (Phase 44)**: BOM 1.11.3→1.21.4, getFirstMappedPort()→getMappedPort(6379)
 
-## Current Milestone: v3.0 平台质量与用户体验
+## v1.8 Accomplishments
 
-**Goal:** 提升平台质量、安全性与国际化能力
+- **Swagger UI (Phase 34)**: 启用 SwaggerConfig.java，springdoc 降级到 2.6.0 修复与 Spring Boot 3.2.5 兼容性
+- **Flyway URL (Phase 35)**: Flyway 11.3.4 → 10.17.0 修复 CI 下载 404
+- **Achievement Async (Phase 36)**: Achievement 检查通过 @Async + @TransactionalEventListener(AFTER_COMMIT) 异步化
+- **Forum Stats (Phase 37)**: AdminForumServiceImpl 硬编码零值替换为真实 DB count 查询
 
-**Target features:**
-- SpringDoc 升级 — OpenAPI 3.1 支持
-- 沙盒隔离继续加强
-- 前端多语言支持（Console/Management i18n）
+---
 
-## Active Requirements
+## Next Milestone
 
-Items from v2.0 carried forward:
+**Not yet defined** — Run `/gsd-new-milestone` to start planning v4.0
 
-| Category | Item | Status |
-|----------|------|--------|
-| Dependencies | DEPS-03: springdoc 3.x 升级 | Active — v3.0 |
-| Quality | Maven Testcontainers infrastructure | Deferred — needs MySQL+Redis containers in test |
-| Quality | JaCoCo BRANCH coverage improvement | Active — need more test coverage |
+### Candidates for v4.0
 
-### v3.0 i18n Requirements — Validated in Phase 47
+Based on deferred items and known gaps:
 
-| ID | Requirement | Status |
-|----|-------------|--------|
-| I18N-01 | vue-i18n 11.x upgrade in Management | ✓ Validated — Phase 47-01 |
-| I18N-02 | Unified useLocale composable (Console/Management) | ✓ Validated — Phase 47-02 |
-| I18N-03 | Lazy-loaded locale messages | ✓ Validated — Phase 47-01/47-02 |
-| I18N-04 | LanguageSwitcher UI for Management | ✓ Validated — Phase 47-04 |
-| I18N-05 | missingWarn: import.meta.env.DEV | ✓ Validated — Phase 47-03 |
+| Category | Item | Notes |
+|----------|------|-------|
+| Dependencies | springdoc 3.x upgrade | Requires Spring Boot 4.0 + Java 21 |
+| i18n | Japanese translations | Not in v3.0 scope |
+| i18n | Backend content i18n | Database-level i18n |
+| Quality | Management TS type errors | Pre-existing i18n/utils.ts issue |
+| Security | User namespace remapping | High complexity, rootless Docker changes |
 
 ## Key Decisions
 
@@ -112,4 +107,4 @@ This document evolves at phase transitions and milestone boundaries.
 
 ---
 
-*Last updated: 2026-04-23 after Phase 47 (frontend-i18n)*
+*Last updated: 2026-04-24 after v3.0 milestone shipped*

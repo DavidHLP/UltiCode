@@ -92,6 +92,13 @@
       ]
     }
   },
-  "hotPaths": [],
+  "hotPaths": [
+    {
+      "path": "migrations/V26__follow_schema.sql",
+      "accessCount": 1,
+      "lastAccessed": 1776767934383,
+      "type": "file"
+    }
+  ],
   "userDirectives": []
 }

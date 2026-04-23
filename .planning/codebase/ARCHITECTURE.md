@@ -1,236 +1,196 @@
-# UltiCode System Architecture
+# Architecture
 
-## Overview
+**Analysis Date:** 2026-04-22
 
-UltiCode is an online programming platform (similar to LeetCode) built with a microservices-inspired architecture using Spring Boot 3.5 (Java 17), Vue 3 frontends, and an optional Dubbo3 + Spark recommendation service.
+## Pattern Overview
 
-## Layered Architecture
+**Overall:** Layered Spring Boot monolith with domain-based modules
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        Frontend Layer                            │
-├────────────────────────┬────────────────────────────────────────┤
-│  Console (9002)        │  Management (9003)                    │
-│  Vue 3 + Vite          │  Vue 3 + Vite                        │
-│  Tailwind CSS v4       │  Tailwind CSS v4                      │
-│  User-facing app       │  Admin dashboard                      │
-│  Problem solving,      │  User management, audit logs,         │
-│  contests, submissions │  content moderation, analytics        │
-└────────────┬───────────┴──────────────────┬─────────────────────┘
-             │                              │
-             └──────────────┬───────────────┘
-                            ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    Backend (Spring Boot 9001)                   │
-│                     Spring Boot 3.5 / Java 17                  │
-│                  MyBatis-Plus / MySQL / Redis                   │
-└────────────────────────────┬────────────────────────────────────┘
-                             │
-         ┌───────────────────┼───────────────────┐
-         ▼                   ▼                   ▼
-┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────────┐
-│ MySQL (23306)   │ │ Redis (26379)   │ │ Recommendation Service  │
-│ Primary DB      │ │ Cache, Sessions │ │ Dubbo3 + Spark (9004)   │
-│ MyBatis-Plus    │ │ Rate Limiting   │ │ Optional, Nacos (28848) │
-└─────────────────┘ └─────────────────┘ └─────────────────────────┘
-```
+**Key Characteristics:**
+- Monolithic Spring Boot 3.5 backend (Java 17) with MyBatis-Plus ORM
+- Two separate Vue 3 frontend applications (Console for users, Management for admins)
+- Stateless JWT authentication with CSRF validation for state-changing operations
+- MySQL primary database with Redis for caching and sessions
+- Optional Dubbo3-based recommendation microservice
 
-## Backend Module Structure
+## Layers
 
-The backend (`backend-spring/src/main/java/com/ulticode/`) is organized into three layers:
+**Web Layer (Controllers):**
+- Location: `backend-spring/src/main/java/com/ulticode/modules/*/controller/`
+- Contains: REST endpoints annotated with `@RestController`
+- Depends on: Service layer
+- Used by: Frontend applications via HTTP
 
-### Common Layer (`common/`)
-Shared utilities, configurations, exceptions, and annotations.
+**Service Layer:**
+- Location: `backend-spring/src/main/java/com/ulticode/modules/*/service/`
+- Contains: Business logic, transaction management
+- Depends on: Mapper layer, common utilities
+- Used by: Controllers
 
-```
-common/
-├── annotation/       # @CurrentUser, @RequireRole, @RateLimit
-├── config/          # SecurityConfig, WebConfig, RedisConfig, SwaggerConfig
-├── dto/             # ApiResponse
-├── exception/       # GlobalExceptionHandler, BusinessException
-├── response/        # Result<T>, PageResult<T>
-├── service/         # TokenBlacklistService
-└── util/            # SecurityUtil
-```
+**Data Access Layer (Mappers):**
+- Location: `backend-spring/src/main/java/com/ulticode/modules/*/mapper/`
+- Contains: MyBatis-Plus mapper interfaces
+- Depends on: MyBatis-Plus, database
+- Used by: Service layer
 
-### Security Layer (`security/`)
-JWT authentication, CSRF protection, and authorization filters.
+**Entity Layer:**
+- Location: `backend-spring/src/main/java/com/ulticode/modules/*/entity/`
+- Contains: MyBatis-Plus entity classes mapped to database tables
+- Used by: Mapper layer
 
-### Modules Layer (`modules/`)
-Feature modules following a consistent structure (controller/service/entity/mapper/dto):
+**DTO Layer:**
+- Location: `backend-spring/src/main/java/com/ulticode/modules/*/dto/`
+- Contains: Request/Response DTOs (records in modern style)
+- Used by: Controllers and Services
 
-| Module | Purpose |
-|--------|---------|
-| **achievement** | User achievements, points, and progress tracking |
-| **admin** | Analytics, audit logs, dashboard, content moderation |
-| **auth** | Authentication, login, OAuth, password management |
-| **backup** | Database backup management |
-| **bookmark** | User bookmarks and folders |
-| **contest** | Contests, rankings, participation |
-| **edgeoperations** | Real-time submission judging |
-| **email** | Email notifications |
-| **forum** | Discussion forum, posts, comments |
-| **i18n** | Internationalization |
-| **monitoring** | Health checks, metrics |
-| **notification** | User notifications |
-| **permission** | Role-based permissions |
-| **problemlist** | Curated problem collections |
-| **problem** | Problems, test cases, examples |
-| **queue** | Submission queue management |
-| **recommendation** | Problem recommendations via Dubbo |
-| **refreshtoken** | Token refresh management |
-| **search** | Full-text search |
-| **solution** | User solutions and editorial |
-| **submission** | Code submissions and judging |
-| **subscription** | User subscriptions |
-| **user** | User CRUD, profiles |
-| **vote** | Upvote/downvote system |
-| **websocket** | Real-time communication |
+**Common Layer:**
+- Location: `backend-spring/src/main/java/com/ulticode/common/`
+- Contains: Shared utilities, configurations, exceptions, annotations
+- Sub-packages:
+  - `response/` - Result wrapper, PageResult
+  - `exception/` - GlobalExceptionHandler, BusinessException, ErrorCode
+  - `config/` - SecurityConfig, RedisConfig, MybatisPlusConfig, CorsProperties, etc.
+  - `annotation/` - Custom annotations
+  - `aspect/` - AOP aspects
+  - `util/` - Utility classes
+  - `constants/` - Shared constants
+  - `filter/` - Servlet filters
+  - `service/` - Common services
 
-### WebSocket Layer (`websocket/`)
-Real-time submission updates and notifications via STOMP over WebSocket.
+**Security Layer:**
+- Location: `backend-spring/src/main/java/com/ulticode/security/`
+- Contains: JWT authentication, CSRF validation
+- Sub-packages:
+  - `jwt/` - JwtAuthenticationFilter, JwtTokenProvider, JwtProperties
+  - `csrf/` - CsrfService, CsrfValidationFilter
+  - `oauth/` - OAuth integration
+  - `AuthenticationEntryPointImpl.java` - 401 handler
+
+**WebSocket Layer:**
+- Location: `backend-spring/src/main/java/com/ulticode/websocket/`
+- Contains: WebSocket configuration and channel interceptor
+- DTO: `websocket/dto/`
 
 ## Frontend Architecture
 
-### Console (`console/src/`)
-User-facing application for problem solving.
+**Console Frontend (User-facing):**
+- Location: `console/`
+- Framework: Vue 3 + Vite + Tailwind CSS v4
+- Port: 9002
+- Features: Problem solving, contests, submissions, forum, user profile
 
+**Management Frontend (Admin):**
+- Location: `management/`
+- Framework: Vue 3 + Vite + Tailwind CSS v4
+- Port: 9003
+- Features: User management, audit logs, content moderation, analytics
+
+**Shared Code:**
+- Location: `console/src/shared -> ../../shared`
+- Shared utilities and types between frontends
+
+## Service Communication
+
+**Frontend to Backend:**
+- HTTP REST API on port 9001
+- JWT token in httpOnly cookies (access_token, refresh_token)
+- CSRF token in `X-CSRF-Token` header for state-changing requests
+- Response format: `Result<T>` wrapper (unwrapped by frontend request.ts)
+
+**Backend to Database:**
+- MySQL on port 23306 via MyBatis-Plus
+- Redis on port 26379 for caching and session management
+
+**Backend to Recommendation Service:**
+- Dubbo3 RPC (optional)
+- Service discovery via Nacos on port 28848
+- Ports 9004 (provider) and 9005 (web)
+
+## Security Architecture
+
+**Authentication Flow:**
+1. Login via `/auth/login` returns JWT in httpOnly cookie + CSRF token
+2. Subsequent requests include JWT cookie automatically
+3. State-changing requests (POST, PUT, PATCH, DELETE) require `X-CSRF-Token` header
+4. JWT filter validates tokens before reaching endpoints
+
+**Public Endpoints (no auth required):**
+- Auth: `/auth/login`, `/auth/register`, `/auth/refresh`, `/auth/forgot-password`, `/auth/reset-password`, `/auth/github`, `/auth/google`
+- Problems: `/problems`, `/problems/**` (read operations)
+- Contests: `/contest/**` (read operations)
+- Submissions: `/submissions/statuses`
+- Solutions: `/api/solutions`, `/api/solutions/**`, `/api/views/solution/**`
+- Forum: `/forum/posts`, `/forum/posts/**`, `/forum/communities`, `/forum/tags`, `/forum/quick-filters`
+- WebSocket: `/ws/**`
+- Docs: `/swagger-ui/**`, `/api-docs/**`, `/v3/api-docs/**`
+- Health: `/actuator/health`
+
+**Security Headers (SecurityConfig):**
+- HSTS with includeSubDomains and preload
+- CSP: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com`
+- X-Frame-Options: DENY
+- X-XSS-Protection: ENABLED_MODE_BLOCK
+- Permissions-Policy: camera=(), microphone=(), geolocation=()
+
+## Backend Modules
+
+**Module Structure:** Each module follows the same pattern:
 ```
-console/src/
-├── App.vue           # Root component
-├── main.ts           # Entry point
-├── style.css         # Global styles (Solarized theme)
-├── pwa-register.ts   # PWA registration
-├── api/              # API client modules
-├── components/       # Shared Vue components
-├── pages/            # Route pages
-├── stores/           # Pinia state management
-├── utils/            # Utilities (request.ts, etc.)
-└── types/            # TypeScript type definitions
-```
-
-**Design System**: Solarized OKLCH color palette, Tailwind CSS v4 with `@theme inline`, shadcn-vue + Radix Vue + Lucide icons.
-
-### Management (`management/src/`)
-Admin dashboard for platform management.
-
-```
-management/src/
-├── App.vue           # Root component
-├── env.d.ts          # Type declarations
-├── style.css         # Global styles
-├── api/              # API client modules
-├── components/       # Shared Vue components
-├── pages/            # Route pages
-├── stores/           # Pinia state management
-└── utils/            # Utilities
-```
-
-## Recommendation Service (`recommendation/`)
-
-Optional Dubbo3 + Spark microservices for problem recommendations.
-
-```
-recommendation/
-├── recommend-api/       # Dubbo API definitions
-├── recommend-core/      # Core recommendation algorithms
-├── recommend-feature/   # Feature engineering
-├── recommend-provider/  # Dubbo provider service (port 9004)
-├── recommend-spark/     # Spark ML jobs
-├── recommend-web/       # Dubbo consumer web layer (port 9005)
-└── pom.xml              # Parent POM
-```
-
-**Dependencies**: Requires Nacos (28848) for service discovery. Must run `mvn install -DskipTests` before first start.
-
-## Data Flow
-
-### API Request Flow
-```
-Frontend → Spring Boot (9001) → MyBatis-Plus → MySQL
-                ↓
-           Redis (cache, sessions, rate limiting)
-```
-
-### Authentication Flow
-```
-1. User submits credentials → /api/auth/login
-2. Backend validates, returns JWT (httpOnly cookie) + CSRF token
-3. Frontend stores CSRF in localStorage
-4. Subsequent requests include JWT cookie + X-CSRF-Token header
-5. JWT filter validates token on each request
-```
-
-### Submission Judging Flow
-```
-1. User submits code → /api/submission
-2. Submission queued (Redis queue)
-3. Edge operations service polls queue
-4. Code executed against test cases
-5. Results stored in MySQL
-6. WebSocket pushes real-time updates to frontend
+modules/<name>/
+├── controller/   # REST endpoints
+├── service/      # Business logic
+├── entity/       # Database entities
+├── mapper/       # MyBatis mappers
+└── dto/          # Request/Response DTOs
 ```
 
-## Database
+**Implemented Modules:**
+| Module | Purpose |
+|--------|---------|
+| `achievement` | User achievements and badges |
+| `admin` | Admin operations |
+| `auth` | Authentication, login, OAuth |
+| `backup` | Database backup |
+| `bookmark` | User bookmarks |
+| `contest` | Contests and rankings |
+| `edgeoperations` | Edge case operations |
+| `email` | Email sending |
+| `follow` | User follow relationships |
+| `forum` | Forum posts, comments, communities |
+| `i18n` | Internationalization |
+| `moderation` | Content moderation |
+| `monitoring` | System monitoring |
+| `notification` | Notifications |
+| `permission` | Permission management |
+| `problem` | Problems, test cases |
+| `problemlist` | Problem lists |
+| `queue` | Submission queue |
+| `recommendation` | Problem recommendations (Dubbo3 client) |
+| `refreshtoken` | Token refresh |
+| `search` | Search functionality |
+| `solution` | Solutions |
+| `submission` | Code submissions, judging |
+| `subscription` | User subscriptions |
+| `user` | User management |
+| `vote` | Voting on posts/solutions |
+| `websocket` | WebSocket communication |
 
-### MySQL (23306)
-Primary data store managed via Flyway migrations.
+## Deployment Topology
 
-**Migration Groups**:
-- V1: users, submissions, permissions
-- V2: problems, tags, lists
-- V3: contests, rankings
-- V4: forum
-- V8: collections
-- V9: solutions
+**Containers (Docker):**
+- MySQL 23306 (primary database)
+- Redis 26379 (caching, sessions)
+- Nacos 28848 (service discovery for Dubbo3)
 
-### Redis (26379)
-- Session storage
-- JWT token blacklist
-- Rate limiting counters
-- Submission queue
-- Cache layer
+**Application Services (PM2):**
+| Service | Port | Type |
+|---------|------|------|
+| ulticode-9001 | 9001 | Spring Boot (Backend) |
+| ulticode-9002 | 9002 | Vite (Console) |
+| ulticode-9003 | 9003 | Vite (Management) |
+| ulticode-9004 | 9004 | Spring Boot (Recommend-Provider) |
+| ulticode-9005 | 9005 | Spring Boot (Recommend-Web) |
 
-## External Dependencies
+---
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| Backend | 9001 | Main API server |
-| Console | 9002 | User frontend |
-| Management | 9003 | Admin frontend |
-| Recommend-Provider | 9004 | Recommendation provider |
-| Recommend-Web | 9005 | Recommendation consumer |
-| MySQL | 23306 | Primary database |
-| Redis | 26379 | Cache/sessions |
-| Nacos | 28848 | Service discovery (optional) |
-
-## Key Technical Patterns
-
-### API Response Format
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": { ... },
-  "traceId": "t-1234567890"
-}
-```
-
-### Frontend API Pattern
-```typescript
-import { apiGet, apiPost } from "@/utils/request";
-
-export const exampleApi = {
-  async getList(): Promise<Item[]> {
-    return apiGet<Item[]>("/endpoint");
-  },
-};
-```
-
-### Module Structure
-Each backend module follows a standard pattern:
-- `controller/` - REST endpoints
-- `service/` - Business logic
-- `entity/` - MyBatis-Plus entities
-- `mapper/` - Database mappers
-- `dto/` - Request/Response DTOs
+*Architecture analysis: 2026-04-22*

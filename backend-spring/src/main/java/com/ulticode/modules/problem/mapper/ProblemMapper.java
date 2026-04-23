@@ -7,8 +7,6 @@ import org.apache.ibatis.annotations.Arg;
 import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-import org.apache.ibatis.annotations.Result;
-import org.apache.ibatis.annotations.Results;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
@@ -46,9 +44,9 @@ public interface ProblemMapper extends BaseMapper<Problem> {
      * @param problemIds list of problem IDs
      * @return list of ProblemTagDTO with problemId and tagName
      */
-    @Results({
-            @Result(column = "problem_id", property = "problemId"),
-            @Result(column = "tag_name", property = "tagName")
+    @ConstructorArgs({
+            @Arg(column = "problem_id", javaType = Long.class),
+            @Arg(column = "tag_name", javaType = String.class)
     })
     @Select("<script>" +
             "SELECT ptr.problem_id, pt.label as tag_name " +

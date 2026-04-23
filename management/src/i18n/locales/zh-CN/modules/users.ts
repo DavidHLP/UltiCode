@@ -58,6 +58,9 @@ export default {
     createUser: '创建用户',
     noReasonProvided: '未提供原因',
     unknown: '未知',
+    newPassword: '新密码',
+    newPasswordPlaceholder: '请输入新密码',
+    targetUser: '目标用户',
   },
 
   // 统计数据
@@ -76,6 +79,11 @@ export default {
     unbanUser: '解封用户',
     banUserDescription: '请提供封禁 {username} 的原因。',
     thisUser: '该用户',
+    resetPasswordDescription: '为 {username} 设置新的登录密码。',
+    resetPasswordWarning: '密码重置会立即生效，请通过安全渠道通知用户。',
+    cancel: '取消',
+    resetting: '重置中...',
+    resetPasswordAction: '确认重置密码',
   },
 
   // 批量操作

@@ -1,443 +1,302 @@
 # Codebase Concerns
 
-**Analysis Date:** 2026-04-21
+**Analysis Date:** 2026-04-22
 
-## Tech Debt
+## Resolved Issues (Historical - Past 24 Hours)
 
-### TD-01: PM2 Environment Variable Parsing
-**Severity:** MEDIUM
-**Files:** `ecosystem.config.cjs`
+Documented for awareness. These were discovered and fixed during active development.
 
-**Issue:** Custom .env file parser uses string manipulation that may fail with:
-- Quoted values with nested quotes
-- Values containing `=` characters
-- Multiline values
-- Special characters in passwords/tokens
+### Login 500 Errors (Resolved 2026-04-16)
 
-**Impact:** JWT_SECRET and REDIS_PASSWORD may be lost on PM2 restart without `--update-env`.
+**Issue:** All `/auth/login` requests returned HTTP 500 due to `SQLSyntaxErrorException: Unknown column 'password_reset_token_hash'`
 
-**Fix approach:** Replace custom parser with proven `dotenv` package or use PM2's built-in dotenv support.
+**Root Cause:** V20 migration (add password reset columns) was not applied. `User` entity referenced columns via `@TableField` that did not exist in the `users` table.
+
+**Fix:** Applied V20 migration manually and registered in `flyway_schema_history`.
+
+**Files:** `backend-spring/src/main/java/com/ulticode/modules/user/entity/User.java:158,164`
 
 ---
 
-### TD-02: Maven Build Order Dependency
-**Severity:** MEDIUM
-**Files:** `backend-spring/pom.xml`, `recommendation/pom.xml`
+### Achievement Endpoints 500 Errors (Resolved 2026-04-19)
 
-**Issue:** `backend-spring` depends on `com.ulticode:recommend-api:jar:1.0.0` which is a local Maven module. If `recommendation` is not installed first via `mvn install -DskipTests`, backend build fails.
+**Issue:** `GET /achievements/my`, `/achievements/user/me`, `/achievements/points` all returned `code=50000, message="Unknown error"`
 
-**Impact:** Fresh builds and CI require specific build order.
+**Root Cause:** `achievements` and `user_achievements` MySQL tables did not exist. `AchievementServiceImpl.getUserAchievements()` called `achievementMapper.findAllActive()` which threw `BadSqlGrammarException`.
 
-**Fix approach:** Either publish `recommend-api` to a private Maven repository, use Maven reactor to build in correct order, or document the build order requirement.
+**Fix:** Created and applied `V22__achievement_schema.sql` migration.
+
+**Files:** `db-manager/migrations/V22__achievement_schema.sql`
 
 ---
 
-### TD-03: Dubbo Configuration Complexity
-**Severity:** MEDIUM
-**Files:** Dubbo configs in `recommendation/` module
+### CsrfValidationFilter Bypassing Exception Handler (Resolved 2026-04-19)
 
-**Issue:** Dubbo WARN messages about `empty url address list` and `empty configurators` require specific configuration workarounds:
+**Issue:** `POST /admin/problems/bulk` returned HTTP 500 with HTML body instead of JSON when CSRF was missing/invalid.
+
+**Root Cause:** `CsrfValidationFilter` (servlet filter in Spring Security chain) threw `BusinessException` directly. Since it ran before `DispatcherServlet`, `@RestControllerAdvice` never caught it. Tomcat rendered default HTML error page.
+
+**Fix:** Rewrote filter to write JSON error response directly via `HttpServletResponse` with proper HTTP 403 status codes.
+
+**Files:** `backend-spring/src/main/java/com/ulticode/security/csrf/CsrfValidationFilter.java`
+
+---
+
+### Flyway Migration Sequencing (Resolved 2026-04-21)
+
+**Issue:** `db-manager/.venv/bin/python -m db_manager.cli migrate` failed with "Validate failed: Detected resolved migration not applied to database: 10.1, 21"
+
+**Root Cause:** V26 (`follow_schema.sql`) version number was lower than installed V99, causing Flyway to reject it. The `user_follows` table existed but Flyway had no record.
+
+**Fix:** Renamed V26 to V100, manually deleted conflicting Flyway history record, inserted correct V100 record.
+
+---
+
+## Resolved This Week
+
+### Achievement Async Processing (PITFALL-01) - RESOLVED
+
+**Status:** Complete (Phase 36)
+
+**Previous Issue:** Achievement checking ran synchronously on every submission, blocking user-facing API.
+
+**Current Implementation:** `AchievementCheckListener.java:19-20`:
+```java
+@Async
+@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
 ```
-enable-empty-protection: "true"  # Must be in dubbo.registry.parameters map
-```
 
-**Impact:** Added complexity in configuration, potential runtime issues if misconfigured.
-
-**Fix approach:** Document exact configuration requirements and verify in production.
+**Verification:** Achievements now fire after transaction commits via async event listener.
 
 ---
 
-### TD-04: Large Files Over 500 Lines (Java)
-**Severity:** LOW
-**Files:**
-- `backend-spring/src/main/java/com/ulticode/modules/forum/service/impl/ForumServiceImpl.java` (693 lines)
-- `backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java` (643 lines)
-- `backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/ContestServiceImpl.java` (626 lines)
-- `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java` (682 lines)
-- `backend-spring/src/main/java/com/ulticode/modules/moderation/service/impl/ModerationServiceImpl.java` (578 lines)
+## Pending Requirements (from REQUIREMENTS.md)
 
-**Issue:** Multiple service implementations exceed 500 lines, violating best practice guidelines.
+### Admin Forum Stats Hardcoded (BUG-01 / PITFALL-02)
 
-**Fix approach:** Extract related methods into separate service classes or utility classes.
+**Status:** Pending (Phase 37)
 
----
+**Issue:** Admin forum statistics return hardcoded zero values instead of real data.
 
-### TD-05: Large Files Over 500 Lines (Frontend)
-**Severity:** LOW
-**Files:**
-- `console/src/composables/contest/useContestSocket.ts` (608 lines)
-- `console/src/api/contest.ts` (559 lines)
-- `management/src/views/moderation/columns.ts` (533 lines)
-- `console/src/api/problem-list.ts` (528 lines)
-- `console/src/composables/useCodeTemplates.ts` (527 lines)
+**Files:** `backend-spring/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java:276-278`
 
-**Issue:** Some TypeScript/Vue files exceed 500 lines.
-
-**Fix approach:** Extract sub-modules, split hooks by concern, use barrel exports.
-
----
-
-## Known Bugs
-
-### B-01: Swagger/Springdoc Disabled
-**Severity:** HIGH
-**Files:** `backend-spring/src/main/java/com/ulticode/common/config/SwaggerConfig.java`
-
-**Symptoms:** API documentation completely disabled. Accessing `/swagger-ui.html` or `/api-docs` returns nothing.
-
-**Root Cause:** springdoc 2.x is incompatible with Spring Boot 3.2.5 (Missing `LiteWebJarsResourceResolver` class). The `SwaggerConfig` class is fully commented out.
-
-**Fix approach:** Upgrade to a compatible springdoc version when available, or find alternative API documentation solution.
-
----
-
-### B-02: Admin Forum Stats Return Hardcoded Zeros
-**Severity:** MEDIUM
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java` (lines 286-288)
-
-**Symptoms:** Admin dashboard shows incorrect forum engagement metrics (commentCount, upvotes, downvotes all show 0).
-
-**Root Cause:** Forum post statistics are hardcoded to 0 instead of querying actual data:
 ```java
 vo.setCommentCount(0); // TODO: Query from forum_comments table
 vo.setUpvotes(0); // TODO: Query from forum_votes table
 vo.setDownvotes(0); // TODO: Query from forum_votes table
 ```
 
-**Fix approach:** Implement actual queries against `forum_comments` and `forum_votes` tables.
+**Recent Activity:** Commit `48b3c2cc2` (feat(37): replace hardcoded forum stats with real DB queries) was pushed to main. May be resolved in working tree.
+
+---
+
+### springdoc Incompatibility (DEPS-01) - PENDING
+
+**Issue:** springdoc 2.7.0 incompatible with Spring Boot 3.2.5 (missing `LiteWebWebJarsResourceResolver` class).
+
+**Current State:** Already downgraded to 2.6.0 (documented in "Already Resolved"). However, DEPS-01 remains open pending upgrade to 3.x LTS when available.
+
+**Files:** `backend-spring/pom.xml`
+
+---
+
+### CI Flyway URL (DEPS-02) - PENDING
+
+**Issue:** CI workflow uses incorrect Flyway download URL (Redgate official URL required).
+
+**Impact:** CI pipeline failures related to database migration.
+
+---
+
+## Dependency Risks
+
+### DEPS-03: springdoc 3.x Upgrade (V2 DEFERRED)
+
+**Status:** Out of scope until LTS release available.
+
+---
+
+## Performance Concerns
+
+### PERF-01: Achievement N+1 Query (V2 DEFERRED)
+
+**Status:** Deferred to v2 roadmap.
+
+**Issue:** Achievement queries may have N+1 patterns when loading user achievements with related data.
+
+---
+
+### PERF-02: Follow System Index (V2 DEFERRED)
+
+**Status:** Deferred to v2 roadmap.
+
+**Issue:** `user_follows` table may lack composite index for efficient follow/follower queries.
+
+**Current Indexes:**
+```sql
+INDEX idx_follower_id (follower_id)
+INDEX idx_following_id (following_id)
+```
+
+**Missing:** Composite index for `isFollowing` check queries.
+
+**Files:** `backend-spring/src/main/java/com/ulticode/modules/follow/mapper/FollowMapper.java`
+
+---
+
+### Admin Content Analytics Tag Loop N+1 (NOTED IN CODE)
+
+**Issue:** `AdminContentAnalyticsServiceImpl.java:78`:
+```java
+// NOTE: N+1 issue exists in the tag loop below (per-problem submission count queries).
+```
+
+---
+
+## Testing Gaps
+
+### MISS-01: JaCoCo Coverage Thresholds Too Low
+
+**Issue:** JaCoCo configured with 50% LINE and 40% BRANCH minimums, below the 80% project standard.
+
+**Current Configuration** (`backend-spring/pom.xml:282-290`):
+```xml
+<counter>LINE</counter>
+<minimum>0.50</minimum>   <!-- Should be 0.80 -->
+<counter>BRANCH</counter>
+<minimum>0.40</minimum>   <!-- Should be 0.80 -->
+```
+
+**Excluded from Coverage:** All Mapper, Entity, DTO/VO, Config, Properties classes.
+
+**Impact:** 80% coverage mandate in `REQUIREMENTS.md` is not enforced.
+
+---
+
+### MISS-02: Rate Limiting E2E Tests
+
+**Status:** Out of scope per REQUIREMENTS.md.
 
 ---
 
 ## Security Considerations
 
-### SEC-01: SELECT * Queries in Mappers
-**Severity:** INFO
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/contest/mapper/*.java`
+### Positive Security Measures
 
-**Observation:** Multiple mapper queries use `SELECT *` which could return unexpected columns if the schema changes.
+- BCrypt password hashing (`SecurityConfig.java:165`)
+- JWT secret validation at startup (`JwtProperties.java`)
+- Weak JWT secret blacklist check (`EnvValidationConfig.java:26-29`)
+- CSRF filter returns structured JSON errors (resolved 2026-04-19)
+- Password reset tokens stored as BCrypt hashes (`PasswordResetService.java:62`)
 
-**Current Mitigation:** MyBatis-Plus entity mappings are explicit; SELECT * is used with known table structures.
+### Areas Requiring Attention
 
-**Recommendations:** Consider specifying columns explicitly for better schema contract enforcement.
+**SEC-02: System.out.println in Code Execution**
+- File: `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/CodeExecutionHelperImpl.java:252`
+- Risk: Submission output could leak to stdout logs
 
----
-
-### SEC-02: System.out.println in Code Execution
-**Severity:** LOW
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/CodeExecutionHelperImpl.java:252`
-
-**Observation:** `System.out.print(result)` found in code execution path.
-
-**Risk:** Could leak submission output to stdout logs.
-
-**Fix approach:** Replace with proper logging framework.
+**SEC-03: console.error in Production Vue**
+- Multiple Vue components in `console/` and `management/`
+- Risk: Debug output in production browser consoles
 
 ---
 
-### SEC-03: Console.error in Production Vue Code
-**Severity:** LOW
-**Files:** Multiple Vue components in `console/` and `management/`
+## Maintainability Issues
 
-**Observation:** `console.error()` calls found in production code for error handling in views:
-- `management/src/views/tags/TagMergeDialog.vue:70`
-- `management/src/views/system/BackupView.vue:59,73,85,110,127`
-- `management/src/views/system/MonitoringView.vue:71`
-- `management/src/views/system/EmailView.vue:78,113,171,186`
-- `management/src/views/submissions/SubmissionsView.vue:123,148,177`
+### Large Files Exceeding Best Practices
 
-**Risk:** Debug output in production browser consoles.
+**Java (500+ lines):**
+- `ForumServiceImpl.java` (693 lines)
+- `SubmissionServiceImpl.java` (682 lines)
+- `CodeExecutionService.java` (643 lines)
+- `ContestServiceImpl.java` (626 lines)
+- `ModerationServiceImpl.java` (578 lines)
 
-**Fix approach:** Replace with proper error handling/logging utilities.
-
----
-
-## Performance Bottlenecks
-
-### PERF-01: N+1 Query Potential in Contest Mappers
-**Severity:** MEDIUM
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/contest/mapper/*.java`
-
-**Issue:** Multiple mappers use `SELECT *` with no explicit JOINs, suggesting data may be fetched in separate queries.
-
-**Example:**
-```java
-@Select("SELECT * FROM contest_submissions WHERE contest_id = #{contestId} AND participant_id = #{participantId} ORDER BY submitted_at ASC")
-```
-
-**Fix approach:** Use JOIN queries or batch fetch to reduce round trips for contest rankings and submissions.
+**Frontend (500+ lines):**
+- `useContestSocket.ts` (608 lines)
+- `contest.ts` (559 lines)
+- `columns.ts` (management, 533 lines)
+- `problem-list.ts` (528 lines)
+- `useCodeTemplates.ts` (527 lines)
 
 ---
 
-### PERF-02: No Spring Caching Annotations
-**Severity:** MEDIUM
-**Files:** None using `@Cacheable`, `@CacheEvict`, `@CachePut`
+### Inconsistent Exception Response Format
 
-**Issue:** No caching annotations found in the codebase. Every request for frequently accessed data (problems, user stats, contest rankings) hits the database.
-
-**Impact:** High traffic could overwhelm MySQL.
-
-**Fix approach:** Add caching for read-heavy operations like problem lists, user profiles, and contest data.
+**Issue:** `GlobalExceptionHandler` returns `code=50000, message="Unknown error"` for database exceptions without distinguishing between "table missing", "connection failed", and "constraint violation".
 
 ---
 
-## Fragile Areas
+### Manual Migration Intervention History
 
-### FRAG-01: JWT Token Provider Returns Null
-**Severity:** MEDIUM
-**Files:** `backend-spring/src/main/java/com/ulticode/security/jwt/JwtTokenProvider.java:108`
+**Issue:** Multiple incidents required manual SQL execution outside of Flyway (`V20`, `V22`, `V100` fixes).
 
-**Observation:** `return null` found in token validation path. Multiple `return null` statements in authentication filters (`JwtAuthenticationFilter.java:127,137,151`, `CsrfService.java:70,76,87`).
-
-**Why fragile:** Silent authentication failures could cause confusing UX where users appear logged out intermittently.
-
-**Safe modification:** Ensure all null returns are properly logged and handled by callers.
+**Root Cause:** Flyway's strict validation against checksum/history causes failures when migrations are modified post-application or version numbering conflicts occur.
 
 ---
 
-### FRAG-02: Redis Service Returns Null
-**Severity:** LOW
-**Files:** `backend-spring/src/main/java/com/ulticode/infrastructure/redis/RedisService.java` (multiple return null points: lines 84, 103, 107, 299, 504, 520)
+## Fragile Code Patterns
 
-**Observation:** Multiple `return null` statements in cache operations.
+### JWT Token Provider Null Returns
 
-**Why fragile:** Cache misses returning null could be confused with errors.
+**Files:** `JwtAuthenticationFilter.java:127,137,151`, `CsrfService.java:70,76,87`
 
-**Safe modification:** Consider using `Optional` for cache operations or ensure callers distinguish null from cache miss.
+**Risk:** Silent authentication failures could cause intermittent "logged out" UX.
 
 ---
 
-### FRAG-03: Volatile Counter in Monitoring
-**Severity:** LOW
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/monitoring/service/impl/MonitoringServiceImpl.java:58`
+### Redis Service Null Returns
 
-**Observation:** `private volatile long queryCount = 0;`
+**File:** `RedisService.java:84,103,107,299,504,520`
 
-**Why fragile:** Volatile is insufficient for counter operations requiring atomic increment.
-
-**Safe modification:** Use `AtomicLong` or proper synchronization for counter increments.
+**Risk:** Cache misses returning null could be confused with errors.
 
 ---
 
-### FRAG-04: Synchronous Achievement Triggering
-**Severity:** HIGH
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/achievement/service/impl/AchievementTriggerServiceImpl.java:90`
+### Volatile Counter in Monitoring
 
-**Issue:** `achievementTriggerService.checkAndAwardAchievements()` runs a full table scan on every problem solve, contest join, or submission:
-```java
-List<Achievement> allAchievements = achievementMapper.findAllActive(); // Full table scan EVERY event
-```
+**File:** `MonitoringServiceImpl.java:58` - `private volatile long queryCount = 0;`
 
-**Why fragile:** Blocks user-facing API when achievements are evaluated synchronously. Compound effect under load.
-
-**Safe modification:** Defer to async event processing.
+**Risk:** `volatile` is insufficient for atomic counter increments.
 
 ---
 
-## Scaling Limits
+## Build Configuration Issues
 
-### SCALE-01: Forum Service Size
-**Severity:** MEDIUM
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/forum/service/impl/ForumServiceImpl.java` (693 lines)
+### Test Skip in Production Scripts
 
-**Issue:** One of the largest service files, handling posts, comments, votes, and community membership.
-
-**Limit:** As forum grows, this service will become a bottleneck.
-
-**Fix approach:** Split into separate services: `ForumPostService`, `ForumCommentService`, `ForumVoteService`, `CommunityMembershipService`.
+Both `ecosystem.config.cjs` and `start-backend.sh` use `-Dmaven.test.skip=true`, meaning tests are not run during service startup.
 
 ---
 
-## Dependencies at Risk
+## Summary of Priorities
 
-### DEPS-01: springdoc OpenAPI
-**Severity:** HIGH
-**Issue:** springdoc 2.x incompatible with Spring Boot 3.2.5, causing Swagger to be disabled.
-
-**Impact:** No API documentation available.
-
-**Migration path:** Monitor springdoc releases for Spring Boot 3.2.x compatibility, or consider switching to springdoc 3.x or alternative like SpringDoc OpenAPI (springdoc-openapi v3).
-
----
-
-## Missing Critical Features
-
-### MISS-01: No Rate Limiting Implementation
-**Severity:** HIGH
-**Observation:** `@RateLimit` annotation exists in `backend-spring/src/main/java/com/ulticode/common/annotation/RateLimit.java` but no implementation or configuration found.
-
-**Blocks:** Protection against API abuse and DDoS.
-
-**Fix approach:** Implement rate limiting using Redis or a dedicated rate limiter.
-
----
-
-### MISS-02: No Test Coverage Enforcement
-**Severity:** MEDIUM
-**Observation:** While tests exist, no coverage enforcement (JaCoCo configuration with thresholds) found in build.
-
-**Blocks:** Unknown coverage percentage, potential untested paths in production.
-
-**Fix approach:** Add JaCoCo with coverage thresholds to Maven build.
-
----
-
-## Test Coverage Gaps
-
-### TEST-01: Admin Forum Stats Untested
-**Severity:** MEDIUM
-**What's not tested:** `AdminForumServiceImpl.getPostDetail()` - the hardcoded zeros are never tested with real data.
-
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java`
-
-**Risk:** Stats will display incorrect data until fixed.
-
----
-
-### TEST-02: Code Execution Service
-**Severity:** MEDIUM
-**What's not tested:** `CodeExecutionService` (643 lines) - critical path for code judging with `System.out.print` debug statement.
-
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java`
-
-**Risk:** Submission output leakage, potential security issues in code execution sandbox.
-
----
-
-### TEST-03: Contest Scheduling
-**Severity:** MEDIUM
-**What's not tested:** `ContestScheduler` returns null on certain conditions.
-
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/contest/scheduler/ContestScheduler.java:60`
-
-**Risk:** Scheduled contests may not start or end properly.
-
----
-
-## CI/CD Issues
-
-### CI-01: Flyway Download URL Obsolete
-**Severity:** HIGH
-**Files:** `.github/workflows/ci.yml`
-
-**Issue:** CI workflow downloads Flyway from `https://download.redgate.com/flyway/...` but Flyway has moved to Redgate domain. URL returns 404.
-
-**Status:** Issue identified in CI run 24601704434, fix was proposed but verification needed.
-
-**Fix approach:** Update Flyway download URL in CI workflow.
-
----
-
-### CI-02: Build Artifact Caching Gaps
-**Severity:** LOW
-
-**Issue:** Maven and pnpm dependencies are downloaded on every CI run instead of being cached effectively.
-
-**Impact:** Longer CI execution times.
-
-**Fix approach:** Implement proper caching strategy for Maven/pnpm artifacts.
-
----
-
-## Domain Pitfalls (From Research)
-
-### PITFALL-01: Achievement Triggering Blocks User Actions
-**Severity:** HIGH
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/achievement/service/impl/AchievementTriggerServiceImpl.java`
-
-**Issue:** Synchronous achievement checking on every submission/contest event causes latency spikes.
-
-**Impact:** Submission latency spikes on every solve; compound effect under load.
-
-**Fix approach:** Use async event publishing with `@Async` and `@EventListener(phase = AFTER_COMMIT)`.
-
----
-
-### PITFALL-02: N+1 When Loading User Achievement History
-**Severity:** MEDIUM
-**Files:** Achievement loading in user profile
-
-**Issue:** Displaying user achievements triggers 1 query for user + N queries for each achievement detail.
-
-**Fix approach:** Use JOIN FETCH in mapper query.
-
----
-
-### PITFALL-03: Follow System Missing Index
-**Severity:** MEDIUM
-**Files:** `user_follows` table (if exists)
-
-**Issue:** No composite index on `(follower_id, following_id)` pairs causing slow queries on popular users.
-
-**Fix approach:** Add UNIQUE constraint and composite indexes in migration.
-
----
-
-### PITFALL-04: Fan-Out on Write for Popular Users
-**Severity:** MEDIUM
-**Files:** Notification fan-out logic
-
-**Issue:** Naive O(followers) write when sending notifications to popular users.
-
-**Fix approach:** Use async queue-based fan-out.
-
----
-
-### PITFALL-05: Achievement Criteria JSON Prevents Indexing
-**Severity:** MEDIUM
-**Files:** `Achievement.criteria` field
-
-**Issue:** `Map<String, Object>` stored as JSON cannot be indexed for type queries.
-
-**Fix approach:** Normalize criteria into separate indexed columns (criteria_type, criteria_target).
+| Priority | ID | Issue | Status |
+|----------|-----|-------|--------|
+| HIGH | BUG-01 | Admin Forum Stats hardcoded | Phase 37 (in progress) |
+| HIGH | DEPS-01 | springdoc compatibility | Pending 3.x LTS |
+| HIGH | DEPS-02 | CI Flyway URL broken | Pending |
+| MEDIUM | MISS-01 | JaCoCo thresholds 50%/40% | Should be 80% |
+| MEDIUM | PERF-02 | user_follows missing composite index | V2 deferred |
+| LOW | DEPS-03 | springdoc 3.x upgrade | V2 deferred |
+| LOW | PERF-01 | Achievement N+1 | V2 deferred |
 
 ---
 
 ## Already Resolved (Historical Reference)
 
-These issues were identified and fixed but documented for awareness:
+These issues were identified and fixed during earlier development cycles:
 
 - **ESLint version conflict:** ESLint 10.x incompatible with @typescript-eslint/utils 8.x - Fixed by downgrading to eslint ^9.30.1
 - **vitest setupFiles reference:** References non-existent `console/src/test/setup.ts` - Fixed by removing setupFiles
 - **recommend-api not installed:** CI Backend Build failed - Fixed by ensuring proper build order
 - **OAuthService Spring 6.x compatibility:** Fixed for Spring Framework 6.x compatibility
 - **springdoc LiteWebJarsResourceResolver:** Downgraded from 2.7.0 to 2.6.0
-- **CI lockfile issues:** Multiple CI fixes applied and verified (commit aa51e0404)
+- **CI lockfile issues:** Multiple CI fixes applied and verified
+- **PM2 env parsing:** Custom .env parser fragility (TD-01 from prior doc)
+- **Maven build order:** recommendation must be installed before backend-spring (TD-02 from prior doc)
+- **Dubbo configuration complexity:** enable-empty-protection workaround documented (TD-03 from prior doc)
 
 ---
 
-## Priority Summary
-
-| ID | Severity | Category | Item |
-|----|----------|----------|------|
-| B-01 | HIGH | Bug | Swagger disabled |
-| CI-01 | HIGH | CI/CD | Flyway URL obsolete |
-| SEC-01 | HIGH | Security | Rate limiting not implemented |
-| DEPS-01 | HIGH | Dependency | springdoc incompatibility |
-| PITFALL-01 | HIGH | Pitfall | Achievement blocking |
-| B-02 | MEDIUM | Bug | Forum stats hardcoded |
-| TD-01 | MEDIUM | Tech Debt | PM2 env parsing |
-| TD-02 | MEDIUM | Tech Debt | Maven build order |
-| TD-03 | MEDIUM | Tech Debt | Dubbo configuration |
-| PERF-01 | MEDIUM | Performance | N+1 query potential |
-| PERF-02 | MEDIUM | Performance | No caching annotations |
-| SCALE-01 | MEDIUM | Scaling | Forum service size |
-| MISS-02 | MEDIUM | Missing | No test coverage enforcement |
-| TEST-01 | MEDIUM | Testing | Admin forum stats untested |
-| TEST-02 | MEDIUM | Testing | Code execution untested |
-| TEST-03 | MEDIUM | Testing | Contest scheduler untested |
-| PITFALL-02 | MEDIUM | Pitfall | Achievement N+1 |
-| PITFALL-03 | MEDIUM | Pitfall | Follow index missing |
-| PITFALL-04 | MEDIUM | Pitfall | Fan-out scaling |
-| PITFALL-05 | MEDIUM | Pitfall | Achievement JSON indexing |
-| TD-04 | LOW | Tech Debt | Large Java files |
-| TD-05 | LOW | Tech Debt | Large frontend files |
-| SEC-02 | LOW | Security | System.out.println in code exec |
-| SEC-03 | LOW | Security | Console.error in Vue |
-| FRAG-01 | LOW | Fragile | JWT null returns |
-| FRAG-02 | LOW | Fragile | Redis null returns |
-| FRAG-03 | LOW | Fragile | Volatile counter |
-| CI-02 | LOW | CI/CD | Build caching gaps |
-
----
-
-*Concerns audit: 2026-04-21*
+*Concerns audit: 2026-04-22*

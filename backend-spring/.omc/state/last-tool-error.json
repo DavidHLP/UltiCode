@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"rtk find /home/davidhlp/project/UltiCode-Public-Next/backend-spring/target -name \\\"jacoco*\\\" -not -path \\\"*/repository/*\\\" 2>/dev/null\"}",
-  "error": "Exit code 1",
-  "timestamp": "2026-04-20T03:21:34.311Z",
+  "tool_input_preview": "{\"command\":\"git reset HEAD && git add backend-spring/pom.xml backend-spring/src/test/java/com/ulticode/modules/auth/controller/RateLimitIntegrationTest.java .planning/phases/44-testcontainers-upgrade/...",
+  "error": "Exit code 128\n重置后取消暂存的变更：\nM\t.claude/settings.local.json\nM\t.omc/project-memory.json\nD\t.omc/state/agent-replay-2a498949-49d2-40d4-b2cc-df43afe61ea5.jsonl\nM\t.omc/state/mission-state.json\nM\t.omc/state/subagent-tracking.json\nM\t.planning/REQUIREMENTS.md\nM\t.planning/STATE.md\nM\t.planning/codebase/ARCHITECTURE.md\nM\t.planning/codebase/CONCERNS.md\nM\t.planning/codebase/CONVENTIONS.md\nM\t.planning/codebase/INTEGRATIONS.md\nM\t.planning/codebase/STACK.md\nM\t.planning/codebase/STRUCTURE.md\nM\t.planning/codebase/TES...",
+  "timestamp": "2026-04-22T11:51:33.212Z",
   "retry_count": 1
 }

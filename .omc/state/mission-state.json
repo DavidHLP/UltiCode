@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-04-20T04:27:42.831Z",
+  "updatedAt": "2026-04-23T15:41:44.846Z",
   "missions": [
     {
       "id": "session:e3081fb1-1e28-4c43-a4e3-f2eb6a348abb:none",
@@ -260,6 +260,86 @@
           "agent": "gsd-planner:abfd4e7",
           "detail": "completed",
           "sourceKey": "session-stop:abfd4e76ab5c6f0fa"
+        }
+      ]
+    },
+    {
+      "id": "session:e9756692-38b7-4d39-9570-96c8abee6083:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-04-22T13:35:29.066Z",
+      "updatedAt": "2026-04-22T13:35:29.066Z",
+      "status": "running",
+      "workerCount": 1,
+      "taskCounts": {
+        "total": 1,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 1,
+        "completed": 0,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "gsd-debug-session-manager:aa2dc48",
+          "role": "gsd-debug-session-manager",
+          "ownership": "aa2dc484759a88fb5",
+          "status": "running",
+          "currentStep": null,
+          "latestUpdate": null,
+          "completedSummary": null,
+          "updatedAt": "2026-04-22T13:35:29.066Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-start:aa2dc484759a88fb5:2026-04-22T13:35:29.066Z",
+          "at": "2026-04-22T13:35:29.066Z",
+          "kind": "update",
+          "agent": "gsd-debug-session-manager:aa2dc48",
+          "detail": "started gsd-debug-session-manager:aa2dc48",
+          "sourceKey": "session-start:aa2dc484759a88fb5"
+        }
+      ]
+    },
+    {
+      "id": "session:790e2d94-8aea-4108-812c-0b640aa155ac:none",
+      "source": "session",
+      "name": "none",
+      "objective": "Session mission",
+      "createdAt": "2026-04-22T14:42:00.247Z",
+      "updatedAt": "2026-04-22T14:42:00.247Z",
+      "status": "running",
+      "workerCount": 1,
+      "taskCounts": {
+        "total": 1,
+        "pending": 0,
+        "blocked": 0,
+        "inProgress": 1,
+        "completed": 0,
+        "failed": 0
+      },
+      "agents": [
+        {
+          "name": "gsd-ui-researcher:ad6a364",
+          "role": "gsd-ui-researcher",
+          "ownership": "ad6a364e870b1ceb5",
+          "status": "running",
+          "currentStep": null,
+          "latestUpdate": null,
+          "completedSummary": null,
+          "updatedAt": "2026-04-22T14:42:00.247Z"
+        }
+      ],
+      "timeline": [
+        {
+          "id": "session-start:ad6a364e870b1ceb5:2026-04-22T14:42:00.247Z",
+          "at": "2026-04-22T14:42:00.247Z",
+          "kind": "update",
+          "agent": "gsd-ui-researcher:ad6a364",
+          "detail": "started gsd-ui-researcher:ad6a364",
+          "sourceKey": "session-start:ad6a364e870b1ceb5"
         }
       ]
     }

@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776597393002,
+  "lastScanned": 1776944058605,
   "projectRoot": "/home/davidhlp/project/UltiCode-Public-Next",
   "techStack": {
     "languages": [
@@ -46,21 +46,21 @@
     "backend-spring": {
       "path": "backend-spring",
       "purpose": null,
-      "fileCount": 9,
-      "lastAccessed": 1776597392998,
+      "fileCount": 11,
+      "lastAccessed": 1776944058598,
       "keyFiles": [
         "Dockerfile",
+        "ecosystem.config.cjs",
         "mvnw",
         "mvnw.cmd",
-        "pom.xml",
-        "start.cjs"
+        "pom.xml"
       ]
     },
     "console": {
       "path": "console",
       "purpose": null,
       "fileCount": 20,
-      "lastAccessed": 1776597392999,
+      "lastAccessed": 1776944058598,
       "keyFiles": [
         "Dockerfile",
         "components.json",
@@ -73,7 +73,7 @@
       "path": "db-manager",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1776597393000,
+      "lastAccessed": 1776944058603,
       "keyFiles": [
         "README.md",
         "pyproject.toml"
@@ -83,14 +83,14 @@
       "path": "docker",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776597393001,
+      "lastAccessed": 1776944058604,
       "keyFiles": []
     },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 1,
-      "lastAccessed": 1776597393001,
+      "lastAccessed": 1776944058604,
       "keyFiles": [
         "secrets-mapping.md"
       ]
@@ -99,7 +99,7 @@
       "path": "management",
       "purpose": null,
       "fileCount": 22,
-      "lastAccessed": 1776597393001,
+      "lastAccessed": 1776944058604,
       "keyFiles": [
         "Dockerfile",
         "components.json",
@@ -112,7 +112,7 @@
       "path": "recommendation",
       "purpose": null,
       "fileCount": 7,
-      "lastAccessed": 1776597393001,
+      "lastAccessed": 1776944058604,
       "keyFiles": [
         "1h7xZM",
         "README.md",
@@ -125,14 +125,14 @@
       "path": "shared",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776597393001,
+      "lastAccessed": 1776944058604,
       "keyFiles": []
     },
     "console/dist": {
       "path": "console/dist",
       "purpose": "Distribution/build output",
       "fileCount": 6,
-      "lastAccessed": 1776597393002,
+      "lastAccessed": 1776944058605,
       "keyFiles": [
         "favicon.ico",
         "index.html",
@@ -142,26 +142,26 @@
     "db-manager/migrations": {
       "path": "db-manager/migrations",
       "purpose": "Database migrations",
-      "fileCount": 24,
-      "lastAccessed": 1776597393002,
+      "fileCount": 28,
+      "lastAccessed": 1776944058605,
       "keyFiles": [
-        "V10.1__edge_schema.sql",
-        "V10__daily_recommendations_feedback.sql",
-        "V11__moderation_seed_data.sql"
+        "V100__follow_schema.sql",
+        "V101__follow_indexes.sql",
+        "V10__daily_recommendations_feedback.sql"
       ]
     },
     "db-manager/src": {
       "path": "db-manager/src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1776597393002,
+      "lastAccessed": 1776944058605,
       "keyFiles": []
     },
     "recommendation/docs": {
       "path": "recommendation/docs",
       "purpose": "Documentation",
       "fileCount": 3,
-      "lastAccessed": 1776597393002,
+      "lastAccessed": 1776944058605,
       "keyFiles": [
         "API.md",
         "DEPLOYMENT.md",
@@ -171,303 +171,303 @@
   },
   "hotPaths": [
     {
-      "path": ".planning/ROADMAP.md",
-      "accessCount": 116,
-      "lastAccessed": 1776659252779,
+      "path": ".planning/phases/47-frontend-i18n/47-UAT.md",
+      "accessCount": 32,
+      "lastAccessed": 1776960989988,
       "type": "file"
     },
     {
       "path": ".planning/STATE.md",
-      "accessCount": 105,
-      "lastAccessed": 1776659462502,
+      "accessCount": 10,
+      "lastAccessed": 1776961798087,
       "type": "file"
     },
     {
-      "path": ".planning/REQUIREMENTS.md",
-      "accessCount": 62,
-      "lastAccessed": 1776659158886,
-      "type": "file"
-    },
-    {
-      "path": ".planning/PROJECT.md",
-      "accessCount": 57,
-      "lastAccessed": 1776654151975,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/CodeExecutionService.java",
-      "accessCount": 57,
-      "lastAccessed": 1776658957268,
-      "type": "file"
-    },
-    {
-      "path": "",
-      "accessCount": 55,
-      "lastAccessed": 1776658974166,
-      "type": "directory"
-    },
-    {
-      "path": "CLAUDE.md",
-      "accessCount": 38,
-      "lastAccessed": 1776592189127,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SubmissionServiceImpl.java",
-      "accessCount": 28,
-      "lastAccessed": 1776560417108,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/entity/Contest.java",
-      "accessCount": 15,
-      "lastAccessed": 1776560357334,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/monitoring/service/impl/MonitoringServiceImpl.java",
-      "accessCount": 14,
-      "lastAccessed": 1776659380742,
-      "type": "file"
-    },
-    {
-      "path": "db-manager/migrations/V3__contest_schema.sql",
-      "accessCount": 13,
-      "lastAccessed": 1776560066045,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/problem/controller/ProblemController.java",
-      "accessCount": 9,
-      "lastAccessed": 1776615820326,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/controller/ContestController.java",
-      "accessCount": 9,
-      "lastAccessed": 1776615820352,
-      "type": "file"
-    },
-    {
-      "path": "console/src/types/submission.ts",
-      "accessCount": 8,
-      "lastAccessed": 1776521678637,
-      "type": "file"
-    },
-    {
-      "path": ".planning/milestones/v1.2-REQUIREMENTS.md",
-      "accessCount": 7,
-      "lastAccessed": 1776514081616,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/RankingServiceImpl.java",
-      "accessCount": 7,
-      "lastAccessed": 1776559111600,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/controller/UserController.java",
-      "accessCount": 7,
-      "lastAccessed": 1776589145239,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/controller/AchievementController.java",
-      "accessCount": 7,
-      "lastAccessed": 1776590187287,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/impl/UserServiceImpl.java",
-      "accessCount": 7,
-      "lastAccessed": 1776591578417,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/controller/ProblemSubmissionController.java",
-      "accessCount": 7,
-      "lastAccessed": 1776615800345,
-      "type": "file"
-    },
-    {
-      "path": "console/src/api/submission.ts",
+      "path": ".planning/debug/admin-account-profile-404.md",
       "accessCount": 6,
-      "lastAccessed": 1776515065776,
+      "lastAccessed": 1776954429149,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/entity/Submission.java",
+      "path": ".planning/phases/47-frontend-i18n/47-04-PLAN.md",
+      "accessCount": 6,
+      "lastAccessed": 1776957736600,
+      "type": "file"
+    },
+    {
+      "path": "management/src/components/layout/SiteHeader.vue",
+      "accessCount": 6,
+      "lastAccessed": 1776957862262,
+      "type": "file"
+    },
+    {
+      "path": ".planning/ROADMAP.md",
+      "accessCount": 6,
+      "lastAccessed": 1776961782985,
+      "type": "file"
+    },
+    {
+      "path": "management/src/main.ts",
       "accessCount": 5,
-      "lastAccessed": 1776519762752,
+      "lastAccessed": 1776957862268,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/ContestService.java",
-      "accessCount": 5,
-      "lastAccessed": 1776558765345,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/entity/ContestParticipant.java",
-      "accessCount": 5,
-      "lastAccessed": 1776559914468,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/controller/SubmissionController.java",
-      "accessCount": 5,
-      "lastAccessed": 1776615832389,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/SubmissionService.java",
+      "path": ".planning/phases/47-frontend-i18n/47-01-SUMMARY.md",
       "accessCount": 4,
-      "lastAccessed": 1776517204963,
+      "lastAccessed": 1776957734688,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/impl/ContestServiceImpl.java",
+      "path": ".planning/phases/47-frontend-i18n/47-02-SUMMARY.md",
       "accessCount": 4,
-      "lastAccessed": 1776558512349,
+      "lastAccessed": 1776957735740,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/UserService.java",
+      "path": ".planning/phases/47-frontend-i18n/47-03-SUMMARY.md",
       "accessCount": 4,
-      "lastAccessed": 1776567873344,
+      "lastAccessed": 1776957736340,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserStatsDTO.java",
+      "path": "management/src/composables/useLocale.ts",
       "accessCount": 4,
-      "lastAccessed": 1776589154330,
+      "lastAccessed": 1776957741711,
       "type": "file"
     },
     {
-      "path": "console/src/stores/__tests__/recommendation.spec.ts",
+      "path": "management/src/i18n/index.ts",
+      "accessCount": 4,
+      "lastAccessed": 1776957743007,
+      "type": "file"
+    },
+    {
+      "path": ".planning/phases/47-frontend-i18n/47-04-SUMMARY.md",
       "accessCount": 3,
-      "lastAccessed": 1776511194379,
+      "lastAccessed": 1776957736819,
       "type": "file"
     },
     {
-      "path": "console/src/composables/contest/useContestSocket.ts",
+      "path": "management/src/i18n/utils/storage.ts",
       "accessCount": 3,
-      "lastAccessed": 1776515005552,
+      "lastAccessed": 1776957746770,
       "type": "file"
     },
     {
-      "path": "console/src/api/contest.ts",
+      "path": "management/src/components/LanguageSwitcher.vue",
       "accessCount": 3,
-      "lastAccessed": 1776515005606,
+      "lastAccessed": 1776957861800,
       "type": "file"
     },
     {
-      "path": "console/src/stores/contest.ts",
-      "accessCount": 3,
-      "lastAccessed": 1776515005747,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/entity/User.java",
-      "accessCount": 3,
-      "lastAccessed": 1776515009867,
-      "type": "file"
-    },
-    {
-      "path": "console/src/composables/__tests__/useCodeTemplates.spec.ts",
+      "path": "management/src/components/layout/NavUser.vue",
       "accessCount": 2,
-      "lastAccessed": 1776511210263,
+      "lastAccessed": 1776957179354,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/bookmark/controller/BookmarkController.java",
+      "path": "console/src/components/LanguageSwitcher.vue",
       "accessCount": 2,
-      "lastAccessed": 1776515009919,
+      "lastAccessed": 1776957564160,
+      "type": "file"
+    },
+    {
+      "path": ".planning/phases/46-sandbox-hardening/46-01-SUMMARY.md",
+      "accessCount": 2,
+      "lastAccessed": 1776961703812,
+      "type": "file"
+    },
+    {
+      "path": ".planning/phases/46-sandbox-hardening/46-01-PLAN.md",
+      "accessCount": 1,
+      "lastAccessed": 1776950927102,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/SandboxServiceImpl.java",
+      "accessCount": 1,
+      "lastAccessed": 1776950927557,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/resources/application.yml",
+      "accessCount": 1,
+      "lastAccessed": 1776950927715,
       "type": "file"
     },
     {
       "path": "backend-spring/src/main/java/com/ulticode/modules/submission/config/DockerSandboxConfig.java",
-      "accessCount": 2,
-      "lastAccessed": 1776517187056,
-      "type": "file"
-    },
-    {
-      "path": "console/src/types/contest.ts",
-      "accessCount": 2,
-      "lastAccessed": 1776521637181,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/contest/service/RankingService.java",
-      "accessCount": 2,
-      "lastAccessed": 1776559562745,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/entity/UserAchievement.java",
-      "accessCount": 2,
-      "lastAccessed": 1776590241943,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/entity/Achievement.java",
-      "accessCount": 2,
-      "lastAccessed": 1776590241948,
-      "type": "file"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/problem/controller",
-      "accessCount": 2,
-      "lastAccessed": 1776616005947,
-      "type": "directory"
-    },
-    {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/mapper/UserMapper.java",
       "accessCount": 1,
-      "lastAccessed": 1776514968073,
+      "lastAccessed": 1776950938672,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserVO.java",
+      "path": "backend-spring/src/test/java/com/ulticode/modules/submission/service/impl/SandboxNamespaceIsolationTest.java",
       "accessCount": 1,
-      "lastAccessed": 1776514968175,
+      "lastAccessed": 1776950945596,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserSkillsDTO.java",
+      "path": "docker/sandbox/Dockerfile",
       "accessCount": 1,
-      "lastAccessed": 1776514968198,
+      "lastAccessed": 1776950945950,
+      "type": "file"
+    },
+    {
+      "path": ".planning/phases/46-sandbox-hardening/46-VERIFICATION.md",
+      "accessCount": 1,
+      "lastAccessed": 1776951055232,
+      "type": "file"
+    },
+    {
+      "path": ".claude/settings.local.json",
+      "accessCount": 1,
+      "lastAccessed": 1776952423377,
+      "type": "file"
+    },
+    {
+      "path": "management/src/api/admin/account.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776954021470,
+      "type": "file"
+    },
+    {
+      "path": "management/src/api/admin/settings.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776954021750,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/admin/controller/AdminUserController.java",
+      "accessCount": 1,
+      "lastAccessed": 1776954060086,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/controller/UserController.java",
+      "accessCount": 1,
+      "lastAccessed": 1776954089122,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/admin/controller/DashboardController.java",
+      "accessCount": 1,
+      "lastAccessed": 1776954123210,
       "type": "file"
     },
     {
       "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UpdateUserDTO.java",
       "accessCount": 1,
-      "lastAccessed": 1776514968231,
+      "lastAccessed": 1776954138938,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/DifficultyCountDTO.java",
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/UserVO.java",
       "accessCount": 1,
-      "lastAccessed": 1776514968326,
+      "lastAccessed": 1776954144597,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/service/AchievementService.java",
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/dto/ProfileVO.java",
       "accessCount": 1,
-      "lastAccessed": 1776514981882,
+      "lastAccessed": 1776954145119,
       "type": "file"
     },
     {
-      "path": "backend-spring/src/main/java/com/ulticode/modules/achievement/constants/AchievementType.java",
+      "path": "backend-spring/src/main/java/com/ulticode/common/util/SecurityUtil.java",
       "accessCount": 1,
-      "lastAccessed": 1776514981999,
+      "lastAccessed": 1776954160493,
       "type": "file"
     },
     {
-      "path": "console/src/views/contest/detailed/components/ContestRankingTable.vue",
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/UserService.java",
       "accessCount": 1,
-      "lastAccessed": 1776514992285,
+      "lastAccessed": 1776954173761,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/user/service/impl/UserServiceImpl.java",
+      "accessCount": 1,
+      "lastAccessed": 1776954206860,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/admin/controller/AdminAccountController.java",
+      "accessCount": 1,
+      "lastAccessed": 1776954220984,
+      "type": "file"
+    },
+    {
+      "path": "backend-spring/src/main/java/com/ulticode/modules/admin/controller/AdminSettingsController.java",
+      "accessCount": 1,
+      "lastAccessed": 1776954258405,
+      "type": "file"
+    },
+    {
+      "path": "management/src/i18n/utils.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776954875879,
+      "type": "file"
+    },
+    {
+      "path": ".planning/phases/47-frontend-i18n/47-UI-SPEC.md",
+      "accessCount": 1,
+      "lastAccessed": 1776955113818,
+      "type": "file"
+    },
+    {
+      "path": "management/src/components/layout/MainLayout.vue",
+      "accessCount": 1,
+      "lastAccessed": 1776957188426,
+      "type": "file"
+    },
+    {
+      "path": "management/src/components/layout/AppSidebarLayout.vue",
+      "accessCount": 1,
+      "lastAccessed": 1776957188435,
+      "type": "file"
+    },
+    {
+      "path": "console/src/features/sider/NavUser.vue",
+      "accessCount": 1,
+      "lastAccessed": 1776957205682,
+      "type": "file"
+    },
+    {
+      "path": ".planning/config.json",
+      "accessCount": 1,
+      "lastAccessed": 1776957557498,
+      "type": "file"
+    },
+    {
+      "path": ".planning/phases/47-frontend-i18n/47-01-PLAN.md",
+      "accessCount": 1,
+      "lastAccessed": 1776957734189,
+      "type": "file"
+    },
+    {
+      "path": ".planning/phases/47-frontend-i18n/47-02-PLAN.md",
+      "accessCount": 1,
+      "lastAccessed": 1776957735204,
+      "type": "file"
+    },
+    {
+      "path": ".planning/phases/47-frontend-i18n/47-03-PLAN.md",
+      "accessCount": 1,
+      "lastAccessed": 1776957735791,
+      "type": "file"
+    },
+    {
+      "path": "management/package.json",
+      "accessCount": 1,
+      "lastAccessed": 1776957741700,
+      "type": "file"
+    },
+    {
+      "path": "console/src/i18n/index.ts",
+      "accessCount": 1,
+      "lastAccessed": 1776957743059,
       "type": "file"
     }
   ],

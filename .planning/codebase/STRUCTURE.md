@@ -1,296 +1,341 @@
-# UltiCode Code Organization
+# Codebase Structure
 
-## Project Root Structure
+**Analysis Date:** 2026-04-22
+
+## Directory Layout
 
 ```
-UltiCode-Public-Next/
-├── backend-spring/          # Spring Boot backend (Java 17)
-├── console/                 # User-facing frontend (Vue 3)
-├── management/              # Admin dashboard (Vue 3)
-├── recommendation/          # Dubbo3 + Spark recommendation service
+/home/davidhlp/project/UltiCode-Public-Next/
+├── backend-spring/           # Spring Boot backend (Java 17)
+├── console/                  # User-facing Vue 3 frontend
+├── management/              # Admin Vue 3 frontend
+├── recommendation/          # Dubbo3 recommendation microservice
 ├── db-manager/              # Flyway database migration tool
-├── docs/                    # Documentation
-├── ecosystem.config.cjs      # PM2 configuration
-├── docker-compose.yml       # Docker services (MySQL, Redis, Nacos)
-└── CLAUDE.md               # Project guidance
+├── shared/                  # Shared code (symlinked to frontends)
+├── docker-compose.yml       # Development Docker services
+├── docker-compose.prod.yml  # Production Docker configuration
+├── ecosystem.config.cjs     # PM2 process manager config
+└── .env                     # Environment variables
 ```
 
-## Backend Structure (`backend-spring/`)
+## Backend Structure
 
 ```
 backend-spring/
-├── pom.xml                          # Maven configuration
 ├── src/main/java/com/ulticode/
-│   ├── UlticodeApplication.java     # Spring Boot entry point
-│   ├── common/                     # Shared components
-│   │   ├── annotation/             # Custom annotations
-│   │   │   ├── CurrentUser.java    # Inject current user
-│   │   │   ├── RateLimit.java       # Rate limiting
-│   │   │   └── RequireRole.java     # Role requirement
-│   │   ├── config/                  # Configuration classes
+│   ├── UlticodeBackendApplication.java  # Main entry point
+│   ├── common/                          # Shared utilities
+│   │   ├── annotation/                  # Custom annotations (@CurrentUser, @RequireRole, @RateLimit)
+│   │   ├── aspect/                      # AOP aspects
+│   │   ├── config/                      # Configuration classes
+│   │   │   ├── CacheConfig.java         # Redis cache configuration
+│   │   │   ├── CorsProperties.java      # CORS settings
+│   │   │   ├── EnvValidationConfig.java # Environment validation
 │   │   │   ├── FeatureFlagsProperties.java
-│   │   │   ├── RedisConfig.java
-│   │   │   └── SwaggerConfig.java
-│   │   ├── dto/                     # Shared DTOs
-│   │   │   └── ApiResponse.java
-│   │   ├── exception/               # Exception handling
-│   │   │   └── BusinessException.java
-│   │   ├── response/                # Response wrappers
-│   │   │   ├── PageResult.java
-│   │   │   └── Result.java
-│   │   ├── service/                 # Shared services
-│   │   │   └── TokenBlacklistService.java
-│   │   └── util/                    # Utilities
-│   │       └── SecurityUtil.java
-│   ├── infrastructure/               # Infrastructure layer
-│   │   └── redis/
-│   │       └── CacheConstants.java
-│   ├── modules/                     # Feature modules (27 modules)
-│   │   ├── achievement/
-│   │   ├── admin/
-│   │   ├── auth/
-│   │   ├── backup/
-│   │   ├── bookmark/
-│   │   ├── contest/
-│   │   ├── edgeoperations/
-│   │   ├── email/
-│   │   ├── forum/
-│   │   ├── i18n/
-│   │   ├── monitoring/
-│   │   ├── notification/
-│   │   ├── permission/
-│   │   ├── problemlist/
-│   │   ├── problem/
-│   │   ├── queue/
-│   │   ├── recommendation/
-│   │   ├── refreshtoken/
-│   │   ├── search/
-│   │   ├── solution/
-│   │   ├── submission/
-│   │   ├── subscription/
-│   │   ├── user/
-│   │   ├── vote/
-│   │   └── websocket/
-│   ├── security/                     # Security layer
-│   │   ├── filter/                  # JWT filters
-│   │   └── service/                 # Security services
-│   └── websocket/                    # WebSocket config
+│   │   │   ├── MapperConfig.java        # MyBatis mapper config
+│   │   │   ├── MybatisPlusConfig.java   # MyBatis-Plus settings
+│   │   │   ├── RedisConfig.java         # Redis connection config
+│   │   │   ├── SecurityConfig.java      # Spring Security config
+│   │   │   ├── SwaggerConfig.java       # OpenAPI/Swagger docs
+│   │   │   ├── WebConfig.java           # Web MVC config
+│   │   │   └── WebMvcConfig.java        # Additional web config
+│   │   ├── constants/                   # Shared constants
+│   │   ├── dto/                         # Common DTOs
+│   │   ├── exception/                  # Exception handling
+│   │   │   ├── BusinessException.java   # Domain exception
+│   │   │   ├── ErrorCode.java           # Error code definitions
+│   │   │   └── GlobalExceptionHandler.java
+│   │   ├── filter/                      # Servlet filters
+│   │   ├── response/                    # API response wrappers
+│   │   │   ├── PageResult.java          # Paginated response
+│   │   │   └── Result.java              # Standard response envelope
+│   │   ├── service/                    # Common services
+│   │   └── util/                        # Utility classes
+│   ├── modules/                         # Domain modules
+│   │   ├── achievement/                 # Achievements system
+│   │   ├── admin/                       # Admin functionality
+│   │   ├── auth/                        # Authentication
+│   │   ├── backup/                      # Database backup
+│   │   ├── bookmark/                    # User bookmarks
+│   │   ├── contest/                     # Contests and rankings
+│   │   ├── edgeoperations/              # Edge operations
+│   │   ├── email/                       # Email service
+│   │   ├── follow/                     # Follow relationships
+│   │   ├── forum/                       # Forum and communities
+│   │   ├── i18n/                        # Internationalization
+│   │   ├── moderation/                  # Content moderation
+│   │   ├── monitoring/                  # System monitoring
+│   │   ├── notification/                # Notifications
+│   │   ├── permission/                  # Permission system
+│   │   ├── problem/                     # Problems and test cases
+│   │   ├── problemlist/                  # Problem lists
+│   │   ├── queue/                       # Submission queue
+│   │   ├── recommendation/              # Recommendation service client
+│   │   ├── refreshtoken/                # Token refresh
+│   │   ├── search/                      # Search functionality
+│   │   ├── solution/                    # Solutions
+│   │   ├── submission/                  # Code submissions and judging
+│   │   ├── subscription/                # User subscriptions
+│   │   ├── user/                        # User management
+│   │   ├── vote/                        # Voting
+│   │   └── websocket/                   # WebSocket handling
+│   └── security/                        # Security layer
+│       ├── AuthenticationEntryPointImpl.java
+│       ├── csrf/                        # CSRF protection
+│       │   ├── CsrfService.java
+│       │   └── CsrfValidationFilter.java
+│       ├── jwt/                         # JWT authentication
+│       │   ├── JwtAuthenticationFilter.java
+│       │   ├── JwtProperties.java
+│       │   └── JwtTokenProvider.java
+│       └── oauth/                       # OAuth integration
 ├── src/main/resources/
-│   ├── application.yml              # Spring configuration
-│   └── logback-spring.xml           # Logging configuration
-└── src/test/java/                    # Tests
+│   ├── application.yml                  # Main configuration
+│   ├── application-dev.yml              # Development overrides
+│   ├── application-prod.yml             # Production overrides
+│   ├── application-ci.yml               # CI environment
+│   └── db/                              # Database scripts
+└── src/test/java/                       # Backend tests
 ```
 
-### Module Internal Structure
-
-Each feature module follows a consistent pattern:
-
-```
-module-name/
-├── controller/
-│   └── XxxController.java           # REST endpoints
-├── dto/
-│   ├── XxxQueryDTO.java             # Query parameters
-│   ├── XxxCreateDTO.java            # Creation request
-│   ├── XxxUpdateDTO.java            # Update request
-│   ├── XxxVO.java                   # View object
-│   └── XxxDTO.java                  # Data transfer object
-├── entity/
-│   ├── Xxx.java                     # Database entity
-│   └── enums/
-│       └── XxxStatus.java           # Enum values
-├── event/
-│   └── XxxEvent.java                # Domain events
-├── mapper/
-│   └── XxxMapper.java               # MyBatis mapper
-└── service/
-    ├── XxxService.java               # Service interface
-    └── impl/
-        └── XxxServiceImpl.java       # Service implementation
-```
-
-## Console Frontend Structure (`console/`)
+## Frontend Structure (Console)
 
 ```
 console/
+├── src/
+│   ├── main.ts                          # Vue app entry point
+│   ├── App.vue                          # Root component
+│   ├── api/                             # API client modules
+│   │   ├── achievement.ts
+│   │   ├── auth.ts
+│   │   ├── bookmark.ts
+│   │   ├── contest.ts
+│   │   ├── edge-operations.ts
+│   │   ├── follow.ts
+│   │   ├── forum.ts
+│   │   ├── interaction.ts
+│   │   ├── notification.ts
+│   │   ├── problem-detail.ts
+│   │   ├── problem-list.ts
+│   │   ├── problem.ts
+│   │   ├── recommendation.ts
+│   │   ├── search.ts
+│   │   ├── solution.ts
+│   │   ├── submission.ts
+│   │   ├── subscription.ts
+│   │   ├── topic.ts
+│   │   ├── user.ts
+│   │   ├── userStats.ts
+│   │   ├── vote.ts
+│   │   └── __tests__/                   # API tests
+│   ├── components/                      # Vue components
+│   │   ├── achievement/
+│   │   ├── bookmark/
+│   │   ├── comments/
+│   │   ├── common/
+│   │   ├── dashboard/
+│   │   ├── edge-operations/
+│   │   ├── editor/
+│   │   ├── follow/
+│   │   ├── LanguageSwitcher.vue
+│   │   ├── markdown/
+│   │   ├── notification/
+│   │   ├── problem/
+│   │   ├── search/
+│   │   └── ui/
+│   ├── composables/                     # Vue composables
+│   ├── constants/                       # App constants
+│   ├── env.d.ts                         # Vite env types
+│   ├── i18n/                            # Internationalization
+│   ├── lib/                             # Library utilities
+│   ├── router/                          # Vue Router config
+│   ├── shared -> ../../shared           # Symlink to shared
+│   ├── stores/                          # Pinia stores
+│   ├── style.css                        # Global styles
+│   ├── types/                           # TypeScript types
+│   ├── utils/                           # Utility functions
+│   │   └── request.ts                   # Axios wrapper with Result unwrapping
+│   └── views/                           # Page components
+│       ├── achievements/
+│       ├── auth/
+│       ├── contest/
+│       ├── dashboard/
+│       ├── forum/
+│       ├── personal/
+│       ├── post-editor/
+│       ├── problem-list/
+│       ├── problems/
+│       ├── problem-set/
+│       ├── profile/
+│       ├── recommendations/
+│       └── users/
 ├── package.json
 ├── vite.config.ts
-├── tailwind.config.js
-├── src/
-│   ├── main.ts                      # Entry point
-│   ├── App.vue                      # Root component
-│   ├── style.css                    # Global styles
-│   ├── pwa-register.ts              # PWA setup
-│   ├── api/                         # API clients
-│   │   ├── auth.ts
-│   │   ├── problem.ts
-│   │   ├── submission.ts
-│   │   ├── contest.ts
-│   │   └── user.ts
-│   ├── components/                   # Vue components
-│   │   ├── ui/                      # Base UI components (shadcn-vue)
-│   │   ├── problem/                 # Problem-related components
-│   │   ├── editor/                  # Code editor components
-│   │   └── layout/                  # Layout components
-│   ├── pages/                       # Route pages
-│   │   ├── home/
-│   │   ├── problem/
-│   │   ├── contest/
-│   │   ├── submission/
-│   │   └── user/
-│   ├── stores/                       # Pinia stores
-│   │   ├── auth.ts
-│   │   ├── problem.ts
-│   │   └── user.ts
-│   ├── types/                        # TypeScript definitions
-│   │   ├── api.ts
-│   │   ├── problem.ts
-│   │   └── user.ts
-│   └── utils/                        # Utilities
-│       ├── request.ts               # Axios wrapper
-│       └── helpers.ts
-├── public/                           # Static assets
-└── test/                             # Tests
+└── tsconfig.json
 ```
 
-## Management Frontend Structure (`management/`)
+## Frontend Structure (Management)
 
 ```
 management/
+├── src/
+│   ├── main.ts                          # Vue app entry point
+│   ├── App.vue                          # Root component
+│   ├── api/                             # API client modules
+│   │   ├── analytics.ts
+│   │   ├── audit.ts
+│   │   ├── auth.ts
+│   │   ├── comment.ts
+│   │   ├── contest.ts
+│   │   ├── forum.ts
+│   │   ├── moderation.ts
+│   │   ├── notification.ts
+│   │   ├── problem.ts
+│   │   ├── solution.ts
+│   │   ├── submission.ts
+│   │   ├── system.ts
+│   │   ├── tag.ts
+│   │   └── user.ts
+│   ├── components/                      # Vue components
+│   │   ├── analytics/
+│   │   ├── audit/
+│   │   ├── dashboard/
+│   │   ├── layout/
+│   │   ├── problem/
+│   │   ├── problems/
+│   │   ├── shared/
+│   │   ├── table/
+│   │   └── ui/
+│   ├── composables/                     # Vue composables
+│   ├── constants/                       # App constants
+│   ├── contexts/                        # Vue contexts
+│   ├── features/                        # Feature modules
+│   ├── hooks/                           # Custom hooks
+│   ├── i18n/                            # Internationalization
+│   ├── lib/                             # Library utilities
+│   ├── pwa-register.ts                  # PWA registration
+│   ├── router/                          # Vue Router config
+│   ├── stores/                          # Pinia stores
+│   ├── style.css                        # Global styles
+│   ├── types/                           # TypeScript types
+│   ├── utils/                           # Utility functions
+│   └── views/                           # Page components
+│       ├── account/
+│       ├── analytics/
+│       ├── audit/
+│       ├── auth/
+│       ├── billing/
+│       ├── comments/
+│       ├── contest/
+│       ├── contests/
+│       ├── dashboard/
+│       ├── forum/
+│       ├── moderation/
+│       ├── notifications/
+│       ├── problem-lists/
+│       ├── problems/
+│       ├── settings/
+│       ├── solutions/
+│       ├── submissions/
+│       ├── system/
+│       ├── tags/
+│       └── users/
 ├── package.json
 ├── vite.config.ts
-├── tailwind.config.js
-├── src/
-│   ├── App.vue                      # Root component
-│   ├── env.d.ts                     # Type declarations
-│   ├── style.css                    # Global styles
-│   ├── api/                         # API clients
-│   │   ├── admin.ts
-│   │   ├── user.ts
-│   │   ├── problem.ts
-│   │   └── analytics.ts
-│   ├── components/                   # Vue components
-│   │   ├── ui/                      # Base UI components
-│   │   ├── admin/                   # Admin-specific components
-│   │   └── layout/                  # Layout components
-│   ├── pages/                       # Route pages
-│   │   ├── dashboard/
-│   │   ├── users/
-│   │   ├── problems/
-│   │   ├── contests/
-│   │   ├── audit/
-│   │   └── analytics/
-│   ├── stores/                       # Pinia stores
-│   │   └── admin.ts
-│   └── utils/                        # Utilities
-│       ├── request.ts
-│       └── helpers.ts
-└── public/                           # Static assets
+└── tsconfig.json
 ```
 
-## Recommendation Service Structure (`recommendation/`)
+## Module Internal Structure (Backend)
+
+Each backend module follows a consistent pattern:
 
 ```
-recommendation/
-├── pom.xml                          # Parent POM
-├── recommend-api/                   # Dubbo API definitions
-│   ├── pom.xml
-│   └── src/main/java/
-│       └── com/ulticode/recommend/api/
-│           ├── DubboUserRecommendService.java
-│           └── model/
-├── recommend-core/                  # Core algorithms
-│   ├── pom.xml
-│   └── src/main/java/
-│       └── com/ulticode/recommend/core/
-│           ├── algorithm/           # Recommendation algorithms
-│           └── similarity/          # Similarity calculations
-├── recommend-feature/               # Feature engineering
-│   ├── pom.xml
-│   └── src/main/java/
-│       └── com/ulticode/recommend/feature/
-├── recommend-provider/              # Dubbo provider (port 9004)
-│   ├── pom.xml
-│   └── src/main/java/
-│       └── com/ulticode/recommend/provider/
-├── recommend-spark/                 # Spark ML jobs
-│   ├── pom.xml
-│   └── src/main/java/
-│       └── com/ulticode/recommend/spark/
-└── recommend-web/                  # Dubbo consumer (port 9005)
-    ├── pom.xml
-    └── src/main/java/
-        └── com/ulticode/recommend/web/
+modules/<name>/
+├── controller/           # REST endpoints (@RestController)
+│   └── *Controller.java
+├── service/               # Business logic (@Service)
+│   └── *Service.java
+├── entity/                # Database entities (MyBatis-Plus)
+│   └── *Entity.java
+├── mapper/                # MyBatis mappers (@Mapper)
+│   └── *Mapper.java
+└── dto/                   # Request/Response DTOs
+    ├── *Request.java
+    └── *Response.java
 ```
 
-## Database Manager Structure (`db-manager/`)
+## Key File Locations
+
+**Entry Points:**
+- Backend: `backend-spring/src/main/java/com/ulticode/UlticodeBackendApplication.java`
+- Console: `console/src/main.ts`
+- Management: `management/src/main.ts`
+
+**Configuration:**
+- Backend main: `backend-spring/src/main/resources/application.yml`
+- Backend env: `backend-spring/.env`
+- PM2: `ecosystem.config.cjs`
+- Docker Compose dev: `docker-compose.yml`
+- Docker Compose prod: `docker-compose.prod.yml`
+
+**Core Logic:**
+- Backend common: `backend-spring/src/main/java/com/ulticode/common/config/`
+- Backend security: `backend-spring/src/main/java/com/ulticode/security/`
+- Backend modules: `backend-spring/src/main/java/com/ulticode/modules/`
+
+**Database Migrations:**
+- Location: `db-manager/migrations/`
+- Naming: `V{version}__{description}.sql`
+- Managed by: Flyway via Python CLI
+
+## Where to Add New Code
+
+**New Backend Feature Module:**
+1. Create directory: `backend-spring/src/main/java/com/ulticode/modules/<name>/`
+2. Add subdirectories: `controller/`, `service/`, `entity/`, `mapper/`, `dto/`
+3. Register in module structure following existing patterns
+4. Add Spring Boot auto-configuration if needed
+
+**New API Endpoint (Backend):**
+1. Add controller to appropriate module: `modules/<name>/controller/`
+2. Follow existing naming: `*Controller.java`
+3. Use `@RestController` and appropriate `@RequestMapping`
+
+**New Frontend Page:**
+- Console pages: `console/src/views/<category>/`
+- Management pages: `management/src/views/<category>/`
+
+**New API Client (Frontend):**
+- Console: `console/src/api/<name>.ts`
+- Management: `management/src/api/<name>.ts`
+
+**New Vue Component:**
+- Console: `console/src/components/<category>/`
+- Management: `management/src/components/<category>/`
+
+**New Shared Code:**
+- Add to `shared/` directory
+- Symlinked to both frontends via `console/src/shared` and `management/src/shared`
+
+## Database Migration Location
 
 ```
 db-manager/
-├── cli.py                          # Main CLI entry point
-├── flyway/                          # Flyway configuration
-├── migrations/                      # Flyway SQL migrations
+├── migrations/           # Flyway SQL migrations
 │   ├── V1__initial_schema.sql
 │   ├── V2__problems_and_tags.sql
-│   ├── V3__contests_and_rankings.sql
-│   ├── V4__forum.sql
-│   ├── V8__collections.sql
-│   └── V9__solutions.sql
-├── src/
-│   └── db_manager/
-│       ├── cli.py                  # CLI commands
-│       └── migrator.py             # Migration runner
-└── .venv/                           # Python virtual environment
+│   └── ...
+├── db_manager/           # Python CLI tool
+└── .venv/                # Python virtual environment
 ```
 
-## Module划分 (Module Division)
+## Special Directories
 
-### Core Modules (用户直接使用)
-| Module | Description |
-|--------|-------------|
-| `problem` | 题目管理：创建、编辑、标签、难度 |
-| `submission` | 代码提交：提交、判题、结果 |
-| `contest` | 竞赛管理：创建比赛、排名、参与 |
-| `user` | 用户管理：注册、登录、资料 |
+**shared/** - Symlinked shared code used by both frontends
+**db-manager/** - Python-based Flyway migration manager (uses own venv)
+**infrastructure/** - Deployment infrastructure code
+**docs/** - Documentation
 
-### Social Features (社区功能)
-| Module | Description |
-|--------|-------------|
-| `forum` | 论坛：帖子、评论、板块 |
-| `solution` | 题解：解题思路、代码 |
-| `vote` | 投票：点赞、点踩 |
-| `bookmark` | 收藏：收藏夹、收藏题目 |
+---
 
-### Platform Features (平台功能)
-| Module | Description |
-|--------|-------------|
-| `achievement` | 成就系统：徽章、积分、进度 |
-| `subscription` | 订阅：关注用户、标签 |
-| `notification` | 通知：站内通知 |
-| `search` | 搜索：全文检索 |
-
-### Admin Features (管理功能)
-| Module | Description |
-|--------|-------------|
-| `admin` | 管理后台：仪表盘、审核、数据统计 |
-| `moderation` | 内容审核：举报处理 |
-| `backup` | 数据备份：备份管理 |
-
-### Infrastructure (基础设施)
-| Module | Description |
-|--------|-------------|
-| `auth` | 认证：登录、注册、OAuth |
-| `permission` | 权限：角色、权限检查 |
-| `refreshtoken` | Token刷新 |
-| `edgeoperations` | 实时判题 |
-| `queue` | 消息队列 |
-| `websocket` | WebSocket通信 |
-| `email` | 邮件服务 |
-| `i18n` | 国际化 |
-| `monitoring` | 监控健康检查 |
-
-### Integration (集成服务)
-| Module | Description |
-|--------|-------------|
-| `recommendation` | 推荐服务：问题推荐 |
-| `problemlist` | 题目列表：精选列表 |
+*Structure analysis: 2026-04-22*

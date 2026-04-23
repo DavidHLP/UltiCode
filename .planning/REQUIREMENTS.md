@@ -29,7 +29,7 @@ Requirements for initial release. Each maps to roadmap phases.
 **: 构建 useLocale composable（localStorage 持久化 + 后端同步）
 - [x] **I18N-03
 **: 翻译文件 lazy loading（非 active locale 动态 import）
-- [ ] **I18N-04**: Console header 添加 language switcher（zh-CN / en-US）
+- [x] **I18N-04**: Console header 添加 language switcher（zh-CN / en-US）
 - [x] **I18N-05
 **: 启用 missingWarn 使 missing translation keys 在开发时可见
 
@@ -59,11 +59,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SAND-03 | Phase 46 | Complete |
 | SAND-04 | Phase 46 | Complete |
 | SAND-05 | Phase 46 | Complete |
-| I18N-01 | Phase 47 | Pending |
-| I18N-02 | Phase 47 | Pending |
-| I18N-03 | Phase 47 | Pending |
-| I18N-04 | Phase 47 | Pending |
-| I18N-05 | Phase 47 | Pending |
+| I18N-01 | Phase 47 | Complete |
+| I18N-02 | Phase 47 | Complete |
+| I18N-03 | Phase 47 | Complete |
+| I18N-04 | Phase 47 | Complete |
+| I18N-05 | Phase 47 | Complete |
 
 **Coverage:**
 - v1 requirements: 13 total

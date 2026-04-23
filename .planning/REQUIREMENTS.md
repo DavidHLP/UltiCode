@@ -15,11 +15,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Sandbox Hardening
 
-- [ ] **SAND-01**: 修复 --read-only 在 --tmpfs 之前的 flag ordering bug
-- [ ] **SAND-02**: 修复 seccomp profile path 未 volume-mounted 问题
-- [ ] **SAND-03**: 实现 per-language resource limits（timeout/memory per language）
-- [ ] **SAND-04**: /tmp tmpfs size enforcement（size=64m）
-- [ ] **SAND-05**: bubblewrap 集成测试验证 namespace isolation
+- [x] **SAND-01**: 修复 --read-only 在 --tmpfs 之前的 flag ordering bug
+- [x] **SAND-02**: 修复 seccomp profile path 未 volume-mounted 问题
+- [x] **SAND-03**: 实现 per-language resource limits（timeout/memory per language）
+- [x] **SAND-04**: /tmp tmpfs size enforcement（size=64m）
+- [x] **SAND-05**: bubblewrap 集成测试验证 namespace isolation
 
 ### Frontend i18n
 
@@ -30,7 +30,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **I18N-03
 **: 翻译文件 lazy loading（非 active locale 动态 import）
 - [ ] **I18N-04**: Console header 添加 language switcher（zh-CN / en-US）
-- [ ] **I18N-05**: 启用 missingWarn 使 missing translation keys 在开发时可见
+- [x] **I18N-05
+**: 启用 missingWarn 使 missing translation keys 在开发时可见
 
 ## Out of Scope
 
@@ -53,11 +54,11 @@ Which phases cover which requirements. Updated during roadmap creation.
 | API-01 | Phase 45 | Pending |
 | API-02 | Phase 45 | Pending |
 | API-03 | Phase 45 | Pending |
-| SAND-01 | Phase 46 | Pending |
-| SAND-02 | Phase 46 | Pending |
-| SAND-03 | Phase 46 | Pending |
-| SAND-04 | Phase 46 | Pending |
-| SAND-05 | Phase 46 | Pending |
+| SAND-01 | Phase 46 | Complete |
+| SAND-02 | Phase 46 | Complete |
+| SAND-03 | Phase 46 | Complete |
+| SAND-04 | Phase 46 | Complete |
+| SAND-05 | Phase 46 | Complete |
 | I18N-01 | Phase 47 | Pending |
 | I18N-02 | Phase 47 | Pending |
 | I18N-03 | Phase 47 | Pending |

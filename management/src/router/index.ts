@@ -334,7 +334,7 @@ let lastValidatedAt = 0
 const STALE_SESSION_MS = 5 * 60 * 1000 // 5 minutes
 
 // Navigation guard for authentication and permissions
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, from) => {
   const authStore = useAuthStore()
   const navId = ++pendingNavigationId
   const isStale = () => navId !== pendingNavigationId
@@ -360,10 +360,10 @@ router.beforeEach(async (to, from, next) => {
     }
 
     if (!authStore.isAuthenticated) {
-      return next({
+      return {
         name: 'login',
         query: { redirect: to.fullPath },
-      })
+      }
     }
 
     lastValidatedAt = Date.now()
@@ -387,7 +387,7 @@ router.beforeEach(async (to, from, next) => {
         duration: 4000,
         position: 'top-right',
       })
-      return next({ name: 'dashboard' })
+      return { name: 'dashboard' }
     }
   }
 
@@ -402,16 +402,16 @@ router.beforeEach(async (to, from, next) => {
         duration: 4000,
         position: 'top-right',
       })
-      return next({ name: 'dashboard' })
+      return { name: 'dashboard' }
     }
   }
 
   // Redirect authenticated users away from login
   if (to.name === 'login' && authStore.isAuthenticated) {
-    return next({ name: 'dashboard' })
+    return { name: 'dashboard' }
   }
 
-  next()
+  return true
 })
 
 export default router

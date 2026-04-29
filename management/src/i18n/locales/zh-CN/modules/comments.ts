@@ -18,6 +18,10 @@ export default {
     solution: '题解',
   },
 
+  status: {
+    unknown: '未知',
+  },
+
   filters: {
     type: '评论类型',
     allTypes: '全部类型',

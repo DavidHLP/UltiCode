@@ -76,6 +76,7 @@ export default {
     editProfile: 'Edit Profile',
     resetPassword: 'Reset Password',
     banUser: 'Ban User',
+    bulkBanUser: 'Bulk Ban Users',
     unbanUser: 'Unban User',
     banUserDescription: 'Please provide a reason for banning {username}.',
     thisUser: 'this user',

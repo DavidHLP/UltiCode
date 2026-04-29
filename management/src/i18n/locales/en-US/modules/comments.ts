@@ -18,6 +18,10 @@ export default {
     solution: 'Solution',
   },
 
+  status: {
+    unknown: 'Unknown',
+  },
+
   filters: {
     type: 'Comment Type',
     allTypes: 'All Types',

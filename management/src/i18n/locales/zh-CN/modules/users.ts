@@ -76,6 +76,7 @@ export default {
     editProfile: '编辑资料',
     resetPassword: '重置密码',
     banUser: '封禁用户',
+    bulkBanUser: '批量封禁用户',
     unbanUser: '解封用户',
     banUserDescription: '请提供封禁 {username} 的原因。',
     thisUser: '该用户',

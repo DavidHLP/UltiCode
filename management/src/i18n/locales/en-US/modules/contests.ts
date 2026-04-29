@@ -24,6 +24,8 @@ export default {
   // Contest types
   type: {
     all: 'All Types',
+    biweekly: 'Biweekly',
+    weekly: 'Weekly',
     RATED: 'Rated',
     UNRATED: 'Unrated',
     EDUCATIONAL: 'Educational',

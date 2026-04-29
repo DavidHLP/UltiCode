@@ -1,5 +1,6 @@
 export default {
   // Table toolbar
+  selectAll: 'Select All',
   customizeColumns: 'Customize Columns',
   columns: 'Columns',
   rowsPerPage: 'Rows per page',

@@ -340,7 +340,7 @@ export default {
   },
 
   // Dialogs
-  dialogs: {
+  dialog: {
     deleteTitle: 'Confirm Delete',
     deleteDescription:
       'Are you sure you want to delete problem "{title}"? This action cannot be undone.',

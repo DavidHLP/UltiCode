@@ -1,5 +1,6 @@
 export default {
   // 表格工具栏
+  selectAll: '全选',
   customizeColumns: '自定义列',
   columns: '列',
   rowsPerPage: '每页行数',

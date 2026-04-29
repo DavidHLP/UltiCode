@@ -332,6 +332,7 @@ export default {
   statusDismissed: '已驳回',
   noFlagged: '暂无待审核内容',
   noFlaggedDescription: '当前没有需要审核的内容。',
+  flagDescription: '标记 "{title}" 供审核。请提供标记原因。',
   flagReason: '标记原因',
   moderationNotes: '审核备注',
   unknownReporter: '未知',

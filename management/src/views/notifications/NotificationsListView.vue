@@ -173,7 +173,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
   },
   {
     id: 'actions',
-    header: () => t('common.actions'),
+    header: () => t('common.actions.label'),
     cell: ({ row }) => {
       return h(
         DropdownMenu,

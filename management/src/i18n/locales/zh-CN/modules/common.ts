@@ -31,7 +31,10 @@ export default {
   any: '任意',
 
   // 标签
-  actions: '操作',
+  actions: {
+    label: '操作',
+    toggleLanguage: '切换语言',
+  },
   status: '状态',
   details: '详情',
   search: '搜索',

@@ -339,7 +339,7 @@ export default {
   },
 
   // 对话框
-  dialogs: {
+  dialog: {
     deleteTitle: '确认删除',
     deleteDescription: '确定要删除题目 "{title}" 吗？此操作不可撤销。',
     delete: {

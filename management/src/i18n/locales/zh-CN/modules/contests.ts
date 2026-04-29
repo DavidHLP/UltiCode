@@ -24,6 +24,8 @@ export default {
   // 比赛类型
   type: {
     all: '全部类型',
+    biweekly: '双周赛',
+    weekly: '周赛',
     RATED: '积分赛',
     UNRATED: '练习赛',
     EDUCATIONAL: '教学赛',

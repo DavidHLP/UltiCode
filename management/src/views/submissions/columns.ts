@@ -141,7 +141,7 @@ export function createColumns(
     },
     {
       id: 'actions',
-      header: () => t('common.actions'),
+      header: () => t('common.actions.label'),
       cell: ({ row }) =>
         h('div', { class: 'flex justify-end gap-1' }, [
           h(

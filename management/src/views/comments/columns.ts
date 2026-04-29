@@ -176,7 +176,7 @@ export function createColumns(
         h(
           'span',
           { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
-          t('common.actions'),
+          t('common.actions.label'),
         ),
       cell: ({ row }) => {
         const comment = row.original

@@ -31,7 +31,10 @@ export default {
   any: 'Any',
 
   // Labels
-  actions: 'Actions',
+  actions: {
+    label: 'Actions',
+    toggleLanguage: 'Toggle Language',
+  },
   status: 'Status',
   details: 'Details',
   search: 'Search',

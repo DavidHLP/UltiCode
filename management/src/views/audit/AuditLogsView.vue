@@ -199,7 +199,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     id: 'actions',
-    header: () => t('common.actions'),
+    header: () => t('common.actions.label'),
     cell: ({ row }) => {
       const log = row.original
       return h(

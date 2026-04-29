@@ -206,7 +206,7 @@ export function useProblemColumns(
     },
     {
       id: 'actions',
-      header: () => t('common.actions'),
+      header: () => t('common.actions.label'),
       cell: ({ row }) => {
         const problem = row.original
         return h(DropdownMenu, {}, {

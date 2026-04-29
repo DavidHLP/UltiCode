@@ -332,6 +332,7 @@ export default {
   statusDismissed: 'Dismissed',
   noFlagged: 'No Flagged Content',
   noFlaggedDescription: 'There is currently no content requiring review.',
+  flagDescription: 'Flag "{title}" for review. Please provide the reason for flagging.',
   flagReason: 'Flag Reason',
   moderationNotes: 'Moderation Notes',
   unknownReporter: 'Unknown',

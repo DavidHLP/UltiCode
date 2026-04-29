@@ -246,7 +246,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      *
      * @return list of Object arrays containing [status, count]
      */
-    @Select("SELECT status, COUNT(*) as count FROM submissions GROUP BY status")
+    @Select("SELECT status, COUNT(*) as count FROM submissions WHERE status IS NOT NULL GROUP BY status")
     List<Object[]> countByStatus();
 
     /**
@@ -254,7 +254,7 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
      *
      * @return list of Object arrays containing [language, count]
      */
-    @Select("SELECT language, COUNT(*) as count FROM submissions GROUP BY language ORDER BY count DESC")
+    @Select("SELECT language, COUNT(*) as count FROM submissions WHERE language IS NOT NULL GROUP BY language ORDER BY count DESC")
     List<Object[]> countByLanguage();
 
     /**

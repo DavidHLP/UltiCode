@@ -7,8 +7,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
-import IconGlobe from "~icons/lucide/globe";
-import { Check } from "lucide-vue-next";
+import { Check, Globe } from "lucide-vue-next";
 
 const { availableLocales, setLocale, isCurrentLocale } = useLocale();
 </script>
@@ -17,7 +16,7 @@ const { availableLocales, setLocale, isCurrentLocale } = useLocale();
   <DropdownMenu>
     <DropdownMenuTrigger as-child>
       <Button variant="ghost" size="icon" class="h-8 w-8 hover:bg-accent/50 transition-colors">
-        <IconGlobe class="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+        <Globe class="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
         <span class="sr-only">{{ $t("common.actions.toggleLanguage") }}</span>
       </Button>
     </DropdownMenuTrigger>

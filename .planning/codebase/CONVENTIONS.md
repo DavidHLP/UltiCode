@@ -1,268 +1,194 @@
 # Coding Conventions
 
-**Analysis Date:** 2026-04-22
+This document describes the coding conventions and patterns used in the UltiCode codebase.
 
-## Naming Conventions
+## Languages & Frameworks
 
-### Java (Backend)
+| Layer | Language | Framework/Tool |
+|-------|----------|----------------|
+| Backend | Java 17 | Spring Boot 3.2.5, MyBatis-Plus |
+| Recommendation | Java 17 | Dubbo3, Spark |
+| Console Frontend | TypeScript | Vue 3, Vite, Tailwind CSS v4 |
+| Management Frontend | TypeScript | Vue 3, Vite, Tailwind CSS v4 |
 
-**Classes, Interfaces, Records, Enums:**
-- PascalCase: `UserService`, `ErrorCode`, `UserVO`
+---
 
-**Methods:**
-- camelCase: `findById`, `updateCurrentUser`, `getUserById`
+## Backend (Java/Spring Boot)
 
-**Fields, Parameters, Local Variables:**
-- camelCase: `userId`, `pageSize`, `errorCode`
+### Project Structure
 
-**Constants (static final):**
-- SCREAMING_SNAKE_CASE: `MAX_PAGE_SIZE`, `DEFAULT_TIMEOUT`
+```
+backend-spring/src/main/java/com/ulticode/
+├── common/           # Shared utilities, configs, exceptions
+│   ├── response/     # Result wrapper, PageResult
+│   ├── exception/    # GlobalExceptionHandler, BusinessException
+│   ├── config/       # SecurityConfig, WebConfig, RedisConfig
+│   └── annotation/   # @CurrentUser, @RequireRole, @RateLimit
+├── security/         # JWT filters, CSRF service
+├── modules/          # Feature modules (auth, user, problem, submission, contest, etc.)
+├── websocket/        # Real-time communication
+```
 
-**Packages:**
-- All lowercase: `com.ulticode.modules.user.service`
+### Java Coding Style
 
-### TypeScript/Vue (Frontend)
+- **Formatter**: google-java-format (via hooks)
+- **Checkstyle**: Google Java Style guide
+- **Java Version**: 17
+- **Indent**: 2 or 4 spaces (match project standard)
 
-**Components:**
-- PascalCase: `ErrorBoundary.vue`, `LoadingOverlay.vue`
+### Naming Conventions
 
-**Hooks:**
-- camelCase with `use` prefix: `useLoading`, `useRetry`, `useEditorThemes`
+| Element | Convention |
+|---------|------------|
+| Classes/Interfaces/Records | PascalCase |
+| Methods/Fiels/Parameters | camelCase |
+| Static final constants | SCREAMING_SNAKE_CASE |
+| Packages | lowercase, reverse domain (`com.ulticode.module.service`) |
 
-**Functions, Variables:**
-- camelCase: `authApi`, `submitSolution`, `isActive`
+### Key Patterns
 
-**Types/Interfaces:**
-- PascalCase: `User`, `AuthResponse`, `ProblemDetailProps`
+- **Service Layer**: Business logic in service classes; keep controllers and repositories thin
+- **Constructor Injection**: Always use constructor injection over field injection
+- **DTOs**: Use Java records for DTOs and value types (Java 16+)
+- **Repository Pattern**: MyBatis-Plus with mapper interfaces
 
-**CSS Classes:**
-- kebab-case: `bg-primary`, `text-muted-foreground`
+### Backend Module Structure (per feature)
 
-### SQL (Database Migrations)
+Each module typically contains:
+- `controller/` - REST endpoints
+- `service/` - Business logic
+- `entity/` - Database entities
+- `mapper/` - MyBatis mappers
+- `dto/` - Request/Response DTOs
 
-**Tables:**
-- snake_case: `users`, `role_permissions`, `forum_posts`
+---
 
-**Columns:**
-- snake_case: `user_id`, `joined_at`, `is_active`
+## Frontend (Vue 3/TypeScript)
 
-**Indexes:**
-- Descriptive: `users_username_key`, `users_role_idx`
+### Project Structure
 
-**Migration Naming:**
-- `V{version}__{description}.sql`: `V1__core_schema.sql`, `V11__moderation_seed_data.sql`
+```
+console/ (or management/)/
+├── src/
+│   ├── api/           # API client functions
+│   ├── components/    # Vue components
+│   ├── composables/    # Vue composables (hooks)
+│   ├── stores/        # Pinia stores
+│   ├── router/        # Vue Router config
+│   ├── views/         # Page components
+│   ├── types/         # TypeScript type definitions
+│   ├── utils/         # Utility functions
+│   └── i18n/          # Internationalization
+```
 
-## Code Style
+### TypeScript Style
 
-### Java (Backend)
+- **Explicit Types**: Add parameter and return types to exported functions
+- **Interfaces vs Types**: Use `interface` for object shapes; `type` for unions, intersections
+- **No `any`**: Use `unknown` for external input, then narrow safely
+- **Immutability**: Use spread operator for immutable updates
 
-**Formatting:**
-- Spring Boot conventions (Google Java Style underlying)
-- 4-space indentation
-- One public class per file
+### Naming Conventions
 
-**Linting:**
-- Checkstyle via Maven build
+| Element | Convention |
+|---------|------------|
+| Components | PascalCase (`.vue` files) |
+| Composables | camelCase, prefixed with `use` (e.g., `useAuth`) |
+| Types/Interfaces | PascalCase |
+| Variables/Functions | camelCase |
+| Constants | SCREAMING_SNAKE_CASE |
 
-**Import Order:**
-1. `java.*` packages
-2. `javax.*` packages
-3. Third-party (`com.*`, `org.*`)
-4. `com.ulticode.*` (project imports)
+### Vue Component Patterns
 
-### TypeScript/Vue (Frontend)
+- Use `<script setup lang="ts">` for Vue 3 components
+- Define component props with named `interface`
+- Type callback props explicitly
+- Use shadcn-vue + Radix Vue for UI components
 
-**Formatting:**
-- Prettier (configured in `.prettierrc.json`)
-- `semi: false`, `singleQuote: true`, `printWidth: 100`
+### Formatting (Frontend)
 
-**Linting:**
-- ESLint 9.x with `eslint-plugin-vue@^9.30.0` (console)
-- ESLint 10.x (management)
-- Vue TsConfig recommended rules
+- **Prettier**: `semi: false`, `singleQuote: true`, `printWidth: 100`
+- **ESLint**: Flat config with `@vue/eslint-config-typescript`
+- **EditorConfig**: 2-space indent, UTF-8 charset, LF line endings
 
-**Import Order (via ESLint):**
-1. External imports
-2. Internal imports (`@/` path aliases)
-3. Relative imports
+### ESLint Configuration
 
-**Path Aliases:**
-- `@` maps to `./src` in both console and management frontends
+```javascript
+// Key rules from eslint.config.ts
+'vue/multi-word-component-names': ['error', { ignores: ['Accordion', 'Alert', 'Avatar', ...] }]
+```
 
-### Vue Component Style
+---
 
-- Use `<script setup lang="ts">` for Composition API
-- Props defined with `defineProps<PropsType>()`
-- Emit defined with `defineEmits<{...}>()`
-- Single word component names allowed for UI primitives: `Alert`, `Button`, `Avatar`
+## Shared Conventions
 
-## API Response Format
+### API Response Format
 
-### Backend Response Wrapper
-
-All API responses use `Result<T>` from `backend-spring/src/main/java/com/ulticode/common/response/Result.java`:
+All API responses use the `Result<T>` wrapper:
 
 ```json
 {
-  "code": 0,
+  "code": 0,           // 0 = success, non-zero = error
   "message": "success",
   "data": { ... },
   "traceId": "t-1234567890"
 }
 ```
 
-**Success:** `code: 0`, `message: "success"`
-**Error:** `code: non-zero`, `message: error description`
+### Error Handling
 
-### Pagination
+- Backend: BusinessException with ErrorCode enum
+- Frontend: Request utility unwraps responses, returns `response.data` directly
+- Use try-catch with async/await, narrow `unknown` errors safely
 
-Use `PageResult<T>` from `backend-spring/src/main/java/com/ulticode/common/response/PageResult.java`:
+### Authentication Flow
 
-```json
-{
-  "code": 0,
-  "message": "success",
-  "data": {
-    "items": [...],
-    "total": 100,
-    "page": 1,
-    "pageSize": 20
-  },
-  "traceId": "t-1234567890"
-}
-```
-
-### Frontend API Client Pattern
-
-```typescript
-// management/src/api/example.ts
-import { apiGet, apiPost } from "@/utils/request";
-
-export const exampleApi = {
-  async getList(): Promise<Item[]> {
-    return apiGet<Item[]>("/endpoint");
-  },
-  async create(data: CreateDTO): Promise<Item> {
-    return apiPost<Item>("/endpoint", data);
-  },
-};
-```
-
-Frontend `request.ts` automatically unwraps responses, returning `response.data` directly.
-
-## Error Handling
-
-### Backend (Java)
-
-**Exception Pattern:**
-- `BusinessException` from `com.ulticode.common.exception.BusinessException`
-- Carries `ErrorCode` enum value and trace ID
-- Never expose stack traces in API responses
-
-**ErrorCode Enum:**
-Located at `backend-spring/src/main/java/com/ulticode/common/exception/ErrorCode.java`
-
-Format: `MODULE_XXXXX`
-- `AUTH_*` (1xxxx) - Authentication
-- `USER_*` (2xxxx) - User module
-- `PROBLEM_*` (3xxxx) - Problem module
-- `SUBMISSION_*` (4xxxx) - Submission module
-- `SOLUTION_*` (5xxxx) - Solution module
-- `FORUM_*` (6xxxx) - Forum module
-- `CONTEST_*` (7xxxx) - Contest module
-- `BOOKMARK_*` (8xxxx) - Bookmark module
-- `PROBLEM_LIST_*` (9xxxx) - Problem list module
-- Moderation (10xxxx), Search (11xxxx), Recommendation (12xxxx), etc.
-
-**Global Exception Handler:**
-- `GlobalExceptionHandler` in `com.ulticode.common.exception`
-- Maps `BusinessException` to appropriate HTTP status and `Result.error()`
-
-### Frontend (TypeScript/Vue)
-
-**Error Handling Pattern:**
-```typescript
-import { getErrorMessage } from "@/utils/error";
-
-try {
-  const result = await authApi.login(credentials);
-} catch (error: unknown) {
-  const message = getErrorMessage(error);
-  // Handle error
-}
-```
-
-**No console.log in production code** - Use proper logging or error handling.
-
-## Logging Conventions
-
-### Backend (Java)
-
-**Framework:** SLF4J with Logback (Spring Boot default)
-
-**Log Levels:**
-- `log.error(...)` - Errors requiring attention
-- `log.warn(...)` - Warnings (e.g., invalid input)
-- `log.info(...)` - Key business events
-- `log.debug(...)` - Detailed debugging
-
-**Pattern:** Include relevant context (IDs, parameters) without sensitive data.
-
-### Frontend (TypeScript/Vue)
-
-**No console.log statements in production code.**
-
-Use error boundary components for component-level error handling.
-
-## Git Commit Format
-
-Format: `<type>: <description>`
-
-Types: `feat`, `fix`, `refactor`, `docs`, `test`, `chore`, `perf`, `ci`
-
-Example:
-```
-feat(user): add user profile avatar upload
-fix(auth): resolve token refresh race condition
-docs(api): update authentication documentation
-```
-
-## File Organization
-
-### Backend Module Structure
-
-```
-backend-spring/src/main/java/com/ulticode/
-├── common/           # Shared utilities, configs, exceptions
-│   ├── response/     # Result<T> wrapper, PageResult
-│   ├── exception/    # BusinessException, ErrorCode, GlobalExceptionHandler
-│   ├── config/       # SecurityConfig, WebConfig, RedisConfig
-│   └── annotation/   # @CurrentUser, @RequireRole, @RateLimit
-├── modules/          # Feature modules
-│   ├── auth/
-│   ├── user/
-│   └── ...
-```
-
-Each module contains:
-- `controller/` - REST endpoints
-- `service/` - Business logic
-- `entity/` - Database entities (MyBatis-Plus)
-- `mapper/` - MyBatis mappers
-- `dto/` - Request/Response DTOs
-
-### Frontend Structure
-
-```
-console/src/ OR management/src/
-├── api/              # API client modules
-├── components/        # Vue components
-├── composables/       # Vue composables (hooks)
-├── stores/           # Pinia stores
-├── utils/            # Utility functions
-└── types/            # TypeScript types
-```
+- JWT tokens stored in httpOnly cookies
+- CSRF token required for state-changing requests (POST, PUT, PATCH, DELETE)
+- Frontend reads CSRF from localStorage, sends as `X-CSRF-Token` header
 
 ---
 
-*Convention analysis: 2026-04-22*
+## Database
+
+- **ORM**: MyBatis-Plus
+- **Migrations**: Flyway (managed by `db-manager` Python CLI)
+- **Naming**: Snake_case for MySQL columns, camelCase for Java fields
+- **Migrations Location**: `db-manager/migrations/`
+
+### Migration File Naming
+
+```
+V{version}__{description}.sql
+```
+
+Example: `V1__users_and_submissions.sql`
+
+---
+
+## Dependencies
+
+### Backend Key Dependencies
+
+| Dependency | Version | Purpose |
+|------------|---------|---------|
+| Spring Boot | 3.2.5 | Application framework |
+| MyBatis-Plus | 3.5.16 | ORM |
+| Redisson | 4.3.1 | Distributed locks, Redis |
+| jjwt | 0.13.0 | JWT handling |
+| Lombok | 1.18.44 | Boilerplate reduction |
+| MapStruct | 1.6.3 | DTO mapping |
+| Hutool | 5.8.44 | Java utilities |
+| springdoc | 2.6.0 | OpenAPI/Swagger |
+
+### Frontend Key Dependencies
+
+| Dependency | Purpose |
+|------------|---------|
+| Vue 3.5 | UI framework |
+| Pinia | State management |
+| Vue Router | Routing |
+| Tailwind CSS v4 | Styling |
+| Axios | HTTP client |
+| Zod | Schema validation |
+| VeeValidate | Form validation |

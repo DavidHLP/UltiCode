@@ -61,9 +61,9 @@ public class SolutionVO {
     private String language;
 
     /**
-     * Tags associated with this solution (JSON string)
+     * Tags associated with this solution (list of strings)
      */
-    private String tags;
+    private List<String> tags;
 
     /**
      * Number of views
@@ -91,9 +91,11 @@ public class SolutionVO {
     private Long score;
 
     /**
-     * Tags as parsed list (from JSON string)
+     * Current user's vote: 1 = upvote, -1 = downvote, 0 = no vote
      */
-    private List<String> tagsList;
+    private Integer userVote;
+
+
 
     /**
      * Whether the solution is published

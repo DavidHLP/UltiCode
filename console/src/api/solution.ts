@@ -37,19 +37,7 @@ interface SolutionApiItem {
   userVote?: 0 | 1 | -1;
 }
 
-/** Safely parse backend tags field (may be JSON string or already an array). */
-function parseTags(tags: unknown): string[] {
-  if (Array.isArray(tags)) return tags.map(String);
-  if (typeof tags === "string") {
-    try {
-      const parsed = JSON.parse(tags);
-      return Array.isArray(parsed) ? parsed.map(String) : [];
-    } catch {
-      return tags ? [tags] : [];
-    }
-  }
-  return [];
-}
+
 
 /** Transform a raw API solution item into the frontend SolutionFeedItem shape. */
 function transformApiSolution(item: SolutionApiItem): SolutionFeedItem {
@@ -86,7 +74,7 @@ function transformApiSolution(item: SolutionApiItem): SolutionFeedItem {
     language: item.language,
     languageFilter: item.languageFilter,
     content: item.content,
-    tags: parseTags(item.tags),
+    tags: item.tags,
     votes: item.votes,
     views: item.views,
     likes: item.likes,
@@ -122,8 +110,12 @@ export async function deleteSolution(solutionId: string): Promise<void> {
 
 export async function fetchSolution(
   solutionId: string,
+  userId?: string,
 ): Promise<SolutionFeedItem> {
-  const item = await apiGet<SolutionApiItem>(`/api/solutions/${solutionId}`);
+  const url = userId
+    ? `/api/solutions/${solutionId}?userId=${userId}`
+    : `/api/solutions/${solutionId}`;
+  const item = await apiGet<SolutionApiItem>(url);
   return transformApiSolution(item);
 }
 

@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"cd /home/davidhlp/project/UltiCode-Public-Next/management && pnpm build 2>&1\",\"timeout\":180000,\"description\":\"Run management build\"}",
-  "error": "Exit code 1\n\n> admin-frontend@0.0.0 build /home/davidhlp/project/UltiCode-Public-Next/management\n> run-p type-check \"build-only {@}\" --\n\n\n> admin-frontend@0.0.0 type-check /home/davidhlp/project/UltiCode-Public-Next/management\n> vue-tsc --build\n\n\n> admin-frontend@0.0.0 build-only /home/davidhlp/project/UltiCode-Public-Next/management\n> vite build\n\nvite v8.0.8 building client environment for production...\n\u001b[2K\rtransforming...✓ 11350 modules transformed.\nrendering chunks...\ncomputing gzip size...\n...",
-  "timestamp": "2026-04-22T15:13:53.267Z",
-  "retry_count": 2
-}

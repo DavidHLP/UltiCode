@@ -75,6 +75,15 @@ public interface SolutionService {
     SolutionVO getSolutionById(String id);
 
     /**
+     * Get a solution by ID as VO with current user's vote state.
+     *
+     * @param id the solution ID
+     * @param currentUserId the current user ID (optional, can be null)
+     * @return the solution VO
+     */
+    SolutionVO getSolutionById(String id, String currentUserId);
+
+    /**
      * Create a new solution.
      *
      * @param problemId  the problem ID
@@ -109,6 +118,15 @@ public interface SolutionService {
      * @return the VO
      */
     SolutionVO toVO(Solution solution);
+
+    /**
+     * Convert entity to VO with current user's vote state.
+     *
+     * @param solution the entity
+     * @param currentUserId the current user ID (optional, can be null)
+     * @return the VO
+     */
+    SolutionVO toVO(Solution solution, String currentUserId);
 
     /**
      * Find all solutions for a specific user.

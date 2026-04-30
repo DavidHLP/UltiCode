@@ -373,6 +373,7 @@ Loop-based queries for each contest, user, or problem instead of batch operation
 | NOTE Comments | 12 | 9 missing database tables, 2 performance concerns |
 | Large/Complex Files | 17 | 8 backend services, 9 frontend files |
 | Anti-Patterns | 6 types | N+1 (2), Magic strings (3), Duplicate (2), Memory leaks (2), Thread safety (2) |
+| Untested Modules | 7 | bookmark, contest, forum, moderation, permission, problemlist, refreshtoken |
 
 ---
 
@@ -384,6 +385,15 @@ Loop-based queries for each contest, user, or problem instead of batch operation
 | **Medium Likelihood** | Magic numbers | N+1 queries (AdminAnalytics) | Hardcoded secrets (JWT, DB password) |
 | **Low Likelihood** | Duplicate code | Memory leaks (RealtimeService) | CSRF token exposure |
 
+### Untested Module Risk
+
+| Module | Likelihood | Impact | Combined Risk |
+|--------|------------|--------|---------------|
+| `contest` | Medium | High | **High** |
+| `moderation` | Medium | High | **High** |
+| `permission` | Low | High | Medium |
+| `refreshtoken` | Low | High | Medium |
+
 ---
 
 ## Recommended Quick Wins
@@ -393,3 +403,61 @@ Loop-based queries for each contest, user, or problem instead of batch operation
 3. **Unify ErrorCode enums** — Pick one and migrate all references
 4. **Fix RealtimeService thread safety** — Change `HashMap` to `ConcurrentHashMap`
 5. **Add TTL to session caches** — `UserSessionManager` maps grow unbounded
+
+---
+
+## 8. Test Coverage Analysis (2026-05-01 Update)
+
+### 8.1 Backend Modules Without Unit Tests
+
+The following modules have **no test files** (out of 28 total modules):
+
+| Module | Risk Assessment | Notes |
+|--------|-----------------|-------|
+| `bookmark` | Medium | User collection management |
+| `contest` | **High** | Core competitive programming feature - 5 mappers, 3 services |
+| `forum` | Medium | Community features - 9 mappers |
+| `moderation` | **High** | Content safety - 6 mappers, handles bans/warnings/appeals |
+| `permission` | **High** | Security-critical access control |
+| `problemlist` | Medium | Problem organization |
+| `refreshtoken` | **High** | Authentication token lifecycle |
+
+**Total uncovered modules**: 7 of 28 (25%)
+
+### 8.2 Modules With Minimal Test Coverage
+
+| Module | Test Methods | Concern |
+|--------|--------------|---------|
+| `follow` | 4 | Small module but critical for social features |
+| `notification` | 2 | Only listener test, no service tests |
+| `achievement` | 23 | 1 service test + 1 listener test |
+| `admin` | 11 | Only 2 services tested (Forum, Submission) |
+
+### 8.3 Dependency Version Update (2026-05-01)
+
+| Package | Previous Version | Current Version | Notes |
+|---------|-----------------|-----------------|-------|
+| `eslint` (console) | 9.39.4 | 9.30.1 | Per package.json |
+| `eslint-plugin-vue` (console) | 9.33.0 | 9.30.0 | Per AGENTS.md requirement |
+| `vue` (console) | 3.5.25 | 3.5.25 | Matches |
+| `vue` (management) | 3.5.31 | 3.5.26 | Minor diff |
+| `axios` | 1.14.0 | 1.13.2 | Version changed |
+
+---
+
+## 9. Security Configuration Assessment
+
+**File**: `backend-spring/src/main/java/com/ulticode/common/config/SecurityConfig.java`
+
+| Feature | Status | Notes |
+|---------|--------|-------|
+| JWT Stateless Auth | ✓ | Proper `SessionCreationPolicy.STATELESS` |
+| CSRF Protection | ⚠ | Disabled - valid when using httpOnly JWT cookies |
+| HSTS Headers | ✓ | `includeSubDomains(true)`, `maxAgeInSeconds(31536000)`, `preload(true)` |
+| XSS Protection | ✓ | `XXssProtectionHeaderWriter.HeaderValue.ENABLED_MODE_BLOCK` |
+| Content Security Policy | ✓ | Restrictive `default-src 'self'` with allowlisted externals |
+| Frame Options | ✓ | `DENY` mode |
+| Password Encoding | ✓ | `BCryptPasswordEncoder` bean |
+| CORS | ✓ | Externalized via `CorsProperties` |
+
+**JWT Authentication Filter**: `JwtAuthenticationFilter.java` properly validates tokens and handles exceptions (ExpiredJwtException, MalformedJwtException, etc.)

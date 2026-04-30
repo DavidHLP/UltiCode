@@ -1,6 +1,6 @@
 # Codebase Concerns Report
 
-> Generated: 2026-04-29
+> Generated: 2026-04-30 (updated from 2026-04-29 analysis)
 > Scope: Full codebase analysis
 
 ---
@@ -24,6 +24,7 @@
 | **MEDIUM** | Insecure Cookie Default | `backend-spring/.../application.yml:65,72` | `secure: ${JWT_COOKIE_SECURE:false}` defaults to `false` — cookies won't have Secure flag if not overridden |
 | **MEDIUM** | Command Injection Risk | `backend-spring/.../submission/service/impl/SandboxServiceImpl.java:182-188` | User code embedded in shell commands via string concatenation. Docker sandbox provides isolation but risk exists if sandbox escapes |
 | **MEDIUM** | OAuth State Reuse | `backend-spring/.../auth/service/OAuthService.java:66,146` | OAuth state stored in Redis without expiration validation |
+| **MEDIUM** | Broad Exception Catching | 23+ files | `catch (Exception e)` masks errors and makes debugging difficult. High-risk files: `MonitoringServiceImpl.java` (11 catch blocks), `SubmissionServiceImpl.java` (4 catch blocks) |
 
 ### Low Priority / Mitigated (P2)
 
@@ -216,6 +217,152 @@
 
 ---
 
+## 7. Additional Concerns (2026-04-30 Update)
+
+### 7.1 Performance - Redis Connection Pool
+
+**File:** `backend-spring/src/main/resources/application.yml` (Line 25)
+
+**Severity:** Medium
+
+```yaml
+connectionPoolSize: 64
+max-active: 8
+```
+
+With only 8 `max-active` Spring Redis connections and 64 Redisson pool size, this may be insufficient under high load. For a busy submission system processing concurrent code executions, consider increasing pool size.
+
+---
+
+### 7.2 Async Thread Pool Missing Configuration
+
+**File:** `backend-spring/src/main/java/com/ulticode/modules/achievement/service/impl/AchievementTriggerServiceImpl.java`
+
+**Severity:** Medium
+
+12 `@Async` methods but no visible custom `TaskExecutor` bean. Spring's default `SimpleAsyncTaskExecutor` creates a new thread per task:
+
+```java
+@Async
+public CompletableFuture<Void> triggerAchievementAsync(...) { ... }  // 12 methods
+```
+
+---
+
+### 7.3 Code Execution Helper String Building
+
+**File:** `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/CodeExecutionHelperImpl.java` (Lines 60-153)
+
+**Severity:** Medium
+
+Python/C/C++/Java wrappers built via string concatenation instead of templates:
+
+```java
+return "import json, sys, time\n" +
+    code + "\n" +
+    "input_data = json.loads(sys.stdin.read())\n" +
+    // ... 15 more lines of concatenated strings
+```
+
+Makes code hard to maintain, test, and could introduce escaping issues.
+
+---
+
+### 7.4 Multiple ObjectMapper Instances
+
+**Files:**
+- `backend-spring/src/main/java/com/ulticode/common/config/RedisConfig.java:36`
+- `backend-spring/src/main/java/com/ulticode/modules/solution/service/impl/SolutionServiceImpl.java:59`
+- `recommendation/recommend-provider/.../CacheConfig.java:75`
+
+**Severity:** Low
+
+`ObjectMapper` instantiated multiple times instead of shared Spring bean.
+
+---
+
+### 7.5 Hardcoded Timezone Configuration
+
+**File:** `backend-spring/src/main/resources/application.yml` (Line 50)
+
+**Severity:** Low
+
+```yaml
+jackson:
+  time-zone: Asia/Shanghai
+```
+
+Timezone hardcoded. Should be configurable for international deployments.
+
+---
+
+### 7.6 Inconsistent Authorization Patterns
+
+**File:** Multiple controllers and services
+
+**Severity:** Medium
+
+Mix of `@PreAuthorize` annotations and manual `SecurityUtil.hasRole()` checks:
+
+```java
+// Annotation (good)
+@PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
+
+// Manual (inconsistent)
+if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+```
+
+Manual checks in service layer can be bypassed if service is called directly.
+
+---
+
+### 7.7 CORS Default Origins
+
+**File:** `backend-spring/src/main/resources/application.yml` (Line 6)
+
+**Severity:** Low
+
+```yaml
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:9002,http://localhost:9003}
+```
+
+Defaults to localhost - must be overridden in production.
+
+---
+
+### 7.8 Duplicate ErrorCode Definitions
+
+**Files:**
+- `backend-spring/src/main/java/com/ulticode/common/exception/ErrorCode.java` (199 lines, has HTTP status)
+- `backend-spring/src/main/java/com/ulticode/common/constants/ErrorCode.java` (113 lines, no HTTP status)
+
+**Severity:** Low
+
+Two separate `ErrorCode` enums create confusion about which to use.
+
+---
+
+### 7.9 @SuppressWarnings Usage
+
+**Files:** 9 Java files with 14 annotations
+
+**Severity:** Low
+
+Excessive suppression indicates raw types or unchecked casts being used.
+
+---
+
+### 7.10 N+1 Queries - AdminAnalytics
+
+**File:** `backend-spring/src/main/java/com/ulticode/modules/admin/service/impl/AdminAnalyticsServiceImpl.java`
+
+**Severity:** Medium
+
+Loop-based queries for each contest, user, or problem instead of batch operations.
+
+---
+
 ## Summary Table
 
 | Category | Count | Critical Items |
@@ -236,3 +383,13 @@
 | **High Likelihood** | Frontend ESLint version split | Caching without eviction | SQL Injection (SubmissionMapper) |
 | **Medium Likelihood** | Magic numbers | N+1 queries (AdminAnalytics) | Hardcoded secrets (JWT, DB password) |
 | **Low Likelihood** | Duplicate code | Memory leaks (RealtimeService) | CSRF token exposure |
+
+---
+
+## Recommended Quick Wins
+
+1. **Increase Redis pool size** — Change `connectionPoolSize: 64` to `256` and `max-active: 8` to `32`
+2. **Configure async thread pool** — Add `@Bean TaskExecutor` with proper sizing for `@Async` methods
+3. **Unify ErrorCode enums** — Pick one and migrate all references
+4. **Fix RealtimeService thread safety** — Change `HashMap` to `ConcurrentHashMap`
+5. **Add TTL to session caches** — `UserSessionManager` maps grow unbounded

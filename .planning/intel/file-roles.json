@@ -1,0 +1,48 @@
+{
+  "_meta": {
+    "updated_at": "2026-04-30T12:00:00Z",
+    "description": "Key files and their purposes"
+  },
+  "backend_spring": {
+    "entry_point": "BackendSpringApplication.java",
+    "config_files": [
+      {"file": "application.yml", "purpose": "Main Spring configuration"},
+      {"file": ".env", "purpose": "Environment variables (DB, Redis, JWT)"}
+    ],
+    "common_utilities": [
+      {"path": "common/response/Result.java", "purpose": "Standard API response wrapper"},
+      {"path": "common/exception/GlobalExceptionHandler.java", "purpose": "Centralized exception handling"},
+      {"path": "common/config/SecurityConfig.java", "purpose": "Spring Security configuration"},
+      {"path": "common/annotation/CurrentUser.java", "purpose": "Inject authenticated user into controllers"}
+    ],
+    "security": [
+      {"path": "security/JwtTokenProvider.java", "purpose": "JWT token generation and validation"},
+      {"path": "security/CsrfService.java", "purpose": "CSRF token management"}
+    ]
+  },
+  "frontend": {
+    "console": {
+      "request_utils": "console/src/utils/request.ts",
+      "api_clients": "console/src/api/",
+      "entry": "console/index.html"
+    },
+    "management": {
+      "request_utils": "management/src/utils/request.ts",
+      "api_clients": "management/src/api/",
+      "entry": "management/index.html"
+    }
+  },
+  "database": {
+    "migration_manager": "db-manager/",
+    "migration_scripts": "db-manager/migrations/",
+    "seeds": "V1 (users/submissions/permissions), V2 (problems/tags/lists), V3 (contests/rankings), V4 (forum), V8 (collections), V9 (solutions)"
+  },
+  "docker": {
+    "compose_file": "docker-compose.yml",
+    "services": ["mysql", "redis", "nacos"]
+  },
+  "pm2": {
+    "config": "ecosystem.config.cjs",
+    "services": ["ulticode-9001", "ulticode-9002", "ulticode-9003", "ulticode-9004", "ulticode-9005"]
+  }
+}

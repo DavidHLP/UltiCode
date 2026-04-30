@@ -202,20 +202,21 @@ private Integer userVote;  // 1 = upvote, -1 = downvote, null/0 = no vote
 ## 验证清单
 
 ### Phase 1 验证
-- [ ] API `/api/solutions/{id}` 返回的 `tags` 是数组 `["map","javascript"]`
-- [ ] 前端不再调用 `JSON.parse()` 解析 tags
-- [ ] 标签正常渲染，无逐字符问题
+- [x] API `/api/solutions/{id}` 返回的 `tags` 是数组 `["hash-map","array"]` ✅
+- [x] 前端不再调用 `JSON.parse()` 解析 tags ✅
+- [x] 标签正常渲染，无逐字符问题 ✅
 
 ### Phase 2 验证
-- [ ] 未登录用户：userVote 为 0，显示未投票
-- [ ] 登录用户未投票：userVote 为 0
-- [ ] 登录用户已投票：userVote 为 1 或 -1，UI 显示已投票状态
-- [ ] 投票后刷新页面，状态保持
+- [x] 未登录用户：userVote 为 0，显示未投票 ✅
+- [x] 登录用户未投票：userVote 为 0 ✅
+- [ ] 登录用户已投票：userVote 为 1 或 -1，UI 显示已投票状态（需手动测试投票后刷新）
+- [ ] 投票后刷新页面，状态保持（需手动测试）
 
 ### Phase 3 验证
-- [ ] topic 显示正确（如 "Array"、"Hash Table"）
-- [ ] flair/badges 在有数据时显示
-- [ ] 无数据时前端优雅降级（不显示/显示默认文本）
+- [x] topic 显示正确（如 "算法"）✅
+- [x] isPinned 显示正确（如 false）✅
+- [ ] flair/badges 在有数据时显示（需有成就数据）
+- [x] 无数据时前端优雅降级（不显示/显示默认文本）✅
 
 ---
 

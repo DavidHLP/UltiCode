@@ -1,0 +1,64 @@
+{
+  "_meta": {
+    "updated_at": "2026-04-30T12:00:00Z",
+    "description": "Complete technology stack with versions"
+  },
+  "backend": {
+    "framework": "Spring Boot",
+    "version": "3.2.5",
+    "language": "Java",
+    "java_version": "17",
+    "orm": {
+      "name": "MyBatis-Plus",
+      "version": "3.5.16"
+    },
+    "database": {
+      "type": "MySQL",
+      "port": 23306
+    },
+    "cache": {
+      "type": "Redis",
+      "port": 26379
+    },
+    "api_docs": {
+      "springdoc_version": "2.6.0",
+      "swagger_ui": "/swagger-ui.html",
+      "openapi_json": "/api-docs"
+    }
+  },
+  "frontend": {
+    "console": {
+      "framework": "Vue 3",
+      "build_tool": "Vite",
+      "styling": "Tailwind CSS",
+      "port": 9002
+    },
+    "management": {
+      "framework": "Vue 3",
+      "build_tool": "Vite",
+      "styling": "Tailwind CSS",
+      "port": 9003
+    }
+  },
+  "recommendation_service": {
+    "framework": "Dubbo3",
+    "compute": "Spark",
+    "ports": {
+      "provider": 9004,
+      "web": 9005
+    },
+    "registry": {
+      "type": "Nacos",
+      "port": 28848
+    }
+  },
+  "database_migrations": {
+    "tool": "Flyway",
+    "manager": "db-manager (Python)"
+  },
+  "docker_services": {
+    "mysql": {"port": 23306},
+    "redis": {"port": 26379},
+    "nacos": {"port": 28848}
+  }
+}

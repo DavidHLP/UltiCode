@@ -1,328 +1,640 @@
-# External Integrations
+# UltiCode Integrations
 
-## Overview
-
-UltiCode integrates with multiple external services, APIs, and third-party libraries. This document catalogs all external dependencies and their usage.
+> Comprehensive analysis of all external and internal service integrations.
 
 ---
 
-## Authentication & OAuth
-
-### GitHub OAuth
-- **Purpose**: Social login authentication
-- **Configuration**: `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET`
-- **Redirect URI**: `http://localhost:9001/auth/github/callback`
-- **Status**: Configured (credentials not provided)
-
-### Google OAuth
-- **Purpose**: Social login authentication
-- **Configuration**: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`
-- **Redirect URI**: `http://localhost:9001/auth/google/callback`
-- **Status**: Configured (credentials not provided)
-
----
-
-## Payment Processing
-
-### Stripe
-- **Purpose**: Payment processing for premium subscriptions
-- **Configuration**:
-  - `STRIPE_SECRET_KEY`
-  - `STRIPE_WEBHOOK_SECRET`
-  - `STRIPE_PRICE_PREMIUM_MONTHLY`
-  - `STRIPE_PRICE_PREMIUM_YEARLY`
-- **Status**: Configured (test keys not provided)
-- **Features**: Subscription billing, webhook handling
-
----
-
-## Email Services
-
-### SMTP
-- **Purpose**: Transactional emails (password reset, notifications)
-- **Configuration**:
-  - `SMTP_HOST`
-  - `SMTP_PORT` (587)
-  - `SMTP_USER`
-  - `SMTP_PASSWORD`
-- **Status**: Configurable via `EMAIL_ENABLED` flag
-- **Backend Support**: Spring Boot Mail starter
-
----
-
-## Search
-
-### MeiliSearch
-- **Purpose**: Full-text search for problems, users, and content
-- **Java Client**: meilisearch-java 0.20.0
-- **HTTP Client**: OkHttp 5.3.2
-- **Status**: Integrated in backend (host configurable)
-- **Usage**: Problem search, user search, content discovery
-
----
-
-## Recommendation Service
-
-### Apache Spark
-- **Purpose**: Offline batch processing for recommendation engine
-- **Version**: 3.5.1
-- **Language**: Scala 2.13.12
-- **Components**:
-  - Spark Core
-  - Spark SQL
-  - Spark MLlib
-- **Status**: Modular component (recommend-spark)
-
-### Dubbo3 RPC
-- **Purpose**: Inter-service communication between backend and recommendation
-- **Version**: 3.2.14
-- **Registry**: Nacos (for service discovery)
-- **Protocol**: Dubbo protocol (port 20881)
-- **Status**: Integrated, requires Nacos
-
----
-
-## Service Discovery & Configuration
-
-### Nacos
-- **Purpose**: Service registration, discovery, and configuration management
-- **Version**: 2.3.2
-- **Ports**: 28848 (HTTP), 29848 (gRPC)
-- **Mode**: Standalone (dev), clustered (prod)
-- **Services Registered**:
-  - recommend-provider
-  - recommend-web
-  - backend (Spring Boot)
-- **Configuration**: Shared application.yml via Nacos
-
----
-
-## Code Execution & Sandboxing
-
-### Judge Container
-- **Purpose**: Secure code execution in isolated containers
-- **Configuration**:
-  - `JUDGE_CONTAINER_ENABLED`
-  - `JUDGE_CONTAINER_IMAGE` (default: ulticode-judge:latest)
-  - `JUDGE_CONTAINER_POOL_SIZE` (default: 5)
-  - `JUDGE_CONTAINER_MAX_CONTAINERS` (default: 10)
-  - `DOCKER_SOCKET_PATH` (/var/run/docker.sock)
-- **Limits**:
-  - Default time limit: 2000ms
-  - Default memory limit: 256MB
-- **Status**: Configurable Docker-based execution
-
----
-
-## Caching & Session Store
-
-### Redis
-- **Purpose**: Distributed caching, session storage, rate limiting
-- **Version**: 7-alpine
-- **Ports**: 26379 (external), 6379 (internal)
-- **Clients**:
-  - Redisson 4.3.1 (backend-spring)
-  - Jedis 5.1.0 (recommendation service)
-- **Features Used**:
-  - Distributed locks (Redisson)
-  - Cache abstraction (Spring Cache)
-  - Session management
-  - Rate limiting
-
----
-
-## Database
+## 1. Database Integration
 
 ### MySQL
-- **Purpose**: Primary relational database
-- **Version**: 9.1
-- **Port**: 23306 (external), 3306 (internal)
-- **Connector**: mysql-connector-j
-- **ORM**: MyBatis-Plus 3.5.16
-- **Migrations**: Flyway (via db-manager Python CLI)
+
+**Purpose:** Primary relational database for all application data
+
+**Configuration File:** `backend-spring/src/main/resources/application.yml`
+
+```yaml
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:23306}/${DB_NAME:ulticode}?useUnicode=true&characterEncoding=utf-8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false
+    username: ${DB_USER:ulticode}
+    password: ${DB_PASSWORD:ulticode}
+```
+
+**Connection Details:**
+- Default Host: `localhost:23306` (via Docker port mapping)
+- Database Name: `ulticode`
+- User: `ulticode`
+- Driver: `mysql-connector-j` (runtime scope)
+
+**Modules Using MySQL:**
+- `backend-spring` - All application data (users, problems, submissions, contests, etc.)
+- `recommendation/recommend-feature` - Feature store data
+- `recommendation/recommend-spark` - Offline batch processing
+
+**ORM:** MyBatis-Plus 3.5.16
+
+```yaml
+mybatis-plus:
+  mapper-locations: classpath:mapper/**/*.xml
+  type-aliases-package: com.ulticode.entity
+  configuration:
+    map-underscore-to-camel-case: true
+```
+
+**Migrations:** Flyway via `db-manager` Python CLI
+- Migration files: `db-manager/migrations/`
+- CLI: `python -m db_manager.cli migrate`
 
 ---
 
-## API Documentation
+## 2. Cache Integration
 
-### SpringDoc OpenAPI (Swagger)
-- **Purpose**: Interactive API documentation
-- **Version**: 2.6.0
-- **UI Path**: `/swagger-ui.html`
-- **API Docs**: `/api-docs`
-- **Note**: Version 2.6.0 (incompatible with Spring Boot 3.2.5's springdoc 2.7.0)
+### Redis
 
----
+**Purpose:** Session storage, JWT token management, distributed locks, caching
 
-## Frontend Dependencies
+**Configuration File:** `backend-spring/src/main/resources/application.yml`
 
-### HTTP Client
-- **Axios**: 1.13.2
-- **Purpose**: API requests from Vue frontends
+```yaml
+spring:
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:26379}
+      password: ${REDIS_PASSWORD:}
+      database: ${REDIS_DB:0}
+      timeout: 10000ms
+      lettuce:
+        pool:
+          max-active: 8
+          max-wait: -1ms
+          max-idle: 8
+          min-idle: 0
+```
 
-### Real-time Communication
-- **STOMP.js**: 7.3.0 (WebSocket messaging)
-- **SockJS Client**: 1.6.1 (WebSocket polyfill)
+**Redisson Configuration (Advanced):**
+```yaml
+spring:
+  redis:
+    redisson:
+      config: |
+        singleServerConfig:
+          address: "redis://${REDIS_HOST:localhost}:${REDIS_PORT:26379}"
+          password: ${REDIS_PASSWORD:}
+          database: ${REDIS_DB:0}
+          connectionPoolSize: 64
+          connectionMinimumIdleSize: 10
+```
 
-### Code Editor
-- **Monaco Editor**: 0.52.2
-- **Purpose**: In-browser code editing (VS Code engine)
+**Docker Service:**
+```yaml
+redis:
+  image: redis:7-alpine
+  ports:
+    - "${REDIS_PORT:-26379}:6379"
+  command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?REDIS_PASSWORD is required}"]
+```
 
-### Math Rendering
-- **KaTeX**: 0.16.25
-- **Purpose**: LaTeX math rendering in problem descriptions
+**Modules Using Redis:**
+- `backend-spring` - JWT sessions, distributed locks, caching
+- `recommendation/recommend-provider` - Cache for recommendation results (Caffeine fallback)
+- `recommendation/recommend-feature` - Feature store caching via Jedis
 
-### Syntax Highlighting
-- **Highlight.js**: 11.11.1
-- **Purpose**: Code syntax highlighting
-
-### Charts
-- **ECharts**: 6.0.0 (console only)
-- **Unovis**: 1.6.2
-
-### PWA
-- **Workbox**: 7.4.0 (service worker)
-- **Vite PWA Plugin**: 1.2.0
-
-### Internationalization
-- **Vue I18n**: 11.3.2
-- **Intl Date**: 3.10.0 / 3.7.0
-
-### Icons
-- **Lucide Vue Next**: 0.552.0 / 0.562.0
-- **Tabler Icons Vue**: 3.36.1
-- **Unplugin Icons**: 23.0.1
-
-### Form Validation
-- **Vee Validate**: 4.15.1 (management)
-- **Zod**: 3.25.76 (validation schemas)
-
-### Storage
-- **IndexedDB (idb)**: 8.0.3 (client-side storage)
-
----
-
-## Build & Development Tools
-
-### Package Managers
-- **pnpm**: 9 (frontend monorepo)
-- **Maven**: 3.9+ (backend via mvnw wrapper)
-
-### Build Tools
-- **Vite**: 8.0.8
-- **Rollup**: Via Vite
-- **Tailwind CSS**: 4.1.17 (via @tailwindcss/vite)
-
-### Testing
-- **Vitest**: 4.1.4 / 4.0.15 (frontend unit testing)
-- **Spring Boot Test**: (backend testing)
-- **TestContainers**: 1.21.4 (integration testing)
-- **JaCoCo**: 0.8.12 (code coverage)
-- **Vue Test Utils**: 2.4.6
-
-### Linting
-- **ESLint**: 9.30.1 / 10.2.1
-- **Prettier**: 3.8.3
-- **Knip**: 6.4.1 (unused code detection)
-
-### Dev Server
-- **Vite Dev Server**: Ports 9002 (console), 9003 (management)
+**Use Cases:**
+1. **JWT Session Storage** - Refresh tokens stored in Redis with TTL
+2. **Distributed Locks** - Redisson locks for concurrent operations
+3. **Caching** - Spring Cache abstraction with Redis backend
+4. **WebSocket Sessions** - Session management for real-time connections
 
 ---
 
-## Third-Party Libraries (Backend)
+## 3. Service-to-Service Communication
 
-### Security
-- **OWASP Encoder**: 1.4.0 (XSS prevention)
-- **jjwt**: 0.13.0 (JWT handling)
+### Dubbo3 RPC (Recommendation Service)
 
-### Utilities
-- **Hutool**: 5.8.44 (general Java utilities)
-- **Lombok**: 1.18.44 (boilerplate reduction)
-- **MapStruct**: 1.6.3 (bean mapping)
+**Purpose:** Communication between backend and recommendation microservice
 
-### JSON Processing
-- **Jackson**: Via Spring Boot (included)
-- **FastJSON**: Not used
+**Configuration File:** `backend-spring/src/main/resources/application.yml`
 
----
+```yaml
+dubbo:
+  application:
+    name: ulticode-backend
+    qos-enable: false
+  registry:
+    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:28848}
+    parameters:
+      namespace: public
+      group: DEFAULT_GROUP
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+  consumer:
+    check: false
+    timeout: 5000
+    retries: 1
+```
 
-## Deployment & Infrastructure
+**Recommendation Provider Configuration:** `recommendation/recommend-provider/src/main/resources/application.yml`
 
-### Container Registry
-- **GHCR**: GitHub Container Registry
-- **Images**:
-  - `ghcr.io/davidhlp/ulticode-public-next/backend`
-  - `ghcr.io/davidhlp/ulticode-public-next/console`
-  - `ghcr.io/davidhlp/ulticode-public-next/management`
-- **Image Tagging**: SHA-based or `latest`
+```yaml
+dubbo:
+  application:
+    name: recommend-provider
+  protocol:
+    name: dubbo
+    port: 20881
+  registry:
+    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:8848}
+```
 
-### Process Management
-- **PM2**: Node.js process manager
-- **Services Managed**:
-  - ulticode-9001 (backend)
-  - ulticode-9002 (console)
-  - ulticode-9003 (management)
-  - ulticode-9004 (recommend-provider)
-  - ulticode-9005 (recommend-web)
+**Ports:**
+- `recommend-provider`: 9004 (HTTP), 20881 (Dubbo RPC)
+- `recommend-web`: 9005 (HTTP)
 
-### Web Server
-- **nginx**: Alpine-based for frontend containers
-- **Ports**: 8080 internal (maps to 9002/9003 external)
-- **Features**: Gzip, security headers, SPA routing, API proxy
+**Fallback Configuration:**
+```yaml
+recommendation:
+  enabled: ${RECOMMENDATION_ENABLED:false}
+  service-url: ${RECOMMENDATION_SERVICE_URL:}
+  timeout: ${RECOMMENDATION_TIMEOUT:5000}
+  nacos-enabled: ${RECOMMENDATION_NACOS_ENABLED:false}
+  fallback-url: ${RECOMMENDATION_FALLBACK_URL:}
+```
 
----
-
-## Environment-Specific Configurations
-
-### Development
-- **Services**: All via docker-compose.yml
-- **Hot Reload**: Vite dev server
-- **Debug**: Backend on port 9001
-
-### Production
-- **Services**: Pre-built Docker images
-- **Overrides**: docker-compose.prod.yml
-- **Health Checks**: All services have healthchecks
-- **Logging**: JSON file logging with rotation
-
----
-
-## API Integration Points
-
-### Backend API (port 9001)
-- **Auth**: `/auth/*`
-- **Users**: `/users/*`
-- **Problems**: `/problems/*`
-- **Submissions**: `/submissions/*`
-- **Contests**: `/contests/*`
-- **Forum**: `/forum/*`
-- **Solutions**: `/solutions/*`
-- **Notifications**: `/notifications/*`
-- **Recommendations**: Via Dubbo RPC
-
-### Frontend to Backend
-- **Console**: Proxies `/api/*` to backend:9001
-- **Management**: Proxies `/api/*` to backend:9001
-- **CORS**: Configured for cross-origin requests
-
-### Backend to Recommendation
-- **Dubbo RPC**: Direct call to recommend-provider
-- **Fallback**: Configurable URL on connection failure
+**Internal Dependency:**
+```xml
+<dependency>
+  <groupId>com.ulticode</groupId>
+  <artifactId>recommend-api</artifactId>
+  <version>1.0.0</version>
+</dependency>
+```
 
 ---
 
-## Environment Variables Summary
+## 4. Service Discovery
 
-| Category | Variables |
-|----------|-----------|
-| Database | DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, MYSQL_ROOT_PASSWORD |
-| Redis | REDIS_HOST, REDIS_PORT, REDIS_PASSWORD |
-| Auth | JWT_SECRET, JWT_COOKIE_SECURE |
-| Nacos | NACOS_HOST, NACOS_PORT, NACOS_USERNAME, NACOS_PASSWORD, NACOS_NAMESPACE, NACOS_GROUP |
-| OAuth | GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET, GITHUB_REDIRECT_URI, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REDIRECT_URI |
-| Payment | STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, STRIPE_PRICE_* |
-| Email | SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASSWORD, EMAIL_ENABLED |
-| Judge | JUDGE_CONTAINER_*, DOCKER_SOCKET_PATH |
-| Recommendation | RECOMMENDATION_ENABLED, RECOMMENDATION_SERVICE_NAME, RECOMMENDATION_TIMEOUT, RECOMMENDATION_FALLBACK_URL |
-| Frontend | VITE_API_BASE_URL |
+### Nacos
+
+**Purpose:** Service registration and discovery for Dubbo3 microservices
+
+**Docker Service:** `docker-compose.yml`
+
+```yaml
+nacos:
+  image: nacos/nacos-server:v2.3.2
+  ports:
+    - "${NACOS_PORT:-28848}:8848"
+    - "29848:9848"
+  environment:
+    MODE: standalone
+    MYSQL_SERVICE_HOST: mysql
+    MYSQL_SERVICE_DB_NAME: nacos_config
+```
+
+**Configuration:**
+- Default Port: 28848
+- Registry Address: `nacos://${NACOS_HOST:localhost}:${NACOS_PORT:28848}`
+- Namespace: `public`
+- Group: `DEFAULT_GROUP`
+
+**Services Registered:**
+- `recommend-provider` - Dubbo RPC service
+- `recommend-web` - REST API (in some configurations)
+
+---
+
+## 5. Authentication & Authorization
+
+### JWT Authentication
+
+**Configuration File:** `backend-spring/src/main/resources/application.yml`
+
+```yaml
+jwt:
+  secret: ${JWT_SECRET:}
+  access-token:
+    expiration: 900000  # 15 minutes
+  refresh-token:
+    expiration: 604800000  # 7 days
+  cookie:
+    access-token:
+      name: access_token
+      http-only: true
+      secure: ${JWT_COOKIE_SECURE:false}
+      same-site: lax
+      path: /
+      max-age: 900
+    refresh-token:
+      name: refresh_token
+      http-only: true
+      secure: ${JWT_COOKIE_SECURE:false}
+      same-site: lax
+      path: /
+      max-age: 604800
+```
+
+**Token Flow:**
+1. Login returns `access_token` (cookie) + `csrf_token` (response body)
+2. Access token: 15 minutes expiry
+3. Refresh token: 7 days expiry, stored in Redis
+4. CSRF token required for state-changing requests
+
+**Modules Using JWT:**
+- `backend-spring` - All authenticated endpoints
+- WebSocket authentication via `JwtChannelInterceptor`
+
+### OAuth 2.0 (Social Login)
+
+**GitHub OAuth:**
+```yaml
+oauth:
+  github:
+    client-id: ${GITHUB_CLIENT_ID:}
+    client-secret: ${GITHUB_CLIENT_SECRET:}
+    redirect-uri: ${GITHUB_REDIRECT_URI:http://localhost:9001/auth/github/callback}
+    authorize-url: https://github.com/login/oauth/authorize
+    token-url: https://github.com/login/oauth/access_token
+    user-url: https://api.github.com/user
+    scopes: user:email
+```
+
+**Google OAuth:**
+```yaml
+oauth:
+  google:
+    client-id: ${GOOGLE_CLIENT_ID:}
+    client-secret: ${GOOGLE_CLIENT_SECRET:}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:9001/auth/google/callback}
+    authorize-url: https://accounts.google.com/o/oauth2/v2/auth
+    token-url: https://oauth2.googleapis.com/token
+    user-url: https://www.googleapis.com/oauth2/v2/userinfo
+    scopes: email,profile
+```
+
+---
+
+## 6. Search Integration
+
+### MeiliSearch
+
+**Purpose:** Full-text search for problems, users, and content
+
+**Configuration File:** `backend-spring/src/main/resources/application.yml`
+
+```yaml
+meilisearch:
+  enabled: ${MEILISEARCH_ENABLED:false}
+  host: ${MEILISEARCH_HOST:}
+  api-key: ${MEILISEARCH_API_KEY:}
+```
+
+**Library:** `meilisearch-java` v0.20.0 with OkHttp v5.3.2 client
+
+**Modules Using MeiliSearch:**
+- `backend-spring` - Search module for problem/user search
+
+**Note:** Optional integration, disabled by default
+
+---
+
+## 7. Email Integration
+
+### SMTP
+
+**Purpose:** Password reset, notifications, email verification
+
+**Configuration File:** `backend-spring/src/main/resources/application.yml`
+
+```yaml
+spring.mail:
+  host: ${SMTP_HOST:localhost}
+  port: ${SMTP_PORT:587}
+  username: ${SMTP_USER:}
+  password: ${SMTP_PASSWORD:}
+  properties:
+    mail:
+      smtp:
+        auth: true
+        starttls:
+          enable: true
+```
+
+**App Configuration:**
+```yaml
+app:
+  email:
+    enabled: ${EMAIL_ENABLED:false}
+    from-name: ${EMAIL_FROM_NAME:UltiCode}
+```
+
+**Modules Using Email:**
+- `backend-spring` - Auth module for password reset
+
+---
+
+## 8. Payment Integration
+
+### Stripe (Optional)
+
+**Purpose:** Premium subscription payments
+
+**Configuration Files:**
+- `backend-spring/.env.example`
+- `backend-spring/src/main/resources/application.yml`
+
+```yaml
+# Stripe Configuration
+STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:}
+STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:}
+STRIPE_PRICE_PREMIUM_MONTHLY=${STRIPE_PRICE_PREMIUM_MONTHLY:}
+STRIPE_PRICE_PREMIUM_YEARLY=${STRIPE_PRICE_PREMIUM_YEARLY:}
+```
+
+**Usage:** Premium subscription billing (implementation scope varies)
+
+---
+
+## 9. Real-time Communication
+
+### WebSocket (STOMP)
+
+**Purpose:** Real-time notifications, contest updates, live rankings
+
+**Configuration:** `backend-spring/src/main/resources/application.yml`
+
+**WebSocket Config:** `backend-spring/src/main/java/com/ulticode/modules/websocket/config/`
+
+**Key Components:**
+1. `WebSocketConfig` - STOMP endpoints
+2. `JwtChannelInterceptor` - JWT authentication for WebSocket
+3. `NotificationWebSocketHandler` - User notifications
+4. `ContestWebSocketHandler` - Contest real-time updates
+
+**STOMP Libraries:**
+- `console`: STOMP.js v7.3.0 + SockJS v1.6.1
+- `management`: Same
+
+**Ports:** Same as HTTP (9001)
+
+---
+
+## 10. Code Execution
+
+### Docker Sandbox
+
+**Purpose:** Secure code execution for submitted solutions
+
+**Configuration File:** `backend-spring/src/main/resources/application.yml`
+
+```yaml
+code-execution:
+  sandbox:
+    enabled: ${SANDBOX_ENABLED:true}
+    image: ${SANDBOX_IMAGE:ulticode-sandbox:latest}
+    memory: ${SANDBOX_MEMORY:256m}
+    cpus: ${SANDBOX_CPUS:1.0}
+    timeout: ${SANDBOX_TIMEOUT:10}
+    pids-limit: ${SANDBOX_PIDS_LIMIT:128}
+    seccomp-profile-path: ${SANDBOX_SECCOMP_PROFILE:docker/sandbox/seccomp-profile.json}
+    languages:
+      java:
+        timeout-seconds: 10
+        memory: 256m
+      python:
+        timeout-seconds: 5
+        memory: 128m
+      # ... other languages
+```
+
+**Supported Languages:**
+- Java (10s timeout)
+- Python (5s)
+- C (5s)
+- C++ (5s)
+- Go (8s)
+- Rust (8s)
+- JavaScript (3s)
+
+**Sandbox Dockerfile:** `docker/sandbox/Dockerfile`
+
+---
+
+## 11. CI/CD Integration
+
+### GitHub Actions
+
+**Workflows:** `.github/workflows/`
+
+#### CI Pipeline (`ci.yml`)
+- Backend: Maven build + test (JUnit, Testcontainers)
+- Frontend: Lint + Type check + Vitest
+- Docker: Build verification
+- Migrations: Flyway validation
+
+**Environment:**
+```yaml
+JAVA_VERSION: '17'
+NODE_VERSION: '22.x'
+PNPM_VERSION: '10'
+```
+
+**Services Used:**
+- MySQL 9.1 (test container)
+- Redis 7 (test container)
+
+#### CD Deploy Pipeline (`cd-deploy.yml`)
+
+**Steps:**
+1. SSH to deployment server
+2. Run Flyway migrations
+3. Docker pull and deploy
+4. Health checks
+
+**Environments:**
+- Staging
+- Production
+
+**Deployment:**
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+---
+
+## 12. Logging & Monitoring
+
+### Logging
+
+**Configuration:** `backend-spring/src/main/resources/application.yml`
+
+```yaml
+logging:
+  level:
+    root: INFO
+    com.ulticode: INFO
+    org.springframework.security: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+```
+
+**Production:** `application-prod.yml`
+```yaml
+logging:
+  level:
+    com.ulticode: INFO
+    org.springframework.security: WARN
+```
+
+### Health Checks
+
+**Spring Actuator:** `backend-spring/src/main/resources/application.yml`
+
+```yaml
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+```
+
+**Health Endpoint:** `http://localhost:9001/actuator/health`
+
+---
+
+## 13. External AI Integration
+
+### Letta AI
+
+**Purpose:** AI-powered features (agents, memory)
+
+**Root Dependency:** `package.json`
+```json
+{
+  "dependencies": {
+    "@letta-ai/letta-client": "^1.10.3"
+  }
+}
+```
+
+**Usage:** Not fully traced in codebase; potential for AI agent features
+
+---
+
+## 14. Local Development Services
+
+### PM2 Process Manager
+
+**Configuration:** `ecosystem.config.cjs`
+
+```javascript
+module.exports = {
+  apps: [
+    { name: 'ulticode-9001', cwd: './backend-spring', script: 'start.cjs' },
+    { name: 'ulticode-9002', cwd: './console', script: 'node_modules/vite/bin/vite.js', args: '--port 9002' },
+    { name: 'ulticode-9003', cwd: './management', script: 'node_modules/vite/bin/vite.js', args: '--port 9003' },
+    { name: 'ulticode-9004', cwd: './recommendation', script: 'start-provider.cjs' },
+    { name: 'ulticode-9005', cwd: './recommendation', script: 'start-web.cjs' }
+  ]
+}
+```
+
+### Docker Compose Services
+
+**Development (`docker-compose.yml`):**
+- `mysql:9.1` - Port 23306
+- `redis:7-alpine` - Port 26379
+- `nacos/nacos-server:v2.3.2` - Port 28848
+
+**Production (`docker-compose.prod.yml`):**
+- All above plus:
+  - `backend` - Custom image from GHCR
+  - `console` - Custom image from GHCR
+  - `management` - Custom image from GHCR
+  - `recommend-provider` - Custom image
+  - `recommend-web` - Custom image
+
+---
+
+## Integration Summary Table
+
+| Integration | Type | Status | Config Location |
+|------------|------|--------|-----------------|
+| MySQL | Database | Required | `application.yml` |
+| Redis | Cache/Session | Required | `application.yml` |
+| Nacos | Service Discovery | Required | `application.yml` |
+| Dubbo3 | RPC | Optional | `application.yml` |
+| JWT | Authentication | Required | `application.yml` |
+| GitHub OAuth | Social Login | Optional | `application.yml` |
+| Google OAuth | Social Login | Optional | `application.yml` |
+| MeiliSearch | Search | Optional | `application.yml` |
+| SMTP | Email | Optional | `application.yml` |
+| Stripe | Payments | Optional | `.env` |
+| WebSocket | Real-time | Required | `websocket/` module |
+| Docker Sandbox | Code Execution | Required | `application.yml` |
+| Letta AI | AI Features | Optional | `package.json` |
+| GitHub Actions | CI/CD | Required | `.github/workflows/` |
+| Flyway | Migrations | Required | `db-manager/` |
+
+---
+
+## Environment Variables Reference
+
+### Required for Development
+
+```bash
+# Database
+DB_HOST=localhost
+DB_PORT=23306
+DB_USER=ulticode
+DB_PASSWORD=ulticode
+DB_NAME=ulticode
+
+# Redis
+REDIS_HOST=localhost
+REDIS_PORT=26379
+REDIS_PASSWORD=<password>
+
+# JWT
+JWT_SECRET=<32+ char secret>
+
+# Nacos
+NACOS_HOST=localhost
+NACOS_PORT=28848
+NACOS_USERNAME=nacos
+NACOS_PASSWORD=nacos
+
+# CORS
+CORS_ALLOWED_ORIGINS=http://localhost:9002,http://localhost:9003
+```
+
+### Optional
+
+```bash
+# OAuth
+GITHUB_CLIENT_ID=<id>
+GITHUB_CLIENT_SECRET=<secret>
+GOOGLE_CLIENT_ID=<id>
+GOOGLE_CLIENT_SECRET=<secret>
+
+# Email
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+EMAIL_ENABLED=false
+
+# Search
+MEILISEARCH_ENABLED=false
+MEILISEARCH_HOST=
+
+# Payments
+STRIPE_SECRET_KEY=
+STRIPE_WEBHOOK_SECRET=
+
+# Recommendation
+RECOMMENDATION_ENABLED=false
+```

@@ -1,0 +1,95 @@
+{
+  "_meta": {
+    "updated_at": "2026-04-30T12:00:00Z",
+    "description": "REST API endpoint inventory by module",
+    "base_url": "http://localhost:9001"
+  },
+  "modules": {
+    "auth": {
+      "endpoints": [
+        {"method": "POST", "path": "/auth/login", "description": "User login"},
+        {"method": "POST", "path": "/auth/logout", "description": "User logout"},
+        {"method": "POST", "path": "/auth/register", "description": "User registration"},
+        {"method": "GET", "path": "/auth/csrf", "description": "Get CSRF token"},
+        {"method": "POST", "path": "/auth/refresh", "description": "Refresh access token"}
+      ]
+    },
+    "user": {
+      "endpoints": [
+        {"method": "GET", "path": "/users/{id}", "description": "Get user by ID"},
+        {"method": "PUT", "path": "/users/{id}", "description": "Update user"},
+        {"method": "GET", "path": "/users/u-{username}/stats", "description": "Get user stats by username"},
+        {"method": "GET", "path": "/users/search", "description": "Search users"},
+        {"method": "POST", "path": "/users/follow/{id}", "description": "Follow user"},
+        {"method": "DELETE", "path": "/users/follow/{id}", "description": "Unfollow user"}
+      ]
+    },
+    "problem": {
+      "endpoints": [
+        {"method": "GET", "path": "/problems", "description": "List problems"},
+        {"method": "GET", "path": "/problems/{id}", "description": "Get problem by ID"},
+        {"method": "POST", "path": "/problems", "description": "Create problem"},
+        {"method": "PUT", "path": "/problems/{id}", "description": "Update problem"},
+        {"method": "DELETE", "path": "/problems/{id}", "description": "Delete problem"},
+        {"method": "GET", "path": "/problems/{id}/testcases", "description": "Get test cases"},
+        {"method": "POST", "path": "/problems/{id}/testcases", "description": "Add test case"}
+      ]
+    },
+    "submission": {
+      "endpoints": [
+        {"method": "POST", "path": "/submissions", "description": "Submit code"},
+        {"method": "GET", "path": "/submissions/{id}", "description": "Get submission by ID"},
+        {"method": "GET", "path": "/submissions/user/{userId}", "description": "Get user submissions"},
+        {"method": "GET", "path": "/submissions/problem/{problemId}", "description": "Get problem submissions"}
+      ]
+    },
+    "contest": {
+      "endpoints": [
+        {"method": "GET", "path": "/contests", "description": "List contests"},
+        {"method": "GET", "path": "/contests/{id}", "description": "Get contest by ID"},
+        {"method": "POST", "path": "/contests", "description": "Create contest"},
+        {"method": "GET", "path": "/contests/{id}/rankings", "description": "Get contest rankings"},
+        {"method": "POST", "path": "/contests/{id}/register", "description": "Register for contest"}
+      ]
+    },
+    "forum": {
+      "endpoints": [
+        {"method": "GET", "path": "/forum/posts", "description": "List forum posts"},
+        {"method": "GET", "path": "/forum/posts/{id}", "description": "Get post by ID"},
+        {"method": "POST", "path": "/forum/posts", "description": "Create post"},
+        {"method": "POST", "path": "/forum/posts/{id}/reply", "description": "Reply to post"},
+        {"method": "POST", "path": "/forum/posts/{id}/vote", "description": "Vote on post"}
+      ]
+    },
+    "solution": {
+      "endpoints": [
+        {"method": "GET", "path": "/solutions", "description": "List solutions"},
+        {"method": "GET", "path": "/solutions/{id}", "description": "Get solution by ID"},
+        {"method": "POST", "path": "/solutions", "description": "Create solution"},
+        {"method": "GET", "path": "/solutions/problem/{problemId}", "description": "Get solutions for problem"}
+      ]
+    },
+    "notification": {
+      "endpoints": [
+        {"method": "GET", "path": "/notifications", "description": "List notifications"},
+        {"method": "PUT", "path": "/notifications/{id}/read", "description": "Mark as read"},
+        {"method": "PUT", "path": "/notifications/read-all", "description": "Mark all as read"}
+      ]
+    },
+    "admin": {
+      "endpoints": [
+        {"method": "GET", "path": "/admin/users", "description": "List all users"},
+        {"method": "PUT", "path": "/admin/users/{id}/role", "description": "Update user role"},
+        {"method": "GET", "path": "/admin/audit-logs", "description": "Get audit logs"},
+        {"method": "POST", "path": "/admin/moderation/content", "description": "Moderate content"}
+      ]
+    },
+    "search": {
+      "endpoints": [
+        {"method": "GET", "path": "/search", "description": "Global search"},
+        {"method": "GET", "path": "/search/problems", "description": "Search problems"},
+        {"method": "GET", "path": "/search/users", "description": "Search users"}
+      ]
+    }
+  }
+}

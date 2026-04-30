@@ -1,0 +1,50 @@
+{
+  "_meta": {
+    "updated_at": "2026-04-30T12:00:00Z",
+    "description": "Backend module dependencies and service architecture"
+  },
+  "core_modules": [
+    "auth", "user", "problem", "submission", "contest",
+    "forum", "solution", "notification", "search"
+  ],
+  "supporting_modules": [
+    "admin", "moderation", "vote", "bookmark", "subscription",
+    "follow", "i18n", "backup", "email", "monitoring",
+    "permission", "problemlist", "queue", "refreshtoken", "edgeoperations"
+  ],
+  "dependencies": {
+    "backend_spring": {
+      "depends_on": ["recommendation/recommend-api"],
+      "internal_modules": {
+        "auth": ["user", "permission"],
+        "problem": ["submission"],
+        "contest": ["submission", "user"],
+        "forum": ["user", "vote"],
+        "solution": ["user", "problem"],
+        "notification": ["user"],
+        "admin": ["user", "moderation", "permission"],
+        "search": ["problem", "user", "forum", "solution"]
+      }
+    },
+    "recommendation_service": {
+      "framework": "Dubbo3",
+      "depends_on": ["backend_spring (Dubbo consumer)"],
+      "modules": ["recommend-provider", "recommend-web"]
+    }
+  },
+  "frontend_dependencies": {
+    "console": {
+      "depends_on": ["backend_spring (port 9001)"],
+      "features": ["problem_solving", "contests", "submissions", "forum", "solutions"]
+    },
+    "management": {
+      "depends_on": ["backend_spring (port 9001)"],
+      "features": ["user_management", "content_moderation", "analytics", "audit_logs"]
+    }
+  },
+  "external_dependencies": {
+    "mysql": "Primary database for all modules",
+    "redis": "Cache and session storage",
+    "nacos": "Service registry for Dubbo3"
+  }
+}

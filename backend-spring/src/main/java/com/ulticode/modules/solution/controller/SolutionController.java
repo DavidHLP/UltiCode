@@ -93,9 +93,11 @@ public class SolutionController {
     @GetMapping("/api/solutions/{id}")
     public Result<SolutionVO> getSolutionById(
             @Parameter(description = "Solution ID")
-            @PathVariable String id) {
+            @PathVariable String id,
+            @Parameter(description = "Current user ID (optional)")
+            @RequestParam(required = false) String userId) {
 
-        SolutionVO solution = solutionService.getSolutionById(id);
+        SolutionVO solution = solutionService.getSolutionById(id, userId);
         return Result.success(solution);
     }
 

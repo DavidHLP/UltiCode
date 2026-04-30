@@ -20,12 +20,13 @@ import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.solution.service.SolutionService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -46,6 +47,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class SolutionServiceImpl implements SolutionService {
+
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
@@ -212,6 +214,11 @@ public class SolutionServiceImpl implements SolutionService {
 
     @Override
     public SolutionVO getSolutionById(String id) {
+        return getSolutionById(id, null);
+    }
+
+    @Override
+    public SolutionVO getSolutionById(String id, String currentUserId) {
         Solution solution = findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
 
@@ -219,7 +226,7 @@ public class SolutionServiceImpl implements SolutionService {
         solution.setViews(solution.getViews() != null ? solution.getViews() + 1 : 1);
         solutionMapper.updateById(solution);
 
-        return toVO(solution);
+        return toVO(solution, currentUserId);
     }
 
     @Override
@@ -356,6 +363,11 @@ public class SolutionServiceImpl implements SolutionService {
 
     @Override
     public SolutionVO toVO(Solution solution) {
+        return toVO(solution, null);
+    }
+
+    @Override
+    public SolutionVO toVO(Solution solution, String currentUserId) {
         if (solution == null) {
             return null;
         }
@@ -364,7 +376,7 @@ public class SolutionServiceImpl implements SolutionService {
         BeanUtils.copyProperties(solution, vo);
 
         // Parse tags JSON to list
-        vo.setTagsList(parseTags(solution.getTags()));
+        vo.setTags(parseTags(solution.getTags()));
 
         // Fetch author info
         User author = userMapper.selectById(solution.getUserId());
@@ -386,6 +398,26 @@ public class SolutionServiceImpl implements SolutionService {
         vo.setDislikes(dislikes);
         vo.setComments(commentCount);
         vo.setScore(likes - dislikes);
+
+        // Populate current user's vote state
+        if (currentUserId != null) {
+            LambdaQueryWrapper<com.ulticode.modules.vote.entity.EdgeOperation> voteWrapper = new LambdaQueryWrapper<>();
+            voteWrapper.eq(com.ulticode.modules.vote.entity.EdgeOperation::getOperatorId, currentUserId)
+                    .eq(com.ulticode.modules.vote.entity.EdgeOperation::getTargetId, targetId)
+                    .eq(com.ulticode.modules.vote.entity.EdgeOperation::getTargetType, targetType);
+            com.ulticode.modules.vote.entity.EdgeOperation userVote = edgeOperationMapper.selectOne(voteWrapper);
+            if (userVote != null) {
+                if (userVote.getOperationType() == EdgeOperationType.VOTE_UP) {
+                    vo.setUserVote(1);
+                } else if (userVote.getOperationType() == EdgeOperationType.VOTE_DOWN) {
+                    vo.setUserVote(-1);
+                } else {
+                    vo.setUserVote(0);
+                }
+            } else {
+                vo.setUserVote(0);
+            }
+        }
 
         return vo;
     }

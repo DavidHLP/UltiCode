@@ -1,302 +1,238 @@
-# Codebase Concerns
+# Codebase Concerns Report
 
-**Analysis Date:** 2026-04-22
-
-## Resolved Issues (Historical - Past 24 Hours)
-
-Documented for awareness. These were discovered and fixed during active development.
-
-### Login 500 Errors (Resolved 2026-04-16)
-
-**Issue:** All `/auth/login` requests returned HTTP 500 due to `SQLSyntaxErrorException: Unknown column 'password_reset_token_hash'`
-
-**Root Cause:** V20 migration (add password reset columns) was not applied. `User` entity referenced columns via `@TableField` that did not exist in the `users` table.
-
-**Fix:** Applied V20 migration manually and registered in `flyway_schema_history`.
-
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/user/entity/User.java:158,164`
+> Generated: 2026-04-29
+> Scope: Full codebase analysis
 
 ---
 
-### Achievement Endpoints 500 Errors (Resolved 2026-04-19)
+## 1. Security Risks
 
-**Issue:** `GET /achievements/my`, `/achievements/user/me`, `/achievements/points` all returned `code=50000, message="Unknown error"`
+### Critical (P0)
 
-**Root Cause:** `achievements` and `user_achievements` MySQL tables did not exist. `AchievementServiceImpl.getUserAchievements()` called `achievementMapper.findAllActive()` which threw `BadSqlGrammarException`.
+| Severity | Issue | Location | Details |
+|----------|-------|----------|---------|
+| **HIGH** | Hardcoded JWT Secret | `backend-spring/start-backend.sh:4` | Contains hardcoded JWT secret `5GXMfun06YtfZSSV5h3M7yNA9fmuagbY5dITQyqSVDfcgebV-DqD9upy0zsSpPbKVKdRh4kllefbUFaTDuvpSA` |
+| **HIGH** | Hardcoded JWT Secret | `backend-spring/ecosystem.config.cjs:9` | Same JWT secret in PM2 config |
+| **HIGH** | Hardcoded Database Password | `backend-spring/start-backend.sh:3` | Database URL contains hardcoded password `2%5BOGT%23ds%3E1h7xZM%3CO%5D7%3B2%5BF%26` |
+| **HIGH** | SQL Injection | `backend-spring/.../submission/mapper/SubmissionMapper.java:370-379` | Uses `${contestIds}` string interpolation instead of MyBatis `#{}` parameter binding. Vulnerable if `contestIds` is user-controlled. NOTE comment acknowledges this. |
+| **HIGH** | CSRF Token Exposure | `backend-spring/.../auth/service/impl/AuthServiceImpl.java:280` | CSRF cookie set without `HttpOnly` flag — XSS can steal CSRF token |
 
-**Fix:** Created and applied `V22__achievement_schema.sql` migration.
+### High Priority (P1)
 
-**Files:** `db-manager/migrations/V22__achievement_schema.sql`
+| Severity | Issue | Location | Details |
+|----------|-------|----------|---------|
+| **MEDIUM** | Insecure Cookie Default | `backend-spring/.../application.yml:65,72` | `secure: ${JWT_COOKIE_SECURE:false}` defaults to `false` — cookies won't have Secure flag if not overridden |
+| **MEDIUM** | Command Injection Risk | `backend-spring/.../submission/service/impl/SandboxServiceImpl.java:182-188` | User code embedded in shell commands via string concatenation. Docker sandbox provides isolation but risk exists if sandbox escapes |
+| **MEDIUM** | OAuth State Reuse | `backend-spring/.../auth/service/OAuthService.java:66,146` | OAuth state stored in Redis without expiration validation |
 
----
+### Low Priority / Mitigated (P2)
 
-### CsrfValidationFilter Bypassing Exception Handler (Resolved 2026-04-19)
-
-**Issue:** `POST /admin/problems/bulk` returned HTTP 500 with HTML body instead of JSON when CSRF was missing/invalid.
-
-**Root Cause:** `CsrfValidationFilter` (servlet filter in Spring Security chain) threw `BusinessException` directly. Since it ran before `DispatcherServlet`, `@RestControllerAdvice` never caught it. Tomcat rendered default HTML error page.
-
-**Fix:** Rewrote filter to write JSON error response directly via `HttpServletResponse` with proper HTTP 403 status codes.
-
-**Files:** `backend-spring/src/main/java/com/ulticode/security/csrf/CsrfValidationFilter.java`
-
----
-
-### Flyway Migration Sequencing (Resolved 2026-04-21)
-
-**Issue:** `db-manager/.venv/bin/python -m db_manager.cli migrate` failed with "Validate failed: Detected resolved migration not applied to database: 10.1, 21"
-
-**Root Cause:** V26 (`follow_schema.sql`) version number was lower than installed V99, causing Flyway to reject it. The `user_follows` table existed but Flyway had no record.
-
-**Fix:** Renamed V26 to V100, manually deleted conflicting Flyway history record, inserted correct V100 record.
-
----
-
-## Resolved This Week
-
-### Achievement Async Processing (PITFALL-01) - RESOLVED
-
-**Status:** Complete (Phase 36)
-
-**Previous Issue:** Achievement checking ran synchronously on every submission, blocking user-facing API.
-
-**Current Implementation:** `AchievementCheckListener.java:19-20`:
-```java
-@Async
-@TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
-```
-
-**Verification:** Achievements now fire after transaction commits via async event listener.
+| Severity | Issue | Location | Details |
+|----------|-------|----------|---------|
+| LOW | Math.random() Usage | Multiple Vue files | Used for UI IDs only — not security tokens. Acceptable |
+| LOW | XSS via v-html | Frontend Vue components | All `v-html` routed through DOMPurify — properly sanitized |
+| LOW | JWT Implementation | `backend-spring/.../security/jwt/` | Uses jjwt with HMAC-SHA256, httpOnly cookies, token blacklist — well implemented |
+| LOW | Authorization | Backend controllers | `@PreAuthorize` annotations used consistently |
+| LOW | Password Storage | Throughout backend | Uses BCrypt — compliant |
+| LOW | Security Headers | `backend-spring/.../common/config/SecurityConfig.java:113-136` | CSP, HSTS, XSS protection, frame-options properly configured |
 
 ---
 
-## Pending Requirements (from REQUIREMENTS.md)
+## 2. Dependency Vulnerabilities
 
-### Admin Forum Stats Hardcoded (BUG-01 / PITFALL-02)
+### Frontend (console & management)
 
-**Status:** Pending (Phase 37)
+| Package | Version | Severity | Issue | Status |
+|---------|---------|----------|-------|--------|
+| `markdown-it-katex` | 2.0.3 | **HIGH** | XSS vulnerability (GHSA-5ff8-jcf9-fw62) — no fix available | Unmaintained |
+| `dompurify` | 3.3.3 | MODERATE | Multiple XSS/Prototype Pollution CVEs | Update available |
+| `axios` | 1.14.0 | MODERATE | SSRF (GHSA-3p68-rc4w-qgx5), Header Injection (GHSA-fvcv-3m26-pcqx) | Update available |
+| `sockjs-client` | 1.6.1 | MODERATE | Deprecated — no updates since 2023 | Migrate to native WebSocket |
+| `dnd-kit-vue` | 0.0.2 | LOW | Abandoned — only 2 versions ever released | Use `@dnd-kit/core` directly |
+| `vite-plugin-pwa` | 1.2.0 | LOW | Older version with transitive vulnerable dependencies | Update when convenient |
 
-**Issue:** Admin forum statistics return hardcoded zero values instead of real data.
+**Both frontends affected by:** `markdown-it-katex` (XSS, no fix), `dompurify` (moderate CVEs), `follow-redirects` (header leakage via axios)
 
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/admin/service/impl/AdminForumServiceImpl.java:276-278`
+### Backend (Spring Boot)
 
-```java
-vo.setCommentCount(0); // TODO: Query from forum_comments table
-vo.setUpvotes(0); // TODO: Query from forum_votes table
-vo.setDownvotes(0); // TODO: Query from forum_votes table
-```
-
-**Recent Activity:** Commit `48b3c2cc2` (feat(37): replace hardcoded forum stats with real DB queries) was pushed to main. May be resolved in working tree.
-
----
-
-### springdoc Incompatibility (DEPS-01) - PENDING
-
-**Issue:** springdoc 2.7.0 incompatible with Spring Boot 3.2.5 (missing `LiteWebWebJarsResourceResolver` class).
-
-**Current State:** Already downgraded to 2.6.0 (documented in "Already Resolved"). However, DEPS-01 remains open pending upgrade to 3.x LTS when available.
-
-**Files:** `backend-spring/pom.xml`
-
----
-
-### CI Flyway URL (DEPS-02) - PENDING
-
-**Issue:** CI workflow uses incorrect Flyway download URL (Redgate official URL required).
-
-**Impact:** CI pipeline failures related to database migration.
+| Package | Version | Severity | Issue | Status |
+|---------|---------|----------|-------|--------|
+| `jjwt` | 0.13.0 | **HIGH** | CVE-2023-5062, CVE-2023-5063 — input validation issues | Upgrade to 0.12.5+ |
+| `testcontainers` | 1.21.4 | **MEDIUM** | Outdated (current: 2.x) with known CVEs | Upgrade to 2.x |
+| `spring-boot-starter-aop` | 3.5.12 | **MEDIUM** | Version mismatch — Spring Boot 3.x uses AOP 1.9.x, not 3.5.x | Remove version override |
+| `dubbo` | 3.2.14 | LOW | Version conflict with `recommend-api` which uses dubbo 3.3.6 | Align versions |
+| `mybatis-plus` | 3.5.16 | LOW | Slightly outdated (latest: 3.5.17+) | Minor update |
+| `redisson` | 4.3.1 | LOW | Older version from 2022 | Minor update |
+| `lombok` | 1.18.44 | LOW | Inconsistent with recommendation module (1.18.30) | Unify versions |
+| `mapstruct` | 1.6.3 | LOW | Outdated — newer 1.6.x available | Minor update |
 
 ---
 
-## Dependency Risks
+## 3. Technical Debt — TODO/NOTE Markers
 
-### DEPS-03: springdoc 3.x Upgrade (V2 DEFERRED)
+### TODO Comments (9 total)
 
-**Status:** Out of scope until LTS release available.
+**Admin Features — Unimplemented:**
 
----
+| File | Lines | Description |
+|------|-------|-------------|
+| `AdminAccountController.java` | 47 | Password change logic not implemented |
+| `AdminAccountController.java` | 54 | Subscription retrieval not implemented |
+| `AdminSettingsController.java` | 26, 53, 74, 92, 109, 131 | Settings persistence not implemented (6 endpoints) |
+| `AdminSettingsController.java` | 147 | Cache clearing not implemented |
 
-## Performance Concerns
+**Frontend:**
 
-### PERF-01: Achievement N+1 Query (V2 DEFERRED)
+| File | Lines | Description |
+|------|-------|-------------|
+| `ModerationDetailDrawer.vue` | 192, 198 | Fetch reports/actions separately via API |
+| `ChartTooltipContent.vue` | 28 | Chart rendering approach note |
 
-**Status:** Deferred to v2 roadmap.
+### NOTE Comments (12 total — flag important technical concerns)
 
-**Issue:** Achievement queries may have N+1 patterns when loading user achievements with related data.
+**Missing Database Migrations:**
 
----
+| File | Lines | Description |
+|------|-------|-------------|
+| `ProblemListCategory.java` | 11 | Table does NOT exist in Prisma schema |
+| `ProblemListBookmark.java` | 11 | Table does NOT exist in Prisma schema |
+| `ProblemListBookmarkMapper.java` | 16 | Requires `problem_list_bookmarks` table |
+| `ProblemListCategoryMapper.java` | 15 | Requires `problem_list_categories` table |
+| `ProblemListServiceImpl.java` | 96, 423, 440, 465, 497 | Methods require missing tables |
 
-### PERF-02: Follow System Index (V2 DEFERRED)
+**Performance/Architecture:**
 
-**Status:** Deferred to v2 roadmap.
-
-**Issue:** `user_follows` table may lack composite index for efficient follow/follower queries.
-
-**Current Indexes:**
-```sql
-INDEX idx_follower_id (follower_id)
-INDEX idx_following_id (following_id)
-```
-
-**Missing:** Composite index for `isFollowing` check queries.
-
-**Files:** `backend-spring/src/main/java/com/ulticode/modules/follow/mapper/FollowMapper.java`
-
----
-
-### Admin Content Analytics Tag Loop N+1 (NOTED IN CODE)
-
-**Issue:** `AdminContentAnalyticsServiceImpl.java:78`:
-```java
-// NOTE: N+1 issue exists in the tag loop below (per-problem submission count queries).
-```
+| File | Lines | Description |
+|------|-------|-------------|
+| `SubmissionMapper.java` | 370 | MyBatis `${}` interpolation used intentionally (SQL injection risk — see Section 1) |
+| `AdminUserAnalyticsServiceImpl.java` | 112 | Retention calculation is an approximation, not true set intersection |
+| `AdminContentAnalyticsServiceImpl.java` | 78 | **N+1 issue**: tag loop queries per-problem submission counts |
 
 ---
 
-## Testing Gaps
+## 4. Complexity Hotspots
 
-### MISS-01: JaCoCo Coverage Thresholds Too Low
+### Backend — Large Service Classes (>450 lines)
 
-**Issue:** JaCoCo configured with 50% LINE and 40% BRANCH minimums, below the 80% project standard.
+| File | Lines | Concern |
+|------|-------|---------|
+| `SubmissionServiceImpl.java` | 682 | God service — submission handling, contest recording, achievement triggering, notifications, stats all in one class. 10 dependencies injected |
+| `ModerationServiceImpl.java` | 578 | Handles 4 entities (ModerationQueue, Report, Appeal, UserBan). 6 mappers. Switch with 10 cases |
+| `ProblemListServiceImpl.java` | 573 | 5 mappers. Missing table references cause broad catch blocks masking errors |
+| `ProblemServiceImpl.java` | 561 | 4 mappers. JSON parsing logic repeated in multiple places. 10+ helper methods in build flow |
+| `ContestController.java` | 541 | 40+ endpoints in single controller. Mixes admin CRUD, public queries, participation, virtual contests |
+| `MonitoringServiceImpl.java` | 454 | Direct system access (JMX, JDBC, Redis). Noisy try-catch blocks. Raw SQL embedded in Java |
+| `UserServiceImpl.java` | 452 | 4 mappers. User CRUD, stats, follows, profile all in one class |
+| `SolutionServiceImpl.java` | 446 | Code review, vote, and solution management |
+| `AdminSubmissionServiceImpl.java` | 444 | Admin submission management |
 
-**Current Configuration** (`backend-spring/pom.xml:282-290`):
-```xml
-<counter>LINE</counter>
-<minimum>0.50</minimum>   <!-- Should be 0.80 -->
-<counter>BRANCH</counter>
-<minimum>0.40</minimum>   <!-- Should be 0.80 -->
-```
+### Frontend — Large TypeScript Files (>400 lines)
 
-**Excluded from Coverage:** All Mapper, Entity, DTO/VO, Config, Properties classes.
+| File | Lines | Concern |
+|------|-------|---------|
+| `console/src/api/contest.ts` | 559 | Massive snake_case to camelCase mapping. 20+ types defined inline. No separation of types/mappers/API |
+| `console/src/api/problem-list.ts` | 528 | API layer with inline type definitions |
+| `console/src/composables/useCodeTemplates.ts` | 527 | Large template management composable |
+| `console/src/types/contest.ts` | 463 | Inline type definitions with complex mappings |
+| `console/src/utils/request.ts` | 442 | Request deduplication, CSRF handling, interceptors — complex utility |
+| `console/src/stores/contest.ts` | 424 | Pinia store with large state management |
+| `console/src/lib/socket.ts` | 423 | WebSocket/SockJS handling with reconnection logic |
+| `console/src/router/index.ts` | 416 | Route definitions |
+| `console/src/stores/auth.ts` | 405 | Auth store with token management |
 
-**Impact:** 80% coverage mandate in `REQUIREMENTS.md` is not enforced.
+### Controller with Data Handling (Should Be Service)
 
----
-
-### MISS-02: Rate Limiting E2E Tests
-
-**Status:** Out of scope per REQUIREMENTS.md.
-
----
-
-## Security Considerations
-
-### Positive Security Measures
-
-- BCrypt password hashing (`SecurityConfig.java:165`)
-- JWT secret validation at startup (`JwtProperties.java`)
-- Weak JWT secret blacklist check (`EnvValidationConfig.java:26-29`)
-- CSRF filter returns structured JSON errors (resolved 2026-04-19)
-- Password reset tokens stored as BCrypt hashes (`PasswordResetService.java:62`)
-
-### Areas Requiring Attention
-
-**SEC-02: System.out.println in Code Execution**
-- File: `backend-spring/src/main/java/com/ulticode/modules/submission/service/impl/CodeExecutionHelperImpl.java:252`
-- Risk: Submission output could leak to stdout logs
-
-**SEC-03: console.error in Production Vue**
-- Multiple Vue components in `console/` and `management/`
-- Risk: Debug output in production browser consoles
+| File | Lines | Concern |
+|------|-------|---------|
+| `AdminSettingsController.java` | 386 | 6 nested static DTO classes. Controller doing data transformation that belongs in a service |
 
 ---
 
-## Maintainability Issues
+## 5. Anti-Patterns
 
-### Large Files Exceeding Best Practices
+### N+1 Query Problems
 
-**Java (500+ lines):**
-- `ForumServiceImpl.java` (693 lines)
-- `SubmissionServiceImpl.java` (682 lines)
-- `CodeExecutionService.java` (643 lines)
-- `ContestServiceImpl.java` (626 lines)
-- `ModerationServiceImpl.java` (578 lines)
+| File | Lines | Description |
+|------|-------|-------------|
+| `AdminAnalyticsServiceImpl.java` | 69-74, 84-97, 104-107, 136-141 | Loop over contests, query `contestParticipantMapper.selectList()` inside — 100 contests = 100+ queries |
+| `ForumPostServiceImpl.java` | 129 | `authorIds.forEach(aid -> userService.findById(aid))` — N+1 instead of batch fetch |
 
-**Frontend (500+ lines):**
-- `useContestSocket.ts` (608 lines)
-- `contest.ts` (559 lines)
-- `columns.ts` (management, 533 lines)
-- `problem-list.ts` (528 lines)
-- `useCodeTemplates.ts` (527 lines)
+### Magic Numbers/Strings Without Constants
 
----
+| File | Lines | Values |
+|------|-------|--------|
+| `AdminAnalyticsServiceImpl.java` | 112, 202-203, 234-235 | `100.0` (completion rate), `5.0` (churn), `2.5` (conversion), `9.99`, `79.99/12` |
+| `AdminSettingsController.java` | 27-34, 82-85, 100-102, 117-124 | Rate limits `"100"`, `"10"`, `"5"`, `"20"`; upload `"10MB"`, `"jpg,jpeg,png,gif,pdf,zip"`; site name `"UltiCode"` |
+| `AdminAccountController.java` | 56-57 | Subscription status strings `"FREE"`, `"ACTIVE"` instead of enum/constants |
 
-### Inconsistent Exception Response Format
+### Duplicate Code
 
-**Issue:** `GlobalExceptionHandler` returns `code=50000, message="Unknown error"` for database exceptions without distinguishing between "table missing", "connection failed", and "constraint violation".
+| Files | Description |
+|-------|-------------|
+| `ForumPostServiceImpl.java:173-186` & `ForumCommentServiceImpl.java:177-189` | Identical `ensureForumUserExists()` method |
+| `AdminSettingsController.java:25-34` & `:39-47` | `getAllSettings()` and `getSettings()` repeat identical hardcoded defaults |
 
----
+### Unbounded Collections / Memory Leak Risk
 
-### Manual Migration Intervention History
+| File | Lines | Description |
+|------|-------|-------------|
+| `RealtimeService.java` | 52-55 | `lastRankingPushTime` and `pendingRankingUpdates` grow unbounded under high contest activity |
+| `UserSessionManager.java` | 22, 25, 28 | Three ConcurrentHashMaps for sessions with no TTL eviction |
 
-**Issue:** Multiple incidents required manual SQL execution outside of Flyway (`V20`, `V22`, `V100` fixes).
+### Thread Safety Issues
 
-**Root Cause:** Flyway's strict validation against checksum/history causes failures when migrations are modified post-application or version numbering conflicts occur.
+| File | Lines | Description |
+|------|-------|-------------|
+| `RealtimeService.java` | 52 | `Map<String, Long> lastRankingPushTime` uses regular HashMap (not thread-safe) while other maps use ConcurrentHashMap |
+| `RealtimeService.java` | 167-193 | `@Scheduled flushPendingRankings()` reads/writes `lastRankingPushTime` without synchronization |
 
----
+### Caching Without Eviction
 
-## Fragile Code Patterns
+| File | Lines | Description |
+|------|-------|-------------|
+| `ProblemServiceImpl.java` | 145 | `@Cacheable` on `getProblemById()` — no `@CacheEvict` on updates |
+| `UserServiceImpl.java` | 202 | `@Cacheable` on `getUserStatsById()` — no eviction policy |
+| `ContestServiceImpl.java` | 191 | `@Cacheable` on `getGlobalRanking()` — ranking cached with no TTL |
 
-### JWT Token Provider Null Returns
+### Incomplete Implementation Returning Fake Data
 
-**Files:** `JwtAuthenticationFilter.java:127,137,151`, `CsrfService.java:70,76,87`
-
-**Risk:** Silent authentication failures could cause intermittent "logged out" UX.
-
----
-
-### Redis Service Null Returns
-
-**File:** `RedisService.java:84,103,107,299,504,520`
-
-**Risk:** Cache misses returning null could be confused with errors.
-
----
-
-### Volatile Counter in Monitoring
-
-**File:** `MonitoringServiceImpl.java:58` - `private volatile long queryCount = 0;`
-
-**Risk:** `volatile` is insufficient for atomic counter increments.
+| File | Lines | Description |
+|------|-------|-------------|
+| `AdminAccountController.java` | 47, 54 | `changePassword()` returns success without doing anything; `getSubscription()` returns hardcoded fake SubscriptionVO |
+| `AdminSettingsController.java` | 26-147 (all 7 endpoints) | All settings endpoints return hardcoded placeholder values, no database operations |
 
 ---
 
-## Build Configuration Issues
+## 6. Dependency Version Inconsistencies
 
-### Test Skip in Production Scripts
-
-Both `ecosystem.config.cjs` and `start-backend.sh` use `-Dmaven.test.skip=true`, meaning tests are not run during service startup.
-
----
-
-## Summary of Priorities
-
-| Priority | ID | Issue | Status |
-|----------|-----|-------|--------|
-| HIGH | BUG-01 | Admin Forum Stats hardcoded | Phase 37 (in progress) |
-| HIGH | DEPS-01 | springdoc compatibility | Pending 3.x LTS |
-| HIGH | DEPS-02 | CI Flyway URL broken | Pending |
-| MEDIUM | MISS-01 | JaCoCo thresholds 50%/40% | Should be 80% |
-| MEDIUM | PERF-02 | user_follows missing composite index | V2 deferred |
-| LOW | DEPS-03 | springdoc 3.x upgrade | V2 deferred |
-| LOW | PERF-01 | Achievement N+1 | V2 deferred |
+| Package | Console | Management | Issue |
+|---------|---------|------------|-------|
+| `eslint` | 9.39.4 | 10.2.1 | Different ESLint major versions across frontends |
+| `eslint-plugin-vue` | 9.33.0 | 10.8.0 | Incompatible with console's ESLint 9.x per CLAUDE.md |
+| `@unovis/ts` / `@unovis/vue` | 1.6.2 | 1.6.4 | Version split |
+| `vue` | 3.5.25 | 3.5.31 | Minor version difference |
+| `tailwindcss` | 4.1.17 | 4.2.2 | Minor version difference |
+| `lombok` (backend vs recommendation) | 1.18.44 | 1.18.30 | Version mismatch across modules |
 
 ---
 
-## Already Resolved (Historical Reference)
+## Summary Table
 
-These issues were identified and fixed during earlier development cycles:
-
-- **ESLint version conflict:** ESLint 10.x incompatible with @typescript-eslint/utils 8.x - Fixed by downgrading to eslint ^9.30.1
-- **vitest setupFiles reference:** References non-existent `console/src/test/setup.ts` - Fixed by removing setupFiles
-- **recommend-api not installed:** CI Backend Build failed - Fixed by ensuring proper build order
-- **OAuthService Spring 6.x compatibility:** Fixed for Spring Framework 6.x compatibility
-- **springdoc LiteWebJarsResourceResolver:** Downgraded from 2.7.0 to 2.6.0
-- **CI lockfile issues:** Multiple CI fixes applied and verified
-- **PM2 env parsing:** Custom .env parser fragility (TD-01 from prior doc)
-- **Maven build order:** recommendation must be installed before backend-spring (TD-02 from prior doc)
-- **Dubbo configuration complexity:** enable-empty-protection workaround documented (TD-03 from prior doc)
+| Category | Count | Critical Items |
+|----------|-------|----------------|
+| Security Risks | 9 | 5 critical (hardcoded secrets, SQL injection, CSRF) |
+| Dependency Vulnerabilities | 10 | 2 critical (jjwt CVE, markdown-it-katex XSS) |
+| TODO Comments | 9 | 7 admin feature stubs |
+| NOTE Comments | 12 | 9 missing database tables, 2 performance concerns |
+| Large/Complex Files | 17 | 8 backend services, 9 frontend files |
+| Anti-Patterns | 6 types | N+1 (2), Magic strings (3), Duplicate (2), Memory leaks (2), Thread safety (2) |
 
 ---
 
-*Concerns audit: 2026-04-22*
+## Risk Matrix
+
+| | Low Impact | Medium Impact | High Impact |
+|---|---|---|---|
+| **High Likelihood** | Frontend ESLint version split | Caching without eviction | SQL Injection (SubmissionMapper) |
+| **Medium Likelihood** | Magic numbers | N+1 queries (AdminAnalytics) | Hardcoded secrets (JWT, DB password) |
+| **Low Likelihood** | Duplicate code | Memory leaks (RealtimeService) | CSRF token exposure |

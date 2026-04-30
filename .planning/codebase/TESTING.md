@@ -1,347 +1,319 @@
-# Testing Patterns
+# Testing Strategy
 
-**Analysis Date:** 2026-04-22
+This document describes the testing strategy and coverage for the UltiCode project.
 
-## Test Framework Overview
+---
 
-### Backend (Java - Spring Boot)
+## Test Frameworks
 
-**Framework:** JUnit 5 with Mockito
+### Backend (Java)
 
-**Key Dependencies:**
-- `junit-jupiter` - Test runner
-- `mockito-core` - Mocking framework
-- `mockito-junit-jupiter` - MockitoExtension for JUnit 5
+| Framework | Version | Purpose |
+|-----------|---------|---------|
+| JUnit 5 | (Spring Boot managed) | Unit testing |
+| AssertJ | (Spring Boot managed) | Fluent assertions |
+| Mockito | (Spring Boot managed) | Mocking dependencies |
+| Testcontainers | 1.21.4 | Integration tests with real databases |
+| JaCoCo | 0.8.12 | Code coverage reporting |
 
-**Location:** `backend-spring/src/test/java/com/ulticode/`
+### Frontend (TypeScript/Vue)
 
-### Frontend (TypeScript/Vue - Vite)
-
-**Framework:** Vitest with Vue Test Utils
-
-**Key Dependencies:**
-- `vitest` - Test runner
-- `@vue/test-utils` - Vue component testing
-- `jsdom` - DOM environment
-
-**Location:**
-- `console/src/**/*.spec.ts` and `console/src/**/__tests__/*.spec.ts`
-- `management/src/**/*.spec.ts` and `management/src/**/__tests__/*.spec.ts`
+| Framework | Version | Purpose |
+|-----------|---------|---------|
+| Vitest | 4.x | Unit testing |
+| @vue/test-utils | 2.4.x | Vue component testing |
+| jsdom | 29.x | DOM simulation |
+| @vitest/coverage-v8 | 4.x | Coverage reporting |
 
 ### Recommendation Service (Java)
 
-**Framework:** JUnit 5 with Maven
+| Framework | Purpose |
+|-----------|---------|
+| JUnit 5 | Unit testing |
+| Maven surefire | Test execution |
 
-**Location:** `recommendation/**/src/test/java/`
+---
 
-## Run Commands
+## Test Organization
 
-### Backend
+### Backend Tests
 
-```bash
-cd backend-spring && ./mvnw test
+```
+backend-spring/src/test/java/com/ulticode/
+├── modules/
+│   ├── auth/
+│   │   ├── controller/    # AuthControllerTest
+│   │   └── service/       # AuthServiceImplTest
+│   ├── submission/
+│   │   └── service/impl/   # SubmissionServiceImplTest, SandboxNamespaceIsolationTest
+│   └── ...
+├── security/
+│   ├── jwt/               # JwtTokenProviderTest
+│   └── csrf/              # CsrfServiceTest
+└── common/
+    └── response/           # ResultTest
 ```
 
-### Frontend - Console
+**Naming Convention**: `ClassNameTest.java` or `ClassNameImplTest.java`
 
-```bash
-cd console && pnpm test                  # Run all tests
-cd console && pnpm test:watch            # Watch mode
-cd console && pnpm test:coverage         # With coverage
+### Frontend Tests
+
+```
+console/test/
+├── setup.ts                # Global test configuration
+└── src/views/problems/test/test.ts
+
+# Vitest looks for *.test.ts, *.spec.ts files
 ```
 
-### Frontend - Management
+---
 
-```bash
-cd management && pnpm test                  # Run all tests
-cd management && pnpm test:watch            # Watch mode
-cd management && pnpm test:coverage         # With coverage
+## Test Types & Coverage
+
+### Backend Coverage Requirements (JaCoCo)
+
+```xml
+<rule>
+  <counter>LINE</counter>
+  <value>COVEREDRATIO</value>
+  <minimum>0.05</minimum>    <!-- 5% minimum line coverage -->
+</rule>
+<rule>
+  <counter>BRANCH</counter>
+  <value>COVEREDRATIO</value>
+  <minimum>0.02</minimum>    <!-- 2% minimum branch coverage -->
+</rule>
 ```
 
-### Root Level
+**Note**: Coverage is quite low (5% line, 2% branch) - this is a minimum bar, not a target.
 
-```bash
-pnpm test                  # Run all frontend tests
-pnpm quality               # lint + type-check + test
+### Excluded from Coverage
+
+```xml
+<excludes>
+  <exclude>**/*Mapper.java</exclude>
+  <exclude>**/*Mapper.xml</exclude>
+  <exclude>**/entity/*.java</exclude>
+  <exclude>**/*DTO.java</exclude>
+  <exclude>**/*VO.java</exclude>
+  <exclude>**/*BO.java</exclude>
+  <exclude>**/*Response.java</exclude>
+  <exclude>**/*Request.java</exclude>
+  <exclude>**/*Config.java</exclude>
+  <exclude>**/*Properties.java</exclude>
+  <exclude>**/*Application.java</exclude>
+</excludes>
 ```
 
-## Test Structure
+### Frontend Test Commands
 
-### Backend Unit Tests
+```bash
+# Run tests
+pnpm test              # vitest --run --passWithNoTests
 
-**Pattern:** `@ExtendWith(MockitoExtension.class)` with `@Mock` and `@InjectMocks`
+# Watch mode
+pnpm test:watch        # vitest
 
-**Example from `backend-spring/src/test/java/com/ulticode/modules/user/service/UserServiceTest.java`:**
+# Coverage
+pnpm test:coverage    # vitest --coverage
+```
+
+---
+
+## CI/CD Testing
+
+### GitHub Actions Workflows
+
+#### CI Pipeline (`.github/workflows/ci.yml`)
+
+**Triggers**: Push to main, PRs to main, manual dispatch
+
+**Jobs**:
+1. **changes** - Detect which components changed (backend/console/management/docker)
+2. **backend-build** - Maven compile
+3. **backend-test** - Run tests with MySQL and Redis services
+   - Excludes `*IT` integration tests: `./mvnw test -Dtest='!*IT'`
+   - Uses CI Spring profile: `-Dspring.profiles.active=ci`
+   - Uploads test results on failure
+4. **migrate-validate** - Run Flyway migrations
+5. **frontend-lint** - ESLint on changed frontend
+6. **frontend-type-check** - TypeScript check on changed frontend
+7. **frontend-test** - Vitest on changed frontend
+8. **docker-verify** - Build Docker images
+
+**Test Exclusions**: Integration tests (`*IT`) are excluded from CI and run separately.
+
+#### CI Recommendation Pipeline (`.github/workflows/ci-recommendation.yml`)
+
+**Triggers**: Push to main when `recommendation/**` changes
+
+**Jobs**:
+- Build all modules: `mvn compile -B`
+- Run tests: `mvn test -B`
+- Upload results on failure
+
+### Backend Test Configuration
+
+```bash
+# CI test command
+./mvnw test -Dspring.profiles.active=ci -Dtest='!*IT' -B
+
+# Dev test command (all tests including IT)
+./mvnw test
+```
+
+### Frontend Test Configuration
+
+```typescript
+// vitest.config.ts (from package.json scripts)
+vitest --run --passWithNoTests
+```
+
+---
+
+## Test Patterns
+
+### Backend Unit Test (Mockito + AssertJ)
 
 ```java
 @ExtendWith(MockitoExtension.class)
-class UserServiceTest {
+@DisplayName("AuthServiceImpl")
+class AuthServiceImplTest {
 
     @Mock
     private UserMapper userMapper;
 
+    @Mock
+    private JwtTokenProvider jwtTokenProvider;
+
+    @Spy
+    private JwtProperties jwtProperties = new JwtProperties();
+
     @InjectMocks
-    private UserServiceImpl userService;
-
-    private User testUser;
-
-    @BeforeEach
-    void setUp() {
-        testUser = new User();
-        testUser.setId("test-user-id");
-        testUser.setUsername("testuser");
-        // ...
-    }
+    private AuthServiceImpl authService;
 
     @Nested
-    @DisplayName("findById")
-    class FindByIdTests {
+    @DisplayName("login()")
+    class LoginTests {
 
         @Test
-        @DisplayName("should return user when found")
-        void shouldReturnUserWhenFound() {
+        @DisplayName("successful login returns response with csrf token")
+        void login_validCredentials_returnsLoginResponse() {
             // Arrange
-            when(userMapper.selectById("test-user-id")).thenReturn(testUser);
+            LoginDTO loginDTO = new LoginDTO();
+            loginDTO.setUsername(USERNAME);
+            loginDTO.setPassword(PASSWORD);
+
+            when(userMapper.selectOne(any(LambdaQueryWrapper.class))).thenReturn(user);
+            when(passwordEncoder.matches(PASSWORD, user.getPassword())).thenReturn(true);
+            when(jwtTokenProvider.generateAccessToken(...)).thenReturn(ACCESS_TOKEN);
 
             // Act
-            Optional<User> result = userService.findById("test-user-id");
+            LoginResponse response = authService.login(loginDTO, mockResponse());
 
             // Assert
-            assertTrue(result.isPresent());
-            assertEquals("test-user-id", result.get().getId());
+            assertThat(response.getCsrfToken()).isEqualTo(CSRF_TOKEN);
+            verify(userService).updateLastLoginAt(USER_ID);
         }
     }
 }
 ```
 
-**Key Patterns:**
-- `@Nested` for grouping related tests
-- `@DisplayName` for human-readable test names
-- Arrange/Act/Assert pattern
-- `try (MockedStatic<SecurityUtil.class>)` for static mocking
-
-### Frontend Unit Tests (Vitest)
-
-**Pattern:** `describe` blocks with `it` or `test`, `beforeEach` for setup
-
-**Example from `console/src/api/__tests__/auth.spec.ts`:**
+### Frontend Vue Test
 
 ```typescript
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { apiGet, apiPost } from "@/utils/request";
-import { authApi } from "@/api/auth";
+import { describe, it, expect } from 'vitest'
+import { mount } from '@vue/test-utils'
+import MyComponent from './MyComponent.vue'
 
-vi.mock("@/utils/request", () => ({
-  apiGet: vi.fn(),
-  apiPost: vi.fn(),
-}));
-
-describe("authApi", () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-  });
-
-  describe("login", () => {
-    it("calls apiPost with /auth/login and credentials", async () => {
-      const credentials = { username: "testuser", password: "password123" };
-      const loginResponse = { csrfToken: "csrf-123", user: mockUser };
-      vi.mocked(apiPost).mockResolvedValue(loginResponse);
-
-      const result = await authApi.login(credentials);
-
-      expect(apiPost).toHaveBeenCalledWith("/auth/login", credentials);
-      expect(result).toEqual(loginResponse);
-    });
-  });
-});
+describe('MyComponent', () => {
+  it('renders properly', () => {
+    const wrapper = mount(MyComponent, {
+      props: { msg: 'Hello Vitest' }
+    })
+    expect(wrapper.text()).toContain('Hello Vitest')
+  })
+})
 ```
-
-### Frontend Component Tests
-
-**Example from `console/src/components/common/loading/__tests__/ErrorBoundary.spec.ts`:**
-
-```typescript
-import { describe, it, expect, vi } from "vitest";
-import { mount } from "@vue/test-utils";
-import { defineComponent, h } from "vue";
-import ErrorBoundary from "../ErrorBoundary.vue";
-
-vi.mock("vue-i18n", () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
-}));
-
-describe("ErrorBoundary", () => {
-  it("should render children when no error", () => {
-    const wrapper = mount(ErrorBoundary, {
-      slots: {
-        default: () => h(NormalComponent),
-      },
-    });
-
-    expect(wrapper.text()).toContain("Normal content");
-  });
-});
-```
-
-## Mocking Patterns
-
-### Backend
-
-**Mocking Mappers/Services:**
-```java
-@Mock
-private UserMapper userMapper;
-
-when(userMapper.selectById(anyString())).thenReturn(testUser);
-when(userMapper.selectById("non-existent")).thenReturn(null);
-```
-
-**Mocking Static Methods:**
-```java
-try (MockedStatic<SecurityUtil> securityUtil = mockStatic(SecurityUtil.class)) {
-    securityUtil.when(SecurityUtil::getCurrentUserId).thenReturn("test-user-id");
-    // test code
-}
-```
-
-### Frontend
-
-**Mocking Modules:**
-```typescript
-vi.mock("@/utils/request", () => ({
-  apiGet: vi.fn(),
-  apiPost: vi.fn(),
-}));
-
-vi.mocked(apiPost).mockResolvedValue(mockData);
-```
-
-**Mocking Vue i18n:**
-```typescript
-vi.mock("vue-i18n", () => ({
-  useI18n: () => ({
-    t: (key: string) => key,
-  }),
-}));
-```
-
-## Vitest Configuration
-
-### Console (`console/vitest.config.ts`)
-
-```typescript
-export default defineConfig({
-  plugins: [vue(), vueJsx()],
-  test: {
-    environment: "jsdom",
-    exclude: [...configDefaults.exclude, "e2e/**"],
-    globals: true,
-  },
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
-});
-```
-
-### Management (`management/vitest.config.ts`)
-
-```typescript
-export default defineConfig({
-  plugins: [vue()],
-  test: {
-    environment: "jsdom",
-    globals: true,
-  },
-  resolve: {
-    alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
-});
-```
-
-## Test File Organization
-
-### Backend
-
-```
-backend-spring/src/test/java/com/ulticode/
-├── common/
-│   └── response/ResultTest.java
-├── modules/
-│   ├── auth/
-│   │   ├── controller/AuthControllerTest.java
-│   │   └── service/
-│   │       ├── impl/AuthServiceImplTest.java
-│   │       └── PasswordResetServiceTest.java
-│   ├── user/
-│   │   └── service/UserServiceTest.java
-│   └── ...
-```
-
-**Naming:** `{ClassName}Test.java`
-
-**Structure mirrors:** `src/main/java/com/ulticode/modules/`
-
-### Frontend
-
-```
-console/src/
-├── api/__tests__/auth.spec.ts
-├── components/common/loading/__tests__/
-│   ├── ErrorBoundary.spec.ts
-│   ├── LoadingOverlay.spec.ts
-│   └── RetryButton.spec.ts
-├── composables/__tests__/
-│   ├── useEditorThemes.spec.ts
-│   ├── useLoading.spec.ts
-│   └── useRetry.spec.ts
-└── stores/__tests__/
-    ├── auth.spec.ts
-    └── editorSettings.spec.ts
-```
-
-**Naming:** `*.spec.ts` or `*.test.ts`
-
-## Coverage
-
-### Frontend Coverage Commands
-
-```bash
-# Console
-cd console && pnpm test:coverage
-
-# Management
-cd management && pnpm test:coverage
-```
-
-### Backend Coverage
-
-JaCoCo is integrated via Maven:
-```bash
-cd backend-spring && ./mvnw test
-# Coverage report in target/site/jacoco/
-```
-
-## E2E Testing
-
-**Framework:** Not currently implemented in this codebase
-
-**Note:** The vitest config excludes `e2e/**` pattern, indicating E2E tests would be placed there if added.
-
-## Test Best Practices Observed
-
-1. **Arrange-Act-Assert** - Clear separation of test phases
-2. **Descriptive Names** - `@DisplayName` for Java, clear `it()` descriptions for TypeScript
-3. **Nested Groups** - `@Nested` classes in Java group related tests
-4. **Mock Cleanup** - `vi.clearAllMocks()` in `beforeEach`
-5. **Test Isolation** - Each test sets up its own mocks
-6. **Meaningful Assertions** - Specific assertions, not just truthy checks
 
 ---
 
-*Testing analysis: 2026-04-22*
+## Test Data & Fixtures
+
+### Backend
+
+- Uses Mockito for mocking data layer
+- ReflectionTestUtils for injecting fields
+- Testcontainers for integration tests with real MySQL/Redis
+
+### Frontend
+
+- Global setup in `console/test/setup.ts`
+- `@vue/test-utils` for component mounting
+- jsdom for DOM simulation
+
+---
+
+## Database Testing in CI
+
+### MySQL Service Container
+
+```yaml
+mysql:
+  image: mysql:9.1
+  env:
+    MYSQL_ROOT_PASSWORD: root
+    MYSQL_DATABASE: ulticode_test
+    MYSQL_USER: ulticode
+    MYSQL_PASSWORD: ulticode
+  ports:
+    - 23306:3306
+```
+
+### Redis Service Container
+
+```yaml
+redis:
+  image: redis:7-alpine
+  ports:
+    - 26379:6379
+```
+
+### Environment Variables for Tests
+
+```bash
+DB_HOST: localhost
+DB_PORT: 23306
+DB_USER: ulticode
+DB_PASSWORD: ulticode
+DB_NAME: ulticode_test
+REDIS_HOST: localhost
+REDIS_PORT: 26379
+JWT_SECRET: test-jwt-secret-key-for-ci-minimum-32-characters-long
+```
+
+---
+
+## Coverage Reports
+
+### Backend (JaCoCo)
+
+Reports generated at: `backend-spring/target/site/jacoco/index.html`
+
+### Frontend (Vitest + V8)
+
+Reports generated at: `coverage/` directory
+
+---
+
+## Migration Testing
+
+Migrations are validated using Flyway:
+
+```bash
+# Via db-manager CLI
+python -m db_manager.cli migrate
+python -m db_manager.cli validate
+```
+
+CI validates migrations by applying them against a test database.

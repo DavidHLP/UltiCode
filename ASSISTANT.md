@@ -1,6 +1,6 @@
-# CLAUDE.md
+# ASSISTANT.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to AI Assistant when working with code in this repository.
 
 ## Project Overview
 
@@ -300,7 +300,7 @@ output_mode: "content"      # content | files_with_matches | count
 context: 3                   # 上下文行数（等同 -C）
 
 # 常用模式
-pattern: "class\\s+\\w+Controller"   # 正则匹配 Controller 类
+pattern: "class\s+\w+Controller"   # 正则匹配 Controller 类
 pattern: "apiGet|apiPost"            # 搜索 API 调用
 glob: "*.{vue,ts}"                   # 多种扩展名
 multiline: true                      # 跨行匹配
@@ -432,30 +432,6 @@ pm2 logs / pm2 status / pm2 monit
 pm2 save                         # Save process list
 pm2 resurrect                    # Restore saved list
 ```
-
-## gstack (REQUIRED — global install)
-
-**Before doing ANY work, verify gstack is installed:**
-
-```bash
-test -d ~/.claude/skills/gstack/bin && echo "GSTACK_OK" || echo "GSTACK_MISSING"
-```
-
-If GSTACK_MISSING: STOP. Do not proceed. Tell the user:
-
-> gstack is required for all AI-assisted work in this repo.
-> Install it:
-> ```bash
-> git clone --depth 1 https://github.com/garrytan/gstack.git ~/.claude/skills/gstack
-> cd ~/.claude/skills/gstack && ./setup --team
-> ```
-> Then restart your AI coding tool.
-
-Do not skip skills, ignore gstack errors, or work around missing gstack.
-
-Using gstack skills: After install, skills like /qa, /ship, /review, /investigate,
-and /browse are available. Use /browse for all web browsing.
-Use ~/.claude/skills/gstack/... for gstack file paths (the global path).
 
 ## Behavioral Guidelines
 

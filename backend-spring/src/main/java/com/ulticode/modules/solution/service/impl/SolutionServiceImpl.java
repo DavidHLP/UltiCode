@@ -5,8 +5,15 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.achievement.entity.Achievement;
+import com.ulticode.modules.achievement.entity.UserAchievement;
+import com.ulticode.modules.achievement.mapper.AchievementMapper;
+import com.ulticode.modules.achievement.mapper.UserAchievementMapper;
 import com.ulticode.modules.problem.entity.Problem;
+import com.ulticode.modules.problem.entity.ProblemTag;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problem.mapper.ProblemTagMapper;
+import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
@@ -56,6 +63,10 @@ public class SolutionServiceImpl implements SolutionService {
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
     private final EdgeOperationMapper edgeOperationMapper;
+    private final ProblemTagRelationMapper problemTagRelationMapper;
+    private final ProblemTagMapper problemTagMapper;
+    private final UserAchievementMapper userAchievementMapper;
+    private final AchievementMapper achievementMapper;
 
     private static final int MAX_SUMMARY_LENGTH = 180;
 
@@ -416,6 +427,32 @@ public class SolutionServiceImpl implements SolutionService {
                 }
             } else {
                 vo.setUserVote(0);
+            }
+        }
+
+        // Populate topic name from problem tags
+        List<String> tagIds = problemTagRelationMapper.findTagIdsByProblemId(solution.getProblemId());
+        if (tagIds != null && !tagIds.isEmpty()) {
+            ProblemTag firstTag = problemTagMapper.selectById(tagIds.get(0));
+            if (firstTag != null) {
+                vo.setTopicName(firstTag.getLabel());
+            }
+        }
+
+        // Populate user badges from achievements
+        List<UserAchievement> userAchievements = userAchievementMapper.findByUserId(solution.getUserId());
+        if (userAchievements != null && !userAchievements.isEmpty()) {
+            List<String> badgeNames = userAchievements.stream()
+                    .map(ua -> {
+                        Achievement achievement = achievementMapper.selectById(ua.getAchievementId());
+                        return achievement != null ? achievement.getName() : null;
+                    })
+                    .filter(java.util.Objects::nonNull)
+                    .limit(3)
+                    .collect(Collectors.toList());
+            if (!badgeNames.isEmpty()) {
+                vo.setBadges(badgeNames);
+                vo.setFlair(badgeNames.get(0));
             }
         }
 

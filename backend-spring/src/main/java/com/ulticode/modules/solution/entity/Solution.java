@@ -77,6 +77,12 @@ public class Solution {
     private Integer commentCount = 0;
 
     /**
+     * Whether the solution is pinned to the top
+     */
+    @TableField("is_pinned")
+    private Boolean isPinned;
+
+    /**
      * Whether the solution is published
      */
     @TableField("is_published")

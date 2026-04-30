@@ -1,477 +1,436 @@
-# UltiCode Project Structure
+# UltiCode 项目结构
 
-## Directory Tree
+## 1. 根目录结构
 
 ```
 UltiCode-Public-Next/
+├── backend-spring/                  # Spring Boot 后端 (Java 17)
+├── console/                        # 用户前端 (Vue 3, Vite)
+├── management/                     # 管理后台 (Vue 3, Vite)
+├── recommendation/                  # 推荐服务 (Dubbo3 + Spark)
+├── db-manager/                     # 数据库迁移工具 (Flyway)
+├── shared/                         # 共享资源
 │
-├── .planning/                        # Project planning & documentation
-│   ├── codebase/
-│   │   ├── ARCHITECTURE.md           # System architecture & design
-│   │   └── STRUCTURE.md              # This file - directory structure
-│   ├── intel/                        # Project intelligence & decisions
-│   └── graphs/                       # Dependency & relationship graphs
+├── docker-compose.yml               # Docker 服务编排
+├── docker-compose.prod.yml          # 生产环境 Docker 配置
+├── ecosystem.config.cjs            # PM2 进程配置
+├── .env                            # 环境变量配置
+├── .env.example                    # 环境变量示例
 │
-├── backend-spring/                   # Spring Boot backend (Java 17)
-│   ├── src/
-│   │   └── main/
-│   │       ├── java/com/ulticode/
-│   │       │   ├── UltiCodeApplication.java
-│   │       │   │
-│   │       │   ├── common/           # Shared infrastructure
-│   │       │   │   ├── annotation/  # Custom annotations
-│   │       │   │   │   ├── CurrentUser.java
-│   │       │   │   │   ├── RequireRole.java
-│   │       │   │   │   ├── RateLimit.java
-│   │       │   │   │   └── OperateLog.java
-│   │       │   │   │
-│   │       │   │   ├── config/      # Configuration classes
-│   │       │   │   │   ├── SecurityConfig.java
-│   │       │   │   │   ├── CorsConfig.java
-│   │       │   │   │   ├── RedisConfig.java
-│   │       │   │   │   ├── WebSocketConfig.java
-│   │       │   │   │   ├── MybatisPlusConfig.java
-│   │       │   │   │   ├── SwaggerConfig.java
-│   │       │   │   │   └── RedissonConfig.java
-│   │       │   │   │
-│   │       │   │   ├── exception/   # Exception handling
-│   │       │   │   │   ├── GlobalExceptionHandler.java
-│   │       │   │   │   ├── BusinessException.java
-│   │       │   │   │   └── ErrorCode.java
-│   │       │   │   │
-│   │       │   │   ├── response/    # Response wrappers
-│   │       │   │   │   ├── Result.java
-│   │       │   │   │   └── PageResult.java
-│   │       │   │   │
-│   │       │   │   ├── util/        # Utilities
-│   │       │   │   │   ├── IpUtil.java
-│   │       │   │   │   ├── DateUtil.java
-│   │       │   │   │   └── BeanUtil.java
-│   │       │   │   │
-│   │       │   │   └── constant/    # Shared constants
-│   │       │   │       ├── RedisConstant.java
-│   │       │   │       └── SystemConstant.java
-│   │       │   │
-│   │       │   ├── security/        # Authentication & authorization
-│   │       │   │   ├── jwt/
-│   │       │   │   │   ├── JwtTokenProvider.java
-│   │       │   │   │   ├── JwtAuthenticationFilter.java
-│   │       │   │   │   └── JwtTokenService.java
-│   │       │   │   ├── oauth/
-│   │       │   │   │   ├── OAuth2LoginConfig.java
-│   │       │   │   │   ├── GithubOAuth2UserInfo.java
-│   │       │   │   │   └── GoogleOAuth2UserInfo.java
-│   │       │   │   ├── csrf/
-│   │       │   │   │   └── CsrfService.java
-│   │       │   │   └── SecurityUserDetails.java
-│   │       │   │
-│   │       │   ├── modules/         # Domain modules (27+ modules)
-│   │       │   │   ├── auth/         # Authentication
-│   │       │   │   │   ├── controller/
-│   │       │   │   │   │   └── AuthController.java
-│   │       │   │   │   ├── service/
-│   │       │   │   │   │   ├── AuthService.java
-│   │       │   │   │   │   └── AuthServiceImpl.java
-│   │       │   │   │   ├── mapper/
-│   │       │   │   │   │   └── UserAuthMapper.java
-│   │       │   │   │   ├── entity/
-│   │       │   │   │   │   └── UserAuth.java
-│   │       │   │   │   └── dto/
-│   │       │   │   │       ├── LoginRequest.java
-│   │       │   │   │       ├── RegisterRequest.java
-│   │       │   │   │       └── AuthResponse.java
-│   │       │   │   │
-│   │       │   │   ├── user/         # User management
-│   │       │   │   │   ├── controller/
-│   │       │   │   │   ├── service/
-│   │       │   │   │   ├── mapper/
-│   │       │   │   │   ├── entity/
-│   │       │   │   │   └── dto/
-│   │       │   │   │
-│   │       │   │   ├── problem/      # Problem bank
-│   │       │   │   │   ├── controller/
-│   │       │   │   │   ├── service/
-│   │       │   │   │   ├── mapper/
-│   │       │   │   │   ├── entity/
-│   │       │   │   │   └── dto/
-│   │       │   │   │
-│   │       │   │   ├── submission/   # Code submission & judge
-│   │       │   │   │   ├── controller/
-│   │       │   │   │   ├── service/
-│   │       │   │   │   ├── mapper/
-│   │       │   │   │   ├── entity/
-│   │       │   │   │   └── dto/
-│   │       │   │   │
-│   │       │   │   ├── contest/      # Programming contests
-│   │       │   │   │   ├── controller/
-│   │       │   │   │   ├── service/
-│   │       │   │   │   ├── mapper/
-│   │       │   │   │   ├── entity/
-│   │       │   │   │   └── dto/
-│   │       │   │   │
-│   │       │   │   ├── forum/        # Community forum
-│   │       │   │   │   ├── controller/
-│   │       │   │   │   ├── service/
-│   │       │   │   │   ├── mapper/
-│   │       │   │   │   ├── entity/
-│   │       │   │   │   └── dto/
-│   │       │   │   │
-│   │       │   │   ├── solution/     # Problem solutions
-│   │       │   │   │   ├── controller/
-│   │       │   │   │   ├── service/
-│   │       │   │   │   ├── mapper/
-│   │       │   │   │   ├── entity/
-│   │       │   │   │   └── dto/
-│   │       │   │   │
-│   │       │   │   ├── notification/ # Notifications
-│   │       │   │   ├── subscription/# Subscriptions
-│   │       │   │   ├── vote/         # Upvote/downvote
-│   │       │   │   ├── bookmark/     # Bookmarks
-│   │       │   │   ├── achievement/  # Badges & achievements
-│   │       │   │   ├── follow/       # User follow system
-│   │       │   │   ├── recommendation/# Dubbo client
-│   │       │   │   ├── search/       # MeiliSearch integration
-│   │       │   │   ├── moderation/  # Content moderation
-│   │       │   │   ├── admin/        # Admin operations
-│   │       │   │   ├── websocket/   # WebSocket handlers
-│   │       │   │   ├── queue/       # Async job queue
-│   │       │   │   ├── backup/      # Database backup
-│   │       │   │   ├── email/       # Email service
-│   │       │   │   ├── i18n/        # Internationalization
-│   │       │   │   ├── permission/  # Role & permission
-│   │       │   │   ├── refreshtoken/# Refresh token
-│   │       │   │   ├── edgeoperations/
-│   │       │   │   └── problemlist/ # Curated lists
-│   │       │   │
-│   │       │   └── websocket/        # WebSocket config
-│   │       │       ├── WebSocketConfig.java
-│   │       │       ├── NotificationService.java
-│   │       │       └── WsHandshakeInterceptor.java
-│   │       │
-│   │       └── resources/
-│   │           ├── application.yml
-│   │           ├── application-dev.yml
-│   │           ├── application-prod.yml
-│   │           ├── mapper/           # MyBatis XML mappers
-│   │           └── logback-spring.xml
-│   │
-│   └── test/                        # Backend tests
-│       └── java/com/ulticode/
-│
-├── console/                         # User-facing frontend (Vue 3, port 9002)
-│   ├── src/
-│   │   ├── main.ts                  # App entry point
-│   │   ├── App.vue                  # Root component
-│   │   │
-│   │   ├── api/                     # API client modules
-│   │   │   ├── request.ts           # Axios instance with interceptors
-│   │   │   ├── auth.ts
-│   │   │   ├── user.ts
-│   │   │   ├── problem.ts
-│   │   │   ├── submission.ts
-│   │   │   ├── contest.ts
-│   │   │   ├── forum.ts
-│   │   │   ├── solution.ts
-│   │   │   └── notification.ts
-│   │   │
-│   │   ├── components/              # Shared Vue components
-│   │   │   ├── common/             # Generic UI components
-│   │   │   │   ├── Button.vue
-│   │   │   │   ├── Input.vue
-│   │   │   │   ├── Modal.vue
-│   │   │   │   └── ...
-│   │   │   ├── layout/              # Layout components
-│   │   │   │   ├── AppHeader.vue
-│   │   │   │   ├── AppSidebar.vue
-│   │   │   │   └── AppFooter.vue
-│   │   │   ├── problem/             # Problem-related components
-│   │   │   │   ├── ProblemCard.vue
-│   │   │   │   ├── ProblemList.vue
-│   │   │   │   ├── CodeEditor.vue
-│   │   │   │   └── TestCasePanel.vue
-│   │   │   ├── contest/             # Contest components
-│   │   │   │   ├── ContestCard.vue
-│   │   │   │   ├── RankingTable.vue
-│   │   │   │   └── Timer.vue
-│   │   │   └── forum/               # Forum components
-│   │   │       ├── PostCard.vue
-│   │   │       ├── CommentList.vue
-│   │   │       └── VoteButtons.vue
-│   │   │
-│   │   ├── views/                   # Page components
-│   │   │   ├── home/               # Home page
-│   │   │   │   └── HomePage.vue
-│   │   │   ├── auth/               # Auth pages
-│   │   │   │   ├── LoginPage.vue
-│   │   │   │   └── RegisterPage.vue
-│   │   │   ├── problem/            # Problem pages
-│   │   │   │   ├── ProblemListPage.vue
-│   │   │   │   ├── ProblemDetailPage.vue
-│   │   │   │   └── ProblemSubmitPage.vue
-│   │   │   ├── contest/            # Contest pages
-│   │   │   │   ├── ContestListPage.vue
-│   │   │   │   ├── ContestDetailPage.vue
-│   │   │   │   └── ContestRankPage.vue
-│   │   │   ├── submission/         # Submission pages
-│   │   │   │   ├── SubmissionListPage.vue
-│   │   │   │   └── SubmissionDetailPage.vue
-│   │   │   ├── forum/              # Forum pages
-│   │   │   │   ├── ForumHomePage.vue
-│   │   │   │   ├── PostDetailPage.vue
-│   │   │   │   └── CreatePostPage.vue
-│   │   │   ├── solution/           # Solution pages
-│   │   │   │   └── SolutionPage.vue
-│   │   │   └── user/               # User pages
-│   │   │       ├── ProfilePage.vue
-│   │   │       ├── UserSubmissionsPage.vue
-│   │   │       └── UserContestsPage.vue
-│   │   │
-│   │   ├── router/                 # Vue Router setup
-│   │   │   └── index.ts
-│   │   │
-│   │   ├── stores/                 # Pinia stores
-│   │   │   ├── auth.ts            # Auth state
-│   │   │   ├── user.ts            # User state
-│   │   │   ├── problem.ts         # Problem state
-│   │   │   └── notification.ts     # Notification state
-│   │   │
-│   │   ├── composables/            # Vue composables
-│   │   │   ├── useAuth.ts
-│   │   │   ├── usePagination.ts
-│   │   │   └── useWebSocket.ts
-│   │   │
-│   │   ├── utils/                 # Utility functions
-│   │   │   ├── date.ts
-│   │   │   ├── format.ts
-│   │   │   └── validation.ts
-│   │   │
-│   │   └── assets/                # Static assets
-│   │       ├── styles/
-│   │       │   ├── main.css
-│   │       │   └── variables.css
-│   │       └── images/
-│   │
-│   ├── public/                     # Static public assets
-│   │   └── favicon.ico
-│   │
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   ├── tailwind.config.js
-│   └── package.json
-│
-├── management/                     # Admin frontend (Vue 3, port 9003)
-│   ├── src/
-│   │   ├── main.ts
-│   │   ├── App.vue
-│   │   │
-│   │   ├── api/                   # Admin API clients
-│   │   │   ├── request.ts
-│   │   │   ├── user.ts
-│   │   │   ├── problem.ts
-│   │   │   ├── contest.ts
-│   │   │   ├── submission.ts
-│   │   │   ├── forum.ts
-│   │   │   ├── analytics.ts
-│   │   │   └── system.ts
-│   │   │
-│   │   ├── views/                 # Admin page components
-│   │   │   ├── dashboard/        # Dashboard & analytics
-│   │   │   ├── user/             # User management
-│   │   │   ├── problem/          # Problem management
-│   │   │   ├── contest/          # Contest management
-│   │   │   ├── submission/       # Submission review
-│   │   │   ├── forum/            # Forum moderation
-│   │   │   ├── achievement/     # Achievement config
-│   │   │   └── system/           # System settings
-│   │   │
-│   │   ├── components/           # Admin-specific components
-│   │   │   ├── layout/           # Admin layout
-│   │   │   ├── tables/           # Data tables
-│   │   │   ├── forms/            # Form components
-│   │   │   └── charts/           # Analytics charts
-│   │   │
-│   │   ├── router/
-│   │   ├── stores/
-│   │   └── utils/
-│   │
-│   ├── public/
-│   ├── index.html
-│   ├── vite.config.ts
-│   ├── tsconfig.json
-│   ├── tailwind.config.js
-│   └── package.json
-│
-├── recommendation/                # Recommendation microservice (Dubbo3 + Spark)
-│   ├── recommend-api/             # Shared Dubbo interfaces
-│   │   └── src/main/java/
-│   │       └── com/ulticode/recommend/
-│   │           ├──RecommendService.java
-│   │           └── dto/
-│   │
-│   ├── recommend-provider/        # Spark ML provider (port 9004)
-│   │   └── src/main/java/
-│   │       └── com/ulticode/provider/
-│   │           ├── SparkEngine.java
-│   │           ├── ALSModel.java
-│   │           └── RecommendationServiceImpl.java
-│   │
-│   ├── recommend-web/             # REST API facade (port 9005)
-│   │   └── src/main/java/
-│   │       └── com/ulticode/web/
-│   │           └── RecommendationController.java
-│   │
-│   └── pom.xml                    # Maven parent POM
-│
-├── db-manager/                    # Flyway migration manager (Python)
-│   ├── src/
-│   │   └── db_manager/
-│   │       ├── cli.py            # CLI entry point
-│   │       ├── migrate.py        # Migration runner
-│   │       ├── repair.py         # Checksum repair
-│   │       └── status.py         # Status checker
-│   │
-│   ├── migrations/                # SQL migration files
-│   │   ├── V1__initial_schema.sql
-│   │   ├── V2__problems_and_tags.sql
-│   │   ├── V3__contests_and_rankings.sql
-│   │   ├── V4__forum_and_posts.sql
-│   │   ├── V5__solutions.sql
-│   │   ├── V6__notifications.sql
-│   │   ├── V7__achievements.sql
-│   │   ├── V8__collections.sql
-│   │   ├── V9__solutions_expand.sql
-│   │   └── ... (27+ migration files)
-│   │
-│   ├── .venv/                    # Python virtual environment
-│   └── requirements.txt
-│
-├── docker/                        # Docker configurations
-│   ├── mysql/
-│   │   └── init.sql             # MySQL initialization
-│   ├── redis/
-│   │   └── redis.conf           # Redis configuration
-│   └── nginx/
-│       └── nginx.conf           # Nginx reverse proxy config
-│
-├── docker-compose.yml             # Docker Compose for dev services
-├── docker-compose.prod.yml        # Production Docker Compose
-│
-├── ecosystem.config.cjs           # PM2 process manager config
-│
-├── package.json                   # Root package.json (scripts)
+├── package.json                    # 根目录 package (pnpm workspaces)
 ├── pnpm-lock.yaml
+├── setup.sh                        # 安装脚本
 │
-├── README.md                      # Project readme
-└── CLAUDE.md                      # This file - project guidance
+└── .planning/                     # 项目规划目录
+    ├── codebase/                   # 代码库分析
+    ├── config.json                 # GSD 配置
+    ├── graphs/                     # 知识图谱
+    └── intel/                      # 情报文件
 ```
 
-## Module Directory Pattern
+## 2. Backend Spring 结构
 
-Each backend module follows a consistent 4-layer structure:
+```
+backend-spring/
+├── src/main/java/com/ulticode/
+│   ├── UlticodeBackendApplication.java
+│   │
+│   ├── common/                     # 公共组件
+│   │   ├── annotation/             # 自定义注解
+│   │   ├── aspect/                # AOP 切面
+│   │   ├── config/                # 配置类
+│   │   ├── constants/             # 常量
+│   │   ├── dto/                   # 公共 DTO
+│   │   ├── exception/             # 异常处理
+│   │   ├── filter/                # 过滤器
+│   │   ├── response/             # 响应封装
+│   │   ├── service/               # 公共服务
+│   │   └── util/                  # 工具类
+│   │
+│   ├── security/                   # 安全模块
+│   │   ├── AuthenticationEntryPointImpl.java
+│   │   ├── csrf/
+│   │   ├── jwt/
+│   │   └── oauth/
+│   │
+│   ├── modules/                   # 业务模块 (26个)
+│   │   ├── achievement/           # 成就系统
+│   │   ├── admin/                # 超级管理员
+│   │   ├── auth/                  # 认证授权
+│   │   ├── backup/               # 数据备份
+│   │   ├── bookmark/             # 收藏功能
+│   │   ├── contest/              # 竞赛系统
+│   │   ├── edgeoperations/       # 边界操作
+│   │   ├── email/                # 邮件服务
+│   │   ├── follow/               # 关注功能
+│   │   ├── forum/                # 论坛帖子
+│   │   ├── i18n/                 # 国际化
+│   │   ├── moderation/           # 内容审核
+│   │   ├── monitoring/           # 监控告警
+│   │   ├── notification/         # 通知系统
+│   │   ├── permission/           # 权限管理
+│   │   ├── problem/              # 题目管理
+│   │   ├── problemlist/           # 题目列表
+│   │   ├── queue/                # 评判队列
+│   │   ├── recommendation/       # 推荐服务
+│   │   ├── refreshtoken/         # Token刷新
+│   │   ├── search/               # 搜索功能
+│   │   ├── solution/             # 题解管理
+│   │   ├── submission/           # 提交评判
+│   │   ├── subscription/         # 订阅功能
+│   │   ├── user/                 # 用户管理
+│   │   ├── vote/                 # 投票功能
+│   │   └── websocket/            # WebSocket
+│   │
+│   └── websocket/                 # WebSocket 配置
+│
+├── src/main/resources/
+│   ├── application.yml
+│   ├── application-dev.yml
+│   └── application-prod.yml
+│
+├── src/test/java/                  # 测试代码
+├── start.cjs                       # 启动脚本
+├── pom.xml                         # Maven 配置
+└── .env                            # 环境变量
+```
+
+## 3. Console 前端结构
+
+```
+console/
+├── src/
+│   ├── api/                        # API 客户端 (20个)
+│   │   ├── __tests__/
+│   │   ├── achievement.ts
+│   │   ├── auth.ts
+│   │   ├── bookmark.ts
+│   │   ├── contest.ts
+│   │   ├── edge-operations.ts
+│   │   ├── follow.ts
+│   │   ├── forum.ts
+│   │   ├── interaction.ts
+│   │   ├── notification.ts
+│   │   ├── problem.ts
+│   │   ├── problem-detail.ts
+│   │   ├── problem-list.ts
+│   │   ├── recommendation.ts
+│   │   ├── search.ts
+│   │   ├── solution.ts
+│   │   ├── submission.ts
+│   │   ├── subscription.ts
+│   │   ├── topic.ts
+│   │   ├── user.ts
+│   │   ├── userStats.ts
+│   │   └── vote.ts
+│   │
+│   ├── components/                 # Vue 组件
+│   │   ├── achievement/
+│   │   ├── bookmark/
+│   │   ├── comments/
+│   │   ├── common/
+│   │   ├── dashboard/
+│   │   ├── editor/
+│   │   ├── edge-operations/
+│   │   ├── follow/
+│   │   ├── markdown/
+│   │   ├── notification/
+│   │   ├── problem/
+│   │   ├── search/
+│   │   ├── ui/
+│   │   └── LanguageSwitcher.vue
+│   │
+│   ├── views/                     # 页面
+│   │   ├── achievements/
+│   │   ├── auth/
+│   │   ├── contest/
+│   │   ├── dashboard/
+│   │   ├── forum/
+│   │   ├── personal/
+│   │   ├── problem-list/
+│   │   ├── problems/
+│   │   ├── profile/
+│   │   ├── recommendations/
+│   │   └── users/
+│   │
+│   ├── stores/                    # Pinia 状态
+│   │   ├── achievement.ts
+│   │   ├── auth.ts
+│   │   ├── bookmark.ts
+│   │   ├── contest.ts
+│   │   ├── editorSettings.ts
+│   │   ├── headerStore.ts
+│   │   ├── notification.ts
+│   │   ├── problemEditorStore.ts
+│   │   ├── recommendation.ts
+│   │   └── userStats.ts
+│   │
+│   ├── router/                    # 路由
+│   │   └── index.ts
+│   │
+│   ├── composables/               # Vue Composables
+│   ├── constants/                 # 常量
+│   ├── contexts/                  # Vue Contexts
+│   ├── features/                  # 功能模块
+│   ├── hooks/                    # Vue Hooks
+│   ├── i18n/                     # 国际化
+│   ├── types/                    # TypeScript 类型
+│   └── utils/                    # 工具函数
+│
+│   ├── App.vue
+│   ├── main.ts
+│   ├── style.css
+│   └── pwa-register.ts
+│
+├── public/
+├── package.json
+└── vite.config.ts
+```
+
+## 4. Management 前端结构
+
+```
+management/
+├── src/
+│   ├── api/                       # API 客户端
+│   │   ├── admin.ts
+│   │   └── auth.ts
+│   │
+│   ├── components/                # Vue 组件
+│   │   ├── account/
+│   │   ├── analytics/
+│   │   ├── audit/
+│   │   ├── auth/
+│   │   ├── comments/
+│   │   ├── contest/
+│   │   ├── contests/
+│   │   ├── dashboard/
+│   │   ├── forum/
+│   │   ├── moderation/
+│   │   ├── notifications/
+│   │   ├── problem-lists/
+│   │   ├── problems/
+│   │   ├── settings/
+│   │   ├── solutions/
+│   │   ├── submissions/
+│   │   ├── system/
+│   │   ├── tags/
+│   │   └── users/
+│   │
+│   ├── views/                     # 页面
+│   │   ├── account/
+│   │   ├── analytics/
+│   │   ├── audit/
+│   │   ├── auth/
+│   │   ├── billing/
+│   │   ├── comments/
+│   │   ├── contest/
+│   │   ├── contests/
+│   │   ├── dashboard/
+│   │   ├── forum/
+│   │   ├── moderation/
+│   │   ├── notifications/
+│   │   ├── problem-lists/
+│   │   ├── problems/
+│   │   ├── settings/
+│   │   ├── solutions/
+│   │   ├── submissions/
+│   │   ├── system/
+│   │   ├── tags/
+│   │   └── users/
+│   │
+│   ├── stores/                   # Pinia 状态
+│   ├── router/                   # 路由
+│   ├── composables/              # Vue Composables
+│   ├── constants/                # 常量
+│   ├── i18n/                    # 国际化
+│   ├── types/                   # TypeScript 类型
+│   └── utils/                   # 工具函数
+│
+│   ├── App.vue
+│   ├── main.ts
+│   └── style.css
+│
+├── shared/                       # 共享资源 (符号链接)
+├── public/
+├── package.json
+└── vite.config.ts
+```
+
+## 5. Recommendation 服务结构
+
+```
+recommendation/
+├── recommend-api/                # API 接口定义
+├── recommend-core/                # 核心逻辑
+├── recommend-feature/             # 特性模块
+├── recommend-provider/             # Dubbo Provider (9004)
+├── recommend-spark/               # Spark ML 计算
+├── recommend-web/                 # Dubbo Web (9005)
+├── docs/
+├── pom.xml
+├── start-provider.cjs
+├── start-web.cjs
+└── run-evaluation.sh
+```
+
+## 6. Database Manager 结构
+
+```
+db-manager/
+├── migrations/                     # Flyway SQL 迁移 (V1-V27+)
+│   ├── V1__core_schema.sql
+│   ├── V2__problem_schema.sql
+│   ├── V3__contest_schema.sql
+│   ├── V4__forum_schema.sql
+│   ├── V5__subscription_schema.sql
+│   ├── V6__moderation_schema.sql
+│   ├── V7__recommendation_schema.sql
+│   ├── V8__collection_schema.sql
+│   ├── V9__solution_schema.sql
+│   ├── V10__daily_recommendations_feedback.sql
+│   └── ... (V10 - V27+)
+│
+├── flyway/                        # Flyway 配置
+├── src/                          # Python 源码
+├── .venv/                        # Python 虚拟环境
+├── pyproject.toml
+└── README.md
+```
+
+## 7. Shared 目录结构
+
+```
+shared/
+├── api-utils/                     # API 工具函数
+├── auth-core/                     # 认证核心逻辑
+│   ├── index.ts
+│   ├── client.ts
+│   ├── errors.ts
+│   ├── hooks.ts
+│   ├── store.ts
+│   └── types.ts
+└── types/                        # 共享类型定义
+```
+
+## 8. 配置目录
+
+```
+.planning/
+├── codebase/
+│   ├── ARCHITECTURE.md           # 系统架构文档
+│   └── STRUCTURE.md              # 本文档
+├── config.json                   # GSD 项目配置
+├── graphs/                       # 知识图谱
+└── intel/                        # 情报文件
+```
+
+## 9. Docker 配置
+
+```
+docker/
+└── initdb/                       # MySQL 初始化脚本
+
+docker-compose.yml                 # 开发环境 Docker 配置
+docker-compose.prod.yml           # 生产环境 Docker 配置
+docker-wrapper.cjs                 # PM2 Docker 包装脚本
+.dockerignore
+```
+
+## 10. 根目录配置文件
+
+| File | Description |
+| ---- | ----------- |
+| `.env` | 主环境变量 (数据库、Redis、JWT、Nacos、推荐服务) |
+| `.env.example` | 环境变量模板 |
+| `package.json` | pnpm workspaces 根配置 |
+| `ecosystem.config.cjs` | PM2 进程管理配置 |
+| `docker-compose.yml` | Docker 服务编排 (MySQL/Redis/Nacos) |
+| `setup.sh` | 快速安装脚本 |
+| `AGENTS.md` | AI 代理指导文档 |
+| `PLAN.md` | 项目计划文档 |
+| `entities.json` | 实体定义 |
+| `mempalace.yaml` | 内存管理配置 |
+| `SECURITY.md` | 安全配置文档 |
+
+## 11. 后端模块标准结构
+
+每个后端模块遵循标准 Maven/Spring 结构:
 
 ```
 module-name/
-├── controller/      # REST API endpoints (@RestController)
-│   └── XxxController.java
-├── service/         # Business logic
-│   ├── XxxService.java        # Interface
-│   └── XxxServiceImpl.java   # Implementation
-├── mapper/          # MyBatis-Plus data access
-│   └── XxxMapper.java
-├── entity/          # Database entity (@Entity, @TableName)
-│   └── Xxx.java
-└── dto/             # Data transfer objects
-    ├── XxxRequest.java       # Incoming request DTO
-    └── XxxResponse.java      # Outgoing response DTO
+├── controller/
+│   └── XxxController.java        # REST 控制器
+├── dto/
+│   ├── XxxCreateDTO.java
+│   ├── XxxUpdateDTO.java
+│   └── XxxVO.java
+├── entity/
+│   └── Xxx.java                  # MyBatis-Plus 实体
+├── mapper/
+│   └── XxxMapper.java             # MyBatis Mapper
+└── service/
+    ├── XxxService.java           # 服务接口
+    └── impl/
+        └── XxxServiceImpl.java   # 服务实现
 ```
 
-## Key File Naming Conventions
-
-| Type              | Suffix            | Example                          |
-|-------------------|-------------------|----------------------------------|
-| Controller        | `Controller.java` | `ProblemController.java`        |
-| Service Interface | `Service.java`    | `ProblemService.java`           |
-| Service Impl      | `ServiceImpl.java`| `ProblemServiceImpl.java`       |
-| Mapper            | `Mapper.java`    | `ProblemMapper.java`             |
-| Entity            | (no suffix)       | `Problem.java`                 |
-| Request DTO       | `Request.java`   | `CreateProblemRequest.java`    |
-| Response DTO      | `Response.java`  | `ProblemDetailResponse.java`    |
-| Config            | `Config.java`    | `SecurityConfig.java`           |
-| Exception         | `Exception.java` | `BusinessException.java`       |
-| Constant          | `Constant.java`  | `RedisConstant.java`            |
-
-## Frontend Directory Pattern
-
-```
-frontend/
-├── src/
-│   ├── api/           # API client functions (one file per domain)
-│   ├── components/   # Reusable Vue components (grouped by domain)
-│   ├── views/        # Page-level components (route views)
-│   ├── router/       # Vue Router configuration
-│   ├── stores/       # Pinia state management
-│   ├── composables/  # Vue composition API utilities
-│   ├── utils/        # Pure utility functions
-│   └── assets/       # Static assets (styles, images)
-├── public/           # Copied as-is to build output
-├── index.html        # HTML entry point
-└── vite.config.ts    # Vite bundler configuration
-```
-
-## Configuration Files
-
-| File                          | Purpose                                      |
-|-------------------------------|----------------------------------------------|
-| `backend-spring/.env`          | Backend environment variables                |
-| `backend-spring/src/main/resources/application.yml` | Spring Boot configuration |
-| `console/vite.config.ts`      | Vite dev server & build config              |
-| `management/vite.config.ts`   | Management app Vite config                  |
-| `ecosystem.config.cjs`        | PM2 process definitions                      |
-| `docker-compose.yml`           | Dev Docker services                          |
-| `db-manager/migrations/*.sql` | Flyway database migrations                   |
-
-## Build & Run Commands
+## 12. 构建与运行命令
 
 ```bash
-# Install frontend dependencies
+# 安装前端依赖
 pnpm install
 
-# Start all services (PM2)
+# 启动所有服务 (PM2)
 pm2 start ecosystem.config.cjs
 
-# Backend only
+# 仅后端
 cd backend-spring && ./mvnw spring-boot:run
 
-# Console frontend (dev)
+# Console 前端 (开发)
 cd console && pnpm run dev
 
-# Management frontend (dev)
+# Management 前端 (开发)
 cd management && pnpm run dev
 
-# Run migrations
+# 运行数据库迁移
 cd db-manager && .venv/bin/python -m db_manager.cli migrate
 
-# Build frontends
+# 构建前端
 cd console && pnpm build
 cd management && pnpm build
 
-# Backend build
+# 构建后端
 cd backend-spring && ./mvnw package -DskipTests
 ```
 
-## Database Migrations Order
+## 13. 数据库迁移顺序
 
-Migrations follow chronological versioning (V1 → V27+):
+迁移文件遵循版本号顺序 (V1 → V27+):
 
 | Version | Content                                                   |
 |---------|-----------------------------------------------------------|
-| V1      | Users, permissions, authentication                        |
-| V2      | Problems, tags, difficulty levels                         |
-| V3      | Contests, rankings, participation                         |
-| V4      | Forum, posts, comments                                   |
-| V5      | Solutions                                                 |
-| V6      | Notifications                                             |
-| V7      | Achievements, badges                                      |
-| V8      | Collections                                               |
-| V9+     | Additional features, indexes, data expansions             |
+| V1      | 用户表、权限、认证                                        |
+| V2      | 题目、标签、难度                                         |
+| V3      | 竞赛、排名、参与                                        |
+| V4      | 论坛、帖子、评论                                        |
+| V5      | 题解                                                     |
+| V6      | 通知                                                     |
+| V7      | 成就、徽章                                               |
+| V8      | 收藏集                                                   |
+| V9+     | 扩展功能、索引、数据扩展                                 |
+
+## 14. 关键文件命名约定
+
+| Type              | 后缀            | Example                          |
+| -----------------| ----------------| --------------------------------|
+| Controller        | `Controller.java` | `ProblemController.java`        |
+| Service Interface | `Service.java`   | `ProblemService.java`           |
+| Service Impl      | `ServiceImpl.java`| `ProblemServiceImpl.java`       |
+| Mapper            | `Mapper.java`    | `ProblemMapper.java`             |
+| Entity            | (无后缀)         | `Problem.java`                 |
+| Request DTO       | `Request.java`   | `CreateProblemRequest.java`     |
+| Response DTO      | `Response.java`  | `ProblemDetailResponse.java`     |
+| Config            | `Config.java`    | `SecurityConfig.java`           |
+| Exception         | `Exception.java` | `BusinessException.java`        |
+| Constant          | `Constant.java`  | `RedisConstant.java`            |

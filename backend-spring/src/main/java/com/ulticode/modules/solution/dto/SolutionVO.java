@@ -95,7 +95,25 @@ public class SolutionVO {
      */
     private Integer userVote;
 
+    /**
+     * Topic name derived from problem tags (e.g., "Array", "Hash Table")
+     */
+    private String topicName;
 
+    /**
+     * Whether the solution is pinned to the top
+     */
+    private Boolean isPinned;
+
+    /**
+     * Author badges/achievements
+     */
+    private List<String> badges;
+
+    /**
+     * Author flair (primary badge)
+     */
+    private String flair;
 
     /**
      * Whether the solution is published

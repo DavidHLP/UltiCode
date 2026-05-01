@@ -26,7 +26,7 @@ backend-spring/src/main/java/com/ulticode/
 │   ├── annotation/   # @CurrentUser、@RequireRole、@RateLimit
 │   └── dto/          # 通用 DTO
 ├── security/         # JWT 过滤器、CSRF 服务
-├── modules/          # 功能模块
+├── modules/          # 功能模块 (26个)
 │   ├── auth/         # 认证、登录、OAuth
 │   ├── user/         # 用户 CRUD、profile
 │   ├── problem/      # 题目、测试用例、示例
@@ -36,11 +36,27 @@ backend-spring/src/main/java/com/ulticode/
 └── websocket/        # 实时通信
 ```
 
-### 2.2 包命名
+### 2.2 模块标准结构
 
-- 基础包: `com.ulticode`
-- 模块包: `com.ulticode.modules.{module}`
-- 命名空间: 全小写，单词间用连字符分隔 (如 `com.ulticode.modules.auth`)
+每个业务模块遵循以下结构:
+
+```
+module/
+├── controller/          # REST 控制器
+│   └── XxxController.java
+├── dto/                 # 数据传输对象
+│   ├── XxxCreateDTO.java
+│   ├── XxxUpdateDTO.java
+│   └── XxxVO.java
+├── entity/             # 数据库实体
+│   └── Xxx.java
+├── mapper/              # MyBatis Mapper
+│   └── XxxMapper.java
+└── service/             # 业务逻辑
+    ├── XxxService.java
+    └── impl/
+        └── XxxServiceImpl.java
+```
 
 ### 2.3 类命名模式
 
@@ -160,6 +176,22 @@ public class AuthController {
 - `code: 0` = 成功
 - `code: 非0` = 错误
 
+分页响应使用 `PageResult<T>`:
+
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "items": [...],
+    "total": 100,
+    "page": 1,
+    "pageSize": 20,
+    "totalPages": 5
+  }
+}
+```
+
 ---
 
 ## 3. 前端规范 (Vue 3/TypeScript)
@@ -185,12 +217,25 @@ management/src/       # 管理后台 (端口 9003)
 - TypeScript: `vue-tsconfig/recommended`
 - Prettier: `@vue/eslint-config-prettier/skip-formatting`
 
-**Vue 组件命名**:
-- 多词组件名规则 (Console): `vue/multi-word-component-names` 有白名单
-- 管理后台: `vue/multi-word-component-names: 'off'`
+**版本差异**:
 
-### 3.3 Prettier 配置
+| 包 | Console | Management |
+|----|---------|------------|
+| ESLint | 9.x | 10.x |
+| eslint-plugin-vue | ^9.30.0 | ~10.8.0 |
 
+**Vue 组件命名规则**:
+
+| 项目 | 规则 |
+|------|------|
+| Console | `vue/multi-word-component-names` 有组件白名单 (Alert, Avatar, Badge, Button, Card, Dialog, Input, Table 等 50+ 组件) |
+| Management | `vue/multi-word-component-names: 'off'` (禁用) |
+
+### 3.3 代码格式化
+
+格式化由 Prettier 处理，通过 `@vue/eslint-config-prettier/skip-formatting` 跳过 ESLint 格式化。
+
+Prettier 配置 (隐式默认):
 ```json
 {
   "semi": false,
@@ -250,6 +295,15 @@ resolve: {
   },
 }
 ```
+
+### 3.8 CSS 设计规范
+
+- **颜色空间**: 仅使用 OKLCH，禁止 hex/HSL
+- **主题切换**: 根元素添加 `.dark` 类
+- **CSS**: Tailwind CSS v4 使用 `@theme inline`
+- **UI 组件**: shadcn-vue (new-york style) + Radix Vue + Lucide icons
+- **圆角**: `--radius: 0` (全直角)
+- **图表颜色**: light/dark 不变，仅 grid/tooltip 在主题间变化
 
 ---
 
@@ -353,29 +407,76 @@ async login(credentials: LoginRequest): Promise<LoginResponse> { }
 
 ---
 
-## 6. 配置文件命名
+## 6. 数据库规范
 
-### 6.1 后端
+- **ORM**: MyBatis-Plus
+- **迁移**: Flyway (通过 `db-manager` Python CLI 管理)
+- **命名**: MySQL 列使用蛇形命名，Java 字段使用驼峰命名
+- **迁移位置**: `db-manager/migrations/`
+
+### 迁移文件命名
+
+```
+V{version}__{description}.sql
+```
+
+示例: `V1__users_and_submissions.sql`
+
+---
+
+## 7. 测试规范
+
+### 7.1 测试文件位置
+
+| 层级 | 位置 |
+|------|------|
+| Backend | `backend-spring/src/test/java/com/ulticode/` |
+| Frontend Console | `console/src/**/*.spec.ts` |
+| Frontend Management | `management/src/**/*.spec.ts` |
+
+### 7.2 测试命名
+
+- Java: `XxxTest.java`, `XxxImplTest.java`, `XxxIT.java` (集成测试)
+- TypeScript: `Xxx.spec.ts`
+
+### 7.3 后端测试模式
+
+- 使用 `@ExtendWith(MockitoExtension.class)`
+- 使用 `@Nested` + `@DisplayName` 组织测试
+- 使用 AssertJ 流式断言
+- 集成测试以 `*IT.java` 结尾，使用 Testcontainers
+
+### 7.4 前端测试模式
+
+- 使用 Vitest
+- 使用 `vi.mock()` 模拟依赖
+- 使用 `@vue/test-utils` 测试 Vue 组件
+- jsdom 环境模拟浏览器 DOM
+
+---
+
+## 8. 配置文件命名
+
+### 8.1 后端
 
 | 文件 | 说明 |
 |------|------|
-| `.env` | 环境变量 |
+| `.env` | 环境变量 (根目录) |
 | `pom.xml` | Maven 依赖 |
 | `application.yml` | Spring 配置 |
 
-### 6.2 前端
+### 8.2 前端
 
 | 文件 | 说明 |
 |------|------|
 | `vite.config.ts` | Vite 构建配置 |
 | `vitest.config.ts` | Vitest 测试配置 |
-| `eslint.config.ts` | ESLint 配置 |
+| `eslint.config.ts` | ESLint 配置 (Flat Config) |
 | `tsconfig.json` | TypeScript 配置 |
-| `.prettierrc.json` | Prettier 配置 |
 
 ---
 
-## 7. 端口规范
+## 9. 端口规范
 
 | Service | Port |
 |---------|------|
@@ -390,17 +491,14 @@ async login(credentials: LoginRequest): Promise<LoginResponse> { }
 
 ---
 
-## 8. 数据库规范
+## 10. 环境变量规范
 
-- **ORM**: MyBatis-Plus
-- **迁移**: Flyway (通过 `db-manager` Python CLI 管理)
-- **命名**: MySQL 列使用蛇形命名，Java 字段使用驼峰命名
-- **迁移位置**: `db-manager/migrations/`
+**根目录 `.env`** 是唯一真实来源 (非 `backend-spring/.env`)。
 
-### 迁移文件命名
-
-```
-V{version}__{description}.sql
-```
-
-示例: `V1__users_and_submissions.sql`
+| 变量 | 说明 |
+|------|------|
+| `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` | MySQL 连接 |
+| `REDIS_HOST`, `REDIS_PORT`, `REDIS_PASSWORD` | Redis 连接 |
+| `JWT_SECRET` | JWT 密钥 (最少 32 字符) |
+| `NACOS_PORT` | Nacos 端口 (推荐服务) |
+| `VITE_API_BASE_URL` | 前端 API 地址 |

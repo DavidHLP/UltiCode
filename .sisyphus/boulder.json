@@ -1,40 +1,23 @@
 {
-  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/fix-frontend-exceptions.md",
-  "started_at": "2026-04-29T12:26:13.184Z",
+  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/fix-cache-serialization.md",
+  "started_at": "2026-05-01T06:11:52.179Z",
   "session_ids": [
-    "ses_226db91eeffeCkBIm3nDLuqY7X"
+    "ses_21ddeefb1ffec4SQ480ZnG38Kx"
   ],
-  "plan_name": "fix-frontend-exceptions",
-  "worktree_path": null,
   "session_origins": {
-    "ses_226db91eeffeCkBIm3nDLuqY7X": "direct"
+    "ses_21ddeefb1ffec4SQ480ZnG38Kx": "direct"
   },
+  "plan_name": "fix-cache-serialization",
+  "agent": "atlas",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "Vue Router `next()` 弃用迁移",
-      "session_id": "ses_226c905f5ffeCyYBe19EdNdhUi",
+      "task_title": "修改 CacheConfig 使用 JSON 序列化器",
+      "session_id": "ses_21dd56e14ffeWwc1X92EENc8l6",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-04-29T12:32:26.492Z"
-    },
-    "todo:6": {
-      "task_key": "todo:6",
-      "task_label": "6",
-      "task_title": "`comments.ts` status 结构修复 + 添加 `unknown`",
-      "session_id": "ses_226c34b1bffeVU8yFik62Oy0z2",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-04-29T12:36:53.452Z"
-    },
-    "final-wave:f1": {
-      "task_key": "final-wave:f1",
-      "task_label": "F1",
-      "task_title": "**Plan Compliance Audit** — `oracle`",
-      "session_id": "ses_226bd83ddffe1JTT7oiw7ljV4u",
-      "agent": "oracle",
-      "updated_at": "2026-04-29T12:44:37.669Z"
+      "updated_at": "2026-05-01T06:12:50.233Z"
     }
   }
 }

@@ -69,12 +69,15 @@ public class ProblemVersionServiceImpl implements ProblemVersionService {
                 .map(this::toVO)
                 .collect(Collectors.toList());
 
+        VersionsResponseVO.Pagination pagination = new VersionsResponseVO.Pagination();
+        pagination.setTotal(result.getTotal());
+        pagination.setPage(currentPage);
+        pagination.setLimit(currentLimit);
+        pagination.setTotalPages((int) Math.ceil((double) result.getTotal() / currentLimit));
+
         VersionsResponseVO response = new VersionsResponseVO();
-        response.setItems(items);
-        response.setTotal(result.getTotal());
-        response.setPage(currentPage);
-        response.setPageSize(currentLimit);
-        response.setTotalPages((int) Math.ceil((double) result.getTotal() / currentLimit));
+        response.setVersions(items);
+        response.setPagination(pagination);
         return response;
     }
 

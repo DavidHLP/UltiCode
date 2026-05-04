@@ -6,7 +6,7 @@
  */
 
 import { readdir, readFile } from 'fs/promises'
-import { join, relative } from 'path'
+import { join } from 'path'
 
 const COMPONENTS_DIR = join(process.cwd(), 'src/components')
 const LOCALES_DIR = join(process.cwd(), 'src/i18n/locales')
@@ -51,26 +51,6 @@ function extractI18nKeys(content) {
   }
 
   return keys
-}
-
-/**
- * Flatten nested object into dot-notation keys
- */
-function flattenObject(obj, prefix = '') {
-  const result = {}
-
-  for (const key of Object.keys(obj)) {
-    const fullKey = prefix ? `${prefix}.${key}` : key
-    const value = obj[key]
-
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      Object.assign(result, flattenObject(value, fullKey))
-    } else {
-      result[fullKey] = value
-    }
-  }
-
-  return result
 }
 
 /**
@@ -222,7 +202,6 @@ async function validate() {
 
     for (const refKey of referencedVersionHistoryKeys) {
       // Check if key exists (allowing for partial matches like action.CREATE)
-      const keyParts = refKey.split('.')
       let exists = false
 
       // Try exact match first

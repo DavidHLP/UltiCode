@@ -7,18 +7,22 @@ import java.util.List;
 
 /**
  * Paginated response wrapper for problem version history list.
+ * Matches frontend VersionsResponse type: { versions, pagination: { total, page, limit, totalPages } }
  */
 @Data
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class VersionsResponseVO {
 
-    private List<ProblemVersionVO> items;
+    private List<ProblemVersionVO> versions;
 
-    private Long total;
+    private Pagination pagination;
 
-    private Integer page;
-
-    private Integer pageSize;
-
-    private Integer totalPages;
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class Pagination {
+        private Long total;
+        private Integer page;
+        private Integer limit;
+        private Integer totalPages;
+    }
 }

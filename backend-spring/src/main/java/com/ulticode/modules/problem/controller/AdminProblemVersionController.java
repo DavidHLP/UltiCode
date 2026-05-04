@@ -4,7 +4,6 @@ import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.problem.service.ProblemVersionService;
 import com.ulticode.modules.problem.vo.ProblemVersionDetailVO;
-import com.ulticode.modules.problem.vo.ProblemVersionVO;
 import com.ulticode.modules.problem.vo.VersionWithDiffVO;
 import com.ulticode.modules.problem.vo.VersionsResponseVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -57,20 +56,22 @@ public class AdminProblemVersionController {
     @Operation(summary = "Rollback to version", description = "Rollback a problem to a specific version")
     @PostMapping("/{id}/versions/{versionId}/rollback")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVersionVO> rollbackToVersion(
+    public Result<Map<String, Object>> rollbackToVersion(
             @PathVariable Long id,
             @PathVariable String versionId,
             @RequestBody(required = false) Map<String, String> body) {
         String userId = SecurityUtil.getCurrentUserId();
         String reason = body != null ? body.get("reason") : null;
-        return Result.success(problemVersionService.rollbackToVersion(id, versionId, reason, userId));
+        problemVersionService.rollbackToVersion(id, versionId, reason, userId);
+        return Result.success(Map.of("success", true, "message", "Rollback successful"));
     }
 
     @Operation(summary = "Create initial version", description = "Create the initial version for a problem")
     @PostMapping("/{id}/versions/create-initial")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<ProblemVersionVO> createInitialVersion(@PathVariable Long id) {
+    public Result<Map<String, Object>> createInitialVersion(@PathVariable Long id) {
         String userId = SecurityUtil.getCurrentUserId();
-        return Result.success(problemVersionService.createInitialVersion(id, userId));
+        problemVersionService.createInitialVersion(id, userId);
+        return Result.success(Map.of("success", true, "message", "Initial version created"));
     }
 }

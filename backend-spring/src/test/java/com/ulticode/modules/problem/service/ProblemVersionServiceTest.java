@@ -315,13 +315,13 @@ class ProblemVersionServiceTest {
             VersionsResponseVO result = problemVersionService.listVersions(PROBLEM_ID, 1, 20);
 
             assertThat(result).isNotNull();
-            assertThat(result.getItems()).hasSize(2);
-            assertThat(result.getTotal()).isEqualTo(2);
-            assertThat(result.getPage()).isEqualTo(1);
-            assertThat(result.getPageSize()).isEqualTo(20);
-            assertThat(result.getTotalPages()).isEqualTo(1);
-            assertThat(result.getItems().get(0).getVersionNumber()).isEqualTo(2);
-            assertThat(result.getItems().get(1).getVersionNumber()).isEqualTo(1);
+            assertThat(result.getVersions()).hasSize(2);
+            assertThat(result.getPagination().getTotal()).isEqualTo(2);
+            assertThat(result.getPagination().getPage()).isEqualTo(1);
+            assertThat(result.getPagination().getLimit()).isEqualTo(20);
+            assertThat(result.getPagination().getTotalPages()).isEqualTo(1);
+            assertThat(result.getVersions().get(0).getVersionNumber()).isEqualTo(2);
+            assertThat(result.getVersions().get(1).getVersionNumber()).isEqualTo(1);
         }
 
         @Test
@@ -336,8 +336,8 @@ class ProblemVersionServiceTest {
 
             VersionsResponseVO result = problemVersionService.listVersions(PROBLEM_ID, null, null);
 
-            assertThat(result.getPage()).isEqualTo(1);
-            assertThat(result.getPageSize()).isEqualTo(20);
+            assertThat(result.getPagination().getPage()).isEqualTo(1);
+            assertThat(result.getPagination().getLimit()).isEqualTo(20);
         }
 
         @Test
@@ -352,7 +352,7 @@ class ProblemVersionServiceTest {
 
             VersionsResponseVO result = problemVersionService.listVersions(PROBLEM_ID, 1, 200);
 
-            assertThat(result.getPageSize()).isEqualTo(100);
+            assertThat(result.getPagination().getLimit()).isEqualTo(100);
         }
     }
 

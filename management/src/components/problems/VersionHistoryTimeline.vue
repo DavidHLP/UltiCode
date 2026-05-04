@@ -334,7 +334,7 @@ watch(
                   <p class="text-xs text-muted-foreground mt-1">
                     {{ formatDate(version.createdAt) }}
                     <span v-if="version.createdBy">
-                      {{ t('problems.versionHistory.by') }} {{ version.createdBy }}
+                      {{ t('problems.versionHistory.author') }} {{ version.createdBy }}
                     </span>
                   </p>
                 </div>

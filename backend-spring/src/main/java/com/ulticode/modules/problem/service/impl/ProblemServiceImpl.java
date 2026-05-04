@@ -29,6 +29,7 @@ import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
 import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.problem.service.ProblemService;
+import com.ulticode.modules.problem.service.ProblemVersionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -58,6 +59,7 @@ public class ProblemServiceImpl implements ProblemService {
     private final ProblemExampleMapper problemExampleMapper;
     private final ProblemLanguageMapper problemLanguageMapper;
     private final ObjectMapper objectMapper;
+    private final ProblemVersionService problemVersionService;
 
     @Override
     public Optional<Problem> findById(Long id) {
@@ -360,7 +362,10 @@ public class ProblemServiceImpl implements ProblemService {
 
         problemMapper.insert(problem);
 
-        log.info("Problem created: {} by user {}", problem.getId(), SecurityUtil.getCurrentUserId());
+        String operatorId = SecurityUtil.getCurrentUserId();
+        problemVersionService.createInitialVersion(problem.getId(), operatorId);
+
+        log.info("Problem created: {} by user {}", problem.getId(), operatorId);
         return toVO(problem);
     }
 
@@ -403,7 +408,10 @@ public class ProblemServiceImpl implements ProblemService {
 
         problemMapper.updateById(problem);
 
-        log.info("Problem updated: {} by user {}", id, SecurityUtil.getCurrentUserId());
+        String operatorId = SecurityUtil.getCurrentUserId();
+        problemVersionService.createVersion(id, "UPDATE", null, operatorId);
+
+        log.info("Problem updated: {} by user {}", id, operatorId);
         return toVO(problem);
     }
 

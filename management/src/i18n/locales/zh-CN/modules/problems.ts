@@ -449,4 +449,16 @@ export default {
 
   clearSelection: '清除选择',
   bulkDeleteConfirm: '确定要删除选中的 {count} 个题目吗？',
+
+  // Markdown 编辑器
+  markdownEditor: {
+    bold: '粗体',
+    italic: '斜体',
+    inlineCode: '行内代码',
+    codeBlock: '代码块',
+    insertLink: '插入链接',
+    insertImage: '插入图片',
+    toggleFullscreen: '切换全屏',
+    placeholder: '请输入 Markdown 内容...',
+  },
 } as const

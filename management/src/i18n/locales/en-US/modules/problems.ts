@@ -453,4 +453,16 @@ export default {
 
   clearSelection: 'Clear Selection',
   bulkDeleteConfirm: 'Are you sure you want to delete {count} selected problems?',
+
+  // Markdown Editor
+  markdownEditor: {
+    bold: 'Bold',
+    italic: 'Italic',
+    inlineCode: 'Inline Code',
+    codeBlock: 'Code Block',
+    insertLink: 'Insert Link',
+    insertImage: 'Insert Image',
+    toggleFullscreen: 'Toggle Fullscreen',
+    placeholder: 'Enter Markdown content...',
+  },
 } as const

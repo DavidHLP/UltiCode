@@ -369,6 +369,7 @@ export default {
 
   // 版本历史
   versionHistory: {
+    // 已有键（保留）
     title: '版本历史',
     noHistory: '暂无版本历史',
     version: '版本',
@@ -377,6 +378,34 @@ export default {
     restore: '恢复到此版本',
     restoreSuccess: '版本恢复成功',
     viewDiff: '查看差异',
+    // 新增键
+    description: '查看和管理题目的历史版本',
+    compareWith: '对比版本 {version}',
+    noVersions: '暂无版本记录',
+    createInitial: '创建初始版本',
+    by: '由',
+    versionDetails: '版本详情',
+    compareVersions: '版本对比',
+    noChanges: '无变更',
+    oldValue: '旧值',
+    newValue: '新值',
+    rollbackTitle: '回滚到版本 {version}',
+    rollbackConfirm: '确定要回滚到版本 {version} 吗？此操作将创建一个新版本记录。',
+    rollbackReasonPlaceholder: '请输入回滚原因（可选）',
+    rollbackButton: '确认回滚',
+    loadError: '加载版本历史失败',
+    loadDetailError: '加载版本详情失败',
+    compareError: '版本对比失败',
+    rollbackError: '回滚失败',
+    rollbackSuccess: '已成功回滚到版本 {version}',
+    createInitialSuccess: '初始版本创建成功',
+    alreadyHasVersions: '该题目已有版本记录',
+    createInitialError: '创建初始版本失败',
+    action: {
+      CREATE: '创建',
+      UPDATE: '更新',
+      ROLLBACK: '回滚',
+    },
   },
 
   // 空状态

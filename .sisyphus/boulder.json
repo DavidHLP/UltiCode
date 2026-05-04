@@ -1,23 +1,58 @@
 {
-  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/fix-cache-serialization.md",
-  "started_at": "2026-05-01T06:11:52.179Z",
+  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/fix-version-history.md",
+  "started_at": "2026-05-04T02:59:59.898Z",
   "session_ids": [
-    "ses_21ddeefb1ffec4SQ480ZnG38Kx"
+    "ses_20f2ffaf4ffeP1vwalMCHB5Z1p"
   ],
   "session_origins": {
-    "ses_21ddeefb1ffec4SQ480ZnG38Kx": "direct"
+    "ses_20f2ffaf4ffeP1vwalMCHB5Z1p": "direct"
   },
-  "plan_name": "fix-cache-serialization",
+  "plan_name": "fix-version-history",
   "agent": "atlas",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "修改 CacheConfig 使用 JSON 序列化器",
-      "session_id": "ses_21dd56e14ffeWwc1X92EENc8l6",
+      "task_title": "**数据库迁移文件 - 创建 problem_versions 表**",
+      "session_id": "ses_20f1127eeffeYJzaVgLZRvimFz",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-05-01T06:12:50.233Z"
+      "updated_at": "2026-05-04T03:01:55.242Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "**ProblemVersionService 接口 + 实现**",
+      "session_id": "ses_20f0df26cffe99r2qdPxNpvGzO",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-04T03:11:47.518Z"
+    },
+    "todo:8": {
+      "task_key": "todo:8",
+      "task_label": "8",
+      "task_title": "**AdminProblemVersionController - 5 个 REST API 端点**",
+      "session_id": "ses_20f06d0e9ffexBi44SutK4gvEl",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-04T03:14:42.197Z"
+    },
+    "todo:11": {
+      "task_key": "todo:11",
+      "task_label": "11",
+      "task_title": "**后端单元测试**",
+      "session_id": "ses_20f048e0effeKXJaP5vxljPD1v",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-04T03:26:56.830Z"
+    },
+    "final-wave:f1": {
+      "task_key": "final-wave:f1",
+      "task_label": "F1",
+      "task_title": "**Plan Compliance Audit** — `oracle`",
+      "session_id": "ses_20ef94409ffecYAKa5s3ZP6X7C",
+      "agent": "oracle",
+      "updated_at": "2026-05-04T03:27:46.956Z"
     }
   }
 }

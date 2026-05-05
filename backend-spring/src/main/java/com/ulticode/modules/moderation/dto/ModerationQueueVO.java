@@ -13,6 +13,7 @@ public class ModerationQueueVO {
     private String id;
     private String entityType;
     private String entityId;
+    private String parentId;
     private String authorId;
     private String authorName;
     private String authorUsername;

@@ -14,6 +14,7 @@ import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.moderation.service.ModerationService;
 import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
 import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.solution.entity.SolutionComment;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -587,6 +588,13 @@ public class ModerationServiceImpl implements ModerationService {
         vo.setId(item.getId());
         vo.setEntityType(item.getEntityType());
         vo.setEntityId(item.getEntityId());
+        // 解析 parentId（对于 solution_comment 类型）
+        if ("solution_comment".equals(item.getEntityType())) {
+            SolutionComment comment = solutionCommentMapper.selectById(item.getEntityId());
+            if (comment != null) {
+                vo.setParentId(comment.getSolutionId());
+            }
+        }
         vo.setAuthorId(item.getAuthorId());
         vo.setPriority(item.getPriority());
         vo.setStatus(item.getStatus());

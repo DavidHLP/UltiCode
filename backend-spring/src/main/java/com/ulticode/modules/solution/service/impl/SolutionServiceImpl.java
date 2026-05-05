@@ -31,6 +31,7 @@ import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
+import com.ulticode.common.annotation.CheckBan;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -143,6 +144,7 @@ public class SolutionServiceImpl implements SolutionService {
 
     @Override
     @Transactional
+    @CheckBan
     public SolutionCommentVO createComment(String solutionId, String userId, CreateSolutionCommentDTO dto) {
         findById(solutionId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.SOLUTION_NOT_FOUND));
@@ -242,6 +244,7 @@ public class SolutionServiceImpl implements SolutionService {
 
     @Override
     @Transactional
+    @CheckBan
     public SolutionVO create(Long problemId, String userId, CreateSolutionDTO createDTO) {
         // Verify problem exists
         Problem problem = problemMapper.selectById(problemId);

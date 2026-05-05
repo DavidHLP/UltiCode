@@ -101,7 +101,7 @@ function back() {
             }}</span>
           </div>
           <div v-if="list.isFeatured" class="flex items-center gap-2">
-            <span class="terminal-label">{{ t('problemLists.status.status') }}:</span>
+            <span class="terminal-label">{{ t('problemLists.status.featured') }}:</span>
             <span class="font-data text-[var(--terminal-amber)]">{{
               t('problemLists.status.featured')
             }}</span>

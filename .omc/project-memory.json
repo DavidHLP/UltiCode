@@ -18,8 +18,8 @@
     "runtime": null
   },
   "build": {
-    "buildCommand": null,
-    "testCommand": null,
+    "buildCommand": "cd /home/davidhlp/project/UltiCode-Public-Next/management && rtk tsc --noEmit 2>&1 | grep -E \"error|users/columns\" | head -20",
+    "testCommand": "cd /home/davidhlp/project/UltiCode-Public-Next && cat management/vitest.config.ts",
     "lintCommand": null,
     "devCommand": null,
     "scripts": {}

@@ -155,6 +155,17 @@ public interface ForumPostMapper extends BaseMapper<ForumPost> {
     int unflagPost(@Param("postId") String postId);
 
     /**
+     * Update flag status.
+     *
+     * @param id        the post ID
+     * @param isFlagged the flag status
+     * @param reason    the reason for flagging
+     * @return number of rows affected
+     */
+    @Update("UPDATE forum_posts SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
+    int updateFlagStatus(@Param("id") String id, @Param("isFlagged") boolean isFlagged, @Param("reason") String reason);
+
+    /**
      * Soft delete a post.
      *
      * @param postId    the post ID

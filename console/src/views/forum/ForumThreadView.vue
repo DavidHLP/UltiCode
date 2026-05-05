@@ -15,7 +15,7 @@ import {
 } from "@/api/forum";
 import { ref, watch } from "vue";
 import { useRoute, RouterLink, useRouter } from "vue-router";
-import { ArrowLeft, MessageSquare } from "lucide-vue-next";
+import { ArrowLeft, MessageSquare, Flag } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 import { Button } from "@/components/ui/button";
 import { useI18n } from "vue-i18n";
@@ -30,6 +30,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import ReportDialog from "@/components/ReportDialog.vue";
 
 const route = useRoute();
 const router = useRouter();
@@ -136,6 +137,12 @@ const isOwner = () => {
   return !!userId && thread.value?.author?.id === userId;
 };
 
+const reportDialogRef = ref<{ open: () => void } | null>(null);
+
+const handleReport = () => {
+  reportDialogRef.value?.open();
+};
+
 async function handleThreadVote(type: 1 | -1) {
   if (!useAuthStore().isAuthenticated) {
     toast.error(t("forum.messages.loginToVote"));
@@ -222,37 +229,48 @@ function handleThreadSave(isSaved: boolean) {
 
           <div class="flex-1 min-w-0 bg-card sm:rounded-none overflow-hidden">
             <div
-              v-if="isOwner()"
               class="flex flex-wrap items-center justify-end gap-2 px-4 sm:px-6 pt-4"
             >
-              <Button variant="outline" size="sm" @click="handleEditThread">
-                {{ t("forum.post.edit") }}
+              <template v-if="isOwner()">
+                <Button variant="outline" size="sm" @click="handleEditThread">
+                  {{ t("forum.post.edit") }}
+                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger as-child>
+                    <Button variant="destructive" size="sm">{{
+                      t("forum.post.delete")
+                    }}</Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>{{
+                        t("forum.post.deleteDialog.title")
+                      }}</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        {{ t("forum.post.deleteDialog.description") }}
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>{{
+                        t("forum.post.deleteDialog.cancel")
+                      }}</AlertDialogCancel>
+                      <AlertDialogAction @click="handleDeleteThread">
+                        {{ t("forum.post.deleteDialog.confirm") }}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </template>
+              <Button
+                v-else
+                variant="ghost"
+                size="sm"
+                class="h-8 px-2 text-xs text-muted-foreground hover:text-destructive"
+                @click="handleReport"
+              >
+                <Flag class="mr-1 h-3.5 w-3.5" />
+                举报
               </Button>
-              <AlertDialog>
-                <AlertDialogTrigger as-child>
-                  <Button variant="destructive" size="sm">{{
-                    t("forum.post.delete")
-                  }}</Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>{{
-                      t("forum.post.deleteDialog.title")
-                    }}</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      {{ t("forum.post.deleteDialog.description") }}
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>{{
-                      t("forum.post.deleteDialog.cancel")
-                    }}</AlertDialogCancel>
-                    <AlertDialogAction @click="handleDeleteThread">
-                      {{ t("forum.post.deleteDialog.confirm") }}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
             </div>
             <ThreadContent
               :thread="thread"
@@ -288,4 +306,11 @@ function handleThreadSave(isSaved: boolean) {
       </div>
     </main>
   </div>
+
+  <ReportDialog
+    v-if="thread"
+    ref="reportDialogRef"
+    entity-type="forum_post"
+    :entity-id="thread.id"
+  />
 </template>

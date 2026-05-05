@@ -12,6 +12,17 @@ import type {
 
 import type { CsrfTokenManager } from './csrf';
 
+/**
+ * Extended config with CSRF retry metadata
+ */
+interface ConfigWithCsrfMeta {
+  _metadata?: {
+    csrfRetried?: boolean;
+    [key: string]: unknown;
+  };
+  [key: string]: unknown;
+}
+
 export interface CsrfInterceptors {
   requestInterceptor: (config: InternalAxiosRequestConfig) => InternalAxiosRequestConfig;
   responseInterceptor: (response: AxiosResponse) => AxiosResponse;
@@ -61,7 +72,7 @@ export function createCsrfAxiosInterceptor(
   async function errorInterceptor(
     error: AxiosError,
   ): Promise<unknown> {
-    const config = error.config as InternalAxiosRequestConfig | undefined;
+    const config = error.config as (InternalAxiosRequestConfig & ConfigWithCsrfMeta) | undefined;
 
     if (
       error.response?.status === 403 &&

@@ -135,6 +135,9 @@ public interface ForumCommentMapper extends BaseMapper<ForumComment> {
     @Update("UPDATE forum_comments SET is_flagged = 0, flagged_reason = NULL, flagged_at = NULL WHERE id = #{commentId}")
     int unflagComment(@Param("commentId") String commentId);
 
+    @Update("UPDATE forum_comments SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
+    int updateFlagStatus(@Param("id") String id, @Param("isFlagged") boolean isFlagged, @Param("reason") String reason);
+
     /**
      * Soft delete a comment.
      *

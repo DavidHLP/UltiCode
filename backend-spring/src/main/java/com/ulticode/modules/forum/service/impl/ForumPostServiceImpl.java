@@ -1,6 +1,7 @@
 package com.ulticode.modules.forum.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.ulticode.common.annotation.CheckBan;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
@@ -76,6 +77,7 @@ public class ForumPostServiceImpl implements ForumPostService {
 
     @Override
     @Transactional
+    @CheckBan
     public ForumPostVO createPost(CreatePostDTO dto, String userId) {
         ForumCommunity community = communityMapper.selectById(dto.getCommunityId());
         if (community == null) throw new BusinessException(ErrorCode.FORUM_COMMUNITY_NOT_FOUND);

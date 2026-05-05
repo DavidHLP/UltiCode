@@ -85,17 +85,6 @@ export function useAnalyticsReports() {
   }
 
   async function loadReport() {
-    if (import.meta.env.DEV) {
-      console.log({
-        isAuthenticated: authStore.isAuthenticated,
-        userRole: authStore.userRole,
-        user: authStore.user,
-        hasAdminRole: authStore.hasRole('ADMIN'),
-        hasSuperAdminRole: authStore.hasRole('SUPER_ADMIN'),
-        hasAnyAdminRole: authStore.hasAnyRole(['ADMIN', 'SUPER_ADMIN']),
-      })
-    }
-
     if (!authStore.isAuthenticated) {
       toast.error(t('analytics.authRequired'))
       return

@@ -1,0 +1,13 @@
+{
+  "active": true,
+  "iteration": 5,
+  "max_iterations": 100,
+  "started_at": "2026-05-05T05:47:20.181Z",
+  "prompt": "/oh-my-claudecode:ralph http://localhost:9003/users DOM Path: div#app > div.group/.idebar-wrapper ha.-data-[variant=in.et]:bg-.idebar flex h-.vh w-full overflow-hidden > main.bg-background relative flex w-full flex-1 flex-col min-h-0 md:peer-data-[variant=in.et]:m-2 md:peer-data-[variant=in.et]:ml-0 md:peer-data-[variant=in.et]:.hadow-.m md:peer-data-[variant=in.et]:peer-data-[.tate=collap.ed]:ml-2 > main.flex flex-1 flex-col gap-4 p-4 lg:gap-6 lg:p-6 min-h-0 overflow-y-auto > div.relative fl...",
+  "session_id": "d0368f29-8d79-48e2-82c9-cf107b85f2fe",
+  "project_path": "/home/davidhlp/project/UltiCode-Public-Next/management",
+  "linked_ultrawork": true,
+  "awaiting_confirmation": true,
+  "awaiting_confirmation_set_at": "2026-05-05T05:47:20.181Z",
+  "last_checked_at": "2026-05-05T05:55:08.561Z"
+}

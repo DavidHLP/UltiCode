@@ -12,13 +12,17 @@
     }
   },
   "scripts": {
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest --run",
+    "test:watch": "vitest"
   },
   "peerDependencies": {
     "vue": "^3.5.0"
   },
   "devDependencies": {
+    "axios": "^1.13.2",
     "typescript": "~5.9.3",
+    "vitest": "^4.1.4",
     "vue": "^3.5.0"
   }
 }

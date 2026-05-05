@@ -163,7 +163,7 @@ service.interceptors.request.use(
       if (pendingRequests.has(key)) {
         const controller = pendingRequests.get(key)!;
         controller.abort();
-        return config;
+        pendingRequests.delete(key);
       }
 
       const controller = new AbortController();
@@ -349,7 +349,9 @@ service.interceptors.response.use(
       }
     } else if (!error.response) {
       // Network error (no response) - log it
-      console.error("Request error:", error);
+      if (isDevelopment) {
+        console.error('Request error:', error);
+      }
     }
 
     return Promise.reject(ApiError.fromAxiosError(error));

@@ -150,6 +150,22 @@ class CsrfServiceTest {
         }
 
         @Test
+        @DisplayName("old token is NOT immediately deleted - has 5-minute TTL (grace period)")
+        @SuppressWarnings("unchecked")
+        void testOldTokenExpiredAfterGracePeriod() {
+            String originalToken = csrfService.generateToken(USER_ID);
+            String tokenId = originalToken.split(":")[0];
+            String tokenValue = originalToken.split(":")[1];
+
+            when(valueOperations.get(anyString())).thenReturn(tokenValue);
+
+            csrfService.validateAndRotateToken(USER_ID, originalToken);
+
+            // Verify TTL is set to 5 minutes (not immediate delete)
+            verify(valueOperations).set(anyString(), eq(tokenValue), eq(Duration.ofMinutes(5)));
+        }
+
+        @Test
         @DisplayName("throws for null userId")
         void nullUserId_throws() {
             assertThatThrownBy(() -> csrfService.validateAndRotateToken(null, "some:token"))

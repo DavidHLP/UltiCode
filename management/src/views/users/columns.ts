@@ -1,4 +1,4 @@
-import { h, ref, nextTick } from 'vue'
+import { h } from 'vue'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconBan,
@@ -234,13 +234,9 @@ function createActionsDropdown(
   actions: UserActions,
   canModerateUser: () => boolean,
 ) {
-  const open = ref(false)
   return h(
     DropdownMenu,
-    {
-      open: open.value,
-      'onUpdate:open': (value: boolean) => { open.value = value },
-    },
+    {},
     {
       default: () => [
         h(
@@ -276,10 +272,7 @@ function createActionsDropdown(
               h(
                 DropdownMenuItem,
                 {
-                  onClick: () => {
-                    open.value = false
-                    nextTick(() => actions.viewUser(user))
-                  },
+                  onClick: () => actions.viewUser(user),
                   class: 'font-data text-xs cursor-pointer',
                 },
                 {
@@ -293,10 +286,7 @@ function createActionsDropdown(
               h(
                 DropdownMenuItem,
                 {
-                  onClick: () => {
-                    open.value = false
-                    nextTick(() => actions.editUser(user))
-                  },
+                  onClick: () => actions.editUser(user),
                   class: 'font-data text-xs cursor-pointer',
                 },
                 {
@@ -310,10 +300,7 @@ function createActionsDropdown(
               h(
                 DropdownMenuItem,
                 {
-                  onClick: () => {
-                    open.value = false
-                    nextTick(() => actions.resetPassword(user))
-                  },
+                  onClick: () => actions.resetPassword(user),
                   class: 'font-data text-xs cursor-pointer',
                 },
                 {
@@ -350,10 +337,7 @@ function createActionsDropdown(
                   : h(
                       DropdownMenuItem,
                       {
-                        onClick: () => {
-                          open.value = false
-                          nextTick(() => actions.startBanUser(user))
-                        },
+                        onClick: () => actions.startBanUser(user),
                         class: 'font-data text-xs cursor-pointer',
                       },
                       {

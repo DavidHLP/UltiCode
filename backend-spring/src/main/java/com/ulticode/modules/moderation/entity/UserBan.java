@@ -32,15 +32,62 @@ public class UserBan {
     private String queueId;
 
     /**
+     * ID of the moderation action that triggered this ban
+     */
+    @TableField("action_id")
+    private String actionId;
+
+    /**
      * Reason for the ban
      */
     private String reason;
 
     /**
+     * Category of the ban (e.g., SPAM, HARASSMENT)
+     */
+    private String category;
+
+    /**
      * ID of the moderator who issued the ban
      */
-    @TableField("issued_by_id")
-    private String issuedById;
+    @TableField("banned_by_id")
+    private String bannedById;
+
+    /**
+     * When the ban started
+     */
+    @TableField("started_at")
+    private LocalDateTime startedAt;
+
+    /**
+     * When the ban expires (null for permanent bans)
+     */
+    @TableField("ends_at")
+    private LocalDateTime endsAt;
+
+    /**
+     * When the ban was lifted (null if still active)
+     */
+    @TableField("unbanned_at")
+    private LocalDateTime unbannedAt;
+
+    /**
+     * ID of the moderator who lifted the ban
+     */
+    @TableField("unbanned_by_id")
+    private String unbannedById;
+
+    /**
+     * Reason for unbanning
+     */
+    @TableField("unban_reason")
+    private String unbanReason;
+
+    /**
+     * Whether this is a permanent ban
+     */
+    @TableField("is_permanent")
+    private Boolean isPermanent;
 
     /**
      * Record creation timestamp (auto-filled)
@@ -49,14 +96,8 @@ public class UserBan {
     private LocalDateTime createdAt;
 
     /**
-     * When the ban expires (null for permanent bans)
+     * Record last update timestamp (auto-filled)
      */
-    @TableField("expires_at")
-    private LocalDateTime expiresAt;
-
-    /**
-     * Whether this is a permanent ban
-     */
-    @TableField("is_permanent")
-    private Boolean isPermanent;
+    @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
+    private LocalDateTime updatedAt;
 }

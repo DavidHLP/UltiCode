@@ -171,26 +171,6 @@ public class AdminForumServiceImpl implements AdminForumService {
     }
 
     @Override
-    public void flagPost(String id, String reason) {
-        ForumPost post = getPostEntityOrThrow(id);
-        post.setIsFlagged(true);
-        post.setFlaggedReason(reason);
-        post.setFlaggedAt(LocalDateTime.now());
-        forumPostMapper.updateById(post);
-        log.info("Post flagged: {}, reason: {}", id, reason);
-    }
-
-    @Override
-    public void unflagPost(String id) {
-        ForumPost post = getPostEntityOrThrow(id);
-        post.setIsFlagged(false);
-        post.setFlaggedReason(null);
-        post.setFlaggedAt(null);
-        forumPostMapper.updateById(post);
-        log.info("Post unflagged: {}", id);
-    }
-
-    @Override
     public void deletePost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
         // Soft delete
@@ -244,7 +224,6 @@ public class AdminForumServiceImpl implements AdminForumService {
                     case "unpin" -> unpinPost(id);
                     case "lock" -> lockPost(id);
                     case "unlock" -> unlockPost(id);
-                    case "unflag" -> unflagPost(id);
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
                 }
                 item.setSuccess(true);

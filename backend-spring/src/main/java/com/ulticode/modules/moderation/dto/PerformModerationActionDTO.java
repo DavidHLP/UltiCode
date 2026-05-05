@@ -1,5 +1,7 @@
 package com.ulticode.modules.moderation.dto;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
@@ -23,5 +25,7 @@ public class PerformModerationActionDTO {
     /**
      * Duration in days (for temporary bans)
      */
+    @Min(value = 1, message = "Duration must be at least 1 day")
+    @Max(value = 3650, message = "Duration cannot exceed 3650 days (10 years)")
     private Integer durationDays;
 }

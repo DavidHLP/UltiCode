@@ -5,6 +5,7 @@ import com.ulticode.modules.moderation.entity.Report;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -62,4 +63,14 @@ public interface ReportMapper extends BaseMapper<Report> {
      */
     @Select("SELECT COUNT(*) FROM reports WHERE reporter_id = #{reporterId} AND entity_type = #{entityType} AND entity_id = #{entityId}")
     long countByReporterAndEntity(@Param("reporterId") String reporterId, @Param("entityType") String entityType, @Param("entityId") String entityId);
+
+    /**
+     * Update status of all reports linked to a queue item.
+     *
+     * @param queueId the queue item ID
+     * @param status  the new status
+     * @return number of rows affected
+     */
+    @Update("UPDATE reports SET status = #{status}, updated_at = NOW() WHERE queue_id = #{queueId}")
+    int updateStatusByQueueId(@Param("queueId") String queueId, @Param("status") String status);
 }

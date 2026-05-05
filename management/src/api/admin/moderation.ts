@@ -305,7 +305,7 @@ export interface CreateAppealDto {
 }
 
 export interface ReviewAppealDto {
-  status: AppealStatus.APPROVED | AppealStatus.REJECTED
+  decision: AppealStatus.APPROVED | AppealStatus.REJECTED
   response?: string
 }
 
@@ -329,25 +329,18 @@ export interface RevokeBanDto {
 
 export interface PaginatedResponse<T> {
   items: T[]
-  // Legacy format (flat)
-  total?: number
-  page?: number
-  limit?: number
-  totalPages?: number
-  // Backend format (nested in meta)
-  meta?: {
-    total: number
-    page: number
-    limit: number
-    totalPages: number
-  }
+  total: number
+  page: number
+  limit: number
+  totalPages: number
 }
 
 export interface BatchActionResult {
-  results: Array<{
-    id: string
-    success: boolean
-    error?: string
+  successCount: number
+  errorCount: number
+  errors: Array<{
+    queueId: string
+    error: string
   }>
 }
 
@@ -441,14 +434,14 @@ export const reportsApi = {
     params: QueryReportsParams = {},
     signal?: AbortSignal,
   ): Promise<PaginatedResponse<Report>> {
-    return apiGet<PaginatedResponse<Report>>('/reports', { params, signal })
+    return apiGet<PaginatedResponse<Report>>('/moderation/reports', { params, signal })
   },
 
   /**
    * Get a single report by ID
    */
   async getReport(id: string, signal?: AbortSignal): Promise<Report> {
-    return apiGet<Report>(`/reports/${id}`, { signal })
+    return apiGet<Report>(`/moderation/reports/${id}`, { signal })
   },
 
   /**
@@ -459,14 +452,14 @@ export const reportsApi = {
     entityId: string,
     signal?: AbortSignal,
   ): Promise<Report[]> {
-    return apiGet<Report[]>(`/reports/entity/${entityType}/${entityId}`, { signal })
+    return apiGet<Report[]>(`/moderation/reports/entity/${entityType}/${entityId}`, { signal })
   },
 
   /**
    * Create a new report (for regular users)
    */
   async createReport(data: CreateReportDto): Promise<Report> {
-    return apiPost<Report>('/reports', data)
+    return apiPost<Report>('/moderation/reports', data)
   },
 }
 
@@ -478,21 +471,21 @@ export const appealsApi = {
     params: QueryAppealsParams = {},
     signal?: AbortSignal,
   ): Promise<PaginatedResponse<Appeal>> {
-    return apiGet<PaginatedResponse<Appeal>>('/appeals', { params, signal })
+    return apiGet<PaginatedResponse<Appeal>>('/moderation/appeals', { params, signal })
   },
 
   /**
    * Get current user's appeals
    */
   async getMyAppeals(signal?: AbortSignal): Promise<Appeal[]> {
-    return apiGet<Appeal[]>('/appeals/my', { signal })
+    return apiGet<Appeal[]>('/moderation/appeals/my', { signal })
   },
 
   /**
    * Get a single appeal by ID
    */
   async getAppeal(id: string, signal?: AbortSignal): Promise<Appeal> {
-    return apiGet<Appeal>(`/appeals/${id}`, { signal })
+    return apiGet<Appeal>(`/moderation/appeals/${id}`, { signal })
   },
 
   /**
@@ -505,21 +498,21 @@ export const appealsApi = {
     totalRejected: number
     avgReviewTimeHours?: number
   }> {
-    return apiGet('/appeals/stats', { signal })
+    return apiGet('/moderation/appeals/stats', { signal })
   },
 
   /**
    * Create a new appeal (for regular users)
    */
   async createAppeal(data: CreateAppealDto): Promise<Appeal> {
-    return apiPost<Appeal>('/appeals', data)
+    return apiPost<Appeal>('/moderation/appeals', data)
   },
 
   /**
    * Review an appeal (admin only)
    */
   async reviewAppeal(id: string, data: ReviewAppealDto): Promise<Appeal> {
-    return apiPatch<Appeal>(`/appeals/${id}/review`, data)
+    return apiPatch<Appeal>(`/moderation/appeals/${id}/review`, data)
   },
 }
 

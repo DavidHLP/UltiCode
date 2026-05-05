@@ -14,7 +14,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Controller for moderation operations.
@@ -42,6 +44,19 @@ public class ModerationController {
     @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
     public Result<ModerationStatsVO> getStats() {
         return Result.success(moderationService.getStats());
+    }
+
+    @Operation(summary = "Get moderation enums")
+    @GetMapping("/enums")
+    public Result<Map<String, List<String>>> getEnums() {
+        Map<String, List<String>> enums = new HashMap<>();
+        enums.put("actionTypes", List.of("DELETED", "HIDDEN", "RESTORED", "DISMISSED", "RESOLVED",
+                "WARNED", "TEMP_BANNED", "PERM_BANNED"));
+        enums.put("statuses", List.of("PENDING", "UNDER_REVIEW", "RESOLVED", "DISMISSED", "APPEAL_PENDING"));
+        enums.put("reportCategories", List.of("SPAM", "HARASSMENT", "HATE_SPEECH", "VIOLENCE",
+                "SEXUAL_CONTENT", "MISINFORMATION", "WRONG_ANSWER", "COPYRIGHT", "OTHER"));
+        enums.put("appealStatuses", List.of("PENDING", "UNDER_REVIEW", "APPROVED", "REJECTED"));
+        return Result.success(enums);
     }
 
     @Operation(summary = "Get queue item details")
@@ -112,6 +127,7 @@ public class ModerationController {
     @Operation(summary = "Create a report")
     @RateLimit(key = "moderation:create-report", limit = 20, period = 60)
     @PostMapping("/reports")
+    @PreAuthorize("isAuthenticated()")
     public Result<Void> createReport(@Valid @RequestBody CreateReportDTO dto) {
         String reporterId = SecurityUtil.getCurrentUserId();
         moderationService.createReport(dto, reporterId);
@@ -139,6 +155,7 @@ public class ModerationController {
     @Operation(summary = "Create an appeal")
     @RateLimit(key = "moderation:create-appeal", limit = 20, period = 60)
     @PostMapping("/appeals")
+    @PreAuthorize("isAuthenticated()")
     public Result<AppealVO> createAppeal(@Valid @RequestBody CreateAppealDTO dto) {
         String appellantId = SecurityUtil.getCurrentUserId();
         return Result.success(moderationService.createAppeal(dto, appellantId));
@@ -153,6 +170,7 @@ public class ModerationController {
 
     @Operation(summary = "Get appeal details")
     @GetMapping("/appeals/{id}")
+    @PreAuthorize("isAuthenticated()")
     public Result<AppealVO> getAppeal(@PathVariable String id) {
         return Result.success(moderationService.getAppeal(id));
     }

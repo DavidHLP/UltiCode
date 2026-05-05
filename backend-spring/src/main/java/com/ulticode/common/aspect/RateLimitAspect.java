@@ -3,6 +3,7 @@ package com.ulticode.common.aspect;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.util.SecurityUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -61,16 +62,18 @@ public class RateLimitAspect {
 
     private String generateKey(RateLimit rateLimit, ProceedingJoinPoint joinPoint) {
         String key = rateLimit.key();
-        String ip = getClientIp();
+        String userId = SecurityUtil.getCurrentUserId();
 
-        if (key.isEmpty()) {
-            // 使用类名 + 方法名 + IP 作为默认 key
-            String className = joinPoint.getTarget().getClass().getSimpleName();
-            String methodName = joinPoint.getSignature().getName();
-            key = className + ":" + methodName + ":" + ip;
+        if (userId != null) {
+            key = key + ":user:" + userId;
         } else {
-            // 显式指定的 key 也需要追加 IP 维度，确保按用户/IP 分别限流
-            key = key + ":" + ip;
+            String ip = getClientIp();
+            if (key.isEmpty()) {
+                String className = joinPoint.getTarget().getClass().getSimpleName();
+                String methodName = joinPoint.getSignature().getName();
+                key = className + ":" + methodName;
+            }
+            key = key + ":ip:" + ip;
         }
 
         return key;

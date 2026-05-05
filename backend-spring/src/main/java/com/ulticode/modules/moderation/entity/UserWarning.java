@@ -37,10 +37,21 @@ public class UserWarning {
     private String reason;
 
     /**
-     * ID of the moderator who issued the warning
+     * ID of the moderation action that triggered this warning
      */
-    @TableField("issued_by_id")
-    private String issuedById;
+    @TableField("action_id")
+    private String actionId;
+
+    /**
+     * Category of the warning (e.g., SPAM, HARASSMENT)
+     */
+    private String category;
+
+    /**
+     * Whether the warning has been acknowledged by the user
+     */
+    @TableField("acknowledged_at")
+    private LocalDateTime acknowledgedAt;
 
     /**
      * Record creation timestamp (auto-filled)

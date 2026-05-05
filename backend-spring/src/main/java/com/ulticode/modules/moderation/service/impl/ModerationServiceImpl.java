@@ -7,12 +7,18 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.moderation.dto.*;
 import com.ulticode.modules.moderation.entity.*;
+import com.ulticode.modules.forum.mapper.ForumCommentMapper;
+import com.ulticode.modules.forum.mapper.ForumPostMapper;
 import com.ulticode.modules.moderation.mapper.*;
+import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.moderation.service.ModerationService;
+import com.ulticode.modules.solution.mapper.SolutionCommentMapper;
+import com.ulticode.modules.solution.mapper.SolutionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +41,11 @@ public class ModerationServiceImpl implements ModerationService {
     private final UserWarningMapper warningMapper;
     private final UserBanMapper banMapper;
     private final UserMapper userMapper;
+    private final ForumPostMapper forumPostMapper;
+    private final ForumCommentMapper forumCommentMapper;
+    private final SolutionMapper solutionMapper;
+    private final SolutionCommentMapper solutionCommentMapper;
+    private final ProblemMapper problemMapper;
 
     // ==================== Queue Operations ====================
 
@@ -58,8 +69,11 @@ public class ModerationServiceImpl implements ModerationService {
         Page<ModerationQueue> page = new Page<>(query.getPage(), query.getLimit());
         Page<ModerationQueue> result = queueMapper.selectPage(page, wrapper);
 
-        List<ModerationQueueVO> voList = result.getRecords().stream()
-                .map(this::toQueueVO)
+        List<ModerationQueue> records = result.getRecords();
+        Map<String, User> userMap = buildUserMap(records);
+
+        List<ModerationQueueVO> voList = records.stream()
+                .map(item -> toQueueVO(item, userMap))
                 .collect(Collectors.toList());
 
         return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
@@ -71,7 +85,8 @@ public class ModerationServiceImpl implements ModerationService {
         if (item == null) {
             throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
         }
-        return toQueueVO(item);
+        Map<String, User> userMap = buildUserMap(List.of(item));
+        return toQueueVO(item, userMap);
     }
 
     @Override
@@ -88,23 +103,29 @@ public class ModerationServiceImpl implements ModerationService {
     @Override
     public ModerationQueueVO findByEntity(String entityType, String entityId) {
         ModerationQueue item = queueMapper.findByEntity(entityType, entityId);
-        return item != null ? toQueueVO(item) : null;
+        if (item == null) {
+            return null;
+        }
+        Map<String, User> userMap = buildUserMap(List.of(item));
+        return toQueueVO(item, userMap);
     }
 
     @Override
     @Transactional
     public ModerationQueueVO claimItem(String id, String moderatorId) {
-        ModerationQueue item = queueMapper.selectById(id);
-        if (item == null) {
-            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+        // Use atomic conditional update to prevent race condition
+        int updated = queueMapper.assignToModeratorIfUnassigned(id, moderatorId);
+        if (updated == 0) {
+            // Check why it failed
+            ModerationQueue item = queueMapper.selectById(id);
+            if (item == null) {
+                throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
+            }
+            if (item.getAssignedToId() != null && !item.getAssignedToId().equals(moderatorId)) {
+                throw new BusinessException(ErrorCode.MODERATION_ALREADY_ASSIGNED);
+            }
+            // If already assigned to current moderator, consider it success
         }
-
-        // Check if already assigned
-        if (item.getAssignedToId() != null && !item.getAssignedToId().equals(moderatorId)) {
-            throw new BusinessException(ErrorCode.MODERATION_ALREADY_ASSIGNED);
-        }
-
-        queueMapper.assignToModerator(id, moderatorId);
         return getQueueItem(id);
     }
 
@@ -148,6 +169,15 @@ public class ModerationServiceImpl implements ModerationService {
 
         String action = dto.getAction().toUpperCase();
 
+        // Validate action before inserting to avoid database enum mismatch
+        // Must match: moderation_actions.action enum and moderation_queue.resolution enum
+        Set<String> validActions = Set.of(
+                "DELETED", "HIDDEN", "RESTORED", "DISMISSED", "RESOLVED",
+                "WARNED", "TEMP_BANNED", "PERM_BANNED", "APPEAL_PENDING", "APPEAL_APPROVED", "APPEAL_REJECTED");
+        if (!validActions.contains(action)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Unknown action: " + action);
+        }
+
         // Create moderation action record
         ModerationAction moderationAction = new ModerationAction();
         moderationAction.setQueueId(id);
@@ -167,32 +197,46 @@ public class ModerationServiceImpl implements ModerationService {
         switch (action) {
             case "DELETED":
             case "HIDDEN":
+                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), true, dto.getNote());
+                item.setStatus("RESOLVED");
+                item.setResolvedAt(now);
+                break;
             case "RESTORED":
             case "DISMISSED":
             case "RESOLVED":
+                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), false, null);
                 item.setStatus("RESOLVED");
                 item.setResolvedAt(now);
                 break;
             case "WARNED":
                 // Create user warning
-                createUserWarning(item.getAuthorId(), id, dto.getNote(), moderatorId);
+                createUserWarning(item.getAuthorId(), id, dto.getNote(), item.getPrimaryCategory(), moderationAction.getId());
                 item.setStatus("RESOLVED");
                 item.setResolvedAt(now);
                 break;
             case "TEMP_BANNED":
                 // Create temporary ban
-                createUserBan(item.getAuthorId(), id, dto.getNote(), moderatorId, dto.getDurationDays(), false);
+                createUserBan(item.getAuthorId(), id, dto.getNote(), item.getPrimaryCategory(), moderatorId, moderationAction.getId(), dto.getDurationDays(), false);
                 item.setStatus("RESOLVED");
                 item.setResolvedAt(now);
                 break;
             case "PERM_BANNED":
                 // Create permanent ban
-                createUserBan(item.getAuthorId(), id, dto.getNote(), moderatorId, null, true);
+                createUserBan(item.getAuthorId(), id, dto.getNote(), item.getPrimaryCategory(), moderatorId, moderationAction.getId(), null, true);
                 item.setStatus("RESOLVED");
                 item.setResolvedAt(now);
                 break;
             case "APPEAL_PENDING":
                 item.setStatus("APPEAL_PENDING");
+                break;
+            case "APPEAL_APPROVED":
+                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), false, null);
+                item.setStatus("RESOLVED");
+                item.setResolvedAt(now);
+                break;
+            case "APPEAL_REJECTED":
+                item.setStatus("RESOLVED");
+                item.setResolvedAt(now);
                 break;
             default:
                 throw new BusinessException(ErrorCode.BAD_REQUEST, "Unknown action: " + action);
@@ -208,7 +252,7 @@ public class ModerationServiceImpl implements ModerationService {
     }
 
     @Override
-    @Transactional
+    @Transactional(rollbackFor = Exception.class)
     public BatchActionResultVO batchAction(BatchModerationActionDTO dto, String moderatorId) {
         List<BatchActionResultVO.BatchError> errors = new ArrayList<>();
         int successCount = 0;
@@ -222,10 +266,17 @@ public class ModerationServiceImpl implements ModerationService {
 
                 performAction(queueId, actionDto, moderatorId);
                 successCount++;
-            // broad catch: all failures map to same error response
-            } catch (Exception e) {
+            } catch (BusinessException e) {
+                log.warn("Batch action failed for queue {}: {}", queueId, e.getMessage());
                 errors.add(new BatchActionResultVO.BatchError(queueId, e.getMessage()));
+            } catch (Exception e) {
+                log.error("Batch action failed for queue item {}", queueId, e);
+                errors.add(new BatchActionResultVO.BatchError(queueId, "Processing failed. Please try again."));
             }
+        }
+
+        if (successCount == 0 && !errors.isEmpty()) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "All batch operations failed");
         }
 
         return new BatchActionResultVO(successCount, errors.size(), errors);
@@ -236,14 +287,6 @@ public class ModerationServiceImpl implements ModerationService {
     @Override
     @Transactional
     public void createReport(CreateReportDTO dto, String reporterId) {
-        // Check if user already reported this entity
-        long existingCount = reportMapper.countByReporterAndEntity(
-                reporterId, dto.getEntityType(), dto.getEntityId());
-        if (existingCount > 0) {
-            throw new BusinessException(ErrorCode.MODERATION_ALREADY_REPORTED);
-        }
-
-        // Create the report
         Report report = new Report();
         report.setReporterId(reporterId);
         report.setEntityType(dto.getEntityType());
@@ -252,7 +295,15 @@ public class ModerationServiceImpl implements ModerationService {
         report.setReason(dto.getReason());
         report.setEvidence(dto.getEvidence());
         report.setStatus("PENDING");
-        reportMapper.insert(report);
+
+        try {
+            reportMapper.insert(report);
+        } catch (DuplicateKeyException e) {
+            throw new BusinessException(ErrorCode.MODERATION_ALREADY_REPORTED);
+        }
+
+        // Resolve author ID from entity
+        String authorId = resolveAuthorId(dto.getEntityType(), dto.getEntityId());
 
         // Update or create moderation queue item
         ModerationQueue queueItem = queueMapper.findByEntity(dto.getEntityType(), dto.getEntityId());
@@ -260,6 +311,7 @@ public class ModerationServiceImpl implements ModerationService {
             queueItem = new ModerationQueue();
             queueItem.setEntityType(dto.getEntityType());
             queueItem.setEntityId(dto.getEntityId());
+            queueItem.setAuthorId(authorId);
             queueItem.setPriority(1);
             queueItem.setStatus("PENDING");
             queueItem.setReportCount(1);
@@ -431,25 +483,52 @@ public class ModerationServiceImpl implements ModerationService {
 
     // ==================== Private Helper Methods ====================
 
-    private void createUserWarning(String userId, String queueId, String reason, String issuedById) {
+    private String resolveAuthorId(String entityType, String entityId) {
+        switch (entityType) {
+            case "forum_post":
+                var post = forumPostMapper.selectById(entityId);
+                return post != null ? post.getUserId() : null;
+            case "forum_comment":
+                var comment = forumCommentMapper.selectById(entityId);
+                return comment != null ? comment.getAuthorId() : null;
+            case "solution":
+                var solution = solutionMapper.selectById(entityId);
+                return solution != null ? solution.getUserId() : null;
+            case "solution_comment":
+                var solComment = solutionCommentMapper.selectById(entityId);
+                return solComment != null ? solComment.getUserId() : null;
+            case "problem":
+                var problem = problemMapper.selectById(entityId);
+                return problem != null ? problem.getPublishedBy() : null;
+            default:
+                return null;
+        }
+    }
+
+    private void createUserWarning(String userId, String queueId, String reason, String category, String actionId) {
         UserWarning warning = new UserWarning();
         warning.setUserId(userId);
         warning.setQueueId(queueId);
-        warning.setReason(reason);
-        warning.setIssuedById(issuedById);
-        warning.setExpiresAt(LocalDateTime.now().plusDays(90)); // Warnings expire after 90 days
+        warning.setReason(reason != null ? reason : "No reason provided");
+        warning.setCategory(category != null ? category : "OTHER");
+        warning.setActionId(actionId);
+        warning.setExpiresAt(LocalDateTime.now().plusDays(90));
         warningMapper.insert(warning);
     }
 
-    private void createUserBan(String userId, String queueId, String reason, String issuedById, Integer durationDays, boolean isPermanent) {
+    private void createUserBan(String userId, String queueId, String reason, String category, String bannedById, String actionId, Integer durationDays, boolean isPermanent) {
         UserBan ban = new UserBan();
         ban.setUserId(userId);
         ban.setQueueId(queueId);
-        ban.setReason(reason);
-        ban.setIssuedById(issuedById);
+        ban.setReason(reason != null ? reason : "No reason provided");
+        ban.setCategory(category);
+        ban.setBannedById(bannedById);
+        ban.setActionId(actionId);
         ban.setIsPermanent(isPermanent);
+        LocalDateTime now = LocalDateTime.now();
+        ban.setStartedAt(now);
         if (!isPermanent && durationDays != null) {
-            ban.setExpiresAt(LocalDateTime.now().plusDays(durationDays));
+            ban.setEndsAt(now.plusDays(durationDays));
         }
         banMapper.insert(ban);
 
@@ -458,24 +537,52 @@ public class ModerationServiceImpl implements ModerationService {
         if (user != null) {
             user.setIsBanned(true);
             if (!isPermanent && durationDays != null) {
-                user.setBannedUntil(LocalDateTime.now().plusDays(durationDays));
+                user.setBannedUntil(now.plusDays(durationDays));
             }
             user.setBannedReason(reason);
             userMapper.updateById(user);
         }
     }
 
-    private void updateReportsStatus(String queueId, String status) {
-        LambdaQueryWrapper<Report> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Report::getQueueId, queueId);
-        List<Report> reports = reportMapper.selectList(wrapper);
-        for (Report report : reports) {
-            report.setStatus(status);
-            reportMapper.updateById(report);
+    private void updateContentFlagStatus(String entityType, String entityId, boolean isFlagged, String reason) {
+        switch (entityType) {
+            case "forum_post":
+                forumPostMapper.updateFlagStatus(entityId, isFlagged, reason);
+                break;
+            case "forum_comment":
+                forumCommentMapper.updateFlagStatus(entityId, isFlagged, reason);
+                break;
+            case "solution":
+                solutionMapper.updateFlagStatus(entityId, isFlagged, reason);
+                break;
+            case "solution_comment":
+                solutionCommentMapper.updateFlagStatus(entityId, isFlagged, reason);
+                break;
+            case "problem":
+                problemMapper.updateFlagStatus(entityId, isFlagged, reason);
+                break;
         }
     }
 
-    private ModerationQueueVO toQueueVO(ModerationQueue item) {
+    private void updateReportsStatus(String queueId, String status) {
+        reportMapper.updateStatusByQueueId(queueId, status);
+    }
+
+    private Map<String, User> buildUserMap(List<ModerationQueue> items) {
+        Set<String> userIds = new HashSet<>();
+        for (ModerationQueue item : items) {
+            if (item.getAuthorId() != null) userIds.add(item.getAuthorId());
+            if (item.getAssignedToId() != null) userIds.add(item.getAssignedToId());
+            if (item.getReviewedById() != null) userIds.add(item.getReviewedById());
+        }
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        return userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+    }
+
+    private ModerationQueueVO toQueueVO(ModerationQueue item, Map<String, User> userMap) {
         ModerationQueueVO vo = new ModerationQueueVO();
         vo.setId(item.getId());
         vo.setEntityType(item.getEntityType());
@@ -495,26 +602,19 @@ public class ModerationServiceImpl implements ModerationService {
         vo.setUpdatedAt(item.getUpdatedAt());
         vo.setResolvedAt(item.getResolvedAt());
 
-        // Fetch user details
-        if (item.getAuthorId() != null) {
-            User author = userMapper.selectById(item.getAuthorId());
-            if (author != null) {
-                vo.setAuthorName(author.getName());
-                vo.setAuthorUsername(author.getUsername());
-            }
+        User author = userMap.get(item.getAuthorId());
+        if (author != null) {
+            vo.setAuthorName(author.getName());
+            vo.setAuthorUsername(author.getUsername());
         }
-        if (item.getAssignedToId() != null) {
-            User assignedTo = userMapper.selectById(item.getAssignedToId());
-            if (assignedTo != null) {
-                vo.setAssignedToName(assignedTo.getName());
-                vo.setAssignedToUsername(assignedTo.getUsername());
-            }
+        User assignedTo = userMap.get(item.getAssignedToId());
+        if (assignedTo != null) {
+            vo.setAssignedToName(assignedTo.getName());
+            vo.setAssignedToUsername(assignedTo.getUsername());
         }
-        if (item.getReviewedById() != null) {
-            User reviewedBy = userMapper.selectById(item.getReviewedById());
-            if (reviewedBy != null) {
-                vo.setReviewedByName(reviewedBy.getName());
-            }
+        User reviewedBy = userMap.get(item.getReviewedById());
+        if (reviewedBy != null) {
+            vo.setReviewedByName(reviewedBy.getName());
         }
 
         return vo;

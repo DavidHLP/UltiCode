@@ -45,6 +45,16 @@ public interface ModerationQueueMapper extends BaseMapper<ModerationQueue> {
     int assignToModerator(@Param("id") String id, @Param("assignedTo") String assignedTo);
 
     /**
+     * Assign a queue item to a moderator only if currently unassigned.
+     *
+     * @param id          the queue item ID
+     * @param moderatorId the moderator ID
+     * @return number of rows affected (1 if assigned, 0 if already assigned)
+     */
+    @Update("UPDATE moderation_queue SET assigned_to_id = #{moderatorId}, assigned_at = NOW() WHERE id = #{id} AND assigned_to_id IS NULL")
+    int assignToModeratorIfUnassigned(@Param("id") String id, @Param("moderatorId") String moderatorId);
+
+    /**
      * Remove assignment from a queue item.
      *
      * @param id the queue item ID

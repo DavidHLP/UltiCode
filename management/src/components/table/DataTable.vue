@@ -7,6 +7,7 @@ import type {
   VisibilityState,
 } from '@tanstack/vue-table'
 import { RestrictToVerticalAxis } from '@dnd-kit/abstract/modifiers'
+import { KeyboardSensor, PointerSensor } from '@dnd-kit/dom'
 import {
   IconChevronDown,
   IconChevronLeft,
@@ -83,6 +84,15 @@ const sorting = ref<SortingState>([])
 const columnFilters = ref<ColumnFiltersState>([])
 const columnVisibility = ref<VisibilityState>({})
 const rowSelection = ref({})
+
+const sensors = [
+  PointerSensor.configure({
+    activationConstraints: {
+      distance: { value: 10 },
+    },
+  }),
+  KeyboardSensor,
+]
 
 const table = useVueTable({
   get data() {
@@ -212,7 +222,7 @@ watch(
       v-if="loading || table.getRowModel().rows.length"
       class="overflow-auto border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded-sm"
     >
-      <DragDropProvider :modifiers="[RestrictToVerticalAxis]">
+      <DragDropProvider :sensors="sensors" :modifiers="[RestrictToVerticalAxis]">
         <Table>
           <colgroup>
             <col

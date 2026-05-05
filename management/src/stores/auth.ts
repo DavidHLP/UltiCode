@@ -101,20 +101,7 @@ export const useAuthStore = defineStore('auth', () => {
   function hasRole(role: string): boolean {
     const userRole = user.value?.role?.toUpperCase()
     const requiredRole = role.toUpperCase()
-    const hasRoleMatch = userRole === requiredRole
-
-    // Debug logging (dev only)
-    if (import.meta.env.DEV) {
-      console.log({
-        userRole: user.value?.role,
-        normalizedUserRole: userRole,
-        requiredRole: role,
-        normalizedRequiredRole: requiredRole,
-        hasRoleMatch,
-      })
-    }
-
-    return hasRoleMatch
+    return userRole === requiredRole
   }
 
   function hasAnyRole(roles: string[]): boolean {
@@ -124,20 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     const normalizedRoles = roles.map((r) => r.toUpperCase())
-    const hasRole = normalizedRoles.includes(userRole)
-
-    // Debug logging (dev only)
-    if (import.meta.env.DEV) {
-      console.log({
-        userRole: user.value?.role,
-        normalizedUserRole: userRole,
-        requiredRoles: roles,
-        normalizedRequiredRoles: normalizedRoles,
-        hasRole,
-      })
-    }
-
-    return hasRole
+    return normalizedRoles.includes(userRole)
   }
 
   return {

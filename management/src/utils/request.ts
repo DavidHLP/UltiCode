@@ -6,7 +6,8 @@ import axios, {
   type AxiosInstance,
 } from 'axios'
 import { LOCALE_HEADER_KEY, getActiveLocale } from '@/i18n'
-import { getCsrfToken } from '@/utils/csrf'
+import { csrfManager } from '@/utils/csrf'
+import { createCsrfAxiosInterceptor } from '@/shared/auth-core/src'
 import router from '@/router'
 
 /**
@@ -121,6 +122,10 @@ const service: AxiosInstance = axios.create({
   },
 })
 
+const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager)
+service.interceptors.request.use(csrfInterceptors.requestInterceptor)
+service.interceptors.response.use(csrfInterceptors.responseInterceptor, csrfInterceptors.errorInterceptor)
+
 /**
  * Request interceptor with enterprise features
  */
@@ -137,15 +142,6 @@ service.interceptors.request.use(
 
     // Note: Auth is now handled via httpOnly cookies (withCredentials: true)
     // No need to manually attach Authorization header
-
-    // Attach CSRF token for state-changing requests (POST, PUT, PATCH, DELETE)
-    const method = config.method?.toUpperCase()
-    if (method && method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS') {
-      const csrfToken = getCsrfToken()
-      if (csrfToken) {
-        config.headers['X-CSRF-Token'] = csrfToken
-      }
-    }
 
     // Add locale headers (both custom x-locale and standard Accept-Language)
     const activeLocale = getActiveLocale()

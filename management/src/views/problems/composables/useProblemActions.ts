@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
@@ -107,7 +107,9 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
   function confirmDelete(problem: Problem) {
     selectedProblemId.value = problem.id
     selectedProblemTitle.value = problem.title
-    deleteDialogOpen.value = true
+    nextTick(() => {
+      deleteDialogOpen.value = true
+    })
   }
 
   async function handleDeleteProblem(id: string | number) {
@@ -155,12 +157,16 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
   function openFlagDialog(problem: Problem) {
     selectedProblemForFlag.value = problem.id
     selectedProblemForFlagTitle.value = problem.title
-    flagDialogOpen.value = true
+    nextTick(() => {
+      flagDialogOpen.value = true
+    })
   }
 
   function viewFlagInfo(problem: Problem) {
     selectedProblemForFlagInfo.value = problem
-    flagInfoDialogOpen.value = true
+    nextTick(() => {
+      flagInfoDialogOpen.value = true
+    })
   }
 
   async function handleFlagProblem(id: string | number, reason?: string) {

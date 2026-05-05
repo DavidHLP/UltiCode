@@ -70,7 +70,7 @@ async function loadAuditLogs() {
       sortOrder: sortOrder.value,
     })
     // Note: request.ts unwraps Result<T>, so response is directly AuditLogsResponse
-    auditLogs.value = response.logs
+    auditLogs.value = response.logs || []
     total.value = response.total
     totalPages.value = response.totalPages
   } catch (error) {
@@ -156,11 +156,8 @@ watch(
 )
 
 onMounted(() => {
-  // Initial load is handled by the watch with immediate: true
-  // This is kept for backwards compatibility if watch doesn't trigger
-  if (props.entityType && props.entityId) {
-    loadAuditLogs()
-  }
+  // Initial load is handled by watch(immediate: true)
+  // No need to call loadAuditLogs here to avoid duplicate requests
 })
 </script>
 
@@ -171,22 +168,22 @@ onMounted(() => {
         <IconSearch class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
           v-model="searchQuery"
-          :placeholder="t('auditLogs.searchPlaceholder')"
+          :placeholder="t('audit.searchPlaceholder')"
           class="pl-8"
           @keyup.enter="loadAuditLogs"
         />
       </div>
       <Select v-model="actionFilter" @update:model-value="loadAuditLogs">
         <SelectTrigger class="w-[180px]">
-          <SelectValue :placeholder="t('auditLogs.filterAction')" />
+          <SelectValue :placeholder="t('audit.filterAction')" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">{{ t('auditLogs.allActions') }}</SelectItem>
-          <SelectItem value="CREATE">{{ t('auditLogs.actions.create') }}</SelectItem>
-          <SelectItem value="UPDATE">{{ t('auditLogs.actions.update') }}</SelectItem>
-          <SelectItem value="DELETE">{{ t('auditLogs.actions.delete') }}</SelectItem>
-          <SelectItem value="PUBLISH">{{ t('auditLogs.actions.publish') }}</SelectItem>
-          <SelectItem value="MODERATE">{{ t('auditLogs.actions.moderate') }}</SelectItem>
+          <SelectItem value="all">{{ t('audit.allActions') }}</SelectItem>
+          <SelectItem value="CREATE">{{ t('audit.actions.create') }}</SelectItem>
+          <SelectItem value="UPDATE">{{ t('audit.actions.update') }}</SelectItem>
+          <SelectItem value="DELETE">{{ t('audit.actions.delete') }}</SelectItem>
+          <SelectItem value="PUBLISH">{{ t('audit.actions.publish') }}</SelectItem>
+          <SelectItem value="MODERATE">{{ t('audit.actions.moderate') }}</SelectItem>
         </SelectContent>
       </Select>
       <Button variant="outline" size="sm" @click="loadAuditLogs">
@@ -207,7 +204,7 @@ onMounted(() => {
         "
       >
         <IconDownload class="h-4 w-4 mr-1" />
-        {{ t('auditLogs.export') }}
+        {{ t('audit.export') }}
       </Button>
     </div>
 
@@ -216,13 +213,13 @@ onMounted(() => {
     </div>
 
     <div
-      v-else-if="filteredLogs.length === 0"
+      v-else-if="!filteredLogs?.length"
       class="flex flex-col items-center justify-center py-12 text-center"
     >
       <IconDatabase class="h-12 w-12 text-muted-foreground mb-4" />
-      <h3 class="text-lg font-semibold mb-2">{{ t('auditLogs.noLogs') }}</h3>
+      <h3 class="text-lg font-semibold mb-2">{{ t('audit.noLogs') }}</h3>
       <p class="text-muted-foreground max-w-md">
-        {{ t('auditLogs.noLogsDescription') }}
+        {{ t('audit.noLogsDescription') }}
       </p>
     </div>
 
@@ -240,7 +237,7 @@ onMounted(() => {
                 </Badge>
               </div>
               <CardTitle class="text-base">{{
-                log.entityId || t('auditLogs.systemAction')
+                log.entityId || t('audit.systemAction')
               }}</CardTitle>
             </div>
             <div class="flex items-center gap-2">
@@ -266,14 +263,14 @@ onMounted(() => {
             </div>
 
             <div v-if="log.oldValues" class="bg-muted rounded-lg p-3">
-              <p class="text-sm font-medium mb-1">{{ t('auditLogs.oldValues') }}</p>
+              <p class="text-sm font-medium mb-1">{{ t('audit.oldValues') }}</p>
               <pre class="text-xs text-muted-foreground whitespace-pre-wrap">{{
                 formatValues(log.oldValues)
               }}</pre>
             </div>
 
             <div v-if="log.newValues" class="bg-muted rounded-lg p-3">
-              <p class="text-sm font-medium mb-1">{{ t('auditLogs.newValues') }}</p>
+              <p class="text-sm font-medium mb-1">{{ t('audit.newValues') }}</p>
               <pre class="text-xs text-muted-foreground whitespace-pre-wrap">{{
                 formatValues(log.newValues)
               }}</pre>
@@ -283,8 +280,8 @@ onMounted(() => {
               v-if="log.ipAddress || log.userAgent"
               class="flex flex-wrap gap-4 text-xs text-muted-foreground"
             >
-              <span v-if="log.ipAddress">{{ t('auditLogs.ipAddress') }}: {{ log.ipAddress }}</span>
-              <span v-if="log.userAgent">{{ t('auditLogs.userAgent') }}: {{ log.userAgent }}</span>
+              <span v-if="log.ipAddress">{{ t('audit.ipAddress') }}: {{ log.ipAddress }}</span>
+              <span v-if="log.userAgent">{{ t('audit.userAgent') }}: {{ log.userAgent }}</span>
             </div>
           </div>
         </CardContent>

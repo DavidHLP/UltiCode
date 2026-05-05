@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
+import { computed, ref, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import ProblemExplorer from "@/components/problem/ProblemExplorer.vue";
 import { Button } from "@/components/ui/button";
@@ -83,6 +83,7 @@ const problemsWithStatus = computed(() => problems.value);
 const isEditOpen = ref(false);
 const isDeleteOpen = ref(false);
 const isAddProblemsOpen = ref(false);
+const dropdownOpen = ref(false);
 
 async function onSaveEdit() {
   const success = await handleSaveEdit();
@@ -209,7 +210,7 @@ function openAddProblemsDialog() {
               : t("problem.problemList.detail.fork")
           }}
         </Button>
-        <DropdownMenu>
+        <DropdownMenu v-model:open="dropdownOpen">
           <DropdownMenuTrigger as-child>
             <Button variant="ghost" size="icon" class="h-9 w-9">
               <MoreHorizontal class="h-4 w-4" />
@@ -217,11 +218,11 @@ function openAddProblemsDialog() {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" class="w-56">
             <template v-if="isOwner">
-              <DropdownMenuItem @click="isEditOpen = true">
+              <DropdownMenuItem @click="dropdownOpen = false; nextTick(() => isEditOpen = true)">
                 <Pencil class="mr-2 h-4 w-4" />
                 {{ t("problem.problemList.detail.editDetails") }}
               </DropdownMenuItem>
-              <DropdownMenuItem @click="openAddProblemsDialog">
+              <DropdownMenuItem @click="dropdownOpen = false; nextTick(() => openAddProblemsDialog())">
                 <Plus class="mr-2 h-4 w-4" />
                 {{ t("problem.problemList.detail.addProblems") }}
               </DropdownMenuItem>
@@ -263,7 +264,7 @@ function openAddProblemsDialog() {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 class="text-destructive focus:text-destructive"
-                @click="isDeleteOpen = true"
+                @click="dropdownOpen = false; nextTick(() => isDeleteOpen = true)"
               >
                 <Trash2 class="mr-2 h-4 w-4" />
                 {{ t("problem.problemList.actions.deleteList") }}

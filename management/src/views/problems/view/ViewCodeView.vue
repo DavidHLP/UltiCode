@@ -13,11 +13,11 @@ const problemsStore = useProblemsStore()
 const isLoaded = ref(false)
 
 const problemId = computed(() => route.params.id as string)
-const problem = computed(() => problemsStore.currentProblem)
+const codeData = computed(() => problemsStore.codeData)
 
 onMounted(async () => {
-  if (problemId.value && !problem.value) {
-    await problemsStore.fetchProblem(problemId.value)
+  if (problemId.value && !codeData.value) {
+    await problemsStore.fetchCode(problemId.value)
   }
   setTimeout(() => {
     isLoaded.value = true
@@ -69,8 +69,8 @@ onMounted(async () => {
 
     <!-- Main Content -->
     <div class="flex-1 py-4">
-      <div v-if="problem" class="space-y-4">
-        <CodeDisplay :languages="problem.languages" />
+      <div v-if="codeData" class="space-y-4">
+        <CodeDisplay :languages="codeData.languages" />
       </div>
 
       <!-- Loading State - Terminal Style -->

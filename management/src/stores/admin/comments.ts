@@ -11,6 +11,7 @@ import {
 export const useCommentsStore = defineStore('adminComments', () => {
   const comments = ref<Comment[]>([])
   const total = ref(0)
+  const currentComment = ref<Comment | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
@@ -26,6 +27,24 @@ export const useCommentsStore = defineStore('adminComments', () => {
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Failed to fetch comments'
       console.error('Failed to fetch comments:', err)
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function fetchComment(id: string, type: CommentType) {
+    loading.value = true
+    error.value = null
+    try {
+      const comment = await commentsApi.getComment(id, type)
+      currentComment.value = comment
+      return comment
+    } catch (err: unknown) {
+      error.value =
+        (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
+        'Failed to fetch comment'
+      console.error('Failed to fetch comment:', err)
+      throw err
     } finally {
       loading.value = false
     }
@@ -130,9 +149,11 @@ export const useCommentsStore = defineStore('adminComments', () => {
   return {
     comments,
     total,
+    currentComment,
     loading,
     error,
     fetchComments,
+    fetchComment,
     flagComment,
     unflagComment,
     deleteComment,

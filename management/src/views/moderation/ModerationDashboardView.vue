@@ -148,11 +148,11 @@ function handleRefresh() {
 }
 
 function navigateToQueue() {
-  router.push('/admin/moderation')
+  router.push('/moderation')
 }
 
 function navigateToAppeals() {
-  router.push('/admin/moderation/appeals')
+  router.push('/moderation/appeals')
 }
 </script>
 

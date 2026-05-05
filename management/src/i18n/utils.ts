@@ -128,8 +128,9 @@ export function getPlural(key: string, count: number, params?: Record<string, un
  */
 export function hasTranslation(key: string): boolean {
   try {
-    const result = i18n.global.te(key)
-    return result
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const result = (i18n.global as any).te(key)
+    return result as boolean
   } catch {
     return false
   }

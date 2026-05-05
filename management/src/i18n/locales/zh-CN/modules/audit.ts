@@ -1,6 +1,16 @@
 export default {
   title: '审计日志',
   searchPlaceholder: '搜索审计日志...',
+  filterAction: '筛选操作',
+  allActions: '全部操作',
+  export: '导出',
+  noLogs: '暂无日志',
+  noLogsDescription: '没有找到符合条件的审计日志记录。',
+  systemAction: '系统操作',
+  oldValues: '旧值',
+  newValues: '新值',
+  ipAddress: 'IP 地址',
+  userAgent: '用户代理',
 
   // 列定义
   columns: {
@@ -43,6 +53,11 @@ export default {
   actions: {
     viewDetails: '查看详情',
     openMenu: '打开菜单',
+    create: '创建',
+    update: '更新',
+    delete: '删除',
+    publish: '发布',
+    moderate: '审核',
   },
 
   // 统计标签

@@ -50,9 +50,24 @@ export interface TagListResponse {
   totalPages: number
 }
 
+export interface ProblemTagResponse {
+  id: string
+  label: string
+}
+
 export const tagsApi = {
   getTags(query: TagQuery) {
     return apiGet<TagListResponse>('/admin/tags', { params: query })
+  },
+
+  /**
+   * Get all tags for a given type, returns ProblemTag shape { id, label }
+   */
+  async getAllTags(type: TagType = TagType.PROBLEM): Promise<ProblemTagResponse[]> {
+    const response = await apiGet<TagListResponse>('/admin/tags', {
+      params: { type, limit: 1000, sortBy: 'name', sortOrder: 'asc' },
+    })
+    return response.data.map((tag) => ({ id: tag.id, label: tag.name }))
   },
 
   getTag(id: string, type: TagType) {

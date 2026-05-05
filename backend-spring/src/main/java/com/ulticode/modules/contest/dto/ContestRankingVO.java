@@ -36,7 +36,7 @@ public class ContestRankingVO {
     /**
      * User ID
      */
-    private Long userId;
+    private String userId;
 
     /**
      * Username
@@ -117,4 +117,34 @@ public class ContestRankingVO {
      * Whether the contest is active
      */
     private Boolean isActive;
+
+    /**
+     * User's country
+     */
+    private String country;
+
+    /**
+     * Maximum rating achieved
+     */
+    private Integer maxRating;
+
+    /**
+     * Current rating title
+     */
+    private String ratingTitle;
+
+    /**
+     * Maximum rating title achieved
+     */
+    private String maxRatingTitle;
+
+    /**
+     * Number of contests attended
+     */
+    private Integer contestsAttended;
+
+    /**
+     * User's badge
+     */
+    private String badge;
 }

@@ -124,6 +124,15 @@ public interface ContestService {
     List<ContestRankingVO> getGlobalRanking(Integer limit);
 
     /**
+     * Get global ranking with pagination.
+     *
+     * @param page  the page number (1-based)
+     * @param limit the number of items per page
+     * @return paginated list of global rankings
+     */
+    PageResult<ContestRankingVO> getGlobalRankingsPaginated(Integer page, Integer limit);
+
+    /**
      * Register a user for a contest.
      *
      * @param contestId the contest ID

@@ -1,0 +1,32 @@
+{
+  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/contest-api-fix.md",
+  "started_at": "2026-05-05T13:13:22.889Z",
+  "session_ids": [
+    "ses_207c5b2fdffe52F1tgHaCWxRkM"
+  ],
+  "session_origins": {
+    "ses_207c5b2fdffe52F1tgHaCWxRkM": "direct"
+  },
+  "plan_name": "contest-api-fix",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:1": {
+      "task_key": "todo:1",
+      "task_label": "1",
+      "task_title": "修复 `ContestRankingVO.userId` 类型（Long → String）",
+      "session_id": "ses_207b9be9cffeaISwWau0mMBQqG",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-05-05T13:14:30.305Z"
+    },
+    "todo:4": {
+      "task_key": "todo:4",
+      "task_label": "4",
+      "task_title": "补充 `ContestRankingVO` 缺失字段",
+      "session_id": "ses_207b885c6ffeeerVVWxbZStjTI",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-05-05T13:16:02.459Z"
+    }
+  }
+}

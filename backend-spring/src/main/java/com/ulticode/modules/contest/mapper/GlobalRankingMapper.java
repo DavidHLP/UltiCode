@@ -19,25 +19,25 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Find ranking by user ID
      */
-    @Select("SELECT * FROM global_ranking WHERE user_id = #{userId} LIMIT 1")
+    @Select("SELECT * FROM global_rankings WHERE user_id = #{userId} LIMIT 1")
     Optional<GlobalRanking> findByUserId(@Param("userId") String userId);
 
     /**
      * Find ranking by username
      */
-    @Select("SELECT * FROM global_ranking WHERE username = #{username} LIMIT 1")
+    @Select("SELECT * FROM global_rankings WHERE username = #{username} LIMIT 1")
     Optional<GlobalRanking> findByUsername(@Param("username") String username);
 
     /**
      * Find top N rankings by global rank
      */
-    @Select("SELECT * FROM global_ranking ORDER BY global_rank ASC LIMIT #{limit}")
+    @Select("SELECT * FROM global_rankings ORDER BY global_rank ASC LIMIT #{limit}")
     List<GlobalRanking> findTopRankings(@Param("limit") int limit);
 
     /**
      * Find rankings by rating range
      */
-    @Select("SELECT * FROM global_ranking WHERE rating BETWEEN #{minRating} AND #{maxRating} ORDER BY rating DESC")
+    @Select("SELECT * FROM global_rankings WHERE rating BETWEEN #{minRating} AND #{maxRating} ORDER BY rating DESC")
     List<GlobalRanking> findByRatingRange(
             @Param("minRating") int minRating,
             @Param("maxRating") int maxRating
@@ -46,7 +46,7 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Find rankings around a specific rank (for user context in leaderboard)
      */
-    @Select("SELECT * FROM global_ranking WHERE global_rank BETWEEN #{startRank} AND #{endRank} ORDER BY global_rank ASC")
+    @Select("SELECT * FROM global_rankings WHERE global_rank BETWEEN #{startRank} AND #{endRank} ORDER BY global_rank ASC")
     List<GlobalRanking> findByRankRange(
             @Param("startRank") int startRank,
             @Param("endRank") int endRank
@@ -55,19 +55,19 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Count total rankings
      */
-    @Select("SELECT COUNT(*) FROM global_ranking")
+    @Select("SELECT COUNT(*) FROM global_rankings")
     long countTotal();
 
     /**
      * Count rankings with rating >= threshold
      */
-    @Select("SELECT COUNT(*) FROM global_ranking WHERE rating >= #{minRating}")
+    @Select("SELECT COUNT(*) FROM global_rankings WHERE rating >= #{minRating}")
     long countByMinRating(@Param("minRating") int minRating);
 
     /**
      * Update user rating
      */
-    @Update("UPDATE global_ranking SET rating = #{rating}, max_rating = GREATEST(max_rating, #{rating}), " +
+    @Update("UPDATE global_rankings SET rating = #{rating}, max_rating = GREATEST(max_rating, #{rating}), " +
             "rating_title = #{ratingTitle}, contests_attended = contests_attended + 1, " +
             "contests_rated = contests_rated + 1, last_contest_id = #{lastContestId}, " +
             "updated_at = NOW() WHERE user_id = #{userId}")
@@ -81,7 +81,7 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Update max rating title if new max achieved
      */
-    @Update("UPDATE global_ranking SET max_rating_title = #{maxRatingTitle}, updated_at = NOW() " +
+    @Update("UPDATE global_rankings SET max_rating_title = #{maxRatingTitle}, updated_at = NOW() " +
             "WHERE user_id = #{userId} AND rating >= max_rating")
     int updateMaxRatingTitle(
             @Param("userId") String userId,
@@ -92,9 +92,9 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
      * Recalculate global ranks (typically run after batch rating updates)
      * This uses a subquery to set rank based on rating ordering
      */
-    @Update("UPDATE global_ranking gr JOIN (" +
+    @Update("UPDATE global_rankings gr JOIN (" +
             "SELECT user_id, RANK() OVER (ORDER BY rating DESC) as new_rank " +
-            "FROM global_ranking" +
+            "FROM global_rankings" +
             ") r ON gr.user_id = r.user_id " +
             "SET gr.global_rank = r.new_rank, gr.updated_at = NOW()")
     int recalculateGlobalRanks();
@@ -102,24 +102,24 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     /**
      * Increment contests attended count
      */
-    @Update("UPDATE global_ranking SET contests_attended = contests_attended + 1, updated_at = NOW() WHERE user_id = #{userId}")
+    @Update("UPDATE global_rankings SET contests_attended = contests_attended + 1, updated_at = NOW() WHERE user_id = #{userId}")
     int incrementContestsAttended(@Param("userId") String userId);
 
     /**
      * Check if user has ranking record
      */
-    @Select("SELECT COUNT(*) > 0 FROM global_ranking WHERE user_id = #{userId}")
+    @Select("SELECT COUNT(*) > 0 FROM global_rankings WHERE user_id = #{userId}")
     boolean existsByUserId(@Param("userId") String userId);
 
     /**
      * Find users by rating title
      */
-    @Select("SELECT * FROM global_ranking WHERE rating_title = #{ratingTitle} ORDER BY rating DESC")
+    @Select("SELECT * FROM global_rankings WHERE rating_title = #{ratingTitle} ORDER BY rating DESC")
     List<GlobalRanking> findByRatingTitle(@Param("ratingTitle") String ratingTitle);
 
     /**
      * Find users by country
      */
-    @Select("SELECT * FROM global_ranking WHERE country = #{country} ORDER BY global_rank ASC")
+    @Select("SELECT * FROM global_rankings WHERE country = #{country} ORDER BY global_rank ASC")
     List<GlobalRanking> findByCountry(@Param("country") String country);
 }

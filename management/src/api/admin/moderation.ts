@@ -67,6 +67,7 @@ export interface ModerationQueueItem {
   id: string
   entityType: ModeratableEntityType
   entityId: string
+  parentId?: string
   status: ModerationStatus
   priority: number
   primaryCategory: ReportCategory
@@ -107,6 +108,7 @@ export interface Report {
 
   entityType: ModeratableEntityType
   entityId: string
+  parentId?: string
   category: ReportCategory
   status: ReportStatus
   reason?: string

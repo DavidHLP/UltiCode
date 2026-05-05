@@ -8,7 +8,8 @@ import axios, {
 } from "axios";
 import { LOCALE_HEADER_KEY } from "@/i18n";
 import { getActiveLocale } from "@/i18n/utils/locale";
-import { csrfManager, getCsrfToken } from "@/utils/csrf";
+import { csrfManager } from "@/utils/csrf";
+import { createCsrfAxiosInterceptor } from "@/shared/auth-core/src";
 
 /**
  * Standard API Response wrapper (matches backend Result<T>)
@@ -64,7 +65,6 @@ interface RequestMetadata {
   requestId: string;
   startTime: number;
   retryCount: number;
-  csrfRetried?: boolean;
 }
 
 /**
@@ -129,6 +129,11 @@ const service: AxiosInstance = axios.create({
   },
 });
 
+const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager);
+service.interceptors.request.use(csrfInterceptors.requestInterceptor);
+service.interceptors.response.use(csrfInterceptors.responseInterceptor);
+service.interceptors.response.use(undefined, csrfInterceptors.errorInterceptor);
+
 /**
  * Request interceptor with enterprise features
  */
@@ -145,20 +150,6 @@ service.interceptors.request.use(
 
     // Note: Auth is now handled via httpOnly cookies (withCredentials: true)
     // No need to manually attach Authorization header
-
-    // Attach CSRF token for state-changing requests (POST, PUT, PATCH, DELETE)
-    const method = config.method?.toUpperCase();
-    if (
-      method &&
-      method !== "GET" &&
-      method !== "HEAD" &&
-      method !== "OPTIONS"
-    ) {
-      const csrfToken = getCsrfToken();
-      if (csrfToken) {
-        config.headers["X-CSRF-Token"] = csrfToken;
-      }
-    }
 
     // Add locale headers (both custom x-locale and standard Accept-Language)
     const activeLocale = getActiveLocale();
@@ -224,12 +215,6 @@ service.interceptors.response.use(
       });
     }
 
-    // Refresh CSRF token from rotation header (backend rotates after each state-changing request)
-    const newCsrfToken = response.headers["x-new-csrf-token"];
-    if (newCsrfToken) {
-      csrfManager.refreshFromResponse({ csrfToken: newCsrfToken });
-    }
-
     // Return full response for download requests, unwrapped data otherwise
     if (config.skipResponseUnwrap) {
       return response;
@@ -274,42 +259,6 @@ service.interceptors.response.use(
       if (isDevelopment) {
       }
       return Promise.reject(new ApiError("Request canceled", -1));
-    }
-
-    // Handle CSRF token rotation mismatch — fetch fresh token and retry once
-    if (
-      error.response?.status === 403 &&
-      config &&
-      !config._metadata?.csrfRetried
-    ) {
-      const errorData = error.response.data as Record<string, unknown> | undefined;
-      const isCsrfError =
-        typeof errorData?.message === "string" &&
-        (errorData.message.includes("CSRF") || errorData.code === 40300);
-
-      if (isCsrfError) {
-        try {
-          // Fetch fresh CSRF token (GET request, no CSRF validation needed)
-          const meResponse = await service.get<unknown, { csrfToken?: string }>("/auth/me", {
-            skipErrorHandler: true,
-          } as RequestConfig);
-          if (meResponse?.csrfToken) {
-            csrfManager.refreshFromResponse(meResponse as { csrfToken: string });
-          }
-
-          // Retry original request once with fresh token
-          config._metadata = {
-            requestId: config._metadata?.requestId || generateRequestId(),
-            startTime: Date.now(),
-            retryCount: 0,
-            csrfRetried: true,
-          };
-
-          return service(config);
-        } catch {
-          // Token refresh failed — fall through to normal error handling
-        }
-      }
     }
 
     // Retry logic for network errors and 5xx

@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
  * Global ranking entity
  */
 @Data
-@TableName("global_ranking")
+@TableName("global_rankings")
 public class GlobalRanking {
 
     @TableId(type = IdType.ASSIGN_UUID)

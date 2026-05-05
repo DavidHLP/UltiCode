@@ -306,7 +306,7 @@ export async function fetchGlobalRankings(options?: {
 }): Promise<PaginatedResult<GlobalRankingEntry>> {
   const { page = 1, limit = 50, country } = options || {};
   const result = await apiGet<PaginatedResult<GlobalRankingEntry>>(
-    "/rankings/global",
+    "/contest/rankings/global",
     { params: country ? { page, limit, country } : { page, limit } },
   );
   return {

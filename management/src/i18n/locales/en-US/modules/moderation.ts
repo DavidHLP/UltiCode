@@ -291,6 +291,7 @@ export default {
     actions: 'Actions',
     reporter: 'Reporter',
     reason: 'Reason',
+    resolution: 'Action',
     queueId: 'Queue ID',
     id: 'ID',
   },

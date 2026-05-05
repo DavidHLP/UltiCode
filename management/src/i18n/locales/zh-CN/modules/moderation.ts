@@ -291,6 +291,7 @@ export default {
     actions: '操作',
     reporter: '举报者',
     reason: '原因',
+    resolution: '操作内容',
     queueId: '队列ID',
     id: 'ID',
   },

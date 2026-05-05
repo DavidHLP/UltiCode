@@ -277,6 +277,47 @@ export function createColumns(
         return renderStatusBadge(status, t)
       },
     },
+    // Resolution column (操作内容)
+    {
+      accessorKey: 'resolution',
+      size: 120,
+      minSize: 100,
+      maxSize: 140,
+      header: () =>
+        h(
+          'span',
+          {
+            class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]',
+          },
+          t('moderation.columns.resolution'),
+        ),
+      cell: ({ row }) => {
+        const resolution = row.original.resolution
+        if (!resolution) {
+          return h('span', { class: 'text-[var(--silver-400)]' }, '—')
+        }
+        // Map action to color
+        const colorMap: Record<string, string> = {
+          DELETED: 'text-[var(--terminal-red)]',
+          HIDDEN: 'text-[var(--terminal-amber)]',
+          RESTORED: 'text-[var(--terminal-green)]',
+          WARNED: 'text-[var(--terminal-amber)]',
+          TEMP_BANNED: 'text-[var(--terminal-amber)]',
+          PERM_BANNED: 'text-[var(--terminal-red)]',
+          DISMISSED: 'text-[var(--silver-500)]',
+          RESOLVED: 'text-[var(--terminal-green)]',
+          APPEAL_PENDING: 'text-[var(--terminal-purple)]',
+          APPEAL_APPROVED: 'text-[var(--terminal-green)]',
+          APPEAL_REJECTED: 'text-[var(--terminal-red)]',
+        }
+        const colorClass = colorMap[resolution] || 'text-[var(--silver-500)]'
+        return h(
+          'span',
+          { class: `font-data text-xs ${colorClass}` },
+          t(`moderation.actions.${resolution}`),
+        )
+      },
+    },
     // Priority column
     {
       accessorKey: 'priority',

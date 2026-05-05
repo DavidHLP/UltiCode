@@ -23,9 +23,10 @@ import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 import { formatRelativeTime } from "@/utils/date";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "vue-router";
-import { Pencil, Trash2 } from "lucide-vue-next";
+import { Pencil, Trash2, Flag } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
+import ReportDialog from "@/components/ReportDialog.vue";
 
 const props = defineProps<{
   item: SolutionFeedItem;
@@ -75,6 +76,12 @@ const isOwner = computed(() => {
     props.item.authorId === userId
   );
 });
+
+const reportDialogRef = ref<{ open: () => void } | null>(null);
+
+const handleReport = () => {
+  reportDialogRef.value?.open();
+};
 
 watch(
   () => props.item,
@@ -285,24 +292,36 @@ watch(
           >
             {{ props.item.flair }}
           </Badge>
-          <div v-if="isOwner" class="ml-auto flex items-center gap-1.5">
+          <div class="ml-auto flex items-center gap-1.5">
+            <template v-if="isOwner">
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-7 px-2 text-xs"
+                @click="handleEditSolution"
+              >
+                <Pencil class="mr-1 h-3.5 w-3.5" />
+                {{ t("common.actions.edit") }}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                class="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                @click="handleDeleteSolution"
+              >
+                <Trash2 class="mr-1 h-3.5 w-3.5" />
+                {{ t("common.actions.delete") }}
+              </Button>
+            </template>
             <Button
+              v-else
               variant="ghost"
               size="sm"
-              class="h-7 px-2 text-xs"
-              @click="handleEditSolution"
+              class="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
+              @click="handleReport"
             >
-              <Pencil class="mr-1 h-3.5 w-3.5" />
-              {{ t("common.actions.edit") }}
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              class="h-7 px-2 text-xs text-destructive hover:text-destructive"
-              @click="handleDeleteSolution"
-            >
-              <Trash2 class="mr-1 h-3.5 w-3.5" />
-              {{ t("common.actions.delete") }}
+              <Flag class="mr-1 h-3.5 w-3.5" />
+              举报
             </Button>
           </div>
         </div>
@@ -390,4 +409,11 @@ watch(
       />
     </div>
   </article>
+
+  <ReportDialog
+    v-if="props.item.id !== 'follow-up'"
+    ref="reportDialogRef"
+    entity-type="solution"
+    :entity-id="props.item.id"
+  />
 </template>

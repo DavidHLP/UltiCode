@@ -33,7 +33,7 @@ vi.mock('@/stores/admin/problems', () => ({
 }))
 
 vi.mock('@/components/ui/form', async () => {
-  const { h, inject, computed, ref, provide } = await import('vue')
+  const { h, inject, provide } = await import('vue')
   const { FormContextKey } = await import('vee-validate')
 
   const FormFieldStub = {

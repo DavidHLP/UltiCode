@@ -138,6 +138,7 @@
             <button
               v-else
               class="flex items-center gap-2 px-2 py-1 rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-bold"
+              @click="handleReport"
             >
               <Flag class="h-4.5 w-4.5" />
             </button>
@@ -210,6 +211,12 @@
         </AlertDialogFooter>
       </AlertDialogContent>
     </AlertDialog>
+
+    <ReportDialog
+      ref="reportDialogRef"
+      entity-type="forum_comment"
+      :entity-id="String(comment.id)"
+    />
   </div>
 </template>
 
@@ -229,6 +236,7 @@ import CommentRail from "./CommentRail.vue";
 import CommentForm from "./CommentForm.vue";
 import { ActionItem, VoteControl } from "@/components/edge-operations";
 import { Badge } from "@/components/ui/badge";
+import ReportDialog from "@/components/ReportDialog.vue";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -286,6 +294,7 @@ const isRailHovered = ref(false);
 const isReplying = ref(false);
 const isEditing = ref(false);
 const showDeleteDialog = ref(false);
+const reportDialogRef = ref<{ open: () => void } | null>(null);
 
 const containerRef = ref<HTMLElement | null>(null);
 const childrenContainerRef = ref<HTMLElement | null>(null);
@@ -409,6 +418,10 @@ const handleDeleteClick = () => {
 const confirmDelete = () => {
   emit("delete", props.comment.id);
   showDeleteDialog.value = false;
+};
+
+const handleReport = () => {
+  reportDialogRef.value?.open();
 };
 
 const handleVote = (type: 1 | -1) => {

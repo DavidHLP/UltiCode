@@ -1,4 +1,4 @@
-import { h, ref, nextTick, type ComputedRef } from 'vue'
+import { h, type ComputedRef } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
 import {
@@ -209,15 +209,7 @@ export function useProblemColumns(
       header: () => t('common.actions.label'),
       cell: ({ row }) => {
         const problem = row.original
-        const open = ref(false)
-        const closeMenuAnd = (fn: () => void) => {
-          open.value = false
-          nextTick(() => fn())
-        }
-        return h(DropdownMenu, {
-          open: open.value,
-          'onUpdate:open': (value: boolean) => { open.value = value },
-        }, {
+        return h(DropdownMenu, {}, {
           default: () => [
             h(DropdownMenuTrigger, { asChild: true }, {
               default: () => h(Button, { variant: 'ghost', size: 'icon', class: 'h-8 w-8 p-0' }, {
@@ -234,13 +226,13 @@ export function useProblemColumns(
                         h(DropdownMenuItem, { onClick: () => actions.viewProblem(problem.id) }, { default: () => h('div', { class: 'flex items-center gap-2' }, [h(IconFile, { class: 'h-4 w-4' }), t('problems.tabs.description')]) }),
                         h(DropdownMenuItem, { onClick: () => actions.viewProblemCode(problem.id) }, { default: () => h('div', { class: 'flex items-center gap-2' }, [h(IconBrackets, { class: 'h-4 w-4' }), t('problems.tabs.code')]) }),
                         h(DropdownMenuItem, { onClick: () => actions.viewProblemCases(problem.id) }, { default: () => h('div', { class: 'flex items-center gap-2' }, [h(IconFlask, { class: 'h-4 w-4' }), t('problems.tabs.testCases')]) }),
-                        problem.isFlagged ? h(DropdownMenuItem, { onClick: () => closeMenuAnd(() => actions.viewFlagInfo(problem)) }, { default: () => h('div', { class: 'flex items-center gap-2' }, [h(IconAlertTriangle, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }), t('problems.actions.viewFlagInfo')]) }) : null,
+                        problem.isFlagged ? h(DropdownMenuItem, { onClick: () => actions.viewFlagInfo(problem) }, { default: () => h('div', { class: 'flex items-center gap-2' }, [h(IconAlertTriangle, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }), t('problems.actions.viewFlagInfo')]) }) : null,
                       ],
                     }),
                   ],
                 }),
                 h(DropdownMenuSeparator, {}),
-                canUpdateProblem.value ? h(DropdownMenuItem, { onClick: () => problem.isFlagged ? actions.unflagProblem(problem.id) : closeMenuAnd(() => actions.openFlagDialog(problem)) }, {
+                canUpdateProblem.value ? h(DropdownMenuItem, { onClick: () => problem.isFlagged ? actions.unflagProblem(problem.id) : actions.openFlagDialog(problem) }, {
                   default: () => h('div', { class: 'flex items-center gap-2' }, [
                     problem.isFlagged ? h(IconFlagOff, { class: 'h-4 w-4 text-emerald-600' }) : h(IconFlag, { class: 'h-4 w-4 text-amber-600' }),
                     problem.isFlagged ? t('moderation.unflag') : t('moderation.flag'),
@@ -252,7 +244,7 @@ export function useProblemColumns(
                     ? h(DropdownMenuItem, { onClick: () => actions.unpublishProblem(problem.id) }, { default: () => h('div', { class: 'flex items-center gap-2 text-amber-600' }, [h(IconEyeOff, { class: 'h-4 w-4' }), t('problems.actions.unpublish')]) })
                     : h(DropdownMenuItem, { onClick: () => actions.publishProblem(problem.id) }, { default: () => h('div', { class: 'flex items-center gap-2 text-emerald-600' }, [h(IconEye, { class: 'h-4 w-4' }), t('problems.actions.publish')]) })
                   : null,
-                canDeleteProblem.value ? h(DropdownMenuItem, { onClick: () => closeMenuAnd(() => actions.confirmDelete(problem)) }, { default: () => h('div', { class: 'flex items-center gap-2 text-destructive' }, [h(IconTrash, { class: 'h-4 w-4' }), t('common.delete')]) }) : null,
+                canDeleteProblem.value ? h(DropdownMenuItem, { onClick: () => actions.confirmDelete(problem) }, { default: () => h('div', { class: 'flex items-center gap-2 text-destructive' }, [h(IconTrash, { class: 'h-4 w-4' }), t('common.delete')]) }) : null,
               ],
             }),
           ],

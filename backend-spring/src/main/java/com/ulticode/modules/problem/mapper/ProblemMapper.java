@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.ConstructorArgs;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -57,4 +58,7 @@ public interface ProblemMapper extends BaseMapper<Problem> {
             "#{id}</foreach>" +
             "</script>")
     List<ProblemTagDTO> selectTagsByProblemIds(@Param("problemIds") List<Long> problemIds);
+
+    @Update("UPDATE problems SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
+    int updateFlagStatus(@Param("id") String id, @Param("isFlagged") boolean isFlagged, @Param("reason") String reason);
 }

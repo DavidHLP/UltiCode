@@ -50,8 +50,8 @@ async function handleBatchAction() {
       note: batchNote.value || undefined,
     })
 
-    const successCount = result.results.filter((r) => r.success).length
-    const failCount = result.results.filter((r) => !r.success).length
+    const successCount = result.successCount
+    const failCount = result.errorCount
 
     if (failCount === 0) {
       toast.success(t('moderation.toast.batchCompleted'))

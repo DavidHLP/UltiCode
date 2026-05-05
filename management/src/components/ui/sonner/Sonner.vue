@@ -19,7 +19,8 @@ const props = defineProps<ToasterProps>()
 // internal <ol ref="listRef"> loses its render context.
 // Using a computed prop binding keeps the vnode dynamic.
 const sonnerProps = computed(() => {
-  const { class: _, style: __, ...rest } = props
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { class: _class, style: _style, ...rest } = props
   return rest
 })
 </script>

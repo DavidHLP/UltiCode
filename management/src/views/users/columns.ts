@@ -38,9 +38,9 @@ function renderRoleBadge(role: string) {
 }
 
 // Terminal-style status badge renderer
-function renderStatusBadge(user: User) {
-  if (user.isBanned) return badge({ color: 'error', label: 'BANNED', pulse: true })
-  if (!user.isActive) return badge({ color: 'neutral', label: 'INACTIVE' })
+function renderStatusBadge(isBanned: boolean, isActive: boolean) {
+  if (isBanned) return badge({ color: 'error', label: 'BANNED', pulse: true })
+  if (!isActive) return badge({ color: 'neutral', label: 'INACTIVE' })
   return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
 }
 
@@ -172,7 +172,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const user = row.original
-        return renderStatusBadge(user)
+        return renderStatusBadge(user.isBanned, user.isActive)
       },
     },
     {

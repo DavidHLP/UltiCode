@@ -58,21 +58,6 @@ public interface AdminForumService {
     void unlockPost(String id);
 
     /**
-     * Flag a post for review.
-     *
-     * @param id     post ID
-     * @param reason reason for flagging
-     */
-    void flagPost(String id, String reason);
-
-    /**
-     * Unflag a post.
-     *
-     * @param id post ID
-     */
-    void unflagPost(String id);
-
-    /**
      * Delete a post (soft delete).
      *
      * @param id post ID

@@ -1,5 +1,6 @@
 package com.ulticode.modules.forum.service.impl;
 
+import com.ulticode.common.annotation.CheckBan;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.forum.dto.CreateCommentDTO;
@@ -41,6 +42,7 @@ public class ForumCommentServiceImpl implements ForumCommentService {
 
     @Override
     @Transactional
+    @CheckBan
     public ForumCommentVO createComment(String postId, CreateCommentDTO dto, String userId) {
         log.debug("Creating comment on post: {} for user: {}", postId, userId);
 

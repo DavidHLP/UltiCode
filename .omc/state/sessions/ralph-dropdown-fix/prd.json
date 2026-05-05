@@ -1,0 +1,27 @@
+{
+  "title": "Fix dropdown menu not opening in problems/users pages",
+  "stories": [
+    {
+      "id": "US-001",
+      "description": "Build errors in management app must be fixed",
+      "acceptanceCriteria": [
+        "TypeScript build errors in shared/auth-core and management/src/utils/request.ts are resolved",
+        "management app builds successfully with pnpm run build"
+      ],
+      "priority": 1,
+      "passes": true
+    },
+    {
+      "id": "US-002",
+      "description": "Dropdown menus in ProblemsListView and UsersListView must open on click",
+      "acceptanceCriteria": [
+        "Clicking the action button (IconDotsVertical) in problems list opens the dropdown menu",
+        "Clicking the action button (IconDotsVertical) in users list opens the dropdown menu",
+        "Dropdown opens without errors in browser console"
+      ],
+      "priority": 2,
+      "passes": false
+    }
+  ],
+  "notes": "Build errors fixed. DropdownMenu.vue was updated to match console's implementation. Dev server is running on port 9003 - user should refresh browser to test."
+}

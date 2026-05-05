@@ -135,7 +135,7 @@ async function handleReviewSubmit() {
   reviewLoading.value = true
   try {
     await store.reviewAppeal(selectedAppeal.value.id, {
-      status: reviewDecision.value as AppealStatus.APPROVED | AppealStatus.REJECTED,
+      decision: reviewDecision.value as AppealStatus.APPROVED | AppealStatus.REJECTED,
       response: reviewResponse.value || undefined,
     })
 

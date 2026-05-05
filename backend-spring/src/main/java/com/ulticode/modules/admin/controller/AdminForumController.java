@@ -7,7 +7,6 @@ import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 import com.ulticode.modules.admin.dto.BulkActionRequest;
 import com.ulticode.modules.admin.dto.BulkActionResult;
-import com.ulticode.modules.admin.dto.FlagRequest;
 import com.ulticode.modules.admin.service.AdminForumService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -87,29 +86,6 @@ public class AdminForumController {
             @Parameter(description = "Post ID")
             @PathVariable String id) {
         adminForumService.unlockPost(id);
-        return Result.success();
-    }
-
-    @Operation(summary = "Flag post", description = "Flag a post for review")
-    @RateLimit(key = "admin:forum-flag", limit = 30, period = 60)
-    @PostMapping("/posts/{id}/flag")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<Void> flagPost(
-            @Parameter(description = "Post ID")
-            @PathVariable String id,
-            @Valid @RequestBody FlagRequest request) {
-        adminForumService.flagPost(id, request.getReason());
-        return Result.success();
-    }
-
-    @Operation(summary = "Unflag post", description = "Remove flag from a post")
-    @RateLimit(key = "admin:forum-unflag", limit = 30, period = 60)
-    @PostMapping("/posts/{id}/unflag")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<Void> unflagPost(
-            @Parameter(description = "Post ID")
-            @PathVariable String id) {
-        adminForumService.unflagPost(id);
         return Result.success();
     }
 

@@ -105,15 +105,16 @@ public class CsrfService {
         }
 
         String pattern = CSRF_PREFIX + userId + ":*";
-        Cursor<String> keys = redisTemplate.scan(
+        try (Cursor<String> keys = redisTemplate.scan(
             org.springframework.data.redis.core.ScanOptions.scanOptions().match(pattern).count(100).build()
-        );
-        int count = 0;
-        while (keys.hasNext()) {
-            redisTemplate.delete(keys.next());
-            count++;
+        )) {
+            int count = 0;
+            while (keys.hasNext()) {
+                redisTemplate.delete(keys.next());
+                count++;
+            }
+            log.debug("Cleared {} CSRF tokens for user: {}", count, userId);
         }
-        log.debug("Cleared {} CSRF tokens for user: {}", count, userId);
     }
 
     private String buildKey(String userId, String tokenId) {

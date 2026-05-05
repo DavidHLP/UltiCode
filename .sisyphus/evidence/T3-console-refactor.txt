@@ -1,0 +1,18 @@
+T3 Console Refactor - 2026年 05月 05日 星期二 12:00:35 CST
+
+Changes made to console/src/utils/request.ts:
+1. Removed getCsrfToken import (kept csrfManager)
+2. Added import: createCsrfAxiosInterceptor from @/shared/auth-core/src
+3. Removed csrfRetried from RequestMetadata interface
+4. Removed manual CSRF token attachment (was lines 149-161)
+5. Removed x-new-csrf-token capture (was lines 228-231)
+6. Removed CSRF retry logic (was lines 279-313)
+7. Added CSRF interceptor registration using shared createCsrfAxiosInterceptor
+
+Verification:
+- grep getCsrfToken: NO MATCHES
+- grep x-new-csrf-token: NO MATCHES  
+- grep csrfRetried: NO MATCHES
+- grep createCsrfAxiosInterceptor: 2 MATCHES (import + usage)
+
+Tests: pnpm test passed (227 tests, 18 test files)

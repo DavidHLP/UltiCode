@@ -1,5 +1,8 @@
 # AGENTS.md
 
+> **Last Updated**: 2026-05-04
+> **Context**: Comprehensive project reference + init-deep analysis complete (6 explore agents, 200K LOC analyzed)
+
 Compact reference for AI assistants working in the UltiCode repository.
 Every line answers: "Would an agent likely miss this without help?"
 

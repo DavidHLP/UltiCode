@@ -52,6 +52,9 @@ public enum ErrorCode {
     PROBLEM_NOT_FOUND(30001, "Problem not found", HttpStatus.NOT_FOUND),
     PROBLEM_LOCKED(30002, "Problem is locked", HttpStatus.FORBIDDEN),
     PROBLEM_PREMIUM_REQUIRED(30003, "Premium subscription required", HttpStatus.FORBIDDEN),
+    PROBLEM_TAG_NOT_FOUND(30010, "Problem tag not found", HttpStatus.NOT_FOUND),
+    PROBLEM_TAG_NAME_EXISTS(30011, "Problem tag name already exists", HttpStatus.CONFLICT),
+    PROBLEM_TAG_SLUG_EXISTS(30012, "Problem tag slug already exists", HttpStatus.CONFLICT),
 
     // Submission module (4xxxx)
     SUBMISSION_NOT_FOUND(40001, "Submission not found", HttpStatus.NOT_FOUND),
@@ -79,6 +82,9 @@ public enum ErrorCode {
     FORUM_CANNOT_DELETE_POST(60005, "Cannot delete this post", HttpStatus.FORBIDDEN),
     FORUM_COMMENT_NOT_FOUND(60006, "Comment not found", HttpStatus.NOT_FOUND),
     FORUM_POST_LOCKED(60007, "Post is locked", HttpStatus.FORBIDDEN),
+    FORUM_TAG_NOT_FOUND(60010, "Forum tag not found", HttpStatus.NOT_FOUND),
+    FORUM_TAG_NAME_EXISTS(60011, "Forum tag name already exists", HttpStatus.CONFLICT),
+    FORUM_TAG_SLUG_EXISTS(60012, "Forum tag slug already exists", HttpStatus.CONFLICT),
 
     // Contest module (7xxxx)
     CONTEST_NOT_FOUND(70001, "Contest not found", HttpStatus.NOT_FOUND),

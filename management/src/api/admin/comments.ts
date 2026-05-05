@@ -59,6 +59,10 @@ export const commentsApi = {
     return apiGet<PageResult<Comment>>('/admin/comments', { params })
   },
 
+  async getComment(id: string, type: CommentType): Promise<Comment> {
+    return apiGet<Comment>(`/admin/comments/${type}/${id}`)
+  },
+
   async flagComment(id: string, type: CommentType, reason: string): Promise<Comment> {
     return apiPatch<Comment>(`/admin/comments/${type}/${id}/flag`, { reason })
   },

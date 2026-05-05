@@ -68,11 +68,11 @@ const columns = computed(() => {
   const actions: ModerationActions = {
     viewEntity: (item) => {
       const routes: Record<ModeratableEntityType, string> = {
-        forum_post: `/admin/forum/posts/${item.entityId}`,
-        forum_comment: `/admin/forum/comments/${item.entityId}`,
-        solution: `/admin/solutions/${item.entityId}`,
-        solution_comment: `/admin/solutions/${item.entityId}`,
-        problem: `/admin/problems/${item.entityId}`,
+        forum_post: `/forum/posts/${item.entityId}`,
+        forum_comment: `/forum/comments/${item.entityId}`,
+        solution: `/solutions/${item.entityId}`,
+        solution_comment: `/solutions/${item.entityId}`,
+        problem: `/problems/${item.entityId}`,
       }
       router.push(routes[item.entityType])
     },

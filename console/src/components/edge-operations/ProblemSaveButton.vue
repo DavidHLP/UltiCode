@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import {
   Bookmark,
   BookmarkCheck,
@@ -208,8 +208,11 @@ function handleOpenChange(open: boolean) {
 }
 
 function openCreateDialog() {
-  showCreateDialog.value = true;
-  newListName.value = "";
+  isOpen.value = false;
+  nextTick(() => {
+    showCreateDialog.value = true;
+    newListName.value = "";
+  });
 }
 
 async function handleCreateList() {

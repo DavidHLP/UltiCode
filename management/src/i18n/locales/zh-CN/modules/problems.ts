@@ -196,8 +196,14 @@ export default {
     },
   },
 
+  // 预览
+  preview: {
+    untitled: '未命名',
+  },
+
   // 描述表单
   descriptionForm: {
+    basicInfo: '基本信息',
     problemDescription: '题目描述',
     problemDescriptionSubtitle: '填写题目的基本信息和描述',
     titlePlaceholder: '请输入题目标题',
@@ -216,6 +222,42 @@ export default {
       slugRequired: 'Slug 是必填项',
       slugInvalid: 'Slug 只能包含小写字母、数字和连字符',
       titleRequired: '标题是必填项',
+    },
+    examples: '示例',
+    examplesSection: {
+      title: '示例',
+      add: '添加示例',
+      empty: '暂无示例',
+      input: '输入',
+      output: '输出',
+      explanation: '解释（可选）',
+    },
+    constraints: '约束条件',
+    constraintsSection: {
+      title: '约束条件',
+      add: '添加约束',
+      empty: '暂无约束条件',
+    },
+    hints: '提示',
+    hintsSection: {
+      title: '提示',
+      add: '添加提示',
+      empty: '暂无提示',
+    },
+    tags: '标签',
+    tagsSection: {
+      title: '标签',
+    },
+    preview: {
+      title: '实时预览',
+    },
+    section: {
+      basicInfo: '基本信息',
+      problemDescription: '题目描述',
+      examples: '示例',
+      constraints: '约束条件',
+      hints: '提示',
+      tags: '标签',
     },
   },
 
@@ -445,6 +487,20 @@ export default {
     explanation: '解释',
     noCases: '暂无测试用例',
     noCasesDescription: '此题目尚未配置任何测试用例。编辑题目以添加示例测试用例。',
+  },
+
+  // 标签选择器
+  tagsSelector: {
+    selected: '已选择',
+    selectedCount: '已选择 {count} 个',
+    removeTag: '移除标签 {tag}',
+    noTagsSelected: '尚未选择标签',
+    searchPlaceholder: '搜索标签...',
+    loading: '加载中...',
+    available: '可用标签',
+    totalCount: '共 {count} 个',
+    noResults: '未找到匹配的标签',
+    noTagsAvailable: '暂无可用标签',
   },
 
   clearSelection: '清除选择',

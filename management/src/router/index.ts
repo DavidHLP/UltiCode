@@ -195,6 +195,16 @@ const routes: RouteRecordRaw[] = [
           permission: [PERM.MODERATE_FORUM_COMMENT, PERM.MODERATE_SOLUTION_COMMENT],
         },
       },
+      {
+        path: 'forum/comments/:id',
+        name: 'forum-comment-detail',
+        component: () => import('@/views/comments/CommentDetailView.vue'),
+        meta: {
+          titleKey: 'comments.detail.title',
+          permission: PERM.MODERATE_FORUM_COMMENT,
+        },
+        props: true,
+      },
 
       // ==================== Tags ====================
       {
@@ -334,7 +344,7 @@ let lastValidatedAt = 0
 const STALE_SESSION_MS = 5 * 60 * 1000 // 5 minutes
 
 // Navigation guard for authentication and permissions
-router.beforeEach(async (to, from) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore()
   const navId = ++pendingNavigationId
   const isStale = () => navId !== pendingNavigationId

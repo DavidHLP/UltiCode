@@ -20,6 +20,24 @@ export default {
 
   status: {
     unknown: '未知',
+    flagged: '已标记',
+    deleted: '已删除',
+    active: '正常',
+  },
+
+  detail: {
+    title: '评论详情',
+    parent: '父内容',
+    metadata: '元数据',
+  },
+
+  error: {
+    loadingComment: '加载评论失败',
+    commentNotFound: '评论不存在',
+    notFoundDescription: '您查找的评论不存在或已被删除。',
+    back: '返回',
+    retry: '重试',
+    backToComments: '返回评论列表',
   },
 
   filters: {

@@ -94,8 +94,9 @@ export function createCsrfAxiosInterceptor(
           };
 
           return axios(config);
-        } catch {
+        } catch (err) {
           // Token refresh failed — fall through to error propagation
+          console.error('CSRF token refresh failed:', err);
         }
       }
     }

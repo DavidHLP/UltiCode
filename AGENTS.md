@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> **Last Updated**: 2026-05-04
+> **Last Updated**: 2026-05-05
 > **Context**: Comprehensive project reference + init-deep analysis complete (6 explore agents, 200K LOC analyzed)
 
 Compact reference for AI assistants working in the UltiCode repository.
@@ -250,6 +250,22 @@ Required env vars for `docker compose up`:
 - **Console mock validation**: `pnpm validate:mocks` runs custom script against mock data
 - **Backend tests**: CI excludes integration tests (`-Dtest='!*IT'`); uses Testcontainers for MySQL/Redis
 - **Jacoco coverage**: Excludes `*Mapper.java`, `*DTO.java`, `*VO.java`, `entity/*.java`, etc.; minimum line coverage 5%, branch 2%
+
+### Shared Package Gotchas
+
+- `shared/auth-core/package.json` uses TypeScript 5.9.3 (not 6.x like frontends) — has its own `type-check` script
+- `shared/auth-core` tests run with `cd shared/auth-core && pnpm test` (uses vitest)
+- Console imports shared code directly via path aliases; Management uses symlink
+- Adding new exports to `shared/auth-core/src/index.ts` requires both frontends to be checked for import path issues
+
+### CSRF Token Rotation
+
+- Backend implements strict token rotation: validates token, generates new one, returns via `X-New-CSRF-Token` header
+- Old token has 5-minute grace period (set via Redis TTL) for concurrent requests
+- Both frontends use shared `createCsrfAxiosInterceptor()` from `@/shared/auth-core/src` for:
+  - Request: attaches `X-CSRF-Token` for non-GET/HEAD/OPTIONS
+  - Response: captures `X-New-CSRF-Token` from 2xx responses
+  - Error: 403 CSRF errors trigger one retry with fresh token
 
 ## Port Reference
 

@@ -1,0 +1,36 @@
+# T2: axiosCsrfInterceptor Creation
+
+## Created
+- `shared/auth-core/src/axiosCsrfInterceptor.ts`
+
+## Exports
+- `CsrfInterceptors` interface
+- `createCsrfAxiosInterceptor(csrfManager: CsrfTokenManager)` function
+
+## Implementation Details
+
+### Request Interceptor
+- Attaches `X-CSRF-Token` header for non-GET/HEAD/OPTIONS methods
+- Uses `csrfManager.getToken()` to get current token
+
+### Response Interceptor
+- Checks for `x-new-csrf-token` response header (axios lowercases headers)
+- Calls `csrfManager.refreshFromResponse({ csrfToken: newToken })`
+
+### Error Interceptor
+- Detects 403 CSRF errors via `error.response.status === 403` and `message.includes("CSRF")` or `code === 40300`
+- Uses request-level `config._metadata.csrfRetried` flag (no global state)
+- Fetches new token via GET /auth/me
+- Retries once, then propagates error
+
+## Updated
+- `shared/auth-core/src/index.ts` - added export for `createCsrfAxiosInterceptor` and `CsrfInterceptors`
+
+## Verification
+- Type-check: TS deprecation warning (baseUrl) but no type errors in implementation
+- File structure verified: matches console's request.ts interceptor logic
+
+## Notes
+- Uses dynamic axios import in error interceptor to avoid hard coupling
+- axios is a peer dependency (not declared in auth-core's package.json)
+- CsrfTokenManager interface unchanged (stateless interceptor design)

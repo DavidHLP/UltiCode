@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "lastScanned": 1776944058605,
+  "lastScanned": 1777955065651,
   "projectRoot": "/home/davidhlp/project/UltiCode-Public-Next",
   "techStack": {
     "languages": [
@@ -34,7 +34,8 @@
     "isMonorepo": false,
     "workspaces": [],
     "mainDirectories": [
-      "docs"
+      "docs",
+      "src"
     ],
     "gitBranches": {
       "defaultBranch": "main",
@@ -47,7 +48,7 @@
       "path": "backend-spring",
       "purpose": null,
       "fileCount": 11,
-      "lastAccessed": 1776944058598,
+      "lastAccessed": 1777955065646,
       "keyFiles": [
         "Dockerfile",
         "ecosystem.config.cjs",
@@ -59,8 +60,8 @@
     "console": {
       "path": "console",
       "purpose": null,
-      "fileCount": 20,
-      "lastAccessed": 1776944058598,
+      "fileCount": 21,
+      "lastAccessed": 1777955065646,
       "keyFiles": [
         "Dockerfile",
         "components.json",
@@ -73,7 +74,7 @@
       "path": "db-manager",
       "purpose": null,
       "fileCount": 2,
-      "lastAccessed": 1776944058603,
+      "lastAccessed": 1777955065648,
       "keyFiles": [
         "README.md",
         "pyproject.toml"
@@ -83,23 +84,33 @@
       "path": "docker",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776944058604,
+      "lastAccessed": 1777955065649,
       "keyFiles": []
     },
     "docs": {
       "path": "docs",
       "purpose": "Documentation",
       "fileCount": 1,
-      "lastAccessed": 1776944058604,
+      "lastAccessed": 1777955065649,
       "keyFiles": [
         "secrets-mapping.md"
+      ]
+    },
+    "graphify-out": {
+      "path": "graphify-out",
+      "purpose": null,
+      "fileCount": 3,
+      "lastAccessed": 1777955065649,
+      "keyFiles": [
+        "GRAPH_REPORT.md",
+        "graph.json"
       ]
     },
     "management": {
       "path": "management",
       "purpose": null,
-      "fileCount": 22,
-      "lastAccessed": 1776944058604,
+      "fileCount": 21,
+      "lastAccessed": 1777955065649,
       "keyFiles": [
         "Dockerfile",
         "components.json",
@@ -112,7 +123,7 @@
       "path": "recommendation",
       "purpose": null,
       "fileCount": 7,
-      "lastAccessed": 1776944058604,
+      "lastAccessed": 1777955065650,
       "keyFiles": [
         "1h7xZM",
         "README.md",
@@ -125,14 +136,21 @@
       "path": "shared",
       "purpose": null,
       "fileCount": 0,
-      "lastAccessed": 1776944058604,
+      "lastAccessed": 1777955065650,
+      "keyFiles": []
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 0,
+      "lastAccessed": 1777955065650,
       "keyFiles": []
     },
     "console/dist": {
       "path": "console/dist",
       "purpose": "Distribution/build output",
       "fileCount": 6,
-      "lastAccessed": 1776944058605,
+      "lastAccessed": 1777955065650,
       "keyFiles": [
         "favicon.ico",
         "index.html",
@@ -142,31 +160,38 @@
     "db-manager/migrations": {
       "path": "db-manager/migrations",
       "purpose": "Database migrations",
-      "fileCount": 28,
-      "lastAccessed": 1776944058605,
+      "fileCount": 30,
+      "lastAccessed": 1777955065650,
       "keyFiles": [
         "V100__follow_schema.sql",
         "V101__follow_indexes.sql",
-        "V10__daily_recommendations_feedback.sql"
+        "V103__add_problem_version_table.sql"
       ]
     },
     "db-manager/src": {
       "path": "db-manager/src",
       "purpose": "Source code",
       "fileCount": 0,
-      "lastAccessed": 1776944058605,
+      "lastAccessed": 1777955065650,
       "keyFiles": []
     },
     "recommendation/docs": {
       "path": "recommendation/docs",
       "purpose": "Documentation",
       "fileCount": 3,
-      "lastAccessed": 1776944058605,
+      "lastAccessed": 1777955065650,
       "keyFiles": [
         "API.md",
         "DEPLOYMENT.md",
         "PROJECT_OVERVIEW.md"
       ]
+    },
+    "shared/types": {
+      "path": "shared/types",
+      "purpose": "Type definitions",
+      "fileCount": 0,
+      "lastAccessed": 1777955065651,
+      "keyFiles": []
     }
   },
   "hotPaths": [

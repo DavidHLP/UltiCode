@@ -194,6 +194,24 @@ public class ContestServiceImpl implements ContestService {
         return globalRankingMapper.findTopRankings(max).stream().map(this::toRankingVO).collect(Collectors.toList());
     }
 
+    @Override
+    @Cacheable(value = "contestRanking", key = "'globalPaginated:' + #page + ':' + #limit")
+    public PageResult<ContestRankingVO> getGlobalRankingsPaginated(Integer page, Integer limit) {
+        int currentPage = (page != null && page > 0) ? page : 1;
+        int currentLimit = (limit != null && limit > 0) ? Math.min(limit, 100) : 50;
+
+        List<ContestRankingVO> allRankings = getGlobalRanking(null);
+
+        int total = allRankings.size();
+        int skip = (currentPage - 1) * currentLimit;
+        List<ContestRankingVO> paginatedList = allRankings.stream()
+                .skip(skip)
+                .limit(currentLimit)
+                .collect(Collectors.toList());
+
+        return PageResult.of(paginatedList, (long) total, currentPage, currentLimit);
+    }
+
     // =========================================================================
     // Scheduling (delegated to ContestSchedulerService)
     // =========================================================================
@@ -280,11 +298,17 @@ public class ContestServiceImpl implements ContestService {
         if (ranking == null) return null;
         ContestRankingVO vo = new ContestRankingVO();
         vo.setRank(ranking.getGlobalRank());
-        vo.setUserId(Long.parseLong(ranking.getUserId()));
+        vo.setUserId(ranking.getUserId());
         vo.setUsername(ranking.getUsername());
         vo.setAvatar(ranking.getAvatar());
         vo.setScore(ranking.getRating().longValue());
         vo.setProblemsSolved(ranking.getContestsAttended());
+        vo.setCountry(ranking.getCountry());
+        vo.setMaxRating(ranking.getMaxRating());
+        vo.setRatingTitle(ranking.getRatingTitle());
+        vo.setMaxRatingTitle(ranking.getMaxRatingTitle());
+        vo.setContestsAttended(ranking.getContestsAttended());
+        vo.setBadge(ranking.getBadge());
         return vo;
     }
 }

@@ -243,6 +243,27 @@ public class ContestController {
     }
 
     /**
+     * Get global rankings with pagination.
+     * Public endpoint - accessible without authentication.
+     *
+     * @param page  the page number (1-based)
+     * @param limit the number of items per page
+     * @return paginated list of global rankings
+     */
+    @Operation(summary = "Get global rankings with pagination", description = "Get paginated global leaderboard")
+    @ApiResponse(responseCode = "200", description = "Global rankings retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
+    @GetMapping("/rankings/global")
+    public Result<PageResult<ContestRankingVO>> getGlobalRankingsPaginated(
+            @Parameter(description = "Page number (1-based)")
+            @RequestParam(required = false, defaultValue = "1") Integer page,
+            @Parameter(description = "Number of items per page")
+            @RequestParam(required = false, defaultValue = "50") Integer limit) {
+
+        PageResult<ContestRankingVO> result = contestService.getGlobalRankingsPaginated(page, limit);
+        return Result.success(result);
+    }
+
+    /**
      * Get contest details by ID.
      * Public endpoint - accessible without authentication.
      *

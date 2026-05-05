@@ -103,7 +103,7 @@ public class RankingServiceImpl implements RankingService {
         }
         ContestRankingVO vo = new ContestRankingVO();
         vo.setRank(participant.getFinalRank());
-        vo.setUserId(Long.parseLong(participant.getUserId()));
+        vo.setUserId(participant.getUserId());
         vo.setScore(participant.getTotalScore() != null ? participant.getTotalScore().longValue() : null);
         vo.setPenalty(participant.getTotalPenalty() != null ? participant.getTotalPenalty().longValue() : null);
         vo.setProblemsSolved(participant.getAttemptCount() != null ? participant.getAttemptCount() : 0);
@@ -121,7 +121,7 @@ public class RankingServiceImpl implements RankingService {
 
         ContestRankingVO vo = new ContestRankingVO();
         vo.setRank(participant.finalRank());
-        vo.setUserId(Long.parseLong(participant.userId()));
+        vo.setUserId(participant.userId());
         vo.setScore(participant.totalScore() != null ? participant.totalScore().longValue() : null);
         vo.setPenalty(participant.totalPenalty() != null ? participant.totalPenalty().longValue() : null);
         vo.setProblemsSolved(participant.attemptCount() != null ? participant.attemptCount() : 0);

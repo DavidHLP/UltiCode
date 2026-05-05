@@ -87,8 +87,8 @@ public class CsrfService {
             return null;
         }
 
-        // Token rotation: delete old token, generate new one
-        redisTemplate.delete(key);
+        // Token rotation: set old token with 5-min grace period TTL instead of immediate delete
+        redisTemplate.opsForValue().set(key, storedValue, Duration.ofMinutes(5));
         log.debug("CSRF token validated and rotated for user: {}", userId);
         return generateToken(userId);
     }

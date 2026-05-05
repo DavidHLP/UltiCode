@@ -33,6 +33,12 @@ export {
   createAuthStateMachine,
 } from './auth-state';
 
+// CSRF axios interceptor
+export {
+  createCsrfAxiosInterceptor,
+  type CsrfInterceptors,
+} from './axiosCsrfInterceptor';
+
 // Permission checker
 export {
   type PermissionMatchMode,

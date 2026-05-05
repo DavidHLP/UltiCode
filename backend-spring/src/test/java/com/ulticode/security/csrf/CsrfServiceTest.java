@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -119,8 +120,24 @@ class CsrfServiceTest {
 
             assertThat(newToken).isNotBlank();
             assertThat(newToken).contains(":");
-            // Verify old key was deleted and new token was stored
-            verify(redisTemplate).delete(anyString());
+            // Verify old token was set with 5-min grace period TTL
+            verify(valueOperations).set(anyString(), anyString(), eq(Duration.ofMinutes(5)));
+        }
+
+        @Test
+        @DisplayName("old token has 5-minute TTL instead of immediate delete (grace period)")
+        @SuppressWarnings("unchecked")
+        void testOldTokenValidWithinGracePeriod() {
+            String originalToken = csrfService.generateToken(USER_ID);
+            String tokenId = originalToken.split(":")[0];
+            String tokenValue = originalToken.split(":")[1];
+
+            when(valueOperations.get(anyString())).thenReturn(tokenValue);
+
+            csrfService.validateAndRotateToken(USER_ID, originalToken);
+
+            // Verify set with 5-minute TTL, NOT delete
+            verify(valueOperations).set(anyString(), eq(tokenValue), eq(Duration.ofMinutes(5)));
         }
 
         @Test

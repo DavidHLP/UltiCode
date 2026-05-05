@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import {
   problemsApi,
   type Problem,
@@ -12,45 +12,70 @@ import {
   type CodeData,
   type CasesData,
 } from '@/api/admin/problems'
+import { tagsApi, TagType } from '@/api/admin/tags'
+
+export interface ProblemTag {
+  id: string
+  label: string
+}
+
+export interface TabState<T> {
+  data: T | null
+  loading: boolean
+  error: string | null
+  loadedId: string | null
+  loadedAt: number | null
+}
+
+function createTabState<T>(): TabState<T> {
+  return {
+    data: null,
+    loading: false,
+    error: null,
+    loadedId: null,
+    loadedAt: null,
+  }
+}
+
+export type ProblemEditTab = 'header' | 'description' | 'code' | 'cases'
+
+const CACHE_TTL_MS = 30_000
 
 export const useProblemsStore = defineStore('adminProblems', () => {
-  // ========== List State ==========
   const problems = ref<Problem[]>([])
   const total = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  // ========== Header State ==========
-  const headerData = ref<HeaderData | null>(null)
-  const headerLoading = ref(false)
-  const headerError = ref<string | null>(null)
+  const tabStates = ref<Map<string, TabState<unknown>>>(new Map())
 
-  // ========== Description Tab State ==========
-  const descriptionData = ref<DescriptionData | null>(null)
-  const descriptionLoading = ref(false)
-  const descriptionError = ref<string | null>(null)
-  const loadedDescriptionId = ref<string | null>(null)
+  function getTabState<T>(tabKey: string): TabState<T> {
+    if (!tabStates.value.has(tabKey)) {
+      tabStates.value.set(tabKey, createTabState<T>() as TabState<unknown>)
+    }
+    return tabStates.value.get(tabKey) as TabState<T>
+  }
 
-  // ========== Code Tab State ==========
-  const codeData = ref<CodeData | null>(null)
-  const codeLoading = ref(false)
-  const codeError = ref<string | null>(null)
-  const loadedCodeId = ref<string | null>(null)
+  const headerData = computed(() => getTabState<HeaderData>('header').data)
+  const headerLoading = computed(() => getTabState<HeaderData>('header').loading)
+  const headerError = computed(() => getTabState<HeaderData>('header').error)
 
-  // ========== Cases Tab State ==========
-  const casesData = ref<CasesData | null>(null)
-  const casesLoading = ref(false)
-  const casesError = ref<string | null>(null)
-  const loadedCasesId = ref<string | null>(null)
+  const descriptionData = computed(() => getTabState<DescriptionData>('description').data)
+  const descriptionLoading = computed(() => getTabState<DescriptionData>('description').loading)
+  const descriptionError = computed(() => getTabState<DescriptionData>('description').error)
 
-  // ========== Abort Controllers ==========
+  const codeData = computed(() => getTabState<CodeData>('code').data)
+  const codeLoading = computed(() => getTabState<CodeData>('code').loading)
+  const codeError = computed(() => getTabState<CodeData>('code').error)
+
+  const casesData = computed(() => getTabState<CasesData>('cases').data)
+  const casesLoading = computed(() => getTabState<CasesData>('cases').loading)
+  const casesError = computed(() => getTabState<CasesData>('cases').error)
+
+  const allTags = ref<ProblemTag[]>([])
+  const tagsLoading = ref(false)
+
   const abortControllers = ref<Map<string, AbortController>>(new Map())
-
-  // ========== Legacy State (for backward compatibility) ==========
-  const currentProblem = ref<Problem | null>(null)
-  const loadedProblemId = ref<string | null>(null)
-
-  // ========== AbortController Helpers ==========
 
   function getAbortController(key: string): AbortController {
     const controller = abortControllers.value.get(key)
@@ -75,13 +100,51 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     )
   }
 
-  // ==================== List Operations ====================
+  async function fetchTab<T>(
+    tabKey: string,
+    id: string,
+    fetchFn: (id: string, signal: AbortSignal) => Promise<T>,
+    forceRefresh = false,
+  ): Promise<T | null> {
+    const state = getTabState<T>(tabKey)
+
+    const now = Date.now()
+    const isStale = !state.loadedAt || (now - state.loadedAt) > CACHE_TTL_MS
+    if (!forceRefresh && state.loadedId === id && state.data && !isStale) {
+      state.loading = false
+      return state.data
+    }
+
+    const controller = getAbortController(tabKey)
+    state.loading = true
+    state.error = null
+
+    try {
+      const data = await fetchFn(id, controller.signal)
+      if (controller.signal.aborted) return null
+
+      state.data = data
+      state.loadedId = id
+      state.loadedAt = now
+      return data
+    } catch (err: unknown) {
+      if ((err as Error).name === 'AbortError') {
+        return null
+      }
+      state.error = extractErrorMessage(err)
+      console.error(`[ProblemsStore] Failed to fetch ${tabKey}:`, err)
+      return null
+    } finally {
+      if (abortControllers.value.get(tabKey) === controller) {
+        state.loading = false
+      }
+    }
+  }
 
   async function fetchProblems(params: ProblemQueryParams = {}) {
     loading.value = true
     error.value = null
     try {
-      // problemsApi.getProblems already returns PageResult<Problem> directly (unwrapped by request.ts)
       const pageResult = await problemsApi.getProblems(params)
       problems.value = pageResult.items
       total.value = pageResult.total
@@ -93,164 +156,35 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     }
   }
 
-  // ========== Tab Fetch Functions ==========
-
   async function fetchHeader(id: string, forceRefresh = false): Promise<HeaderData | null> {
-    if (!forceRefresh && loadedProblemId.value === id && headerData.value) {
-      headerLoading.value = false
-      return headerData.value
-    }
-
-    const controller = getAbortController('header')
-    headerLoading.value = true
-    headerError.value = null
-
-    try {
-      const data = await problemsApi.getHeader(id, controller.signal)
-      if (controller.signal.aborted) return null
-      headerData.value = data
-      loadedProblemId.value = id
-      return data
-    } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') {
-        return null
-      }
-      headerError.value = extractErrorMessage(err)
-      console.error('[ProblemsStore] Failed to fetch header:', err)
-      return null
-    } finally {
-      if (abortControllers.value.get('header') === controller) {
-        headerLoading.value = false
-      }
-    }
+    return fetchTab('header', id, (problemId, signal) => problemsApi.getHeader(problemId, signal), forceRefresh)
   }
 
-  async function fetchDescription(
-    id: string,
-    forceRefresh = false,
-  ): Promise<DescriptionData | null> {
-    if (!forceRefresh && loadedDescriptionId.value === id && descriptionData.value) {
-      descriptionLoading.value = false
-      return descriptionData.value
-    }
-
-    const controller = getAbortController('description')
-    descriptionLoading.value = true
-    descriptionError.value = null
-
-    try {
-      const data = await problemsApi.getDescription(id, controller.signal)
-      if (controller.signal.aborted) return null
-      descriptionData.value = data
-      loadedDescriptionId.value = id
-      return data
-    } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') {
-        return null
-      }
-      descriptionError.value = extractErrorMessage(err)
-      console.error('[ProblemsStore] Failed to fetch description:', err)
-      return null
-    } finally {
-      if (abortControllers.value.get('description') === controller) {
-        descriptionLoading.value = false
-      }
-    }
+  async function fetchDescription(id: string, forceRefresh = false): Promise<DescriptionData | null> {
+    return fetchTab('description', id, (problemId, signal) => problemsApi.getDescription(problemId, signal), forceRefresh)
   }
 
   async function fetchCode(id: string, forceRefresh = false): Promise<CodeData | null> {
-    if (!forceRefresh && loadedCodeId.value === id && codeData.value) {
-      codeLoading.value = false
-      return codeData.value
-    }
-
-    const controller = getAbortController('code')
-    codeLoading.value = true
-    codeError.value = null
-
-    try {
-      const data = await problemsApi.getCode(id, controller.signal)
-      if (controller.signal.aborted) return null
-      codeData.value = data
-      loadedCodeId.value = id
-      return data
-    } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') {
-        return null
-      }
-      codeError.value = extractErrorMessage(err)
-      console.error('[ProblemsStore] Failed to fetch code:', err)
-      return null
-    } finally {
-      if (abortControllers.value.get('code') === controller) {
-        codeLoading.value = false
-      }
-    }
+    return fetchTab('code', id, (problemId, signal) => problemsApi.getCode(problemId, signal), forceRefresh)
   }
 
   async function fetchCases(id: string, forceRefresh = false): Promise<CasesData | null> {
-    if (!forceRefresh && loadedCasesId.value === id && casesData.value) {
-      casesLoading.value = false
-      return casesData.value
-    }
-
-    const controller = getAbortController('cases')
-    casesLoading.value = true
-    casesError.value = null
-
-    try {
-      const data = await problemsApi.getCases(id, controller.signal)
-      if (controller.signal.aborted) return null
-      casesData.value = data
-      loadedCasesId.value = id
-      return data
-    } catch (err: unknown) {
-      if ((err as Error).name === 'AbortError') {
-        return null
-      }
-      casesError.value = extractErrorMessage(err)
-      console.error('[ProblemsStore] Failed to fetch cases:', err)
-      return null
-    } finally {
-      if (abortControllers.value.get('cases') === controller) {
-        casesLoading.value = false
-      }
-    }
+    return fetchTab('cases', id, (problemId, signal) => problemsApi.getCases(problemId, signal), forceRefresh)
   }
 
-  // ==================== Legacy Fetch Problem (for backward compatibility) ====================
-
-  async function fetchProblem(id: string, forceRefresh = false): Promise<Problem | null> {
-    // Skip fetching if we already have this problem loaded and not forcing refresh
-    if (!forceRefresh && loadedProblemId.value === id && currentProblem.value) {
-      return currentProblem.value
-    }
-
-    loading.value = true
-    error.value = null
-
+  async function fetchAllTags(): Promise<ProblemTag[]> {
+    tagsLoading.value = true
     try {
-      const problem = await problemsApi.getProblem(id)
-      currentProblem.value = problem
-      loadedProblemId.value = id
-
-      return problem
-    } catch (err: unknown) {
-      error.value = extractErrorMessage(err)
-      console.error('[ProblemsStore] Failed to fetch problem:', err)
-      console.error('[ProblemsStore] Error details:', {
-        id,
-        error: err,
-        responseData: (err as { response?: { data?: unknown } })?.response?.data,
-        status: (err as { response?: { status?: number } })?.response?.status,
-      })
-      return null
+      const tags = await tagsApi.getAllTags(TagType.PROBLEM)
+      allTags.value = tags
+      return tags
+    } catch (err) {
+      console.error('[ProblemsStore] Failed to fetch all tags:', err)
+      return []
     } finally {
-      loading.value = false
+      tagsLoading.value = false
     }
   }
-
-  // ==================== CRUD Operations ====================
 
   async function createProblem(data: CreateProblemDto) {
     loading.value = true
@@ -272,17 +206,11 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
     try {
       const problem = await problemsApi.updateProblem(id, data)
-      // Update local list if present
       const index = problems.value.findIndex((p) => p.id === id)
       if (index !== -1) {
         problems.value[index] = problem
       }
-      // Also update currentProblem if it matches
-      if (currentProblem.value?.id === id) {
-        currentProblem.value = problem
-      }
-      // Clear tab cache to force refresh on next visit
-      clearCurrentProblem()
+      invalidateTabCache(id)
       return problem
     } catch (err: unknown) {
       error.value = extractErrorMessage(err)
@@ -298,14 +226,12 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
     try {
       await problemsApi.deleteProblem(id)
-      // Remove from local list (immutable)
       const previousLength = problems.value.length
       problems.value = problems.value.filter((p) => p.id !== id)
       if (problems.value.length !== previousLength) {
         total.value = total.value - 1
       }
-      // Clear currentProblem and tab data if it matches
-      if (currentProblem.value?.id === id) {
+      if (getTabState<HeaderData>('header').loadedId === id) {
         clearCurrentProblem()
       }
     } catch (err: unknown) {
@@ -322,15 +248,11 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
     try {
       const problem = await problemsApi.publishProblem(id)
-      // Update local list if present
       const index = problems.value.findIndex((p) => p.id === id)
       if (index !== -1) {
         problems.value[index] = problem
       }
-      // Also update currentProblem if it matches
-      if (currentProblem.value?.id === id) {
-        currentProblem.value = problem
-      }
+      invalidateTabCache(id)
       return problem
     } catch (err: unknown) {
       error.value = extractErrorMessage(err)
@@ -346,15 +268,11 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     error.value = null
     try {
       const problem = await problemsApi.unpublishProblem(id)
-      // Update local list if present
       const index = problems.value.findIndex((p) => p.id === id)
       if (index !== -1) {
         problems.value[index] = problem
       }
-      // Also update currentProblem if it matches
-      if (currentProblem.value?.id === id) {
-        currentProblem.value = problem
-      }
+      invalidateTabCache(id)
       return problem
     } catch (err: unknown) {
       error.value = extractErrorMessage(err)
@@ -373,7 +291,13 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     loading.value = true
     error.value = null
     try {
-      let problem = await problemsApi.updateProblem(id, data)
+      const serializedData: UpdateProblemDto = {
+        ...data,
+        examples: data.examples,
+        constraints: data.constraints,
+        hints: data.hints,
+      }
+      let problem = await problemsApi.updateProblem(id, serializedData)
 
       const currentState = problem.isPublished
       if (currentState !== targetPublishedState) {
@@ -385,13 +309,9 @@ export const useProblemsStore = defineStore('adminProblems', () => {
         if (index !== -1) {
           problems.value[index] = problem
         }
-        if (currentProblem.value?.id === id) {
-          currentProblem.value = problem
-        }
       }
 
-      // Clear tab cache to force refresh on next visit
-      clearCurrentProblem()
+      invalidateTabCache(id)
 
       return problem
     } catch (err: unknown) {
@@ -418,29 +338,26 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     }
   }
 
-  // ==================== Utility Functions ====================
+  function invalidateTabCache(problemId: string) {
+    tabStates.value.forEach((state) => {
+      if (state.loadedId === problemId) {
+        state.loadedId = null
+        state.loadedAt = null
+      }
+    })
+  }
+
+  function getRawTabState<T>(tabKey: string): TabState<T> {
+    return getTabState<T>(tabKey)
+  }
 
   function clearError() {
     error.value = null
   }
 
   function clearCurrentProblem() {
-    // Clear new flat state
-    headerData.value = null
-    headerError.value = null
-    descriptionData.value = null
-    descriptionError.value = null
-    loadedDescriptionId.value = null
-    codeData.value = null
-    codeError.value = null
-    loadedCodeId.value = null
-    casesData.value = null
-    casesError.value = null
-    loadedCasesId.value = null
-
-    // Clear legacy state
-    currentProblem.value = null
-    loadedProblemId.value = null
+    tabStates.value.clear()
+    abortAllRequests()
   }
 
   function reset() {
@@ -449,36 +366,14 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     loading.value = false
     error.value = null
 
-    // Clear new flat state
-    headerData.value = null
-    headerError.value = null
-    descriptionData.value = null
-    descriptionError.value = null
-    loadedDescriptionId.value = null
-    codeData.value = null
-    codeError.value = null
-    loadedCodeId.value = null
-    casesData.value = null
-    casesError.value = null
-    loadedCasesId.value = null
-
-    // Clear legacy state
-    currentProblem.value = null
-    loadedProblemId.value = null
-
-    // Abort all pending requests
-    abortAllRequests()
+    clearCurrentProblem()
   }
 
   return {
-    // State
     problems,
     total,
     loading,
     error,
-    currentProblem,
-
-    // New flat state
     headerData,
     headerLoading,
     headerError,
@@ -491,12 +386,12 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     casesData,
     casesLoading,
     casesError,
-
-    // Actions
+    allTags,
+    tagsLoading,
     fetchProblems,
-    fetchProblem,
     fetchHeader,
     fetchDescription,
+    fetchAllTags,
     fetchCode,
     fetchCases,
     createProblem,
@@ -506,9 +401,11 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     publishProblem,
     unpublishProblem,
     bulkAction,
+    invalidateTabCache,
+    getRawTabState,
     clearError,
     clearCurrentProblem,
-    clearTabData: clearCurrentProblem, // Alias for backward compatibility
+    clearTabData: clearCurrentProblem,
     abortAllRequests,
     reset,
   }

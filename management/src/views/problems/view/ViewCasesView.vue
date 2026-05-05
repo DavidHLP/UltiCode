@@ -13,11 +13,11 @@ const problemsStore = useProblemsStore()
 const isLoaded = ref(false)
 
 const problemId = computed(() => route.params.id as string)
-const problem = computed(() => problemsStore.currentProblem)
+const problem = computed(() => problemsStore.casesData)
 
 onMounted(async () => {
   if (problemId.value && !problem.value) {
-    await problemsStore.fetchProblem(problemId.value)
+    await problemsStore.fetchCases(problemId.value)
   }
   setTimeout(() => {
     isLoaded.value = true

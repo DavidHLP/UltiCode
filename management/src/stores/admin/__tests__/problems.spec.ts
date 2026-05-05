@@ -71,7 +71,10 @@ describe('useProblemsStore', () => {
       expect(store.total).toBe(0)
       expect(store.loading).toBe(false)
       expect(store.error).toBeNull()
-      expect(store.currentProblem).toBeNull()
+      expect(store.headerData).toBeNull()
+      expect(store.descriptionData).toBeNull()
+      expect(store.codeData).toBeNull()
+      expect(store.casesData).toBeNull()
     })
   })
 
@@ -188,16 +191,15 @@ describe('useProblemsStore', () => {
       expect(store.problems).toEqual([])
     })
 
-    it('should clear currentProblem after update (tab cache invalidation)', async () => {
+    it('should clear tab data after update (cache invalidation)', async () => {
       const store = useProblemsStore()
-      store.currentProblem = { ...mockProblem }
+      store.headerData = { id: '1', title: 'Test', slug: 'test', difficulty: 'EASY', status: 'TODO', isPremium: false, isPublished: false }
 
       vi.mocked(problemsApi.updateProblem).mockResolvedValue(mockUpdatedProblem)
 
       await store.updateProblem('1', { title: 'Updated Title' })
 
-      // Store clears currentProblem to force tab data refresh on next visit
-      expect(store.currentProblem).toBeNull()
+      expect(store.headerData).toBeNull()
     })
 
     it('should set error and throw on failure', async () => {
@@ -236,9 +238,9 @@ describe('useProblemsStore', () => {
       expect(store.total).toBe(5)
     })
 
-    it('should clear currentProblem when it matches', async () => {
+    it('should clear tab data when deleted problem matches', async () => {
       const store = useProblemsStore()
-      store.currentProblem = { ...mockProblem }
+      store.headerData = { id: '1', title: 'Test', slug: 'test', difficulty: 'EASY', status: 'TODO', isPremium: false, isPublished: false }
       store.problems = [{ ...mockProblem }]
       store.total = 1
 
@@ -246,7 +248,7 @@ describe('useProblemsStore', () => {
 
       await store.deleteProblem('1')
 
-      expect(store.currentProblem).toBeNull()
+      expect(store.headerData).toBeNull()
     })
 
     it('should set error and throw on failure', async () => {
@@ -265,7 +267,7 @@ describe('useProblemsStore', () => {
       store.total = 10
       store.loading = true
       store.error = 'some error'
-      store.currentProblem = { ...mockProblem }
+      store.headerData = { id: '1', title: 'Test', slug: 'test', difficulty: 'EASY', status: 'TODO', isPremium: false, isPublished: false }
 
       store.reset()
 
@@ -273,7 +275,7 @@ describe('useProblemsStore', () => {
       expect(store.total).toBe(0)
       expect(store.loading).toBe(false)
       expect(store.error).toBeNull()
-      expect(store.currentProblem).toBeNull()
+      expect(store.headerData).toBeNull()
     })
   })
 
@@ -289,9 +291,8 @@ describe('useProblemsStore', () => {
   })
 
   describe('clearCurrentProblem', () => {
-    it('should clear currentProblem and tab data', () => {
+    it('should clear all tab data', () => {
       const store = useProblemsStore()
-      store.currentProblem = { ...mockProblem }
       store.headerData = {
         id: '1',
         title: 'Test',
@@ -316,7 +317,6 @@ describe('useProblemsStore', () => {
 
       store.clearCurrentProblem()
 
-      expect(store.currentProblem).toBeNull()
       expect(store.headerData).toBeNull()
       expect(store.descriptionData).toBeNull()
     })

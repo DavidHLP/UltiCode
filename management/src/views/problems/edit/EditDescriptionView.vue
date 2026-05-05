@@ -1,62 +1,53 @@
 <script setup lang="ts">
-import { onMounted, ref, computed } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { IconArrowLeft, IconPencil, IconDatabase } from '@tabler/icons-vue'
 import { useProblemsStore } from '@/stores/admin/problems'
+import { useProblemTab } from '../composables/useProblemTab'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import DescriptionForm from '../components/DescriptionForm.vue'
 import type { DescriptionFormData } from '../components/DescriptionForm.vue'
-import type { Problem } from '@/api/admin/problems'
+import { Difficulty, ProblemStatus } from '@/api/admin/problems'
 
 const router = useRouter()
-const route = useRoute()
 const { t } = useI18n()
 const problemsStore = useProblemsStore()
 
-const formRef = ref<InstanceType<typeof DescriptionForm>>()
-const loadingData = ref(true)
-const problemData = ref<Problem | null>(null)
-const isLoaded = ref(false)
+const { problemId, data, loading, isReady } = useProblemTab(
+  'description',
+  (id) => problemsStore.fetchDescription(id),
+)
 
-const problemId = computed(() => route.params.id as string)
-
-onMounted(async () => {
-  await loadData()
-  setTimeout(() => {
-    isLoaded.value = true
-  }, 100)
-})
-
-async function loadData() {
-  const problem = await problemsStore.fetchProblem(problemId.value)
-  if (problem) {
-    problemData.value = problem
-  }
-  loadingData.value = false
-}
-
-async function handleSubmit(data: DescriptionFormData) {
+async function handleSubmit(formData: DescriptionFormData) {
   try {
-    // Atomically update problem data and publish state to prevent race condition
     await problemsStore.updateProblemWithPublish(
       problemId.value,
       {
-        slug: data.slug,
-        title: data.title,
-        difficulty: data.difficulty,
-        status: data.status,
-        isPremium: data.isPremium,
-        summary: data.summary,
-        content: data.content,
+        slug: formData.slug,
+        title: formData.title,
+        difficulty: formData.difficulty,
+        status: formData.status,
+        isPremium: formData.isPremium,
+        summary: formData.summary,
+        content: formData.content,
+        examples: formData.examples.map((ex, idx) => ({
+          id: String(idx),
+          input: ex.input,
+          output: ex.output,
+          explanation: ex.explanation || '',
+          order: idx,
+        })),
+        constraints: formData.constraints,
+        hints: formData.hints,
+        tags: formData.tags,
       },
-      data.isPublished,
+      formData.isPublished,
     )
 
     toast.success(t('problems.toast.updateSuccess'))
-    await loadData() // Refresh to show current state
     router.push({ name: 'problem-detail', params: { id: problemId.value } })
   } catch (error) {
     console.error('Failed to update problem description:', error)
@@ -64,19 +55,27 @@ async function handleSubmit(data: DescriptionFormData) {
   }
 }
 
-// Convert backend problem data to form format
-const formattedProblem = computed(() => {
-  if (!problemData.value) return undefined
+const formattedProblem = computed<DescriptionFormData | undefined>(() => {
+  const problem = data.value
+  if (!problem) return undefined
 
   return {
-    slug: problemData.value.slug,
-    title: problemData.value.title,
-    difficulty: problemData.value.difficulty,
-    status: problemData.value.status,
-    isPremium: problemData.value.isPremium,
-    isPublished: problemData.value.isPublished,
-    summary: problemData.value.detail?.summary || '',
-    content: problemData.value.detail?.content || '',
+    slug: problem.slug,
+    title: problem.title,
+    difficulty: problem.difficulty as Difficulty,
+    status: problem.status as ProblemStatus,
+    isPremium: problem.isPremium,
+    isPublished: problem.isPublished,
+    summary: problem.detail?.summary ?? '',
+    content: problem.detail?.content ?? '',
+    examples: problem.examples?.map((ex) => ({
+      input: ex.input,
+      output: ex.output,
+      explanation: ex.explanation || '',
+    })) || [],
+    constraints: problem.detail?.constraintsJson || [],
+    hints: problem.detail?.hints || [],
+    tags: problem.tags?.map((t) => t.label) || [],
   }
 })
 
@@ -87,15 +86,13 @@ function handleCancel() {
 
 <template>
   <div class="relative flex flex-col gap-0 overflow-auto">
-    <!-- Terminal Header -->
     <div
       :class="[
         'border-b border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--card)]',
         'transition-all duration-500',
-        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
+        isReady ? 'opacity-100 translate-y-0' : 'opacity-0 -translate-y-2',
       ]"
     >
-      <!-- Title Row -->
       <div class="px-4 lg:px-6 py-4 flex items-center justify-between">
         <div class="flex items-center gap-4 min-w-0">
           <Button
@@ -112,15 +109,14 @@ function handleCancel() {
               <span class="terminal-prompt text-sm">problem</span>
               <span class="terminal-cursor" />
             </div>
-            <h1 v-if="problemData" class="text-sm font-medium text-[var(--foreground)] truncate">
-              {{ problemData.title }}
+            <h1 v-if="data" class="text-sm font-medium text-[var(--foreground)] truncate">
+              {{ data.title }}
             </h1>
             <Skeleton v-else class="h-5 w-32" />
           </div>
         </div>
       </div>
 
-      <!-- Info Ticker -->
       <div
         class="px-4 lg:px-6 py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
@@ -145,10 +141,8 @@ function handleCancel() {
       </div>
     </div>
 
-    <!-- Main Content -->
     <div class="flex-1 py-4">
-      <!-- Loading State - Terminal Style -->
-      <div v-if="loadingData" class="flex flex-col items-center justify-center py-24 text-center">
+      <div v-if="loading" class="flex flex-col items-center justify-center py-24 text-center">
         <div
           class="w-12 h-12 rounded-full bg-[var(--surface-sunken)] border border-[var(--silver-200)] dark:border-[var(--silver-300)] flex items-center justify-center mb-3"
         >
@@ -164,7 +158,6 @@ function handleCancel() {
         v-else-if="formattedProblem"
         :problem="formattedProblem"
         :is-edit="true"
-        ref="formRef"
         @submit="handleSubmit"
         @cancel="handleCancel"
       />

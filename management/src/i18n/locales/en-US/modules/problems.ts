@@ -196,8 +196,14 @@ export default {
     },
   },
 
+  // Preview
+  preview: {
+    untitled: 'Untitled',
+  },
+
   // Description form
   descriptionForm: {
+    basicInfo: 'Basic Information',
     problemDescription: 'Problem Description',
     problemDescriptionSubtitle: 'Fill in the basic information and description',
     titlePlaceholder: 'Enter problem title',
@@ -216,6 +222,42 @@ export default {
       slugRequired: 'Slug is required',
       slugInvalid: 'Slug can only contain lowercase letters, numbers and hyphens',
       titleRequired: 'Title is required',
+    },
+    examples: 'Examples',
+    examplesSection: {
+      title: 'Examples',
+      add: 'Add Example',
+      empty: 'No examples yet',
+      input: 'Input',
+      output: 'Output',
+      explanation: 'Explanation (optional)',
+    },
+    constraints: 'Constraints',
+    constraintsSection: {
+      title: 'Constraints',
+      add: 'Add Constraint',
+      empty: 'No constraints yet',
+    },
+    hints: 'Hints',
+    hintsSection: {
+      title: 'Hints',
+      add: 'Add Hint',
+      empty: 'No hints yet',
+    },
+    tags: 'Tags',
+    tagsSection: {
+      title: 'Tags',
+    },
+    preview: {
+      title: 'Live Preview',
+    },
+    section: {
+      basicInfo: 'Basic Information',
+      problemDescription: 'Problem Description',
+      examples: 'Examples',
+      constraints: 'Constraints',
+      hints: 'Hints',
+      tags: 'Tags',
     },
   },
 
@@ -449,6 +491,20 @@ export default {
     noCases: 'No Test Cases',
     noCasesDescription:
       'No test cases have been configured for this problem yet. Edit the problem to add example test cases.',
+  },
+
+  // Tags Selector
+  tagsSelector: {
+    selected: 'Selected',
+    selectedCount: '{count} selected',
+    removeTag: 'Remove tag {tag}',
+    noTagsSelected: 'No tags selected',
+    searchPlaceholder: 'Search tags...',
+    loading: 'Loading...',
+    available: 'Available',
+    totalCount: '{count} total',
+    noResults: 'No matching tags',
+    noTagsAvailable: 'No tags available',
   },
 
   clearSelection: 'Clear Selection',

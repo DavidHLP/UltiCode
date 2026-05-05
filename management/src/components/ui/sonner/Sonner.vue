@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import type { ToasterProps } from 'vue-sonner'
+import { computed } from 'vue'
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -12,6 +13,15 @@ import { Toaster as Sonner } from 'vue-sonner'
 import { cn } from '@/lib/utils'
 
 const props = defineProps<ToasterProps>()
+
+// Prevent Vue compiler from hoisting the <Sonner> vnode.
+// Hoisting causes "Missing ref owner context" because vue-sonner's
+// internal <ol ref="listRef"> loses its render context.
+// Using a computed prop binding keeps the vnode dynamic.
+const sonnerProps = computed(() => {
+  const { class: _, style: __, ...rest } = props
+  return rest
+})
 </script>
 
 <template>
@@ -23,7 +33,7 @@ const props = defineProps<ToasterProps>()
       '--normal-border': 'var(--border)',
       '--border-radius': 'var(--radius)',
     }"
-    v-bind="props"
+    v-bind="sonnerProps"
   >
     <template #success-icon>
       <CircleCheckIcon class="size-4" />

@@ -20,6 +20,24 @@ export default {
 
   status: {
     unknown: 'Unknown',
+    flagged: 'Flagged',
+    deleted: 'Deleted',
+    active: 'Active',
+  },
+
+  detail: {
+    title: 'Comment Detail',
+    parent: 'Parent Content',
+    metadata: 'Metadata',
+  },
+
+  error: {
+    loadingComment: 'Failed to load comment',
+    commentNotFound: 'Comment not found',
+    notFoundDescription: 'The comment you are looking for does not exist or has been removed.',
+    back: 'Back',
+    retry: 'Retry',
+    backToComments: 'Back to Comments',
   },
 
   filters: {

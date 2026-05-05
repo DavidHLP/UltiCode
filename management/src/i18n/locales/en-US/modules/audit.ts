@@ -1,6 +1,16 @@
 export default {
   title: 'Audit Logs',
   searchPlaceholder: 'Search audit logs...',
+  filterAction: 'Filter Action',
+  allActions: 'All Actions',
+  export: 'Export',
+  noLogs: 'No Logs',
+  noLogsDescription: 'No audit log records found matching your criteria.',
+  systemAction: 'System Action',
+  oldValues: 'Old Values',
+  newValues: 'New Values',
+  ipAddress: 'IP Address',
+  userAgent: 'User Agent',
 
   // Column definitions
   columns: {
@@ -43,6 +53,11 @@ export default {
   actions: {
     viewDetails: 'View Details',
     openMenu: 'Open menu',
+    create: 'Create',
+    update: 'Update',
+    delete: 'Delete',
+    publish: 'Publish',
+    moderate: 'Moderate',
   },
 
   // Stats ticker labels

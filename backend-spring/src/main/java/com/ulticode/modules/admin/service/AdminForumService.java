@@ -4,6 +4,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.admin.controller.AdminForumController.AdminForumCommunityVO;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
+import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
 
 import java.util.List;
@@ -81,4 +82,12 @@ public interface AdminForumService {
      * @return paginated result of admin forum community VOs
      */
     PageResult<AdminForumCommunityVO> getCommunities(int page, int limit);
+
+    /**
+     * Get audit history for a forum post.
+     *
+     * @param id post ID
+     * @return list of audit log VOs
+     */
+    List<AuditLogVO> getPostAuditHistory(String id);
 }

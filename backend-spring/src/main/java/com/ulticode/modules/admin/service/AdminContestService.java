@@ -111,4 +111,12 @@ public interface AdminContestService {
      * @return list of announcements
      */
     List<ContestAnnouncement> getAnnouncements(String contestId);
+
+    /**
+     * Get contest rankings (live ranking for admin view).
+     *
+     * @param contestId the contest ID
+     * @return list of contest rankings
+     */
+    List<com.ulticode.modules.contest.dto.ContestRankingVO> getRankings(String contestId);
 }

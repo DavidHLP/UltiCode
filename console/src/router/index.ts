@@ -342,7 +342,7 @@ let pendingNavigationId = 0;
 let lastValidatedAt = 0;
 const STALE_SESSION_MS = 5 * 60 * 1000; // 5 minutes
 
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to) => {
   const authStore = useAuthStore();
   const navId = ++pendingNavigationId;
   const isStale = () => navId !== pendingNavigationId;
@@ -351,7 +351,6 @@ router.beforeEach(async (to, from, next) => {
   if (import.meta.env.DEV) {
     console.debug("[Router] beforeEach", {
       to: to.path,
-      from: from.path,
       requiresAuth: to.matched.some((r) => r.meta.requiresAuth === true),
       authStatus: authStore.status,
       isAuthenticated: authStore.isAuthenticated,
@@ -393,10 +392,10 @@ router.beforeEach(async (to, from, next) => {
 
     // After fetch, check if authenticated
     if (!authStore.isAuthenticated) {
-      return next({
+      return {
         name: "login",
         query: { redirect: to.fullPath },
-      });
+      };
     }
 
     lastValidatedAt = Date.now();
@@ -407,10 +406,10 @@ router.beforeEach(async (to, from, next) => {
     authStore.isAuthenticated &&
     (to.name === "login" || to.name === "register")
   ) {
-    return next({ name: "forum-home" });
+    return { name: "forum-home" };
   }
 
-  next();
+  return true;
 });
 
 export default router;

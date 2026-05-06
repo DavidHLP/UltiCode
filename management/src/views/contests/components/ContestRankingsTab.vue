@@ -10,9 +10,11 @@ import {
 import { IconTrophy, IconMedal } from '@tabler/icons-vue'
 import type { ContestRanking } from '@/api/admin/contests'
 
-defineProps<{
-  rankings: ContestRanking[]
-}>()
+withDefaults(defineProps<{
+  rankings?: ContestRanking[]
+}>(), {
+  rankings: () => []
+})
 
 // Get rank styling
 function getRankStyle(rank: number) {

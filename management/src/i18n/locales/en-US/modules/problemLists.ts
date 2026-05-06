@@ -142,6 +142,8 @@ export default {
     createdSuccess: 'List created successfully',
     updatedSuccess: 'List updated successfully',
     deletedSuccess: 'List deleted successfully',
+    requestCanceled: 'Request cancelled, please retry',
+    networkError: 'Network connection failed',
   },
 
   // ========== Terminal Style ==========

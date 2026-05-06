@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { isAxiosError } from 'axios'
 import { z } from 'zod'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
@@ -52,7 +53,7 @@ const formSchema = toTypedSchema(
     isFeatured: z.boolean(),
     bannerTag: z.string().optional(),
     bannerTheme: z.string().optional(),
-    bannerOrder: z.number().int().optional(),
+    bannerOrder: z.coerce.number().int().optional(),
   }),
 )
 
@@ -80,8 +81,17 @@ async function onSubmit(values: Record<string, unknown>) {
       await store.updateList(props.list.id, values as unknown as UpdateProblemListDto)
       toast.success(t('problemLists.toast.updatedSuccess'))
     }
-  } catch {
-    toast.error(t('problemLists.toast.createFailed'))
+  } catch (err) {
+    const isCreate = props.mode === 'create'
+    if (err instanceof Error && err.name === 'CanceledError') {
+      toast.error(t('problemLists.toast.requestCanceled'))
+    } else if (isAxiosError(err) && !err.response) {
+      toast.error(t('problemLists.toast.networkError'))
+    } else if (isAxiosError(err) && err.response?.data?.message) {
+      toast.error(err.response.data.message)
+    } else {
+      toast.error(isCreate ? t('problemLists.toast.createFailed') : t('problemLists.toast.updateFailed'))
+    }
   } finally {
     loading.value = false
   }
@@ -98,7 +108,7 @@ const bannerThemes = [
 
 <template>
   <div class="space-y-6 max-w-2xl">
-    <form @submit="form.handleSubmit(onSubmit)" class="space-y-6">
+    <form @submit.prevent="form.handleSubmit(onSubmit)" class="space-y-6">
       <!-- Basic Information Section -->
       <div class="space-y-4">
         <div class="terminal-comment">// {{ t('problemLists.sections.basicInfo') }}</div>

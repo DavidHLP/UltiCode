@@ -3,14 +3,14 @@
   "stories": [
     {
       "id": "US-001",
-      "title": "修复 GET /admin/solutions 500 错误",
+      "title": "Add missing 'problem.table.tags' key to locale files",
+      "description": "RecommendationResultList.vue:38 uses t('problem.table.tags') but the key is missing in both zh-CN and en-US locale files under table section",
       "acceptanceCriteria": [
-        "数据库 solutions 表添加 is_pinned 列 (已通过 ALTER TABLE 手动执行)",
-        "V27 迁移文件存在于 db-manager/migrations/",
-        "API 不再返回 Unknown column 'is_pinned' 错误"
+        "zh-CN/problem.ts has table.tags key with Chinese translation '标签'",
+        "en-US/problem.ts has table.tags key with English translation 'Tags'",
+        "TypeScript build passes with no errors"
       ],
-      "passes": true,
-      "verification": "docker exec 确认列已添加，pm2 logs 无 SQL 错误"
+      "passes": true
     }
   ]
 }

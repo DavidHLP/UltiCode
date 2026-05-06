@@ -1,0 +1,11 @@
+{
+  "active": true,
+  "started_at": "2026-05-05T13:53:16.234Z",
+  "original_prompt": "/oh-my-claudecode:ralph problems.ts:153 Failed to fetch problems: ApiError: Request canceled\n    at request.ts:248:29\n    at async Proxy.fetchProblems (problems.ts:148:26)\n    at async ContestProblemPicker.vue:44:3\n﻿\n 修复异常",
+  "session_id": "6fd3ae4d-ef9e-4a97-9857-e6513cf706a0",
+  "project_path": "/home/davidhlp/project/UltiCode-Public-Next/management",
+  "reinforcement_count": 0,
+  "awaiting_confirmation": true,
+  "awaiting_confirmation_set_at": "2026-05-05T13:53:16.234Z",
+  "last_checked_at": "2026-05-05T13:53:16.234Z"
+}

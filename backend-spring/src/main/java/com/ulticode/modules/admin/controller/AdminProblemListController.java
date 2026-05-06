@@ -10,6 +10,7 @@ import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -59,8 +60,9 @@ public class AdminProblemListController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<ProblemListSummaryVO> updateProblemList(
             @PathVariable String id,
-            @Valid @RequestBody UpdateProblemListDTO dto) {
-        return Result.success(adminProblemListService.updateProblemList(id, dto));
+            @Valid @RequestBody UpdateProblemListDTO dto,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        return Result.success(adminProblemListService.updateProblemList(id, dto, userId));
     }
 
     @Operation(summary = "Delete problem list", description = "Delete a problem list")
@@ -69,6 +71,17 @@ public class AdminProblemListController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteProblemList(@PathVariable String id) {
         adminProblemListService.deleteProblemList(id);
+        return Result.success();
+    }
+
+    @Operation(summary = "Update problem list problems", description = "Replace all problems in a problem list")
+    @RateLimit(key = "admin:problem-list-update-problems", limit = 30, period = 60)
+    @PostMapping("/{id}/problems")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<Void> updateListProblems(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateProblemListProblemsDTO dto) {
+        adminProblemListService.updateListProblems(id, dto);
         return Result.success();
     }
 }

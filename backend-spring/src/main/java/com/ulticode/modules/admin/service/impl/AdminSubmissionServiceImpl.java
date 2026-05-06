@@ -171,22 +171,22 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
 
         // By status — aggregate SQL query instead of loading all records
         List<SubmissionStatistics.StatusCount> byStatus = new ArrayList<>();
-        List<Object[]> statusRows = submissionMapper.countByStatus();
-        for (Object[] row : statusRows) {
+        List<Map<String, Object>> statusRows = submissionMapper.countByStatus();
+        for (Map<String, Object> row : statusRows) {
             SubmissionStatistics.StatusCount sc = new SubmissionStatistics.StatusCount();
-            sc.setStatus((String) row[0]);
-            sc.setCount(((Number) row[1]).longValue());
+            sc.setStatus((String) row.get("status"));
+            sc.setCount(((Number) row.get("count")).longValue());
             byStatus.add(sc);
         }
         stats.setByStatus(byStatus);
 
         // By language — aggregate SQL query instead of loading all records
         List<SubmissionStatistics.LanguageCount> byLanguage = new ArrayList<>();
-        List<Object[]> languageRows = submissionMapper.countByLanguage();
-        for (Object[] row : languageRows) {
+        List<Map<String, Object>> languageRows = submissionMapper.countByLanguage();
+        for (Map<String, Object> row : languageRows) {
             SubmissionStatistics.LanguageCount lc = new SubmissionStatistics.LanguageCount();
-            lc.setLanguage((String) row[0]);
-            lc.setCount(((Number) row[1]).longValue());
+            lc.setLanguage((String) row.get("language"));
+            lc.setCount(((Number) row.get("count")).longValue());
             byLanguage.add(lc);
         }
         stats.setByLanguage(byLanguage);

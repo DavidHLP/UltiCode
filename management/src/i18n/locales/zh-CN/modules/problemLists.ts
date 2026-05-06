@@ -142,6 +142,8 @@ export default {
     createdSuccess: '列表创建成功',
     updatedSuccess: '列表更新成功',
     deletedSuccess: '列表删除成功',
+    requestCanceled: '请求已取消，请重试',
+    networkError: '网络连接失败',
   },
 
   // ========== 终端风格 ==========

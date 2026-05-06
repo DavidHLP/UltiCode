@@ -5,6 +5,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
+import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.BulkActionRequest;
 import com.ulticode.modules.admin.dto.BulkActionResult;
 import com.ulticode.modules.admin.service.AdminForumService;
@@ -16,6 +17,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 /**
  * Admin controller for forum post management.
@@ -43,6 +46,15 @@ public class AdminForumController {
             @Parameter(description = "Post ID")
             @PathVariable String id) {
         return Result.success(adminForumService.getPost(id));
+    }
+
+    @Operation(summary = "Get post audit history", description = "Get audit history for a forum post")
+    @GetMapping("/posts/{id}/audit")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<List<AuditLogVO>> getPostAuditHistory(
+            @Parameter(description = "Post ID")
+            @PathVariable String id) {
+        return Result.success(adminForumService.getPostAuditHistory(id));
     }
 
     @Operation(summary = "Pin post", description = "Pin a post to top")

@@ -11,13 +11,16 @@ import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
+import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
 import com.ulticode.modules.problemlist.mapper.ProblemListProblemMapper;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
@@ -92,12 +95,13 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     }
 
     @Override
-    public ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto) {
+    @Transactional(rollbackFor = Exception.class)
+    public ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto, String userId) {
         ProblemList list = problemListMapper.selectById(id);
         if (list == null) {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
         }
-        return problemListService.updateList(id, list.getAuthorId(), dto);
+        return problemListService.updateList(id, userId, dto);
     }
 
     @Override
@@ -107,6 +111,24 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
         }
         problemListService.deleteList(id, list.getAuthorId());
+    }
+
+    @Override
+    public void updateListProblems(String id, UpdateProblemListProblemsDTO dto) {
+        ProblemList list = problemListMapper.selectById(id);
+        if (list == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
+        }
+
+        problemListProblemMapper.deleteByListId(id);
+
+        for (UpdateProblemListProblemsDTO.ProblemEntry entry : dto.getProblems()) {
+            ProblemListProblemRelation relation = new ProblemListProblemRelation();
+            relation.setListId(id);
+            relation.setProblemId(entry.getProblemId());
+            relation.setSortOrder(entry.getSortOrder());
+            problemListProblemMapper.insert(relation);
+        }
     }
 
     private ProblemListSummaryVO toSummaryVO(ProblemList list) {

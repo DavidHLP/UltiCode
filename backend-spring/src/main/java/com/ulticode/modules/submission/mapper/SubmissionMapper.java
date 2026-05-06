@@ -244,18 +244,18 @@ public interface SubmissionMapper extends BaseMapper<Submission> {
     /**
      * Count submissions grouped by status (for admin statistics).
      *
-     * @return list of Object arrays containing [status, count]
+     * @return list of maps containing [status, count]
      */
     @Select("SELECT status, COUNT(*) as count FROM submissions WHERE status IS NOT NULL GROUP BY status")
-    List<Object[]> countByStatus();
+    List<Map<String, Object>> countByStatus();
 
     /**
      * Count submissions grouped by language (for admin statistics).
      *
-     * @return list of Object arrays containing [language, count]
+     * @return list of maps containing [language, count]
      */
     @Select("SELECT language, COUNT(*) as count FROM submissions WHERE language IS NOT NULL GROUP BY language ORDER BY count DESC")
-    List<Object[]> countByLanguage();
+    List<Map<String, Object>> countByLanguage();
 
     /**
      * Find distinct languages used in submissions.

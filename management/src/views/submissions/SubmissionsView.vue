@@ -360,6 +360,9 @@ const columns = createColumns(t, {
         >
           {{ selectedSubmission.problemTitle }} - {{ selectedSubmission.username }}
         </DialogDescription>
+        <DialogDescription v-else class="font-data text-sm text-[var(--silver-500)]">
+          {{ t('submissions.detail') }}
+        </DialogDescription>
       </DialogHeader>
       <div v-if="detailLoading" class="flex items-center justify-center py-12">
         <IconLoader2 class="h-6 w-6 animate-spin text-[var(--silver-400)]" />

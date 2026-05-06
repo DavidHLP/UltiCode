@@ -151,8 +151,8 @@ service.interceptors.request.use(
     config.headers[LOCALE_HEADER_KEY] = activeLocale
     config.headers['Accept-Language'] = activeLocale
 
-    // Request deduplication - skip for auth-critical endpoints
-    const shouldDeduplicate = !NON_DEDUPLICABLE_URLS.has(config.url || '')
+    const isStateChangingMethod = ['patch', 'put', 'delete'].includes(config.method?.toLowerCase() || '')
+    const shouldDeduplicate = !NON_DEDUPLICABLE_URLS.has(config.url || '') && !isStateChangingMethod
     if (shouldDeduplicate) {
       const key = getRequestKey(config)
       if (pendingRequests.has(key)) {

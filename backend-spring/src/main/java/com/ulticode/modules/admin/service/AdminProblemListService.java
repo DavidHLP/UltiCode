@@ -6,6 +6,7 @@ import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
 
 /**
  * Service interface for admin problem list operations.
@@ -42,9 +43,10 @@ public interface AdminProblemListService {
      *
      * @param id the problem list ID
      * @param dto the update problem list DTO
+     * @param userId the admin user ID making the request
      * @return the updated problem list
      */
-    ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto);
+    ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto, String userId);
 
     /**
      * Delete a problem list.
@@ -52,4 +54,12 @@ public interface AdminProblemListService {
      * @param id the problem list ID
      */
     void deleteProblemList(String id);
+
+    /**
+     * Update the problems in a problem list (full replacement).
+     *
+     * @param id the problem list ID
+     * @param dto the update DTO containing the new problem list
+     */
+    void updateListProblems(String id, UpdateProblemListProblemsDTO dto);
 }

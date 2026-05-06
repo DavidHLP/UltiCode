@@ -70,11 +70,8 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
     isLoading.value = true
     error.value = null
     try {
-      const updatedList = await adminProblemListsApi.updateList(id, data)
-      if (currentList.value && currentList.value.id === id) {
-        currentList.value = { ...currentList.value, ...updatedList }
-      }
-      return updatedList
+      await adminProblemListsApi.updateList(id, data)
+      await fetchList(id)
     } catch (err) {
       error.value = getErrorMessage(err, 'Failed to update problem list')
       throw err

@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2026-05-05T07:02:56.234Z",
+  "updatedAt": "2026-05-06T12:15:59.897Z",
   "missions": [
     {
       "id": "session:e3081fb1-1e28-4c43-a4e3-f2eb6a348abb:none",
@@ -270,7 +270,7 @@
       "objective": "Session mission",
       "createdAt": "2026-04-22T13:35:29.066Z",
       "updatedAt": "2026-04-22T13:35:29.066Z",
-      "status": "running",
+      "status": "done",
       "workerCount": 1,
       "taskCounts": {
         "total": 1,
@@ -310,7 +310,7 @@
       "objective": "Session mission",
       "createdAt": "2026-04-22T14:42:00.247Z",
       "updatedAt": "2026-04-22T14:42:00.247Z",
-      "status": "running",
+      "status": "done",
       "workerCount": 1,
       "taskCounts": {
         "total": 1,

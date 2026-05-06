@@ -42,6 +42,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     private final ContestProblemMapper contestProblemMapper;
     private final ContestAnnouncementMapper contestAnnouncementMapper;
     private final RealtimeService realtimeService;
+    private final com.ulticode.modules.contest.service.RankingService rankingService;
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
@@ -324,6 +325,15 @@ public class AdminContestServiceImpl implements AdminContestService {
     @Override
     public List<ContestAnnouncement> getAnnouncements(String contestId) {
         return contestAnnouncementMapper.findByContestIdOrderByCreatedAtDesc(contestId);
+    }
+
+    @Override
+    public List<com.ulticode.modules.contest.dto.ContestRankingVO> getRankings(String contestId) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+        return rankingService.getLiveRanking(contestId, 100);
     }
 
     /**

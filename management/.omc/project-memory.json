@@ -1,0 +1,190 @@
+{
+  "version": "1.0.0",
+  "lastScanned": 1777989877894,
+  "projectRoot": "/home/davidhlp/project/UltiCode-Public-Next/management",
+  "techStack": {
+    "languages": [
+      {
+        "name": "JavaScript/TypeScript",
+        "version": "^20.19.0 || >=22.12.0",
+        "confidence": "high",
+        "markers": [
+          "package.json"
+        ]
+      },
+      {
+        "name": "TypeScript",
+        "version": null,
+        "confidence": "high",
+        "markers": [
+          "tsconfig.json"
+        ]
+      }
+    ],
+    "frameworks": [
+      {
+        "name": "vue",
+        "version": "3.5.33",
+        "category": "frontend"
+      },
+      {
+        "name": "vite",
+        "version": "8.0.8",
+        "category": "build"
+      },
+      {
+        "name": "vitest",
+        "version": "4.0.15",
+        "category": "testing"
+      }
+    ],
+    "packageManager": "pnpm",
+    "runtime": "Node.js 20.19.0||22.12.0"
+  },
+  "build": {
+    "buildCommand": "rtk pnpm exec vue-tsc --noEmit 2>&1 | grep -E \"error|warning\" | head -10",
+    "testCommand": "pnpm test",
+    "lintCommand": "pnpm lint",
+    "devCommand": "pnpm dev",
+    "scripts": {
+      "validate:i18n-keys": "node scripts/validate-i18n-keys.js",
+      "dev": "pnpm run lint && pnpm run type-check && pnpm run format && pnpm run test && vite",
+      "build": "run-p type-check \"build-only {@}\" --",
+      "preview": "vite preview",
+      "build-only": "vite build",
+      "type-check": "vue-tsc --build",
+      "lint": "eslint . --fix --cache",
+      "format": "prettier --write src/",
+      "test": "vitest --run --passWithNoTests",
+      "test:watch": "vitest --passWithNoTests",
+      "test:coverage": "vitest --coverage --passWithNoTests"
+    }
+  },
+  "conventions": {
+    "namingStyle": null,
+    "importStyle": null,
+    "testPattern": null,
+    "fileOrganization": "type-based"
+  },
+  "structure": {
+    "isMonorepo": false,
+    "workspaces": [],
+    "mainDirectories": [
+      "docs",
+      "public",
+      "scripts",
+      "src"
+    ],
+    "gitBranches": {
+      "defaultBranch": "main",
+      "branchingStrategy": null
+    }
+  },
+  "customNotes": [],
+  "directoryMap": {
+    "dist": {
+      "path": "dist",
+      "purpose": "Distribution/build output",
+      "fileCount": 3,
+      "lastAccessed": 1777989877887,
+      "keyFiles": [
+        "favicon.ico",
+        "index.html",
+        "placeholder.svg"
+      ]
+    },
+    "docs": {
+      "path": "docs",
+      "purpose": "Documentation",
+      "fileCount": 1,
+      "lastAccessed": 1777989877887,
+      "keyFiles": [
+        "i18n-design.md"
+      ]
+    },
+    "public": {
+      "path": "public",
+      "purpose": "Public files",
+      "fileCount": 2,
+      "lastAccessed": 1777989877892,
+      "keyFiles": [
+        "favicon.ico",
+        "placeholder.svg"
+      ]
+    },
+    "scripts": {
+      "path": "scripts",
+      "purpose": "Build/utility scripts",
+      "fileCount": 1,
+      "lastAccessed": 1777989877893,
+      "keyFiles": [
+        "validate-i18n-keys.js"
+      ]
+    },
+    "src": {
+      "path": "src",
+      "purpose": "Source code",
+      "fileCount": 4,
+      "lastAccessed": 1777989877893,
+      "keyFiles": [
+        "App.vue",
+        "env.d.ts",
+        "main.ts",
+        "style.css"
+      ]
+    },
+    "dist/assets": {
+      "path": "dist/assets",
+      "purpose": "Static assets",
+      "fileCount": 172,
+      "lastAccessed": 1777989877893,
+      "keyFiles": [
+        "AccountView-BPFCl1Z0.js",
+        "AnalyticsView-n22nnX_9.js",
+        "AppealsView-DdOSk6MW.js"
+      ]
+    },
+    "src/api": {
+      "path": "src/api",
+      "purpose": "API routes",
+      "fileCount": 1,
+      "lastAccessed": 1777989877893,
+      "keyFiles": [
+        "auth.ts"
+      ]
+    },
+    "src/components": {
+      "path": "src/components",
+      "purpose": "UI components",
+      "fileCount": 1,
+      "lastAccessed": 1777989877893,
+      "keyFiles": [
+        "LanguageSwitcher.vue"
+      ]
+    },
+    "src/lib": {
+      "path": "src/lib",
+      "purpose": "Library code",
+      "fileCount": 1,
+      "lastAccessed": 1777989877893,
+      "keyFiles": [
+        "utils.ts"
+      ]
+    }
+  },
+  "hotPaths": [
+    {
+      "path": "src/views/submissions/SubmissionsView.vue",
+      "accessCount": 4,
+      "lastAccessed": 1778069976066,
+      "type": "file"
+    },
+    {
+      "path": "src/views/contests/components/ContestRankingsTab.vue",
+      "accessCount": 1,
+      "lastAccessed": 1778069818489,
+      "type": "file"
+    }
+  ],
+  "userDirectives": []
+}

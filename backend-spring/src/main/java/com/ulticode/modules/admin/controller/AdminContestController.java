@@ -121,4 +121,11 @@ public class AdminContestController {
         adminContestService.deleteAnnouncement(contestId, announcementId);
         return Result.success(null);
     }
+
+    @Operation(summary = "Get contest rankings", description = "Get live rankings for a contest in admin panel")
+    @GetMapping("/{id}/rankings")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<List<com.ulticode.modules.contest.dto.ContestRankingVO>> getRankings(@PathVariable String id) {
+        return Result.success(adminContestService.getRankings(id));
+    }
 }

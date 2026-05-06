@@ -15,6 +15,9 @@ import com.ulticode.modules.forum.entity.ForumPost;
 import com.ulticode.modules.forum.mapper.ForumCommentMapper;
 import com.ulticode.modules.forum.mapper.ForumCommunityMapper;
 import com.ulticode.modules.forum.mapper.ForumPostMapper;
+import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
+import com.ulticode.modules.admin.dto.AuditLogVO;
+import com.ulticode.modules.admin.service.AuditService;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
@@ -43,6 +46,7 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final ForumCommunityMapper forumCommunityMapper;
     private final ForumCommentMapper forumCommentMapper;
     private final EdgeOperationMapper edgeOperationMapper;
+    private final AuditService auditService;
 
     @Override
     public PageResult<AdminForumPostVO> getPosts(AdminForumPostQueryDTO query) {
@@ -203,6 +207,16 @@ public class AdminForumServiceImpl implements AdminForumService {
                 .collect(Collectors.toList());
 
         return PageResult.of(voList, result.getTotal(), safePage, safeLimit);
+    }
+
+    @Override
+    public List<AuditLogVO> getPostAuditHistory(String id) {
+        AuditLogQueryDTO query = new AuditLogQueryDTO();
+        query.setEntityType("FORUM_POST");
+        query.setEntityId(id);
+        query.setPage(1);
+        query.setLimit(100);
+        return auditService.getAuditLogs(query).getItems();
     }
 
     @Override

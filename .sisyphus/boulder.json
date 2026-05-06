@@ -1,32 +1,41 @@
 {
-  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/contest-api-fix.md",
-  "started_at": "2026-05-05T13:13:22.889Z",
+  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/fix-problem-list-edit.md",
+  "started_at": "2026-05-06T12:47:32.721Z",
   "session_ids": [
-    "ses_207c5b2fdffe52F1tgHaCWxRkM"
+    "ses_202bceb89ffehi0kuNISBNgBbu"
   ],
   "session_origins": {
-    "ses_207c5b2fdffe52F1tgHaCWxRkM": "direct"
+    "ses_202bceb89ffehi0kuNISBNgBbu": "direct"
   },
-  "plan_name": "contest-api-fix",
+  "plan_name": "fix-problem-list-edit",
   "agent": "atlas",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "修复 `ContestRankingVO.userId` 类型（Long → String）",
-      "session_id": "ses_207b9be9cffeaISwWau0mMBQqG",
+      "task_title": "修复表单提交阻止默认行为",
+      "session_id": "ses_202ab3dc0ffeuagdvlr2E9RS8g",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-05-05T13:14:30.305Z"
+      "updated_at": "2026-05-06T12:48:28.951Z"
     },
     "todo:4": {
       "task_key": "todo:4",
       "task_label": "4",
-      "task_title": "补充 `ContestRankingVO` 缺失字段",
-      "session_id": "ses_207b885c6ffeeerVVWxbZStjTI",
+      "task_title": "后端添加 @Transactional",
+      "session_id": "ses_202a7bb92ffeBjykQ6cbp3cql6",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-05-05T13:16:02.459Z"
+      "updated_at": "2026-05-06T12:52:13.829Z"
+    },
+    "todo:6": {
+      "task_key": "todo:6",
+      "task_label": "6",
+      "task_title": "编辑后刷新完整数据",
+      "session_id": "ses_202a5e73dffeYgRN3LAdrhynag",
+      "agent": "Sisyphus-Junior",
+      "category": "quick",
+      "updated_at": "2026-05-06T12:54:30.788Z"
     }
   }
 }

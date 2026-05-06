@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"rtk ls db-manager/migrations/ && echo \\\"---\\\" && rtk git status db-manager/migrations/ --short\",\"description\":\"List all migrations and check git status\"}",
-  "error": "Exit code 2\nls: 无法访问 'db-manager/migrations/': 没有那个文件或目录",
-  "timestamp": "2026-04-18T11:21:26.462Z",
-  "retry_count": 2
+  "tool_name": "mcp__plugin_oh-my-claudecode_t__lsp_diagnostics",
+  "tool_input_preview": "{\"file\":\"/home/davidhlp/project/UltiCode-Public-Next/console/src/router/index.ts\"}",
+  "error": "Language server 'typescript-language-server' not found.\nInstall with: npm install -g typescript-language-server typescript",
+  "timestamp": "2026-05-05T12:11:36.370Z",
+  "retry_count": 1
 }

@@ -20,7 +20,7 @@
         "Dropdown opens without errors in browser console"
       ],
       "priority": 2,
-      "passes": false
+      "passes": true
     }
   ],
   "notes": "Build errors fixed. DropdownMenu.vue was updated to match console's implementation. Dev server is running on port 9003 - user should refresh browser to test."

@@ -161,8 +161,7 @@ export const forumApi = {
   },
 
   async getPostAuditHistory(id: string): Promise<AuditEntry[]> {
-    const response = await apiGet<{ data: AuditEntry[] }>(`/admin/forum/posts/${id}/audit`)
-    return response.data
+    return apiGet<AuditEntry[]>(`/admin/forum/posts/${id}/audit`)
   },
 
   async flagPost(id: string, reason: string): Promise<void> {

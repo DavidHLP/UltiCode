@@ -13,6 +13,7 @@ import {
   type CasesData,
 } from '@/api/admin/problems'
 import { tagsApi, TagType } from '@/api/admin/tags'
+import { ApiError } from '@/utils/request'
 
 export interface ProblemTag {
   id: string
@@ -149,6 +150,10 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       problems.value = pageResult.items
       total.value = pageResult.total
     } catch (err: unknown) {
+      // Ignore cancellation errors from debounced requests - not a real error
+      if (err instanceof ApiError && err.code === -1 && err.message === 'Request canceled') {
+        return
+      }
       error.value = extractErrorMessage(err)
       console.error('Failed to fetch problems:', err)
     } finally {

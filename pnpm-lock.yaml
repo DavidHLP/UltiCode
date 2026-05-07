@@ -11,12 +11,21 @@ importers:
       '@letta-ai/letta-client':
         specifier: ^1.10.3
         version: 1.10.3
+      dotenv:
+        specifier: ^17.4.2
+        version: 17.4.2
 
 packages:
 
   '@letta-ai/letta-client@1.10.3':
     resolution: {integrity: sha512-E0nDGWZ00nkn43iIM1vlFuL84FhefstJnGqNuMamI3e0NzAtnpF5Z/BVxUnIPd1kVBRyId+QWSqVp8p66aztzQ==}
 
+  dotenv@17.4.2:
+    resolution: {integrity: sha512-nI4U3TottKAcAD9LLud4Cb7b2QztQMUEfHbvhTH09bqXTxnSie8WnjPALV/WMCrJZ6UV/qHJ6L03OqO3LcdYZw==}
+    engines: {node: '>=12'}
+
 snapshots:
 
   '@letta-ai/letta-client@1.10.3': {}
+
+  dotenv@17.4.2: {}

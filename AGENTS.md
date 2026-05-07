@@ -1,7 +1,7 @@
 # AGENTS.md
 
-> **Last Updated**: 2026-05-05
-> **Context**: Comprehensive project reference + init-deep analysis complete (6 explore agents, 200K LOC analyzed)
+> **Last Updated**: 2026-05-07
+> **Context**: Comprehensive project reference + database encoding issue investigation
 
 Compact reference for AI assistants working in the UltiCode repository.
 Every line answers: "Would an agent likely miss this without help?"
@@ -192,6 +192,20 @@ curl -s http://localhost:9001/users/u-admin-001/stats \
 - After modifying migration files: `clean --force` then `migrate` (checksum changes)
 - Use `db-manager/.venv/bin/python` — system Python will not work
 
+### Database Encoding — CRITICAL
+
+**Root cause of Chinese text corruption**: The db-manager JDBC URL was missing `useUnicode=true`, causing UTF-8 Chinese text to be double-encoded when inserted via Flyway migrations.
+
+**Fix applied**: `db-manager/src/db_manager/config.py` now includes `useUnicode=true&characterEncoding=UTF-8` in JDBC URL.
+
+**Symptom**: API returns garbled text like `å¹¶å'ç¼–ç¨‹å…¥é—¨` instead of `并发编程入门`.
+
+**Affected data**: V26 and V27 migrations fix `problem_lists` table. Other tables (`problem_tags`, `problems`, `forum_*`, `solutions`, `users`, etc.) have remaining corruption — 332+ cells across 24 tables.
+
+**For new inserts**: Backend and db-manager now have proper encoding config — new data inserts correctly.
+
+**For existing corrupted data**: `fix_utf8.py` at repo root attempts repair but detection logic is flawed. Manual table-by-table fixes using correct values from migration files may be needed.
+
 ## Critical Pitfalls
 
 ### Build Order
@@ -230,6 +244,7 @@ There are no pre-commit hooks (no husky, no lint-staged). Linting and type-check
 - springdoc 2.7.0 incompatible with Spring Boot 3.2.5 (LiteWebJarsResourceResolver missing); pinned to 2.6.0
 - Redis password change requires `docker compose up -d redis` (container restart, not just `docker restart`)
 - Flyway: db-manager does not support `-outOfOrder`; use `docker exec ulticode-mysql mysql ...` for out-of-order fixes
+- Character encoding: `WebConfig.java` includes `CharacterEncodingFilter` with `forceEncoding=true` for request/response
 
 ### Docker Services
 
@@ -315,10 +330,6 @@ Java 17 (Temurin), Node 22.x, pnpm 10.
 
 ## Additional Documentation
 
-- `.planning/codebase/CONVENTIONS.md` — coding conventions and patterns
-- `.planning/codebase/ARCHITECTURE.md` — system architecture and data flows
-- `.planning/codebase/CONCERNS.md` — security risks, technical debt, anti-patterns
-- `.planning/codebase/TESTING.md` — test patterns and coverage requirements
 - `recommendation/README.md` — recommendation service setup and troubleshooting
 - `db-manager/README.md` — migration CLI usage
 

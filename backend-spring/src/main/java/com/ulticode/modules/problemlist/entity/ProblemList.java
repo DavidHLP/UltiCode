@@ -72,6 +72,12 @@ public class ProblemList {
     private Integer bannerOrder;
 
     /**
+     * Version for optimistic locking
+     */
+    @Version
+    private Integer version;
+
+    /**
      * Record creation timestamp
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)

@@ -208,6 +208,71 @@ public class ProblemListServiceImpl implements ProblemListService {
 
     @Override
     @Transactional
+    public ProblemListSummaryVO updateBasicInfo(String id, String userId, UpdateBasicInfoDTO dto) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        if (!list.getAuthorId().equals(userId)) {
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+        }
+
+        list.setName(dto.getName());
+        list.setDescription(dto.getDescription());
+
+        problemListMapper.updateById(list);
+
+        return toSummaryVOWithSavedStatus(list, userId);
+    }
+
+    @Override
+    @Transactional
+    public ProblemListSummaryVO updateVisibility(String id, String userId, UpdateVisibilityDTO dto) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        if (!list.getAuthorId().equals(userId)) {
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+        }
+
+        if (dto.getIsPublic() != null) {
+            list.setIsPublic(dto.getIsPublic());
+        }
+        if (dto.getIsFeatured() != null) {
+            list.setIsFeatured(dto.getIsFeatured());
+        }
+
+        problemListMapper.updateById(list);
+
+        return toSummaryVOWithSavedStatus(list, userId);
+    }
+
+    @Override
+    @Transactional
+    public ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto) {
+        ProblemList list = problemListMapper.findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));
+
+        if (!list.getAuthorId().equals(userId)) {
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_CANNOT_EDIT);
+        }
+
+        if (dto.getBannerTag() != null) {
+            list.setBannerTag(dto.getBannerTag());
+        }
+        if (dto.getBannerTheme() != null) {
+            list.setBannerTheme(dto.getBannerTheme());
+        }
+        if (dto.getBannerOrder() != null) {
+            list.setBannerOrder(dto.getBannerOrder());
+        }
+
+        problemListMapper.updateById(list);
+
+        return toSummaryVOWithSavedStatus(list, userId);
+    }
+
+    @Override
+    @Transactional
     public ProblemListSummaryVO updateList(String id, String userId, UpdateProblemListDTO dto) {
         ProblemList list = problemListMapper.findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND));

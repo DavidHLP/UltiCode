@@ -72,6 +72,24 @@ export interface UpdateProblemListProblemsDto {
   }[]
 }
 
+export interface UpdateBasicInfoDto {
+  name?: string
+  description?: string
+  slug?: string
+}
+
+export interface UpdateVisibilityDto {
+  isPublic?: boolean
+  isFeatured?: boolean
+}
+
+export interface UpdateBannerDto {
+  bannerTag?: string
+  bannerIcon?: string
+  bannerTheme?: string
+  bannerOrder?: number
+}
+
 // PageResult type for paginated responses (matches backend PageResult<T>)
 export interface PageResult<T> {
   items: T[]
@@ -107,5 +125,17 @@ export const adminProblemListsApi = {
 
   async updateListProblems(id: string, data: UpdateProblemListProblemsDto): Promise<void> {
     await apiPost(`/admin/problem-lists/${id}/problems`, data)
+  },
+
+  async updateBasicInfo(id: string, data: UpdateBasicInfoDto): Promise<void> {
+    await apiPatch(`/admin/problem-lists/${id}`, data)
+  },
+
+  async updateVisibility(id: string, data: UpdateVisibilityDto): Promise<void> {
+    await apiPatch(`/admin/problem-lists/${id}`, data)
+  },
+
+  async updateBanner(id: string, data: UpdateBannerDto): Promise<void> {
+    await apiPatch(`/admin/problem-lists/${id}`, data)
   },
 }

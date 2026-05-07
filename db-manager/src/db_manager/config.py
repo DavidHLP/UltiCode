@@ -94,7 +94,7 @@ def get_jdbc_url(config: dict[str, Any] | None = None) -> str:
 
     return (
         f"jdbc:mysql://{host}:{port}/{database}"
-        f"?useSSL=false&allowPublicKeyRetrieval=true&characterEncoding=UTF-8"
+        f"?useSSL=false&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8"
     )
 
 

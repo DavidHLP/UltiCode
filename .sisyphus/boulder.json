@@ -1,41 +1,77 @@
 {
-  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/fix-problem-list-edit.md",
-  "started_at": "2026-05-06T12:47:32.721Z",
+  "active_plan": "/home/david/project/UltiCode-Public-Next/.sisyphus/plans/problem-list-edit-refactor.md",
+  "started_at": "2026-05-06T16:15:16.876Z",
   "session_ids": [
-    "ses_202bceb89ffehi0kuNISBNgBbu"
+    "ses_201ed868effegjO7VwWdW4YD9m"
   ],
   "session_origins": {
-    "ses_202bceb89ffehi0kuNISBNgBbu": "direct"
+    "ses_201ed868effegjO7VwWdW4YD9m": "direct"
   },
-  "plan_name": "fix-problem-list-edit",
+  "plan_name": "problem-list-edit-refactor",
   "agent": "atlas",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "修复表单提交阻止默认行为",
-      "session_id": "ses_202ab3dc0ffeuagdvlr2E9RS8g",
+      "task_title": "**数据库 Migration - 新增 version 字段**",
+      "session_id": "ses_201ec8516ffeNKSEi1vZkgzVoW",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-05-06T12:48:28.951Z"
-    },
-    "todo:4": {
-      "task_key": "todo:4",
-      "task_label": "4",
-      "task_title": "后端添加 @Transactional",
-      "session_id": "ses_202a7bb92ffeBjykQ6cbp3cql6",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-05-06T12:52:13.829Z"
+      "updated_at": "2026-05-06T16:19:34.109Z"
     },
     "todo:6": {
       "task_key": "todo:6",
       "task_label": "6",
-      "task_title": "编辑后刷新完整数据",
-      "session_id": "ses_202a5e73dffeYgRN3LAdrhynag",
+      "task_title": "**后端 Service 拆分 - 按模块的部分更新方法**",
+      "session_id": "ses_201e845e7ffeWJD1S3pRfQWrfy",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-06T16:22:55.745Z"
+    },
+    "todo:7": {
+      "task_key": "todo:7",
+      "task_label": "7",
+      "task_title": "**后端 Controller 添加角色检查**",
+      "session_id": "ses_201e5ff5bffeQ5BsUjWr7rGBjI",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-05-06T12:54:30.788Z"
+      "updated_at": "2026-05-06T16:30:25.374Z"
+    },
+    "todo:10": {
+      "task_key": "todo:10",
+      "task_label": "10",
+      "task_title": "**前端 BasicInfo 模块组件**",
+      "session_id": "ses_201df2dffffetKyWaZl6aokoJ9",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-06T16:33:29.694Z"
+    },
+    "todo:16": {
+      "task_key": "todo:16",
+      "task_label": "16",
+      "task_title": "**重构 ProblemListDetailView.vue（集成 4 个模块）**",
+      "session_id": "ses_201df2dffffetKyWaZl6aokoJ9",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-06T16:44:32.180Z"
+    },
+    "todo:17": {
+      "task_key": "todo:17",
+      "task_label": "17",
+      "task_title": "**创建页面适配（先 POST 再启用自动保存）**",
+      "session_id": "ses_201df2dffffetKyWaZl6aokoJ9",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-06T16:48:49.964Z"
+    },
+    "todo:18": {
+      "task_key": "todo:18",
+      "task_label": "18",
+      "task_title": "**集成测试（端到端 QA）**",
+      "session_id": "ses_201df2dffffetKyWaZl6aokoJ9",
+      "agent": "Sisyphus-Junior",
+      "category": "unspecified-high",
+      "updated_at": "2026-05-06T17:04:19.212Z"
     }
   }
 }

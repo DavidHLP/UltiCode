@@ -146,7 +146,7 @@ Wave FINAL (审查):
 
 ## TODOs
 
-- [ ] 1. **数据库 Migration - 新增 version 字段**
+- [x] 1. **数据库 Migration - 新增 version 字段**
 
   **What to do**:
   - 在 `db-manager/migrations/` 创建新 migration 文件
@@ -191,7 +191,7 @@ Wave FINAL (审查):
   - Message: `feat(db): add version column to problem_lists for optimistic locking`
   - Files: `db-manager/migrations/V{next}__problem_lists_add_version.sql`
 
-- [ ] 2. **后端 DTO 拆分 - 按模块定义专用 DTO**
+- [x] 2. **后端 DTO 拆分 - 按模块定义专用 DTO**
 
   **What to do**:
   - 在 `backend-spring/src/main/java/com/ulticode/modules/problemlist/dto/` 创建:
@@ -236,7 +236,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 1)
 
-- [ ] 3. **后端 Entity 添加 @Version 注解**
+- [x] 3. **后端 Entity 添加 @Version 注解**
 
   **What to do**:
   - 在 `ProblemList.java` 实体中添加 `version` 字段
@@ -277,7 +277,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 1)
 
-- [ ] 4. **前端权限常量 - 新增 MANAGE_PROBLEMS**
+- [x] 4. **前端权限常量 - 新增 MANAGE_PROBLEMS**
 
   **What to do**:
   - 在 `management/src/constants/permissions.ts` 添加:
@@ -319,7 +319,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 5)
 
-- [ ] 5. **前端 API Client 拆分 - 按模块定义 API 方法**
+- [x] 5. **前端 API Client 拆分 - 按模块定义 API 方法**
 
   **What to do**:
   - 在 `management/src/api/admin/problem-lists.ts` 中:
@@ -364,7 +364,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 4)
 
-- [ ] 6. **后端 Service 拆分 - 按模块的部分更新方法**
+- [x] 6. **后端 Service 拆分 - 按模块的部分更新方法**
 
   **What to do**:
   - 在 `ProblemListServiceImpl.java` 中新增:
@@ -422,7 +422,7 @@ Wave FINAL (审查):
   **Commit**: YES
   - Message: `feat(problem-list): add module-specific update methods with optimistic locking`
 
-- [ ] 7. **后端 Controller 添加角色检查**
+- [x] 7. **后端 Controller 添加角色检查**
 
   **What to do**:
   - 在 `AdminProblemListController.java` 中:
@@ -477,7 +477,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 6)
 
-- [ ] 8. **后端乐观锁异常处理**
+- [x] 8. **后端乐观锁异常处理**
 
   **What to do**:
   - 在 `GlobalExceptionHandler.java` 中添加:
@@ -518,7 +518,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 6)
 
-- [ ] 9. **后端单元测试（Service 层 TDD）**
+- [x] 9. **后端单元测试（Service 层 TDD）**
 
   **What to do**:
   - 创建 `ProblemListServiceTest.java`:
@@ -565,7 +565,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 6)
 
-- [ ] 10. **前端 BasicInfo 模块组件**
+- [x] 10. **前端 BasicInfo 模块组件**
 
   **What to do**:
   - 创建 `management/src/views/problem-lists/components/BasicInfoSection.vue`
@@ -625,7 +625,7 @@ Wave FINAL (审查):
   **Commit**: YES
   - Message: `feat(problem-list): add BasicInfo section component with auto-save`
 
-- [ ] 11. **前端 Visibility 模块组件**
+- [x] 11. **前端 Visibility 模块组件**
 
   **What to do**:
   - 创建 `management/src/views/problem-lists/components/VisibilitySection.vue`
@@ -670,7 +670,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 10)
 
-- [ ] 12. **前端 Banner 模块组件**
+- [x] 12. **前端 Banner 模块组件**
 
   **What to do**:
   - 创建 `management/src/views/problem-lists/components/BannerSection.vue`
@@ -714,7 +714,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 10)
 
-- [ ] 13. **前端自动保存 Composable**
+- [x] 13. **前端自动保存 Composable**
 
   **What to do**:
   - 创建 `management/src/composables/useAutoSave.ts`
@@ -762,7 +762,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 10)
 
-- [ ] 14. **前端权限控制 Composable**
+- [x] 14. **前端权限控制 Composable**
 
   **What to do**:
   - 创建 `management/src/composables/useProblemListPermissions.ts`
@@ -806,7 +806,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 10)
 
-- [ ] 15. **前端单元测试（组件 TDD）**
+- [x] 15. **前端单元测试（组件 TDD）**
 
   **What to do**:
   - 为 Task 10-13 的组件/composable 编写测试:
@@ -852,7 +852,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 10)
 
-- [ ] 16. **重构 ProblemListDetailView.vue（集成 4 个模块）**
+- [x] 16. **重构 ProblemListDetailView.vue（集成 4 个模块）**
 
   **What to do**:
   - 重构 `management/src/views/problem-lists/ProblemListDetailView.vue`
@@ -905,7 +905,7 @@ Wave FINAL (审查):
   **Commit**: YES
   - Message: `feat(problem-list): integrate module sections in detail view`
 
-- [ ] 17. **创建页面适配（先 POST 再启用自动保存）**
+- [x] 17. **创建页面适配（先 POST 再启用自动保存）**
 
   **What to do**:
   - 修改创建流程:
@@ -954,7 +954,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 16)
 
-- [ ] 18. **集成测试（端到端 QA）**
+- [x] 18. **集成测试（端到端 QA）**
 
   **What to do**:
   - 编写端到端测试脚本:
@@ -1006,7 +1006,7 @@ Wave FINAL (审查):
 
   **Commit**: YES (groups with Task 16)
 
-- [ ] 19. **清理旧代码（删除旧 GeneralInfo.vue）**
+- [x] 19. **清理旧代码（删除旧 GeneralInfo.vue）**
 
   **What to do**:
   - 确认没有其他地方引用 `GeneralInfo.vue`

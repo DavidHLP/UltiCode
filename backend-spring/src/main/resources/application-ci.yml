@@ -31,6 +31,12 @@ spring:
 
 server:
   port: 0  # Random port for tests
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+      force-response: true
 
 # CORS: not needed in CI
 cors:

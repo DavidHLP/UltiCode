@@ -6,6 +6,12 @@ cors:
 
 server:
   port: ${SERVER_PORT:9001}
+  servlet:
+    encoding:
+      charset: UTF-8
+      enabled: true
+      force: true
+      force-response: true
 
 springdoc:
   api-docs:

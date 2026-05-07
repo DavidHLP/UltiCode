@@ -77,7 +77,7 @@ public class AdminProblemListController {
     @Operation(summary = "Update problem list problems", description = "Replace all problems in a problem list")
     @RateLimit(key = "admin:problem-list-update-problems", limit = 30, period = 60)
     @PostMapping("/{id}/problems")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN', 'MANAGE_PROBLEMS')")
     public Result<Void> updateListProblems(
             @PathVariable String id,
             @Valid @RequestBody UpdateProblemListProblemsDTO dto) {

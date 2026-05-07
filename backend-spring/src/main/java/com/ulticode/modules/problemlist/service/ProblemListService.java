@@ -170,4 +170,10 @@ public interface ProblemListService {
      * @param userId     the user ID
      */
     void deleteCategory(String categoryId, String userId);
+
+    ProblemListSummaryVO updateBasicInfo(String id, String userId, UpdateBasicInfoDTO dto);
+
+    ProblemListSummaryVO updateVisibility(String id, String userId, UpdateVisibilityDTO dto);
+
+    ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto);
 }

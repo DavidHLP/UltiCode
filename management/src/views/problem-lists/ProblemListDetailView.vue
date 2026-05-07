@@ -6,7 +6,9 @@ import { useAdminProblemListsStore } from '@/stores/admin/problem-lists'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { ArrowLeft, FileText } from 'lucide-vue-next'
-import GeneralInfo from './components/GeneralInfo.vue'
+import BasicInfoSection from './components/BasicInfoSection.vue'
+import VisibilitySection from './components/VisibilitySection.vue'
+import BannerSection from './components/BannerSection.vue'
 import ProblemsManager from './components/ProblemsManager.vue'
 
 const router = useRouter()
@@ -17,14 +19,13 @@ const store = useAdminProblemListsStore()
 const isInitialLoad = ref(true)
 const listId = computed(() => route.params.id as string)
 const isCreate = computed(() => route.name === 'problem-list-create')
-const activeTab = ref('general')
 
-const list = computed(() => store.currentList)
-
-const tabs = computed(() => [
-  { value: 'general', label: t('problemLists.generalInfo') },
-  { value: 'problems', label: t('problemLists.problems'), disabled: isCreate.value },
-])
+const list = computed({
+  get: () => store.currentList,
+  set: (val) => {
+    store.currentList = val
+  },
+})
 
 onMounted(async () => {
   if (!isCreate.value && listId.value) {
@@ -47,6 +48,10 @@ function handleCreateSuccess(id: string) {
 
 function back() {
   router.push({ name: 'problem-lists' })
+}
+
+function handleListUpdate(updatedList: typeof store.currentList) {
+  store.currentList = updatedList
 }
 </script>
 
@@ -110,28 +115,6 @@ function back() {
       </div>
     </header>
 
-    <!-- Terminal Tabs Navigation -->
-    <div class="border-b border-[var(--silver-200)] bg-[var(--card)]">
-      <div class="px-4 lg:px-6 flex gap-1">
-        <button
-          v-for="tab in tabs"
-          :key="tab.value"
-          :disabled="tab.disabled"
-          :class="[
-            'px-4 py-3 font-data text-xs uppercase tracking-[0.05em] border-b-2 transition-colors',
-            activeTab === tab.value
-              ? 'border-[var(--accent-electric)] text-[var(--foreground)]'
-              : 'border-transparent text-[var(--silver-400)] hover:text-[var(--silver-600)] dark:hover:text-[var(--silver-300)]',
-            tab.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
-          ]"
-          @click="!tab.disabled && (activeTab = tab.value)"
-        >
-          <span v-if="activeTab === tab.value" class="text-[var(--accent-electric)]">//</span>
-          {{ tab.label }}
-        </button>
-      </div>
-    </div>
-
     <!-- Main Content -->
     <main class="flex-1 w-full max-w-5xl mx-auto p-4 lg:p-6 lg:pt-8">
       <!-- Loading State -->
@@ -167,20 +150,32 @@ function back() {
       </div>
 
       <!-- Content -->
-      <div v-else>
-        <!-- General Tab -->
-        <div v-show="activeTab === 'general'">
-          <GeneralInfo
-            :list="list"
-            :mode="isCreate ? 'create' : 'edit'"
-            @success="handleCreateSuccess"
-          />
-        </div>
+      <div v-else class="space-y-8">
+        <!-- Basic Info Section -->
+        <BasicInfoSection
+          :model-value="list"
+          :disabled="isCreate"
+          :is-create="isCreate"
+          @update:model-value="handleListUpdate"
+          @success="handleCreateSuccess"
+        />
 
-        <!-- Problems Tab -->
-        <div v-show="activeTab === 'problems'">
-          <ProblemsManager :list="list" />
-        </div>
+        <!-- Visibility Section -->
+        <VisibilitySection
+          :model-value="list"
+          :disabled="isCreate"
+          @update:model-value="handleListUpdate"
+        />
+
+        <!-- Banner Section -->
+        <BannerSection
+          :model-value="list"
+          :disabled="isCreate"
+          @update:model-value="handleListUpdate"
+        />
+
+        <!-- Problems Manager -->
+        <ProblemsManager :list="list" />
       </div>
     </main>
   </div>

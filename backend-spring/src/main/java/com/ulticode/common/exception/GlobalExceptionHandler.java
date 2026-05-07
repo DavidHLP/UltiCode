@@ -164,4 +164,29 @@ public class GlobalExceptionHandler {
         );
         return ResponseEntity.status(HttpStatus.METHOD_NOT_ALLOWED).body(result);
     }
+
+    /**
+     * Handle OptimisticLockException from MyBatis-Plus @Version
+     * Returns a Result with CONFLICT status and current version info
+     *
+     * @param ex the OptimisticLockException
+     * @return ResponseEntity containing the error Result
+     */
+    @ExceptionHandler(OptimisticLockException.class)
+    public ResponseEntity<Result<Map<String, Object>>> handleOptimisticLockException(OptimisticLockException ex) {
+        log.warn("Optimistic lock conflict: {}", ex.getMessage());
+
+        String traceId = "t-" + Instant.now().toEpochMilli();
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("currentVersion", ex.getCurrentVersion());
+
+        Result<Map<String, Object>> result = Result.errorWithData(
+                409,
+                "版本冲突",
+                data,
+                traceId
+        );
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(result);
+    }
 }

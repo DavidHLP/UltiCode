@@ -328,10 +328,94 @@ Copy from `.env.example` and fill in real values.
 
 Java 17 (Temurin), Node 22.x, pnpm 10.
 
+## Module-Specific AGENTS.md
+
+| Module | Path | Focus |
+|--------|------|-------|
+| Backend | `backend-spring/AGENTS.md` | Spring Boot modules, testing, MyBatis-Plus |
+| Console | `console/AGENTS.md` | Vue user frontend, auth flow, Solarized theme |
+| Management | `management/AGENTS.md` | Vue admin dashboard, shared symlink, ESLint 10.x |
+| DB Manager | `db-manager/AGENTS.md` | Flyway migrations, encoding pitfalls |
+| Recommendation | `recommendation/AGENTS.md` | Dubbo3 + Spark microservices, build order |
+
 ## Additional Documentation
 
 - `recommendation/README.md` — recommendation service setup and troubleshooting
 - `db-manager/README.md` — migration CLI usage
+
+## Non-Standard Patterns
+
+### ESLint Version Split
+- **console**: ESLint 9.x + `eslint-plugin-vue` ^9.30.0
+- **management**: ESLint 10.x + `eslint-plugin-vue` ~10.8.0
+- Both use flat config (`eslint.config.ts`). Console has extensive `vue/multi-word-component-names` whitelist; management disables the rule entirely.
+
+### Shared Code Asymmetry
+- **Management** has symlink `src/shared -> ../../shared` — imports via `@/shared/auth-core/src`
+- **Console** does NOT have this symlink — auth utilities duplicated locally in `src/utils/csrf.ts` and `src/stores/auth.ts`
+
+### Build Order (Critical)
+- `recommendation` MUST build before `backend-spring`
+- Backend depends on `recommend-api` artifact
+- Without it, backend compilation fails
+
+### Migration Naming
+- Flyway migration files use double underscore: `V{version}__{description}.sql`
+- Standard Flyway convention is single underscore
+
+### OKLCH Colors Only
+- All CSS uses `oklch()` function — no hex/HSL anywhere
+- Design system requirement for console
+
+### Sharp Corners
+- `--radius: 0` everywhere in console/management
+- shadcn-vue components have corners not rounded
+
+### No Pre-Commit Hooks
+- No husky, no lint-staged
+- CI runs lint/type-check/test manually
+
+### PM2 Dual Config
+- Root `ecosystem.config.cjs` manages all services
+- `backend-spring/ecosystem.config.cjs` is orphaned (hardcoded paths/secrets) — do NOT use
+
+## Security Anti-Patterns (THIS PROJECT)
+
+### Password Reset Timing Attack Prevention
+- `PasswordResetService.java`: "Do NOT reveal whether user exists" — prevents user enumeration
+- Always return same timing for both existing and non-existing users
+
+### httpOnly Cookie Enforcement
+- **console**: Do NOT send Authorization header via socket (`useContestSocket.ts:198`)
+- **console**: Do NOT read `access_token` from `document.cookie` — httpOnly prevents JS access (`lib/socket.ts:191`)
+
+### XSS Prevention
+- `console/src/utils/sanitize.ts` and `management/src/utils/sanitize-markdown.ts`: "Dangerous tags that should NEVER be allowed"
+
+### Request Deduplication
+- `console/src/utils/request.ts` and `management/src/utils/request.ts`: URLs in `NON_DEDUPLICABLE_URLS` must NEVER be deduplicated — auth-critical requests
+
+## Build/CI Non-Standard Patterns
+
+### GitHub Actions
+- **Flyway workaround**: `ci.yml` downloads Flyway CLI directly and writes custom wrapper script to bypass Alpine JRE detection (lines 201-217) — non-standard but necessary
+- **Action version mismatch**: ci-recommendation.yml uses v4 actions; ci.yml uses v5/v6
+- **Inline health checks**: cd-deploy.yml uses inline bash loops rather than reusable workflows
+
+### Docker
+- **MySQL**: utf8mb4 charset explicitly configured
+- **SSL inconsistency**: prod has `useSSL=true`, dev has `useSSL=false`
+- **Missing restart policy**: recommend-provider and recommend-web in docker-compose.prod.yml lack restart policy
+
+### Maven
+- **JaCoCo thresholds**: Line 5%, branch 2% — extremely permissive
+- **Extensive exclusions**: All Mapper, DTO, VO, entity classes excluded from coverage
+- **Lombok version**: Pinned to 1.18.44 instead of Spring Boot managed
+- **finalName = "app"**: Non-standard artifact naming
+
+### PM2
+- **Dual ecosystem config**: Root `ecosystem.config.cjs` conflicts with `backend-spring/ecosystem.config.cjs`
+- **Hardcoded paths/secrets**: backend-spring-specific config has absolute paths and JWT secret — do NOT use
 
 ## Behavioral Guidelines
 

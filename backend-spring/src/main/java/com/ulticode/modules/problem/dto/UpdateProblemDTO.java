@@ -33,4 +33,16 @@ public class UpdateProblemDTO {
 
     @Schema(description = "Whether the problem has an official solution", example = "false")
     private Boolean hasSolution;
+
+    @Schema(description = "Problem summary", example = "Given an array of integers...")
+    private String summary;
+
+    @Schema(description = "Problem full content (markdown)", example = "## Description\\nGiven...")
+    private String content;
+
+    @Schema(description = "Problem constraints as JSON array", example = "[\"1 <= nums.length <= 10^4\"]")
+    private String constraintsJson;
+
+    @Schema(description = "Problem hints as JSON array", example = "[\"Think about hash map\"]")
+    private String hints;
 }

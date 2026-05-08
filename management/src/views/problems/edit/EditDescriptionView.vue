@@ -29,20 +29,11 @@ async function handleSubmit(formData: DescriptionFormData) {
         slug: formData.slug,
         title: formData.title,
         difficulty: formData.difficulty,
-        status: formData.status,
         isPremium: formData.isPremium,
         summary: formData.summary,
         content: formData.content,
-        examples: formData.examples.map((ex, idx) => ({
-          id: String(idx),
-          input: ex.input,
-          output: ex.output,
-          explanation: ex.explanation || '',
-          order: idx,
-        })),
-        constraints: formData.constraints,
-        hints: formData.hints,
-        tags: formData.tags,
+        constraintsJson: JSON.stringify(formData.constraints),
+        hints: JSON.stringify(formData.hints),
       },
       formData.isPublished,
     )
@@ -55,7 +46,7 @@ async function handleSubmit(formData: DescriptionFormData) {
   }
 }
 
-const formattedProblem = computed<DescriptionFormData | undefined>(() => {
+const formattedProblem = computed(() => {
   const problem = data.value
   if (!problem) return undefined
 

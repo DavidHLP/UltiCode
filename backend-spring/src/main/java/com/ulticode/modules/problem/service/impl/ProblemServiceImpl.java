@@ -252,6 +252,7 @@ public class ProblemServiceImpl implements ProblemService {
 
         DetailData data = new DetailData();
         data.setSummary(detail.getSummary());
+        data.setContent(detail.getContent());
         data.setConstraintsJson(parseJsonArray(detail.getConstraintsJson()));
         data.setHints(parseJsonArray(detail.getHints()));
         data.setFollowUp(detail.getFollowUp());
@@ -408,11 +409,53 @@ public class ProblemServiceImpl implements ProblemService {
 
         problemMapper.updateById(problem);
 
+        updateProblemDetail(id, updateDTO);
+
         String operatorId = SecurityUtil.getCurrentUserId();
         problemVersionService.createVersion(id, "UPDATE", null, operatorId);
 
         log.info("Problem updated: {} by user {}", id, operatorId);
         return toVO(problem);
+    }
+
+    private void updateProblemDetail(Long problemId, UpdateProblemDTO updateDTO) {
+        boolean hasDetailUpdate = updateDTO.getSummary() != null || updateDTO.getContent() != null
+                || updateDTO.getConstraintsJson() != null || updateDTO.getHints() != null;
+        if (!hasDetailUpdate) {
+            return;
+        }
+
+        LambdaQueryWrapper<ProblemDetail> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(ProblemDetail::getProblemId, problemId);
+        ProblemDetail detail = problemDetailMapper.selectOne(wrapper);
+
+        boolean isNew = false;
+        if (detail == null) {
+            detail = new ProblemDetail();
+            detail.setProblemId(problemId);
+            detail.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+            isNew = true;
+        }
+
+        if (updateDTO.getSummary() != null) {
+            detail.setSummary(updateDTO.getSummary());
+        }
+        if (updateDTO.getContent() != null) {
+            detail.setContent(updateDTO.getContent());
+        }
+        if (updateDTO.getConstraintsJson() != null) {
+            detail.setConstraintsJson(updateDTO.getConstraintsJson());
+        }
+        if (updateDTO.getHints() != null) {
+            detail.setHints(updateDTO.getHints());
+        }
+        detail.setUpdatedAt(LocalDateTime.now());
+
+        if (isNew) {
+            problemDetailMapper.insert(detail);
+        } else {
+            problemDetailMapper.updateById(detail);
+        }
     }
 
     @Override

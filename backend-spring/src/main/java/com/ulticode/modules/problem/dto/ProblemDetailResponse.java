@@ -115,6 +115,8 @@ public class ProblemDetailResponse {
     public static class DetailData {
         private String summary;
 
+        private String content;
+
         @JsonProperty("constraints_json")
         private List<String> constraintsJson;
 

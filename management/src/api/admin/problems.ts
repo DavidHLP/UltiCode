@@ -184,11 +184,11 @@ export interface UpdateProblemDto {
   hasSolution?: boolean
   summary?: string
   content?: string
+  constraintsJson?: string
+  hints?: string
   examples?: ProblemExample[]
-  constraints?: string[]
-  hints?: string[]
-  languages?: string[]
   tags?: string[]
+  languages?: string[]
 }
 
 export interface BulkProblemActionDto {

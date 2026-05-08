@@ -26,6 +26,8 @@ public class ProblemDetail {
      */
     private String summary;
 
+    private String content;
+
     /**
      * Companies associated with this problem (JSON)
      */

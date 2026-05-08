@@ -28,7 +28,7 @@ const title = computed(() => {
 async function handleSubmit(formData: CodeFormData) {
   try {
     await problemsStore.updateProblem(problemId.value, {
-      languages: formData.languages.map((lang) => lang.language),
+      hasSolution: true,
     })
     toast.success(t('problems.toast.updateSuccess'))
     router.push({ name: 'problem-detail', params: { id: problemId.value, tab: 'code' } })

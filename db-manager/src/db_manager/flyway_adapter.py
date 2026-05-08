@@ -68,7 +68,7 @@ class FlywayAdapter:
             "-e", f"FLYWAY_URL={jdbc_url}",
             "-e", f"FLYWAY_USER={user}",
             "-e", f"FLYWAY_PASSWORD={password}",
-            "flyway/flyway",
+            "flyway/flyway:11-alpine",
             f"-locations=filesystem:/flyway/migrations",
         ]
 

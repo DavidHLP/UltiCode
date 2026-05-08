@@ -45,9 +45,8 @@ async function handleSubmit(formData: CasesFormData) {
         explanation: ex.explanation,
         order: idx,
       })),
-      constraints: formData.constraints,
-      hints: formData.hints,
-      tags: formData.tags,
+      constraintsJson: JSON.stringify(formData.constraints),
+      hints: JSON.stringify(formData.hints),
     })
     toast.success(t('problems.toast.updateSuccess'))
     router.push({ name: 'problem-detail', params: { id: problemId.value } })

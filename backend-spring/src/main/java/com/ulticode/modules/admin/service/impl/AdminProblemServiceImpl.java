@@ -64,6 +64,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
         if (detail != null) {
             DescriptionDataVO.DetailInfo detailInfo = new DescriptionDataVO.DetailInfo();
             detailInfo.setSummary(detail.getSummary());
+            detailInfo.setContent(detail.getContent());
             detailInfo.setConstraintsJson(parseJsonArray(detail.getConstraintsJson()));
             detailInfo.setHints(parseJsonArray(detail.getHints()));
             vo.setDetail(detailInfo);

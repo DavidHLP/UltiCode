@@ -38,17 +38,30 @@ public class EnvValidationConfig {
 
     @PostConstruct
     public void validateCriticalEnvVars() {
-        List<String> requiredVars = List.of(
+        // Primary env vars (from .env / backend-spring/.env.example)
+        List<String> primaryRequired = List.of(
             "JWT_SECRET",
-            "SPRING_DATASOURCE_URL"
+            "DB_PASSWORD"
         );
 
-        List<String> missing = requiredVars.stream()
+        // Derived/Spring-standard fallback: construct SPRING_DATASOURCE_URL from DATABASE_URL if present
+        String databaseUrl = System.getenv("DATABASE_URL");
+        String dbHost = System.getenv("DB_HOST");
+        boolean hasSpringDatasourceUrl = System.getenv("SPRING_DATASOURCE_URL") != null
+            && !System.getenv("SPRING_DATASOURCE_URL").isBlank();
+        boolean hasDbHost = dbHost != null && !dbHost.isBlank();
+
+        List<String> missing = primaryRequired.stream()
             .filter(var -> {
                 String value = System.getenv(var);
                 return value == null || value.isBlank();
             })
             .toList();
+
+        // If neither SPRING_DATASOURCE_URL nor DB_HOST is set, add it to missing
+        if (!hasSpringDatasourceUrl && !hasDbHost) {
+            missing.add("DB_HOST (or SPRING_DATASOURCE_URL)");
+        }
 
         if (!missing.isEmpty()) {
             String msg = "Missing required environment variables: " + String.join(", ", missing);

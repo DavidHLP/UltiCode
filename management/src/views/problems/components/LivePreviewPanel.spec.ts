@@ -66,6 +66,7 @@ function createMockData(overrides: Partial<ProblemDescriptionFormData> = {}): Pr
     constraints: ['2 \u003c= nums.length \u003c= 10^4', '-10^9 \u003c= nums[i] \u003c= 10^9'],
     hints: ['Try a hash map', 'Consider one-pass approach'],
     tags: ['array', 'hash-table'],
+    languages: [],
     ...overrides,
   }
 }

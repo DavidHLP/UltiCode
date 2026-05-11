@@ -28,6 +28,7 @@ import {
 } from '@/components/ui/select'
 import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { IconFileDescription, IconCheck } from '@tabler/icons-vue'
+import { Badge } from '@/components/ui/badge'
 import MarkdownEditor from '@/components/problem/MarkdownEditor.vue'
 import ExamplesEditor from './ExamplesEditor.vue'
 import ConstraintsEditor from './ConstraintsEditor.vue'
@@ -59,6 +60,7 @@ interface ProblemData {
   constraints?: string[]
   hints?: string[]
   tags?: string[]
+  languages?: string[]
 }
 
 const props = defineProps<{
@@ -106,6 +108,7 @@ function updateForm(data?: ProblemData) {
     constraints: data.constraints?.length ? data.constraints : [],
     hints: data.hints?.length ? data.hints : [],
     tags: data.tags?.length ? data.tags : [],
+    languages: data.languages?.length ? data.languages : [],
   })
 }
 
@@ -126,6 +129,36 @@ function cancel() {
 }
 
 const defaultOpenSections = ['basic', 'description', 'examples']
+
+const availableLanguages = [
+  'python',
+  'javascript',
+  'typescript',
+  'java',
+  'cpp',
+  'c',
+  'csharp',
+  'go',
+  'rust',
+  'ruby',
+  'php',
+  'swift',
+  'kotlin',
+]
+
+function toggleLanguage(lang: string) {
+  const current = formValues.languages || []
+  const index = current.indexOf(lang)
+  if (index > -1) {
+    formValues.languages = current.filter((l) => l !== lang)
+  } else {
+    formValues.languages = [...current, lang]
+  }
+}
+
+function isLanguageSelected(lang: string): boolean {
+  return (formValues.languages || []).includes(lang)
+}
 </script>
 
 <template>
@@ -387,6 +420,45 @@ const defaultOpenSections = ['basic', 'description', 'examples']
                       <FormMessage />
                     </FormItem>
                   </FormField>
+                </CardContent>
+              </AccordionContent>
+            </Card>
+          </AccordionItem>
+
+          <!-- Languages -->
+          <AccordionItem value="languages" class="border-0">
+            <Card>
+              <AccordionTrigger class="px-6 py-4 hover:no-underline">
+                <div class="flex items-center gap-2">
+                  <IconFileDescription class="h-5 w-5 text-muted-foreground" />
+                  <CardTitle class="text-base">{{ t('problems.descriptionForm.languages') }}</CardTitle>
+                </div>
+              </AccordionTrigger>
+              <AccordionContent>
+                <CardContent class="space-y-4">
+                  <p class="text-sm text-muted-foreground">
+                    {{ t('problems.descriptionForm.languagesDescription') }}
+                  </p>
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="lang in availableLanguages"
+                      :key="lang"
+                      type="button"
+                      class="cursor-pointer transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      @click="toggleLanguage(lang)"
+                    >
+                      <Badge
+                        :variant="isLanguageSelected(lang) ? 'default' : 'outline'"
+                        class="select-none font-mono text-sm"
+                        :class="isLanguageSelected(lang) ? '' : 'hover:bg-accent hover:text-accent-foreground'"
+                      >
+                        {{ lang }}
+                      </Badge>
+                    </button>
+                  </div>
+                  <p v-if="(formValues.languages || []).length === 0" class="text-sm text-muted-foreground italic">
+                    {{ t('problems.descriptionForm.noLanguagesSelected') }}
+                  </p>
                 </CardContent>
               </AccordionContent>
             </Card>

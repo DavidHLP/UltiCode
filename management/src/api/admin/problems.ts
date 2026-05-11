@@ -186,7 +186,7 @@ export interface UpdateProblemDto {
   content?: string
   constraintsJson?: string
   hints?: string
-  examples?: ProblemExample[]
+  examples?: string
   tags?: string[]
   languages?: string[]
 }

@@ -1,0 +1,44 @@
+{
+  "test": "F1: End-to-end PATCH verification",
+  "timestamp": "2026-05-11T15:48:00Z",
+  "results": {
+    "login": {
+      "status": "SUCCESS",
+      "endpoint": "POST /auth/login",
+      "response_code": 0
+    },
+    "patch_request": {
+      "endpoint": "PATCH /admin/problems/1",
+      "method": "PATCH",
+      "request_body": {
+        "title": "两数之和 Updated",
+        "difficulty": "Easy",
+        "summary": "测试摘要 - 更新成功",
+        "examples": "[{\"input_text\": \"nums = [2,7,11,15], target = 9\", \"output_text\": \"[0,1]\", \"explanation\": \"因为 nums[0] + nums[1] == 9\"}]"
+      },
+      "response_code": 0,
+      "response_message": "success"
+    },
+    "data_verification": {
+      "endpoint": "GET /admin/problems/1/description",
+      "verification": {
+        "title": "两数之和 Updated - CORRECT",
+        "difficulty": "Easy - CORRECT (Title Case)",
+        "summary": "测试摘要 - 更新成功 - CORRECT",
+        "examples_persisted": true,
+        "example_count": 1,
+        "example_fields": ["input", "output", "explanation"]
+      }
+    }
+  },
+  "key_findings": {
+    "1": "PATCH /admin/problems/{id} returns 200 with code:0",
+    "2": "difficulty accepts 'Easy' (Title Case) - backend converts internally",
+    "3": "examples must be sent as JSON string with input_text/output_text field names",
+    "4": "examples, tags, languages are correctly persisted to database",
+    "5": "GET /admin/problems/{id}/description returns all fields correctly"
+  },
+  "issues_encountered": {
+    "language_lookup": "languages field requires valid ProblemLanguage entries in database - 'java' rejected, need to find valid language values"
+  }
+}

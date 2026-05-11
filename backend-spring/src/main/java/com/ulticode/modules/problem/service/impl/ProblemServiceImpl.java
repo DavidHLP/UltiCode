@@ -529,6 +529,9 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     private void updateProblemLanguages(Long problemId, List<String> languages) {
+        if (languages == null || languages.isEmpty()) {
+            return;
+        }
         List<ProblemLanguage> languageTemplates = new ArrayList<>();
         for (String languageValue : languages) {
             ProblemLanguage template = problemLanguageMapper.findByValue(languageValue);

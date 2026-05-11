@@ -1,71 +1,32 @@
 {
-  "active_plan": "/home/david/project/UltiCode-Public-Next/.sisyphus/plans/fix-two-sum-solutions.md",
-  "started_at": "2026-05-07T15:11:21.445Z",
+  "active_plan": "/home/david/project/UltiCode-Public-Next/.sisyphus/plans/admin-problem-patch-500-fix.md",
+  "started_at": "2026-05-11T08:27:58.305Z",
   "session_ids": [
-    "ses_1fd147bb6ffeb9t0B3STxgkiDc",
-    "ses_1fcd7a740ffeIo1mWLMoMf59sR",
-    "ses_1fcd7a043ffeNKMLrvbO8mpJUo",
-    "ses_1fcd7988dffeSNR2RjfTbFVfj3",
-    "ses_1fcd79389ffeXS9d2iyD0X2tfD",
-    "ses_1fcd78dceffdLJf9ahR2TX648n",
-    "ses_1fcd73381ffeaKnGAVoguzkYxW"
+    "ses_1e9ea6d06ffeeM92DBk4c1gXFF"
   ],
   "session_origins": {
-    "ses_1fd147bb6ffeb9t0B3STxgkiDc": "direct",
-    "ses_1fcd7a740ffeIo1mWLMoMf59sR": "appended",
-    "ses_1fcd7a043ffeNKMLrvbO8mpJUo": "appended",
-    "ses_1fcd7988dffeSNR2RjfTbFVfj3": "appended",
-    "ses_1fcd79389ffeXS9d2iyD0X2tfD": "appended",
-    "ses_1fcd78dceffdLJf9ahR2TX648n": "appended",
-    "ses_1fcd73381ffeaKnGAVoguzkYxW": "appended"
+    "ses_1e9ea6d06ffeeM92DBk4c1gXFF": "direct"
   },
-  "plan_name": "fix-two-sum-solutions",
+  "plan_name": "admin-problem-patch-500-fix",
   "agent": "atlas",
+  "status": "in_progress",
   "task_sessions": {
     "todo:1": {
       "task_key": "todo:1",
       "task_label": "1",
-      "task_title": "Create V28 patch migration - UPDATE sol-001~004 with V13 content",
-      "session_id": "ses_1fd006bedffemK1ILZKRFGXeNE",
+      "task_title": "Fix frontend `UpdateProblemDto` type",
+      "session_id": "ses_1e9d2d2e2ffe8M7e2n9GLwLJQT",
       "agent": "Sisyphus-Junior",
       "category": "quick",
-      "updated_at": "2026-05-07T15:13:17.848Z"
-    },
-    "todo:2": {
-      "task_key": "todo:2",
-      "task_label": "2",
-      "task_title": "Create V28 patch migration - INSERT/UPDATE sol-009~011 from V23",
-      "session_id": "ses_1fcff47d6ffezmR0U8XAvLj0OZ",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-05-07T15:15:17.769Z"
-    },
-    "todo:3": {
-      "task_key": "todo:3",
-      "task_label": "3",
-      "task_title": "Apply V28 migration and verify Two Sum solutions",
-      "session_id": "ses_1fce24b59ffe20rlHWaS7Td7YQ",
-      "agent": "Sisyphus-Junior",
-      "category": "unspecified-high",
-      "updated_at": "2026-05-07T15:48:02.619Z"
-    },
-    "todo:4": {
-      "task_key": "todo:4",
-      "task_label": "4",
-      "task_title": "Global scan - identify all truncated solutions",
-      "session_id": "ses_1fcdf3dd6ffeIfwfqCQrgHOGY9",
-      "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-05-07T15:50:57.851Z"
+      "updated_at": "2026-05-11T08:40:48.967Z"
     },
     "final-wave:f1": {
       "task_key": "final-wave:f1",
       "task_label": "F1",
       "task_title": "**Plan Compliance Audit** — `oracle`",
-      "session_id": "ses_1fcdb1e10ffer5g6pT81m1dWYU",
-      "agent": "Sisyphus-Junior",
-      "category": "unspecified-high",
-      "updated_at": "2026-05-07T15:54:41.778Z"
+      "session_id": "ses_1e9952af9ffeWaQKVQbnVoqSXC",
+      "agent": "oracle",
+      "updated_at": "2026-05-11T09:44:28.631Z"
     }
   }
 }

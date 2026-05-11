@@ -38,13 +38,13 @@ function mapExampleToTestCase(example: ProblemExample): CasesFormData['examples'
 async function handleSubmit(formData: CasesFormData) {
   try {
     await problemsStore.updateProblem(problemId.value, {
-      examples: formData.examples.map((ex, idx) => ({
+      examples: JSON.stringify(formData.examples.map((ex, idx) => ({
         id: ex.id || crypto.randomUUID(),
         input: ex.input,
         output: ex.output,
         explanation: ex.explanation,
         order: idx,
-      })),
+      }))),
       constraintsJson: JSON.stringify(formData.constraints),
       hints: JSON.stringify(formData.hints),
     })

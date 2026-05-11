@@ -30,6 +30,7 @@ export const problemDescriptionSchema = z.object({
   constraints: z.array(z.string()).min(1, 'At least one constraint is required'),
   hints: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
+  languages: z.array(z.string()).default([]),
 })
 
 export type ProblemDescriptionFormData = z.infer<typeof problemDescriptionSchema>

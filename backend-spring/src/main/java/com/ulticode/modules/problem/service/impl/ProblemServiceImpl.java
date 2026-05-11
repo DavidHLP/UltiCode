@@ -24,10 +24,14 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.entity.ProblemDetail;
 import com.ulticode.modules.problem.entity.ProblemExample;
 import com.ulticode.modules.problem.entity.ProblemLanguage;
+import com.ulticode.modules.problem.entity.ProblemTag;
+import com.ulticode.modules.problem.entity.ProblemTagRelation;
 import com.ulticode.modules.problem.mapper.ProblemDetailMapper;
 import com.ulticode.modules.problem.mapper.ProblemExampleMapper;
 import com.ulticode.modules.problem.mapper.ProblemLanguageMapper;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
+import com.ulticode.modules.problem.mapper.ProblemTagMapper;
+import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.problem.service.ProblemService;
 import com.ulticode.modules.problem.service.ProblemVersionService;
 import lombok.RequiredArgsConstructor;
@@ -60,6 +64,8 @@ public class ProblemServiceImpl implements ProblemService {
     private final ProblemLanguageMapper problemLanguageMapper;
     private final ObjectMapper objectMapper;
     private final ProblemVersionService problemVersionService;
+    private final ProblemTagMapper problemTagMapper;
+    private final ProblemTagRelationMapper problemTagRelationMapper;
 
     @Override
     public Optional<Problem> findById(Long id) {
@@ -421,40 +427,131 @@ public class ProblemServiceImpl implements ProblemService {
     private void updateProblemDetail(Long problemId, UpdateProblemDTO updateDTO) {
         boolean hasDetailUpdate = updateDTO.getSummary() != null || updateDTO.getContent() != null
                 || updateDTO.getConstraintsJson() != null || updateDTO.getHints() != null;
-        if (!hasDetailUpdate) {
+        if (!hasDetailUpdate && updateDTO.getLanguages() == null
+                && updateDTO.getTags() == null
+                && (updateDTO.getExamples() == null || updateDTO.getExamples().isBlank())) {
             return;
         }
 
-        LambdaQueryWrapper<ProblemDetail> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(ProblemDetail::getProblemId, problemId);
-        ProblemDetail detail = problemDetailMapper.selectOne(wrapper);
+        if (hasDetailUpdate) {
+            LambdaQueryWrapper<ProblemDetail> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(ProblemDetail::getProblemId, problemId);
+            ProblemDetail detail = problemDetailMapper.selectOne(wrapper);
 
-        boolean isNew = false;
-        if (detail == null) {
-            detail = new ProblemDetail();
-            detail.setProblemId(problemId);
-            detail.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
-            isNew = true;
+            boolean isNew = false;
+            if (detail == null) {
+                detail = new ProblemDetail();
+                detail.setProblemId(problemId);
+                detail.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+                isNew = true;
+            }
+
+            if (updateDTO.getSummary() != null) {
+                detail.setSummary(updateDTO.getSummary());
+            }
+            if (updateDTO.getContent() != null) {
+                detail.setContent(updateDTO.getContent());
+            }
+            if (updateDTO.getConstraintsJson() != null) {
+                detail.setConstraintsJson(updateDTO.getConstraintsJson());
+            }
+            if (updateDTO.getHints() != null) {
+                detail.setHints(updateDTO.getHints());
+            }
+            detail.setUpdatedAt(LocalDateTime.now());
+
+            if (isNew) {
+                problemDetailMapper.insert(detail);
+            } else {
+                problemDetailMapper.updateById(detail);
+            }
         }
 
-        if (updateDTO.getSummary() != null) {
-            detail.setSummary(updateDTO.getSummary());
+        if (updateDTO.getLanguages() != null) {
+            updateProblemLanguages(problemId, updateDTO.getLanguages());
         }
-        if (updateDTO.getContent() != null) {
-            detail.setContent(updateDTO.getContent());
-        }
-        if (updateDTO.getConstraintsJson() != null) {
-            detail.setConstraintsJson(updateDTO.getConstraintsJson());
-        }
-        if (updateDTO.getHints() != null) {
-            detail.setHints(updateDTO.getHints());
-        }
-        detail.setUpdatedAt(LocalDateTime.now());
 
-        if (isNew) {
-            problemDetailMapper.insert(detail);
-        } else {
-            problemDetailMapper.updateById(detail);
+        if (updateDTO.getExamples() != null && !updateDTO.getExamples().isBlank()) {
+            try {
+                List<ExampleData> examples = objectMapper.readValue(
+                        updateDTO.getExamples(),
+                        new TypeReference<List<ExampleData>>() {}
+                );
+
+                LambdaQueryWrapper<ProblemExample> deleteWrapper = new LambdaQueryWrapper<>();
+                deleteWrapper.eq(ProblemExample::getProblemId, problemId);
+                problemExampleMapper.delete(deleteWrapper);
+
+                for (int i = 0; i < examples.size(); i++) {
+                    ExampleData ex = examples.get(i);
+                    ProblemExample example = new ProblemExample();
+                    example.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+                    example.setProblemId(problemId);
+                    example.setExampleOrder(i + 1);
+                    example.setInputText(ex.getInputText());
+                    example.setOutputText(ex.getOutputText());
+                    example.setExplanation(ex.getExplanation());
+                    if (ex.getInputs() != null) {
+                        example.setInputs(objectMapper.writeValueAsString(ex.getInputs()));
+                    }
+                    problemExampleMapper.insert(example);
+                }
+            } catch (JsonProcessingException e) {
+                log.error("Failed to parse examples JSON for problem {}", problemId, e);
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Invalid examples JSON format");
+            }
+        }
+
+        if (updateDTO.getTags() != null) {
+            List<String> tagLabels = updateDTO.getTags();
+            List<ProblemTag> existingTags = new ArrayList<>();
+            for (String label : tagLabels) {
+                LambdaQueryWrapper<ProblemTag> tagWrapper = new LambdaQueryWrapper<>();
+                tagWrapper.eq(ProblemTag::getLabel, label);
+                ProblemTag tag = problemTagMapper.selectOne(tagWrapper);
+                if (tag == null) {
+                    throw new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND, "Tag not found: " + label);
+                }
+                existingTags.add(tag);
+            }
+
+            LambdaQueryWrapper<ProblemTagRelation> relationWrapper = new LambdaQueryWrapper<>();
+            relationWrapper.eq(ProblemTagRelation::getProblemId, problemId);
+            problemTagRelationMapper.delete(relationWrapper);
+
+            for (ProblemTag tag : existingTags) {
+                ProblemTagRelation relation = new ProblemTagRelation();
+                relation.setProblemId(problemId);
+                relation.setTagId(tag.getId());
+                problemTagRelationMapper.insert(relation);
+            }
+        }
+    }
+
+    private void updateProblemLanguages(Long problemId, List<String> languages) {
+        List<ProblemLanguage> languageTemplates = new ArrayList<>();
+        for (String languageValue : languages) {
+            ProblemLanguage template = problemLanguageMapper.findByValue(languageValue);
+            if (template == null) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                        "Unsupported language: " + languageValue);
+            }
+            languageTemplates.add(template);
+        }
+
+        LambdaQueryWrapper<ProblemLanguage> deleteWrapper = new LambdaQueryWrapper<>();
+        deleteWrapper.eq(ProblemLanguage::getProblemId, problemId);
+        problemLanguageMapper.delete(deleteWrapper);
+
+        for (ProblemLanguage template : languageTemplates) {
+            ProblemLanguage language = new ProblemLanguage();
+            language.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
+            language.setProblemId(problemId);
+            language.setLabel(template.getLabel());
+            language.setValue(template.getValue());
+            language.setStyle(template.getStyle());
+            language.setStarterCode(template.getStarterCode());
+            problemLanguageMapper.insert(language);
         }
     }
 

@@ -28,12 +28,15 @@ async function handleSubmit(formData: DescriptionFormData) {
       {
         slug: formData.slug,
         title: formData.title,
-        difficulty: formData.difficulty,
+        difficulty: (formData.difficulty === 'EASY' ? 'Easy' : formData.difficulty === 'MEDIUM' ? 'Medium' : formData.difficulty === 'HARD' ? 'Hard' : formData.difficulty) as Difficulty,
         isPremium: formData.isPremium,
         summary: formData.summary,
         content: formData.content,
         constraintsJson: JSON.stringify(formData.constraints),
         hints: JSON.stringify(formData.hints),
+        examples: JSON.stringify(formData.examples) as any,
+        tags: formData.tags || [],
+        languages: (formData as DescriptionFormData & { languages?: string[] }).languages || [],
       },
       formData.isPublished,
     )

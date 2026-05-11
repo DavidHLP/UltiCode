@@ -5,6 +5,8 @@ import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.util.List;
+
 /**
  * DTO for updating an existing problem.
  */
@@ -45,4 +47,13 @@ public class UpdateProblemDTO {
 
     @Schema(description = "Problem hints as JSON array", example = "[\"Think about hash map\"]")
     private String hints;
+
+    @Schema(description = "Examples as JSON array", example = "[{\"input\":\"...\", \"output\":\"...\", \"explanation\":\"...\"}]")
+    private String examples;
+
+    @Schema(description = "Supported languages as JSON array", example = "[\"javascript\", \"python\", \"java\", \"c\", \"cpp\"]")
+    private List<String> languages;
+
+    @Schema(description = "Tags as JSON array", example = "[\"array\", \"dynamic-programming\"]")
+    private List<String> tags;
 }

@@ -21,4 +21,16 @@ public interface ProblemLanguageMapper extends BaseMapper<ProblemLanguage> {
                 .eq(ProblemLanguage::getProblemId, problemId)
         );
     }
+
+    /**
+     * Find a language template by its value across all problems.
+     * Used to validate language values and get template data.
+     */
+    default ProblemLanguage findByValue(String value) {
+        return selectOne(
+            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<ProblemLanguage>()
+                .eq(ProblemLanguage::getValue, value)
+                .last("LIMIT 1")
+        );
+    }
 }

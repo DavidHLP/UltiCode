@@ -156,6 +156,16 @@ public class ProblemDetailResponse {
         private String explanation;
 
         private List<InputData> inputs;
+
+        @JsonProperty("input")
+        public void setInput(String input) {
+            this.inputText = input;
+        }
+
+        @JsonProperty("output")
+        public void setOutput(String output) {
+            this.outputText = output;
+        }
     }
 
     /**

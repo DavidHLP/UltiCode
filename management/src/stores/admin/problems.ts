@@ -299,7 +299,6 @@ export const useProblemsStore = defineStore('adminProblems', () => {
       const serializedData: UpdateProblemDto = {
         ...data,
         examples: data.examples,
-        constraints: data.constraints,
         hints: data.hints,
       }
       let problem = await problemsApi.updateProblem(id, serializedData)

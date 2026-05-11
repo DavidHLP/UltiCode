@@ -248,6 +248,9 @@ export default {
     tagsSection: {
       title: '标签',
     },
+    languages: '编程语言',
+    languagesDescription: '选择此题支持的编程语言。',
+    noLanguagesSelected: '未选择语言',
     preview: {
       title: '实时预览',
     },

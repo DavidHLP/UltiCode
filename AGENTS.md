@@ -33,6 +33,32 @@ pm2 status
 pm2 stop all / pm2 restart all
 ```
 
+### PM2 Service Management
+
+```bash
+# Start/stop individual services
+pm2 start ecosystem.config.cjs --only ulticode-9001  # Backend
+pm2 start ecosystem.config.cjs --only ulticode-9002  # Console
+pm2 start ecosystem.config.cjs --only ulticode-9003  # Management
+pm2 start ecosystem.config.cjs --only ulticode-9004  # Recommend Provider
+pm2 start ecosystem.config.cjs --only ulticode-9005  # Recommend Web
+
+# Restart after .env changes (critical — env is cached)
+pm2 restart ulticode-9001 --update-env
+```
+
+### Docker Services
+
+```bash
+# Start/stop infrastructure (MySQL, Redis, Nacos)
+pm2 start docker-wrapper.cjs --name docker-up
+pm2 start docker-wrapper.cjs --name docker-down
+
+# Or use docker compose directly
+docker compose up -d mysql redis nacos
+docker compose logs -f mysql
+```
+
 ### Individual Services
 
 ```bash
@@ -238,6 +264,18 @@ There are no pre-commit hooks (no husky, no lint-staged). Linting and type-check
 - After editing `.env`: `pm2 restart ulticode-9001 --update-env` or changes won't take effect
 - `ecosystem.config.cjs` manually parses `.env` for JWT_SECRET/REDIS_PASSWORD — dotenv fallback is fragile
 
+### Docker Services
+
+```bash
+pm2 start docker-up      # Start MySQL, Redis, Nacos
+pm2 start docker-down    # Stop containers
+```
+
+Required env vars for `docker compose up`:
+- `MYSQL_ROOT_PASSWORD`
+- `DB_PASSWORD`
+- `REDIS_PASSWORD`
+
 ### Backend Startup Issues
 
 - `./mvnw spring-boot:run -Dmaven.test.skip=true` — quickest way to verify backend starts
@@ -295,15 +333,53 @@ Required env vars for `docker compose up`:
 | Redis              | 26379 |
 | Nacos              | 28848 |
 
-## Debugging
+## Debugging & Logs
 
-- Backend logs: `tail -f /tmp/ulticode-backend.log`
-- Console logs: `tail -f /tmp/ulticode-console.log`
-- Management logs: `tail -f /tmp/ulticode-management.log`
-- Swagger UI: `http://localhost:9001/swagger-ui.html`
-- Health check: `curl http://localhost:9001/actuator/health`
-- API docs: `http://localhost:9001/api-docs`
-- Query DB: `docker exec ulticode-mysql mysql -u ulticode -pulticode ulticode -e "SELECT ..."`
+### Viewing Logs
+
+All services log to `/tmp/` via PM2 with timestamps:
+
+| Service | Stdout | Stderr |
+|---------|--------|--------|
+| Backend (9001) | `/tmp/ulticode-9001-out.log` | `/tmp/ulticode-9001-error.log` |
+| Console (9002) | `/tmp/ulticode-9002-out.log` | `/tmp/ulticode-9002-error.log` |
+| Management (9003) | `/tmp/ulticode-9003-out.log` | `/tmp/ulticode-9003-error.log` |
+| Recommend Provider (9004) | `/tmp/ulticode-9004-out.log` | `/tmp/ulticode-9004-error.log` |
+| Recommend Web (9005) | `/tmp/ulticode-9005-out.log` | `/tmp/ulticode-9005-error.log` |
+
+```bash
+# View all logs in real-time
+pm2 logs
+
+# View specific service logs
+pm2 logs ulticode-9001
+
+# View last 100 lines
+pm2 logs ulticode-9001 --lines 100
+
+# View logs with timestamp
+pm2 logs ulticode-9001 --timestamp
+
+# Traditional tail (works for any log file)
+tail -f /tmp/ulticode-9001-out.log
+tail -f /tmp/ulticode-9001-error.log
+```
+
+### Health Checks & Endpoints
+
+```bash
+# Backend health
+curl http://localhost:9001/actuator/health
+
+# Swagger UI
+curl http://localhost:9001/swagger-ui.html
+
+# API docs
+curl http://localhost:9001/api-docs
+
+# Query DB directly
+docker exec ulticode-mysql mysql -u ulticode -pulticode ulticode -e "SELECT ..."
+```
 
 ## Environment Variables
 

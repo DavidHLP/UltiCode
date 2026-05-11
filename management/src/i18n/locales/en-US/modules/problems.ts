@@ -248,6 +248,9 @@ export default {
     tagsSection: {
       title: 'Tags',
     },
+    languages: 'Languages',
+    languagesDescription: 'Select the programming languages this problem supports.',
+    noLanguagesSelected: 'No languages selected',
     preview: {
       title: 'Live Preview',
     },

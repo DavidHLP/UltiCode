@@ -154,7 +154,7 @@ public class AdminContestServiceImpl implements AdminContestService {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
 
-        if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
+        if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
             throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
         }
 
@@ -231,7 +231,7 @@ public class AdminContestServiceImpl implements AdminContestService {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
 
-        if (!ContestStatus.UPCOMING.name().equals(contest.getStatus())) {
+        if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_STARTED);
         }
 
@@ -334,6 +334,39 @@ public class AdminContestServiceImpl implements AdminContestService {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
         return rankingService.getLiveRanking(contestId, 100);
+    }
+
+    @Override
+    @Transactional
+    public ContestProblem addProblemToContest(String contestId, Long problemId, Integer score) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+
+        if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
+            throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
+        }
+
+        ContestProblem existing = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
+        if (existing != null) {
+            throw new BusinessException(ErrorCode.CONFLICT);
+        }
+
+        long problemCount = contestProblemMapper.countByContestId(contestId);
+
+        ContestProblem cp = new ContestProblem();
+        cp.setContestId(contestId);
+        cp.setProblemId(problemId);
+        cp.setProblemIndex("Q" + (problemCount + 1));
+        cp.setScore(0);
+        cp.setBaseScore(score != null ? score : 100);
+        cp.setSolvedCount(0);
+        cp.setSubmissionCount(0);
+        contestProblemMapper.insert(cp);
+
+        log.info("Admin added problem {} to contest {}", problemId, contestId);
+        return cp;
     }
 
     /**

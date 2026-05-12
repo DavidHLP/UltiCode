@@ -175,6 +175,11 @@ export interface CreateProblemDto {
   tags?: string[]
 }
 
+export interface LanguageConfig {
+  language: string
+  starterCode: string
+}
+
 export interface UpdateProblemDto {
   slug?: string
   title?: string
@@ -188,7 +193,7 @@ export interface UpdateProblemDto {
   hints?: string
   examples?: string
   tags?: string[]
-  languages?: string[]
+  languages?: LanguageConfig[]
 }
 
 export interface BulkProblemActionDto {

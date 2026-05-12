@@ -1,6 +1,6 @@
 # AGENTS.md
 
-> **Last Updated**: 2026-05-07
+> **Last Updated**: 2026-05-12
 > **Context**: Comprehensive project reference + database encoding issue investigation
 
 Compact reference for AI assistants working in the UltiCode repository.
@@ -413,11 +413,19 @@ Java 17 (Temurin), Node 22.x, pnpm 10.
 | Management | `management/AGENTS.md` | Vue admin dashboard, shared symlink, ESLint 10.x |
 | DB Manager | `db-manager/AGENTS.md` | Flyway migrations, encoding pitfalls |
 | Recommendation | `recommendation/AGENTS.md` | Dubbo3 + Spark microservices, build order |
+| ECC Config | `.claude/CLAUDE.md` | ECC-specific rules, hot paths, anti-patterns |
 
 ## Additional Documentation
 
 - `recommendation/README.md` — recommendation service setup and troubleshooting
 - `db-manager/README.md` — migration CLI usage
+
+## Behavioral Guidelines
+
+- **State assumptions explicitly**. If multiple interpretations exist, present them — don't pick silently.
+- **Simplicity first**: No speculative features, no abstractions for single-use code, no flexibility not requested.
+- **Surgical changes**: Touch only what you must. Remove imports/variables/functions that YOUR changes made unused. Don't refactor pre-existing dead code unless asked.
+- **Goal-driven execution**: Define verifiable success criteria before implementing. "Add validation" → "Write tests for invalid inputs, then make them pass."
 
 ## Non-Standard Patterns
 

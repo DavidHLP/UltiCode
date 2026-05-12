@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.controller;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.admin.dto.AddContestProblemDTO;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
 import com.ulticode.modules.admin.service.AdminContestService;
@@ -127,5 +128,14 @@ public class AdminContestController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<List<com.ulticode.modules.contest.dto.ContestRankingVO>> getRankings(@PathVariable String id) {
         return Result.success(adminContestService.getRankings(id));
+    }
+
+    @Operation(summary = "Add problem to contest")
+    @PostMapping("/{id}/problems")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<com.ulticode.modules.contest.entity.ContestProblem> addProblemToContest(
+            @PathVariable String id,
+            @Valid @RequestBody AddContestProblemDTO dto) {
+        return Result.success(adminContestService.addProblemToContest(id, dto.getProblemId(), dto.getScore()));
     }
 }

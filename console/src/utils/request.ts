@@ -129,7 +129,7 @@ const service: AxiosInstance = axios.create({
   },
 });
 
-const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager);
+const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager, API_BASE_URL);
 service.interceptors.request.use(csrfInterceptors.requestInterceptor);
 service.interceptors.response.use(csrfInterceptors.responseInterceptor);
 service.interceptors.response.use(undefined, csrfInterceptors.errorInterceptor);

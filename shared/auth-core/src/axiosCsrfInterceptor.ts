@@ -34,9 +34,14 @@ export interface CsrfInterceptors {
  * - Request: attaches X-CSRF-Token for state-changing methods
  * - Response: captures x-new-csrf-token header to refresh token
  * - Error: retries once on 403 CSRF mismatch before propagating
+ *
+ * @param csrfManager - The CSRF token manager instance
+ * @param baseURL - The backend API base URL (e.g., 'http://localhost:9001').
+ *                  Required for token refresh requests to reach the correct origin.
  */
 export function createCsrfAxiosInterceptor(
   csrfManager: CsrfTokenManager,
+  baseURL?: string,
 ): CsrfInterceptors {
   /**
    * Attach CSRF token to state-changing requests.
@@ -90,7 +95,8 @@ export function createCsrfAxiosInterceptor(
           const { default: axios } = await import('axios');
 
           // Fetch fresh CSRF token via GET /auth/me (no CSRF validation on GET)
-          const meResponse = await axios.get<{ csrfToken?: string }>('/auth/me', {
+          const refreshUrl = baseURL ? `${baseURL}/auth/me` : '/auth/me';
+          const meResponse = await axios.get<{ csrfToken?: string }>(refreshUrl, {
             withCredentials: true,
           });
 

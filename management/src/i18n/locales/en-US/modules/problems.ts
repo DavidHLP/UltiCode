@@ -524,4 +524,17 @@ export default {
     toggleFullscreen: 'Toggle Fullscreen',
     placeholder: 'Enter Markdown content...',
   },
+
+  // Test Cases Editor
+  testCasesEditor: {
+    example: 'Example {number}',
+    addExample: 'Add Example',
+    input: 'Input',
+    inputPlaceholder: 'Enter test input...',
+    output: 'Output',
+    outputPlaceholder: 'Enter expected output...',
+    explanationOptional: 'Explanation (optional)',
+    explanationPlaceholder: 'Enter explanation...',
+    noCases: 'No test cases',
+  },
 } as const

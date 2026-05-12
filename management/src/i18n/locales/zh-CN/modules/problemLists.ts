@@ -75,6 +75,7 @@ export default {
     isPublicDescription: '公开列表对所有用户可见',
     isFeatured: '精选',
     isFeaturedDescription: '精选列表会在首页展示',
+    isFeaturedTooltip: '开启后此列表将在首页精选区域展示',
     bannerTag: '标签',
     bannerTagPlaceholder: '例如: 推荐、热门',
     bannerTagDescription: '显示在横幅上的标签文字',
@@ -83,6 +84,8 @@ export default {
     sortOrder: '排序',
     sortOrderDescription: '数字越小排序越靠前',
     saving: '保存中...',
+    saved: '已保存',
+    saveError: '保存失败',
     saveChanges: '保存更改',
     validation: {
       nameRequired: '名称是必填项',

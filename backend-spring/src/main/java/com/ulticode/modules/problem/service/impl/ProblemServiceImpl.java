@@ -528,32 +528,29 @@ public class ProblemServiceImpl implements ProblemService {
         }
     }
 
-    private void updateProblemLanguages(Long problemId, List<String> languages) {
+    private void updateProblemLanguages(Long problemId, List<com.ulticode.modules.problem.dto.LanguageConfigDTO> languages) {
         if (languages == null || languages.isEmpty()) {
             return;
-        }
-        List<ProblemLanguage> languageTemplates = new ArrayList<>();
-        for (String languageValue : languages) {
-            ProblemLanguage template = problemLanguageMapper.findByValue(languageValue);
-            if (template == null) {
-                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
-                        "Unsupported language: " + languageValue);
-            }
-            languageTemplates.add(template);
         }
 
         LambdaQueryWrapper<ProblemLanguage> deleteWrapper = new LambdaQueryWrapper<>();
         deleteWrapper.eq(ProblemLanguage::getProblemId, problemId);
         problemLanguageMapper.delete(deleteWrapper);
 
-        for (ProblemLanguage template : languageTemplates) {
+        for (com.ulticode.modules.problem.dto.LanguageConfigDTO config : languages) {
+            ProblemLanguage template = problemLanguageMapper.findByValue(config.getLanguage());
+            if (template == null) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                        "Unsupported language: " + config.getLanguage());
+            }
+
             ProblemLanguage language = new ProblemLanguage();
             language.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
             language.setProblemId(problemId);
             language.setLabel(template.getLabel());
             language.setValue(template.getValue());
             language.setStyle(template.getStyle());
-            language.setStarterCode(template.getStarterCode());
+            language.setStarterCode(config.getStarterCode() != null ? config.getStarterCode() : template.getStarterCode());
             problemLanguageMapper.insert(language);
         }
     }

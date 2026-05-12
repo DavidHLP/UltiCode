@@ -97,10 +97,17 @@ const formData = ref<ProblemFormData>({
 function updateForm(data?: ProblemData) {
   if (!data) return
 
+  // Normalize difficulty to uppercase to match frontend enum values
+  // Backend may return "Easy" but frontend expects "EASY"
+  const validDifficulties = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD]
+  const normalizedDifficulty = validDifficulties.includes(data.difficulty?.toUpperCase() as Difficulty)
+    ? (data.difficulty?.toUpperCase() as Difficulty)
+    : Difficulty.MEDIUM
+
   formData.value = {
     slug: data.slug || '',
     title: data.title || '',
-    difficulty: (data.difficulty as Difficulty) || Difficulty.MEDIUM,
+    difficulty: normalizedDifficulty,
     status: (data.status as ProblemStatus) || ProblemStatus.TODO,
     isPremium: data.isPremium,
     isPublished: data.isPublished,

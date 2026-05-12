@@ -75,6 +75,7 @@ export default {
     isPublicDescription: 'Public lists are visible to all users',
     isFeatured: 'Featured',
     isFeaturedDescription: 'Featured lists are shown on the homepage',
+    isFeaturedTooltip: 'When enabled, this list will be displayed in the featured section on the homepage',
     bannerTag: 'Tag',
     bannerTagPlaceholder: 'e.g., Featured, Popular',
     bannerTagDescription: 'Tag text displayed on the banner',
@@ -83,6 +84,8 @@ export default {
     sortOrder: 'Sort Order',
     sortOrderDescription: 'Lower numbers appear first',
     saving: 'Saving...',
+    saved: 'Saved',
+    saveError: 'Save Failed',
     saveChanges: 'Save Changes',
     validation: {
       nameRequired: 'Name is required',

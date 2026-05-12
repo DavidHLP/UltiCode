@@ -101,7 +101,35 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         if (list == null) {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
         }
-        return problemListService.updateList(id, userId, dto);
+
+        // Admin bypass: update fields directly without ownership check
+        if (dto.getName() != null) {
+            list.setName(dto.getName());
+        }
+        if (dto.getDescription() != null) {
+            list.setDescription(dto.getDescription());
+        }
+        if (dto.getIsPublic() != null) {
+            list.setIsPublic(dto.getIsPublic());
+        }
+        if (dto.getBannerTag() != null) {
+            list.setBannerTag(dto.getBannerTag());
+        }
+        if (dto.getBannerIcon() != null) {
+            list.setBannerIcon(dto.getBannerIcon());
+        }
+        if (dto.getBannerTheme() != null) {
+            list.setBannerTheme(dto.getBannerTheme());
+        }
+        if (dto.getBannerOrder() != null) {
+            list.setBannerOrder(dto.getBannerOrder());
+        }
+        if (dto.getIsFeatured() != null) {
+            list.setIsFeatured(dto.getIsFeatured());
+        }
+
+        problemListMapper.updateById(list);
+        return toSummaryVO(list);
     }
 
     @Override

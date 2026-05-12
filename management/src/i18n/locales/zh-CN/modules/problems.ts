@@ -520,4 +520,17 @@ export default {
     toggleFullscreen: '切换全屏',
     placeholder: '请输入 Markdown 内容...',
   },
+
+  // 测试用例编辑器
+  testCasesEditor: {
+    example: '示例 {number}',
+    addExample: '添加示例',
+    input: '输入',
+    inputPlaceholder: '请输入测试输入...',
+    output: '输出',
+    outputPlaceholder: '请输入预期输出...',
+    explanationOptional: '解释（可选）',
+    explanationPlaceholder: '请输入解释...',
+    noCases: '暂无测试用例',
+  },
 } as const

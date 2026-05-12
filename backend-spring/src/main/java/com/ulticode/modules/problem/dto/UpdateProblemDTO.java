@@ -1,5 +1,6 @@
 package com.ulticode.modules.problem.dto;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -51,8 +52,9 @@ public class UpdateProblemDTO {
     @Schema(description = "Examples as JSON array", example = "[{\"input\":\"...\", \"output\":\"...\", \"explanation\":\"...\"}]")
     private String examples;
 
-    @Schema(description = "Supported languages as JSON array", example = "[\"javascript\", \"python\", \"java\", \"c\", \"cpp\"]")
-    private List<String> languages;
+    @Schema(description = "Supported languages with starter code", example = "[{\"language\":\"javascript\",\"starterCode\":\"function twoSum(nums, target) {\\n  // Your code here\\n}\"}]")
+    @JsonDeserialize(contentAs = LanguageConfigDTO.class)
+    private List<LanguageConfigDTO> languages;
 
     @Schema(description = "Tags as JSON array", example = "[\"array\", \"dynamic-programming\"]")
     private List<String> tags;

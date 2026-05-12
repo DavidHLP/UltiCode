@@ -36,7 +36,7 @@ async function handleSubmit(formData: DescriptionFormData) {
         hints: JSON.stringify(formData.hints),
         examples: JSON.stringify(formData.examples) as any,
         tags: formData.tags || [],
-        languages: (formData as DescriptionFormData & { languages?: string[] }).languages || [],
+        languages: (formData as DescriptionFormData & { languages?: Array<{ language: string; starterCode: string }> }).languages || [],
       },
       formData.isPublished,
     )

@@ -344,10 +344,6 @@ public class AdminContestServiceImpl implements AdminContestService {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
         }
 
-        if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
-            throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
-        }
-
         ContestProblem existing = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
         if (existing != null) {
             throw new BusinessException(ErrorCode.CONFLICT);

@@ -168,6 +168,7 @@ export default {
   // 向导
   wizard: {
     createContest: '创建比赛',
+    description: '按照以下步骤创建新比赛',
     steps: {
       basic: '基本信息',
       problems: '题目选择',

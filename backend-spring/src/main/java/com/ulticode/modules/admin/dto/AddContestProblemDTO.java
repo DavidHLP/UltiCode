@@ -10,7 +10,7 @@ public class AddContestProblemDTO {
 
     @NotNull(message = "Problem ID is required")
     @Schema(description = "Problem ID to add", example = "1")
-    private Long problemId;
+    private String problemId;
 
     @Schema(description = "Score for this problem in the contest", example = "100")
     private Integer score;

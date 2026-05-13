@@ -420,49 +420,6 @@ Java 17 (Temurin), Node 22.x, pnpm 10.
 - `recommendation/README.md` — recommendation service setup and troubleshooting
 - `db-manager/README.md` — migration CLI usage
 
-## Behavioral Guidelines
-
-- **State assumptions explicitly**. If multiple interpretations exist, present them — don't pick silently.
-- **Simplicity first**: No speculative features, no abstractions for single-use code, no flexibility not requested.
-- **Surgical changes**: Touch only what you must. Remove imports/variables/functions that YOUR changes made unused. Don't refactor pre-existing dead code unless asked.
-- **Goal-driven execution**: Define verifiable success criteria before implementing. "Add validation" → "Write tests for invalid inputs, then make them pass."
-
-## Non-Standard Patterns
-
-### ESLint Version Split
-- **console**: ESLint 9.x + `eslint-plugin-vue` ^9.30.0
-- **management**: ESLint 10.x + `eslint-plugin-vue` ~10.8.0
-- Both use flat config (`eslint.config.ts`). Console has extensive `vue/multi-word-component-names` whitelist; management disables the rule entirely.
-
-### Shared Code Asymmetry
-- **Management** has symlink `src/shared -> ../../shared` — imports via `@/shared/auth-core/src`
-- **Console** does NOT have this symlink — auth utilities duplicated locally in `src/utils/csrf.ts` and `src/stores/auth.ts`
-
-### Build Order (Critical)
-- `recommendation` MUST build before `backend-spring`
-- Backend depends on `recommend-api` artifact
-- Without it, backend compilation fails
-
-### Migration Naming
-- Flyway migration files use double underscore: `V{version}__{description}.sql`
-- Standard Flyway convention is single underscore
-
-### OKLCH Colors Only
-- All CSS uses `oklch()` function — no hex/HSL anywhere
-- Design system requirement for console
-
-### Sharp Corners
-- `--radius: 0` everywhere in console/management
-- shadcn-vue components have corners not rounded
-
-### No Pre-Commit Hooks
-- No husky, no lint-staged
-- CI runs lint/type-check/test manually
-
-### PM2 Dual Config
-- Root `ecosystem.config.cjs` manages all services
-- `backend-spring/ecosystem.config.cjs` is orphaned (hardcoded paths/secrets) — do NOT use
-
 ## Security Anti-Patterns (THIS PROJECT)
 
 ### Password Reset Timing Attack Prevention

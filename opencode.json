@@ -35,5 +35,13 @@
       "*.class"
     ]
   },
-  "lsp": true
+  "lsp": true,
+  "instructions": [
+    ".claude/rules/ecc/common/*.md",
+    ".claude/rules/ecc/typescript/*.md",
+    ".claude/rules/ecc/web/*.md",
+    ".claude/rules/ecc/java/*.md",
+    ".claude/rules/ecc/python/*.md",
+    ".claude/*.md"
+  ]
 }

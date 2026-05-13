@@ -94,7 +94,7 @@ function renderTypeBadge(type: string) {
           <div>
             <span class="terminal-label">{{ t('contests.basics.type') }}</span>
             <p>
-              {{ renderTypeBadge(formData.type) }}
+              <component :is="renderTypeBadge(formData.type)" />
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ function renderTypeBadge(type: string) {
           <div>
             <span class="terminal-label">{{ t('contests.reviewStep.visibility') }}</span>
             <p>
-              {{ formData.is_published ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' }) : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' }) }}
+              <component :is="formData.is_published ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' }) : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' })" />
             </p>
           </div>
         </div>
@@ -151,7 +151,7 @@ function renderTypeBadge(type: string) {
                 scoringRule.name
               }}</span>
               <span v-if="scoringRule.is_default">
-                {{ badge({ color: 'success', label: t('scoringRules.badges.default'), size: 'sm' }) }}
+                <component :is="badge({ color: 'success', label: t('scoringRules.badges.default'), size: 'sm' })" />
               </span>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">
@@ -207,7 +207,7 @@ function renderTypeBadge(type: string) {
                 {{ String.fromCharCode(65 + index) }}
               </span>
               <span class="font-medium text-sm text-[var(--foreground)]">{{ problem.title }}</span>
-              {{ renderDifficultyBadge(problem.difficulty) }}
+              <component :is="renderDifficultyBadge(problem.difficulty)" />
             </div>
             <span
               class="font-data text-xs text-[var(--terminal-cyan)] tabular-nums w-16 text-right"

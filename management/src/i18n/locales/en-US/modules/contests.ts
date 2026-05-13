@@ -168,6 +168,7 @@ export default {
   // Wizard
   wizard: {
     createContest: 'Create Contest',
+    description: 'Follow the steps to create a new contest',
     steps: {
       basic: 'Basic Info',
       problems: 'Select Problems',

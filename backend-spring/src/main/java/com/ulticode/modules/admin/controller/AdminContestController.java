@@ -136,6 +136,11 @@ public class AdminContestController {
     public Result<com.ulticode.modules.contest.entity.ContestProblem> addProblemToContest(
             @PathVariable String id,
             @Valid @RequestBody AddContestProblemDTO dto) {
-        return Result.success(adminContestService.addProblemToContest(id, dto.getProblemId(), dto.getScore()));
+        try {
+            Long problemId = Long.parseLong(dto.getProblemId());
+            return Result.success(adminContestService.addProblemToContest(id, problemId, dto.getScore()));
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException("Invalid problem ID format: " + dto.getProblemId());
+        }
     }
 }

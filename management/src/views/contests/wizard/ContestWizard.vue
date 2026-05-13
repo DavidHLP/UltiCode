@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -172,6 +173,9 @@ async function handleSubmit() {
             {{ t('contests.wizard.createContest') }}
           </DialogTitle>
         </div>
+        <DialogDescription class="text-muted-foreground text-sm">
+          {{ t('contests.wizard.description') }}
+        </DialogDescription>
       </DialogHeader>
 
       <div class="flex-1 overflow-y-auto px-6 py-4">

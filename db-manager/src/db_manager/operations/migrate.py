@@ -5,6 +5,7 @@ from __future__ import annotations
 from rich.console import Console
 
 from ..flyway_adapter import get_flyway_adapter
+from ._common import check_flyway_installed
 
 
 console = Console()
@@ -21,15 +22,7 @@ def migrate(dry_run: bool = False) -> dict[str, int]:
     """
     adapter = get_flyway_adapter()
 
-    # Check if Flyway is installed
-    if not adapter.check_flyway_installed():
-        console.print(
-            "[red]Error: Flyway CLI not found.[/red]\n"
-            "Please install Flyway from https://flyway.net/ or use:\n"
-            "  brew install flyway    # macOS\n"
-            "  apt install flyway     # Ubuntu/Debian\n"
-            "  docker pull flyway/flyway  # Docker"
-        )
+    if not check_flyway_installed(adapter):
         return {"success": 0, "errors": 1}
 
     console.print("[bold]Running Flyway migrate...[/bold]")

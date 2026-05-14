@@ -1,11 +1,13 @@
 {
-  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/db-manager-fix.md",
+  "active_plan": "/home/david/project/UltiCode-Public-Next/.sisyphus/plans/db-manager-fix.md",
   "started_at": "2026-05-13T16:56:23.467Z",
   "session_ids": [
-    "ses_1ddbbb1c7ffeHeuuuWYcc4ilga"
+    "ses_1ddbbb1c7ffeHeuuuWYcc4ilga",
+    "ses_1d905bb57ffedltmnc2LsOyzIv"
   ],
   "session_origins": {
-    "ses_1ddbbb1c7ffeHeuuuWYcc4ilga": "direct"
+    "ses_1ddbbb1c7ffeHeuuuWYcc4ilga": "direct",
+    "ses_1d905bb57ffedltmnc2LsOyzIv": "direct"
   },
   "plan_name": "db-manager-fix",
   "agent": "atlas",
@@ -14,10 +16,18 @@
       "task_key": "final-wave:f1",
       "task_label": "F1",
       "task_title": "**计划合规审计** — `oracle`",
-      "session_id": "ses_1ddba97b8ffeCES5ZX9bOnjje9",
+      "session_id": "ses_1d8b00c42ffeRVBUmiqL142fvX",
+      "agent": "oracle",
+      "updated_at": "2026-05-14T16:28:10.149Z"
+    },
+    "final-wave:f2": {
+      "task_key": "final-wave:f2",
+      "task_label": "F2",
+      "task_title": "**代码质量审查** — `unspecified-high`",
+      "session_id": "ses_1d892e523ffeRnNe52FiOx244f",
       "agent": "Sisyphus-Junior",
-      "category": "deep",
-      "updated_at": "2026-05-13T16:58:48.292Z"
+      "category": "unspecified-high",
+      "updated_at": "2026-05-14T16:59:50.849Z"
     }
   }
 }

@@ -26,32 +26,117 @@ source .venv/bin/activate
 pip install -e .
 ```
 
+## Quick Reference
+
+| Command | Description |
+|---------|-------------|
+| `db-manager migrate` | Apply pending migrations |
+| `db-manager migrate --dry-run` | Preview migrations without applying |
+| `db-manager info` | Show migration status |
+| `db-manager repair` | Fix metadata inconsistencies |
+| `db-manager validate` | Validate migration state |
+| `db-manager baseline` | Create baseline for existing database |
+| `db-manager clean --force` | Drop all database objects (requires backup first) |
+
+**Exit Codes**: 0=success, 1=general error, 2=migration error, 3=validation error
+
 ## Usage
 
-### Database Migration Commands
+### migrate
+
+Apply all pending migrations to the database.
 
 ```bash
 # Apply pending migrations
 db-manager migrate
 
-# Validate without applying (dry run)
+# Preview what would be applied (no changes made)
 db-manager migrate --dry-run
 
-# Show migration status
+# After a failed migration, repair and remigrate
+db-manager repair
+db-manager migrate
+```
+
+### info
+
+Display the current migration state without making changes.
+
+```bash
+# Show all migrations and their states
 db-manager info
 
-# Repair metadata table
+# Example output:
+# +---------------+---------------------------------+-----------+---------+
+# | Version       | Description                     | State     | Installed On |
+# +---------------+---------------------------------+-----------+---------+
+# | 1             | core_schema                     | APPLIED   | 2024-01-15 10:30:00 |
+# | 2             | problem_schema                  | APPLIED   | 2024-01-15 10:30:01 |
+# | 3             | contest_schema                  | PENDING   |                  |
+# +---------------+---------------------------------+-----------+---------+
+```
+
+### repair
+
+Repair metadata table inconsistencies, including checksum mismatches and duplicate entries.
+
+```bash
+# Fix metadata inconsistencies
 db-manager repair
 
-# Create baseline for existing database
-db-manager baseline
+# Use after:
+# - Migration file was modified after being applied
+# - Duplicate entries appear in schema_history
+# - Checksum mismatch errors occur
+```
 
-# Drop all database objects (DANGEROUS!)
-db-manager clean --force
+### validate
 
+Verify that the applied migrations match the files on disk.
+
+```bash
 # Validate migration state
 db-manager validate
+
+# Returns exit code 3 if validation fails
 ```
+
+### baseline
+
+Create a baseline for an existing database, marking all current objects as applied.
+
+```bash
+# Mark current state as baseline
+db-manager baseline
+
+# Use when:
+# - Setting up Flyway on an existing database
+# - Skipping historical migrations
+```
+
+### clean
+
+Drop all database objects. **This is destructive and irreversible.**
+
+```bash
+# DANGER: Drop all tables, views, and objects
+db-manager clean --force
+
+# Always backup before running clean
+docker exec ulticode-mysql mysqldump -u ulticode -pulticode ulticode > backup.sql
+
+# After clean, reapply all migrations
+db-manager migrate
+```
+
+## Exit Codes
+
+| Code | Meaning | Example |
+|------|---------|---------|
+| 0 | Success | Migration completed without errors |
+| 1 | General error | Connection failed, file not found |
+| 2 | Migration error | Apply failed, checksum mismatch |
+| 3 | Validation error | Applied migrations do not match files |
 
 ## Configuration
 

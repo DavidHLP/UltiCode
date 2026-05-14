@@ -74,7 +74,10 @@ class FlywayAdapter:
 
         for key, value in kwargs.items():
             if value is not None and value is not False:
-                cmd.append(f"-{key}={value}" if not isinstance(value, bool) else f"-{key}")
+                if isinstance(value, bool):
+                    cmd.append(f"-{key}=true")
+                else:
+                    cmd.append(f"-{key}={value}")
 
         cmd.append(operation)
         return cmd
@@ -101,7 +104,10 @@ class FlywayAdapter:
 
         for key, value in kwargs.items():
             if value is not None and value is not False:
-                cmd.append(f"-{key}={value}" if not isinstance(value, bool) else f"-{key}")
+                if isinstance(value, bool):
+                    cmd.append(f"-{key}=true")
+                else:
+                    cmd.append(f"-{key}={value}")
 
         cmd.append(operation)
         return cmd
@@ -139,18 +145,22 @@ class FlywayAdapter:
             "command": " ".join(cmd),
         }
 
-    def migrate(self, dry_run: bool = False) -> dict[str, Any]:
+    def migrate(self, dry_run: bool = False, out_of_order: bool = False) -> dict[str, Any]:
         """Run Flyway migrate.
 
         Args:
             dry_run: If True, validate without applying changes
+            out_of_order: If True, allow out-of-order migrations
 
         Returns:
             Migration result
         """
         if dry_run:
             return self._run("validate")
-        return self._run("migrate")
+        kwargs = {}
+        if out_of_order:
+            kwargs["outOfOrder"] = True
+        return self._run("migrate", **kwargs)
 
     def info(self) -> dict[str, Any]:
         """Get Flyway migration info.

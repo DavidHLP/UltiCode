@@ -1,32 +1,23 @@
 {
-  "active_plan": "/home/david/project/UltiCode-Public-Next/.sisyphus/plans/admin-problem-patch-500-fix.md",
-  "started_at": "2026-05-11T08:27:58.305Z",
+  "active_plan": "/home/davidhlp/project/UltiCode-Public-Next/.sisyphus/plans/db-manager-fix.md",
+  "started_at": "2026-05-13T16:56:23.467Z",
   "session_ids": [
-    "ses_1e9ea6d06ffeeM92DBk4c1gXFF"
+    "ses_1ddbbb1c7ffeHeuuuWYcc4ilga"
   ],
   "session_origins": {
-    "ses_1e9ea6d06ffeeM92DBk4c1gXFF": "direct"
+    "ses_1ddbbb1c7ffeHeuuuWYcc4ilga": "direct"
   },
-  "plan_name": "admin-problem-patch-500-fix",
+  "plan_name": "db-manager-fix",
   "agent": "atlas",
-  "status": "in_progress",
   "task_sessions": {
-    "todo:1": {
-      "task_key": "todo:1",
-      "task_label": "1",
-      "task_title": "Fix frontend `UpdateProblemDto` type",
-      "session_id": "ses_1e9d2d2e2ffe8M7e2n9GLwLJQT",
-      "agent": "Sisyphus-Junior",
-      "category": "quick",
-      "updated_at": "2026-05-11T08:40:48.967Z"
-    },
     "final-wave:f1": {
       "task_key": "final-wave:f1",
       "task_label": "F1",
-      "task_title": "**Plan Compliance Audit** — `oracle`",
-      "session_id": "ses_1e9952af9ffeWaQKVQbnVoqSXC",
-      "agent": "oracle",
-      "updated_at": "2026-05-11T09:44:28.631Z"
+      "task_title": "**计划合规审计** — `oracle`",
+      "session_id": "ses_1ddba97b8ffeCES5ZX9bOnjje9",
+      "agent": "Sisyphus-Junior",
+      "category": "deep",
+      "updated_at": "2026-05-13T16:58:48.292Z"
     }
   }
 }

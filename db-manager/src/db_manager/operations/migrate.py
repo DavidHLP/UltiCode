@@ -37,7 +37,7 @@ def migrate(dry_run: bool = False) -> dict[str, int]:
     if dry_run:
         console.print("[yellow](Dry run - no changes will be made)[/yellow]")
 
-    result = adapter.migrate(dry_run=dry_run)
+    result = adapter.migrate(dry_run=dry_run, out_of_order=True)
 
     if result["returncode"] == 0:
         console.print("[green]Migration completed successfully[/green]")

@@ -41,7 +41,7 @@ def load_config() -> dict[str, Any]:
 
     return {
         "host": os.getenv("DB_HOST", "localhost"),
-        "port": int(os.getenv("DB_PORT", "3306")),
+        "port": int(os.getenv("DB_PORT", "23306")),
         "user": os.getenv("DB_USER", ""),
         "password": os.getenv("DB_PASSWORD", ""),
         "database": os.getenv("DB_NAME", "ulticode"),
@@ -56,7 +56,7 @@ def _parse_database_url(url: str) -> dict[str, Any]:
 
     return {
         "host": parsed.hostname or "localhost",
-        "port": parsed.port or 3306,
+        "port": parsed.port or 23306,
         "user": unquote(parsed.username or ""),
         "password": unquote(parsed.password or ""),
         "database": parsed.path.lstrip("/") or "ulticode",
@@ -72,7 +72,7 @@ def get_database_url(config: dict[str, Any] | None = None) -> str:
     user = config.get("user", "")
     password = config.get("password", "")
     host = config.get("host", "localhost")
-    port = config.get("port", 3306)
+    port = config.get("port", 23306)
     database = config.get("database", "ulticode")
 
     return f"mysql+pymysql://{user}:{password}@{host}:{port}/{database}"
@@ -89,7 +89,7 @@ def get_jdbc_url(config: dict[str, Any] | None = None) -> str:
     user = config.get("user", "")
     password = config.get("password", "")
     host = config.get("host", "localhost")
-    port = config.get("port", 3306)
+    port = config.get("port", 23306)
     database = config.get("database", "ulticode")
 
     return (

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import subprocess
 import sys
 
 import click
@@ -49,7 +50,7 @@ def migrate(dry_run: bool) -> None:
         result = migrate_op(dry_run=dry_run)
         if result["errors"] > 0:
             sys.exit(1)
-    except Exception as e:
+    except (RuntimeError, subprocess.TimeoutExpired) as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
 
@@ -66,7 +67,7 @@ def info() -> None:
         result = info_op()
         if result["errors"] > 0:
             sys.exit(1)
-    except Exception as e:
+    except (RuntimeError, subprocess.TimeoutExpired) as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
 
@@ -85,7 +86,7 @@ def repair() -> None:
         result = repair_op()
         if result["errors"] > 0:
             sys.exit(1)
-    except Exception as e:
+    except (RuntimeError, subprocess.TimeoutExpired) as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
 
@@ -104,7 +105,7 @@ def baseline() -> None:
         result = baseline_op()
         if result["errors"] > 0:
             sys.exit(1)
-    except Exception as e:
+    except (RuntimeError, subprocess.TimeoutExpired) as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
 
@@ -129,7 +130,7 @@ def clean(force: bool) -> None:
         result = clean_op(force=force)
         if result["errors"] > 0:
             sys.exit(1)
-    except Exception as e:
+    except (RuntimeError, subprocess.TimeoutExpired) as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
 
@@ -146,7 +147,7 @@ def validate() -> None:
         result = validate_op()
         if result["errors"] > 0:
             sys.exit(1)
-    except Exception as e:
+    except (RuntimeError, subprocess.TimeoutExpired) as e:
         console.print(f"[red]Error:[/red] {e}")
         sys.exit(1)
 

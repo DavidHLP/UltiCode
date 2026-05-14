@@ -1,0 +1,12 @@
+Running Flyway migrate...
+(Dry run - no changes will be made)
+Migration completed successfully
+Flyway OSS Edition 11.20.3 by Redgate
+
+See release notes here: https://rd.gt/416ObMi
+Database: 
+jdbc:mysql://localhost:23306/ulticode?useSSL=false&allowPublicKeyRetrieval=true&
+useUnicode=true&characterEncoding=UTF-8 (MySQL 9.1)
+Successfully validated 42 migrations (execution time 00:00.049s)
+
+EXIT_CODE=0

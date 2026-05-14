@@ -1,0 +1,15 @@
+Running Flyway repair...
+This will repair the schema_migrations table.
+Repair completed successfully
+Flyway OSS Edition 11.20.3 by Redgate
+
+See release notes here: https://rd.gt/416ObMi
+Database: 
+jdbc:mysql://localhost:23306/ulticode?useSSL=false&allowPublicKeyRetrieval=true&
+useUnicode=true&characterEncoding=UTF-8 (MySQL 9.1)
+Repair of failed migration in Schema History table 
+`ulticode`.`flyway_schema_history` not necessary. No failed migration detected.
+Successfully repaired schema history table `ulticode`.`flyway_schema_history` 
+(execution time 00:00.046s).
+
+EXIT_CODE=0

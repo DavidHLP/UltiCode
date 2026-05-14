@@ -6,6 +6,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ..flyway_adapter import get_flyway_adapter
+from ._common import check_flyway_installed
 
 
 console = Console()
@@ -19,12 +20,7 @@ def info() -> dict[str, int]:
     """
     adapter = get_flyway_adapter()
 
-    if not adapter.check_flyway_installed():
-        console.print(
-            "[red]Error: Flyway CLI not found.[/red]\n"
-            "Please install Flyway from https://flyway.net/ or use:\n"
-            "  docker pull flyway/flyway  # Docker"
-        )
+    if not check_flyway_installed(adapter):
         return {"success": 0, "errors": 1}
 
     if adapter.use_docker:
@@ -59,11 +55,12 @@ def info() -> dict[str, int]:
                 continue
             # Skip column header row (Category | Version | Description ...)
             parts = [p.strip() for p in stripped.split("|")]
+            if len(parts) < 7:
+                continue
             if parts[2].lower() == "version":
                 continue
 
-            parts = [p.strip() for p in stripped.split("|")]
-            if len(parts) >= 8:
+            if len(parts) >= 7:
                 version = parts[2]
                 desc = parts[3]
                 mtype = parts[4]

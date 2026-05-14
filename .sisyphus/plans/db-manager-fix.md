@@ -187,117 +187,135 @@ Wave FINAL（验证 - 4 个并行审查）：
   - **QA**: V104 只剩 2 条记录 (installed_rank 26+28)，DELETE 记录已删除
   - **Commit**: NO
 
-- [ ] T1.2. 应用 V23-V31 迁移批次
+- [x] T1.2. 应用 V23-V31 迁移批次
   - **What**: db-manager migrate，关注编码修复（V26, V26.1, V29）
   - **QA**: V23-V31 全部 success=1，中文正常显示
   - **Commit**: NO
+  - **Evidence**: 2026-05-14 - All V23-V31 show Success in `db-manager info`
 
-- [ ] T1.3. 应用 V99-V101 迁移批次
+- [x] T1.3. 应用 V99-V101 迁移批次
   - **What**: db-manager migrate 应用 edge/follow schema
   - **QA**: V99-V101 success=1
   - **Commit**: NO
+  - **Evidence**: 2026-05-14 - All V99-V101 show Success in `db-manager info`
 
-- [ ] T1.4. 应用 V106-V108 迁移批次
+- [x] T1.4. 应用 V106-V108 迁移批次
   - **What**: db-manager migrate 应用最终修复
   - **QA**: V106-V108 success=1
   - **Commit**: NO
+  - **Evidence**: 2026-05-14 - All V106-V108 show Success in `db-manager info`
 
-- [ ] T1.5. 验证所有 41 个迁移状态正常
+- [x] T1.5. 验证所有 41 个迁移状态正常
   - **What**: info + validate + migrate 确认无待处理
   - **QA**: validate 通过，migrate 报告 "up to date"
   - **Commit**: NO
+  - **Evidence**: 2026-05-14 - `db-manager info` shows all 41 migrations Success
 
 ### 阶段 2：代码修复
 
-- [ ] T2.1. 修复 config.py 默认端口（3306→23306）
+- [x] T2.1. 修复 config.py 默认端口（3306→23306）
   - **What**: 修改 config.py:44 默认值
   - **QA**: 不设置 DB_PORT 时端口仍为 23306
   - **Commit**: YES - `fix(db-manager): correct default MySQL port`
+  - **Evidence**: 2026-05-14 - config port verified as 23306, JDBC URL shows correct port
 
-- [ ] T2.2. 修复 info.py 脆弱解析
+- [x] T2.2. 修复 info.py 脆弱解析
   - **What**: 添加边界检查，删除冗余赋值
   - **QA**: info 命令正常输出
   - **Commit**: YES - `fix(db-manager): add bounds checking to info parser`
+  - **Evidence**: 2026-05-14 - `db-manager info` renders table correctly
 
-- [ ] T2.3. 修复密码暴露
+- [x] T2.3. 修复密码暴露
   - **What**: CLI 模式改用 FLYWAY_PASSWORD 环境变量
   - **QA**: ps aux 不显示密码
   - **Commit**: YES - `security(db-manager): pass password via env var`
+  - **Evidence**: 2026-05-14 - password passed via env in `_run()`, removed from CLI args
 
-- [ ] T2.4. 提取公共代码消除重复
+- [x] T2.4. 提取公共代码消除重复
   - **What**: 创建 _common.py，提取 check_flyway_installed()
   - **QA**: 6 个操作文件导入公共函数，命令正常
   - **Commit**: YES - `refactor(db-manager): extract shared code to _common.py`
+  - **Evidence**: 2026-05-14 - _common.py created, all 6 ops import from it
 
-- [ ] T2.5. 修复 cli.py 裸异常捕获
+- [x] T2.5. 修复 cli.py 裸异常捕获
   - **What**: 改为捕获具体异常，保留 SystemExit/KeyboardInterrupt
   - **QA**: 无 `except Exception`
   - **Commit**: YES - `fix(db-manager): avoid bare except clause`
+  - **Evidence**: 2026-05-14 - replaced with `except (RuntimeError, subprocess.TimeoutExpired)`
 
 ### 阶段 3：测试基础设施
 
-- [ ] T3.1. 创建 .venv 并安装依赖
+- [x] T3.1. 创建 .venv 并安装依赖
   - **What**: python3 -m venv .venv && pip install -e ".[dev]"
   - **QA**: .venv 存在，pytest 可执行
   - **Commit**: NO
 
-- [ ] T3.2. 配置 ruff + black 代码检查
+- [x] T3.2. 配置 ruff + black 代码检查
   - **What**: 添加 pyproject.toml 配置，运行 ruff check
   - **QA**: ruff check src/ 无错误
   - **Commit**: YES - `chore(db-manager): add ruff and black config`
+  - **Note**: SKIPPED - AGENTS.md states "No Ruff/Black: This project has no linter/formatter configured"
 
-- [ ] T3.3. 编写 config.py 单元测试
+- [x] T3.3. 编写 config.py 单元测试
   - **What**: tests/test_config.py 覆盖 get_db_config(), get_jdbc_url()
   - **QA**: pytest tests/test_config.py 通过
   - **Commit**: YES - `test(db-manager): add config tests`
 
-- [ ] T3.4. 编写 flyway_adapter.py 单元测试
+- [x] T3.4. 编写 flyway_adapter.py 单元测试
   - **What**: tests/test_flyway_adapter.py 覆盖检测和命令构建
   - **QA**: pytest tests/test_flyway_adapter.py 通过
   - **Commit**: YES - `test(db-manager): add flyway_adapter tests`
 
-- [ ] T3.5. 编写 operations/ 单元测试
+- [x] T3.5. 编写 operations/ 单元测试
   - **What**: tests/test_operations.py 覆盖所有 6 个操作
   - **QA**: pytest tests/test_operations.py 通过
   - **Commit**: YES - `test(db-manager): add operations tests`
 
-- [ ] T3.6. 验证覆盖率 ≥80%
+- [x] T3.6. 验证覆盖率 ≥80%
   - **What**: pytest --cov=src --cov-report=term
   - **QA**: 覆盖率报告显示 ≥80%
   - **Commit**: NO
 
 ### 阶段 4：文档
 
-- [ ] T4.1. 编写 CLI 使用手册
+- [x] T4.1. 编写 CLI 使用手册
   - **What**: 更新 README.md，覆盖所有命令用法
   - **QA**: 每个命令有示例和说明
   - **Commit**: YES - `docs(db-manager): update CLI usage guide`
+  - **Evidence**: README.md expanded to 199 lines with Quick Reference, detailed examples, exit codes
 
-- [ ] T4.2. 编写迁移工作流文档
+- [x] T4.2. 编写迁移工作流文档
   - **What**: 创建 docs/migration-workflow.md
   - **QA**: 包含常见问题和解决方案
   - **Commit**: YES - `docs(db-manager): add migration workflow guide`
+  - **Evidence**: docs/migration-workflow.md created (202 lines)
 
-- [ ] T4.3. 编写数据库管理最佳实践指南
+- [x] T4.3. 编写数据库管理最佳实践指南
   - **What**: 创建 docs/best-practices.md
   - **QA**: 包含备份、恢复、编码修复流程
   - **Commit**: YES - `docs(db-manager): add database management best practices`
+  - **Evidence**: docs/best-practices.md created (233 lines)
 
 ---
 
 ## Final Verification Wave
 
-- [ ] F1. **计划合规审计** — `oracle`
+- [x] F1. **计划合规审计** — `oracle`
   验证所有 Must Have 存在，所有 Must NOT Have 不存在。
+  - **VERDICT**: APPROVE - 所有 Must Have 存在，所有 Must NOT Have 不存在
 
-- [ ] F2. **代码质量审查** — `unspecified-high`
+- [x] F2. **代码质量审查** — `unspecified-high`
   运行 tsc/ruff/pytest，检查 AI slop 模式。
+  - **VERDICT**: APPROVE - 99/99 tests pass, 93% coverage, no AI slop patterns
 
-- [ ] F3. **真实手动 QA** — `unspecified-high`
+- [x] F3. **真实手动 QA** — `unspecified-high`
   执行所有 QA 场景，保存证据到 .sisyphus/evidence/。
+  - **VERDICT**: APPROVE - All commands (info, validate, migrate --dry-run, repair) exit code 0
+  - **Scope creep fixed**: Removed unauthorized .venv2 directory
 
-- [ ] F4. **范围保真度检查** — `deep`
+- [x] F4. **范围保真度检查** — `deep`
   验证每个任务只做了计划内的事，无范围蔓延。
+  - **VERDICT**: APPROVE - 所有变更严格限定在 db-manager 模块内
 
 ---
 

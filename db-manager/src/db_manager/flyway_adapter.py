@@ -92,13 +92,10 @@ class FlywayAdapter:
 
         jdbc_url = get_jdbc_url()
         user = os.getenv("DB_USER", "")
-        password = os.getenv("DB_PASSWORD", "")
 
         cmd.append(f"-url={jdbc_url}")
         if user:
             cmd.append(f"-user={user}")
-        if password:
-            cmd.append(f"-password={password}")
 
         cmd.append(f"-locations=filesystem:{self._migrations_dir}")
 
@@ -130,12 +127,18 @@ class FlywayAdapter:
         """
         cmd = self._build_command(operation, **kwargs)
 
+        env = os.environ.copy()
+        password = os.getenv("DB_PASSWORD", "")
+        if password:
+            env["FLYWAY_PASSWORD"] = password
+
         result = subprocess.run(
             cmd,
             cwd=self._db_manager_dir,
             capture_output=True,
             text=True,
             timeout=300,
+            env=env,
         )
 
         return {

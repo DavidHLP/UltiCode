@@ -57,15 +57,7 @@ async function exportReport() {
 
 const topPerformers = computed(() => {
   if (!stats.value) return []
-  return stats.value.actionsByPerformer.slice(0, 5).map((item) => ({
-    ...item,
-    performer: {
-      id: item.performerId,
-      username: item.performerId,
-      name: item.performerId,
-      role: 'USER',
-    },
-  }))
+  return stats.value.topPerformers.slice(0, 5)
 })
 
 const actionsByEntity = computed(() => {
@@ -266,7 +258,7 @@ onMounted(() => {
         <div class="p-4 space-y-3">
           <div
             v-for="(item, index) in topPerformers"
-            :key="item.performer.id"
+            :key="item.performerId"
             class="flex items-center justify-between p-3 border border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
           >
             <div class="flex items-center gap-3">
@@ -277,9 +269,9 @@ onMounted(() => {
               </div>
               <div>
                 <p class="font-medium font-data">
-                  {{ item.performer.name || item.performer.username }}
+                  {{ item.name || item.username }}
                 </p>
-                <p class="text-xs text-[var(--silver-500)]">{{ item.performer.role }}</p>
+                <p class="text-xs text-[var(--silver-500)]">{{ item.role }}</p>
               </div>
             </div>
             <div class="text-right">

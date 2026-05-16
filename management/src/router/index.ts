@@ -50,6 +50,12 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/audit/AuditLogsView.vue'),
         meta: { titleKey: 'nav.auditLogs', permission: PERM.SYSTEM_READ },
       },
+      {
+        path: 'audit/report',
+        name: 'audit-report',
+        component: () => import('@/views/audit/AuditReportView.vue'),
+        meta: { titleKey: 'nav.auditReport', permission: PERM.SYSTEM_READ },
+      },
 
       // ==================== Analytics ====================
       {

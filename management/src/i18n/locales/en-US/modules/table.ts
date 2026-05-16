@@ -47,6 +47,10 @@ export default {
     participants: 'Participants',
 
     // Moderation columns
+    action: 'Action',
+    performer: 'Performer',
+    user: 'Target User',
+    ip_address: 'IP Address',
     entity_type: 'Entity Type',
     entity: 'Entity',
     primary_category: 'Category',

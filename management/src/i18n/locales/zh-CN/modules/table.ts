@@ -47,6 +47,10 @@ export default {
     participants: '参与者',
 
     // 审核列
+    action: '操作',
+    performer: '执行者',
+    user: '目标用户',
+    ip_address: 'IP 地址',
     entity_type: '实体类型',
     entity: '实体',
     primary_category: '类别',

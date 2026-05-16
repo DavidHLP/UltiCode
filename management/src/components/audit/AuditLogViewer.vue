@@ -47,9 +47,6 @@ const totalPages = ref(0)
 const searchQuery = ref('')
 const actionFilter = ref('')
 const performerFilter = ref('')
-const sortBy = ref('createdAt')
-const sortOrder = ref<'asc' | 'desc'>('desc')
-
 const expandedLogs = ref<Set<string>>(new Set())
 
 async function loadAuditLogs() {
@@ -66,11 +63,8 @@ async function loadAuditLogs() {
       performerId: performerFilter.value || undefined,
       page: currentPage.value,
       limit: pageSize.value,
-      sortBy: sortBy.value,
-      sortOrder: sortOrder.value,
     })
-    // Note: request.ts unwraps Result<T>, so response is directly AuditLogsResponse
-    auditLogs.value = response.logs || []
+    auditLogs.value = response.items || []
     total.value = response.total
     totalPages.value = response.totalPages
   } catch (error) {
@@ -179,11 +173,25 @@ onMounted(() => {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{{ t('audit.allActions') }}</SelectItem>
-          <SelectItem value="CREATE">{{ t('audit.actions.create') }}</SelectItem>
-          <SelectItem value="UPDATE">{{ t('audit.actions.update') }}</SelectItem>
-          <SelectItem value="DELETE">{{ t('audit.actions.delete') }}</SelectItem>
-          <SelectItem value="PUBLISH">{{ t('audit.actions.publish') }}</SelectItem>
-          <SelectItem value="MODERATE">{{ t('audit.actions.moderate') }}</SelectItem>
+          <SelectItem value="CREATE_USER">{{
+            t('audit.actionTypes.CREATE_USER')
+          }}</SelectItem>
+          <SelectItem value="UPDATE_USER">{{
+            t('audit.actionTypes.UPDATE_USER')
+          }}</SelectItem>
+          <SelectItem value="DELETE_USER">{{
+            t('audit.actionTypes.DELETE_USER')
+          }}</SelectItem>
+          <SelectItem value="BAN_USER">{{ t('audit.actionTypes.BAN_USER') }}</SelectItem>
+          <SelectItem value="UNBAN_USER">{{
+            t('audit.actionTypes.UNBAN_USER')
+          }}</SelectItem>
+          <SelectItem value="GRANT_PERMISSION">{{
+            t('audit.actionTypes.GRANT_PERMISSION')
+          }}</SelectItem>
+          <SelectItem value="REVOKE_PERMISSION">{{
+            t('audit.actionTypes.REVOKE_PERMISSION')
+          }}</SelectItem>
         </SelectContent>
       </Select>
       <Button variant="outline" size="sm" @click="loadAuditLogs">

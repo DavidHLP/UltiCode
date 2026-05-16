@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
@@ -145,6 +146,17 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void pinPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
+        auditService.log(
+            SecurityUtil.getCurrentUserId(),
+            post.getUserId(),
+            "PIN_POST",
+            "FORUM_POST",
+            id,
+            java.util.Collections.singletonMap("isPinned", post.getIsPinned()),
+            java.util.Collections.singletonMap("isPinned", true),
+            null,
+            null
+        );
         post.setIsPinned(true);
         forumPostMapper.updateById(post);
         log.info("Post pinned: {}", id);
@@ -153,6 +165,17 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void unpinPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
+        auditService.log(
+            SecurityUtil.getCurrentUserId(),
+            post.getUserId(),
+            "UNPIN_POST",
+            "FORUM_POST",
+            id,
+            java.util.Collections.singletonMap("isPinned", post.getIsPinned()),
+            java.util.Collections.singletonMap("isPinned", false),
+            null,
+            null
+        );
         post.setIsPinned(false);
         forumPostMapper.updateById(post);
         log.info("Post unpinned: {}", id);
@@ -161,6 +184,17 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void lockPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
+        auditService.log(
+            SecurityUtil.getCurrentUserId(),
+            post.getUserId(),
+            "LOCK_POST",
+            "FORUM_POST",
+            id,
+            java.util.Collections.singletonMap("isLocked", post.getIsLocked()),
+            java.util.Collections.singletonMap("isLocked", true),
+            null,
+            null
+        );
         post.setIsLocked(true);
         forumPostMapper.updateById(post);
         log.info("Post locked: {}", id);
@@ -169,6 +203,17 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void unlockPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
+        auditService.log(
+            SecurityUtil.getCurrentUserId(),
+            post.getUserId(),
+            "UNLOCK_POST",
+            "FORUM_POST",
+            id,
+            java.util.Collections.singletonMap("isLocked", post.getIsLocked()),
+            java.util.Collections.singletonMap("isLocked", false),
+            null,
+            null
+        );
         post.setIsLocked(false);
         forumPostMapper.updateById(post);
         log.info("Post unlocked: {}", id);
@@ -177,6 +222,23 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void deletePost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
+        java.util.Map<String, Object> oldValues = new java.util.HashMap<>();
+        oldValues.put("isDeleted", post.getIsDeleted());
+        oldValues.put("deletedAt", post.getDeletedAt());
+        java.util.Map<String, Object> newValues = new java.util.HashMap<>();
+        newValues.put("isDeleted", true);
+        newValues.put("deletedAt", LocalDateTime.now());
+        auditService.log(
+            SecurityUtil.getCurrentUserId(),
+            post.getUserId(),
+            "DELETE_POST",
+            "FORUM_POST",
+            id,
+            oldValues,
+            newValues,
+            null,
+            null
+        );
         // Soft delete
         post.setIsDeleted(true);
         post.setDeletedAt(LocalDateTime.now());

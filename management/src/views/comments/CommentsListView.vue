@@ -45,7 +45,7 @@ const canModerateSolution = computed(() => authStore.hasPermission('MODERATE', '
 
 // Stats for terminal ticker
 const stats = computed(() => {
-  const comments = commentsStore.comments
+  const comments = commentsStore.comments.filter(Boolean)
   const total = commentsStore.total
   const flagged = comments.filter((c) => c.isFlagged).length
   const forumCount = comments.filter((c) => c.type === 'forum').length

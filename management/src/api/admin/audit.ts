@@ -1,4 +1,4 @@
-import { apiGet } from '@/utils/request'
+import { apiGet, apiDownload } from '@/utils/request'
 
 /**
  * Backend Result wrapper - all API responses are wrapped in this structure
@@ -11,17 +11,29 @@ export interface Result<T> {
 }
 
 /**
+ * Paginated response wrapper matching backend PageResult<T>.
+ * All admin APIs use this format: {items, total, page, pageSize, totalPages}.
+ */
+export interface PageResult<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
+
+/**
  * Audit log entry with nested performer and user information.
  * All field names use camelCase following TypeScript conventions.
  */
 export interface AuditLog {
-  id: string // ID uses string to avoid precision loss
-  createdAt: Date // Backend uses camelCase (LocalDateTime)
+  id: string
+  createdAt: Date
   performer?: PerformerInfo
   user?: UserInfo
   action: string
   entityType?: string
-  entityId?: string // ID uses string
+  entityId?: string
   oldValues?: unknown
   newValues?: unknown
   ipAddress?: string
@@ -58,16 +70,6 @@ export interface AuditLogQueryParams {
   endDate?: string
   page?: number
   limit?: number
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
-}
-
-export interface AuditLogsResponse {
-  logs: AuditLog[]
-  total: number
-  page: number
-  limit: number
-  totalPages: number
 }
 
 export interface AuditStats {
@@ -76,12 +78,12 @@ export interface AuditStats {
     entityType: string
     count: number
   }>
-  actionsByPerformer: Array<{
-    performerId: string
-    count: number
-  }>
   topPerformers: Array<{
-    performer: PerformerInfo
+    performerId: string
+    username: string
+    name: string
+    role: string
+    count: number
   }>
 }
 
@@ -90,9 +92,8 @@ export interface AuditExportParams extends AuditLogQueryParams {
 }
 
 export const auditApi = {
-  // Note: request.ts intercepts and unwraps Result<T>, returning just T
-  async getAuditLogs(params: AuditLogQueryParams = {}): Promise<AuditLogsResponse> {
-    return apiGet<AuditLogsResponse>('/admin/audit/logs', { params })
+  async getAuditLogs(params: AuditLogQueryParams = {}): Promise<PageResult<AuditLog>> {
+    return apiGet<PageResult<AuditLog>>('/admin/audit/logs', { params })
   },
 
   async getAuditStats(params?: {
@@ -105,25 +106,9 @@ export const auditApi = {
 
   async exportAuditLogs(params: AuditExportParams = {}): Promise<void> {
     const { format = 'csv', ...queryParams } = params
-    const response = await apiGet<Blob | unknown>('/admin/audit/export', {
-      params: { ...queryParams, format },
-      responseType: format === 'csv' ? 'blob' : 'json',
+    const filename = `audit-logs.${format}`
+    await apiDownload('/admin/audit/export', filename, {
+      params: { format, ...queryParams },
     })
-
-    // Create download link
-    // response is already the data (Blob or JSON array) due to interceptor
-    const blob =
-      format === 'csv'
-        ? (response as Blob)
-        : new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' })
-
-    const url = window.URL.createObjectURL(blob)
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `audit-logs-${new Date().toISOString()}.${format}`)
-    document.body.appendChild(link)
-    link.click()
-    link.remove()
-    window.URL.revokeObjectURL(url)
   },
 }

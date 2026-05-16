@@ -12,10 +12,10 @@ import {
   IconShield,
   IconActivity,
 } from '@tabler/icons-vue'
-import type { AuditEntry } from '@/api/admin/forum'
+import type { AuditLog } from '@/api/admin/audit'
 
 defineProps<{
-  auditHistory: AuditEntry[]
+  auditHistory: AuditLog[]
   loading: boolean
 }>()
 
@@ -79,11 +79,11 @@ function getActionConfig(action: string) {
   )
 }
 
-function formatDate(dateStr: string) {
+function formatDate(dateStr: string | Date) {
   return new Date(dateStr).toLocaleString()
 }
 
-function getChangesText(entry: AuditEntry): string | null {
+function getChangesText(entry: AuditLog): string | null {
   const changes: string[] = []
 
   if (entry.oldValues && Object.keys(entry.oldValues).length > 0) {
@@ -180,7 +180,7 @@ function getChangesText(entry: AuditEntry): string | null {
             </div>
             <div class="flex items-center gap-2">
               <span class="font-data text-sm text-[var(--foreground)]">{{
-                entry.performer.username
+                entry.performer?.username
               }}</span>
               <span class="font-data text-xs text-[var(--silver-400)]">{{
                 t('forum.audit.performed')

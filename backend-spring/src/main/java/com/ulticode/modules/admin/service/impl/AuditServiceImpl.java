@@ -11,6 +11,7 @@ import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -23,6 +24,9 @@ public class AuditServiceImpl implements AuditService {
 
     private final AuditLogMapper auditLogMapper;
     private final UserMapper userMapper;
+
+    @Value("${audit.export.limit:10000}")
+    private int exportLimit;
 
     @Override
     public AuditLog log(String performerId, String userId, String action,
@@ -47,6 +51,80 @@ public class AuditServiceImpl implements AuditService {
 
     @Override
     public PageResult<AuditLogVO> getAuditLogs(AuditLogQueryDTO query) {
+        LambdaQueryWrapper<AuditLog> wrapper = buildQueryWrapper(query);
+        wrapper.orderByDesc(AuditLog::getCreatedAt);
+
+        Page<AuditLog> page = new Page<>(query.getPage(), query.getLimit());
+        Page<AuditLog> result = auditLogMapper.selectPage(page, wrapper);
+
+        Map<String, User> userMap = batchFetchUsers(result.getRecords());
+        List<AuditLogVO> voList = result.getRecords().stream()
+                .map(auditLog -> toVO(auditLog, userMap))
+                .collect(Collectors.toList());
+
+        return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
+    }
+
+    @Override
+    public List<AuditLogVO> getAuditLogsForExport(AuditLogQueryDTO query) {
+        LambdaQueryWrapper<AuditLog> wrapper = buildQueryWrapper(query);
+        wrapper.orderByDesc(AuditLog::getCreatedAt);
+        wrapper.last("LIMIT " + exportLimit);
+
+        List<AuditLog> logs = auditLogMapper.selectList(wrapper);
+        Map<String, User> userMap = batchFetchUsers(logs);
+
+        return logs.stream()
+                .map(auditLog -> toVO(auditLog, userMap))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public AuditStatsVO getAuditStats(AuditLogQueryDTO query) {
+        AuditStatsVO stats = new AuditStatsVO();
+
+        LambdaQueryWrapper<AuditLog> wrapper = buildQueryWrapper(query);
+        stats.setTotalActions(auditLogMapper.selectCount(wrapper));
+
+        List<Map<String, Object>> entityMaps = auditLogMapper.selectStatsByEntityType(
+            query.getStartDate(), query.getEndDate(), query.getPerformerId());
+        List<EntityTypeStat> entityStats = entityMaps.stream()
+            .map(m -> new EntityTypeStat(
+                (String) m.get("entityType"),
+                ((Number) m.get("count")).longValue()
+            ))
+            .collect(Collectors.toList());
+        stats.setActionsByEntity(entityStats);
+
+        List<Map<String, Object>> performerMaps = auditLogMapper.selectStatsByPerformer(
+            query.getStartDate(), query.getEndDate(), query.getPerformerId());
+
+        Set<String> performerIds = performerMaps.stream()
+            .map(m -> (String) m.get("performerId"))
+            .collect(Collectors.toSet());
+
+        Map<String, User> userMap = performerIds.isEmpty() ? Collections.emptyMap()
+            : userMapper.selectBatchIds(performerIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        List<PerformerStat> topPerformers = performerMaps.stream().map(m -> {
+            String performerId = (String) m.get("performerId");
+            Long count = ((Number) m.get("count")).longValue();
+            User user = userMap.get(performerId);
+            return new PerformerStat(
+                performerId,
+                user != null ? user.getUsername() : null,
+                user != null ? user.getName() : null,
+                user != null ? user.getRole() : null,
+                count
+            );
+        }).collect(Collectors.toList());
+        stats.setTopPerformers(topPerformers);
+
+        return stats;
+    }
+
+    private LambdaQueryWrapper<AuditLog> buildQueryWrapper(AuditLogQueryDTO query) {
         LambdaQueryWrapper<AuditLog> wrapper = new LambdaQueryWrapper<>();
 
         if (query.getPerformerId() != null) {
@@ -61,20 +139,28 @@ public class AuditServiceImpl implements AuditService {
         if (query.getEntityId() != null) {
             wrapper.eq(AuditLog::getEntityId, query.getEntityId());
         }
+        if (query.getAction() != null) {
+            wrapper.eq(AuditLog::getAction, query.getAction());
+        }
         if (query.getStartDate() != null) {
             wrapper.ge(AuditLog::getCreatedAt, query.getStartDate());
         }
         if (query.getEndDate() != null) {
             wrapper.le(AuditLog::getCreatedAt, query.getEndDate());
         }
+        if (query.getSearch() != null && !query.getSearch().isBlank()) {
+            wrapper.and(w -> w
+                .like(AuditLog::getAction, query.getSearch())
+                .or().like(AuditLog::getEntityType, query.getSearch())
+                .or().like(AuditLog::getEntityId, query.getSearch())
+            );
+        }
 
-        wrapper.orderByDesc(AuditLog::getCreatedAt);
+        return wrapper;
+    }
 
-        Page<AuditLog> page = new Page<>(query.getPage(), query.getLimit());
-        Page<AuditLog> result = auditLogMapper.selectPage(page, wrapper);
-
-        // Collect user IDs to batch fetch
-        Set<String> userIds = result.getRecords().stream()
+    private Map<String, User> batchFetchUsers(List<AuditLog> logs) {
+        Set<String> userIds = logs.stream()
             .flatMap(log -> Stream.of(
                 log.getPerformerId(),
                 log.getUserId()
@@ -82,46 +168,11 @@ public class AuditServiceImpl implements AuditService {
             .filter(Objects::nonNull)
             .collect(Collectors.toSet());
 
-        // Create user map once
-        Map<String, User> userMap;
-        if (!userIds.isEmpty()) {
-            List<User> users = userMapper.selectBatchIds(userIds);
-            userMap = users.stream().collect(Collectors.toMap(User::getId, u -> u));
-        } else {
-            userMap = Collections.emptyMap();
+        if (userIds.isEmpty()) {
+            return Collections.emptyMap();
         }
-
-        List<AuditLogVO> voList = result.getRecords().stream()
-                .map(auditLog -> toVO(auditLog, userMap))
-                .collect(Collectors.toList());
-
-        return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
-    }
-
-    @Override
-    public AuditStatsVO getAuditStats(AuditLogQueryDTO query) {
-        AuditStatsVO stats = new AuditStatsVO();
-
-        // Build query wrapper for common conditions
-        LambdaQueryWrapper<AuditLog> wrapper = new LambdaQueryWrapper<>();
-        wrapper.ge(query.getStartDate() != null, AuditLog::getCreatedAt, query.getStartDate())
-              .le(query.getEndDate() != null, AuditLog::getCreatedAt, query.getEndDate())
-              .eq(query.getPerformerId() != null, AuditLog::getPerformerId, query.getPerformerId());
-
-        // Get total actions count
-        stats.setTotalActions(auditLogMapper.selectCount(wrapper));
-
-        // Get actions by entity type using parameterized query
-        List<Map<String, Object>> entityStats = auditLogMapper.selectStatsByEntityType(
-            query.getStartDate(), query.getEndDate(), query.getPerformerId());
-        stats.setActionsByEntity(entityStats);
-
-        // Get top performers using parameterized query
-        List<Map<String, Object>> performerStats = auditLogMapper.selectStatsByPerformer(
-            query.getStartDate(), query.getEndDate(), query.getPerformerId());
-        stats.setTopPerformers(performerStats);
-
-        return stats;
+        return userMapper.selectBatchIds(userIds).stream()
+            .collect(Collectors.toMap(User::getId, u -> u));
     }
 
     private AuditLogVO toVO(AuditLog auditLog, Map<String, User> userMap) {
@@ -136,7 +187,6 @@ public class AuditServiceImpl implements AuditService {
         vo.setUserAgent(auditLog.getUserAgent());
         vo.setCreatedAt(auditLog.getCreatedAt());
 
-        // Build nested performer object
         User performer = userMap.get(auditLog.getPerformerId());
         if (performer != null) {
             AuditLogVO.PerformerInfo performerInfo = new AuditLogVO.PerformerInfo();
@@ -147,7 +197,6 @@ public class AuditServiceImpl implements AuditService {
             vo.setPerformer(performerInfo);
         }
 
-        // Build nested user object
         User user = userMap.get(auditLog.getUserId());
         if (user != null) {
             AuditLogVO.UserInfo userInfo = new AuditLogVO.UserInfo();

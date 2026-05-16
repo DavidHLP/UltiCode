@@ -7,8 +7,8 @@ import {
   type ForumPostQueryParams,
   type BulkForumActionType,
   type ForumPostDetail,
-  type AuditEntry,
 } from '@/api/admin/forum'
+import type { AuditLog } from '@/api/admin/audit'
 
 export const useForumStore = defineStore('adminForum', () => {
   // Posts State
@@ -25,7 +25,7 @@ export const useForumStore = defineStore('adminForum', () => {
   const currentPost = ref<ForumPostDetail | null>(null)
   const postLoading = ref(false)
   const postError = ref<string | null>(null)
-  const auditHistory = ref<AuditEntry[]>([])
+  const auditHistory = ref<AuditLog[]>([])
 
   // Actions
   async function fetchPosts(params: ForumPostQueryParams = {}) {

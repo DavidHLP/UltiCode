@@ -67,6 +67,7 @@ const stats = computed(() => {
 
 async function loadLogs() {
   await auditStore.fetchLogs({
+    search: searchQuery.value || undefined,
     action: actionFilter.value === 'all' ? undefined : actionFilter.value,
     entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
     page: tablePagination.value.pageIndex + 1,
@@ -106,6 +107,7 @@ function showDetails(log: AuditLog) {
 const columns: ColumnDef<AuditLog>[] = [
   {
     accessorKey: 'createdAt',
+    id: 'created_at',
     header: () => t('audit.columns.createdAt'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('createdAt') as Date)
@@ -118,6 +120,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'action',
+    id: 'action',
     header: () => t('audit.columns.action'),
     cell: ({ row }) => {
       const action = row.getValue('action') as string
@@ -132,6 +135,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'entityType',
+    id: 'entity_type',
     header: () => t('audit.columns.entityType'),
     cell: ({ row }) => {
       const entityType = row.original.entityType
@@ -155,6 +159,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'performer',
+    id: 'performer',
     header: () => t('audit.columns.performer'),
     cell: ({ row }) => {
       const performer = row.original.performer
@@ -173,6 +178,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'user',
+    id: 'user',
     header: () => t('audit.columns.target'),
     cell: ({ row }) => {
       const user = row.original.user
@@ -186,6 +192,7 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'ipAddress',
+    id: 'ip_address',
     header: () => t('audit.columns.ip'),
     cell: ({ row }) => {
       const ip = row.original.ipAddress

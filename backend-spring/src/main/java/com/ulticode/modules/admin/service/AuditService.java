@@ -5,6 +5,7 @@ import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.AuditStatsVO;
 import com.ulticode.modules.admin.entity.AuditLog;
 import com.ulticode.common.response.PageResult;
+import java.util.List;
 import java.util.Map;
 
 public interface AuditService {
@@ -15,4 +16,5 @@ public interface AuditService {
 
     PageResult<AuditLogVO> getAuditLogs(AuditLogQueryDTO query);
     AuditStatsVO getAuditStats(AuditLogQueryDTO query);
+    List<AuditLogVO> getAuditLogsForExport(AuditLogQueryDTO query);
 }

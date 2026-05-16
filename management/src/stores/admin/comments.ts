@@ -20,7 +20,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
     error.value = null
     try {
       const response = await commentsApi.getComments(params)
-      comments.value = response.items
+      comments.value = response.items.filter((c): c is Comment => c !== null)
       total.value = response.total
     } catch (err: unknown) {
       error.value =
@@ -56,7 +56,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
     try {
       const updatedComment = await commentsApi.flagComment(id, type, reason)
       const index = comments.value.findIndex((c) => c.id === id)
-      if (index !== -1) {
+      if (index !== -1 && updatedComment) {
         comments.value[index] = updatedComment
       }
       return updatedComment
@@ -77,7 +77,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
     try {
       const updatedComment = await commentsApi.unflagComment(id, type)
       const index = comments.value.findIndex((c) => c.id === id)
-      if (index !== -1) {
+      if (index !== -1 && updatedComment) {
         comments.value[index] = updatedComment
       }
       return updatedComment

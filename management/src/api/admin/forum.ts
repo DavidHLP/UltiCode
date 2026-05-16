@@ -1,4 +1,5 @@
 import { apiGet, apiPost, apiDelete } from '@/utils/request'
+import type { AuditLog } from '@/api/admin/audit'
 
 export interface ForumUser {
   id: string
@@ -94,26 +95,9 @@ export interface BulkActionResult {
   error?: string
 }
 
-// Detail view interfaces
-export interface AuditEntry {
-  id: string
-  action: string
-  performer: {
-    id: string
-    username: string
-  }
-  entityType: string
-  entityId: string
-  oldValues?: Record<string, unknown>
-  newValues?: Record<string, unknown>
-  ipAddress?: string
-  userAgent?: string
-  createdAt: string
-}
-
 export interface ForumPostDetail extends ForumPost {
   fullContent?: string
-  moderationHistory?: AuditEntry[]
+  moderationHistory?: AuditLog[]
 }
 
 export const forumApi = {
@@ -160,8 +144,8 @@ export const forumApi = {
     return response
   },
 
-  async getPostAuditHistory(id: string): Promise<AuditEntry[]> {
-    return apiGet<AuditEntry[]>(`/admin/forum/posts/${id}/audit`)
+  async getPostAuditHistory(id: string): Promise<AuditLog[]> {
+    return apiGet<AuditLog[]>(`/admin/forum/posts/${id}/audit`)
   },
 
   async flagPost(id: string, reason: string): Promise<void> {

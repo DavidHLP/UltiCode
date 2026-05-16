@@ -1,16 +1,143 @@
-# Role
-你现在是该项目的核心资深全栈工程师兼系统管理员。从现在起，我将整个项目的技术管理权与问题解决权全权交托给你。
+# CLAUDE.md
 
-# Core Responsibilities & Workflow
-1. **自主洞察**：当你接手问题时，请自信、主动地检索并分析前后端运行日志，精准定位问题根源。
-2. **全局溯源**：不要局限于局部代码，请自主跨文件查看与问题相关的完整前后端代码链路。
-3. **运维与数据管控**：
-   - 熟练使用 `pm2` 进行项目进程的监控、管理与重启。
-   - 熟练使用 `docker-compose` 进行 Docker 容器的编排、构建与维护。
-   - 规范使用 `db-manager` 结合 `Flyway` 进行数据库的版本控制、脚本编写与自动化迁移管理。
-4. **架构决策**：在修复问题或迭代功能时，你拥有完全的自主设计权。请根据最佳实践自行决定技术方案、重构代码或优化架构。
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-# Constraints
-- **执行前思考**：在执行大规模代码修改、**执行数据库 Flyway 迁移**或重启核心服务前，请简要输出你的【诊断结论】与【行动计划】。
-- **系统稳定性**：在自主决定设计方案时，需兼顾现有系统的整体稳定性和性能表现，确保数据库变更向后兼容。
-- **闭环管理**：你需要独立完成“发现问题 -> 分析日志 -> 修改代码/SQL -> 容器/进程/数据库部署 -> 验证结果”的完整闭环。
+## Project Overview
+
+UltiCode is an online programming platform (online judge) with a Spring Boot backend, two Vue 3 frontends, a recommendation system, and a Flyway-based database migration tool.
+
+## Architecture
+
+```
+UltiCode-Public-Next/
+├── backend-spring/       # Spring Boot 3.2.5 (Java 17) — port 9001
+├── console/              # Vue 3 user-facing frontend — port 9002
+├── management/           # Vue 3 admin dashboard — port 9003
+├── recommendation/       # Dubbo3 + Spark recommendation system
+│   ├── recommend-api/     # Dubbo service interfaces
+│   ├── recommend-core/    # Core recommendation logic
+│   ├── recommend-feature/ # Feature engineering
+│   ├── recommend-provider/# Dubbo service provider (port 20881)
+│   ├── recommend-spark/   # Spark batch jobs (Scala 2.13)
+│   └── recommend-web/    # REST API gateway (port 9005)
+├── shared/               # Shared auth-core (Vue composable)
+├── db-manager/           # Flyway migration CLI (Python)
+│   └── migrations/       # 31+ Flyway SQL migrations (V1–V108)
+└── docker/               # Init scripts (nacos SQL, sandbox)
+```
+
+**Backend module structure** (`backend-spring/src/main/java/com/ulticode/modules/`):
+achievement, admin, auth, backup, bookmark, contest, edgeoperations, email, follow, forum, i18n, moderation, monitoring, notification, permission, problem, problemlist, queue, recommendation, refreshtoken, search, solution, submission, subscription, user, vote, websocket
+
+**Backend layering**: Each module follows `controller → service → mapper (MyBatis-Plus) → entity`. DTOs via MapStruct. Security under `security/` package. Common utilities under `common/`. Infrastructure under `infrastructure/`.
+
+**Frontend routing**: console has views for auth, problems, problem-list, problem-set, contest, forum, dashboard, profile, recommendations, achievements, post-editor. management has views for auth, dashboard, users, problems, submissions, contests, forum, moderation, analytics, billing, settings, system, tags, solutions, comments, notifications, audit, account.
+
+## Commands
+
+### Backend (backend-spring/)
+
+```bash
+# Run dev server (via PM2)
+pm2 start ecosystem.config.cjs
+pm2 restart ulticode-9001
+pm2 logs ulticode-9001
+
+# Run directly
+./mvnw spring-boot:run -Dmaven.test.skip=true
+
+# Build
+./mvnw package -DskipTests
+
+# Run tests (excludes integration tests *IT.java)
+./mvnw test
+
+# Run integration tests
+./mvnw verify -Pci
+
+# Compile only
+./mvnw compile
+```
+
+### Frontend — Console (console/)
+
+```bash
+pnpm install
+pnpm dev              # lint + type-check + format + test + vite dev server
+pnpm build            # type-check + vite build
+pnpm type-check       # vue-tsc --build
+pnpm lint             # eslint . --fix --cache
+pnpm format           # prettier --write src/
+pnpm test             # vitest --run --passWithNoTests
+pnpm test:watch       # vitest (watch mode)
+pnpm test:coverage    # vitest --coverage
+```
+
+### Frontend — Management (management/)
+
+Same commands as console. Also has Playwright for E2E.
+
+### Database Migrations (db-manager/)
+
+```bash
+# Setup
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .
+
+# Operations
+db-manager migrate              # Apply pending migrations
+db-manager migrate --dry-run    # Preview without applying
+db-manager info                 # Show migration status
+db-manager repair               # Fix metadata inconsistencies
+db-manager validate             # Validate migration state
+db-manager baseline             # Baseline existing database
+db-manager clean --force        # DANGER: Drop all objects
+```
+
+DB config from `.env`: `DB_HOST`, `DB_PORT` (23306), `DB_USER`, `DB_PASSWORD`, `DB_NAME`.
+
+### Docker (development)
+
+```bash
+docker-compose up -d            # Start MySQL 9.1, Redis 7, Nacos 2.3.2
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Production
+```
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Backend | Spring Boot 3.2.5, Java 17, MyBatis-Plus 3.5.16, MapStruct 1.6.3 |
+| Auth | JWT (jjwt 0.13.0), Redis session (Redisson 4.3.1) |
+| API Docs | SpringDoc OpenAPI 2.6.0 |
+| Service Discovery | Nacos 2.3.2, Dubbo 3.2.14 |
+| Database | MySQL 9.1 (port 23306), Redis 7 (port 26379), Nacos (port 28848) |
+| Frontend | Vue 3.5, TypeScript ~6, Vite 8, Pinia 3, Vue Router 5, Tailwind CSS v4 |
+| UI Components | shadcn-vue (reka-ui), Radix Vue, Lucide icons |
+| i18n | vue-i18n 11 |
+| HTTP | Axios |
+| PWA | vite-plugin-pwa + workbox |
+| Testing (BE) | JUnit 5, Testcontainers (MySQL, Redis), JaCoCo |
+| Testing (FE) | Vitest 4, jsdom, Playwright (management) |
+| Linting | ESLint 9/10 (flat config), Prettier (semi: false, singleQuote, printWidth: 100) |
+| Recommendation | Spring Boot 3.2.5, Dubbo 3.2.14, Apache Spark 3.5.1 |
+
+## Key Conventions
+
+- **Commit format**: `<type>: <description>` (types: feat, fix, refactor, docs, test, chore, perf, ci)
+- **Attribution**: Disabled globally via settings.json
+- **Frontend Prettier**: No semicolons, single quotes, 100 char print width
+- **ESLint**: Flat config, `vue/multi-word-component-names` off in console, whitelisted in management
+- **Integration tests**: Suffix `*IT.java`, excluded from `./mvnw test`, run with `./mvnw verify -Pci`
+- **Migration naming**: `V{N}__{description}.sql` in `db-manager/migrations/`
+- **Docker containers**: Non-root `appuser:appgroup`, multi-stage builds
+- **Backend ports**: App 9001, Dubbo 20881, Recommend-web 9005
+- **Frontend ports**: Console 9002, Management 9003
+
+## CI
+
+GitHub Actions on push/PR to main. Path-based change detection triggers only relevant jobs:
+- Backend: Maven build + test (ci profile, excludes *IT) + Flyway migration validation
+- Frontend: lint + type-check + test
+- Docker: Build verification on Dockerfile changes
+- Testcontainers: MySQL 9.1 + Redis 7 for integration tests

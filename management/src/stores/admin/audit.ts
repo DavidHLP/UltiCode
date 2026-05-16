@@ -5,6 +5,7 @@ import {
   type AuditLog,
   type AuditLogQueryParams,
   type AuditStats,
+  type AuditExportParams,
 } from '@/api/admin/audit'
 
 export const useAuditStore = defineStore('adminAudit', () => {
@@ -18,9 +19,8 @@ export const useAuditStore = defineStore('adminAudit', () => {
     loading.value = true
     error.value = null
     try {
-      // Note: request.ts unwraps Result<T>, so response is directly AuditLogsResponse
       const data = await auditApi.getAuditLogs(params)
-      logs.value = data.logs ?? []
+      logs.value = data.items ?? []
       total.value = data.total
       return data
     } catch (err: unknown) {
@@ -42,7 +42,6 @@ export const useAuditStore = defineStore('adminAudit', () => {
     loading.value = true
     error.value = null
     try {
-      // Note: request.ts unwraps Result<T>, so response is directly AuditStats
       const data = await auditApi.getAuditStats(params)
       stats.value = data
       return data
@@ -57,7 +56,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
     }
   }
 
-  async function exportLogs(params: AuditLogQueryParams & { format?: 'csv' | 'json' }) {
+  async function exportLogs(params: AuditExportParams) {
     loading.value = true
     error.value = null
     try {

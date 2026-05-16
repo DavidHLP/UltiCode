@@ -182,6 +182,11 @@ app:
     enabled: ${EMAIL_ENABLED:false}
     from-name: ${EMAIL_FROM_NAME:UltiCode}
 
+# Audit configuration
+audit:
+  export:
+    limit: ${AUDIT_EXPORT_LIMIT:10000}
+
 # Management/Actuator Configuration
 management:
   health:

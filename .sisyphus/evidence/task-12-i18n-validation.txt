@@ -1,7 +1,0 @@
-Checking i18n keys...
-
-Found 355 Vue component(s)
-
-Found 23 problems.versionHistory.* key(s) in components
-
-All keys found! ✓

@@ -1,6 +1,8 @@
 package com.ulticode.modules.admin.service;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
+import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 
@@ -20,6 +22,21 @@ public interface AdminUserService {
      * Get user by ID
      */
     AdminUserVO getUserById(String id);
+
+    /**
+     * Create a new user
+     */
+    AdminUserVO createUser(AdminCreateUserDTO dto);
+
+    /**
+     * Update user information
+     */
+    AdminUserVO updateUser(String id, AdminUpdateUserDTO dto);
+
+    /**
+     * Delete a user
+     */
+    void deleteUser(String id);
 
     /**
      * Ban a user

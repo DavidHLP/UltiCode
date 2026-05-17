@@ -141,3 +141,24 @@ GitHub Actions on push/PR to main. Path-based change detection triggers only rel
 - Frontend: lint + type-check + test
 - Docker: Build verification on Dockerfile changes
 - Testcontainers: MySQL 9.1 + Redis 7 for integration tests
+
+## PM2 Services
+
+| Port | Name | Type |
+|------|------|------|
+| 9001 | ulticode-9001 | Spring Boot Backend |
+| 9002 | ulticode-9002 | Console Frontend (Vite) |
+| 9003 | ulticode-9003 | Management Frontend (Vite) |
+| 9004 | ulticode-9004 | Recommendation Provider |
+| 9005 | ulticode-9005 | Recommendation Web |
+
+**Terminal Commands:**
+```bash
+pm2 start ecosystem.config.cjs   # First time
+pm2 start all                    # After first time
+pm2 stop all / pm2 restart all
+pm2 start {name} / pm2 stop {name}
+pm2 logs / pm2 status / pm2 monit
+pm2 save                         # Save process list
+pm2 resurrect                    # Restore saved list
+```

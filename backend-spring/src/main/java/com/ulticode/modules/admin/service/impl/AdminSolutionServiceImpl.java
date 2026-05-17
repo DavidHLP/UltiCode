@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 import com.ulticode.modules.admin.service.AdminSolutionService;
@@ -23,7 +25,12 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of AdminSolutionService.
@@ -36,6 +43,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     private final SolutionMapper solutionMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
+    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<AdminSolutionVO> getSolutions(AdminSolutionQueryDTO query) {
@@ -94,8 +102,30 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
         Page<Solution> pageResult = new Page<>(page, limit);
         Page<Solution> result = solutionMapper.selectPage(pageResult, wrapper);
 
+        // Batch-load users and problems to avoid N+1 queries
+        Set<String> userIds = result.getRecords().stream()
+                .map(Solution::getUserId)
+                .collect(Collectors.toSet());
+        Set<Long> problemIds = result.getRecords().stream()
+                .map(Solution::getProblemId)
+                .collect(Collectors.toSet());
+
+        Map<String, User> userMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            userMap = userMapper.selectBatchIds(userIds).stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+        }
+
+        Map<Long, Problem> problemMap = new HashMap<>();
+        if (!problemIds.isEmpty()) {
+            problemMap = problemMapper.selectBatchIds(problemIds).stream()
+                    .collect(Collectors.toMap(Problem::getId, p -> p));
+        }
+
+        Map<String, User> finalUserMap = userMap;
+        Map<Long, Problem> finalProblemMap = problemMap;
         List<AdminSolutionVO> voList = result.getRecords().stream()
-                .map(this::toAdminVO)
+                .map(s -> toAdminVO(s, finalUserMap, finalProblemMap))
                 .toList();
 
         return PageResult.of(voList, result.getTotal(), page, limit);
@@ -133,6 +163,18 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
         solutionMapper.update(null, wrapper);
 
+        auditHelper.logForUser(
+            AuditActionUtil.FLAG_SOLUTION,
+            AuditActionUtil.ENTITY_SOLUTION,
+            id,
+            solution.getUserId(),
+            Map.of(
+                "isFlagged", solution.getIsFlagged(),
+                "flaggedReason", solution.getFlaggedReason() != null ? solution.getFlaggedReason() : ""
+            ),
+            Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : "")
+        );
+
         log.info("Solution flagged: {} by admin {}, reason: {}", id, adminId, reason);
 
         return getSolution(id);
@@ -154,6 +196,18 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
         solutionMapper.update(null, wrapper);
 
+        auditHelper.logForUser(
+            AuditActionUtil.UNFLAG_SOLUTION,
+            AuditActionUtil.ENTITY_SOLUTION,
+            id,
+            solution.getUserId(),
+            Map.of(
+                "isFlagged", solution.getIsFlagged(),
+                "flaggedReason", solution.getFlaggedReason() != null ? solution.getFlaggedReason() : ""
+            ),
+            Map.of("isFlagged", false, "flaggedReason", "")
+        );
+
         log.info("Solution unflagged: {}", id);
 
         return getSolution(id);
@@ -166,6 +220,15 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
         if (solution == null) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
+
+        auditHelper.logForUser(
+            AuditActionUtil.DELETE_SOLUTION,
+            AuditActionUtil.ENTITY_SOLUTION,
+            id,
+            solution.getUserId(),
+            Map.of("title", Objects.requireNonNullElse(solution.getTitle(), ""), "problemId", solution.getProblemId()),
+            null
+        );
 
         // Hard delete (not soft delete via @TableLogic)
         solutionMapper.deleteById(id);
@@ -223,8 +286,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
                         results.add(BulkActionResult.failure(id, "Unknown action: " + action));
                     }
                 }
-            // broad catch: all failures map to same error response
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 log.error("Failed to perform action {} on solution {}: {}", action, id, e.getMessage());
                 results.add(BulkActionResult.failure(id, e.getMessage()));
             }
@@ -234,7 +296,61 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     }
 
     /**
-     * Convert Solution entity to AdminSolutionVO with nested author and problem info.
+     * Convert Solution entity to AdminSolutionVO (list view) with batch-loaded data.
+     */
+    private AdminSolutionVO toAdminVO(Solution solution, Map<String, User> userMap,
+                                      Map<Long, Problem> problemMap) {
+        if (solution == null) {
+            return null;
+        }
+
+        AdminSolutionVO vo = new AdminSolutionVO();
+        vo.setId(solution.getId());
+        vo.setProblemId(solution.getProblemId());
+        vo.setUserId(solution.getUserId());
+        vo.setTitle(solution.getTitle());
+        vo.setContent(solution.getContent());
+        vo.setSummary(solution.getSummary());
+        vo.setLanguage(solution.getLanguage());
+        vo.setTags(solution.getTags());
+        vo.setViews(solution.getViews());
+        vo.setIsPublished(solution.getIsPublished());
+        vo.setPublishedAt(solution.getPublishedAt());
+        vo.setPublishedBy(solution.getPublishedBy());
+        vo.setIsFlagged(solution.getIsFlagged());
+        vo.setFlaggedReason(solution.getFlaggedReason());
+        vo.setFlaggedAt(solution.getFlaggedAt());
+        vo.setIsDeleted(solution.getIsDeleted());
+        vo.setDeletedAt(solution.getDeletedAt());
+        vo.setDeletedBy(solution.getDeletedBy());
+        vo.setCreatedAt(solution.getCreatedAt());
+        vo.setUpdatedAt(solution.getUpdatedAt());
+
+        User author = userMap.get(solution.getUserId());
+        if (author != null) {
+            AdminSolutionVO.AuthorInfo authorInfo = new AdminSolutionVO.AuthorInfo();
+            authorInfo.setId(author.getId());
+            authorInfo.setUsername(author.getUsername());
+            authorInfo.setName(author.getName());
+            authorInfo.setEmail(author.getEmail());
+            vo.setAuthor(authorInfo);
+        }
+
+        Problem problem = problemMap.get(solution.getProblemId());
+        if (problem != null) {
+            AdminSolutionVO.ProblemInfo problemInfo = new AdminSolutionVO.ProblemInfo();
+            problemInfo.setId(problem.getId().toString());
+            problemInfo.setSlug(problem.getSlug());
+            problemInfo.setTitle(problem.getTitle());
+            problemInfo.setDifficulty(problem.getDifficulty());
+            vo.setProblem(problemInfo);
+        }
+
+        return vo;
+    }
+
+    /**
+     * Convert Solution entity to AdminSolutionVO (single-item view).
      */
     private AdminSolutionVO toAdminVO(Solution solution) {
         if (solution == null) {

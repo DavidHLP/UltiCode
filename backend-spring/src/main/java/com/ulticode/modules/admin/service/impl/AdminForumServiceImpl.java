@@ -5,7 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
@@ -31,7 +32,10 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -48,6 +52,7 @@ public class AdminForumServiceImpl implements AdminForumService {
     private final ForumCommentMapper forumCommentMapper;
     private final EdgeOperationMapper edgeOperationMapper;
     private final AuditService auditService;
+    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<AdminForumPostVO> getPosts(AdminForumPostQueryDTO query) {
@@ -111,9 +116,48 @@ public class AdminForumServiceImpl implements AdminForumService {
         Page<ForumPost> pageResult = new Page<>(page, limit);
         Page<ForumPost> result = forumPostMapper.selectPage(pageResult, wrapper);
 
-        // Enrich with user and community information
+        // Batch-load related data to avoid N+1 queries
+        List<String> postIds = result.getRecords().stream()
+                .map(ForumPost::getId)
+                .toList();
+        Set<String> userIds = result.getRecords().stream()
+                .map(ForumPost::getUserId)
+                .collect(Collectors.toSet());
+        Set<String> communityIds = result.getRecords().stream()
+                .map(ForumPost::getCommunityId)
+                .collect(Collectors.toSet());
+
+        Map<String, Long> commentCountMap = new HashMap<>();
+        Map<String, Integer> upvoteMap = new HashMap<>();
+        Map<String, Integer> downvoteMap = new HashMap<>();
+        if (!postIds.isEmpty()) {
+            forumCommentMapper.countByPostIds(postIds).forEach(row ->
+                    commentCountMap.put((String) row.get("post_id"), ((Number) row.get("cnt")).longValue()));
+            edgeOperationMapper.countByTargetsAndOperation(postIds,
+                            EdgeOperationTargetType.FORUM_POST.name(), EdgeOperationType.VOTE_UP.name())
+                    .forEach(row -> upvoteMap.put((String) row.get("target_id"), ((Number) row.get("cnt")).intValue()));
+            edgeOperationMapper.countByTargetsAndOperation(postIds,
+                            EdgeOperationTargetType.FORUM_POST.name(), EdgeOperationType.VOTE_DOWN.name())
+                    .forEach(row -> downvoteMap.put((String) row.get("target_id"), ((Number) row.get("cnt")).intValue()));
+        }
+
+        Map<String, User> userMap = new HashMap<>();
+        if (!userIds.isEmpty()) {
+            userMap = userMapper.selectBatchIds(userIds).stream()
+                    .collect(Collectors.toMap(User::getId, u -> u));
+        }
+
+        Map<String, ForumCommunity> communityMap = new HashMap<>();
+        if (!communityIds.isEmpty()) {
+            communityMap = forumCommunityMapper.selectBatchIds(communityIds).stream()
+                    .collect(Collectors.toMap(ForumCommunity::getId, c -> c));
+        }
+
+        // Enrich with batch-loaded data
+        Map<String, User> finalUserMap = userMap;
+        Map<String, ForumCommunity> finalCommunityMap = communityMap;
         List<AdminForumPostVO> vos = result.getRecords().stream()
-                .map(this::toAdminVO)
+                .map(p -> toAdminVO(p, commentCountMap, upvoteMap, downvoteMap, finalUserMap, finalCommunityMap))
                 .collect(Collectors.toList());
 
         // Sort by commentCount if requested
@@ -146,16 +190,13 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void pinPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        auditService.log(
-            SecurityUtil.getCurrentUserId(),
-            post.getUserId(),
-            "PIN_POST",
-            "FORUM_POST",
+        auditHelper.logForUser(
+            AuditActionUtil.PIN_POST,
+            AuditActionUtil.ENTITY_FORUM_POST,
             id,
+            post.getUserId(),
             java.util.Collections.singletonMap("isPinned", post.getIsPinned()),
-            java.util.Collections.singletonMap("isPinned", true),
-            null,
-            null
+            java.util.Collections.singletonMap("isPinned", true)
         );
         post.setIsPinned(true);
         forumPostMapper.updateById(post);
@@ -165,16 +206,13 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void unpinPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        auditService.log(
-            SecurityUtil.getCurrentUserId(),
-            post.getUserId(),
-            "UNPIN_POST",
-            "FORUM_POST",
+        auditHelper.logForUser(
+            AuditActionUtil.UNPIN_POST,
+            AuditActionUtil.ENTITY_FORUM_POST,
             id,
+            post.getUserId(),
             java.util.Collections.singletonMap("isPinned", post.getIsPinned()),
-            java.util.Collections.singletonMap("isPinned", false),
-            null,
-            null
+            java.util.Collections.singletonMap("isPinned", false)
         );
         post.setIsPinned(false);
         forumPostMapper.updateById(post);
@@ -184,16 +222,13 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void lockPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        auditService.log(
-            SecurityUtil.getCurrentUserId(),
-            post.getUserId(),
-            "LOCK_POST",
-            "FORUM_POST",
+        auditHelper.logForUser(
+            AuditActionUtil.LOCK_POST,
+            AuditActionUtil.ENTITY_FORUM_POST,
             id,
+            post.getUserId(),
             java.util.Collections.singletonMap("isLocked", post.getIsLocked()),
-            java.util.Collections.singletonMap("isLocked", true),
-            null,
-            null
+            java.util.Collections.singletonMap("isLocked", true)
         );
         post.setIsLocked(true);
         forumPostMapper.updateById(post);
@@ -203,16 +238,13 @@ public class AdminForumServiceImpl implements AdminForumService {
     @Override
     public void unlockPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        auditService.log(
-            SecurityUtil.getCurrentUserId(),
-            post.getUserId(),
-            "UNLOCK_POST",
-            "FORUM_POST",
+        auditHelper.logForUser(
+            AuditActionUtil.UNLOCK_POST,
+            AuditActionUtil.ENTITY_FORUM_POST,
             id,
+            post.getUserId(),
             java.util.Collections.singletonMap("isLocked", post.getIsLocked()),
-            java.util.Collections.singletonMap("isLocked", false),
-            null,
-            null
+            java.util.Collections.singletonMap("isLocked", false)
         );
         post.setIsLocked(false);
         forumPostMapper.updateById(post);
@@ -228,16 +260,13 @@ public class AdminForumServiceImpl implements AdminForumService {
         java.util.Map<String, Object> newValues = new java.util.HashMap<>();
         newValues.put("isDeleted", true);
         newValues.put("deletedAt", LocalDateTime.now());
-        auditService.log(
-            SecurityUtil.getCurrentUserId(),
-            post.getUserId(),
-            "DELETE_POST",
-            "FORUM_POST",
+        auditHelper.logForUser(
+            AuditActionUtil.DELETE_FORUM_POST,
+            AuditActionUtil.ENTITY_FORUM_POST,
             id,
+            post.getUserId(),
             oldValues,
-            newValues,
-            null,
-            null
+            newValues
         );
         // Soft delete
         post.setIsDeleted(true);
@@ -304,8 +333,7 @@ public class AdminForumServiceImpl implements AdminForumService {
                 }
                 item.setSuccess(true);
                 response.setSuccessful(response.getSuccessful() + 1);
-            // broad catch: all failures map to same error response
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 log.error("Failed to perform action {} on post {}", action, id, e);
                 item.setSuccess(false);
                 item.setError(e.getMessage());
@@ -330,7 +358,52 @@ public class AdminForumServiceImpl implements AdminForumService {
     }
 
     /**
-     * Convert ForumPost entity to AdminForumPostVO (list view).
+     * Convert ForumPost entity to AdminForumPostVO (list view) with batch-loaded data.
+     */
+    private AdminForumPostVO toAdminVO(ForumPost post, Map<String, Long> commentCountMap,
+                                       Map<String, Integer> upvoteMap, Map<String, Integer> downvoteMap,
+                                       Map<String, User> userMap, Map<String, ForumCommunity> communityMap) {
+        if (post == null) {
+            return null;
+        }
+
+        AdminForumPostVO vo = new AdminForumPostVO();
+        vo.setId(post.getId());
+        vo.setTitle(post.getTitle());
+        vo.setExcerpt(post.getExcerpt());
+        vo.setUserId(post.getUserId());
+        vo.setCommunityId(post.getCommunityId());
+        vo.setViewCount(post.getViews() != null ? post.getViews() : 0);
+        vo.setCommentCount(commentCountMap.getOrDefault(post.getId(), 0L).intValue());
+        vo.setUpvotes(upvoteMap.getOrDefault(post.getId(), 0));
+        vo.setDownvotes(downvoteMap.getOrDefault(post.getId(), 0));
+        vo.setIsPinned(post.getIsPinned() != null ? post.getIsPinned() : false);
+        vo.setIsLocked(post.getIsLocked() != null ? post.getIsLocked() : false);
+        vo.setIsFlagged(post.getIsFlagged() != null ? post.getIsFlagged() : false);
+        vo.setFlaggedReason(post.getFlaggedReason());
+        vo.setFlaggedAt(post.getFlaggedAt());
+        vo.setIsDeleted(post.getIsDeleted() != null ? post.getIsDeleted() : false);
+        vo.setDeletedAt(post.getDeletedAt());
+        vo.setCreatedAt(post.getCreatedAt());
+        vo.setUpdatedAt(post.getCreatedAt()); // No updatedAt field, use createdAt as fallback
+
+        User user = userMap.get(post.getUserId());
+        if (user != null) {
+            vo.setUsername(user.getUsername());
+            vo.setAvatar(user.getAvatar());
+        }
+
+        ForumCommunity community = communityMap.get(post.getCommunityId());
+        if (community != null) {
+            vo.setCommunityName(community.getName());
+            vo.setCommunitySlug(community.getSlug());
+        }
+
+        return vo;
+    }
+
+    /**
+     * Convert ForumPost entity to AdminForumPostVO (single-item view).
      */
     private AdminForumPostVO toAdminVO(ForumPost post) {
         if (post == null) {

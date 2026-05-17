@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
 import com.ulticode.modules.problem.entity.Problem;
@@ -39,6 +41,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
     private final QueueService queueService;
+    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<AdminSubmissionVO> getSubmissions(AdminSubmissionQueryDTO query) {
@@ -311,6 +314,21 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
             log.error("Failed to enqueue rejudge for submission: {}", id, e);
             result.setSuccess(false);
             result.setError(e.getMessage());
+        }
+
+        if (result.getSuccess()) {
+            try {
+                auditHelper.logForUser(
+                    AuditActionUtil.REQUEUE_SUBMISSION,
+                    AuditActionUtil.ENTITY_SUBMISSION,
+                    id,
+                    submission.getUserId(),
+                    Map.of("oldStatus", result.getOldStatus(), "retryCount", submission.getRetryCount()),
+                    Map.of("newStatus", "Pending", "retryCount", submission.getRetryCount())
+                );
+            } catch (Exception e) {
+                log.warn("Failed to write audit log for rejudge: {}", id, e);
+            }
         }
 
         return result;

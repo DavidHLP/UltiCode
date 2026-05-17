@@ -9,7 +9,7 @@ UltiCode is an online programming platform (online judge) with a Spring Boot bac
 ## Architecture
 
 ```
-UltiCode-Public-Next/
+UltiCode/
 ├── backend-spring/       # Spring Boot 3.2.5 (Java 17) — port 9001
 ├── console/              # Vue 3 user-facing frontend — port 9002
 ├── management/           # Vue 3 admin dashboard — port 9003

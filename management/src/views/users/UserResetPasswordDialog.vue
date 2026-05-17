@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -42,6 +43,12 @@ watch(
 
 async function handleReset() {
   if (!props.userId || !newPassword.value) return
+  if (newPassword.value.length < 8) {
+    toast.error(t('users.toast.resetPasswordValidationFailed'), {
+      description: t('users.toast.resetPasswordValidationFailedDescription'),
+    })
+    return
+  }
   loading.value = true
   try {
     await usersStore.resetPassword(props.userId, newPassword.value)
@@ -70,13 +77,13 @@ async function handleReset() {
             {{ t('users.actions.resetPassword') }}
           </DialogTitle>
         </div>
-        <p class="terminal-comment mt-1">
+        <DialogDescription class="terminal-comment mt-1">
           {{
             t('users.actions.resetPasswordDescription', {
               username: username || t('users.actions.thisUser'),
             })
           }}
-        </p>
+        </DialogDescription>
       </DialogHeader>
 
       <!-- Form -->

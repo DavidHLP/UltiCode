@@ -10,6 +10,8 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
+import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
+import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.service.AdminUserService;
@@ -27,6 +29,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
@@ -166,6 +169,154 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         log.info("User unbanned: {}", id);
         return getUserById(id);
+    }
+
+    @Override
+    @Transactional
+    @Audited(action = AuditActionUtil.CREATE_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "#result.id")
+    public AdminUserVO createUser(AdminCreateUserDTO dto) {
+        // Check username uniqueness
+        User existing = userMapper.selectOne(
+                new LambdaQueryWrapper<User>().eq(User::getUsername, dto.getUsername()));
+        if (existing != null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Username already exists");
+        }
+
+        // Check email uniqueness
+        if (StringUtils.hasText(dto.getEmail())) {
+            User existingEmail = userMapper.selectOne(
+                    new LambdaQueryWrapper<User>().eq(User::getEmail, dto.getEmail()));
+            if (existingEmail != null) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Email already exists");
+            }
+        }
+
+        User user = new User();
+        user.setId(UUID.randomUUID().toString());
+        user.setUsername(dto.getUsername());
+        user.setName(dto.getName());
+        user.setEmail(dto.getEmail());
+        user.setRole(dto.getRole() != null ? dto.getRole() : "USER");
+        user.setIsActive(dto.getIsActive() != null ? dto.getIsActive() : true);
+        user.setIsBanned(false);
+        user.setJoinedAt(LocalDateTime.now());
+
+        if (StringUtils.hasText(dto.getPassword())) {
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+        }
+
+        userMapper.insert(user);
+        log.info("User created: {} by admin", user.getId());
+        return toVO(user);
+    }
+
+    @Override
+    @Transactional
+    @Audited(action = AuditActionUtil.UPDATE_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    public AdminUserVO updateUser(String id, AdminUpdateUserDTO dto) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        // Check username uniqueness (excluding current user)
+        if (StringUtils.hasText(dto.getUsername()) && !dto.getUsername().equals(user.getUsername())) {
+            User existingUsername = userMapper.selectOne(
+                    new LambdaQueryWrapper<User>().eq(User::getUsername, dto.getUsername()));
+            if (existingUsername != null) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Username already exists");
+            }
+        }
+
+        // Check email uniqueness (excluding current user)
+        if (StringUtils.hasText(dto.getEmail()) && !dto.getEmail().equals(user.getEmail())) {
+            User existingEmail = userMapper.selectOne(
+                    new LambdaQueryWrapper<User>().eq(User::getEmail, dto.getEmail()));
+            if (existingEmail != null) {
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Email already exists");
+            }
+        }
+
+        AuditContext.setOldValues(Map.of(
+            "username", user.getUsername(),
+            "name", user.getName(),
+            "email", user.getEmail(),
+            "role", user.getRole(),
+            "isActive", user.getIsActive()
+        ));
+
+        LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.eq(User::getId, id);
+
+        if (StringUtils.hasText(dto.getUsername())) {
+            wrapper.set(User::getUsername, dto.getUsername());
+        }
+        if (StringUtils.hasText(dto.getName())) {
+            wrapper.set(User::getName, dto.getName());
+        }
+        if (StringUtils.hasText(dto.getEmail())) {
+            wrapper.set(User::getEmail, dto.getEmail());
+        }
+        if (StringUtils.hasText(dto.getRole())) {
+            wrapper.set(User::getRole, dto.getRole());
+        }
+        if (dto.getIsActive() != null) {
+            wrapper.set(User::getIsActive, dto.getIsActive());
+        }
+        if (StringUtils.hasText(dto.getAvatar())) {
+            wrapper.set(User::getAvatar, dto.getAvatar());
+        }
+        if (StringUtils.hasText(dto.getBio())) {
+            wrapper.set(User::getBio, dto.getBio());
+        }
+        if (StringUtils.hasText(dto.getCompany())) {
+            wrapper.set(User::getCompany, dto.getCompany());
+        }
+        if (StringUtils.hasText(dto.getGithub())) {
+            wrapper.set(User::getGithub, dto.getGithub());
+        }
+        if (StringUtils.hasText(dto.getWebsite())) {
+            wrapper.set(User::getWebsite, dto.getWebsite());
+        }
+        if (StringUtils.hasText(dto.getLocation())) {
+            wrapper.set(User::getLocation, dto.getLocation());
+        }
+        if (StringUtils.hasText(dto.getTwitter())) {
+            wrapper.set(User::getTwitter, dto.getTwitter());
+        }
+        if (StringUtils.hasText(dto.getPreferredLanguage())) {
+            wrapper.set(User::getPreferredLanguage, dto.getPreferredLanguage());
+        }
+
+        userMapper.update(null, wrapper);
+
+        AuditContext.setNewValues(Map.of(
+            "username", dto.getUsername() != null ? dto.getUsername() : user.getUsername(),
+            "name", dto.getName() != null ? dto.getName() : user.getName(),
+            "email", dto.getEmail() != null ? dto.getEmail() : user.getEmail(),
+            "role", dto.getRole() != null ? dto.getRole() : user.getRole(),
+            "isActive", dto.getIsActive() != null ? dto.getIsActive() : user.getIsActive()
+        ));
+
+        log.info("User updated: {}", id);
+        return getUserById(id);
+    }
+
+    @Override
+    @Transactional
+    @Audited(action = AuditActionUtil.DELETE_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
+    public void deleteUser(String id) {
+        User user = userMapper.selectById(id);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.USER_NOT_FOUND);
+        }
+
+        AuditContext.setOldValues(Map.of("username", user.getUsername()));
+        AuditContext.setNewValues(Map.of("deleted", true));
+
+        userMapper.deleteById(id);
+
+        log.info("User deleted: {}", id);
     }
 
     @Override

@@ -5,6 +5,8 @@ export default {
   createDescription: '填写以下信息创建新用户账户',
   searchPlaceholder: '搜索用户名或邮箱...',
   banReasonPrompt: '请输入封禁原因',
+  editUser: '编辑用户',
+  editDescription: '编辑用户信息并更新权限设置',
 
   // 列定义
   columns: {
@@ -56,6 +58,8 @@ export default {
     status: '状态',
     creating: '创建中...',
     createUser: '创建用户',
+    saveChanges: '保存更改',
+    saving: '保存中...',
     noReasonProvided: '未提供原因',
     unknown: '未知',
     newPassword: '新密码',
@@ -109,6 +113,8 @@ export default {
     resetPasswordSuccess: '密码重置成功',
     resetPasswordFailed: '密码重置失败',
     resetPasswordFailedDescription: '尝试更新密码时发生错误。',
+    resetPasswordValidationFailed: '密码太短',
+    resetPasswordValidationFailedDescription: '密码必须至少包含 8 个字符。',
     bulkBanFailed: '批量封禁失败',
     bulkUnbanFailed: '批量解封失败',
     bulkDeleteFailed: '批量删除失败',

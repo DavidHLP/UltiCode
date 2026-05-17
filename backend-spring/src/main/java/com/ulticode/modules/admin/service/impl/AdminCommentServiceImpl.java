@@ -2,11 +2,12 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
-import com.ulticode.common.util.AuditHelper;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
 import com.ulticode.modules.admin.dto.AdminCommentVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
@@ -48,7 +49,6 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     private final UserMapper userMapper;
     private final ForumPostMapper forumPostMapper;
     private final SolutionMapper solutionMapper;
-    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<AdminCommentVO> getComments(AdminCommentQueryDTO query) {
@@ -214,21 +214,17 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     }
 
     @Override
+    @Audited(action = AuditActionUtil.FLAG_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT, userIdFrom = "id")
     public void flagComment(String id, String type, String reason) {
         if ("forum".equals(type)) {
             ForumComment comment = getForumCommentEntityOrThrow(id);
-            auditHelper.logForUser(
-                AuditActionUtil.FLAG_COMMENT,
-                AuditActionUtil.ENTITY_COMMENT,
-                id,
-                comment.getAuthorId(),
-                Map.of(
-                    "isFlagged", comment.getIsFlagged(),
-                    "flaggedReason", comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "",
-                    "type", "forum"
-                ),
-                Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : "", "type", "forum")
-            );
+            AuditContext.setUserId(comment.getAuthorId());
+            AuditContext.setOldValues(Map.of(
+                "isFlagged", comment.getIsFlagged(),
+                "flaggedReason", comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "",
+                "type", "forum"
+            ));
+            AuditContext.setNewValues(Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : "", "type", "forum"));
             comment.setIsFlagged(true);
             comment.setFlaggedReason(reason);
             comment.setFlaggedAt(LocalDateTime.now());
@@ -236,18 +232,13 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             log.info("Forum comment flagged: {}", id);
         } else if ("solution".equals(type)) {
             SolutionComment comment = getSolutionCommentEntityOrThrow(id);
-            auditHelper.logForUser(
-                AuditActionUtil.FLAG_COMMENT,
-                AuditActionUtil.ENTITY_COMMENT,
-                id,
-                comment.getUserId(),
-                Map.of(
-                    "isFlagged", comment.getIsFlagged(),
-                    "flaggedReason", comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "",
-                    "type", "solution"
-                ),
-                Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : "", "type", "solution")
-            );
+            AuditContext.setUserId(comment.getUserId());
+            AuditContext.setOldValues(Map.of(
+                "isFlagged", comment.getIsFlagged(),
+                "flaggedReason", comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "",
+                "type", "solution"
+            ));
+            AuditContext.setNewValues(Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : "", "type", "solution"));
             comment.setIsFlagged(true);
             comment.setFlaggedReason(reason);
             comment.setFlaggedAt(LocalDateTime.now());
@@ -257,21 +248,17 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     }
 
     @Override
+    @Audited(action = AuditActionUtil.UNFLAG_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT, userIdFrom = "id")
     public void unflagComment(String id, String type) {
         if ("forum".equals(type)) {
             ForumComment comment = getForumCommentEntityOrThrow(id);
-            auditHelper.logForUser(
-                AuditActionUtil.UNFLAG_COMMENT,
-                AuditActionUtil.ENTITY_COMMENT,
-                id,
-                comment.getAuthorId(),
-                Map.of(
-                    "isFlagged", comment.getIsFlagged(),
-                    "flaggedReason", comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "",
-                    "type", "forum"
-                ),
-                Map.of("isFlagged", false, "flaggedReason", "", "type", "forum")
-            );
+            AuditContext.setUserId(comment.getAuthorId());
+            AuditContext.setOldValues(Map.of(
+                "isFlagged", comment.getIsFlagged(),
+                "flaggedReason", comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "",
+                "type", "forum"
+            ));
+            AuditContext.setNewValues(Map.of("isFlagged", false, "flaggedReason", "", "type", "forum"));
             comment.setIsFlagged(false);
             comment.setFlaggedReason(null);
             comment.setFlaggedAt(null);
@@ -279,18 +266,13 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             log.info("Forum comment unflagged: {}", id);
         } else if ("solution".equals(type)) {
             SolutionComment comment = getSolutionCommentEntityOrThrow(id);
-            auditHelper.logForUser(
-                AuditActionUtil.UNFLAG_COMMENT,
-                AuditActionUtil.ENTITY_COMMENT,
-                id,
-                comment.getUserId(),
-                Map.of(
-                    "isFlagged", comment.getIsFlagged(),
-                    "flaggedReason", comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "",
-                    "type", "solution"
-                ),
-                Map.of("isFlagged", false, "flaggedReason", "", "type", "solution")
-            );
+            AuditContext.setUserId(comment.getUserId());
+            AuditContext.setOldValues(Map.of(
+                "isFlagged", comment.getIsFlagged(),
+                "flaggedReason", comment.getFlaggedReason() != null ? comment.getFlaggedReason() : "",
+                "type", "solution"
+            ));
+            AuditContext.setNewValues(Map.of("isFlagged", false, "flaggedReason", "", "type", "solution"));
             comment.setIsFlagged(false);
             comment.setFlaggedReason(null);
             comment.setFlaggedAt(null);
@@ -300,31 +282,22 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     }
 
     @Override
+    @Audited(action = AuditActionUtil.DELETE_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT, userIdFrom = "id")
     public void deleteComment(String id, String type) {
         if ("forum".equals(type)) {
             ForumComment comment = getForumCommentEntityOrThrow(id);
-            auditHelper.logForUser(
-                AuditActionUtil.DELETE_COMMENT,
-                AuditActionUtil.ENTITY_COMMENT,
-                id,
-                comment.getAuthorId(),
-                Map.of("isDeleted", comment.getIsDeleted(), "type", "forum"),
-                Map.of("isDeleted", true, "type", "forum")
-            );
+            AuditContext.setUserId(comment.getAuthorId());
+            AuditContext.setOldValues(Map.of("isDeleted", comment.getIsDeleted(), "type", "forum"));
+            AuditContext.setNewValues(Map.of("isDeleted", true, "type", "forum"));
             comment.setIsDeleted(true);
             comment.setDeletedAt(LocalDateTime.now());
             forumCommentMapper.updateById(comment);
             log.info("Forum comment deleted: {}", id);
         } else if ("solution".equals(type)) {
             SolutionComment comment = getSolutionCommentEntityOrThrow(id);
-            auditHelper.logForUser(
-                AuditActionUtil.DELETE_COMMENT,
-                AuditActionUtil.ENTITY_COMMENT,
-                id,
-                comment.getUserId(),
-                Map.of("isDeleted", comment.getIsDeleted(), "type", "solution"),
-                Map.of("isDeleted", true, "type", "solution")
-            );
+            AuditContext.setUserId(comment.getUserId());
+            AuditContext.setOldValues(Map.of("isDeleted", comment.getIsDeleted(), "type", "solution"));
+            AuditContext.setNewValues(Map.of("isDeleted", true, "type", "solution"));
             comment.setIsDeleted(true);
             comment.setDeletedAt(LocalDateTime.now());
             solutionCommentMapper.updateById(comment);

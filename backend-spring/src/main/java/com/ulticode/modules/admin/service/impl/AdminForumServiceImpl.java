@@ -2,10 +2,12 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminForumPostQueryDTO;
 import com.ulticode.modules.admin.dto.AdminForumPostVO;
@@ -188,86 +190,66 @@ public class AdminForumServiceImpl implements AdminForumService {
     }
 
     @Override
+    @Audited(action = AuditActionUtil.PIN_POST, entityType = AuditActionUtil.ENTITY_FORUM_POST, entityIdFrom = "id")
     public void pinPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditActionUtil.PIN_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            java.util.Collections.singletonMap("isPinned", post.getIsPinned()),
-            java.util.Collections.singletonMap("isPinned", true)
-        );
+        AuditContext.setUserId(post.getUserId());
+        AuditContext.setOldValues(Map.of("isPinned", post.getIsPinned() != null ? post.getIsPinned() : false));
+        AuditContext.setNewValues(Map.of("isPinned", true));
         post.setIsPinned(true);
         forumPostMapper.updateById(post);
         log.info("Post pinned: {}", id);
     }
 
     @Override
+    @Audited(action = AuditActionUtil.UNPIN_POST, entityType = AuditActionUtil.ENTITY_FORUM_POST, entityIdFrom = "id")
     public void unpinPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditActionUtil.UNPIN_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            java.util.Collections.singletonMap("isPinned", post.getIsPinned()),
-            java.util.Collections.singletonMap("isPinned", false)
-        );
+        AuditContext.setUserId(post.getUserId());
+        AuditContext.setOldValues(Map.of("isPinned", post.getIsPinned() != null ? post.getIsPinned() : false));
+        AuditContext.setNewValues(Map.of("isPinned", false));
         post.setIsPinned(false);
         forumPostMapper.updateById(post);
         log.info("Post unpinned: {}", id);
     }
 
     @Override
+    @Audited(action = AuditActionUtil.LOCK_POST, entityType = AuditActionUtil.ENTITY_FORUM_POST, entityIdFrom = "id")
     public void lockPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditActionUtil.LOCK_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            java.util.Collections.singletonMap("isLocked", post.getIsLocked()),
-            java.util.Collections.singletonMap("isLocked", true)
-        );
+        AuditContext.setUserId(post.getUserId());
+        AuditContext.setOldValues(Map.of("isLocked", post.getIsLocked() != null ? post.getIsLocked() : false));
+        AuditContext.setNewValues(Map.of("isLocked", true));
         post.setIsLocked(true);
         forumPostMapper.updateById(post);
         log.info("Post locked: {}", id);
     }
 
     @Override
+    @Audited(action = AuditActionUtil.UNLOCK_POST, entityType = AuditActionUtil.ENTITY_FORUM_POST, entityIdFrom = "id")
     public void unlockPost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        auditHelper.logForUser(
-            AuditActionUtil.UNLOCK_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            java.util.Collections.singletonMap("isLocked", post.getIsLocked()),
-            java.util.Collections.singletonMap("isLocked", false)
-        );
+        AuditContext.setUserId(post.getUserId());
+        AuditContext.setOldValues(Map.of("isLocked", post.getIsLocked() != null ? post.getIsLocked() : false));
+        AuditContext.setNewValues(Map.of("isLocked", false));
         post.setIsLocked(false);
         forumPostMapper.updateById(post);
         log.info("Post unlocked: {}", id);
     }
 
     @Override
+    @Audited(action = AuditActionUtil.DELETE_FORUM_POST, entityType = AuditActionUtil.ENTITY_FORUM_POST, entityIdFrom = "id")
     public void deletePost(String id) {
         ForumPost post = getPostEntityOrThrow(id);
-        java.util.Map<String, Object> oldValues = new java.util.HashMap<>();
-        oldValues.put("isDeleted", post.getIsDeleted());
+        Map<String, Object> oldValues = new HashMap<>();
+        oldValues.put("isDeleted", post.getIsDeleted() != null ? post.getIsDeleted() : false);
         oldValues.put("deletedAt", post.getDeletedAt());
-        java.util.Map<String, Object> newValues = new java.util.HashMap<>();
+        Map<String, Object> newValues = new HashMap<>();
         newValues.put("isDeleted", true);
         newValues.put("deletedAt", LocalDateTime.now());
-        auditHelper.logForUser(
-            AuditActionUtil.DELETE_FORUM_POST,
-            AuditActionUtil.ENTITY_FORUM_POST,
-            id,
-            post.getUserId(),
-            oldValues,
-            newValues
-        );
+        AuditContext.setUserId(post.getUserId());
+        AuditContext.setOldValues(oldValues);
+        AuditContext.setNewValues(newValues);
         // Soft delete
         post.setIsDeleted(true);
         post.setDeletedAt(LocalDateTime.now());

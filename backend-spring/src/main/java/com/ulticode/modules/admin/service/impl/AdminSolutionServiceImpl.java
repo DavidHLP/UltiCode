@@ -6,8 +6,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.util.AuditActionUtil;
-import com.ulticode.common.util.AuditHelper;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 import com.ulticode.modules.admin.service.AdminSolutionService;
@@ -43,7 +44,6 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     private final SolutionMapper solutionMapper;
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
-    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<AdminSolutionVO> getSolutions(AdminSolutionQueryDTO query) {
@@ -149,11 +149,17 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.FLAG_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION, userIdFrom = "id")
     public AdminSolutionVO flagSolution(String id, String reason, String adminId) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
+
+        AuditContext.setOldValues(Map.of(
+            "isFlagged", solution.getIsFlagged() != null ? solution.getIsFlagged() : false,
+            "flaggedReason", solution.getFlaggedReason() != null ? solution.getFlaggedReason() : ""
+        ));
 
         LambdaUpdateWrapper<Solution> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(Solution::getId, id)
@@ -163,17 +169,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
         solutionMapper.update(null, wrapper);
 
-        auditHelper.logForUser(
-            AuditActionUtil.FLAG_SOLUTION,
-            AuditActionUtil.ENTITY_SOLUTION,
-            id,
-            solution.getUserId(),
-            Map.of(
-                "isFlagged", solution.getIsFlagged(),
-                "flaggedReason", solution.getFlaggedReason() != null ? solution.getFlaggedReason() : ""
-            ),
-            Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : "")
-        );
+        AuditContext.setNewValues(Map.of("isFlagged", true, "flaggedReason", reason != null ? reason : ""));
 
         log.info("Solution flagged: {} by admin {}, reason: {}", id, adminId, reason);
 
@@ -182,11 +178,17 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.UNFLAG_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION, userIdFrom = "id")
     public AdminSolutionVO unflagSolution(String id) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
+
+        AuditContext.setOldValues(Map.of(
+            "isFlagged", solution.getIsFlagged() != null ? solution.getIsFlagged() : false,
+            "flaggedReason", solution.getFlaggedReason() != null ? solution.getFlaggedReason() : ""
+        ));
 
         LambdaUpdateWrapper<Solution> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(Solution::getId, id)
@@ -196,17 +198,7 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
         solutionMapper.update(null, wrapper);
 
-        auditHelper.logForUser(
-            AuditActionUtil.UNFLAG_SOLUTION,
-            AuditActionUtil.ENTITY_SOLUTION,
-            id,
-            solution.getUserId(),
-            Map.of(
-                "isFlagged", solution.getIsFlagged(),
-                "flaggedReason", solution.getFlaggedReason() != null ? solution.getFlaggedReason() : ""
-            ),
-            Map.of("isFlagged", false, "flaggedReason", "")
-        );
+        AuditContext.setNewValues(Map.of("isFlagged", false, "flaggedReason", ""));
 
         log.info("Solution unflagged: {}", id);
 
@@ -215,20 +207,17 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.DELETE_SOLUTION, entityType = AuditActionUtil.ENTITY_SOLUTION, userIdFrom = "id")
     public void deleteSolution(String id) {
         Solution solution = solutionMapper.selectById(id);
         if (solution == null) {
             throw new BusinessException(ErrorCode.SOLUTION_NOT_FOUND);
         }
 
-        auditHelper.logForUser(
-            AuditActionUtil.DELETE_SOLUTION,
-            AuditActionUtil.ENTITY_SOLUTION,
-            id,
-            solution.getUserId(),
-            Map.of("title", Objects.requireNonNullElse(solution.getTitle(), ""), "problemId", solution.getProblemId()),
-            null
-        );
+        AuditContext.setOldValues(Map.of(
+            "title", solution.getTitle() != null ? solution.getTitle() : "",
+            "problemId", solution.getProblemId()
+        ));
 
         // Hard delete (not soft delete via @TableLogic)
         solutionMapper.deleteById(id);

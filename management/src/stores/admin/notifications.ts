@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import {
   adminNotifications,
   type CreateNotificationDto,
+  type UpdateNotificationDto,
   type SystemAnnouncement,
 } from '@/api/admin/notifications'
 
@@ -41,6 +42,21 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     }
   }
 
+  async function updateNotification(id: string, data: UpdateNotificationDto) {
+    isLoading.value = true
+    error.value = null
+    try {
+      await adminNotifications.update(id, data)
+      await fetchAnnouncements()
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } }
+      error.value = err.response?.data?.message || 'Failed to update notification'
+      throw e
+    } finally {
+      isLoading.value = false
+    }
+  }
+
   async function deleteAnnouncement(id: string) {
     isLoading.value = true
     try {
@@ -61,6 +77,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     error,
     fetchAnnouncements,
     createNotification,
+    updateNotification,
     deleteAnnouncement,
   }
 })

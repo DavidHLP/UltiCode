@@ -10,6 +10,7 @@ import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
+import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.service.AdminNotificationService;
 import com.ulticode.modules.notification.entity.Notification;
 import com.ulticode.modules.notification.mapper.NotificationMapper;
@@ -124,7 +125,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     @Override
     @Transactional
-    @Audited(action = AuditActionUtil.DELETE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION, userIdFrom = "id")
+    @Audited(action = AuditActionUtil.DELETE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION)
     public void deleteNotification(String id) {
         // Check if notification exists
         Notification notification = notificationMapper.selectById(id);
@@ -151,6 +152,62 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
         int deletedCount = notificationMapper.delete(wrapper);
         log.info("Deleted system notification '{}' and {} related records", id, deletedCount);
+    }
+
+    @Override
+    @Transactional
+    @Audited(action = AuditActionUtil.UPDATE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION)
+    public AdminNotificationVO updateSystemNotification(String id, UpdateSystemNotificationRequest request) {
+        Notification notification = notificationMapper.selectById(id);
+        if (notification == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND, "Notification not found");
+        }
+
+        AuditContext.setOldValues(java.util.Map.of(
+            "title", notification.getTitle() != null ? notification.getTitle() : "",
+            "type", notification.getType() != null ? notification.getType() : ""
+        ));
+
+        // Update all related notifications with the same title, type, and creation date
+        LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Notification::getTitle, notification.getTitle());
+        wrapper.eq(Notification::getType, notification.getType());
+        wrapper.eq(Notification::getCategory, "SYSTEM");
+        if (notification.getCreatedAt() != null) {
+            wrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
+        }
+
+        List<Notification> relatedNotifications = notificationMapper.selectList(wrapper);
+        for (Notification related : relatedNotifications) {
+            related.setTitle(request.getTitle());
+            related.setBody(request.getContent());
+            if (request.getType() != null) {
+                related.setType(request.getType());
+            }
+            if (request.getCategory() != null) {
+                related.setCategory(request.getCategory());
+            }
+            notificationMapper.updateById(related);
+        }
+
+        AuditContext.setNewValues(java.util.Map.of(
+            "title", request.getTitle() != null ? request.getTitle() : "",
+            "type", request.getType() != null ? request.getType() : ""
+        ));
+        AuditContext.setEntityId(id);
+
+        log.info("Updated system notification '{}' and {} related records", id, relatedNotifications.size());
+
+        // Return updated VO from the first record
+        notification.setTitle(request.getTitle());
+        notification.setBody(request.getContent());
+        if (request.getType() != null) {
+            notification.setType(request.getType());
+        }
+        if (request.getCategory() != null) {
+            notification.setCategory(request.getCategory());
+        }
+        return toAdminVO(notification);
     }
 
     // ==================== Private Helper Methods ====================
@@ -186,6 +243,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     /**
      * Convert Notification entity to AdminNotificationVO.
+     * Returns null if input is null — callers must handle this case.
      */
     private AdminNotificationVO toAdminVO(Notification notification) {
         if (notification == null) {

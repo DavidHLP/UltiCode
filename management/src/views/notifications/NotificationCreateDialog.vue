@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
 import { Button } from '@/components/ui/button'
@@ -28,18 +28,22 @@ import {
   NotificationType,
   NotificationCategory,
   NotificationTarget,
+  type SystemAnnouncement,
 } from '@/api/admin/notifications'
 
 const { t } = useI18n()
 
 const props = defineProps<{
   open: boolean
+  notificationToEdit?: SystemAnnouncement | null
 }>()
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void
   (e: 'success'): void
 }>()
+
+const isEditMode = computed(() => !!props.notificationToEdit)
 
 const store = useNotificationsStore()
 const loading = ref(false)
@@ -60,8 +64,19 @@ watch(
   () => props.open,
   (isOpen) => {
     if (isOpen) {
-      form.value = { ...defaultForm }
       error.value = ''
+      if (props.notificationToEdit) {
+        form.value = {
+          title: props.notificationToEdit.title,
+          content: props.notificationToEdit.content,
+          type: props.notificationToEdit.type,
+          category: props.notificationToEdit.category,
+          target: NotificationTarget.ALL,
+          userIds: '',
+        }
+      } else {
+        form.value = { ...defaultForm }
+      }
     }
   },
 )
@@ -71,38 +86,51 @@ async function handleSubmit() {
   loading.value = true
 
   try {
-    const payload = {
-      title: form.value.title,
-      content: form.value.content,
-      type: form.value.type,
-      category: form.value.category,
-      target: form.value.target,
-      userIds:
-        form.value.target === NotificationTarget.USERS
-          ? form.value.userIds
-              .split(',')
-              .map((id) => id.trim())
-              .filter(Boolean)
-          : undefined,
+    if (isEditMode.value && props.notificationToEdit) {
+      await store.updateNotification(props.notificationToEdit.id, {
+        title: form.value.title,
+        content: form.value.content,
+        type: form.value.type,
+        category: form.value.category,
+      })
+      toast.success(t('notifications.toast.updateSuccess'))
+    } else {
+      const payload = {
+        title: form.value.title,
+        content: form.value.content,
+        type: form.value.type,
+        category: form.value.category,
+        target: form.value.target,
+        userIds:
+          form.value.target === NotificationTarget.USERS
+            ? form.value.userIds
+                .split(',')
+                .map((id) => id.trim())
+                .filter(Boolean)
+            : undefined,
+      }
+
+      if (
+        form.value.target === NotificationTarget.USERS &&
+        (!payload.userIds || payload.userIds.length === 0)
+      ) {
+        error.value = t('notifications.form.atLeastOneUserId')
+        loading.value = false
+        return
+      }
+
+      await store.createNotification(payload)
+      toast.success(t('notifications.toast.sentSuccessfully'))
     }
 
-    if (
-      form.value.target === NotificationTarget.USERS &&
-      (!payload.userIds || payload.userIds.length === 0)
-    ) {
-      error.value = t('notifications.form.atLeastOneUserId')
-      loading.value = false
-      return
-    }
-
-    await store.createNotification(payload)
-    toast.success(t('notifications.toast.sentSuccessfully'))
     emit('success')
     emit('update:open', false)
   } catch (err: unknown) {
     error.value =
       (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
-      t('notifications.toast.failedToSend')
+      (isEditMode.value
+        ? t('notifications.toast.updateFailed')
+        : t('notifications.toast.failedToSend'))
   } finally {
     loading.value = false
   }
@@ -115,14 +143,18 @@ async function handleSubmit() {
       <!-- Terminal Header -->
       <div class="terminal-card-header flex items-center justify-between">
         <span class="font-data text-sm uppercase tracking-wider">{{
-          t('notifications.dialog.createTitle')
+          isEditMode ? t('notifications.dialog.editTitle') : t('notifications.dialog.createTitle')
         }}</span>
       </div>
 
       <!-- Content -->
       <div class="p-4">
         <p class="text-sm text-[var(--silver-500)] mb-4">
-          {{ t('notifications.dialog.createDescription') }}
+          {{
+            isEditMode
+              ? t('notifications.dialog.editDescription')
+              : t('notifications.dialog.createDescription')
+          }}
         </p>
 
         <form @submit.prevent="handleSubmit">
@@ -240,13 +272,9 @@ async function handleSubmit() {
               </FieldGroup>
             </FieldSet>
 
-            <FieldSeparator class="border-[var(--silver-200)] dark:border-[var(--silver-300)]" />
+            <FieldSeparator v-if="!isEditMode" class="border-[var(--silver-200)] dark:border-[var(--silver-300)]" />
 
-            <FieldSet>
-              <FieldLegend
-                class="font-data text-xs uppercase tracking-wider text-[var(--terminal-cyan)]"
-                >{{ t('notifications.form.targetAudience') }}</FieldLegend
-              >
+            <FieldSet v-if="!isEditMode">
               <FieldDescription class="text-[var(--silver-500)]">{{
                 t('notifications.form.targetAudienceDescription')
               }}</FieldDescription>
@@ -317,10 +345,10 @@ async function handleSubmit() {
             >
               <span v-if="loading" class="flex items-center gap-2">
                 <span class="animate-spin">⟳</span>
-                {{ t('notifications.dialog.sending') }}
+                {{ isEditMode ? t('notifications.dialog.saving') : t('notifications.dialog.sending') }}
               </span>
               <span v-else>
-                {{ t('notifications.dialog.sendNotification') }}
+                {{ isEditMode ? t('notifications.dialog.saveChanges') : t('notifications.dialog.sendNotification') }}
               </span>
             </Button>
           </DialogFooter>

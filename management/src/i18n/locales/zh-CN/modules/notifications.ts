@@ -70,8 +70,12 @@ export default {
   dialog: {
     createTitle: '创建通知',
     createDescription: '编写并发送新的系统通知给用户。',
+    editTitle: '编辑通知',
+    editDescription: '更新此通知的标题、内容和分类信息。',
     sending: '发送中...',
+    saving: '保存中...',
     sendNotification: '发送通知',
+    saveChanges: '保存更改',
   },
 
   // 表单

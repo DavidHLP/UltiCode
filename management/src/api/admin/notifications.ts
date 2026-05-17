@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiDelete } from '@/utils/request'
+import { apiGet, apiPost, apiPut, apiDelete } from '@/utils/request'
 
 export enum NotificationType {
   COMMENT = 'COMMENT',
@@ -16,6 +16,7 @@ export enum NotificationCategory {
   MARKETING = 'MARKETING',
   SECURITY = 'SECURITY',
   SYSTEM = 'SYSTEM',
+  CONTEST = 'CONTEST',
 }
 
 export enum NotificationTarget {
@@ -30,6 +31,13 @@ export interface CreateNotificationDto {
   category?: NotificationCategory
   target: NotificationTarget
   userIds?: string[]
+}
+
+export interface UpdateNotificationDto {
+  title: string
+  content: string
+  type?: NotificationType
+  category?: NotificationCategory
 }
 
 export interface SystemAnnouncement {
@@ -52,6 +60,10 @@ export const adminNotifications = {
 
   getAll: () => {
     return apiGet<SystemAnnouncement[]>('/admin/notifications')
+  },
+
+  update: (id: string, data: UpdateNotificationDto) => {
+    return apiPut<SystemAnnouncement>(`/admin/notifications/${id}`, data)
   },
 
   delete: (id: string) => {

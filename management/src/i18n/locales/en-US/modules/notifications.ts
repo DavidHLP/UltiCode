@@ -70,8 +70,12 @@ export default {
   dialog: {
     createTitle: 'Create Notification',
     createDescription: 'Compose and send a new system notification to users.',
+    editTitle: 'Edit Notification',
+    editDescription: 'Update the title, content, and classification of this notification.',
     sending: 'Sending...',
+    saving: 'Saving...',
     sendNotification: 'Send Notification',
+    saveChanges: 'Save Changes',
   },
 
   // Form

@@ -312,6 +312,16 @@ export default {
     clearAll: "清空通知",
     recent: "最近",
     emptyStateDesc: "目前没有新通知。",
+    preferences: "偏好设置",
+    preferencesDesc: "选择您希望接收的通知类型。",
+    preferencesSaved: "偏好设置已保存",
+    preferencesError: "保存偏好设置失败",
+    prefCategories: {
+      communication: "交流互动",
+      marketing: "营销推广",
+      security: "安全提醒",
+      system: "系统通知",
+    },
     types: {
       comment: "评论了你的",
       reply: "回复了你",

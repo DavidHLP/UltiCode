@@ -1,18 +1,20 @@
 export type NotificationCategory =
-  | "communication"
-  | "marketing"
-  | "security"
-  | "system";
+  | "COMMUNICATION"
+  | "MARKETING"
+  | "SECURITY"
+  | "SYSTEM"
+  | "CONTEST";
 
 export type NotificationType =
-  | "comment"
-  | "reply"
-  | "mention"
-  | "upvote"
-  | "follow"
-  | "system"
-  | "submission"
-  | "contest";
+  | "COMMENT"
+  | "REPLY"
+  | "MENTION"
+  | "UPVOTE"
+  | "FOLLOW"
+  | "SYSTEM"
+  | "SUBMISSION"
+  | "CONTEST"
+  | "CONTEST_REMINDER";
 
 export interface NotificationItem {
   id: string;
@@ -38,7 +40,7 @@ export interface NotificationListResult {
 export interface NotificationQuery {
   page?: number;
   limit?: number;
-  unreadOnly?: boolean;
+  isRead?: boolean;
   category?: string;
   type?: string;
 }

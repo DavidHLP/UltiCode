@@ -54,6 +54,7 @@ public final class AuditActionUtil {
     public static final String DELETE_PROBLEM_LIST = "DELETE_PROBLEM_LIST";
 
     public static final String CREATE_NOTIFICATION = "CREATE_NOTIFICATION";
+    public static final String UPDATE_NOTIFICATION = "UPDATE_NOTIFICATION";
     public static final String DELETE_NOTIFICATION = "DELETE_NOTIFICATION";
 
     public static final String CREATE_CONTEST_ANNOUNCEMENT = "CREATE_CONTEST_ANNOUNCEMENT";

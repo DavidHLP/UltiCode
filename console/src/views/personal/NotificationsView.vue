@@ -24,6 +24,7 @@ import {
   Loader2,
   Check,
   MoreHorizontal,
+  Settings,
 } from "lucide-vue-next";
 import {
   DropdownMenu,
@@ -33,6 +34,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNotificationStore } from "@/stores/notification";
 import type { NotificationItem, NotificationType } from "@/types/notification";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
+import NotificationPreferencesPanel from "@/components/notification/NotificationPreferencesPanel.vue";
 
 const { t, locale } = useI18n();
 const router = useRouter();
@@ -40,20 +49,22 @@ const notificationStore = useNotificationStore();
 const hasUser = ref(false);
 const currentPage = ref(1);
 const pageSize = 20;
+const prefSheetOpen = ref(false);
 
 const notifications = computed(() => notificationStore.notifications);
 const loading = computed(() => notificationStore.loading);
 const totalPages = computed(() => notificationStore.totalPages);
 
 const typeIconMap: Record<NotificationType, typeof Bell> = {
-  comment: MessageSquare,
-  reply: CornerUpLeft,
-  mention: AtSign,
-  upvote: ThumbsUp,
-  follow: UserPlus,
-  system: ShieldAlert,
-  submission: CheckCircle2,
-  contest: Trophy,
+  COMMENT: MessageSquare,
+  REPLY: CornerUpLeft,
+  MENTION: AtSign,
+  UPVOTE: ThumbsUp,
+  FOLLOW: UserPlus,
+  SYSTEM: ShieldAlert,
+  SUBMISSION: CheckCircle2,
+  CONTEST: Trophy,
+  CONTEST_REMINDER: Trophy,
 };
 
 const groupedNotifications = computed(() => {
@@ -128,8 +139,7 @@ async function handleMarkAllRead() {
   try {
     await notificationStore.markAllRead();
     toast.success(t("personal.messages.notificationsMarkedRead"));
-  } catch (error) {
-    console.error("Failed to mark notifications as read", error);
+  } catch {
     toast.error(t("common.status.error"));
   }
 }
@@ -138,8 +148,7 @@ async function handleClearAll() {
   try {
     await notificationStore.clearAll();
     toast.success(t("personal.messages.notificationsCleared"));
-  } catch (error) {
-    console.error("Failed to clear notifications", error);
+  } catch {
     toast.error(t("common.status.error"));
   }
 }
@@ -168,8 +177,7 @@ async function handleNotificationClick(notification: NotificationItem) {
 async function handleDelete(notificationId: string) {
   try {
     await notificationStore.removeNotification(notificationId);
-  } catch (error) {
-    console.error("Failed to delete notification", error);
+  } catch {
     toast.error(t("common.status.error"));
   }
 }
@@ -194,6 +202,16 @@ watch(currentPage, () => {
     >
       <template #actions>
         <div class="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            class="text-muted-foreground hover:text-foreground"
+            @click="prefSheetOpen = true"
+          >
+            <Settings class="mr-2 h-4 w-4" />
+            {{ t("personal.notifications.preferences") }}
+          </Button>
+          <Separator orientation="vertical" class="h-4" />
           <Button
             variant="ghost"
             size="sm"
@@ -394,4 +412,16 @@ watch(currentPage, () => {
       </p>
     </div>
   </PersonalPageShell>
+
+  <Sheet v-model:open="prefSheetOpen">
+    <SheetContent side="right">
+      <SheetHeader>
+        <SheetTitle>{{ t("personal.notifications.preferences") }}</SheetTitle>
+        <SheetDescription>{{ t("personal.notifications.preferencesDesc") }}</SheetDescription>
+      </SheetHeader>
+      <div class="mt-6">
+        <NotificationPreferencesPanel />
+      </div>
+    </SheetContent>
+  </Sheet>
 </template>

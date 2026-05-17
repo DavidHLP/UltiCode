@@ -397,25 +397,25 @@ class AdminForumServiceImplTest {
 
 ### Static Analysis
 ```bash
-cd /home/davidhlp/project/UltiCode-Public-Next/backend-spring && ./mvnw compile
+cd /home/davidhlp/project/UltiCode/backend-spring && ./mvnw compile
 ```
 EXPECT: Zero compilation errors
 
 ### Unit Tests
 ```bash
-cd /home/davidhlp/project/UltiCode-Public-Next/backend-spring && ./mvnw test -Dtest=AdminForumServiceImplTest,AdminSubmissionServiceImplTest
+cd /home/davidhlp/project/UltiCode/backend-spring && ./mvnw test -Dtest=AdminForumServiceImplTest,AdminSubmissionServiceImplTest
 ```
 EXPECT: All tests pass
 
 ### Full Test Suite
 ```bash
-cd /home/davidhlp/project/UltiCode-Public-Next/backend-spring && ./mvnw test
+cd /home/davidhlp/project/UltiCode/backend-spring && ./mvnw test
 ```
 EXPECT: No regressions in admin module tests
 
 ### Integration Tests
 ```bash
-cd /home/davidhlp/project/UltiCode-Public-Next/backend-spring && ./mvnw verify -Pci
+cd /home/davidhlp/project/UltiCode/backend-spring && ./mvnw verify -Pci
 ```
 EXPECT: All integration tests pass (if CI profile runs them)
 

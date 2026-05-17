@@ -1,5 +1,5 @@
 Restart all services.
 
 ```bash
-cd "/home/davidhlp/project/UltiCode-Public-Next" && pm2 restart all
+cd "/home/davidhlp/project/UltiCode" && pm2 restart all
 ```

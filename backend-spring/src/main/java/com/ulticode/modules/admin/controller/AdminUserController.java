@@ -3,6 +3,8 @@ package com.ulticode.modules.admin.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.admin.dto.AdminCreateUserDTO;
+import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.dto.BanUserRequest;
@@ -40,6 +42,33 @@ public class AdminUserController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminUserVO> getUserById(@PathVariable String id) {
         return Result.success(adminUserService.getUserById(id));
+    }
+
+    @Operation(summary = "Create user", description = "Create a new user account")
+    @RateLimit(key = "admin:user-create", limit = 30, period = 60)
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<AdminUserVO> createUser(@Valid @RequestBody AdminCreateUserDTO dto) {
+        return Result.success(adminUserService.createUser(dto));
+    }
+
+    @Operation(summary = "Update user", description = "Update user information")
+    @RateLimit(key = "admin:user-update", limit = 30, period = 60)
+    @PatchMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<AdminUserVO> updateUser(
+            @PathVariable String id,
+            @Valid @RequestBody AdminUpdateUserDTO dto) {
+        return Result.success(adminUserService.updateUser(id, dto));
+    }
+
+    @Operation(summary = "Delete user", description = "Delete a user account")
+    @RateLimit(key = "admin:user-delete", limit = 30, period = 60)
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN')")
+    public Result<Void> deleteUser(@PathVariable String id) {
+        adminUserService.deleteUser(id);
+        return Result.success();
     }
 
     @Operation(summary = "Ban user", description = "Ban a user from the platform")

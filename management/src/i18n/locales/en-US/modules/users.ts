@@ -5,6 +5,8 @@ export default {
   createDescription: 'Fill in the information below to create a new user account',
   searchPlaceholder: 'Search by username or email...',
   banReasonPrompt: 'Please enter a reason for banning',
+  editUser: 'Edit User',
+  editDescription: 'Edit user information and update permission settings.',
 
   // Column definitions
   columns: {
@@ -56,6 +58,8 @@ export default {
     status: 'Status',
     creating: 'Creating...',
     createUser: 'Create User',
+    saveChanges: 'Save Changes',
+    saving: 'Saving...',
     noReasonProvided: 'No reason provided',
     unknown: 'Unknown',
     newPassword: 'New Password',
@@ -109,6 +113,8 @@ export default {
     resetPasswordSuccess: 'Password reset successfully',
     resetPasswordFailed: 'Failed to reset password',
     resetPasswordFailedDescription: 'An error occurred while attempting to update the password.',
+    resetPasswordValidationFailed: 'Password too short',
+    resetPasswordValidationFailedDescription: 'Password must be at least 8 characters long.',
     bulkBanFailed: 'Failed to bulk ban users',
     bulkUnbanFailed: 'Failed to bulk unban users',
     bulkDeleteFailed: 'Failed to bulk delete users',

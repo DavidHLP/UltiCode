@@ -2,6 +2,7 @@ package com.ulticode.modules.admin.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -21,6 +22,7 @@ public class AdminCreateUserDTO {
     /**
      * Email address
      */
+    @NotBlank(message = "Email is required")
     @Email(message = "Invalid email format")
     @Size(max = 255, message = "Email must not exceed 255 characters")
     private String email;
@@ -41,6 +43,7 @@ public class AdminCreateUserDTO {
     /**
      * User role (USER, ADMIN, SUPER_ADMIN)
      */
+    @Pattern(regexp = "USER|ADMIN|SUPER_ADMIN", message = "Role must be USER, ADMIN, or SUPER_ADMIN")
     private String role;
 
     /**

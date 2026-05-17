@@ -1,1 +1,0 @@
-T1-backend-change: CsrfService validateAndRotateToken() now uses Duration.ofMinutes(5) TTL instead of redisTemplate.delete() - 2026-05-05

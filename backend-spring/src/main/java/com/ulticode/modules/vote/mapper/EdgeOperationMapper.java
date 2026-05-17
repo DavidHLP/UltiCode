@@ -9,6 +9,9 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
+import java.util.List;
+import java.util.Map;
+
 /**
  * MyBatis-Plus mapper for EdgeOperation entity.
  * Provides standard CRUD operations through BaseMapper plus custom queries.
@@ -29,6 +32,21 @@ public interface EdgeOperationMapper extends BaseMapper<EdgeOperation> {
     int countByTargetAndOperation(@Param("targetId") String targetId,
                                    @Param("targetType") String targetType,
                                    @Param("operationType") String operationType);
+
+    /**
+     * Count operations by multiple targets and operation type.
+     *
+     * @param targetIds      the target IDs
+     * @param targetType    the target type
+     * @param operationType the operation type
+     * @return list of maps with "target_id" and "cnt" keys
+     */
+    @Select("<script>SELECT target_id, COUNT(*) as cnt FROM edge_operations WHERE target_id IN " +
+            "<foreach collection='targetIds' item='id' open='(' separator=',' close=')'>#{id}</foreach> " +
+            "AND target_type = #{targetType} AND operation_type = #{operationType} GROUP BY target_id</script>")
+    List<Map<String, Object>> countByTargetsAndOperation(@Param("targetIds") List<String> targetIds,
+                                                          @Param("targetType") String targetType,
+                                                          @Param("operationType") String operationType);
 
     /**
      * Check if a specific operation exists for a user

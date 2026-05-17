@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.admin.service.AdminProblemListService;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -37,6 +40,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     private final ProblemListMapper problemListMapper;
     private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemListService problemListService;
+    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<ProblemListSummaryVO> getProblemLists(AdminProblemListQueryDTO query) {
@@ -102,6 +106,16 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
         }
 
+        java.util.Map<String, Object> oldValues = new java.util.HashMap<>();
+        oldValues.put("name", list.getName());
+        oldValues.put("description", list.getDescription());
+        oldValues.put("isPublic", list.getIsPublic());
+        oldValues.put("isFeatured", list.getIsFeatured());
+        oldValues.put("bannerTag", list.getBannerTag());
+        oldValues.put("bannerIcon", list.getBannerIcon());
+        oldValues.put("bannerTheme", list.getBannerTheme());
+        oldValues.put("bannerOrder", list.getBannerOrder());
+
         // Admin bypass: update fields directly without ownership check
         if (dto.getName() != null) {
             list.setName(dto.getName());
@@ -129,6 +143,15 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         }
 
         problemListMapper.updateById(list);
+
+        auditHelper.log(
+            AuditActionUtil.UPDATE_PROBLEM_LIST,
+            AuditActionUtil.ENTITY_PROBLEM_LIST,
+            id,
+            oldValues,
+            Map.of("name", list.getName(), "isPublic", list.getIsPublic(), "isFeatured", list.getIsFeatured())
+        );
+
         return toSummaryVO(list);
     }
 
@@ -138,6 +161,13 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         if (list == null) {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
         }
+        auditHelper.log(
+            AuditActionUtil.DELETE_PROBLEM_LIST,
+            AuditActionUtil.ENTITY_PROBLEM_LIST,
+            id,
+            Map.of("name", list.getName(), "authorId", list.getAuthorId()),
+            null
+        );
         problemListService.deleteList(id, list.getAuthorId());
     }
 
@@ -150,6 +180,10 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
         problemListProblemMapper.deleteByListId(id);
 
+        if (dto.getProblems() == null) {
+            throw new BusinessException(ErrorCode.VALIDATION_FAILED, "Problems list is required");
+        }
+
         for (UpdateProblemListProblemsDTO.ProblemEntry entry : dto.getProblems()) {
             ProblemListProblemRelation relation = new ProblemListProblemRelation();
             relation.setListId(id);
@@ -157,6 +191,14 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             relation.setSortOrder(entry.getSortOrder());
             problemListProblemMapper.insert(relation);
         }
+
+        auditHelper.log(
+            AuditActionUtil.UPDATE_PROBLEM_LIST,
+            AuditActionUtil.ENTITY_PROBLEM_LIST,
+            id,
+            null,
+            Map.of("updatedProblems", dto.getProblems().size())
+        );
     }
 
     private ProblemListSummaryVO toSummaryVO(ProblemList list) {

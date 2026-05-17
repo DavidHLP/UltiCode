@@ -6,6 +6,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.service.AdminUserService;
@@ -22,6 +24,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -34,6 +37,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
+    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<AdminUserVO> getUsers(AdminUserQueryDTO query) {
@@ -112,11 +116,27 @@ public class AdminUserServiceImpl implements AdminUserService {
             try {
                 wrapper.set(User::getBannedUntil, LocalDateTime.parse(until));
             } catch (DateTimeParseException e) {
-                log.warn("Failed to parse banned_until date: {}", until);
+                throw new BusinessException(ErrorCode.VALIDATION_FAILED,
+                    "Invalid banned_until date format: " + until);
             }
         }
 
         userMapper.update(null, wrapper);
+
+        auditHelper.logForUser(
+            AuditActionUtil.BAN_USER,
+            AuditActionUtil.ENTITY_USER,
+            id,
+            id,
+            Map.of(
+                "isBanned", user.getIsBanned(),
+                "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
+            ),
+            Map.of(
+                "isBanned", true,
+                "bannedReason", reason != null ? reason : ""
+            )
+        );
 
         log.info("User banned: {} - reason: {}", id, reason);
         return getUserById(id);
@@ -138,6 +158,18 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         userMapper.update(null, wrapper);
 
+        auditHelper.logForUser(
+            AuditActionUtil.UNBAN_USER,
+            AuditActionUtil.ENTITY_USER,
+            id,
+            id,
+            Map.of(
+                "isBanned", user.getIsBanned(),
+                "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
+            ),
+            Map.of("isBanned", false, "bannedReason", "")
+        );
+
         log.info("User unbanned: {}", id);
         return getUserById(id);
     }
@@ -156,6 +188,16 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .set(User::getPassword, hashedPassword);
 
         userMapper.update(null, wrapper);
+
+        auditHelper.logForUser(
+            AuditActionUtil.RESET_PASSWORD,
+            AuditActionUtil.ENTITY_USER,
+            id,
+            id,
+            null,
+            Map.of("passwordChanged", true)
+        );
+
         log.info("Password reset for user: {}", id);
     }
 
@@ -168,8 +210,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             try {
                 banUser(id, reason, null);
                 results.add(new BanResult(id, true, null));
-            // broad catch: bulk operation must report per-item failures
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 log.error("Failed to ban user {}: {}", id, e.getMessage());
                 results.add(new BanResult(id, false, e.getMessage()));
             }
@@ -187,8 +228,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             try {
                 unbanUser(id);
                 results.add(new BanResult(id, true, null));
-            // broad catch: bulk operation must report per-item failures
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 log.error("Failed to unban user {}: {}", id, e.getMessage());
                 results.add(new BanResult(id, false, e.getMessage()));
             }
@@ -204,14 +244,22 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         for (String id : ids) {
             try {
+                User user = userMapper.selectById(id);
                 int deleted = userMapper.deleteById(id);
                 if (deleted > 0) {
+                    auditHelper.logForUser(
+                        AuditActionUtil.DELETE_USER,
+                        AuditActionUtil.ENTITY_USER,
+                        id,
+                        id,
+                        Map.of("username", user != null ? user.getUsername() : "unknown"),
+                        null
+                    );
                     results.add(new DeleteResult(id, true, null));
                 } else {
                     results.add(new DeleteResult(id, false, "User not found"));
                 }
-            // broad catch: bulk operation must report per-item failures
-            } catch (Exception e) {
+            } catch (RuntimeException e) {
                 log.error("Failed to delete user {}: {}", id, e.getMessage());
                 results.add(new DeleteResult(id, false, e.getMessage()));
             }

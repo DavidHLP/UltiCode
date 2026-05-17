@@ -3,6 +3,8 @@ package com.ulticode.modules.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
@@ -18,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -30,6 +33,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     private final NotificationMapper notificationMapper;
     private final UserMapper userMapper;
+    private final AuditHelper auditHelper;
 
     @Override
     public List<AdminNotificationVO> getAllSystemNotifications() {
@@ -45,9 +49,9 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         // System announcements are created once per user, so we need to deduplicate
         Map<String, Notification> uniqueAnnouncements = new LinkedHashMap<>();
         for (Notification notification : notifications) {
-            // Use title + type + created time as the key to group related notifications
+            // Use title + type + full created timestamp as the key to group related notifications
             String key = notification.getTitle() + "_" + notification.getType() + "_" +
-                         notification.getCreatedAt().toLocalDate();
+                         notification.getCreatedAt();
             if (!uniqueAnnouncements.containsKey(key)) {
                 uniqueAnnouncements.put(key, notification);
             }
@@ -97,12 +101,20 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         }
 
         // Batch insert
-        for (Notification notification : notificationsToCreate) {
-            notificationMapper.insert(notification);
+        if (!notificationsToCreate.isEmpty()) {
+            notificationMapper.batchInsert(notificationsToCreate);
         }
 
         log.info("Created system notification '{}' for {} users by admin {}",
                 request.getTitle(), targetUserIds.size(), currentUserId);
+
+        auditHelper.log(
+            AuditActionUtil.CREATE_NOTIFICATION,
+            AuditActionUtil.ENTITY_NOTIFICATION,
+            notificationsToCreate.get(0).getId(),
+            null,
+            Map.of("title", Objects.requireNonNullElse(request.getTitle(), ""), "targetCount", targetUserIds.size(), "target", Objects.requireNonNullElse(request.getTarget(), ""))
+        );
 
         // Return the first created notification as representative
         Notification representative = notificationsToCreate.get(0);
@@ -129,6 +141,14 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         if (notification.getCreatedAt() != null) {
             wrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
         }
+
+        auditHelper.log(
+            AuditActionUtil.DELETE_NOTIFICATION,
+            AuditActionUtil.ENTITY_NOTIFICATION,
+            id,
+            Map.of("title", Objects.requireNonNullElse(notification.getTitle(), ""), "type", Objects.requireNonNullElse(notification.getType(), "")),
+            null
+        );
 
         int deletedCount = notificationMapper.delete(wrapper);
         log.info("Deleted system notification '{}' and {} related records", id, deletedCount);

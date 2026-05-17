@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
 import com.ulticode.modules.admin.dto.AdminContestVO;
@@ -18,6 +20,7 @@ import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
+import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.websocket.service.RealtimeService;
 import com.ulticode.modules.websocket.contest.dto.AnnouncementPayload;
 import lombok.RequiredArgsConstructor;
@@ -27,7 +30,10 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -42,7 +48,8 @@ public class AdminContestServiceImpl implements AdminContestService {
     private final ContestProblemMapper contestProblemMapper;
     private final ContestAnnouncementMapper contestAnnouncementMapper;
     private final RealtimeService realtimeService;
-    private final com.ulticode.modules.contest.service.RankingService rankingService;
+    private final RankingService rankingService;
+    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<AdminContestVO> getContests(AdminContestQueryDTO query) {
@@ -129,6 +136,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         // Bulk-insert contest problems if provided
         List<Long> problemIds = dto.getProblemIds();
         if (problemIds != null && !problemIds.isEmpty()) {
+            List<ContestProblem> contestProblems = new ArrayList<>();
             for (int i = 0; i < problemIds.size(); i++) {
                 ContestProblem cp = new ContestProblem();
                 cp.setContestId(contest.getId());
@@ -138,9 +146,20 @@ public class AdminContestServiceImpl implements AdminContestService {
                 cp.setBaseScore(100);
                 cp.setSolvedCount(0);
                 cp.setSubmissionCount(0);
-                contestProblemMapper.insert(cp);
+                contestProblems.add(cp);
+            }
+            if (!contestProblems.isEmpty()) {
+                contestProblemMapper.batchInsert(contestProblems);
             }
         }
+
+        auditHelper.log(
+            AuditActionUtil.CREATE_CONTEST,
+            AuditActionUtil.ENTITY_CONTEST,
+            contest.getId(),
+            null,
+            Map.of("title", Objects.requireNonNullElse(contest.getTitle(), ""), "slug", Objects.requireNonNullElse(contest.getSlug(), ""))
+        );
 
         log.info("Admin created contest: {} by user {}", contest.getId(), userId);
         return toAdminVO(contest);
@@ -157,6 +176,15 @@ public class AdminContestServiceImpl implements AdminContestService {
         if (!ContestStatus.UPCOMING.name().equalsIgnoreCase(contest.getStatus())) {
             throw new BusinessException(ErrorCode.CONTEST_ONLY_REGISTER_UPCOMING);
         }
+
+        java.util.Map<String, Object> oldValues = new java.util.HashMap<>();
+        oldValues.put("title", contest.getTitle());
+        oldValues.put("status", contest.getStatus());
+        oldValues.put("description", contest.getDescription());
+        oldValues.put("startTime", contest.getStartTime());
+        oldValues.put("durationMinutes", contest.getDurationMinutes());
+        oldValues.put("maxParticipants", contest.getMaxParticipants());
+        oldValues.put("isVisible", contest.getIsVisible());
 
         if (dto.getTitle() != null) {
             contest.setTitle(dto.getTitle());
@@ -184,6 +212,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         if (dto.getProblemIds() != null) {
             contestProblemMapper.deleteByContestId(id);
             List<Long> problemIds = dto.getProblemIds();
+            List<ContestProblem> contestProblems = new ArrayList<>();
             for (int i = 0; i < problemIds.size(); i++) {
                 ContestProblem cp = new ContestProblem();
                 cp.setContestId(id);
@@ -193,11 +222,22 @@ public class AdminContestServiceImpl implements AdminContestService {
                 cp.setBaseScore(100);
                 cp.setSolvedCount(0);
                 cp.setSubmissionCount(0);
-                contestProblemMapper.insert(cp);
+                contestProblems.add(cp);
+            }
+            if (!contestProblems.isEmpty()) {
+                contestProblemMapper.batchInsert(contestProblems);
             }
         }
 
         contestMapper.updateById(contest);
+
+        auditHelper.log(
+            AuditActionUtil.UPDATE_CONTEST,
+            AuditActionUtil.ENTITY_CONTEST,
+            id,
+            oldValues,
+            Map.of("title", contest.getTitle(), "status", contest.getStatus())
+        );
 
         log.info("Admin updated contest: {}", id);
         return toAdminVO(contest);
@@ -221,6 +261,14 @@ public class AdminContestServiceImpl implements AdminContestService {
         contest.setDeletedBy(SecurityUtil.getCurrentUserId());
         contestMapper.updateById(contest);
 
+        auditHelper.log(
+            AuditActionUtil.DELETE_CONTEST,
+            AuditActionUtil.ENTITY_CONTEST,
+            id,
+            Map.of("title", contest.getTitle(), "status", contest.getStatus()),
+            null
+        );
+
         log.info("Admin deleted contest: {}", id);
     }
 
@@ -243,6 +291,14 @@ public class AdminContestServiceImpl implements AdminContestService {
         contest.setStatus(ContestStatus.RUNNING.name());
         contestMapper.updateById(contest);
 
+        auditHelper.log(
+            AuditActionUtil.UPDATE_CONTEST,
+            AuditActionUtil.ENTITY_CONTEST,
+            id,
+            Map.of("status", ContestStatus.UPCOMING.name()),
+            Map.of("status", ContestStatus.RUNNING.name())
+        );
+
         log.info("Admin started contest: {}", id);
         return toAdminVO(contest);
     }
@@ -260,6 +316,14 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         contest.setStatus(ContestStatus.FINISHED.name());
         contestMapper.updateById(contest);
+
+        auditHelper.log(
+            AuditActionUtil.UPDATE_CONTEST,
+            AuditActionUtil.ENTITY_CONTEST,
+            id,
+            Map.of("status", ContestStatus.RUNNING.name()),
+            Map.of("status", ContestStatus.FINISHED.name())
+        );
 
         log.info("Admin ended contest: {}", id);
         return toAdminVO(contest);
@@ -283,6 +347,14 @@ public class AdminContestServiceImpl implements AdminContestService {
         // WebSocket push (D-12)
         realtimeService.emitAnnouncement(AnnouncementPayload.of(announcement.getId(), contestId, title, content));
 
+        auditHelper.log(
+            AuditActionUtil.CREATE_CONTEST_ANNOUNCEMENT,
+            AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT,
+            announcement.getId(),
+            null,
+            Map.of("title", title, "contestId", contestId)
+        );
+
         log.info("Admin created announcement {} for contest {}", announcement.getId(), contestId);
         return announcement;
     }
@@ -293,6 +365,11 @@ public class AdminContestServiceImpl implements AdminContestService {
         if (announcement == null) {
             throw new BusinessException(ErrorCode.BAD_REQUEST);
         }
+
+        Map<String, Object> oldValues = Map.of(
+            "title", announcement.getTitle(),
+            "isPinned", announcement.getIsPinned()
+        );
 
         if (title != null) {
             announcement.setTitle(title);
@@ -306,6 +383,14 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         contestAnnouncementMapper.updateById(announcement);
 
+        auditHelper.log(
+            AuditActionUtil.UPDATE_CONTEST_ANNOUNCEMENT,
+            AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT,
+            announcementId,
+            oldValues,
+            Map.of("title", announcement.getTitle(), "isPinned", announcement.getIsPinned())
+        );
+
         log.info("Admin updated announcement {} for contest {}", announcementId, contestId);
         return announcement;
     }
@@ -318,6 +403,14 @@ public class AdminContestServiceImpl implements AdminContestService {
         }
 
         contestAnnouncementMapper.deleteById(announcementId);
+
+        auditHelper.log(
+            AuditActionUtil.DELETE_CONTEST_ANNOUNCEMENT,
+            AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT,
+            announcementId,
+            Map.of("title", announcement.getTitle(), "contestId", contestId),
+            null
+        );
 
         log.info("Admin deleted announcement {} for contest {}", announcementId, contestId);
     }
@@ -360,6 +453,14 @@ public class AdminContestServiceImpl implements AdminContestService {
         cp.setSolvedCount(0);
         cp.setSubmissionCount(0);
         contestProblemMapper.insert(cp);
+
+        auditHelper.log(
+            AuditActionUtil.UPDATE_CONTEST,
+            AuditActionUtil.ENTITY_CONTEST,
+            contestId,
+            null,
+            Map.of("addedProblemId", problemId, "problemIndex", cp.getProblemIndex())
+        );
 
         log.info("Admin added problem {} to contest {}", problemId, contestId);
         return cp;

@@ -6,11 +6,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.tag.*;
 import com.ulticode.modules.admin.service.AdminTagService;
 import com.ulticode.modules.forum.entity.ForumTag;
 import com.ulticode.modules.forum.mapper.ForumTagMapper;
 import com.ulticode.modules.problem.entity.ProblemTag;
+import com.ulticode.modules.problem.entity.ProblemTagRelation;
 import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +24,7 @@ import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -32,6 +36,7 @@ public class AdminTagServiceImpl implements AdminTagService {
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final ForumTagMapper forumTagMapper;
+    private final AuditHelper auditHelper;
 
     private static final String TYPE_PROBLEM = "PROBLEM";
     private static final String TYPE_FORUM = "FORUM";
@@ -125,6 +130,15 @@ public class AdminTagServiceImpl implements AdminTagService {
             tag.setUsageCount(0);
             tag.setCreatedAt(LocalDateTime.now());
             forumTagMapper.insert(tag);
+
+            auditHelper.log(
+                AuditActionUtil.CREATE_TAG,
+                AuditActionUtil.ENTITY_TAG,
+                tag.getId(),
+                null,
+                Map.of("name", tag.getName(), "type", TYPE_FORUM)
+            );
+
             return toTagVO(tag);
         }
 
@@ -149,6 +163,15 @@ public class AdminTagServiceImpl implements AdminTagService {
         tag.setCreatedAt(LocalDateTime.now());
         tag.setUpdatedAt(LocalDateTime.now());
         problemTagMapper.insert(tag);
+
+        auditHelper.log(
+            AuditActionUtil.CREATE_TAG,
+            AuditActionUtil.ENTITY_TAG,
+            tag.getId(),
+            null,
+            Map.of("name", tag.getLabel(), "type", TYPE_PROBLEM)
+        );
+
         return toTagVO(tag);
     }
 
@@ -160,6 +183,13 @@ public class AdminTagServiceImpl implements AdminTagService {
             if (existing == null) {
                 throw new BusinessException(ErrorCode.FORUM_TAG_NOT_FOUND);
             }
+
+            java.util.Map<String, Object> oldValues = new java.util.HashMap<>();
+            oldValues.put("name", existing.getName());
+            oldValues.put("slug", existing.getSlug());
+            oldValues.put("description", existing.getDescription());
+            oldValues.put("color", existing.getColor());
+
             if (StringUtils.hasText(dto.getName()) && !dto.getName().equals(existing.getName())) {
                 if (forumTagMapper.existsByName(dto.getName())) {
                     throw new BusinessException(ErrorCode.FORUM_TAG_NAME_EXISTS);
@@ -179,6 +209,15 @@ public class AdminTagServiceImpl implements AdminTagService {
                 existing.setColor(dto.getColor());
             }
             forumTagMapper.updateById(existing);
+
+            auditHelper.log(
+                AuditActionUtil.UPDATE_TAG,
+                AuditActionUtil.ENTITY_TAG,
+                id,
+                oldValues,
+                Map.of("name", existing.getName(), "type", TYPE_FORUM)
+            );
+
             return toTagVO(existing);
         }
 
@@ -186,6 +225,13 @@ public class AdminTagServiceImpl implements AdminTagService {
         if (existing == null) {
             throw new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
+
+        java.util.Map<String, Object> oldValues = new java.util.HashMap<>();
+        oldValues.put("name", existing.getLabel());
+        oldValues.put("slug", existing.getSlug());
+        oldValues.put("description", existing.getDescription());
+        oldValues.put("color", existing.getColor());
+
         if (StringUtils.hasText(dto.getName()) && !dto.getName().equals(existing.getLabel())) {
             LambdaQueryWrapper<ProblemTag> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(ProblemTag::getLabel, dto.getName());
@@ -210,6 +256,15 @@ public class AdminTagServiceImpl implements AdminTagService {
         }
         existing.setUpdatedAt(LocalDateTime.now());
         problemTagMapper.updateById(existing);
+
+        auditHelper.log(
+            AuditActionUtil.UPDATE_TAG,
+            AuditActionUtil.ENTITY_TAG,
+            id,
+            oldValues,
+            Map.of("name", existing.getLabel(), "type", TYPE_PROBLEM)
+        );
+
         return toTagVO(existing);
     }
 
@@ -222,6 +277,14 @@ public class AdminTagServiceImpl implements AdminTagService {
                 throw new BusinessException(ErrorCode.FORUM_TAG_NOT_FOUND);
             }
             forumTagMapper.deleteById(id);
+
+            auditHelper.log(
+                AuditActionUtil.DELETE_TAG,
+                AuditActionUtil.ENTITY_TAG,
+                id,
+                Map.of("name", existing.getName(), "type", TYPE_FORUM),
+                null
+            );
             return;
         }
         ProblemTag existing = problemTagMapper.selectById(id);
@@ -229,6 +292,14 @@ public class AdminTagServiceImpl implements AdminTagService {
             throw new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
         problemTagMapper.deleteById(id);
+
+        auditHelper.log(
+            AuditActionUtil.DELETE_TAG,
+            AuditActionUtil.ENTITY_TAG,
+            id,
+            Map.of("name", existing.getLabel(), "type", TYPE_PROBLEM),
+            null
+        );
     }
 
     @Override
@@ -254,17 +325,25 @@ public class AdminTagServiceImpl implements AdminTagService {
             throw new BusinessException(ErrorCode.PROBLEM_TAG_NOT_FOUND);
         }
 
-        LambdaUpdateWrapper<com.ulticode.modules.problem.entity.ProblemTagRelation> updateWrapper =
+        LambdaUpdateWrapper<ProblemTagRelation> updateWrapper =
                 new LambdaUpdateWrapper<>();
-        updateWrapper.eq(com.ulticode.modules.problem.entity.ProblemTagRelation::getTagId, dto.getSourceId())
-                .set(com.ulticode.modules.problem.entity.ProblemTagRelation::getTagId, dto.getTargetTagId());
+        updateWrapper.eq(ProblemTagRelation::getTagId, dto.getSourceId())
+                .set(ProblemTagRelation::getTagId, dto.getTargetTagId());
         problemTagRelationMapper.update(updateWrapper);
 
         problemTagMapper.deleteById(dto.getSourceId());
 
-        LambdaQueryWrapper<com.ulticode.modules.problem.entity.ProblemTagRelation> countWrapper =
+        auditHelper.log(
+            AuditActionUtil.UPDATE_TAG,
+            AuditActionUtil.ENTITY_TAG,
+            dto.getSourceId(),
+            Map.of("name", source.getLabel(), "mergedInto", dto.getTargetTagId()),
+            null
+        );
+
+        LambdaQueryWrapper<ProblemTagRelation> countWrapper =
                 new LambdaQueryWrapper<>();
-        countWrapper.eq(com.ulticode.modules.problem.entity.ProblemTagRelation::getTagId, dto.getTargetTagId());
+        countWrapper.eq(ProblemTagRelation::getTagId, dto.getTargetTagId());
         long count = problemTagRelationMapper.selectCount(countWrapper);
         target.setUsageCount((int) count);
         target.setUpdatedAt(LocalDateTime.now());

@@ -1,6 +1,7 @@
 package com.ulticode.common.aspect;
 
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.service.AuditService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -9,6 +10,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.aspectj.lang.reflect.CodeSignature;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
@@ -18,8 +20,8 @@ import java.util.Map;
 /**
  * Audit logging aspect that intercepts methods annotated with {@link Audited}.
  *
- * <p><strong>Note:</strong> This aspect captures basic action metadata (performer, IP, user agent).
- * For reliable old/new value capture, call {@link AuditService#log} directly in service code.
+ * <p>Automatically captures: performer ID, client IP, user agent, action, entity type.
+ * For old/new value capture, use {@link AuditContext} inside the method body.
  */
 @Slf4j
 @Aspect
@@ -39,42 +41,85 @@ public class AuditAspect {
         String ip = getClientIp();
         String userAgent = getUserAgent();
 
+        String targetUserId = resolveParamValue(joinPoint, audited.userIdFrom());
+        String resolvedEntityId = resolveParamValue(joinPoint, audited.entityIdFrom());
+
         Object result;
         try {
             result = joinPoint.proceed();
         } catch (Exception e) {
+            String userId = firstNonNull(targetUserId, AuditContext.getUserId());
+            String entityId = firstNonNull(resolvedEntityId, AuditContext.getEntityId(), "N/A");
+
             auditService.log(
                 performerId,
-                null,
+                userId,
                 audited.action(),
                 audited.entityType(),
-                "N/A",
-                null,
-                Map.of("error", e.getClass().getSimpleName(), "message", e.getMessage()),
+                entityId,
+                AuditContext.getOldValues(),
+                Map.of("error", e.getClass().getSimpleName(),
+                       "message", e.getMessage() != null ? e.getMessage() : ""),
                 ip,
                 userAgent
             );
+            AuditContext.clear();
             throw e;
         }
 
-        Map<String, Object> newValues = null;
-        if (audited.captureNewState() && result != null) {
+        // Resolve entity ID: param > AuditContext > reflection on result
+        String entityId = firstNonNull(resolvedEntityId, AuditContext.getEntityId());
+        if (entityId == null || entityId.isEmpty()) {
+            entityId = extractEntityId(result);
+        }
+
+        // Resolve userId: annotation param > AuditContext
+        String userId = firstNonNull(targetUserId, AuditContext.getUserId());
+
+        // Get old/new values from AuditContext (populated by method body)
+        Map<String, Object> oldValues = AuditContext.getOldValues();
+        Map<String, Object> newValues = AuditContext.getNewValues();
+
+        // Optionally capture new state from return value if context didn't provide it
+        if (newValues == null && audited.captureNewState() && result != null) {
             newValues = captureSimpleState(result);
         }
 
         auditService.log(
             performerId,
-            null,
+            userId,
             audited.action(),
             audited.entityType(),
-            extractEntityId(result),
-            null,
+            entityId != null ? entityId : "N/A",
+            oldValues,
             newValues,
             ip,
             userAgent
         );
 
+        AuditContext.clear();
         return result;
+    }
+
+    private String resolveParamValue(ProceedingJoinPoint joinPoint, String paramName) {
+        if (paramName == null || paramName.isEmpty()) {
+            return null;
+        }
+
+        if (!(joinPoint.getSignature() instanceof CodeSignature signature)) {
+            return null;
+        }
+
+        String[] paramNames = signature.getParameterNames();
+        Object[] args = joinPoint.getArgs();
+
+        for (int i = 0; i < paramNames.length; i++) {
+            if (paramName.equals(paramNames[i]) && args[i] != null) {
+                return args[i].toString();
+            }
+        }
+
+        return null;
     }
 
     private String extractEntityId(Object result) {
@@ -131,5 +176,14 @@ public class AuditAspect {
         HttpServletRequest request = attributes.getRequest();
         String ua = request.getHeader("User-Agent");
         return ua != null && !ua.isEmpty() ? ua : null;
+    }
+
+    private static String firstNonNull(String... values) {
+        for (String v : values) {
+            if (v != null && !v.isEmpty()) {
+                return v;
+            }
+        }
+        return null;
     }
 }

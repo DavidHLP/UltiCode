@@ -3,10 +3,12 @@ package com.ulticode.modules.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
@@ -101,11 +103,17 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.BAN_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO banUser(String id, String reason, String until) {
         User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
+
+        AuditContext.setOldValues(Map.of(
+            "isBanned", user.getIsBanned(),
+            "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
+        ));
 
         LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(User::getId, id)
@@ -123,20 +131,10 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         userMapper.update(null, wrapper);
 
-        auditHelper.logForUser(
-            AuditActionUtil.BAN_USER,
-            AuditActionUtil.ENTITY_USER,
-            id,
-            id,
-            Map.of(
-                "isBanned", user.getIsBanned(),
-                "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
-            ),
-            Map.of(
-                "isBanned", true,
-                "bannedReason", reason != null ? reason : ""
-            )
-        );
+        AuditContext.setNewValues(Map.of(
+            "isBanned", true,
+            "bannedReason", reason != null ? reason : ""
+        ));
 
         log.info("User banned: {} - reason: {}", id, reason);
         return getUserById(id);
@@ -144,11 +142,17 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.UNBAN_USER, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
     public AdminUserVO unbanUser(String id) {
         User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
+
+        AuditContext.setOldValues(Map.of(
+            "isBanned", user.getIsBanned(),
+            "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
+        ));
 
         LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
         wrapper.eq(User::getId, id)
@@ -158,17 +162,7 @@ public class AdminUserServiceImpl implements AdminUserService {
 
         userMapper.update(null, wrapper);
 
-        auditHelper.logForUser(
-            AuditActionUtil.UNBAN_USER,
-            AuditActionUtil.ENTITY_USER,
-            id,
-            id,
-            Map.of(
-                "isBanned", user.getIsBanned(),
-                "bannedReason", user.getBannedReason() != null ? user.getBannedReason() : ""
-            ),
-            Map.of("isBanned", false, "bannedReason", "")
-        );
+        AuditContext.setNewValues(Map.of("isBanned", false, "bannedReason", ""));
 
         log.info("User unbanned: {}", id);
         return getUserById(id);
@@ -176,11 +170,15 @@ public class AdminUserServiceImpl implements AdminUserService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.RESET_PASSWORD, entityType = AuditActionUtil.ENTITY_USER, userIdFrom = "id")
     public void resetPassword(String id, String newPassword) {
         User user = userMapper.selectById(id);
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
+
+        AuditContext.setOldValues(Map.of("passwordChanged", false));
+        AuditContext.setNewValues(Map.of("passwordChanged", true));
 
         String hashedPassword = passwordEncoder.encode(newPassword);
         LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
@@ -188,15 +186,6 @@ public class AdminUserServiceImpl implements AdminUserService {
                 .set(User::getPassword, hashedPassword);
 
         userMapper.update(null, wrapper);
-
-        auditHelper.logForUser(
-            AuditActionUtil.RESET_PASSWORD,
-            AuditActionUtil.ENTITY_USER,
-            id,
-            id,
-            null,
-            Map.of("passwordChanged", true)
-        );
 
         log.info("Password reset for user: {}", id);
     }

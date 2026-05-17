@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.dto;
 
 import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
@@ -10,6 +11,12 @@ import lombok.Data;
  */
 @Data
 public class AdminUpdateUserDTO {
+
+    /**
+     * Unique username (max 50 characters)
+     */
+    @Size(max = 50, message = "Username must not exceed 50 characters")
+    private String username;
 
     /**
      * Display name (max 120 characters)
@@ -75,6 +82,7 @@ public class AdminUpdateUserDTO {
     /**
      * User role
      */
+    @Pattern(regexp = "USER|ADMIN|SUPER_ADMIN", message = "Role must be USER, ADMIN, or SUPER_ADMIN")
     private String role;
 
     /**

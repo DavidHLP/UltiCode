@@ -9,6 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -112,7 +113,7 @@ async function handleSubmit() {
             t('users.editUser')
           }}</DialogTitle>
         </div>
-        <p class="terminal-comment mt-1">{{ t('users.editDescription') }}</p>
+        <DialogDescription class="terminal-comment mt-1">{{ t('users.editDescription') }}</DialogDescription>
       </DialogHeader>
 
       <!-- Loading State -->

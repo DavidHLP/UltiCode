@@ -3,7 +3,9 @@ package com.ulticode.modules.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
@@ -33,7 +35,6 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     private final NotificationMapper notificationMapper;
     private final UserMapper userMapper;
-    private final AuditHelper auditHelper;
 
     @Override
     public List<AdminNotificationVO> getAllSystemNotifications() {
@@ -65,6 +66,7 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.CREATE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION)
     public AdminNotificationVO createSystemNotification(CreateSystemNotificationRequest request) {
         String currentUserId = SecurityUtil.getCurrentUserId();
         User currentUser = userMapper.selectById(currentUserId);
@@ -108,21 +110,21 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         log.info("Created system notification '{}' for {} users by admin {}",
                 request.getTitle(), targetUserIds.size(), currentUserId);
 
-        auditHelper.log(
-            AuditActionUtil.CREATE_NOTIFICATION,
-            AuditActionUtil.ENTITY_NOTIFICATION,
-            notificationsToCreate.get(0).getId(),
-            null,
-            Map.of("title", Objects.requireNonNullElse(request.getTitle(), ""), "targetCount", targetUserIds.size(), "target", Objects.requireNonNullElse(request.getTarget(), ""))
-        );
+        AuditContext.setNewValues(java.util.Map.of(
+            "title", request.getTitle() != null ? request.getTitle() : "",
+            "targetCount", targetUserIds.size(),
+            "target", request.getTarget() != null ? request.getTarget() : ""
+        ));
 
         // Return the first created notification as representative
         Notification representative = notificationsToCreate.get(0);
+        AuditContext.setEntityId(representative.getId());
         return toAdminVO(representative);
     }
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.DELETE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION, userIdFrom = "id")
     public void deleteNotification(String id) {
         // Check if notification exists
         Notification notification = notificationMapper.selectById(id);
@@ -142,13 +144,10 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             wrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
         }
 
-        auditHelper.log(
-            AuditActionUtil.DELETE_NOTIFICATION,
-            AuditActionUtil.ENTITY_NOTIFICATION,
-            id,
-            Map.of("title", Objects.requireNonNullElse(notification.getTitle(), ""), "type", Objects.requireNonNullElse(notification.getType(), "")),
-            null
-        );
+        AuditContext.setOldValues(java.util.Map.of(
+            "title", notification.getTitle() != null ? notification.getTitle() : "",
+            "type", notification.getType() != null ? notification.getType() : ""
+        ));
 
         int deletedCount = notificationMapper.delete(wrapper);
         log.info("Deleted system notification '{}' and {} related records", id, deletedCount);

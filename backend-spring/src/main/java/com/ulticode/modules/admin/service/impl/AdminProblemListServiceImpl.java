@@ -5,8 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.util.AuditActionUtil;
-import com.ulticode.common.util.AuditHelper;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.AdminProblemListQueryDTO;
 import com.ulticode.modules.admin.service.AdminProblemListService;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
@@ -40,7 +41,6 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
     private final ProblemListMapper problemListMapper;
     private final ProblemListProblemMapper problemListProblemMapper;
     private final ProblemListService problemListService;
-    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<ProblemListSummaryVO> getProblemLists(AdminProblemListQueryDTO query) {
@@ -100,21 +100,21 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
     public ProblemListSummaryVO updateProblemList(String id, UpdateProblemListDTO dto, String userId) {
         ProblemList list = problemListMapper.selectById(id);
         if (list == null) {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
         }
 
-        java.util.Map<String, Object> oldValues = new java.util.HashMap<>();
-        oldValues.put("name", list.getName());
-        oldValues.put("description", list.getDescription());
-        oldValues.put("isPublic", list.getIsPublic());
-        oldValues.put("isFeatured", list.getIsFeatured());
-        oldValues.put("bannerTag", list.getBannerTag());
-        oldValues.put("bannerIcon", list.getBannerIcon());
-        oldValues.put("bannerTheme", list.getBannerTheme());
-        oldValues.put("bannerOrder", list.getBannerOrder());
+        AuditContext.setOldValues(java.util.Map.of(
+            "name", list.getName() != null ? list.getName() : "",
+            "description", list.getDescription() != null ? list.getDescription() : "",
+            "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
+            "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false,
+            "bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "",
+            "bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0
+        ));
 
         // Admin bypass: update fields directly without ownership check
         if (dto.getName() != null) {
@@ -144,34 +144,32 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
 
         problemListMapper.updateById(list);
 
-        auditHelper.log(
-            AuditActionUtil.UPDATE_PROBLEM_LIST,
-            AuditActionUtil.ENTITY_PROBLEM_LIST,
-            id,
-            oldValues,
-            Map.of("name", list.getName(), "isPublic", list.getIsPublic(), "isFeatured", list.getIsFeatured())
-        );
+        AuditContext.setNewValues(java.util.Map.of(
+            "name", list.getName() != null ? list.getName() : "",
+            "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
+            "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false
+        ));
 
         return toSummaryVO(list);
     }
 
     @Override
+    @Audited(action = AuditActionUtil.DELETE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "id")
     public void deleteProblemList(String id) {
         ProblemList list = problemListMapper.selectById(id);
         if (list == null) {
             throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
         }
-        auditHelper.log(
-            AuditActionUtil.DELETE_PROBLEM_LIST,
-            AuditActionUtil.ENTITY_PROBLEM_LIST,
-            id,
-            Map.of("name", list.getName(), "authorId", list.getAuthorId()),
-            null
-        );
+        AuditContext.setOldValues(java.util.Map.of(
+            "name", list.getName() != null ? list.getName() : "",
+            "authorId", list.getAuthorId() != null ? list.getAuthorId() : ""
+        ));
         problemListService.deleteList(id, list.getAuthorId());
     }
 
     @Override
+    @Transactional(rollbackFor = Exception.class)
+    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "id")
     public void updateListProblems(String id, UpdateProblemListProblemsDTO dto) {
         ProblemList list = problemListMapper.selectById(id);
         if (list == null) {
@@ -192,13 +190,7 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
             problemListProblemMapper.insert(relation);
         }
 
-        auditHelper.log(
-            AuditActionUtil.UPDATE_PROBLEM_LIST,
-            AuditActionUtil.ENTITY_PROBLEM_LIST,
-            id,
-            null,
-            Map.of("updatedProblems", dto.getProblems().size())
-        );
+        AuditContext.setNewValues(java.util.Map.of("updatedProblems", dto.getProblems().size()));
     }
 
     private ProblemListSummaryVO toSummaryVO(ProblemList list) {

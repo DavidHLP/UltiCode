@@ -2,10 +2,12 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminContestQueryDTO;
@@ -33,7 +35,6 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -112,6 +113,7 @@ public class AdminContestServiceImpl implements AdminContestService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.CREATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, captureOldState = false)
     public AdminContestVO createContest(CreateContestDTO dto, String userId) {
         Contest contest = new Contest();
         contest.setTitle(dto.getTitle());
@@ -153,13 +155,8 @@ public class AdminContestServiceImpl implements AdminContestService {
             }
         }
 
-        auditHelper.log(
-            AuditActionUtil.CREATE_CONTEST,
-            AuditActionUtil.ENTITY_CONTEST,
-            contest.getId(),
-            null,
-            Map.of("title", Objects.requireNonNullElse(contest.getTitle(), ""), "slug", Objects.requireNonNullElse(contest.getSlug(), ""))
-        );
+        AuditContext.setNewValues(Map.of("title", contest.getTitle(), "slug", contest.getSlug()));
+        AuditContext.setUserId(userId);
 
         log.info("Admin created contest: {} by user {}", contest.getId(), userId);
         return toAdminVO(contest);
@@ -167,6 +164,7 @@ public class AdminContestServiceImpl implements AdminContestService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO updateContest(String id, UpdateContestDTO dto) {
         Contest contest = contestMapper.selectById(id);
         if (contest == null) {
@@ -231,19 +229,15 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         contestMapper.updateById(contest);
 
-        auditHelper.log(
-            AuditActionUtil.UPDATE_CONTEST,
-            AuditActionUtil.ENTITY_CONTEST,
-            id,
-            oldValues,
-            Map.of("title", contest.getTitle(), "status", contest.getStatus())
-        );
+        AuditContext.setOldValues(oldValues);
+        AuditContext.setNewValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
 
         log.info("Admin updated contest: {}", id);
         return toAdminVO(contest);
     }
 
     @Override
+    @Audited(action = AuditActionUtil.DELETE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
     public void deleteContest(String id) {
         Contest contest = contestMapper.selectById(id);
         if (contest == null) {
@@ -261,18 +255,14 @@ public class AdminContestServiceImpl implements AdminContestService {
         contest.setDeletedBy(SecurityUtil.getCurrentUserId());
         contestMapper.updateById(contest);
 
-        auditHelper.log(
-            AuditActionUtil.DELETE_CONTEST,
-            AuditActionUtil.ENTITY_CONTEST,
-            id,
-            Map.of("title", contest.getTitle(), "status", contest.getStatus()),
-            null
-        );
+        AuditContext.setOldValues(Map.of("title", contest.getTitle(), "status", contest.getStatus()));
+        AuditContext.setNewValues(null);
 
         log.info("Admin deleted contest: {}", id);
     }
 
     @Override
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO startContest(String id) {
         Contest contest = contestMapper.selectById(id);
         if (contest == null) {
@@ -291,19 +281,15 @@ public class AdminContestServiceImpl implements AdminContestService {
         contest.setStatus(ContestStatus.RUNNING.name());
         contestMapper.updateById(contest);
 
-        auditHelper.log(
-            AuditActionUtil.UPDATE_CONTEST,
-            AuditActionUtil.ENTITY_CONTEST,
-            id,
-            Map.of("status", ContestStatus.UPCOMING.name()),
-            Map.of("status", ContestStatus.RUNNING.name())
-        );
+        AuditContext.setOldValues(Map.of("status", ContestStatus.UPCOMING.name()));
+        AuditContext.setNewValues(Map.of("status", ContestStatus.RUNNING.name()));
 
         log.info("Admin started contest: {}", id);
         return toAdminVO(contest);
     }
 
     @Override
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "id")
     public AdminContestVO endContest(String id) {
         Contest contest = contestMapper.selectById(id);
         if (contest == null) {
@@ -317,19 +303,16 @@ public class AdminContestServiceImpl implements AdminContestService {
         contest.setStatus(ContestStatus.FINISHED.name());
         contestMapper.updateById(contest);
 
-        auditHelper.log(
-            AuditActionUtil.UPDATE_CONTEST,
-            AuditActionUtil.ENTITY_CONTEST,
-            id,
-            Map.of("status", ContestStatus.RUNNING.name()),
-            Map.of("status", ContestStatus.FINISHED.name())
-        );
+        AuditContext.setOldValues(Map.of("status", ContestStatus.RUNNING.name()));
+        AuditContext.setNewValues(Map.of("status", ContestStatus.FINISHED.name()));
 
         log.info("Admin ended contest: {}", id);
         return toAdminVO(contest);
     }
 
     @Override
+    @Transactional
+    @Audited(action = AuditActionUtil.CREATE_CONTEST_ANNOUNCEMENT, entityType = AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT, captureOldState = false)
     public ContestAnnouncement createAnnouncement(String contestId, String title, String content, Boolean isPinned) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null) {
@@ -347,19 +330,14 @@ public class AdminContestServiceImpl implements AdminContestService {
         // WebSocket push (D-12)
         realtimeService.emitAnnouncement(AnnouncementPayload.of(announcement.getId(), contestId, title, content));
 
-        auditHelper.log(
-            AuditActionUtil.CREATE_CONTEST_ANNOUNCEMENT,
-            AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT,
-            announcement.getId(),
-            null,
-            Map.of("title", title, "contestId", contestId)
-        );
+        AuditContext.setNewValues(Map.of("title", title, "contestId", contestId));
 
         log.info("Admin created announcement {} for contest {}", announcement.getId(), contestId);
         return announcement;
     }
 
     @Override
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST_ANNOUNCEMENT, entityType = AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
     public ContestAnnouncement updateAnnouncement(String contestId, String announcementId, String title, String content, Boolean isPinned) {
         ContestAnnouncement announcement = contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
         if (announcement == null) {
@@ -383,19 +361,15 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         contestAnnouncementMapper.updateById(announcement);
 
-        auditHelper.log(
-            AuditActionUtil.UPDATE_CONTEST_ANNOUNCEMENT,
-            AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT,
-            announcementId,
-            oldValues,
-            Map.of("title", announcement.getTitle(), "isPinned", announcement.getIsPinned())
-        );
+        AuditContext.setOldValues(oldValues);
+        AuditContext.setNewValues(Map.of("title", announcement.getTitle(), "isPinned", announcement.getIsPinned()));
 
         log.info("Admin updated announcement {} for contest {}", announcementId, contestId);
         return announcement;
     }
 
     @Override
+    @Audited(action = AuditActionUtil.DELETE_CONTEST_ANNOUNCEMENT, entityType = AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT, entityIdFrom = "announcementId")
     public void deleteAnnouncement(String contestId, String announcementId) {
         ContestAnnouncement announcement = contestAnnouncementMapper.findByContestIdAndId(contestId, announcementId);
         if (announcement == null) {
@@ -404,13 +378,8 @@ public class AdminContestServiceImpl implements AdminContestService {
 
         contestAnnouncementMapper.deleteById(announcementId);
 
-        auditHelper.log(
-            AuditActionUtil.DELETE_CONTEST_ANNOUNCEMENT,
-            AuditActionUtil.ENTITY_CONTEST_ANNOUNCEMENT,
-            announcementId,
-            Map.of("title", announcement.getTitle(), "contestId", contestId),
-            null
-        );
+        AuditContext.setOldValues(Map.of("title", announcement.getTitle(), "contestId", contestId));
+        AuditContext.setNewValues(null);
 
         log.info("Admin deleted announcement {} for contest {}", announcementId, contestId);
     }
@@ -431,6 +400,7 @@ public class AdminContestServiceImpl implements AdminContestService {
 
     @Override
     @Transactional
+    @Audited(action = AuditActionUtil.UPDATE_CONTEST, entityType = AuditActionUtil.ENTITY_CONTEST, entityIdFrom = "contestId", captureOldState = false)
     public ContestProblem addProblemToContest(String contestId, Long problemId, Integer score) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null) {
@@ -454,13 +424,7 @@ public class AdminContestServiceImpl implements AdminContestService {
         cp.setSubmissionCount(0);
         contestProblemMapper.insert(cp);
 
-        auditHelper.log(
-            AuditActionUtil.UPDATE_CONTEST,
-            AuditActionUtil.ENTITY_CONTEST,
-            contestId,
-            null,
-            Map.of("addedProblemId", problemId, "problemIndex", cp.getProblemIndex())
-        );
+        AuditContext.setNewValues(Map.of("addedProblemId", problemId, "problemIndex", cp.getProblemIndex()));
 
         log.info("Admin added problem {} to contest {}", problemId, contestId);
         return cp;

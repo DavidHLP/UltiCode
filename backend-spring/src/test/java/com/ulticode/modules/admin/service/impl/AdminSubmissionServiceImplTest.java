@@ -2,8 +2,6 @@ package com.ulticode.modules.admin.service.impl;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
-import com.ulticode.common.util.AuditActionUtil;
-import com.ulticode.common.util.AuditHelper;
 import com.ulticode.modules.admin.dto.BatchRejudgeResponse;
 import com.ulticode.modules.admin.dto.RejudgeResult;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
@@ -23,10 +21,6 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,15 +39,12 @@ class AdminSubmissionServiceImplTest {
     @Mock
     private QueueService queueService;
 
-    @Mock
-    private AuditHelper auditHelper;
-
     private AdminSubmissionServiceImpl adminSubmissionService;
 
     @BeforeEach
     void setUp() {
         adminSubmissionService = new AdminSubmissionServiceImpl(
-                submissionMapper, userMapper, problemMapper, queueService, auditHelper);
+                submissionMapper, userMapper, problemMapper, queueService);
     }
 
     private Submission createValidSubmission() {
@@ -91,14 +82,6 @@ class AdminSubmissionServiceImplTest {
             verify(queueService).enqueueJudgeJob(
                     "sub-123", "1", "user-456", "java", "public class Main {}");
             verify(submissionMapper).updateById(submission);
-            verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.REQUEUE_SUBMISSION),
-                    eq(AuditActionUtil.ENTITY_SUBMISSION),
-                    eq("sub-123"),
-                    eq("user-456"),
-                    anyMap(),
-                    anyMap()
-            );
         }
 
         @Test
@@ -113,8 +96,6 @@ class AdminSubmissionServiceImplTest {
             assertThat(result.getSubmissionId()).isEqualTo("nonexistent");
             verify(queueService, never()).enqueueJudgeJob(anyString(), anyString(),
                     anyString(), anyString(), anyString());
-            verify(auditHelper, never()).logForUser(anyString(), anyString(), anyString(),
-                    anyString(), anyMap(), anyMap());
         }
 
         @Test
@@ -130,14 +111,6 @@ class AdminSubmissionServiceImplTest {
 
             assertThat(submission.getRetryCount()).isEqualTo(4);
             verify(submissionMapper).updateById(submission);
-            verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.REQUEUE_SUBMISSION),
-                    eq(AuditActionUtil.ENTITY_SUBMISSION),
-                    eq("sub-123"),
-                    eq("user-456"),
-                    anyMap(),
-                    anyMap()
-            );
         }
 
         @Test
@@ -152,14 +125,6 @@ class AdminSubmissionServiceImplTest {
             adminSubmissionService.rejudge("sub-123", false);
 
             assertThat(submission.getRetryCount()).isEqualTo(1);
-            verify(auditHelper).logForUser(
-                    eq(AuditActionUtil.REQUEUE_SUBMISSION),
-                    eq(AuditActionUtil.ENTITY_SUBMISSION),
-                    eq("sub-123"),
-                    eq("user-456"),
-                    anyMap(),
-                    anyMap()
-            );
         }
 
         @Test
@@ -175,8 +140,6 @@ class AdminSubmissionServiceImplTest {
 
             assertThat(result.getSuccess()).isFalse();
             assertThat(result.getError()).isEqualTo("Queue unavailable");
-            verify(auditHelper, never()).logForUser(anyString(), anyString(), anyString(),
-                    anyString(), anyMap(), anyMap());
         }
     }
 
@@ -217,14 +180,6 @@ class AdminSubmissionServiceImplTest {
             assertThat(response.getSuccessful()).isEqualTo(2);
             assertThat(response.getFailed()).isEqualTo(0);
             assertThat(response.getResults()).hasSize(2);
-            verify(auditHelper, times(2)).logForUser(
-                    eq(AuditActionUtil.REQUEUE_SUBMISSION),
-                    eq(AuditActionUtil.ENTITY_SUBMISSION),
-                    anyString(),
-                    eq("user-456"),
-                    anyMap(),
-                    anyMap()
-            );
         }
 
         @Test
@@ -237,8 +192,6 @@ class AdminSubmissionServiceImplTest {
             assertThat(response.getSuccessful()).isEqualTo(0);
             assertThat(response.getFailed()).isEqualTo(0);
             assertThat(response.getResults()).isEmpty();
-            verify(auditHelper, never()).logForUser(anyString(), anyString(), anyString(),
-                    anyString(), anyMap(), anyMap());
         }
 
         @Test
@@ -252,8 +205,6 @@ class AdminSubmissionServiceImplTest {
             assertThat(response.getTotal()).isEqualTo(50);
             assertThat(response.getFailed()).isEqualTo(50);
             assertThat(response.getSuccessful()).isEqualTo(0);
-            verify(auditHelper, never()).logForUser(anyString(), anyString(), anyString(),
-                    anyString(), anyMap(), anyMap());
         }
     }
 }

@@ -13,9 +13,14 @@ import java.util.Map;
  * Helper component for creating audit log entries.
  * Simplifies the call to {@link AuditService#log} by filling in
  * performer ID, IP address, and user agent automatically.
+ *
+ * @deprecated Use {@link com.ulticode.common.annotation.Audited} annotation on service methods instead.
+ *             For cases that don't fit the annotation model (e.g., bulk operations),
+ *             this helper can still be used.
  */
 @Component
 @RequiredArgsConstructor
+@Deprecated(forRemoval = false)
 public class AuditHelper {
 
     private final AuditService auditService;

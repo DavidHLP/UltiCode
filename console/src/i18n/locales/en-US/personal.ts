@@ -331,6 +331,16 @@ export default {
     clearAll: "Clear All",
     recent: "Recent",
     emptyStateDesc: "You're all caught up! No new notifications for now.",
+    preferences: "Preferences",
+    preferencesDesc: "Choose which types of notifications you want to receive.",
+    preferencesSaved: "Preferences saved",
+    preferencesError: "Failed to save preferences",
+    prefCategories: {
+      communication: "Communication",
+      marketing: "Marketing",
+      security: "Security",
+      system: "System",
+    },
     types: {
       comment: "commented on your",
       reply: "replied to you",

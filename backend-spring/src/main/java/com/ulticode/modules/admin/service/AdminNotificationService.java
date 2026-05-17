@@ -2,6 +2,7 @@ package com.ulticode.modules.admin.service;
 
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
+import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 
 import java.util.List;
 
@@ -36,4 +37,13 @@ public interface AdminNotificationService {
      * @param id the notification ID
      */
     void deleteNotification(String id);
+
+    /**
+     * Update a system notification and all its user copies.
+     *
+     * @param id the notification ID
+     * @param request the update request
+     * @return the updated notification VO
+     */
+    AdminNotificationVO updateSystemNotification(String id, UpdateSystemNotificationRequest request);
 }

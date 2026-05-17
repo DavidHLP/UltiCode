@@ -18,8 +18,6 @@ import {
   getSocketManager,
   NotificationEvent,
   type NotificationPayload,
-  type SubmissionResultPayload,
-  type BadgeEarnedPayload,
 } from "@/lib/socket";
 
 export const useNotificationStore = defineStore("notification", () => {
@@ -154,13 +152,12 @@ export const useNotificationStore = defineStore("notification", () => {
 
   // Real-time notification handlers
   function handleNewNotification(payload: NotificationPayload) {
-    // Add to beginning of notifications list
     const newItem: NotificationItem = {
       id: payload.id,
       title: payload.title,
-      body: payload.body,
-      type: payload.type as NotificationItem["type"],
-      category: "system",
+      body: payload.content,
+      type: (payload.type?.toUpperCase() ?? "SYSTEM") as NotificationItem["type"],
+      category: "SYSTEM",
       link: payload.link || null,
       isRead: false,
       readAt: null,
@@ -170,13 +167,6 @@ export const useNotificationStore = defineStore("notification", () => {
     total.value += 1;
     unreadCount.value += 1;
   }
-
-  // handleSubmissionResult - WebSocket callback placeholder
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleSubmissionResult = (_: SubmissionResultPayload) => { };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleBadgeEarned = (_: BadgeEarnedPayload) => { };
 
   /**
    * Setup WebSocket listeners
@@ -201,11 +191,6 @@ export const useNotificationStore = defineStore("notification", () => {
       NotificationEvent.SYSTEM_ANNOUNCEMENT,
       handleNewNotification,
     );
-    socketManager.on(
-      NotificationEvent.SUBMISSION_RESULT,
-      handleSubmissionResult,
-    );
-    socketManager.on(NotificationEvent.BADGE_EARNED, handleBadgeEarned);
 
     // Watch for auth changes - this is the key integration point
     watch(

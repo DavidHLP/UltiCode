@@ -11,8 +11,8 @@ function buildQuery(params?: NotificationQuery): string {
   const query = new URLSearchParams();
   if (params.page) query.set("page", String(params.page));
   if (params.limit) query.set("limit", String(params.limit));
-  if (params.unreadOnly !== undefined) {
-    query.set("unreadOnly", String(params.unreadOnly));
+  if (params.isRead !== undefined) {
+    query.set("isRead", String(params.isRead));
   }
   if (params.category) query.set("category", params.category);
   if (params.type) query.set("type", params.type);

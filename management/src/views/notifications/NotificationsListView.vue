@@ -2,7 +2,7 @@
 import { ref, computed, onMounted, h } from 'vue'
 import { useI18n } from 'vue-i18n'
 import type { ColumnDef } from '@tanstack/vue-table'
-import { IconPlus, IconTrash, IconDotsVertical, IconBell } from '@tabler/icons-vue'
+import { IconPlus, IconTrash, IconDotsVertical, IconBell, IconPencil } from '@tabler/icons-vue'
 import { format } from 'date-fns'
 
 import { Button } from '@/components/ui/button'
@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { useNotificationsStore } from '@/stores/admin/notifications'
 import { NotificationType, type SystemAnnouncement } from '@/api/admin/notifications'
+import NotificationCreateDialog from './NotificationCreateDialog.vue'
+
 import { NOTIFICATION_TYPE_COLOR_MAP, type SemanticColor } from '@/components/ui/terminal'
 
 const COLOR_TO_CLASS: Record<SemanticColor, string> = {
@@ -29,7 +31,6 @@ const COLOR_TO_CLASS: Record<SemanticColor, string> = {
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
-import NotificationCreateDialog from './NotificationCreateDialog.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 
 const { t } = useI18n()
@@ -41,6 +42,7 @@ const createDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 const selectedNotificationId = ref<string | null>(null)
 const selectedNotificationTitle = ref<string | null>(null)
+const notificationToEdit = ref<SystemAnnouncement | null>(null)
 
 // Animation state for staggered reveal
 const isLoaded = ref(false)
@@ -110,6 +112,11 @@ function startDelete(notification: SystemAnnouncement) {
   selectedNotificationId.value = notification.id
   selectedNotificationTitle.value = notification.title
   deleteDialogOpen.value = true
+}
+
+function startEdit(notification: SystemAnnouncement) {
+  notificationToEdit.value = notification
+  createDialogOpen.value = true
 }
 
 async function handleDelete(id: string | number) {
@@ -202,6 +209,20 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
               { align: 'end' },
               {
                 default: () => [
+                  h(
+                    DropdownMenuItem,
+                    {
+                      class: 'text-[var(--accent-electric)] focus:text-[var(--accent-electric)]',
+                      onClick: () => startEdit(row.original),
+                    },
+                    {
+                      default: () =>
+                        h('div', { class: 'flex items-center gap-2' }, [
+                          h(IconPencil, { class: 'h-4 w-4' }),
+                          t('common.edit'),
+                        ]),
+                    },
+                  ),
                   h(
                     DropdownMenuItem,
                     {
@@ -336,7 +357,12 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     </div>
   </div>
 
-  <NotificationCreateDialog v-model:open="createDialogOpen" @success="store.fetchAnnouncements()" />
+  <NotificationCreateDialog
+    v-model:open="createDialogOpen"
+    :notification-to-edit="notificationToEdit"
+    @success="store.fetchAnnouncements()"
+    @update:open="if (!$event) notificationToEdit = null"
+  />
   <EntityActionDialog
     v-model:open="deleteDialogOpen"
     :entity-id="selectedNotificationId"

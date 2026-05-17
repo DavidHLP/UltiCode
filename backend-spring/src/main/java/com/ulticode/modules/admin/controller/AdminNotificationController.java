@@ -4,6 +4,7 @@ import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
+import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
 import com.ulticode.modules.admin.service.AdminNotificationService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -52,5 +53,16 @@ public class AdminNotificationController {
             @PathVariable String id) {
         adminNotificationService.deleteNotification(id);
         return Result.success();
+    }
+
+    @Operation(summary = "Update notification", description = "Update a system notification and all its user copies")
+    @RateLimit(key = "admin:notification-update", limit = 30, period = 60)
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<AdminNotificationVO> updateNotification(
+            @io.swagger.v3.oas.annotations.Parameter(description = "Notification ID")
+            @PathVariable String id,
+            @Valid @RequestBody UpdateSystemNotificationRequest request) {
+        return Result.success(adminNotificationService.updateSystemNotification(id, request));
     }
 }

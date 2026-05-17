@@ -66,7 +66,7 @@ export interface NotificationPayload {
   id: string;
   type: string;
   title: string;
-  body: string;
+  content: string;
   link?: string;
   createdAt: string;
 }

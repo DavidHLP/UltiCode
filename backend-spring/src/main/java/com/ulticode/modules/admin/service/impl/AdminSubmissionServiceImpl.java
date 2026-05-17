@@ -5,8 +5,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
+import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.util.AuditActionUtil;
-import com.ulticode.common.util.AuditHelper;
+import com.ulticode.common.util.AuditContext;
 import com.ulticode.modules.admin.dto.*;
 import com.ulticode.modules.admin.service.AdminSubmissionService;
 import com.ulticode.modules.problem.entity.Problem;
@@ -41,7 +42,6 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     private final UserMapper userMapper;
     private final ProblemMapper problemMapper;
     private final QueueService queueService;
-    private final AuditHelper auditHelper;
 
     @Override
     public PageResult<AdminSubmissionVO> getSubmissions(AdminSubmissionQueryDTO query) {
@@ -272,6 +272,7 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
     }
 
     @Override
+    @Audited(action = AuditActionUtil.REQUEUE_SUBMISSION, entityType = AuditActionUtil.ENTITY_SUBMISSION, userIdFrom = "id")
     public RejudgeResult rejudge(String id, boolean notifyUser) {
         Submission submission = submissionMapper.selectById(id);
         if (submission == null) {
@@ -317,18 +318,14 @@ public class AdminSubmissionServiceImpl implements AdminSubmissionService {
         }
 
         if (result.getSuccess()) {
-            try {
-                auditHelper.logForUser(
-                    AuditActionUtil.REQUEUE_SUBMISSION,
-                    AuditActionUtil.ENTITY_SUBMISSION,
-                    id,
-                    submission.getUserId(),
-                    Map.of("oldStatus", result.getOldStatus(), "retryCount", submission.getRetryCount()),
-                    Map.of("newStatus", "Pending", "retryCount", submission.getRetryCount())
-                );
-            } catch (Exception e) {
-                log.warn("Failed to write audit log for rejudge: {}", id, e);
-            }
+            AuditContext.setOldValues(java.util.Map.of(
+                "oldStatus", result.getOldStatus() != null ? result.getOldStatus() : "",
+                "retryCount", submission.getRetryCount() != null ? submission.getRetryCount() : 0
+            ));
+            AuditContext.setNewValues(java.util.Map.of(
+                "newStatus", "Pending",
+                "retryCount", submission.getRetryCount() != null ? submission.getRetryCount() : 0
+            ));
         }
 
         return result;

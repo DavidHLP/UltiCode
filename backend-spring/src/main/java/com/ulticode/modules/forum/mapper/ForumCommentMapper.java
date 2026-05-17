@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * MyBatis-Plus mapper for ForumComment entity.
@@ -77,6 +78,17 @@ public interface ForumCommentMapper extends BaseMapper<ForumComment> {
      */
     @Select("SELECT COUNT(*) FROM forum_comments WHERE post_id = #{postId} AND is_deleted = 0")
     long countByPostId(@Param("postId") String postId);
+
+    /**
+     * Count comments by multiple post IDs.
+     *
+     * @param postIds the post IDs
+     * @return list of maps with "post_id" and "cnt" keys
+     */
+    @Select("<script>SELECT post_id, COUNT(*) as cnt FROM forum_comments WHERE post_id IN " +
+            "<foreach collection='postIds' item='id' open='(' separator=',' close=')'>#{id}</foreach> " +
+            "AND is_deleted = 0 GROUP BY post_id</script>")
+    List<Map<String, Object>> countByPostIds(@Param("postIds") List<String> postIds);
 
     /**
      * Count comments by author ID.

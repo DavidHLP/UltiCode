@@ -150,6 +150,13 @@ public class ModerationController {
         return Result.success(moderationService.getReports(query));
     }
 
+    @Operation(summary = "Get report details")
+    @GetMapping("/reports/{id}")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
+    public Result<ReportVO> getReport(@PathVariable String id) {
+        return Result.success(moderationService.getReport(id));
+    }
+
     // ==================== Appeal Operations ====================
 
     @Operation(summary = "Create an appeal")
@@ -173,6 +180,21 @@ public class ModerationController {
     @PreAuthorize("isAuthenticated()")
     public Result<AppealVO> getAppeal(@PathVariable String id) {
         return Result.success(moderationService.getAppeal(id));
+    }
+
+    @Operation(summary = "Get current user's appeals")
+    @GetMapping("/appeals/my")
+    @PreAuthorize("isAuthenticated()")
+    public Result<List<AppealVO>> getMyAppeals() {
+        String appellantId = SecurityUtil.getCurrentUserId();
+        return Result.success(moderationService.getMyAppeals(appellantId));
+    }
+
+    @Operation(summary = "Get appeal statistics")
+    @GetMapping("/appeals/stats")
+    @PreAuthorize("hasAnyRole('MODERATOR', 'ADMIN', 'SUPER_ADMIN')")
+    public Result<AppealStatsVO> getAppealStats() {
+        return Result.success(moderationService.getAppealStats());
     }
 
     @Operation(summary = "Review an appeal")

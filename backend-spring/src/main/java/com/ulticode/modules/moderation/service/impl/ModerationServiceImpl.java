@@ -63,9 +63,33 @@ public class ModerationServiceImpl implements ModerationService {
         if (query.getAssignedTo() != null && !query.getAssignedTo().isEmpty()) {
             wrapper.eq(ModerationQueue::getAssignedToId, query.getAssignedTo());
         }
+        if (query.getPrimaryCategory() != null && !query.getPrimaryCategory().isEmpty()) {
+            wrapper.eq(ModerationQueue::getPrimaryCategory, query.getPrimaryCategory());
+        }
+        if (query.getMinPriority() != null) {
+            wrapper.ge(ModerationQueue::getPriority, query.getMinPriority());
+        }
 
-        wrapper.orderByDesc(ModerationQueue::getPriority)
-               .orderByAsc(ModerationQueue::getCreatedAt);
+        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
+        if (query.getSortBy() != null && !query.getSortBy().isEmpty()) {
+            switch (query.getSortBy()) {
+                case "priority":
+                    wrapper.orderBy(true, isAsc, ModerationQueue::getPriority);
+                    break;
+                case "createdAt":
+                    wrapper.orderBy(true, isAsc, ModerationQueue::getCreatedAt);
+                    break;
+                case "updatedAt":
+                    wrapper.orderBy(true, isAsc, ModerationQueue::getUpdatedAt);
+                    break;
+                default:
+                    wrapper.orderByDesc(ModerationQueue::getPriority)
+                           .orderByAsc(ModerationQueue::getCreatedAt);
+            }
+        } else {
+            wrapper.orderByDesc(ModerationQueue::getPriority)
+                   .orderByAsc(ModerationQueue::getCreatedAt);
+        }
 
         Page<ModerationQueue> page = new Page<>(query.getPage(), query.getLimit());
         Page<ModerationQueue> result = queueMapper.selectPage(page, wrapper);
@@ -351,8 +375,28 @@ public class ModerationServiceImpl implements ModerationService {
         if (query.getReporterId() != null && !query.getReporterId().isEmpty()) {
             wrapper.eq(Report::getReporterId, query.getReporterId());
         }
+        if (query.getEntityType() != null && !query.getEntityType().isEmpty()) {
+            wrapper.eq(Report::getEntityType, query.getEntityType());
+        }
+        if (query.getEntityId() != null && !query.getEntityId().isEmpty()) {
+            wrapper.eq(Report::getEntityId, query.getEntityId());
+        }
 
-        wrapper.orderByDesc(Report::getCreatedAt);
+        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
+        if (query.getSortBy() != null && !query.getSortBy().isEmpty()) {
+            switch (query.getSortBy()) {
+                case "createdAt":
+                    wrapper.orderBy(true, isAsc, Report::getCreatedAt);
+                    break;
+                case "updatedAt":
+                    wrapper.orderBy(true, isAsc, Report::getUpdatedAt);
+                    break;
+                default:
+                    wrapper.orderByDesc(Report::getCreatedAt);
+            }
+        } else {
+            wrapper.orderByDesc(Report::getCreatedAt);
+        }
 
         Page<Report> page = new Page<>(query.getPage(), query.getLimit());
         Page<Report> result = reportMapper.selectPage(page, wrapper);
@@ -362,6 +406,15 @@ public class ModerationServiceImpl implements ModerationService {
                 .collect(Collectors.toList());
 
         return PageResult.of(voList, result.getTotal(), query.getPage(), query.getLimit());
+    }
+
+    @Override
+    public ReportVO getReport(String id) {
+        Report report = reportMapper.selectById(id);
+        if (report == null) {
+            throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND, "Report not found: " + id);
+        }
+        return toReportVO(report);
     }
 
     // ==================== Appeal Operations ====================
@@ -414,7 +467,21 @@ public class ModerationServiceImpl implements ModerationService {
             wrapper.eq(Appeal::getAppellantId, query.getAppellantId());
         }
 
-        wrapper.orderByDesc(Appeal::getCreatedAt);
+        boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
+        if (query.getSortBy() != null && !query.getSortBy().isEmpty()) {
+            switch (query.getSortBy()) {
+                case "createdAt":
+                    wrapper.orderBy(true, isAsc, Appeal::getCreatedAt);
+                    break;
+                case "updatedAt":
+                    wrapper.orderBy(true, isAsc, Appeal::getUpdatedAt);
+                    break;
+                default:
+                    wrapper.orderByDesc(Appeal::getCreatedAt);
+            }
+        } else {
+            wrapper.orderByDesc(Appeal::getCreatedAt);
+        }
 
         Page<Appeal> page = new Page<>(query.getPage(), query.getLimit());
         Page<Appeal> result = appealMapper.selectPage(page, wrapper);
@@ -433,6 +500,27 @@ public class ModerationServiceImpl implements ModerationService {
             throw new BusinessException(ErrorCode.MODERATION_APPEAL_NOT_FOUND);
         }
         return toAppealVO(appeal);
+    }
+
+    @Override
+    public List<AppealVO> getMyAppeals(String appellantId) {
+        LambdaQueryWrapper<Appeal> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Appeal::getAppellantId, appellantId);
+        wrapper.orderByDesc(Appeal::getCreatedAt);
+        List<Appeal> appeals = appealMapper.selectList(wrapper);
+        return appeals.stream()
+                .map(this::toAppealVO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public AppealStatsVO getAppealStats() {
+        AppealStatsVO stats = new AppealStatsVO();
+        stats.setTotalPending(appealMapper.countByStatus("PENDING"));
+        stats.setTotalUnderReview(appealMapper.countByStatus("UNDER_REVIEW"));
+        stats.setTotalApproved(appealMapper.countByStatus("APPROVED"));
+        stats.setTotalRejected(appealMapper.countByStatus("REJECTED"));
+        return stats;
     }
 
     @Override

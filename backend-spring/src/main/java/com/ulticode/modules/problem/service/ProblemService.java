@@ -9,6 +9,7 @@ import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.entity.Problem;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -39,6 +40,14 @@ public interface ProblemService {
      * @return paginated result of problem view objects
      */
     PageResult<ProblemVO> listProblems(ProblemQueryDTO query);
+
+    /**
+     * List all problems matching filters without pagination.
+     *
+     * @param query the query parameters
+     * @return list of problem view objects
+     */
+    List<ProblemVO> listAllProblems(ProblemQueryDTO query);
 
     /**
      * Get a problem by ID as a view object.

@@ -193,9 +193,12 @@ describe('Moderation API: Frontend-Backend Alignment', () => {
   describe('API endpoint calls', () => {
     it('getQueue should call GET /moderation/queue with correct params', async () => {
       await moderationQueueApi.getQueue({ status: 'PENDING', assignedTo: 'mod-1' })
-      expect(apiGet).toHaveBeenCalledWith('/moderation/queue', expect.objectContaining({
-        params: expect.objectContaining({ status: 'PENDING', assignedTo: 'mod-1' }),
-      }))
+      expect(apiGet).toHaveBeenCalledWith(
+        '/moderation/queue',
+        expect.objectContaining({
+          params: expect.objectContaining({ status: 'PENDING', assignedTo: 'mod-1' }),
+        }),
+      )
     })
 
     it('assignItem should send assignedTo field', async () => {

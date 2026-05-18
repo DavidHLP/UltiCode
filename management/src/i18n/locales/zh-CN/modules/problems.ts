@@ -110,8 +110,34 @@ export default {
   // 导入
   import: {
     title: '导入',
+    description: '从 JSON 或 CSV 文件导入题目',
+    dropFile: '拖放文件到此处，或点击浏览',
+    supportedFormats: '支持格式：JSON、CSV',
+    browse: '浏览文件',
+    clear: '清除',
+    invalidFile: '文件格式无效，请上传 JSON 或 CSV 文件',
+    conflictStrategy: '冲突处理策略',
+    strategies: {
+      skip: '跳过',
+      update: '更新现有题目',
+      createNew: '创建新题目',
+    },
+    strategyDescriptions: {
+      skip: '跳过已存在的题目，不做任何更改',
+      update: '更新现有题目的信息',
+      create_new: '将冲突的题目作为新题目创建',
+    },
+    importing: '导入中...',
+    import: '导入',
+    created: '已创建',
+    updated: '已更新',
+    skipped: '已跳过',
     success: '题目导入成功',
     failed: '导入题目失败',
+    partialSuccess: '成功导入 {success} / {total} 个题目',
+    someErrors: '部分题目导入失败，请查看下方错误详情',
+    error: '导入失败，请重试',
+    errors: '错误详情',
   },
 
   // 批量操作

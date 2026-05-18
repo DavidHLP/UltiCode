@@ -13,7 +13,6 @@ import java.util.List;
 @Data
 public class UpdateProblemListProblemsDTO {
 
-    @NotEmpty(message = "Problems list cannot be empty")
     @Valid
     private List<ProblemEntry> problems;
 

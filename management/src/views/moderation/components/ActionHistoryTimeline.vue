@@ -155,13 +155,13 @@ function getRelativeTime(date: Date | string): string {
           <div
             :class="[
               'relative z-10 flex h-8 w-8 items-center justify-center rounded-full border',
-              getActionConfig(action.actionType).bg,
+              getActionConfig(action.action).bg,
               'border-[var(--silver-300)]',
             ]"
           >
             <component
-              :is="getActionConfig(action.actionType).icon"
-              :class="['h-4 w-4', getActionConfig(action.actionType).color]"
+              :is="getActionConfig(action.action).icon"
+              :class="['h-4 w-4', getActionConfig(action.action).color]"
             />
           </div>
 
@@ -170,7 +170,7 @@ function getRelativeTime(date: Date | string): string {
             <div class="flex items-start justify-between gap-2">
               <div class="flex-1">
                 <p class="text-sm font-medium">
-                  {{ t(`moderation.actions.${action.actionType}`) }}
+                  {{ t(`moderation.actions.${action.action}`) }}
                 </p>
                 <div class="flex items-center gap-2 mt-1 text-xs text-[var(--silver-500)]">
                   <IconUser class="h-3 w-3" />
@@ -199,7 +199,7 @@ function getRelativeTime(date: Date | string): string {
 
             <!-- Duration (for temp bans) -->
             <div
-              v-if="action.durationDays && action.actionType === ModerationActionType.TEMP_BANNED"
+              v-if="action.durationDays && action.action === ModerationActionType.TEMP_BANNED"
               class="mt-2 text-xs text-[var(--terminal-amber)]"
             >
               {{ t('moderation.detail.duration') }}:

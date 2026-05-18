@@ -48,4 +48,7 @@ public interface AppealMapper extends BaseMapper<Appeal> {
      */
     @Select("SELECT COUNT(*) FROM appeals WHERE status = 'PENDING'")
     long countPending();
+
+    @Select("SELECT COUNT(*) FROM appeals WHERE status = #{status}")
+    long countByStatus(@Param("status") String status);
 }

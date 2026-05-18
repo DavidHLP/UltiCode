@@ -8,28 +8,21 @@ import lombok.Data;
 @Data
 public class QueryReportsDTO {
 
-    /**
-     * Filter by status
-     */
     private String status;
 
-    /**
-     * Filter by category
-     */
     private String category;
 
-    /**
-     * Filter by reporter ID
-     */
     private String reporterId;
 
-    /**
-     * Page number (1-based)
-     */
+    private String entityType;
+
+    private String entityId;
+
+    private String sortBy;
+
+    private String sortOrder;
+
     private Integer page = 1;
 
-    /**
-     * Number of items per page
-     */
     private Integer limit = 20;
 }

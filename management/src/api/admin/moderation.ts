@@ -108,7 +108,6 @@ export interface Report {
 
   entityType: ModeratableEntityType
   entityId: string
-  parentId?: string
   category: ReportCategory
   status: ReportStatus
   reason?: string
@@ -121,8 +120,8 @@ export interface Report {
 export interface ModerationAction {
   id: string
   queueId: string
-  actionType: ModerationActionType
-  performedBy: string
+  action: ModerationActionType
+  performedById: string
   performer?: {
     id: string
     username: string
@@ -225,7 +224,7 @@ export interface QueryModerationQueueParams {
   status?: ModerationStatus
   primaryCategory?: ReportCategory
   entityType?: ModeratableEntityType
-  assignedToId?: string
+  assignedTo?: string
   minPriority?: number
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
@@ -277,7 +276,7 @@ export interface QueryUserBansParams {
 // ============================================================================
 
 export interface AssignModerationDto {
-  assignedToId: string
+  assignedTo: string
 }
 
 export interface PerformModerationActionDto {
@@ -290,6 +289,7 @@ export interface BatchModerationActionDto {
   queueIds: string[]
   action: ModerationActionType
   note?: string
+  durationDays?: number
 }
 
 export interface CreateReportDto {
@@ -339,10 +339,10 @@ export interface PaginatedResponse<T> {
 
 export interface BatchActionResult {
   successCount: number
-  errorCount: number
+  failureCount: number
   errors: Array<{
     queueId: string
-    error: string
+    message: string
   }>
 }
 
@@ -514,7 +514,7 @@ export const appealsApi = {
    * Review an appeal (admin only)
    */
   async reviewAppeal(id: string, data: ReviewAppealDto): Promise<Appeal> {
-    return apiPatch<Appeal>(`/moderation/appeals/${id}/review`, data)
+    return apiPost<Appeal>(`/moderation/appeals/${id}/review`, data)
   },
 }
 

@@ -51,7 +51,7 @@ async function handleBatchAction() {
     })
 
     const successCount = result.successCount
-    const failCount = result.errorCount
+    const failCount = result.failureCount
 
     if (failCount === 0) {
       toast.success(t('moderation.toast.batchCompleted'))

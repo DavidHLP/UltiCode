@@ -110,8 +110,34 @@ export default {
   // Import
   import: {
     title: 'Import',
+    description: 'Import problems from JSON or CSV file',
+    dropFile: 'Drop file here, or click to browse',
+    supportedFormats: 'Supported formats: JSON, CSV',
+    browse: 'Browse',
+    clear: 'Clear',
+    invalidFile: 'Invalid file format. Please upload JSON or CSV.',
+    conflictStrategy: 'Conflict Resolution Strategy',
+    strategies: {
+      skip: 'Skip',
+      update: 'Update Existing',
+      createNew: 'Create New',
+    },
+    strategyDescriptions: {
+      skip: 'Skip existing problems without making changes',
+      update: 'Update information of existing problems',
+      create_new: 'Create conflicting problems as new entries',
+    },
+    importing: 'Importing...',
+    import: 'Import',
+    created: 'Created',
+    updated: 'Updated',
+    skipped: 'Skipped',
     success: 'Problems imported successfully',
     failed: 'Failed to import problems',
+    partialSuccess: 'Successfully imported {success} / {total} problems',
+    someErrors: 'Some problems failed to import. See error details below.',
+    error: 'Import failed. Please try again.',
+    errors: 'Error Details',
   },
 
   // Bulk operations

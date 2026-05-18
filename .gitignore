@@ -119,7 +119,6 @@ htmlcov/
 .fluentd.conf
 
 .playwright-mcp
-docs
 
 # MemPalace per-project files (issue #185)
 mempalace.yaml

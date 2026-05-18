@@ -118,6 +118,14 @@ public interface ModerationService {
      */
     PageResult<ReportVO> getReports(QueryReportsDTO query);
 
+    /**
+     * Get a specific report by ID.
+     *
+     * @param id the report ID
+     * @return the report
+     */
+    ReportVO getReport(String id);
+
     // ==================== Appeal Operations ====================
 
     /**
@@ -144,6 +152,21 @@ public interface ModerationService {
      * @return the appeal
      */
     AppealVO getAppeal(String id);
+
+    /**
+     * Get appeals for the current user.
+     *
+     * @param appellantId the appellant ID
+     * @return list of user's appeals
+     */
+    List<AppealVO> getMyAppeals(String appellantId);
+
+    /**
+     * Get appeal statistics.
+     *
+     * @return the appeal statistics
+     */
+    AppealStatsVO getAppealStats();
 
     /**
      * Review an appeal.

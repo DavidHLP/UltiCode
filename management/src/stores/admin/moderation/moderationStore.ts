@@ -68,7 +68,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
     status?: ModerationStatus
     category?: ReportCategory
     entityType?: ModeratableEntityType
-    assignedToId?: string
+    assignedTo?: string
   }>({})
 
   const pagination = ref({
@@ -81,7 +81,7 @@ export const useModerationStore = defineStore('adminModeration', () => {
       filters.value.status ||
       filters.value.category ||
       filters.value.entityType ||
-      filters.value.assignedToId,
+      filters.value.assignedTo,
     )
   })
 

@@ -12,4 +12,7 @@ public class UpdateBasicInfoDTO {
 
     @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
+
+    @Size(max = 100, message = "Slug must not exceed 100 characters")
+    private String slug;
 }

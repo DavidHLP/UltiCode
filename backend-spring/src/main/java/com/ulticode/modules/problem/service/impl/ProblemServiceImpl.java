@@ -94,7 +94,40 @@ public class ProblemServiceImpl implements ProblemService {
         // Limit page size to prevent large queries
         currentPageSize = Math.min(currentPageSize, 100);
 
-        // Build query wrapper
+        LambdaQueryWrapper<Problem> queryWrapper = buildProblemQueryWrapper(query);
+
+        // Execute paginated query
+        Page<Problem> problemPage = new Page<>(currentPage, currentPageSize);
+        Page<Problem> result = problemMapper.selectPage(problemPage, queryWrapper);
+
+        // Batch-fetch all tags for the page (eliminates N+1 tag queries)
+        List<Long> problemIds = result.getRecords().stream()
+                .map(Problem::getId)
+                .collect(Collectors.toList());
+        Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = batchFetchTags(problemIds);
+
+        // Convert to VO
+        List<ProblemVO> problemVOList = result.getRecords().stream()
+                .map(p -> toVO(p, tagMap))
+                .collect(Collectors.toList());
+
+        return PageResult.of(problemVOList, result.getTotal(), currentPage, currentPageSize);
+    }
+
+    @Override
+    public List<ProblemVO> listAllProblems(ProblemQueryDTO query) {
+        LambdaQueryWrapper<Problem> queryWrapper = buildProblemQueryWrapper(query);
+        List<Problem> problems = problemMapper.selectList(queryWrapper);
+        List<Long> problemIds = problems.stream()
+                .map(Problem::getId)
+                .collect(Collectors.toList());
+        Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = batchFetchTags(problemIds);
+        return problems.stream()
+                .map(p -> toVO(p, tagMap))
+                .collect(Collectors.toList());
+    }
+
+    private LambdaQueryWrapper<Problem> buildProblemQueryWrapper(ProblemQueryDTO query) {
         LambdaQueryWrapper<Problem> queryWrapper = new LambdaQueryWrapper<>();
 
         // Filter by published status (null means show all - for admin)
@@ -131,22 +164,7 @@ public class ProblemServiceImpl implements ProblemService {
         // Order by ID ascending
         queryWrapper.orderByAsc(Problem::getId);
 
-        // Execute paginated query
-        Page<Problem> problemPage = new Page<>(currentPage, currentPageSize);
-        Page<Problem> result = problemMapper.selectPage(problemPage, queryWrapper);
-
-        // Batch-fetch all tags for the page (eliminates N+1 tag queries)
-        List<Long> problemIds = result.getRecords().stream()
-                .map(Problem::getId)
-                .collect(Collectors.toList());
-        Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = batchFetchTags(problemIds);
-
-        // Convert to VO
-        List<ProblemVO> problemVOList = result.getRecords().stream()
-                .map(p -> toVO(p, tagMap))
-                .collect(Collectors.toList());
-
-        return PageResult.of(problemVOList, result.getTotal(), currentPage, currentPageSize);
+        return queryWrapper;
     }
 
     @Override

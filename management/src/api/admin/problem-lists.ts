@@ -5,6 +5,8 @@ export interface ProblemList {
   name: string
   description: string
   authorId: string
+  authorName?: string
+  authorUsername?: string
   isPublic: boolean
   isFeatured: boolean
   bannerTag?: string
@@ -14,6 +16,7 @@ export interface ProblemList {
   createdAt: string
   updatedAt: string
   problemCount?: number
+  isSaved?: boolean
 }
 
 export interface ProblemListProblem {
@@ -28,6 +31,7 @@ export interface ProblemListProblem {
 
 export interface ProblemListDetail extends ProblemList {
   problems: ProblemListProblem[]
+  isOwner?: boolean
 }
 
 export interface ProblemListQuery {

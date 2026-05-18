@@ -2,69 +2,9 @@ import { ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { ApiError } from '@/utils/request'
 import { useProblemsStore } from '@/stores/admin/problems'
 import { type Problem, problemsApi, type Difficulty } from '@/api/admin/problems'
-
-interface ErrorContext {
-  title: string
-  message: string
-  suggestion?: string
-  canRetry: boolean
-}
-
-function getErrorContext(error: unknown, action: string, t: (key: string, params?: Record<string, unknown>) => string): ErrorContext {
-  const apiError = error instanceof ApiError ? error : null
-  const statusCode = apiError?.code || 0
-  const errorMessage = apiError?.response?.data?.message || apiError?.message || 'Unknown error'
-
-  switch (statusCode) {
-    case 400:
-      return {
-        title: t('errors.validation.title'),
-        message: errorMessage || t('errors.validation.default'),
-        suggestion: t('errors.validation.suggestion'),
-        canRetry: false,
-      }
-    case 401:
-      return {
-        title: t('errors.unauthorized.title'),
-        message: t('errors.unauthorized.message'),
-        suggestion: t('errors.unauthorized.suggestion'),
-        canRetry: false,
-      }
-    case 403:
-      return {
-        title: t('errors.forbidden.title'),
-        message: t('errors.forbidden.message'),
-        suggestion: t('errors.forbidden.suggestion'),
-        canRetry: false,
-      }
-    case 404:
-      return {
-        title: t('errors.notFound.title'),
-        message: `${action} ${t('errors.notFound.message')}`,
-        suggestion: t('errors.notFound.suggestion'),
-        canRetry: false,
-      }
-    case 500:
-    case 502:
-    case 503:
-      return {
-        title: t('errors.serverError.title'),
-        message: t('errors.serverError.message'),
-        suggestion: t('errors.serverError.suggestion'),
-        canRetry: true,
-      }
-    default:
-      return {
-        title: t('errors.network.title'),
-        message: errorMessage,
-        suggestion: t('errors.network.suggestion'),
-        canRetry: true,
-      }
-  }
-}
+import { getErrorContext } from '@/utils/error'
 
 export function useProblemActions(loadProblems: () => Promise<void>) {
   const { t } = useI18n()
@@ -192,12 +132,15 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
     }
   }
 
-  async function exportProblems(exportParams: {
-    search?: string
-    difficulty?: Difficulty
-    status?: Problem['status']
-    isPublished?: boolean
-  }, format: 'json' | 'csv') {
+  async function exportProblems(
+    exportParams: {
+      search?: string
+      difficulty?: Difficulty
+      status?: Problem['status']
+      isPublished?: boolean
+    },
+    format: 'json' | 'csv',
+  ) {
     try {
       importing.value = true
       await problemsApi.exportProblems(exportParams, format)

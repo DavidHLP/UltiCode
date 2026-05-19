@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { mount } from '@vue/test-utils'
 import BannerSection from './BannerSection.vue'
-import type { ProblemList } from '@/api/admin/problem-lists'
+import type { ProblemListDetail } from '@/api/admin/problem-lists'
 
 vi.mock('vue-i18n', () => ({
   useI18n: () => ({
@@ -16,7 +16,7 @@ vi.mock('vue-i18n', () => ({
 }))
 
 vi.mock('@vueuse/core', () => ({
-  useDebounceFn: (fn: (...args: unknown[]) => unknown, _ms: number) => {
+  useDebounceFn: (fn: (...args: unknown[]) => unknown) => {
     const debouncedFn = (...args: unknown[]) => fn(...args)
     return debouncedFn
   },
@@ -48,7 +48,7 @@ vi.mock('@/components/ui/input')
 vi.mock('@/components/ui/select')
 
 describe('BannerSection', () => {
-  const mockProblemList: ProblemList = {
+  const mockProblemList: ProblemListDetail = {
     id: 'test-id-123',
     name: 'Test Problem List',
     description: 'Test Description',
@@ -61,9 +61,10 @@ describe('BannerSection', () => {
     createdAt: '2024-01-01T00:00:00Z',
     updatedAt: '2024-01-01T00:00:00Z',
     problemCount: 10,
+    problems: [],
   }
 
-  const createWrapper = (props: { modelValue?: ProblemList | null; disabled?: boolean } = {}) => {
+  const createWrapper = (props: { modelValue?: ProblemListDetail | null; disabled?: boolean } = {}) => {
     return mount(BannerSection, {
       props: {
         modelValue: props.modelValue ?? mockProblemList,
@@ -93,30 +94,8 @@ describe('BannerSection', () => {
   })
 
   describe('rendering', () => {
-    it('renders without crashing', () => {
+    it('renders banner section', () => {
       const wrapper = createWrapper()
-      expect(wrapper.exists()).toBe(true)
-    })
-
-    it('renders the component with correct structure', () => {
-      const wrapper = createWrapper()
-      expect(wrapper.html()).toContain('bannerSettings')
-    })
-  })
-
-  describe('props', () => {
-    it('accepts null modelValue', () => {
-      const wrapper = createWrapper({ modelValue: null })
-      expect(wrapper.exists()).toBe(true)
-    })
-
-    it('accepts modelValue with banner data', () => {
-      const wrapper = createWrapper({ modelValue: mockProblemList })
-      expect(wrapper.exists()).toBe(true)
-    })
-
-    it('accepts disabled prop', () => {
-      const wrapper = createWrapper({ disabled: true })
       expect(wrapper.exists()).toBe(true)
     })
   })

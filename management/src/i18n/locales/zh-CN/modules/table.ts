@@ -65,5 +65,11 @@ export default {
     reviewed_by: '审核人',
     reviewed_at: '审核时间',
     response: '回复',
+
+    // 论坛/评论列
+    isFlagged: '已标记',
+    content: '内容',
+    stats: '统计',
+    createdAt: '创建时间',
   },
 } as const

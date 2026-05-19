@@ -20,16 +20,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { ProblemList } from '@/api/admin/problem-lists'
 import { adminProblemListsApi } from '@/api/admin/problem-lists'
+import type { ProblemListDetail } from '@/api/admin/problem-lists'
 
 const props = defineProps<{
-  modelValue: ProblemList | null
+  modelValue: ProblemListDetail | null
   disabled?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: ProblemList): void
+  (e: 'update:modelValue', value: ProblemListDetail): void
 }>()
 
 const { t } = useI18n()
@@ -128,7 +128,7 @@ watch([localBannerTag, localBannerTheme, localBannerOrder], () => {
 })
 
 // Blur handler for immediate save
-function handleBlur(field: 'tag' | 'theme' | 'order') {
+function handleBlur() {
   return () => {
     if (hasChanges.value) {
       // Cancel any pending debounced save
@@ -138,19 +138,6 @@ function handleBlur(field: 'tag' | 'theme' | 'order') {
     }
   }
 }
-
-const statusText = computed(() => {
-  switch (saveStatus.value) {
-    case 'saving':
-      return t('problemLists.status.saving')
-    case 'saved':
-      return t('problemLists.status.saved')
-    case 'error':
-      return errorMessage.value || t('problemLists.status.error')
-    default:
-      return ''
-  }
-})
 </script>
 
 <template>
@@ -169,7 +156,7 @@ const statusText = computed(() => {
               :maxlength="50"
               :disabled="disabled"
               class="terminal-input h-9"
-              @blur="handleBlur('tag')"
+              @blur="handleBlur()"
             />
           </FormControl>
           <div class="flex justify-between items-center">
@@ -188,7 +175,7 @@ const statusText = computed(() => {
       <FormField name="bannerTheme">
         <FormItem>
           <FormLabel class="terminal-label">{{ t('problemLists.form.bannerTheme') }}</FormLabel>
-          <Select v-model="localBannerTheme" :disabled="disabled" @update:modelValue="handleBlur('theme')">
+          <Select v-model="localBannerTheme" :disabled="disabled" @update:modelValue="handleBlur()">
             <FormControl>
               <SelectTrigger class="terminal-input h-9 font-data text-xs">
                 <SelectValue :placeholder="t('problemLists.form.bannerThemePlaceholder')" />
@@ -219,7 +206,7 @@ const statusText = computed(() => {
               type="number"
               :disabled="disabled"
               class="terminal-input h-9"
-              @blur="handleBlur('order')"
+              @blur="handleBlur()"
             />
           </FormControl>
           <FormDescription class="text-xs text-[var(--silver-400)]">

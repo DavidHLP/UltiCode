@@ -65,5 +65,11 @@ export default {
     reviewed_by: 'Reviewed By',
     reviewed_at: 'Reviewed At',
     response: 'Response',
+
+    // Forum/Comments columns
+    isFlagged: 'Flagged',
+    content: 'Content',
+    stats: 'Statistics',
+    createdAt: 'Created',
   },
 } as const

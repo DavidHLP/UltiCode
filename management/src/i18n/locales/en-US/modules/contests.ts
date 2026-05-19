@@ -24,32 +24,19 @@ export default {
   // Contest types
   type: {
     all: 'All Types',
-    biweekly: 'Biweekly',
-    weekly: 'Weekly',
-    RATED: 'Rated',
-    UNRATED: 'Unrated',
-    EDUCATIONAL: 'Educational',
-    MONTHLY: 'Monthly',
-    WEEKLY: 'Weekly',
-    IOI: 'IOI',
     ICPC: 'ICPC',
+    IOI: 'IOI',
     CUSTOM: 'Custom',
-    PUBLIC: 'Public',
-    PRIVATE: 'Private',
-    VIRTUAL: 'Virtual',
   },
 
   // Contest status
   status: {
     all: 'All Status',
+    DRAFT: 'Draft',
     UPCOMING: 'Upcoming',
-    ONGOING: 'Ongoing',
     RUNNING: 'Running',
     FINISHED: 'Finished',
     CANCELLED: 'Cancelled',
-    running: 'Running',
-    upcoming: 'Upcoming',
-    finished: 'Finished',
   },
 
   // Filters
@@ -57,11 +44,16 @@ export default {
     allStatus: 'All Status',
     allTypes: 'All Types',
     status: {
+      draft: 'Draft',
       upcoming: 'Upcoming',
       running: 'Running',
       finished: 'Finished',
+      cancelled: 'Cancelled',
     },
     type: {
+      ICPC: 'ICPC',
+      IOI: 'IOI',
+      CUSTOM: 'Custom',
       public: 'Public',
       private: 'Private',
       virtual: 'Virtual',
@@ -118,9 +110,9 @@ export default {
     description: 'Description',
     descriptionPlaceholder: 'Enter contest description...',
     types: {
-      PUBLIC: 'Public',
-      PRIVATE: 'Private',
-      VIRTUAL: 'Virtual',
+      ICPC: 'ICPC',
+      IOI: 'IOI',
+      CUSTOM: 'Custom',
     },
   },
 

@@ -14,7 +14,6 @@ import java.util.List;
 @Schema(description = "Update contest request")
 public class UpdateContestDTO {
 
-    @NotBlank(message = "Title is required")
     @Size(max = 255, message = "Title must not exceed 255 characters")
     @Pattern(regexp = "^[a-zA-Z0-9\\s\\p{P}]+$", message = "Title must contain only letters, numbers, spaces, and punctuation")
     @Schema(description = "Contest title", example = "Weekly Contest #123")
@@ -49,4 +48,16 @@ public class UpdateContestDTO {
 
     @Schema(description = "List of tags for the contest", example = "[\"dp\", \"greedy\", \"array\"]")
     private List<String> tags;
+
+    @Size(max = 255, message = "Slug must not exceed 255 characters")
+    @Pattern(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$", message = "Slug must be lowercase letters, numbers, and hyphens")
+    @Schema(description = "URL-friendly identifier for the contest", example = "weekly-contest-123")
+    private String slug;
+
+    @Pattern(regexp = "^(ICPC|IOI|CUSTOM)$", message = "Contest type must be ICPC, IOI, or CUSTOM")
+    @Schema(description = "Contest type/format", example = "ICPC", allowableValues = {"ICPC", "IOI", "CUSTOM"})
+    private String contestType;
+
+    @Schema(description = "Associated scoring rule ID")
+    private String scoringRuleId;
 }

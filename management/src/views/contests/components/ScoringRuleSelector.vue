@@ -34,26 +34,23 @@ const loading = ref(false)
 const creatingNew = ref(false)
 const createLoading = ref(false)
 
-// New rule form data
 const newRuleForm = ref({
   name: '',
   description: '',
-  base_score_per_problem: 100,
-  time_bonus_per_minute: 1,
-  wrong_answer_penalty: 5,
-  time_limit_penalty: 0,
-  first_solve_bonus: 10,
-  full_score_bonus: 0,
+  baseScorePerProblem: 100,
+  timeBonusPerMinute: 1,
+  wrongAnswerPenalty: 5,
+  timeLimitPenalty: 0,
+  firstSolveBonus: 10,
+  fullScoreBonus: 0,
 })
 
-// Fetch scoring rules on mount
 async function fetchScoringRules() {
   loading.value = true
   try {
     scoringRules.value = await scoringRulesApi.getAll(false)
-    // If no value is set and there are rules, select the default one
     if (!props.modelValue && scoringRules.value.length > 0) {
-      const defaultRule = scoringRules.value.find((r) => r.is_default)
+      const defaultRule = scoringRules.value.find((r) => r.isDefault)
       if (defaultRule) {
         emit('update:modelValue', defaultRule.id)
       } else if (scoringRules.value[0]) {
@@ -61,9 +58,6 @@ async function fetchScoringRules() {
       }
     }
   } catch {
-    // Don't show error toast for permission issues - scoring rules are optional
-    // The contest creation will work with default scoring
-    // Failed to load scoring rules - continue with default
     scoringRules.value = []
   } finally {
     loading.value = false
@@ -72,12 +66,10 @@ async function fetchScoringRules() {
 
 onMounted(fetchScoringRules)
 
-// Get selected rule details
 const selectedRule = computed(() => {
   return scoringRules.value.find((r) => r.id === props.modelValue)
 })
 
-// Handle selection change
 function handleSelectionChange(value: string) {
   if (value === '__create_new__') {
     creatingNew.value = true
@@ -86,7 +78,6 @@ function handleSelectionChange(value: string) {
   emit('update:modelValue', value)
 }
 
-// Handle create new rule
 async function handleCreateRule() {
   if (!newRuleForm.value.name.trim()) {
     toast.error(t('scoringRules.form.nameRequired'))
@@ -98,12 +89,12 @@ async function handleCreateRule() {
     const dto: CreateScoringRuleDto = {
       name: newRuleForm.value.name,
       description: newRuleForm.value.description || undefined,
-      base_score_per_problem: newRuleForm.value.base_score_per_problem,
-      time_bonus_per_minute: newRuleForm.value.time_bonus_per_minute,
-      wrong_answer_penalty: newRuleForm.value.wrong_answer_penalty,
-      time_limit_penalty: newRuleForm.value.time_limit_penalty,
-      first_solve_bonus: newRuleForm.value.first_solve_bonus,
-      full_score_bonus: newRuleForm.value.full_score_bonus,
+      baseScorePerProblem: newRuleForm.value.baseScorePerProblem,
+      timeBonusPerMinute: newRuleForm.value.timeBonusPerMinute,
+      wrongAnswerPenalty: newRuleForm.value.wrongAnswerPenalty,
+      timeLimitPenalty: newRuleForm.value.timeLimitPenalty,
+      firstSolveBonus: newRuleForm.value.firstSolveBonus,
+      fullScoreBonus: newRuleForm.value.fullScoreBonus,
     }
 
     const newRule = await scoringRulesApi.create(dto)
@@ -111,16 +102,15 @@ async function handleCreateRule() {
     emit('update:modelValue', newRule.id)
     creatingNew.value = false
 
-    // Reset form
     newRuleForm.value = {
       name: '',
       description: '',
-      base_score_per_problem: 100,
-      time_bonus_per_minute: 1,
-      wrong_answer_penalty: 5,
-      time_limit_penalty: 0,
-      first_solve_bonus: 10,
-      full_score_bonus: 0,
+      baseScorePerProblem: 100,
+      timeBonusPerMinute: 1,
+      wrongAnswerPenalty: 5,
+      timeLimitPenalty: 0,
+      firstSolveBonus: 10,
+      fullScoreBonus: 0,
     }
 
     toast.success(t('scoringRules.toast.createdSuccessfully'))
@@ -132,18 +122,17 @@ async function handleCreateRule() {
   }
 }
 
-// Cancel create new
 function cancelCreateNew() {
   creatingNew.value = false
   newRuleForm.value = {
     name: '',
     description: '',
-    base_score_per_problem: 100,
-    time_bonus_per_minute: 1,
-    wrong_answer_penalty: 5,
-    time_limit_penalty: 0,
-    first_solve_bonus: 10,
-    full_score_bonus: 0,
+    baseScorePerProblem: 100,
+    timeBonusPerMinute: 1,
+    wrongAnswerPenalty: 5,
+    timeLimitPenalty: 0,
+    firstSolveBonus: 10,
+    fullScoreBonus: 0,
   }
 }
 </script>
@@ -184,7 +173,7 @@ function cancelCreateNew() {
               <div class="flex items-center gap-2">
                 <span>{{ rule.name }}</span>
                 <span
-                  v-if="rule.is_default"
+                  v-if="rule.isDefault"
                   class="terminal-badge-success text-[10px] px-1.5 py-0.5"
                 >
                   {{ t('scoringRules.badges.default') }}
@@ -219,7 +208,7 @@ function cancelCreateNew() {
             <IconCalculator class="h-4 w-4 text-[var(--accent-electric)]" />
             <span class="terminal-comment">{{ selectedRule.name }}</span>
             <span
-              v-if="selectedRule.is_default"
+              v-if="selectedRule.isDefault"
               class="terminal-badge-success text-[10px] px-1.5 py-0.5"
             >
               {{ t('scoringRules.badges.default') }}
@@ -236,7 +225,7 @@ function cancelCreateNew() {
                 t('scoringRules.form.baseScorePerProblem')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
-                {{ selectedRule.base_score_per_problem }}
+                {{ selectedRule.baseScorePerProblem }}
               </p>
             </div>
             <div class="space-y-1">
@@ -244,7 +233,7 @@ function cancelCreateNew() {
                 t('scoringRules.form.timeBonusPerMinute')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">
-                {{ selectedRule.time_bonus_per_minute }}
+                {{ selectedRule.timeBonusPerMinute }}
               </p>
             </div>
             <div class="space-y-1">
@@ -252,7 +241,7 @@ function cancelCreateNew() {
                 t('scoringRules.form.wrongAnswerPenalty')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
-                -{{ selectedRule.wrong_answer_penalty }}
+                -{{ selectedRule.wrongAnswerPenalty }}
               </p>
             </div>
             <div class="space-y-1">
@@ -260,7 +249,7 @@ function cancelCreateNew() {
                 t('scoringRules.form.timeLimitPenalty')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-red)] tabular-nums">
-                -{{ selectedRule.time_limit_penalty }}
+                -{{ selectedRule.timeLimitPenalty }}
               </p>
             </div>
             <div class="space-y-1">
@@ -268,7 +257,7 @@ function cancelCreateNew() {
                 t('scoringRules.form.firstSolveBonus')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
-                +{{ selectedRule.first_solve_bonus }}
+                +{{ selectedRule.firstSolveBonus }}
               </p>
             </div>
             <div class="space-y-1">
@@ -276,7 +265,7 @@ function cancelCreateNew() {
                 t('scoringRules.form.fullScoreBonus')
               }}</span>
               <p class="font-data text-sm text-[var(--terminal-green)] tabular-nums">
-                +{{ selectedRule.full_score_bonus }}
+                +{{ selectedRule.fullScoreBonus }}
               </p>
             </div>
           </div>
@@ -330,7 +319,7 @@ function cancelCreateNew() {
             <div class="space-y-2">
               <label class="terminal-label">{{ t('scoringRules.form.baseScorePerProblem') }}</label>
               <Input
-                v-model.number="newRuleForm.base_score_per_problem"
+                v-model.number="newRuleForm.baseScorePerProblem"
                 type="number"
                 min="0"
                 class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
@@ -339,7 +328,7 @@ function cancelCreateNew() {
             <div class="space-y-2">
               <label class="terminal-label">{{ t('scoringRules.form.timeBonusPerMinute') }}</label>
               <Input
-                v-model.number="newRuleForm.time_bonus_per_minute"
+                v-model.number="newRuleForm.timeBonusPerMinute"
                 type="number"
                 min="0"
                 class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
@@ -351,7 +340,7 @@ function cancelCreateNew() {
             <div class="space-y-2">
               <label class="terminal-label">{{ t('scoringRules.form.wrongAnswerPenalty') }}</label>
               <Input
-                v-model.number="newRuleForm.wrong_answer_penalty"
+                v-model.number="newRuleForm.wrongAnswerPenalty"
                 type="number"
                 min="0"
                 class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
@@ -360,7 +349,7 @@ function cancelCreateNew() {
             <div class="space-y-2">
               <label class="terminal-label">{{ t('scoringRules.form.timeLimitPenalty') }}</label>
               <Input
-                v-model.number="newRuleForm.time_limit_penalty"
+                v-model.number="newRuleForm.timeLimitPenalty"
                 type="number"
                 min="0"
                 class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
@@ -372,7 +361,7 @@ function cancelCreateNew() {
             <div class="space-y-2">
               <label class="terminal-label">{{ t('scoringRules.form.firstSolveBonus') }}</label>
               <Input
-                v-model.number="newRuleForm.first_solve_bonus"
+                v-model.number="newRuleForm.firstSolveBonus"
                 type="number"
                 min="0"
                 class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
@@ -381,7 +370,7 @@ function cancelCreateNew() {
             <div class="space-y-2">
               <label class="terminal-label">{{ t('scoringRules.form.fullScoreBonus') }}</label>
               <Input
-                v-model.number="newRuleForm.full_score_bonus"
+                v-model.number="newRuleForm.fullScoreBonus"
                 type="number"
                 min="0"
                 class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"

@@ -97,7 +97,7 @@ async function handleDelete() {
 async function handleAddProblem(problem: { id: string }) {
   try {
     await contestsStore.addProblem(contestId.value, {
-      problemId: problem.id,
+      problemId: Number(problem.id),
       score: 100,
     })
     toast.success(t('contests.toast.problemAdded'))
@@ -110,7 +110,7 @@ async function handleAddProblem(problem: { id: string }) {
 async function handleRemoveProblem(problemId: string) {
   if (!confirm(t('contests.confirmation.removeProblem'))) return
   try {
-    await contestsStore.removeProblem(contestId.value, problemId)
+    await contestsStore.removeProblem(contestId.value, Number(problemId))
     toast.success(t('contests.toast.problemRemoved'))
   } catch {
     toast.error(t('contests.toast.failedToRemoveProblem'))
@@ -292,7 +292,7 @@ function handleTabChange(value: string | number) {
       <ContestProblemPicker
         v-if="contest"
         v-model:open="problemPickerOpen"
-        :exclude-ids="contest.problems?.map((p) => p.problemId) || []"
+        :exclude-ids="contest.problemIds || []"
         @select="handleAddProblem"
       />
     </main>

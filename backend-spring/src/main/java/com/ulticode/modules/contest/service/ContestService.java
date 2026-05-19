@@ -201,4 +201,58 @@ public interface ContestService {
      * @return the contest view object
      */
     ContestVO toVO(Contest contest, String userId);
+
+    /**
+     * Find all contests for admin (includes drafts and invisible).
+     *
+     * @param query  the query parameters
+     * @param userId the current user ID (optional)
+     * @return paginated list of all contests
+     */
+    PageResult<ContestVO> findAllAdmin(ContestQueryDTO query, String userId);
+
+    /**
+     * Start a contest (transition from DRAFT/UPCOMING to RUNNING).
+     *
+     * @param id     the contest ID
+     * @param userId the user ID performing the action
+     * @return the updated contest view object
+     */
+    ContestVO startContest(String id, String userId);
+
+    /**
+     * End a contest (transition from RUNNING to FINISHED).
+     *
+     * @param id     the contest ID
+     * @param userId the user ID performing the action
+     * @return the updated contest view object
+     */
+    ContestVO endContest(String id, String userId);
+
+    /**
+     * Add a problem to a contest.
+     *
+     * @param contestId the contest ID
+     * @param dto       the add problem DTO
+     * @return the contest problem view object
+     */
+    ContestProblemVO addProblem(String contestId, AddContestProblemDTO dto);
+
+    /**
+     * Remove a problem from a contest.
+     *
+     * @param contestId the contest ID
+     * @param problemId the problem ID to remove
+     */
+    void removeProblem(String contestId, Long problemId);
+
+    /**
+     * Get contest ranking for admin.
+     *
+     * @param contestId the contest ID
+     * @param page      the page number (1-based)
+     * @param limit     the number of items per page
+     * @return paginated list of rankings
+     */
+    PageResult<ContestRankingVO> getAdminContestRanking(String contestId, Integer page, Integer limit);
 }

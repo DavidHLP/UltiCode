@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { contestsApi, CreateContestDto, ContestType, ContestStatus } from '@/api/admin/contests'
+import { contestsApi, CreateContestDto, ContestFormat } from '@/api/admin/contests'
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
 vi.mock('@/utils/request', () => ({
@@ -15,16 +15,16 @@ describe('contestsApi', () => {
   })
 
   describe('createContest', () => {
-    it('should call apiPost with /admin/contests and contest data', async () => {
+    it('should call apiPost with /admin/contest and contest data', async () => {
       const mockContest = {
         id: 'contest-123',
         slug: 'weekly-contest-123',
         title: 'Weekly Contest #123',
         description: 'Test contest',
-        contestType: ContestType.PUBLIC,
+        contestType: 'ICPC' as ContestFormat,
         startTime: '2024-12-31T10:00:00Z',
-        durationMinutes: 120,
-        status: ContestStatus.UPCOMING,
+        duration: 120,
+        status: 'UPCOMING' as const,
         isVisible: true,
         createdAt: '2024-12-01T00:00:00Z',
         updatedAt: '2024-12-01T00:00:00Z',
@@ -36,7 +36,7 @@ describe('contestsApi', () => {
         slug: 'weekly-contest-123',
         title: 'Weekly Contest #123',
         description: 'Test contest',
-        type: ContestType.PUBLIC,
+        contestType: 'ICPC',
         startTime: '2024-12-31T10:00:00Z',
         duration: 120,
         isPublished: true,
@@ -44,12 +44,12 @@ describe('contestsApi', () => {
 
       const result = await contestsApi.createContest(createData)
 
-      expect(apiPost).toHaveBeenCalledWith('/admin/contests', createData)
+      expect(apiPost).toHaveBeenCalledWith('/admin/contest', createData)
       expect(apiPost).toHaveBeenCalledTimes(1)
       expect(result).toEqual(mockContest)
       expect(result.id).toBe('contest-123')
       expect(result.title).toBe('Weekly Contest #123')
-      expect(result.contestType).toBe(ContestType.PUBLIC)
+      expect(result.contestType).toBe('ICPC')
     })
 
     it('should handle contest creation with minimal data', async () => {
@@ -57,10 +57,10 @@ describe('contestsApi', () => {
         id: 'contest-456',
         slug: 'simple-contest',
         title: 'Simple Contest',
-        contestType: ContestType.PRIVATE,
+        contestType: 'CUSTOM' as ContestFormat,
         startTime: '2024-12-31T10:00:00Z',
-        durationMinutes: 60,
-        status: ContestStatus.UPCOMING,
+        duration: 60,
+        status: 'UPCOMING' as const,
         isVisible: false,
         createdAt: '2024-12-01T00:00:00Z',
         updatedAt: '2024-12-01T00:00:00Z',
@@ -71,16 +71,16 @@ describe('contestsApi', () => {
       const createData: CreateContestDto = {
         slug: 'simple-contest',
         title: 'Simple Contest',
-        type: ContestType.PRIVATE,
+        contestType: 'CUSTOM',
         startTime: '2024-12-31T10:00:00Z',
         duration: 60,
       }
 
       const result = await contestsApi.createContest(createData)
 
-      expect(apiPost).toHaveBeenCalledWith('/admin/contests', createData)
+      expect(apiPost).toHaveBeenCalledWith('/admin/contest', createData)
       expect(result.id).toBe('contest-456')
-      expect(result.contestType).toBe(ContestType.PRIVATE)
+      expect(result.contestType).toBe('CUSTOM')
     })
 
     it('should handle contest creation with problem IDs', async () => {
@@ -88,10 +88,10 @@ describe('contestsApi', () => {
         id: 'contest-789',
         slug: 'contest-with-problems',
         title: 'Contest With Problems',
-        contestType: ContestType.PUBLIC,
+        contestType: 'ICPC' as ContestFormat,
         startTime: '2024-12-31T10:00:00Z',
-        durationMinutes: 180,
-        status: ContestStatus.UPCOMING,
+        duration: 180,
+        status: 'UPCOMING' as const,
         isVisible: true,
         createdAt: '2024-12-01T00:00:00Z',
         updatedAt: '2024-12-01T00:00:00Z',
@@ -102,16 +102,16 @@ describe('contestsApi', () => {
       const createData: CreateContestDto = {
         slug: 'contest-with-problems',
         title: 'Contest With Problems',
-        type: ContestType.PUBLIC,
+        contestType: 'ICPC',
         startTime: '2024-12-31T10:00:00Z',
         duration: 180,
-        problemIds: ['problem-1', 'problem-2', 'problem-3'],
+        problemIds: [1, 2, 3],
         scoringRuleId: 'rule-123',
       }
 
       const result = await contestsApi.createContest(createData)
 
-      expect(apiPost).toHaveBeenCalledWith('/admin/contests', createData)
+      expect(apiPost).toHaveBeenCalledWith('/admin/contest', createData)
       expect(result.id).toBe('contest-789')
     })
 
@@ -122,18 +122,18 @@ describe('contestsApi', () => {
       const createData: CreateContestDto = {
         slug: 'failed-contest',
         title: 'Failed Contest',
-        type: ContestType.PUBLIC,
+        contestType: 'ICPC',
         startTime: '2024-12-31T10:00:00Z',
         duration: 120,
       }
 
       await expect(contestsApi.createContest(createData)).rejects.toThrow('Network error')
-      expect(apiPost).toHaveBeenCalledWith('/admin/contests', createData)
+      expect(apiPost).toHaveBeenCalledWith('/admin/contest', createData)
     })
   })
 
   describe('getContests', () => {
-    it('should call apiGet with /admin/contests and query params', async () => {
+    it('should call apiGet with /admin/contest and query params', async () => {
       const mockResponse = {
         items: [],
         total: 0,
@@ -146,7 +146,7 @@ describe('contestsApi', () => {
 
       const result = await contestsApi.getContests({ page: 1, limit: 20 })
 
-      expect(apiGet).toHaveBeenCalledWith('/admin/contests', { params: { page: 1, limit: 20 } })
+      expect(apiGet).toHaveBeenCalledWith('/admin/contest', { params: { page: 1, limit: 20 } })
       expect(result).toEqual(mockResponse)
     })
   })
@@ -157,10 +157,10 @@ describe('contestsApi', () => {
         id: 'contest-123',
         slug: 'test-contest',
         title: 'Test Contest',
-        contestType: ContestType.PUBLIC,
+        contestType: 'ICPC' as ContestFormat,
         startTime: '2024-12-31T10:00:00Z',
-        durationMinutes: 120,
-        status: ContestStatus.UPCOMING,
+        duration: 120,
+        status: 'UPCOMING' as const,
         isVisible: true,
         createdAt: '2024-12-01T00:00:00Z',
         updatedAt: '2024-12-01T00:00:00Z',
@@ -170,7 +170,7 @@ describe('contestsApi', () => {
 
       const result = await contestsApi.getContest('contest-123')
 
-      expect(apiGet).toHaveBeenCalledWith('/admin/contests/contest-123')
+      expect(apiGet).toHaveBeenCalledWith('/admin/contest/contest-123')
       expect(result).toEqual(mockContest)
     })
   })
@@ -181,10 +181,10 @@ describe('contestsApi', () => {
         id: 'contest-123',
         slug: 'updated-contest',
         title: 'Updated Contest',
-        contestType: ContestType.PUBLIC,
+        contestType: 'ICPC' as ContestFormat,
         startTime: '2024-12-31T10:00:00Z',
-        durationMinutes: 120,
-        status: ContestStatus.UPCOMING,
+        duration: 120,
+        status: 'UPCOMING' as const,
         isVisible: true,
         createdAt: '2024-12-01T00:00:00Z',
         updatedAt: '2024-12-02T00:00:00Z',
@@ -199,7 +199,7 @@ describe('contestsApi', () => {
 
       const result = await contestsApi.updateContest('contest-123', updateData)
 
-      expect(apiPatch).toHaveBeenCalledWith('/admin/contests/contest-123', updateData)
+      expect(apiPatch).toHaveBeenCalledWith('/admin/contest/contest-123', updateData)
       expect(result).toEqual(mockContest)
     })
   })
@@ -210,7 +210,7 @@ describe('contestsApi', () => {
 
       await contestsApi.deleteContest('contest-123')
 
-      expect(apiDelete).toHaveBeenCalledWith('/admin/contests/contest-123')
+      expect(apiDelete).toHaveBeenCalledWith('/admin/contest/contest-123')
     })
   })
 })

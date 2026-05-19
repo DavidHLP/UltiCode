@@ -46,16 +46,16 @@ const formSchema = toTypedSchema(
       .min(1, t('scoringRules.form.nameRequired'))
       .max(100, t('scoringRules.form.nameTooLong')),
     description: z.string().max(500, t('scoringRules.form.descriptionTooLong')).optional(),
-    base_score_per_problem: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
-    time_bonus_per_minute: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
-    wrong_answer_penalty: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
-    time_limit_penalty: z.coerce
+    baseScorePerProblem: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
+    timeBonusPerMinute: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
+    wrongAnswerPenalty: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
+    timeLimitPenalty: z.coerce
       .number()
       .min(0, t('scoringRules.form.mustBeNonNegative'))
       .optional(),
-    first_solve_bonus: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
-    full_score_bonus: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')).optional(),
-    is_default: z.boolean().optional(),
+    firstSolveBonus: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
+    fullScoreBonus: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')).optional(),
+    isDefault: z.boolean().optional(),
   }),
 )
 
@@ -70,27 +70,26 @@ watch(
       form.setValues({
         name: rule.name,
         description: rule.description || '',
-        base_score_per_problem: rule.base_score_per_problem,
-        time_bonus_per_minute: rule.time_bonus_per_minute,
-        wrong_answer_penalty: rule.wrong_answer_penalty,
-        time_limit_penalty: rule.time_limit_penalty,
-        first_solve_bonus: rule.first_solve_bonus,
-        full_score_bonus: rule.full_score_bonus,
-        is_default: rule.is_default,
+        baseScorePerProblem: rule.baseScorePerProblem,
+        timeBonusPerMinute: rule.timeBonusPerMinute,
+        wrongAnswerPenalty: rule.wrongAnswerPenalty,
+        timeLimitPenalty: rule.timeLimitPenalty,
+        firstSolveBonus: rule.firstSolveBonus,
+        fullScoreBonus: rule.fullScoreBonus,
+        isDefault: rule.isDefault,
       })
     } else {
       form.resetForm()
-      // Set default values for new rule
       form.setValues({
         name: '',
         description: '',
-        base_score_per_problem: 100,
-        time_bonus_per_minute: 1,
-        wrong_answer_penalty: 5,
-        time_limit_penalty: 0,
-        first_solve_bonus: 10,
-        full_score_bonus: 0,
-        is_default: false,
+        baseScorePerProblem: 100,
+        timeBonusPerMinute: 1,
+        wrongAnswerPenalty: 5,
+        timeLimitPenalty: 0,
+        firstSolveBonus: 10,
+        fullScoreBonus: 0,
+        isDefault: false,
       })
     }
   },
@@ -153,7 +152,7 @@ function handleCancel() {
         </FormField>
 
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-slot="{ componentField }" name="base_score_per_problem">
+          <FormField v-slot="{ componentField }" name="baseScorePerProblem">
             <FormItem>
               <FormLabel>{{ t('scoringRules.form.baseScorePerProblem') }}</FormLabel>
               <FormControl>
@@ -163,7 +162,7 @@ function handleCancel() {
             </FormItem>
           </FormField>
 
-          <FormField v-slot="{ componentField }" name="time_bonus_per_minute">
+          <FormField v-slot="{ componentField }" name="timeBonusPerMinute">
             <FormItem>
               <FormLabel>{{ t('scoringRules.form.timeBonusPerMinute') }}</FormLabel>
               <FormControl>
@@ -175,7 +174,7 @@ function handleCancel() {
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-slot="{ componentField }" name="wrong_answer_penalty">
+          <FormField v-slot="{ componentField }" name="wrongAnswerPenalty">
             <FormItem>
               <FormLabel>{{ t('scoringRules.form.wrongAnswerPenalty') }}</FormLabel>
               <FormControl>
@@ -185,7 +184,7 @@ function handleCancel() {
             </FormItem>
           </FormField>
 
-          <FormField v-slot="{ componentField }" name="time_limit_penalty">
+          <FormField v-slot="{ componentField }" name="timeLimitPenalty">
             <FormItem>
               <FormLabel>{{ t('scoringRules.form.timeLimitPenalty') }}</FormLabel>
               <FormControl>
@@ -197,7 +196,7 @@ function handleCancel() {
         </div>
 
         <div class="grid grid-cols-2 gap-4">
-          <FormField v-slot="{ componentField }" name="first_solve_bonus">
+          <FormField v-slot="{ componentField }" name="firstSolveBonus">
             <FormItem>
               <FormLabel>{{ t('scoringRules.form.firstSolveBonus') }}</FormLabel>
               <FormControl>
@@ -207,7 +206,7 @@ function handleCancel() {
             </FormItem>
           </FormField>
 
-          <FormField v-slot="{ componentField }" name="full_score_bonus">
+          <FormField v-slot="{ componentField }" name="fullScoreBonus">
             <FormItem>
               <FormLabel>{{ t('scoringRules.form.fullScoreBonus') }}</FormLabel>
               <FormControl>
@@ -218,7 +217,7 @@ function handleCancel() {
           </FormField>
         </div>
 
-        <FormField v-slot="{ value, setValue }" name="is_default">
+        <FormField v-slot="{ value, setValue }" name="isDefault">
           <FormItem class="flex items-center justify-between rounded-lg border p-3">
             <div class="space-y-0.5">
               <FormLabel class="text-base">{{ t('scoringRules.form.isDefault') }}</FormLabel>

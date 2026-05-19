@@ -8,15 +8,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { ContestType } from '@/api/admin/contests'
+import type { ContestFormat } from '@/api/admin/contests'
 import { useI18n } from 'vue-i18n'
+
+const CONTEST_FORMATS: ContestFormat[] = ['ICPC', 'IOI', 'CUSTOM']
 
 const props = defineProps<{
   formData: {
     title: string
     slug: string
     description: string
-    type: ContestType
+    contestType: ContestFormat
     [key: string]: unknown
   }
 }>()
@@ -27,7 +29,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function updateField(field: string, value: string | number | bigint | ContestType | null) {
+function updateField(field: string, value: string | number | bigint | ContestFormat | null) {
   if (value === null) return
 
   emit('update:formData', {
@@ -72,8 +74,8 @@ function updateField(field: string, value: string | number | bigint | ContestTyp
     <div class="space-y-2">
       <label class="terminal-label">{{ t('contests.basics.type') }}</label>
       <Select
-        :model-value="formData.type"
-        @update:model-value="updateField('type', $event as ContestType)"
+        :model-value="formData.contestType"
+        @update:model-value="updateField('contestType', $event as ContestFormat)"
       >
         <SelectTrigger
           class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm"
@@ -82,12 +84,12 @@ function updateField(field: string, value: string | number | bigint | ContestTyp
         </SelectTrigger>
         <SelectContent class="border-[var(--silver-200)] dark:border-[var(--silver-700)]">
           <SelectItem
-            v-for="type in [ContestType.PUBLIC, ContestType.PRIVATE, ContestType.VIRTUAL]"
-            :key="type"
-            :value="type"
+            v-for="fmt in CONTEST_FORMATS"
+            :key="fmt"
+            :value="fmt"
             class="font-data text-xs cursor-pointer"
           >
-            {{ t(`contests.basics.types.${type}`) }}
+            {{ t(`contests.basics.types.${fmt}`) }}
           </SelectItem>
         </SelectContent>
       </Select>

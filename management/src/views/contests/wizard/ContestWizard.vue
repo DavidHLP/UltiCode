@@ -14,7 +14,7 @@ import { Stepper, StepperItem, StepperTrigger, StepperSeparator } from '@/compon
 import { toast } from 'vue-sonner'
 import { IconLoader, IconArrowLeft, IconArrowRight, IconCheck } from '@tabler/icons-vue'
 import { useContestsStore } from '@/stores/admin/contests'
-import { ContestType } from '@/api/admin/contests'
+import type { ContestFormat } from '@/api/admin/contests'
 
 import StepBasicInfo from './StepBasicInfo.vue'
 import StepScoringRule from './StepScoringRule.vue'
@@ -48,11 +48,11 @@ const formData = ref({
   title: '',
   slug: '',
   description: '',
-  type: ContestType.PUBLIC,
-  scoring_rule_id: '',
-  start_time: '',
+  contestType: 'ICPC' as ContestFormat,
+  scoringRuleId: '',
+  startTime: '',
   duration: 120,
-  is_published: false,
+  isPublished: false,
   selectedProblems: [] as {
     id: string
     title: string
@@ -69,7 +69,7 @@ const isStepValid = computed(() => {
     case 2:
       return true // Scoring rule selection is optional (will use default)
     case 3:
-      return !!formData.value.start_time && formData.value.duration > 0
+      return !!formData.value.startTime && formData.value.duration > 0
     case 4:
       return true
     case 5:
@@ -112,8 +112,8 @@ function toISO8601(datetimeLocal: string): string | null {
 async function handleSubmit() {
   loading.value = true
   try {
-    // Convert start_time to ISO 8601 format
-    const startTimeISO = toISO8601(formData.value.start_time)
+    // Convert startTime to ISO 8601 format
+    const startTimeISO = toISO8601(formData.value.startTime)
     if (!startTimeISO) {
       toast.error(t('contests.toast.invalidStartTime'))
       loading.value = false
@@ -124,12 +124,12 @@ async function handleSubmit() {
       slug: formData.value.slug,
       title: formData.value.title,
       description: formData.value.description,
-      type: formData.value.type,
+      contestType: formData.value.contestType,
       startTime: startTimeISO,
       duration: formData.value.duration,
-      isPublished: formData.value.is_published,
-      problemIds: formData.value.selectedProblems.map((p) => p.id),
-      scoringRuleId: formData.value.scoring_rule_id || undefined,
+      isPublished: formData.value.isPublished,
+      problemIds: formData.value.selectedProblems.map((p) => Number(p.id)),
+      scoringRuleId: formData.value.scoringRuleId || undefined,
     })
 
     toast.success(t('contests.toast.createdSuccessfully'))
@@ -141,11 +141,11 @@ async function handleSubmit() {
       title: '',
       slug: '',
       description: '',
-      type: ContestType.PUBLIC,
-      scoring_rule_id: '',
-      start_time: '',
+      contestType: 'ICPC' as ContestFormat,
+      scoringRuleId: '',
+      startTime: '',
       duration: 120,
-      is_published: false,
+      isPublished: false,
       selectedProblems: [],
     }
     currentStep.value = 1

@@ -3,7 +3,7 @@ import ScoringRuleSelector from '../components/ScoringRuleSelector.vue'
 
 const props = defineProps<{
   formData: {
-    scoring_rule_id?: string
+    scoringRuleId?: string
     [key: string]: unknown
   }
 }>()
@@ -29,8 +29,8 @@ function updateField(field: string, value: string) {
 
     <!-- Scoring Rule Selector -->
     <ScoringRuleSelector
-      :model-value="formData.scoring_rule_id"
-      @update:model-value="updateField('scoring_rule_id', $event)"
+      :model-value="formData.scoringRuleId"
+      @update:model-value="updateField('scoringRuleId', $event)"
     />
   </div>
 </template>

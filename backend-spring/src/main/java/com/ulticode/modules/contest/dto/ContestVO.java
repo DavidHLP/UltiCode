@@ -123,4 +123,29 @@ public class ContestVO {
      * User's score in the contest (null if not participating)
      */
     private Long userScore;
+
+    /**
+     * Contest type/format: ICPC, IOI, CUSTOM
+     */
+    private String contestType;
+
+    /**
+     * Whether the contest is visible to users
+     */
+    private Boolean isVisible;
+
+    /**
+     * Number of participants
+     */
+    private Integer participantCount;
+
+    /**
+     * Number of problems in the contest
+     */
+    private Integer problemCount;
+
+    /**
+     * Associated scoring rule ID
+     */
+    private String scoringRuleId;
 }

@@ -317,14 +317,12 @@ watch(() => tablePagination.value, () => loadProblems(), { deep: true })
                   <SelectItem value="default">{{ t('problems.sort.default') }}</SelectItem>
                   <SelectItem value="title">{{ t('problems.sort.titleAsc') }}</SelectItem>
                   <SelectItem value="difficulty">{{ t('problems.sort.difficultyAsc') }}</SelectItem>
-                  <SelectItem value="created_at">{{ t('problems.sort.createdDesc') }}</SelectItem>
-                  <SelectItem value="updated_at">{{ t('problems.sort.updatedDesc') }}</SelectItem>
                   <SelectItem value="createdAt">{{ t('problems.sort.createdDesc') }}</SelectItem>
                   <SelectItem value="updatedAt">{{ t('problems.sort.updatedDesc') }}</SelectItem>
                   <SelectItem value="submissionCount">{{ t('problems.sort.submissionsDesc') }}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" class="h-8 w-8" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" :title="t('common.sort')">
+              <Button variant="ghost" size="icon" class="h-8 w-8" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" :title="t('common.sort')" :aria-label="t('common.sort')">
                 <IconTrophy class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
               </Button>
             </template>

@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-18 | Files scanned: 587 | Token estimate: ~900 -->
+<!-- Generated: 2026-05-19 | Files scanned: 597 | Token estimate: ~950 -->
 
 # Backend Architecture
 
@@ -55,14 +55,17 @@
 
 ## Module Layering
 
+25 modules under `modules/`: `achievement`, `admin`, `auth`, `backup`, `bookmark`, `contest`, `edgeoperations`, `email`, `follow`, `forum`, `i18n`, `moderation`, `monitoring`, `notification`, `permission`, `problem`, `problemlist`, `queue`, `recommendation`, `refreshtoken`, `search`, `solution`, `submission`, `subscription`, `user`, `vote`, `websocket`
+
 Each module: `controller → service (impl) → mapper (MyBatis-Plus) → entity`
 DTOs via MapStruct. Common: `common/` (config, exception, annotation, aspect, util, filter).
 
 ## Security Stack
 
-- JWT: `security/jwt/` (JwtTokenProvider, JwtAuthenticationFilter)
+- JWT: `security/jwt/` (JwtTokenProvider, JwtAuthenticationFilter, JwtProperties)
 - CSRF: `security/csrf/` (CsrfService, CsrfValidationFilter)
 - OAuth: `security/oauth/` (OAuthProperties — GitHub, Google)
+- Entry: `security/AuthenticationEntryPointImpl.java`
 - Annotations: `@RateLimit`, `@RequireRole`, `@CheckBan`, `@Audited`, `@CurrentUser`
 - Aspects: `RateLimitAspect`, `BanCheckAspect`, `AuditAspect`
 - XSS: `XssFilter`

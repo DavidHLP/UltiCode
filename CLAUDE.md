@@ -163,6 +163,7 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Product
 - **Docker containers**: Non-root `appuser:appgroup`, multi-stage builds
 - **Backend ports**: App 9001, Dubbo 20881, Recommend-web 9005
 - **Frontend ports**: Console 9002, Management 9003
+- **Management DataTable i18n**: `DataTable.vue` uses `t(\`table.columnNames.${column.id}\`)` for column headers, where `column.id` matches API field names (camelCase). Ensure `management/src/i18n/locales/*/modules/table.ts` defines both camelCase and snake_case keys under `columnNames`.
 
 ## CI
 

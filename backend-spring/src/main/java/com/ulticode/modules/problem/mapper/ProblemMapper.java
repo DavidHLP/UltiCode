@@ -61,4 +61,105 @@ public interface ProblemMapper extends BaseMapper<Problem> {
 
     @Update("UPDATE problems SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
     int updateFlagStatus(@Param("id") String id, @Param("isFlagged") boolean isFlagged, @Param("reason") String reason);
+
+    @Update("<script>" +
+            "UPDATE problems SET is_deleted = false, deleted_at = NULL, deleted_by = NULL " +
+            "WHERE id IN " +
+            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
+            "#{id}</foreach>" +
+            "</script>")
+    int restoreDeletedByIds(@Param("ids") List<Long> ids);
+
+    record ProblemCountDTO(Long problemId, Long count) {}
+
+    @ConstructorArgs({
+            @Arg(column = "problem_id", javaType = Long.class),
+            @Arg(column = "count", javaType = Long.class)
+    })
+    @Select("<script>" +
+            "SELECT problem_id, COUNT(*) as count FROM submissions " +
+            "WHERE problem_id IN " +
+            "<foreach collection='problemIds' item='id' open='(' separator=',' close=')'>" +
+            "#{id}</foreach>" +
+            " GROUP BY problem_id" +
+            "</script>")
+    List<ProblemCountDTO> countSubmissionsByProblemIds(@Param("problemIds") List<Long> problemIds);
+
+    @ConstructorArgs({
+            @Arg(column = "problem_id", javaType = Long.class),
+            @Arg(column = "count", javaType = Long.class)
+    })
+    @Select("<script>" +
+            "SELECT problem_id, COUNT(*) as count FROM solutions " +
+            "WHERE problem_id IN " +
+            "<foreach collection='problemIds' item='id' open='(' separator=',' close=')'>" +
+            "#{id}</foreach>" +
+            " AND is_deleted = false" +
+            " GROUP BY problem_id" +
+            "</script>")
+    List<ProblemCountDTO> countSolutionsByProblemIds(@Param("problemIds") List<Long> problemIds);
+
+    @Select("<script>" +
+            "SELECT * FROM problems WHERE is_deleted = true " +
+            "<if test='search != null and search != \"\"'>" +
+            " AND (id = #{search} OR title LIKE CONCAT('%',#{search},'%'))" +
+            "</if>" +
+            " ORDER BY created_at DESC" +
+            " LIMIT #{limit} OFFSET #{offset}" +
+            "</script>")
+    List<Problem> selectDeletedProblems(@Param("search") String search, @Param("limit") int limit, @Param("offset") int offset);
+
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM problems WHERE is_deleted = true " +
+            "<if test='search != null and search != \"\"'>" +
+            " AND (id = #{search} OR title LIKE CONCAT('%',#{search},'%'))" +
+            "</if>" +
+            "</script>")
+    long countDeletedProblems(@Param("search") String search);
+
+    @Update("UPDATE problems SET is_flagged = true, flagged_reason = #{reason}, " +
+            "flag_reported_by = #{reportedBy}, flag_reported_at = NOW(), flag_status = 'PENDING' " +
+            "WHERE id = #{id}")
+    int flagProblem(@Param("id") Long id, @Param("reason") String reason, @Param("reportedBy") String reportedBy);
+
+    @Update("<script>" +
+            "UPDATE problems SET flag_status = #{status}, " +
+            "flag_reviewed_by = #{reviewedBy}, flag_reviewed_at = NOW(), " +
+            "flag_notes = #{notes}, " +
+            "is_flagged = CASE WHEN #{status} = 'DISMISSED' THEN false ELSE is_flagged END " +
+            "WHERE id = #{id}" +
+            "</script>")
+    int moderateProblem(@Param("id") Long id, @Param("status") String status,
+                        @Param("notes") String notes, @Param("reviewedBy") String reviewedBy);
+
+    @Select("<script>" +
+            "SELECT * FROM problems WHERE is_flagged = true " +
+            "<if test='status != null and status != \"\"'>" +
+            " AND flag_status = #{status}" +
+            "</if>" +
+            " ORDER BY flag_reported_at DESC" +
+            " LIMIT #{limit} OFFSET #{offset}" +
+            "</script>")
+    List<Problem> selectFlaggedProblems(@Param("status") String status,
+                                        @Param("limit") int limit, @Param("offset") int offset);
+
+    @Select("<script>" +
+            "SELECT COUNT(*) FROM problems WHERE is_flagged = true " +
+            "<if test='status != null and status != \"\"'>" +
+            " AND flag_status = #{status}" +
+            "</if>" +
+            "</script>")
+    long countFlaggedProblems(@Param("status") String status);
+
+    @Update("<script>" +
+            "UPDATE problems SET flag_status = #{status}, " +
+            "flag_reviewed_by = #{reviewedBy}, flag_reviewed_at = NOW(), " +
+            "flag_notes = #{notes}, " +
+            "is_flagged = CASE WHEN #{status} = 'DISMISSED' THEN false ELSE is_flagged END " +
+            "WHERE id IN " +
+            "<foreach collection='ids' item='id' open='(' separator=',' close=')'>" +
+            "#{id}</foreach>" +
+            "</script>")
+    int batchModerateProblems(@Param("ids") List<Long> ids, @Param("status") String status,
+                              @Param("notes") String notes, @Param("reviewedBy") String reviewedBy);
 }

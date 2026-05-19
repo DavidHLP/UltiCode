@@ -3,14 +3,19 @@ package com.ulticode.modules.admin.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.common.response.PageResult;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.admin.service.AdminProblemService;
 import com.ulticode.modules.admin.dto.problem.AdminProblemMapper;
+import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.entity.*;
 import com.ulticode.modules.problem.mapper.*;
+import com.ulticode.modules.submission.entity.Submission;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,6 +39,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final ProblemTagRelationMapper problemTagRelationMapper;
     private final AdminProblemMapper mapper;
     private final com.ulticode.modules.problem.service.ProblemService problemService;
+    private final com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
 
     @Override
     public HeaderDataVO getHeaderData(Long id) {
@@ -91,13 +97,22 @@ public class AdminProblemServiceImpl implements AdminProblemService {
                     case publish -> problemService.publishProblem(id);
                     case unpublish -> problemService.unpublishProblem(id);
                     case delete -> problemService.deleteProblem(id);
+                    case restore -> {
+                        int restored = problemMapper.restoreDeletedByIds(List.of(id));
+                        if (restored > 0) {
+                            log.info("Problem id={} restored by user={}", id, SecurityUtil.getCurrentUserId());
+                        }
+                    }
                     case edit -> {
                         var params = request.getParams();
                         if (params != null && params.containsKey("difficulty")) {
-                            // Update difficulty via the Problem entity
+                            String difficulty = (String) params.get("difficulty");
+                            if (!isValidDifficulty(difficulty)) {
+                                throw new IllegalArgumentException("Invalid difficulty value: " + difficulty);
+                            }
                             Problem problem = problemMapper.selectById(id);
                             if (problem != null) {
-                                problem.setDifficulty((String) params.get("difficulty"));
+                                problem.setDifficulty(difficulty);
                                 problemMapper.updateById(problem);
                             }
                         }
@@ -110,6 +125,151 @@ public class AdminProblemServiceImpl implements AdminProblemService {
             }
         }
         return results;
+    }
+
+    @Override
+    @Transactional
+    public ProblemVO flagProblem(Long id, String reason) {
+        Problem problem = findProblemById(id);
+        String reportedBy = SecurityUtil.getCurrentUserId();
+        problemMapper.flagProblem(id, reason, reportedBy);
+        problem = findProblemById(id);
+        return problemService.toVO(problem);
+    }
+
+    @Override
+    @Transactional
+    public ProblemVO moderateProblem(Long id, String status, String notes) {
+        Problem problem = findProblemById(id);
+        String reviewedBy = SecurityUtil.getCurrentUserId();
+        problemMapper.moderateProblem(id, status, notes, reviewedBy);
+        problem = findProblemById(id);
+        return problemService.toVO(problem);
+    }
+
+    @Override
+    public PageResult<ProblemVO> getFlaggedProblems(String status, int page, int limit) {
+        int offset = (page - 1) * limit;
+        List<Problem> problems = problemMapper.selectFlaggedProblems(status, limit, offset);
+        long total = problemMapper.countFlaggedProblems(status);
+
+        List<ProblemVO> voList = problems.stream()
+                .map(problemService::toVO)
+                .collect(Collectors.toList());
+
+        return PageResult.of(voList, total, page, limit);
+    }
+
+    @Override
+    @Transactional
+    public List<BulkProblemResultDTO> batchModerateProblems(BatchModerateRequestDTO request) {
+        List<Long> ids = request.getIds().stream()
+                .map(Long::parseLong)
+                .collect(Collectors.toList());
+        String reviewedBy = SecurityUtil.getCurrentUserId();
+        int affected = problemMapper.batchModerateProblems(ids, request.getStatus(), request.getNotes(), reviewedBy);
+
+        if (affected != ids.size()) {
+            log.warn("batchModerateProblems: requested {} but only {} rows affected", ids.size(), affected);
+        }
+
+        return request.getIds().stream()
+                .map(idStr -> new BulkProblemResultDTO(idStr, true, null))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public PageResult<Submission> getProblemSubmissions(Long id, int page, int limit) {
+        findProblemById(id);
+        LambdaQueryWrapper<Submission> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Submission::getProblemId, id)
+                .orderByDesc(Submission::getCreatedAt);
+
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Submission> submissionPage =
+                new com.baomidou.mybatisplus.extension.plugins.pagination.Page<>(page, limit);
+
+        com.baomidou.mybatisplus.extension.plugins.pagination.Page<Submission> result =
+                submissionMapper.selectPage(submissionPage, wrapper);
+
+        return PageResult.of(result.getRecords(), result.getTotal(), page, limit);
+    }
+
+    @Override
+    @Transactional
+    public ImportProblemsResponseDTO importProblems(ImportProblemsRequestDTO request) {
+        int created = 0, updated = 0, skipped = 0, failed = 0;
+        List<ImportProblemsResponseDTO.ImportResultItem> results = new ArrayList<>();
+
+        for (ImportProblemItemDTO item : request.getProblems()) {
+            try {
+                Problem existing = problemService.findBySlug(item.getSlug()).orElse(null);
+                if (existing != null) {
+                    switch (request.getOnConflict()) {
+                        case "skip" -> {
+                            skipped++;
+                            results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "skipped"));
+                        }
+                        case "update" -> {
+                            updateFromImport(existing, item);
+                            problemMapper.updateById(existing);
+                            updated++;
+                            results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "updated"));
+                        }
+                        case "create_new" -> {
+                            Problem newProblem = createFromImport(item);
+                            newProblem.setSlug(item.getSlug() + "-" + System.currentTimeMillis());
+                            problemMapper.insert(newProblem);
+                            created++;
+                            results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "created"));
+                        }
+                        default -> {
+                            skipped++;
+                            results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "skipped"));
+                        }
+                    }
+                } else {
+                    Problem newProblem = createFromImport(item);
+                    problemMapper.insert(newProblem);
+                    created++;
+                    results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), true, null, "created"));
+                }
+            } catch (Exception e) {
+                failed++;
+                log.error("Import failed for problem slug={}: {}", item.getSlug(), e.getMessage(), e);
+                results.add(new ImportProblemsResponseDTO.ImportResultItem(item.getSlug(), false, e.getMessage(), null));
+            }
+        }
+
+        return new ImportProblemsResponseDTO(request.getProblems().size(), created, updated, skipped, failed, results);
+    }
+
+    private Problem createFromImport(ImportProblemItemDTO item) {
+        Problem problem = new Problem();
+        problem.setSlug(item.getSlug());
+        problem.setTitle(item.getTitle());
+        problem.setDifficulty(item.getDifficulty());
+        problem.setStatus(item.getStatus() != null ? item.getStatus() : "todo");
+        problem.setIsPremium(item.getIsPremium() != null ? item.getIsPremium() : false);
+        problem.setIsPublished(item.getIsPublished() != null ? item.getIsPublished() : false);
+        problem.setHasSolution(false);
+        problem.setIsFlagged(false);
+        problem.setIsDeleted(false);
+        problem.setVersion(1);
+        return problem;
+    }
+
+    private void updateFromImport(Problem existing, ImportProblemItemDTO item) {
+        if (item.getTitle() != null) existing.setTitle(item.getTitle());
+        if (item.getDifficulty() != null) existing.setDifficulty(item.getDifficulty());
+        if (item.getStatus() != null) existing.setStatus(item.getStatus());
+        if (item.getIsPremium() != null) existing.setIsPremium(item.getIsPremium());
+        if (item.getIsPublished() != null) existing.setIsPublished(item.getIsPublished());
+    }
+
+    private static final java.util.Set<String> VALID_DIFFICULTIES = java.util.Set.of("Easy", "Medium", "Hard");
+
+    private static boolean isValidDifficulty(String value) {
+        return value != null && VALID_DIFFICULTIES.contains(value);
     }
 
     // ========== Private Helper Methods ==========

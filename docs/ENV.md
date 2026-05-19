@@ -30,7 +30,7 @@ Reference for all environment variables used in UltiCode.
 | `JUDGE_DEFAULT_TIME_LIMIT` | No | Time limit (ms) | `2000` |
 | `JUDGE_DEFAULT_MEMORY_LIMIT` | No | Memory limit (MB) | `256` |
 | `DOCKER_SOCKET_PATH` | No | Docker socket path | `/var/run/docker.sock` |
-| `NACOS_SERVER_ADDR` | Yes | Nacos address | `localhost:28848` |
+| `NACOS_SERVER_ADDR` | Yes | Nacos server address (host:port) | `localhost:28848` |
 | `NACOS_HOST` | Yes | Nacos host | `localhost` |
 | `NACOS_PORT` | Yes | Nacos port | `28848` |
 | `NACOS_NAMESPACE` | No | Nacos namespace | `public` |

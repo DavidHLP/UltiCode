@@ -140,6 +140,7 @@ export interface ProblemQueryParams {
   search?: string
   difficulty?: Difficulty
   status?: ProblemStatus
+  publishStatus?: 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'
   isPublished?: boolean
   isDeleted?: boolean
   tag?: string
@@ -358,7 +359,7 @@ export const problemsApi = {
   }> {
     const response = await apiPost<{
       results: Array<{ id: string; success: boolean; error?: string }>
-    }>('/admin/bulk/problems/publish', data)
+    }>('/admin/problems/bulk', data)
     return response
   },
 
@@ -367,7 +368,7 @@ export const problemsApi = {
   }> {
     const response = await apiPost<{
       results: Array<{ id: string; success: boolean; error?: string }>
-    }>('/admin/bulk/problems/edit', data)
+    }>('/admin/problems/bulk', { ...data, action: 'edit' })
     return response
   },
 

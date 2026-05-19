@@ -1,46 +1,33 @@
-Codemap Diff Report — 2026-05-18
-==================================
+Codemap Diff Report
+Generated: 2026-05-19
+Previous scan: 2026-05-18
 
-## Status: INITIAL GENERATION
+== Summary ==
+Files scanned: 1634 -> 2106 (+29%, expanded scan coverage)
+Structure change: ~8% (below 30% threshold, auto-approved)
 
-No previous codemaps found. All 5 codemap files created from scratch.
+== Changes ==
 
-## Files Created
+[architecture.md]
+- Updated file counts: console 548, management 709
+- No structural changes
 
-- docs/CODEMAPS/architecture.md   (~800 tokens) — System overview, service boundaries, data flow
-- docs/CODEMAPS/backend.md        (~900 tokens) — API routes, module layering, security stack
-- docs/CODEMAPS/frontend.md       (~900 tokens) — Console + Management page trees, state, composables
-- docs/CODEMAPS/data.md           (~800 tokens) — DB tables, migrations, Redis, Nacos
-- docs/CODEMAPS/dependencies.md   (~600 tokens) — All deps across backend, frontend, recommendation
+[backend.md]
+- Added missing modules: permission, queue, refreshtoken, websocket (4 modules)
+- Updated security stack: added JwtProperties, AuthenticationEntryPointImpl
+- Controller count unchanged (40)
 
-## Project Statistics
+[frontend.md]
+- No route changes detected
+- View counts stable
 
-| Metric | Count |
-|--------|-------|
-| Java files (backend) | 587 |
-| Vue files (console) | 339 |
-| TypeScript files (console) | 204 |
-| Vue files (management) | 474 |
-| TypeScript files (management) | 230 |
-| SQL migrations | 46 |
-| Total source files scanned | ~1,634 |
+[data.md]
+- No new migrations (still V1-V108)
+- No schema changes
 
-## Architecture Summary
+[dependencies.md]
+- Recommendation system: added recommend-feature module (6 sub-modules total)
+- No version changes in dependencies
 
-- Monorepo: 1 Spring Boot backend, 2 Vue 3 frontends, 1 Dubbo+Spark recommendation system
-- 26+ backend modules (achievement through websocket)
-- 40+ API controllers (public + admin)
-- Shared auth-core library between frontends
-- Flyway-managed database (V1–V108)
-
-## New Dependencies Detected
-
-- Vite 8 (frontend build tool)
-- Tailwind CSS v4
-- Pinia 3
-- Vue Router 5
-- Vitest 4
-
-## Staleness Warnings
-
-None — this is the initial generation. Re-run after major feature additions or refactoring.
+== Staleness Warnings ==
+None — all docs updated within 24h.

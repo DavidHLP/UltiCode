@@ -19,6 +19,7 @@ import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.service.ProblemService;
+import com.ulticode.modules.submission.entity.Submission;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -171,12 +172,66 @@ public class AdminProblemController {
         return Result.success(problemService.unpublishProblem(id));
     }
 
-    @Operation(summary = "Bulk problem action", description = "Perform bulk action on multiple problems (publish, unpublish, delete, edit)")
+    @Operation(summary = "Bulk problem action", description = "Perform bulk action on multiple problems (publish, unpublish, delete, restore, edit)")
     @RateLimit(key = "admin:problem-bulk", limit = 10, period = 60)
     @PostMapping("/bulk")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<List<BulkProblemResultDTO>> bulkAction(@Valid @RequestBody BulkProblemRequestDTO request) {
         return Result.success(adminProblemService.bulkAction(request));
+    }
+
+    @Operation(summary = "Flag problem", description = "Flag a problem for review")
+    @RateLimit(key = "admin:problem-flag", limit = 30, period = 60)
+    @PostMapping("/{id}/flag")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<ProblemVO> flagProblem(@PathVariable Long id, @RequestBody @Valid FlagProblemRequestDTO request) {
+        return Result.success(adminProblemService.flagProblem(id, request.getReason()));
+    }
+
+    @Operation(summary = "Moderate problem", description = "Moderate a flagged problem")
+    @RateLimit(key = "admin:problem-moderate", limit = 30, period = 60)
+    @PostMapping("/{id}/moderate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<ProblemVO> moderateProblem(@PathVariable Long id, @RequestBody @Valid ModerateProblemRequestDTO request) {
+        return Result.success(adminProblemService.moderateProblem(id, request.getStatus(), request.getNotes()));
+    }
+
+    @Operation(summary = "Get flagged problems", description = "Get paginated list of flagged problems")
+    @RateLimit(key = "admin:problem-flagged", limit = 60, period = 60)
+    @GetMapping("/flagged")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<PageResult<ProblemVO>> getFlaggedProblems(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit) {
+        return Result.success(adminProblemService.getFlaggedProblems(status, page, limit));
+    }
+
+    @Operation(summary = "Batch moderate flagged problems", description = "Batch moderate multiple flagged problems")
+    @RateLimit(key = "admin:problem-batch-moderate", limit = 10, period = 60)
+    @PostMapping("/flagged/batch-moderate")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<List<BulkProblemResultDTO>> batchModerateProblems(@RequestBody @Valid BatchModerateRequestDTO request) {
+        return Result.success(adminProblemService.batchModerateProblems(request));
+    }
+
+    @Operation(summary = "Get problem submissions", description = "Get submissions for a specific problem")
+    @RateLimit(key = "admin:problem-submissions", limit = 60, period = 60)
+    @GetMapping("/{id}/submissions")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<PageResult<Submission>> getProblemSubmissions(
+            @PathVariable Long id,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer limit) {
+        return Result.success(adminProblemService.getProblemSubmissions(id, page, limit));
+    }
+
+    @Operation(summary = "Import problems", description = "Bulk import problems from JSON")
+    @RateLimit(key = "admin:problem-import", limit = 5, period = 60)
+    @PostMapping("/import")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<ImportProblemsResponseDTO> importProblems(@RequestBody @Valid ImportProblemsRequestDTO request) {
+        return Result.success(adminProblemService.importProblems(request));
     }
 
     // ========== Tab-specific Endpoints ==========

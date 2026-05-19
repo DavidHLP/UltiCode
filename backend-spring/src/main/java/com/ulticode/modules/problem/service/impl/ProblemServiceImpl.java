@@ -94,6 +94,26 @@ public class ProblemServiceImpl implements ProblemService {
         // Limit page size to prevent large queries
         currentPageSize = Math.min(currentPageSize, 100);
 
+        // Handle ARCHIVED (soft-deleted) queries via raw SQL to bypass @TableLogic
+        if (query.getPublishStatus() != null && "ARCHIVED".equalsIgnoreCase(query.getPublishStatus())) {
+            int offset = (currentPage - 1) * currentPageSize;
+            List<Problem> deletedProblems = problemMapper.selectDeletedProblems(query.getSearch(), currentPageSize, offset);
+            long total = problemMapper.countDeletedProblems(query.getSearch());
+
+            List<Long> problemIds = deletedProblems.stream()
+                    .map(Problem::getId)
+                    .collect(Collectors.toList());
+            Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = batchFetchTags(problemIds);
+            Map<Long, Long> submissionCounts = batchFetchSubmissionCounts(problemIds);
+            Map<Long, Long> solutionCounts = batchFetchSolutionCounts(problemIds);
+
+            List<ProblemVO> problemVOList = deletedProblems.stream()
+                    .map(p -> toVO(p, tagMap, submissionCounts, solutionCounts))
+                    .collect(Collectors.toList());
+
+            return PageResult.of(problemVOList, total, currentPage, currentPageSize);
+        }
+
         LambdaQueryWrapper<Problem> queryWrapper = buildProblemQueryWrapper(query);
 
         // Execute paginated query
@@ -105,10 +125,12 @@ public class ProblemServiceImpl implements ProblemService {
                 .map(Problem::getId)
                 .collect(Collectors.toList());
         Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = batchFetchTags(problemIds);
+        Map<Long, Long> submissionCounts = batchFetchSubmissionCounts(problemIds);
+        Map<Long, Long> solutionCounts = batchFetchSolutionCounts(problemIds);
 
         // Convert to VO
         List<ProblemVO> problemVOList = result.getRecords().stream()
-                .map(p -> toVO(p, tagMap))
+                .map(p -> toVO(p, tagMap, submissionCounts, solutionCounts))
                 .collect(Collectors.toList());
 
         return PageResult.of(problemVOList, result.getTotal(), currentPage, currentPageSize);
@@ -122,8 +144,10 @@ public class ProblemServiceImpl implements ProblemService {
                 .map(Problem::getId)
                 .collect(Collectors.toList());
         Map<Long, List<ProblemVO.ProblemTagVO>> tagMap = batchFetchTags(problemIds);
+        Map<Long, Long> submissionCounts = batchFetchSubmissionCounts(problemIds);
+        Map<Long, Long> solutionCounts = batchFetchSolutionCounts(problemIds);
         return problems.stream()
-                .map(p -> toVO(p, tagMap))
+                .map(p -> toVO(p, tagMap, submissionCounts, solutionCounts))
                 .collect(Collectors.toList());
     }
 
@@ -135,17 +159,40 @@ public class ProblemServiceImpl implements ProblemService {
             queryWrapper.eq(Problem::getIsPublished, query.getIsPublished());
         }
 
+        // Filter by publishStatus (DRAFT/PUBLISHED/ARCHIVED)
+        if (query.getPublishStatus() != null && !query.getPublishStatus().isBlank()) {
+            switch (query.getPublishStatus().toUpperCase()) {
+                case "DRAFT" -> {
+                    queryWrapper.eq(Problem::getIsPublished, false);
+                }
+                case "PUBLISHED" -> {
+                    queryWrapper.eq(Problem::getIsPublished, true);
+                }
+                case "ARCHIVED" -> {
+                    // Archived = soft-deleted; handled separately in listProblems via raw SQL
+                    return queryWrapper;
+                }
+            }
+        }
+
         // Note: Soft delete is handled by @TableLogic, but admin may want to see deleted items
         // For now, we don't explicitly filter deleted items
 
-        // Filter by difficulty
+        // Filter by difficulty (case-insensitive)
         if (query.getDifficulty() != null && !query.getDifficulty().isBlank()) {
-            queryWrapper.eq(Problem::getDifficulty, query.getDifficulty());
+            queryWrapper.apply("UPPER(difficulty) = UPPER({0})", query.getDifficulty());
         }
 
         // Filter by status
         if (query.getStatus() != null && !query.getStatus().isBlank()) {
             queryWrapper.eq(Problem::getStatus, query.getStatus());
+        }
+
+        // Filter by tag via subquery
+        if (query.getTag() != null && !query.getTag().isBlank()) {
+            queryWrapper.apply("id IN (SELECT ptr.problem_id FROM problem_tag_relations ptr " +
+                    "LEFT JOIN problem_tags pt ON ptr.tag_id = pt.id " +
+                    "WHERE pt.label = {0} OR pt.slug = {0})", query.getTag());
         }
 
         // Search by ID or title
@@ -161,8 +208,21 @@ public class ProblemServiceImpl implements ProblemService {
             }
         }
 
-        // Order by ID ascending
-        queryWrapper.orderByAsc(Problem::getId);
+        // Dynamic sorting
+        String sortBy = query.getSortBy();
+        String sortOrder = query.getSortOrder();
+        if (sortBy != null && !sortBy.isBlank() && !"default".equals(sortBy)) {
+            boolean isAsc = "asc".equalsIgnoreCase(sortOrder);
+            switch (sortBy) {
+                case "title" -> queryWrapper.orderBy(true, isAsc, Problem::getTitle);
+                case "difficulty" -> queryWrapper.orderBy(true, isAsc, Problem::getDifficulty);
+                case "createdAt", "created_at" -> queryWrapper.orderBy(true, isAsc, Problem::getCreatedAt);
+                case "updatedAt", "updated_at" -> queryWrapper.orderBy(true, isAsc, Problem::getUpdatedAt);
+                default -> queryWrapper.orderByDesc(Problem::getCreatedAt);
+            }
+        } else {
+            queryWrapper.orderByDesc(Problem::getCreatedAt);
+        }
 
         return queryWrapper;
     }
@@ -622,6 +682,14 @@ public class ProblemServiceImpl implements ProblemService {
      * Overload: convert Problem to VO with pre-loaded tags.
      */
     public ProblemVO toVO(Problem problem, Map<Long, List<ProblemVO.ProblemTagVO>> tagMap) {
+        return toVO(problem, tagMap, Map.of(), Map.of());
+    }
+
+    /**
+     * Full overload: convert Problem to VO with pre-loaded tags and counts.
+     */
+    public ProblemVO toVO(Problem problem, Map<Long, List<ProblemVO.ProblemTagVO>> tagMap,
+                          Map<Long, Long> submissionCounts, Map<Long, Long> solutionCounts) {
         if (problem == null) {
             return null;
         }
@@ -652,9 +720,8 @@ public class ProblemServiceImpl implements ProblemService {
         vo.setCreatedAt(problem.getCreatedAt());
         vo.setUpdatedAt(problem.getUpdatedAt());
 
-        // Set default values for new fields not yet populated
-        vo.setSubmissionCount(0L);
-        vo.setSolutionCount(0L);
+        vo.setSubmissionCount(submissionCounts.getOrDefault(problem.getId(), 0L));
+        vo.setSolutionCount(solutionCounts.getOrDefault(problem.getId(), 0L));
         vo.setTags(tagMap.getOrDefault(problem.getId(), List.of()));
 
         return vo;
@@ -722,6 +789,30 @@ public class ProblemServiceImpl implements ProblemService {
                         tagVO.setLabel(dto.tagName());
                         return tagVO;
                     }, Collectors.toList())
+                ));
+    }
+
+    private Map<Long, Long> batchFetchSubmissionCounts(List<Long> problemIds) {
+        if (problemIds == null || problemIds.isEmpty()) {
+            return Map.of();
+        }
+        return problemMapper.countSubmissionsByProblemIds(problemIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        ProblemMapper.ProblemCountDTO::problemId,
+                        ProblemMapper.ProblemCountDTO::count
+                ));
+    }
+
+    private Map<Long, Long> batchFetchSolutionCounts(List<Long> problemIds) {
+        if (problemIds == null || problemIds.isEmpty()) {
+            return Map.of();
+        }
+        return problemMapper.countSolutionsByProblemIds(problemIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        ProblemMapper.ProblemCountDTO::problemId,
+                        ProblemMapper.ProblemCountDTO::count
                 ));
     }
 }

@@ -8,13 +8,16 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.entity.GlobalRanking;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
+import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestService;
+import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,9 +43,11 @@ import java.util.stream.Collectors;
 public class ContestServiceImpl implements ContestService {
 
     private final ContestMapper contestMapper;
+    private final ContestProblemMapper contestProblemMapper;
     private final ContestParticipantMapper participantMapper;
     private final GlobalRankingMapper globalRankingMapper;
     private final ContestSchedulerService schedulerService;
+    private final RankingService rankingService;
     private final AchievementTriggerService achievementTriggerService;
 
     // =========================================================================
@@ -274,6 +279,11 @@ public class ContestServiceImpl implements ContestService {
         vo.setIsPremium(false);
         vo.setIsPublished(contest.getIsVisible());
         vo.setCreatedById(contest.getCreatedBy() != null ? Long.parseLong(contest.getCreatedBy()) : null);
+        vo.setContestType(contest.getContestType());
+        vo.setIsVisible(contest.getIsVisible());
+        vo.setParticipantCount(contest.getParticipantCount());
+        vo.setScoringRuleId(contest.getScoringRuleId());
+        vo.setProblemCount((int) contestProblemMapper.countByContestId(contest.getId()));
         if (userId != null && !userId.isBlank()) {
             Optional<?> participantOpt = participantMapper.findByContestIdAndUserId(contest.getId(), userId);
             if (participantOpt.isPresent()) {
@@ -286,6 +296,115 @@ public class ContestServiceImpl implements ContestService {
             }
         }
         return vo;
+    }
+
+    // =========================================================================
+    // Admin Operations
+    // =========================================================================
+
+    @Override
+    public PageResult<ContestVO> findAllAdmin(ContestQueryDTO query, String userId) {
+        int currentPage = (query.getPage() != null && query.getPage() > 0) ? query.getPage() : 1;
+        int currentPageSize = Math.min(query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 20, 100);
+        LambdaQueryWrapper<Contest> qw = new LambdaQueryWrapper<>();
+        qw.eq(Contest::getIsDeleted, false);
+        // Admin sees all contests including drafts and invisible ones
+        if (query.getStatus() != null && !query.getStatus().isBlank()) qw.eq(Contest::getStatus, query.getStatus().toUpperCase());
+        if (query.getContestType() != null && !query.getContestType().isBlank()) qw.eq(Contest::getContestType, query.getContestType().toUpperCase());
+        if (query.getSearch() != null && !query.getSearch().isBlank())
+            qw.and(w -> w.like(Contest::getTitle, "%" + query.getSearch() + "%").or().like(Contest::getSlug, "%" + query.getSearch() + "%"));
+        String sortField = query.getSortBy() != null ? query.getSortBy() : (query.getSort() != null ? query.getSort() : "startTime");
+        String direction = query.getDirection() != null ? query.getDirection() : "asc";
+        boolean isAsc = "asc".equalsIgnoreCase(direction);
+        switch (sortField) {
+            case "endTime" -> { if (isAsc) qw.orderByAsc(Contest::getEndTime); else qw.orderByDesc(Contest::getEndTime); }
+            case "createdAt" -> { if (isAsc) qw.orderByAsc(Contest::getCreatedAt); else qw.orderByDesc(Contest::getCreatedAt); }
+            case "title" -> { if (isAsc) qw.orderByAsc(Contest::getTitle); else qw.orderByDesc(Contest::getTitle); }
+            default -> { if (isAsc) qw.orderByAsc(Contest::getStartTime); else qw.orderByDesc(Contest::getStartTime); }
+        }
+        Page<Contest> page = contestMapper.selectPage(new Page<>(currentPage, currentPageSize), qw);
+        List<ContestVO> items = page.getRecords().stream().map(c -> toVO(c, userId)).collect(Collectors.toList());
+        return PageResult.of(items, page.getTotal(), currentPage, currentPageSize);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
+    public ContestVO startContest(String id, String userId) {
+        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        Contest contest = findById(id).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        String status = contest.getStatus();
+        if (!ContestStatus.DRAFT.name().equals(status) && !ContestStatus.UPCOMING.name().equals(status)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be started from DRAFT or UPCOMING status");
+        }
+        contest.setStatus(ContestStatus.RUNNING.name());
+        contest.setActualStartTime(LocalDateTime.now());
+        contestMapper.updateById(contest);
+        log.info("Contest started: {} by user {}", id, userId);
+        return toVO(contest, userId);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"contest", "contestRanking"}, allEntries = true)
+    public ContestVO endContest(String id, String userId) {
+        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        Contest contest = findById(id).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        if (!ContestStatus.RUNNING.name().equals(contest.getStatus())) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Contest can only be ended from RUNNING status");
+        }
+        contest.setStatus(ContestStatus.FINISHED.name());
+        contest.setActualEndTime(LocalDateTime.now());
+        contestMapper.updateById(contest);
+        log.info("Contest ended: {} by user {}", id, userId);
+        return toVO(contest, userId);
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "contest", allEntries = true)
+    public ContestProblemVO addProblem(String contestId, AddContestProblemDTO dto) {
+        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        findById(contestId).orElseThrow(() -> new BusinessException(ErrorCode.CONTEST_NOT_FOUND));
+        ContestProblem existing = contestProblemMapper.findByContestIdAndProblemId(contestId, dto.getProblemId());
+        if (existing != null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem already exists in this contest");
+        }
+        long count = contestProblemMapper.countByContestId(contestId);
+        ContestProblem cp = new ContestProblem();
+        cp.setContestId(contestId);
+        cp.setProblemId(dto.getProblemId());
+        cp.setProblemIndex(String.valueOf((char) ('A' + count)));
+        cp.setScore(dto.getScore() != null ? dto.getScore() : 100);
+        cp.setSolvedCount(0);
+        cp.setSubmissionCount(0);
+        contestProblemMapper.insert(cp);
+        log.info("Problem {} added to contest {}", dto.getProblemId(), contestId);
+        ContestProblemVO vo = new ContestProblemVO();
+        vo.setId(cp.getId());
+        vo.setContestId(cp.getContestId());
+        vo.setProblemId(cp.getProblemId());
+        vo.setProblemIndex(cp.getProblemIndex());
+        vo.setScore(cp.getScore());
+        return vo;
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = "contest", allEntries = true)
+    public void removeProblem(String contestId, Long problemId) {
+        if (!SecurityUtil.hasRole("ADMIN")) throw new BusinessException(ErrorCode.FORBIDDEN);
+        ContestProblem cp = contestProblemMapper.findByContestIdAndProblemId(contestId, problemId);
+        if (cp == null) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Problem not found in this contest");
+        }
+        contestProblemMapper.deleteById(cp.getId());
+        log.info("Problem {} removed from contest {}", problemId, contestId);
+    }
+
+    @Override
+    public PageResult<ContestRankingVO> getAdminContestRanking(String contestId, Integer page, Integer limit) {
+        return rankingService != null ? rankingService.getContestRanking(contestId, page, limit) : PageResult.of(List.of(), 0L, 1, 50);
     }
 
     private String generateSlug(String title) {

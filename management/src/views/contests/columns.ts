@@ -27,7 +27,6 @@ import type { Contest } from '@/api/admin/contests'
 import { formatDate } from '@/lib/format/date'
 import { badge, CONTEST_TYPE_COLOR_MAP, CONTEST_STATUS_COLOR_MAP } from '@/components/ui/terminal'
 
-
 export interface ContestActions {
   viewContest: (contest: Contest) => void
   startContest: (contest: Contest) => void
@@ -39,6 +38,8 @@ const CONTEST_STATUS_ICON_MAP: Record<string, typeof IconCircleCheckFilled> = {
   RUNNING: IconCircleCheckFilled,
   FINISHED: IconCircleCheckFilled,
   UPCOMING: IconLoader,
+  DRAFT: IconCircleCheckFilled,
+  CANCELLED: IconCircleCheckFilled,
 }
 
 function renderTypeBadge(type: string, t: (key: string) => string) {
@@ -191,7 +192,7 @@ export function createColumns(
             h(
               'span',
               { class: 'font-data text-xs tabular-nums' },
-              t('contests.scheduleStep.minutes', { minutes: contest.durationMinutes }),
+              t('contests.scheduleStep.minutes', { minutes: contest.duration }),
             ),
           ]),
         ])

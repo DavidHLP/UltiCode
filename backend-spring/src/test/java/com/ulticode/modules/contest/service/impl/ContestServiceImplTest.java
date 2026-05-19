@@ -6,9 +6,11 @@ import com.ulticode.modules.contest.dto.ContestVO;
 import com.ulticode.modules.contest.dto.CreateContestDTO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.mapper.ContestMapper;
+import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
+import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -37,11 +39,15 @@ class ContestServiceImplTest {
     @Mock
     private ContestMapper contestMapper;
     @Mock
+    private ContestProblemMapper contestProblemMapper;
+    @Mock
     private ContestParticipantMapper participantMapper;
     @Mock
     private GlobalRankingMapper globalRankingMapper;
     @Mock
     private ContestSchedulerService schedulerService;
+    @Mock
+    private RankingService rankingService;
     @Mock
     private AchievementTriggerService achievementTriggerService;
 
@@ -54,9 +60,11 @@ class ContestServiceImplTest {
     void setUp() {
         contestService = new ContestServiceImpl(
                 contestMapper,
+                contestProblemMapper,
                 participantMapper,
                 globalRankingMapper,
                 schedulerService,
+                rankingService,
                 achievementTriggerService
         );
     }

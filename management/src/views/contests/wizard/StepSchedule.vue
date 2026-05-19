@@ -6,9 +6,9 @@ import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
   formData: {
-    start_time: string
+    startTime: string
     duration: number
-    is_published: boolean
+    isPublished: boolean
     [key: string]: unknown
   }
 }>()
@@ -39,8 +39,8 @@ function updateField(field: string, value: string | number | boolean) {
       <label class="terminal-label">{{ t('contests.scheduleStep.startTime') }}</label>
       <Input
         type="datetime-local"
-        :model-value="formData.start_time"
-        @update:model-value="updateField('start_time', $event)"
+        :model-value="formData.startTime"
+        @update:model-value="updateField('startTime', $event)"
         class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm focus:border-[var(--accent-electric)]"
       />
       <span class="terminal-comment text-xs">{{
@@ -70,12 +70,12 @@ function updateField(field: string, value: string | number | boolean) {
       <div class="flex items-center gap-4">
         <Switch
           id="is_published"
-          :checked="formData.is_published"
-          @update:checked="updateField('is_published', $event)"
+          :checked="formData.isPublished"
+          @update:checked="updateField('isPublished', $event)"
           class="data-[state=checked]:bg-[var(--terminal-green)]"
         />
         <div class="space-y-1">
-          <Label for="is_published" class="font-data text-xs uppercase tracking-wider">
+          <Label for="isPublished" class="font-data text-xs uppercase tracking-wider">
             {{ t('contests.scheduleStep.publishImmediately') }}
           </Label>
           <p class="terminal-comment text-xs">

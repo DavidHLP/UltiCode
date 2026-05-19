@@ -16,7 +16,7 @@ public class ContestQueryDTO {
     @Schema(description = "Number of items per page", example = "20")
     private Integer pageSize;
 
-    @Schema(description = "Filter by status", example = "upcoming", allowableValues = {"upcoming", "active", "finished", "cancelled"})
+    @Schema(description = "Filter by status", example = "upcoming", allowableValues = {"upcoming", "running", "finished", "cancelled", "draft"})
     private String status;
 
     @Schema(description = "Filter by premium status", example = "true", allowableValues = {"true", "false"})
@@ -30,4 +30,10 @@ public class ContestQueryDTO {
 
     @Schema(description = "Sort direction", example = "asc", allowableValues = {"asc", "desc"})
     private String direction;
+
+    @Schema(description = "Filter by contest type", example = "ICPC", allowableValues = {"ICPC", "IOI", "CUSTOM"})
+    private String contestType;
+
+    @Schema(description = "Sort by field (alias for sort)", example = "startTime")
+    private String sortBy;
 }

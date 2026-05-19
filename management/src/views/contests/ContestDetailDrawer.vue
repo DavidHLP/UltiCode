@@ -137,7 +137,7 @@ function navigateToDetail() {
               <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
-                  {{ entity.problems?.length || 0 }}
+                  {{ entity.problemCount || 0 }}
                 </div>
                 <div class="terminal-label">{{ t('contests.drawer.problems') }}</div>
               </div>
@@ -181,7 +181,7 @@ function navigateToDetail() {
               <div class="flex items-center gap-2">
                 <IconClock class="h-4 w-4 text-[var(--silver-400)]" />
                 <span class="font-data text-sm tabular-nums">
-                  {{ entity.durationMinutes }} {{ t('common.minutes') }}
+                  {{ entity.duration }} {{ t('common.minutes') }}
                 </span>
               </div>
             </DataBlock>

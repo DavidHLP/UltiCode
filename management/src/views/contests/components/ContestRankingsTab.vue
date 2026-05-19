@@ -72,7 +72,7 @@ function getRankIcon(rank: number) {
         <TableBody>
           <TableRow
             v-for="(r, i) in rankings"
-            :key="r.id"
+            :key="r.userId"
             :class="[
               'border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]',
               i < 3 ? 'bg-[var(--surface-sunken)]' : '',
@@ -92,17 +92,17 @@ function getRankIcon(rank: number) {
             </TableCell>
             <TableCell>
               <span class="font-medium text-sm text-[var(--foreground)]">{{
-                r.user.username
+                r.username
               }}</span>
             </TableCell>
             <TableCell class="text-right">
               <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums font-bold">
-                {{ r.totalScore }}
+                {{ r.score }}
               </span>
             </TableCell>
             <TableCell class="text-right">
               <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
-                {{ r.totalPenalty }}
+                {{ r.penalty }}
               </span>
             </TableCell>
           </TableRow>

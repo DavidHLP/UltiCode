@@ -80,9 +80,9 @@ const canManageRules = computed(
 const stats = computed(() => {
   const rules = scoringRules.value
   const total = rules.length
-  const active = rules.filter((r) => r.is_active).length
-  const defaults = rules.filter((r) => r.is_default).length
-  const inactive = rules.filter((r) => !r.is_active).length
+  const active = rules.filter((r) => r.isActive).length
+  const defaults = rules.filter((r) => r.isDefault).length
+  const inactive = rules.filter((r) => !r.isActive).length
   return { total, active, defaults, inactive }
 })
 
@@ -142,7 +142,7 @@ async function handleDeleteRule(id: string | number) {
 
 async function handleSetDefault(rule: ScoringRule) {
   try {
-    await scoringRulesApi.update(rule.id, { is_default: true })
+    await scoringRulesApi.update(rule.id, { isDefault: true })
     toast.success(t('scoringRules.toast.setDefaultSuccess'))
     await loadScoringRules()
   } catch (err) {
@@ -188,12 +188,12 @@ const columns: ColumnDef<ScoringRule>[] = [
         h('div', { class: 'flex flex-col' }, [
           h('div', { class: 'flex items-center gap-2' }, [
             h('span', { class: 'font-medium text-sm' }, rule.name),
-            rule.is_default
+            rule.isDefault
               ? h(Badge, { variant: 'default', class: 'text-xs' }, () =>
                   t('scoringRules.badges.default'),
                 )
               : null,
-            !rule.is_active
+            !rule.isActive
               ? h(Badge, { variant: 'secondary', class: 'text-xs' }, () =>
                   t('scoringRules.badges.inactive'),
                 )
@@ -211,28 +211,28 @@ const columns: ColumnDef<ScoringRule>[] = [
     },
   },
   {
-    accessorKey: 'base_score_per_problem',
+    accessorKey: 'baseScorePerProblem',
     header: () => t('scoringRules.columns.baseScore'),
     cell: ({ row }) =>
-      h(Badge, { variant: 'outline' }, () => row.original.base_score_per_problem.toString()),
+      h(Badge, { variant: 'outline' }, () => row.original.baseScorePerProblem.toString()),
   },
   {
-    accessorKey: 'time_bonus_per_minute',
+    accessorKey: 'timeBonusPerMinute',
     header: () => t('scoringRules.columns.timeBonus'),
     cell: ({ row }) =>
-      h(Badge, { variant: 'outline' }, () => row.original.time_bonus_per_minute.toString()),
+      h(Badge, { variant: 'outline' }, () => row.original.timeBonusPerMinute.toString()),
   },
   {
-    accessorKey: 'wrong_answer_penalty',
+    accessorKey: 'wrongAnswerPenalty',
     header: () => t('scoringRules.columns.wrongPenalty'),
     cell: ({ row }) =>
-      h(Badge, { variant: 'outline' }, () => row.original.wrong_answer_penalty.toString()),
+      h(Badge, { variant: 'outline' }, () => row.original.wrongAnswerPenalty.toString()),
   },
   {
-    accessorKey: 'first_solve_bonus',
+    accessorKey: 'firstSolveBonus',
     header: () => t('scoringRules.columns.firstSolveBonus'),
     cell: ({ row }) =>
-      h(Badge, { variant: 'outline' }, () => row.original.first_solve_bonus.toString()),
+      h(Badge, { variant: 'outline' }, () => row.original.firstSolveBonus.toString()),
   },
   {
     id: 'actions',
@@ -268,7 +268,7 @@ const columns: ColumnDef<ScoringRule>[] = [
                 default: () =>
                   [
                     canManageRules.value &&
-                      !rule.is_default &&
+                      !rule.isDefault &&
                       h(
                         DropdownMenuItem,
                         { onClick: () => handleSetDefault(rule) },

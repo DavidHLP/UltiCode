@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.ulticode.modules.solution.entity.Solution;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 /**
@@ -14,4 +15,13 @@ public interface SolutionMapper extends BaseMapper<Solution> {
 
     @Update("UPDATE solutions SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
     int updateFlagStatus(@Param("id") String id, @Param("isFlagged") boolean isFlagged, @Param("reason") String reason);
+
+    /**
+     * Count total solutions by user.
+     *
+     * @param userId user ID
+     * @return count of total solutions
+     */
+    @Select("SELECT COUNT(*) FROM solutions WHERE user_id = #{userId} AND is_deleted = false")
+    Long countByUserId(@Param("userId") String userId);
 }

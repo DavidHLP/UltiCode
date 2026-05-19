@@ -80,6 +80,18 @@ const emit = defineEmits<{
 }>()
 
 const { t } = useI18n()
+
+function resolveColumnName(columnId: string): string {
+  const name = t(`table.columnNames.${columnId}`, columnId)
+  if (import.meta.env.DEV && name === columnId) {
+    console.error(
+      `[i18n] Missing translation key: table.columnNames.${columnId}. ` +
+        `Add it to management/src/i18n/locales/*/modules/table.ts`,
+    )
+  }
+  return name
+}
+
 const sorting = ref<SortingState>([])
 const columnFilters = ref<ColumnFiltersState>([])
 const columnVisibility = ref<VisibilityState>({})
@@ -209,7 +221,7 @@ watch(
                   }
                 "
               >
-                {{ t(`table.columnNames.${column.id}`, column.id) }}
+                {{ resolveColumnName(column.id) }}
               </DropdownMenuCheckboxItem>
             </template>
           </DropdownMenuContent>

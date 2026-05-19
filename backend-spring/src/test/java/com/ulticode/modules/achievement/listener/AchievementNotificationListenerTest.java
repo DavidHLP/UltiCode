@@ -47,14 +47,14 @@ class AchievementNotificationListenerTest {
         mockVO.setId("notif-abc");
         when(notificationService.createNotification(
             eq("user-123"), eq("achievement"), eq("badge_earned"),
-            contains("First Solve"), anyString(), eq("/achievements"), any(Map.class)
+            contains("First Solve"), anyString(), eq("/achievements"), isNull()
         )).thenReturn(mockVO);
 
         listener.onAchievementEarned(event);
 
         verify(notificationService).createNotification(
             eq("user-123"), eq("achievement"), eq("badge_earned"),
-            contains("First Solve"), anyString(), eq("/achievements"), any(Map.class)
+            contains("First Solve"), anyString(), eq("/achievements"), isNull()
         );
 
         ArgumentCaptor<BadgeEarnedPayload> payloadCaptor = ArgumentCaptor.forClass(BadgeEarnedPayload.class);
@@ -78,13 +78,13 @@ class AchievementNotificationListenerTest {
 
         NotificationVO mockVO = new NotificationVO();
         mockVO.setId("notif-def");
-        when(notificationService.createNotification(any(), any(), any(), any(), any(), any(), any(Map.class)))
+        when(notificationService.createNotification(any(), any(), any(), any(), any(), any(), isNull()))
             .thenReturn(mockVO);
         doThrow(new RuntimeException("WS unavailable")).when(realtimeService).sendNotification(any(), any());
 
         listener.onAchievementEarned(event);
 
-        verify(notificationService).createNotification(any(), any(), any(), any(), any(), any(), any(Map.class));
+        verify(notificationService).createNotification(any(), any(), any(), any(), any(), any(), isNull());
         verify(realtimeService).sendNotification(any(), any());
     }
 }

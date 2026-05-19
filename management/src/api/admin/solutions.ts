@@ -2,25 +2,25 @@ import { apiGet, apiPost, apiDelete } from '@/utils/request'
 
 export interface Solution {
   id: string
-  problemId: string
+  problemId: number
   userId: string
   title: string
   content: string
   summary?: string
   language: string
-  tags?: string[]
+  tags?: string
   views: number
   isPublished: boolean
-  publishedAt?: Date
+  publishedAt?: string
   publishedBy?: string
   isFlagged: boolean
   flaggedReason?: string
-  flaggedAt?: Date
+  flaggedAt?: string
   isDeleted: boolean
-  deletedAt?: Date
+  deletedAt?: string
   deletedBy?: string
-  createdAt: Date
-  updatedAt: Date
+  createdAt: string
+  updatedAt: string
   author: {
     id: string
     username: string
@@ -33,24 +33,11 @@ export interface Solution {
     title: string
     difficulty: string
   }
-  commentCount?: number
-  comments?: SolutionComment[]
-}
-
-export interface SolutionComment {
-  id: string
-  content: string
-  createdAt: Date
-  author: {
-    id: string
-    username: string
-    name: string
-  }
 }
 
 export interface SolutionQueryParams {
   search?: string
-  problemId?: string
+  problemId?: number
   userId?: string
   isFlagged?: boolean
   isPublished?: boolean
@@ -109,10 +96,10 @@ export const solutionsApi = {
 
   async bulkAction(
     data: BulkSolutionActionDto,
-  ): Promise<{ results: { id: string; success: boolean; error?: string }[] }> {
-    const response = await apiPost<{
-      results: { id: string; success: boolean; error?: string }[]
-    }>('/admin/solutions/bulk', data)
-    return response
+  ): Promise<{ id: string; success: boolean; error?: string }[]> {
+    return apiPost<{ id: string; success: boolean; error?: string }[]>(
+      '/admin/solutions/bulk',
+      data,
+    )
   },
 }

@@ -10,7 +10,7 @@ import org.springframework.web.filter.CharacterEncodingFilter;
 public class WebConfig {
 
     @Bean
-    public FilterRegistrationBean<CharacterEncodingFilter> characterEncodingFilter() {
+    public FilterRegistrationBean<CharacterEncodingFilter> ulticodeCharacterEncodingFilter() {
         FilterRegistrationBean<CharacterEncodingFilter> filterReg = new FilterRegistrationBean<>();
         CharacterEncodingFilter filter = new CharacterEncodingFilter();
         filter.setEncoding("UTF-8");

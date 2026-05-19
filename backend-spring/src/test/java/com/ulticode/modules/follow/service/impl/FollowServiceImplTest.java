@@ -18,8 +18,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
-import java.util.Map;
-
 @ExtendWith(MockitoExtension.class)
 class FollowServiceImplTest {
 
@@ -61,11 +59,10 @@ class FollowServiceImplTest {
         String targetUserId = "user-target";
 
         when(userMapper.selectById(targetUserId)).thenReturn(testUser);
+        when(userMapper.selectById(currentUserId)).thenReturn(testUser);
         when(followMapper.exists(eq(currentUserId), eq(targetUserId))).thenReturn(false);
         when(followMapper.countByFollowingId(eq(targetUserId))).thenReturn(1);
         when(followMapper.countByFollowerId(eq(targetUserId))).thenReturn(1);
-        when(followMapper.countByFollowingId(eq(currentUserId))).thenReturn(0);
-        when(followMapper.countByFollowerId(eq(currentUserId))).thenReturn(0);
 
         FollowStatsDTO result = followService.follow(currentUserId, targetUserId);
 
@@ -73,11 +70,11 @@ class FollowServiceImplTest {
         verify(notificationService).createNotification(
             eq(targetUserId),
             eq("FOLLOW"),
-            eq("social"),
+            eq("COMMUNICATION"),
             eq("alice followed you"),
             eq(""),
             eq("/profile/alice"),
-            any(Map.class)
+            isNull()
         );
     }
 
@@ -91,14 +88,12 @@ class FollowServiceImplTest {
         when(followMapper.exists(eq(currentUserId), eq(targetUserId))).thenReturn(true);
         when(followMapper.countByFollowingId(eq(targetUserId))).thenReturn(1);
         when(followMapper.countByFollowerId(eq(targetUserId))).thenReturn(1);
-        when(followMapper.countByFollowingId(eq(currentUserId))).thenReturn(0);
-        when(followMapper.countByFollowerId(eq(currentUserId))).thenReturn(0);
 
         FollowStatsDTO result = followService.follow(currentUserId, targetUserId);
 
         assertThat(result).isNotNull();
         verify(notificationService, never()).createNotification(
-            anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(Map.class)
+            anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any()
         );
     }
 
@@ -109,15 +104,14 @@ class FollowServiceImplTest {
         String targetUserId = "user-target";
 
         when(userMapper.selectById(targetUserId)).thenReturn(testUser);
+        when(userMapper.selectById(currentUserId)).thenReturn(testUser);
         when(followMapper.exists(eq(currentUserId), eq(targetUserId))).thenReturn(false);
         when(followMapper.countByFollowingId(eq(targetUserId))).thenReturn(1);
         when(followMapper.countByFollowerId(eq(targetUserId))).thenReturn(1);
-        when(followMapper.countByFollowingId(eq(currentUserId))).thenReturn(0);
-        when(followMapper.countByFollowerId(eq(currentUserId))).thenReturn(0);
 
         doThrow(new RuntimeException("Notification service unavailable"))
             .when(notificationService).createNotification(
-                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), any(Map.class)
+                anyString(), anyString(), anyString(), anyString(), anyString(), anyString(), isNull()
             );
 
         FollowStatsDTO result = followService.follow(currentUserId, targetUserId);
@@ -126,11 +120,11 @@ class FollowServiceImplTest {
         verify(notificationService).createNotification(
             eq(targetUserId),
             eq("FOLLOW"),
-            eq("social"),
+            eq("COMMUNICATION"),
             eq("alice followed you"),
             eq(""),
             eq("/profile/alice"),
-            any(Map.class)
+            isNull()
         );
     }
 

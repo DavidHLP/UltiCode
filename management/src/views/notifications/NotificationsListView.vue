@@ -361,7 +361,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     v-model:open="createDialogOpen"
     :notification-to-edit="notificationToEdit"
     @success="store.fetchAnnouncements()"
-    @update:open="if (!$event) notificationToEdit = null"
+    @update:open="(open) => { if (!open) notificationToEdit = null }"
   />
   <EntityActionDialog
     v-model:open="deleteDialogOpen"

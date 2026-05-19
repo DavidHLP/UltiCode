@@ -15,7 +15,9 @@ import {
   type BatchModerationActionDto,
   type BatchActionResult,
   type QueryModerationQueueParams,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type QueryReportsParams,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   type QueryAppealsParams,
   type ModerationAction,
   type Report,

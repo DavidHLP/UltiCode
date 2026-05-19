@@ -45,6 +45,7 @@ export interface SystemAnnouncement {
   title: string
   content: string
   type: NotificationType
+  category?: NotificationCategory
   createdAt: string
   creator: {
     id: string

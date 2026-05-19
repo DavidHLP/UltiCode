@@ -81,8 +81,9 @@ watch(
 async function saveChanges() {
   if (!props.modelValue || props.disabled) return
 
-  const { name, description } = form.values
-  const currentValues = { name, description: description || '' }
+  const name = form.values.name ?? ''
+  const description = form.values.description ?? ''
+  const currentValues = { name, description }
 
   // Skip if no changes
   if (
@@ -104,16 +105,14 @@ async function saveChanges() {
       name,
       description: description || undefined,
     }
-    await adminProblemListsApi.updateBasicInfo(props.modelValue.id, updateData)
+    await adminProblemListsApi.updateBasicInfo(props.modelValue!.id, updateData)
 
     // Update local model
-    if (props.modelValue) {
-      emit('update:modelValue', {
-        ...props.modelValue,
-        name,
-        description: description || '',
-      })
-    }
+    emit('update:modelValue', {
+      ...props.modelValue!,
+      name,
+      description: description || '',
+    })
 
     lastSavedValues.value = currentValues
     saveStatus.value = 'saved'
@@ -157,7 +156,7 @@ async function handleCreate() {
 
   try {
     const newList = await adminProblemListsApi.createList({
-      name: form.values.name,
+      name: form.values.name ?? '',
       description: form.values.description || undefined,
     })
     saveStatus.value = 'saved'
@@ -174,8 +173,8 @@ async function handleCreate() {
   }
 }
 
-// Expose saveStatus for testing
-defineExpose({ saveStatus })
+// Expose for testing
+defineExpose({ saveStatus, form, saveChanges })
 </script>
 
 <template>
@@ -188,7 +187,6 @@ defineExpose({ saveStatus })
           <div class="flex items-center justify-between">
             <FormLabel class="terminal-label">{{ t('problemLists.form.name') }}</FormLabel>
             <span
-              v-if="saveStatus !== 'idle' && !isCreate"
               class="text-xs font-data"
               :class="{
                 'text-[var(--silver-400)]': saveStatus === 'idle',

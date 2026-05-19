@@ -10,15 +10,15 @@ import {
 } from '@/components/ui/tooltip'
 import { useAutoSave } from '@/composables/useAutoSave'
 import { adminProblemListsApi } from '@/api/admin/problem-lists'
-import type { ProblemList, UpdateVisibilityDto } from '@/api/admin/problem-lists'
+import type { ProblemListDetail, UpdateVisibilityDto } from '@/api/admin/problem-lists'
 
 const props = defineProps<{
-  modelValue: ProblemList | null
+  modelValue: ProblemListDetail | null
   disabled?: boolean
 }>()
 
 const emit = defineEmits<{
-  (e: 'update:modelValue', value: ProblemList): void
+  (e: 'update:modelValue', value: ProblemListDetail): void
 }>()
 
 const { t } = useI18n()
@@ -51,13 +51,13 @@ const { saveStatus, save } = useAutoSave<UpdateVisibilityDto>(
 
 function handleIsPublicChange(checked: boolean) {
   isPublic.value = checked
-  emit('update:modelValue', { ...props.modelValue!, isPublic: checked } as ProblemList)
+  emit('update:modelValue', { ...props.modelValue!, isPublic: checked } as ProblemListDetail)
   save(visibilityData.value)
 }
 
 function handleIsFeaturedChange(checked: boolean) {
   isFeatured.value = checked
-  emit('update:modelValue', { ...props.modelValue!, isFeatured: checked } as ProblemList)
+  emit('update:modelValue', { ...props.modelValue!, isFeatured: checked } as ProblemListDetail)
   save(visibilityData.value)
 }
 

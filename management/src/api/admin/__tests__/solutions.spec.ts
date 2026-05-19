@@ -1,5 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { solutionsApi, type Solution, type PageResult, type BulkSolutionActionDto } from '@/api/admin/solutions'
+import {
+  solutionsApi,
+  type Solution,
+  type PageResult,
+  type BulkSolutionActionDto,
+} from '@/api/admin/solutions'
 import { apiGet, apiPost, apiDelete } from '@/utils/request'
 
 vi.mock('@/utils/request', () => ({
@@ -80,7 +85,9 @@ describe('solutionsApi', () => {
 
       const result = await solutionsApi.getFlaggedSolutions({ page: 1, limit: 10 })
 
-      expect(apiGet).toHaveBeenCalledWith('/admin/solutions/flagged', { params: { page: 1, limit: 10 } })
+      expect(apiGet).toHaveBeenCalledWith('/admin/solutions/flagged', {
+        params: { page: 1, limit: 10 },
+      })
       expect(result.items).toHaveLength(1)
     })
   })

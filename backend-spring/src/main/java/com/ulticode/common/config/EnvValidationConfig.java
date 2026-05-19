@@ -1,5 +1,6 @@
 package com.ulticode.common.config;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import org.slf4j.Logger;
@@ -51,12 +52,12 @@ public class EnvValidationConfig {
             && !System.getenv("SPRING_DATASOURCE_URL").isBlank();
         boolean hasDbHost = dbHost != null && !dbHost.isBlank();
 
-        List<String> missing = primaryRequired.stream()
+        List<String> missing = new ArrayList<>(primaryRequired.stream()
             .filter(var -> {
                 String value = System.getenv(var);
                 return value == null || value.isBlank();
             })
-            .toList();
+            .toList());
 
         // If neither SPRING_DATASOURCE_URL nor DB_HOST is set, add it to missing
         if (!hasSpringDatasourceUrl && !hasDbHost) {

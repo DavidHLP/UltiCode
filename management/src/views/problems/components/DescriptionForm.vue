@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { watch } from 'vue'
+import { watch, ref } from 'vue'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { useI18n } from 'vue-i18n'
@@ -81,7 +81,7 @@ const form = useForm({
   validationSchema: formSchema,
 })
 
-const { values: formValues, setValues, resetForm, handleSubmit } = form
+const { values: formValues, setValues, resetForm, handleSubmit, setFieldValue } = form
 
 function updateForm(data?: ProblemData) {
   if (!data) {
@@ -127,6 +127,12 @@ watch(
   { immediate: true },
 )
 
+const loading = ref(false)
+
+function setLoading(value: boolean) {
+  loading.value = value
+}
+
 const onSubmit = handleSubmit((values) => {
   emit('submit', values as DescriptionFormData)
 })
@@ -134,6 +140,12 @@ const onSubmit = handleSubmit((values) => {
 function cancel() {
   emit('cancel')
 }
+
+defineExpose({
+  setLoading,
+  cancel,
+  form,
+})
 
 const defaultOpenSections = ['basic', 'description', 'examples']
 
@@ -154,13 +166,10 @@ const availableLanguages = [
 ]
 
 function toggleLanguage(lang: string) {
-  const current = formValues.languages || []
+  const current = (formValues.languages as string[]) || []
   const index = current.indexOf(lang)
-  if (index > -1) {
-    formValues.languages = current.filter((l) => l !== lang)
-  } else {
-    formValues.languages = [...current, lang]
-  }
+  const next = index > -1 ? current.filter((l) => l !== lang) : [...current, lang]
+  setFieldValue('languages', next)
 }
 
 function isLanguageSelected(lang: string): boolean {
@@ -422,7 +431,7 @@ function isLanguageSelected(lang: string): boolean {
                   <FormField name="tags">
                     <FormItem>
                       <FormControl>
-                        <TagsSelector :model-value="formValues.tags ?? []" @update:model-value="(v: string[]) => { formValues.tags = v }" />
+                        <TagsSelector :model-value="formValues.tags ?? []" @update:model-value="(v: string[]) => setFieldValue('tags', v)" />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -474,12 +483,14 @@ function isLanguageSelected(lang: string): boolean {
 
         <!-- Action buttons -->
         <div class="flex flex-col sm:flex-row gap-3 pt-2">
-          <Button type="submit" class="w-full sm:w-auto">
+          <Button type="submit" class="w-full sm:w-auto" :disabled="loading">
             <IconCheck class="h-4 w-4 mr-2" />
             {{
-              isEdit
-                ? t('problems.descriptionForm.updateDescription')
-                : t('problems.descriptionForm.saveDescription')
+              loading
+                ? t('problems.descriptionForm.saving')
+                : isEdit
+                  ? t('problems.descriptionForm.updateDescription')
+                  : t('problems.descriptionForm.saveDescription')
             }}
           </Button>
           <Button type="button" variant="outline" class="w-full sm:w-auto" @click="cancel">

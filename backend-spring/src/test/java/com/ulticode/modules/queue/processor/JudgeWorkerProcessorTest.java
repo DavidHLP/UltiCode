@@ -2,6 +2,7 @@ package com.ulticode.modules.queue.processor;
 
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
+import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.problem.entity.TestCase;
 import com.ulticode.modules.problem.mapper.TestCaseMapper;
 import com.ulticode.modules.queue.config.QueueConfig;
@@ -52,6 +53,9 @@ class JudgeWorkerProcessorTest {
     private TestCaseMapper testCaseMapper;
 
     @Mock
+    private ContestSubmissionMapper contestSubmissionMapper;
+
+    @Mock
     private QueueConfig queueConfig;
 
     @InjectMocks
@@ -69,6 +73,7 @@ class JudgeWorkerProcessorTest {
     void setUp() {
         sampleJob = JudgeJob.create("sub-1", "100", "user-1", "javascript", "console.log('hello');");
         lenient().when(queueConfig.getMaxConcurrentJobs()).thenReturn(10);
+        lenient().when(contestSubmissionMapper.selectOne(any())).thenReturn(null);
     }
 
     // === getJobType ===

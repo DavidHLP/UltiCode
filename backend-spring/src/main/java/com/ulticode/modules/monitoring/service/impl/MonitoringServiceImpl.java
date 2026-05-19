@@ -84,15 +84,32 @@ public class MonitoringServiceImpl implements MonitoringService {
     @Override
     public ResourceUsageVO getResourceUsage() {
         MemoryMXBean memoryMXBean = ManagementFactory.getMemoryMXBean();
-        OperatingSystemMXBean osMXBean = ManagementFactory.getOperatingSystemMXBean();
         ThreadMXBean threadMXBean = ManagementFactory.getThreadMXBean();
 
         long heapUsed = memoryMXBean.getHeapMemoryUsage().getUsed();
         long heapMax = memoryMXBean.getHeapMemoryUsage().getMax();
         long nonHeapUsed = memoryMXBean.getNonHeapMemoryUsage().getUsed();
 
+        OperatingSystemMXBean osMXBean = null;
+        try {
+            osMXBean = ManagementFactory.getOperatingSystemMXBean();
+        } catch (Exception e) {
+            log.warn("Unable to retrieve OperatingSystemMXBean in container environment", e);
+        }
+
         double processCpuLoad = getProcessCpuLoad();
         double systemCpuLoad = getSystemCpuLoad(osMXBean);
+
+        int availableProcessors;
+        if (osMXBean != null) {
+            try {
+                availableProcessors = osMXBean.getAvailableProcessors();
+            } catch (Exception e) {
+                availableProcessors = Runtime.getRuntime().availableProcessors();
+            }
+        } else {
+            availableProcessors = Runtime.getRuntime().availableProcessors();
+        }
 
         return ResourceUsageVO.builder()
                 .memory(ResourceUsageVO.MemoryInfo.builder()
@@ -103,7 +120,7 @@ public class MonitoringServiceImpl implements MonitoringService {
                 .cpu(ResourceUsageVO.CpuInfo.builder()
                         .processCpuLoad(processCpuLoad)
                         .systemCpuLoad(systemCpuLoad)
-                        .availableProcessors(osMXBean.getAvailableProcessors())
+                        .availableProcessors(availableProcessors)
                         .build())
                 .threadCount(threadMXBean.getThreadCount())
                 .build();
@@ -373,6 +390,9 @@ public class MonitoringServiceImpl implements MonitoringService {
     }
 
     private double getSystemCpuLoad(OperatingSystemMXBean osMXBean) {
+        if (osMXBean == null) {
+            return -1.0;
+        }
         try {
             com.sun.management.OperatingSystemMXBean osBean =
                     (com.sun.management.OperatingSystemMXBean) osMXBean;
@@ -381,7 +401,12 @@ public class MonitoringServiceImpl implements MonitoringService {
         } catch (Exception e) {
             // Fallback to system load average
             double loadAverage = osMXBean.getSystemLoadAverage();
-            int processors = osMXBean.getAvailableProcessors();
+            int processors;
+            try {
+                processors = osMXBean.getAvailableProcessors();
+            } catch (Exception ex) {
+                processors = Runtime.getRuntime().availableProcessors();
+            }
             if (loadAverage >= 0 && processors > 0) {
                 return loadAverage / processors;
             }

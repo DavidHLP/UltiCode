@@ -111,7 +111,10 @@ public class AdminUserServiceImpl implements AdminUserService {
         if (user == null) {
             throw new BusinessException(ErrorCode.USER_NOT_FOUND);
         }
-        return toVO(user);
+        AdminUserVO vo = toVO(user);
+        populateStats(vo, user.getId());
+        populatePermissions(vo, user.getId(), user.getRole());
+        return vo;
     }
 
     @Override
@@ -419,7 +422,7 @@ public class AdminUserServiceImpl implements AdminUserService {
     }
 
     /**
-     * Convert User entity to AdminUserVO
+     * Convert User entity to AdminUserVO (basic fields only)
      */
     private AdminUserVO toVO(User user) {
         if (user == null) {
@@ -440,26 +443,29 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setJoinedAt(user.getJoinedAt());
         vo.setLastLoginAt(user.getLastLoginAt());
 
-        // Populate stats
+        return vo;
+    }
+
+    private void populateStats(AdminUserVO vo, String userId) {
         AdminUserVO.UserStatsInfo stats = new AdminUserVO.UserStatsInfo();
-        Long totalSubmissions = submissionMapper.countByUserId(user.getId());
-        Long acceptedSubmissions = submissionMapper.countAcceptedProblemsByUserId(user.getId());
-        Long totalSolutions = solutionMapper.countByUserId(user.getId());
-        Integer streak = submissionMapper.calculateStreak(user.getId());
+        Long totalSubmissions = submissionMapper.countByUserId(userId);
+        Long acceptedSubmissions = submissionMapper.countAcceptedProblemsByUserId(userId);
+        Long totalSolutions = solutionMapper.countByUserId(userId);
+        Integer streak = submissionMapper.calculateStreak(userId);
         stats.setTotalSubmissions(totalSubmissions != null ? totalSubmissions.intValue() : 0);
         stats.setAcceptedSubmissions(acceptedSubmissions != null ? acceptedSubmissions.intValue() : 0);
         stats.setTotalSolutions(totalSolutions != null ? totalSolutions.intValue() : 0);
         stats.setStreak(streak != null ? streak : 0);
         vo.setStats(stats);
+    }
 
-        // Populate permissions
+    private void populatePermissions(AdminUserVO vo, String userId, String role) {
         List<AdminUserVO.PermissionInfo> permissions = new ArrayList<>();
 
-        // Role-based permissions
-        if (StringUtils.hasText(user.getRole())) {
+        if (StringUtils.hasText(role)) {
             List<RolePermission> rolePerms = rolePermissionMapper.selectList(
                 new LambdaQueryWrapper<RolePermission>()
-                    .eq(RolePermission::getRole, user.getRole()));
+                    .eq(RolePermission::getRole, role));
             for (RolePermission rp : rolePerms) {
                 AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
                 info.setAction(rp.getAction());
@@ -470,8 +476,7 @@ public class AdminUserServiceImpl implements AdminUserService {
             }
         }
 
-        // Direct user permissions
-        List<UserPermission> userPerms = permissionService.getUserPermissions(user.getId());
+        List<UserPermission> userPerms = permissionService.getUserPermissions(userId);
         for (UserPermission up : userPerms) {
             AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
             info.setAction(up.getAction());
@@ -481,7 +486,5 @@ public class AdminUserServiceImpl implements AdminUserService {
             permissions.add(info);
         }
         vo.setPermissions(permissions);
-
-        return vo;
     }
 }

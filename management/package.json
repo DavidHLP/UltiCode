@@ -21,6 +21,7 @@
   },
   "dependencies": {
     "@dnd-kit/abstract": "^0.1.21",
+    "@dnd-kit/dom": "^0.1.21",
     "@dnd-kit/modifiers": "^9.0.0",
     "@internationalized/date": "^3.7.0",
     "@tabler/icons-vue": "^3.36.1",
@@ -39,8 +40,8 @@
     "dompurify": "^3.3.1",
     "embla-carousel-vue": "^8.6.0",
     "highlight.js": "^11.11.1",
-    "lucide-vue-next": "^0.562.0",
     "katex": "^0.16.21",
+    "lucide-vue-next": "^0.562.0",
     "markdown-it": "^14.1.0",
     "markdown-it-katex": "^2.0.3",
     "pinia": "^3.0.4",

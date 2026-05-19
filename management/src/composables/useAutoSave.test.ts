@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { ref, nextTick } from 'vue'
+import { nextTick } from 'vue'
 import { useAutoSave } from './useAutoSave'
 
 describe('useAutoSave', () => {

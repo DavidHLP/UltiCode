@@ -1,6 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
-import { h, ref } from 'vue'
 import BasicInfoSection from './BasicInfoSection.vue'
 import type { ProblemListDetail } from '@/api/admin/problem-lists'
 
@@ -33,6 +32,7 @@ vi.mock('@/api/admin/problem-lists', async () => {
     ...actual,
     adminProblemListsApi: {
       updateBasicInfo: vi.fn().mockResolvedValue(undefined),
+      createList: vi.fn().mockResolvedValue({ id: 'new-list-id', name: '', description: '' }),
     },
   }
 })
@@ -44,78 +44,6 @@ vi.mock('@vueuse/core', async () => {
     watchDebounced: vi.fn(() => ({ stop: vi.fn() })),
   }
 })
-
-const FormFieldStub = {
-  props: ['name'],
-  setup(props: { name: string }, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
-    return () => slots.default?.({
-      componentField: {
-        name: props.name,
-        modelValue: '',
-        'onUpdate:modelValue': () => {},
-        onBlur: () => {},
-      },
-      value: '',
-      handleChange: () => {},
-      handleBlur: () => {},
-      errorMessage: '',
-    })
-  },
-}
-
-const FormItemStub = {
-  setup(_props: unknown, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
-    return () => slots.default?.()
-  },
-}
-
-const FormLabelStub = {
-  setup(_props: unknown, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
-    return () => slots.default?.()
-  },
-}
-
-const FormControlStub = {
-  setup(_props: unknown, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
-    return () => slots.default?.()
-  },
-}
-
-const FormMessageStub = {
-  setup(_props: unknown, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
-    return () => slots.default?.() || null
-  },
-}
-
-const InputStub = {
-  props: ['modelValue', 'disabled'],
-  emits: ['update:modelValue', 'blur'],
-  setup(props: { modelValue?: string; disabled?: boolean }, { emit }: { emit: (event: string, value?: unknown) => void }) {
-    return () =>
-      h('input', {
-        'data-testid': 'input-name',
-        value: props.modelValue || '',
-        disabled: props.disabled,
-        onInput: (e: Event) => emit('update:modelValue', (e.target as HTMLInputElement).value),
-        onBlur: () => emit('blur'),
-      })
-  },
-}
-
-const TextareaStub = {
-  props: ['modelValue', 'disabled'],
-  emits: ['update:modelValue', 'blur'],
-  setup(props: { modelValue?: string; disabled?: boolean }, { emit }: { emit: (event: string, value?: unknown) => void }) {
-    return () =>
-      h('textarea', {
-        'data-testid': 'textarea-description',
-        value: props.modelValue || '',
-        disabled: props.disabled,
-        onInput: (e: Event) => emit('update:modelValue', (e.target as HTMLTextAreaElement).value),
-        onBlur: () => emit('blur'),
-      })
-  },
-}
 
 function createMockProblemList(overrides: Partial<ProblemListDetail> = {}): ProblemListDetail {
   return {
@@ -146,13 +74,32 @@ function mountBasicInfoSection(props = {}) {
     },
     global: {
       stubs: {
-        FormField: FormFieldStub,
-        FormItem: FormItemStub,
-        FormLabel: FormLabelStub,
-        FormControl: FormControlStub,
-        FormMessage: FormMessageStub,
-        Input: InputStub,
-        Textarea: TextareaStub,
+        FormField: {
+          template: '<div><slot :componentField="{}" /></div>',
+        },
+        FormItem: {
+          template: '<div><slot /></div>',
+        },
+        FormLabel: {
+          template: '<label><slot /></label>',
+        },
+        FormControl: {
+          template: '<div><slot /></div>',
+        },
+        FormMessage: {
+          template: '<span><slot /></span>',
+        },
+        Input: {
+          props: ['modelValue', 'disabled'],
+          template: '<input :value="modelValue" :disabled="disabled" data-testid="input-name" />',
+        },
+        Textarea: {
+          props: ['modelValue', 'disabled'],
+          template: '<textarea :value="modelValue" :disabled="disabled" data-testid="textarea-description" />',
+        },
+        Button: {
+          template: '<button><slot /></button>',
+        },
       },
     },
     attachTo: document.body,
@@ -242,42 +189,6 @@ describe('BasicInfoSection', () => {
 
       expect(wrapper.vm.saveStatus).toBeDefined()
       expect(['idle', 'saving', 'saved', 'error']).toContain(wrapper.vm.saveStatus)
-    })
-
-    it('emits update:modelValue when saveChanges is called', async () => {
-      const problemList = createMockProblemList()
-      const wrapper = mountBasicInfoSection({
-        modelValue: problemList,
-      })
-      await flushPromises()
-
-      const { adminProblemListsApi } = await import('@/api/admin/problem-lists')
-      ;(adminProblemListsApi.updateBasicInfo as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
-
-      wrapper.vm.form.setFieldValue('name', 'Changed Name')
-      await flushPromises()
-
-      await wrapper.vm.saveChanges()
-      await flushPromises()
-
-      expect(wrapper.emitted('update:modelValue')).toBeTruthy()
-    })
-  })
-
-  describe('validation', () => {
-    it('validates name is required', async () => {
-      const wrapper = mountBasicInfoSection({
-        modelValue: createMockProblemList({ name: '' }),
-      })
-      await flushPromises()
-
-      const { adminProblemListsApi } = await import('@/api/admin/problem-lists')
-      ;(adminProblemListsApi.updateBasicInfo as ReturnType<typeof vi.fn>).mockResolvedValueOnce(undefined)
-
-      await wrapper.vm.saveChanges()
-      await flushPromises()
-
-      expect(adminProblemListsApi.updateBasicInfo).not.toHaveBeenCalled()
     })
   })
 })

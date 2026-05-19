@@ -70,7 +70,7 @@ watch(
           title: props.notificationToEdit.title,
           content: props.notificationToEdit.content,
           type: props.notificationToEdit.type,
-          category: props.notificationToEdit.category,
+          category: props.notificationToEdit.category ?? NotificationCategory.SYSTEM,
           target: NotificationTarget.ALL,
           userIds: '',
         }

@@ -10,6 +10,7 @@ import BasicInfoSection from './components/BasicInfoSection.vue'
 import VisibilitySection from './components/VisibilitySection.vue'
 import BannerSection from './components/BannerSection.vue'
 import ProblemsManager from './components/ProblemsManager.vue'
+import type { ProblemListDetail } from '@/api/admin/problem-lists'
 
 const router = useRouter()
 const route = useRoute()
@@ -21,7 +22,7 @@ const listId = computed(() => route.params.id as string)
 const isCreate = computed(() => route.name === 'problem-list-create')
 
 const list = computed({
-  get: () => store.currentList,
+  get: () => store.currentList as ProblemListDetail | null,
   set: (val) => {
     store.currentList = val
   },
@@ -50,7 +51,7 @@ function back() {
   router.push({ name: 'problem-lists' })
 }
 
-function handleListUpdate(updatedList: typeof store.currentList) {
+function handleListUpdate(updatedList: ProblemListDetail | null) {
   store.currentList = updatedList
 }
 </script>

@@ -43,6 +43,9 @@ public class ProblemQueryDTO {
     @Schema(description = "Filter by tag", example = "array")
     private String tag;
 
+    @Schema(description = "Filter by publish status (DRAFT/PUBLISHED/ARCHIVED)", allowableValues = {"DRAFT", "PUBLISHED", "ARCHIVED"})
+    private String publishStatus;
+
     /**
      * Normalize limit to pageSize for backward compatibility
      */

@@ -7,7 +7,7 @@ Welcome to the UltiCode project! This guide will help you get started with devel
 ## Prerequisites
 
 - **Java 17+** - Required for backend development
-- **Node.js 20+** - Required for frontend development
+- **Node.js 20+** - Required for frontend development (engines: `^20.19.0 || >=22.12.0`)
 - **pnpm 9+** - Package manager for frontends
 - **Docker & Docker Compose** - For local infrastructure
 - **Python 3.10+** - For db-manager CLI
@@ -93,16 +93,20 @@ cd management && pnpm dev
 |---------|-------------|
 | `pnpm dev` | Start dev server with lint + type-check + format + test |
 | `pnpm build` | Production build with type checking |
+| `pnpm preview` | Preview production build locally |
 | `pnpm type-check` | Run vue-tsc type checker |
 | `pnpm lint` | ESLint with auto-fix |
 | `pnpm format` | Prettier auto-format (no semicolons, single quotes) |
 | `pnpm test` | Vitest unit tests |
 | `pnpm test:watch` | Vitest in watch mode |
 | `pnpm test:coverage` | Vitest with coverage report |
+| `pnpm validate:mocks` | Validate mock data files |
+| `pnpm validate:mocks:verbose` | Validate mock data (verbose output) |
+| `pnpm validate:mocks:strict` | Validate mock data (strict mode) |
 
 ### Management Frontend (management/)
 
-Same commands as console. Additional:
+Same commands as console, plus:
 
 | Command | Description |
 |---------|-------------|
@@ -114,9 +118,11 @@ Same commands as console. Additional:
 |---------|-------------|
 | `./mvnw spring-boot:run` | Start Spring Boot application |
 | `./mvnw package -DskipTests` | Build JAR |
-| `./mvnw test` | Unit tests (excludes *IT.java) |
+| `./mvnw test` | Unit tests (excludes `*IT.java`) |
 | `./mvnw verify -Pci` | Integration tests with Testcontainers |
 | `./mvnw compile` | Compile only |
+
+> Note: Backend is started via PM2 using `start.cjs` wrapper (see `ecosystem.config.cjs`). |
 
 ### Database Manager (db-manager/)
 

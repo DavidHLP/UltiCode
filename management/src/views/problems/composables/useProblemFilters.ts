@@ -1,7 +1,7 @@
 import { ref, watch, type Ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useDebounceFn } from '@vueuse/core'
-import { Difficulty, type Problem } from '@/api/admin/problems'
+import { Difficulty } from '@/api/admin/problems'
 import type { PaginationState } from '@/composables/useDataTable'
 
 export interface ProblemFilterState {
@@ -63,7 +63,15 @@ export function useProblemFilters() {
 
   // Watch all filter state changes and update URL
   watch(
-    [searchQuery, difficultyFilter, statusFilter, publishedFilter, sortBy, sortOrder, routePageIndex],
+    [
+      searchQuery,
+      difficultyFilter,
+      statusFilter,
+      publishedFilter,
+      sortBy,
+      sortOrder,
+      routePageIndex,
+    ],
     debouncedUpdateUrl,
     { deep: true },
   )
@@ -99,7 +107,10 @@ export function useProblemFilters() {
     return {
       difficulty:
         difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
-      status: statusFilter.value === 'all' ? undefined : (statusFilter.value as Problem['status']),
+      publishStatus:
+        statusFilter.value === 'all'
+          ? undefined
+          : (statusFilter.value as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'),
       isPublished:
         publishedFilter.value === 'all'
           ? undefined
@@ -108,7 +119,7 @@ export function useProblemFilters() {
             : false,
       sortBy: sortBy.value === 'default' ? undefined : sortBy.value,
       sortOrder: sortOrder.value || undefined,
-      page: tablePagination.pageIndex,
+      page: tablePagination.pageIndex + 1,
       limit: tablePagination.pageSize,
     }
   }
@@ -119,7 +130,10 @@ export function useProblemFilters() {
       search: searchQuery.value || undefined,
       difficulty:
         difficultyFilter.value === 'all' ? undefined : (difficultyFilter.value as Difficulty),
-      status: statusFilter.value === 'all' ? undefined : (statusFilter.value as Problem['status']),
+      publishStatus:
+        statusFilter.value === 'all'
+          ? undefined
+          : (statusFilter.value as 'DRAFT' | 'PUBLISHED' | 'ARCHIVED'),
       isPublished:
         publishedFilter.value === 'all'
           ? undefined

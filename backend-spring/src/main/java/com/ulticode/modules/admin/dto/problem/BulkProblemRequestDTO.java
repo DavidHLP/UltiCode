@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.dto.problem;
 import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.util.List;
@@ -15,12 +16,15 @@ import java.util.Map;
 @Schema(description = "Bulk problem operation request")
 public class BulkProblemRequestDTO {
 
+    public static final int MAX_BULK_SIZE = 500;
+
     @NotEmpty(message = "IDs list cannot be empty")
-    @Schema(description = "List of problem IDs to operate on")
+    @Size(max = MAX_BULK_SIZE, message = "Cannot process more than " + MAX_BULK_SIZE + " IDs at once")
+    @Schema(description = "List of problem IDs to operate on (max " + MAX_BULK_SIZE + ")")
     private List<String> ids;
 
     @NotNull(message = "Action is required")
-    @Schema(description = "Bulk action to perform", allowableValues = {"publish", "unpublish", "delete", "edit"})
+    @Schema(description = "Bulk action to perform", allowableValues = {"publish", "unpublish", "delete", "restore", "edit"})
     private BulkAction action;
 
     @Schema(description = "Optional parameters for edit action, e.g., { difficulty: \"Easy\" }")
@@ -33,6 +37,7 @@ public class BulkProblemRequestDTO {
         publish,
         unpublish,
         delete,
+        restore,
         edit
     }
 }

@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-18 | Files scanned: 1634 | Token estimate: ~800 -->
+<!-- Generated: 2026-05-19 | Files scanned: 2106 | Token estimate: ~800 -->
 
 # Architecture
 
@@ -12,7 +12,7 @@
 └──────┬───────┘  └──────┬───────┘
        │                 │
        └────────┬────────┘
-                │  HTTP/WebSocket
+                │  HTTP / WebSocket
        ┌────────▼────────┐
        │  Backend Spring  │
        │  :9001           │
@@ -35,8 +35,8 @@
 | Service | Port | Role |
 |---------|------|------|
 | backend-spring | 9001 | REST API, auth, WebSocket |
-| console | 9002 | User-facing SPA |
-| management | 9003 | Admin dashboard SPA |
+| console | 9002 | User-facing SPA (548 files) |
+| management | 9003 | Admin dashboard SPA (709 files) |
 | recommend-provider | 20881 | Dubbo RPC provider |
 | recommend-web | 9005 | Recommendation REST gateway |
 
@@ -55,5 +55,5 @@
 
 - **Service Discovery**: Nacos 2.3.2 (:28848)
 - **Containerization**: Docker Compose (MySQL 9.1, Redis 7, Nacos)
-- **Process Manager**: PM2 (ecosystem.config.cjs)
+- **Process Manager**: PM2 (`ecosystem.config.cjs`)
 - **CI**: GitHub Actions (path-based change detection)

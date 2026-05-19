@@ -1,4 +1,4 @@
-export default {
+const tableTranslations = {
   // 表格工具栏
   selectAll: '全选',
   customizeColumns: '自定义列',
@@ -73,5 +73,14 @@ export default {
     content: '内容',
     stats: '统计',
     createdAt: '创建时间',
+
+    // 补充缺失的驼峰键
+    lastLoginAt: '最后登录',
+    joinedAt: '注册时间',
+    submissionCount: '提交数',
+    isPublished: '发布状态',
   },
 } as const
+
+export type TableColumnName = keyof typeof tableTranslations.columnNames
+export default tableTranslations

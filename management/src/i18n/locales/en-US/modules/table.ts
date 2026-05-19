@@ -1,4 +1,4 @@
-export default {
+const tableTranslations = {
   // Table toolbar
   selectAll: 'Select All',
   customizeColumns: 'Customize Columns',
@@ -73,5 +73,14 @@ export default {
     content: 'Content',
     stats: 'Statistics',
     createdAt: 'Created',
+
+    // Missing camelCase keys
+    lastLoginAt: 'Last Login',
+    joinedAt: 'Joined',
+    submissionCount: 'Submissions',
+    isPublished: 'Published',
   },
 } as const
+
+export type TableColumnName = keyof typeof tableTranslations.columnNames
+export default tableTranslations

@@ -271,7 +271,7 @@ function numIslands(grid: string[][]): number {
     
     function bfs(i: number, j: number) {
         const queue: [number, number][] = [[i, j]];
-        grid[i][j] = '0';
+        grid[i][j] = ''0'';
         
         while (queue.length) {
             const [r, c] = queue.shift()!;
@@ -279,8 +279,8 @@ function numIslands(grid: string[][]): number {
             
             for (const [dr, dc] of dirs) {
                 const nr = r + dr, nc = c + dc;
-                if (nr >= 0 && nr < m && nc >= 0 && nc < n && grid[nr][nc] === '1') {
-                    grid[nr][nc] = '0';
+                if (nr >= 0 && nr < m && nc >= 0 && nc < n && grid[nr][nc] === ''1'') {
+                    grid[nr][nc] = ''0'';
                     queue.push([nr, nc]);
                 }
             }
@@ -289,7 +289,7 @@ function numIslands(grid: string[][]): number {
     
     for (let i = 0; i < m; i++) {
         for (let j = 0; j < n; j++) {
-            if (grid[i][j] === '1') {
+            if (grid[i][j] === ''1'') {
                 count++;
                 bfs(i, j);
             }
@@ -362,13 +362,13 @@ head -n 10 file.txt | tail -n 1
 ## 方法二：sed
 
 ```bash
-sed -n '10p' file.txt
+sed -n ''10p'' file.txt
 ```
 
 ## 方法三：awk
 
 ```bash
-awk 'NR==10' file.txt
+awk ''NR==10'' file.txt
 ```
 
 ## 复杂度分析
@@ -383,7 +383,7 @@ INSERT INTO `solutions` (`id`, `problem_id`, `user_id`, `title`, `content`, `sum
 awk 的 NR 变量表示当前行号，当 NR 等于 10 时打印该行。
 
 ```bash
-awk 'NR==10 {print; exit}' file.txt
+awk ''NR==10 {print; exit}'' file.txt
 ```
 
 ## 复杂度分析
@@ -559,10 +559,10 @@ def intToRoman(num: int) -> str:
         1
     ]
     sym = [
-        'M', 'CM', 'D', 'CD',
-        'C', 'XC', 'L', 'XL',
-        'X', 'IX', 'V', 'IV',
-        'I'
+        ''M'', ''CM'', ''D'', ''CD'',
+        ''C'', ''XC'', ''L'', ''XL'',
+        ''X'', ''IX'', ''V'', ''IV'',
+        ''I''
     ]
     
     result = ''
@@ -658,14 +658,14 @@ function groupAnagrams(strs: string[]): string[][] {
 ```typescript
 function groupAnagramsCount(strs: string[]): string[][] {
     const map = new Map<string, string[]>();
-    const code = 'a'.charCodeAt(0);
+    const code = ''a''.charCodeAt(0);
     
     for (const str of strs) {
         const count = new Array(26).fill(0);
         for (const c of str) {
             count[c.charCodeAt(0) - code]++;
         }
-        const key = count.join('#');
+        const key = count.join(''#'');
         
         if (!map.has(key)) {
             map.set(key, []);
@@ -748,7 +748,7 @@ INSERT INTO `solutions` (`id`, `problem_id`, `user_id`, `title`, `content`, `sum
 def threeSumClosest(nums: list, target: int) -> int:
     nums.sort()
     n = len(nums)
-    closest = float('inf')
+    closest = float(''inf'')
     result = 0
     
     for i in range(n - 2):
@@ -793,8 +793,8 @@ function letterCombinations(digits: string): string[] {
     if (!digits) return [];
     
     const map: Record<string, string> = {
-        '2': 'abc', '3': 'def', '4': 'ghi', '5': 'jkl',
-        '6': 'mno', '7': 'pqrs', '8': 'tuv', '9': 'wxyz'
+        ''2'': ''abc'', ''3'': ''def'', ''4'': ''ghi'', ''5'': ''jkl'',
+        ''6'': ''mno'', ''7'': ''pqrs'', ''8'': ''tuv'', ''9'': ''wxyz''
     };
     
     const result: string[] = [];
@@ -935,13 +935,13 @@ INSERT INTO `solutions` (`id`, `problem_id`, `user_id`, `title`, `content`, `sum
 function isValid(s: string): boolean {
     const stack: string[] = [];
     const map: Record<string, string> = {
-        ')': '(', 
-        ']': '[', 
-        '}': '{'
+        '')'': ''('', 
+        '']'': ''['', 
+        ''}'': ''{''
     };
     
     for (const char of s) {
-        if ('([{'.includes(char)) {
+        if (''([{''.includes(char)) {
             stack.push(char);
         } else {
             if (stack.pop() !== map[char]) {
@@ -1045,10 +1045,10 @@ def generateParenthesis(n: int) -> list:
             return
         
         if left < n:
-            backtrack(s + '(', left + 1, right)
+            backtrack(s + ''('', left + 1, right)
         
         if right < left:
-            backtrack(s + ')', left, right + 1)
+            backtrack(s + '')'', left, right + 1)
     
     backtrack()
     return result

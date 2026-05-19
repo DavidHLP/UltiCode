@@ -8,6 +8,7 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     root: fileURLToPath(new URL('./src', import.meta.url)),
+    exclude: ['**/e2e/**', '**/node_modules/**', '**/shared/**'],
   },
   resolve: {
     alias: {

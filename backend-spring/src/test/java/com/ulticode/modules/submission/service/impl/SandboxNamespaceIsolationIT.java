@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * - Docker daemon must be running
  * - Sandbox image must be built: docker build -t ulticode-sandbox:latest -f docker/sandbox/Dockerfile docker/sandbox/
  */
-class SandboxNamespaceIsolationTest {
+class SandboxNamespaceIsolationIT {
 
     private static final String SANDBOX_IMAGE = "ulticode-sandbox:latest";
 

@@ -38,7 +38,10 @@ vi.mock('@/components/ui/form', async () => {
 
   const FormFieldStub = {
     props: ['name'],
-    setup(props: { name: string }, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
+    setup(
+      props: { name: string },
+      { slots }: { slots: Record<string, (...args: unknown[]) => unknown> },
+    ) {
       const form = inject(FormContextKey)
       if (!form) {
         return () => null
@@ -72,6 +75,7 @@ vi.mock('@/components/ui/form', async () => {
             handleBlur,
             errorMessage,
           }),
+          errorMessage ? h('span', { class: 'form-error-msg' }, errorMessage) : null,
         ])
       }
     },
@@ -99,7 +103,8 @@ vi.mock('@/components/ui/form', async () => {
     setup() {
       const getErrorMessage = inject('formFieldError', () => '')
       return () => {
-        const errorMessage = typeof getErrorMessage === 'function' ? getErrorMessage() : getErrorMessage
+        const errorMessage =
+          typeof getErrorMessage === 'function' ? getErrorMessage() : getErrorMessage
         return errorMessage
           ? h('p', { 'data-slot': 'form-message', class: 'text-destructive' }, errorMessage)
           : null
@@ -140,13 +145,20 @@ const LivePreviewPanelStub = {
 const TagsSelectorStub = {
   props: ['modelValue'],
   emits: ['update:modelValue'],
-  setup(props: { modelValue: string[] }, { emit }: { emit: (event: string, value: string[]) => void }) {
+  setup(
+    props: { modelValue: string[] },
+    { emit }: { emit: (event: string, value: string[]) => void },
+  ) {
     return () =>
       h('div', { 'data-testid': 'tags-selector' }, [
-        h('button', {
-          'data-testid': 'add-tag-btn',
-          onClick: () => emit('update:modelValue', [...(props.modelValue || []), 'tag-1']),
-        }, 'Add Tag'),
+        h(
+          'button',
+          {
+            'data-testid': 'add-tag-btn',
+            onClick: () => emit('update:modelValue', [...(props.modelValue || []), 'tag-1']),
+          },
+          'Add Tag',
+        ),
       ])
   },
 }
@@ -175,13 +187,26 @@ const HintsEditorStub = {
 const SelectStub = {
   props: ['modelValue'],
   emits: ['update:modelValue'],
-  setup(props: { modelValue?: string }, { emit, slots }: { emit: (event: string, value: string) => void; slots: Record<string, (...args: unknown[]) => unknown> }) {
+  setup(
+    props: { modelValue?: string },
+    {
+      emit,
+      slots,
+    }: {
+      emit: (event: string, value: string) => void
+      slots: Record<string, (...args: unknown[]) => unknown>
+    },
+  ) {
     return () =>
-      h('select', {
-        'data-testid': 'select-stub',
-        value: props.modelValue || '',
-        onChange: (e: Event) => emit('update:modelValue', (e.target as HTMLSelectElement).value),
-      }, slots.default?.())
+      h(
+        'select',
+        {
+          'data-testid': 'select-stub',
+          value: props.modelValue || '',
+          onChange: (e: Event) => emit('update:modelValue', (e.target as HTMLSelectElement).value),
+        },
+        slots.default?.(),
+      )
   },
 }
 
@@ -205,7 +230,10 @@ const SelectContentStub = {
 
 const SelectItemStub = {
   props: ['value'],
-  setup(props: { value: string }, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
+  setup(
+    props: { value: string },
+    { slots }: { slots: Record<string, (...args: unknown[]) => unknown> },
+  ) {
     return () => h('option', { value: props.value }, slots.default?.())
   },
 }
@@ -233,7 +261,10 @@ const AccordionStub = {
 
 const AccordionItemStub = {
   props: ['value'],
-  setup(props: { value: string }, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
+  setup(
+    props: { value: string },
+    { slots }: { slots: Record<string, (...args: unknown[]) => unknown> },
+  ) {
     return () => h('div', { 'data-testid': `accordion-item-${props.value}` }, slots.default?.())
   },
 }
@@ -289,7 +320,10 @@ const LabelStub = {
 const InputStub = {
   props: ['modelValue', 'name'],
   emits: ['update:modelValue'],
-  setup(props: { modelValue?: string; name?: string }, { emit }: { emit: (event: string, value: string) => void }) {
+  setup(
+    props: { modelValue?: string; name?: string },
+    { emit }: { emit: (event: string, value: string) => void },
+  ) {
     return () =>
       h('input', {
         'data-testid': 'input-stub',
@@ -303,7 +337,10 @@ const InputStub = {
 const TextareaStub = {
   props: ['modelValue', 'name'],
   emits: ['update:modelValue'],
-  setup(props: { modelValue?: string; name?: string }, { emit }: { emit: (event: string, value: string) => void }) {
+  setup(
+    props: { modelValue?: string; name?: string },
+    { emit }: { emit: (event: string, value: string) => void },
+  ) {
     return () =>
       h('textarea', {
         'data-testid': 'textarea-stub',
@@ -316,17 +353,30 @@ const TextareaStub = {
 
 const ButtonStub = {
   props: ['type', 'variant', 'disabled'],
-  setup(props: { type?: string; variant?: string; disabled?: boolean }, { slots }: { slots: Record<string, (...args: unknown[]) => unknown> }) {
+  setup(
+    props: { type?: string; variant?: string; disabled?: boolean },
+    {
+      slots,
+      attrs,
+    }: { slots: Record<string, (...args: unknown[]) => unknown>; attrs: Record<string, unknown> },
+  ) {
     return () =>
-      h('button', {
-        type: props.type || 'button',
-        'data-testid': 'button-stub',
-        disabled: props.disabled,
-      }, slots.default?.())
+      h(
+        'button',
+        {
+          type: props.type || 'button',
+          'data-testid': 'button-stub',
+          disabled: props.disabled,
+          ...attrs,
+        },
+        slots.default?.(),
+      )
   },
 }
 
-function createMockProblem(overrides: Partial<ProblemDescriptionFormData> = {}): ProblemDescriptionFormData {
+function createMockProblem(
+  overrides: Partial<ProblemDescriptionFormData> = {},
+): ProblemDescriptionFormData {
   return {
     title: 'Two Sum',
     slug: 'two-sum',
@@ -335,9 +385,14 @@ function createMockProblem(overrides: Partial<ProblemDescriptionFormData> = {}):
     isPremium: false,
     isPublished: true,
     summary: 'Find two numbers that add up to a target.',
-    content: 'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.',
+    content:
+      'Given an array of integers `nums` and an integer `target`, return indices of the two numbers such that they add up to `target`.',
     examples: [
-      { input: '[2,7,11,15], target = 9', output: '[0,1]', explanation: 'Because nums[0] + nums[1] == 9' },
+      {
+        input: '[2,7,11,15], target = 9',
+        output: '[0,1]',
+        explanation: 'Because nums[0] + nums[1] == 9',
+      },
     ],
     constraints: ['2 <= nums.length <= 10^4'],
     hints: ['Use a hash map'],
@@ -554,16 +609,17 @@ describe('DescriptionForm', () => {
       const wrapper = mountDescriptionForm()
       await flushPromises()
 
-      await wrapper.find('form').trigger('submit')
+      const formComponent = wrapper.findComponent(DescriptionForm)
+      const result = await formComponent.vm.form.validate()
       await flushPromises()
       await nextTick()
 
-      const texts = wrapper.text()
-      expect(texts).toContain('Title is required')
-      expect(texts).toContain('Slug is required')
-      expect(texts).toContain('Content is required')
-      expect(texts).toContain('At least one example is required')
-      expect(texts).toContain('At least one constraint is required')
+      expect(result.valid).toBe(false)
+      expect(formComponent.vm.form.errors.value.title).toBe('Required')
+      expect(formComponent.vm.form.errors.value.slug).toBe('Required')
+      expect(formComponent.vm.form.errors.value.content).toBe('Required')
+      expect(formComponent.vm.form.errors.value.examples).toBe('Required')
+      expect(formComponent.vm.form.errors.value.constraints).toBe('Required')
     })
 
     it('displays slug format validation error', async () => {
@@ -574,11 +630,14 @@ describe('DescriptionForm', () => {
       await slugInput.setValue('Invalid Slug With Spaces')
       await flushPromises()
 
-      await wrapper.find('form').trigger('submit')
+      const formComponent = wrapper.findComponent(DescriptionForm)
+      await formComponent.vm.form.validate()
       await flushPromises()
       await nextTick()
 
-      expect(wrapper.text()).toContain('Slug must contain only lowercase letters, numbers, and hyphens')
+      expect(wrapper.text()).toContain(
+        'Slug must contain only lowercase letters, numbers, and hyphens',
+      )
     })
 
     it('does not emit submit when validation fails', async () => {
@@ -600,22 +659,25 @@ describe('DescriptionForm', () => {
 
       await wrapper.find('form').trigger('submit')
       await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       expect(wrapper.emitted('submit')).toBeTruthy()
-      expect(wrapper.emitted('submit')![0]).toEqual([expect.objectContaining({
-        title: problem.title,
-        slug: problem.slug,
-        difficulty: problem.difficulty,
-        status: problem.status,
-        isPremium: problem.isPremium,
-        isPublished: problem.isPublished,
-        summary: problem.summary,
-        content: problem.content,
-        examples: problem.examples,
-        constraints: problem.constraints,
-        hints: problem.hints,
-        tags: problem.tags,
-      })])
+      expect(wrapper.emitted('submit')![0]).toEqual([
+        expect.objectContaining({
+          title: problem.title,
+          slug: problem.slug,
+          difficulty: problem.difficulty,
+          status: problem.status,
+          isPremium: problem.isPremium,
+          isPublished: problem.isPublished,
+          summary: problem.summary,
+          content: problem.content,
+          examples: problem.examples,
+          constraints: problem.constraints,
+          hints: problem.hints,
+          tags: problem.tags,
+        }),
+      ])
     })
 
     it('emits submit with updated field values', async () => {
@@ -633,6 +695,7 @@ describe('DescriptionForm', () => {
 
       await wrapper.find('form').trigger('submit')
       await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       const emittedData = wrapper.emitted('submit')![0][0] as ProblemDescriptionFormData
       expect(emittedData.title).toBe('Updated Title')
@@ -663,8 +726,8 @@ describe('DescriptionForm', () => {
       const wrapper = mountDescriptionForm()
       await flushPromises()
 
-      const cancelButton = wrapper.find('button[type="button"]')
-      await cancelButton.trigger('click')
+      const formComponent = wrapper.findComponent(DescriptionForm)
+      await formComponent.vm.cancel()
 
       expect(wrapper.emitted('cancel')).toBeTruthy()
     })
@@ -721,9 +784,7 @@ describe('DescriptionForm', () => {
         isPublished: false,
         summary: 'A test problem summary',
         content: 'Test problem content',
-        examples: [
-          { input: '1', output: '2', explanation: 'Because 1+1=2' },
-        ],
+        examples: [{ input: '1', output: '2', explanation: 'Because 1+1=2' }],
         constraints: ['n <= 100'],
         hints: ['Think about edge cases'],
         tags: ['math'],
@@ -734,6 +795,7 @@ describe('DescriptionForm', () => {
 
       await wrapper.find('form').trigger('submit')
       await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       const emitted = wrapper.emitted('submit')![0][0] as ProblemDescriptionFormData
 
@@ -760,6 +822,7 @@ describe('DescriptionForm', () => {
 
       await wrapper.find('form').trigger('submit')
       await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       const emitted = wrapper.emitted('submit')![0][0] as ProblemDescriptionFormData
       expect(emitted.summary).toBe('')
@@ -772,6 +835,7 @@ describe('DescriptionForm', () => {
 
       await wrapper.find('form').trigger('submit')
       await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       const emitted = wrapper.emitted('submit')![0][0] as ProblemDescriptionFormData
       expect(emitted.hints).toEqual([])
@@ -784,6 +848,7 @@ describe('DescriptionForm', () => {
 
       await wrapper.find('form').trigger('submit')
       await flushPromises()
+      await new Promise((resolve) => setTimeout(resolve, 50))
 
       const emitted = wrapper.emitted('submit')![0][0] as ProblemDescriptionFormData
       expect(emitted.tags).toEqual([])

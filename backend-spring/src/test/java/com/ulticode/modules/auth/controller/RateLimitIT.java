@@ -40,8 +40,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
-@DisplayName("RateLimitIntegrationTest")
-class RateLimitIntegrationTest {
+@DisplayName("RateLimitIT")
+class RateLimitIT {
 
     @SuppressWarnings("rawtypes")
     @Container

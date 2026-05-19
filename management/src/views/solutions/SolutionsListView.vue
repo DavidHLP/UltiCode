@@ -98,8 +98,8 @@ const {
   }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
-    is_flagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
-    is_published:
+    isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    isPublished:
       filters.publishedFilter === 'all'
         ? undefined
         : filters.publishedFilter === 'published'

@@ -9,11 +9,11 @@ const props = defineProps<{
   formData: {
     title: string
     slug: string
-    type: string
-    scoring_rule_id?: string
-    start_time: string
+    contestType: string
+    scoringRuleId?: string
+    startTime: string
     duration: number
-    is_published: boolean
+    isPublished: boolean
     selectedProblems?: {
       id: string
       title: string
@@ -31,14 +31,14 @@ const loadingRule = ref(false)
 
 // Fetch scoring rule details when scoring_rule_id changes
 async function fetchScoringRule() {
-  if (!props.formData.scoring_rule_id) {
+  if (!props.formData.scoringRuleId) {
     scoringRule.value = null
     return
   }
 
   loadingRule.value = true
   try {
-    scoringRule.value = await scoringRulesApi.getById(props.formData.scoring_rule_id)
+    scoringRule.value = await scoringRulesApi.getById(props.formData.scoringRuleId)
   } catch {
     scoringRule.value = null
   } finally {
@@ -46,11 +46,11 @@ async function fetchScoringRule() {
   }
 }
 
-watch(() => props.formData.scoring_rule_id, fetchScoringRule, { immediate: true })
+watch(() => props.formData.scoringRuleId, fetchScoringRule, { immediate: true })
 
 const formattedDate = computed(() => {
-  if (!props.formData.start_time) return t('contests.scheduleStep.notSet')
-  return new Date(props.formData.start_time).toLocaleString()
+  if (!props.formData.startTime) return t('contests.scheduleStep.notSet')
+  return new Date(props.formData.startTime).toLocaleString()
 })
 
 function renderDifficultyBadge(difficulty: string) {
@@ -94,7 +94,7 @@ function renderTypeBadge(type: string) {
           <div>
             <span class="terminal-label">{{ t('contests.basics.type') }}</span>
             <p>
-              <component :is="renderTypeBadge(formData.type)" />
+              <component :is="renderTypeBadge(formData.contestType)" />
             </p>
           </div>
         </div>
@@ -125,7 +125,7 @@ function renderTypeBadge(type: string) {
           <div>
             <span class="terminal-label">{{ t('contests.reviewStep.visibility') }}</span>
             <p>
-              <component :is="formData.is_published ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' }) : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' })" />
+              <component :is="formData.isPublished ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' }) : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' })" />
             </p>
           </div>
         </div>
@@ -150,7 +150,7 @@ function renderTypeBadge(type: string) {
               <span class="font-medium text-sm text-[var(--foreground)]">{{
                 scoringRule.name
               }}</span>
-              <span v-if="scoringRule.is_default">
+              <span v-if="scoringRule.isDefault">
                 <component :is="badge({ color: 'success', label: t('scoringRules.badges.default'), size: 'sm' })" />
               </span>
             </div>
@@ -160,7 +160,7 @@ function renderTypeBadge(type: string) {
                   t('scoringRules.form.baseScorePerProblem')
                 }}</span>
                 <p class="font-data text-[var(--terminal-cyan)] tabular-nums">
-                  {{ scoringRule.base_score_per_problem }}
+                  {{ scoringRule.baseScorePerProblem }}
                 </p>
               </div>
               <div>
@@ -168,7 +168,7 @@ function renderTypeBadge(type: string) {
                   t('scoringRules.form.wrongAnswerPenalty')
                 }}</span>
                 <p class="font-data text-[var(--terminal-red)] tabular-nums">
-                  -{{ scoringRule.wrong_answer_penalty }}
+                  -{{ scoringRule.wrongAnswerPenalty }}
                 </p>
               </div>
             </div>

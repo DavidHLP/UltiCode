@@ -15,6 +15,12 @@ import com.ulticode.modules.admin.dto.AdminUpdateUserDTO;
 import com.ulticode.modules.admin.dto.AdminUserQueryDTO;
 import com.ulticode.modules.admin.dto.AdminUserVO;
 import com.ulticode.modules.admin.service.AdminUserService;
+import com.ulticode.modules.permission.entity.RolePermission;
+import com.ulticode.modules.permission.entity.UserPermission;
+import com.ulticode.modules.permission.mapper.RolePermissionMapper;
+import com.ulticode.modules.permission.service.PermissionService;
+import com.ulticode.modules.solution.mapper.SolutionMapper;
+import com.ulticode.modules.submission.mapper.SubmissionMapper;
 import com.ulticode.modules.user.entity.User;
 import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +49,10 @@ public class AdminUserServiceImpl implements AdminUserService {
     private final UserMapper userMapper;
     private final PasswordEncoder passwordEncoder;
     private final AuditHelper auditHelper;
+    private final SubmissionMapper submissionMapper;
+    private final SolutionMapper solutionMapper;
+    private final PermissionService permissionService;
+    private final RolePermissionMapper rolePermissionMapper;
 
     @Override
     public PageResult<AdminUserVO> getUsers(AdminUserQueryDTO query) {
@@ -429,7 +439,48 @@ public class AdminUserServiceImpl implements AdminUserService {
         vo.setBannedUntil(user.getBannedUntil());
         vo.setJoinedAt(user.getJoinedAt());
         vo.setLastLoginAt(user.getLastLoginAt());
-        // Permissions and stats can be added later if needed
+
+        // Populate stats
+        AdminUserVO.UserStatsInfo stats = new AdminUserVO.UserStatsInfo();
+        Long totalSubmissions = submissionMapper.countByUserId(user.getId());
+        Long acceptedSubmissions = submissionMapper.countAcceptedProblemsByUserId(user.getId());
+        Long totalSolutions = solutionMapper.countByUserId(user.getId());
+        Integer streak = submissionMapper.calculateStreak(user.getId());
+        stats.setTotalSubmissions(totalSubmissions != null ? totalSubmissions.intValue() : 0);
+        stats.setAcceptedSubmissions(acceptedSubmissions != null ? acceptedSubmissions.intValue() : 0);
+        stats.setTotalSolutions(totalSolutions != null ? totalSolutions.intValue() : 0);
+        stats.setStreak(streak != null ? streak : 0);
+        vo.setStats(stats);
+
+        // Populate permissions
+        List<AdminUserVO.PermissionInfo> permissions = new ArrayList<>();
+
+        // Role-based permissions
+        if (StringUtils.hasText(user.getRole())) {
+            List<RolePermission> rolePerms = rolePermissionMapper.selectList(
+                new LambdaQueryWrapper<RolePermission>()
+                    .eq(RolePermission::getRole, user.getRole()));
+            for (RolePermission rp : rolePerms) {
+                AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
+                info.setAction(rp.getAction());
+                info.setResource(rp.getResource());
+                info.setSource("role");
+                info.setExpiresAt(null);
+                permissions.add(info);
+            }
+        }
+
+        // Direct user permissions
+        List<UserPermission> userPerms = permissionService.getUserPermissions(user.getId());
+        for (UserPermission up : userPerms) {
+            AdminUserVO.PermissionInfo info = new AdminUserVO.PermissionInfo();
+            info.setAction(up.getAction());
+            info.setResource(up.getResource());
+            info.setSource("direct");
+            info.setExpiresAt(null);
+            permissions.add(info);
+        }
+        vo.setPermissions(permissions);
 
         return vo;
     }

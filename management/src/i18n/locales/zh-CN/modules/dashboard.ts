@@ -124,6 +124,10 @@ export default {
       UNPIN: '取消置顶',
       LOCK: '锁定',
       UNLOCK: '解锁',
+      RESET_PASSWORD: '重置密码',
+      UPDATE_USER: '更新用户',
+      BAN_USER: '封禁用户',
+      UNBAN_USER: '解封用户',
     },
   },
 } as const

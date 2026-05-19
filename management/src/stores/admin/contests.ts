@@ -178,15 +178,15 @@ export const useContestsStore = defineStore('adminContests', () => {
     }
   }
 
-  async function removeProblem(id: string, problemId: string) {
+  async function removeProblem(id: string, problemId: number) {
     loading.value = true
     try {
       await contestsApi.removeProblem(id, problemId)
-      // Manually remove from current contest state to avoid full refetch if possible
-      if (currentContest.value?.problems) {
-        currentContest.value.problems = currentContest.value.problems.filter(
-          (p) => p.problemId !== problemId,
-        )
+      if (currentContest.value?.problemIds) {
+        currentContest.value = {
+          ...currentContest.value,
+          problemIds: currentContest.value.problemIds.filter((pid) => pid !== String(problemId)),
+        }
       }
     } catch (err: unknown) {
       error.value =
@@ -198,12 +198,12 @@ export const useContestsStore = defineStore('adminContests', () => {
     }
   }
 
-  async function fetchRankings(id: string) {
+  async function fetchRankings(id: string, page = 1, limit = 50) {
     loading.value = true
     try {
-      const response = await contestsApi.getRankings(id)
-      currentRankings.value = response.data
-      return response.data
+      const response = await contestsApi.getRankings(id, page, limit)
+      currentRankings.value = response.items
+      return response.items
     } catch (err: unknown) {
       console.error('Failed to fetch rankings', err)
     } finally {

@@ -124,6 +124,10 @@ export default {
       UNPIN: 'Unpin',
       LOCK: 'Lock',
       UNLOCK: 'Unlock',
+      RESET_PASSWORD: 'Reset Password',
+      UPDATE_USER: 'Update User',
+      BAN_USER: 'Ban User',
+      UNBAN_USER: 'Unban User',
     },
   },
 } as const

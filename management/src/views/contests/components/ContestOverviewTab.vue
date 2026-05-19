@@ -81,7 +81,7 @@ defineProps<{
                 }}</span>
               </div>
               <span class="font-data text-sm tabular-nums">
-                {{ contest.durationMinutes }} {{ $t('common.minutes') }}
+                {{ contest.duration }} {{ $t('common.minutes') }}
               </span>
             </div>
           </div>
@@ -94,7 +94,7 @@ defineProps<{
               <IconTrophy class="h-5 w-5 text-[var(--terminal-amber)]" />
               <div>
                 <div class="font-data text-lg tabular-nums text-[var(--foreground)]">
-                  {{ contest.problems?.length || 0 }}
+                  {{ contest.problemCount || 0 }}
                 </div>
                 <div class="terminal-label">{{ $t('contests.detail.problems') }}</div>
               </div>

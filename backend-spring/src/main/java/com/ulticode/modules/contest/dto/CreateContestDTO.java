@@ -51,4 +51,16 @@ public class CreateContestDTO {
 
     @Schema(description = "List of tags for the contest", example = "[\"dp\", \"greedy\", \"array\"]")
     private List<String> tags;
+
+    @Size(max = 255, message = "Slug must not exceed 255 characters")
+    @Pattern(regexp = "^[a-z0-9]+(?:-[a-z0-9]+)*$", message = "Slug must be lowercase letters, numbers, and hyphens")
+    @Schema(description = "URL-friendly identifier for the contest", example = "weekly-contest-123")
+    private String slug;
+
+    @Pattern(regexp = "^(ICPC|IOI|CUSTOM)$", message = "Contest type must be ICPC, IOI, or CUSTOM")
+    @Schema(description = "Contest type/format", example = "ICPC", allowableValues = {"ICPC", "IOI", "CUSTOM"})
+    private String contestType;
+
+    @Schema(description = "Associated scoring rule ID")
+    private String scoringRuleId;
 }

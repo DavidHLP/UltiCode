@@ -57,11 +57,16 @@ export default {
     allStatus: '全部状态',
     allTypes: '全部类型',
     status: {
+      draft: '草稿',
       upcoming: '即将开始',
       running: '进行中',
       finished: '已结束',
+      cancelled: '已取消',
     },
     type: {
+      ICPC: 'ICPC赛制',
+      IOI: 'IOI赛制',
+      CUSTOM: '自定义',
       public: '公开',
       private: '私有',
       virtual: '虚拟',
@@ -118,9 +123,9 @@ export default {
     description: '描述',
     descriptionPlaceholder: '请输入比赛描述...',
     types: {
-      PUBLIC: '公开',
-      PRIVATE: '私有',
-      VIRTUAL: '虚拟',
+      ICPC: 'ICPC赛制',
+      IOI: 'IOI赛制',
+      CUSTOM: '自定义',
     },
   },
 

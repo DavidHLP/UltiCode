@@ -1,85 +1,68 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
-export enum ContestType {
-  PUBLIC = 'PUBLIC',
-  PRIVATE = 'PRIVATE',
-  VIRTUAL = 'VIRTUAL',
-}
+export type ContestFormat = 'ICPC' | 'IOI' | 'CUSTOM'
 
-export enum ContestStatus {
-  UPCOMING = 'UPCOMING',
-  RUNNING = 'RUNNING',
-  FINISHED = 'FINISHED',
-}
-
-export interface ContestParticipant {
-  id: string
-  contestId: string
-  userId: string
-  score: number
-  rank?: number
-  user: {
-    id: string
-    username: string
-    name: string | null
-  }
-}
-
-export interface ContestProblem {
-  id: string
-  contestId: string
-  problemId: string
-  problemIndex: string
-  score: number
-  problem: {
-    id: string
-    slug: string
-    title: string
-    difficulty: string
-  }
-}
-
-export interface ContestRanking {
-  id: string
-  contestId: string
-  userId: string
-  totalScore: number
-  totalPenalty: number
-  rank: number
-  user: {
-    id: string
-    username: string
-    name: string | null
-  }
-}
+export type ContestStatus = 'DRAFT' | 'UPCOMING' | 'RUNNING' | 'FINISHED' | 'CANCELLED'
 
 export interface Contest {
   id: string
   slug: string
   title: string
   description?: string
-  contestType: ContestType
+  contestType: ContestFormat
   startTime: string
   endTime?: string
-  durationMinutes: number
+  duration: number
   status: ContestStatus
   isVisible: boolean
-  participantCount?: number
-  problemCount?: number
+  isPremium: boolean
+  isPublished: boolean
+  participantCount: number
+  problemCount: number
+  maxParticipants?: number
+  currentParticipants?: number
+  scoringRuleId?: string
+  problemIds?: string[]
+  tags?: string[]
   createdAt: string
   updatedAt: string
-  participants?: ContestParticipant[]
-  problems?: ContestProblem[]
+  createdById?: number
+  createdByUsername?: string
+  isParticipating?: boolean
+  userRanking?: number
+  userScore?: number
+}
+
+export interface ContestRanking {
+  rank: number
+  userId: string
+  username: string
+  name: string | null
+  avatar?: string
+  score: number
+  penalty: number
+  problemsSolved: number
+  timeBonus?: number
+  country?: string
+  isCurrentUser?: boolean
+}
+
+export interface ContestProblem {
+  id: string
+  contestId: string
+  problemId: number
+  problemIndex: string
+  score: number
 }
 
 export interface ContestQueryParams {
   search?: string
-  type?: ContestType
-  status?: string // 'upcoming' | 'running' | 'finished'
+  contestType?: ContestFormat
+  status?: string
   page?: number
-  limit?: number
+  pageSize?: number
   sortBy?: string
-  sortOrder?: 'asc' | 'desc'
+  direction?: 'asc' | 'desc'
 }
 
 export interface PageResult<T> {
@@ -91,14 +74,17 @@ export interface PageResult<T> {
 }
 
 export interface CreateContestDto {
-  slug: string
+  slug?: string
   title: string
   description?: string
-  type: ContestType
+  contestType?: ContestFormat
   startTime: string
   duration: number
+  maxParticipants?: number
+  isPremium?: boolean
   isPublished?: boolean
-  problemIds?: string[]
+  problemIds?: number[]
+  tags?: string[]
   scoringRuleId?: string
 }
 
@@ -106,63 +92,62 @@ export interface UpdateContestDto {
   slug?: string
   title?: string
   description?: string
-  type?: ContestType
+  contestType?: ContestFormat
   startTime?: string
   duration?: number
+  maxParticipants?: number
+  isPremium?: boolean
   isPublished?: boolean
+  problemIds?: number[]
+  tags?: string[]
+  scoringRuleId?: string
 }
 
 export interface AddContestProblemDto {
-  problemId: string
+  problemId: number
   score?: number
 }
 
 export const contestsApi = {
   async getContests(params: ContestQueryParams): Promise<PageResult<Contest>> {
-    const response = await apiGet<PageResult<Contest>>('/admin/contests', { params })
-    return response
+    return apiGet<PageResult<Contest>>('/admin/contest', { params })
   },
 
   async getContest(id: string): Promise<Contest> {
-    const response = await apiGet<Contest>(`/admin/contests/${id}`)
-    return response
+    return apiGet<Contest>(`/admin/contest/${id}`)
   },
 
   async createContest(data: CreateContestDto): Promise<Contest> {
-    const response = await apiPost<Contest>('/admin/contests', data)
-    return response
+    return apiPost<Contest>('/admin/contest', data)
   },
 
   async updateContest(id: string, data: UpdateContestDto): Promise<Contest> {
-    const response = await apiPatch<Contest>(`/admin/contests/${id}`, data)
-    return response
+    return apiPatch<Contest>(`/admin/contest/${id}`, data)
   },
 
   async deleteContest(id: string): Promise<void> {
-    await apiDelete(`/admin/contests/${id}`)
+    await apiDelete(`/admin/contest/${id}`)
   },
 
   async addProblem(id: string, data: AddContestProblemDto): Promise<ContestProblem> {
-    const response = await apiPost<ContestProblem>(`/admin/contests/${id}/problems`, data)
-    return response
+    return apiPost<ContestProblem>(`/admin/contest/${id}/problems`, data)
   },
 
-  async removeProblem(id: string, problemId: string): Promise<void> {
-    await apiDelete(`/admin/contests/${id}/problems/${problemId}`)
+  async removeProblem(id: string, problemId: number): Promise<void> {
+    await apiDelete(`/admin/contest/${id}/problems/${problemId}`)
   },
 
-  async getRankings(id: string): Promise<{ data: ContestRanking[] }> {
-    const response = await apiGet<{ data: ContestRanking[] }>(`/admin/contests/${id}/rankings`)
-    return response
+  async getRankings(id: string, page = 1, limit = 50): Promise<PageResult<ContestRanking>> {
+    return apiGet<PageResult<ContestRanking>>(`/admin/contest/${id}/rankings`, {
+      params: { page, limit },
+    })
   },
 
   async startContest(id: string): Promise<Contest> {
-    const response = await apiPost<Contest>(`/admin/contests/${id}/start`)
-    return response
+    return apiPost<Contest>(`/admin/contest/${id}/start`)
   },
 
   async endContest(id: string): Promise<Contest> {
-    const response = await apiPost<Contest>(`/admin/contests/${id}/end`)
-    return response
+    return apiPost<Contest>(`/admin/contest/${id}/end`)
   },
 }

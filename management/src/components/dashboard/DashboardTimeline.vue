@@ -34,6 +34,10 @@ const getIconColor = (action: string) => {
     UNPIN: 'var(--silver-400)',
     LOCK: 'var(--status-warning)',
     UNLOCK: 'var(--status-success)',
+    RESET_PASSWORD: 'var(--status-warning)',
+    UPDATE_USER: 'var(--status-warning)',
+    BAN_USER: 'var(--status-error)',
+    UNBAN_USER: 'var(--status-success)',
   }
   return colorMap[action] || 'var(--silver-400)'
 }

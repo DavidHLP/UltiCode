@@ -1,8 +1,9 @@
 package com.ulticode.modules.moderation.dto;
 
+import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 
 /**
@@ -14,8 +15,8 @@ public class PerformModerationActionDTO {
     /**
      * Action to perform (e.g., DELETED, WARNED, TEMP_BANNED, DISMISSED)
      */
-    @NotBlank(message = "Action is required")
-    private String action;
+    @NotNull(message = "Action is required")
+    private ModerationActionType action;
 
     /**
      * Additional notes about the action

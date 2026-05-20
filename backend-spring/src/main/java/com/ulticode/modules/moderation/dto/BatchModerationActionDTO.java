@@ -1,5 +1,6 @@
 package com.ulticode.modules.moderation.dto;
 
+import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotEmpty;
@@ -9,22 +10,22 @@ import lombok.Data;
 import java.util.List;
 
 /**
- * DTO for batch moderation actions.
+ * DTO for performing a batch moderation action on multiple queue items.
  */
 @Data
 public class BatchModerationActionDTO {
 
     /**
-     * List of queue item IDs to perform the action on
+     * Queue item IDs to perform the action on
      */
-    @NotEmpty(message = "Queue item IDs are required")
+    @NotEmpty(message = "At least one queue ID is required")
     private List<String> queueIds;
 
     /**
      * Action to perform on all items
      */
     @NotNull(message = "Action is required")
-    private String action;
+    private ModerationActionType action;
 
     /**
      * Additional notes about the action

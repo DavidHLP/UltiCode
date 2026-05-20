@@ -34,6 +34,7 @@ const open = ref(false);
 const loading = ref(false);
 const category = ref("");
 const reason = ref("");
+const evidence = ref("");
 
 const categories = [
   { value: "SPAM", label: "垃圾信息" },
@@ -42,6 +43,8 @@ const categories = [
   { value: "VIOLENCE", label: "暴力内容" },
   { value: "SEXUAL_CONTENT", label: "色情内容" },
   { value: "MISINFORMATION", label: "虚假信息" },
+  { value: "WRONG_ANSWER", label: "错误答案" },
+  { value: "COPYRIGHT", label: "版权侵权" },
   { value: "OTHER", label: "其他" },
 ];
 
@@ -49,6 +52,7 @@ function handleOpen() {
   open.value = true;
   category.value = "";
   reason.value = "";
+  evidence.value = "";
 }
 
 async function handleSubmit() {
@@ -63,6 +67,7 @@ async function handleSubmit() {
       entityId: props.entityId,
       category: category.value,
       reason: reason.value,
+      evidence: evidence.value || undefined,
     });
     toast.success("举报已提交");
     open.value = false;
@@ -110,6 +115,16 @@ defineExpose({ open: handleOpen });
             id="reason"
             v-model="reason"
             rows="3"
+            class="rounded-none resize-none"
+          />
+        </div>
+        <div class="grid gap-2">
+          <Label for="evidence">证据链接</Label>
+          <Textarea
+            id="evidence"
+            v-model="evidence"
+            rows="2"
+            placeholder="提供相关证据或链接（可选）"
             class="rounded-none resize-none"
           />
         </div>

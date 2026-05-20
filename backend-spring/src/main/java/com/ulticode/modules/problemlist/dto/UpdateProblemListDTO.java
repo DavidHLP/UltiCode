@@ -11,7 +11,7 @@ public class UpdateProblemListDTO {
     @Size(max = 100, message = "Name must not exceed 100 characters")
     private String name;
 
-    @Size(max = 1000, message = "Description must not exceed 1000 characters")
+    @Size(max = 500, message = "Description must not exceed 500 characters")
     private String description;
 
     private Boolean isPublic;

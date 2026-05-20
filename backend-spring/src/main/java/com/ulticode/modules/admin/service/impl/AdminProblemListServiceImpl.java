@@ -13,8 +13,11 @@ import com.ulticode.modules.admin.service.AdminProblemListService;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
+import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
+import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import com.ulticode.modules.problemlist.entity.ProblemList;
 import com.ulticode.modules.problemlist.entity.ProblemListProblemRelation;
 import com.ulticode.modules.problemlist.mapper.ProblemListMapper;
@@ -191,6 +194,100 @@ public class AdminProblemListServiceImpl implements AdminProblemListService {
         }
 
         AuditContext.setNewValues(java.util.Map.of("updatedProblems", dto.getProblems().size()));
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
+    public ProblemListSummaryVO updateBasicInfo(String id, String userId, UpdateBasicInfoDTO dto) {
+        ProblemList list = problemListMapper.selectById(id);
+        if (list == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
+        }
+
+        AuditContext.setOldValues(java.util.Map.of(
+            "name", list.getName() != null ? list.getName() : "",
+            "description", list.getDescription() != null ? list.getDescription() : ""
+        ));
+
+        list.setName(dto.getName());
+        list.setDescription(dto.getDescription());
+        problemListMapper.updateById(list);
+
+        AuditContext.setNewValues(java.util.Map.of(
+            "name", list.getName() != null ? list.getName() : "",
+            "description", list.getDescription() != null ? list.getDescription() : ""
+        ));
+
+        return toSummaryVO(list);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
+    public ProblemListSummaryVO updateVisibility(String id, String userId, UpdateVisibilityDTO dto) {
+        ProblemList list = problemListMapper.selectById(id);
+        if (list == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
+        }
+
+        AuditContext.setOldValues(java.util.Map.of(
+            "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
+            "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false
+        ));
+
+        if (dto.getIsPublic() != null) {
+            list.setIsPublic(dto.getIsPublic());
+        }
+        if (dto.getIsFeatured() != null) {
+            list.setIsFeatured(dto.getIsFeatured());
+        }
+        problemListMapper.updateById(list);
+
+        AuditContext.setNewValues(java.util.Map.of(
+            "isPublic", list.getIsPublic() != null ? list.getIsPublic() : false,
+            "isFeatured", list.getIsFeatured() != null ? list.getIsFeatured() : false
+        ));
+
+        return toSummaryVO(list);
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    @Audited(action = AuditActionUtil.UPDATE_PROBLEM_LIST, entityType = AuditActionUtil.ENTITY_PROBLEM_LIST, userIdFrom = "userId")
+    public ProblemListSummaryVO updateBanner(String id, String userId, UpdateBannerDTO dto) {
+        ProblemList list = problemListMapper.selectById(id);
+        if (list == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_LIST_NOT_FOUND);
+        }
+
+        AuditContext.setOldValues(java.util.Map.of(
+            "bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "",
+            "bannerTheme", list.getBannerTheme() != null ? list.getBannerTheme() : "",
+            "bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0
+        ));
+
+        if (dto.getBannerTag() != null) {
+            list.setBannerTag(dto.getBannerTag());
+        }
+        if (dto.getBannerIcon() != null) {
+            list.setBannerIcon(dto.getBannerIcon());
+        }
+        if (dto.getBannerTheme() != null) {
+            list.setBannerTheme(dto.getBannerTheme());
+        }
+        if (dto.getBannerOrder() != null) {
+            list.setBannerOrder(dto.getBannerOrder());
+        }
+        problemListMapper.updateById(list);
+
+        AuditContext.setNewValues(java.util.Map.of(
+            "bannerTag", list.getBannerTag() != null ? list.getBannerTag() : "",
+            "bannerTheme", list.getBannerTheme() != null ? list.getBannerTheme() : "",
+            "bannerOrder", list.getBannerOrder() != null ? list.getBannerOrder() : 0
+        ));
+
+        return toSummaryVO(list);
     }
 
     private ProblemListSummaryVO toSummaryVO(ProblemList list) {

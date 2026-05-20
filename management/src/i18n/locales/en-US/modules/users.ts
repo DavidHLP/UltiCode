@@ -41,7 +41,7 @@ export default {
     username: 'Username',
     usernamePlaceholder: 'johndoe',
     email: 'Email',
-    emailPlaceholder: 'user@example.com',
+    emailPlaceholder: "user{'@'}example.com",
     password: 'Password',
     passwordPlaceholder: '••••••••',
     confirmPassword: 'Confirm Password',

@@ -51,12 +51,9 @@ export interface Problem {
   flagNotes?: string
   createdAt: Date
   updatedAt: Date
-  detail?: ProblemDetail
   tags: ProblemTag[]
   submissionCount?: number
   solutionCount?: number
-  examples?: ProblemExample[]
-  languages?: ProblemLanguage[]
 }
 
 export interface ProblemExample {
@@ -159,6 +156,8 @@ export interface PageResult<T> {
   totalPages: number
 }
 
+// ========== API Transport DTOs (match backend Java DTOs exactly) ==========
+
 export interface CreateProblemDto {
   slug: string
   title: string
@@ -169,9 +168,9 @@ export interface CreateProblemDto {
   publishedBy?: string
   summary?: string
   content?: string
-  examples?: ProblemExample[]
-  constraints?: string[]
-  hints?: string[]
+  examples?: string // JSON string — backend expects String
+  constraints?: string // JSON string — backend expects String
+  hints?: string // JSON string — backend expects String
   languages?: string[]
   tags?: string[]
 }
@@ -190,11 +189,78 @@ export interface UpdateProblemDto {
   hasSolution?: boolean
   summary?: string
   content?: string
-  constraintsJson?: string
-  hints?: string
-  examples?: string
+  constraintsJson?: string // JSON string — backend expects String
+  hints?: string // JSON string — backend expects String
+  examples?: string // JSON string — backend expects String
   tags?: string[]
   languages?: LanguageConfig[]
+}
+
+// ========== Component-layer Input Types (structured data) ==========
+
+export interface ProblemExampleInput {
+  id?: string
+  input: string
+  output: string
+  explanation?: string
+  order?: number
+}
+
+export interface ProblemCreateInput {
+  slug: string
+  title: string
+  difficulty: Difficulty
+  status?: ProblemStatus
+  isPremium?: boolean
+  isPublished?: boolean
+  publishedBy?: string
+  summary?: string
+  content?: string
+  examples?: ProblemExampleInput[] // structured array
+  constraints?: string[] // string array
+  hints?: string[] // string array
+  languages?: string[]
+  tags?: string[]
+}
+
+export interface ProblemUpdateInput {
+  slug?: string
+  title?: string
+  difficulty?: Difficulty
+  status?: ProblemStatus
+  isPremium?: boolean
+  hasSolution?: boolean
+  summary?: string
+  content?: string
+  constraintsJson?: string[] // string array (component layer)
+  hints?: string[] // string array (component layer)
+  examples?: ProblemExampleInput[] // structured array (component layer)
+  tags?: string[]
+  languages?: LanguageConfig[]
+}
+
+// ========== Serialization Helpers ==========
+
+export function serializeCreateInput(input: ProblemCreateInput): CreateProblemDto {
+  return {
+    ...input,
+    examples: input.examples
+      ? JSON.stringify(input.examples.map((ex, idx) => ({ ...ex, order: ex.order ?? idx })))
+      : undefined,
+    constraints: input.constraints ? JSON.stringify(input.constraints) : undefined,
+    hints: input.hints ? JSON.stringify(input.hints) : undefined,
+  }
+}
+
+export function serializeUpdateInput(input: ProblemUpdateInput): UpdateProblemDto {
+  return {
+    ...input,
+    examples: input.examples
+      ? JSON.stringify(input.examples.map((ex, idx) => ({ ...ex, order: ex.order ?? idx })))
+      : undefined,
+    constraintsJson: input.constraintsJson ? JSON.stringify(input.constraintsJson) : undefined,
+    hints: input.hints ? JSON.stringify(input.hints) : undefined,
+  }
 }
 
 export interface BulkProblemActionDto {
@@ -322,12 +388,14 @@ export const problemsApi = {
     return response
   },
 
-  async createProblem(data: CreateProblemDto): Promise<Problem> {
+  async createProblem(input: ProblemCreateInput): Promise<Problem> {
+    const data = serializeCreateInput(input)
     const response = await apiPost<Problem>('/admin/problems', data)
     return response
   },
 
-  async updateProblem(id: string, data: UpdateProblemDto): Promise<Problem> {
+  async updateProblem(id: string, input: ProblemUpdateInput): Promise<Problem> {
+    const data = serializeUpdateInput(input)
     const response = await apiPatch<Problem>(`/admin/problems/${id}`, data)
     return response
   },

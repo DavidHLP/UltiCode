@@ -28,12 +28,11 @@ async function handleSubmit(data: ProblemFormData) {
       ...data,
       difficulty: data.difficulty,
       status: data.status,
-      examples: data.examples.map((ex, idx) => ({
+      examples: data.examples.map((ex) => ({
         id: ex.id || crypto.randomUUID(),
         input: ex.input,
         output: ex.output,
         explanation: ex.explanation,
-        order: idx,
       })),
     })
     toast.success(t('problems.toast.createSuccess'))

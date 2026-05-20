@@ -38,15 +38,15 @@ function mapExampleToTestCase(example: ProblemExample): CasesFormData['examples'
 async function handleSubmit(formData: CasesFormData) {
   try {
     await problemsStore.updateProblem(problemId.value, {
-      examples: JSON.stringify(formData.examples.map((ex, idx) => ({
+      examples: formData.examples.map((ex, idx) => ({
         id: ex.id || crypto.randomUUID(),
         input: ex.input,
         output: ex.output,
         explanation: ex.explanation,
         order: idx,
-      }))),
-      constraintsJson: JSON.stringify(formData.constraints),
-      hints: JSON.stringify(formData.hints),
+      })),
+      constraintsJson: formData.constraints,
+      hints: formData.hints,
     })
     toast.success(t('problems.toast.updateSuccess'))
     router.push({ name: 'problem-detail', params: { id: problemId.value } })

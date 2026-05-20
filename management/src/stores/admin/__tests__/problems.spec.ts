@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { setActivePinia, createPinia } from 'pinia'
 import { useProblemsStore } from '../problems'
 import { problemsApi } from '@/api/admin/problems'
-import type { Problem, CreateProblemDto, UpdateProblemDto } from '@/api/admin/problems'
+import type { Problem, ProblemCreateInput, ProblemUpdateInput } from '@/api/admin/problems'
 
 vi.mock('@/api/admin/problems', () => ({
   problemsApi: {
@@ -133,14 +133,14 @@ describe('useProblemsStore', () => {
       vi.mocked(problemsApi.createProblem).mockResolvedValue(mockProblem)
 
       const store = useProblemsStore()
-      const createDto: CreateProblemDto = {
+      const input: ProblemCreateInput = {
         slug: 'test-problem',
         title: 'Test Problem',
         difficulty: 'EASY',
       }
-      const result = await store.createProblem(createDto)
+      const result = await store.createProblem(input)
 
-      expect(problemsApi.createProblem).toHaveBeenCalledWith(createDto)
+      expect(problemsApi.createProblem).toHaveBeenCalledWith(input)
       expect(result).toEqual(mockProblem)
       expect(store.loading).toBe(false)
       expect(store.error).toBeNull()
@@ -150,13 +150,13 @@ describe('useProblemsStore', () => {
       vi.mocked(problemsApi.createProblem).mockRejectedValue(new Error('Creation failed'))
 
       const store = useProblemsStore()
-      const createDto: CreateProblemDto = {
+      const input: ProblemCreateInput = {
         slug: 'test-problem',
         title: 'Test Problem',
         difficulty: 'EASY',
       }
 
-      await expect(store.createProblem(createDto)).rejects.toThrow('Creation failed')
+      await expect(store.createProblem(input)).rejects.toThrow('Creation failed')
       expect(store.error).toBe('Creation failed')
       expect(store.loading).toBe(false)
     })
@@ -170,10 +170,10 @@ describe('useProblemsStore', () => {
 
       vi.mocked(problemsApi.updateProblem).mockResolvedValue(mockUpdatedProblem)
 
-      const updateDto: UpdateProblemDto = { title: 'Updated Title', difficulty: 'MEDIUM' }
-      const result = await store.updateProblem('1', updateDto)
+      const input: ProblemUpdateInput = { title: 'Updated Title', difficulty: 'MEDIUM' }
+      const result = await store.updateProblem('1', input)
 
-      expect(problemsApi.updateProblem).toHaveBeenCalledWith('1', updateDto)
+      expect(problemsApi.updateProblem).toHaveBeenCalledWith('1', input)
       expect(result).toEqual(mockUpdatedProblem)
       expect(store.problems[0].title).toBe('Updated Title')
       expect(store.problems[0].difficulty).toBe('MEDIUM')
@@ -185,15 +185,23 @@ describe('useProblemsStore', () => {
 
       vi.mocked(problemsApi.updateProblem).mockResolvedValue(mockUpdatedProblem)
 
-      const updateDto: UpdateProblemDto = { title: 'Updated Title' }
-      await store.updateProblem('999', updateDto)
+      const input: ProblemUpdateInput = { title: 'Updated Title' }
+      await store.updateProblem('999', input)
 
       expect(store.problems).toEqual([])
     })
 
     it('should clear tab data after update (cache invalidation)', async () => {
       const store = useProblemsStore()
-      store.headerData = { id: '1', title: 'Test', slug: 'test', difficulty: 'EASY', status: 'TODO', isPremium: false, isPublished: false }
+      store.headerData = {
+        id: '1',
+        title: 'Test',
+        slug: 'test',
+        difficulty: 'EASY',
+        status: 'TODO',
+        isPremium: false,
+        isPublished: false,
+      }
 
       vi.mocked(problemsApi.updateProblem).mockResolvedValue(mockUpdatedProblem)
 
@@ -240,7 +248,15 @@ describe('useProblemsStore', () => {
 
     it('should clear tab data when deleted problem matches', async () => {
       const store = useProblemsStore()
-      store.headerData = { id: '1', title: 'Test', slug: 'test', difficulty: 'EASY', status: 'TODO', isPremium: false, isPublished: false }
+      store.headerData = {
+        id: '1',
+        title: 'Test',
+        slug: 'test',
+        difficulty: 'EASY',
+        status: 'TODO',
+        isPremium: false,
+        isPublished: false,
+      }
       store.problems = [{ ...mockProblem }]
       store.total = 1
 
@@ -267,7 +283,15 @@ describe('useProblemsStore', () => {
       store.total = 10
       store.loading = true
       store.error = 'some error'
-      store.headerData = { id: '1', title: 'Test', slug: 'test', difficulty: 'EASY', status: 'TODO', isPremium: false, isPublished: false }
+      store.headerData = {
+        id: '1',
+        title: 'Test',
+        slug: 'test',
+        difficulty: 'EASY',
+        status: 'TODO',
+        isPremium: false,
+        isPublished: false,
+      }
 
       store.reset()
 

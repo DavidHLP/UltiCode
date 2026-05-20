@@ -164,6 +164,10 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Product
 - **Backend ports**: App 9001, Dubbo 20881, Recommend-web 9005
 - **Frontend ports**: Console 9002, Management 9003
 - **Management DataTable i18n**: `DataTable.vue` uses `t(\`table.columnNames.${column.id}\`)` for column headers, where `column.id` matches API field names (camelCase). Ensure `management/src/i18n/locales/*/modules/table.ts` defines both camelCase and snake_case keys under `columnNames`.
+- **Backend DTO enums**: Backend DTO fields use raw `String` for enum values (e.g., `PerformModerationActionDTO.action`). Frontend types use proper TS enums. When aligning types, note this mismatch and prefer backend enum adoption.
+- **Frontend API patterns**: Management uses typed API functions (`moderation.ts` with `moderationQueueApi`, `reportsApi`, `appealsApi`). Console uses direct `apiPost/apiGet` calls without typed wrappers. When adding new APIs, define typed functions for management; console may use direct calls.
+- **Frontend ghost types**: Management API files (e.g., `moderation.ts`) may define types with no backend endpoint (e.g., `UserWarning`, `UserBan`, `CreateUserBanDto`). These are pre-defined for future use — treat as dead code until an endpoint exists.
+- **Analysis docs**: Cross-module analysis reports go in `docs/` at project root (e.g., `docs/moderation-api-granularity-analysis.md`).
 
 ## CI
 

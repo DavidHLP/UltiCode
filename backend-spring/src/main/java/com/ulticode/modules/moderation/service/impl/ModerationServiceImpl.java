@@ -23,6 +23,8 @@ import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ulticode.modules.moderation.entity.enums.ModerationActionType;
+
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -192,87 +194,34 @@ public class ModerationServiceImpl implements ModerationService {
             throw new BusinessException(ErrorCode.MODERATION_QUEUE_NOT_FOUND);
         }
 
-        String action = dto.getAction().toUpperCase();
-
-        // Validate action before inserting to avoid database enum mismatch
-        // Must match: moderation_actions.action enum and moderation_queue.resolution enum
-        Set<String> validActions = Set.of(
-                "DELETED", "HIDDEN", "RESTORED", "DISMISSED", "RESOLVED",
-                "WARNED", "TEMP_BANNED", "PERM_BANNED", "APPEAL_PENDING", "APPEAL_APPROVED", "APPEAL_REJECTED");
-        if (!validActions.contains(action)) {
-            throw new BusinessException(ErrorCode.BAD_REQUEST, "Unknown action: " + action);
-        }
+        ModerationActionType actionType = dto.getAction();
 
         // Create moderation action record
         ModerationAction moderationAction = new ModerationAction();
         moderationAction.setQueueId(id);
-        moderationAction.setAction(action);
+        moderationAction.setAction(actionType.name());
         moderationAction.setPerformedById(moderatorId);
         moderationAction.setNote(dto.getNote());
         moderationAction.setDurationDays(dto.getDurationDays());
         actionMapper.insert(moderationAction);
 
-        // Update queue item based on action
+        // Update queue item based on action via strategy handler
         LocalDateTime now = LocalDateTime.now();
         item.setReviewedById(moderatorId);
         item.setReviewedAt(now);
-        item.setResolution(action);
+        item.setResolution(actionType.name());
         item.setResolutionNote(dto.getNote());
 
-        switch (action) {
-            case "DELETED":
-            case "HIDDEN":
-                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), true, dto.getNote());
-                item.setStatus("RESOLVED");
-                item.setResolvedAt(now);
-                break;
-            case "RESTORED":
-            case "DISMISSED":
-            case "RESOLVED":
-                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), false, null);
-                item.setStatus("RESOLVED");
-                item.setResolvedAt(now);
-                break;
-            case "WARNED":
-                // Create user warning
-                createUserWarning(item.getAuthorId(), id, dto.getNote(), item.getPrimaryCategory(), moderationAction.getId());
-                item.setStatus("RESOLVED");
-                item.setResolvedAt(now);
-                break;
-            case "TEMP_BANNED":
-                // Create temporary ban
-                createUserBan(item.getAuthorId(), id, dto.getNote(), item.getPrimaryCategory(), moderatorId, moderationAction.getId(), dto.getDurationDays(), false);
-                item.setStatus("RESOLVED");
-                item.setResolvedAt(now);
-                break;
-            case "PERM_BANNED":
-                // Create permanent ban
-                createUserBan(item.getAuthorId(), id, dto.getNote(), item.getPrimaryCategory(), moderatorId, moderationAction.getId(), null, true);
-                item.setStatus("RESOLVED");
-                item.setResolvedAt(now);
-                break;
-            case "APPEAL_PENDING":
-                item.setStatus("APPEAL_PENDING");
-                break;
-            case "APPEAL_APPROVED":
-                updateContentFlagStatus(item.getEntityType(), item.getEntityId(), false, null);
-                item.setStatus("RESOLVED");
-                item.setResolvedAt(now);
-                break;
-            case "APPEAL_REJECTED":
-                item.setStatus("RESOLVED");
-                item.setResolvedAt(now);
-                break;
-            default:
-                throw new BusinessException(ErrorCode.BAD_REQUEST, "Unknown action: " + action);
-        }
+        ModerationActionHandler handler = ModerationActionHandler.from(actionType);
+        ModerationActionHandler.ActionContext context = new ModerationActionHandler.ActionContext(this, id, moderationAction.getId());
+        handler.perform(context, item, moderatorId, dto.getNote(), dto.getDurationDays(), now);
 
         queueMapper.updateById(item);
 
         // Update related reports
-        updateReportsStatus(id, action.equals("DISMISSED") ? "DISMISSED" : "RESOLVED");
+        updateReportsStatus(id, actionType == ModerationActionType.DISMISSED ? "DISMISSED" : "RESOLVED");
 
-        log.info("Moderation action {} performed on queue item {} by moderator {}", action, id, moderatorId);
+        log.info("Moderation action {} performed on queue item {} by moderator {}", actionType, id, moderatorId);
         return getQueueItem(id);
     }
 
@@ -594,7 +543,7 @@ public class ModerationServiceImpl implements ModerationService {
         }
     }
 
-    private void createUserWarning(String userId, String queueId, String reason, String category, String actionId) {
+    void createUserWarning(String userId, String queueId, String reason, String category, String actionId) {
         UserWarning warning = new UserWarning();
         warning.setUserId(userId);
         warning.setQueueId(queueId);
@@ -605,7 +554,7 @@ public class ModerationServiceImpl implements ModerationService {
         warningMapper.insert(warning);
     }
 
-    private void createUserBan(String userId, String queueId, String reason, String category, String bannedById, String actionId, Integer durationDays, boolean isPermanent) {
+    void createUserBan(String userId, String queueId, String reason, String category, String bannedById, String actionId, Integer durationDays, boolean isPermanent) {
         UserBan ban = new UserBan();
         ban.setUserId(userId);
         ban.setQueueId(queueId);
@@ -633,7 +582,7 @@ public class ModerationServiceImpl implements ModerationService {
         }
     }
 
-    private void updateContentFlagStatus(String entityType, String entityId, boolean isFlagged, String reason) {
+    void updateContentFlagStatus(String entityType, String entityId, boolean isFlagged, String reason) {
         switch (entityType) {
             case "forum_post":
                 forumPostMapper.updateFlagStatus(entityId, isFlagged, reason);

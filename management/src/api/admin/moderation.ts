@@ -168,52 +168,6 @@ export interface ModerationStats {
   byEntityType?: Record<string, number>
 }
 
-export interface UserWarning {
-  id: string
-  userId: string
-  user?: {
-    id: string
-    username: string
-    displayName?: string
-  }
-  queueId?: string
-  actionId?: string
-  reason: string
-  category?: ReportCategory
-  acknowledged: boolean
-  acknowledgedAt?: Date
-  createdAt: Date
-  expiresAt?: Date
-}
-
-export interface UserBan {
-  id: string
-  userId: string
-  user?: {
-    id: string
-    username: string
-    displayName?: string
-  }
-  isPermanent: boolean
-  reason: string
-  category?: ReportCategory
-  bannedBy: string
-  banner?: {
-    id: string
-    username: string
-    displayName?: string
-  }
-  queueId?: string
-  actionId?: string
-  startsAt: Date
-  endsAt?: Date
-  isActive: boolean
-  unbanReason?: string
-  unbannedBy?: string
-  unbannedAt?: Date
-  createdAt: Date
-}
-
 // ============================================================================
 // Query Parameters
 // ============================================================================
@@ -248,25 +202,6 @@ export interface QueryAppealsParams {
   status?: AppealStatus
   queueId?: string
   appellantId?: string
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
-}
-
-export interface QueryUserWarningsParams {
-  page?: number
-  limit?: number
-  userId?: string
-  acknowledged?: boolean
-  sortBy?: string
-  sortOrder?: 'asc' | 'desc'
-}
-
-export interface QueryUserBansParams {
-  page?: number
-  limit?: number
-  userId?: string
-  active?: boolean
-  isPermanent?: boolean
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -309,20 +244,6 @@ export interface CreateAppealDto {
 export interface ReviewAppealDto {
   decision: AppealStatus.APPROVED | AppealStatus.REJECTED
   response?: string
-}
-
-export interface CreateUserBanDto {
-  userId: string
-  isPermanent?: boolean
-  reason: string
-  category?: ReportCategory
-  durationDays?: number
-  queueId?: string
-  actionId?: string
-}
-
-export interface RevokeBanDto {
-  unbanReason: string
 }
 
 // ============================================================================

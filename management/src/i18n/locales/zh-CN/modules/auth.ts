@@ -33,7 +33,7 @@ export default {
   resetPassword: {
     title: '重置密码',
     email: '邮箱',
-    emailPlaceholder: 'admin@example.com',
+    emailPlaceholder: 'admin@@example.com',
     submit: '发送重置链接',
     sending: '发送中...',
     success: '重置链接已发送到您的邮箱',
@@ -72,7 +72,7 @@ export default {
     fullName: '姓名',
     fullNamePlaceholder: '张三',
     email: '邮箱',
-    emailPlaceholder: 'admin@example.com',
+    emailPlaceholder: 'admin@@example.com',
     password: '密码',
     confirmPassword: '确认密码',
     submit: '创建账户',

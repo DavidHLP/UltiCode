@@ -9,8 +9,11 @@ import com.ulticode.modules.admin.service.AdminProblemListService;
 import com.ulticode.modules.problemlist.dto.ProblemListDetailVO;
 import com.ulticode.modules.problemlist.dto.ProblemListSummaryVO;
 import com.ulticode.modules.problemlist.dto.CreateProblemListDTO;
+import com.ulticode.modules.problemlist.dto.UpdateBasicInfoDTO;
+import com.ulticode.modules.problemlist.dto.UpdateBannerDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListDTO;
 import com.ulticode.modules.problemlist.dto.UpdateProblemListProblemsDTO;
+import com.ulticode.modules.problemlist.dto.UpdateVisibilityDTO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -83,5 +86,38 @@ public class AdminProblemListController {
             @Valid @RequestBody UpdateProblemListProblemsDTO dto) {
         adminProblemListService.updateListProblems(id, dto);
         return Result.success();
+    }
+
+    @Operation(summary = "Update problem list basic info", description = "Update name and description of a problem list")
+    @RateLimit(key = "admin:problem-list-update", limit = 30, period = 60)
+    @PatchMapping("/{id}/basic-info")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<ProblemListSummaryVO> updateBasicInfo(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateBasicInfoDTO dto,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        return Result.success(adminProblemListService.updateBasicInfo(id, userId, dto));
+    }
+
+    @Operation(summary = "Update problem list visibility", description = "Update public and featured status of a problem list")
+    @RateLimit(key = "admin:problem-list-update", limit = 30, period = 60)
+    @PatchMapping("/{id}/visibility")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<ProblemListSummaryVO> updateVisibility(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateVisibilityDTO dto,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        return Result.success(adminProblemListService.updateVisibility(id, userId, dto));
+    }
+
+    @Operation(summary = "Update problem list banner", description = "Update banner settings of a problem list")
+    @RateLimit(key = "admin:problem-list-update", limit = 30, period = 60)
+    @PatchMapping("/{id}/banner")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<ProblemListSummaryVO> updateBanner(
+            @PathVariable String id,
+            @Valid @RequestBody UpdateBannerDTO dto,
+            @RequestHeader(value = "X-User-Id", required = false) String userId) {
+        return Result.success(adminProblemListService.updateBanner(id, userId, dto));
     }
 }

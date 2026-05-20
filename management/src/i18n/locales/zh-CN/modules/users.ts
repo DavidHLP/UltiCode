@@ -41,7 +41,7 @@ export default {
     username: '用户名',
     usernamePlaceholder: 'zhangsan',
     email: '邮箱',
-    emailPlaceholder: 'user@example.com',
+    emailPlaceholder: "user{'@'}example.com",
     password: '密码',
     passwordPlaceholder: '••••••••',
     confirmPassword: '确认密码',

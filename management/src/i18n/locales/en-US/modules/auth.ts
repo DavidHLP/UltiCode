@@ -33,7 +33,7 @@ export default {
   resetPassword: {
     title: 'Reset Password',
     email: 'Email',
-    emailPlaceholder: 'admin@example.com',
+    emailPlaceholder: 'admin@@example.com',
     submit: 'Send Reset Link',
     sending: 'Sending...',
     success: 'Reset link sent to your email',
@@ -72,7 +72,7 @@ export default {
     fullName: 'Full Name',
     fullNamePlaceholder: 'John Doe',
     email: 'Email',
-    emailPlaceholder: 'admin@example.com',
+    emailPlaceholder: 'admin@@example.com',
     password: 'Password',
     confirmPassword: 'Confirm Password',
     submit: 'Create Account',

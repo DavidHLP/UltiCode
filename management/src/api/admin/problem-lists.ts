@@ -47,20 +47,17 @@ export interface ProblemListQuery {
 export interface CreateProblemListDto {
   name: string
   description?: string
-  slug?: string
   isPublic?: boolean
   isFeatured?: boolean
   bannerTag?: string
   bannerIcon?: string
   bannerTheme?: string
   bannerOrder?: number
-  authorId?: string
 }
 
 export interface UpdateProblemListDto {
   name?: string
   description?: string
-  slug?: string
   isPublic?: boolean
   isFeatured?: boolean
   bannerTag?: string
@@ -79,7 +76,6 @@ export interface UpdateProblemListProblemsDto {
 export interface UpdateBasicInfoDto {
   name?: string
   description?: string
-  slug?: string
 }
 
 export interface UpdateVisibilityDto {
@@ -132,14 +128,14 @@ export const adminProblemListsApi = {
   },
 
   async updateBasicInfo(id: string, data: UpdateBasicInfoDto): Promise<void> {
-    await apiPatch(`/admin/problem-lists/${id}`, data)
+    await apiPatch(`/admin/problem-lists/${id}/basic-info`, data)
   },
 
   async updateVisibility(id: string, data: UpdateVisibilityDto): Promise<void> {
-    await apiPatch(`/admin/problem-lists/${id}`, data)
+    await apiPatch(`/admin/problem-lists/${id}/visibility`, data)
   },
 
   async updateBanner(id: string, data: UpdateBannerDto): Promise<void> {
-    await apiPatch(`/admin/problem-lists/${id}`, data)
+    await apiPatch(`/admin/problem-lists/${id}/banner`, data)
   },
 }

@@ -4,8 +4,8 @@ import {
   problemsApi,
   type Problem,
   type ProblemQueryParams,
-  type CreateProblemDto,
-  type UpdateProblemDto,
+  type ProblemCreateInput,
+  type ProblemUpdateInput,
   type BulkProblemActionDto,
   type HeaderData,
   type DescriptionData,
@@ -110,7 +110,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     const state = getTabState<T>(tabKey)
 
     const now = Date.now()
-    const isStale = !state.loadedAt || (now - state.loadedAt) > CACHE_TTL_MS
+    const isStale = !state.loadedAt || now - state.loadedAt > CACHE_TTL_MS
     if (!forceRefresh && state.loadedId === id && state.data && !isStale) {
       state.loading = false
       return state.data
@@ -162,19 +162,42 @@ export const useProblemsStore = defineStore('adminProblems', () => {
   }
 
   async function fetchHeader(id: string, forceRefresh = false): Promise<HeaderData | null> {
-    return fetchTab('header', id, (problemId, signal) => problemsApi.getHeader(problemId, signal), forceRefresh)
+    return fetchTab(
+      'header',
+      id,
+      (problemId, signal) => problemsApi.getHeader(problemId, signal),
+      forceRefresh,
+    )
   }
 
-  async function fetchDescription(id: string, forceRefresh = false): Promise<DescriptionData | null> {
-    return fetchTab('description', id, (problemId, signal) => problemsApi.getDescription(problemId, signal), forceRefresh)
+  async function fetchDescription(
+    id: string,
+    forceRefresh = false,
+  ): Promise<DescriptionData | null> {
+    return fetchTab(
+      'description',
+      id,
+      (problemId, signal) => problemsApi.getDescription(problemId, signal),
+      forceRefresh,
+    )
   }
 
   async function fetchCode(id: string, forceRefresh = false): Promise<CodeData | null> {
-    return fetchTab('code', id, (problemId, signal) => problemsApi.getCode(problemId, signal), forceRefresh)
+    return fetchTab(
+      'code',
+      id,
+      (problemId, signal) => problemsApi.getCode(problemId, signal),
+      forceRefresh,
+    )
   }
 
   async function fetchCases(id: string, forceRefresh = false): Promise<CasesData | null> {
-    return fetchTab('cases', id, (problemId, signal) => problemsApi.getCases(problemId, signal), forceRefresh)
+    return fetchTab(
+      'cases',
+      id,
+      (problemId, signal) => problemsApi.getCases(problemId, signal),
+      forceRefresh,
+    )
   }
 
   async function fetchAllTags(): Promise<ProblemTag[]> {
@@ -191,7 +214,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     }
   }
 
-  async function createProblem(data: CreateProblemDto) {
+  async function createProblem(data: ProblemCreateInput) {
     loading.value = true
     error.value = null
     try {
@@ -206,7 +229,7 @@ export const useProblemsStore = defineStore('adminProblems', () => {
     }
   }
 
-  async function updateProblem(id: string, data: UpdateProblemDto) {
+  async function updateProblem(id: string, data: ProblemUpdateInput) {
     loading.value = true
     error.value = null
     try {
@@ -290,18 +313,13 @@ export const useProblemsStore = defineStore('adminProblems', () => {
 
   async function updateProblemWithPublish(
     id: string,
-    data: UpdateProblemDto,
+    data: ProblemUpdateInput,
     targetPublishedState: boolean,
   ) {
     loading.value = true
     error.value = null
     try {
-      const serializedData: UpdateProblemDto = {
-        ...data,
-        examples: data.examples,
-        hints: data.hints,
-      }
-      let problem = await problemsApi.updateProblem(id, serializedData)
+      let problem = await problemsApi.updateProblem(id, data)
 
       const currentState = problem.isPublished
       if (currentState !== targetPublishedState) {

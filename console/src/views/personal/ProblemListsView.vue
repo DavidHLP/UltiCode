@@ -30,7 +30,7 @@ const {
   currentUserId,
   searchQuery,
   data,
-  sortedMyLists,
+  sortedOwnLists,
   sortedSavedLists,
   totalSavedCount,
   sortedCategories,
@@ -223,7 +223,7 @@ function onCategoryUnsave(listId: string) {
               <Badge
                 variant="secondary"
                 class="ml-2 h-5 min-w-[20px] px-1 rounded-full text-[10px]"
-                >{{ data.myLists.length }}</Badge
+                >{{ data.ownLists.length }}</Badge
               >
             </TabsTrigger>
             <TabsTrigger
@@ -268,7 +268,7 @@ function onCategoryUnsave(listId: string) {
         <!-- My Lists Tab -->
         <TabsContent value="my-lists" class="mt-0">
           <MyListsTab
-            :lists="sortedMyLists"
+            :lists="sortedOwnLists"
             @delete="openDeleteListDialog"
             @create="isCreateOpen = true"
           />
@@ -302,7 +302,7 @@ function onCategoryUnsave(listId: string) {
         <!-- Featured Tab -->
         <TabsContent value="featured" class="mt-0">
           <div
-            v-if="data.featured.length === 0"
+            v-if="data.featuredLists.length === 0"
             class="flex flex-col items-center justify-center py-24 border-2 border-dashed border-muted/50 rounded-none bg-muted/5 text-center"
           >
             <div
@@ -320,7 +320,7 @@ function onCategoryUnsave(listId: string) {
 
           <div v-else class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div
-              v-for="list in data.featured"
+              v-for="list in data.featuredLists"
               :key="list.id"
               class="group hover:shadow-[var(--shadow-float)] transition-all duration-300 border-muted/60 flex flex-col overflow-hidden rounded-none bg-background text-foreground"
             >

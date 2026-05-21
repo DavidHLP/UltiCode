@@ -1,7 +1,10 @@
 package com.ulticode.modules.problemlist.controller;
 
 import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.common.exception.BusinessException;
+import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.Result;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.problemlist.dto.*;
 import com.ulticode.modules.problemlist.service.ProblemListService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -25,8 +28,8 @@ public class ProblemListController {
     @Operation(summary = "Get problem lists overview")
     @GetMapping("/overview")
     public Result<UserProblemListsVO> getOverview(
-            @RequestParam(required = false) String userId,
             @RequestHeader(value = "Accept-Language", required = false) String locale) {
+        String userId = SecurityUtil.getCurrentUserId();
         if (userId != null) {
             return Result.success(problemListService.getUserProblemLists(userId));
         }
@@ -37,8 +40,8 @@ public class ProblemListController {
     @GetMapping("/{id}/overview")
     public Result<ProblemListDetailVO> getListOverview(
             @PathVariable String id,
-            @RequestParam(required = false) String userId,
             @RequestHeader(value = "Accept-Language", required = false) String locale) {
+        String userId = SecurityUtil.getCurrentUserId();
         return Result.success(problemListService.getListOverview(id, userId, locale));
     }
 
@@ -47,8 +50,8 @@ public class ProblemListController {
     @PostMapping
     @SecurityRequirement(name = "Bearer")
     public Result<ProblemListSummaryVO> createList(
-            @RequestParam String userId,
             @Valid @RequestBody CreateProblemListDTO dto) {
+        String userId = requireAuthenticatedUserId();
         return Result.success(problemListService.createList(userId, dto));
     }
 
@@ -58,8 +61,8 @@ public class ProblemListController {
     @SecurityRequirement(name = "Bearer")
     public Result<ProblemListSummaryVO> updateList(
             @PathVariable String id,
-            @RequestParam String userId,
             @Valid @RequestBody UpdateProblemListDTO dto) {
+        String userId = requireAuthenticatedUserId();
         return Result.success(problemListService.updateList(id, userId, dto));
     }
 
@@ -67,9 +70,8 @@ public class ProblemListController {
     @RateLimit(key = "problem-list:delete", limit = 20, period = 60)
     @DeleteMapping("/{id}")
     @SecurityRequirement(name = "Bearer")
-    public Result<Void> deleteList(
-            @PathVariable String id,
-            @RequestParam String userId) {
+    public Result<Void> deleteList(@PathVariable String id) {
+        String userId = requireAuthenticatedUserId();
         problemListService.deleteList(id, userId);
         return Result.success();
     }
@@ -78,9 +80,8 @@ public class ProblemListController {
     @RateLimit(key = "problem-list:fork", limit = 20, period = 60)
     @PostMapping("/{id}/fork")
     @SecurityRequirement(name = "Bearer")
-    public Result<ForkResultVO> forkList(
-            @PathVariable String id,
-            @RequestParam String userId) {
+    public Result<ForkResultVO> forkList(@PathVariable String id) {
+        String userId = requireAuthenticatedUserId();
         String forkedId = problemListService.forkList(id, userId);
         return Result.success(new ForkResultVO(forkedId));
     }
@@ -91,8 +92,8 @@ public class ProblemListController {
     @SecurityRequirement(name = "Bearer")
     public Result<Void> addProblem(
             @PathVariable String id,
-            @RequestParam String userId,
             @Valid @RequestBody AddProblemToListDTO dto) {
+        String userId = requireAuthenticatedUserId();
         problemListService.addProblem(id, userId, dto.getProblemId());
         return Result.success();
     }
@@ -103,8 +104,8 @@ public class ProblemListController {
     @SecurityRequirement(name = "Bearer")
     public Result<Void> removeProblem(
             @PathVariable String id,
-            @PathVariable Long problemId,
-            @RequestParam String userId) {
+            @PathVariable Long problemId) {
+        String userId = requireAuthenticatedUserId();
         problemListService.removeProblem(id, userId, problemId);
         return Result.success();
     }
@@ -115,8 +116,8 @@ public class ProblemListController {
     @SecurityRequirement(name = "Bearer")
     public Result<Void> saveList(
             @PathVariable String id,
-            @RequestParam String userId,
             @RequestBody(required = false) SaveListDTO dto) {
+        String userId = requireAuthenticatedUserId();
         problemListService.saveList(userId, id, dto != null ? dto.getCategoryId() : null);
         return Result.success();
     }
@@ -125,9 +126,8 @@ public class ProblemListController {
     @RateLimit(key = "problem-list:unsave", limit = 20, period = 60)
     @DeleteMapping("/{id}/save")
     @SecurityRequirement(name = "Bearer")
-    public Result<Void> unsaveList(
-            @PathVariable String id,
-            @RequestParam String userId) {
+    public Result<Void> unsaveList(@PathVariable String id) {
+        String userId = requireAuthenticatedUserId();
         problemListService.unsaveList(userId, id);
         return Result.success();
     }
@@ -136,8 +136,8 @@ public class ProblemListController {
     @GetMapping("/problems/{problemId}/user-lists")
     @SecurityRequirement(name = "Bearer")
     public Result<UserListsForProblemVO> getUserListsForProblem(
-            @PathVariable Long problemId,
-            @RequestParam String userId) {
+            @PathVariable Long problemId) {
+        String userId = requireAuthenticatedUserId();
         return Result.success(problemListService.getUserListsForProblem(userId, problemId));
     }
 
@@ -147,8 +147,8 @@ public class ProblemListController {
     @SecurityRequirement(name = "Bearer")
     public Result<Void> batchAddProblemToLists(
             @PathVariable Long problemId,
-            @RequestParam String userId,
             @Valid @RequestBody BatchAddToListsDTO dto) {
+        String userId = requireAuthenticatedUserId();
         problemListService.batchAddProblemToLists(userId, problemId, dto.getListIds());
         return Result.success();
     }
@@ -159,8 +159,8 @@ public class ProblemListController {
     @SecurityRequirement(name = "Bearer")
     public Result<Void> batchRemoveProblemFromLists(
             @PathVariable Long problemId,
-            @RequestParam String userId,
             @Valid @RequestBody BatchAddToListsDTO dto) {
+        String userId = requireAuthenticatedUserId();
         problemListService.batchRemoveProblemFromLists(userId, problemId, dto.getListIds());
         return Result.success();
     }
@@ -171,8 +171,8 @@ public class ProblemListController {
     @SecurityRequirement(name = "Bearer")
     public Result<Void> moveListToCategory(
             @PathVariable String id,
-            @RequestParam String userId,
             @Valid @RequestBody MoveListToCategoryDTO dto) {
+        String userId = requireAuthenticatedUserId();
         problemListService.moveListToCategory(userId, id, dto.getCategoryId());
         return Result.success();
     }
@@ -184,8 +184,8 @@ public class ProblemListController {
     @PostMapping("/categories")
     @SecurityRequirement(name = "Bearer")
     public Result<CategorySummaryVO> createCategory(
-            @RequestParam String userId,
             @Valid @RequestBody CreateCategoryDTO dto) {
+        String userId = requireAuthenticatedUserId();
         return Result.success(problemListService.createCategory(userId, dto));
     }
 
@@ -195,8 +195,8 @@ public class ProblemListController {
     @SecurityRequirement(name = "Bearer")
     public Result<CategorySummaryVO> updateCategory(
             @PathVariable String categoryId,
-            @RequestParam String userId,
             @Valid @RequestBody UpdateCategoryDTO dto) {
+        String userId = requireAuthenticatedUserId();
         return Result.success(problemListService.updateCategory(categoryId, userId, dto));
     }
 
@@ -204,10 +204,17 @@ public class ProblemListController {
     @RateLimit(key = "problem-list:delete-category", limit = 20, period = 60)
     @DeleteMapping("/categories/{categoryId}")
     @SecurityRequirement(name = "Bearer")
-    public Result<Void> deleteCategory(
-            @PathVariable String categoryId,
-            @RequestParam String userId) {
+    public Result<Void> deleteCategory(@PathVariable String categoryId) {
+        String userId = requireAuthenticatedUserId();
         problemListService.deleteCategory(categoryId, userId);
         return Result.success();
+    }
+
+    private String requireAuthenticatedUserId() {
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId == null) {
+            throw new BusinessException(ErrorCode.UNAUTHORIZED);
+        }
+        return userId;
     }
 }

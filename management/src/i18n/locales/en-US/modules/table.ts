@@ -74,6 +74,13 @@ const tableTranslations = {
     stats: 'Statistics',
     createdAt: 'Created',
 
+    // Problem list columns
+    isFeatured: 'Featured',
+    isPublic: 'Public',
+    problemCount: 'Problems',
+    bannerOrder: 'Banner Order',
+    updatedAt: 'Updated',
+
     // Missing camelCase keys
     lastLoginAt: 'Last Login',
     joinedAt: 'Joined',

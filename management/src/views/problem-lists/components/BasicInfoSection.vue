@@ -105,13 +105,13 @@ async function saveChanges() {
       name,
       description: description || undefined,
     }
-    await adminProblemListsApi.updateBasicInfo(props.modelValue!.id, updateData)
+    const updated = await adminProblemListsApi.updateBasicInfo(props.modelValue!.id, updateData)
 
-    // Update local model
+    // Use API response to update local model
     emit('update:modelValue', {
       ...props.modelValue!,
-      name,
-      description: description || '',
+      ...updated,
+      problems: props.modelValue!.problems,
     })
 
     lastSavedValues.value = currentValues

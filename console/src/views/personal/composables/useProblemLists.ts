@@ -27,15 +27,15 @@ export function useProblemLists() {
 
   // Data state
   const data = ref<UserProblemListsResponse>({
-    myLists: [],
+    ownLists: [],
     savedLists: [],
-    featured: [],
+    featuredLists: [],
     categories: [],
   });
 
   // Computed
-  const sortedMyLists = computed(() => {
-    let lists = [...data.value.myLists].sort(
+  const sortedOwnLists = computed(() => {
+    let lists = [...data.value.ownLists].sort(
       (a, b) => b.problemCount - a.problemCount,
     );
     if (searchQuery.value.trim()) {
@@ -75,7 +75,7 @@ export function useProblemLists() {
       return;
     }
     try {
-      data.value = await fetchProblemListsOverview(currentUserId);
+      data.value = await fetchProblemListsOverview();
     } catch (e) {
       console.error("Failed to load problem lists", e);
       toast.error(t("personal.messages.loadFailed"));
@@ -92,7 +92,7 @@ export function useProblemLists() {
   ) => {
     if (!currentUserId || !form.name.trim()) return;
     try {
-      const newList = await createProblemList(currentUserId, {
+      const newList = await createProblemList({
         name: form.name.trim(),
         description: form.description.trim() || undefined,
         isPublic: form.isPublic,
@@ -111,7 +111,7 @@ export function useProblemLists() {
   const handleDeleteList = async (list: ProblemList) => {
     if (!currentUserId) return;
     try {
-      await deleteProblemList(list.id, currentUserId);
+      await deleteProblemList(list.id);
       toast.success(t("personal.messages.folderDeleted"));
       await loadData();
     } catch (e) {
@@ -124,7 +124,7 @@ export function useProblemLists() {
   const handleUnsaveList = async (list: ProblemList) => {
     if (!currentUserId) return;
     try {
-      await unsaveList(list.id, currentUserId);
+      await unsaveList(list.id);
       toast.success(t("personal.messages.bookmarkRemoved"));
       await loadData();
     } catch (e) {
@@ -137,7 +137,7 @@ export function useProblemLists() {
   const handleSaveList = async (list: ProblemList) => {
     if (!currentUserId) return;
     try {
-      await saveList(list.id, currentUserId);
+      await saveList(list.id);
       toast.success(t("personal.messages.bookmarkAdded"));
       await loadData();
     } catch (e) {
@@ -153,7 +153,7 @@ export function useProblemLists() {
   ) => {
     if (!currentUserId) return;
     try {
-      await moveListToCategory(list.id, currentUserId, categoryId);
+      await moveListToCategory(list.id, categoryId);
       toast.success(t("personal.messages.profileUpdated"));
       await loadData();
     } catch (e) {
@@ -169,7 +169,7 @@ export function useProblemLists() {
   ) => {
     if (!currentUserId || !form.name.trim()) return;
     try {
-      await createCategory(currentUserId, {
+      await createCategory({
         name: form.name.trim(),
       });
       toast.success(t("personal.messages.folderCreated"));
@@ -192,7 +192,7 @@ export function useProblemLists() {
       return;
     }
     try {
-      await updateCategory(category.id, currentUserId, {
+      await updateCategory(category.id, {
         name: newName.trim(),
       });
       toast.success(t("personal.messages.profileUpdated"));
@@ -208,7 +208,7 @@ export function useProblemLists() {
   const handleDeleteCategory = async (category: ProblemListCategory) => {
     if (!currentUserId) return;
     try {
-      await deleteCategory(category.id, currentUserId);
+      await deleteCategory(category.id);
       toast.success(t("personal.messages.folderDeleted"));
       await loadData();
     } catch (e) {
@@ -224,7 +224,7 @@ export function useProblemLists() {
     currentUserId,
     searchQuery,
     data,
-    sortedMyLists,
+    sortedOwnLists,
     sortedSavedLists,
     totalSavedCount,
     sortedCategories,

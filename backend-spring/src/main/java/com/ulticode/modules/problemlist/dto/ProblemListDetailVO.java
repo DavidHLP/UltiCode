@@ -27,6 +27,41 @@ public class ProblemListDetailVO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<ProblemInListVO> problems;
+    private ProblemListStatsVO stats;
+    private ViewerStateVO viewer;
+    private List<CategoryOptionVO> categories;
+
+    /**
+     * View object for problem list statistics.
+     */
+    @Data
+    public static class ProblemListStatsVO {
+        private String listId;
+        private Integer totalCount;
+        private Integer solvedCount;
+        private Integer attemptedCount;
+        private Integer todoCount;
+        private Double progress;
+    }
+
+    /**
+     * View object for viewer-specific state.
+     */
+    @Data
+    public static class ViewerStateVO {
+        private Boolean isSaved;
+        private String categoryId;
+    }
+
+    /**
+     * View object for category option (lightweight, for dropdowns).
+     */
+    @Data
+    public static class CategoryOptionVO {
+        private String id;
+        private String name;
+        private Integer sortOrder;
+    }
 
     /**
      * View object for problem within a list.

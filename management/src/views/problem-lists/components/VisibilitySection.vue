@@ -44,7 +44,8 @@ const visibilityData = computed(() => ({
 const { saveStatus, save } = useAutoSave<UpdateVisibilityDto>(
   async (data) => {
     if (!props.modelValue) return
-    await adminProblemListsApi.updateVisibility(props.modelValue.id, data)
+    const updated = await adminProblemListsApi.updateVisibility(props.modelValue.id, data)
+    emit('update:modelValue', { ...props.modelValue!, ...updated, problems: props.modelValue!.problems })
   },
   { debounceMs: 1000, blurTriggers: true },
 )

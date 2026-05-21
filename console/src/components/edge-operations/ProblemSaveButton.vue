@@ -116,7 +116,7 @@ async function loadData() {
     await bookmarkStore.loadFolders();
     const [folders, lists] = await Promise.all([
       getBookmarkFolders(props.targetType, props.problemId.toString()),
-      getUserListsForProblem(userId, props.problemId),
+      getUserListsForProblem(props.problemId),
     ]);
 
     itemFolders.value = folders;
@@ -178,13 +178,13 @@ async function toggleList(listId: string) {
 
   try {
     if (isInList) {
-      await batchRemoveProblemFromLists(userId, props.problemId, [listId]);
+      await batchRemoveProblemFromLists(props.problemId, [listId]);
       list.containsProblem = false;
       toast.success(
         t("problem.save.toast.removedFromList", { name: list.name }),
       );
     } else {
-      await batchAddProblemToLists(userId, props.problemId, [listId]);
+      await batchAddProblemToLists(props.problemId, [listId]);
       list.containsProblem = true;
       toast.success(t("problem.save.toast.addedToList", { name: list.name }));
     }
@@ -226,13 +226,13 @@ async function handleCreateList() {
 
   isCreating.value = true;
   try {
-    const newList = await createProblemList(userId, {
+    const newList = await createProblemList({
       name: newListName.value.trim(),
       isPublic: false,
     });
 
     // Add the problem to the newly created list
-    await batchAddProblemToLists(userId, props.problemId, [newList.id]);
+    await batchAddProblemToLists(props.problemId, [newList.id]);
 
     // Reload the lists
     await loadData();
@@ -399,11 +399,6 @@ watch(
                   >
                     <span
                       >{{ list.problemCount }} {{ t("bookmark.items") }}</span
-                    >
-                    <span>•</span>
-                    <span
-                      >{{ list.favoritesCount ?? 0 }}
-                      {{ t("problem.save.saves") }}</span
                     >
                   </div>
                 </div>

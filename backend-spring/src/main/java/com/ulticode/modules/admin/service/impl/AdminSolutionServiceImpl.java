@@ -9,6 +9,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 import com.ulticode.modules.admin.service.AdminSolutionService;
@@ -33,9 +34,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Implementation of AdminSolutionService.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -46,13 +44,54 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
     private final ProblemMapper problemMapper;
 
     @Override
-    public PageResult<AdminSolutionVO> getSolutions(AdminSolutionQueryDTO query) {
+    public PageResult<AdminSolutionListItemVO> getSolutions(AdminSolutionQueryDTO query) {
         int page = query.getPage() != null && query.getPage() > 0 ? query.getPage() : 1;
         int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
 
+        // When isDeleted=true, bypass MyBatis-Plus filtering via raw SQL
+        if (Boolean.TRUE.equals(query.getIsDeleted())) {
+            int offset = (page - 1) * limit;
+            String search = StringUtils.hasText(query.getSearch()) ? query.getSearch() : null;
+            String userId = StringUtils.hasText(query.getUserId()) ? query.getUserId() : null;
+
+            boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
+            String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
+            String sortColumn = switch (sortBy) {
+                case "title" -> "title";
+                case "views" -> "views";
+                case "updatedAt" -> "updated_at";
+                default -> "created_at";
+            };
+            String sortOrder = isAsc ? "ASC" : "DESC";
+
+            List<Solution> deletedSolutions = solutionMapper.selectDeletedSolutions(
+                    search, query.getProblemId(), userId,
+                    query.getIsFlagged(), query.getIsPublished(),
+                    sortColumn, sortOrder, limit, offset);
+            long total = solutionMapper.countDeletedSolutions(
+                    search, query.getProblemId(), userId,
+                    query.getIsFlagged(), query.getIsPublished());
+
+            Set<String> userIds = deletedSolutions.stream()
+                    .map(Solution::getUserId)
+                    .collect(Collectors.toSet());
+            Set<Long> problemIds = deletedSolutions.stream()
+                    .map(Solution::getProblemId)
+                    .collect(Collectors.toSet());
+
+            Map<String, User> userMap = batchLoadUsers(userIds);
+            Map<Long, Problem> problemMap = batchLoadProblems(problemIds);
+
+            List<AdminSolutionListItemVO> voList = deletedSolutions.stream()
+                    .map(s -> toListItemVO(s, userMap, problemMap))
+                    .toList();
+
+            return PageResult.of(voList, total, page, limit);
+        }
+
+        // Normal query — MyBatis-Plus auto-excludes soft-deleted via @TableLogic
         LambdaQueryWrapper<Solution> wrapper = new LambdaQueryWrapper<>();
 
-        // Search filter (title or content)
         if (StringUtils.hasText(query.getSearch())) {
             String search = "%" + query.getSearch() + "%";
             wrapper.and(w -> w
@@ -61,34 +100,22 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
                     .like(Solution::getContent, search));
         }
 
-        // Problem ID filter
         if (query.getProblemId() != null) {
             wrapper.eq(Solution::getProblemId, query.getProblemId());
         }
 
-        // User ID filter
         if (StringUtils.hasText(query.getUserId())) {
             wrapper.eq(Solution::getUserId, query.getUserId());
         }
 
-        // Flagged filter
         if (query.getIsFlagged() != null) {
             wrapper.eq(Solution::getIsFlagged, query.getIsFlagged());
         }
 
-        // Published filter
         if (query.getIsPublished() != null) {
             wrapper.eq(Solution::getIsPublished, query.getIsPublished());
         }
 
-        // Deleted filter (exclude soft-deleted by default)
-        if (query.getIsDeleted() != null && query.getIsDeleted()) {
-            // Include soft-deleted - need to use native query or disable logic delete
-            // For now, we'll just not filter and let MyBatis-Plus handle it
-        }
-        // By default, MyBatis-Plus @TableLogic excludes soft-deleted records
-
-        // Sorting
         boolean isAsc = "asc".equalsIgnoreCase(query.getSortOrder());
         String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
         switch (sortBy) {
@@ -102,7 +129,6 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
         Page<Solution> pageResult = new Page<>(page, limit);
         Page<Solution> result = solutionMapper.selectPage(pageResult, wrapper);
 
-        // Batch-load users and problems to avoid N+1 queries
         Set<String> userIds = result.getRecords().stream()
                 .map(Solution::getUserId)
                 .collect(Collectors.toSet());
@@ -110,32 +136,30 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
                 .map(Solution::getProblemId)
                 .collect(Collectors.toSet());
 
-        Map<String, User> userMap = new HashMap<>();
-        if (!userIds.isEmpty()) {
-            userMap = userMapper.selectBatchIds(userIds).stream()
-                    .collect(Collectors.toMap(User::getId, u -> u));
-        }
+        Map<String, User> userMap = batchLoadUsers(userIds);
+        Map<Long, Problem> problemMap = batchLoadProblems(problemIds);
 
-        Map<Long, Problem> problemMap = new HashMap<>();
-        if (!problemIds.isEmpty()) {
-            problemMap = problemMapper.selectBatchIds(problemIds).stream()
-                    .collect(Collectors.toMap(Problem::getId, p -> p));
-        }
-
-        Map<String, User> finalUserMap = userMap;
-        Map<Long, Problem> finalProblemMap = problemMap;
-        List<AdminSolutionVO> voList = result.getRecords().stream()
-                .map(s -> toAdminVO(s, finalUserMap, finalProblemMap))
+        List<AdminSolutionListItemVO> voList = result.getRecords().stream()
+                .map(s -> toListItemVO(s, userMap, problemMap))
                 .toList();
 
         return PageResult.of(voList, result.getTotal(), page, limit);
     }
 
     @Override
-    public PageResult<AdminSolutionVO> getFlaggedSolutions(AdminSolutionQueryDTO query) {
-        // Force isFlagged = true for this endpoint
-        query.setIsFlagged(true);
-        return getSolutions(query);
+    public PageResult<AdminSolutionListItemVO> getFlaggedSolutions(AdminSolutionQueryDTO query) {
+        AdminSolutionQueryDTO flaggedQuery = new AdminSolutionQueryDTO();
+        flaggedQuery.setSearch(query.getSearch());
+        flaggedQuery.setProblemId(query.getProblemId());
+        flaggedQuery.setUserId(query.getUserId());
+        flaggedQuery.setIsFlagged(true);
+        flaggedQuery.setIsPublished(query.getIsPublished());
+        flaggedQuery.setIsDeleted(query.getIsDeleted());
+        flaggedQuery.setPage(query.getPage());
+        flaggedQuery.setLimit(query.getLimit());
+        flaggedQuery.setSortBy(query.getSortBy());
+        flaggedQuery.setSortOrder(query.getSortOrder());
+        return getSolutions(flaggedQuery);
     }
 
     @Override
@@ -219,16 +243,13 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
             "problemId", solution.getProblemId()
         ));
 
-        // Hard delete (not soft delete via @TableLogic)
         solutionMapper.deleteById(id);
 
-        // Check if there are remaining solutions for this problem
         LambdaQueryWrapper<Solution> countWrapper = new LambdaQueryWrapper<>();
         countWrapper.eq(Solution::getProblemId, solution.getProblemId());
         long remainingCount = solutionMapper.selectCount(countWrapper);
 
         if (remainingCount == 0) {
-            // Update problem's hasSolution flag
             Problem problem = problemMapper.selectById(solution.getProblemId());
             if (problem != null && Boolean.TRUE.equals(problem.getHasSolution())) {
                 problem.setHasSolution(false);
@@ -284,14 +305,49 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
         return results;
     }
 
-    /**
-     * Convert Solution entity to AdminSolutionVO (list view) with batch-loaded data.
-     */
+    private Map<String, User> batchLoadUsers(Set<String> userIds) {
+        if (userIds.isEmpty()) return new HashMap<>();
+        return userMapper.selectBatchIds(userIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+    }
+
+    private Map<Long, Problem> batchLoadProblems(Set<Long> problemIds) {
+        if (problemIds.isEmpty()) return new HashMap<>();
+        return problemMapper.selectBatchIds(problemIds).stream()
+                .collect(Collectors.toMap(Problem::getId, p -> p));
+    }
+
+    private AdminSolutionListItemVO toListItemVO(Solution solution, Map<String, User> userMap,
+                                                  Map<Long, Problem> problemMap) {
+        if (solution == null) return null;
+
+        User author = userMap.get(solution.getUserId());
+        AdminSolutionListItemVO.AuthorInfo authorInfo = author != null
+                ? new AdminSolutionListItemVO.AuthorInfo(author.getId(), author.getUsername(), author.getName(), author.getEmail())
+                : null;
+
+        Problem problem = problemMap.get(solution.getProblemId());
+        AdminSolutionListItemVO.ProblemInfo problemInfo = problem != null
+                ? new AdminSolutionListItemVO.ProblemInfo(problem.getId().toString(), problem.getSlug(), problem.getTitle(), problem.getDifficulty())
+                : null;
+
+        return new AdminSolutionListItemVO(
+                solution.getId(),
+                solution.getTitle(),
+                solution.getLanguage(),
+                solution.getViews(),
+                solution.getIsPublished(),
+                solution.getIsFlagged(),
+                solution.getIsDeleted(),
+                solution.getCreatedAt(),
+                authorInfo,
+                problemInfo
+        );
+    }
+
     private AdminSolutionVO toAdminVO(Solution solution, Map<String, User> userMap,
                                       Map<Long, Problem> problemMap) {
-        if (solution == null) {
-            return null;
-        }
+        if (solution == null) return null;
 
         AdminSolutionVO vo = new AdminSolutionVO();
         vo.setId(solution.getId());
@@ -338,13 +394,8 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
         return vo;
     }
 
-    /**
-     * Convert Solution entity to AdminSolutionVO (single-item view).
-     */
     private AdminSolutionVO toAdminVO(Solution solution) {
-        if (solution == null) {
-            return null;
-        }
+        if (solution == null) return null;
 
         AdminSolutionVO vo = new AdminSolutionVO();
         vo.setId(solution.getId());
@@ -368,7 +419,6 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
         vo.setCreatedAt(solution.getCreatedAt());
         vo.setUpdatedAt(solution.getUpdatedAt());
 
-        // Fetch author info
         User author = userMapper.selectById(solution.getUserId());
         if (author != null) {
             AdminSolutionVO.AuthorInfo authorInfo = new AdminSolutionVO.AuthorInfo();
@@ -379,7 +429,6 @@ public class AdminSolutionServiceImpl implements AdminSolutionService {
             vo.setAuthor(authorInfo);
         }
 
-        // Fetch problem info
         Problem problem = problemMapper.selectById(solution.getProblemId());
         if (problem != null) {
             AdminSolutionVO.ProblemInfo problemInfo = new AdminSolutionVO.ProblemInfo();

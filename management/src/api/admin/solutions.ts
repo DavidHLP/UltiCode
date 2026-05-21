@@ -1,5 +1,28 @@
 import { apiGet, apiPost, apiDelete } from '@/utils/request'
 
+export interface SolutionListItem {
+  id: string
+  title: string
+  language: string
+  views: number
+  isPublished: boolean
+  isFlagged: boolean
+  isDeleted: boolean
+  createdAt: string
+  author: {
+    id: string
+    username: string
+    name: string
+    email?: string
+  }
+  problem: {
+    id: string
+    slug: string
+    title: string
+    difficulty: string
+  }
+}
+
 export interface Solution {
   id: string
   problemId: number
@@ -67,12 +90,12 @@ export interface FlagSolutionDto {
 }
 
 export const solutionsApi = {
-  async getSolutions(params: SolutionQueryParams): Promise<PageResult<Solution>> {
-    return apiGet<PageResult<Solution>>('/admin/solutions', { params })
+  async getSolutions(params: SolutionQueryParams): Promise<PageResult<SolutionListItem>> {
+    return apiGet<PageResult<SolutionListItem>>('/admin/solutions', { params })
   },
 
-  async getFlaggedSolutions(params: SolutionQueryParams): Promise<PageResult<Solution>> {
-    return apiGet<PageResult<Solution>>('/admin/solutions/flagged', { params })
+  async getFlaggedSolutions(params: SolutionQueryParams): Promise<PageResult<SolutionListItem>> {
+    return apiGet<PageResult<SolutionListItem>>('/admin/solutions/flagged', { params })
   },
 
   async getSolution(id: string): Promise<Solution> {

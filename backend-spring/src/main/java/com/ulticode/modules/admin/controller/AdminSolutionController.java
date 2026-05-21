@@ -3,6 +3,7 @@ package com.ulticode.modules.admin.controller;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 import com.ulticode.modules.admin.service.AdminSolutionService;
@@ -10,6 +11,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -32,14 +36,14 @@ public class AdminSolutionController {
     @Operation(summary = "Get solutions", description = "Get paginated list of solutions with filters")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<AdminSolutionVO>> getSolutions(AdminSolutionQueryDTO query) {
+    public Result<PageResult<AdminSolutionListItemVO>> getSolutions(AdminSolutionQueryDTO query) {
         return Result.success(adminSolutionService.getSolutions(query));
     }
 
     @Operation(summary = "Get flagged solutions", description = "Get paginated list of flagged solutions")
     @GetMapping("/flagged")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<PageResult<AdminSolutionVO>> getFlaggedSolutions(AdminSolutionQueryDTO query) {
+    public Result<PageResult<AdminSolutionListItemVO>> getFlaggedSolutions(AdminSolutionQueryDTO query) {
         return Result.success(adminSolutionService.getFlaggedSolutions(query));
     }
 
@@ -92,6 +96,7 @@ public class AdminSolutionController {
      */
     @Data
     public static class FlagSolutionDto {
+        @NotBlank(message = "Flag reason is required")
         private String reason;
     }
 
@@ -100,7 +105,8 @@ public class AdminSolutionController {
      */
     @Data
     public static class BulkSolutionActionDto {
-        private List<String> ids;
+        @NotEmpty(message = "Solution IDs must not be empty")
+        private List<@NotNull String> ids;
         private String action; // publish, unpublish, delete, unflag
     }
 }

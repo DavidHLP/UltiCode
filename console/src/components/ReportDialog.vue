@@ -67,7 +67,7 @@ async function handleSubmit() {
       entityId: props.entityId,
       category: category.value,
       reason: reason.value,
-      evidence: evidence.value || undefined,
+      ...(evidence.value ? { evidence: evidence.value } : {}),
     });
     toast.success("举报已提交");
     open.value = false;

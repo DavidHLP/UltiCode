@@ -156,6 +156,20 @@ function difficultyColor(difficulty: string): string {
                 {{ t('problemLists.problemsManager.difficulty') }}
               </span>
             </TableHead>
+            <TableHead class="terminal-column">
+              <span
+                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+              >
+                {{ t('table.columnNames.status') }}
+              </span>
+            </TableHead>
+            <TableHead class="terminal-column">
+              <span
+                class="font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]"
+              >
+                {{ t('table.columnNames.addedAt') }}
+              </span>
+            </TableHead>
             <TableHead class="terminal-column w-[50px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -192,6 +206,16 @@ function difficultyColor(difficulty: string): string {
               </span>
             </TableCell>
             <TableCell>
+              <span class="font-data text-xs text-[var(--silver-400)]">
+                {{ problem.status?.toUpperCase() || '-' }}
+              </span>
+            </TableCell>
+            <TableCell>
+              <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">
+                {{ problem.addedAt ? new Date(problem.addedAt).toLocaleDateString() : '-' }}
+              </span>
+            </TableCell>
+            <TableCell>
               <Button
                 size="icon"
                 variant="ghost"
@@ -205,7 +229,7 @@ function difficultyColor(difficulty: string): string {
 
           <!-- Empty State -->
           <TableRow v-if="problems.length === 0">
-            <TableCell colspan="4" class="h-24 text-center">
+            <TableCell colspan="6" class="h-24 text-center">
               <span class="terminal-comment">{{
                 t('problemLists.problemsManager.noProblems')
               }}</span>

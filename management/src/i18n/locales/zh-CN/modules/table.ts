@@ -79,6 +79,14 @@ const tableTranslations = {
     joinedAt: '注册时间',
     submissionCount: '提交数',
     isPublished: '发布状态',
+    assignedTo: '分配给',
+    entityType: '实体类型',
+    primaryCategory: '类别',
+    resolution: '处理结果',
+    reportCount: '举报数',
+    authorName: '作者名称',
+    addedAt: '添加时间',
+    sortOrder: '排序',
   },
 } as const
 

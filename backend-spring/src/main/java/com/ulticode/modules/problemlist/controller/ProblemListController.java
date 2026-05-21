@@ -81,8 +81,8 @@ public class ProblemListController {
     public Result<ForkResultVO> forkList(
             @PathVariable String id,
             @RequestParam String userId) {
-        String newListId = problemListService.forkList(id, userId);
-        return Result.success(new ForkResultVO(newListId));
+        String forkedId = problemListService.forkList(id, userId);
+        return Result.success(new ForkResultVO(forkedId));
     }
 
     @Operation(summary = "Add a problem to a list")

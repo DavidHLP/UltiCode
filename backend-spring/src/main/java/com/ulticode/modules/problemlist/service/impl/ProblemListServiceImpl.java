@@ -458,6 +458,8 @@ public class ProblemListServiceImpl implements ProblemListService {
                     status.setName(list.getName());
                     status.setHasProblem(
                             problemListProblemMapper.findByListIdAndProblemId(list.getId(), problemId).isPresent());
+                    status.setProblemCount((int) problemListProblemMapper.countByListId(list.getId()));
+                    status.setCanEdit(true);
                     return status;
                 })
                 .collect(Collectors.toList());

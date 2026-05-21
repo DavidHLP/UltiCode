@@ -6,7 +6,6 @@ import {
   type ProblemList,
   type ProblemListQuery,
   type CreateProblemListDto,
-  type UpdateProblemListDto,
   type ProblemListDetail,
   type UpdateProblemListProblemsDto,
 } from '@/api/admin/problem-lists'
@@ -66,20 +65,6 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
     }
   }
 
-  async function updateList(id: string, data: UpdateProblemListDto) {
-    isLoading.value = true
-    error.value = null
-    try {
-      await adminProblemListsApi.updateList(id, data)
-      await fetchList(id)
-    } catch (err) {
-      error.value = getErrorMessage(err, 'Failed to update problem list')
-      throw err
-    } finally {
-      isLoading.value = false
-    }
-  }
-
   async function deleteList(id: string) {
     isLoading.value = true
     error.value = null
@@ -118,7 +103,6 @@ export const useAdminProblemListsStore = defineStore('admin-problem-lists', () =
     fetchLists,
     fetchList,
     createList,
-    updateList,
     deleteList,
     updateListProblems,
   }

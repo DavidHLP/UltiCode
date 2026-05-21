@@ -79,6 +79,14 @@ const tableTranslations = {
     joinedAt: 'Joined',
     submissionCount: 'Submissions',
     isPublished: 'Published',
+    assignedTo: 'Assigned To',
+    entityType: 'Entity Type',
+    primaryCategory: 'Category',
+    resolution: 'Resolution',
+    reportCount: 'Reports',
+    authorName: 'Author Name',
+    addedAt: 'Added At',
+    sortOrder: 'Sort Order',
   },
 } as const
 

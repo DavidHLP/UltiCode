@@ -55,17 +55,6 @@ export interface CreateProblemListDto {
   bannerOrder?: number
 }
 
-export interface UpdateProblemListDto {
-  name?: string
-  description?: string
-  isPublic?: boolean
-  isFeatured?: boolean
-  bannerTag?: string
-  bannerIcon?: string
-  bannerTheme?: string
-  bannerOrder?: number
-}
-
 export interface UpdateProblemListProblemsDto {
   problems: {
     problemId: number
@@ -111,11 +100,6 @@ export const adminProblemListsApi = {
 
   async createList(data: CreateProblemListDto): Promise<ProblemList> {
     const response = await apiPost<ProblemList>('/admin/problem-lists', data)
-    return response
-  },
-
-  async updateList(id: string, data: UpdateProblemListDto): Promise<ProblemList> {
-    const response = await apiPatch<ProblemList>(`/admin/problem-lists/${id}`, data)
     return response
   },
 

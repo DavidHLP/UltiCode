@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.service;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.admin.dto.AdminSolutionListItemVO;
 import com.ulticode.modules.admin.dto.AdminSolutionQueryDTO;
 import com.ulticode.modules.admin.dto.AdminSolutionVO;
 
@@ -17,7 +18,7 @@ public interface AdminSolutionService {
      * @param query the query parameters
      * @return paginated list of solutions
      */
-    PageResult<AdminSolutionVO> getSolutions(AdminSolutionQueryDTO query);
+    PageResult<AdminSolutionListItemVO> getSolutions(AdminSolutionQueryDTO query);
 
     /**
      * Get paginated list of flagged solutions.
@@ -25,7 +26,7 @@ public interface AdminSolutionService {
      * @param query the query parameters
      * @return paginated list of flagged solutions
      */
-    PageResult<AdminSolutionVO> getFlaggedSolutions(AdminSolutionQueryDTO query);
+    PageResult<AdminSolutionListItemVO> getFlaggedSolutions(AdminSolutionQueryDTO query);
 
     /**
      * Get a solution by ID.

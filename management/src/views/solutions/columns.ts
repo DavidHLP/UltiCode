@@ -21,20 +21,28 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { badge } from '@/components/ui/terminal'
-import type { Solution } from '@/api/admin/solutions'
+import type { SolutionListItem } from '@/api/admin/solutions'
 import { formatDate } from '@/lib/format/date'
 
 export interface SolutionActions {
   viewSolution: (id: string) => void
-  openFlagDialog: (solution: Solution) => void
+  openFlagDialog: (solution: SolutionListItem) => void
   unflagSolution: (id: string) => void
-  confirmDelete: (solution: Solution) => void
+  confirmDelete: (solution: SolutionListItem) => void
 }
 
-function renderStatusBadge(solution: Solution, t: (key: string) => string) {
-  if (solution.isDeleted) return badge({ color: 'error', label: t('solutions.status.deleted'), icon: IconTrash })
-  if (solution.isFlagged) return badge({ color: 'warning', label: t('solutions.status.flagged'), icon: IconFlag, pulse: true })
-  if (solution.isPublished) return badge({ color: 'success', label: t('solutions.status.published'), icon: IconCheck })
+function renderStatusBadge(solution: SolutionListItem, t: (key: string) => string) {
+  if (solution.isDeleted)
+    return badge({ color: 'error', label: t('solutions.status.deleted'), icon: IconTrash })
+  if (solution.isFlagged)
+    return badge({
+      color: 'warning',
+      label: t('solutions.status.flagged'),
+      icon: IconFlag,
+      pulse: true,
+    })
+  if (solution.isPublished)
+    return badge({ color: 'success', label: t('solutions.status.published'), icon: IconCheck })
   return badge({ color: 'neutral', label: t('solutions.status.unpublished'), icon: IconEyeOff })
 }
 
@@ -43,7 +51,7 @@ export function createColumns(
   actions: SolutionActions,
   canUpdateSolution: () => boolean,
   canDeleteSolution: () => boolean,
-): ColumnDef<Solution>[] {
+): ColumnDef<SolutionListItem>[] {
   return [
     {
       id: 'select',
@@ -198,7 +206,7 @@ export function createColumns(
 
 function createActionsDropdown(
   t: (key: string) => string,
-  solution: Solution,
+  solution: SolutionListItem,
   actions: SolutionActions,
   canUpdateSolution: () => boolean,
   canDeleteSolution: () => boolean,

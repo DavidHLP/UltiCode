@@ -75,6 +75,8 @@ export default {
     copy: 'Copy',
     copied: 'Copied',
     sourceCode: 'Source Code',
+    deletedAt: 'Deleted At',
+    deletedBy: 'Deleted By',
   },
 
   // ========== Error States ==========

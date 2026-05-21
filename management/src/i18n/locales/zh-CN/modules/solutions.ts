@@ -75,6 +75,8 @@ export default {
     copy: '复制',
     copied: '已复制',
     sourceCode: '源代码',
+    deletedAt: '删除时间',
+    deletedBy: '删除者',
   },
 
   // ========== 错误状态 ==========

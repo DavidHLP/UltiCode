@@ -135,9 +135,11 @@ public class ProblemListServiceImpl implements ProblemListService {
         // Check if user owns the list
         vo.setIsOwner(userId != null && userId.equals(list.getAuthorId()));
 
-        // Check if user has saved the list
+        // Check if user has saved the list — reuse bookmark for viewer state below
+        ProblemListBookmark userBookmark = null;
         if (userId != null) {
-            vo.setIsSaved(problemListBookmarkMapper.existsByUserIdAndListId(userId, id));
+            userBookmark = problemListBookmarkMapper.findByUserIdAndListId(userId, id).orElse(null);
+            vo.setIsSaved(userBookmark != null);
         } else {
             vo.setIsSaved(false);
         }
@@ -179,6 +181,41 @@ public class ProblemListServiceImpl implements ProblemListService {
             vo.setProblems(problemVOs);
         } else {
             vo.setProblems(Collections.emptyList());
+        }
+
+        // Build stats
+        ProblemListDetailVO.ProblemListStatsVO statsVO = new ProblemListDetailVO.ProblemListStatsVO();
+        statsVO.setListId(id);
+        statsVO.setTotalCount(vo.getProblems().size());
+        statsVO.setSolvedCount(0);
+        statsVO.setAttemptedCount(0);
+        statsVO.setTodoCount(vo.getProblems().size());
+        statsVO.setProgress(vo.getProblems().isEmpty() ? 0.0 : 0.0);
+        vo.setStats(statsVO);
+
+        // Build viewer state — reuse bookmark fetched above
+        if (userId != null) {
+            ProblemListDetailVO.ViewerStateVO viewerVO = new ProblemListDetailVO.ViewerStateVO();
+            viewerVO.setIsSaved(vo.getIsSaved());
+            viewerVO.setCategoryId(userBookmark != null ? userBookmark.getCategoryId() : null);
+            vo.setViewer(viewerVO);
+        }
+
+        // Build category options for the viewer
+        if (userId != null) {
+            try {
+                List<ProblemListCategory> cats = problemListCategoryMapper.findByUserId(userId);
+                vo.setCategories(cats.stream().map(cat -> {
+                    ProblemListDetailVO.CategoryOptionVO opt = new ProblemListDetailVO.CategoryOptionVO();
+                    opt.setId(cat.getId());
+                    opt.setName(cat.getName());
+                    opt.setSortOrder(cat.getSortOrder());
+                    return opt;
+                }).collect(Collectors.toList()));
+            } catch (Exception e) {
+                log.warn("Categories table may not exist: {}", e.getMessage());
+                vo.setCategories(Collections.emptyList());
+            }
         }
 
         return vo;

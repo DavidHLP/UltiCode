@@ -45,9 +45,9 @@ const emit = defineEmits<{
 
 defineProps<{
   data: {
-    myLists: ProblemList[];
+    ownLists: ProblemList[];
     savedLists: ProblemList[];
-    featured: ProblemList[];
+    featuredLists: ProblemList[];
     categories: (ProblemListCategory & { lists: ProblemList[] })[];
   };
   allCategories: ProblemListCategory[];
@@ -56,7 +56,7 @@ defineProps<{
 
 <template>
   <!-- My Lists Section -->
-  <div class="px-4 py-2" v-if="data.myLists.length > 0">
+  <div class="px-4 py-2" v-if="data.ownLists.length > 0">
     <Collapsible :default-open="true">
       <div class="flex items-center justify-between group">
         <CollapsibleTrigger class="flex flex-1 items-center gap-1">
@@ -72,7 +72,7 @@ defineProps<{
 
       <CollapsibleContent class="py-2">
         <ul class="space-y-1">
-          <li v-for="item in data.myLists" :key="item.id" class="group/item">
+          <li v-for="item in data.ownLists" :key="item.id" class="group/item">
             <div
               class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             >
@@ -187,7 +187,7 @@ defineProps<{
   </div>
 
   <!-- Featured Section -->
-  <div class="px-4 py-2" v-if="data.featured.length > 0">
+  <div class="px-4 py-2" v-if="data.featuredLists.length > 0">
     <Collapsible :default-open="true">
       <div class="flex items-center justify-between group">
         <CollapsibleTrigger class="flex flex-1 items-center gap-1">
@@ -203,7 +203,7 @@ defineProps<{
 
       <CollapsibleContent class="py-2">
         <ul class="space-y-1">
-          <li v-for="item in data.featured" :key="item.id" class="group/item">
+          <li v-for="item in data.featuredLists" :key="item.id" class="group/item">
             <div
               class="flex items-center justify-between gap-1 rounded-none px-2 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
             >

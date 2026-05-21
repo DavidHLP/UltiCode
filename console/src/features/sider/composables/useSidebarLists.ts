@@ -22,9 +22,9 @@ export function useSidebarLists() {
 
   // Data state
   const data = ref<UserProblemListsResponse>({
-    myLists: [],
+    ownLists: [],
     savedLists: [],
-    featured: [],
+    featuredLists: [],
     categories: [],
   });
   const isLoading = ref(false);
@@ -33,7 +33,7 @@ export function useSidebarLists() {
     if (!currentUserId) return;
     isLoading.value = true;
     try {
-      data.value = await fetchProblemListsOverview(currentUserId);
+      data.value = await fetchProblemListsOverview();
     } catch (e) {
       console.error("Failed to load problem lists", e);
     } finally {
@@ -58,7 +58,7 @@ export function useSidebarLists() {
     }
     isCreatingCategory.value = true;
     try {
-      await createCategory(currentUserId, {
+      await createCategory({
         name: createCategoryForm.value.name.trim(),
       });
       toast.success("Category created successfully");
@@ -93,7 +93,7 @@ export function useSidebarLists() {
     }
     isEditingCategory.value = true;
     try {
-      await updateCategory(categoryToEdit.value.id, currentUserId, {
+      await updateCategory(categoryToEdit.value.id, {
         name: editCategoryForm.value.name.trim(),
       });
       toast.success("Category updated successfully");
@@ -121,7 +121,7 @@ export function useSidebarLists() {
     if (!currentUserId || !categoryToDelete.value) return;
     isDeletingCategory.value = true;
     try {
-      await deleteCategory(categoryToDelete.value.id, currentUserId);
+      await deleteCategory(categoryToDelete.value.id);
       toast.success("Category deleted successfully");
       isDeleteCategoryOpen.value = false;
       await loadData();
@@ -147,7 +147,7 @@ export function useSidebarLists() {
     if (!listToDelete.value || !currentUserId) return;
     isDeletingList.value = true;
     try {
-      await deleteProblemList(listToDelete.value.id, currentUserId);
+      await deleteProblemList(listToDelete.value.id);
       toast.success(`Deleted "${listToDelete.value.name}"`);
       isDeleteListOpen.value = false;
       await loadData();
@@ -163,7 +163,7 @@ export function useSidebarLists() {
   const handleUnsaveList = async (list: ProblemList) => {
     if (!currentUserId) return;
     try {
-      await unsaveList(list.id, currentUserId);
+      await unsaveList(list.id);
       toast.success(`Removed "${list.name}" from saved`);
       await loadData();
     } catch (e) {
@@ -179,7 +179,7 @@ export function useSidebarLists() {
   ) => {
     if (!currentUserId) return;
     try {
-      await moveListToCategory(list.id, currentUserId, categoryId);
+      await moveListToCategory(list.id, categoryId);
       toast.success(
         categoryId
           ? `Moved "${list.name}" to category`
@@ -205,7 +205,7 @@ export function useSidebarLists() {
     }
     isCreatingList.value = true;
     try {
-      const newList = await createProblemList(currentUserId, {
+      const newList = await createProblemList({
         name: createListForm.value.name.trim(),
         description: createListForm.value.description.trim() || undefined,
         isPublic: createListForm.value.isPublic,

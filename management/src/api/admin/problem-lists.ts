@@ -3,7 +3,7 @@ import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 export interface ProblemList {
   id: string
   name: string
-  description: string
+  description?: string
   authorId: string
   authorName?: string
   authorUsername?: string
@@ -12,7 +12,7 @@ export interface ProblemList {
   bannerTag?: string
   bannerIcon?: string
   bannerTheme?: string
-  bannerOrder: number
+  bannerOrder?: number
   createdAt: string
   updatedAt: string
   problemCount?: number
@@ -48,7 +48,6 @@ export interface CreateProblemListDto {
   name: string
   description?: string
   isPublic?: boolean
-  isFeatured?: boolean
   bannerTag?: string
   bannerIcon?: string
   bannerTheme?: string
@@ -63,7 +62,7 @@ export interface UpdateProblemListProblemsDto {
 }
 
 export interface UpdateBasicInfoDto {
-  name?: string
+  name: string
   description?: string
 }
 
@@ -111,15 +110,15 @@ export const adminProblemListsApi = {
     await apiPost(`/admin/problem-lists/${id}/problems`, data)
   },
 
-  async updateBasicInfo(id: string, data: UpdateBasicInfoDto): Promise<void> {
-    await apiPatch(`/admin/problem-lists/${id}/basic-info`, data)
+  async updateBasicInfo(id: string, data: UpdateBasicInfoDto): Promise<ProblemList> {
+    return apiPatch<ProblemList>(`/admin/problem-lists/${id}/basic-info`, data)
   },
 
-  async updateVisibility(id: string, data: UpdateVisibilityDto): Promise<void> {
-    await apiPatch(`/admin/problem-lists/${id}/visibility`, data)
+  async updateVisibility(id: string, data: UpdateVisibilityDto): Promise<ProblemList> {
+    return apiPatch<ProblemList>(`/admin/problem-lists/${id}/visibility`, data)
   },
 
-  async updateBanner(id: string, data: UpdateBannerDto): Promise<void> {
-    await apiPatch(`/admin/problem-lists/${id}/banner`, data)
+  async updateBanner(id: string, data: UpdateBannerDto): Promise<ProblemList> {
+    return apiPatch<ProblemList>(`/admin/problem-lists/${id}/banner`, data)
   },
 }

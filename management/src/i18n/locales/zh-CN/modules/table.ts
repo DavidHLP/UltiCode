@@ -74,6 +74,13 @@ const tableTranslations = {
     stats: '统计',
     createdAt: '创建时间',
 
+    // 题单列
+    isFeatured: '推荐',
+    isPublic: '公开',
+    problemCount: '题目数',
+    bannerOrder: '横幅排序',
+    updatedAt: '更新时间',
+
     // 补充缺失的驼峰键
     lastLoginAt: '最后登录',
     joinedAt: '注册时间',

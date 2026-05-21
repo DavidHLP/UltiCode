@@ -158,6 +158,23 @@ export function createColumns(
       },
     },
     {
+      accessorKey: 'authorName',
+      header: () =>
+        h(
+          'span',
+          { class: 'font-data text-[10px] uppercase tracking-[0.15em] text-[var(--silver-500)]' },
+          t('table.columnNames.authorName'),
+        ),
+      cell: ({ row }) => {
+        const authorName = row.original.authorName
+        return h(
+          'span',
+          { class: 'font-data text-xs text-[var(--silver-400)]' },
+          authorName || '-',
+        )
+      },
+    },
+    {
       accessorKey: 'bannerOrder',
       header: () =>
         h(

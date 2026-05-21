@@ -82,7 +82,7 @@ async function saveBanner() {
   errorMessage.value = null
 
   try {
-    await adminProblemListsApi.updateBanner(props.modelValue.id, {
+    const updated = await adminProblemListsApi.updateBanner(props.modelValue.id, {
       bannerTag: localBannerTag.value || undefined,
       bannerTheme: localBannerTheme.value,
       bannerOrder: localBannerOrder.value,
@@ -91,12 +91,11 @@ async function saveBanner() {
     saveStatus.value = 'saved'
     lastSavedAt.value = new Date()
 
-    // Emit updated modelValue
+    // Use API response to update local model
     emit('update:modelValue', {
       ...props.modelValue,
-      bannerTag: localBannerTag.value || undefined,
-      bannerTheme: localBannerTheme.value,
-      bannerOrder: localBannerOrder.value,
+      ...updated,
+      problems: props.modelValue!.problems,
     })
 
     // Reset status after 2 seconds

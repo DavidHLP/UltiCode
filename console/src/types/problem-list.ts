@@ -1,90 +1,84 @@
-import type { Problem } from "./problem";
+import type { Problem } from './problem'
 
 export interface ProblemList {
-  id: string;
-  name: string;
-  description?: string;
-  problemCount: number;
-  favoritesCount?: number;
-  authorId?: string;
-  authorName?: string;
-  authorUsername?: string;
-  isPublic?: boolean;
-  isFeatured?: boolean;
-  bannerTag?: string;
-  bannerIcon?: string;
-  bannerTheme?: string;
-  bannerOrder?: number;
-  createdAt?: string;
-  updatedAt?: string;
-  isSaved?: boolean;
-  categoryId?: string;
-  problems?: Problem[];
+  id: string
+  name: string
+  description?: string
+  problemCount: number
+  authorId?: string
+  authorName?: string
+  authorUsername?: string
+  isPublic?: boolean
+  isFeatured?: boolean
+  bannerTag?: string
+  bannerIcon?: string
+  bannerTheme?: string
+  bannerOrder?: number
+  createdAt?: string
+  updatedAt?: string
+  isSaved?: boolean
 }
 
-// User's custom category for organizing saved lists
 export interface ProblemListCategory {
-  id: string;
-  name: string;
-  sortOrder: number;
-  lists: ProblemList[];
-  description?: string;
-  icon?: string;
-  color?: string;
-  listCount?: number;
+  id: string
+  name: string
+  sortOrder: number
+  lists: ProblemList[]
+  description?: string
+  icon?: string
+  color?: string
+  listCount?: number
 }
 
 export interface ProblemListCategoryOption {
-  id: string;
-  name: string;
-  sortOrder: number;
+  id: string
+  name: string
+  sortOrder: number
 }
 
-// Response from getUserProblemLists API
 export interface UserProblemListsResponse {
-  myLists: ProblemList[]; // Lists created by user
-  savedLists: ProblemList[]; // Lists saved by user (from others)
-  featured: ProblemList[]; // Featured lists
-  categories: ProblemListCategory[]; // User's custom categories
+  ownLists: ProblemList[]
+  savedLists: ProblemList[]
+  featuredLists: ProblemList[]
+  categories: ProblemListCategory[]
 }
 
 export interface ProblemListStats {
-  listId: string;
-  totalCount: number;
-  solvedCount: number;
-  attemptedCount: number;
-  todoCount: number;
-  progress: number;
-  total_lists?: number; // Keep these if needed for other components
-  total_problems?: number;
+  listId: string
+  totalCount: number
+  solvedCount: number
+  attemptedCount: number
+  todoCount: number
+  progress: number
+  total_lists?: number
+  total_problems?: number
 }
 
-export type ProblemListId = string;
+export type ProblemListId = string
 
 export interface ProblemListItem {
-  id: string;
-  name: string;
-  description?: string;
-  authorId?: string;
-  isPublic?: boolean;
-  isFeatured?: boolean;
-  bannerTag?: string;
-  bannerIcon?: string;
-  bannerTheme?: string;
-  bannerOrder?: number;
-  favoritesCount?: number;
-  createdAt?: string;
-  updatedAt?: string;
+  id: string
+  name: string
+  description?: string
+  authorId?: string
+  isPublic?: boolean
+  isFeatured?: boolean
+  bannerTag?: string
+  bannerIcon?: string
+  bannerTheme?: string
+  bannerOrder?: number
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface ProblemListDetailResponse {
-  list: ProblemList | null;
-  problems: Problem[];
-  stats: ProblemListStats | null;
-  isOwner?: boolean;
+  list: ProblemList | null
+  problems: Problem[]
+  stats: ProblemListStats | null
+  isOwner?: boolean
   viewer?: {
-    isSaved: boolean;
-    categoryId: string | null;
-  };
-  categories?: ProblemListCategoryOption[];
+    isSaved: boolean
+    categoryId: string | null
+  }
+  categories?: ProblemListCategoryOption[]
 }

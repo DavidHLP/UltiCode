@@ -20,5 +20,7 @@ public class UserListsForProblemVO {
         private String id;
         private String name;
         private Boolean hasProblem;
+        private Integer problemCount;
+        private Boolean canEdit;
     }
 }

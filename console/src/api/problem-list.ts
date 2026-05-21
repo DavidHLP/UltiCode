@@ -24,6 +24,10 @@ interface BackendProblemList {
   favorites_count?: unknown;
   authorId?: unknown;
   author_id?: unknown;
+  authorName?: unknown;
+  author_name?: unknown;
+  authorUsername?: unknown;
+  author_username?: unknown;
   isPublic?: unknown;
   is_public?: unknown;
   isFeatured?: unknown;
@@ -44,6 +48,9 @@ interface BackendProblemList {
   categoryId?: unknown;
   containsProblem?: unknown;
   canEdit?: unknown;
+  hasProblem?: unknown;
+  problemCountStatus?: unknown;
+  problem_count_status?: unknown;
 }
 
 interface BackendProblemListCategory {
@@ -52,6 +59,11 @@ interface BackendProblemListCategory {
   sortOrder?: unknown;
   sort_order?: unknown;
   lists?: unknown[];
+  description?: unknown;
+  icon?: unknown;
+  color?: unknown;
+  listCount?: unknown;
+  list_count?: unknown;
 }
 
 interface BackendUserProblemListsResponse {
@@ -65,6 +77,7 @@ interface BackendProblemListDetailResponse {
   list?: unknown;
   problems?: unknown[];
   stats?: unknown;
+  isOwner?: unknown;
   viewer?: BackendViewerState;
   categories?: BackendCategoryOption[];
 }
@@ -119,6 +132,18 @@ function mapProblemList(input: unknown): ProblemList {
         ? raw.authorId
         : typeof raw.author_id === "string"
           ? raw.author_id
+          : undefined,
+    authorName:
+      typeof raw.authorName === "string"
+        ? raw.authorName
+        : typeof raw.author_name === "string"
+          ? raw.author_name
+          : undefined,
+    authorUsername:
+      typeof raw.authorUsername === "string"
+        ? raw.authorUsername
+        : typeof raw.author_username === "string"
+          ? raw.author_username
           : undefined,
     isPublic:
       typeof raw.isPublic === "boolean"
@@ -175,6 +200,7 @@ function mapCategory(input: unknown): ProblemListCategory {
     return { id: "", name: "", sortOrder: 0, lists: [] };
   }
   const raw = input as BackendProblemListCategory;
+  const rawListCount = raw.listCount ?? raw.list_count;
   return {
     id: String(raw.id ?? ""),
     name: String(raw.name ?? ""),
@@ -185,6 +211,11 @@ function mapCategory(input: unknown): ProblemListCategory {
           ? raw.sort_order
           : 0,
     lists: Array.isArray(raw.lists) ? raw.lists.map(mapProblemList) : [],
+    description:
+      typeof raw.description === "string" ? raw.description : undefined,
+    icon: typeof raw.icon === "string" ? raw.icon : undefined,
+    color: typeof raw.color === "string" ? raw.color : undefined,
+    listCount: typeof rawListCount === "number" ? rawListCount : undefined,
   };
 }
 
@@ -325,6 +356,8 @@ export async function fetchProblemListOverview(
       raw.stats && typeof raw.stats === "object"
         ? (raw.stats as ProblemListStats)
         : null,
+    isOwner:
+      typeof raw.isOwner === "boolean" ? raw.isOwner : undefined,
     viewer:
       raw.viewer && typeof raw.viewer === "object"
         ? {
@@ -442,18 +475,20 @@ export async function getUserListsForProblem(
   userId: string,
   problemId: number,
 ): Promise<ProblemListWithStatus[]> {
-  const data = await apiGet<unknown[]>(
+  const data = await apiGet<unknown>(
     `/problem-lists/problems/${problemId}/user-lists?userId=${userId}`,
   );
-  if (!Array.isArray(data)) {
+  if (!data || typeof data !== "object") {
     return [];
   }
-  return data.map((item) => {
-    const raw = item as BackendProblemList;
+  const raw = data as { lists?: unknown[] };
+  const lists = Array.isArray(raw.lists) ? raw.lists : [];
+  return lists.map((item) => {
+    const rawItem = item as BackendProblemList;
     return {
       ...mapProblemList(item),
-      containsProblem: Boolean(raw.containsProblem),
-      canEdit: Boolean(raw.canEdit),
+      containsProblem: Boolean(rawItem.hasProblem ?? rawItem.containsProblem),
+      canEdit: Boolean(rawItem.canEdit),
     };
   });
 }

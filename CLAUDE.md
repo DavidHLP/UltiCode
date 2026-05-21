@@ -30,6 +30,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 发现问题 → 分析日志 → 修改代码/SQL → 容器/进程/数据库部署 → 验证结果
 
+## 运行时调试 (Arthas)
+
+项目已安装 `arthas-boot.jar` (4.1.9) 于项目根目录,用于 Java 运行时诊断。
+
+```bash
+# 启动 Arthas (会列出所有 Java 进程,选择对应进程)
+java -jar arthas-boot.jar
+
+# 常用命令
+dashboard          # 系统运行状态总览
+thread -n 5       # 查看最忙的 5 个线程
+jad <class>       # 反编译类查看源码
+watch <class> <method> <expr>  # 观察方法调用
+trace <class> <method>          # 方法内部调用路径
+stack <class> <method>          # 查看方法调用堆栈
+ognl '<expr>'                   # 执行 OGNL 表达式
+sc -d <class>                   # 搜索类详细信息
+
+# 附加到指定进程
+java -jar arthas-boot.jar <pid>
+```
+
+**调试典型问题:**
+- 方法耗时过长 → `trace` + `monitor`
+- 接口参数/返回值异常 → `watch`
+- 类加载问题 → `sc` + `jad`
+- 线程死锁 → `thread -b`
+- 内存问题 → `dashboard` + `heapdump`
+
 ---
 
 ## Project Overview

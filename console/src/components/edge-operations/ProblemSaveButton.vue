@@ -402,7 +402,7 @@ watch(
                     >
                     <span>•</span>
                     <span
-                      >{{ list.favoritesCount }}
+                      >{{ list.favoritesCount ?? 0 }}
                       {{ t("problem.save.saves") }}</span
                     >
                   </div>

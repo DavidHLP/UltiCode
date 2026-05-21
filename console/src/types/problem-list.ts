@@ -5,8 +5,10 @@ export interface ProblemList {
   name: string;
   description?: string;
   problemCount: number;
-  favoritesCount: number;
+  favoritesCount?: number;
   authorId?: string;
+  authorName?: string;
+  authorUsername?: string;
   isPublic?: boolean;
   isFeatured?: boolean;
   bannerTag?: string;
@@ -15,8 +17,8 @@ export interface ProblemList {
   bannerOrder?: number;
   createdAt?: string;
   updatedAt?: string;
-  isSaved?: boolean; // Whether current user saved this list
-  categoryId?: string; // User's category for this list
+  isSaved?: boolean;
+  categoryId?: string;
   problems?: Problem[];
 }
 
@@ -26,6 +28,10 @@ export interface ProblemListCategory {
   name: string;
   sortOrder: number;
   lists: ProblemList[];
+  description?: string;
+  icon?: string;
+  color?: string;
+  listCount?: number;
 }
 
 export interface ProblemListCategoryOption {
@@ -75,6 +81,7 @@ export interface ProblemListDetailResponse {
   list: ProblemList | null;
   problems: Problem[];
   stats: ProblemListStats | null;
+  isOwner?: boolean;
   viewer?: {
     isSaved: boolean;
     categoryId: string | null;

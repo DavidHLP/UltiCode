@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 
 import { useSolutionsStore } from '@/stores/admin/solutions'
 import { useAuthStore } from '@/stores/auth'
-import type { Solution } from '@/api/admin/solutions'
+import type { SolutionListItem } from '@/api/admin/solutions'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
@@ -81,7 +81,7 @@ const {
   error,
   loadEntities: loadSolutions,
 } = useDataTable<
-  Solution,
+  SolutionListItem,
   { flaggedFilter: string; publishedFilter: string },
   Parameters<typeof solutionsStore.fetchSolutions>[0]
 >({
@@ -117,7 +117,7 @@ const columns = createColumns(
     viewSolution: (id: string) => {
       router.push({ name: 'solution-detail', params: { id } })
     },
-    openFlagDialog: (solution: Solution) => {
+    openFlagDialog: (solution: SolutionListItem) => {
       selectedSolutionId.value = solution.id
       selectedSolutionTitle.value = solution.title
       flagDialogOpen.value = true
@@ -130,7 +130,7 @@ const columns = createColumns(
         toast.error(t('solutions.toast.failedToUnflag'))
       }
     },
-    confirmDelete: (solution: Solution) => {
+    confirmDelete: (solution: SolutionListItem) => {
       selectedSolutionId.value = solution.id
       selectedSolutionTitle.value = solution.title
       deleteDialogOpen.value = true

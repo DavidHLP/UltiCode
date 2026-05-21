@@ -3,13 +3,14 @@ import { ref, computed } from 'vue'
 import {
   solutionsApi,
   type Solution,
+  type SolutionListItem,
   type SolutionQueryParams,
   type FlagSolutionDto,
   type BulkSolutionActionDto,
 } from '@/api/admin/solutions'
 
 export const useSolutionsStore = defineStore('adminSolutions', () => {
-  const solutions = ref<Solution[]>([])
+  const solutions = ref<SolutionListItem[]>([])
   const total = ref(0)
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -79,10 +80,10 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
     error.value = null
     try {
       const solution = await solutionsApi.flagSolution(id, data)
-      // Update local list if present
+      // Update list item flags if present
       const index = solutions.value.findIndex((s) => s.id === id)
       if (index !== -1) {
-        solutions.value[index] = solution
+        solutions.value[index] = { ...solutions.value[index], isFlagged: true }
       }
       // Also update currentSolution if it matches
       if (currentSolution.value?.id === id) {
@@ -105,10 +106,10 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
     error.value = null
     try {
       const solution = await solutionsApi.unflagSolution(id)
-      // Update local list if present
+      // Update list item flags if present
       const index = solutions.value.findIndex((s) => s.id === id)
       if (index !== -1) {
-        solutions.value[index] = solution
+        solutions.value[index] = { ...solutions.value[index], isFlagged: false }
       }
       // Also update currentSolution if it matches
       if (currentSolution.value?.id === id) {
@@ -131,12 +132,9 @@ export const useSolutionsStore = defineStore('adminSolutions', () => {
     error.value = null
     try {
       await solutionsApi.deleteSolution(id)
-      // Remove from local list
-      const index = solutions.value.findIndex((s) => s.id === id)
-      if (index !== -1) {
-        solutions.value.splice(index, 1)
-        total.value--
-      }
+      // Remove from local list (immutable update)
+      solutions.value = solutions.value.filter((s) => s.id !== id)
+      total.value--
       // Clear currentSolution if it matches
       if (currentSolution.value?.id === id) {
         currentSolution.value = null

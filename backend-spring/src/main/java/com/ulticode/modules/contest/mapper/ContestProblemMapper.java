@@ -9,6 +9,7 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * MyBatis-Plus mapper for ContestProblem entity.
@@ -27,6 +28,9 @@ public interface ContestProblemMapper extends BaseMapper<ContestProblem> {
 
     @Select("SELECT COUNT(*) FROM contest_problems WHERE contest_id = #{contestId}")
     long countByContestId(@Param("contestId") String contestId);
+
+    @Select("<script>SELECT contest_id as contestId, COUNT(*) as cnt FROM contest_problems WHERE contest_id IN <foreach item='item' collection='contestIds' open='(' separator=',' close=')'>#{item}</foreach> GROUP BY contest_id</script>")
+    List<Map<String, Object>> countByContestIds(@Param("contestIds") List<String> contestIds);
 
     @Delete("DELETE FROM contest_problems WHERE contest_id = #{contestId}")
     int deleteByContestId(@Param("contestId") String contestId);

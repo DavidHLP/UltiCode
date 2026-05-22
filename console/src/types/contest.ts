@@ -1,52 +1,31 @@
 // ============================================================================
-// ENUMS
+// ENUMS — Aligned with backend ContestQueryDTO/ContestVO
 // ============================================================================
 
-/**
- * Contest type classification
- */
 export enum ContestType {
-  WEEKLY = "WEEKLY",
-  BIWEEKLY = "BIWEEKLY",
-  MONTHLY = "MONTHLY",
-  THEMED = "THEMED",
-  CORPORATE = "CORPORATE",
-  CAMPUS = "CAMPUS",
+  ICPC = "ICPC",
+  IOI = "IOI",
+  CUSTOM = "CUSTOM",
 }
 
-/**
- * Contest lifecycle status
- */
 export enum ContestStatus {
   DRAFT = "DRAFT",
-  PUBLISHED = "PUBLISHED",
-  REGISTERING = "REGISTERING",
   UPCOMING = "UPCOMING",
-  ONGOING = "ONGOING",
   RUNNING = "RUNNING",
-  FREEZING = "FREEZING",
   FINISHED = "FINISHED",
-  ARCHIVED = "ARCHIVED",
+  CANCELLED = "CANCELLED",
 }
 
-/**
- * Participant status in a contest
- */
 export enum ParticipantStatus {
   REGISTERED = "REGISTERED",
-  CHECKED_IN = "CHECKED_IN",
   STARTED = "STARTED",
-  PARTICIPATING = "PARTICIPATING",
   FINISHED = "FINISHED",
   DISQUALIFIED = "DISQUALIFIED",
 }
 
-export type ContestScoringMode = "SCORE" | "ICPC";
-export type ContestTieBreaker = "LAST_SOLVE_TIME" | "TOTAL_ATTEMPTS" | "NONE";
+export type ContestScoringMode = "SCORE" | "ICPC" | "IOI";
+export type ContestTieBreaker = "LAST_SOLVE_TIME" | "TOTAL_TIME";
 export type VirtualContestStatus = "NOT_STARTED" | "IN_PROGRESS" | "COMPLETED";
-
-// Legacy type aliases for backward compatibility
-export type ContestParticipantStatus = ParticipantStatus;
 
 // Codeforces-style rating titles
 export type RatingTitle =
@@ -112,98 +91,129 @@ export function getRatingColor(rating: number): string {
 }
 
 // ============================================================================
-// CONTEST TYPES
+// CONTEST LIST ITEM — Matches backend ContestListVO (pure camelCase)
 // ============================================================================
 
 export interface ContestListItem {
   id: string;
-  title: string;
   slug: string;
-  contest_type: ContestType | string;
-  start_time: string;
-  duration_minutes: number;
+  title: string;
   status: ContestStatus | string;
-  penalty_per_wrong?: number;
-  scoring_mode?: ContestScoringMode;
-  tie_breaker?: ContestTieBreaker;
-  registered_count: number;
-  participant_count: number;
-  is_rated: boolean;
-  description?: string;
-  cover_image?: string;
-  rules?: string;
-  // Computed fields
-  end_time?: string;
-  // Aliases for frontend compatibility
-  startTime?: string;
-  endTime?: string;
-  type?: ContestType | string;
-  isRated?: boolean;
-  durationMinutes?: number;
-  registeredCount?: number;
-  participantCount?: number;
-  canRegister?: boolean;
-  canStart?: boolean;
-  penaltyPerWrong?: number;
-  scoringMode?: ContestScoringMode;
-  tieBreaker?: ContestTieBreaker;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  contestType: ContestType | string;
+  participantCount: number;
+  problemCount: number;
+  isPremium: boolean;
+  isPublished: boolean;
+  isVisible: boolean;
+  maxParticipants: number;
+  registeredCount: number;
+  isParticipating: boolean;
+  userRanking: number;
+  isRated: boolean;
+  scoringMode: ContestScoringMode;
+  penaltyPerWrong: number;
+  coverImage: string;
 }
+
+// ============================================================================
+// CONTEST DETAIL — Matches backend ContestVO (extends ContestListItem)
+// ============================================================================
+
+export interface ContestDetail extends ContestListItem {
+  description: string;
+  isVirtual: boolean;
+  submissionCount: number;
+  rules: string;
+  registrationStart: string;
+  registrationEnd: string;
+  freezeTime: string;
+  actualStartTime: string;
+  actualEndTime: string;
+  tieBreaker: ContestTieBreaker;
+  scoringRuleId: string;
+  createdAt: string;
+  updatedAt: string;
+  createdById: number;
+  createdByUsername: string;
+  problemIds: number[];
+  tags: string[];
+  userScore: number;
+}
+
+// ============================================================================
+// CONTEST PROBLEM — Matches backend ContestProblemVO
+// ============================================================================
 
 export interface ContestProblemSummary {
   id: string;
-  contest_id?: string;
-  problem_id: number;
-  problem_index: string;
+  contestId: string;
+  problemId: number;
+  problemIndex: string;
   score: number;
-  penalty_per_wrong?: number;
-  solved_count: number;
-  submission_count: number;
-  // Problem details
-  title?: string;
-  slug?: string;
-  difficulty?: string;
-  acceptanceRate?: number;
-  // Aliases
-  problemIndex?: string;
-  problemId?: number;
-  solvedCount?: number;
-  submissionCount?: number;
-  penaltyPerWrong?: number;
+  penaltyPerWrong: number;
+  title: string;
+  slug: string;
+  difficulty: string;
+  solvedCount: number;
+  submissionCount: number;
+  acceptanceRate: number;
 }
 
-export interface ContestDetail extends ContestListItem {
-  problems: ContestProblemSummary[];
+export interface ContestProblem {
+  id: string;
+  contestId: string;
+  problemId: string;
+  problemIndex: string;
+  score: number;
+  penaltyPerWrong: number;
+  order: number;
+  title: string;
+  slug: string;
+  difficulty: string;
+  solvedCount: number;
+  submissionCount: number;
 }
 
 // ============================================================================
-// PARTICIPATION TYPES
+// PARTICIPATION — Matches backend ParticipationStatusDTO
 // ============================================================================
 
 export interface ParticipationStatus {
-  isRegistered: boolean;
-  status: ParticipantStatus | string | null;
-  participantId: string | null;
-  virtualSessionId: string | null;
-  startedAt: string | null;
-  finishedAt: string | null;
-  totalScore: number;
-  totalPenalty: number;
+  contestId: string;
+  title: string;
+  status: ParticipantStatus | string;
+  registeredAt: string;
+  startedAt: string;
+  completedAt: string;
+  startTime: string;
+  endTime: string;
+  ranking: number;
+  score: number;
+  problemsSolved: number;
+  totalProblems: number;
+  hasStarted: boolean;
+  isActive: boolean;
+  isCompleted: boolean;
+  canParticipate: boolean;
 }
 
 export interface VirtualContestSession {
   id: string;
-  contest_id: string;
-  user_id: string;
+  contestId: string;
+  userId: string;
   status: VirtualContestStatus;
-  started_at: string | null;
-  ends_at: string | null;
-  finished_at: string | null;
-  total_score: number;
-  total_penalty: number;
+  startedAt: string;
+  endsAt: string;
+  finishedAt: string;
+  totalScore: number;
+  totalPenalty: number;
 }
 
 // ============================================================================
-// RANKING TYPES
+// RANKING — Matches backend ContestRankingVO
 // ============================================================================
 
 export interface ProblemResultEntry {
@@ -212,7 +222,7 @@ export interface ProblemResultEntry {
   isSolved: boolean;
   score: number;
   attempts: number;
-  wrongAttempts?: number;
+  wrongAttempts: number;
   solveTime: number | null;
   penaltyTime: number;
 }
@@ -222,21 +232,20 @@ export interface ContestRankingEntry {
   userId: string;
   username: string;
   avatar: string | null;
-  totalScore: number;
-  totalPenalty: number;
-  finishTime?: number | null;
-  finish_time?: number | null;
-  totalAttempts?: number;
-  solvedCount: number;
-  ratingBefore: number;
-  ratingAfter: number;
-  ratingChange: number;
-  isVirtual: boolean;
-  problemResults: ProblemResultEntry[];
-  // Legacy aliases
-  score?: number;
-  total_attempts?: number;
-  country?: string;
+  score: number;
+  penalty: number;
+  problemsSolved: number;
+  finishTime: number | null;
+  isCurrentUser: boolean;
+  progress: number | null;
+  percentile: number | null;
+  isParticipating: boolean;
+  country: string | null;
+  maxRating: number;
+  ratingTitle: string;
+  maxRatingTitle: string;
+  contestsAttended: number;
+  badge: string | null;
 }
 
 export interface GlobalRankingEntry {
@@ -251,8 +260,39 @@ export interface GlobalRankingEntry {
   maxRatingTitle: RatingTitle;
   contestsAttended: number;
   badge: string | null;
-  // Legacy aliases
-  id?: string;
+}
+
+// ============================================================================
+// RANKING ENTRY (for contest detail ranking display)
+// ============================================================================
+
+export interface RankingEntry {
+  rank: number;
+  userId: string;
+  username: string;
+  avatar: string | null;
+  country: string | null;
+  score: number;
+  penalty: number;
+  problemsSolved: number;
+  finishTime: number | null;
+  ratingBefore: number;
+  ratingAfter: number;
+  ratingChange: number;
+  isVirtual: boolean;
+  problemResults: ProblemResult[];
+}
+
+export interface ProblemResult {
+  problemIndex: string;
+  problemId: string;
+  isSolved: boolean;
+  score: number;
+  attempts: number;
+  wrongAttempts: number;
+  solveTime: number | null;
+  penaltyTime: number;
+  firstSolve: boolean;
 }
 
 // ============================================================================
@@ -266,7 +306,7 @@ export interface UserContestHistory {
   rank: number;
   totalParticipants: number;
   score: number;
-  solvedCount: number;
+  problemsSolved: number;
   ratingBefore: number;
   ratingAfter: number;
   ratingChange: number;
@@ -284,14 +324,14 @@ export interface RatingHistoryEntry {
 }
 
 // ============================================================================
-// PAGINATED RESPONSE
+// PAGINATED RESPONSE — Matches backend PageResult
 // ============================================================================
 
 export interface PaginatedResult<T> {
   items: T[];
   total: number;
   page: number;
-  limit: number;
+  pageSize: number;
   totalPages: number;
 }
 
@@ -300,124 +340,56 @@ export interface PaginatedResult<T> {
 // ============================================================================
 
 export interface ContestStats {
-  total_participants: number;
-  total_contests: number;
+  totalParticipants: number;
+  totalContests: number;
 }
 
 // ============================================================================
-// CONTEST INTERFACES (Full definitions)
+// CONTEST ANNOUNCEMENT — Matches backend ContestAnnouncement entity
 // ============================================================================
 
-/**
- * Full contest interface with all properties
- */
-export interface Contest {
-  id: string;
-  title: string;
-  slug: string;
-  description?: string;
-  rules?: string;
-  coverImage?: string;
-  type: ContestType;
-  status: ContestStatus;
-  startTime: string;
-  endTime: string;
-  durationMinutes: number;
-  isRated: boolean;
-  isPublic: boolean;
-  scoringMode: ContestScoringMode;
-  tieBreaker: ContestTieBreaker;
-  penaltyPerWrong: number;
-  freezeDurationMinutes?: number;
-  maxParticipants?: number;
-  checkInRequired: boolean;
-  checkInStartMinutes: number;
-  checkInEndMinutes: number;
-  virtualEnabled: boolean;
-  createdBy: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
-/**
- * Contest problem with full details
- */
-export interface ContestProblem {
+export interface ContestAnnouncement {
   id: string;
   contestId: string;
-  problemId: string; // string because JSON doesn't support bigint
-  problemIndex: string;
-  score: number;
-  penaltyPerWrong: number;
-  order: number;
-  // Problem details
   title: string;
-  slug: string;
-  difficulty: string;
-  solvedCount: number;
-  submissionCount: number;
+  content: string;
+  isPinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: string;
+    username: string;
+  } | null;
 }
 
-/**
- * Contest participant details
- */
+// ============================================================================
+// CONTEST PARTICIPANT
+// ============================================================================
+
 export interface ContestParticipant {
   id: string;
   contestId: string;
   userId: string;
   status: ParticipantStatus;
-  checkedInAt?: string;
-  startedAt?: string;
-  finishedAt?: string;
-  totalScore: number;
-  totalPenalty: number;
+  checkedInAt: string;
+  startedAt: string;
+  finishedAt: string;
+  score: number;
+  penalty: number;
+  problemsSolved: number;
   isVirtual: boolean;
   registeredAt: string;
-  user?: {
+  user: {
     id: string;
     username: string;
-    avatar?: string;
-  };
+    avatar: string | null;
+  } | null;
 }
 
-/**
- * Ranking entry for display
- */
-export interface RankingEntry {
-  rank: number;
-  userId: string;
-  username: string;
-  avatar?: string;
-  country?: string;
-  totalScore: number;
-  totalPenalty: number;
-  solvedCount: number;
-  finishTime?: number;
-  ratingBefore: number;
-  ratingAfter: number;
-  ratingChange: number;
-  isVirtual: boolean;
-  problemResults: ProblemResult[];
-}
+// ============================================================================
+// FIRST SOLVE NOTIFICATION
+// ============================================================================
 
-/**
- * Problem result in ranking
- */
-export interface ProblemResult {
-  problemIndex: string;
-  problemId: string;
-  isSolved: boolean;
-  score: number;
-  attempts: number;
-  wrongAttempts: number;
-  solveTime?: number;
-  penaltyTime: number;
-  firstSolve?: boolean;
-}
-
-/**
- * First solve notification for real-time updates
- */
 export interface FirstSolveNotification {
   contestId: string;
   problemIndex: string;
@@ -428,36 +400,55 @@ export interface FirstSolveNotification {
   solveTime: number;
 }
 
-/**
- * Contest announcement
- */
-export interface ContestAnnouncement {
+// ============================================================================
+// CONTEST (Full interface for admin/management)
+// ============================================================================
+
+export interface Contest {
   id: string;
-  contestId: string;
   title: string;
-  content: string;
-  isPinned: boolean;
+  slug: string;
+  description: string;
+  rules: string;
+  coverImage: string;
+  contestType: ContestType;
+  status: ContestStatus;
+  startTime: string;
+  endTime: string;
+  duration: number;
+  isRated: boolean;
+  isVisible: boolean;
+  isPremium: boolean;
+  isPublished: boolean;
+  scoringMode: ContestScoringMode;
+  tieBreaker: ContestTieBreaker;
+  penaltyPerWrong: number;
+  freezeTime: string;
+  maxParticipants: number;
+  registrationStart: string;
+  registrationEnd: string;
+  isVirtual: boolean;
+  createdByUsername: string;
   createdAt: string;
   updatedAt: string;
-  author?: {
-    id: string;
-    username: string;
-  };
 }
 
-/**
- * Filters for contest listing
- */
+// ============================================================================
+// FILTERS — Matches backend ContestQueryDTO
+// ============================================================================
+
 export interface ContestFilters {
   status?: ContestStatus | ContestStatus[];
-  type?: ContestType | ContestType[];
+  contestType?: ContestType | ContestType[];
   isRated?: boolean;
   isPublic?: boolean;
   search?: string;
   startDateFrom?: string;
   startDateTo?: string;
   page?: number;
+  pageSize?: number;
   limit?: number;
-  sortBy?: "startTime" | "createdAt" | "title";
-  sortOrder?: "asc" | "desc";
+  sort?: "startTime" | "endTime" | "createdAt" | "title";
+  direction?: "asc" | "desc";
+  sortBy?: string;
 }

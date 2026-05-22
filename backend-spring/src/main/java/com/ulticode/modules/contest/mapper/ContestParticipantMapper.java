@@ -222,4 +222,9 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
             "<foreach item='item' collection='contestIds' open='(' separator=',' close=')'>" +
             "#{item}</foreach> ORDER BY contest_id, registered_at ASC</script>")
     List<ContestParticipant> findByContestIds(@Param("contestIds") List<String> contestIds);
+
+    @Select("<script>SELECT * FROM contest_participants WHERE contest_id IN " +
+            "<foreach item='item' collection='contestIds' open='(' separator=',' close=')'>" +
+            "#{item}</foreach> AND user_id = #{userId}</script>")
+    List<ContestParticipant> findByContestIdsAndUserId(@Param("contestIds") List<String> contestIds, @Param("userId") String userId);
 }

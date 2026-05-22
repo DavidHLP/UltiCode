@@ -8,13 +8,16 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
+import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.entity.GlobalRanking;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
+import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
@@ -29,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -49,6 +53,7 @@ public class ContestServiceImpl implements ContestService {
     private final ContestSchedulerService schedulerService;
     private final RankingService rankingService;
     private final AchievementTriggerService achievementTriggerService;
+    private final ContestAnnouncementMapper contestAnnouncementMapper;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -139,7 +144,10 @@ public class ContestServiceImpl implements ContestService {
             default -> { if (isAsc) qw.orderByAsc(Contest::getStartTime); else qw.orderByDesc(Contest::getStartTime); }
         }
         Page<Contest> page = contestMapper.selectPage(new Page<>(currentPage, currentPageSize), qw);
-        List<ContestVO> items = page.getRecords().stream().map(c -> toVO(c, userId)).collect(Collectors.toList());
+        var enrichment = batchEnrich(page.getRecords(), userId);
+        List<ContestVO> items = page.getRecords().stream()
+                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+                .collect(Collectors.toList());
         return PageResult.of(items, page.getTotal(), currentPage, currentPageSize);
     }
 
@@ -159,13 +167,45 @@ public class ContestServiceImpl implements ContestService {
     }
 
     @Override
+    public List<ContestProblemVO> getContestProblems(String contestId) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null || contest.getIsDeleted()) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+        return contestProblemMapper.findByContestId(contestId).stream()
+                .map(cp -> {
+                    ContestProblemVO vo = new ContestProblemVO();
+                    BeanUtils.copyProperties(cp, vo);
+                    return vo;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<ContestAnnouncement> getContestAnnouncements(String contestId) {
+        Contest contest = contestMapper.selectById(contestId);
+        if (contest == null || contest.getIsDeleted()) {
+            throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
+        }
+        return contestAnnouncementMapper.findByContestIdOrderByCreatedAtDesc(contestId);
+    }
+
+    @Override
     public List<ContestVO> findUpcoming(String userId) {
-        return contestMapper.findByStatus(ContestStatus.UPCOMING.name()).stream().map(c -> toVO(c, userId)).collect(Collectors.toList());
+        List<Contest> contests = contestMapper.findByStatus(ContestStatus.UPCOMING.name());
+        var enrichment = batchEnrich(contests, userId);
+        return contests.stream()
+                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+                .collect(Collectors.toList());
     }
 
     @Override
     public List<ContestVO> findRunning(String userId) {
-        return contestMapper.findByStatus(ContestStatus.RUNNING.name()).stream().map(c -> toVO(c, userId)).collect(Collectors.toList());
+        List<Contest> contests = contestMapper.findByStatus(ContestStatus.RUNNING.name());
+        var enrichment = batchEnrich(contests, userId);
+        return contests.stream()
+                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -175,7 +215,10 @@ public class ContestServiceImpl implements ContestService {
         LambdaQueryWrapper<Contest> qw = new LambdaQueryWrapper<>();
         qw.eq(Contest::getIsDeleted, false).eq(Contest::getStatus, ContestStatus.FINISHED.name()).orderByDesc(Contest::getEndTime);
         Page<Contest> result = contestMapper.selectPage(new Page<>(p, ps), qw);
-        List<ContestVO> items = result.getRecords().stream().map(c -> toVO(c, userId)).collect(Collectors.toList());
+        var enrichment = batchEnrich(result.getRecords(), userId);
+        List<ContestVO> items = result.getRecords().stream()
+                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+                .collect(Collectors.toList());
         return PageResult.of(items, result.getTotal(), p, ps);
     }
 
@@ -271,6 +314,16 @@ public class ContestServiceImpl implements ContestService {
     @Override
     public ContestVO toVO(Contest contest, String userId) {
         if (contest == null) return null;
+        long problemCount = contestProblemMapper.countByContestId(contest.getId());
+        ContestParticipant participant = null;
+        if (userId != null && !userId.isBlank()) {
+            participant = participantMapper.findByContestIdAndUserId(contest.getId(), userId).orElse(null);
+        }
+        return toVO(contest, userId, problemCount, participant);
+    }
+
+    private ContestVO toVO(Contest contest, String userId, long problemCount, ContestParticipant participant) {
+        if (contest == null) return null;
         ContestVO vo = new ContestVO();
         BeanUtils.copyProperties(contest, vo);
         vo.setId(contest.getId());
@@ -283,19 +336,105 @@ public class ContestServiceImpl implements ContestService {
         vo.setIsVisible(contest.getIsVisible());
         vo.setParticipantCount(contest.getParticipantCount());
         vo.setScoringRuleId(contest.getScoringRuleId());
-        vo.setProblemCount((int) contestProblemMapper.countByContestId(contest.getId()));
-        if (userId != null && !userId.isBlank()) {
-            Optional<?> participantOpt = participantMapper.findByContestIdAndUserId(contest.getId(), userId);
-            if (participantOpt.isPresent()) {
-                var p = (com.ulticode.modules.contest.entity.ContestParticipant) participantOpt.get();
-                vo.setIsParticipating(true);
-                vo.setUserRanking(p.getFinalRank());
-                vo.setUserScore(p.getTotalScore() != null ? p.getTotalScore().longValue() : null);
-            } else {
-                vo.setIsParticipating(false);
-            }
+        vo.setProblemCount((int) problemCount);
+        if (participant != null) {
+            vo.setIsParticipating(true);
+            vo.setUserRanking(participant.getFinalRank());
+            vo.setUserScore(participant.getTotalScore() != null ? participant.getTotalScore().longValue() : null);
+        } else if (userId != null && !userId.isBlank()) {
+            vo.setIsParticipating(false);
         }
         return vo;
+    }
+
+    @Override
+    public ContestListVO toListVO(Contest contest, String userId) {
+        if (contest == null) return null;
+        long problemCount = contestProblemMapper.countByContestId(contest.getId());
+        ContestParticipant participant = null;
+        if (userId != null && !userId.isBlank()) {
+            participant = participantMapper.findByContestIdAndUserId(contest.getId(), userId).orElse(null);
+        }
+        return toListVO(contest, userId, problemCount, participant);
+    }
+
+    private ContestListVO toListVO(Contest contest, String userId, long problemCount, ContestParticipant participant) {
+        if (contest == null) return null;
+        Boolean isParticipating = null;
+        Integer userRanking = null;
+        if (participant != null) {
+            isParticipating = true;
+            userRanking = participant.getFinalRank();
+        } else if (userId != null && !userId.isBlank()) {
+            isParticipating = false;
+        }
+        return new ContestListVO(
+                contest.getId(),
+                contest.getSlug(),
+                contest.getTitle(),
+                contest.getStatus(),
+                contest.getStartTime(),
+                contest.getEndTime(),
+                contest.getDurationMinutes(),
+                contest.getContestType(),
+                contest.getParticipantCount(),
+                (int) problemCount,
+                false,
+                contest.getIsVisible(),
+                contest.getIsVisible(),
+                contest.getMaxParticipants(),
+                contest.getRegisteredCount(),
+                isParticipating,
+                userRanking,
+                contest.getIsRated(),
+                contest.getScoringMode(),
+                contest.getPenaltyPerWrong(),
+                contest.getCoverImage()
+        );
+    }
+
+    private record ContestEnrichment(Map<String, Long> problemCounts, Map<String, ContestParticipant> participants) {}
+
+    private ContestEnrichment batchEnrich(List<Contest> contests, String userId) {
+        List<String> contestIds = contests.stream().map(Contest::getId).toList();
+        Map<String, Long> problemCounts = Map.of();
+        Map<String, ContestParticipant> participants = Map.of();
+        if (!contestIds.isEmpty()) {
+            problemCounts = contestProblemMapper.countByContestIds(contestIds).stream()
+                    .collect(Collectors.toMap(m -> (String) m.get("contestId"), m -> ((Number) m.get("cnt")).longValue(), (a, b) -> a));
+            if (userId != null && !userId.isBlank()) {
+                participants = participantMapper.findByContestIdsAndUserId(contestIds, userId).stream()
+                        .collect(Collectors.toMap(ContestParticipant::getContestId, p -> p, (a, b) -> a));
+            }
+        }
+        return new ContestEnrichment(problemCounts, participants);
+    }
+
+    @Override
+    public PageResult<ContestListVO> findAllListVO(ContestQueryDTO query, String userId) {
+        int currentPage = (query.getPage() != null && query.getPage() > 0) ? query.getPage() : 1;
+        int currentPageSize = Math.min(query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 20, 100);
+        LambdaQueryWrapper<Contest> qw = new LambdaQueryWrapper<>();
+        qw.eq(Contest::getIsDeleted, false).eq(Contest::getIsVisible, true);
+        if (query.getStatus() != null && !query.getStatus().isBlank()) qw.eq(Contest::getStatus, query.getStatus().toUpperCase());
+        if (query.getContestType() != null && !query.getContestType().isBlank()) qw.eq(Contest::getContestType, query.getContestType().toUpperCase());
+        if (query.getSearch() != null && !query.getSearch().isBlank())
+            qw.and(w -> w.like(Contest::getTitle, "%" + query.getSearch() + "%").or().like(Contest::getSlug, "%" + query.getSearch() + "%"));
+        String sortField = query.getSort() != null ? query.getSort() : "startTime";
+        String direction = query.getDirection() != null ? query.getDirection() : "asc";
+        boolean isAsc = "asc".equalsIgnoreCase(direction);
+        switch (sortField) {
+            case "endTime" -> { if (isAsc) qw.orderByAsc(Contest::getEndTime); else qw.orderByDesc(Contest::getEndTime); }
+            case "createdAt" -> { if (isAsc) qw.orderByAsc(Contest::getCreatedAt); else qw.orderByDesc(Contest::getCreatedAt); }
+            case "title" -> { if (isAsc) qw.orderByAsc(Contest::getTitle); else qw.orderByDesc(Contest::getTitle); }
+            default -> { if (isAsc) qw.orderByAsc(Contest::getStartTime); else qw.orderByDesc(Contest::getStartTime); }
+        }
+        Page<Contest> page = contestMapper.selectPage(new Page<>(currentPage, currentPageSize), qw);
+        var enrichment = batchEnrich(page.getRecords(), userId);
+        List<ContestListVO> items = page.getRecords().stream()
+                .map(c -> toListVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+                .collect(Collectors.toList());
+        return PageResult.of(items, page.getTotal(), currentPage, currentPageSize);
     }
 
     // =========================================================================
@@ -323,7 +462,10 @@ public class ContestServiceImpl implements ContestService {
             default -> { if (isAsc) qw.orderByAsc(Contest::getStartTime); else qw.orderByDesc(Contest::getStartTime); }
         }
         Page<Contest> page = contestMapper.selectPage(new Page<>(currentPage, currentPageSize), qw);
-        List<ContestVO> items = page.getRecords().stream().map(c -> toVO(c, userId)).collect(Collectors.toList());
+        var enrichment = batchEnrich(page.getRecords(), userId);
+        List<ContestVO> items = page.getRecords().stream()
+                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+                .collect(Collectors.toList());
         return PageResult.of(items, page.getTotal(), currentPage, currentPageSize);
     }
 

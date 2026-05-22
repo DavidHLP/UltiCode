@@ -128,7 +128,7 @@ async function handleSubmit() {
       startTime: startTimeISO,
       duration: formData.value.duration,
       isPublished: formData.value.isPublished,
-      problemIds: formData.value.selectedProblems.map((p) => Number(p.id)),
+      problemIds: formData.value.selectedProblems.map((p) => p.id),
       scoringRuleId: formData.value.scoringRuleId || undefined,
     })
 
@@ -149,9 +149,8 @@ async function handleSubmit() {
       selectedProblems: [],
     }
     currentStep.value = 1
-  } catch (error) {
+  } catch {
     toast.error(t('contests.toast.failedToCreate'))
-    console.error(error)
   } finally {
     loading.value = false
   }

@@ -2,7 +2,7 @@
 import { ref, onMounted, onUnmounted, watch } from "vue";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Clock } from "lucide-vue-next";
+import { Calendar, Clock, Trophy } from "lucide-vue-next";
 import { useRouter } from "vue-router";
 import type { ContestListItem } from "@/types/contest";
 import { formatDateTime, getDurationMinutes } from "@/utils/date";
@@ -22,7 +22,7 @@ function updateCountdowns() {
   const now = new Date().getTime();
 
   props.contests.forEach((contest) => {
-    const start = new Date(contest.start_time).getTime();
+    const start = new Date(contest.startTime).getTime();
     const diff = start - now;
 
     if (diff <= 0) {
@@ -110,17 +110,13 @@ onUnmounted(() => {
             <div class="flex justify-between items-start">
               <div class="space-y-2">
                 <p class="text-sm font-medium text-white/90">
-                  {{ t(`contest.types.${contest.type || "weekly"}`) }}
+                  {{ t(`contest.types.${contest.contestType || "weekly"}`) }}
                 </p>
                 <h3 class="text-2xl font-bold leading-tight">
                   {{ contest.title }}
                 </h3>
               </div>
-              <img
-                src="https://assets.leetcode.cn/aliyun-lc-upload/contest-config/contest/wc_card_img.png"
-                class="w-12 h-12 rounded opacity-90"
-                alt="logo"
-              />
+              <Trophy class="w-12 h-12 text-white/90" />
             </div>
 
             <div class="space-y-2 text-sm text-gray-100">
@@ -128,14 +124,14 @@ onUnmounted(() => {
                 <Calendar class="h-4 w-4" />
                 <span
                   >{{ t("contest.list.time") }}
-                  {{ formatDateTime(contest.start_time) }}</span
+                  {{ formatDateTime(contest.startTime) }}</span
                 >
               </div>
               <div class="flex items-center gap-2">
                 <Clock class="h-4 w-4" />
                 <span
                   >{{ t("contest.list.duration") }}
-                  {{ getDurationMinutes(contest.start_time, contest.end_time) }}
+                  {{ getDurationMinutes(contest.startTime, contest.endTime) }}
                   {{ t("contest.time.min_short") }}</span
                 >
               </div>

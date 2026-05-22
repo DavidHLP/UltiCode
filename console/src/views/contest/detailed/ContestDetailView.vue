@@ -2,6 +2,8 @@
 import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useContestStore } from "@/stores/contest";
+import { getContestProblems } from "@/api/contest";
+import type { ContestProblemSummary } from "@/types/contest";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -31,6 +33,7 @@ const contest = computed(() => contestStore.currentContest);
 const loading = computed(() => contestStore.loading);
 const registering = ref(false);
 const startingVirtual = ref(false);
+const contestProblems = ref<ContestProblemSummary[]>([]);
 
 const isRegistered = computed(() => contestStore.isRegistered(contestId));
 const virtualSessionActive = computed(
@@ -59,12 +62,18 @@ const {
 onMounted(async () => {
   try {
     await contestStore.loadContestDetail(contestId);
-    await Promise.all([
-      contestStore.loadParticipationStatus(contestId),
-      contestStore.loadVirtualSession(contestId),
+    const [, problemsResult] = await Promise.allSettled([
+      Promise.all([
+        contestStore.loadParticipationStatus(contestId),
+        contestStore.loadVirtualSession(contestId),
+      ]),
+      getContestProblems(contestId),
     ]);
-  } catch (error) {
-    console.error("Failed to load contest detail:", error);
+    if (problemsResult.status === "fulfilled") {
+      contestProblems.value = problemsResult.value;
+    }
+  } catch {
+    // Error handled by UI state
   }
 });
 
@@ -73,7 +82,6 @@ async function handleRegister() {
   try {
     await contestStore.registerForContest(contestId);
   } catch (error: unknown) {
-    console.error("Registration failed:", error);
     toast.error(
       getErrorMessage(error, t("contest.messages.registrationFailed")),
     );
@@ -87,7 +95,6 @@ async function handleUnregister() {
   try {
     await contestStore.unregisterFromContest(contestId);
   } catch (error: unknown) {
-    console.error("Unregister failed:", error);
     toast.error(
       getErrorMessage(error, t("contest.detail.unregistrationFailed")),
     );
@@ -102,7 +109,6 @@ async function handleStartVirtual() {
     await contestStore.startVirtualContest(contestId);
     await contestStore.loadParticipationStatus(contestId);
   } catch (error: unknown) {
-    console.error("Failed to start virtual contest:", error);
     toast.error(getErrorMessage(error, t("contest.detail.startVirtualFailed")));
   } finally {
     startingVirtual.value = false;
@@ -181,7 +187,7 @@ function getErrorMessage(error: unknown, fallback: string) {
               </p>
             </div>
             <p class="text-base font-bold truncate pl-1">
-              {{ formatDateTime(contest.start_time) }}
+              {{ formatDateTime(contest.startTime) }}
             </p>
           </CardContent>
         </Card>
@@ -197,7 +203,7 @@ function getErrorMessage(error: unknown, fallback: string) {
               </p>
             </div>
             <p class="text-base font-bold truncate pl-1">
-              {{ contest.duration_minutes || contest.durationMinutes || 0 }}
+              {{ contest.duration || 0 }}
               {{ t("contest.time.min_short") }}
             </p>
           </CardContent>
@@ -214,7 +220,7 @@ function getErrorMessage(error: unknown, fallback: string) {
               </p>
             </div>
             <p class="text-base font-bold truncate pl-1">
-              {{ contest.participant_count || contest.participantCount || 0 }}
+              {{ contest.participantCount || 0 }}
             </p>
           </CardContent>
         </Card>
@@ -231,7 +237,7 @@ function getErrorMessage(error: unknown, fallback: string) {
             </div>
             <p class="text-base font-bold truncate pl-1">
               {{
-                (contest.isRated ?? contest.is_rated)
+                (contest.isRated)
                   ? t("contest.list.rated")
                   : t("contest.types.unrated")
               }}
@@ -275,6 +281,7 @@ function getErrorMessage(error: unknown, fallback: string) {
         <TabsContent value="problems" class="mt-0">
           <ContestProblemList
             :contest="contest"
+            :problems="contestProblems"
             :contest-id="contestId"
             :is-registered="isRegistered"
             :registering="registering"

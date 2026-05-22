@@ -86,8 +86,8 @@ async function loadData() {
       contestStore.loadContests(),
       contestStore.loadPastContests(page, pageSize),
     ]);
-  } catch (error) {
-    console.error("Failed to load contest data:", error);
+  } catch {
+    // Error handled by UI state
   } finally {
     initialLoading.value = false;
   }
@@ -98,8 +98,8 @@ watch(currentPage, async (newPage) => {
   try {
     await contestStore.loadPastContests(newPage, pageSize);
     router.replace({ query: { ...route.query, page: newPage } });
-  } catch (error) {
-    console.error("Failed to load past contests:", error);
+  } catch {
+    // Error handled by UI state
   }
 });
 

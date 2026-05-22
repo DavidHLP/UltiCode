@@ -19,18 +19,16 @@ const progress = ref<Map<string, number>>(new Map());
 let intervalId: number | null = null;
 
 function getContestEndTimeMs(contest: ContestListItem): number | null {
-  const endTime = contest.end_time ?? contest.endTime;
+  const endTime = contest.endTime;
   if (endTime) {
     const endMs = new Date(endTime).getTime();
     return Number.isNaN(endMs) ? null : endMs;
   }
-  const startMs = new Date(contest.start_time).getTime();
+  const startMs = new Date(contest.startTime).getTime();
   if (Number.isNaN(startMs)) return null;
-  const durationMinutes = Number(
-    contest.duration_minutes ?? contest.durationMinutes ?? 0,
-  );
-  if (!durationMinutes) return null;
-  return startMs + durationMinutes * 60 * 1000;
+  const duration = Number(contest.duration ?? 0);
+  if (!duration) return null;
+  return startMs + duration * 60 * 1000;
 }
 
 function formatCountdown(seconds: number): string {
@@ -52,7 +50,7 @@ function updateTimers() {
 
   props.contests.forEach((contest) => {
     const endMs = getContestEndTimeMs(contest);
-    const startMs = new Date(contest.start_time).getTime();
+    const startMs = new Date(contest.startTime).getTime();
 
     if (!endMs || Number.isNaN(startMs)) {
       countdowns.value.set(contest.id, t("contest.status.tbd"));
@@ -143,7 +141,7 @@ onUnmounted(() => {
                 >
                   {{
                     getContestTypeLabel(
-                      contest.type || contest.contest_type || "weekly",
+                      contest.contestType || "weekly",
                     )
                   }}
                 </p>
@@ -161,7 +159,7 @@ onUnmounted(() => {
             <div class="grid gap-3 text-xs text-white/80 md:grid-cols-2">
               <div class="flex items-center gap-2">
                 <Calendar class="h-4 w-4" />
-                <span>{{ formatDateTime(contest.start_time) }}</span>
+                <span>{{ formatDateTime(contest.startTime) }}</span>
               </div>
               <div class="flex items-center gap-2">
                 <Clock class="h-4 w-4" />
@@ -174,7 +172,7 @@ onUnmounted(() => {
                 <Users class="h-4 w-4" />
                 <span
                   >{{
-                    contest.participant_count || contest.participantCount || 0
+                    contest.participantCount || 0
                   }}
                   {{ t("contest.detail.participants") }}</span
                 >
@@ -183,7 +181,7 @@ onUnmounted(() => {
                 <Clock class="h-4 w-4" />
                 <span
                   >{{
-                    contest.duration_minutes || contest.durationMinutes || 0
+                    contest.duration || 0
                   }}
                   {{ t("contest.time.min_short") }}</span
                 >
@@ -209,7 +207,7 @@ onUnmounted(() => {
               <div class="text-xs text-white/70">
                 {{ t("contest.list.rated") }}
                 {{
-                  (contest.isRated ?? contest.is_rated)
+                  (contest.isRated)
                     ? t("common.labels.yes")
                     : t("common.labels.no")
                 }}

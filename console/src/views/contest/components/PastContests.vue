@@ -111,13 +111,13 @@ const visiblePages = computed(() => {
                 class="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-none"
               >
                 <Calendar class="h-3.5 w-3.5" />
-                {{ formatDateTime(contest.start_time).split(" ")[0] }}
+                {{ formatDateTime(contest.startTime).split(" ")[0] }}
               </span>
               <span
                 class="flex items-center gap-1.5 bg-muted/50 px-2 py-0.5 rounded-none"
               >
                 <Clock class="h-3.5 w-3.5" />
-                {{ getDurationMinutes(contest.start_time, contest.end_time) }}
+                {{ getDurationMinutes(contest.startTime, contest.endTime) }}
                 {{ t("contest.time.min_short") }}
               </span>
             </div>

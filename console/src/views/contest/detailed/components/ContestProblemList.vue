@@ -12,10 +12,11 @@ import {
 } from "@/components/ui/table";
 import { Lock, ChevronRight, Target, Award } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
-import type { ContestDetail } from "@/types/contest";
+import type { ContestDetail, ContestProblemSummary } from "@/types/contest";
 
 defineProps<{
   contest: ContestDetail;
+  problems: ContestProblemSummary[];
   contestId: string;
   isRegistered: boolean;
   registering: boolean;
@@ -89,7 +90,7 @@ const { t } = useI18n();
         </TableHeader>
         <TableBody>
           <TableRow
-            v-for="problem in contest.problems"
+            v-for="problem in problems"
             :key="problem.id"
             class="group cursor-pointer hover:bg-muted/30 transition-colors"
           >

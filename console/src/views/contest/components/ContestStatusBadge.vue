@@ -4,13 +4,10 @@
  *
  * Shows status badge with colors for each contest lifecycle stage:
  * - DRAFT: Gray (not ready)
- * - PUBLISHED: Blue (visible but not open for registration)
- * - REGISTERING: Green (registration open)
  * - UPCOMING: Yellow (registered, waiting for start)
- * - ONGOING/RUNNING: Red (contest in progress)
- * - FREEZING: Orange (final freeze period)
+ * - RUNNING: Red (contest in progress)
  * - FINISHED: Gray (ended)
- * - ARCHIVED: Muted gray (stored for history)
+ * - CANCELLED: Muted (cancelled)
  */
 import { computed } from "vue";
 import { Badge } from "@/components/ui/badge";
@@ -41,28 +38,11 @@ const statusConfig = computed((): StatusConfig => {
 
   const configs: Record<string, StatusConfig> = {
     DRAFT: defaultConfig,
-    PUBLISHED: {
-      variant: "default",
-      label: t("contest.status.published", "Published"),
-      customClass: "",
-    },
-    REGISTERING: {
-      variant: "outline",
-      label: t("contest.status.registrationOpen", "Registration Open"),
-      customClass:
-        "bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border-[var(--terminal-green)]/30 dark:bg-[var(--terminal-green)]/10 dark:text-[var(--terminal-green)] dark:border-[var(--terminal-green)]/30",
-    },
     UPCOMING: {
       variant: "outline",
       label: t("contest.status.upcoming", "Upcoming"),
       customClass:
         "bg-[oklch(0.6545_0.1340_85.7_/_0.12)] text-[var(--terminal-amber)] border-[var(--terminal-amber)]/30",
-    },
-    ONGOING: {
-      variant: "outline",
-      label: t("contest.status.running", "Running"),
-      customClass:
-        "bg-[var(--terminal-red)]/10 text-[var(--terminal-red)] border-[var(--terminal-red)]/30 dark:bg-[var(--terminal-red)]/10 dark:text-[var(--terminal-red)] dark:border-[var(--terminal-red)]/30",
     },
     RUNNING: {
       variant: "outline",
@@ -70,21 +50,15 @@ const statusConfig = computed((): StatusConfig => {
       customClass:
         "bg-[var(--terminal-red)]/10 text-[var(--terminal-red)] border-[var(--terminal-red)]/30 dark:bg-[var(--terminal-red)]/10 dark:text-[var(--terminal-red)] dark:border-[var(--terminal-red)]/30",
     },
-    FREEZING: {
-      variant: "outline",
-      label: t("contest.status.freezing", "Freezing"),
-      customClass:
-        "bg-[var(--terminal-amber)]/10 text-[var(--terminal-amber)] border-[var(--terminal-amber)]/30 dark:bg-[var(--terminal-amber)]/10 dark:text-[var(--terminal-amber)] dark:border-[var(--terminal-amber)]/30",
-    },
     FINISHED: {
       variant: "outline",
       label: t("contest.status.finished", "Finished"),
       customClass:
         "bg-muted text-muted-foreground border-border",
     },
-    ARCHIVED: {
+    CANCELLED: {
       variant: "secondary",
-      label: t("contest.status.archived", "Archived"),
+      label: t("contest.status.cancelled", "Cancelled"),
       customClass: "",
     },
   };

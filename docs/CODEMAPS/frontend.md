@@ -1,97 +1,120 @@
-<!-- Generated: 2026-05-19 | Files scanned: 1257 | Token estimate: ~950 -->
+<!-- Generated: 2026-05-23 | Files scanned: 1249 | Token estimate: ~900 -->
 
 # Frontend Architecture
 
-## Console (User SPA, :9002)
+## Console (:9002) — User-facing
 
-### Page Tree
-
+### Route Tree
 ```
-/ → /forum (home)
-├── /login, /register, /forgot-password, /reset-password
-├── /forum
-│   ├── /popular, /explore, /all, /c/:category
-│   ├── /detailed/:postId (thread)
-│   ├── /create, /edit/:postId
-│   ├── /guidelines, /feedback
-├── /problemset
-│   ├── /:category
-│   └── /list/:id (problem-list detail)
-├── /problems/:slug/:tab?
-│   ├── description, code, test, solutions, submissions
-├── /contest
-│   ├── /past, /my, /global-ranking, /local-ranking
-│   └── /:slug (contest detail + ranking)
-├── /personal
-│   ├── /account, /submissions, /solutions, /problem-lists
-│   ├── /bookmarks, /forum-posts, /notifications
-│   ├── /achievements, /dashboard, /subscription
-├── /recommendations
-│   ├── /daily, /weak-points, /challenge, /similar
-├── /users/:id, /profile/:username
-├── /problem/:id/solution/create, /solutions/:id/edit
+/, /login, /register, /forgot-password, /reset-password
+/problems/:slug/:tab?
+/problem/:id/solution/create
+/problemset, /problemset/:category, /problemset/list/:id
+/contest, /contest/past, /contest/my
+/contest/global-ranking, /contest/local-ranking, /contest/:slug
+/forum, /forum/popular, /forum/explore, /forum/all
+/forum/c/:category, /forum/detailed/:postId
+/forum/guidelines, /forum/feedback
+/forum/create, /forum/edit/:postId
+/post-editor/solution/create
+/solutions/:id/edit
+/recommendations, /recommendations/daily
+/recommendations/weak-points, /recommendations/challenge, /recommendations/similar
+/personal, /personal/account, /personal/submissions
+/personal/solution, /personal/problem-lists, /personal/bookmarks
+/personal/forum-posts, /personal/notifications
+/personal/achievements, /personal/dashboard, /personal/subscription
+/users/:id, /profile/:username
 ```
 
-### State Management (Pinia)
+### Stores (10)
+```
+stores/
+├── auth.ts, achievement.ts, bookmark.ts, notification.ts
+├── recommendation.ts, editorSettings.ts, problemEditorStore.ts
+├── userStats.ts, headerStore.ts
+└── contest/
+    ├── contest.ts (primary, consolidated)
+    └── rankingStore.ts
+```
 
-| Store | Domain |
-|-------|--------|
-| auth | User auth state, token, permissions |
-| contest | Contest list + detail, ranking |
-| notification | Real-time notifications |
-| achievement | Achievement progress |
-| recommendation | Recommended problems |
-| bookmark | Folders, items |
-| editorSettings | Code editor preferences |
-| problemEditorStore | Problem editor state |
-| userStats | User statistics |
-| headerStore | Header UI state |
+### API Modules (21)
+```
+api/
+├── auth.ts, bookmark.ts, follow.ts, forum.ts, interaction.ts
+├── notification.ts, problem.ts, problem-detail.ts, problem-list.ts
+├── recommendation.ts, search.ts, solution.ts
+├── submission.ts, subscription.ts, topic.ts, user.ts
+├── userStats.ts, vote.ts, achievement.ts
+├── contest.ts, edge-operations.ts
+└── __tests__/ (auth.spec.ts, problem-detail.spec.ts)
+```
 
-### Key Composables
-
-`useBreakpoints`, `useRetry`, `useLoading`, `useSocket`, `useFollowStatus`, `useLocale`, `useSearch`, `useCodeCache`, `useCodeTemplates`, `usePWA`, `useErrorHandler`, `useNetworkStatus`, `useGlobalShortcuts`, `useAvatar`, `useContestSocket`
-
-### API Layer
-
-`console/src/api/` — one module per domain: auth, problem, problem-detail, contest, forum, solution, submission, user, vote, search, bookmark, notification, achievement, recommendation, follow, subscription, edge-operations, interaction, topic, userStats
+### Key Dependencies
+| Dep | Version |
+|-----|---------|
+| vue | ^3.5.25 |
+| vite | ^8.0.8 |
+| pinia | ^3.0.4 |
+| vue-router | ^5.0.4 |
+| tailwindcss | ^4.1.17 |
+| vue-i18n | ^11.3.2 |
+| vitest | ^4.1.4 |
+| eslint | ^9.30.1 |
+| typescript | ~6.0.3 |
 
 ---
 
-## Management (Admin SPA, :9003)
+## Management (:9003) — Admin
 
-### Page Tree
-
+### Route Tree
 ```
-/ → /dashboard
-├── /login, /signup
-├── /users, /users/create, /users/:id
-├── /problems, /problems/create, /problems/:id/:tab?, /problems/:id/edit/:tab?
-├── /problem-lists, /problem-lists/:id/edit
-├── /solutions, /solutions/:id/:tab?
-├── /comments, /forum/comments/:id
-├── /forum/posts, /forum/posts/:id/:tab?
-├── /contests, /contests/:id, /scoring-rules
-├── /submissions
-├── /moderation, /moderation/dashboard, /moderation/reports, /moderation/appeals
-├── /notifications, /notifications/create
-├── /tags
-├── /audit, /audit/report
-├── /analytics
-├── /settings
-├── /monitoring, /backup, /email
-├── /account, /billing
+/, /login, /dashboard, /users
+/problems, /problems/create, /problems/:id/:tab?, /problems/:id/edit/:tab?
+/problem-lists, /problem-lists/create, /problem-lists/:id/edit
+/solutions, /solutions/:id/:tab?, /comments
+/forum, /forum/posts, /forum/posts/:id/:tab?, /forum/comments/:id
+/tags, /contests, /contests/:id, /scoring-rules
+/submissions, /moderation, /moderation/dashboard
+/moderation/reports, /moderation/appeals
+/notifications, /audit, /audit/report
+/analytics, /settings, /monitoring, /backup
+/email, /account, /billing
 ```
 
-### Admin Stores
+### Stores (1)
+```
+stores/
+└── auth.ts
+```
 
-`stores/admin/` — dashboard, users, problems, submissions, contests, solutions, forum, comments, notifications, moderation, problem-lists, tags, audit
+### API Modules (23)
+```
+api/
+├── auth.ts
+└── admin/
+    ├── account.ts, analytics.ts, audit.ts, backup.ts
+    ├── comments.ts, contests.ts, dashboard.ts, email.ts
+    ├── forum.ts, moderation.ts, monitoring.ts, notifications.ts
+    ├── problem-lists.ts, problems.ts, scoring-rules.ts
+    ├── settings.ts, solutions.ts, submissions.ts
+    ├── tags.ts, test-cases.ts, users.ts
+    └── __tests__/ (4 test files)
+```
 
-### Permission System
-
-`constants/permissions.ts` defines `PERM` object. Routes use `meta.permission` for access control.
+### Key Dependencies
+| Dep | Version |
+|-----|---------|
+| vue | ^3.5.33 |
+| vite | ^8.0.8 |
+| pinia | ^3.0.4 |
+| eslint | ^10.2.1 |
+| typescript | ~6.0.3 |
+| Playwright | E2E testing |
 
 ---
 
-## Shared: `shared/auth-core`
+## Shared: auth-core
 
-Vue composable library: auth state management, CSRF token handling (double-submit cookie), permission checking, cookie utilities. Published as internal package, consumed by both frontends.
+- `src/index.ts` — exports: types, cookie utils, CSRF manager, auth state machine, axios CSRF interceptor, permission checker
+- TS ~5.9.3, pkg v0.0.1

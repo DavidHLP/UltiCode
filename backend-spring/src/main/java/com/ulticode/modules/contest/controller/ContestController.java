@@ -7,6 +7,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.contest.dto.*;
+import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.service.ContestService;
 import com.ulticode.modules.contest.service.RankingService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -36,82 +37,6 @@ public class ContestController {
     private final RankingService rankingService;
 
     // =========================================================================
-    // ADMIN CRUD OPERATIONS
-    // =========================================================================
-
-    /**
-     * Create a new contest.
-     * Requires ADMIN role.
-     *
-     * @param dto the create contest DTO
-     * @return the created contest
-     */
-    @Operation(summary = "Create contest", description = "Create a new contest (admin only)")
-    @ApiResponse(responseCode = "200", description = "Contest created", content = @Content(schema = @Schema(implementation = ContestVO.class)))
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
-    @SecurityRequirement(name = "Bearer")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    @RateLimit(key = "contest:create", limit = 30, period = 60)
-    @PostMapping
-    public Result<ContestVO> createContest(
-            @Valid @RequestBody CreateContestDTO dto) {
-
-        String userId = getCurrentUserIdOrThrow();
-        ContestVO contest = contestService.createContest(dto, userId);
-        return Result.success(contest);
-    }
-
-    /**
-     * Update an existing contest.
-     * Requires ADMIN role.
-     *
-     * @param id  the contest ID
-     * @param dto the update contest DTO
-     * @return the updated contest
-     */
-    @Operation(summary = "Update contest", description = "Update an existing contest (admin only)")
-    @ApiResponse(responseCode = "200", description = "Contest updated", content = @Content(schema = @Schema(implementation = ContestVO.class)))
-    @ApiResponse(responseCode = "400", description = "Validation error")
-    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
-    @ApiResponse(responseCode = "404", description = "Contest not found")
-    @SecurityRequirement(name = "Bearer")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    @RateLimit(key = "contest:update", limit = 30, period = 60)
-    @PutMapping("/{id}")
-    public Result<ContestVO> updateContest(
-            @Parameter(description = "Contest ID")
-            @PathVariable String id,
-            @Valid @RequestBody UpdateContestDTO dto) {
-
-        ContestVO contest = contestService.updateContest(id, dto);
-        return Result.success(contest);
-    }
-
-    /**
-     * Delete a contest.
-     * Requires ADMIN role.
-     *
-     * @param id the contest ID
-     * @return success result
-     */
-    @Operation(summary = "Delete contest", description = "Delete a contest (admin only)")
-    @ApiResponse(responseCode = "200", description = "Contest deleted")
-    @ApiResponse(responseCode = "403", description = "Not authorized - admin only")
-    @ApiResponse(responseCode = "404", description = "Contest not found")
-    @SecurityRequirement(name = "Bearer")
-    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    @RateLimit(key = "contest:delete", limit = 30, period = 60)
-    @DeleteMapping("/{id}")
-    public Result<Void> deleteContest(
-            @Parameter(description = "Contest ID")
-            @PathVariable String id) {
-
-        contestService.deleteContest(id);
-        return Result.success();
-    }
-
-    // =========================================================================
     // CONTEST QUERIES (Public)
     // =========================================================================
 
@@ -129,8 +54,8 @@ public class ContestController {
      */
     @Operation(summary = "Get contest list", description = "Get a paginated list of contests with optional filters")
     @ApiResponse(responseCode = "200", description = "Contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
-    @GetMapping("/list")
-    public Result<PageResult<ContestVO>> getContestList(
+    @GetMapping
+    public Result<PageResult<ContestListVO>> getContestList(
             @Parameter(description = "Page number (1-based)")
             @RequestParam(required = false) Integer page,
             @Parameter(description = "Number of items per page")
@@ -142,7 +67,9 @@ public class ContestController {
             @Parameter(description = "Sort field")
             @RequestParam(required = false) String sort,
             @Parameter(description = "Sort direction")
-            @RequestParam(required = false) String direction) {
+            @RequestParam(required = false) String direction,
+            @Parameter(description = "Filter by contest type")
+            @RequestParam(required = false) String contestType) {
 
         ContestQueryDTO query = new ContestQueryDTO();
         query.setPage(page);
@@ -151,10 +78,11 @@ public class ContestController {
         query.setSearch(search);
         query.setSort(sort);
         query.setDirection(direction);
+        query.setContestType(contestType);
 
         // Get optional userId for user-specific fields
         String userId = SecurityUtil.getCurrentUserId();
-        PageResult<ContestVO> result = contestService.findAll(query, userId);
+        PageResult<ContestListVO> result = contestService.findAllListVO(query, userId);
         return Result.success(result);
     }
 
@@ -282,6 +210,44 @@ public class ContestController {
         String userId = SecurityUtil.getCurrentUserId();
         ContestVO contest = contestService.getContestById(id, userId);
         return Result.success(contest);
+    }
+
+    /**
+     * Get contest problems.
+     * Public endpoint - accessible without authentication.
+     *
+     * @param id the contest ID
+     * @return list of contest problems
+     */
+    @Operation(summary = "Get contest problems", description = "Get the problems for a specific contest")
+    @ApiResponse(responseCode = "200", description = "Contest problems retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @GetMapping("/{id}/problems")
+    public Result<List<ContestProblemVO>> getContestProblems(
+            @Parameter(description = "Contest ID")
+            @PathVariable String id) {
+
+        List<ContestProblemVO> problems = contestService.getContestProblems(id);
+        return Result.success(problems);
+    }
+
+    /**
+     * Get contest announcements.
+     * Public endpoint - accessible without authentication.
+     *
+     * @param id the contest ID
+     * @return list of contest announcements
+     */
+    @Operation(summary = "Get contest announcements", description = "Get the announcements for a specific contest")
+    @ApiResponse(responseCode = "200", description = "Contest announcements retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @ApiResponse(responseCode = "404", description = "Contest not found")
+    @GetMapping("/{id}/announcements")
+    public Result<List<ContestAnnouncement>> getContestAnnouncements(
+            @Parameter(description = "Contest ID")
+            @PathVariable String id) {
+
+        List<ContestAnnouncement> announcements = contestService.getContestAnnouncements(id);
+        return Result.success(announcements);
     }
 
     /**

@@ -40,18 +40,18 @@ const formattedTime = computed(() => {
 const progressPercent = computed(() => {
   if (!session.value) return 0;
   const total =
-    (new Date(session.value.ends_at!).getTime() -
-      new Date(session.value.started_at!).getTime()) /
+    (new Date(session.value.endsAt).getTime() -
+      new Date(session.value.startedAt).getTime()) /
     1000;
   const elapsed = total - timeRemaining.value;
   return Math.min(100, (elapsed / total) * 100);
 });
 
 function updateTimer() {
-  if (!session.value?.ends_at) return;
+  if (!session.value?.endsAt) return;
 
   const now = Date.now();
-  const endsAt = new Date(session.value.ends_at).getTime();
+  const endsAt = new Date(session.value.endsAt).getTime();
   const remaining = Math.max(0, Math.floor((endsAt - now) / 1000));
 
   timeRemaining.value = remaining;
@@ -62,12 +62,11 @@ function updateTimer() {
 }
 
 async function handleFinish() {
-  if (!session.value?.contest_id) return;
+  if (!session.value?.contestId) return;
 
   try {
-    await contestStore.finishVirtualContest(session.value.contest_id);
-  } catch (error) {
-    console.error("Failed to finish virtual contest:", error);
+    await contestStore.finishVirtualContest(session.value.contestId);
+  } catch {
     toast.error(t("contest.virtual.finishFailed"));
   }
 }
@@ -96,7 +95,7 @@ onUnmounted(() => {
                 {{ t("contest.virtual.active") }}
               </p>
               <p class="text-xs text-muted-foreground">
-                {{ t("contest.virtual.contestId") }} {{ session.contest_id }}
+                {{ t("contest.virtual.contestId") }} {{ session.contestId }}
               </p>
             </div>
           </div>
@@ -160,11 +159,11 @@ onUnmounted(() => {
         >
           <span
             >{{ t("contest.ranking.score") }}:
-            {{ session.total_score || 0 }}</span
+            {{ session.totalScore || 0 }}</span
           >
           <span
             >{{ t("contest.ranking.penalty") }}:
-            {{ formatPenaltyTime(session.total_penalty ?? 0) }}</span
+            {{ formatPenaltyTime(session.totalPenalty ?? 0) }}</span
           >
         </div>
       </div>

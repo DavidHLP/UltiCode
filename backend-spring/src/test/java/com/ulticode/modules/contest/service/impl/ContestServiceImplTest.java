@@ -9,6 +9,7 @@ import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
+import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
 import com.ulticode.modules.contest.service.RankingService;
 import com.ulticode.modules.achievement.service.AchievementTriggerService;
@@ -45,6 +46,8 @@ class ContestServiceImplTest {
     @Mock
     private GlobalRankingMapper globalRankingMapper;
     @Mock
+    private ContestAnnouncementMapper contestAnnouncementMapper;
+    @Mock
     private ContestSchedulerService schedulerService;
     @Mock
     private RankingService rankingService;
@@ -65,7 +68,8 @@ class ContestServiceImplTest {
                 globalRankingMapper,
                 schedulerService,
                 rankingService,
-                achievementTriggerService
+                achievementTriggerService,
+                contestAnnouncementMapper
         );
     }
 

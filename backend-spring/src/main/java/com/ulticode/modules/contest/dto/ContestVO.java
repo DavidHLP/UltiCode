@@ -148,4 +148,74 @@ public class ContestVO {
      * Associated scoring rule ID
      */
     private String scoringRuleId;
+
+    /**
+     * Penalty seconds per wrong submission (default 300)
+     */
+    private Integer penaltyPerWrong;
+
+    /**
+     * Scoring mode: SCORE, ICPC, IOI
+     */
+    private String scoringMode;
+
+    /**
+     * Tie breaker: LAST_SOLVE_TIME, TOTAL_TIME
+     */
+    private String tieBreaker;
+
+    /**
+     * Whether this is a virtual contest
+     */
+    private Boolean isVirtual;
+
+    /**
+     * Number of registered participants
+     */
+    private Integer registeredCount;
+
+    /**
+     * Total number of submissions in the contest
+     */
+    private Integer submissionCount;
+
+    /**
+     * Whether this is a rated contest
+     */
+    private Boolean isRated;
+
+    /**
+     * Cover image URL
+     */
+    private String coverImage;
+
+    /**
+     * Contest rules description
+     */
+    private String rules;
+
+    /**
+     * Registration start time
+     */
+    private LocalDateTime registrationStart;
+
+    /**
+     * Registration end time
+     */
+    private LocalDateTime registrationEnd;
+
+    /**
+     * Time when the scoreboard is frozen
+     */
+    private LocalDateTime freezeTime;
+
+    /**
+     * Actual start time (when the contest really started)
+     */
+    private LocalDateTime actualStartTime;
+
+    /**
+     * Actual end time (when the contest really ended)
+     */
+    private LocalDateTime actualEndTime;
 }

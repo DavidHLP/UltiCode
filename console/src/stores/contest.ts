@@ -8,6 +8,8 @@ import type {
   GlobalRankingEntry,
   UserContestHistory,
   RatingHistoryEntry,
+  ContestFilters,
+  PaginatedResult,
 } from "@/types/contest";
 import {
   fetchUpcomingContests,
@@ -24,6 +26,7 @@ import {
   fetchUserContestHistory,
   fetchUserRatingHistory,
   fetchGlobalRankings,
+  getContests,
 } from "@/api/contest";
 
 export const useContestStore = defineStore("contest", () => {
@@ -31,38 +34,30 @@ export const useContestStore = defineStore("contest", () => {
   // STATE
   // =========================================================================
 
-  // Contest lists
   const upcomingContests = ref<ContestListItem[]>([]);
   const runningContests = ref<ContestListItem[]>([]);
   const pastContests = ref<ContestListItem[]>([]);
   const pastContestsTotal = ref(0);
 
-  // Current contest
   const currentContest = ref<ContestDetail | null>(null);
 
-  // User participation
   const userParticipation = ref<Map<string, ParticipationStatus>>(new Map());
   const virtualSession = ref<VirtualContestSession | null>(null);
 
-  // User contests
   const registeredContests = ref<ContestListItem[]>([]);
   const participatedContests = ref<ContestListItem[]>([]);
   const virtualContests = ref<ContestListItem[]>([]);
   const contestHistory = ref<UserContestHistory[]>([]);
   const ratingHistory = ref<RatingHistoryEntry[]>([]);
 
-  // Global rankings
   const globalRankings = ref<GlobalRankingEntry[]>([]);
 
-  // Loading states
   const loading = ref(false);
   const loadingContests = ref(false);
   const loadingRankings = ref(false);
 
-  // Error state
   const error = ref<string | null>(null);
 
-  // Countdown timers
   const countdownTimers = ref<Map<string, number>>(new Map());
 
   // =========================================================================
@@ -71,7 +66,7 @@ export const useContestStore = defineStore("contest", () => {
 
   const isRegistered = computed(() => (contestId: string) => {
     const participation = userParticipation.value.get(contestId);
-    return participation?.isRegistered ?? false;
+    return participation?.status === "REGISTERED" || participation?.status === "STARTED";
   });
 
   const isInVirtualContest = computed(
@@ -79,14 +74,14 @@ export const useContestStore = defineStore("contest", () => {
   );
 
   const currentVirtualTimeRemaining = computed(() => {
-    if (!virtualSession.value?.ends_at) return 0;
-    const endsAt = new Date(virtualSession.value.ends_at).getTime();
+    if (!virtualSession.value?.endsAt) return 0;
+    const endsAt = new Date(virtualSession.value.endsAt).getTime();
     const now = Date.now();
     return Math.max(0, Math.floor((endsAt - now) / 1000));
   });
 
   // =========================================================================
-  // ACTIONS - CONTEST LOADING
+  // ACTIONS — CONTEST LOADING
   // =========================================================================
 
   async function loadContests() {
@@ -108,11 +103,11 @@ export const useContestStore = defineStore("contest", () => {
     }
   }
 
-  async function loadPastContests(page: number = 1, limit: number = 10) {
+  async function loadPastContests(page: number = 1, pageSize: number = 10) {
     loadingContests.value = true;
     error.value = null;
     try {
-      const result = await fetchPastContests(page, limit);
+      const result = await fetchPastContests(page, pageSize);
       pastContests.value = result.data;
       pastContestsTotal.value = result.total;
     } catch (err) {
@@ -154,22 +149,20 @@ export const useContestStore = defineStore("contest", () => {
   }
 
   // =========================================================================
-  // ACTIONS - PARTICIPATION
+  // ACTIONS — PARTICIPATION
   // =========================================================================
 
   async function registerForContest(contestId: string) {
     error.value = null;
     try {
       await apiRegister(contestId);
-      // Refresh participation status
       const status = await fetchParticipationStatus(contestId);
       userParticipation.value.set(contestId, status);
 
-      // Update contest registered count in lists
       const updateCount = (list: ContestListItem[]) => {
         const contest = list.find((c) => c.id === contestId);
         if (contest) {
-          contest.registered_count = (contest.registered_count || 0) + 1;
+          contest.registeredCount = (contest.registeredCount || 0) + 1;
         }
       };
       updateCount(upcomingContests.value);
@@ -184,17 +177,15 @@ export const useContestStore = defineStore("contest", () => {
     error.value = null;
     try {
       await apiUnregister(contestId);
-      // Refresh participation status
       const status = await fetchParticipationStatus(contestId);
       userParticipation.value.set(contestId, status);
 
-      // Update contest registered count in lists
       const updateCount = (list: ContestListItem[]) => {
         const contest = list.find((c) => c.id === contestId);
         if (contest) {
-          contest.registered_count = Math.max(
+          contest.registeredCount = Math.max(
             0,
-            (contest.registered_count || 0) - 1,
+            (contest.registeredCount || 0) - 1,
           );
         }
       };
@@ -213,22 +204,29 @@ export const useContestStore = defineStore("contest", () => {
       const status = await fetchParticipationStatus(contestId);
       userParticipation.value.set(contestId, status);
     } catch {
-      // User not logged in or other error
       userParticipation.value.set(contestId, {
-        isRegistered: false,
-        status: null,
-        participantId: null,
-        virtualSessionId: null,
-        startedAt: null,
-        finishedAt: null,
-        totalScore: 0,
-        totalPenalty: 0,
+        contestId,
+        title: "",
+        status: "",
+        registeredAt: "",
+        startedAt: "",
+        completedAt: "",
+        startTime: "",
+        endTime: "",
+        ranking: 0,
+        score: 0,
+        problemsSolved: 0,
+        totalProblems: 0,
+        hasStarted: false,
+        isActive: false,
+        isCompleted: false,
+        canParticipate: false,
       });
     }
   }
 
   // =========================================================================
-  // ACTIONS - VIRTUAL CONTEST
+  // ACTIONS — VIRTUAL CONTEST
   // =========================================================================
 
   async function startVirtualContest(contestId: string) {
@@ -266,7 +264,7 @@ export const useContestStore = defineStore("contest", () => {
   }
 
   // =========================================================================
-  // ACTIONS - USER CONTESTS
+  // ACTIONS — USER CONTESTS
   // =========================================================================
 
   async function loadUserContests() {

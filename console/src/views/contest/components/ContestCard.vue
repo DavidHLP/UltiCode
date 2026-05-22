@@ -27,39 +27,27 @@ const { t } = useI18n();
 
 // Computed properties
 const contestType = computed(() => {
-  const type = props.contest.contest_type || props.contest.type || "weekly";
+  const type = props.contest.contestType || "weekly";
   return t(`contest.types.${type}`, type);
 });
 
-const startTime = computed(
-  () => props.contest.start_time || props.contest.startTime || "",
-);
-const endTime = computed(
-  () => props.contest.end_time || props.contest.endTime || "",
-);
+const startTime = computed(() => props.contest.startTime || "");
+const endTime = computed(() => props.contest.endTime || "");
 const duration = computed(() => {
   if (startTime.value && endTime.value) {
     return getDurationMinutes(startTime.value, endTime.value);
   }
-  return props.contest.duration_minutes || props.contest.durationMinutes || 0;
+  return props.contest.duration || 0;
 });
 
-const participantCount = computed(
-  () => props.contest.participant_count || props.contest.participantCount || 0,
-);
-const registeredCount = computed(
-  () => props.contest.registered_count || props.contest.registeredCount || 0,
-);
-const isRated = computed(
-  () => props.contest.is_rated ?? props.contest.isRated ?? false,
-);
+const participantCount = computed(() => props.contest.participantCount || 0);
+const registeredCount = computed(() => props.contest.registeredCount || 0);
+const isRated = computed(() => props.contest.isRated ?? false);
 
 const contestStatus = computed(() => props.contest.status || "UPCOMING");
 
 // Determine if contest is live
-const isLive = computed(() =>
-  ["ONGOING", "RUNNING"].includes(contestStatus.value as string),
-);
+const isLive = computed(() => contestStatus.value === "RUNNING");
 
 // Navigate to contest detail
 function goToContest() {

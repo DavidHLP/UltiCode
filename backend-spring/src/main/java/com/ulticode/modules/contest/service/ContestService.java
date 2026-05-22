@@ -3,6 +3,7 @@ package com.ulticode.modules.contest.service;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.*;
 import com.ulticode.modules.contest.entity.Contest;
+import com.ulticode.modules.contest.entity.ContestAnnouncement;
 
 import java.util.List;
 import java.util.Optional;
@@ -58,6 +59,11 @@ public interface ContestService {
     PageResult<ContestVO> findAll(ContestQueryDTO query, String userId);
 
     /**
+     * Find all contests with lightweight list VO for list pages
+     */
+    PageResult<ContestListVO> findAllListVO(ContestQueryDTO query, String userId);
+
+    /**
      * Find a contest by ID (internal use).
      *
      * @param id the contest ID
@@ -81,6 +87,16 @@ public interface ContestService {
      * @return the contest view object
      */
     ContestVO getContestById(String id, String userId);
+
+    /**
+     * Get contest problems by contest ID
+     */
+    List<ContestProblemVO> getContestProblems(String contestId);
+
+    /**
+     * Get contest announcements by contest ID
+     */
+    List<ContestAnnouncement> getContestAnnouncements(String contestId);
 
     /**
      * Get upcoming contests.
@@ -201,6 +217,11 @@ public interface ContestService {
      * @return the contest view object
      */
     ContestVO toVO(Contest contest, String userId);
+
+    /**
+     * Convert a Contest entity to ContestListVO (lightweight).
+     */
+    ContestListVO toListVO(Contest contest, String userId);
 
     /**
      * Find all contests for admin (includes drafts and invisible).

@@ -83,7 +83,7 @@ export interface CreateContestDto {
   maxParticipants?: number
   isPremium?: boolean
   isPublished?: boolean
-  problemIds?: number[]
+  problemIds?: string[]
   tags?: string[]
   scoringRuleId?: string
 }
@@ -98,7 +98,7 @@ export interface UpdateContestDto {
   maxParticipants?: number
   isPremium?: boolean
   isPublished?: boolean
-  problemIds?: number[]
+  problemIds?: string[]
   tags?: string[]
   scoringRuleId?: string
 }

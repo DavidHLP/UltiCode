@@ -10,7 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { TrendingUp, TrendingDown } from "lucide-vue-next";
 import { formatPenaltyTime } from "@/utils/date";
 import { useI18n } from "vue-i18n";
 import type { ContestRankingEntry } from "@/types/contest";
@@ -62,7 +61,7 @@ const { t } = useI18n();
               t("contest.detail.rankingHeaders.problems")
             }}</TableHead>
             <TableHead class="w-32 pr-6 text-right font-bold">{{
-              t("contest.detail.rankingHeaders.rating")
+              t("contest.detail.rankingHeaders.problemsSolved")
             }}</TableHead>
           </TableRow>
         </TableHeader>
@@ -94,7 +93,7 @@ const { t } = useI18n();
                   <img
                     :src="
                       entry.avatar ||
-                      'https://assets.leetcode.cn/aliyun-lc-upload/users/default_avatar.png'
+                      'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2U1ZTdlYiI+PGNpcmNsZSBjeD0iMTIiIGN5PSIxMiIgcj0iMTIiLz48L3N2Zz4='
                     "
                     class="h-10 w-10 rounded-none border border-border bg-muted shadow-sm"
                     alt="Avatar"
@@ -112,15 +111,14 @@ const { t } = useI18n();
                   <span
                     class="text-[10px] font-bold text-muted-foreground uppercase tracking-widest"
                   >
-                    {{ entry.ratingBefore || 1500 }} ->
-                    {{ entry.ratingAfter || 1500 }}
+                    {{ entry.ratingTitle || "NEWBIE" }}
                   </span>
                 </div>
               </div>
             </TableCell>
             <TableCell class="text-center">
               <span class="text-xl font-black tracking-tight">{{
-                entry.totalScore ?? entry.score ?? 0
+                entry.score ?? 0
               }}</span>
             </TableCell>
             <TableCell class="text-center">
@@ -129,10 +127,7 @@ const { t } = useI18n();
               >
                 {{
                   formatPenaltyTime(
-                    entry.finishTime ??
-                      entry.finish_time ??
-                      entry.totalPenalty ??
-                      0,
+                    entry.penalty ?? 0,
                   )
                 }}
               </span>
@@ -140,38 +135,17 @@ const { t } = useI18n();
             <TableCell>
               <div class="flex flex-wrap gap-1">
                 <Badge
-                  v-for="result in entry.problemResults || []"
-                  :key="result.problemIndex"
-                  :variant="result.isSolved ? 'default' : 'secondary'"
+                  variant="secondary"
                   class="min-w-[2rem] justify-center font-mono text-[10px] h-6 rounded px-1.5"
                 >
-                  {{ result.problemIndex }}
+                  {{ entry.problemsSolved }}
                 </Badge>
               </div>
             </TableCell>
             <TableCell class="pr-6 text-right">
-              <div
-                class="inline-flex items-center gap-1 rounded-none px-2.5 py-1 text-xs font-black shadow-sm"
-                :class="{
-                  'bg-[var(--terminal-green)]/10 text-[var(--terminal-green)] border border-[var(--terminal-green)]/20':
-                    (entry.ratingChange || 0) > 0,
-                  'bg-[var(--terminal-red)]/10 text-[var(--terminal-red)] border border-[var(--terminal-red)]/20':
-                    (entry.ratingChange || 0) < 0,
-                  'bg-muted text-muted-foreground border border-border':
-                    (entry.ratingChange || 0) === 0,
-                }"
-              >
-                <TrendingUp
-                  v-if="(entry.ratingChange || 0) > 0"
-                  class="h-3 w-3"
-                />
-                <TrendingDown
-                  v-else-if="(entry.ratingChange || 0) < 0"
-                  class="h-3 w-3"
-                />
-                {{ (entry.ratingChange || 0) > 0 ? "+" : ""
-                }}{{ entry.ratingChange || 0 }}
-              </div>
+              <span class="font-mono text-sm font-bold">
+                {{ entry.problemsSolved ?? 0 }}
+              </span>
             </TableCell>
           </TableRow>
         </TableBody>

@@ -13,22 +13,20 @@ export function useContestStatus(contest: Ref<ContestDetail | null>, isRegistere
 
   const statusCardClass = computed(() => {
     const status = contest.value?.status;
-    if (status === "running") return "bg-[var(--terminal-red)]";
-    if (status === "upcoming") return "bg-[var(--terminal-green)]";
+    if (status === "RUNNING") return "bg-[var(--terminal-red)]";
+    if (status === "UPCOMING") return "bg-[var(--terminal-green)]";
     return "bg-[var(--silver-dark)]";
   });
 
   const contestEndTime = computed(() => {
     const value = contest.value;
     if (!value) return "";
-    const endTime = value.end_time ?? value.endTime;
+    const endTime = value.endTime;
     if (endTime) return endTime;
-    const startMs = new Date(value.start_time).getTime();
-    const durationMinutes = Number(
-      value.duration_minutes ?? value.durationMinutes ?? 0,
-    );
-    if (Number.isNaN(startMs) || !durationMinutes) return "";
-    return new Date(startMs + durationMinutes * 60 * 1000).toISOString();
+    const startMs = new Date(value.startTime).getTime();
+    const duration = Number(value.duration ?? 0);
+    if (Number.isNaN(startMs) || !duration) return "";
+    return new Date(startMs + duration * 60 * 1000).toISOString();
   });
 
   function formatCountdown(totalSeconds: number): string {
@@ -49,28 +47,26 @@ export function useContestStatus(contest: Ref<ContestDetail | null>, isRegistere
   function getContestEndTimeMs(): number | null {
     const value = contest.value;
     if (!value) return null;
-    const endTime = value.end_time ?? value.endTime;
+    const endTime = value.endTime;
     if (endTime) {
       const endMs = new Date(endTime).getTime();
       return Number.isNaN(endMs) ? null : endMs;
     }
-    const startMs = new Date(value.start_time).getTime();
+    const startMs = new Date(value.startTime).getTime();
     if (Number.isNaN(startMs)) return null;
-    const durationMinutes = Number(
-      value.duration_minutes ?? value.durationMinutes ?? 0,
-    );
-    if (!durationMinutes) return null;
-    return startMs + durationMinutes * 60 * 1000;
+    const duration = Number(value.duration ?? 0);
+    if (!duration) return null;
+    return startMs + duration * 60 * 1000;
   }
 
   function updateStatusTimer() {
     const value = contest.value;
     if (!value) return;
-    const startMs = new Date(value.start_time).getTime();
+    const startMs = new Date(value.startTime).getTime();
     const endMs = getContestEndTimeMs();
     const now = Date.now();
 
-    if (value.status === "upcoming") {
+    if (value.status === "UPCOMING") {
       const remaining = Math.max(0, Math.floor((startMs - now) / 1000));
       statusLabel.value = t("contest.time.startsIn");
       statusCountdown.value = formatCountdown(remaining);
@@ -81,7 +77,7 @@ export function useContestStatus(contest: Ref<ContestDetail | null>, isRegistere
       return;
     }
 
-    if (value.status === "running") {
+    if (value.status === "RUNNING") {
       const remaining = Math.max(0, Math.floor(((endMs ?? now) - now) / 1000));
       const total = Math.max(1, Math.floor(((endMs ?? now) - startMs) / 1000));
       const elapsed = Math.min(total, Math.max(0, total - remaining));

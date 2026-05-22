@@ -19,8 +19,8 @@ onMounted(async () => {
       contestStore.loadUserContests(),
       contestStore.loadContestHistory(),
     ]);
-  } catch (error) {
-    console.error("Failed to load user contests:", error);
+  } catch {
+    // Error handled by UI state
   } finally {
     loading.value = false;
   }
@@ -39,9 +39,9 @@ function formatDate(isoString: string): string {
 
 function getStatusBadge(status: string) {
   const variants: Record<string, string> = {
-    upcoming: "default",
-    running: "destructive",
-    finished: "secondary",
+    UPCOMING: "default",
+    RUNNING: "destructive",
+    FINISHED: "secondary",
   };
   return variants[status] || "secondary";
 }
@@ -108,10 +108,10 @@ function navigateToContest(slug: string) {
                   >
                     <span class="flex items-center gap-1">
                       <Calendar class="h-3 w-3" />
-                      {{ formatDate(contest.start_time) }}
+                      {{ formatDate(contest.startTime) }}
                     </span>
                     <span
-                      >{{ contest.duration_minutes }}
+                      >{{ contest.duration }}
                       {{ t("contest.time.min_short") }}</span
                     >
                   </div>
@@ -226,10 +226,10 @@ function navigateToContest(slug: string) {
                   >
                     <span class="flex items-center gap-1">
                       <Calendar class="h-3 w-3" />
-                      {{ formatDate(contest.start_time) }}
+                      {{ formatDate(contest.startTime) }}
                     </span>
                     <span
-                      >{{ contest.duration_minutes }}
+                      >{{ contest.duration }}
                       {{ t("contest.time.min_short") }}</span
                     >
                   </div>

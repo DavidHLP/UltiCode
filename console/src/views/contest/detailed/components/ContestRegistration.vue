@@ -57,9 +57,9 @@ const { t } = useI18n();
                 class="h-2 w-2 rounded-full bg-[var(--terminal-green)]"
               ></span>
               {{
-                contest.status === "running"
+                contest.status === "RUNNING"
                   ? t("contest.list.liveBadge")
-                  : contest.status === "upcoming"
+                  : contest.status === "UPCOMING"
                     ? t("contest.status.upcoming")
                     : t("contest.status.finished")
               }}
@@ -81,9 +81,9 @@ const { t } = useI18n();
             class="text-xs font-bold uppercase tracking-widest text-white/70"
           >
             {{
-              contest.status === "running"
+              contest.status === "RUNNING"
                 ? t("contest.virtual.timeRemaining")
-                : contest.status === "upcoming"
+                : contest.status === "UPCOMING"
                   ? t("contest.time.startsIn")
                   : t("contest.detail.status")
             }}
@@ -98,7 +98,7 @@ const { t } = useI18n();
             class="text-xs font-medium text-white/60"
           >
             {{
-              contest.status === "finished"
+              contest.status === "FINISHED"
                 ? t("contest.detail.endedAt")
                 : t("contest.detail.endsAt")
             }}
@@ -123,7 +123,7 @@ const { t } = useI18n();
           class="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-none backdrop-blur-sm border border-white/5"
         >
           <Calendar class="h-4 w-4" />
-          {{ formatDateTime(contest.start_time) }}
+          {{ formatDateTime(contest.startTime) }}
         </span>
         <span
           v-if="contestEndTime"
@@ -136,7 +136,7 @@ const { t } = useI18n();
           class="flex items-center gap-2 bg-black/10 px-3 py-1.5 rounded-none backdrop-blur-sm border border-white/5"
         >
           <Users class="h-4 w-4" />
-          {{ contest.participant_count || contest.participantCount || 0 }}
+          {{ contest.participantCount || 0 }}
           {{ t("contest.detail.participants") }}
         </span>
       </div>

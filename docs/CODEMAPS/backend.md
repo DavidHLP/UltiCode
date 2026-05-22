@@ -1,72 +1,109 @@
-<!-- Generated: 2026-05-19 | Files scanned: 597 | Token estimate: ~950 -->
+<!-- Generated: 2026-05-23 | Files scanned: 605 | Token estimate: ~950 -->
 
 # Backend Architecture
 
-## API Routes
+## Module Map (27 modules)
 
-### Public/User APIs
+```
+modules/
+├── achievement/     → /achievements
+├── admin/           → /admin/* (14 controllers)
+├── auth/            → /auth
+├── backup/          → /admin/backups
+├── bookmark/        → /bookmarks
+├── contest/         → /contest, /admin/contest, /admin/scoring-rules
+├── edgeoperations/  → /edge-operations
+├── email/           → /email
+├── follow/          → /users (follow endpoints)
+├── forum/           → /forum
+├── i18n/            → /i18n
+├── moderation/      → /moderation
+├── monitoring/      → /monitoring
+├── notification/    → /notifications
+├── permission/      → (no REST API, entity/service only)
+├── problem/         → /problems, /admin/problems (+ versions)
+├── problemlist/     → /problem-lists
+├── queue/           → (no REST API, background job processors)
+├── recommendation/  → /recommendations, /recommendations/admin
+├── refreshtoken/    → (no REST API, entity/service only)
+├── search/          → /search
+├── solution/        → /api/solutions
+├── submission/      → /submissions, /problems/{id}/submissions
+├── subscription/    → /subscriptions, /admin/subscriptions
+├── user/            → /users
+├── vote/            → /vote
+└── websocket/       → (STOMP endpoints, no REST)
+```
 
-| Prefix | Controller | Key Operations |
-|--------|-----------|----------------|
-| `/auth` | AuthController | login, register, OAuth, refresh, me, forgot-password |
-| `/problems` | ProblemController | list, detail, adjacent, by-tag |
-| `/contest` | ContestController | list, detail, register, ranking, calendar, announcements |
-| `/forum` | ForumController | posts CRUD, communities, comments, thread |
-| `/solutions` | SolutionController | CRUD, comments, pin, best |
-| `/submissions` | SubmissionController | list, detail, retry |
-| `/problems/{id}/submissions` | ProblemSubmissionController | per-problem submissions |
-| `/users` | UserController + FollowController | profile, by-username, follow/unfollow |
-| `/bookmarks` | BookmarkController | folders CRUD, items, quick-favorite |
-| `/vote` | VoteController | upvote/downvote |
-| `/notifications` | NotificationController | list, mark-read, clear, preferences |
-| `/achievements` | AchievementController | list, progress, points |
-| `/subscriptions` | UserSubscriptionController | check-premium, premium-content |
-| `/recommendations` | RecommendationController | daily, challenge, weak-points, similar |
-| `/problem-lists` | ProblemListController | CRUD, fork, categories, save, add-problem |
-| `/search` | SearchController | problems, solutions, users |
-| `/i18n` | I18nController | locales, enums |
-| `/edge-operations` | EdgeOperationsController | interactions, learning-progress |
-| `/monitoring` | MonitoringController | health |
+## Key API Routes
 
-### Admin APIs
+### User-facing
+```
+POST /auth/login, /auth/register, /auth/refresh, /auth/logout
+GET  /problems, /problems/{slug}
+GET  /contest, /contest/{slug}
+GET  /forum, /forum/posts/{id}
+GET  /api/solutions, /api/problems/{id}/solutions
+GET  /submissions, /problems/{id}/submissions
+GET  /recommendations, /recommendations/daily
+POST /bookmarks, /vote, /follow
+GET  /edge-operations/interactions, /edge-operations/{type}/{id}
+POST /edge-operations
+GET  /search
+```
 
-| Prefix | Controller | Key Operations |
-|--------|-----------|----------------|
-| `/admin/users` | AdminUserController | list, detail, create, update, delete |
-| `/admin/problems` | AdminProblemController + AdminProblemVersionController | CRUD, versions |
-| `/admin/contests` | AdminContestController | CRUD, scoring |
-| `/admin/submissions` | AdminSubmissionController | list, rejudge |
-| `/admin/solutions` | AdminSolutionController | list, flag, bulk-action |
-| `/admin/forum` | AdminForumController | posts, communities |
-| `/admin/comments` | AdminCommentController | list, delete |
-| `/admin/notifications` | AdminNotificationController | create, list |
-| `/admin/problem-lists` | AdminProblemListController | list, update |
-| `/admin/tags` | AdminTagController | CRUD, merge |
-| `/admin/audit` | AuditController | logs, report |
-| `/admin/dashboard` | DashboardController | overview, charts |
-| `/admin/analytics` | AdminAnalyticsController | performance, contest, revenue |
-| `/admin/settings` | AdminSettingsController | general, features, maintenance |
-| `/admin/backups` | BackupController | list, create, restore |
-| `/admin/subscriptions` | SubscriptionController | manage subscriptions |
-| `/admin/scoring-rules` | ScoringRuleController | CRUD |
-| `/recommendations/admin` | RecommendationDataController | data management |
-| `/email` | EmailController | templates, logs, send |
-| `/moderation` | ModerationController | queue, reports, appeals, actions |
+### Admin
+```
+GET/POST /admin/users, /admin/problems, /admin/contest
+GET/POST /admin/problem-lists, /admin/solutions, /admin/submissions
+GET/POST /admin/forum, /admin/comments, /admin/tags
+GET/POST /admin/settings, /admin/notifications, /admin/backups
+GET/POST /admin/analytics, /admin/audit, /admin/dashboard
+GET/POST /admin/subscriptions
+GET  /admin/problems/{id}/versions
+GET  /admin/problems/{id}/versions/{versionId}
+GET  /admin/problems/{id}/versions/{from}/diff/{to}
+POST /admin/problems/{id}/versions/create-initial
+POST /admin/problems/{id}/versions/{versionId}/rollback
+POST /admin/scoring-rules
+```
 
-## Module Layering
+## Layering
 
-25 modules under `modules/`: `achievement`, `admin`, `auth`, `backup`, `bookmark`, `contest`, `edgeoperations`, `email`, `follow`, `forum`, `i18n`, `moderation`, `monitoring`, `notification`, `permission`, `problem`, `problemlist`, `queue`, `recommendation`, `refreshtoken`, `search`, `solution`, `submission`, `subscription`, `user`, `vote`, `websocket`
+```
+Controller → Service → Mapper (MyBatis-Plus) → Entity
+                ↓
+            MapStruct (DTO ↔ Entity)
+```
 
-Each module: `controller → service (impl) → mapper (MyBatis-Plus) → entity`
-DTOs via MapStruct. Common: `common/` (config, exception, annotation, aspect, util, filter).
+## Top-level Packages
 
-## Security Stack
+| Package | Contents |
+|---------|----------|
+| `common/` | Annotations, aspects, config, constants, DTOs, exceptions, filters, response wrappers, services, utilities (43 files) |
+| `infrastructure/` | Redis service, cache constants (2 files) |
+| `security/` | JWT, CSRF, OAuth, auth entry point (7 files) |
+| `websocket/` | Notification WS service, auth interceptor, DTOs (4 files) |
 
-- JWT: `security/jwt/` (JwtTokenProvider, JwtAuthenticationFilter, JwtProperties)
-- CSRF: `security/csrf/` (CsrfService, CsrfValidationFilter)
-- OAuth: `security/oauth/` (OAuthProperties — GitHub, Google)
-- Entry: `security/AuthenticationEntryPointImpl.java`
-- Annotations: `@RateLimit`, `@RequireRole`, `@CheckBan`, `@Audited`, `@CurrentUser`
-- Aspects: `RateLimitAspect`, `BanCheckAspect`, `AuditAspect`
-- XSS: `XssFilter`
-- Token blacklist: `TokenBlacklistService` (Redis)
+## WebSocket Endpoints
+
+```
+/ws/contest       → contest live updates
+/ws/notifications → user notification push
+/ws               → generic endpoint
+Broker: /topic, /queue, /user
+```
+
+## Dependency Versions
+
+| Dependency | Version |
+|-----------|---------|
+| Spring Boot | 3.2.5 |
+| MyBatis-Plus | 3.5.16 |
+| MapStruct | 1.6.3 |
+| jjwt | 0.13.0 |
+| Redisson | 4.3.1 |
+| SpringDoc OpenAPI | 2.6.0 |
+| Dubbo | 3.2.14 |
+| Hutool | 5.8.44 |
+| MeiliSearch SDK | 0.20.0 |

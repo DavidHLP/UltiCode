@@ -167,8 +167,8 @@ const sortedPosts = computed(() => {
   const postsArray = [...filteredPosts.value];
   const sorters: Record<string, (a: ForumPost, b: ForumPost) => number> = {
     hot: (a, b) => {
-      const aScore = (a.likes ?? 0) - (a.dislikes ?? 0);
-      const bScore = (b.likes ?? 0) - (b.dislikes ?? 0);
+      const aScore = (a.stats?.likes ?? 0) - (a.stats?.dislikes ?? 0);
+      const bScore = (b.stats?.likes ?? 0) - (b.stats?.dislikes ?? 0);
       return bScore - aScore;
     },
     new: (a, b) =>
@@ -212,8 +212,6 @@ async function handlePostVote(postId: string, type: 1 | -1) {
     const res = await vote(VoteTargetType.FORUM_POST, postId, type);
     const post = posts.value.find((item) => item.id === postId);
     if (post) {
-      post.likes = res.likes;
-      post.dislikes = res.dislikes;
       post.userVote = res.userVote;
       post.voteState =
         res.userVote === 1
@@ -223,6 +221,8 @@ async function handlePostVote(postId: string, type: 1 | -1) {
             : "neutral";
       post.stats = {
         ...(post.stats ?? {}),
+        likes: res.likes,
+        dislikes: res.dislikes,
         score: res.likes - res.dislikes,
       };
     }

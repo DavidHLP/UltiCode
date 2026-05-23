@@ -71,12 +71,21 @@
         >
           {{ comment.time }}
         </span>
+        <span v-if="comment.editedAt" class="text-muted-foreground/60 text-[10px]"
+          >({{ t("forum.comments.edited") }})</span
+        >
         <span
           v-if="isCollapsed"
           class="text-muted-foreground text-xs italic ml-2 cursor-pointer select-none"
           @click="toggleCollapse"
         >
           {{ t("forum.comments.collapsed") }}
+        </span>
+        <span
+          v-if="comment.replyCount && comment.replyCount > 0"
+          class="text-muted-foreground/60 text-[10px] ml-auto"
+        >
+          {{ comment.replyCount }} {{ t("forum.comments.replies") }}
         </span>
       </div>
 

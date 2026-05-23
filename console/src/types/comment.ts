@@ -11,4 +11,6 @@ export interface Comment {
   isOp?: boolean;
   isOwn?: boolean;
   children?: Comment[];
+  editedAt?: string;
+  replyCount?: number;
 }

@@ -94,11 +94,7 @@ const userVote = computed(() =>
 );
 
 const voteCounts = computed(() =>
-  resolveVoteCounts(
-    props.thread.likes,
-    props.thread.dislikes,
-    localStats.value,
-  ),
+  resolveVoteCounts(undefined, undefined, localStats.value),
 );
 
 function formatCount(value: number) {

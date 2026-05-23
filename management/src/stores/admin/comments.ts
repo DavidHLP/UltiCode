@@ -14,10 +14,12 @@ export const useCommentsStore = defineStore('adminComments', () => {
   const currentComment = ref<Comment | null>(null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const lastParams = ref<CommentQueryParams>({})
 
   async function fetchComments(params: CommentQueryParams = {}) {
     loading.value = true
     error.value = null
+    lastParams.value = { ...params }
     try {
       const response = await commentsApi.getComments(params)
       comments.value = response.items.filter((c): c is Comment => c !== null)
@@ -26,7 +28,6 @@ export const useCommentsStore = defineStore('adminComments', () => {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Failed to fetch comments'
-      console.error('Failed to fetch comments:', err)
     } finally {
       loading.value = false
     }
@@ -43,7 +44,6 @@ export const useCommentsStore = defineStore('adminComments', () => {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Failed to fetch comment'
-      console.error('Failed to fetch comment:', err)
       throw err
     } finally {
       loading.value = false
@@ -57,14 +57,13 @@ export const useCommentsStore = defineStore('adminComments', () => {
       const updatedComment = await commentsApi.flagComment(id, type, reason)
       const index = comments.value.findIndex((c) => c.id === id)
       if (index !== -1 && updatedComment) {
-        comments.value[index] = updatedComment
+        comments.value = comments.value.map((c) => (c.id === id ? updatedComment : c))
       }
       return updatedComment
     } catch (err: unknown) {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Failed to flag comment'
-      console.error('Failed to flag comment:', err)
       throw err
     } finally {
       loading.value = false
@@ -78,14 +77,13 @@ export const useCommentsStore = defineStore('adminComments', () => {
       const updatedComment = await commentsApi.unflagComment(id, type)
       const index = comments.value.findIndex((c) => c.id === id)
       if (index !== -1 && updatedComment) {
-        comments.value[index] = updatedComment
+        comments.value = comments.value.map((c) => (c.id === id ? updatedComment : c))
       }
       return updatedComment
     } catch (err: unknown) {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Failed to unflag comment'
-      console.error('Failed to unflag comment:', err)
       throw err
     } finally {
       loading.value = false
@@ -97,20 +95,18 @@ export const useCommentsStore = defineStore('adminComments', () => {
     error.value = null
     try {
       await commentsApi.deleteComment(id, type)
-      // For soft delete, we might want to just mark it deleted locally or remove it
-      // Assuming we want to reflect the server state (which sets is_deleted=true)
-      // But typically lists filter out deleted items unless specifically requested.
-      // Let's assume we remove it from the view if we are not viewing deleted items.
       const index = comments.value.findIndex((c) => c.id === id)
-      const comment = comments.value[index]
-      if (comment) {
-        comment.isDeleted = true
+      if (index !== -1) {
+        comments.value = [
+          ...comments.value.slice(0, index),
+          { ...comments.value[index], isDeleted: true },
+          ...comments.value.slice(index + 1),
+        ]
       }
     } catch (err: unknown) {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Failed to delete comment'
-      console.error('Failed to delete comment:', err)
       throw err
     } finally {
       loading.value = false
@@ -122,13 +118,11 @@ export const useCommentsStore = defineStore('adminComments', () => {
     error.value = null
     try {
       await commentsApi.bulkAction(data)
-      // Refresh list
-      await fetchComments() // Note: this might need params if we want to keep current view
+      await fetchComments(lastParams.value)
     } catch (err: unknown) {
       error.value =
         (err as { response?: { data?: { message?: string } } })?.response?.data?.message ||
         'Failed to perform bulk action'
-      console.error('Failed to perform bulk action:', err)
       throw err
     } finally {
       loading.value = false
@@ -144,6 +138,7 @@ export const useCommentsStore = defineStore('adminComments', () => {
     total.value = 0
     loading.value = false
     error.value = null
+    lastParams.value = {}
   }
 
   return {

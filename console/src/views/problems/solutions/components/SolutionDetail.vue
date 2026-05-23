@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
 import type { SolutionFeedItem } from "@/types/solution";
-import type { ForumComment } from "@/types/forum";
+import type { SolutionComment } from "@/types/comment";
 import MarkdownView from "@/components/markdown/MarkdownView.vue";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -62,7 +62,7 @@ const languageLabel = computed(() => {
   return lang.charAt(0).toUpperCase() + lang.slice(1).toLowerCase();
 });
 
-const comments = ref<ForumComment[]>([]);
+const comments = ref<SolutionComment[]>([]);
 const localStats = ref<{ likes: number; dislikes: number }>({
   likes: 0,
   dislikes: 0,
@@ -216,23 +216,20 @@ const handleCommentVote = async (
       voteType,
     );
 
-    // Recursive helper to find and update comment
-    const updateComment = (list: ForumComment[]) => {
-      for (const comment of list) {
+    // Recursive helper to find and update comment immutably
+    const updateCommentInList = (list: SolutionComment[]): SolutionComment[] => {
+      return list.map((comment) => {
         if (comment.id === commentId) {
-          comment.likes = res.likes;
-          comment.dislikes = res.dislikes;
-          comment.userVote = res.userVote;
-          return true;
+          return { ...comment, likes: res.likes, dislikes: res.dislikes, userVote: res.userVote };
         }
         if (comment.replies && comment.replies.length > 0) {
-          if (updateComment(comment.replies)) return true;
+          return { ...comment, replies: updateCommentInList(comment.replies) };
         }
-      }
-      return false;
+        return comment;
+      });
     };
 
-    updateComment(comments.value);
+    comments.value = updateCommentInList(comments.value);
   } catch (error) {
     handleError(error, {
       fallbackMessage: "problem.solutions.error.commentVoteFailed",
@@ -401,6 +398,7 @@ watch(
       </h3>
       <CommentThread
         :comments="comments"
+        comment-type="solution"
         :is-locked="false"
         @submit="handleCommentSubmit"
         @vote="handleCommentVote"

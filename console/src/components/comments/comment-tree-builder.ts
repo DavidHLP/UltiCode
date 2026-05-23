@@ -1,5 +1,4 @@
-import type { Comment } from "@/types/comment";
-import type { ForumComment } from "@/types/forum";
+import type { Comment, SolutionComment, ForumComment } from "@/types/comment";
 import { formatRelativeTime } from "@/utils/date";
 import { resolveUserVote, resolveVoteCounts } from "@/utils/vote";
 
@@ -83,8 +82,72 @@ export const buildCommentTree = (
 
     if (comment.parentId && nodes.has(comment.parentId)) {
       const parent = nodes.get(comment.parentId)!;
-      parent.children = parent.children ?? [];
-      parent.children.push(current);
+      nodes.set(parent.id, { ...parent, children: [...(parent.children ?? []), current] });
+    } else {
+      roots.push(current);
+    }
+  });
+
+  return roots;
+};
+
+const mapSolutionComment = (
+  input: SolutionComment,
+  options?: BuildTreeOptions,
+): Comment => {
+  const voteCounts = resolveVoteCounts(input.likes, input.dislikes);
+  const userVote = resolveUserVote(input.userVote);
+
+  const username = input.authorUsername || input.author?.username;
+  const authorId = input.authorId || input.author?.id;
+  const avatar = input.authorAvatar || input.author?.avatar;
+
+  if (!username) {
+    console.error("Solution comment missing required username:", input);
+    throw new Error(`Comment ${input.id} is missing required username field`);
+  }
+  if (!authorId) {
+    console.error("Solution comment missing required authorId:", input);
+    throw new Error(`Comment ${input.id} is missing required authorId field`);
+  }
+
+  return {
+    id: input.id,
+    author: username,
+    avatar: buildAvatar(username, avatar),
+    time: formatRelativeTime(input.createdAt),
+    votes: voteCounts.likes - voteCounts.dislikes,
+    likes: voteCounts.likes,
+    dislikes: voteCounts.dislikes,
+    userVote,
+    content: input.content,
+    isOp:
+      !!options?.postAuthorUsername && username === options.postAuthorUsername,
+    isOwn: !!options?.currentUserId && authorId === options.currentUserId,
+    children: [],
+    editedAt: input.updatedAt,
+    replyCount: input.replyCount,
+  };
+};
+
+export const buildSolutionCommentTree = (
+  comments: SolutionComment[],
+  options?: BuildTreeOptions,
+): Comment[] => {
+  const nodes = new Map<string, Comment>();
+  const roots: Comment[] = [];
+
+  comments.forEach((comment) => {
+    nodes.set(comment.id, mapSolutionComment(comment, options));
+  });
+
+  comments.forEach((comment) => {
+    const current = nodes.get(comment.id);
+    if (!current) return;
+
+    if (comment.parentId && nodes.has(comment.parentId)) {
+      const parent = nodes.get(comment.parentId)!;
+      nodes.set(parent.id, { ...parent, children: [...(parent.children ?? []), current] });
     } else {
       roots.push(current);
     }

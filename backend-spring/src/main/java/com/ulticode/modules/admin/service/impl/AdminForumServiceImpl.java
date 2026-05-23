@@ -311,6 +311,46 @@ public class AdminForumServiceImpl implements AdminForumService {
     }
 
     @Override
+    public void flagPost(String id, String reason) {
+        ForumPost post = getPostEntityOrThrow(id);
+        auditHelper.logForUser(
+            AuditActionUtil.FLAG_POST,
+            AuditActionUtil.ENTITY_FORUM_POST,
+            id,
+            post.getUserId(),
+            Map.of("isFlagged", post.getIsFlagged() != null ? post.getIsFlagged() : false,
+                   "flaggedReason", post.getFlaggedReason() != null ? post.getFlaggedReason() : ""),
+            Map.of("isFlagged", true,
+                   "flaggedReason", reason != null ? reason : "")
+        );
+        post.setIsFlagged(true);
+        post.setFlaggedReason(reason);
+        post.setFlaggedAt(LocalDateTime.now());
+        forumPostMapper.updateById(post);
+        log.info("Post flagged: {} reason: {}", id, reason);
+    }
+
+    @Override
+    public void unflagPost(String id) {
+        ForumPost post = getPostEntityOrThrow(id);
+        auditHelper.logForUser(
+            AuditActionUtil.UNFLAG_POST,
+            AuditActionUtil.ENTITY_FORUM_POST,
+            id,
+            post.getUserId(),
+            Map.of("isFlagged", post.getIsFlagged() != null ? post.getIsFlagged() : false,
+                   "flaggedReason", post.getFlaggedReason() != null ? post.getFlaggedReason() : ""),
+            Map.of("isFlagged", false,
+                   "flaggedReason", "")
+        );
+        post.setIsFlagged(false);
+        post.setFlaggedReason(null);
+        post.setFlaggedAt(null);
+        forumPostMapper.updateById(post);
+        log.info("Post unflagged: {}", id);
+    }
+
+    @Override
     public BulkActionResult bulkAction(List<String> ids, String action) {
         BulkActionResult response = new BulkActionResult();
         response.setTotal(ids.size());
@@ -329,6 +369,7 @@ public class AdminForumServiceImpl implements AdminForumService {
                     case "unpin" -> unpinPost(id);
                     case "lock" -> lockPost(id);
                     case "unlock" -> unlockPost(id);
+                    case "unflag" -> unflagPost(id);
                     default -> throw new IllegalArgumentException("Unknown action: " + action);
                 }
                 item.setSuccess(true);

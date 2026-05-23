@@ -113,21 +113,19 @@ export function createColumns(
       accessorKey: 'runtime',
       header: () => t('submissions.runtime'),
       cell: ({ row }) =>
-        h(
-          'span',
-          { class: 'font-data text-sm tabular-nums' },
-          formatRuntime(row.original.runtime ?? null),
-        ),
+        h('span', { class: 'font-data text-sm tabular-nums' }, formatRuntime(row.original.runtime)),
     },
     {
       accessorKey: 'memory',
       header: () => t('submissions.memory'),
       cell: ({ row }) =>
-        h(
-          'span',
-          { class: 'font-data text-sm tabular-nums' },
-          formatMemory(row.original.memory ?? null),
-        ),
+        h('span', { class: 'font-data text-sm tabular-nums' }, formatMemory(row.original.memory)),
+    },
+    {
+      accessorKey: 'codeLength',
+      header: () => t('submissions.codeLength'),
+      cell: ({ row }) =>
+        h('span', { class: 'font-data text-sm tabular-nums' }, row.original.codeLength ?? '-'),
     },
     {
       accessorKey: 'createdAt',

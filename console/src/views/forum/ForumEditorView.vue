@@ -126,6 +126,7 @@ async function handleSave() {
     const payload = {
       title: title.value.trim(),
       excerpt: excerpt.value.trim(),
+      body: excerpt.value.trim(),
       tags: selectedTags.value,
       flairType: flairType.value,
       flairLabel: flairLabel.value.trim() || undefined,

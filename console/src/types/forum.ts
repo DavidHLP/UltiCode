@@ -151,7 +151,7 @@ export type ForumPostMedia =
 export interface ForumPost {
   id: string;
   title: string;
-  author: ForumUser;
+  author?: ForumUser;
   createdAt: string;
   // Stats object from backend
   stats?: {
@@ -165,9 +165,6 @@ export interface ForumPost {
     upvote_ratio?: number;
     awards?: number;
   };
-  // Frontend specific or extended properties
-  likes?: number; // Direct properties
-  dislikes?: number;
   userVote?: 0 | 1 | -1;
 
   excerpt?: string;
@@ -196,7 +193,8 @@ export interface ForumComment {
   authorUsername?: string;
   authorAvatar?: string;
   createdAt: string;
-  upvotes: number;
+  // Voting fields - populated at runtime from vote API responses
+  upvotes?: number;
   likes?: number;
   dislikes?: number;
   userVote?: 0 | 1 | -1;
@@ -204,6 +202,11 @@ export interface ForumComment {
   isPinned?: boolean;
   isLocked?: boolean;
   parentId?: string;
+  // Backend fields available but not previously consumed by frontend
+  markdown?: string;
+  editedAt?: string;
+  isFlagged?: boolean;
+  replyCount?: number;
 }
 
 export interface ForumThread extends ForumPost {

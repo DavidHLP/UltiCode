@@ -33,7 +33,32 @@ export async function fetchForumPosts(): Promise<ForumPost[]> {
 }
 
 export async function fetchForumPost(postId: string): Promise<ForumPost> {
-  return apiGet<ForumPost>(`/forum/posts/${postId}`);
+  const post = await apiGet<
+    {
+      userId: string;
+      authorUsername?: string;
+      authorAvatar?: string;
+      communityId?: string;
+      communityName?: string;
+      communitySlug?: string;
+    } & Omit<ForumPost, "author" | "community">
+  >(`/forum/posts/${postId}`);
+
+  return {
+    ...post,
+    author: {
+      id: post.userId,
+      username: post.authorUsername ?? post.userId,
+      avatar: post.authorAvatar,
+    },
+    community: post.communityId
+      ? ({
+          id: post.communityId,
+          name: post.communityName ?? "",
+          slug: post.communitySlug ?? "",
+        } as ForumCommunity)
+      : undefined,
+  };
 }
 
 export async function fetchForumCommunities(options?: {
@@ -151,13 +176,23 @@ export async function recordForumShare(postId: string) {
   return apiPost(`/forum/posts/${postId}/share`, {}, { skipErrorHandler: true });
 }
 
+export async function joinForumCommunity(id: string): Promise<void> {
+  await apiPost(`/forum/communities/${id}/join`);
+}
+
+export async function leaveForumCommunity(id: string): Promise<void> {
+  await apiPost(`/forum/communities/${id}/leave`);
+}
+
 export async function createForumPost(input: {
   title: string;
   excerpt: string;
+  body?: string;
   communityId: string;
   tags?: string[];
   flairType?: string | null;
   flairLabel?: string | null;
+  media?: unknown[];
 }): Promise<ForumPost> {
   return apiPost<ForumPost>("/forum/posts", input);
 }
@@ -167,11 +202,13 @@ export async function updateForumPost(
   input: Partial<{
     title: string;
     excerpt: string;
+    body?: string;
     tags: string[];
     flairType: string | null;
     flairLabel: string | null;
     isPinned: boolean;
     isLocked: boolean;
+    media?: unknown[];
   }>,
 ): Promise<ForumPost> {
   return apiPatch<ForumPost>(`/forum/posts/${postId}`, input);
@@ -182,8 +219,42 @@ export async function deleteForumPost(postId: string): Promise<void> {
 }
 
 export async function fetchMyForumPosts(): Promise<ForumPost[]> {
-  const response = await apiGet<ForumPost[] | { items: ForumPost[] }>(
-    "/forum/me/posts",
-  );
-  return Array.isArray(response) ? response : response.items;
+  const response = await apiGet<
+    | Array<{
+        userId: string;
+        authorUsername?: string;
+        authorAvatar?: string;
+        communityId?: string;
+        communityName?: string;
+        communitySlug?: string;
+      } & Omit<ForumPost, "author" | "community">>
+    | {
+        items: Array<{
+          userId: string;
+          authorUsername?: string;
+          authorAvatar?: string;
+          communityId?: string;
+          communityName?: string;
+          communitySlug?: string;
+        } & Omit<ForumPost, "author" | "community">>;
+      }
+  >("/forum/me/posts");
+
+  const rows = Array.isArray(response) ? response : response.items;
+
+  return rows.map((post) => ({
+    ...post,
+    author: {
+      id: post.userId,
+      username: post.authorUsername ?? post.userId,
+      avatar: post.authorAvatar,
+    },
+    community: post.communityId
+      ? ({
+          id: post.communityId,
+          name: post.communityName ?? "",
+          slug: post.communitySlug ?? "",
+        } as ForumCommunity)
+      : undefined,
+  }));
 }

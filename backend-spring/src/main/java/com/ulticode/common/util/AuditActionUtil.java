@@ -40,6 +40,8 @@ public final class AuditActionUtil {
     public static final String UNPIN_POST = "UNPIN_POST";
     public static final String LOCK_POST = "LOCK_POST";
     public static final String UNLOCK_POST = "UNLOCK_POST";
+    public static final String FLAG_POST = "FLAG_POST";
+    public static final String UNFLAG_POST = "UNFLAG_POST";
 
     public static final String CREATE_TAG = "CREATE_TAG";
     public static final String UPDATE_TAG = "UPDATE_TAG";

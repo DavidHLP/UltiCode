@@ -55,6 +55,7 @@ export interface ForumPostQueryParams {
   isFlagged?: boolean
   isPinned?: boolean
   isLocked?: boolean
+  isDeleted?: boolean
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }
@@ -102,8 +103,32 @@ export interface ForumPostDetail extends ForumPost {
 
 export const forumApi = {
   async getPosts(params: ForumPostQueryParams): Promise<PageResult<ForumPost>> {
-    const response = await apiGet<PageResult<ForumPost>>('/admin/forum/posts', { params })
-    return response
+    const response = await apiGet<
+      PageResult<
+        ForumPost & {
+          username?: string
+          avatar?: string
+          communityName?: string
+          communitySlug?: string
+        }
+      >
+    >('/admin/forum/posts', { params })
+    return {
+      ...response,
+      items: response.items.map((post) => ({
+        ...post,
+        author: {
+          id: post.userId,
+          username: post.username ?? post.userId,
+          avatar: post.avatar,
+        },
+        community: {
+          id: post.communityId,
+          name: post.communityName ?? 'Unknown',
+          slug: post.communitySlug ?? '',
+        },
+      })),
+    }
   },
 
   async getCommunities(page = 1, limit = 20): Promise<PageResult<ForumCommunity>> {
@@ -140,8 +165,27 @@ export const forumApi = {
 
   // Detail view methods
   async getPostDetail(id: string): Promise<ForumPostDetail> {
-    const response = await apiGet<ForumPostDetail>(`/admin/forum/posts/${id}`)
-    return response
+    const post = await apiGet<
+      ForumPostDetail & {
+        username?: string
+        avatar?: string
+        communityName?: string
+        communitySlug?: string
+      }
+    >(`/admin/forum/posts/${id}`)
+    return {
+      ...post,
+      author: {
+        id: post.userId,
+        username: post.username ?? post.userId,
+        avatar: post.avatar,
+      },
+      community: {
+        id: post.communityId,
+        name: post.communityName ?? 'Unknown',
+        slug: post.communitySlug ?? '',
+      },
+    }
   },
 
   async getPostAuditHistory(id: string): Promise<AuditLog[]> {

@@ -48,6 +48,8 @@ const mapToComment = (
       !!options?.postAuthorUsername && username === options.postAuthorUsername,
     isOwn: !!options?.currentUserId && authorId === options.currentUserId,
     children: [],
+    editedAt: input.editedAt,
+    replyCount: input.replyCount,
   };
 };
 

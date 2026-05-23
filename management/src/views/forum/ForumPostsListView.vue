@@ -26,6 +26,7 @@ const communityFilter = ref<string>('all')
 const flaggedFilter = ref<string>('all')
 const pinnedFilter = ref<string>('all')
 const lockedFilter = ref<string>('all')
+const deletedFilter = ref<string>('all')
 
 const selectedPostId = ref<string | null>(null)
 const selectedPostTitle = ref<string | null>(null)
@@ -93,6 +94,16 @@ const toolbarFilters = computed<Filter[]>(() => [
       { value: 'unlocked', label: t('forum.filters.unlockedOnly') },
     ],
   },
+  {
+    modelValue: deletedFilter.value,
+    placeholder: t('forum.filters.deleted'),
+    width: 'w-[130px]',
+    options: [
+      { value: 'all', label: t('forum.filters.all') },
+      { value: 'deleted', label: t('forum.filters.deletedOnly') },
+      { value: 'active', label: t('forum.filters.activeOnly') },
+    ],
+  },
 ])
 
 const {
@@ -111,6 +122,7 @@ const {
     flaggedFilter: string
     pinnedFilter: string
     lockedFilter: string
+    deletedFilter: string
   },
   Parameters<typeof forumStore.fetchPosts>[0]
 >({
@@ -126,6 +138,7 @@ const {
     flaggedFilter: flaggedFilter.value,
     pinnedFilter: pinnedFilter.value,
     lockedFilter: lockedFilter.value,
+    deletedFilter: deletedFilter.value,
   }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
@@ -133,6 +146,7 @@ const {
     isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
     isPinned: filters.pinnedFilter === 'all' ? undefined : filters.pinnedFilter === 'pinned',
     isLocked: filters.lockedFilter === 'all' ? undefined : filters.lockedFilter === 'locked',
+    isDeleted: filters.deletedFilter === 'all' ? undefined : filters.deletedFilter === 'deleted',
     page,
     limit,
   }),

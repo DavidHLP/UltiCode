@@ -1,7 +1,7 @@
 import { useAuthStore } from "@/stores/auth";
 import { apiGet, apiPost, apiPatch, apiDelete } from "@/utils/request";
 import type { SolutionFeedResponse, SolutionFeedItem } from "@/types/solution";
-import type { ForumComment } from "@/types/forum";
+import type { SolutionComment } from "@/types/comment";
 export type { SolutionFeedResponse };
 
 /** Backend API response shape for a single solution. */
@@ -161,23 +161,23 @@ export async function fetchUserSolutions(
 export async function fetchSolutionComments(
   solutionId: string,
   userId?: string,
-): Promise<ForumComment[]> {
+): Promise<SolutionComment[]> {
   const url = userId
     ? `/api/solutions/${solutionId}/comments?userId=${userId}`
     : `/api/solutions/${solutionId}/comments`;
-  return apiGet<ForumComment[]>(url);
+  return apiGet<SolutionComment[]>(url);
 }
 
 export async function createSolutionComment(
   solutionId: string,
   content: string,
   parentId?: string,
-): Promise<ForumComment> {
+): Promise<SolutionComment> {
   const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) {
     throw new Error("User must be logged in to create comments");
   }
-  return apiPost<ForumComment>(`/api/solutions/${solutionId}/comments`, {
+  return apiPost<SolutionComment>(`/api/solutions/${solutionId}/comments`, {
     content,
     parentId,
   });
@@ -186,12 +186,12 @@ export async function createSolutionComment(
 export async function updateSolutionComment(
   commentId: string,
   content: string,
-): Promise<ForumComment> {
+): Promise<SolutionComment> {
   const userId = useAuthStore().fetchCurrentUserId();
   if (!userId) {
     throw new Error("User must be logged in to update comments");
   }
-  return apiPatch<ForumComment>(`/api/solutions/comments/${commentId}`, {
+  return apiPatch<SolutionComment>(`/api/solutions/comments/${commentId}`, {
     content,
   });
 }

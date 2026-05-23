@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { useAuthStore } from "@/stores/auth";
-import type { ForumComment } from "@/types/forum";
+import type { ForumComment, SolutionComment } from "@/types/comment";
 import { Lock, MessageSquare } from "lucide-vue-next";
 import CommentNode from "./CommentNode.vue";
 import CommentForm from "./CommentForm.vue";
-import { buildCommentTree } from "./comment-tree-builder";
+import { buildCommentTree, buildSolutionCommentTree } from "./comment-tree-builder";
 import { ref, computed } from "vue";
 import { useI18n } from "vue-i18n";
 
 const props = defineProps<{
-  comments: ForumComment[];
+  comments: ForumComment[] | SolutionComment[];
+  commentType?: 'forum' | 'solution';
   isLocked?: boolean;
   postAuthorUsername?: string;
 }>();
@@ -30,10 +31,14 @@ function handleReply(commentId: string | number, content: string) {
 
 const commentTree = computed(() => {
   const userId = useAuthStore().fetchCurrentUserId();
-  return buildCommentTree(props.comments, {
+  const options = {
     currentUserId: userId || undefined,
     postAuthorUsername: props.postAuthorUsername,
-  });
+  };
+  if (props.commentType === 'solution') {
+    return buildSolutionCommentTree(props.comments as SolutionComment[], options);
+  }
+  return buildCommentTree(props.comments as ForumComment[], options);
 });
 </script>
 

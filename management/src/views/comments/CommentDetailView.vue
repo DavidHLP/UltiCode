@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { TerminalBadge } from '@/components/ui/terminal'
 
 import { useCommentsStore } from '@/stores/admin/comments'
+import { PERM } from '@/constants/permissions'
 import { useAuthStore } from '@/stores/auth'
 import type { CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
@@ -43,14 +44,20 @@ onMounted(() => {
 
 const commentId = computed(() => route.params.id as string)
 const commentType = computed((): CommentType => {
-  // Route path is /forum/comments/:id, so type is 'forum'
-  // If needed, we can extend this for solution comments later
-  return 'forum'
+  return (route.params.type as CommentType) || 'forum'
 })
 
 const comment = computed(() => commentsStore.currentComment)
-const canModerate = computed(() => authStore.hasPermission('MODERATE', 'FORUM_COMMENT'))
-const canDelete = computed(() => authStore.hasPermission('DELETE', 'FORUM_COMMENT'))
+const canModerate = computed(() =>
+  commentType.value === 'forum'
+    ? authStore.hasPermission(PERM.MODERATE_FORUM_COMMENT.action, PERM.MODERATE_FORUM_COMMENT.resource)
+    : authStore.hasPermission(PERM.MODERATE_SOLUTION_COMMENT.action, PERM.MODERATE_SOLUTION_COMMENT.resource),
+)
+const canDelete = computed(() =>
+  commentType.value === 'forum'
+    ? authStore.hasPermission(PERM.DELETE_FORUM_COMMENT.action, PERM.DELETE_FORUM_COMMENT.resource)
+    : authStore.hasPermission(PERM.DELETE_SOLUTION_COMMENT.action, PERM.DELETE_SOLUTION_COMMENT.resource),
+)
 
 onMounted(async () => {
   if (commentId.value) {

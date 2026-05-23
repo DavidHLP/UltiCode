@@ -14,17 +14,17 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * Admin controller for comment management.
- */
 @Tag(name = "Admin - Comments", description = "Comment management endpoints for admin panel")
 @RestController
 @RequestMapping("/admin/comments")
 @RequiredArgsConstructor
+@Validated
 @SecurityRequirement(name = "Bearer")
 public class AdminCommentController {
 
@@ -42,7 +42,7 @@ public class AdminCommentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<AdminCommentVO> getComment(
             @Parameter(description = "Comment type (forum or solution)")
-            @PathVariable String type,
+            @PathVariable @Pattern(regexp = "forum|solution", message = "Type must be 'forum' or 'solution'") String type,
             @Parameter(description = "Comment ID")
             @PathVariable String id) {
         return Result.success(adminCommentService.getComment(id, type));
@@ -52,27 +52,25 @@ public class AdminCommentController {
     @RateLimit(key = "admin:comment-flag", limit = 30, period = 60)
     @PatchMapping("/{type}/{id}/flag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<Void> flagComment(
+    public Result<AdminCommentVO> flagComment(
             @Parameter(description = "Comment type (forum or solution)")
-            @PathVariable String type,
+            @PathVariable @Pattern(regexp = "forum|solution", message = "Type must be 'forum' or 'solution'") String type,
             @Parameter(description = "Comment ID")
             @PathVariable String id,
             @Valid @RequestBody FlagRequest request) {
-        adminCommentService.flagComment(id, type, request.getReason());
-        return Result.success();
+        return Result.success(adminCommentService.flagComment(id, type, request.getReason()));
     }
 
     @Operation(summary = "Unflag comment", description = "Remove flag from a comment")
     @RateLimit(key = "admin:comment-unflag", limit = 30, period = 60)
     @PatchMapping("/{type}/{id}/unflag")
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<Void> unflagComment(
+    public Result<AdminCommentVO> unflagComment(
             @Parameter(description = "Comment type (forum or solution)")
-            @PathVariable String type,
+            @PathVariable @Pattern(regexp = "forum|solution", message = "Type must be 'forum' or 'solution'") String type,
             @Parameter(description = "Comment ID")
             @PathVariable String id) {
-        adminCommentService.unflagComment(id, type);
-        return Result.success();
+        return Result.success(adminCommentService.unflagComment(id, type));
     }
 
     @Operation(summary = "Delete comment", description = "Delete a comment (soft delete)")
@@ -81,7 +79,7 @@ public class AdminCommentController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<Void> deleteComment(
             @Parameter(description = "Comment type (forum or solution)")
-            @PathVariable String type,
+            @PathVariable @Pattern(regexp = "forum|solution", message = "Type must be 'forum' or 'solution'") String type,
             @Parameter(description = "Comment ID")
             @PathVariable String id) {
         adminCommentService.deleteComment(id, type);

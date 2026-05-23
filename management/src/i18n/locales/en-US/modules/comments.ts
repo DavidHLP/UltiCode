@@ -16,6 +16,7 @@ export default {
   type: {
     forum: 'Forum',
     solution: 'Solution',
+    unknown: 'Unknown',
   },
 
   status: {
@@ -44,9 +45,12 @@ export default {
     type: 'Comment Type',
     allTypes: 'All Types',
     flagStatus: 'Flag Status',
+    deletedStatus: 'Delete Status',
     all: 'All',
     flagged: 'Flagged',
     clean: 'Clean',
+    deleted: 'Deleted',
+    active: 'Active',
   },
 
   bulkActions: {

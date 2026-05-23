@@ -202,12 +202,12 @@ const routes: RouteRecordRaw[] = [
         },
       },
       {
-        path: 'forum/comments/:id',
-        name: 'forum-comment-detail',
+        path: 'comments/:type/:id',
+        name: 'comment-detail',
         component: () => import('@/views/comments/CommentDetailView.vue'),
         meta: {
           titleKey: 'comments.detail.title',
-          permission: PERM.MODERATE_FORUM_COMMENT,
+          permission: [PERM.MODERATE_FORUM_COMMENT, PERM.MODERATE_SOLUTION_COMMENT],
         },
         props: true,
       },

@@ -16,6 +16,7 @@ export default {
   type: {
     forum: '论坛',
     solution: '题解',
+    unknown: '未知',
   },
 
   status: {
@@ -44,9 +45,12 @@ export default {
     type: '评论类型',
     allTypes: '全部类型',
     flagStatus: '标记状态',
+    deletedStatus: '删除状态',
     all: '全部',
     flagged: '已标记',
     clean: '正常',
+    deleted: '已删除',
+    active: '活跃',
   },
 
   bulkActions: {

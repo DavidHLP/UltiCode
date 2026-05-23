@@ -9,24 +9,23 @@ export interface Comment {
   updatedAt: string
   authorId: string
   parentId?: string
+  parentEntityId?: string
 
-  // Type identification
   type: CommentType
-  parentTitle?: string // unified parent title (post title or solution title)
-
-  // Moderation
-  isFlagged: boolean
-  flaggedReason?: string
-  flaggedAt?: string
-  isDeleted: boolean
-  deletedAt?: string
-  deletedBy?: string
+  parentTitle?: string
 
   author: {
     id: string
     username: string
     avatar?: string
   }
+
+  isFlagged: boolean
+  flaggedReason?: string
+  flaggedAt?: string
+  isDeleted: boolean
+  deletedAt?: string
+  deletedBy?: string
 }
 
 export interface CommentQueryParams {
@@ -36,6 +35,7 @@ export interface CommentQueryParams {
   type?: CommentType
   isFlagged?: boolean
   isDeleted?: boolean
+  parentEntityId?: string
   sortBy?: string
   sortOrder?: 'asc' | 'desc'
 }

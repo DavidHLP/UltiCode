@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button'
 
 import { useCommentsStore } from '@/stores/admin/comments'
 import { useAuthStore } from '@/stores/auth'
+import { PERM } from '@/constants/permissions'
 import type { Comment, CommentType } from '@/api/admin/comments'
 
 import DataTable from '@/components/table/DataTable.vue'
@@ -22,6 +23,7 @@ const authStore = useAuthStore()
 
 const typeFilter = ref<CommentType | 'all'>('all')
 const flaggedFilter = ref<string>('all')
+const deletedFilter = ref<string>('all')
 
 const selectedCommentId = ref<string | null>(null)
 const selectedCommentType = ref<CommentType | null>(null)
@@ -73,6 +75,16 @@ const toolbarFilters = computed<Filter[]>(() => [
       { value: 'clean', label: t('comments.filters.clean') },
     ],
   },
+  {
+    modelValue: deletedFilter.value,
+    placeholder: t('comments.filters.deletedStatus'),
+    width: 'w-[140px]',
+    options: [
+      { value: 'all', label: t('comments.filters.all') },
+      { value: 'deleted', label: t('comments.filters.deleted') },
+      { value: 'active', label: t('comments.filters.active') },
+    ],
+  },
 ])
 
 const {
@@ -86,7 +98,7 @@ const {
   loadEntities: loadComments,
 } = useDataTable<
   Comment,
-  { type: CommentType | 'all'; flaggedFilter: string },
+  { type: CommentType | 'all'; flaggedFilter: string; deletedFilter: string },
   Parameters<typeof commentsStore.fetchComments>[0]
 >({
   store: {
@@ -99,11 +111,13 @@ const {
   filters: () => ({
     type: typeFilter.value,
     flaggedFilter: flaggedFilter.value,
+    deletedFilter: deletedFilter.value,
   }),
   transformParams: ({ search, filters, page, limit }) => ({
     search,
     type: filters.type === 'all' ? undefined : filters.type,
     isFlagged: filters.flaggedFilter === 'all' ? undefined : filters.flaggedFilter === 'flagged',
+    isDeleted: filters.deletedFilter === 'all' ? undefined : filters.deletedFilter === 'deleted',
     page,
     limit,
   }),
@@ -189,10 +203,15 @@ async function handleBulkUnflag() {
   }
 }
 
+const bulkDeleteDialogOpen = ref(false)
+
 async function handleBulkDelete() {
   if (selectedRows.value.length === 0) return
-  const count = selectedRows.value.length
-  if (!confirm(t('comments.deleteConfirm', { count }))) return
+  bulkDeleteDialogOpen.value = true
+}
+
+async function handleBulkDeleteConfirm() {
+  if (selectedRows.value.length === 0) return
 
   // Group by type for API call
   const byType = selectedRows.value.reduce(
@@ -347,10 +366,11 @@ async function handleBulkDelete() {
             :search-placeholder="t('comments.searchPlaceholder')"
             :filters="toolbarFilters"
             @update:filter="
-              (index, value) =>
-                index === 0
-                  ? (typeFilter = value as CommentType | 'all')
-                  : (flaggedFilter = String(value))
+              (index, value) => {
+                if (index === 0) typeFilter = value as CommentType | 'all'
+                else if (index === 1) flaggedFilter = String(value)
+                else deletedFilter = String(value)
+              }
             "
             :loading="loading"
             :on-refresh="loadComments"
@@ -408,6 +428,20 @@ async function handleBulkDelete() {
     :reason-placeholder="t('comments.flag.reasonPlaceholder')"
     :reason-required-label="t('comments.toast.reasonRequired')"
     :on-action="handleFlagComment"
+    @success="loadComments"
+  />
+
+  <EntityActionDialog
+    v-model:open="bulkDeleteDialogOpen"
+    entity-id="bulk"
+    action="delete"
+    :title="t('comments.delete.title')"
+    :description="t('comments.delete.description')"
+    :confirm-label="t('comments.delete.confirm')"
+    :cancel-label="t('comments.delete.cancel')"
+    :success-label="t('comments.toast.bulkDeletedSuccessfully')"
+    :error-label="t('comments.toast.failedToBulkDelete')"
+    :on-action="handleBulkDeleteConfirm"
     @success="loadComments"
   />
 </template>

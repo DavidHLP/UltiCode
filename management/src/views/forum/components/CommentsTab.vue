@@ -29,7 +29,7 @@ import type { Comment, CommentType } from '@/api/admin/comments'
 import DataTable from '@/components/table/DataTable.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 
-defineProps<{
+const props = defineProps<{
   postId: string
 }>()
 
@@ -60,8 +60,7 @@ onMounted(() => loadComments())
 async function loadComments() {
   await commentsStore.fetchComments({
     type: 'forum',
-    // Note: The comments API doesn't currently support filtering by post_id
-    // We'll need to add this to the backend or filter client-side
+    parentEntityId: props.postId,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
   })

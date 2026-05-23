@@ -23,11 +23,16 @@ export const PERM = {
   MODERATE_FORUM_POST: { action: 'MODERATE' as const, resource: 'FORUM_POST' as const },
   MODERATE_FORUM_COMMENT: { action: 'MODERATE' as const, resource: 'FORUM_COMMENT' as const },
   MODERATE_SOLUTION_COMMENT: { action: 'MODERATE' as const, resource: 'SOLUTION_COMMENT' as const },
+  DELETE_FORUM_COMMENT: { action: 'DELETE' as const, resource: 'FORUM_COMMENT' as const },
+  DELETE_SOLUTION_COMMENT: { action: 'DELETE' as const, resource: 'SOLUTION_COMMENT' as const },
   PROBLEM_LIST_READ: { action: 'READ' as const, resource: 'PROBLEM_LIST' as const },
   PROBLEM_LIST_CREATE: { action: 'CREATE' as const, resource: 'PROBLEM_LIST' as const },
   PROBLEM_LIST_UPDATE: { action: 'UPDATE' as const, resource: 'PROBLEM_LIST' as const },
   PROBLEM_LIST_DELETE: { action: 'DELETE' as const, resource: 'PROBLEM_LIST' as const },
-  PROBLEM_LIST_MANAGE_PROBLEMS: { action: 'MANAGE_PROBLEMS' as const, resource: 'PROBLEM_LIST' as const },
+  PROBLEM_LIST_MANAGE_PROBLEMS: {
+    action: 'MANAGE_PROBLEMS' as const,
+    resource: 'PROBLEM_LIST' as const,
+  },
   CONTEST_READ: { action: 'READ' as const, resource: 'CONTEST' as const },
   TAG_READ: { action: 'READ' as const, resource: 'TAG' as const },
   TAG_UPDATE: { action: 'UPDATE' as const, resource: 'TAG' as const },
@@ -38,7 +43,7 @@ export const PERM = {
 /**
  * Type for a permission object
  */
-export type Permission = typeof PERM[keyof typeof PERM]
+export type Permission = (typeof PERM)[keyof typeof PERM]
 
 /**
  * Type guard to check if a value is a valid permission

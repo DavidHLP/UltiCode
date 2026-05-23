@@ -1,6 +1,7 @@
 package com.ulticode.modules.forum.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.modules.forum.entity.ForumComment;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -159,6 +160,30 @@ public interface ForumCommentMapper extends BaseMapper<ForumComment> {
      */
     @Update("UPDATE forum_comments SET is_deleted = 1, deleted_at = NOW(), deleted_by = #{deletedBy} WHERE id = #{commentId}")
     int softDelete(@Param("commentId") String commentId, @Param("deletedBy") String deletedBy);
+
+    /**
+     * Select comment by ID ignoring logical delete (for admin queries).
+     */
+    @Select("SELECT * FROM forum_comments WHERE id = #{id}")
+    ForumComment selectByIdIgnoreDeleted(@Param("id") String id);
+
+    /**
+     * Admin paginated query ignoring logical delete. Supports dynamic filtering.
+     */
+    @Select("""
+            <script>
+            SELECT * FROM forum_comments
+            WHERE 1=1
+            <if test="isFlagged != null">AND is_flagged = #{isFlagged}</if>
+            <if test="isDeleted != null">AND is_deleted = #{isDeleted}</if>
+            <if test="search != null and search != ''">AND body LIKE CONCAT('%', #{search}, '%')</if>
+            ORDER BY created_at DESC
+            </script>
+            """)
+    List<ForumComment> selectPageIgnoreDeleted(Page<ForumComment> page,
+                                                @Param("isFlagged") Boolean isFlagged,
+                                                @Param("isDeleted") Boolean isDeleted,
+                                                @Param("search") String search);
 
     /**
      * Update edited timestamp.

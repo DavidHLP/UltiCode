@@ -55,9 +55,9 @@ const columns = computed(() => {
     viewEntity: (report) => {
       const routes: Record<ModeratableEntityType, string> = {
         forum_post: `/forum/posts/${report.entityId}`,
-        forum_comment: `/forum/comments/${report.entityId}`,
+        forum_comment: `/comments/forum/${report.entityId}`,
         solution: `/solutions/${report.entityId}`,
-        solution_comment: `/solutions/${report.entityId}`,
+        solution_comment: `/comments/solution/${report.entityId}`,
         problem: `/problems/${report.entityId}`,
       }
       router.push(routes[report.entityType])

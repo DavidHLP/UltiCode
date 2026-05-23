@@ -1,6 +1,5 @@
 package com.ulticode.modules.admin.service.impl;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.annotation.Audited;
 import com.ulticode.common.exception.BusinessException;
@@ -8,6 +7,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
+import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.admin.dto.AdminCommentQueryDTO;
 import com.ulticode.modules.admin.dto.AdminCommentVO;
 import com.ulticode.modules.admin.dto.BulkActionResult;
@@ -26,6 +26,7 @@ import com.ulticode.modules.user.mapper.UserMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
@@ -36,13 +37,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Implementation of AdminCommentService.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminCommentServiceImpl implements AdminCommentService {
+
+    private static final Set<String> VALID_TYPES = Set.of("forum", "solution");
 
     private final ForumCommentMapper forumCommentMapper;
     private final SolutionCommentMapper solutionCommentMapper;
@@ -55,167 +55,87 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         int page = query.getPage() != null && query.getPage() > 0 ? query.getPage() : 1;
         int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
 
-        // Determine which type to query
         String type = query.getType();
+        if (!StringUtils.hasText(type) || !VALID_TYPES.contains(type)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid comment type: must be 'forum' or 'solution'");
+        }
+
         if ("forum".equals(type)) {
             return getForumComments(query, page, limit);
-        } else if ("solution".equals(type)) {
-            return getSolutionComments(query, page, limit);
         } else {
-            // Query both types and merge
-            return getForumCommentsAsFallback(query, page, limit);
+            return getSolutionComments(query, page, limit);
         }
     }
 
     private PageResult<AdminCommentVO> getForumComments(AdminCommentQueryDTO query, int page, int limit) {
-        LambdaQueryWrapper<ForumComment> wrapper = new LambdaQueryWrapper<>();
-
-        // Search filter
-        if (StringUtils.hasText(query.getSearch())) {
-            wrapper.like(ForumComment::getBody, "%" + query.getSearch() + "%");
-        }
-
-        // Flagged status filter
-        if (query.getIsFlagged() != null) {
-            wrapper.eq(ForumComment::getIsFlagged, query.getIsFlagged());
-        }
-
-        // Deleted status filter
-        if (query.getIsDeleted() != null) {
-            wrapper.eq(ForumComment::getIsDeleted, query.getIsDeleted());
-        }
-
-        // Sorting
-        boolean isAsc = !"desc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        if ("createdAt".equals(sortBy)) {
-            wrapper.orderBy(true, isAsc, ForumComment::getCreatedAt);
-        } else if ("flaggedAt".equals(sortBy)) {
-            wrapper.orderBy(true, isAsc, ForumComment::getFlaggedAt);
-        } else {
-            wrapper.orderBy(true, isAsc, ForumComment::getCreatedAt);
-        }
-
         Page<ForumComment> pageResult = new Page<>(page, limit);
-        Page<ForumComment> result = forumCommentMapper.selectPage(pageResult, wrapper);
+        List<ForumComment> records = forumCommentMapper.selectPageIgnoreDeleted(
+                pageResult, query.getIsFlagged(), query.getIsDeleted(), query.getSearch());
+        pageResult.setRecords(records);
 
-        // Batch-load users and posts to avoid N+1 queries
-        Set<String> authorIds = result.getRecords().stream()
-                .map(ForumComment::getAuthorId)
-                .collect(Collectors.toSet());
-        Set<String> postIds = result.getRecords().stream()
-                .map(ForumComment::getPostId)
-                .collect(Collectors.toSet());
+        Set<String> authorIds = records.stream()
+                .map(ForumComment::getAuthorId).collect(Collectors.toSet());
+        Set<String> postIds = records.stream()
+                .map(ForumComment::getPostId).collect(Collectors.toSet());
 
-        Map<String, User> userMap = new HashMap<>();
-        if (!authorIds.isEmpty()) {
-            userMap = userMapper.selectBatchIds(authorIds).stream()
-                    .collect(Collectors.toMap(User::getId, u -> u));
-        }
+        Map<String, User> userMap = batchLoadUsers(authorIds);
+        Map<String, ForumPost> postMap = batchLoadPosts(postIds);
 
-        Map<String, ForumPost> postMap = new HashMap<>();
-        if (!postIds.isEmpty()) {
-            postMap = forumPostMapper.selectBatchIds(postIds).stream()
-                    .collect(Collectors.toMap(ForumPost::getId, p -> p));
-        }
-
-        Map<String, User> finalUserMap = userMap;
-        Map<String, ForumPost> finalPostMap = postMap;
-        List<AdminCommentVO> vos = result.getRecords().stream()
-                .map(c -> forumToAdminVO(c, finalUserMap, finalPostMap))
+        List<AdminCommentVO> vos = records.stream()
+                .map(c -> forumToAdminVO(c, userMap.get(c.getAuthorId()), postMap.get(c.getPostId())))
                 .collect(Collectors.toList());
 
-        return PageResult.of(vos, result.getTotal(), page, limit);
+        return PageResult.of(vos, pageResult.getTotal(), page, limit);
     }
 
     private PageResult<AdminCommentVO> getSolutionComments(AdminCommentQueryDTO query, int page, int limit) {
-        LambdaQueryWrapper<SolutionComment> wrapper = new LambdaQueryWrapper<>();
-
-        // Search filter
-        if (StringUtils.hasText(query.getSearch())) {
-            wrapper.like(SolutionComment::getContent, "%" + query.getSearch() + "%");
-        }
-
-        // Flagged status filter
-        if (query.getIsFlagged() != null) {
-            wrapper.eq(SolutionComment::getIsFlagged, query.getIsFlagged());
-        }
-
-        // Deleted status filter
-        if (query.getIsDeleted() != null) {
-            wrapper.eq(SolutionComment::getIsDeleted, query.getIsDeleted());
-        }
-
-        // Sorting
-        boolean isAsc = !"desc".equalsIgnoreCase(query.getSortOrder());
-        String sortBy = StringUtils.hasText(query.getSortBy()) ? query.getSortBy() : "createdAt";
-        if ("createdAt".equals(sortBy)) {
-            wrapper.orderBy(true, isAsc, SolutionComment::getCreatedAt);
-        } else if ("flaggedAt".equals(sortBy)) {
-            wrapper.orderBy(true, isAsc, SolutionComment::getFlaggedAt);
-        } else {
-            wrapper.orderBy(true, isAsc, SolutionComment::getCreatedAt);
-        }
-
         Page<SolutionComment> pageResult = new Page<>(page, limit);
-        Page<SolutionComment> result = solutionCommentMapper.selectPage(pageResult, wrapper);
+        List<SolutionComment> records = solutionCommentMapper.selectPageIgnoreDeleted(
+                pageResult, query.getIsFlagged(), query.getIsDeleted(), query.getSearch());
+        pageResult.setRecords(records);
 
-        // Batch-load users and solutions to avoid N+1 queries
-        Set<String> authorIds = result.getRecords().stream()
-                .map(SolutionComment::getUserId)
-                .collect(Collectors.toSet());
-        Set<String> solutionIds = result.getRecords().stream()
-                .map(SolutionComment::getSolutionId)
-                .collect(Collectors.toSet());
+        Set<String> authorIds = records.stream()
+                .map(SolutionComment::getUserId).collect(Collectors.toSet());
+        Set<String> solutionIds = records.stream()
+                .map(SolutionComment::getSolutionId).collect(Collectors.toSet());
 
-        Map<String, User> userMap = new HashMap<>();
-        if (!authorIds.isEmpty()) {
-            userMap = userMapper.selectBatchIds(authorIds).stream()
-                    .collect(Collectors.toMap(User::getId, u -> u));
-        }
+        Map<String, User> userMap = batchLoadUsers(authorIds);
+        Map<String, Solution> solutionMap = batchLoadSolutions(solutionIds);
 
-        Map<String, Solution> solutionMap = new HashMap<>();
-        if (!solutionIds.isEmpty()) {
-            solutionMap = solutionMapper.selectBatchIds(solutionIds).stream()
-                    .collect(Collectors.toMap(Solution::getId, s -> s));
-        }
-
-        Map<String, User> finalUserMap2 = userMap;
-        Map<String, Solution> finalSolutionMap = solutionMap;
-        List<AdminCommentVO> vos = result.getRecords().stream()
-                .map(c -> solutionToAdminVO(c, finalUserMap2, finalSolutionMap))
+        List<AdminCommentVO> vos = records.stream()
+                .map(c -> solutionToAdminVO(c, userMap.get(c.getUserId()), solutionMap.get(c.getSolutionId())))
                 .collect(Collectors.toList());
 
-        return PageResult.of(vos, result.getTotal(), page, limit);
-    }
-
-    private PageResult<AdminCommentVO> getForumCommentsAsFallback(AdminCommentQueryDTO query, int page, int limit) {
-        // For simplicity, when type is not specified, fetch forum comments first
-        // In a production system, you might want to implement proper merging
-        return getForumComments(query, page, limit);
+        return PageResult.of(vos, pageResult.getTotal(), page, limit);
     }
 
     @Override
     public AdminCommentVO getComment(String id, String type) {
+        validateType(type);
         if ("forum".equals(type)) {
-            ForumComment comment = forumCommentMapper.selectById(id);
+            ForumComment comment = forumCommentMapper.selectByIdIgnoreDeleted(id);
             if (comment == null) {
                 throw new BusinessException(ErrorCode.NOT_FOUND);
             }
-            return forumToAdminVO(comment);
-        } else if ("solution".equals(type)) {
-            SolutionComment comment = solutionCommentMapper.selectById(id);
+            User user = userMapper.selectById(comment.getAuthorId());
+            ForumPost post = forumPostMapper.selectById(comment.getPostId());
+            return forumToAdminVO(comment, user, post);
+        } else {
+            SolutionComment comment = solutionCommentMapper.selectByIdIgnoreDeleted(id);
             if (comment == null) {
                 throw new BusinessException(ErrorCode.NOT_FOUND);
             }
-            return solutionToAdminVO(comment);
+            User user = userMapper.selectById(comment.getUserId());
+            Solution solution = solutionMapper.selectById(comment.getSolutionId());
+            return solutionToAdminVO(comment, user, solution);
         }
-        throw new BusinessException(ErrorCode.BAD_REQUEST);
     }
 
     @Override
-    @Audited(action = AuditActionUtil.FLAG_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT, userIdFrom = "id")
-    public void flagComment(String id, String type, String reason) {
+    @Transactional
+    @Audited(action = AuditActionUtil.FLAG_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT)
+    public AdminCommentVO flagComment(String id, String type, String reason) {
+        validateType(type);
         if ("forum".equals(type)) {
             ForumComment comment = getForumCommentEntityOrThrow(id);
             AuditContext.setUserId(comment.getAuthorId());
@@ -245,11 +165,14 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             solutionCommentMapper.updateById(comment);
             log.info("Solution comment flagged: {}", id);
         }
+        return getComment(id, type);
     }
 
     @Override
-    @Audited(action = AuditActionUtil.UNFLAG_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT, userIdFrom = "id")
-    public void unflagComment(String id, String type) {
+    @Transactional
+    @Audited(action = AuditActionUtil.UNFLAG_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT)
+    public AdminCommentVO unflagComment(String id, String type) {
+        validateType(type);
         if ("forum".equals(type)) {
             ForumComment comment = getForumCommentEntityOrThrow(id);
             AuditContext.setUserId(comment.getAuthorId());
@@ -279,11 +202,14 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             solutionCommentMapper.updateById(comment);
             log.info("Solution comment unflagged: {}", id);
         }
+        return getComment(id, type);
     }
 
     @Override
-    @Audited(action = AuditActionUtil.DELETE_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT, userIdFrom = "id")
+    @Transactional
+    @Audited(action = AuditActionUtil.DELETE_COMMENT, entityType = AuditActionUtil.ENTITY_COMMENT)
     public void deleteComment(String id, String type) {
+        validateType(type);
         if ("forum".equals(type)) {
             ForumComment comment = getForumCommentEntityOrThrow(id);
             AuditContext.setUserId(comment.getAuthorId());
@@ -291,6 +217,7 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             AuditContext.setNewValues(Map.of("isDeleted", true, "type", "forum"));
             comment.setIsDeleted(true);
             comment.setDeletedAt(LocalDateTime.now());
+            comment.setDeletedBy(SecurityUtil.getCurrentUserId());
             forumCommentMapper.updateById(comment);
             log.info("Forum comment deleted: {}", id);
         } else if ("solution".equals(type)) {
@@ -300,12 +227,14 @@ public class AdminCommentServiceImpl implements AdminCommentService {
             AuditContext.setNewValues(Map.of("isDeleted", true, "type", "solution"));
             comment.setIsDeleted(true);
             comment.setDeletedAt(LocalDateTime.now());
+            comment.setDeletedBy(SecurityUtil.getCurrentUserId());
             solutionCommentMapper.updateById(comment);
             log.info("Solution comment deleted: {}", id);
         }
     }
 
     @Override
+    @Transactional
     public BulkActionResult bulkCommentAction(BulkCommentActionRequest request) {
         BulkActionResult response = new BulkActionResult();
         response.setTotal(request.getIds().size());
@@ -338,183 +267,91 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         return response;
     }
 
-    /**
-     * Get ForumComment entity or throw exception.
-     */
     private ForumComment getForumCommentEntityOrThrow(String id) {
-        ForumComment comment = forumCommentMapper.selectById(id);
+        ForumComment comment = forumCommentMapper.selectByIdIgnoreDeleted(id);
         if (comment == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
         return comment;
     }
 
-    /**
-     * Get SolutionComment entity or throw exception.
-     */
     private SolutionComment getSolutionCommentEntityOrThrow(String id) {
-        SolutionComment comment = solutionCommentMapper.selectById(id);
+        SolutionComment comment = solutionCommentMapper.selectByIdIgnoreDeleted(id);
         if (comment == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND);
         }
         return comment;
     }
 
-    /**
-     * Convert ForumComment entity to AdminCommentVO (list view) with batch-loaded data.
-     */
-    private AdminCommentVO forumToAdminVO(ForumComment comment, Map<String, User> userMap,
-                                          Map<String, ForumPost> postMap) {
-        if (comment == null) {
-            return null;
-        }
-
-        AdminCommentVO vo = new AdminCommentVO();
-        vo.setId(comment.getId());
-        vo.setContent(comment.getBody());
-        vo.setCreatedAt(comment.getCreatedAt());
-        vo.setUpdatedAt(comment.getEditedAt());
-        vo.setAuthorId(comment.getAuthorId());
-        vo.setParentCommentId(comment.getParentId());
-        vo.setType("forum");
-        vo.setParentId(comment.getPostId());
-        vo.setIsFlagged(comment.getIsFlagged() != null ? comment.getIsFlagged() : false);
-        vo.setFlaggedReason(comment.getFlaggedReason());
-        vo.setFlaggedAt(comment.getFlaggedAt());
-        vo.setIsDeleted(comment.getIsDeleted() != null ? comment.getIsDeleted() : false);
-        vo.setDeletedAt(comment.getDeletedAt());
-        vo.setDeletedBy(comment.getDeletedBy());
-
-        User user = userMap.get(comment.getAuthorId());
-        if (user != null) {
-            vo.setUsername(user.getUsername());
-            vo.setAvatar(user.getAvatar());
-        }
-
-        ForumPost post = postMap.get(comment.getPostId());
-        if (post != null) {
-            vo.setParentTitle(post.getTitle());
-        }
-
-        return vo;
+    private AdminCommentVO forumToAdminVO(ForumComment comment, User user, ForumPost post) {
+        return new AdminCommentVO(
+            comment.getId(),
+            comment.getBody(),
+            comment.getCreatedAt(),
+            comment.getEditedAt() != null ? comment.getEditedAt() : comment.getCreatedAt(),
+            comment.getAuthorId(),
+            comment.getParentId(),
+            "forum",
+            comment.getPostId(),
+            post != null ? post.getTitle() : null,
+            user != null ? new AdminCommentVO.AuthorInfo(user.getId(), user.getUsername(), user.getAvatar()) : null,
+            comment.getIsFlagged(),
+            comment.getFlaggedReason(),
+            comment.getFlaggedAt(),
+            comment.getIsDeleted(),
+            comment.getDeletedAt(),
+            comment.getDeletedBy()
+        );
     }
 
-    /**
-     * Convert ForumComment entity to AdminCommentVO (single-item view).
-     */
-    private AdminCommentVO forumToAdminVO(ForumComment comment) {
-        if (comment == null) {
-            return null;
-        }
-
-        AdminCommentVO vo = new AdminCommentVO();
-        vo.setId(comment.getId());
-        vo.setContent(comment.getBody());
-        vo.setCreatedAt(comment.getCreatedAt());
-        vo.setUpdatedAt(comment.getEditedAt());
-        vo.setAuthorId(comment.getAuthorId());
-        vo.setParentCommentId(comment.getParentId());
-        vo.setType("forum");
-        vo.setParentId(comment.getPostId());
-        vo.setIsFlagged(comment.getIsFlagged() != null ? comment.getIsFlagged() : false);
-        vo.setFlaggedReason(comment.getFlaggedReason());
-        vo.setFlaggedAt(comment.getFlaggedAt());
-        vo.setIsDeleted(comment.getIsDeleted() != null ? comment.getIsDeleted() : false);
-        vo.setDeletedAt(comment.getDeletedAt());
-        vo.setDeletedBy(comment.getDeletedBy());
-
-        // Fetch user info
-        User user = userMapper.selectById(comment.getAuthorId());
-        if (user != null) {
-            vo.setUsername(user.getUsername());
-            vo.setAvatar(user.getAvatar());
-        }
-
-        // Fetch post title
-        ForumPost post = forumPostMapper.selectById(comment.getPostId());
-        if (post != null) {
-            vo.setParentTitle(post.getTitle());
-        }
-
-        return vo;
+    private AdminCommentVO solutionToAdminVO(SolutionComment comment, User user, Solution solution) {
+        return new AdminCommentVO(
+            comment.getId(),
+            comment.getContent(),
+            comment.getCreatedAt(),
+            comment.getUpdatedAt() != null ? comment.getUpdatedAt() : comment.getCreatedAt(),
+            comment.getUserId(),
+            comment.getParentId(),
+            "solution",
+            comment.getSolutionId(),
+            solution != null ? solution.getTitle() : null,
+            user != null ? new AdminCommentVO.AuthorInfo(user.getId(), user.getUsername(), user.getAvatar()) : null,
+            comment.getIsFlagged(),
+            comment.getFlaggedReason(),
+            comment.getFlaggedAt(),
+            comment.getIsDeleted(),
+            comment.getDeletedAt(),
+            comment.getDeletedBy()
+        );
     }
 
-    /**
-     * Convert SolutionComment entity to AdminCommentVO (list view) with batch-loaded data.
-     */
-    private AdminCommentVO solutionToAdminVO(SolutionComment comment, Map<String, User> userMap,
-                                             Map<String, Solution> solutionMap) {
-        if (comment == null) {
-            return null;
+    private Map<String, User> batchLoadUsers(Set<String> ids) {
+        if (ids.isEmpty()) {
+            return new HashMap<>();
         }
-
-        AdminCommentVO vo = new AdminCommentVO();
-        vo.setId(comment.getId());
-        vo.setContent(comment.getContent());
-        vo.setCreatedAt(comment.getCreatedAt());
-        vo.setUpdatedAt(comment.getUpdatedAt());
-        vo.setAuthorId(comment.getUserId());
-        vo.setParentCommentId(comment.getParentId());
-        vo.setType("solution");
-        vo.setParentId(comment.getSolutionId());
-        vo.setIsFlagged(comment.getIsFlagged() != null ? comment.getIsFlagged() : false);
-        vo.setFlaggedReason(comment.getFlaggedReason());
-        vo.setFlaggedAt(comment.getFlaggedAt());
-        vo.setIsDeleted(comment.getIsDeleted() != null ? comment.getIsDeleted() : false);
-        vo.setDeletedAt(comment.getDeletedAt());
-        vo.setDeletedBy(comment.getDeletedBy());
-
-        User user = userMap.get(comment.getUserId());
-        if (user != null) {
-            vo.setUsername(user.getUsername());
-            vo.setAvatar(user.getAvatar());
-        }
-
-        Solution solution = solutionMap.get(comment.getSolutionId());
-        if (solution != null) {
-            vo.setParentTitle(solution.getTitle());
-        }
-
-        return vo;
+        return userMapper.selectBatchIds(ids).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
     }
 
-    /**
-     * Convert SolutionComment entity to AdminCommentVO (single-item view).
-     */
-    private AdminCommentVO solutionToAdminVO(SolutionComment comment) {
-        if (comment == null) {
-            return null;
+    private Map<String, ForumPost> batchLoadPosts(Set<String> ids) {
+        if (ids.isEmpty()) {
+            return new HashMap<>();
         }
+        return forumPostMapper.selectBatchIds(ids).stream()
+                .collect(Collectors.toMap(ForumPost::getId, p -> p));
+    }
 
-        AdminCommentVO vo = new AdminCommentVO();
-        vo.setId(comment.getId());
-        vo.setContent(comment.getContent());
-        vo.setCreatedAt(comment.getCreatedAt());
-        vo.setUpdatedAt(comment.getUpdatedAt());
-        vo.setAuthorId(comment.getUserId());
-        vo.setParentCommentId(comment.getParentId());
-        vo.setType("solution");
-        vo.setParentId(comment.getSolutionId());
-        vo.setIsFlagged(comment.getIsFlagged() != null ? comment.getIsFlagged() : false);
-        vo.setFlaggedReason(comment.getFlaggedReason());
-        vo.setFlaggedAt(comment.getFlaggedAt());
-        vo.setIsDeleted(comment.getIsDeleted() != null ? comment.getIsDeleted() : false);
-        vo.setDeletedAt(comment.getDeletedAt());
-        vo.setDeletedBy(comment.getDeletedBy());
-
-        // Fetch user info
-        User user = userMapper.selectById(comment.getUserId());
-        if (user != null) {
-            vo.setUsername(user.getUsername());
-            vo.setAvatar(user.getAvatar());
+    private Map<String, Solution> batchLoadSolutions(Set<String> ids) {
+        if (ids.isEmpty()) {
+            return new HashMap<>();
         }
+        return solutionMapper.selectBatchIds(ids).stream()
+                .collect(Collectors.toMap(Solution::getId, s -> s));
+    }
 
-        // Fetch solution title
-        Solution solution = solutionMapper.selectById(comment.getSolutionId());
-        if (solution != null) {
-            vo.setParentTitle(solution.getTitle());
+    private void validateType(String type) {
+        if (!VALID_TYPES.contains(type)) {
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid comment type: must be 'forum' or 'solution'");
         }
-
-        return vo;
     }
 }

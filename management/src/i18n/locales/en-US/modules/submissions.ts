@@ -13,6 +13,7 @@ export default {
   status: 'Status',
   runtime: 'Runtime',
   memory: 'Memory',
+  codeLength: 'Code Length',
   submittedAt: 'Submitted At',
   score: 'Score',
   result: 'Result',

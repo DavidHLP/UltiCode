@@ -98,6 +98,8 @@ const tableTranslations = {
     contestType: '比赛类型',
     sortOrder: '排序',
     runtime: '运行时间',
+    codeLength: '代码长度',
+    code_length: '代码长度',
     language: '语言',
     problemTitle: '题目标题',
     memory: '内存',

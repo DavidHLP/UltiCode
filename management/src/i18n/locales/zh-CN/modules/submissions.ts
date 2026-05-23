@@ -13,6 +13,7 @@ export default {
   status: '状态',
   runtime: '运行时间',
   memory: '内存占用',
+  codeLength: '代码长度',
   submittedAt: '提交时间',
   score: '分数',
   result: '结果',

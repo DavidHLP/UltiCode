@@ -7,10 +7,12 @@ export interface SubmissionQueryParams {
   problemId?: number
   status?: string
   language?: string
+  /** @format ISO-8601 (YYYY-MM-DDTHH:mm:ss) */
   startDate?: string
+  /** @format ISO-8601 (YYYY-MM-DDTHH:mm:ss) */
   endDate?: string
   search?: string
-  sortBy?: 'created_at' | 'runtime' | 'memory' | 'status'
+  sortBy?: 'createdAt' | 'runtime' | 'memory' | 'status'
   sortOrder?: 'asc' | 'desc'
 }
 

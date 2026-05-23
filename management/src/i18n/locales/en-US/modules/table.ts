@@ -98,6 +98,8 @@ const tableTranslations = {
     contestType: 'Contest Type',
     sortOrder: 'Sort Order',
     runtime: 'Runtime',
+    codeLength: 'Code Length',
+    code_length: 'Code Length',
     language: 'Language',
     problemTitle: 'Problem Title',
     memory: 'Memory',

@@ -17,15 +17,15 @@ public class Notification {
 
     private String userId;
 
-    @TableField("type")
     private String type;
 
-    @TableField("category")
     private String category;
 
     private String title;
     private String body;
     private String link;
+
+    private String announcementId;
 
     @TableField(typeHandler = JacksonTypeHandler.class)
     private Map<String, Object> metadata;

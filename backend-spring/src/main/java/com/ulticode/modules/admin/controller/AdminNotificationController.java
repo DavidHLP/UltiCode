@@ -1,7 +1,9 @@
 package com.ulticode.modules.admin.controller;
 
 import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
@@ -12,28 +14,24 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
-/**
- * Admin controller for notification management.
- * Handles system announcements and notification operations for admin panel.
- */
 @Tag(name = "Admin - Notifications", description = "Notification management endpoints for admin panel")
 @RestController
 @RequestMapping("/admin/notifications")
 @RequiredArgsConstructor
 @SecurityRequirement(name = "Bearer")
+@Validated
 public class AdminNotificationController {
 
     private final AdminNotificationService adminNotificationService;
 
-    @Operation(summary = "Get all system notifications", description = "Get list of all system announcements with creator information")
+    @Operation(summary = "List system notifications", description = "Paginated list of system announcements with server-side filtering")
     @GetMapping
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
-    public Result<List<AdminNotificationVO>> getAllNotifications() {
-        return Result.success(adminNotificationService.getAllSystemNotifications());
+    public Result<PageResult<AdminNotificationVO>> listNotifications(@Valid AdminNotificationQueryDTO queryDTO) {
+        return Result.success(adminNotificationService.listSystemNotifications(queryDTO));
     }
 
     @Operation(summary = "Create system notification", description = "Create a new system announcement and send to target users")

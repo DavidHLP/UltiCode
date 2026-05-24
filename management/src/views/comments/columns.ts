@@ -3,6 +3,7 @@ import type { ColumnDef } from '@tanstack/vue-table'
 import {
   IconCheck,
   IconDotsVertical,
+  IconEye,
   IconFlag,
   IconMessage,
   IconFileText,
@@ -24,6 +25,7 @@ import type { Comment, CommentType } from '@/api/admin/comments'
 import { formatDate } from '@/lib/format/date'
 
 export interface CommentActions {
+  viewCommentDetails: (comment: Comment) => void
   unflagComment: (comment: Comment) => void
   openFlagDialog: (comment: Comment) => void
   confirmDelete: (comment: Comment) => void
@@ -37,7 +39,8 @@ function renderTypeBadge(type: CommentType) {
 
 function renderStatusBadge(comment: Comment) {
   if (comment.isDeleted) return badge({ color: 'error', label: 'DELETED', dot: true, pulse: true })
-  if (comment.isFlagged) return badge({ color: 'warning', label: 'FLAGGED', dot: true, pulse: true })
+  if (comment.isFlagged)
+    return badge({ color: 'warning', label: 'FLAGGED', dot: true, pulse: true })
   return badge({ color: 'success', label: 'ACTIVE', dot: true, pulse: true })
 }
 
@@ -180,8 +183,7 @@ export function createColumns(
         ),
       cell: ({ row }) => {
         const comment = row.original
-        if (!canModerate(comment)) return null
-        return createActionsDropdown(t, comment, actions)
+        return createActionsDropdown(t, comment, actions, canModerate(comment))
       },
     },
   ]
@@ -191,6 +193,7 @@ function createActionsDropdown(
   t: (key: string) => string,
   comment: Comment,
   actions: CommentActions,
+  canModerate: boolean,
 ) {
   return h(
     DropdownMenu,
@@ -226,66 +229,111 @@ function createActionsDropdown(
             class: 'border-[var(--silver-200)] dark:border-[var(--silver-700)]',
           },
           {
-            default: () => [
-              comment.isFlagged
-                ? h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.unflagComment(comment),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
-                          h(
-                            'span',
-                            { class: 'text-[var(--terminal-green)]' },
-                            t('comments.actions.unflag'),
-                          ),
-                        ]),
-                    },
-                  )
-                : h(
-                    DropdownMenuItem,
-                    {
-                      onClick: () => actions.openFlagDialog(comment),
-                      class: 'font-data text-xs cursor-pointer',
-                    },
-                    {
-                      default: () =>
-                        h('div', { class: 'flex items-center gap-2' }, [
-                          h(IconFlag, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
-                          h(
-                            'span',
-                            { class: 'text-[var(--terminal-amber)]' },
-                            t('comments.actions.flag'),
-                          ),
-                        ]),
-                    },
-                  ),
-              h(DropdownMenuSeparator, {
-                class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
-              }),
-              h(
-                DropdownMenuItem,
-                {
-                  onClick: () => actions.confirmDelete(comment),
-                  class: 'font-data text-xs cursor-pointer',
-                },
-                {
-                  default: () =>
-                    h('div', { class: 'flex items-center gap-2' }, [
-                      h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
-                      h(
-                        'span',
-                        { class: 'text-[var(--terminal-red)]' },
-                        t('comments.actions.delete'),
-                      ),
-                    ]),
-                },
-              ),
-            ],
+            default: () =>
+              canModerate
+                ? [
+                    h(
+                      DropdownMenuItem,
+                      {
+                        onClick: () => actions.viewCommentDetails(comment),
+                        class: 'font-data text-xs cursor-pointer',
+                      },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                            h('span', {}, t('comments.actions.viewDetails')),
+                          ]),
+                      },
+                    ),
+                    h(DropdownMenuSeparator, {
+                      class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+                    }),
+                    comment.isFlagged
+                      ? h(
+                          DropdownMenuItem,
+                          {
+                            onClick: () => actions.unflagComment(comment),
+                            class: 'font-data text-xs cursor-pointer',
+                          },
+                          {
+                            default: () =>
+                              h('div', { class: 'flex items-center gap-2' }, [
+                                h(IconCheck, { class: 'h-4 w-4 text-[var(--terminal-green)]' }),
+                                h(
+                                  'span',
+                                  { class: 'text-[var(--terminal-green)]' },
+                                  t('comments.actions.unflag'),
+                                ),
+                              ]),
+                          },
+                        )
+                      : h(
+                          DropdownMenuItem,
+                          {
+                            onClick: () => actions.openFlagDialog(comment),
+                            class: 'font-data text-xs cursor-pointer',
+                          },
+                          {
+                            default: () =>
+                              h('div', { class: 'flex items-center gap-2' }, [
+                                h(IconFlag, { class: 'h-4 w-4 text-[var(--terminal-amber)]' }),
+                                h(
+                                  'span',
+                                  { class: 'text-[var(--terminal-amber)]' },
+                                  t('comments.actions.flag'),
+                                ),
+                              ]),
+                          },
+                        ),
+                    h(DropdownMenuSeparator, {
+                      class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+                    }),
+                    h(
+                      DropdownMenuItem,
+                      {
+                        onClick: () => actions.confirmDelete(comment),
+                        class: 'font-data text-xs cursor-pointer',
+                      },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconTrash, { class: 'h-4 w-4 text-[var(--terminal-red)]' }),
+                            h(
+                              'span',
+                              { class: 'text-[var(--terminal-red)]' },
+                              t('comments.actions.delete'),
+                            ),
+                          ]),
+                      },
+                    ),
+                  ]
+                : [
+                    h(
+                      DropdownMenuItem,
+                      {
+                        onClick: () => actions.viewCommentDetails(comment),
+                        class: 'font-data text-xs cursor-pointer',
+                      },
+                      {
+                        default: () =>
+                          h('div', { class: 'flex items-center gap-2' }, [
+                            h(IconEye, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                            h('span', {}, t('comments.actions.viewDetails')),
+                          ]),
+                      },
+                    ),
+                    h(DropdownMenuSeparator, {
+                      class: 'bg-[var(--silver-200)] dark:bg-[var(--silver-700)]',
+                    }),
+                    h(
+                      DropdownMenuItem,
+                      { disabled: true, class: 'font-data text-xs text-[var(--silver-400)]' },
+                      {
+                        default: () => h('span', {}, t('comments.actions.noPermission')),
+                      },
+                    ),
+                  ],
           },
         ),
       ],

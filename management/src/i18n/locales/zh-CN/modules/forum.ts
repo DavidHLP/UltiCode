@@ -72,6 +72,9 @@ export default {
     locked: '锁定',
     lockedOnly: '仅锁定',
     unlockedOnly: '未锁定',
+    deleted: '已删除',
+    deletedOnly: '仅已删除',
+    activeOnly: '仅活跃',
   },
 
   // 标签页

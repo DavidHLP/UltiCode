@@ -177,13 +177,25 @@ public interface ForumCommentMapper extends BaseMapper<ForumComment> {
             <if test="isFlagged != null">AND is_flagged = #{isFlagged}</if>
             <if test="isDeleted != null">AND is_deleted = #{isDeleted}</if>
             <if test="search != null and search != ''">AND body LIKE CONCAT('%', #{search}, '%')</if>
-            ORDER BY created_at DESC
+            <if test="parentEntityId != null and parentEntityId != ''">AND post_id = #{parentEntityId}</if>
+            ORDER BY
+            <choose>
+                <when test="sortBy == 'updatedAt'">edited_at</when>
+                <otherwise>created_at</otherwise>
+            </choose>
+            <choose>
+                <when test="sortOrder == 'asc'">ASC</when>
+                <otherwise>DESC</otherwise>
+            </choose>
             </script>
             """)
     List<ForumComment> selectPageIgnoreDeleted(Page<ForumComment> page,
                                                 @Param("isFlagged") Boolean isFlagged,
                                                 @Param("isDeleted") Boolean isDeleted,
-                                                @Param("search") String search);
+                                                @Param("search") String search,
+                                                @Param("parentEntityId") String parentEntityId,
+                                                @Param("sortBy") String sortBy,
+                                                @Param("sortOrder") String sortOrder);
 
     /**
      * Update edited timestamp.

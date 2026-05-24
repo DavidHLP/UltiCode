@@ -2,9 +2,16 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconCheck, IconMessage, IconTrash } from '@tabler/icons-vue'
+import { IconCheck, IconMessage, IconTrash, IconEye, IconFlag, IconUser, IconFileText } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog'
 
 import { useCommentsStore } from '@/stores/admin/comments'
 import { useAuthStore } from '@/stores/auth'
@@ -15,7 +22,7 @@ import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
 import { useDataTable } from '@/composables/useDataTable'
-import { createColumns } from './columns'
+import { createColumns, type CommentActions } from './columns'
 
 const { t } = useI18n()
 const commentsStore = useCommentsStore()
@@ -30,6 +37,9 @@ const selectedCommentType = ref<CommentType | null>(null)
 const selectedCommentContent = ref<string | null>(null)
 const deleteDialogOpen = ref(false)
 const flagDialogOpen = ref(false)
+
+const detailDialogOpen = ref(false)
+const detailComment = ref<Comment | null>(null)
 
 const bulkActionLoading = ref(false)
 
@@ -157,6 +167,11 @@ async function unflagComment(comment: Comment) {
   }
 }
 
+function viewCommentDetails(comment: Comment) {
+  detailComment.value = comment
+  detailDialogOpen.value = true
+}
+
 function canModerate(comment: Comment) {
   if (comment.type === 'forum') return canModerateForum.value
   if (comment.type === 'solution') return canModerateSolution.value
@@ -166,6 +181,7 @@ function canModerate(comment: Comment) {
 const columns = createColumns(
   t,
   {
+    viewCommentDetails,
     unflagComment,
     openFlagDialog,
     confirmDelete,
@@ -444,4 +460,76 @@ async function handleBulkDeleteConfirm() {
     :on-action="handleBulkDeleteConfirm"
     @success="loadComments"
   />
+
+  <!-- Comment Detail Dialog -->
+  <Dialog v-model:open="detailDialogOpen">
+    <DialogContent class="sm:max-w-lg border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+      <DialogHeader>
+        <DialogTitle class="font-data text-sm uppercase tracking-wider text-[var(--terminal-cyan)]">
+          {{ t('comments.detail.title') }}
+        </DialogTitle>
+        <DialogDescription class="sr-only">
+          {{ t('comments.detail.title') }}
+        </DialogDescription>
+      </DialogHeader>
+      <div v-if="detailComment" class="space-y-4 py-2">
+        <!-- Comment Content -->
+        <div class="space-y-1.5">
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.content') }}</span>
+          <p class="text-sm text-[var(--foreground)] leading-relaxed whitespace-pre-wrap break-words rounded border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3">
+            {{ detailComment.content }}
+          </p>
+        </div>
+        <!-- Type & Author Row -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.type') }}</span>
+            <div class="flex items-center gap-2 text-sm text-[var(--foreground)]">
+              <component :is="detailComment.type === 'forum' ? IconMessage : IconFileText" class="h-4 w-4 text-[var(--silver-400)]" />
+              <span>{{ detailComment.type === 'forum' ? t('comments.type.forum') : t('comments.type.solution') }}</span>
+            </div>
+          </div>
+          <div class="space-y-1.5">
+            <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.author') }}</span>
+            <div class="flex items-center gap-2 text-sm text-[var(--foreground)]">
+              <IconUser class="h-4 w-4 text-[var(--silver-400)]" />
+              <span>{{ detailComment.author?.username || t('comments.status.unknown') }}</span>
+            </div>
+          </div>
+        </div>
+        <!-- Parent Title -->
+        <div v-if="detailComment.parentTitle" class="space-y-1.5">
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.detail.parent') }}</span>
+          <p class="text-sm text-[var(--foreground)]">{{ detailComment.parentTitle }}</p>
+        </div>
+        <!-- Status & Time Row -->
+        <div class="grid grid-cols-2 gap-4">
+          <div class="space-y-1.5">
+            <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.status') }}</span>
+            <span
+              :class="[
+                'font-data text-xs uppercase tracking-wider',
+                detailComment.isDeleted
+                  ? 'text-[var(--terminal-red)]'
+                  : detailComment.isFlagged
+                    ? 'text-[var(--terminal-amber)]'
+                    : 'text-[var(--terminal-green)]',
+              ]"
+            >
+              {{ detailComment.isDeleted ? t('comments.status.deleted') : detailComment.isFlagged ? t('comments.status.flagged') : t('comments.status.active') }}
+            </span>
+          </div>
+          <div class="space-y-1.5">
+            <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.created') }}</span>
+            <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">{{ detailComment.createdAt }}</span>
+          </div>
+        </div>
+        <!-- Flag Reason (if flagged) -->
+        <div v-if="detailComment.isFlagged && detailComment.flaggedReason" class="space-y-1.5">
+          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.flag.reasonLabel') }}</span>
+          <p class="text-sm text-[var(--terminal-amber)]">{{ detailComment.flaggedReason }}</p>
+        </div>
+      </div>
+    </DialogContent>
+  </Dialog>
 </template>

@@ -25,9 +25,11 @@ import {
 } from '@/components/ui/select'
 import { useNotificationsStore } from '@/stores/admin/notifications'
 import {
-  NotificationType,
-  NotificationCategory,
-  NotificationTarget,
+  NOTIFICATION_TYPES,
+  NOTIFICATION_CATEGORIES,
+  type NotificationType,
+  type NotificationCategory,
+  type NotificationTarget,
   type SystemAnnouncement,
 } from '@/api/admin/notifications'
 
@@ -52,9 +54,9 @@ const error = ref('')
 const defaultForm = {
   title: '',
   content: '',
-  type: NotificationType.SYSTEM,
-  category: NotificationCategory.SYSTEM,
-  target: NotificationTarget.ALL,
+  type: 'SYSTEM' as NotificationType,
+  category: 'SYSTEM' as NotificationCategory,
+  target: 'ALL' as NotificationTarget,
   userIds: '',
 }
 
@@ -70,8 +72,8 @@ watch(
           title: props.notificationToEdit.title,
           content: props.notificationToEdit.content,
           type: props.notificationToEdit.type,
-          category: props.notificationToEdit.category ?? NotificationCategory.SYSTEM,
-          target: NotificationTarget.ALL,
+          category: props.notificationToEdit.category ?? ('SYSTEM' as NotificationCategory),
+          target: 'ALL' as NotificationTarget,
           userIds: '',
         }
       } else {
@@ -102,7 +104,7 @@ async function handleSubmit() {
         category: form.value.category,
         target: form.value.target,
         userIds:
-          form.value.target === NotificationTarget.USERS
+          form.value.target === 'USERS'
             ? form.value.userIds
                 .split(',')
                 .map((id) => id.trim())
@@ -111,7 +113,7 @@ async function handleSubmit() {
       }
 
       if (
-        form.value.target === NotificationTarget.USERS &&
+        form.value.target === 'USERS' &&
         (!payload.userIds || payload.userIds.length === 0)
       ) {
         error.value = t('notifications.form.atLeastOneUserId')
@@ -234,7 +236,7 @@ async function handleSubmit() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem
-                          v-for="type in NotificationType"
+                          v-for="type in NOTIFICATION_TYPES"
                           :key="type"
                           :value="type"
                           class="font-data"
@@ -258,7 +260,7 @@ async function handleSubmit() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem
-                          v-for="category in NotificationCategory"
+                          v-for="category in NOTIFICATION_CATEGORIES"
                           :key="category"
                           :value="category"
                           class="font-data"
@@ -285,10 +287,10 @@ async function handleSubmit() {
                       class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
                       :class="{
                         'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_8%,_transparent)]':
-                          form.target === NotificationTarget.ALL,
+                          form.target === 'ALL',
                       }"
                     >
-                      <RadioGroupItem :value="NotificationTarget.ALL" id="target-all" />
+                      <RadioGroupItem :value="'ALL'" id="target-all" />
                       <FieldLabel for="target-all" class="font-normal cursor-pointer">
                         {{ t('notifications.form.allUsers') }}
                       </FieldLabel>
@@ -297,10 +299,10 @@ async function handleSubmit() {
                       class="flex items-center space-x-3 p-2 border border-[var(--silver-200)] dark:border-[var(--silver-300)] rounded hover:border-[var(--terminal-cyan)] transition-colors cursor-pointer"
                       :class="{
                         'border-[var(--terminal-cyan)] bg-[color-mix(in_oklch,_var(--terminal-cyan)_8%,_transparent)]':
-                          form.target === NotificationTarget.USERS,
+                          form.target === 'USERS',
                       }"
                     >
-                      <RadioGroupItem :value="NotificationTarget.USERS" id="target-users" />
+                      <RadioGroupItem :value="'USERS'" id="target-users" />
                       <FieldLabel for="target-users" class="font-normal cursor-pointer">
                         {{ t('notifications.form.specificUsers') }}
                       </FieldLabel>
@@ -308,7 +310,7 @@ async function handleSubmit() {
                   </RadioGroup>
                 </Field>
 
-                <Field v-if="form.target === NotificationTarget.USERS">
+                <Field v-if="form.target === 'USERS'">
                   <FieldLabel for="notification-userIds" class="terminal-label">{{
                     t('notifications.form.userIds')
                   }}</FieldLabel>

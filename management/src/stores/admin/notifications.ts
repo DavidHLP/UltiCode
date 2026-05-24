@@ -1,23 +1,39 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import {
-  adminNotifications,
+  adminNotificationsApi,
   type CreateNotificationDto,
   type UpdateNotificationDto,
   type SystemAnnouncement,
+  type AdminNotificationQueryParams,
 } from '@/api/admin/notifications'
 
 export const useNotificationsStore = defineStore('admin-notifications', () => {
   const announcements = ref<SystemAnnouncement[]>([])
+  const total = ref(0)
+  const currentPage = ref(1)
+  const pageSize = ref(10)
   const isLoading = ref(false)
   const error = ref<string | null>(null)
 
-  async function fetchAnnouncements() {
+  async function fetchAnnouncements(params?: AdminNotificationQueryParams) {
     isLoading.value = true
     error.value = null
     try {
-      const response = await adminNotifications.getAll()
-      announcements.value = response
+      const queryParams: AdminNotificationQueryParams = {
+        page: params?.page ?? currentPage.value,
+        limit: params?.limit ?? pageSize.value,
+        keyword: params?.keyword,
+        type: params?.type,
+        category: params?.category,
+        sortBy: params?.sortBy,
+        sortOrder: params?.sortOrder,
+      }
+      const response = await adminNotificationsApi.getAll(queryParams)
+      announcements.value = response.items
+      total.value = response.total
+      currentPage.value = response.page
+      pageSize.value = response.pageSize
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
       error.value = err.response?.data?.message || 'Failed to fetch announcements'
@@ -31,7 +47,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     isLoading.value = true
     error.value = null
     try {
-      await adminNotifications.create(data)
+      await adminNotificationsApi.create(data)
       await fetchAnnouncements()
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
@@ -46,7 +62,7 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
     isLoading.value = true
     error.value = null
     try {
-      await adminNotifications.update(id, data)
+      await adminNotificationsApi.update(id, data)
       await fetchAnnouncements()
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
@@ -59,9 +75,10 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
 
   async function deleteAnnouncement(id: string) {
     isLoading.value = true
+    error.value = null
     try {
-      await adminNotifications.delete(id)
-      announcements.value = announcements.value.filter((a) => a.id !== id)
+      await adminNotificationsApi.delete(id)
+      await fetchAnnouncements()
     } catch (e: unknown) {
       const err = e as { response?: { data?: { message?: string } } }
       error.value = err.response?.data?.message || 'Failed to delete announcement'
@@ -73,6 +90,9 @@ export const useNotificationsStore = defineStore('admin-notifications', () => {
 
   return {
     announcements,
+    total,
+    currentPage,
+    pageSize,
     isLoading,
     error,
     fetchAnnouncements,

@@ -38,25 +38,5 @@ module.exports = {
       time: true,
       env: { NODE_ENV: 'development' },
     },
-    // Recommendation - Provider (port 9004)
-    {
-      name: 'ulticode-9004',
-      cwd: './recommendation',
-      script: 'start-provider.cjs',
-      out_file: '/tmp/ulticode-9004-out.log',
-      error_file: '/tmp/ulticode-9004-error.log',
-      time: true,
-      env: { NODE_ENV: 'development', NACOS_PORT: process.env.NACOS_PORT || '28848', NACOS_USERNAME: process.env.NACOS_USERNAME || '', NACOS_PASSWORD: process.env.NACOS_PASSWORD || '' },
-    },
-    // Recommendation - Web (port 9005)
-    {
-      name: 'ulticode-9005',
-      cwd: './recommendation',
-      script: 'start-web.cjs',
-      out_file: '/tmp/ulticode-9005-out.log',
-      error_file: '/tmp/ulticode-9005-error.log',
-      time: true,
-      env: { NODE_ENV: 'development', NACOS_PORT: process.env.NACOS_PORT || '28848', NACOS_USERNAME: process.env.NACOS_USERNAME || '', NACOS_PASSWORD: process.env.NACOS_PASSWORD || '' },
-    },
   ],
 }

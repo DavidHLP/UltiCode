@@ -72,6 +72,9 @@ export default {
     locked: 'Locked',
     lockedOnly: 'Locked Only',
     unlockedOnly: 'Unlocked Only',
+    deleted: 'Deleted',
+    deletedOnly: 'Deleted Only',
+    activeOnly: 'Active Only',
   },
 
   // Tabs

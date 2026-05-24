@@ -65,6 +65,7 @@ export default {
     flag: '标记',
     unflag: '取消标记',
     viewDetails: '查看详情',
+    noPermission: '无权限',
   },
 
   deleteConfirm: '确定要删除 {count} 条评论吗？',

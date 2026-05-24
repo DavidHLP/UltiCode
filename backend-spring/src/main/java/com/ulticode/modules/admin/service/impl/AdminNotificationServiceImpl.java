@@ -1,13 +1,18 @@
 package com.ulticode.modules.admin.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.annotation.Audited;
+import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.AuditActionUtil;
 import com.ulticode.common.util.AuditContext;
 import com.ulticode.common.util.AuditHelper;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.modules.admin.dto.AdminNotificationQueryDTO;
 import com.ulticode.modules.admin.dto.AdminNotificationVO;
 import com.ulticode.modules.admin.dto.CreateSystemNotificationRequest;
 import com.ulticode.modules.admin.dto.UpdateSystemNotificationRequest;
@@ -21,48 +26,47 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.*;
-import java.util.Objects;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-/**
- * Implementation of AdminNotificationService.
- */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class AdminNotificationServiceImpl implements AdminNotificationService {
 
+    private static final String SYSTEM_CATEGORY = "SYSTEM";
+
+    private static final Set<String> ALLOWED_SORT_FIELDS = Set.of(
+            "createdAt", "title", "type", "category", "announcementId"
+    );
+
     private final NotificationMapper notificationMapper;
     private final UserMapper userMapper;
 
     @Override
-    public List<AdminNotificationVO> getAllSystemNotifications() {
-        // Query all notifications that are system announcements
-        // We identify system announcements by metadata.isSystemAnnouncement = true
-        LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notification::getCategory, "SYSTEM");
-        wrapper.orderByDesc(Notification::getCreatedAt);
+    public PageResult<AdminNotificationVO> listSystemNotifications(AdminNotificationQueryDTO queryDTO) {
+        int page = queryDTO.getPage() != null ? queryDTO.getPage() : 1;
+        int limit = queryDTO.getLimit() != null ? queryDTO.getLimit() : 10;
 
-        List<Notification> notifications = notificationMapper.selectList(wrapper);
-
-        // Group by notification content/title to get unique announcements
-        // System announcements are created once per user, so we need to deduplicate
-        Map<String, Notification> uniqueAnnouncements = new LinkedHashMap<>();
-        for (Notification notification : notifications) {
-            // Use title + type + full created timestamp as the key to group related notifications
-            String key = notification.getTitle() + "_" + notification.getType() + "_" +
-                         notification.getCreatedAt();
-            if (!uniqueAnnouncements.containsKey(key)) {
-                uniqueAnnouncements.put(key, notification);
-            }
+        String sortBy = queryDTO.getSortBy();
+        if (sortBy != null && !ALLOWED_SORT_FIELDS.contains(sortBy)) {
+            sortBy = null;
         }
+        String sortOrder = queryDTO.getSortOrder();
 
-        // Convert to VO with creator information
-        return uniqueAnnouncements.values().stream()
-                .map(this::toAdminVO)
-                .collect(Collectors.toList());
+        Page<Notification> pageParam = new Page<>(page, limit);
+        IPage<Notification> result = notificationMapper.selectDedupedAnnouncements(
+                pageParam,
+                SYSTEM_CATEGORY,
+                queryDTO.getKeyword(),
+                queryDTO.getType(),
+                queryDTO.getAnnouncementId(),
+                sortBy,
+                sortOrder);
+
+        List<AdminNotificationVO> vos = toAdminVOList(result.getRecords());
+        return PageResult.of(vos, result.getTotal(), page, limit);
     }
 
     @Override
@@ -75,19 +79,18 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Current user not found");
         }
 
-        // Get target users
         List<String> targetUserIds = getTargetUserIds(request.getTarget(), request.getUserIds());
         if (targetUserIds.isEmpty()) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "No target users found");
         }
 
-        // Create metadata with creator information
         Map<String, Object> metadata = new HashMap<>();
         metadata.put("createdBy", currentUserId);
         metadata.put("createdByName", currentUser.getUsername());
         metadata.put("isSystemAnnouncement", true);
 
-        // Create notifications for all target users
+        String announcementId = UUID.randomUUID().toString();
+
         List<Notification> notificationsToCreate = new ArrayList<>();
         for (String userId : targetUserIds) {
             Notification notification = new Notification();
@@ -98,59 +101,60 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             notification.setBody(request.getContent());
             notification.setLink(null);
             notification.setMetadata(metadata);
+            notification.setAnnouncementId(announcementId);
             notification.setIsRead(false);
             notification.setReadAt(null);
             notificationsToCreate.add(notification);
         }
 
-        // Batch insert
         if (!notificationsToCreate.isEmpty()) {
             notificationMapper.batchInsert(notificationsToCreate);
         }
 
-        log.info("Created system notification '{}' for {} users by admin {}",
-                request.getTitle(), targetUserIds.size(), currentUserId);
+        log.info("Created system notification '{}' for {} users by admin {} (announcementId={})",
+                request.getTitle(), targetUserIds.size(), currentUserId, announcementId);
 
-        AuditContext.setNewValues(java.util.Map.of(
+        AuditContext.setNewValues(Map.of(
             "title", request.getTitle() != null ? request.getTitle() : "",
             "targetCount", targetUserIds.size(),
             "target", request.getTarget() != null ? request.getTarget() : ""
         ));
 
-        // Return the first created notification as representative
         Notification representative = notificationsToCreate.get(0);
         AuditContext.setEntityId(representative.getId());
-        return toAdminVO(representative);
+        return toAdminVOForSingle(representative);
     }
 
     @Override
     @Transactional
     @Audited(action = AuditActionUtil.DELETE_NOTIFICATION, entityType = AuditActionUtil.ENTITY_NOTIFICATION)
     public void deleteNotification(String id) {
-        // Check if notification exists
         Notification notification = notificationMapper.selectById(id);
         if (notification == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Notification not found");
         }
 
-        // For system announcements, we need to delete all related notifications
-        // with the same title, type, and creation date
-        LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notification::getTitle, notification.getTitle());
-        wrapper.eq(Notification::getType, notification.getType());
-        wrapper.eq(Notification::getCategory, "SYSTEM");
-
-        // Also match by creation date to be more specific
-        if (notification.getCreatedAt() != null) {
-            wrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
-        }
-
-        AuditContext.setOldValues(java.util.Map.of(
+        AuditContext.setOldValues(Map.of(
             "title", notification.getTitle() != null ? notification.getTitle() : "",
             "type", notification.getType() != null ? notification.getType() : ""
         ));
 
-        int deletedCount = notificationMapper.delete(wrapper);
+        int deletedCount;
+        if (notification.getAnnouncementId() != null) {
+            deletedCount = notificationMapper.delete(new LambdaQueryWrapper<Notification>()
+                    .eq(Notification::getAnnouncementId, notification.getAnnouncementId())
+                    .eq(Notification::getCategory, SYSTEM_CATEGORY));
+        } else {
+            LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(Notification::getTitle, notification.getTitle());
+            wrapper.eq(Notification::getType, notification.getType());
+            wrapper.eq(Notification::getCategory, SYSTEM_CATEGORY);
+            if (notification.getCreatedAt() != null) {
+                wrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
+            }
+            deletedCount = notificationMapper.delete(wrapper);
+        }
+
         log.info("Deleted system notification '{}' and {} related records", id, deletedCount);
     }
 
@@ -163,61 +167,60 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
             throw new BusinessException(ErrorCode.NOT_FOUND, "Notification not found");
         }
 
-        AuditContext.setOldValues(java.util.Map.of(
+        AuditContext.setOldValues(Map.of(
             "title", notification.getTitle() != null ? notification.getTitle() : "",
             "type", notification.getType() != null ? notification.getType() : ""
         ));
 
-        // Update all related notifications with the same title, type, and creation date
-        LambdaQueryWrapper<Notification> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Notification::getTitle, notification.getTitle());
-        wrapper.eq(Notification::getType, notification.getType());
-        wrapper.eq(Notification::getCategory, "SYSTEM");
-        if (notification.getCreatedAt() != null) {
-            wrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
-        }
-
-        List<Notification> relatedNotifications = notificationMapper.selectList(wrapper);
-        for (Notification related : relatedNotifications) {
-            related.setTitle(request.getTitle());
-            related.setBody(request.getContent());
+        int updatedCount;
+        if (notification.getAnnouncementId() != null) {
+            LambdaUpdateWrapper<Notification> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(Notification::getAnnouncementId, notification.getAnnouncementId())
+                    .eq(Notification::getCategory, SYSTEM_CATEGORY)
+                    .set(Notification::getTitle, request.getTitle())
+                    .set(Notification::getBody, request.getContent());
             if (request.getType() != null) {
-                related.setType(request.getType());
+                updateWrapper.set(Notification::getType, request.getType());
             }
             if (request.getCategory() != null) {
-                related.setCategory(request.getCategory());
+                updateWrapper.set(Notification::getCategory, request.getCategory());
             }
-            notificationMapper.updateById(related);
+            updatedCount = notificationMapper.update(null, updateWrapper);
+        } else {
+            LambdaUpdateWrapper<Notification> updateWrapper = new LambdaUpdateWrapper<>();
+            updateWrapper.eq(Notification::getTitle, notification.getTitle())
+                    .eq(Notification::getType, notification.getType())
+                    .eq(Notification::getCategory, SYSTEM_CATEGORY)
+                    .set(Notification::getTitle, request.getTitle())
+                    .set(Notification::getBody, request.getContent());
+            if (notification.getCreatedAt() != null) {
+                updateWrapper.eq(Notification::getCreatedAt, notification.getCreatedAt());
+            }
+            if (request.getType() != null) {
+                updateWrapper.set(Notification::getType, request.getType());
+            }
+            if (request.getCategory() != null) {
+                updateWrapper.set(Notification::getCategory, request.getCategory());
+            }
+            updatedCount = notificationMapper.update(null, updateWrapper);
         }
 
-        AuditContext.setNewValues(java.util.Map.of(
+        AuditContext.setNewValues(Map.of(
             "title", request.getTitle() != null ? request.getTitle() : "",
             "type", request.getType() != null ? request.getType() : ""
         ));
         AuditContext.setEntityId(id);
 
-        log.info("Updated system notification '{}' and {} related records", id, relatedNotifications.size());
+        log.info("Updated system notification '{}' and {} related records", id, updatedCount);
 
-        // Return updated VO from the first record
-        notification.setTitle(request.getTitle());
-        notification.setBody(request.getContent());
-        if (request.getType() != null) {
-            notification.setType(request.getType());
-        }
-        if (request.getCategory() != null) {
-            notification.setCategory(request.getCategory());
-        }
-        return toAdminVO(notification);
+        Notification updated = notificationMapper.selectById(id);
+        return toAdminVOForSingle(updated);
     }
 
     // ==================== Private Helper Methods ====================
 
-    /**
-     * Get target user IDs based on target type.
-     */
     private List<String> getTargetUserIds(String target, List<String> userIds) {
         if ("ALL".equals(target)) {
-            // Get all active, non-deleted users
             LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
             wrapper.eq(User::getIsActive, true);
             wrapper.eq(User::getIsDeleted, 0);
@@ -226,11 +229,9 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
                     .map(User::getId)
                     .collect(Collectors.toList());
         } else if ("USERS".equals(target)) {
-            // Validate provided user IDs
             if (userIds == null || userIds.isEmpty()) {
                 return Collections.emptyList();
             }
-            // Filter to only valid user IDs
             LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
             wrapper.in(User::getId, userIds);
             wrapper.eq(User::getIsDeleted, 0);
@@ -241,35 +242,53 @@ public class AdminNotificationServiceImpl implements AdminNotificationService {
         return Collections.emptyList();
     }
 
-    /**
-     * Convert Notification entity to AdminNotificationVO.
-     * Returns null if input is null — callers must handle this case.
-     */
-    private AdminNotificationVO toAdminVO(Notification notification) {
-        if (notification == null) {
-            return null;
+    private List<AdminNotificationVO> toAdminVOList(List<Notification> notifications) {
+        if (notifications == null || notifications.isEmpty()) {
+            return Collections.emptyList();
         }
+
+        Set<String> creatorIds = notifications.stream()
+                .filter(n -> n.getMetadata() != null && n.getMetadata().get("createdBy") != null)
+                .map(n -> (String) n.getMetadata().get("createdBy"))
+                .collect(Collectors.toSet());
+
+        Map<String, User> userMap = creatorIds.isEmpty()
+                ? Collections.emptyMap()
+                : userMapper.selectBatchIds(creatorIds).stream()
+                    .collect(Collectors.toMap(User::getId, Function.identity()));
+
+        return notifications.stream()
+                .map(n -> toAdminVO(n, userMap))
+                .collect(Collectors.toList());
+    }
+
+    private AdminNotificationVO toAdminVOForSingle(Notification notification) {
+        if (notification == null) return null;
+        return toAdminVOList(Collections.singletonList(notification)).stream()
+                .findFirst().orElse(null);
+    }
+
+    private AdminNotificationVO toAdminVO(Notification notification, Map<String, User> userMap) {
+        if (notification == null) return null;
 
         AdminNotificationVO vo = new AdminNotificationVO();
         vo.setId(notification.getId());
+        vo.setAnnouncementId(notification.getAnnouncementId());
         vo.setTitle(notification.getTitle());
         vo.setContent(notification.getBody());
         vo.setType(notification.getType());
         vo.setCategory(notification.getCategory());
         vo.setCreatedAt(notification.getCreatedAt());
 
-        // Get creator information from metadata
         if (notification.getMetadata() != null) {
             String creatorId = (String) notification.getMetadata().get("createdBy");
-            if (creatorId != null) {
-                User creator = userMapper.selectById(creatorId);
-                if (creator != null) {
-                    AdminNotificationVO.CreatorInfo creatorInfo = new AdminNotificationVO.CreatorInfo();
-                    creatorInfo.setId(creator.getId());
-                    creatorInfo.setUsername(creator.getUsername());
-                    creatorInfo.setAvatar(creator.getAvatar());
-                    vo.setCreator(creatorInfo);
-                }
+            if (creatorId != null && userMap.containsKey(creatorId)) {
+                User creator = userMap.get(creatorId);
+                AdminNotificationVO.CreatorInfo creatorInfo = new AdminNotificationVO.CreatorInfo();
+                creatorInfo.setId(creator.getId());
+                creatorInfo.setUsername(creator.getUsername());
+                creatorInfo.setAvatar(creator.getAvatar());
+                vo.setCreator(creatorInfo);
             }
         }
 

@@ -1,27 +1,57 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '@/utils/request'
 
-export enum NotificationType {
-  COMMENT = 'COMMENT',
-  REPLY = 'REPLY',
-  MENTION = 'MENTION',
-  UPVOTE = 'UPVOTE',
-  FOLLOW = 'FOLLOW',
-  SYSTEM = 'SYSTEM',
-  SUBMISSION = 'SUBMISSION',
-  CONTEST = 'CONTEST',
-}
+// ==================== Types ====================
 
-export enum NotificationCategory {
-  COMMUNICATION = 'COMMUNICATION',
-  MARKETING = 'MARKETING',
-  SECURITY = 'SECURITY',
-  SYSTEM = 'SYSTEM',
-  CONTEST = 'CONTEST',
-}
+export type NotificationType =
+  | 'COMMENT'
+  | 'REPLY'
+  | 'MENTION'
+  | 'UPVOTE'
+  | 'FOLLOW'
+  | 'SYSTEM'
+  | 'SUBMISSION'
+  | 'CONTEST'
+  | 'CONTEST_REMINDER'
 
-export enum NotificationTarget {
-  ALL = 'ALL',
-  USERS = 'USERS',
+export type NotificationCategory = 'COMMUNICATION' | 'MARKETING' | 'SECURITY' | 'SYSTEM' | 'CONTEST'
+
+export type NotificationTarget = 'ALL' | 'USERS'
+
+export const NOTIFICATION_TYPES: NotificationType[] = [
+  'COMMENT',
+  'REPLY',
+  'MENTION',
+  'UPVOTE',
+  'FOLLOW',
+  'SYSTEM',
+  'SUBMISSION',
+  'CONTEST',
+  'CONTEST_REMINDER',
+]
+
+export const NOTIFICATION_CATEGORIES: NotificationCategory[] = [
+  'COMMUNICATION',
+  'MARKETING',
+  'SECURITY',
+  'SYSTEM',
+  'CONTEST',
+]
+
+export const NOTIFICATION_TARGETS: NotificationTarget[] = ['ALL', 'USERS']
+
+export interface SystemAnnouncement {
+  id: string
+  announcementId?: string
+  title: string
+  content: string
+  type: NotificationType
+  category?: NotificationCategory
+  createdAt: string
+  creator?: {
+    id: string
+    username: string
+    avatar?: string
+  }
 }
 
 export interface CreateNotificationDto {
@@ -40,34 +70,35 @@ export interface UpdateNotificationDto {
   category?: NotificationCategory
 }
 
-export interface SystemAnnouncement {
-  id: string
-  title: string
-  content: string
-  type: NotificationType
-  category?: NotificationCategory
-  createdAt: string
-  creator: {
-    id: string
-    username: string
-    avatar: string | null
-  }
+export interface AdminNotificationQueryParams {
+  page?: number
+  limit?: number
+  keyword?: string
+  type?: string
+  category?: string
+  sortBy?: string
+  sortOrder?: 'asc' | 'desc'
 }
 
-export const adminNotifications = {
-  create: (data: CreateNotificationDto) => {
-    return apiPost<SystemAnnouncement>('/admin/notifications', data)
-  },
+export interface PageResult<T> {
+  items: T[]
+  total: number
+  page: number
+  pageSize: number
+  totalPages: number
+}
 
-  getAll: () => {
-    return apiGet<SystemAnnouncement[]>('/admin/notifications')
-  },
+// ==================== API ====================
 
-  update: (id: string, data: UpdateNotificationDto) => {
-    return apiPut<SystemAnnouncement>(`/admin/notifications/${id}`, data)
-  },
+export const adminNotificationsApi = {
+  getAll: (params?: AdminNotificationQueryParams) =>
+    apiGet<PageResult<SystemAnnouncement>>('/admin/notifications', { params }),
 
-  delete: (id: string) => {
-    return apiDelete<{ message: string }>(`/admin/notifications/${id}`)
-  },
+  create: (data: CreateNotificationDto) =>
+    apiPost<SystemAnnouncement>('/admin/notifications', data),
+
+  update: (id: string, data: UpdateNotificationDto) =>
+    apiPut<SystemAnnouncement>(`/admin/notifications/${id}`, data),
+
+  delete: (id: string) => apiDelete<void>(`/admin/notifications/${id}`),
 }

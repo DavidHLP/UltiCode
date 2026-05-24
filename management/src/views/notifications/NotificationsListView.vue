@@ -14,7 +14,12 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useNotificationsStore } from '@/stores/admin/notifications'
-import { NotificationType, type SystemAnnouncement } from '@/api/admin/notifications'
+import {
+  NOTIFICATION_TYPES,
+  NOTIFICATION_CATEGORIES,
+  type SystemAnnouncement,
+  type AdminNotificationQueryParams,
+} from '@/api/admin/notifications'
 import NotificationCreateDialog from './NotificationCreateDialog.vue'
 
 import { NOTIFICATION_TYPE_COLOR_MAP, type SemanticColor } from '@/components/ui/terminal'
@@ -32,46 +37,74 @@ const COLOR_TO_CLASS: Record<SemanticColor, string> = {
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
 import EntityActionDialog from '@/components/shared/EntityActionDialog.vue'
+import { useDataTable } from '@/composables/useDataTable'
 
 const { t } = useI18n()
 const store = useNotificationsStore()
 
-const searchQuery = ref('')
 const typeFilter = ref<string>('all')
+const categoryFilter = ref<string>('all')
 const createDialogOpen = ref(false)
 const deleteDialogOpen = ref(false)
 const selectedNotificationId = ref<string | null>(null)
 const selectedNotificationTitle = ref<string | null>(null)
 const notificationToEdit = ref<SystemAnnouncement | null>(null)
 
-// Animation state for staggered reveal
 const isLoaded = ref(false)
 
 onMounted(() => {
-  store.fetchAnnouncements()
   setTimeout(() => {
     isLoaded.value = true
   }, 100)
 })
 
-// Stats for terminal ticker
+const {
+  searchQuery,
+  tablePagination,
+  loading,
+  data,
+  total,
+  error,
+  loadEntities: loadNotifications,
+} = useDataTable<
+  SystemAnnouncement,
+  { type: string; category: string },
+  AdminNotificationQueryParams
+>({
+  store: {
+    data: computed(() => store.announcements),
+    total: computed(() => store.total),
+    isLoading: computed(() => store.isLoading),
+    error: computed(() => store.error),
+    fetch: (params) => store.fetchAnnouncements(params),
+  },
+  filters: () => ({
+    type: typeFilter.value,
+    category: categoryFilter.value,
+  }),
+  transformParams: ({ search, filters, page, limit }) => ({
+    keyword: search,
+    type: filters.type === 'all' ? undefined : filters.type,
+    category: filters.category === 'all' ? undefined : filters.category,
+    page,
+    limit,
+  }),
+  autoLoad: true,
+})
+
 const stats = computed(() => {
-  const announcements = store.announcements
+  const announcements = data.value
   return {
-    total: announcements.length,
-    system: announcements.filter((a) => a.type === NotificationType.SYSTEM).length,
-    contest: announcements.filter((a) => a.type === NotificationType.CONTEST).length,
-    submission: announcements.filter((a) => a.type === NotificationType.SUBMISSION).length,
+    total: total.value,
+    system: announcements.filter((a) => a.type === 'SYSTEM').length,
+    contest: announcements.filter((a) => a.type === 'CONTEST' || a.type === 'CONTEST_REMINDER').length,
+    submission: announcements.filter((a) => a.type === 'SUBMISSION').length,
     other: announcements.filter(
-      (a) =>
-        a.type !== NotificationType.SYSTEM &&
-        a.type !== NotificationType.CONTEST &&
-        a.type !== NotificationType.SUBMISSION,
+      (a) => a.type !== 'SYSTEM' && a.type !== 'CONTEST' && a.type !== 'SUBMISSION',
     ).length,
   }
 })
 
-// Toolbar filters for DataTableToolbar
 const toolbarFilters = computed<Filter[]>(() => [
   {
     modelValue: typeFilter.value,
@@ -79,31 +112,20 @@ const toolbarFilters = computed<Filter[]>(() => [
     width: 'w-[160px]',
     options: [
       { value: 'all', label: t('notifications.allTypes') },
-      ...Object.values(NotificationType).map((type) => ({ value: type, label: type })),
+      ...NOTIFICATION_TYPES.map((type) => ({ value: type, label: type })),
+    ],
+  },
+  {
+    modelValue: categoryFilter.value,
+    placeholder: t('notifications.allCategories'),
+    width: 'w-[160px]',
+    options: [
+      { value: 'all', label: t('notifications.allCategories') },
+      ...NOTIFICATION_CATEGORIES.map((cat) => ({ value: cat, label: cat })),
     ],
   },
 ])
 
-// Filtered data based on search and type filter
-const filteredData = computed(() => {
-  let result = store.announcements
-
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(
-      (a) =>
-        a.title.toLowerCase().includes(query) || a.creator.username.toLowerCase().includes(query),
-    )
-  }
-
-  if (typeFilter.value !== 'all') {
-    result = result.filter((a) => a.type === typeFilter.value)
-  }
-
-  return result
-})
-
-// Type badge class mapping for terminal style
 function getTypeBadgeClass(type: string): string {
   return COLOR_TO_CLASS[NOTIFICATION_TYPE_COLOR_MAP[type] ?? 'info']
 }
@@ -140,6 +162,16 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
           class: `terminal-badge ${getTypeBadgeClass(row.original.type)}`,
         },
         row.original.type,
+      ),
+  },
+  {
+    accessorKey: 'category',
+    header: () => t('notifications.columns.category'),
+    cell: ({ row }) =>
+      h(
+        'span',
+        { class: 'font-data text-xs uppercase tracking-wider text-[var(--silver-400)]' },
+        row.original.category ?? '—',
       ),
   },
   {
@@ -319,8 +351,11 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     <div class="flex-1 py-4">
       <DataTable
         :columns="columns"
-        :data="filteredData"
-        :loading="store.isLoading"
+        :data="data"
+        :pagination="tablePagination"
+        :row-count="total"
+        :loading="loading"
+        @update:pagination="tablePagination = $event"
         class="terminal-table"
       >
         <template #toolbar-left>
@@ -329,27 +364,32 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
             @update:search-model-value="searchQuery = $event"
             :search-placeholder="t('notifications.searchPlaceholder')"
             :filters="toolbarFilters"
-            @update:filter="(index, value) => (typeFilter = String(value))"
-            :loading="store.isLoading"
-            :on-refresh="() => store.fetchAnnouncements()"
+            @update:filter="
+              (index, value) => {
+                if (index === 0) typeFilter = String(value)
+                else categoryFilter = String(value)
+              }
+            "
+            :loading="loading"
+            :on-refresh="loadNotifications"
           />
         </template>
       </DataTable>
 
-      <!-- Error state - Terminal Style -->
+      <!-- Error state -->
       <div
-        v-if="store.error"
+        v-if="error"
         class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] p-4"
       >
         <div class="flex items-center gap-3">
           <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
-          <span class="text-sm text-[var(--foreground)]">{{ store.error }}</span>
+          <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
         <Button
           variant="terminal"
           size="sm"
           class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_10%,_transparent)]"
-          @click="store.fetchAnnouncements()"
+          @click="loadNotifications()"
         >
           {{ t('common.retry') }}
         </Button>
@@ -360,7 +400,7 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
   <NotificationCreateDialog
     v-model:open="createDialogOpen"
     :notification-to-edit="notificationToEdit"
-    @success="store.fetchAnnouncements()"
+    @success="loadNotifications()"
     @update:open="(open) => { if (!open) notificationToEdit = null }"
   />
   <EntityActionDialog
@@ -375,6 +415,6 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     :success-label="t('notifications.deleteSuccess')"
     :error-label="t('notifications.deleteError')"
     :on-action="handleDelete"
-    @success="store.fetchAnnouncements()"
+    @success="loadNotifications()"
   />
 </template>

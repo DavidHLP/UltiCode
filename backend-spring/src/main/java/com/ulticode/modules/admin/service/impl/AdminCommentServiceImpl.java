@@ -56,21 +56,24 @@ public class AdminCommentServiceImpl implements AdminCommentService {
         int limit = query.getLimit() != null && query.getLimit() > 0 ? Math.min(query.getLimit(), 100) : 10;
 
         String type = query.getType();
-        if (!StringUtils.hasText(type) || !VALID_TYPES.contains(type)) {
+        if (StringUtils.hasText(type) && !VALID_TYPES.contains(type)) {
             throw new BusinessException(ErrorCode.BAD_REQUEST, "Invalid comment type: must be 'forum' or 'solution'");
         }
 
         if ("forum".equals(type)) {
             return getForumComments(query, page, limit);
-        } else {
+        } else if ("solution".equals(type)) {
             return getSolutionComments(query, page, limit);
+        } else {
+            return getAllComments(query, page, limit);
         }
     }
 
     private PageResult<AdminCommentVO> getForumComments(AdminCommentQueryDTO query, int page, int limit) {
         Page<ForumComment> pageResult = new Page<>(page, limit);
         List<ForumComment> records = forumCommentMapper.selectPageIgnoreDeleted(
-                pageResult, query.getIsFlagged(), query.getIsDeleted(), query.getSearch());
+                pageResult, query.getIsFlagged(), query.getIsDeleted(), query.getSearch(),
+                query.getParentEntityId(), query.getSortBy(), query.getSortOrder());
         pageResult.setRecords(records);
 
         Set<String> authorIds = records.stream()
@@ -91,7 +94,8 @@ public class AdminCommentServiceImpl implements AdminCommentService {
     private PageResult<AdminCommentVO> getSolutionComments(AdminCommentQueryDTO query, int page, int limit) {
         Page<SolutionComment> pageResult = new Page<>(page, limit);
         List<SolutionComment> records = solutionCommentMapper.selectPageIgnoreDeleted(
-                pageResult, query.getIsFlagged(), query.getIsDeleted(), query.getSearch());
+                pageResult, query.getIsFlagged(), query.getIsDeleted(), query.getSearch(),
+                query.getParentEntityId(), query.getSortBy(), query.getSortOrder());
         pageResult.setRecords(records);
 
         Set<String> authorIds = records.stream()
@@ -107,6 +111,42 @@ public class AdminCommentServiceImpl implements AdminCommentService {
                 .collect(Collectors.toList());
 
         return PageResult.of(vos, pageResult.getTotal(), page, limit);
+    }
+
+    private PageResult<AdminCommentVO> getAllComments(AdminCommentQueryDTO query, int page, int limit) {
+        Page<ForumComment> forumPage = new Page<>(1, Integer.MAX_VALUE);
+        List<ForumComment> forumRecords = forumCommentMapper.selectPageIgnoreDeleted(
+                forumPage, query.getIsFlagged(), query.getIsDeleted(), query.getSearch(),
+                query.getParentEntityId(), query.getSortBy(), query.getSortOrder());
+        forumPage.setRecords(forumRecords);
+
+        Page<SolutionComment> solutionPage = new Page<>(1, Integer.MAX_VALUE);
+        List<SolutionComment> solutionRecords = solutionCommentMapper.selectPageIgnoreDeleted(
+                solutionPage, query.getIsFlagged(), query.getIsDeleted(), query.getSearch(),
+                query.getParentEntityId(), query.getSortBy(), query.getSortOrder());
+        solutionPage.setRecords(solutionRecords);
+
+        Set<String> authorIds = new java.util.HashSet<>();
+        forumRecords.forEach(c -> authorIds.add(c.getAuthorId()));
+        solutionRecords.forEach(c -> authorIds.add(c.getUserId()));
+        Set<String> postIds = forumRecords.stream().map(ForumComment::getPostId).collect(Collectors.toSet());
+        Set<String> solutionIds = solutionRecords.stream().map(SolutionComment::getSolutionId).collect(Collectors.toSet());
+
+        Map<String, User> userMap = batchLoadUsers(authorIds);
+        Map<String, ForumPost> postMap = batchLoadPosts(postIds);
+        Map<String, Solution> solutionMap = batchLoadSolutions(solutionIds);
+
+        List<AdminCommentVO> all = new ArrayList<>();
+        forumRecords.forEach(c -> all.add(forumToAdminVO(c, userMap.get(c.getAuthorId()), postMap.get(c.getPostId()))));
+        solutionRecords.forEach(c -> all.add(solutionToAdminVO(c, userMap.get(c.getUserId()), solutionMap.get(c.getSolutionId()))));
+        all.sort((a, b) -> b.createdAt().compareTo(a.createdAt()));
+
+        long total = all.size();
+        int fromIndex = Math.min((page - 1) * limit, all.size());
+        int toIndex = Math.min(fromIndex + limit, all.size());
+        List<AdminCommentVO> paged = all.subList(fromIndex, toIndex);
+
+        return PageResult.of(paged, total, page, limit);
     }
 
     @Override

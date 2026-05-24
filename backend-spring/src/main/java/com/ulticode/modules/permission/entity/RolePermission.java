@@ -24,7 +24,7 @@ public class RolePermission {
     private String action;
 
     /**
-     * 权限资源 (USER, PROBLEM, CONTEST, SOLUTION, FORUM_POST, FORUM_COMMENT, SYSTEM, PROBLEM_LIST, TAG)
+     * 权限资源 (USER, PROBLEM, CONTEST, SOLUTION, FORUM_POST, FORUM_COMMENT, SOLUTION_COMMENT, SYSTEM, PROBLEM_LIST, TAG)
      */
     private String resource;
 }

@@ -65,6 +65,7 @@ export default {
     flag: 'Flag',
     unflag: 'Unflag',
     viewDetails: 'View Details',
+    noPermission: 'No Permission',
   },
 
   deleteConfirm: 'Are you sure you want to delete {count} comments?',

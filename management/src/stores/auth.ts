@@ -95,6 +95,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (permissions.value.has('*:*')) return true
     if (permissions.value.has(`${action}:${resource}`)) return true
     if (permissions.value.has(`${action}:*`)) return true
+    if (permissions.value.has(`*:${resource}`)) return true
     return false
   }
 

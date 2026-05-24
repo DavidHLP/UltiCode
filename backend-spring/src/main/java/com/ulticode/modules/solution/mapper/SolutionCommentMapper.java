@@ -35,13 +35,25 @@ public interface SolutionCommentMapper extends BaseMapper<SolutionComment> {
             <if test="isFlagged != null">AND is_flagged = #{isFlagged}</if>
             <if test="isDeleted != null">AND is_deleted = #{isDeleted}</if>
             <if test="search != null and search != ''">AND content LIKE CONCAT('%', #{search}, '%')</if>
-            ORDER BY created_at DESC
+            <if test="parentEntityId != null and parentEntityId != ''">AND solution_id = #{parentEntityId}</if>
+            ORDER BY
+            <choose>
+                <when test="sortBy == 'updatedAt'">edited_at</when>
+                <otherwise>created_at</otherwise>
+            </choose>
+            <choose>
+                <when test="sortOrder == 'asc'">ASC</when>
+                <otherwise>DESC</otherwise>
+            </choose>
             </script>
             """)
     List<SolutionComment> selectPageIgnoreDeleted(Page<SolutionComment> page,
                                                    @Param("isFlagged") Boolean isFlagged,
                                                    @Param("isDeleted") Boolean isDeleted,
-                                                   @Param("search") String search);
+                                                   @Param("search") String search,
+                                                   @Param("parentEntityId") String parentEntityId,
+                                                   @Param("sortBy") String sortBy,
+                                                   @Param("sortOrder") String sortOrder);
 
     @Update("UPDATE solution_comments SET is_flagged = #{isFlagged}, flagged_reason = #{reason}, flagged_at = CASE WHEN #{isFlagged} = true THEN NOW() ELSE NULL END WHERE id = #{id}")
     int updateFlagStatus(@Param("id") String id, @Param("isFlagged") boolean isFlagged, @Param("reason") String reason);

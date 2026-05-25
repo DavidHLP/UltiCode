@@ -124,7 +124,8 @@ public class AuditServiceImpl implements AuditService {
         stats.setTopPerformers(topPerformers);
 
         List<Map<String, Object>> actionTypeMaps = auditLogMapper.selectStatsByActionType(
-            query.getStartDate(), query.getEndDate(), query.getPerformerId());
+            query.getStartDate(), query.getEndDate(), query.getPerformerId(),
+            query.getUserId(), query.getEntityType(), query.getAction(), query.getSearch());
         List<ActionTypeStat> actionTypeStats = actionTypeMaps.stream()
             .map(m -> new ActionTypeStat(
                 (String) m.get("actionType"),
@@ -158,7 +159,7 @@ public class AuditServiceImpl implements AuditService {
             wrapper.ge(AuditLog::getCreatedAt, query.getStartDate());
         }
         if (query.getEndDate() != null) {
-            wrapper.le(AuditLog::getCreatedAt, query.getEndDate());
+            wrapper.lt(AuditLog::getCreatedAt, query.getEndDate());
         }
         if (query.getSearch() != null && !query.getSearch().isBlank()) {
             wrapper.and(w -> w

@@ -91,24 +91,38 @@ export interface AuditExportParams extends AuditLogQueryParams {
   format?: 'csv' | 'json'
 }
 
+/**
+ * Normalize date params: append time portion if only date is provided.
+ * - startDate without time → T00:00:00 (start of day)
+ * - endDate without time → T23:59:59 (end of day, inclusive)
+ */
+function normalizeDateParams<T extends { startDate?: string; endDate?: string }>(params: T): T {
+  const p = { ...params }
+  if (p.startDate && p.startDate.length === 10) {
+    p.startDate = `${p.startDate}T00:00:00`
+  }
+  if (p.endDate && p.endDate.length === 10) {
+    p.endDate = `${p.endDate}T23:59:59`
+  }
+  return p
+}
+
 export const auditApi = {
   async getAuditLogs(params: AuditLogQueryParams = {}): Promise<PageResult<AuditLog>> {
-    return apiGet<PageResult<AuditLog>>('/admin/audit/logs', { params })
+    return apiGet<PageResult<AuditLog>>('/admin/audit/logs', {
+      params: normalizeDateParams(params),
+    })
   },
 
-  async getAuditStats(params?: {
-    startDate?: string
-    endDate?: string
-    performerId?: string
-  }): Promise<AuditStats> {
-    return apiGet<AuditStats>('/admin/audit/stats', { params })
+  async getAuditStats(params?: AuditLogQueryParams): Promise<AuditStats> {
+    return apiGet<AuditStats>('/admin/audit/stats', { params: normalizeDateParams(params ?? {}) })
   },
 
   async exportAuditLogs(params: AuditExportParams = {}): Promise<void> {
     const { format = 'csv', ...queryParams } = params
     const filename = `audit-logs.${format}`
     await apiDownload('/admin/audit/export', filename, {
-      params: { format, ...queryParams },
+      params: { format, ...normalizeDateParams(queryParams) },
     })
   },
 }

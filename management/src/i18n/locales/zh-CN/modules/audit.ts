@@ -12,7 +12,6 @@ export default {
   ipAddress: 'IP 地址',
   userAgent: '用户代理',
 
-  // 列定义
   columns: {
     createdAt: '时间',
     action: '操作',
@@ -23,33 +22,89 @@ export default {
     details: '详情',
   },
 
-  // 筛选器
   filters: {
     allActions: '全部操作',
     allEntities: '所有实体',
   },
 
-  // 实体类型
   entityTypes: {
     USER: '用户',
     PROBLEM: '题目',
     CONTEST: '比赛',
+    CONTEST_ANNOUNCEMENT: '比赛公告',
     SOLUTION: '题解',
+    SUBMISSION: '提交',
     FORUM_POST: '论坛帖子',
+    FORUM_COMMENT: '论坛评论',
+    COMMENT: '评论',
+    TAG: '标签',
+    PROBLEM_LIST: '题单',
+    SETTINGS: '设置',
+    PERMISSION: '权限',
+    NOTIFICATION: '通知',
   },
 
-  // 操作类型
+  entityGroups: {
+    user: '用户操作',
+    problem: '题目操作',
+    contest: '比赛操作',
+    solution: '题解操作',
+    forumPost: '论坛操作',
+    comment: '评论操作',
+    tag: '标签操作',
+    permission: '权限操作',
+    other: '其他操作',
+  },
+
   actionTypes: {
     CREATE_USER: '创建用户',
     UPDATE_USER: '更新用户',
     DELETE_USER: '删除用户',
+    RESET_PASSWORD: '重置密码',
     BAN_USER: '封禁用户',
     UNBAN_USER: '解封用户',
+    CREATE_PROBLEM: '创建题目',
+    UPDATE_PROBLEM: '更新题目',
+    DELETE_PROBLEM: '删除题目',
+    CREATE_CONTEST: '创建比赛',
+    UPDATE_CONTEST: '更新比赛',
+    DELETE_CONTEST: '删除比赛',
+    CREATE_CONTEST_ANNOUNCEMENT: '创建比赛公告',
+    UPDATE_CONTEST_ANNOUNCEMENT: '更新比赛公告',
+    DELETE_CONTEST_ANNOUNCEMENT: '删除比赛公告',
+    CREATE_SOLUTION: '创建题解',
+    UPDATE_SOLUTION: '更新题解',
+    DELETE_SOLUTION: '删除题解',
+    FLAG_SOLUTION: '标记题解',
+    UNFLAG_SOLUTION: '取消标记题解',
+    CREATE_FORUM_POST: '创建帖子',
+    UPDATE_FORUM_POST: '更新帖子',
+    DELETE_FORUM_POST: '删除帖子',
+    PIN_POST: '置顶帖子',
+    UNPIN_POST: '取消置顶',
+    LOCK_POST: '锁定帖子',
+    UNLOCK_POST: '解锁帖子',
+    FLAG_POST: '标记帖子',
+    UNFLAG_POST: '取消标记帖子',
+    FLAG_COMMENT: '标记评论',
+    UNFLAG_COMMENT: '取消标记评论',
+    DELETE_COMMENT: '删除评论',
+    CREATE_TAG: '创建标签',
+    UPDATE_TAG: '更新标签',
+    DELETE_TAG: '删除标签',
     GRANT_PERMISSION: '授予权限',
     REVOKE_PERMISSION: '撤销权限',
+    UPDATE_SETTINGS: '更新设置',
+    UPDATE_PROBLEM_LIST: '更新题单',
+    DELETE_PROBLEM_LIST: '删除题单',
+    CREATE_NOTIFICATION: '创建通知',
+    UPDATE_NOTIFICATION: '更新通知',
+    DELETE_NOTIFICATION: '删除通知',
+    REQUEUE_SUBMISSION: '重新排队提交',
+    DELETE_SUBMISSION: '删除提交',
+    MODERATE_CONTENT: '审核内容',
   },
 
-  // 操作
   actions: {
     viewDetails: '查看详情',
     openMenu: '打开菜单',
@@ -60,16 +115,16 @@ export default {
     moderate: '审核',
   },
 
-  // 统计标签
   stats: {
     total: '总数',
     create: '创建',
     update: '更新',
     delete: '删除',
+    other: '其他',
     systemAuditTrail: '系统审计追踪',
+    currentPage: '当前页',
   },
 
-  // 详情抽屉
   drawer: {
     description: '系统事件的详细记录。',
     notFound: '选择一条日志记录以查看详情',
@@ -83,7 +138,6 @@ export default {
     newState: '新状态',
   },
 
-  // Toast 消息
   toast: {
     loadFailed: '加载审计日志失败',
   },

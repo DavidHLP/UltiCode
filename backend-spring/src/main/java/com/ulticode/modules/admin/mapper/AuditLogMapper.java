@@ -19,13 +19,21 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
         + "  <if test='startDate != null'> AND created_at &gt;= #{startDate}</if>"
         + "  <if test='endDate != null'> AND created_at &lt;= #{endDate}</if>"
         + "  <if test='performerId != null'> AND performer_id = #{performerId}</if>"
+        + "  <if test='userId != null'> AND user_id = #{userId}</if>"
+        + "  <if test='entityType != null'> AND entity_type = #{entityType}</if>"
+        + "  <if test='action != null'> AND action = #{action}</if>"
+        + "  <if test='search != null and !search.isEmpty()'> AND (action LIKE CONCAT('%',#{search},'%') OR entity_type LIKE CONCAT('%',#{search},'%') OR entity_id LIKE CONCAT('%',#{search},'%'))</if>"
         + "</where>"
         + "GROUP BY entity_type ORDER BY count DESC LIMIT 10"
         + "</script>")
     List<Map<String, Object>> selectStatsByEntityType(
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate,
-        @Param("performerId") String performerId);
+        @Param("performerId") String performerId,
+        @Param("userId") String userId,
+        @Param("entityType") String entityType,
+        @Param("action") String action,
+        @Param("search") String search);
 
     @Select("<script>"
         + "SELECT performer_id as performerId, COUNT(*) as count "
@@ -34,13 +42,21 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
         + "  <if test='startDate != null'> AND created_at &gt;= #{startDate}</if>"
         + "  <if test='endDate != null'> AND created_at &lt;= #{endDate}</if>"
         + "  <if test='performerId != null'> AND performer_id = #{performerId}</if>"
+        + "  <if test='userId != null'> AND user_id = #{userId}</if>"
+        + "  <if test='entityType != null'> AND entity_type = #{entityType}</if>"
+        + "  <if test='action != null'> AND action = #{action}</if>"
+        + "  <if test='search != null and !search.isEmpty()'> AND (action LIKE CONCAT('%',#{search},'%') OR entity_type LIKE CONCAT('%',#{search},'%') OR entity_id LIKE CONCAT('%',#{search},'%'))</if>"
         + "</where>"
         + "GROUP BY performer_id ORDER BY count DESC LIMIT 10"
         + "</script>")
     List<Map<String, Object>> selectStatsByPerformer(
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate,
-        @Param("performerId") String performerId);
+        @Param("performerId") String performerId,
+        @Param("userId") String userId,
+        @Param("entityType") String entityType,
+        @Param("action") String action,
+        @Param("search") String search);
 
     /**
      * Count distinct active users per day within a date range.

@@ -22,7 +22,9 @@ import {
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
@@ -31,7 +33,17 @@ import type { AuditLog } from '@/api/admin/audit'
 
 import DataTable from '@/components/table/DataTable.vue'
 import AuditLogDetailDrawer from './AuditLogDetailDrawer.vue'
-import { getActionIcon, getActionIconColor, getActionBadgeClass, getEntityTypeIcon } from './utils'
+import {
+  getActionIcon,
+  getActionIconColor,
+  getActionBadgeClass,
+  getEntityTypeIcon,
+  AUDIT_ACTIONS_BY_ENTITY,
+  AUDIT_ACTION_GROUPS,
+  AUDIT_ENTITY_TYPES,
+  actionToI18nKey,
+  entityTypeToI18nKey,
+} from './utils'
 
 const { t } = useI18n()
 const auditStore = useAuditStore()
@@ -54,25 +66,34 @@ onMounted(() => {
   }, 100)
 })
 
-// Stats for terminal ticker
+// Stats for terminal ticker — global total + page-level breakdown
 const stats = computed(() => {
+  const s = auditStore.stats
   const logs = auditStore.logs ?? []
   return {
-    total: auditStore.total,
+    total: s?.totalActions ?? auditStore.total,
     create: logs.filter((l) => l.action.includes('CREATE')).length,
     update: logs.filter((l) => l.action.includes('UPDATE')).length,
-    delete: logs.filter((l) => l.action.includes('DELETE') || l.action.includes('BAN')).length,
+    delete: logs.filter((l) => l.action.includes('DELETE')).length,
+    other: logs.filter(
+      (l) =>
+        !l.action.includes('CREATE') &&
+        !l.action.includes('UPDATE') &&
+        !l.action.includes('DELETE'),
+    ).length,
   }
 })
 
 async function loadLogs() {
-  await auditStore.fetchLogs({
+  const params = {
     search: searchQuery.value || undefined,
     action: actionFilter.value === 'all' ? undefined : actionFilter.value,
     entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
-  })
+  }
+  await auditStore.fetchLogs(params)
+  await auditStore.fetchStats(params)
 }
 
 // Watchers
@@ -353,44 +374,39 @@ const columns: ColumnDef<AuditLog>[] = [
             </div>
             <Select v-model="actionFilter">
               <SelectTrigger
-                class="terminal-input w-[160px] font-data text-xs uppercase tracking-wider"
+                class="terminal-input w-[200px] font-data text-xs uppercase tracking-wider"
               >
                 <SelectValue :placeholder="t('audit.filters.allActions')" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
-                <SelectItem value="CREATE_USER">{{
-                  t('audit.actionTypes.CREATE_USER')
-                }}</SelectItem>
-                <SelectItem value="UPDATE_USER">{{
-                  t('audit.actionTypes.UPDATE_USER')
-                }}</SelectItem>
-                <SelectItem value="DELETE_USER">{{
-                  t('audit.actionTypes.DELETE_USER')
-                }}</SelectItem>
-                <SelectItem value="BAN_USER">{{ t('audit.actionTypes.BAN_USER') }}</SelectItem>
-                <SelectItem value="UNBAN_USER">{{ t('audit.actionTypes.UNBAN_USER') }}</SelectItem>
-                <SelectItem value="GRANT_PERMISSION">{{
-                  t('audit.actionTypes.GRANT_PERMISSION')
-                }}</SelectItem>
-                <SelectItem value="REVOKE_PERMISSION">{{
-                  t('audit.actionTypes.REVOKE_PERMISSION')
-                }}</SelectItem>
+                <SelectGroup v-for="group in AUDIT_ACTION_GROUPS" :key="group">
+                  <SelectLabel>{{ t(`audit.entityGroups.${group}`) }}</SelectLabel>
+                  <SelectItem
+                    v-for="action in AUDIT_ACTIONS_BY_ENTITY[group]"
+                    :key="action"
+                    :value="action"
+                  >
+                    {{ t(actionToI18nKey(action)) }}
+                  </SelectItem>
+                </SelectGroup>
               </SelectContent>
             </Select>
             <Select v-model="entityTypeFilter">
               <SelectTrigger
-                class="terminal-input w-[150px] font-data text-xs uppercase tracking-wider"
+                class="terminal-input w-[180px] font-data text-xs uppercase tracking-wider"
               >
                 <SelectValue :placeholder="t('audit.filters.allEntities')" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{{ t('audit.filters.allEntities') }}</SelectItem>
-                <SelectItem value="USER">{{ t('audit.entityTypes.USER') }}</SelectItem>
-                <SelectItem value="PROBLEM">{{ t('audit.entityTypes.PROBLEM') }}</SelectItem>
-                <SelectItem value="CONTEST">{{ t('audit.entityTypes.CONTEST') }}</SelectItem>
-                <SelectItem value="SOLUTION">{{ t('audit.entityTypes.SOLUTION') }}</SelectItem>
-                <SelectItem value="FORUM_POST">{{ t('audit.entityTypes.FORUM_POST') }}</SelectItem>
+                <SelectItem
+                  v-for="type in AUDIT_ENTITY_TYPES"
+                  :key="type"
+                  :value="type"
+                >
+                  {{ t(entityTypeToI18nKey(type)) }}
+                </SelectItem>
               </SelectContent>
             </Select>
             <Button

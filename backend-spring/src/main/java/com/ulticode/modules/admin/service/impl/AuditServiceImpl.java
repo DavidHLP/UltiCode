@@ -87,7 +87,8 @@ public class AuditServiceImpl implements AuditService {
         stats.setTotalActions(auditLogMapper.selectCount(wrapper));
 
         List<Map<String, Object>> entityMaps = auditLogMapper.selectStatsByEntityType(
-            query.getStartDate(), query.getEndDate(), query.getPerformerId());
+            query.getStartDate(), query.getEndDate(), query.getPerformerId(),
+            query.getUserId(), query.getEntityType(), query.getAction(), query.getSearch());
         List<EntityTypeStat> entityStats = entityMaps.stream()
             .map(m -> new EntityTypeStat(
                 (String) m.get("entityType"),
@@ -97,7 +98,8 @@ public class AuditServiceImpl implements AuditService {
         stats.setActionsByEntity(entityStats);
 
         List<Map<String, Object>> performerMaps = auditLogMapper.selectStatsByPerformer(
-            query.getStartDate(), query.getEndDate(), query.getPerformerId());
+            query.getStartDate(), query.getEndDate(), query.getPerformerId(),
+            query.getUserId(), query.getEntityType(), query.getAction(), query.getSearch());
 
         Set<String> performerIds = performerMaps.stream()
             .map(m -> (String) m.get("performerId"))

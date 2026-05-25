@@ -34,11 +34,7 @@ export const useAuditStore = defineStore('adminAudit', () => {
     }
   }
 
-  async function fetchStats(params?: {
-    startDate?: string
-    endDate?: string
-    performerId?: string
-  }) {
+  async function fetchStats(params?: AuditLogQueryParams) {
     loading.value = true
     error.value = null
     try {

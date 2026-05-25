@@ -17,7 +17,7 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
         + "FROM audit_logs "
         + "<where>"
         + "  <if test='startDate != null'> AND created_at &gt;= #{startDate}</if>"
-        + "  <if test='endDate != null'> AND created_at &lt;= #{endDate}</if>"
+        + "  <if test='endDate != null'> AND created_at &lt; #{endDate}</if>"
         + "  <if test='performerId != null'> AND performer_id = #{performerId}</if>"
         + "  <if test='userId != null'> AND user_id = #{userId}</if>"
         + "  <if test='entityType != null'> AND entity_type = #{entityType}</if>"
@@ -40,7 +40,7 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
         + "FROM audit_logs "
         + "<where>"
         + "  <if test='startDate != null'> AND created_at &gt;= #{startDate}</if>"
-        + "  <if test='endDate != null'> AND created_at &lt;= #{endDate}</if>"
+        + "  <if test='endDate != null'> AND created_at &lt; #{endDate}</if>"
         + "  <if test='performerId != null'> AND performer_id = #{performerId}</if>"
         + "  <if test='userId != null'> AND user_id = #{userId}</if>"
         + "  <if test='entityType != null'> AND entity_type = #{entityType}</if>"
@@ -85,13 +85,29 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
         + "FROM audit_logs "
         + "<where>"
         + "  <if test='startDate != null'> AND created_at &gt;= #{startDate}</if>"
-        + "  <if test='endDate != null'> AND created_at &lt;= #{endDate}</if>"
+        + "  <if test='endDate != null'> AND created_at &lt; #{endDate}</if>"
         + "  <if test='performerId != null'> AND performer_id = #{performerId}</if>"
+        + "  <if test='userId != null'> AND user_id = #{userId}</if>"
+        + "  <if test='entityType != null'> AND entity_type = #{entityType}</if>"
+        + "  <if test='action != null'> AND action = #{action}</if>"
+        + "  <if test='search != null and !search.isEmpty()'> AND (action LIKE CONCAT('%',#{search},'%') OR entity_type LIKE CONCAT('%',#{search},'%') OR entity_id LIKE CONCAT('%',#{search},'%'))</if>"
         + "</where>"
         + "GROUP BY actionType ORDER BY count DESC"
         + "</script>")
     List<Map<String, Object>> selectStatsByActionType(
         @Param("startDate") LocalDateTime startDate,
         @Param("endDate") LocalDateTime endDate,
-        @Param("performerId") String performerId);
+        @Param("performerId") String performerId,
+        @Param("userId") String userId,
+        @Param("entityType") String entityType,
+        @Param("action") String action,
+        @Param("search") String search);
+
+    @Select("SELECT DATE(created_at) AS date, COUNT(DISTINCT performer_id) AS count "
+        + "FROM audit_logs "
+        + "WHERE created_at >= #{startDate} AND created_at < #{endDate} "
+        + "GROUP BY DATE(created_at) ORDER BY date")
+    List<Map<String, Object>> countDailyActiveUsers(
+        @Param("startDate") LocalDateTime startDate,
+        @Param("endDate") LocalDateTime endDate);
 }

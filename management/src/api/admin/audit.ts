@@ -85,6 +85,10 @@ export interface AuditStats {
     role: string
     count: number
   }>
+  actionsByType: Array<{
+    actionType: string
+    count: number
+  }>
 }
 
 export interface AuditExportParams extends AuditLogQueryParams {

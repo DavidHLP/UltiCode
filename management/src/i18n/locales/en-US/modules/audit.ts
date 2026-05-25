@@ -27,6 +27,11 @@ export default {
   filters: {
     allActions: 'All Actions',
     allEntities: 'All Entities',
+    startDate: 'Start Date',
+    endDate: 'End Date',
+    performerId: 'Performer ID',
+    userId: 'Target User ID',
+    advancedFilters: 'Advanced Filters',
   },
 
   // Entity types
@@ -60,12 +65,34 @@ export default {
     moderate: 'Moderate',
   },
 
+  // Action type groups
+  actionTypeGroups: {
+    CREATE: 'Create',
+    UPDATE: 'Update',
+    DELETE: 'Delete',
+    FLAG: 'Flag',
+    UNFLAG: 'Unflag',
+    BAN: 'Ban',
+    UNBAN: 'Unban',
+    GRANT: 'Grant',
+    REVOKE: 'Revoke',
+    RESET: 'Reset',
+    PIN: 'Pin',
+    UNPIN: 'Unpin',
+    LOCK: 'Lock',
+    UNLOCK: 'Unlock',
+    REQUEUE: 'Requeue',
+    MODERATE: 'Moderate',
+    OTHER: 'Other',
+  },
+
   // Stats ticker labels
   stats: {
     total: 'total',
     create: 'create',
     update: 'update',
     delete: 'delete',
+    other: 'other',
     systemAuditTrail: 'system audit trail',
   },
 

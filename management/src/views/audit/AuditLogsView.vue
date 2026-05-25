@@ -8,6 +8,8 @@ import {
   IconRefresh,
   IconX,
   IconDatabase,
+  IconChevronDown,
+  IconChevronUp,
 } from '@tabler/icons-vue'
 import { useI18n } from 'vue-i18n'
 
@@ -39,6 +41,11 @@ const auditStore = useAuditStore()
 const searchQuery = ref('')
 const actionFilter = ref<string>('all')
 const entityTypeFilter = ref<string>('all')
+const startDateFilter = ref('')
+const endDateFilter = ref('')
+const performerIdFilter = ref('')
+const userIdFilter = ref('')
+const showAdvancedFilters = ref(false)
 const tablePagination = ref({ pageIndex: 0, pageSize: 50 })
 
 const selectedLog = ref<AuditLog | null>(null)
@@ -54,24 +61,39 @@ onMounted(() => {
   }, 100)
 })
 
-// Stats for terminal ticker
+// Stats for terminal ticker — all values from server-side aggregation
 const stats = computed(() => {
-  const logs = auditStore.logs ?? []
+  const s = auditStore.stats
+  if (!s) {
+    return { total: auditStore.total, create: 0, update: 0, delete: 0, other: 0 }
+  }
+  const byType = Object.fromEntries(s.actionsByType?.map(i => [i.actionType, i.count]) ?? [])
   return {
-    total: auditStore.total,
-    create: logs.filter((l) => l.action.includes('CREATE')).length,
-    update: logs.filter((l) => l.action.includes('UPDATE')).length,
-    delete: logs.filter((l) => l.action.includes('DELETE') || l.action.includes('BAN')).length,
+    total: s.totalActions,
+    create: byType.CREATE ?? 0,
+    update: byType.UPDATE ?? 0,
+    delete: byType.DELETE ?? 0,
+    other: s.totalActions - (byType.CREATE ?? 0) - (byType.UPDATE ?? 0) - (byType.DELETE ?? 0),
   }
 })
 
 async function loadLogs() {
-  await auditStore.fetchLogs({
+  const params = {
     search: searchQuery.value || undefined,
     action: actionFilter.value === 'all' ? undefined : actionFilter.value,
     entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
+    startDate: startDateFilter.value || undefined,
+    endDate: endDateFilter.value || undefined,
+    performerId: performerIdFilter.value || undefined,
+    userId: userIdFilter.value || undefined,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
+  }
+  await auditStore.fetchLogs(params)
+  await auditStore.fetchStats({
+    startDate: params.startDate,
+    endDate: params.endDate,
+    performerId: params.performerId,
   })
 }
 
@@ -85,7 +107,7 @@ watchDebounced(
   { debounce: 500 },
 )
 
-watch([actionFilter, entityTypeFilter], () => {
+watch([actionFilter, entityTypeFilter, startDateFilter, endDateFilter, performerIdFilter, userIdFilter], () => {
   if (tablePagination.value.pageIndex === 0) {
     loadLogs()
   } else {
@@ -402,6 +424,43 @@ const columns: ColumnDef<AuditLog>[] = [
             >
               <IconRefresh class="h-4 w-4" :class="{ 'animate-spin': auditStore.loading }" />
             </Button>
+            <Button
+              variant="terminal"
+              size="sm"
+              class="font-data text-xs border-[var(--silver-300)]"
+              @click="showAdvancedFilters = !showAdvancedFilters"
+            >
+              {{ t('audit.filters.advancedFilters') }}
+              <IconChevronDown v-if="!showAdvancedFilters" class="h-3 w-3 ml-1" />
+              <IconChevronUp v-else class="h-3 w-3 ml-1" />
+            </Button>
+          </div>
+          <div
+            v-if="showAdvancedFilters"
+            class="flex items-center gap-3 mt-2 pt-2 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+          >
+            <Input
+              v-model="startDateFilter"
+              type="date"
+              :placeholder="t('audit.filters.startDate')"
+              class="terminal-input w-[140px] font-data text-sm"
+            />
+            <Input
+              v-model="endDateFilter"
+              type="date"
+              :placeholder="t('audit.filters.endDate')"
+              class="terminal-input w-[140px] font-data text-sm"
+            />
+            <Input
+              v-model="performerIdFilter"
+              :placeholder="t('audit.filters.performerId')"
+              class="terminal-input w-[140px] font-data text-sm"
+            />
+            <Input
+              v-model="userIdFilter"
+              :placeholder="t('audit.filters.userId')"
+              class="terminal-input w-[140px] font-data text-sm"
+            />
           </div>
         </template>
       </DataTable>

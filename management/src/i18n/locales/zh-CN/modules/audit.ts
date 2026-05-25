@@ -25,6 +25,11 @@ export default {
   filters: {
     allActions: '全部操作',
     allEntities: '所有实体',
+    startDate: '开始日期',
+    endDate: '结束日期',
+    performerId: '操作者 ID',
+    userId: '目标用户 ID',
+    advancedFilters: '高级筛选',
   },
 
   entityTypes: {
@@ -115,8 +120,28 @@ export default {
     moderate: '审核',
   },
 
+  actionTypeGroups: {
+    CREATE: '创建',
+    UPDATE: '更新',
+    DELETE: '删除',
+    FLAG: '标记',
+    UNFLAG: '取消标记',
+    BAN: '封禁',
+    UNBAN: '解封',
+    GRANT: '授权',
+    REVOKE: '撤销',
+    RESET: '重置',
+    PIN: '置顶',
+    UNPIN: '取消置顶',
+    LOCK: '锁定',
+    UNLOCK: '解锁',
+    REQUEUE: '重新排队',
+    MODERATE: '审核',
+    OTHER: '其他',
+  },
+
   stats: {
-    total: '总数',
+    total: '总计',
     create: '创建',
     update: '更新',
     delete: '删除',

@@ -58,19 +58,40 @@ public interface AuditLogMapper extends BaseMapper<AuditLog> {
         @Param("action") String action,
         @Param("search") String search);
 
-    /**
-     * Count distinct active users per day within a date range.
-     * Replaces per-day loop queries to eliminate N+1 query problem.
-     *
-     * @param startDate start of the range (inclusive)
-     * @param endDate   end of the range (exclusive)
-     * @return list of maps with "date" (DATE) and "count" (COUNT DISTINCT user_id)
-     */
-    @Select("SELECT DATE(created_at) as date, COUNT(DISTINCT performer_id) as count "
+    @Select("<script>"
+        // UN* prefixes MUST precede their base prefix (e.g. UNFLAG before FLAG),
+        // otherwise LIKE 'FLAG%' would also match 'UNFLAG'.
+        + "SELECT "
+        + "  CASE "
+        + "    WHEN action LIKE 'CREATE%' THEN 'CREATE' "
+        + "    WHEN action LIKE 'UPDATE%' THEN 'UPDATE' "
+        + "    WHEN action LIKE 'DELETE%' THEN 'DELETE' "
+        + "    WHEN action LIKE 'UNFLAG%' THEN 'UNFLAG' "
+        + "    WHEN action LIKE 'FLAG%' THEN 'FLAG' "
+        + "    WHEN action LIKE 'UNBAN%' THEN 'UNBAN' "
+        + "    WHEN action LIKE 'BAN%' THEN 'BAN' "
+        + "    WHEN action LIKE 'GRANT%' THEN 'GRANT' "
+        + "    WHEN action LIKE 'REVOKE%' THEN 'REVOKE' "
+        + "    WHEN action LIKE 'RESET%' THEN 'RESET' "
+        + "    WHEN action LIKE 'UNPIN%' THEN 'UNPIN' "
+        + "    WHEN action LIKE 'PIN%' THEN 'PIN' "
+        + "    WHEN action LIKE 'UNLOCK%' THEN 'UNLOCK' "
+        + "    WHEN action LIKE 'LOCK%' THEN 'LOCK' "
+        + "    WHEN action LIKE 'REQUEUE%' THEN 'REQUEUE' "
+        + "    WHEN action LIKE 'MODERATE%' THEN 'MODERATE' "
+        + "    ELSE 'OTHER' "
+        + "  END AS actionType, "
+        + "  COUNT(*) AS count "
         + "FROM audit_logs "
-        + "WHERE created_at >= #{startDate} AND created_at < #{endDate} "
-        + "GROUP BY DATE(created_at) ORDER BY date")
-    List<Map<String, Object>> countDailyActiveUsers(
+        + "<where>"
+        + "  <if test='startDate != null'> AND created_at &gt;= #{startDate}</if>"
+        + "  <if test='endDate != null'> AND created_at &lt;= #{endDate}</if>"
+        + "  <if test='performerId != null'> AND performer_id = #{performerId}</if>"
+        + "</where>"
+        + "GROUP BY actionType ORDER BY count DESC"
+        + "</script>")
+    List<Map<String, Object>> selectStatsByActionType(
         @Param("startDate") LocalDateTime startDate,
-        @Param("endDate") LocalDateTime endDate);
+        @Param("endDate") LocalDateTime endDate,
+        @Param("performerId") String performerId);
 }

@@ -123,6 +123,16 @@ public class AuditServiceImpl implements AuditService {
         }).collect(Collectors.toList());
         stats.setTopPerformers(topPerformers);
 
+        List<Map<String, Object>> actionTypeMaps = auditLogMapper.selectStatsByActionType(
+            query.getStartDate(), query.getEndDate(), query.getPerformerId());
+        List<ActionTypeStat> actionTypeStats = actionTypeMaps.stream()
+            .map(m -> new ActionTypeStat(
+                (String) m.get("actionType"),
+                ((Number) m.get("count")).longValue()
+            ))
+            .collect(Collectors.toList());
+        stats.setActionsByType(actionTypeStats);
+
         return stats;
     }
 

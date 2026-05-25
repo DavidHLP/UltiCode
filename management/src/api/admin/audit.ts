@@ -28,7 +28,7 @@ export interface PageResult<T> {
  */
 export interface AuditLog {
   id: string
-  createdAt: Date
+  createdAt: string
   performer?: PerformerInfo
   user?: UserInfo
   action: string
@@ -98,7 +98,7 @@ export interface AuditExportParams extends AuditLogQueryParams {
 /**
  * Normalize date params: append time portion if only date is provided.
  * - startDate without time → T00:00:00 (start of day)
- * - endDate without time → T23:59:59 (end of day, inclusive)
+ * - endDate without time → next day T00:00:00 (exclusive upper bound)
  */
 function normalizeDateParams<T extends { startDate?: string; endDate?: string }>(params: T): T {
   const p = { ...params }
@@ -106,7 +106,11 @@ function normalizeDateParams<T extends { startDate?: string; endDate?: string }>
     p.startDate = `${p.startDate}T00:00:00`
   }
   if (p.endDate && p.endDate.length === 10) {
-    p.endDate = `${p.endDate}T23:59:59`
+    const next = new Date(p.endDate + 'T00:00:00')
+    next.setDate(next.getDate() + 1)
+    const mm = String(next.getMonth() + 1).padStart(2, '0')
+    const dd = String(next.getDate()).padStart(2, '0')
+    p.endDate = `${next.getFullYear()}-${mm}-${dd}T00:00:00`
   }
   return p
 }

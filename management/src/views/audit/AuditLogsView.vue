@@ -144,7 +144,7 @@ const columns: ColumnDef<AuditLog>[] = [
     id: 'created_at',
     header: () => t('audit.columns.createdAt'),
     cell: ({ row }) => {
-      const date = new Date(row.getValue('createdAt') as Date)
+      const date = new Date(row.getValue('createdAt') as string)
       return h(
         'span',
         { class: 'font-data text-sm text-[var(--silver-500)] tabular-nums' },

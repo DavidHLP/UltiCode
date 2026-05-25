@@ -45,7 +45,13 @@ export const AUDIT_ACTIONS_BY_ENTITY: Record<string, string[]> = {
     'UPDATE_CONTEST_ANNOUNCEMENT',
     'DELETE_CONTEST_ANNOUNCEMENT',
   ],
-  solution: ['CREATE_SOLUTION', 'UPDATE_SOLUTION', 'DELETE_SOLUTION', 'FLAG_SOLUTION', 'UNFLAG_SOLUTION'],
+  solution: [
+    'CREATE_SOLUTION',
+    'UPDATE_SOLUTION',
+    'DELETE_SOLUTION',
+    'FLAG_SOLUTION',
+    'UNFLAG_SOLUTION',
+  ],
   forumPost: [
     'CREATE_FORUM_POST',
     'UPDATE_FORUM_POST',
@@ -179,6 +185,7 @@ export function getEntityTypeIcon(entityType: string | undefined) {
   if (upper === 'SUBMISSION') return IconRefresh
   if (upper === 'FORUM_POST') return IconMessage
   if (upper === 'COMMENT') return IconMessage
+  if (upper === 'FORUM_COMMENT') return IconMessage
   if (upper === 'TAG') return IconFlag
   if (upper === 'PERMISSION') return IconShield
   if (upper === 'NOTIFICATION') return IconMessage

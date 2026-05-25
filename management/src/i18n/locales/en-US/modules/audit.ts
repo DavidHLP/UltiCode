@@ -1,18 +1,17 @@
 export default {
   title: 'Audit Logs',
   searchPlaceholder: 'Search audit logs...',
-  filterAction: 'Filter Action',
+  filterAction: 'Filter by action',
   allActions: 'All Actions',
   export: 'Export',
-  noLogs: 'No Logs',
-  noLogsDescription: 'No audit log records found matching your criteria.',
+  noLogs: 'No Logs Found',
+  noLogsDescription: 'No audit log entries match the current filters.',
   systemAction: 'System Action',
   oldValues: 'Old Values',
   newValues: 'New Values',
   ipAddress: 'IP Address',
   userAgent: 'User Agent',
 
-  // Column definitions
   columns: {
     createdAt: 'Time',
     action: 'Action',
@@ -23,36 +22,92 @@ export default {
     details: 'Details',
   },
 
-  // Filters
   filters: {
     allActions: 'All Actions',
     allEntities: 'All Entities',
   },
 
-  // Entity types
   entityTypes: {
     USER: 'User',
     PROBLEM: 'Problem',
     CONTEST: 'Contest',
+    CONTEST_ANNOUNCEMENT: 'Contest Announcement',
     SOLUTION: 'Solution',
+    SUBMISSION: 'Submission',
     FORUM_POST: 'Forum Post',
+    FORUM_COMMENT: 'Forum Comment',
+    COMMENT: 'Comment',
+    TAG: 'Tag',
+    PROBLEM_LIST: 'Problem List',
+    SETTINGS: 'Settings',
+    PERMISSION: 'Permission',
+    NOTIFICATION: 'Notification',
   },
 
-  // Action types
+  entityGroups: {
+    user: 'User Actions',
+    problem: 'Problem Actions',
+    contest: 'Contest Actions',
+    solution: 'Solution Actions',
+    forumPost: 'Forum Actions',
+    comment: 'Comment Actions',
+    tag: 'Tag Actions',
+    permission: 'Permission Actions',
+    other: 'Other Actions',
+  },
+
   actionTypes: {
     CREATE_USER: 'Create User',
     UPDATE_USER: 'Update User',
     DELETE_USER: 'Delete User',
+    RESET_PASSWORD: 'Reset Password',
     BAN_USER: 'Ban User',
     UNBAN_USER: 'Unban User',
+    CREATE_PROBLEM: 'Create Problem',
+    UPDATE_PROBLEM: 'Update Problem',
+    DELETE_PROBLEM: 'Delete Problem',
+    CREATE_CONTEST: 'Create Contest',
+    UPDATE_CONTEST: 'Update Contest',
+    DELETE_CONTEST: 'Delete Contest',
+    CREATE_CONTEST_ANNOUNCEMENT: 'Create Contest Announcement',
+    UPDATE_CONTEST_ANNOUNCEMENT: 'Update Contest Announcement',
+    DELETE_CONTEST_ANNOUNCEMENT: 'Delete Contest Announcement',
+    CREATE_SOLUTION: 'Create Solution',
+    UPDATE_SOLUTION: 'Update Solution',
+    DELETE_SOLUTION: 'Delete Solution',
+    FLAG_SOLUTION: 'Flag Solution',
+    UNFLAG_SOLUTION: 'Unflag Solution',
+    CREATE_FORUM_POST: 'Create Forum Post',
+    UPDATE_FORUM_POST: 'Update Forum Post',
+    DELETE_FORUM_POST: 'Delete Forum Post',
+    PIN_POST: 'Pin Post',
+    UNPIN_POST: 'Unpin Post',
+    LOCK_POST: 'Lock Post',
+    UNLOCK_POST: 'Unlock Post',
+    FLAG_POST: 'Flag Post',
+    UNFLAG_POST: 'Unflag Post',
+    FLAG_COMMENT: 'Flag Comment',
+    UNFLAG_COMMENT: 'Unflag Comment',
+    DELETE_COMMENT: 'Delete Comment',
+    CREATE_TAG: 'Create Tag',
+    UPDATE_TAG: 'Update Tag',
+    DELETE_TAG: 'Delete Tag',
     GRANT_PERMISSION: 'Grant Permission',
     REVOKE_PERMISSION: 'Revoke Permission',
+    UPDATE_SETTINGS: 'Update Settings',
+    UPDATE_PROBLEM_LIST: 'Update Problem List',
+    DELETE_PROBLEM_LIST: 'Delete Problem List',
+    CREATE_NOTIFICATION: 'Create Notification',
+    UPDATE_NOTIFICATION: 'Update Notification',
+    DELETE_NOTIFICATION: 'Delete Notification',
+    REQUEUE_SUBMISSION: 'Requeue Submission',
+    DELETE_SUBMISSION: 'Delete Submission',
+    MODERATE_CONTENT: 'Moderate Content',
   },
 
-  // Actions
   actions: {
     viewDetails: 'View Details',
-    openMenu: 'Open menu',
+    openMenu: 'Open Menu',
     create: 'Create',
     update: 'Update',
     delete: 'Delete',
@@ -60,18 +115,18 @@ export default {
     moderate: 'Moderate',
   },
 
-  // Stats ticker labels
   stats: {
-    total: 'total',
-    create: 'create',
-    update: 'update',
-    delete: 'delete',
-    systemAuditTrail: 'system audit trail',
+    total: 'Total',
+    create: 'Create',
+    update: 'Update',
+    delete: 'Delete',
+    other: 'Other',
+    systemAuditTrail: 'System Audit Trail',
+    currentPage: 'Current Page',
   },
 
-  // Detail drawer
   drawer: {
-    description: 'Detailed record of the system event.',
+    description: 'Detailed record of system events.',
     notFound: 'Select a log entry to view details',
     system: 'System',
     notAvailable: 'N/A',
@@ -83,7 +138,6 @@ export default {
     newState: 'New State',
   },
 
-  // Toast messages
   toast: {
     loadFailed: 'Failed to load audit logs',
   },

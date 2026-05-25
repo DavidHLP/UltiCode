@@ -12,12 +12,15 @@ import {
   IconFilter,
   IconLoader2,
 } from '@tabler/icons-vue'
-import { auditApi, type AuditStats } from '@/api/admin/audit'
+import { useAuditStore } from '@/stores/admin/audit'
+import type { AuditStats } from '@/api/admin/audit'
 
 const { t } = useI18n()
 
+const auditStore = useAuditStore()
+
 const stats = ref<AuditStats | null>(null)
-const loading = ref(false)
+const loading = computed(() => auditStore.loading)
 const startDate = ref('')
 const endDate = ref('')
 const performerFilter = ref('')
@@ -26,32 +29,29 @@ const performerFilter = ref('')
 const isLoaded = ref(false)
 
 async function loadStats() {
-  loading.value = true
+  const params = {
+    startDate: startDate.value || undefined,
+    endDate: endDate.value || undefined,
+    performerId: performerFilter.value || undefined,
+  }
   try {
-    const response = await auditApi.getAuditStats({
-      startDate: startDate.value || undefined,
-      endDate: endDate.value || undefined,
-      performerId: performerFilter.value || undefined,
-    })
-    // Note: request.ts unwraps Result<T>, so response is directly AuditStats
-    stats.value = response
-  } catch (error) {
-    console.error('Failed to load audit stats:', error)
-  } finally {
-    loading.value = false
+    const data = await auditStore.fetchStats(params)
+    stats.value = data
+  } catch {
+    // store handles error
   }
 }
 
 async function exportReport() {
   try {
-    await auditApi.exportAuditLogs({
+    await auditStore.exportLogs({
       startDate: startDate.value || undefined,
       endDate: endDate.value || undefined,
       performerId: performerFilter.value || undefined,
       format: 'csv',
     })
-  } catch (error) {
-    console.error('Failed to export report:', error)
+  } catch {
+    // store handles error
   }
 }
 

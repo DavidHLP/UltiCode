@@ -42,6 +42,8 @@ const currentCommunity = ref<ForumCommunity | null>(null);
 const communityRules = ref<ForumCommunityRule[]>([]);
 const communityLinks = ref<ForumCommunityLink[]>([]);
 const isLoading = ref(true);
+const currentPage = ref(1);
+const totalPages = ref(1);
 
 const { t } = useI18n();
 
@@ -58,16 +60,19 @@ const selectedFlair = ref<"all" | ForumFlairType>("all");
 
 // Load all posts and communities on mount
 async function loadAllPosts() {
-  if (isDevelopment) {
-  }
   isLoading.value = true;
   try {
-    const [postRows, communityRows, filters] = await Promise.all([
-      fetchForumPosts(),
+    const [postResult, communityRows, filters] = await Promise.all([
+      fetchForumPosts({
+        sortBy: quickFilter.value,
+        page: currentPage.value,
+        pageSize: 20,
+      }),
       fetchForumCommunities(),
       fetchForumQuickFilters(),
     ]);
-    posts.value = postRows;
+    posts.value = postResult.posts;
+    totalPages.value = postResult.totalPages;
     communities.value = communityRows;
     quickFilters.value = filters.map((f) => ({
       ...f,
@@ -76,13 +81,6 @@ async function loadAllPosts() {
     currentCommunity.value = null;
     communityRules.value = [];
     communityLinks.value = [];
-    if (isDevelopment) {
-      console.debug("[ForumFeedView] Data loaded", {
-        postsCount: postRows.length,
-        communitiesCount: communityRows.length,
-        filtersCount: filters.length,
-      });
-    }
   } catch (error) {
     console.error("[ForumFeedView] Failed to load forum data", error);
     posts.value = [];
@@ -90,8 +88,6 @@ async function loadAllPosts() {
     quickFilters.value = [];
   } finally {
     isLoading.value = false;
-    if (isDevelopment) {
-    }
   }
 }
 
@@ -99,20 +95,25 @@ async function loadAllPosts() {
 async function loadCommunityPosts(slug: string) {
   isLoading.value = true;
   try {
-    const [communityPosts, communityData] = await Promise.all([
-      fetchCommunityPosts(slug, {
-        sortBy: quickFilter.value as "hot" | "new" | "top",
-      }),
+    const [communityData, postResult] = await Promise.all([
       fetchForumCommunity(slug),
+      fetchCommunityPosts(slug, {
+        sortBy: quickFilter.value,
+        page: currentPage.value,
+        pageSize: 20,
+      }),
     ]);
-    posts.value = communityPosts;
     currentCommunity.value = communityData.community;
-    communityRules.value = communityData.rules;
-    communityLinks.value = communityData.links;
+    communityRules.value = communityData.rules ?? [];
+    communityLinks.value = communityData.links ?? [];
+    posts.value = postResult.posts;
+    totalPages.value = postResult.totalPages;
   } catch (error) {
-    console.error("Failed to load community posts", error);
+    console.error("[ForumFeedView] Failed to load community data", error);
     posts.value = [];
     currentCommunity.value = null;
+    communityRules.value = [];
+    communityLinks.value = [];
   } finally {
     isLoading.value = false;
   }
@@ -163,36 +164,17 @@ const filteredPosts = computed(() => {
   });
 });
 
-const sortedPosts = computed(() => {
-  const postsArray = [...filteredPosts.value];
-  const sorters: Record<string, (a: ForumPost, b: ForumPost) => number> = {
-    hot: (a, b) => {
-      const aScore = (a.stats?.likes ?? 0) - (a.stats?.dislikes ?? 0);
-      const bScore = (b.stats?.likes ?? 0) - (b.stats?.dislikes ?? 0);
-      return bScore - aScore;
-    },
-    new: (a, b) =>
-      new Date(b.createdAt).valueOf() - new Date(a.createdAt).valueOf(),
-    top: (a, b) => (b.stats?.saves ?? 0) - (a.stats?.saves ?? 0),
-    rising: (a, b) => (b.stats?.shares ?? 0) - (a.stats?.shares ?? 0),
-  };
-
-  const sorter = sorters[quickFilter.value] ?? sorters.hot;
-  postsArray.sort(sorter);
-
-  const pinned = postsArray.filter((post) => post.isPinned);
-  const rest = postsArray.filter((post) => !post.isPinned);
-
-  const result = [...pinned, ...rest];
-  if (isDevelopment) {
-    console.debug("[ForumFeedView] Filter applied", {
-      filter: quickFilter.value,
-      inputCount: postsArray.length,
-      outputCount: result.length,
-      pinnedCount: pinned.length,
-    });
+function reloadPosts() {
+  if (selectedCommunity.value === "all" || !route.params.category) {
+    loadAllPosts();
+  } else {
+    loadCommunityPosts(String(route.params.category));
   }
-  return result;
+}
+
+watch(quickFilter, () => {
+  currentPage.value = 1;
+  reloadPosts();
 });
 
 function handleCreatePost() {
@@ -290,7 +272,7 @@ function handlePostSave(postId: string, isSaved: boolean) {
       </div>
       <div v-else class="space-y-4">
         <ForumPostCard
-          v-for="post in sortedPosts"
+          v-for="post in filteredPosts"
           :key="post.id"
           :post="post"
           @vote="handlePostVote"

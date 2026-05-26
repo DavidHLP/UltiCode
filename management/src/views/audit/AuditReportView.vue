@@ -20,6 +20,7 @@ import {
   AUDIT_ENTITY_TYPES,
   AUDIT_ACTIONS_BY_ENTITY,
   actionToI18nKey,
+  actionTypeGroupToI18nKey,
   entityTypeToI18nKey,
 } from './utils'
 
@@ -30,8 +31,8 @@ const startDate = ref('')
 const endDate = ref('')
 const performerFilter = ref('')
 const userIdFilter = ref('')
-const entityTypeFilter = ref<string>('')
-const actionFilter = ref<string>('')
+const entityTypeFilter = ref<string>('all')
+const actionFilter = ref<string>('all')
 const searchFilter = ref('')
 
 const entityTypeOptions = computed(() =>
@@ -42,7 +43,7 @@ const entityTypeOptions = computed(() =>
 )
 
 const actionOptions = computed(() => {
-  if (!entityTypeFilter.value) return []
+  if (!entityTypeFilter.value || entityTypeFilter.value === 'all') return []
   const actions = AUDIT_ACTIONS_BY_ENTITY[entityTypeFilter.value] || []
   return actions.map((action) => ({
     value: action,
@@ -51,7 +52,7 @@ const actionOptions = computed(() => {
 })
 
 watch(entityTypeFilter, () => {
-  actionFilter.value = ''
+  actionFilter.value = 'all'
 })
 
 const stats = computed(() => auditStore.stats)
@@ -62,8 +63,8 @@ async function loadStats() {
     endDate: endDate.value || undefined,
     performerId: performerFilter.value || undefined,
     userId: userIdFilter.value || undefined,
-    entityType: entityTypeFilter.value || undefined,
-    action: actionFilter.value || undefined,
+    entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
+    action: actionFilter.value === 'all' ? undefined : actionFilter.value,
     search: searchFilter.value || undefined,
   })
   await auditStore.fetchStats(params)
@@ -74,8 +75,8 @@ function resetFilters() {
   endDate.value = ''
   performerFilter.value = ''
   userIdFilter.value = ''
-  entityTypeFilter.value = ''
-  actionFilter.value = ''
+  entityTypeFilter.value = 'all'
+  actionFilter.value = 'all'
   searchFilter.value = ''
 }
 
@@ -120,7 +121,7 @@ onMounted(() => {
                 <SelectValue :placeholder="t('audit.filters.allEntityTypes')" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">{{ t('audit.filters.allEntityTypes') }}</SelectItem>
+                <SelectItem value="all">{{ t('audit.filters.allEntityTypes') }}</SelectItem>
                 <SelectItem v-for="opt in entityTypeOptions" :key="opt.value" :value="opt.value">
                   {{ opt.label }}
                 </SelectItem>
@@ -129,18 +130,18 @@ onMounted(() => {
           </div>
           <div class="space-y-2">
             <Label>{{ t('audit.filters.action') }}</Label>
-            <Select v-model="actionFilter" :disabled="!entityTypeFilter">
+            <Select v-model="actionFilter" :disabled="entityTypeFilter === 'all'">
               <SelectTrigger>
                 <SelectValue
                   :placeholder="
-                    entityTypeFilter
+                    entityTypeFilter !== 'all'
                       ? t('audit.filters.allActions')
                       : t('auditReport.selectEntityTypeFirst')
                   "
                 />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="__all__">{{ t('audit.filters.allActions') }}</SelectItem>
+                <SelectItem value="all">{{ t('audit.filters.allActions') }}</SelectItem>
                 <SelectItem v-for="opt in actionOptions" :key="opt.value" :value="opt.value">
                   {{ opt.label }}
                 </SelectItem>
@@ -209,7 +210,7 @@ onMounted(() => {
               :key="item.actionType"
               class="flex items-center justify-between"
             >
-              <span class="text-sm">{{ t(`audit.actionTypeGroups.${item.actionType}`) }}</span>
+              <span class="text-sm">{{ t(actionTypeGroupToI18nKey(item.actionType)) }}</span>
               <Badge variant="secondary">{{ item.count }}</Badge>
             </div>
           </div>

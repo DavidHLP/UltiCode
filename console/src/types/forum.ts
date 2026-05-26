@@ -90,7 +90,7 @@ export interface ForumMediaImage extends ForumMediaBase {
   type: "image";
   kind?: "image";
   url: string;
-  src?: string; // alias for url
+  src?: string;
   alt?: string;
   ratio?: number;
   caption?: string;
@@ -148,52 +148,57 @@ export type ForumPostMedia =
   | ForumMediaPoll
   | ForumMediaText;
 
+export interface ForumPostStats {
+  views?: number;
+  likes?: number;
+  dislikes?: number;
+  comments?: number;
+  score?: number;
+  saves?: number;
+  shares?: number;
+  upvote_ratio?: number;
+  awards?: number;
+}
+
 export interface ForumPost {
   id: string;
   title: string;
   author?: ForumUser;
   createdAt: string;
-  // Stats object from backend
-  stats?: {
-    views?: number;
-    likes?: number;
-    dislikes?: number;
-    comments?: number;
-    score?: number;
-    saves?: number;
-    shares?: number;
-    upvote_ratio?: number;
-    awards?: number;
-  };
+  // Stats — always an object from backend (never a string)
+  stats?: ForumPostStats;
   userVote?: 0 | 1 | -1;
 
   excerpt?: string;
   tags?: string[];
+  // Community — constructed from flat fields in API layer
   community?: ForumCommunity;
-  communityId?: string; // Community reference from backend
+  communityId?: string;
+  communityName?: string;
+  communitySlug?: string;
+  // Flair — constructed from flat fields in API layer
   flair?: ForumFlair;
-  flairType?: ForumFlairType; // Direct flair type from backend
+  flairType?: ForumFlairType;
+  flairLabel?: string;
   isPinned?: boolean;
   isLocked?: boolean;
   media?: ForumPostMedia[];
   isSaved?: boolean;
   impressions?: number;
   voteState?: "upvoted" | "downvoted" | "neutral";
-  recommendation?: { label?: string };
+  commentCount?: number;
+  isAuthor?: boolean;
   awards?: ForumAward[];
 }
 
 export interface ForumComment {
   id: string;
   body: string;
-  // Author info - populated from backend fields (authorId, authorUsername, authorAvatar)
   author?: ForumUser;
-  // Raw fields from backend response
   authorId?: string;
   authorUsername?: string;
   authorAvatar?: string;
   createdAt: string;
-  // Voting fields - populated at runtime from vote API responses
   upvotes?: number;
   likes?: number;
   dislikes?: number;
@@ -202,7 +207,6 @@ export interface ForumComment {
   isPinned?: boolean;
   isLocked?: boolean;
   parentId?: string;
-  // Backend fields available but not previously consumed by frontend
   markdown?: string;
   editedAt?: string;
   isFlagged?: boolean;
@@ -211,6 +215,13 @@ export interface ForumComment {
 
 export interface ForumThread extends ForumPost {
   comments: ForumComment[];
-  // Thread specific body/content if main post has it (backend uses excerpt/media, but if body exists add here)
   body?: string;
+}
+
+export interface PageResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
 }

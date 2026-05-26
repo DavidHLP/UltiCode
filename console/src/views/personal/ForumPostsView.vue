@@ -47,7 +47,8 @@ const posts = ref<ForumPost[]>([]);
 async function loadPosts() {
   isLoading.value = true;
   try {
-    posts.value = await fetchMyForumPosts();
+    const result = await fetchMyForumPosts();
+    posts.value = result.posts;
   } catch (error) {
     console.error("Failed to load forum posts", error);
     toast.error(t("personal.messages.loadFailed"));

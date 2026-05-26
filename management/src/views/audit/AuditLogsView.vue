@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useAuditStore } from '@/stores/admin/audit'
-import type { AuditLog } from '@/api/admin/audit'
+import { normalizeDateParams, type AuditLog } from '@/api/admin/audit'
 
 import DataTable from '@/components/table/DataTable.vue'
 import AuditLogDetailDrawer from './AuditLogDetailDrawer.vue'
@@ -44,6 +44,7 @@ import {
   AUDIT_ACTION_GROUPS,
   AUDIT_ENTITY_TYPES,
   actionToI18nKey,
+  actionTypeGroupToI18nKey,
   entityTypeToI18nKey,
 } from './utils'
 
@@ -73,24 +74,11 @@ onMounted(() => {
   }, 100)
 })
 
-// Stats for terminal ticker — all values from server-side aggregation
-const stats = computed(() => {
-  const s = auditStore.stats
-  if (!s) {
-    return { total: auditStore.total, create: 0, update: 0, delete: 0, other: 0 }
-  }
-  const byType = Object.fromEntries(s.actionsByType?.map((i) => [i.actionType, i.count]) ?? [])
-  return {
-    total: s.totalActions,
-    create: byType.CREATE ?? 0,
-    update: byType.UPDATE ?? 0,
-    delete: byType.DELETE ?? 0,
-    other: s.totalActions - (byType.CREATE ?? 0) - (byType.UPDATE ?? 0) - (byType.DELETE ?? 0),
-  }
-})
+const actionTypeStats = computed(() => auditStore.stats?.actionsByType ?? [])
+const statsTotal = computed(() => auditStore.stats?.totalActions ?? auditStore.total)
 
 async function loadLogs() {
-  const params = {
+  const params = normalizeDateParams({
     search: searchQuery.value || undefined,
     action: actionFilter.value === 'all' ? undefined : actionFilter.value,
     entityType: entityTypeFilter.value === 'all' ? undefined : entityTypeFilter.value,
@@ -100,7 +88,7 @@ async function loadLogs() {
     userId: userIdFilter.value || undefined,
     page: tablePagination.value.pageIndex + 1,
     limit: tablePagination.value.pageSize,
-  }
+  })
   await auditStore.fetchLogs(params)
   await auditStore.fetchStats(params)
 }
@@ -140,7 +128,6 @@ function showDetails(log: AuditLog) {
 const columns: ColumnDef<AuditLog>[] = [
   {
     accessorKey: 'createdAt',
-    id: 'created_at',
     header: () => t('audit.columns.createdAt'),
     cell: ({ row }) => {
       const date = new Date(row.getValue('createdAt') as string)
@@ -153,7 +140,6 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'action',
-    id: 'action',
     header: () => t('audit.columns.action'),
     cell: ({ row }) => {
       const action = row.getValue('action') as string
@@ -168,7 +154,6 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'entityType',
-    id: 'entity_type',
     header: () => t('audit.columns.entityType'),
     cell: ({ row }) => {
       const entityType = row.original.entityType
@@ -192,7 +177,6 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'performer',
-    id: 'performer',
     header: () => t('audit.columns.performer'),
     cell: ({ row }) => {
       const performer = row.original.performer
@@ -211,7 +195,6 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'user',
-    id: 'user',
     header: () => t('audit.columns.target'),
     cell: ({ row }) => {
       const user = row.original.user
@@ -225,7 +208,6 @@ const columns: ColumnDef<AuditLog>[] = [
   },
   {
     accessorKey: 'ipAddress',
-    id: 'ip_address',
     header: () => t('audit.columns.ip'),
     cell: ({ row }) => {
       const ip = row.original.ipAddress
@@ -321,31 +303,19 @@ const columns: ColumnDef<AuditLog>[] = [
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">{{ t('audit.stats.total') }}:</span>
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
-            stats.total
+            statsTotal
           }}</span>
         </div>
-        <div class="flex items-center gap-2">
+        <div
+          v-for="item in actionTypeStats"
+          :key="item.actionType"
+          class="flex items-center gap-2"
+        >
           <span class="terminal-label text-[var(--silver-500)]"
-            >{{ t('audit.stats.create') }}:</span
-          >
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
-            stats.create
-          }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
-            >{{ t('audit.stats.update') }}:</span
+            >{{ t(actionTypeGroupToI18nKey(item.actionType)) }}:</span
           >
           <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
-            stats.update
-          }}</span>
-        </div>
-        <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]"
-            >{{ t('audit.stats.delete') }}:</span
-          >
-          <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
-            stats.delete
+            item.count
           }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">

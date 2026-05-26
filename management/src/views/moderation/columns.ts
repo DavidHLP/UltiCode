@@ -60,14 +60,25 @@ const ENTITY_TYPE_CONFIG: Record<
   { icon: typeof IconFileText; color: SemanticColor; label: string }
 > = {
   forum_post: { icon: IconMessages, color: 'info', label: 'moderation.entityTypes.forum_post' },
-  forum_comment: { icon: IconMessage, color: 'info', label: 'moderation.entityTypes.forum_comment' },
+  forum_comment: {
+    icon: IconMessage,
+    color: 'info',
+    label: 'moderation.entityTypes.forum_comment',
+  },
   solution: { icon: IconCode, color: 'success', label: 'moderation.entityTypes.solution' },
-  solution_comment: { icon: IconMessage, color: 'success', label: 'moderation.entityTypes.solution_comment' },
+  solution_comment: {
+    icon: IconMessage,
+    color: 'success',
+    label: 'moderation.entityTypes.solution_comment',
+  },
   problem: { icon: IconFileText, color: 'warning', label: 'moderation.entityTypes.problem' },
 }
 
 // ========== Category Styles ==========
-const CATEGORY_CONFIG: Record<ReportCategory, { color: SemanticColor; icon: typeof IconAlertTriangle }> = {
+const CATEGORY_CONFIG: Record<
+  ReportCategory,
+  { color: SemanticColor; icon: typeof IconAlertTriangle }
+> = {
   SPAM: { color: 'warning', icon: IconAlertCircle },
   HARASSMENT: { color: 'error', icon: IconAlertTriangle },
   HATE_SPEECH: { color: 'error', icon: IconAlertTriangle },
@@ -104,11 +115,21 @@ function renderEntityTypeBadge(entityType: ModeratableEntityType, t: (key: strin
 
 function renderCategoryBadge(category: ReportCategory, t: (key: string) => string) {
   const config = CATEGORY_CONFIG[category]
-  return badge({ color: config.color, label: t(`moderation.categories.${category}`), icon: config.icon, size: 'sm' })
+  return badge({
+    color: config.color,
+    label: t(`moderation.categories.${category}`),
+    icon: config.icon,
+    size: 'sm',
+  })
 }
 
 function renderPriorityBadge(priority: number) {
-  return badge({ color: getPriorityStyle(priority), label: String(priority), icon: IconFlag, size: 'sm' })
+  return badge({
+    color: getPriorityStyle(priority),
+    label: String(priority),
+    icon: IconFlag,
+    size: 'sm',
+  })
 }
 
 function renderAssignedUser(

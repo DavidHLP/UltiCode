@@ -51,11 +51,11 @@
   --card-foreground: oklch(0.5682 0.0285 221.9);
   --popover: oklch(0.9735 0.0261 90.1);
   --popover-foreground: oklch(0.5682 0.0285 221.9);
-  --primary: oklch(0.5230 0.0283 219.1);
+  --primary: oklch(0.523 0.0283 219.1);
   --primary-foreground: oklch(0.9735 0.0261 90.1);
-  --secondary: oklch(0.9306 0.0260 92.4);
-  --secondary-foreground: oklch(0.5230 0.0283 219.1);
-  --muted: oklch(0.9306 0.0260 92.4);
+  --secondary: oklch(0.9306 0.026 92.4);
+  --secondary-foreground: oklch(0.523 0.0283 219.1);
+  --muted: oklch(0.9306 0.026 92.4);
   --muted-foreground: oklch(0.6979 0.0159 196.8);
   --accent: oklch(0.6149 0.1394 244.9);
   --accent-foreground: oklch(0.9735 0.0261 90.1);
@@ -66,9 +66,9 @@
   --chart-1: oklch(0.6149 0.1394 244.9);
   --chart-2: oklch(0.6437 0.1019 187.4);
   --chart-3: oklch(0.6444 0.1508 118.6);
-  --chart-4: oklch(0.6545 0.1340 85.7);
+  --chart-4: oklch(0.6545 0.134 85.7);
   --chart-5: oklch(0.5808 0.1732 39.5);
-  --sidebar: oklch(0.9306 0.0260 92.4);
+  --sidebar: oklch(0.9306 0.026 92.4);
   --sidebar-foreground: oklch(0.5682 0.0285 221.9);
   --sidebar-primary: oklch(0.6149 0.1394 244.9);
   --sidebar-primary-foreground: oklch(0.9735 0.0261 90.1);
@@ -83,13 +83,13 @@
 
   /* Solarized Monotones (base3→base03, warm hue ~90) */
   --silver-50: oklch(0.9735 0.0261 90.1);
-  --silver-100: oklch(0.9306 0.0260 92.4);
+  --silver-100: oklch(0.9306 0.026 92.4);
   --silver-200: oklch(0.6979 0.0159 196.8);
   --silver-300: oklch(0.6537 0.0197 205.3);
   --silver-400: oklch(0.6537 0.0197 205.3);
   --silver-500: oklch(0.5682 0.0285 221.9);
-  --silver-600: oklch(0.5230 0.0283 219.1);
-  --silver-700: oklch(0.5230 0.0283 219.1);
+  --silver-600: oklch(0.523 0.0283 219.1);
+  --silver-700: oklch(0.523 0.0283 219.1);
   --silver-800: oklch(0.3092 0.0518 219.7);
   --silver-900: oklch(0.2673 0.0486 219.8);
 
@@ -99,7 +99,7 @@
 
   /* Solarized Accent Status */
   --status-success: oklch(0.6444 0.1508 118.6);
-  --status-warning: oklch(0.6545 0.1340 85.7);
+  --status-warning: oklch(0.6545 0.134 85.7);
   --status-error: oklch(0.5863 0.2064 27.1);
 
   /* Border Styles */
@@ -129,17 +129,17 @@
   --secondary: oklch(0.3092 0.0518 219.7);
   --secondary-foreground: oklch(0.6537 0.0197 205.3);
   --muted: oklch(0.3092 0.0518 219.7);
-  --muted-foreground: oklch(0.5230 0.0283 219.1);
+  --muted-foreground: oklch(0.523 0.0283 219.1);
   --accent: oklch(0.6149 0.1394 244.9);
   --accent-foreground: oklch(0.9735 0.0261 90.1);
   --destructive: oklch(0.5863 0.2064 27.1);
-  --border: oklch(0.5230 0.0283 219.1 / 0.4);
-  --input: oklch(0.5230 0.0283 219.1 / 0.4);
+  --border: oklch(0.523 0.0283 219.1 / 0.4);
+  --input: oklch(0.523 0.0283 219.1 / 0.4);
   --ring: oklch(0.6149 0.1394 244.9);
   --chart-1: oklch(0.6149 0.1394 244.9);
   --chart-2: oklch(0.6437 0.1019 187.4);
   --chart-3: oklch(0.6444 0.1508 118.6);
-  --chart-4: oklch(0.6545 0.1340 85.7);
+  --chart-4: oklch(0.6545 0.134 85.7);
   --chart-5: oklch(0.5808 0.1732 39.5);
   --sidebar: oklch(0.3092 0.0518 219.7);
   --sidebar-foreground: oklch(0.6537 0.0197 205.3);
@@ -147,7 +147,7 @@
   --sidebar-primary-foreground: oklch(0.9735 0.0261 90.1);
   --sidebar-accent: oklch(0.6149 0.1394 244.9 / 0.15);
   --sidebar-accent-foreground: oklch(0.6537 0.0197 205.3);
-  --sidebar-border: oklch(0.5230 0.0283 219.1 / 0.4);
+  --sidebar-border: oklch(0.523 0.0283 219.1 / 0.4);
   --sidebar-ring: oklch(0.6149 0.1394 244.9);
 
   /* ========================================
@@ -157,12 +157,12 @@
   /* Solarized Monotones - Dark Mode (inverted) */
   --silver-50: oklch(0.2673 0.0486 219.8);
   --silver-100: oklch(0.3092 0.0518 219.7);
-  --silver-200: oklch(0.5230 0.0283 219.1);
-  --silver-300: oklch(0.5230 0.0283 219.1);
+  --silver-200: oklch(0.523 0.0283 219.1);
+  --silver-300: oklch(0.523 0.0283 219.1);
   --silver-400: oklch(0.6537 0.0197 205.3);
   --silver-500: oklch(0.6537 0.0197 205.3);
   --silver-600: oklch(0.6979 0.0159 196.8);
-  --silver-700: oklch(0.9306 0.0260 92.4);
+  --silver-700: oklch(0.9306 0.026 92.4);
   --silver-800: oklch(0.9735 0.0261 90.1);
   --silver-900: oklch(0.9735 0.0261 90.1);
 
@@ -172,7 +172,7 @@
 
   /* Status Colors - Dark Mode (same as light per Solarized spec) */
   --status-success: oklch(0.6444 0.1508 118.6);
-  --status-warning: oklch(0.6545 0.1340 85.7);
+  --status-warning: oklch(0.6545 0.134 85.7);
   --status-error: oklch(0.5863 0.2064 27.1);
 
   /* Shadow Styles - Dark Mode */
@@ -615,7 +615,7 @@
 :root {
   /* Solarized Terminal Accent Colors (identical in light/dark) */
   --terminal-green: oklch(0.6444 0.1508 118.6);
-  --terminal-amber: oklch(0.6545 0.1340 85.7);
+  --terminal-amber: oklch(0.6545 0.134 85.7);
   --terminal-red: oklch(0.5863 0.2064 27.1);
   --terminal-cyan: oklch(0.6437 0.1019 187.4);
   --terminal-purple: oklch(0.5924 0.2025 355.9);
@@ -626,7 +626,7 @@
 
   /* Surface Layers */
   --surface-elevated: oklch(0.9735 0.0261 90.1);
-  --surface-sunken: oklch(0.9306 0.0260 92.4);
+  --surface-sunken: oklch(0.9306 0.026 92.4);
 
   /* Terminal Timing */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);

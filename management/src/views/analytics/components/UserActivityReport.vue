@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import {
-  AnalyticsMetricCard,
-  AnalyticsBarList,
-  AnalyticsHeatmap,
+import { AnalyticsMetricCard, AnalyticsBarList, AnalyticsHeatmap } from '@/components/analytics'
+import type {
+  MetricData,
+  BarListItem,
+  HeatmapCell,
+  HeatmapRow,
+  HeatmapColumn,
 } from '@/components/analytics'
-import type { MetricData, BarListItem, HeatmapCell, HeatmapRow, HeatmapColumn } from '@/components/analytics'
 import AreaChart from '@/components/dashboard/AreaChart.vue'
 import type { ChartDataPoint } from '@/components/dashboard/AreaChart.vue'
 import type { UserActivityReport } from '@/api/admin/analytics'
@@ -32,19 +34,22 @@ const metrics = computed<MetricData[]>(() => {
       title: t('analytics.userActivity.retention1d'),
       value: props.formatPercent(r.userRetention.day1),
       trend: r.userRetention.day1 > 50 ? 'up' : 'down',
-      change: r.userRetention.day1 > 50 ? t('analytics.status.good') : t('analytics.status.needsWork'),
+      change:
+        r.userRetention.day1 > 50 ? t('analytics.status.good') : t('analytics.status.needsWork'),
     },
     {
       title: t('analytics.userActivity.retention7d'),
       value: props.formatPercent(r.userRetention.day7),
       trend: r.userRetention.day7 > 30 ? 'up' : 'neutral',
-      change: r.userRetention.day7 > 30 ? t('analytics.status.good') : t('analytics.status.average'),
+      change:
+        r.userRetention.day7 > 30 ? t('analytics.status.good') : t('analytics.status.average'),
     },
     {
       title: t('analytics.userActivity.retention30d'),
       value: props.formatPercent(r.userRetention.day30),
       trend: r.userRetention.day30 > 10 ? 'up' : 'neutral',
-      change: r.userRetention.day30 > 10 ? t('analytics.status.good') : t('analytics.status.average'),
+      change:
+        r.userRetention.day30 > 10 ? t('analytics.status.good') : t('analytics.status.average'),
     },
   ]
 })
@@ -92,7 +97,12 @@ const heatmapData = computed(() => {
           :description="t('analytics.userActivity.activeUsersTrendDesc')"
           :data="chartData"
           :series-keys="['users']"
-          :config="{ users: { label: t('analytics.userActivity.activeUsers'), color: 'var(--accent-primary)' } }"
+          :config="{
+            users: {
+              label: t('analytics.userActivity.activeUsers'),
+              color: 'var(--accent-primary)',
+            },
+          }"
         />
       </div>
       <div class="lg:col-span-1">

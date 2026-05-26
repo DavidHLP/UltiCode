@@ -104,10 +104,14 @@ export function useAnalyticsReports() {
           userActivityReport.value = await analyticsApi.getUserActivity({ days: days.value })
           break
         case 'problem_completion':
-          problemCompletionReport.value = await analyticsApi.getProblemCompletion({ days: days.value })
+          problemCompletionReport.value = await analyticsApi.getProblemCompletion({
+            days: days.value,
+          })
           break
         case 'contest_participation':
-          contestParticipationReport.value = await analyticsApi.getContestParticipation({ days: days.value })
+          contestParticipationReport.value = await analyticsApi.getContestParticipation({
+            days: days.value,
+          })
           break
         case 'revenue':
           revenueReport.value = await analyticsApi.getRevenue({ days: days.value })

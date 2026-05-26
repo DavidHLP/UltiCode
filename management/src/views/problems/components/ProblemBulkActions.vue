@@ -1,12 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button'
-import {
-  IconEye,
-  IconEyeOff,
-  IconTrash,
-  IconPencil,
-  IconX,
-} from '@tabler/icons-vue'
+import { IconEye, IconEyeOff, IconTrash, IconPencil, IconX } from '@tabler/icons-vue'
 
 defineProps<{
   selectedCount: number

@@ -44,30 +44,46 @@ const emit = defineEmits<{
       <div class="space-y-4 py-4">
         <div class="flex items-center gap-6">
           <div class="flex items-center gap-2">
-            <Switch :model-value="formData.is_sample" @update:model-value="emit('update:formData', { ...formData, is_sample: $event })" id="is_sample" />
+            <Switch
+              :model-value="formData.is_sample"
+              @update:model-value="emit('update:formData', { ...formData, is_sample: $event })"
+              id="is_sample"
+            />
             <Label for="is_sample" class="text-sm">{{ t('testCases.isSample') }}</Label>
           </div>
           <div class="flex items-center gap-2">
-            <Switch :model-value="formData.is_hidden" @update:model-value="emit('update:formData', { ...formData, is_hidden: $event })" id="is_hidden" />
+            <Switch
+              :model-value="formData.is_hidden"
+              @update:model-value="emit('update:formData', { ...formData, is_hidden: $event })"
+              id="is_hidden"
+            />
             <Label for="is_hidden" class="text-sm">{{ t('testCases.isHidden') }}</Label>
           </div>
         </div>
 
         <div>
-          <Label class="text-sm text-muted-foreground mb-1 block">{{ t('testCases.input') }} *</Label>
+          <Label class="text-sm text-muted-foreground mb-1 block"
+            >{{ t('testCases.input') }} *</Label
+          >
           <Textarea
             :model-value="formData.input_text"
-            @update:model-value="emit('update:formData', { ...formData, input_text: $event as string })"
+            @update:model-value="
+              emit('update:formData', { ...formData, input_text: $event as string })
+            "
             :placeholder="t('testCases.inputPlaceholder')"
             class="font-mono text-sm min-h-[120px]"
           />
         </div>
 
         <div>
-          <Label class="text-sm text-muted-foreground mb-1 block">{{ t('testCases.output') }} *</Label>
+          <Label class="text-sm text-muted-foreground mb-1 block"
+            >{{ t('testCases.output') }} *</Label
+          >
           <Textarea
             :model-value="formData.output_text"
-            @update:model-value="emit('update:formData', { ...formData, output_text: $event as string })"
+            @update:model-value="
+              emit('update:formData', { ...formData, output_text: $event as string })
+            "
             :placeholder="t('testCases.outputPlaceholder')"
             class="font-mono text-sm min-h-[120px]"
           />
@@ -79,14 +95,18 @@ const emit = defineEmits<{
           </Label>
           <Input
             :model-value="formData.explanation"
-            @update:model-value="emit('update:formData', { ...formData, explanation: $event as string })"
+            @update:model-value="
+              emit('update:formData', { ...formData, explanation: $event as string })
+            "
             :placeholder="t('testCases.explanationPlaceholder')"
           />
         </div>
       </div>
 
       <DialogFooter>
-        <Button variant="outline" @click="emit('update:open', false)">{{ t('common.cancel') }}</Button>
+        <Button variant="outline" @click="emit('update:open', false)">{{
+          t('common.cancel')
+        }}</Button>
         <Button :disabled="saving" @click="emit('save')">
           <IconLoader2 v-if="saving" class="h-4 w-4 mr-1 animate-spin" />
           {{ saving ? t('common.saving') : t('common.save') }}

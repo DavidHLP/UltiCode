@@ -15,9 +15,8 @@ const router = useRouter()
 const { t } = useI18n()
 const problemsStore = useProblemsStore()
 
-const { problemId, data, loading, isReady } = useProblemTab(
-  'code',
-  (id) => problemsStore.fetchCode(id),
+const { problemId, data, loading, isReady } = useProblemTab('code', (id) =>
+  problemsStore.fetchCode(id),
 )
 
 const title = computed(() => {

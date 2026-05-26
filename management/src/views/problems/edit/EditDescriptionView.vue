@@ -16,9 +16,8 @@ const router = useRouter()
 const { t } = useI18n()
 const problemsStore = useProblemsStore()
 
-const { problemId, data, loading, isReady } = useProblemTab(
-  'description',
-  (id) => problemsStore.fetchDescription(id),
+const { problemId, data, loading, isReady } = useProblemTab('description', (id) =>
+  problemsStore.fetchDescription(id),
 )
 
 async function handleSubmit(formData: DescriptionFormData) {
@@ -28,7 +27,13 @@ async function handleSubmit(formData: DescriptionFormData) {
       {
         slug: formData.slug,
         title: formData.title,
-        difficulty: (formData.difficulty === 'EASY' ? 'Easy' : formData.difficulty === 'MEDIUM' ? 'Medium' : formData.difficulty === 'HARD' ? 'Hard' : formData.difficulty) as Difficulty,
+        difficulty: (formData.difficulty === 'EASY'
+          ? 'Easy'
+          : formData.difficulty === 'MEDIUM'
+            ? 'Medium'
+            : formData.difficulty === 'HARD'
+              ? 'Hard'
+              : formData.difficulty) as Difficulty,
         isPremium: formData.isPremium,
         summary: formData.summary,
         content: formData.content,
@@ -36,7 +41,12 @@ async function handleSubmit(formData: DescriptionFormData) {
         hints: formData.hints,
         examples: formData.examples,
         tags: formData.tags || [],
-        languages: (formData as DescriptionFormData & { languages?: Array<{ language: string; starterCode: string }> }).languages || [],
+        languages:
+          (
+            formData as DescriptionFormData & {
+              languages?: Array<{ language: string; starterCode: string }>
+            }
+          ).languages || [],
       },
       formData.isPublished,
     )
@@ -62,11 +72,12 @@ const formattedProblem = computed(() => {
     isPublished: problem.isPublished,
     summary: problem.detail?.summary ?? '',
     content: problem.detail?.content ?? '',
-    examples: problem.examples?.map((ex) => ({
-      input: ex.input,
-      output: ex.output,
-      explanation: ex.explanation || '',
-    })) || [],
+    examples:
+      problem.examples?.map((ex) => ({
+        input: ex.input,
+        output: ex.output,
+        explanation: ex.explanation || '',
+      })) || [],
     constraints: problem.detail?.constraintsJson || [],
     hints: problem.detail?.hints || [],
     tags: problem.tags?.map((t) => t.label) || [],

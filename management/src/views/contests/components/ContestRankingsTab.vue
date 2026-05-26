@@ -10,11 +10,14 @@ import {
 import { IconTrophy, IconMedal } from '@tabler/icons-vue'
 import type { ContestRanking } from '@/api/admin/contests'
 
-withDefaults(defineProps<{
-  rankings?: ContestRanking[]
-}>(), {
-  rankings: () => []
-})
+withDefaults(
+  defineProps<{
+    rankings?: ContestRanking[]
+  }>(),
+  {
+    rankings: () => [],
+  },
+)
 
 // Get rank styling
 function getRankStyle(rank: number) {
@@ -91,9 +94,7 @@ function getRankIcon(rank: number) {
               </div>
             </TableCell>
             <TableCell>
-              <span class="font-medium text-sm text-[var(--foreground)]">{{
-                r.username
-              }}</span>
+              <span class="font-medium text-sm text-[var(--foreground)]">{{ r.username }}</span>
             </TableCell>
             <TableCell class="text-right">
               <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums font-bold">

@@ -31,9 +31,7 @@ const emit = defineEmits<{
       :key="testCase.id"
       class="flex items-center gap-2 p-2 rounded-md cursor-pointer transition-colors"
       :class="
-        activeId === testCase.id
-          ? 'bg-primary/10 border border-primary/20'
-          : 'hover:bg-muted/50'
+        activeId === testCase.id ? 'bg-primary/10 border border-primary/20' : 'hover:bg-muted/50'
       "
       @click="emit('select', testCase.id)"
     >
@@ -43,9 +41,7 @@ const emit = defineEmits<{
         <Badge v-if="testCase.is_sample" variant="secondary" class="ml-1 text-[10px]">
           Sample
         </Badge>
-        <Badge v-if="testCase.is_hidden" variant="outline" class="ml-1 text-[10px]">
-          Hidden
-        </Badge>
+        <Badge v-if="testCase.is_hidden" variant="outline" class="ml-1 text-[10px]"> Hidden </Badge>
       </span>
       <DropdownMenu>
         <DropdownMenuTrigger as-child>
@@ -61,7 +57,10 @@ const emit = defineEmits<{
           <DropdownMenuItem @click.stop="emit('toggleHidden', testCase)">
             {{ testCase.is_hidden ? 'Make Visible' : 'Make Hidden' }}
           </DropdownMenuItem>
-          <DropdownMenuItem class="text-destructive focus:text-destructive" @click.stop="emit('delete', testCase)">
+          <DropdownMenuItem
+            class="text-destructive focus:text-destructive"
+            @click.stop="emit('delete', testCase)"
+          >
             Delete
           </DropdownMenuItem>
         </DropdownMenuContent>

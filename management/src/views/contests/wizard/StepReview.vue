@@ -125,7 +125,13 @@ function renderTypeBadge(type: string) {
           <div>
             <span class="terminal-label">{{ t('contests.reviewStep.visibility') }}</span>
             <p>
-              <component :is="formData.isPublished ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' }) : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' })" />
+              <component
+                :is="
+                  formData.isPublished
+                    ? badge({ color: 'success', label: 'PUBLISHED', size: 'sm' })
+                    : badge({ color: 'neutral', label: 'DRAFT', size: 'sm' })
+                "
+              />
             </p>
           </div>
         </div>
@@ -151,7 +157,11 @@ function renderTypeBadge(type: string) {
                 scoringRule.name
               }}</span>
               <span v-if="scoringRule.isDefault">
-                <component :is="badge({ color: 'success', label: t('scoringRules.badges.default'), size: 'sm' })" />
+                <component
+                  :is="
+                    badge({ color: 'success', label: t('scoringRules.badges.default'), size: 'sm' })
+                  "
+                />
               </span>
             </div>
             <div class="grid grid-cols-2 gap-2 text-xs">

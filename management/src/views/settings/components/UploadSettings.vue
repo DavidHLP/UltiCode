@@ -31,7 +31,12 @@ function parseSizeToBytes(sizeStr: string): string {
   if (!match || !match[1]) return sizeStr
   const value = parseFloat(match[1])
   const unit = (match[2] || 'B').toUpperCase()
-  const multipliers: Record<string, number> = { B: 1, KB: 1024, MB: 1024 * 1024, GB: 1024 * 1024 * 1024 }
+  const multipliers: Record<string, number> = {
+    B: 1,
+    KB: 1024,
+    MB: 1024 * 1024,
+    GB: 1024 * 1024 * 1024,
+  }
   return String(Math.round(value * (multipliers[unit] || 1)))
 }
 
@@ -61,18 +66,33 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
         <div class="space-y-2">
           <Label>{{ t('settings.uploads.maxSize') }}</Label>
           <Input v-model="uploadSizeReadable" placeholder="10 MB" />
-          <p class="text-xs text-muted-foreground">{{ t('settings.uploads.maxSizeDescription') }}</p>
+          <p class="text-xs text-muted-foreground">
+            {{ t('settings.uploads.maxSizeDescription') }}
+          </p>
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.uploads.maxFiles') }}</Label>
-          <Input :model-value="settings.upload_max_files" @update:model-value="updateField('upload_max_files', String($event))" type="number" min="1" />
-          <p class="text-xs text-muted-foreground">{{ t('settings.uploads.maxFilesDescription') }}</p>
+          <Input
+            :model-value="settings.upload_max_files"
+            @update:model-value="updateField('upload_max_files', String($event))"
+            type="number"
+            min="1"
+          />
+          <p class="text-xs text-muted-foreground">
+            {{ t('settings.uploads.maxFilesDescription') }}
+          </p>
         </div>
       </div>
       <div class="space-y-2">
         <Label>{{ t('settings.uploads.allowedTypes') }}</Label>
-        <Input :model-value="settings.upload_allowed_types" @update:model-value="updateField('upload_allowed_types', String($event))" placeholder="jpg,jpeg,png,gif,pdf,zip" />
-        <p class="text-xs text-muted-foreground">{{ t('settings.uploads.allowedTypesDescription') }}</p>
+        <Input
+          :model-value="settings.upload_allowed_types"
+          @update:model-value="updateField('upload_allowed_types', String($event))"
+          placeholder="jpg,jpeg,png,gif,pdf,zip"
+        />
+        <p class="text-xs text-muted-foreground">
+          {{ t('settings.uploads.allowedTypesDescription') }}
+        </p>
       </div>
     </CardContent>
   </Card>

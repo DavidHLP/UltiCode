@@ -79,7 +79,7 @@ const stats = computed(() => {
   if (!s) {
     return { total: auditStore.total, create: 0, update: 0, delete: 0, other: 0 }
   }
-  const byType = Object.fromEntries(s.actionsByType?.map(i => [i.actionType, i.count]) ?? [])
+  const byType = Object.fromEntries(s.actionsByType?.map((i) => [i.actionType, i.count]) ?? [])
   return {
     total: s.totalActions,
     create: byType.CREATE ?? 0,
@@ -102,11 +102,7 @@ async function loadLogs() {
     limit: tablePagination.value.pageSize,
   }
   await auditStore.fetchLogs(params)
-await auditStore.fetchStats({
-    startDate: params.startDate,
-    endDate: params.endDate,
-    performerId: params.performerId,
-  })
+  await auditStore.fetchStats(params)
 }
 
 // Watchers
@@ -119,13 +115,16 @@ watchDebounced(
   { debounce: 500 },
 )
 
-watch([actionFilter, entityTypeFilter, startDateFilter, endDateFilter, performerIdFilter, userIdFilter], () => {
-  if (tablePagination.value.pageIndex === 0) {
-    loadLogs()
-  } else {
-    tablePagination.value.pageIndex = 0
-  }
-})
+watch(
+  [actionFilter, entityTypeFilter, startDateFilter, endDateFilter, performerIdFilter, userIdFilter],
+  () => {
+    if (tablePagination.value.pageIndex === 0) {
+      loadLogs()
+    } else {
+      tablePagination.value.pageIndex = 0
+    }
+  },
+)
 
 watch(
   () => tablePagination.value,
@@ -413,11 +412,7 @@ const columns: ColumnDef<AuditLog>[] = [
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">{{ t('audit.filters.allEntities') }}</SelectItem>
-                <SelectItem
-                  v-for="type in AUDIT_ENTITY_TYPES"
-                  :key="type"
-                  :value="type"
-                >
+                <SelectItem v-for="type in AUDIT_ENTITY_TYPES" :key="type" :value="type">
                   {{ t(entityTypeToI18nKey(type)) }}
                 </SelectItem>
               </SelectContent>

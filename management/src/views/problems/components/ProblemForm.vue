@@ -100,7 +100,9 @@ function updateForm(data?: ProblemData) {
   // Normalize difficulty to uppercase to match frontend enum values
   // Backend may return "Easy" but frontend expects "EASY"
   const validDifficulties = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD]
-  const normalizedDifficulty = validDifficulties.includes(data.difficulty?.toUpperCase() as Difficulty)
+  const normalizedDifficulty = validDifficulties.includes(
+    data.difficulty?.toUpperCase() as Difficulty,
+  )
     ? (data.difficulty?.toUpperCase() as Difficulty)
     : Difficulty.MEDIUM
 

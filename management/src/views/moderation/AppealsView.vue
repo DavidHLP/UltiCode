@@ -106,11 +106,17 @@ const debouncedSearch = useDebounceFn(() => {
   loadData()
 }, 300)
 
-watch(() => pagination.value.pageIndex, () => loadData())
-watch(() => pagination.value.pageSize, () => {
-  pagination.value.pageIndex = 0
-  loadData()
-})
+watch(
+  () => pagination.value.pageIndex,
+  () => loadData(),
+)
+watch(
+  () => pagination.value.pageSize,
+  () => {
+    pagination.value.pageIndex = 0
+    loadData()
+  },
+)
 watch(searchQuery, () => debouncedSearch())
 watch(statusFilter, () => {
   pagination.value.pageIndex = 0

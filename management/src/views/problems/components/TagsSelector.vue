@@ -84,12 +84,7 @@ onMounted(() => {
         class="flex flex-wrap gap-1.5"
         data-testid="selected-tags"
       >
-        <Badge
-          v-for="tag in selectedTags"
-          :key="tag.id"
-          variant="secondary"
-          class="gap-1 pr-1.5"
-        >
+        <Badge v-for="tag in selectedTags" :key="tag.id" variant="secondary" class="gap-1 pr-1.5">
           {{ tag.label }}
           <button
             type="button"

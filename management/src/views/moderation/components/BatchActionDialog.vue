@@ -13,12 +13,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  IconChecks,
-  IconCheck,
-  IconX,
-  IconLoader2,
-} from '@tabler/icons-vue'
+import { IconChecks, IconCheck, IconX, IconLoader2 } from '@tabler/icons-vue'
 import { ModerationActionType, type ModerationQueueItem } from '@/api/admin/moderation'
 import { useModerationStore } from '@/stores/admin/moderation'
 
@@ -32,7 +27,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:open': [value: boolean]
-  'complete': []
+  complete: []
 }>()
 
 const batchAction = ref<ModerationActionType>(ModerationActionType.RESOLVED)

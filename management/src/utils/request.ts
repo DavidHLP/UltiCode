@@ -127,7 +127,10 @@ const csrfInterceptors = createCsrfAxiosInterceptor(csrfManager, API_BASE_URL)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 service.interceptors.request.use(csrfInterceptors.requestInterceptor as any)
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-service.interceptors.response.use(csrfInterceptors.responseInterceptor as any, csrfInterceptors.errorInterceptor as any)
+service.interceptors.response.use(
+  csrfInterceptors.responseInterceptor as any,
+  csrfInterceptors.errorInterceptor as any,
+)
 
 /**
  * Request interceptor with enterprise features
@@ -151,7 +154,9 @@ service.interceptors.request.use(
     config.headers[LOCALE_HEADER_KEY] = activeLocale
     config.headers['Accept-Language'] = activeLocale
 
-    const isStateChangingMethod = ['patch', 'put', 'delete'].includes(config.method?.toLowerCase() || '')
+    const isStateChangingMethod = ['patch', 'put', 'delete'].includes(
+      config.method?.toLowerCase() || '',
+    )
     const shouldDeduplicate = !NON_DEDUPLICABLE_URLS.has(config.url || '') && !isStateChangingMethod
     if (shouldDeduplicate) {
       const key = getRequestKey(config)

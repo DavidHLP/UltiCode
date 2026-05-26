@@ -38,15 +38,27 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-2">
           <Label>{{ t('settings.email.smtpHost') }}</Label>
-          <Input :model-value="settings.smtp_host" @update:model-value="updateField('smtp_host', String($event))" placeholder="smtp.example.com" />
+          <Input
+            :model-value="settings.smtp_host"
+            @update:model-value="updateField('smtp_host', String($event))"
+            placeholder="smtp.example.com"
+          />
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.email.smtpPort') }}</Label>
-          <Input :model-value="settings.smtp_port" @update:model-value="updateField('smtp_port', String($event))" placeholder="587" />
+          <Input
+            :model-value="settings.smtp_port"
+            @update:model-value="updateField('smtp_port', String($event))"
+            placeholder="587"
+          />
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.email.smtpUser') }}</Label>
-          <Input :model-value="settings.smtp_user" @update:model-value="updateField('smtp_user', String($event))" placeholder="user@example.com" />
+          <Input
+            :model-value="settings.smtp_user"
+            @update:model-value="updateField('smtp_user', String($event))"
+            placeholder="user@example.com"
+          />
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.email.smtpPassword') }}</Label>
@@ -70,19 +82,32 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.email.smtpFrom') }}</Label>
-          <Input :model-value="settings.smtp_from" @update:model-value="updateField('smtp_from', String($event))" placeholder="noreply@ulticode.com" />
+          <Input
+            :model-value="settings.smtp_from"
+            @update:model-value="updateField('smtp_from', String($event))"
+            placeholder="noreply@ulticode.com"
+          />
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.email.smtpFromName') }}</Label>
-          <Input :model-value="settings.smtp_from_name" @update:model-value="updateField('smtp_from_name', String($event))" placeholder="UltiCode" />
+          <Input
+            :model-value="settings.smtp_from_name"
+            @update:model-value="updateField('smtp_from_name', String($event))"
+            placeholder="UltiCode"
+          />
         </div>
       </div>
       <div class="flex items-center justify-between space-x-2 pt-4">
         <Label class="flex flex-col space-y-1">
           <span>{{ t('settings.email.smtpSecure') }}</span>
-          <span class="font-normal text-xs text-muted-foreground">{{ t('settings.email.smtpSecureDescription') }}</span>
+          <span class="font-normal text-xs text-muted-foreground">{{
+            t('settings.email.smtpSecureDescription')
+          }}</span>
         </Label>
-        <Switch :checked="settings.smtp_secure" @update:checked="updateField('smtp_secure', $event)" />
+        <Switch
+          :checked="settings.smtp_secure"
+          @update:checked="updateField('smtp_secure', $event)"
+        />
       </div>
     </CardContent>
   </Card>

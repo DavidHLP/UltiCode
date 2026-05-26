@@ -122,7 +122,12 @@ debouncedSearch('')
                       problem.slug
                     }}</span>
                   </div>
-                  <SemanticBadge :color="DIFFICULTY_COLOR_MAP[problem.difficulty] ?? 'neutral'" :label="problem.difficulty.toUpperCase()" size="sm" dot />
+                  <SemanticBadge
+                    :color="DIFFICULTY_COLOR_MAP[problem.difficulty] ?? 'neutral'"
+                    :label="problem.difficulty.toUpperCase()"
+                    size="sm"
+                    dot
+                  />
                 </div>
                 <Button
                   size="sm"

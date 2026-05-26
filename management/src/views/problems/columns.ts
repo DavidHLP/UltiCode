@@ -57,7 +57,13 @@ function renderPublishedBadge(
   t: (key: string) => string,
 ) {
   if (isDeleted) return badge({ color: 'error', label: t('problems.published.deleted') })
-  if (isPublished) return badge({ color: 'success', label: t('problems.published.published'), dot: true, pulse: true })
+  if (isPublished)
+    return badge({
+      color: 'success',
+      label: t('problems.published.published'),
+      dot: true,
+      pulse: true,
+    })
   return badge({ color: 'neutral', label: t('problems.published.draft') })
 }
 

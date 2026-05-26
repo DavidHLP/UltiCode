@@ -7,17 +7,15 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { useForm } from 'vee-validate'
 import { watchDebounced } from '@vueuse/core'
 import { toast } from 'vue-sonner'
-import {
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
+import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { adminProblemListsApi, type ProblemListDetail, type UpdateBasicInfoDto } from '@/api/admin/problem-lists'
+import {
+  adminProblemListsApi,
+  type ProblemListDetail,
+  type UpdateBasicInfoDto,
+} from '@/api/admin/problem-lists'
 
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error'
 
@@ -195,7 +193,9 @@ defineExpose({ saveStatus, form, saveChanges })
                 'text-[var(--terminal-red)]': saveStatus === 'error',
               }"
             >
-              <template v-if="saveStatus === 'saving'">// {{ t('problemLists.form.saving') }}</template>
+              <template v-if="saveStatus === 'saving'"
+                >// {{ t('problemLists.form.saving') }}</template
+              >
               <template v-else-if="saveStatus === 'saved'">// saved</template>
               <template v-else-if="saveStatus === 'error'">// error</template>
             </span>
@@ -237,7 +237,9 @@ defineExpose({ saveStatus, form, saveChanges })
           :disabled="saveStatus === 'saving'"
           @click="handleCreate"
         >
-          <span v-if="saveStatus === 'saving'" class="animate-pulse">{{ t('problemLists.form.creating') }}</span>
+          <span v-if="saveStatus === 'saving'" class="animate-pulse">{{
+            t('problemLists.form.creating')
+          }}</span>
           <span v-else>{{ t('problemLists.form.createList') }}</span>
         </Button>
       </div>

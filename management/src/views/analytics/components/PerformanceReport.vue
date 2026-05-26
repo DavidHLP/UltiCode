@@ -24,7 +24,8 @@ const metrics = computed<MetricData[]>(() => {
         return `${d}d ${h}h`
       })(),
       trend: r.systemUptime > 86400 * 7 ? 'up' : 'neutral',
-      change: r.systemUptime > 86400 * 7 ? t('analytics.status.excellent') : t('analytics.status.good'),
+      change:
+        r.systemUptime > 86400 * 7 ? t('analytics.status.excellent') : t('analytics.status.good'),
     },
     {
       title: t('analytics.performance.throughput'),
@@ -36,13 +37,15 @@ const metrics = computed<MetricData[]>(() => {
       title: t('analytics.performance.errorRate'),
       value: props.formatPercent(r.errorRate),
       trend: r.errorRate > 1 ? 'down' : 'up',
-      change: r.errorRate > 1 ? t('analytics.status.needsAttention') : t('analytics.status.excellent'),
+      change:
+        r.errorRate > 1 ? t('analytics.status.needsAttention') : t('analytics.status.excellent'),
     },
     {
       title: t('analytics.performance.memoryUsage'),
       value: props.formatPercent(r.resourceUsage.memory),
       trend: r.resourceUsage.memory > 80 ? 'down' : 'neutral',
-      change: r.resourceUsage.memory > 80 ? t('analytics.status.high') : t('analytics.status.normal'),
+      change:
+        r.resourceUsage.memory > 80 ? t('analytics.status.high') : t('analytics.status.normal'),
     },
   ]
 })
@@ -55,7 +58,6 @@ const endpointBarItems = computed<BarListItem[]>(() =>
     subtitle: `${endpoint.requestCount} ${t('analytics.performance.requests')}`,
   })),
 )
-
 </script>
 
 <template>
@@ -73,13 +75,25 @@ const endpointBarItems = computed<BarListItem[]>(() =>
       <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.cpu') }}</span>
-            <span class="font-data tabular-nums font-medium">{{ formatPercent(report.resourceUsage.cpu) }}</span>
+            <span class="text-sm text-[var(--silver-500)]">{{
+              t('analytics.performance.cpu')
+            }}</span>
+            <span class="font-data tabular-nums font-medium">{{
+              formatPercent(report.resourceUsage.cpu)
+            }}</span>
           </div>
-          <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+          <div
+            class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+          >
             <div
               class="h-full rounded-full transition-all duration-500"
-              :class="report.resourceUsage.cpu > 80 ? 'bg-[var(--status-error)]' : report.resourceUsage.cpu > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--accent-primary)]'"
+              :class="
+                report.resourceUsage.cpu > 80
+                  ? 'bg-[var(--status-error)]'
+                  : report.resourceUsage.cpu > 60
+                    ? 'bg-[var(--status-warning)]'
+                    : 'bg-[var(--accent-primary)]'
+              "
               :style="{ width: report.resourceUsage.cpu + '%' }"
             />
           </div>
@@ -87,13 +101,25 @@ const endpointBarItems = computed<BarListItem[]>(() =>
 
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.memory') }}</span>
-            <span class="font-data tabular-nums font-medium">{{ formatPercent(report.resourceUsage.memory) }}</span>
+            <span class="text-sm text-[var(--silver-500)]">{{
+              t('analytics.performance.memory')
+            }}</span>
+            <span class="font-data tabular-nums font-medium">{{
+              formatPercent(report.resourceUsage.memory)
+            }}</span>
           </div>
-          <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+          <div
+            class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+          >
             <div
               class="h-full rounded-full transition-all duration-500"
-              :class="report.resourceUsage.memory > 80 ? 'bg-[var(--status-error)]' : report.resourceUsage.memory > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-success)]'"
+              :class="
+                report.resourceUsage.memory > 80
+                  ? 'bg-[var(--status-error)]'
+                  : report.resourceUsage.memory > 60
+                    ? 'bg-[var(--status-warning)]'
+                    : 'bg-[var(--status-success)]'
+              "
               :style="{ width: report.resourceUsage.memory + '%' }"
             />
           </div>
@@ -101,13 +127,25 @@ const endpointBarItems = computed<BarListItem[]>(() =>
 
         <div class="space-y-2">
           <div class="flex items-center justify-between">
-            <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.performance.disk') }}</span>
-            <span class="font-data tabular-nums font-medium">{{ formatPercent(report.resourceUsage.disk) }}</span>
+            <span class="text-sm text-[var(--silver-500)]">{{
+              t('analytics.performance.disk')
+            }}</span>
+            <span class="font-data tabular-nums font-medium">{{
+              formatPercent(report.resourceUsage.disk)
+            }}</span>
           </div>
-          <div class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden">
+          <div
+            class="h-2 bg-[var(--silver-100)] dark:bg-[var(--silver-800)] rounded-full overflow-hidden"
+          >
             <div
               class="h-full rounded-full transition-all duration-500"
-              :class="report.resourceUsage.disk > 80 ? 'bg-[var(--status-error)]' : report.resourceUsage.disk > 60 ? 'bg-[var(--status-warning)]' : 'bg-[var(--status-warning)]'"
+              :class="
+                report.resourceUsage.disk > 80
+                  ? 'bg-[var(--status-error)]'
+                  : report.resourceUsage.disk > 60
+                    ? 'bg-[var(--status-warning)]'
+                    : 'bg-[var(--status-success)]'
+              "
               :style="{ width: report.resourceUsage.disk + '%' }"
             />
           </div>

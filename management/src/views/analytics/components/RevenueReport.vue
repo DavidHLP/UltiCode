@@ -78,22 +78,32 @@ const planBarItems = computed<BarListItem[]>(() =>
             class="flex items-center justify-between py-2 border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
           >
             <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.revenue.arpu') }}</span>
-            <span class="font-data tabular-nums font-medium">{{ formatCurrency(report.arpu) }}</span>
+            <span class="font-data tabular-nums font-medium">{{
+              formatCurrency(report.arpu)
+            }}</span>
           </div>
           <div
             class="flex items-center justify-between py-2 border-b border-[var(--silver-100)] dark:border-[var(--silver-800)]"
           >
-            <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.revenue.churnRate') }}</span>
+            <span class="text-sm text-[var(--silver-500)]">{{
+              t('analytics.revenue.churnRate')
+            }}</span>
             <span
               class="font-data tabular-nums font-medium"
-              :class="report.churnRate > 5 ? 'text-[var(--status-error)]' : 'text-[var(--status-success)]'"
+              :class="
+                report.churnRate > 5 ? 'text-[var(--status-error)]' : 'text-[var(--status-success)]'
+              "
             >
               {{ formatPercent(report.churnRate) }}
             </span>
           </div>
           <div class="flex items-center justify-between py-2">
-            <span class="text-sm text-[var(--silver-500)]">{{ t('analytics.revenue.totalRevenue') }}</span>
-            <span class="font-data tabular-nums font-medium">{{ formatCurrency(report.totalRevenue) }}</span>
+            <span class="text-sm text-[var(--silver-500)]">{{
+              t('analytics.revenue.totalRevenue')
+            }}</span>
+            <span class="font-data tabular-nums font-medium">{{
+              formatCurrency(report.totalRevenue)
+            }}</span>
           </div>
         </div>
       </div>

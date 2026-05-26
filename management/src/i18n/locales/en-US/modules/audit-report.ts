@@ -25,4 +25,18 @@ export default {
 
   // Actions by entity section
   actionsByEntity: 'Actions by Entity',
+
+  // Actions by type section
+  actionsByType: 'Actions by Type',
+
+  // Additional filters
+  userId: 'Target User ID',
+  userIdPlaceholder: 'Enter target user ID...',
+  selectEntityTypeFirst: 'Select entity type first',
+  searchPlaceholder: 'Search actions, entities...',
+  apply: 'Apply',
+  reset: 'Reset',
+
+  // Empty state
+  noData: 'No data available',
 } as const

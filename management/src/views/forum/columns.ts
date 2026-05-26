@@ -43,7 +43,8 @@ function renderStatusBadge(post: ForumPost) {
 function renderPinLockBadge(post: ForumPost) {
   const badges: ReturnType<typeof h>[] = []
   if (post.isPinned) badges.push(badge({ color: 'info', label: 'PIN', size: 'xs', icon: IconPin }))
-  if (post.isLocked) badges.push(badge({ color: 'warning', label: 'LOCK', size: 'xs', icon: IconLock }))
+  if (post.isLocked)
+    badges.push(badge({ color: 'warning', label: 'LOCK', size: 'xs', icon: IconLock }))
   return badges.length > 0 ? h('div', { class: 'flex items-center gap-1.5' }, badges) : null
 }
 

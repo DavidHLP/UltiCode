@@ -16,17 +16,28 @@ vi.mock('@/components/ui/collapsible', () => ({
   Collapsible: {
     props: ['defaultOpen'],
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
-      return () => h('div', { 'data-slot': 'collapsible' }, slots.default?.() as Parameters<typeof h>[2])
+      return () =>
+        h('div', { 'data-slot': 'collapsible' }, slots.default?.() as Parameters<typeof h>[2])
     },
   },
   CollapsibleContent: {
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
-      return () => h('div', { 'data-slot': 'collapsible-content' }, slots.default?.() as Parameters<typeof h>[2])
+      return () =>
+        h(
+          'div',
+          { 'data-slot': 'collapsible-content' },
+          slots.default?.() as Parameters<typeof h>[2],
+        )
     },
   },
   CollapsibleTrigger: {
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
-      return () => h('button', { 'data-slot': 'collapsible-trigger' }, slots.default?.() as Parameters<typeof h>[2])
+      return () =>
+        h(
+          'button',
+          { 'data-slot': 'collapsible-trigger' },
+          slots.default?.() as Parameters<typeof h>[2],
+        )
     },
   },
 }))
@@ -36,7 +47,9 @@ function cleanup() {
 }
 
 async function mountWithForm(
-  initialValues: { examples: Array<{ input: string; output: string; explanation?: string }> } = { examples: [] },
+  initialValues: { examples: Array<{ input: string; output: string; explanation?: string }> } = {
+    examples: [],
+  },
 ) {
   const container = document.createElement('div')
   document.body.appendChild(container)
@@ -88,9 +101,7 @@ describe('ExamplesEditor', () => {
 
   it('renders textareas with correct initial values', async () => {
     const { container } = await mountWithForm({
-      examples: [
-        { input: 'hello', output: 'world', explanation: 'test explanation' },
-      ],
+      examples: [{ input: 'hello', output: 'world', explanation: 'test explanation' }],
     })
 
     const textareas = container.querySelectorAll('textarea')

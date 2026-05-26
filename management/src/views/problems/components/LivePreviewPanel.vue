@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import DescriptionMarkdown, { type ProblemDescription } from '@/components/problems/DescriptionMarkdown.vue'
+import DescriptionMarkdown, {
+  type ProblemDescription,
+} from '@/components/problems/DescriptionMarkdown.vue'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -34,7 +36,9 @@ const normalizedDifficulty = computed(() => {
   return d.toUpperCase()
 })
 
-const difficultyColor = computed(() => DIFFICULTY_COLOR_MAP[normalizedDifficulty.value] ?? 'neutral')
+const difficultyColor = computed(
+  () => DIFFICULTY_COLOR_MAP[normalizedDifficulty.value] ?? 'neutral',
+)
 
 const hasHints = computed(() => (props.data.hints?.length ?? 0) > 0)
 </script>

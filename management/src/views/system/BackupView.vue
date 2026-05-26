@@ -327,7 +327,15 @@ onMounted(() => {
     </Card>
 
     <!-- Restore Dialog -->
-    <Dialog v-model:open="showRestoreDialog" @update:open="(v: boolean) => { showRestoreDialog = v; if (!v) restoreConfirmText = '' }">
+    <Dialog
+      v-model:open="showRestoreDialog"
+      @update:open="
+        (v: boolean) => {
+          showRestoreDialog = v
+          if (!v) restoreConfirmText = ''
+        }
+      "
+    >
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{{ t('backup.restoreBackup') }}</DialogTitle>
@@ -356,7 +364,11 @@ onMounted(() => {
           <Button variant="outline" @click="showRestoreDialog = false">
             {{ t('common.cancel') }}
           </Button>
-          <Button variant="destructive" :disabled="restoring || restoreConfirmText !== 'RESTORE'" @click="confirmRestore">
+          <Button
+            variant="destructive"
+            :disabled="restoring || restoreConfirmText !== 'RESTORE'"
+            @click="confirmRestore"
+          >
             <IconLoader2 v-if="restoring" class="h-4 w-4 mr-1 animate-spin" />
             <IconAlertTriangle v-else class="h-4 w-4 mr-1" />
             {{ t('backup.restore') }}

@@ -2,7 +2,15 @@
 import { ref, computed, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { toast } from 'vue-sonner'
-import { IconCheck, IconMessage, IconTrash, IconEye, IconFlag, IconUser, IconFileText } from '@tabler/icons-vue'
+import {
+  IconCheck,
+  IconMessage,
+  IconTrash,
+  IconEye,
+  IconFlag,
+  IconUser,
+  IconFileText,
+} from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -475,22 +483,37 @@ async function handleBulkDeleteConfirm() {
       <div v-if="detailComment" class="space-y-4 py-2">
         <!-- Comment Content -->
         <div class="space-y-1.5">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.content') }}</span>
-          <p class="text-sm text-[var(--foreground)] leading-relaxed whitespace-pre-wrap break-words rounded border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3">
+          <span class="terminal-label text-[var(--silver-500)]">{{
+            t('comments.columns.content')
+          }}</span>
+          <p
+            class="text-sm text-[var(--foreground)] leading-relaxed whitespace-pre-wrap break-words rounded border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--surface-sunken)] p-3"
+          >
             {{ detailComment.content }}
           </p>
         </div>
         <!-- Type & Author Row -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1.5">
-            <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.type') }}</span>
+            <span class="terminal-label text-[var(--silver-500)]">{{
+              t('comments.columns.type')
+            }}</span>
             <div class="flex items-center gap-2 text-sm text-[var(--foreground)]">
-              <component :is="detailComment.type === 'forum' ? IconMessage : IconFileText" class="h-4 w-4 text-[var(--silver-400)]" />
-              <span>{{ detailComment.type === 'forum' ? t('comments.type.forum') : t('comments.type.solution') }}</span>
+              <component
+                :is="detailComment.type === 'forum' ? IconMessage : IconFileText"
+                class="h-4 w-4 text-[var(--silver-400)]"
+              />
+              <span>{{
+                detailComment.type === 'forum'
+                  ? t('comments.type.forum')
+                  : t('comments.type.solution')
+              }}</span>
             </div>
           </div>
           <div class="space-y-1.5">
-            <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.author') }}</span>
+            <span class="terminal-label text-[var(--silver-500)]">{{
+              t('comments.columns.author')
+            }}</span>
             <div class="flex items-center gap-2 text-sm text-[var(--foreground)]">
               <IconUser class="h-4 w-4 text-[var(--silver-400)]" />
               <span>{{ detailComment.author?.username || t('comments.status.unknown') }}</span>
@@ -499,13 +522,17 @@ async function handleBulkDeleteConfirm() {
         </div>
         <!-- Parent Title -->
         <div v-if="detailComment.parentTitle" class="space-y-1.5">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.detail.parent') }}</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{
+            t('comments.detail.parent')
+          }}</span>
           <p class="text-sm text-[var(--foreground)]">{{ detailComment.parentTitle }}</p>
         </div>
         <!-- Status & Time Row -->
         <div class="grid grid-cols-2 gap-4">
           <div class="space-y-1.5">
-            <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.status') }}</span>
+            <span class="terminal-label text-[var(--silver-500)]">{{
+              t('comments.columns.status')
+            }}</span>
             <span
               :class="[
                 'font-data text-xs uppercase tracking-wider',
@@ -516,17 +543,29 @@ async function handleBulkDeleteConfirm() {
                     : 'text-[var(--terminal-green)]',
               ]"
             >
-              {{ detailComment.isDeleted ? t('comments.status.deleted') : detailComment.isFlagged ? t('comments.status.flagged') : t('comments.status.active') }}
+              {{
+                detailComment.isDeleted
+                  ? t('comments.status.deleted')
+                  : detailComment.isFlagged
+                    ? t('comments.status.flagged')
+                    : t('comments.status.active')
+              }}
             </span>
           </div>
           <div class="space-y-1.5">
-            <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.columns.created') }}</span>
-            <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">{{ detailComment.createdAt }}</span>
+            <span class="terminal-label text-[var(--silver-500)]">{{
+              t('comments.columns.created')
+            }}</span>
+            <span class="font-data text-xs text-[var(--silver-400)] tabular-nums">{{
+              detailComment.createdAt
+            }}</span>
           </div>
         </div>
         <!-- Flag Reason (if flagged) -->
         <div v-if="detailComment.isFlagged && detailComment.flaggedReason" class="space-y-1.5">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('comments.flag.reasonLabel') }}</span>
+          <span class="terminal-label text-[var(--silver-500)]">{{
+            t('comments.flag.reasonLabel')
+          }}</span>
           <p class="text-sm text-[var(--terminal-amber)]">{{ detailComment.flaggedReason }}</p>
         </div>
       </div>

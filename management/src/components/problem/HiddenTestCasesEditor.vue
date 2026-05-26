@@ -21,7 +21,6 @@ const props = defineProps<{
   problemId: string
 }>()
 
-
 const {
   testCases,
   loading,
@@ -84,7 +83,12 @@ watch(
           <IconUpload class="h-4 w-4 mr-1" />
           {{ $t('testCases.import') }}
         </Button>
-        <Button size="sm" variant="ghost" :disabled="testCases.length === 0" @click="exportTestCases">
+        <Button
+          size="sm"
+          variant="ghost"
+          :disabled="testCases.length === 0"
+          @click="exportTestCases"
+        >
           <IconDownload class="h-4 w-4 mr-1" />
           {{ $t('testCases.export') }}
         </Button>
@@ -102,7 +106,10 @@ watch(
     </div>
 
     <!-- Empty state -->
-    <div v-else-if="testCases.length === 0" class="flex flex-col items-center justify-center py-8 text-muted-foreground">
+    <div
+      v-else-if="testCases.length === 0"
+      class="flex flex-col items-center justify-center py-8 text-muted-foreground"
+    >
       <IconFlask class="h-12 w-12 mb-2 opacity-50" />
       <p>{{ $t('testCases.noTestCases') }}</p>
       <Button size="sm" variant="outline" class="mt-2" @click="openCreateDialog">
@@ -152,7 +159,9 @@ watch(
 
         <div class="space-y-4 py-4">
           <div>
-            <Label class="text-sm text-muted-foreground mb-1 block">{{ $t('testCases.importData') }}</Label>
+            <Label class="text-sm text-muted-foreground mb-1 block">{{
+              $t('testCases.importData')
+            }}</Label>
             <Textarea
               v-model="importText"
               :placeholder="$t('testCases.importPlaceholder')"
@@ -163,12 +172,16 @@ watch(
 
           <div class="flex items-center gap-2">
             <Checkbox v-model="replaceExisting" id="replace_existing" />
-            <Label for="replace_existing" class="text-sm">{{ $t('testCases.replaceExisting') }}</Label>
+            <Label for="replace_existing" class="text-sm">{{
+              $t('testCases.replaceExisting')
+            }}</Label>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" @click="importDialogOpen = false">{{ $t('common.cancel') }}</Button>
+          <Button variant="outline" @click="importDialogOpen = false">{{
+            $t('common.cancel')
+          }}</Button>
           <Button :disabled="importing" @click="importTestCases">
             <IconLoader2 v-if="importing" class="h-4 w-4 mr-1 animate-spin" />
             <IconUpload v-else class="h-4 w-4 mr-1" />

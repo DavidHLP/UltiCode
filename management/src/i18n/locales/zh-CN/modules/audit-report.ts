@@ -25,4 +25,18 @@ export default {
 
   // 按实体统计区域
   actionsByEntity: '按实体统计操作',
+
+  // 按操作类型统计区域
+  actionsByType: '按操作类型统计',
+
+  // 额外筛选器
+  userId: '目标用户 ID',
+  userIdPlaceholder: '输入目标用户 ID...',
+  selectEntityTypeFirst: '请先选择实体类型',
+  searchPlaceholder: '搜索操作、实体...',
+  apply: '应用',
+  reset: '重置',
+
+  // 空状态
+  noData: '暂无数据',
 } as const

@@ -100,7 +100,9 @@ export interface AuditExportParams extends AuditLogQueryParams {
  * - startDate without time → T00:00:00 (start of day)
  * - endDate without time → next day T00:00:00 (exclusive upper bound)
  */
-function normalizeDateParams<T extends { startDate?: string; endDate?: string }>(params: T): T {
+export function normalizeDateParams<T extends { startDate?: string; endDate?: string }>(
+  params: T,
+): T {
   const p = { ...params }
   if (p.startDate && p.startDate.length === 10) {
     p.startDate = `${p.startDate}T00:00:00`

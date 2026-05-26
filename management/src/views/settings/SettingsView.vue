@@ -209,11 +209,15 @@ onMounted(() => {
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>{{ t('settings.actions.resetConfirmTitle') }}</AlertDialogTitle>
-                  <AlertDialogDescription>{{ t('settings.actions.resetConfirmDescription') }}</AlertDialogDescription>
+                  <AlertDialogDescription>{{
+                    t('settings.actions.resetConfirmDescription')
+                  }}</AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>{{ t('common.cancel') }}</AlertDialogCancel>
-                  <AlertDialogAction @click="resetToDefaults">{{ t('settings.actions.resetConfirm') }}</AlertDialogAction>
+                  <AlertDialogAction @click="resetToDefaults">{{
+                    t('settings.actions.resetConfirm')
+                  }}</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>

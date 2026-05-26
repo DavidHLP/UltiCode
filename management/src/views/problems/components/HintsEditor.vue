@@ -53,11 +53,7 @@ function moveDown(index: number) {
     </div>
 
     <!-- Hint rows -->
-    <div
-      v-for="(field, index) in fields"
-      :key="field.key"
-      class="flex items-start gap-2"
-    >
+    <div v-for="(field, index) in fields" :key="field.key" class="flex items-start gap-2">
       <Textarea
         :name="`${name}[${index}]`"
         v-model="field.value"

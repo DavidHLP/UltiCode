@@ -4,15 +4,14 @@ import { useRouter } from 'vue-router'
 import { useContestsStore } from '@/stores/admin/contests'
 import { useI18n } from 'vue-i18n'
 import { Button } from '@/components/ui/button'
-import {
-  IconCalendar,
-  IconClock,
-  IconTrophy,
-  IconUsers,
-  IconExternalLink,
-} from '@tabler/icons-vue'
+import { IconCalendar, IconClock, IconTrophy, IconUsers, IconExternalLink } from '@tabler/icons-vue'
 import BaseDetailDrawer from '@/components/shared/BaseDetailDrawer.vue'
-import { DataBlock, SemanticBadge, CONTEST_STATUS_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@/components/ui/terminal'
+import {
+  DataBlock,
+  SemanticBadge,
+  CONTEST_STATUS_COLOR_MAP,
+  CONTEST_TYPE_COLOR_MAP,
+} from '@/components/ui/terminal'
 
 const props = defineProps<{
   open: boolean
@@ -53,8 +52,6 @@ function navigateToDetail() {
   emit('update:open', false)
   router.push({ name: 'contest-detail', params: { id: props.contestId } })
 }
-
-
 </script>
 
 <template>
@@ -109,10 +106,30 @@ function navigateToDetail() {
                 {{ entity.slug }}
               </div>
               <div class="flex flex-wrap gap-2">
-                <SemanticBadge :color="CONTEST_TYPE_COLOR_MAP[entity.contestType] ?? 'neutral'" :label="t(`contests.type.${entity.contestType}`)" size="sm" />
-                <SemanticBadge :color="CONTEST_STATUS_COLOR_MAP[entity.status] ?? 'neutral'" :label="entity.status" size="sm" :dot="entity.status === 'RUNNING'" :pulse="entity.status === 'RUNNING'" />
-                <SemanticBadge v-if="entity.isVisible" color="success" :label="t('contests.drawer.published')" size="sm" />
-                <SemanticBadge v-else color="neutral" :label="t('contests.detail.hidden')" size="sm" />
+                <SemanticBadge
+                  :color="CONTEST_TYPE_COLOR_MAP[entity.contestType] ?? 'neutral'"
+                  :label="t(`contests.type.${entity.contestType}`)"
+                  size="sm"
+                />
+                <SemanticBadge
+                  :color="CONTEST_STATUS_COLOR_MAP[entity.status] ?? 'neutral'"
+                  :label="entity.status"
+                  size="sm"
+                  :dot="entity.status === 'RUNNING'"
+                  :pulse="entity.status === 'RUNNING'"
+                />
+                <SemanticBadge
+                  v-if="entity.isVisible"
+                  color="success"
+                  :label="t('contests.drawer.published')"
+                  size="sm"
+                />
+                <SemanticBadge
+                  v-else
+                  color="neutral"
+                  :label="t('contests.detail.hidden')"
+                  size="sm"
+                />
               </div>
             </div>
           </div>

@@ -36,7 +36,11 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
       <CardContent class="space-y-4">
         <div class="space-y-2">
           <Label>{{ t('settings.siteName') }}</Label>
-          <Input :model-value="settings.site_name" @update:model-value="updateField('site_name', String($event))" placeholder="UltiCode" />
+          <Input
+            :model-value="settings.site_name"
+            @update:model-value="updateField('site_name', String($event))"
+            placeholder="UltiCode"
+          />
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.siteDescription') }}</Label>
@@ -61,25 +65,39 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
         <div class="flex items-center justify-between space-x-2">
           <Label class="flex flex-col space-y-1">
             <span>{{ t('settings.userRegistration.enableRegistrations') }}</span>
-            <span class="font-normal text-xs text-muted-foreground">{{ t('settings.userRegistration.enableRegistrationsDescription') }}</span>
+            <span class="font-normal text-xs text-muted-foreground">{{
+              t('settings.userRegistration.enableRegistrationsDescription')
+            }}</span>
           </Label>
-          <Switch :checked="settings.enable_registrations" @update:checked="updateField('enable_registrations', $event)" />
+          <Switch
+            :checked="settings.enable_registrations"
+            @update:checked="updateField('enable_registrations', $event)"
+          />
         </div>
         <div class="flex items-center justify-between space-x-2">
           <Label class="flex flex-col space-y-1">
             <span>{{ t('settings.userRegistration.requireEmailVerification') }}</span>
-            <span class="font-normal text-xs text-muted-foreground">{{ t('settings.userRegistration.requireEmailVerificationDescription') }}</span>
+            <span class="font-normal text-xs text-muted-foreground">{{
+              t('settings.userRegistration.requireEmailVerificationDescription')
+            }}</span>
           </Label>
-          <Switch :checked="settings.require_email_verification" @update:checked="updateField('require_email_verification', $event)" />
+          <Switch
+            :checked="settings.require_email_verification"
+            @update:checked="updateField('require_email_verification', $event)"
+          />
         </div>
       </CardContent>
     </Card>
 
-    <Card class="md:col-span-2 border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20">
+    <Card
+      class="md:col-span-2 border-orange-200 dark:border-orange-900 bg-orange-50/50 dark:bg-orange-950/20"
+    >
       <CardHeader>
         <div class="flex items-center gap-2">
           <IconServer class="h-5 w-5 text-orange-600 dark:text-orange-400" />
-          <CardTitle class="text-orange-700 dark:text-orange-300">{{ t('settings.systemStatus.title') }}</CardTitle>
+          <CardTitle class="text-orange-700 dark:text-orange-300">{{
+            t('settings.systemStatus.title')
+          }}</CardTitle>
         </div>
         <CardDescription>{{ t('settings.systemStatus.description') }}</CardDescription>
       </CardHeader>
@@ -87,14 +105,27 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
         <div class="flex items-center justify-between space-x-2">
           <Label class="flex flex-col space-y-1">
             <span>{{ t('settings.systemStatus.maintenanceMode') }}</span>
-            <span class="font-normal text-xs text-muted-foreground">{{ t('settings.systemStatus.maintenanceModeDescription') }}</span>
+            <span class="font-normal text-xs text-muted-foreground">{{
+              t('settings.systemStatus.maintenanceModeDescription')
+            }}</span>
           </Label>
-          <Switch :checked="settings.maintenance_mode" @update:checked="updateField('maintenance_mode', $event)" class="data-[state=checked]:bg-orange-600" />
+          <Switch
+            :checked="settings.maintenance_mode"
+            @update:checked="updateField('maintenance_mode', $event)"
+            class="data-[state=checked]:bg-orange-600"
+          />
         </div>
 
-        <div v-if="settings.maintenance_mode" class="space-y-2 animate-in fade-in slide-in-from-top-2">
+        <div
+          v-if="settings.maintenance_mode"
+          class="space-y-2 animate-in fade-in slide-in-from-top-2"
+        >
           <Label>{{ t('settings.systemStatus.maintenanceMessage') }}</Label>
-          <Textarea :model-value="settings.maintenance_message" @update:model-value="updateField('maintenance_message', String($event))" placeholder="We are currently performing maintenance..." />
+          <Textarea
+            :model-value="settings.maintenance_message"
+            @update:model-value="updateField('maintenance_message', String($event))"
+            placeholder="We are currently performing maintenance..."
+          />
         </div>
       </CardContent>
     </Card>

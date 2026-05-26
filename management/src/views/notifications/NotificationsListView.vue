@@ -97,7 +97,8 @@ const stats = computed(() => {
   return {
     total: total.value,
     system: announcements.filter((a) => a.type === 'SYSTEM').length,
-    contest: announcements.filter((a) => a.type === 'CONTEST' || a.type === 'CONTEST_REMINDER').length,
+    contest: announcements.filter((a) => a.type === 'CONTEST' || a.type === 'CONTEST_REMINDER')
+      .length,
     submission: announcements.filter((a) => a.type === 'SUBMISSION').length,
     other: announcements.filter(
       (a) => a.type !== 'SYSTEM' && a.type !== 'CONTEST' && a.type !== 'SUBMISSION',
@@ -401,7 +402,11 @@ const columns: ColumnDef<SystemAnnouncement>[] = [
     v-model:open="createDialogOpen"
     :notification-to-edit="notificationToEdit"
     @success="loadNotifications()"
-    @update:open="(open) => { if (!open) notificationToEdit = null }"
+    @update:open="
+      (open) => {
+        if (!open) notificationToEdit = null
+      }
+    "
   />
   <EntityActionDialog
     v-model:open="deleteDialogOpen"

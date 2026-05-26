@@ -34,23 +34,49 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div class="space-y-2">
           <Label>{{ t('settings.rateLimits.api') }}</Label>
-          <Input :model-value="settings.rate_limit_api" @update:model-value="updateField('rate_limit_api', String($event))" type="number" min="1" />
+          <Input
+            :model-value="settings.rate_limit_api"
+            @update:model-value="updateField('rate_limit_api', String($event))"
+            type="number"
+            min="1"
+          />
           <p class="text-xs text-muted-foreground">{{ t('settings.rateLimits.apiDescription') }}</p>
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.rateLimits.submission') }}</Label>
-          <Input :model-value="settings.rate_limit_submission" @update:model-value="updateField('rate_limit_submission', String($event))" type="number" min="1" />
-          <p class="text-xs text-muted-foreground">{{ t('settings.rateLimits.submissionDescription') }}</p>
+          <Input
+            :model-value="settings.rate_limit_submission"
+            @update:model-value="updateField('rate_limit_submission', String($event))"
+            type="number"
+            min="1"
+          />
+          <p class="text-xs text-muted-foreground">
+            {{ t('settings.rateLimits.submissionDescription') }}
+          </p>
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.rateLimits.auth') }}</Label>
-          <Input :model-value="settings.rate_limit_auth" @update:model-value="updateField('rate_limit_auth', String($event))" type="number" min="1" />
-          <p class="text-xs text-muted-foreground">{{ t('settings.rateLimits.authDescription') }}</p>
+          <Input
+            :model-value="settings.rate_limit_auth"
+            @update:model-value="updateField('rate_limit_auth', String($event))"
+            type="number"
+            min="1"
+          />
+          <p class="text-xs text-muted-foreground">
+            {{ t('settings.rateLimits.authDescription') }}
+          </p>
         </div>
         <div class="space-y-2">
           <Label>{{ t('settings.rateLimits.upload') }}</Label>
-          <Input :model-value="settings.rate_limit_upload" @update:model-value="updateField('rate_limit_upload', String($event))" type="number" min="1" />
-          <p class="text-xs text-muted-foreground">{{ t('settings.rateLimits.uploadDescription') }}</p>
+          <Input
+            :model-value="settings.rate_limit_upload"
+            @update:model-value="updateField('rate_limit_upload', String($event))"
+            type="number"
+            min="1"
+          />
+          <p class="text-xs text-muted-foreground">
+            {{ t('settings.rateLimits.uploadDescription') }}
+          </p>
         </div>
       </div>
     </CardContent>

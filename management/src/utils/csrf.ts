@@ -9,7 +9,7 @@
  * method that extracts tokens from API responses.
  */
 
-import { createCsrfTokenManager, type CsrfTokenManager } from "@/shared/auth-core/src/csrf"
+import { createCsrfTokenManager, type CsrfTokenManager } from '@/shared/auth-core/src/csrf'
 
 // Single instance of the CSRF token manager
 const csrfManager: CsrfTokenManager = createCsrfTokenManager()

@@ -17,11 +17,13 @@ const mockTags = [
   { id: 'tag-5', label: 'Sliding Window' },
 ]
 
-function createStoreState(overrides: Partial<{
-  allTags: typeof mockTags
-  tagsLoading: boolean
-  fetchAllTags: () => Promise<typeof mockTags>
-}> = {}) {
+function createStoreState(
+  overrides: Partial<{
+    allTags: typeof mockTags
+    tagsLoading: boolean
+    fetchAllTags: () => Promise<typeof mockTags>
+  }> = {},
+) {
   const allTags = ref(overrides.allTags ?? [...mockTags])
   const tagsLoading = ref(overrides.tagsLoading ?? false)
   const fetchAllTags = vi.fn().mockResolvedValue(mockTags)
@@ -245,7 +247,9 @@ describe('TagsSelector', () => {
     it('applies outline variant to unselected tags', () => {
       const wrapper = createWrapper({ modelValue: [] })
 
-      const unselectedBadge = wrapper.findAll('[data-testid="available-tags"] [data-slot="badge"]')[0]
+      const unselectedBadge = wrapper.findAll(
+        '[data-testid="available-tags"] [data-slot="badge"]',
+      )[0]
       expect(unselectedBadge.classes()).not.toContain('bg-primary')
     })
   })

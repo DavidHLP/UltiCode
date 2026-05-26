@@ -2,13 +2,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import {
-  IconPlus,
-  IconTrophy,
-  IconDownload,
-  IconUpload,
-  IconDatabase,
-} from '@tabler/icons-vue'
+import { IconPlus, IconTrophy, IconDownload, IconUpload, IconDatabase } from '@tabler/icons-vue'
 
 import { Button } from '@/components/ui/button'
 import {
@@ -89,7 +83,10 @@ const {
 })
 
 // Initialize pageIndex from URL
-tablePagination.value.pageIndex = Math.max(0, (Number(router.currentRoute.value.query.page) || 1) - 1)
+tablePagination.value.pageIndex = Math.max(
+  0,
+  (Number(router.currentRoute.value.query.page) || 1) - 1,
+)
 
 const {
   selectedProblemId,
@@ -192,14 +189,20 @@ const columns = useProblemColumns(canUpdateProblem, canDeleteProblem, {
 })
 
 // Sync external searchQuery with useDataTable internal
-watch(searchQuery, (newValue) => {
-  internalSearchQuery.value = newValue
-}, { immediate: true })
+watch(
+  searchQuery,
+  (newValue) => {
+    internalSearchQuery.value = newValue
+  },
+  { immediate: true },
+)
 
 // Load on mount
 onMounted(() => {
   loadProblems()
-  setTimeout(() => { isLoaded.value = true }, 100)
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
 })
 
 // Watch filters for data reload
@@ -208,7 +211,11 @@ watch([difficultyFilter, statusFilter, publishedFilter, sortBy, sortOrder], () =
 })
 
 // Watch pagination for data reload
-watch(() => tablePagination.value, () => loadProblems(), { deep: true })
+watch(
+  () => tablePagination.value,
+  () => loadProblems(),
+  { deep: true },
+)
 </script>
 
 <template>
@@ -248,19 +255,27 @@ watch(() => tablePagination.value, () => loadProblems(), { deep: true })
       >
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">total:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{ stats.total }}</span>
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">published:</span>
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{ stats.published }}</span>
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.published
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">draft:</span>
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{ stats.draft }}</span>
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.draft
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
           <span class="terminal-label text-[var(--silver-500)]">flagged:</span>
-          <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{ stats.flagged }}</span>
+          <span class="font-data text-sm text-[var(--terminal-red)] tabular-nums">{{
+            stats.flagged
+          }}</span>
         </div>
         <div class="ml-auto hidden sm:flex items-center gap-2 text-[var(--silver-400)]">
           <IconDatabase class="h-4 w-4" />
@@ -319,10 +334,19 @@ watch(() => tablePagination.value, () => loadProblems(), { deep: true })
                   <SelectItem value="difficulty">{{ t('problems.sort.difficultyAsc') }}</SelectItem>
                   <SelectItem value="createdAt">{{ t('problems.sort.createdDesc') }}</SelectItem>
                   <SelectItem value="updatedAt">{{ t('problems.sort.updatedDesc') }}</SelectItem>
-                  <SelectItem value="submissionCount">{{ t('problems.sort.submissionsDesc') }}</SelectItem>
+                  <SelectItem value="submissionCount">{{
+                    t('problems.sort.submissionsDesc')
+                  }}</SelectItem>
                 </SelectContent>
               </Select>
-              <Button variant="ghost" size="icon" class="h-8 w-8" @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'" :title="t('common.sort')" :aria-label="t('common.sort')">
+              <Button
+                variant="ghost"
+                size="icon"
+                class="h-8 w-8"
+                @click="sortOrder = sortOrder === 'asc' ? 'desc' : 'asc'"
+                :title="t('common.sort')"
+                :aria-label="t('common.sort')"
+              >
                 <IconTrophy class="h-3.5 w-3.5" :class="{ 'rotate-180': sortOrder === 'asc' }" />
               </Button>
             </template>
@@ -333,40 +357,108 @@ watch(() => tablePagination.value, () => loadProblems(), { deep: true })
           <div class="flex items-center gap-2">
             <DropdownMenu>
               <DropdownMenuTrigger as-child>
-                <Button variant="terminal" size="sm" class="h-8 font-data text-xs border-[var(--silver-300)]">
+                <Button
+                  variant="terminal"
+                  size="sm"
+                  class="h-8 font-data text-xs border-[var(--silver-300)]"
+                >
                   <IconDownload class="h-4 w-4 mr-1.5" />
-                  <span class="hidden sm:inline uppercase tracking-wider">{{ t('problems.export.title') }}</span>
+                  <span class="hidden sm:inline uppercase tracking-wider">{{
+                    t('problems.export.title')
+                  }}</span>
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
-                <DropdownMenuItem @click="exportProblems(buildExportParams(), 'json')">{{ t('problems.export.json') }}</DropdownMenuItem>
-                <DropdownMenuItem @click="exportProblems(buildExportParams(), 'csv')">{{ t('problems.export.csv') }}</DropdownMenuItem>
+                <DropdownMenuItem @click="exportProblems(buildExportParams(), 'json')">{{
+                  t('problems.export.json')
+                }}</DropdownMenuItem>
+                <DropdownMenuItem @click="exportProblems(buildExportParams(), 'csv')">{{
+                  t('problems.export.csv')
+                }}</DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
-            <Button variant="terminal" size="sm" class="h-8 font-data text-xs border-[var(--silver-300)]" @click="importDialogOpen = true">
+            <Button
+              variant="terminal"
+              size="sm"
+              class="h-8 font-data text-xs border-[var(--silver-300)]"
+              @click="importDialogOpen = true"
+            >
               <IconUpload class="h-4 w-4 mr-1.5" />
-              <span class="hidden sm:inline uppercase tracking-wider">{{ t('problems.import.title') }}</span>
+              <span class="hidden sm:inline uppercase tracking-wider">{{
+                t('problems.import.title')
+              }}</span>
             </Button>
           </div>
         </template>
       </DataTable>
 
-      <div v-if="error" class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)] p-4">
+      <div
+        v-if="error"
+        class="mt-4 flex items-center justify-between border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)] dark:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)] p-4"
+      >
         <div class="flex items-center gap-3">
           <span class="font-data text-sm text-[var(--terminal-red)]">&gt; ERROR:</span>
           <span class="text-sm text-[var(--foreground)]">{{ error }}</span>
         </div>
-        <Button variant="terminal" size="sm" class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]" @click="loadProblems()">
+        <Button
+          variant="terminal"
+          size="sm"
+          class="font-data text-xs border-[var(--terminal-red)] text-[var(--terminal-red)] hover:bg-[color-mix(in_oklch,_var(--terminal-red)_15%,_transparent)]"
+          @click="loadProblems()"
+        >
           {{ t('common.retry') }}
         </Button>
       </div>
     </div>
   </div>
 
-  <EntityActionDialog v-model:open="deleteDialogOpen" :entity-id="selectedProblemId" :entity-title="selectedProblemTitle" action="delete" :title="t('problems.dialog.delete.title')" :description="t('problems.dialog.delete.description', { title: selectedProblemTitle || t('problems.dialog.delete.thisProblem') })" :confirm-label="t('problems.dialog.delete.confirm')" :cancel-label="t('common.cancel')" :success-label="t('problems.toast.deleteSuccess')" :error-label="t('problems.toast.deleteFailed')" :on-action="handleDeleteProblem" @success="loadProblems" />
-  <EntityActionDialog v-model:open="flagDialogOpen" :entity-id="selectedProblemForFlag" :entity-title="selectedProblemForFlagTitle" action="flag" :title="t('moderation.flagProblem')" :description="t('moderation.flagDescription', { title: selectedProblemForFlagTitle || t('problems.dialog.delete.thisProblem') })" :confirm-label="t('moderation.flag')" :cancel-label="t('common.cancel')" :success-label="t('moderation.flagSuccess')" :error-label="t('moderation.flagError')" :on-action="handleFlagProblem" @success="loadProblems" />
+  <EntityActionDialog
+    v-model:open="deleteDialogOpen"
+    :entity-id="selectedProblemId"
+    :entity-title="selectedProblemTitle"
+    action="delete"
+    :title="t('problems.dialog.delete.title')"
+    :description="
+      t('problems.dialog.delete.description', {
+        title: selectedProblemTitle || t('problems.dialog.delete.thisProblem'),
+      })
+    "
+    :confirm-label="t('problems.dialog.delete.confirm')"
+    :cancel-label="t('common.cancel')"
+    :success-label="t('problems.toast.deleteSuccess')"
+    :error-label="t('problems.toast.deleteFailed')"
+    :on-action="handleDeleteProblem"
+    @success="loadProblems"
+  />
+  <EntityActionDialog
+    v-model:open="flagDialogOpen"
+    :entity-id="selectedProblemForFlag"
+    :entity-title="selectedProblemForFlagTitle"
+    action="flag"
+    :title="t('moderation.flagProblem')"
+    :description="
+      t('moderation.flagDescription', {
+        title: selectedProblemForFlagTitle || t('problems.dialog.delete.thisProblem'),
+      })
+    "
+    :confirm-label="t('moderation.flag')"
+    :cancel-label="t('common.cancel')"
+    :success-label="t('moderation.flagSuccess')"
+    :error-label="t('moderation.flagError')"
+    :on-action="handleFlagProblem"
+    @success="loadProblems"
+  />
   <ProblemImportDialog v-model:open="importDialogOpen" @imported="handleImported" />
-  <BulkActionDialog v-model:open="bulkActionDialogOpen" :action="bulkActionType" :count="selectedRows.length" @confirm="confirmBulkAction" />
-  <BulkEditDialog v-model:open="bulkEditDialogOpen" :problems="selectedRows" @edited="handleBulkEdited" />
+  <BulkActionDialog
+    v-model:open="bulkActionDialogOpen"
+    :action="bulkActionType"
+    :count="selectedRows.length"
+    @confirm="confirmBulkAction"
+  />
+  <BulkEditDialog
+    v-model:open="bulkEditDialogOpen"
+    :problems="selectedRows"
+    @edited="handleBulkEdited"
+  />
   <FlagInfoDialog v-model:open="flagInfoDialogOpen" :problem="selectedProblemForFlagInfo" />
 </template>

@@ -30,7 +30,7 @@ export function useProblemEdit<T>(
   options: {
     /** Whether to also fetch header data for the page title */
     fetchTitle?: boolean
-  } = {}
+  } = {},
 ): UseProblemEditReturn<T> {
   const route = useRoute()
   const store = useProblemsStore()

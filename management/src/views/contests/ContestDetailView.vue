@@ -15,7 +15,11 @@ import {
   IconTrophy,
 } from '@tabler/icons-vue'
 import { toast } from 'vue-sonner'
-import { SemanticBadge, CONTEST_STATUS_COLOR_MAP, CONTEST_TYPE_COLOR_MAP } from '@/components/ui/terminal'
+import {
+  SemanticBadge,
+  CONTEST_STATUS_COLOR_MAP,
+  CONTEST_TYPE_COLOR_MAP,
+} from '@/components/ui/terminal'
 import ContestProblemPicker from './components/ContestProblemPicker.vue'
 import ContestOverviewTab from './components/ContestOverviewTab.vue'
 import ContestProblemsTab from './components/ContestProblemsTab.vue'
@@ -123,7 +127,6 @@ function handleTabChange(value: string | number) {
     contestsStore.fetchRankings(contestId.value)
   }
 }
-
 </script>
 
 <template>
@@ -165,8 +168,18 @@ function handleTabChange(value: string | number) {
                   <h1 class="font-medium text-sm text-[var(--foreground)]">{{ contest.title }}</h1>
                 </div>
                 <div class="flex items-center gap-2 mt-1">
-                  <SemanticBadge :color="CONTEST_TYPE_COLOR_MAP[contest.contestType] ?? 'neutral'" :label="t(`contests.type.${contest.contestType}`)" size="sm" />
-                  <SemanticBadge :color="CONTEST_STATUS_COLOR_MAP[contest.status] ?? 'neutral'" :label="contest.status" size="sm" :dot="contest.status === 'RUNNING'" :pulse="contest.status === 'RUNNING'" />
+                  <SemanticBadge
+                    :color="CONTEST_TYPE_COLOR_MAP[contest.contestType] ?? 'neutral'"
+                    :label="t(`contests.type.${contest.contestType}`)"
+                    size="sm"
+                  />
+                  <SemanticBadge
+                    :color="CONTEST_STATUS_COLOR_MAP[contest.status] ?? 'neutral'"
+                    :label="contest.status"
+                    size="sm"
+                    :dot="contest.status === 'RUNNING'"
+                    :pulse="contest.status === 'RUNNING'"
+                  />
                 </div>
               </div>
             </div>

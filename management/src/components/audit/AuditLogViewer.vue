@@ -173,19 +173,11 @@ onMounted(() => {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">{{ t('audit.allActions') }}</SelectItem>
-          <SelectItem value="CREATE_USER">{{
-            t('audit.actionTypes.CREATE_USER')
-          }}</SelectItem>
-          <SelectItem value="UPDATE_USER">{{
-            t('audit.actionTypes.UPDATE_USER')
-          }}</SelectItem>
-          <SelectItem value="DELETE_USER">{{
-            t('audit.actionTypes.DELETE_USER')
-          }}</SelectItem>
+          <SelectItem value="CREATE_USER">{{ t('audit.actionTypes.CREATE_USER') }}</SelectItem>
+          <SelectItem value="UPDATE_USER">{{ t('audit.actionTypes.UPDATE_USER') }}</SelectItem>
+          <SelectItem value="DELETE_USER">{{ t('audit.actionTypes.DELETE_USER') }}</SelectItem>
           <SelectItem value="BAN_USER">{{ t('audit.actionTypes.BAN_USER') }}</SelectItem>
-          <SelectItem value="UNBAN_USER">{{
-            t('audit.actionTypes.UNBAN_USER')
-          }}</SelectItem>
+          <SelectItem value="UNBAN_USER">{{ t('audit.actionTypes.UNBAN_USER') }}</SelectItem>
           <SelectItem value="GRANT_PERMISSION">{{
             t('audit.actionTypes.GRANT_PERMISSION')
           }}</SelectItem>
@@ -244,9 +236,7 @@ onMounted(() => {
                   {{ log.entityType }}
                 </Badge>
               </div>
-              <CardTitle class="text-base">{{
-                log.entityId || t('audit.systemAction')
-              }}</CardTitle>
+              <CardTitle class="text-base">{{ log.entityId || t('audit.systemAction') }}</CardTitle>
             </div>
             <div class="flex items-center gap-2">
               <span class="text-sm text-muted-foreground">

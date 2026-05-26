@@ -34,8 +34,8 @@ export interface AuditLog {
   action: string
   entityType?: string
   entityId?: string
-  oldValues?: unknown
-  newValues?: unknown
+  oldValues: Record<string, unknown> | null
+  newValues: Record<string, unknown> | null
   ipAddress?: string
   userAgent?: string
 }

@@ -35,24 +35,23 @@ export const AUDIT_ENTITY_TYPES = [
 ] as const
 
 export const AUDIT_ACTIONS_BY_ENTITY: Record<string, string[]> = {
-  user: ['CREATE_USER', 'UPDATE_USER', 'DELETE_USER', 'RESET_PASSWORD', 'BAN_USER', 'UNBAN_USER'],
-  problem: ['CREATE_PROBLEM', 'UPDATE_PROBLEM', 'DELETE_PROBLEM'],
-  contest: [
-    'CREATE_CONTEST',
-    'UPDATE_CONTEST',
-    'DELETE_CONTEST',
+  USER: ['CREATE_USER', 'UPDATE_USER', 'DELETE_USER', 'RESET_PASSWORD', 'BAN_USER', 'UNBAN_USER'],
+  PROBLEM: ['CREATE_PROBLEM', 'UPDATE_PROBLEM', 'DELETE_PROBLEM'],
+  CONTEST: ['CREATE_CONTEST', 'UPDATE_CONTEST', 'DELETE_CONTEST'],
+  CONTEST_ANNOUNCEMENT: [
     'CREATE_CONTEST_ANNOUNCEMENT',
     'UPDATE_CONTEST_ANNOUNCEMENT',
     'DELETE_CONTEST_ANNOUNCEMENT',
   ],
-  solution: [
+  SOLUTION: [
     'CREATE_SOLUTION',
     'UPDATE_SOLUTION',
     'DELETE_SOLUTION',
     'FLAG_SOLUTION',
     'UNFLAG_SOLUTION',
   ],
-  forumPost: [
+  SUBMISSION: ['REQUEUE_SUBMISSION', 'DELETE_SUBMISSION'],
+  FORUM_POST: [
     'CREATE_FORUM_POST',
     'UPDATE_FORUM_POST',
     'DELETE_FORUM_POST',
@@ -63,20 +62,13 @@ export const AUDIT_ACTIONS_BY_ENTITY: Record<string, string[]> = {
     'FLAG_POST',
     'UNFLAG_POST',
   ],
-  comment: ['FLAG_COMMENT', 'UNFLAG_COMMENT', 'DELETE_COMMENT'],
-  tag: ['CREATE_TAG', 'UPDATE_TAG', 'DELETE_TAG'],
-  permission: ['GRANT_PERMISSION', 'REVOKE_PERMISSION'],
-  other: [
-    'UPDATE_SETTINGS',
-    'UPDATE_PROBLEM_LIST',
-    'DELETE_PROBLEM_LIST',
-    'CREATE_NOTIFICATION',
-    'UPDATE_NOTIFICATION',
-    'DELETE_NOTIFICATION',
-    'REQUEUE_SUBMISSION',
-    'DELETE_SUBMISSION',
-    'MODERATE_CONTENT',
-  ],
+  COMMENT: ['FLAG_COMMENT', 'UNFLAG_COMMENT', 'DELETE_COMMENT'],
+  TAG: ['CREATE_TAG', 'UPDATE_TAG', 'DELETE_TAG'],
+  PROBLEM_LIST: ['UPDATE_PROBLEM_LIST', 'DELETE_PROBLEM_LIST'],
+  SETTINGS: ['UPDATE_SETTINGS'],
+  PERMISSION: ['GRANT_PERMISSION', 'REVOKE_PERMISSION'],
+  NOTIFICATION: ['CREATE_NOTIFICATION', 'UPDATE_NOTIFICATION', 'DELETE_NOTIFICATION'],
+  OTHER: ['MODERATE_CONTENT'],
 }
 
 export const AUDIT_ACTION_GROUPS = Object.keys(AUDIT_ACTIONS_BY_ENTITY)
@@ -89,6 +81,33 @@ export function actionToI18nKey(action: string): string {
 
 export function entityTypeToI18nKey(type: string): string {
   return `audit.entityTypes.${type}`
+}
+
+const KNOWN_ACTION_TYPE_GROUPS = new Set([
+  'CREATE',
+  'UPDATE',
+  'DELETE',
+  'FLAG',
+  'UNFLAG',
+  'BAN',
+  'UNBAN',
+  'GRANT',
+  'REVOKE',
+  'RESET',
+  'PIN',
+  'UNPIN',
+  'LOCK',
+  'UNLOCK',
+  'REQUEUE',
+  'MODERATE',
+  'OTHER',
+])
+
+export function actionTypeGroupToI18nKey(actionType: string): string {
+  if (KNOWN_ACTION_TYPE_GROUPS.has(actionType)) {
+    return `audit.actionTypeGroups.${actionType}`
+  }
+  return `audit.actionTypeGroups.OTHER`
 }
 
 const COLOR_TO_CLASS: Record<SemanticColor, string> = {

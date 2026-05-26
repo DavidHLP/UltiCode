@@ -7,58 +7,136 @@ import type {
   ForumPost,
   ForumThread,
   ForumTag,
+  PageResult,
+  ForumPostStats,
+  ForumFlairType,
 } from "@/types/forum";
 
-export async function fetchForumPosts(): Promise<ForumPost[]> {
-  const response = await apiGet<
-    | Array<{
-        userId: string;
-        authorUsername?: string;
-        authorAvatar?: string;
-      } & Omit<ForumPost, "author">>
-    | { items: Array<{ userId: string; authorUsername?: string; authorAvatar?: string } & Omit<ForumPost, "author">> }
-  >("/forum/posts");
+// =========================================================================
+// Normalizer: ensures all post fields have correct types
+// (backend may return stats/media/tags as JSON strings in some queries)
+// =========================================================================
 
-  // Backend returns PageResult(items=[...]) — extract items array
-  const rows = Array.isArray(response) ? response : response.items;
+function normalizeStats(raw: unknown): ForumPostStats | undefined {
+  if (raw && typeof raw === "object") return raw as ForumPostStats;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as ForumPostStats;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
 
-  return rows.map((post) => ({
-    ...post,
+function normalizeTags(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw as string[];
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
+
+function normalizeMedia(raw: unknown): unknown {
+  if (raw && typeof raw === "object") return raw;
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+}
+
+function normalizePost(
+  raw: Record<string, unknown> & {
+    userId?: string;
+    authorUsername?: string;
+    authorAvatar?: string;
+    communityId?: string;
+    communityName?: string;
+    communitySlug?: string;
+    flairType?: string;
+    flairLabel?: string;
+  },
+): ForumPost {
+  return {
+    ...raw,
     author: {
-      id: post.userId,
-      username: post.authorUsername ?? post.userId,
-      avatar: post.authorAvatar,
+      id: raw.userId ?? "",
+      username: raw.authorUsername ?? raw.userId ?? "",
+      avatar: raw.authorAvatar,
     },
-  }));
+    community: raw.communityId
+      ? {
+          id: raw.communityId,
+          name: raw.communityName ?? "",
+          slug: raw.communitySlug ?? "",
+        }
+      : undefined,
+    flair:
+      raw.flairType
+        ? { type: raw.flairType as ForumFlairType, text: raw.flairLabel }
+        : undefined,
+    stats: normalizeStats(raw.stats),
+    tags: normalizeTags(raw.tags),
+    media: normalizeMedia(raw.media),
+  } as ForumPost;
+}
+
+// =========================================================================
+// API functions
+// =========================================================================
+
+export async function fetchForumPosts(
+  options?: { sortBy?: string; page?: number; pageSize?: number },
+): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
+  const params: Record<string, string | number> = {};
+  if (options?.sortBy) params.sortBy = options.sortBy;
+  if (options?.page) params.page = options.page;
+  if (options?.pageSize) params.pageSize = options.pageSize;
+
+  const response = await apiGet<PageResult<{
+    userId: string;
+    authorUsername?: string;
+    authorAvatar?: string;
+    communityId?: string;
+    communityName?: string;
+    communitySlug?: string;
+    flairType?: string;
+    flairLabel?: string;
+  } & Record<string, unknown>>>("/forum/posts", { params });
+
+  const rows = Array.isArray(response) ? response : response.items;
+  const total = !Array.isArray(response) ? response.total : rows.length;
+  const totalPages = !Array.isArray(response) ? response.totalPages : 1;
+
+  return {
+    posts: rows.map(normalizePost),
+    total,
+    totalPages,
+  };
 }
 
 export async function fetchForumPost(postId: string): Promise<ForumPost> {
-  const post = await apiGet<
-    {
-      userId: string;
-      authorUsername?: string;
-      authorAvatar?: string;
-      communityId?: string;
-      communityName?: string;
-      communitySlug?: string;
-    } & Omit<ForumPost, "author" | "community">
-  >(`/forum/posts/${postId}`);
+  const raw = await apiGet<{
+    userId: string;
+    authorUsername?: string;
+    authorAvatar?: string;
+    communityId?: string;
+    communityName?: string;
+    communitySlug?: string;
+    flairType?: string;
+    flairLabel?: string;
+  } & Record<string, unknown>>(`/forum/posts/${postId}`);
 
-  return {
-    ...post,
-    author: {
-      id: post.userId,
-      username: post.authorUsername ?? post.userId,
-      avatar: post.authorAvatar,
-    },
-    community: post.communityId
-      ? ({
-          id: post.communityId,
-          name: post.communityName ?? "",
-          slug: post.communitySlug ?? "",
-        } as ForumCommunity)
-      : undefined,
-  };
+  return normalizePost(raw);
 }
 
 export async function fetchForumCommunities(options?: {
@@ -79,30 +157,33 @@ export async function fetchForumCommunity(slugOrId: string): Promise<{
 
 export async function fetchCommunityPosts(
   slug: string,
-  options?: { sortBy?: "hot" | "new" | "top" },
-): Promise<ForumPost[]> {
-  const response = await apiGet<
-    | Array<{
-        userId: string;
-        authorUsername?: string;
-        authorAvatar?: string;
-      } & Omit<ForumPost, "author">>
-    | { items: Array<{ userId: string; authorUsername?: string; authorAvatar?: string } & Omit<ForumPost, "author">> }
-  >(`/forum/communities/${slug}/posts`, {
-    params: options?.sortBy ? { sortBy: options.sortBy } : undefined,
-  });
+  options?: { sortBy?: string; page?: number; pageSize?: number },
+): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
+  const params: Record<string, string | number> = {};
+  if (options?.sortBy) params.sortBy = options.sortBy;
+  if (options?.page) params.page = options.page;
+  if (options?.pageSize) params.pageSize = options.pageSize;
 
-  // Backend returns PageResult(items=[...]) — extract items array
+  const response = await apiGet<PageResult<{
+    userId: string;
+    authorUsername?: string;
+    authorAvatar?: string;
+    communityId?: string;
+    communityName?: string;
+    communitySlug?: string;
+    flairType?: string;
+    flairLabel?: string;
+  } & Record<string, unknown>>>(`/forum/communities/${slug}/posts`, { params });
+
   const rows = Array.isArray(response) ? response : response.items;
+  const total = !Array.isArray(response) ? response.total : rows.length;
+  const totalPages = !Array.isArray(response) ? response.totalPages : 1;
 
-  return rows.map((post) => ({
-    ...post,
-    author: {
-      id: post.userId,
-      username: post.authorUsername ?? post.userId,
-      avatar: post.authorAvatar,
-    },
-  }));
+  return {
+    posts: rows.map(normalizePost),
+    total,
+    totalPages,
+  };
 }
 
 export async function fetchForumTags(): Promise<ForumTag[]> {
@@ -112,35 +193,30 @@ export async function fetchForumTags(): Promise<ForumTag[]> {
 export async function fetchForumQuickFilters(): Promise<
   Array<{ label: string; value: string }>
 > {
-  return apiGet<Array<{ label: string; value: string }>>(
-    "/forum/quick-filters",
-  );
+  return apiGet<Array<{ label: string; value: string }>>("/forum/quick-filters");
 }
 
 export async function fetchForumThread(
   postId: string,
 ): Promise<ForumThread> {
-  // Transform API response from { post, comments } wrapper to flat ForumThread structure
   const response = await apiGet<{
-    post: ForumThread & {
+    post: {
       userId: string;
       authorUsername: string;
       authorAvatar: string;
-    };
+      communityId?: string;
+      communityName?: string;
+      communitySlug?: string;
+      flairType?: string;
+      flairLabel?: string;
+    } & Record<string, unknown>;
     comments: ForumComment[];
   }>(`/forum/posts/${postId}/thread`);
 
-  const { post, comments } = response;
-
-  // Transform flat author fields to nested author object that ForumPost expects
+  const normalized = normalizePost(response.post);
   return {
-    ...post,
-    author: {
-      id: post.userId,
-      username: post.authorUsername,
-      avatar: post.authorAvatar,
-    },
-    comments,
+    ...normalized,
+    comments: response.comments ?? [],
   };
 }
 
@@ -167,8 +243,6 @@ export async function deleteForumComment(commentId: string): Promise<void> {
 }
 
 export async function recordForumView(postId: string) {
-  // Non-critical analytics — skip global auth error handler to avoid
-  // clearing the user session on CSRF rotation or transient 403s
   return apiPost(`/forum/posts/${postId}/view`, {}, { skipErrorHandler: true });
 }
 
@@ -194,7 +268,8 @@ export async function createForumPost(input: {
   flairLabel?: string | null;
   media?: unknown[];
 }): Promise<ForumPost> {
-  return apiPost<ForumPost>("/forum/posts", input);
+  const raw = await apiPost<Record<string, unknown>>("/forum/posts", input);
+  return normalizePost(raw as Parameters<typeof normalizePost>[0]);
 }
 
 export async function updateForumPost(
@@ -211,50 +286,39 @@ export async function updateForumPost(
     media?: unknown[];
   }>,
 ): Promise<ForumPost> {
-  return apiPatch<ForumPost>(`/forum/posts/${postId}`, input);
+  const raw = await apiPatch<Record<string, unknown>>(`/forum/posts/${postId}`, input);
+  return normalizePost(raw as Parameters<typeof normalizePost>[0]);
 }
 
 export async function deleteForumPost(postId: string): Promise<void> {
   await apiDelete(`/forum/posts/${postId}`);
 }
 
-export async function fetchMyForumPosts(): Promise<ForumPost[]> {
-  const response = await apiGet<
-    | Array<{
-        userId: string;
-        authorUsername?: string;
-        authorAvatar?: string;
-        communityId?: string;
-        communityName?: string;
-        communitySlug?: string;
-      } & Omit<ForumPost, "author" | "community">>
-    | {
-        items: Array<{
-          userId: string;
-          authorUsername?: string;
-          authorAvatar?: string;
-          communityId?: string;
-          communityName?: string;
-          communitySlug?: string;
-        } & Omit<ForumPost, "author" | "community">>;
-      }
-  >("/forum/me/posts");
+export async function fetchMyForumPosts(
+  options?: { page?: number; pageSize?: number },
+): Promise<{ posts: ForumPost[]; total: number; totalPages: number }> {
+  const params: Record<string, string | number> = {};
+  if (options?.page) params.page = options.page;
+  if (options?.pageSize) params.pageSize = options.pageSize;
+
+  const response = await apiGet<PageResult<{
+    userId: string;
+    authorUsername?: string;
+    authorAvatar?: string;
+    communityId?: string;
+    communityName?: string;
+    communitySlug?: string;
+    flairType?: string;
+    flairLabel?: string;
+  } & Record<string, unknown>>>("/forum/me/posts", { params });
 
   const rows = Array.isArray(response) ? response : response.items;
+  const total = !Array.isArray(response) ? response.total : rows.length;
+  const totalPages = !Array.isArray(response) ? response.totalPages : 1;
 
-  return rows.map((post) => ({
-    ...post,
-    author: {
-      id: post.userId,
-      username: post.authorUsername ?? post.userId,
-      avatar: post.authorAvatar,
-    },
-    community: post.communityId
-      ? ({
-          id: post.communityId,
-          name: post.communityName ?? "",
-          slug: post.communitySlug ?? "",
-        } as ForumCommunity)
-      : undefined,
-  }));
+  return {
+    posts: rows.map(normalizePost),
+    total,
+    totalPages,
+  };
 }

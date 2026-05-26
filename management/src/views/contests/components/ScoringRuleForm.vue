@@ -49,10 +49,7 @@ const formSchema = toTypedSchema(
     baseScorePerProblem: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
     timeBonusPerMinute: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
     wrongAnswerPenalty: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
-    timeLimitPenalty: z.coerce
-      .number()
-      .min(0, t('scoringRules.form.mustBeNonNegative'))
-      .optional(),
+    timeLimitPenalty: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')).optional(),
     firstSolveBonus: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')),
     fullScoreBonus: z.coerce.number().min(0, t('scoringRules.form.mustBeNonNegative')).optional(),
     isDefault: z.boolean().optional(),

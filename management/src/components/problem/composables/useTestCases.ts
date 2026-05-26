@@ -36,7 +36,9 @@ export function useTestCases(problemId: () => string) {
   })
 
   const sampleCount = computed(() => testCases.value.filter((tc) => tc.is_sample).length)
-  const hiddenCount = computed(() => testCases.value.filter((tc) => tc.is_hidden && !tc.is_sample).length)
+  const hiddenCount = computed(
+    () => testCases.value.filter((tc) => tc.is_hidden && !tc.is_sample).length,
+  )
 
   async function loadTestCases() {
     loading.value = true
@@ -60,7 +62,13 @@ export function useTestCases(problemId: () => string) {
 
   function openCreateDialog() {
     editingTestCase.value = null
-    formData.value = { input_text: '', output_text: '', is_sample: false, is_hidden: true, explanation: '' }
+    formData.value = {
+      input_text: '',
+      output_text: '',
+      is_sample: false,
+      is_hidden: true,
+      explanation: '',
+    }
     editDialogOpen.value = true
   }
 
@@ -120,7 +128,9 @@ export function useTestCases(problemId: () => string) {
 
   async function toggleSample(testCase: TestCase) {
     try {
-      await testCasesApi.updateTestCase(problemId(), testCase.id, { is_sample: !testCase.is_sample })
+      await testCasesApi.updateTestCase(problemId(), testCase.id, {
+        is_sample: !testCase.is_sample,
+      })
       testCase.is_sample = !testCase.is_sample
     } catch (error) {
       console.error('Failed to toggle sample:', error)
@@ -130,7 +140,9 @@ export function useTestCases(problemId: () => string) {
 
   async function toggleHidden(testCase: TestCase) {
     try {
-      await testCasesApi.updateTestCase(problemId(), testCase.id, { is_hidden: !testCase.is_hidden })
+      await testCasesApi.updateTestCase(problemId(), testCase.id, {
+        is_hidden: !testCase.is_hidden,
+      })
       testCase.is_hidden = !testCase.is_hidden
     } catch (error) {
       console.error('Failed to toggle hidden:', error)
@@ -181,20 +193,37 @@ export function useTestCases(problemId: () => string) {
         for (const line of lines) {
           if (line.startsWith('---') || line.startsWith('===')) {
             if (currentInput && currentOutput) {
-              testCasesToImport.push({ input_text: currentInput.trim(), output_text: currentOutput.trim(), is_hidden: true })
+              testCasesToImport.push({
+                input_text: currentInput.trim(),
+                output_text: currentOutput.trim(),
+                is_hidden: true,
+              })
             }
             currentInput = ''
             currentOutput = ''
             isOutput = false
             continue
           }
-          if (line.toLowerCase().startsWith('output:') || line.startsWith('>')) { isOutput = true; continue }
-          if (line.toLowerCase().startsWith('input:') || line.startsWith('<')) { isOutput = false; continue }
-          if (isOutput) { currentOutput += (currentOutput ? '\n' : '') + line }
-          else { currentInput += (currentInput ? '\n' : '') + line }
+          if (line.toLowerCase().startsWith('output:') || line.startsWith('>')) {
+            isOutput = true
+            continue
+          }
+          if (line.toLowerCase().startsWith('input:') || line.startsWith('<')) {
+            isOutput = false
+            continue
+          }
+          if (isOutput) {
+            currentOutput += (currentOutput ? '\n' : '') + line
+          } else {
+            currentInput += (currentInput ? '\n' : '') + line
+          }
         }
         if (currentInput && currentOutput) {
-          testCasesToImport.push({ input_text: currentInput.trim(), output_text: currentOutput.trim(), is_hidden: true })
+          testCasesToImport.push({
+            input_text: currentInput.trim(),
+            output_text: currentOutput.trim(),
+            is_hidden: true,
+          })
         }
       }
       if (testCasesToImport.length === 0) {

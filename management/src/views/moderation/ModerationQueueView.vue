@@ -10,7 +10,20 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
-import { IconRefresh, IconShield, IconLoader2, IconCheck, IconX, IconAlertTriangle, IconUser, IconTrash, IconEyeOff, IconAlertCircle, IconClock, IconBan } from '@tabler/icons-vue'
+import {
+  IconRefresh,
+  IconShield,
+  IconLoader2,
+  IconCheck,
+  IconX,
+  IconAlertTriangle,
+  IconUser,
+  IconTrash,
+  IconEyeOff,
+  IconAlertCircle,
+  IconClock,
+  IconBan,
+} from '@tabler/icons-vue'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar from '@/components/table/DataTableToolbar.vue'
@@ -34,7 +47,14 @@ const isLoaded = ref(false)
 const pagination = ref<PaginationState>({ pageIndex: 0, pageSize: 20 })
 const searchQuery = ref('')
 
-const { statusFilter, categoryFilter, entityTypeFilter, buildFilters, buildFilterParams, handleFilterUpdate } = useModerationFilters()
+const {
+  statusFilter,
+  categoryFilter,
+  entityTypeFilter,
+  buildFilters,
+  buildFilterParams,
+  handleFilterUpdate,
+} = useModerationFilters()
 
 const selectedRows = ref<ModerationQueueItem[]>([])
 
@@ -50,7 +70,9 @@ const saving = ref(false)
 const batchDialogOpen = ref(false)
 
 onMounted(() => {
-  setTimeout(() => { isLoaded.value = true }, 100)
+  setTimeout(() => {
+    isLoaded.value = true
+  }, 100)
   loadData()
   store.fetchStats()
 })
@@ -97,8 +119,16 @@ const debouncedSearch = useDebounceFn(() => {
   loadData()
 }, 300)
 
-watch(pagination, () => { loadData() }, { deep: true })
-watch(searchQuery, () => { debouncedSearch() })
+watch(
+  pagination,
+  () => {
+    loadData()
+  },
+  { deep: true },
+)
+watch(searchQuery, () => {
+  debouncedSearch()
+})
 watch([statusFilter, categoryFilter, entityTypeFilter], () => {
   pagination.value.pageIndex = 0
   loadData()
@@ -165,13 +195,55 @@ function handleBatchComplete() {
 
 // Action options for drawer
 const actionOptions = computed(() => [
-  { value: ModerationActionType.DISMISSED, label: t('moderation.actions.DISMISSED'), icon: IconX, color: 'text-[var(--terminal-red)]', requiresDuration: false },
-  { value: ModerationActionType.RESOLVED, label: t('moderation.actions.RESOLVED'), icon: IconCheck, color: 'text-[var(--terminal-green)]', requiresDuration: false },
-  { value: ModerationActionType.DELETED, label: t('moderation.actions.DELETED'), icon: IconTrash, color: 'text-[var(--terminal-red)]', requiresDuration: false },
-  { value: ModerationActionType.HIDDEN, label: t('moderation.actions.HIDDEN'), icon: IconEyeOff, color: 'text-[var(--terminal-amber)]', requiresDuration: false },
-  { value: ModerationActionType.WARNED, label: t('moderation.actions.WARNED'), icon: IconAlertCircle, color: 'text-[var(--terminal-amber)]', requiresDuration: false },
-  { value: ModerationActionType.TEMP_BANNED, label: t('moderation.actions.TEMP_BANNED'), icon: IconClock, color: 'text-[var(--terminal-amber)]', requiresDuration: true },
-  { value: ModerationActionType.PERM_BANNED, label: t('moderation.actions.PERM_BANNED'), icon: IconBan, color: 'text-[var(--terminal-red)]', requiresDuration: false },
+  {
+    value: ModerationActionType.DISMISSED,
+    label: t('moderation.actions.DISMISSED'),
+    icon: IconX,
+    color: 'text-[var(--terminal-red)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.RESOLVED,
+    label: t('moderation.actions.RESOLVED'),
+    icon: IconCheck,
+    color: 'text-[var(--terminal-green)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.DELETED,
+    label: t('moderation.actions.DELETED'),
+    icon: IconTrash,
+    color: 'text-[var(--terminal-red)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.HIDDEN,
+    label: t('moderation.actions.HIDDEN'),
+    icon: IconEyeOff,
+    color: 'text-[var(--terminal-amber)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.WARNED,
+    label: t('moderation.actions.WARNED'),
+    icon: IconAlertCircle,
+    color: 'text-[var(--terminal-amber)]',
+    requiresDuration: false,
+  },
+  {
+    value: ModerationActionType.TEMP_BANNED,
+    label: t('moderation.actions.TEMP_BANNED'),
+    icon: IconClock,
+    color: 'text-[var(--terminal-amber)]',
+    requiresDuration: true,
+  },
+  {
+    value: ModerationActionType.PERM_BANNED,
+    label: t('moderation.actions.PERM_BANNED'),
+    icon: IconBan,
+    color: 'text-[var(--terminal-red)]',
+    requiresDuration: false,
+  },
 ])
 
 const selectedActionOption = computed(() =>
@@ -215,20 +287,36 @@ const selectedActionOption = computed(() =>
         class="py-2.5 flex items-center gap-6 border-t border-[var(--silver-200)] dark:border-[var(--silver-300)] bg-[var(--surface-sunken)]"
       >
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.total') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{ stats.total }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.total') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.total
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.pending') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{ stats.pending }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.pending') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-amber)] tabular-nums">{{
+            stats.pending
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.underReview') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{ stats.underReview }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.underReview') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-cyan)] tabular-nums">{{
+            stats.underReview
+          }}</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="terminal-label text-[var(--silver-500)]">{{ t('moderation.terminal.resolved') }}:</span>
-          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{ stats.resolved }}</span>
+          <span class="terminal-label text-[var(--silver-500)]"
+            >{{ t('moderation.terminal.resolved') }}:</span
+          >
+          <span class="font-data text-sm text-[var(--terminal-green)] tabular-nums">{{
+            stats.resolved
+          }}</span>
         </div>
         <div class="ml-auto flex items-center gap-2 text-[var(--silver-400)]">
           <IconShield class="h-4 w-4" />
@@ -284,7 +372,13 @@ const selectedActionOption = computed(() =>
     </div>
 
     <!-- Main Content -->
-    <div :class="['flex-1 py-4', 'transition-all duration-500 delay-200', isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2']">
+    <div
+      :class="[
+        'flex-1 py-4',
+        'transition-all duration-500 delay-200',
+        isLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-2',
+      ]"
+    >
       <DataTable
         :columns="columns"
         :data="store.queueItems"
@@ -331,17 +425,25 @@ const selectedActionOption = computed(() =>
         >
           <IconLoader2 v-if="saving" class="h-3.5 w-3.5 mr-1.5 animate-spin" />
           <IconCheck v-else class="h-3.5 w-3.5 mr-1.5" />
-          <span class="uppercase tracking-wider">{{ t('moderation.actionPanel.confirmAction') }}</span>
+          <span class="uppercase tracking-wider">{{
+            t('moderation.actionPanel.confirmAction')
+          }}</span>
         </Button>
       </template>
 
       <template #content="{ entity }">
         <div class="space-y-4">
-          <div class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]">
-            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">{{ t('moderation.detail.entityInfo') }}</p>
+          <div
+            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+          >
+            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
+              {{ t('moderation.detail.entityInfo') }}
+            </p>
             <div class="space-y-2 text-sm">
               <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]">{{ t('moderation.columns.entityType') }}:</span>
+                <span class="text-[var(--silver-500)]"
+                  >{{ t('moderation.columns.entityType') }}:</span
+                >
                 <span class="font-data">{{ entity.entityType }}</span>
               </div>
               <div class="flex justify-between">
@@ -353,14 +455,18 @@ const selectedActionOption = computed(() =>
                 <span class="font-data">{{ entity.priority }}</span>
               </div>
               <div class="flex justify-between">
-                <span class="text-[var(--silver-500)]">{{ t('moderation.queue.reportCount') }}:</span>
+                <span class="text-[var(--silver-500)]"
+                  >{{ t('moderation.queue.reportCount') }}:</span
+                >
                 <span class="font-data">{{ entity.reportCount }}</span>
               </div>
             </div>
           </div>
 
           <div>
-            <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">{{ t('moderation.actionPanel.selectAction') }}</Label>
+            <Label class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">{{
+              t('moderation.actionPanel.selectAction')
+            }}</Label>
             <div class="mt-2 grid grid-cols-2 gap-2">
               <Button
                 v-for="option in actionOptions"
@@ -382,24 +488,57 @@ const selectedActionOption = computed(() =>
           </div>
 
           <div v-if="selectedActionOption?.requiresDuration">
-            <Label for="duration-days" class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">{{ t('moderation.actionPanel.durationLabel') }}</Label>
-            <Input id="duration-days" v-model.number="drawerDurationDays" type="number" min="1" max="365" :placeholder="t('moderation.actionPanel.durationPlaceholder')" class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent" />
+            <Label
+              for="duration-days"
+              class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+              >{{ t('moderation.actionPanel.durationLabel') }}</Label
+            >
+            <Input
+              id="duration-days"
+              v-model.number="drawerDurationDays"
+              type="number"
+              min="1"
+              max="365"
+              :placeholder="t('moderation.actionPanel.durationPlaceholder')"
+              class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent"
+            />
           </div>
 
           <div>
-            <Label for="drawer-note" class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]">{{ t('moderation.actionPanel.addNote') }}</Label>
-            <Textarea id="drawer-note" v-model="drawerNote" :placeholder="t('moderation.actionPanel.notePlaceholder')" rows="4" class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]" />
+            <Label
+              for="drawer-note"
+              class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)]"
+              >{{ t('moderation.actionPanel.addNote') }}</Label
+            >
+            <Textarea
+              id="drawer-note"
+              v-model="drawerNote"
+              :placeholder="t('moderation.actionPanel.notePlaceholder')"
+              rows="4"
+              class="mt-2 font-data text-sm border-[var(--silver-300)] hover:border-[var(--accent-electric)] bg-transparent placeholder:text-[var(--silver-400)]"
+            />
           </div>
 
-          <div class="border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] p-3">
+          <div
+            class="border border-[var(--terminal-amber)] bg-[color-mix(in_oklch,_var(--terminal-amber)_8%,_transparent)] p-3"
+          >
             <div class="flex items-start gap-2">
-              <IconAlertTriangle class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5" />
-              <p class="text-xs text-[var(--terminal-amber)]">{{ t('moderation.actionPanel.warning') }}</p>
+              <IconAlertTriangle
+                class="h-4 w-4 text-[var(--terminal-amber)] flex-shrink-0 mt-0.5"
+              />
+              <p class="text-xs text-[var(--terminal-amber)]">
+                {{ t('moderation.actionPanel.warning') }}
+              </p>
             </div>
           </div>
 
-          <div v-if="entity.assignedToId" class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]">
-            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">{{ t('moderation.queue.assignedTo') }}</p>
+          <div
+            v-if="entity.assignedToId"
+            class="border border-[var(--silver-200)] dark:border-[var(--silver-300)] p-4 bg-[var(--surface-sunken)]"
+          >
+            <p class="text-xs font-data uppercase tracking-wider text-[var(--silver-500)] mb-2">
+              {{ t('moderation.queue.assignedTo') }}
+            </p>
             <div class="flex items-center gap-2">
               <IconUser class="h-4 w-4 text-[var(--silver-500)]" />
               <span class="text-sm">{{ entity.assignedToName || entity.assignedToUsername }}</span>

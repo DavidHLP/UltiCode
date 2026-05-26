@@ -36,8 +36,14 @@ export function useModerationFilters() {
           { value: ReportCategory.HARASSMENT, label: t('moderation.categories.HARASSMENT') },
           { value: ReportCategory.HATE_SPEECH, label: t('moderation.categories.HATE_SPEECH') },
           { value: ReportCategory.VIOLENCE, label: t('moderation.categories.VIOLENCE') },
-          { value: ReportCategory.SEXUAL_CONTENT, label: t('moderation.categories.SEXUAL_CONTENT') },
-          { value: ReportCategory.MISINFORMATION, label: t('moderation.categories.MISINFORMATION') },
+          {
+            value: ReportCategory.SEXUAL_CONTENT,
+            label: t('moderation.categories.SEXUAL_CONTENT'),
+          },
+          {
+            value: ReportCategory.MISINFORMATION,
+            label: t('moderation.categories.MISINFORMATION'),
+          },
           { value: ReportCategory.WRONG_ANSWER, label: t('moderation.categories.WRONG_ANSWER') },
           { value: ReportCategory.COPYRIGHT, label: t('moderation.categories.COPYRIGHT') },
           { value: ReportCategory.OTHER, label: t('moderation.categories.OTHER') },

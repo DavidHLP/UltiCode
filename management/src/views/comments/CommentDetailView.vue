@@ -50,13 +50,22 @@ const commentType = computed((): CommentType => {
 const comment = computed(() => commentsStore.currentComment)
 const canModerate = computed(() =>
   commentType.value === 'forum'
-    ? authStore.hasPermission(PERM.MODERATE_FORUM_COMMENT.action, PERM.MODERATE_FORUM_COMMENT.resource)
-    : authStore.hasPermission(PERM.MODERATE_SOLUTION_COMMENT.action, PERM.MODERATE_SOLUTION_COMMENT.resource),
+    ? authStore.hasPermission(
+        PERM.MODERATE_FORUM_COMMENT.action,
+        PERM.MODERATE_FORUM_COMMENT.resource,
+      )
+    : authStore.hasPermission(
+        PERM.MODERATE_SOLUTION_COMMENT.action,
+        PERM.MODERATE_SOLUTION_COMMENT.resource,
+      ),
 )
 const canDelete = computed(() =>
   commentType.value === 'forum'
     ? authStore.hasPermission(PERM.DELETE_FORUM_COMMENT.action, PERM.DELETE_FORUM_COMMENT.resource)
-    : authStore.hasPermission(PERM.DELETE_SOLUTION_COMMENT.action, PERM.DELETE_SOLUTION_COMMENT.resource),
+    : authStore.hasPermission(
+        PERM.DELETE_SOLUTION_COMMENT.action,
+        PERM.DELETE_SOLUTION_COMMENT.resource,
+      ),
 )
 
 onMounted(async () => {
@@ -203,7 +212,9 @@ function handleFlagSuccess() {
         >
           <IconMessage :size="24" class="text-[var(--terminal-red)]" />
         </div>
-        <h2 class="text-sm font-semibold mb-1 font-data">{{ t('comments.error.loadingComment') }}</h2>
+        <h2 class="text-sm font-semibold mb-1 font-data">
+          {{ t('comments.error.loadingComment') }}
+        </h2>
         <p class="text-xs text-[var(--silver-400)] mb-4 font-data">{{ commentsStore.error }}</p>
         <div class="flex gap-2">
           <Button
@@ -246,7 +257,9 @@ function handleFlagSuccess() {
         >
           <IconMessage :size="24" class="text-[var(--silver-400)]" />
         </div>
-        <h2 class="text-sm font-semibold mb-1 font-data">{{ t('comments.error.commentNotFound') }}</h2>
+        <h2 class="text-sm font-semibold mb-1 font-data">
+          {{ t('comments.error.commentNotFound') }}
+        </h2>
         <p class="text-xs text-[var(--silver-400)] mb-4">
           {{ t('comments.error.notFoundDescription') }}
         </p>
@@ -270,7 +283,9 @@ function handleFlagSuccess() {
               class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)] p-6"
             >
               <!-- Comment Header -->
-              <div class="flex items-center justify-between mb-4 pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-700)]">
+              <div
+                class="flex items-center justify-between mb-4 pb-4 border-b border-[var(--silver-200)] dark:border-[var(--silver-700)]"
+              >
                 <div class="flex items-center gap-3">
                   <div class="flex items-center gap-2">
                     <IconUser class="h-4 w-4 text-[var(--silver-400)]" />
@@ -285,7 +300,11 @@ function handleFlagSuccess() {
                 <div class="flex items-center gap-2">
                   <TerminalBadge
                     :variant="comment.type === 'forum' ? 'info' : 'success'"
-                    :label="comment.type === 'forum' ? t('comments.type.forum') : t('comments.type.solution')"
+                    :label="
+                      comment.type === 'forum'
+                        ? t('comments.type.forum')
+                        : t('comments.type.solution')
+                    "
                   />
                 </div>
               </div>
@@ -298,7 +317,10 @@ function handleFlagSuccess() {
               </div>
 
               <!-- Mobile Status Badges -->
-              <div v-if="comment.isFlagged || comment.isDeleted" class="mt-4 pt-4 border-t border-[var(--silver-200)] dark:border-[var(--silver-700)] flex gap-2 sm:hidden">
+              <div
+                v-if="comment.isFlagged || comment.isDeleted"
+                class="mt-4 pt-4 border-t border-[var(--silver-200)] dark:border-[var(--silver-700)] flex gap-2 sm:hidden"
+              >
                 <TerminalBadge
                   v-if="comment.isFlagged"
                   variant="error"
@@ -320,7 +342,9 @@ function handleFlagSuccess() {
             <div
               class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)] p-4"
             >
-              <h3 class="text-xs font-data uppercase tracking-[0.15em] text-[var(--silver-500)] mb-3">
+              <h3
+                class="text-xs font-data uppercase tracking-[0.15em] text-[var(--silver-500)] mb-3"
+              >
                 {{ t('comments.detail.parent') }}
               </h3>
               <div class="flex items-start gap-2">
@@ -333,7 +357,11 @@ function handleFlagSuccess() {
                     {{ comment.parentTitle || t('comments.type.unknown') }}
                   </p>
                   <p class="text-xs text-[var(--silver-400)] mt-1">
-                    {{ comment.type === 'forum' ? t('comments.type.forum') : t('comments.type.solution') }}
+                    {{
+                      comment.type === 'forum'
+                        ? t('comments.type.forum')
+                        : t('comments.type.solution')
+                    }}
                   </p>
                 </div>
               </div>
@@ -343,24 +371,38 @@ function handleFlagSuccess() {
             <div
               class="border border-[var(--silver-200)] dark:border-[var(--silver-700)] bg-[var(--card)] p-4"
             >
-              <h3 class="text-xs font-data uppercase tracking-[0.15em] text-[var(--silver-500)] mb-3">
+              <h3
+                class="text-xs font-data uppercase tracking-[0.15em] text-[var(--silver-500)] mb-3"
+              >
                 {{ t('comments.detail.metadata') }}
               </h3>
               <div class="space-y-3">
                 <div class="flex justify-between items-center">
                   <span class="text-xs text-[var(--silver-400)] font-data">ID</span>
-                  <span class="text-xs text-[var(--foreground)] font-data tabular-nums">{{ comment.id }}</span>
+                  <span class="text-xs text-[var(--foreground)] font-data tabular-nums">{{
+                    comment.id
+                  }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-xs text-[var(--silver-400)] font-data">{{ t('comments.columns.author') }}</span>
-                  <span class="text-xs text-[var(--foreground)]">{{ comment.author?.username }}</span>
+                  <span class="text-xs text-[var(--silver-400)] font-data">{{
+                    t('comments.columns.author')
+                  }}</span>
+                  <span class="text-xs text-[var(--foreground)]">{{
+                    comment.author?.username
+                  }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-xs text-[var(--silver-400)] font-data">{{ t('comments.columns.created') }}</span>
-                  <span class="text-xs text-[var(--foreground)] font-data">{{ formatDate(comment.createdAt) }}</span>
+                  <span class="text-xs text-[var(--silver-400)] font-data">{{
+                    t('comments.columns.created')
+                  }}</span>
+                  <span class="text-xs text-[var(--foreground)] font-data">{{
+                    formatDate(comment.createdAt)
+                  }}</span>
                 </div>
                 <div class="flex justify-between items-center">
-                  <span class="text-xs text-[var(--silver-400)] font-data">{{ t('comments.columns.status') }}</span>
+                  <span class="text-xs text-[var(--silver-400)] font-data">{{
+                    t('comments.columns.status')
+                  }}</span>
                   <TerminalBadge
                     v-if="comment.isDeleted"
                     variant="error"
@@ -371,11 +413,7 @@ function handleFlagSuccess() {
                     variant="warning"
                     :label="t('comments.status.flagged')"
                   />
-                  <TerminalBadge
-                    v-else
-                    variant="success"
-                    :label="t('comments.status.active')"
-                  />
+                  <TerminalBadge v-else variant="success" :label="t('comments.status.active')" />
                 </div>
               </div>
             </div>

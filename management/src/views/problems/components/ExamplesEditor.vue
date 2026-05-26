@@ -5,18 +5,8 @@ import { useI18n } from 'vue-i18n'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import {
-  ChevronDown,
-  Plus,
-  Trash2,
-  ArrowUp,
-  ArrowDown,
-} from 'lucide-vue-next'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { ChevronDown, Plus, Trash2, ArrowUp, ArrowDown } from 'lucide-vue-next'
 import type { Example } from '@/lib/schemas/problemDescription'
 
 const props = withDefaults(
@@ -90,9 +80,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
         <CardHeader class="flex flex-row items-center justify-between py-3 px-4">
           <CollapsibleTrigger>
             <div class="flex items-center gap-2 cursor-pointer">
-              <ChevronDown
-                class="h-4 w-4 shrink-0 transition-transform duration-200"
-              />
+              <ChevronDown class="h-4 w-4 shrink-0 transition-transform duration-200" />
               <CardTitle class="text-sm font-medium">
                 {{ t('problems.descriptionDisplay.example') }} {{ index + 1 }}
               </CardTitle>
@@ -141,9 +129,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
                 rows="3"
                 class="font-mono text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px] resize-y"
                 :placeholder="t('problems.form.validation.inputRequired')"
-                @update:model-value="
-                  (v) => updateField(index, field, 'input', v as string)
-                "
+                @update:model-value="(v) => updateField(index, field, 'input', v as string)"
               />
             </div>
 
@@ -156,9 +142,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
                 rows="3"
                 class="font-mono text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[80px] resize-y"
                 :placeholder="t('problems.form.validation.outputRequired')"
-                @update:model-value="
-                  (v) => updateField(index, field, 'output', v as string)
-                "
+                @update:model-value="(v) => updateField(index, field, 'output', v as string)"
               />
             </div>
 
@@ -171,9 +155,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
                 rows="2"
                 class="text-sm bg-muted border-none shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 min-h-[60px] resize-y"
                 :placeholder="t('problems.descriptionDisplay.explanation')"
-                @update:model-value="
-                  (v) => updateField(index, field, 'explanation', v as string)
-                "
+                @update:model-value="(v) => updateField(index, field, 'explanation', v as string)"
               />
             </div>
           </CardContent>
@@ -182,13 +164,7 @@ function updateField(index: number, field: { value: Example }, key: keyof Exampl
     </Collapsible>
 
     <!-- Add button -->
-    <Button
-      v-if="fields.length > 0"
-      variant="outline"
-      size="sm"
-      class="w-full"
-      @click="addExample"
-    >
+    <Button v-if="fields.length > 0" variant="outline" size="sm" class="w-full" @click="addExample">
       <Plus class="h-4 w-4 mr-2" />
       {{ t('problems.form.examples') }}
     </Button>

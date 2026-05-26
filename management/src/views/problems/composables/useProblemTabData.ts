@@ -1,4 +1,14 @@
-import { computed, ref, watch, onMounted, onBeforeUnmount, nextTick, unref, type ComputedRef, type Ref } from 'vue'
+import {
+  computed,
+  ref,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+  unref,
+  type ComputedRef,
+  type Ref,
+} from 'vue'
 import { useRoute } from 'vue-router'
 import { useProblemsStore } from '@/stores/admin/problems'
 import type { HeaderData, DescriptionData, CodeData, CasesData } from '@/api/admin/problems'
@@ -95,13 +105,10 @@ export function useProblemTabData(problemId: ComputedRef<string>): UseProblemTab
    * This handles both initial load (when route params are first resolved)
    * and subsequent tab switches.
    */
-  watch(
-    currentTab,
-    (newTab, oldTab) => {
-      if (newTab === oldTab) return
-      loadTabData(newTab)
-    }
-  )
+  watch(currentTab, (newTab, oldTab) => {
+    if (newTab === oldTab) return
+    loadTabData(newTab)
+  })
 
   onMounted(() => {
     loadTabData()

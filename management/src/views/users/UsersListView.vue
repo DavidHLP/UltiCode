@@ -464,7 +464,11 @@ async function confirmBulkDelete() {
         />
       </div>
       <AlertDialogFooter>
-        <Button variant="outline" @click="bulkDeleteDialogOpen = false" :disabled="bulkActionLoading">
+        <Button
+          variant="outline"
+          @click="bulkDeleteDialogOpen = false"
+          :disabled="bulkActionLoading"
+        >
           {{ t('common.cancel') }}
         </Button>
         <Button

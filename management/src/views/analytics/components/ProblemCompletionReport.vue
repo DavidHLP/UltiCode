@@ -31,7 +31,8 @@ const metrics = computed<MetricData[]>(() => {
       title: t('analytics.problemCompletion.completionRate'),
       value: props.formatPercent(r.overallCompletionRate),
       trend: r.overallCompletionRate > 30 ? 'up' : 'down',
-      change: r.overallCompletionRate > 30 ? t('analytics.status.good') : t('analytics.status.needsWork'),
+      change:
+        r.overallCompletionRate > 30 ? t('analytics.status.good') : t('analytics.status.needsWork'),
     },
     {
       title: t('analytics.problemCompletion.trendingProblems'),

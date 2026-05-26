@@ -59,8 +59,6 @@ watch(
     }
   },
 )
-
-
 </script>
 
 <template>
@@ -120,7 +118,10 @@ watch(
                 <span class="font-data text-xs truncate">{{ entity.email || 'no-email' }}</span>
               </div>
               <div class="flex flex-wrap gap-2">
-                <SemanticBadge :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'" :label="entity.role.replace('_', ' ')" />
+                <SemanticBadge
+                  :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'"
+                  :label="entity.role.replace('_', ' ')"
+                />
                 <SemanticBadge
                   :color="entity.isBanned ? 'error' : entity.isActive ? 'success' : 'neutral'"
                   :label="entity.isBanned ? 'BANNED' : entity.isActive ? 'ACTIVE' : 'INACTIVE'"
@@ -229,7 +230,10 @@ watch(
           <div class="grid grid-cols-2 gap-4">
             <DataBlock :label="$t('users.columns.username')" :value="entity.username" />
             <DataBlock :label="$t('users.columns.role')">
-              <SemanticBadge :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'" :label="entity.role.replace('_', ' ')" />
+              <SemanticBadge
+                :color="USER_ROLE_COLOR_MAP[entity.role] ?? 'neutral'"
+                :label="entity.role.replace('_', ' ')"
+              />
             </DataBlock>
             <DataBlock :label="$t('users.columns.joined')">
               <span class="font-data text-sm tabular-nums">
@@ -253,7 +257,9 @@ watch(
         v-if="entity.isBanned"
         class="border border-[var(--terminal-red)] bg-[color-mix(in_oklch,_var(--terminal-red)_8%,_transparent)]"
       >
-        <div class="border-b border-[var(--terminal-red)] px-4 py-2 bg-[color-mix(in_oklch,_var(--terminal-red)_12%,_transparent)]">
+        <div
+          class="border-b border-[var(--terminal-red)] px-4 py-2 bg-[color-mix(in_oklch,_var(--terminal-red)_12%,_transparent)]"
+        >
           <span class="terminal-comment text-[var(--terminal-red)]">ban_info</span>
         </div>
 

@@ -95,7 +95,8 @@ function mountBasicInfoSection(props = {}) {
         },
         Textarea: {
           props: ['modelValue', 'disabled'],
-          template: '<textarea :value="modelValue" :disabled="disabled" data-testid="textarea-description" />',
+          template:
+            '<textarea :value="modelValue" :disabled="disabled" data-testid="textarea-description" />',
         },
         Button: {
           template: '<button><slot /></button>',
@@ -149,7 +150,8 @@ describe('BasicInfoSection', () => {
       await flushPromises()
 
       const inputEl = wrapper.find('[data-testid="input-name"]').element as HTMLInputElement
-      const textareaEl = wrapper.find('[data-testid="textarea-description"]').element as HTMLTextAreaElement
+      const textareaEl = wrapper.find('[data-testid="textarea-description"]')
+        .element as HTMLTextAreaElement
 
       expect(inputEl.value).toBe('My Custom List')
       expect(textareaEl.value).toBe('My custom description')
@@ -173,7 +175,8 @@ describe('BasicInfoSection', () => {
       await flushPromises()
 
       const inputEl = wrapper.find('[data-testid="input-name"]').element as HTMLInputElement
-      const textareaEl = wrapper.find('[data-testid="textarea-description"]').element as HTMLTextAreaElement
+      const textareaEl = wrapper.find('[data-testid="textarea-description"]')
+        .element as HTMLTextAreaElement
 
       expect(inputEl.disabled).toBe(true)
       expect(textareaEl.disabled).toBe(true)

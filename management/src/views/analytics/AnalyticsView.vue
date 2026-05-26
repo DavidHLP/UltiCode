@@ -62,7 +62,9 @@ const {
         </div>
 
         <Select v-model="days">
-          <SelectTrigger class="w-[130px] h-8 text-xs border-[var(--silver-200)] dark:border-[var(--silver-300)]">
+          <SelectTrigger
+            class="w-[130px] h-8 text-xs border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -98,7 +100,9 @@ const {
         <!-- Loading State -->
         <div v-if="loading" class="flex items-center justify-center py-12">
           <div class="flex items-center gap-3 text-[var(--silver-400)]">
-            <div class="h-4 w-4 border-2 border-[var(--silver-300)] border-t-foreground rounded-full animate-spin" />
+            <div
+              class="h-4 w-4 border-2 border-[var(--silver-300)] border-t-foreground rounded-full animate-spin"
+            />
             <span>{{ t('common.loading') }}</span>
           </div>
         </div>

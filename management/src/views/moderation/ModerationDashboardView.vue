@@ -313,7 +313,9 @@ function navigateToAppeals() {
       >
         <CardContent class="py-6">
           <div class="flex items-center gap-4">
-            <div class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]">
+            <div
+              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-amber)_15%,_transparent)]"
+            >
               <IconAlertTriangle class="h-6 w-6 text-[var(--terminal-amber)]" />
             </div>
             <div>
@@ -334,7 +336,9 @@ function navigateToAppeals() {
       >
         <CardContent class="py-6">
           <div class="flex items-center gap-4">
-            <div class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]">
+            <div
+              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-purple)_15%,_transparent)]"
+            >
               <IconScale class="h-6 w-6 text-[var(--terminal-purple)]" />
             </div>
             <div>
@@ -362,7 +366,9 @@ function navigateToAppeals() {
       <CardContent class="py-6">
         <div class="flex items-center justify-between">
           <div class="flex items-center gap-4">
-            <div class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]">
+            <div
+              class="p-3 rounded-full bg-[color-mix(in_oklch,_var(--terminal-green)_15%,_transparent)]"
+            >
               <IconClock class="h-6 w-6 text-[var(--terminal-green)]" />
             </div>
             <div>

@@ -2,12 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { Switch } from '@/components/ui/switch'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useAutoSave } from '@/composables/useAutoSave'
 import { adminProblemListsApi } from '@/api/admin/problem-lists'
 import type { ProblemListDetail, UpdateVisibilityDto } from '@/api/admin/problem-lists'
@@ -45,7 +40,11 @@ const { saveStatus, save } = useAutoSave<UpdateVisibilityDto>(
   async (data) => {
     if (!props.modelValue) return
     const updated = await adminProblemListsApi.updateVisibility(props.modelValue.id, data)
-    emit('update:modelValue', { ...props.modelValue!, ...updated, problems: props.modelValue!.problems })
+    emit('update:modelValue', {
+      ...props.modelValue!,
+      ...updated,
+      problems: props.modelValue!.problems,
+    })
   },
   { debounceMs: 1000, blurTriggers: true },
 )
@@ -111,11 +110,11 @@ const saveStatusColor = {
             <TooltipProvider v-if="isFeatured">
               <Tooltip>
                 <TooltipTrigger as-child>
-                  <span class="text-[var(--silver-400)] cursor-help font-data text-xs">
-                    [?]
-                  </span>
+                  <span class="text-[var(--silver-400)] cursor-help font-data text-xs"> [?] </span>
                 </TooltipTrigger>
-                <TooltipContent class="max-w-xs bg-[var(--surface-elevated)] border-[var(--silver-200)]">
+                <TooltipContent
+                  class="max-w-xs bg-[var(--surface-elevated)] border-[var(--silver-200)]"
+                >
                   <p class="text-xs text-[var(--silver-100)]">
                     {{ t('problemLists.form.isFeaturedTooltip') }}
                   </p>
@@ -139,11 +138,16 @@ const saveStatusColor = {
 
     <!-- Save Status Indicator -->
     <div v-if="saveStatusText[saveStatus]" class="flex items-center gap-2">
-      <span
-        class="font-data text-xs animate-pulse"
-        :class="saveStatusColor[saveStatus]"
-      >
-        {{ saveStatus === 'saving' ? '●' : saveStatus === 'saved' ? '✓' : saveStatus === 'error' ? '✗' : '' }}
+      <span class="font-data text-xs animate-pulse" :class="saveStatusColor[saveStatus]">
+        {{
+          saveStatus === 'saving'
+            ? '●'
+            : saveStatus === 'saved'
+              ? '✓'
+              : saveStatus === 'error'
+                ? '✗'
+                : ''
+        }}
         {{ saveStatusText[saveStatus] }}
       </span>
     </div>

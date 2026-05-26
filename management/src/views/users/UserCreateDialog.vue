@@ -97,7 +97,9 @@ async function handleSubmit() {
             t('users.createUser')
           }}</DialogTitle>
         </div>
-        <DialogDescription class="terminal-comment mt-1">{{ t('users.createDescription') }}</DialogDescription>
+        <DialogDescription class="terminal-comment mt-1">{{
+          t('users.createDescription')
+        }}</DialogDescription>
       </DialogHeader>
 
       <!-- Form -->

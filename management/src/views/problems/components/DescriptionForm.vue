@@ -8,11 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
-import {
-  Card,
-  CardContent,
-  CardTitle,
-} from '@/components/ui/card'
+import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import {
   Accordion,
   AccordionContent,
@@ -92,7 +88,9 @@ function updateForm(data?: ProblemData) {
   // Normalize difficulty to uppercase to match frontend enum values
   // Backend may return "Easy" but frontend expects "EASY"
   const validDifficulties = [Difficulty.EASY, Difficulty.MEDIUM, Difficulty.HARD]
-  const normalizedDifficulty = validDifficulties.includes(data.difficulty?.toUpperCase() as Difficulty)
+  const normalizedDifficulty = validDifficulties.includes(
+    data.difficulty?.toUpperCase() as Difficulty,
+  )
     ? (data.difficulty?.toUpperCase() as Difficulty)
     : Difficulty.MEDIUM
 
@@ -189,7 +187,9 @@ function isLanguageSelected(lang: string): boolean {
               <AccordionTrigger class="px-6 py-4 hover:no-underline">
                 <div class="flex items-center gap-2">
                   <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{ t('problems.descriptionForm.basicInfo') }}</CardTitle>
+                  <CardTitle class="text-base">{{
+                    t('problems.descriptionForm.basicInfo')
+                  }}</CardTitle>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
@@ -234,9 +234,15 @@ function isLanguageSelected(lang: string): boolean {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem :value="Difficulty.EASY">{{ t('problems.difficulty.EASY') }}</SelectItem>
-                            <SelectItem :value="Difficulty.MEDIUM">{{ t('problems.difficulty.MEDIUM') }}</SelectItem>
-                            <SelectItem :value="Difficulty.HARD">{{ t('problems.difficulty.HARD') }}</SelectItem>
+                            <SelectItem :value="Difficulty.EASY">{{
+                              t('problems.difficulty.EASY')
+                            }}</SelectItem>
+                            <SelectItem :value="Difficulty.MEDIUM">{{
+                              t('problems.difficulty.MEDIUM')
+                            }}</SelectItem>
+                            <SelectItem :value="Difficulty.HARD">{{
+                              t('problems.difficulty.HARD')
+                            }}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -253,9 +259,15 @@ function isLanguageSelected(lang: string): boolean {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem :value="ProblemStatus.TODO">{{ t('problems.status.todo') }}</SelectItem>
-                            <SelectItem :value="ProblemStatus.ATTEMPTED">{{ t('problems.status.attempted') }}</SelectItem>
-                            <SelectItem :value="ProblemStatus.SOLVED">{{ t('problems.status.solved') }}</SelectItem>
+                            <SelectItem :value="ProblemStatus.TODO">{{
+                              t('problems.status.todo')
+                            }}</SelectItem>
+                            <SelectItem :value="ProblemStatus.ATTEMPTED">{{
+                              t('problems.status.attempted')
+                            }}</SelectItem>
+                            <SelectItem :value="ProblemStatus.SOLVED">{{
+                              t('problems.status.solved')
+                            }}</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -271,8 +283,12 @@ function isLanguageSelected(lang: string): boolean {
                           @click="handleChange(!value)"
                         >
                           <div class="space-y-0.5">
-                            <Label class="text-base cursor-pointer">{{ t('problems.descriptionForm.premium') }}</Label>
-                            <p class="text-xs text-muted-foreground">{{ t('problems.descriptionForm.premiumDescription') }}</p>
+                            <Label class="text-base cursor-pointer">{{
+                              t('problems.descriptionForm.premium')
+                            }}</Label>
+                            <p class="text-xs text-muted-foreground">
+                              {{ t('problems.descriptionForm.premiumDescription') }}
+                            </p>
                           </div>
                           <Checkbox :checked="value" @update:checked="handleChange" />
                         </div>
@@ -287,8 +303,12 @@ function isLanguageSelected(lang: string): boolean {
                           @click="handleChange(!value)"
                         >
                           <div class="space-y-0.5">
-                            <Label class="text-base cursor-pointer">{{ t('problems.descriptionForm.published') }}</Label>
-                            <p class="text-xs text-muted-foreground">{{ t('problems.descriptionForm.publishedDescription') }}</p>
+                            <Label class="text-base cursor-pointer">{{
+                              t('problems.descriptionForm.published')
+                            }}</Label>
+                            <p class="text-xs text-muted-foreground">
+                              {{ t('problems.descriptionForm.publishedDescription') }}
+                            </p>
                           </div>
                           <Checkbox :checked="value" @update:checked="handleChange" />
                         </div>
@@ -307,7 +327,9 @@ function isLanguageSelected(lang: string): boolean {
               <AccordionTrigger class="px-6 py-4 hover:no-underline">
                 <div class="flex items-center gap-2">
                   <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{ t('problems.descriptionForm.problemDescription') }}</CardTitle>
+                  <CardTitle class="text-base">{{
+                    t('problems.descriptionForm.problemDescription')
+                  }}</CardTitle>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
@@ -351,7 +373,9 @@ function isLanguageSelected(lang: string): boolean {
               <AccordionTrigger class="px-6 py-4 hover:no-underline">
                 <div class="flex items-center gap-2">
                   <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{ t('problems.descriptionForm.examples') }}</CardTitle>
+                  <CardTitle class="text-base">{{
+                    t('problems.descriptionForm.examples')
+                  }}</CardTitle>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
@@ -375,7 +399,9 @@ function isLanguageSelected(lang: string): boolean {
               <AccordionTrigger class="px-6 py-4 hover:no-underline">
                 <div class="flex items-center gap-2">
                   <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{ t('problems.descriptionForm.constraints') }}</CardTitle>
+                  <CardTitle class="text-base">{{
+                    t('problems.descriptionForm.constraints')
+                  }}</CardTitle>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
@@ -431,7 +457,10 @@ function isLanguageSelected(lang: string): boolean {
                   <FormField name="tags">
                     <FormItem>
                       <FormControl>
-                        <TagsSelector :model-value="formValues.tags ?? []" @update:model-value="(v: string[]) => setFieldValue('tags', v)" />
+                        <TagsSelector
+                          :model-value="formValues.tags ?? []"
+                          @update:model-value="(v: string[]) => setFieldValue('tags', v)"
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -447,7 +476,9 @@ function isLanguageSelected(lang: string): boolean {
               <AccordionTrigger class="px-6 py-4 hover:no-underline">
                 <div class="flex items-center gap-2">
                   <IconFileDescription class="h-5 w-5 text-muted-foreground" />
-                  <CardTitle class="text-base">{{ t('problems.descriptionForm.languages') }}</CardTitle>
+                  <CardTitle class="text-base">{{
+                    t('problems.descriptionForm.languages')
+                  }}</CardTitle>
                 </div>
               </AccordionTrigger>
               <AccordionContent>
@@ -466,13 +497,20 @@ function isLanguageSelected(lang: string): boolean {
                       <Badge
                         :variant="isLanguageSelected(lang) ? 'default' : 'outline'"
                         class="select-none font-mono text-sm"
-                        :class="isLanguageSelected(lang) ? '' : 'hover:bg-accent hover:text-accent-foreground'"
+                        :class="
+                          isLanguageSelected(lang)
+                            ? ''
+                            : 'hover:bg-accent hover:text-accent-foreground'
+                        "
                       >
                         {{ lang }}
                       </Badge>
                     </button>
                   </div>
-                  <p v-if="(formValues.languages || []).length === 0" class="text-sm text-muted-foreground italic">
+                  <p
+                    v-if="(formValues.languages || []).length === 0"
+                    class="text-sm text-muted-foreground italic"
+                  >
                     {{ t('problems.descriptionForm.noLanguagesSelected') }}
                   </p>
                 </CardContent>

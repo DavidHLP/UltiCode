@@ -143,8 +143,8 @@ const columns = createColumns(
       <!-- Title Row -->
       <div class="py-4 flex items-center justify-between">
         <h1 class="text-xl font-medium tracking-tight text-[var(--foreground)]">
-            {{ t('problemLists.title') }}
-          </h1>
+          {{ t('problemLists.title') }}
+        </h1>
         <Button
           v-if="canCreate"
           variant="terminal"

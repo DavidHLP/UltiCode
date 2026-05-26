@@ -66,7 +66,6 @@ function updateScore(problemId: string, score: number) {
     selectedProblems: currentProblems.map((p) => (p.id === problemId ? { ...p, score } : p)),
   })
 }
-
 </script>
 
 <template>
@@ -140,7 +139,12 @@ function updateScore(problemId: string, score: number) {
               </div>
             </TableCell>
             <TableCell>
-              <SemanticBadge :color="DIFFICULTY_COLOR_MAP[problem.difficulty] ?? 'neutral'" :label="problem.difficulty?.toUpperCase()" size="sm" dot />
+              <SemanticBadge
+                :color="DIFFICULTY_COLOR_MAP[problem.difficulty] ?? 'neutral'"
+                :label="problem.difficulty?.toUpperCase()"
+                size="sm"
+                dot
+              />
             </TableCell>
             <TableCell>
               <Input

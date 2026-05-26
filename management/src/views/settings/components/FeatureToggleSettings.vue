@@ -17,14 +17,46 @@ const emit = defineEmits<{
 }>()
 
 const featureToggles: { key: keyof AllSettings; labelKey: string; descKey: string }[] = [
-  { key: 'feature_contest', labelKey: 'settings.features.contest', descKey: 'settings.features.contestDescription' },
-  { key: 'feature_forum', labelKey: 'settings.features.forum', descKey: 'settings.features.forumDescription' },
-  { key: 'feature_solutions', labelKey: 'settings.features.solutions', descKey: 'settings.features.solutionsDescription' },
-  { key: 'feature_subscriptions', labelKey: 'settings.features.subscriptions', descKey: 'settings.features.subscriptionsDescription' },
-  { key: 'feature_achievements', labelKey: 'settings.features.achievements', descKey: 'settings.features.achievementsDescription' },
-  { key: 'feature_notifications', labelKey: 'settings.features.notifications', descKey: 'settings.features.notificationsDescription' },
-  { key: 'feature_bookmarks', labelKey: 'settings.features.bookmarks', descKey: 'settings.features.bookmarksDescription' },
-  { key: 'feature_problem_lists', labelKey: 'settings.features.problemLists', descKey: 'settings.features.problemListsDescription' },
+  {
+    key: 'feature_contest',
+    labelKey: 'settings.features.contest',
+    descKey: 'settings.features.contestDescription',
+  },
+  {
+    key: 'feature_forum',
+    labelKey: 'settings.features.forum',
+    descKey: 'settings.features.forumDescription',
+  },
+  {
+    key: 'feature_solutions',
+    labelKey: 'settings.features.solutions',
+    descKey: 'settings.features.solutionsDescription',
+  },
+  {
+    key: 'feature_subscriptions',
+    labelKey: 'settings.features.subscriptions',
+    descKey: 'settings.features.subscriptionsDescription',
+  },
+  {
+    key: 'feature_achievements',
+    labelKey: 'settings.features.achievements',
+    descKey: 'settings.features.achievementsDescription',
+  },
+  {
+    key: 'feature_notifications',
+    labelKey: 'settings.features.notifications',
+    descKey: 'settings.features.notificationsDescription',
+  },
+  {
+    key: 'feature_bookmarks',
+    labelKey: 'settings.features.bookmarks',
+    descKey: 'settings.features.bookmarksDescription',
+  },
+  {
+    key: 'feature_problem_lists',
+    labelKey: 'settings.features.problemLists',
+    descKey: 'settings.features.problemListsDescription',
+  },
 ]
 
 function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K]) {
@@ -43,12 +75,19 @@ function updateField<K extends keyof AllSettings>(key: K, value: AllSettings[K])
     </CardHeader>
     <CardContent>
       <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div v-for="toggle in featureToggles" :key="toggle.key" class="flex items-center justify-between space-x-2">
+        <div
+          v-for="toggle in featureToggles"
+          :key="toggle.key"
+          class="flex items-center justify-between space-x-2"
+        >
           <Label class="flex flex-col space-y-1">
             <span>{{ t(toggle.labelKey) }}</span>
             <span class="font-normal text-xs text-muted-foreground">{{ t(toggle.descKey) }}</span>
           </Label>
-          <Switch :checked="Boolean(settings[toggle.key])" @update:checked="updateField(toggle.key, $event)" />
+          <Switch
+            :checked="Boolean(settings[toggle.key])"
+            @update:checked="updateField(toggle.key, $event)"
+          />
         </div>
       </div>
     </CardContent>

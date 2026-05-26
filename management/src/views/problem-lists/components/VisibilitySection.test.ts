@@ -56,7 +56,9 @@ describe('VisibilitySection', () => {
     problems: [],
   }
 
-  const createWrapper = (props: { modelValue?: ProblemListDetail | null; disabled?: boolean } = {}) => {
+  const createWrapper = (
+    props: { modelValue?: ProblemListDetail | null; disabled?: boolean } = {},
+  ) => {
     return mount(VisibilitySection, {
       props: {
         modelValue: props.modelValue ?? mockProblemList,
@@ -65,7 +67,8 @@ describe('VisibilitySection', () => {
       global: {
         stubs: {
           Switch: {
-            template: '<button data-testid="switch" :data-checked="checked" :data-disabled="disabled" @click="$emit(\'update:checked\', !checked)" @blur="$emit(\'blur\')"><slot /></button>',
+            template:
+              '<button data-testid="switch" :data-checked="checked" :data-disabled="disabled" @click="$emit(\'update:checked\', !checked)" @blur="$emit(\'blur\')"><slot /></button>',
             props: ['checked', 'disabled'],
             emits: ['update:checked', 'blur'],
           },

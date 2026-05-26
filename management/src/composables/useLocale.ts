@@ -1,31 +1,21 @@
-import { computed } from "vue";
-import { useI18n } from "vue-i18n";
-import {
-  SUPPORTED_LOCALES,
-  LOCALE_CONFIGS,
-  type SupportedLocale,
-} from "@/i18n";
-import { setStoredLocale } from "@/i18n/utils/storage";
-import { apiPatch } from "@/utils/request";
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { SUPPORTED_LOCALES, LOCALE_CONFIGS, type SupportedLocale } from '@/i18n'
+import { setStoredLocale } from '@/i18n/utils/storage'
+import { apiPatch } from '@/utils/request'
 
 /**
  * Composable for managing application locale
  * Matches Console's useLocale API surface exactly
  */
 export function useLocale() {
-  const { locale, t, te, tm, rt, n, d } = useI18n();
+  const { locale, t, te, tm, rt, n, d } = useI18n()
 
-  const currentLocale = computed<SupportedLocale>(
-    () => locale.value as SupportedLocale,
-  );
+  const currentLocale = computed<SupportedLocale>(() => locale.value as SupportedLocale)
 
-  const currentLocaleConfig = computed(
-    () => LOCALE_CONFIGS[currentLocale.value],
-  );
+  const currentLocaleConfig = computed(() => LOCALE_CONFIGS[currentLocale.value])
 
-  const availableLocales = computed(() =>
-    SUPPORTED_LOCALES.map((code) => LOCALE_CONFIGS[code]),
-  );
+  const availableLocales = computed(() => SUPPORTED_LOCALES.map((code) => LOCALE_CONFIGS[code]))
 
   /**
    * Set the application locale
@@ -33,28 +23,28 @@ export function useLocale() {
    */
   function setLocale(newLocale: SupportedLocale) {
     if (!SUPPORTED_LOCALES.includes(newLocale)) {
-      return;
+      return
     }
 
-    locale.value = newLocale;
-    setStoredLocale(newLocale);
-    document.documentElement.lang = newLocale;
+    locale.value = newLocale
+    setStoredLocale(newLocale)
+    document.documentElement.lang = newLocale
 
     // Sync to backend (fire and forget, errors are silently ignored)
-    apiPatch("/users/me", { locale: newLocale }).catch(() => {
+    apiPatch('/users/me', { locale: newLocale }).catch(() => {
       // Silently ignore - locale already changed locally
-    });
+    })
   }
 
   /**
    * Toggle between available locales
    */
   function toggleLocale() {
-    const currentIndex = SUPPORTED_LOCALES.indexOf(currentLocale.value);
-    const nextIndex = (currentIndex + 1) % SUPPORTED_LOCALES.length;
-    const nextLocale = SUPPORTED_LOCALES[nextIndex];
+    const currentIndex = SUPPORTED_LOCALES.indexOf(currentLocale.value)
+    const nextIndex = (currentIndex + 1) % SUPPORTED_LOCALES.length
+    const nextLocale = SUPPORTED_LOCALES[nextIndex]
     if (nextLocale) {
-      setLocale(nextLocale);
+      setLocale(nextLocale)
     }
   }
 
@@ -62,7 +52,7 @@ export function useLocale() {
    * Check if a specific locale is the current one
    */
   function isCurrentLocale(localeCode: SupportedLocale) {
-    return currentLocale.value === localeCode;
+    return currentLocale.value === localeCode
   }
 
   return {
@@ -83,5 +73,5 @@ export function useLocale() {
     rt, // Resolve translation
     n, // Number formatting
     d, // Date formatting
-  };
+  }
 }

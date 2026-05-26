@@ -64,7 +64,9 @@ describe('BannerSection', () => {
     problems: [],
   }
 
-  const createWrapper = (props: { modelValue?: ProblemListDetail | null; disabled?: boolean } = {}) => {
+  const createWrapper = (
+    props: { modelValue?: ProblemListDetail | null; disabled?: boolean } = {},
+  ) => {
     return mount(BannerSection, {
       props: {
         modelValue: props.modelValue ?? mockProblemList,

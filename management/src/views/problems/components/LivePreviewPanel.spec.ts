@@ -23,7 +23,8 @@ vi.mock('vue-sonner', () => ({
 vi.mock('@/components/ui/separator', () => ({
   Separator: {
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
-      return () => h('hr', { 'data-slot': 'separator' }, slots.default?.() as Parameters<typeof h>[2])
+      return () =>
+        h('hr', { 'data-slot': 'separator' }, slots.default?.() as Parameters<typeof h>[2])
     },
   },
 }))
@@ -32,17 +33,28 @@ vi.mock('@/components/ui/collapsible', () => ({
   Collapsible: {
     props: ['defaultOpen'],
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
-      return () => h('div', { 'data-slot': 'collapsible' }, slots.default?.() as Parameters<typeof h>[2])
+      return () =>
+        h('div', { 'data-slot': 'collapsible' }, slots.default?.() as Parameters<typeof h>[2])
     },
   },
   CollapsibleContent: {
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
-      return () => h('div', { 'data-slot': 'collapsible-content' }, slots.default?.() as Parameters<typeof h>[2])
+      return () =>
+        h(
+          'div',
+          { 'data-slot': 'collapsible-content' },
+          slots.default?.() as Parameters<typeof h>[2],
+        )
     },
   },
   CollapsibleTrigger: {
     setup(_props: unknown, { slots }: { slots: Record<string, () => unknown> }) {
-      return () => h('button', { 'data-slot': 'collapsible-trigger' }, slots.default?.() as Parameters<typeof h>[2])
+      return () =>
+        h(
+          'button',
+          { 'data-slot': 'collapsible-trigger' },
+          slots.default?.() as Parameters<typeof h>[2],
+        )
     },
   },
 }))
@@ -51,7 +63,9 @@ function cleanup() {
   document.body.innerHTML = ''
 }
 
-function createMockData(overrides: Partial<ProblemDescriptionFormData> = {}): ProblemDescriptionFormData {
+function createMockData(
+  overrides: Partial<ProblemDescriptionFormData> = {},
+): ProblemDescriptionFormData {
   return {
     title: 'Two Sum',
     slug: 'two-sum',
@@ -59,9 +73,14 @@ function createMockData(overrides: Partial<ProblemDescriptionFormData> = {}): Pr
     status: ProblemStatus.SOLVED,
     isPremium: false,
     isPublished: true,
-    content: 'Given an array of integers, return indices of the two numbers such that they add up to a target.',
+    content:
+      'Given an array of integers, return indices of the two numbers such that they add up to a target.',
     examples: [
-      { input: '[2,7,11,15], target = 9', output: '[0,1]', explanation: 'Because nums[0] + nums[1] == 9' },
+      {
+        input: '[2,7,11,15], target = 9',
+        output: '[0,1]',
+        explanation: 'Because nums[0] + nums[1] == 9',
+      },
     ],
     constraints: ['2 \u003c= nums.length \u003c= 10^4', '-10^9 \u003c= nums[i] \u003c= 10^9'],
     hints: ['Try a hash map', 'Consider one-pass approach'],
@@ -147,7 +166,9 @@ describe('LivePreviewPanel', () => {
   })
 
   it('renders summary when provided', async () => {
-    const { container } = await mountComponent(createMockData({ summary: 'A classic array problem.' }))
+    const { container } = await mountComponent(
+      createMockData({ summary: 'A classic array problem.' }),
+    )
 
     const summaryText = Array.from(container.querySelectorAll('p')).find((paragraph) =>
       paragraph.textContent?.includes('A classic array problem.'),
@@ -206,7 +227,9 @@ describe('LivePreviewPanel', () => {
   })
 
   it('displays correct hint count badge', async () => {
-    const { container } = await mountComponent(createMockData({ hints: ['Hint 1', 'Hint 2', 'Hint 3'] }))
+    const { container } = await mountComponent(
+      createMockData({ hints: ['Hint 1', 'Hint 2', 'Hint 3'] }),
+    )
 
     expect(container.textContent).toContain('3')
   })

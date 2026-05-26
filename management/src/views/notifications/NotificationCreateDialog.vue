@@ -112,10 +112,7 @@ async function handleSubmit() {
             : undefined,
       }
 
-      if (
-        form.value.target === 'USERS' &&
-        (!payload.userIds || payload.userIds.length === 0)
-      ) {
+      if (form.value.target === 'USERS' && (!payload.userIds || payload.userIds.length === 0)) {
         error.value = t('notifications.form.atLeastOneUserId')
         loading.value = false
         return
@@ -274,7 +271,10 @@ async function handleSubmit() {
               </FieldGroup>
             </FieldSet>
 
-            <FieldSeparator v-if="!isEditMode" class="border-[var(--silver-200)] dark:border-[var(--silver-300)]" />
+            <FieldSeparator
+              v-if="!isEditMode"
+              class="border-[var(--silver-200)] dark:border-[var(--silver-300)]"
+            />
 
             <FieldSet v-if="!isEditMode">
               <FieldDescription class="text-[var(--silver-500)]">{{
@@ -347,10 +347,16 @@ async function handleSubmit() {
             >
               <span v-if="loading" class="flex items-center gap-2">
                 <span class="animate-spin">⟳</span>
-                {{ isEditMode ? t('notifications.dialog.saving') : t('notifications.dialog.sending') }}
+                {{
+                  isEditMode ? t('notifications.dialog.saving') : t('notifications.dialog.sending')
+                }}
               </span>
               <span v-else>
-                {{ isEditMode ? t('notifications.dialog.saveChanges') : t('notifications.dialog.sendNotification') }}
+                {{
+                  isEditMode
+                    ? t('notifications.dialog.saveChanges')
+                    : t('notifications.dialog.sendNotification')
+                }}
               </span>
             </Button>
           </DialogFooter>

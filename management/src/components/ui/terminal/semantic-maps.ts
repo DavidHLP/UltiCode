@@ -90,8 +90,7 @@ export function getAuditActionColor(action: string): SemanticColor {
   if (upper.includes('CREATE') || upper.includes('GRANT') || upper.includes('PUBLISH'))
     return 'success'
   if (upper.includes('UPDATE') || upper.includes('UNBAN')) return 'info'
-  if (upper.includes('DELETE') || upper.includes('BAN') || upper.includes('REVOKE'))
-    return 'error'
+  if (upper.includes('DELETE') || upper.includes('BAN') || upper.includes('REVOKE')) return 'error'
   return 'info'
 }
 

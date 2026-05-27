@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { useAuthStore } from "@/stores/auth";
 import { ref, onMounted, computed } from "vue";
 import { fetchProblems } from "@/api/problem";
 import type { Problem } from "@/types/problem";
@@ -35,8 +34,8 @@ const loading = ref(true);
 onMounted(async () => {
   try {
     loading.value = true;
-    const userId = useAuthStore().fetchCurrentUserId();
-    problems.value = await fetchProblems(userId ?? undefined);
+    const result = await fetchProblems({}, 1, 500);
+    problems.value = result.items;
   } catch (error) {
     console.error("Failed to load problems", error);
   } finally {
@@ -182,16 +181,16 @@ const navigateToProblem = (slug: string) => {
                 <span
                   :class="
                     cn({
-                      'text-[var(--terminal-green)]': problem.difficulty === 'Easy',
-                      'text-[var(--terminal-amber)]': problem.difficulty === 'Medium',
-                      'text-[var(--terminal-red)]': problem.difficulty === 'Hard',
+                      'text-[var(--terminal-green)]': problem.difficulty === 'EASY',
+                      'text-[var(--terminal-amber)]': problem.difficulty === 'MEDIUM',
+                      'text-[var(--terminal-red)]': problem.difficulty === 'HARD',
                     })
                   "
                 >
                   {{
-                    problem.difficulty === "Easy"
+                    problem.difficulty === "EASY"
                       ? t("problem.difficulty.easy")
-                      : problem.difficulty === "Medium"
+                      : problem.difficulty === "MEDIUM"
                         ? t("problem.difficulty.medium")
                         : t("problem.difficulty.hard")
                   }}

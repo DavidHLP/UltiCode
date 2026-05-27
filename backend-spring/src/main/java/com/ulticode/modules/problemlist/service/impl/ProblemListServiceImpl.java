@@ -161,6 +161,19 @@ public class ProblemListServiceImpl implements ProblemListService {
             Map<Long, Problem> problemMap = problems.stream()
                     .collect(Collectors.toMap(Problem::getId, p -> p));
 
+            // Batch-fetch tags for problems in the list
+            List<ProblemMapper.ProblemTagDTO> tagDTOs = problemMapper.selectTagsByProblemIds(new ArrayList<>(problemIds));
+            Map<Long, List<com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO>> tagMap = tagDTOs.stream()
+                    .collect(Collectors.groupingBy(
+                            ProblemMapper.ProblemTagDTO::problemId,
+                            Collectors.mapping(dto -> {
+                                com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO tagVO = new com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO();
+                                tagVO.setId(dto.tagId());
+                                tagVO.setLabel(dto.tagName());
+                                return tagVO;
+                            }, Collectors.toList())
+                    ));
+
             List<ProblemListDetailVO.ProblemInListVO> problemVOs = relations.stream()
                     .map(rel -> {
                         Problem problem = problemMap.get(rel.getProblemId());
@@ -174,6 +187,10 @@ public class ProblemListServiceImpl implements ProblemListService {
                         pvo.setStatus(problem.getStatus());
                         pvo.setSortOrder(rel.getSortOrder());
                         pvo.setAddedAt(rel.getAddedAt());
+                        pvo.setAcceptanceRate(problem.getAcceptanceRate());
+                        pvo.setIsPremium(problem.getIsPremium());
+                        pvo.setHasSolution(problem.getHasSolution());
+                        pvo.setTags(tagMap.getOrDefault(problem.getId(), List.of()));
                         return pvo;
                     })
                     .filter(Objects::nonNull)
@@ -186,11 +203,25 @@ public class ProblemListServiceImpl implements ProblemListService {
         // Build stats
         ProblemListDetailVO.ProblemListStatsVO statsVO = new ProblemListDetailVO.ProblemListStatsVO();
         statsVO.setListId(id);
-        statsVO.setTotalCount(vo.getProblems().size());
-        statsVO.setSolvedCount(0);
-        statsVO.setAttemptedCount(0);
-        statsVO.setTodoCount(vo.getProblems().size());
-        statsVO.setProgress(vo.getProblems().isEmpty() ? 0.0 : 0.0);
+        List<ProblemListDetailVO.ProblemInListVO> problems = vo.getProblems();
+        int totalCount = problems.size();
+        int solvedCount = 0;
+        int attemptedCount = 0;
+        for (ProblemListDetailVO.ProblemInListVO p : problems) {
+            String status = p.getStatus();
+            if ("solved".equalsIgnoreCase(status)) {
+                solvedCount++;
+            } else if ("attempted".equalsIgnoreCase(status)) {
+                attemptedCount++;
+            }
+        }
+        int todoCount = totalCount - solvedCount - attemptedCount;
+        double progress = totalCount == 0 ? 0.0 : ((double) solvedCount / totalCount) * 100.0;
+        statsVO.setTotalCount(totalCount);
+        statsVO.setSolvedCount(solvedCount);
+        statsVO.setAttemptedCount(attemptedCount);
+        statsVO.setTodoCount(todoCount);
+        statsVO.setProgress(progress);
         vo.setStats(statsVO);
 
         // Build viewer state — reuse bookmark fetched above

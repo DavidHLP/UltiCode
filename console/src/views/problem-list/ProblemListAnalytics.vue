@@ -50,7 +50,7 @@ const donutData = computed(() =>
 );
 
 const difficultyStats = computed(() => {
-  const buckets = ["Easy", "Medium", "Hard"] as const;
+  const buckets = ["EASY", "MEDIUM", "HARD"] as const;
   return buckets.map((difficulty) => {
     const total = props.problems.filter(
       (p) => p.difficulty === difficulty,
@@ -62,8 +62,8 @@ const difficultyStats = computed(() => {
 
     // Determine color class based on difficulty
     let colorClass = "bg-chart-easy";
-    if (difficulty === "Medium") colorClass = "bg-chart-medium";
-    if (difficulty === "Hard") colorClass = "bg-chart-hard";
+    if (difficulty === "MEDIUM") colorClass = "bg-chart-medium";
+    if (difficulty === "HARD") colorClass = "bg-chart-hard";
 
     return {
       difficulty,
@@ -136,10 +136,10 @@ const donutValueFormatter = (tick: number | Date) =>
             <span
               :class="{
                 'text-chart-easy':
-                  stat.difficulty === 'Easy',
+                  stat.difficulty === 'EASY',
                 'text-chart-medium':
-                  stat.difficulty === 'Medium',
-                'text-chart-hard': stat.difficulty === 'Hard',
+                  stat.difficulty === 'MEDIUM',
+                'text-chart-hard': stat.difficulty === 'HARD',
               }"
               >{{ stat.label }}</span
             >

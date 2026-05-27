@@ -323,7 +323,7 @@ public class CodeExecutionHelperImpl implements CodeExecutionHelper {
                 .id(UUID.randomUUID().toString())
                 .problemId(String.valueOf(problemId))
                 .userId(userId)
-                .verdict("Accepted")
+                .verdict("System Error")
                 .runtime("0ms")
                 .memory("0.0MB")
                 .cases(List.of())

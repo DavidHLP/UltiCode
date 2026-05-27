@@ -49,6 +49,11 @@ public class TestCase {
     private String outputText;
 
     /**
+     * Structured inputs as JSON
+     */
+    private String inputs;
+
+    /**
      * Explanation of the test case
      */
     private String explanation;

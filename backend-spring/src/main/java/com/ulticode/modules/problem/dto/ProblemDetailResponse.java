@@ -98,6 +98,11 @@ public class ProblemDetailResponse {
     private DetailData detail;
 
     /**
+     * Interaction counts
+     */
+    private InteractionData interactions;
+
+    /**
      * Problem examples
      */
     private List<ExampleData> examples;
@@ -191,6 +196,19 @@ public class ProblemDetailResponse {
 
         @JsonProperty("starter_code")
         private String starterCode;
+    }
+
+    /**
+     * Interaction counts
+     */
+    @Data
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public static class InteractionData {
+        private Integer likes;
+        private Integer dislikes;
+        private Integer favorites;
+        @JsonProperty("viewer_reaction")
+        private String viewerReaction;
     }
 
     /**

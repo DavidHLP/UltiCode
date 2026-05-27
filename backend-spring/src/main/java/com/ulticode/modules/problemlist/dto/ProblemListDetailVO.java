@@ -75,5 +75,9 @@ public class ProblemListDetailVO {
         private String status;
         private Integer sortOrder;
         private LocalDateTime addedAt;
+        private java.math.BigDecimal acceptanceRate;
+        private Boolean isPremium;
+        private Boolean hasSolution;
+        private java.util.List<com.ulticode.modules.problem.dto.ProblemVO.ProblemTagVO> tags;
     }
 }

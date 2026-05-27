@@ -195,6 +195,16 @@ public class ProblemServiceImpl implements ProblemService {
                     "WHERE pt.label = {0} OR pt.slug = {0})", query.getTag());
         }
 
+        // Filter by category via tag_id subquery (categories map to tag IDs)
+        if (query.getCategory() != null && !query.getCategory().isBlank() && !"all".equalsIgnoreCase(query.getCategory())) {
+            queryWrapper.apply("id IN (SELECT problem_id FROM problem_tag_relations WHERE tag_id = {0})", query.getCategory().toLowerCase());
+        }
+
+        // Filter by premium status
+        if (query.getIsPremium() != null) {
+            queryWrapper.eq(Problem::getIsPremium, query.getIsPremium());
+        }
+
         // Search by ID or title
         if (query.getSearch() != null && !query.getSearch().isBlank()) {
             String searchTerm = query.getSearch().trim();
@@ -785,7 +795,7 @@ public class ProblemServiceImpl implements ProblemService {
                         ProblemMapper.ProblemTagDTO::problemId,
                         Collectors.mapping(dto -> {
                         ProblemVO.ProblemTagVO tagVO = new ProblemVO.ProblemTagVO();
-                        tagVO.setId(dto.tagName());
+                        tagVO.setId(dto.tagId());
                         tagVO.setLabel(dto.tagName());
                         return tagVO;
                     }, Collectors.toList())

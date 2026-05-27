@@ -21,11 +21,10 @@ const {
   selectedDifficulty,
   showPremium,
   selectedCategory,
-  numProblemsToShow,
   categoryOptions,
   popularTags,
   otherTags,
-  totalFilteredProblems,
+  hasMore,
   displayedProblems,
   columns,
   activeFilterCount,
@@ -74,7 +73,7 @@ const handleRowClick = (problem: EnrichedProblem) => {
     <ProblemResultList
       :displayed-problems="displayedProblems"
       :columns="columns"
-      :has-more="numProblemsToShow < totalFilteredProblems"
+      :has-more="hasMore"
       :editable="props.editable"
       @load-more="loadMore"
       @remove="emit('remove', $event)"

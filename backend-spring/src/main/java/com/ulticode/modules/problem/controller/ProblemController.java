@@ -46,25 +46,7 @@ public class ProblemController {
     @Operation(summary = "List problems", description = "Get a paginated list of problems with optional filters")
     @ApiResponse(responseCode = "200", description = "Problems retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping
-    public Result<PageResult<ProblemVO>> listProblems(
-            @Parameter(description = "Page number (1-based)")
-            @RequestParam(required = false) Integer page,
-            @Parameter(description = "Number of items per page")
-            @RequestParam(required = false) Integer pageSize,
-            @Parameter(description = "Filter by difficulty")
-            @RequestParam(required = false) String difficulty,
-            @Parameter(description = "Filter by status")
-            @RequestParam(required = false) String status,
-            @Parameter(description = "Search by ID or title")
-            @RequestParam(required = false) String search) {
-
-        ProblemQueryDTO query = new ProblemQueryDTO();
-        query.setPage(page);
-        query.setPageSize(pageSize);
-        query.setDifficulty(difficulty);
-        query.setStatus(status);
-        query.setSearch(search);
-
+    public Result<PageResult<ProblemVO>> listProblems(@ModelAttribute ProblemQueryDTO query) {
         PageResult<ProblemVO> result = problemService.listProblems(query);
         return Result.success(result);
     }

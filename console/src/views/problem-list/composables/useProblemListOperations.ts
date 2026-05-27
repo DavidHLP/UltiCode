@@ -221,7 +221,7 @@ export function useProblemListOperations(listId: Ref<string>) {
 
     try {
       await addProblemToList(listId.value, problem.id)
-      problems.value = [...problems.value, problem]
+      await loadProblemList(listId.value)
       toast.success(
         t('problem.problemList.messages.addSuccess', { title: problem.title }),
       )

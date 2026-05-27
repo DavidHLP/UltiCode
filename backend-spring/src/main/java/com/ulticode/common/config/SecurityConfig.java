@@ -64,6 +64,9 @@ public class SecurityConfig {
             "/forum/communities/**",
             "/forum/tags",
             "/forum/quick-filters",
+            // Problem list public read access
+            "/problem-lists/overview",
+            "/problem-lists/*/overview",
             // Swagger/OpenAPI documentation
             "/swagger-ui/**",
             "/swagger-ui.html",

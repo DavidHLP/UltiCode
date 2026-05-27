@@ -23,11 +23,11 @@ const emit = defineEmits<{
 
 const difficultyClass = (difficulty: Problem["difficulty"]) => {
   switch (difficulty) {
-    case "Easy":
+    case "EASY":
       return "text-[var(--terminal-green)]";
-    case "Medium":
+    case "MEDIUM":
       return "text-[var(--terminal-amber)]";
-    case "Hard":
+    case "HARD":
       return "text-[var(--terminal-red)]";
     default:
       return "";

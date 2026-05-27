@@ -6,7 +6,6 @@ import router from "./router";
 import i18n from "./i18n";
 import "./style.css";
 import "./assets/markdown.css";
-import VueDnDKitPlugin from "@vue-dnd-kit/core";
 
 // Import PWA registration (this registers the service worker)
 import "@/pwa-register";
@@ -34,7 +33,6 @@ async function bootstrap() {
   // Install Pinia first (required for stores to work)
   app.use(pinia);
   app.use(i18n);
-  app.use(VueDnDKitPlugin);
 
   // Initialize auth context BEFORE auth store
   // This sets up global auth error handling

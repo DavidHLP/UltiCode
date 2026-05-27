@@ -19,12 +19,16 @@ import com.ulticode.modules.websocket.contest.dto.SubmissionResultPayload;
 import com.ulticode.modules.websocket.service.RealtimeService;
 import com.ulticode.modules.contest.entity.ContestSubmission;
 import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -70,6 +74,7 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
     private final ContestSubmissionMapper contestSubmissionMapper;
     private final TestCaseMapper testCaseMapper;
     private final QueueConfig queueConfig;
+    private final ObjectMapper objectMapper;
 
     private final AtomicInteger activeJobs = new AtomicInteger(0);
 
@@ -282,12 +287,40 @@ public class JudgeWorkerProcessor implements JobProcessor<JudgeJob> {
             rtc.setId(String.valueOf(tc.getId()));
             rtc.setLabel("Case " + tc.getTestOrder());
             rtc.setOutput(tc.getOutputText());
-            RunSubmissionDTO.RunInput input = new RunSubmissionDTO.RunInput();
-            input.setId("0");
-            input.setLabel("input");
-            input.setName("input");
-            input.setValue(tc.getInputText());
-            rtc.setInputs(List.of(input));
+
+            List<RunSubmissionDTO.RunInput> runInputs = new ArrayList<>();
+            // Parse structured inputs from JSON if available
+            if (tc.getInputs() != null && !tc.getInputs().isBlank()) {
+                try {
+                    List<Map<String, Object>> inputs = objectMapper.readValue(
+                            tc.getInputs(), new TypeReference<List<Map<String, Object>>>() {});
+                    for (int i = 0; i < inputs.size(); i++) {
+                        Map<String, Object> item = inputs.get(i);
+                        RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
+                        ri.setId(String.valueOf(i));
+                        Object nameObj = item.get("name");
+                        Object labelObj = item.get("label");
+                        String name = (nameObj != null ? nameObj : (labelObj != null ? labelObj : "input")).toString();
+                        ri.setLabel(name);
+                        ri.setName(name);
+                        Object valueObj = item.get("value");
+                        ri.setValue(valueObj != null ? valueObj.toString() : "");
+                        runInputs.add(ri);
+                    }
+                } catch (JsonProcessingException e) {
+                    log.warn("Failed to parse inputs JSON for test case {}, falling back to inputText", tc.getId());
+                }
+            }
+            // Fallback: wrap inputText as single input
+            if (runInputs.isEmpty() && tc.getInputText() != null) {
+                RunSubmissionDTO.RunInput ri = new RunSubmissionDTO.RunInput();
+                ri.setId("0");
+                ri.setLabel("input");
+                ri.setName("input");
+                ri.setValue(tc.getInputText());
+                runInputs.add(ri);
+            }
+            rtc.setInputs(runInputs);
             return rtc;
         }).toList());
         return runDto;

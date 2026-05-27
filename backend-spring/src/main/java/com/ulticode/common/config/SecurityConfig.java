@@ -7,6 +7,7 @@ import com.ulticode.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -46,9 +47,6 @@ public class SecurityConfig {
             "/auth/reset-password",
             "/auth/github",
             "/auth/google",
-            // Problem endpoints (public read access)
-            "/problems",
-            "/problems/**",
             // Contest endpoints (public read access)
             "/contest/**",
             // Submission status endpoints (public read access)
@@ -106,6 +104,16 @@ public class SecurityConfig {
 
                 // Configure authorization rules
                 .authorizeHttpRequests(auth -> auth
+                        // Public problem read endpoints (GET only)
+                        .requestMatchers(HttpMethod.GET,
+                                "/problems",
+                                "/problems/*",
+                                "/problems/slug/**",
+                                "/problems/*/adjacent")
+                        .permitAll()
+                        // Public edge-operations read endpoints (GET only)
+                        .requestMatchers(HttpMethod.GET, "/edge-operations/**")
+                        .permitAll()
                         // Public endpoints
                         .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
                         // All other requests require authentication

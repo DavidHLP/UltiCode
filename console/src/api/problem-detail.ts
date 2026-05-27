@@ -1,6 +1,7 @@
 import type {
   ProblemDetail,
   ProblemLanguageOption,
+  ProblemReactionType,
   ProblemTestCase,
 } from "@/types/problem-detail";
 import { apiGet } from "@/utils/request";
@@ -23,10 +24,18 @@ interface BackendExample {
 
 interface BackendProblemDetail {
   summary: string;
+  content?: string | null;
   companies: { id: string; name: string; logo?: string }[] | null;
   constraints_json: string[];
   follow_up: string;
   hints: string[] | null;
+}
+
+interface BackendInteractionData {
+  likes?: number;
+  dislikes?: number;
+  favorites?: number;
+  viewer_reaction?: string;
 }
 
 interface BackendProblemResponse {
@@ -38,6 +47,7 @@ interface BackendProblemResponse {
   followUp?: string | null;
   companies?: BackendProblemDetail["companies"] | null;
   starterNotes?: string[] | null;
+  interactions?: BackendInteractionData | null;
   [key: string]: unknown;
 }
 
@@ -124,7 +134,7 @@ export function mapProblemDetail(
 
   return {
     ...base,
-    content: detail.summary ?? response.summary ?? "",
+    content: detail.content ?? detail.summary ?? response.summary ?? "",
     summary: detail.summary ?? response.summary ?? "",
     constraints: detail.constraints_json ?? response.constraints ?? [],
     followUp: detail.follow_up ?? response.followUp ?? "",
@@ -133,5 +143,18 @@ export function mapProblemDetail(
     languages: mapLanguages(response.languages),
     testCases: examples.length > 0 ? mapExamplesToTestCases(examples) : [],
     examples: examples.length > 0 ? mapExamplesToDescription(examples) : [],
+    interactions: response.interactions
+      ? {
+          counts: {
+            likes: response.interactions.likes ?? 0,
+            dislikes: response.interactions.dislikes ?? 0,
+            favorites: response.interactions.favorites ?? 0,
+          },
+          reactions: [],
+          viewer: response.interactions.viewer_reaction
+            ? { reaction: response.interactions.viewer_reaction as ProblemReactionType }
+            : undefined,
+        }
+      : undefined,
   } as ProblemDetail;
 }

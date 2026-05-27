@@ -1,0 +1,80 @@
+package com.ulticode.modules.admin.controller;
+
+import com.ulticode.common.annotation.RateLimit;
+import com.ulticode.common.response.PageResult;
+import com.ulticode.common.response.Result;
+import com.ulticode.modules.admin.dto.testcase.CreateTestCaseDTO;
+import com.ulticode.modules.admin.dto.testcase.UpdateTestCaseDTO;
+import com.ulticode.modules.admin.service.AdminTestCaseService;
+import com.ulticode.modules.problem.entity.TestCase;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * Admin controller for test case management.
+ */
+@Tag(name = "Admin - Test Cases", description = "Test case management")
+@Validated
+@RestController
+@RequestMapping("/admin/problems/{problemId}/test-cases")
+@RequiredArgsConstructor
+@SecurityRequirement(name = "Bearer")
+public class AdminTestCaseController {
+
+    private final AdminTestCaseService adminTestCaseService;
+
+    @Operation(summary = "List test cases", description = "Get paginated list of test cases for a problem")
+    @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<PageResult<TestCase>> listTestCases(
+            @PathVariable Long problemId,
+            @RequestParam(required = false) Boolean isSample,
+            @RequestParam(required = false) Boolean isHidden,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "20") Integer limit) {
+        return Result.success(adminTestCaseService.listTestCases(problemId, isSample, isHidden, page, limit));
+    }
+
+    @Operation(summary = "Get test case", description = "Get a single test case by ID")
+    @GetMapping("/{testCaseId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<TestCase> getTestCase(@PathVariable Long problemId, @PathVariable String testCaseId) {
+        return Result.success(adminTestCaseService.getTestCase(problemId, testCaseId));
+    }
+
+    @Operation(summary = "Create test case", description = "Create a new test case for a problem")
+    @RateLimit(key = "admin:testcase-create", limit = 30, period = 60)
+    @PostMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<TestCase> createTestCase(
+            @PathVariable Long problemId,
+            @Valid @RequestBody CreateTestCaseDTO dto) {
+        return Result.success(adminTestCaseService.createTestCase(problemId, dto));
+    }
+
+    @Operation(summary = "Update test case", description = "Update an existing test case")
+    @RateLimit(key = "admin:testcase-update", limit = 30, period = 60)
+    @PutMapping("/{testCaseId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<TestCase> updateTestCase(
+            @PathVariable Long problemId,
+            @PathVariable String testCaseId,
+            @Valid @RequestBody UpdateTestCaseDTO dto) {
+        return Result.success(adminTestCaseService.updateTestCase(problemId, testCaseId, dto));
+    }
+
+    @Operation(summary = "Delete test case", description = "Delete a test case")
+    @RateLimit(key = "admin:testcase-delete", limit = 30, period = 60)
+    @DeleteMapping("/{testCaseId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<Void> deleteTestCase(@PathVariable Long problemId, @PathVariable String testCaseId) {
+        adminTestCaseService.deleteTestCase(problemId, testCaseId);
+        return Result.success();
+    }
+}

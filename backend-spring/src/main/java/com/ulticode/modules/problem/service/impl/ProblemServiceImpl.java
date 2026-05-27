@@ -34,6 +34,9 @@ import com.ulticode.modules.problem.mapper.ProblemTagMapper;
 import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.problem.service.ProblemService;
 import com.ulticode.modules.problem.service.ProblemVersionService;
+import com.ulticode.modules.submission.service.CodeExecutionHelper;
+import com.ulticode.modules.edgeoperations.service.EdgeOperationsService;
+import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.cache.annotation.CacheEvict;
@@ -48,6 +51,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -66,6 +70,9 @@ public class ProblemServiceImpl implements ProblemService {
     private final ProblemVersionService problemVersionService;
     private final ProblemTagMapper problemTagMapper;
     private final ProblemTagRelationMapper problemTagRelationMapper;
+    private final com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
+    private final com.ulticode.modules.solution.mapper.SolutionMapper solutionMapper;
+    private final EdgeOperationsService edgeOperationsService;
 
     @Override
     public Optional<Problem> findById(Long id) {
@@ -310,14 +317,44 @@ public class ProblemServiceImpl implements ProblemService {
         response.setFlagNotes(problem.getFlagNotes());
         response.setCreatedAt(problem.getCreatedAt());
         response.setUpdatedAt(problem.getUpdatedAt());
-        response.setSubmissionCount(0L);
-        response.setSolutionCount(0L);
-        response.setTags(Collections.emptyList());
+        // Real stats from database
+        Long submissionCount = submissionMapper.selectCount(
+                new LambdaQueryWrapper<com.ulticode.modules.submission.entity.Submission>()
+                        .eq(com.ulticode.modules.submission.entity.Submission::getProblemId, problem.getId()));
+        response.setSubmissionCount(submissionCount);
+
+        Long solutionCount = solutionMapper.selectCount(
+                new LambdaQueryWrapper<com.ulticode.modules.solution.entity.Solution>()
+                        .eq(com.ulticode.modules.solution.entity.Solution::getProblemId, problem.getId()));
+        response.setSolutionCount(solutionCount);
+
+        // Tags
+        List<String> tagIds = problemTagRelationMapper.findTagIdsByProblemId(problem.getId());
+        if (tagIds != null && !tagIds.isEmpty()) {
+            List<ProblemTag> tags = problemTagMapper.selectBatchIds(tagIds);
+            List<ProblemDetailResponse.ProblemTagVO> tagVOs = tags.stream().map(tag -> {
+                ProblemDetailResponse.ProblemTagVO vo = new ProblemDetailResponse.ProblemTagVO();
+                vo.setId(tag.getId());
+                vo.setLabel(tag.getLabel());
+                return vo;
+            }).toList();
+            response.setTags(tagVOs);
+        } else {
+            response.setTags(Collections.emptyList());
+        }
+
+        // Fetch problem detail entity (used for both content and interactions)
+        ProblemDetail problemDetail = fetchProblemDetailEntity(problem.getId());
 
         // Fetch and set detail data
-        DetailData detailData = buildDetailData(problem.getId());
+        DetailData detailData = buildDetailData(problemDetail);
         if (detailData != null) {
             response.setDetail(detailData);
+        }
+
+        // Set interaction counts
+        if (problemDetail != null) {
+            response.setInteractions(buildInteractions(problemDetail, problem.getId()));
         }
 
         // Fetch and set examples
@@ -335,11 +372,13 @@ public class ProblemServiceImpl implements ProblemService {
         return response;
     }
 
-    private DetailData buildDetailData(Long problemId) {
+    private ProblemDetail fetchProblemDetailEntity(Long problemId) {
         LambdaQueryWrapper<ProblemDetail> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(ProblemDetail::getProblemId, problemId);
-        ProblemDetail detail = problemDetailMapper.selectOne(wrapper);
+        return problemDetailMapper.selectOne(wrapper);
+    }
 
+    private DetailData buildDetailData(ProblemDetail detail) {
         if (detail == null) {
             return null;
         }
@@ -360,11 +399,45 @@ public class ProblemServiceImpl implements ProblemService {
                 );
                 data.setCompanies(companies);
             } catch (JsonProcessingException e) {
-                log.warn("Failed to parse companies JSON for problem {}", problemId, e);
+                log.warn("Failed to parse companies JSON for problem {}", detail.getProblemId(), e);
             }
         }
 
         return data;
+    }
+
+    private ProblemDetailResponse.InteractionData buildInteractions(ProblemDetail detail, Long problemId) {
+        ProblemDetailResponse.InteractionData interactions = new ProblemDetailResponse.InteractionData();
+        interactions.setLikes(detail.getLikes() != null ? detail.getLikes() : 0);
+        interactions.setDislikes(detail.getDislikes() != null ? detail.getDislikes() : 0);
+
+        // Query edge-operations for real favorites count
+        try {
+            var edgeOps = edgeOperationsService.getInteractions(null, String.valueOf(problemId), EdgeOperationTargetType.PROBLEM);
+            interactions.setFavorites((int) edgeOps.getFavorites());
+        } catch (Exception e) {
+            log.warn("Failed to query edge-operations favorites for problem {}", problemId);
+            interactions.setFavorites(0);
+        }
+
+        String userId = SecurityUtil.getCurrentUserId();
+        if (userId != null && detail.getInteractions() != null && !detail.getInteractions().isBlank()) {
+            try {
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> interactionsMap = objectMapper.readValue(detail.getInteractions(), java.util.Map.class);
+                @SuppressWarnings("unchecked")
+                java.util.Map<String, Object> viewerMap = (java.util.Map<String, Object>) interactionsMap.get("viewer");
+                if (viewerMap != null) {
+                    Object reaction = viewerMap.get("reaction");
+                    if (reaction != null) {
+                        interactions.setViewerReaction(reaction.toString());
+                    }
+                }
+            } catch (JsonProcessingException e) {
+                log.warn("Failed to parse interactions JSON for problem {}", problemId);
+            }
+        }
+        return interactions;
     }
 
     private List<ExampleData> buildExamples(Long problemId) {
@@ -403,15 +476,18 @@ public class ProblemServiceImpl implements ProblemService {
             return Collections.emptyList();
         }
 
-        return languages.stream().map(lang -> {
-            LanguageData data = new LanguageData();
-            data.setId(lang.getId());
-            data.setLabel(lang.getLabel());
-            data.setValue(lang.getValue());
-            data.setStyle(lang.getStyle());
-            data.setStarterCode(lang.getStarterCode());
-            return data;
-        }).collect(Collectors.toList());
+        Set<String> supported = CodeExecutionHelper.SUPPORTED_LANGUAGES;
+        return languages.stream()
+                .filter(lang -> supported.contains(lang.getValue().toLowerCase().trim()))
+                .map(lang -> {
+                    LanguageData data = new LanguageData();
+                    data.setId(lang.getId());
+                    data.setLabel(lang.getLabel());
+                    data.setValue(lang.getValue());
+                    data.setStyle(lang.getStyle());
+                    data.setStarterCode(lang.getStarterCode());
+                    return data;
+                }).collect(Collectors.toList());
     }
 
     private List<String> parseJsonArray(String json) {

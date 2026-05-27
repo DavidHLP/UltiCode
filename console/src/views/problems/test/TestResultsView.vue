@@ -55,14 +55,7 @@ const activeResult = computed<ProblemCaseResultDetail | undefined>(() => {
 const verdictLabel = computed(() => {
   const verdict = props.runResult?.verdict;
   if (!verdict) return t("problem.layout.noVerdict");
-  switch (verdict) {
-    case "Accepted":
-      return t("problem.status.solved");
-    case "Wrong Answer":
-      return t("problem.status.attempted"); // or map specifically
-    default:
-      return verdict; // maybe add more mappings if needed
-  }
+  return verdict;
 });
 
 const verdictClass = computed(() => {
@@ -168,11 +161,11 @@ const selectCase = (label: string) => {
       <div
         v-if="
           props.runResult?.verdict === 'Compile Error' &&
-          props.runResult.error_message
+          (props.runResult.errorMessage ?? props.runResult.error_message)
         "
         class="rounded-none bg-[var(--terminal-red)]/10 border border-[var(--terminal-red)]/30 p-3 text-xs font-mono text-[var(--terminal-red)]"
       >
-        {{ props.runResult.error_message }}
+        {{ props.runResult.errorMessage ?? props.runResult.error_message }}
       </div>
 
       <div v-if="cases.length" class="flex flex-col gap-4">

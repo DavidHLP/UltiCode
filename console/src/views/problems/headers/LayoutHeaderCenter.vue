@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { computed, onBeforeUnmount, onMounted, ref, inject } from "vue";
-import { Play, CloudUpload, StickyNote } from "lucide-vue-next";
+import { Play, CloudUpload } from "lucide-vue-next";
 import {
   HoverCard,
   HoverCardContent,
@@ -15,7 +15,6 @@ import { storeToRefs } from "pinia";
 import { createSubmission } from "@/api/submission";
 import { submitContestProblem } from "@/api/contest";
 import { toast } from "vue-sonner";
-import { ToggleNotesKey } from "../problem-context";
 import { useProblemContext } from "../useProblemContext";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
 import { useI18n } from "vue-i18n";
@@ -26,7 +25,6 @@ const { requestRun } = useBottomPanelStore();
 const headerStore = useHeaderStore();
 const problemContext = useProblemContext();
 const contestId = computed(() => problemContext.contestId.value);
-const toggleNotes = inject(ToggleNotesKey, () => {});
 const editorStore = useProblemEditorStore();
 const { code, language } = storeToRefs(editorStore);
 const { t } = useI18n();
@@ -103,15 +101,6 @@ onMounted(() => {
       key: "Enter",
       ctrl: true,
       handler: handleSubmit,
-    }),
-  );
-
-  // Ctrl+N - Toggle notes
-  unregisterFns.push(
-    registerGlobalShortcut({
-      key: "n",
-      ctrl: true,
-      handler: () => toggleNotes(),
     }),
   );
 
@@ -231,32 +220,6 @@ onBeforeUnmount(() => {
           </HoverCardContent>
         </HoverCard>
 
-        <!-- Notes button -->
-        <HoverCard :open-delay="200">
-          <HoverCardTrigger as-child>
-            <Button
-              variant="ghost"
-              size="icon"
-              :aria-label="t('problem.detail.notes')"
-              class="group flex-none cursor-pointer flex items-center h-8 transition-none hover:bg-gray-200 text-gray-600 w-8 focus:outline-none focus:ring-0 focus:ring-offset-0 bg-gray-200"
-              @click="toggleNotes"
-            >
-              <StickyNote class="h-4 w-4" />
-            </Button>
-          </HoverCardTrigger>
-          <HoverCardContent class="h-auto w-auto p-2">
-            <div class="flex items-center gap-1">
-              <p class="text-xs leading-none">
-                {{ t("problem.detail.notes") }}
-              </p>
-              <KbdGroup class="text-xs">
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">Ctrl</Kbd>
-                <span class="text-xs">+</span>
-                <Kbd class="px-0.5 py-0 min-w-0 h-auto text-xs">N</Kbd>
-              </KbdGroup>
-            </div>
-          </HoverCardContent>
-        </HoverCard>
       </div>
     </div>
 

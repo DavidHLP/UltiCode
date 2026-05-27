@@ -29,5 +29,6 @@ export interface ProblemRunResult {
   // Legacy or optional fields
   passed_cases?: number;
   total_cases?: number;
+  errorMessage?: string;
   error_message?: string;
 }

@@ -1,5 +1,6 @@
 import { ref, computed, onMounted } from "vue";
 import { useAuthStore } from "@/stores/auth";
+import { ApiError } from "@/utils/request";
 import type {
   ProblemList,
   ProblemListCategory,
@@ -35,6 +36,8 @@ export function useSidebarLists() {
     try {
       data.value = await fetchProblemListsOverview();
     } catch (e) {
+      // Ignore request cancellation caused by deduplication
+      if (e instanceof ApiError && e.code === -1) return;
       console.error("Failed to load problem lists", e);
     } finally {
       isLoading.value = false;

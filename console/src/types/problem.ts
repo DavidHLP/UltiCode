@@ -2,7 +2,7 @@ export interface Problem {
   id: number;
   title: string;
   slug: string;
-  difficulty: "Easy" | "Medium" | "Hard";
+  difficulty: "EASY" | "MEDIUM" | "HARD";
   acceptance_rate: number;
   acceptanceRate?: number;
   tags: string[];

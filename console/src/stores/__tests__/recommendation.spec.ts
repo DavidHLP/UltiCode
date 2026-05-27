@@ -17,7 +17,7 @@ const mockItem = {
   problemId: 1,
   slug: "two-sum",
   title: "Two Sum",
-  difficulty: "Easy",
+  difficulty: "EASY",
   score: 0.85,
   tags: ["Array"],
   reason: "Test",

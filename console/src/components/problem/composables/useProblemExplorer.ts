@@ -1,5 +1,4 @@
 import { computed, onMounted, ref, watch, markRaw } from "vue";
-import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "vue-i18n";
 import type { Problem } from "@/types/problem";
 import type { Component } from "vue";
@@ -9,7 +8,7 @@ import {
   FileEdit,
   CircleDot,
 } from "lucide-vue-next";
-import { fetchProblems, fetchRandomProblem } from "@/api/problem";
+import { fetchProblems } from "@/api/problem";
 import { toast } from "vue-sonner";
 import { useRouter } from "vue-router";
 import { PROBLEM_CATEGORIES } from "@/constants/problem-categories";
@@ -33,8 +32,13 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
   const selectedStatus = ref<string[]>([]);
   const selectedDifficulty = ref<string[]>([]);
   const showPremium = ref<boolean | null>(null);
-  const numProblemsToShow = ref(PROBLEMS_PER_PAGE);
   const fallbackProblems = ref<Problem[]>([]);
+
+  const page = ref(1);
+  const total = ref(0);
+  const totalPages = ref(1);
+  const isLoading = ref(false);
+  const searchDebounceTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 
   const selectedCategory = ref(props.initialCategory || "all");
 
@@ -42,7 +46,6 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     () => props.initialCategory,
     (newVal) => {
       selectedCategory.value = newVal || "all";
-      void loadProblems();
     },
   );
 
@@ -54,15 +57,41 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     })),
   );
 
-  const loadProblems = async () => {
+  const buildFilters = () => {
+    return {
+      search: searchQuery.value || undefined,
+      category: selectedCategory.value,
+      difficulty: selectedDifficulty.value[0] || undefined,
+      status: selectedStatus.value[0] || undefined,
+      tag: selectedTags.value[0] || undefined,
+      isPremium: showPremium.value ?? undefined,
+    };
+  };
+
+  const loadProblems = async (append = false) => {
+    if (isLoading.value) return;
+    isLoading.value = true;
     try {
-      const userId = useAuthStore().fetchCurrentUserId();
-      fallbackProblems.value = await fetchProblems(userId ?? undefined, {
-        category: selectedCategory.value,
-      });
+      const currentPage = append ? page.value : 1;
+      const result = await fetchProblems(buildFilters(), currentPage, PROBLEMS_PER_PAGE);
+      if (append) {
+        fallbackProblems.value = [...fallbackProblems.value, ...result.items];
+      } else {
+        fallbackProblems.value = result.items;
+        page.value = 1;
+      }
+      total.value = result.total;
+      totalPages.value = result.totalPages;
     } catch (error) {
       console.error("Failed to load problems", error);
-      fallbackProblems.value = [];
+      toast.error(t("problem.explorer.failedToLoad"));
+      if (!append) {
+        fallbackProblems.value = [];
+        total.value = 0;
+        totalPages.value = 1;
+      }
+    } finally {
+      isLoading.value = false;
     }
   };
 
@@ -85,48 +114,29 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     });
   });
 
-  // Reset pagination when filters change
+  // Debounced search
+  watch(searchQuery, () => {
+    if (searchDebounceTimer.value) {
+      clearTimeout(searchDebounceTimer.value);
+    }
+    searchDebounceTimer.value = setTimeout(() => {
+      void loadProblems();
+    }, 300);
+  });
+
+  // Immediate reload for non-search filters
   watch(
-    [searchQuery, selectedTags, selectedStatus, selectedDifficulty, showPremium, selectedCategory],
+    [selectedTags, selectedStatus, selectedDifficulty, showPremium, selectedCategory],
     () => {
-      numProblemsToShow.value = PROBLEMS_PER_PAGE;
+      void loadProblems();
     },
   );
 
-  const filteredProblems = computed(() => {
-    return enrichedProblems.value.filter((p) => {
-      const searchMatch =
-        !searchQuery.value ||
-        p.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-        p.id.toString().includes(searchQuery.value);
-      const tagMatch =
-        selectedTags.value.length === 0 ||
-        selectedTags.value.some((tag) => p.tags.includes(tag));
-      const statusMatch =
-        selectedStatus.value.length === 0 ||
-        (p.status && selectedStatus.value.includes(p.status));
-      const difficultyMatch =
-        selectedDifficulty.value.length === 0 ||
-        selectedDifficulty.value.includes(p.difficulty);
-      const premiumMatch =
-        showPremium.value === null || p.isPremium === showPremium.value;
 
-      const categoryConfig = PROBLEM_CATEGORIES.find(
-        (c) => c.value === selectedCategory.value,
-      );
-      const categoryMatch =
-        selectedCategory.value === "all" ||
-        !categoryConfig ||
-        (p.tags && p.tags.includes(categoryConfig.name));
-
-      return searchMatch && tagMatch && statusMatch && difficultyMatch && premiumMatch && categoryMatch;
-    });
-  });
-
-  const totalFilteredProblems = computed(() => filteredProblems.value.length);
+  const hasMore = computed(() => page.value < totalPages.value);
 
   const displayedProblems = computed<EnrichedProblem[]>(() => {
-    return filteredProblems.value.slice(0, numProblemsToShow.value).map((p) => ({
+    return enrichedProblems.value.map((p) => ({
       ...p,
       statusIcon:
         p.status === "solved"
@@ -245,11 +255,11 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     selectedStatus.value = [];
     selectedDifficulty.value = [];
     showPremium.value = null;
-    numProblemsToShow.value = PROBLEMS_PER_PAGE;
+    void loadProblems();
   }
 
   async function pickOne() {
-    const currentProblems = filteredProblems.value;
+    const currentProblems = displayedProblems.value;
     if (currentProblems.length > 0) {
       const randomIndex = Math.floor(Math.random() * currentProblems.length);
       const problem = currentProblems[randomIndex];
@@ -260,6 +270,7 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     }
 
     try {
+      const { fetchRandomProblem } = await import("@/api/problem");
       const problem = await fetchRandomProblem();
       if (problem) {
         await router.push(`/problems/${problem.slug}`);
@@ -273,8 +284,9 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
   }
 
   function loadMore() {
-    if (numProblemsToShow.value < totalFilteredProblems.value) {
-      numProblemsToShow.value += PROBLEMS_PER_PAGE;
+    if (page.value < totalPages.value) {
+      page.value += 1;
+      void loadProblems(true);
     }
   }
 
@@ -286,20 +298,19 @@ export function useProblemExplorer(props: ProblemExplorerProps) {
     selectedDifficulty,
     showPremium,
     selectedCategory,
-    numProblemsToShow,
     categoryOptions,
     popularTags,
     otherTags,
+    isLoading,
 
     // Computed
     enrichedProblems,
-    filteredProblems,
-    totalFilteredProblems,
     displayedProblems,
     columns,
     allTags,
     activeFilterCount,
     hasActiveFilters,
+    hasMore,
 
     // Functions
     toggleStatus,

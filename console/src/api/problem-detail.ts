@@ -62,12 +62,10 @@ interface BackendLanguageOption {
 
 export async function fetchProblemDetailById(
   id: number | string,
-  userId?: string,
 ): Promise<ProblemDetail> {
-  const query = userId ? `?userId=${userId}` : "";
   const isNumeric = typeof id === "number" || !isNaN(Number(id));
   const endpoint = isNumeric ? `/problems/${id}` : `/problems/slug/${id}`;
-  const response = await apiGet<BackendProblemResponse>(`${endpoint}${query}`);
+  const response = await apiGet<BackendProblemResponse>(endpoint);
   return mapProblemDetail(response);
 }
 

@@ -20,14 +20,21 @@ const content = ref("");
 const isLoading = ref(true);
 const isSaving = ref(false);
 
+const endpointMissing = ref(false);
+
 onMounted(async () => {
   try {
     const res = await fetchProblemNote(props.problemId);
     if (res) {
       content.value = res.content;
     }
-  } catch (e) {
-    console.error("Failed to fetch note", e);
+  } catch (e: unknown) {
+    const status = (e as any)?.response?.status;
+    if (status === 404) {
+      endpointMissing.value = true;
+    } else {
+      console.error("Failed to fetch note", e);
+    }
   } finally {
     isLoading.value = false;
   }
@@ -57,6 +64,9 @@ async function handleSave() {
     <div class="flex-1 p-4 overflow-y-auto">
       <div v-if="isLoading" class="flex justify-center py-10">
         <Loader2 class="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+      <div v-else-if="endpointMissing" class="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground">
+        <p class="text-sm">{{ t("problem.notes.unavailable") }}</p>
       </div>
       <div v-else class="space-y-4">
         <p class="text-sm text-muted-foreground">

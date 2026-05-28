@@ -169,7 +169,7 @@ public class SandboxServiceImpl implements SandboxService {
                 "--user", "1000:1000",
                 "--security-opt", "no-new-privileges:true",
                 "--security-opt", "seccomp=/seccomp-profile/seccomp-profile.json",
-                "--volume", "$(pwd)/docker/sandbox:/seccomp-profile:ro",
+                "--volume", resolveSeccompProfilePath() + ":/seccomp-profile:ro",
                 sandboxConfig.image()
         ));
 
@@ -211,9 +211,18 @@ public class SandboxServiceImpl implements SandboxService {
                 "--user", "1000:1000",
                 "--security-opt", "no-new-privileges:true",
                 "--security-opt", "seccomp=/seccomp-profile/seccomp-profile.json",
-                "--volume", "$(pwd)/docker/sandbox:/seccomp-profile:ro",
+                "--volume", resolveSeccompProfilePath() + ":/seccomp-profile:ro",
                 sandboxConfig.image(),
                 "sh", "-c", wrapperScript
         ));
+    }
+
+    private String resolveSeccompProfilePath() {
+        String path = sandboxConfig.seccompProfilePath();
+        if (path != null && !path.isBlank()) {
+            return path;
+        }
+        String cwd = System.getProperty("user.dir");
+        return cwd + "/docker/sandbox";
     }
 }

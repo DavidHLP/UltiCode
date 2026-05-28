@@ -71,7 +71,7 @@ const acceptanceRate = computed(() => {
  * Normalize problem detail into the structure expected by DescriptionMarkdown.
  */
 const problemDescription = computed<ProblemDescription>(() => ({
-  content: props.problem.summary || "",
+  content: props.problem.content || props.problem.summary || "",
   examples: (props.problem.examples || []).map((example) => {
     const ex = example as {
       input: string;

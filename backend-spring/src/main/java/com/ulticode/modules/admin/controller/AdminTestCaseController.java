@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -76,5 +77,34 @@ public class AdminTestCaseController {
     public Result<Void> deleteTestCase(@PathVariable Long problemId, @PathVariable String testCaseId) {
         adminTestCaseService.deleteTestCase(problemId, testCaseId);
         return Result.success();
+    }
+
+    @Operation(summary = "Bulk import test cases", description = "Create multiple test cases at once")
+    @RateLimit(key = "admin:testcase-bulk", limit = 10, period = 60)
+    @PostMapping("/bulk")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<List<TestCase>> bulkImportTestCases(
+            @PathVariable Long problemId,
+            @Valid @RequestBody List<CreateTestCaseDTO> dtos) {
+        return Result.success(adminTestCaseService.bulkImportTestCases(problemId, dtos));
+    }
+
+    @Operation(summary = "Reorder test cases", description = "Update test case order by ID list")
+    @RateLimit(key = "admin:testcase-reorder", limit = 30, period = 60)
+    @PutMapping("/reorder")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<Void> reorderTestCases(
+            @PathVariable Long problemId,
+            @Valid @RequestBody List<String> testCaseIds) {
+        adminTestCaseService.reorderTestCases(problemId, testCaseIds);
+        return Result.success();
+    }
+
+    @Operation(summary = "Export test cases", description = "Export all test cases for a problem as JSON")
+    @RateLimit(key = "admin:testcase-export", limit = 30, period = 60)
+    @GetMapping("/export")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<List<TestCase>> exportTestCases(@PathVariable Long problemId) {
+        return Result.success(adminTestCaseService.exportTestCases(problemId));
     }
 }

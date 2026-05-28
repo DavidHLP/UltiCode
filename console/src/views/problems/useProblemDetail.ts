@@ -1,4 +1,3 @@
-import { useAuthStore } from "@/stores/auth";
 import { ref, watch, type Ref } from "vue";
 import type { ProblemDetail } from "@/types/problem-detail";
 import type { ProblemRunResult } from "@/types/test-results";
@@ -21,8 +20,7 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
     await problemHooks.emit("problem:load:before", { slug: value });
     isLoading.value = true;
     try {
-      const userId = useAuthStore().fetchCurrentUserId();
-      problem.value = await fetchProblemDetailById(value, userId ?? undefined);
+      problem.value = await fetchProblemDetailById(value);
       await problemHooks.emit("problem:load:after", {
         slug: value,
         problem: problem.value,
@@ -60,7 +58,7 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
     async () => {
       if (!problem.value) return;
       const currentCode = code.value;
-      const currentLanguage = language.value || "typescript";
+      const currentLanguage = language.value || "javascript";
       if (!currentCode.trim()) {
         runResult.value = null;
         return;
@@ -74,6 +72,7 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
         problemId: problem.value.id,
         caseCount: cases.length,
       });
+      bottomPanelStore.isRunning.value = true;
       try {
         const result = await runSubmission(problem.value.id, {
           language: currentLanguage,
@@ -92,6 +91,8 @@ export function useProblemDetail(slug: Ref<string | null | undefined>) {
           problemId: problem.value.id,
           error,
         });
+      } finally {
+        bottomPanelStore.isRunning.value = false;
       }
     },
   );

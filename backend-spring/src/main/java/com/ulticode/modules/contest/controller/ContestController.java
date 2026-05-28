@@ -69,7 +69,9 @@ public class ContestController {
             @Parameter(description = "Sort direction")
             @RequestParam(required = false) String direction,
             @Parameter(description = "Filter by contest type")
-            @RequestParam(required = false) String contestType) {
+            @RequestParam(required = false) String contestType,
+            @Parameter(description = "Filter by rated status")
+            @RequestParam(required = false) Boolean isRated) {
 
         ContestQueryDTO query = new ContestQueryDTO();
         query.setPage(page);
@@ -79,6 +81,7 @@ public class ContestController {
         query.setSort(sort);
         query.setDirection(direction);
         query.setContestType(contestType);
+        query.setIsRated(isRated);
 
         // Get optional userId for user-specific fields
         String userId = SecurityUtil.getCurrentUserId();
@@ -145,10 +148,10 @@ public class ContestController {
      * @return contest statistics
      */
     @Operation(summary = "Get contest statistics", description = "Get overall contest statistics")
-    @ApiResponse(responseCode = "200", description = "Statistics retrieved", content = @Content(schema = @Schema(implementation = ContestStatsVO.class)))
+    @ApiResponse(responseCode = "200", description = "Statistics retrieved", content = @Content(schema = @Schema(implementation = GlobalContestStatsVO.class)))
     @GetMapping("/stats")
-    public Result<ContestStatsVO> getContestStats() {
-        ContestStatsVO stats = contestService.getStats();
+    public Result<GlobalContestStatsVO> getContestStats() {
+        GlobalContestStatsVO stats = contestService.getStats();
         return Result.success(stats);
     }
 

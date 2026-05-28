@@ -96,6 +96,15 @@ public interface ContestParticipantMapper extends BaseMapper<ContestParticipant>
     long countByUserId(@Param("userId") String userId);
 
     /**
+     * Count participants globally by status.
+     *
+     * @param status the participant status
+     * @return total count of participants with the given status
+     */
+    @Select("SELECT COUNT(*) FROM contest_participants WHERE status = #{status}")
+    long countByStatus(@Param("status") String status);
+
+    /**
      * Check if user is registered for a contest.
      *
      * @param contestId the contest ID

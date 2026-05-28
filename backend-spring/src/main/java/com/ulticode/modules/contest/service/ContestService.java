@@ -50,15 +50,6 @@ public interface ContestService {
     // =========================================================================
 
     /**
-     * Find all contests with pagination and filters.
-     *
-     * @param query  the query parameters
-     * @param userId the current user ID (optional, for user-specific fields)
-     * @return paginated list of contests
-     */
-    PageResult<ContestVO> findAll(ContestQueryDTO query, String userId);
-
-    /**
      * Find all contests with lightweight list VO for list pages
      */
     PageResult<ContestListVO> findAllListVO(ContestQueryDTO query, String userId);
@@ -125,11 +116,11 @@ public interface ContestService {
     PageResult<ContestVO> findPast(Integer page, Integer pageSize, String userId);
 
     /**
-     * Get contest statistics.
+     * Get global contest statistics.
      *
-     * @return the contest statistics
+     * @return the global contest statistics
      */
-    ContestStatsVO getStats();
+    GlobalContestStatsVO getStats();
 
     /**
      * Get global ranking (top users).

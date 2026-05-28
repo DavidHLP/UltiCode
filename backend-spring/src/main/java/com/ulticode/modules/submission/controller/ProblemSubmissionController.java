@@ -9,6 +9,7 @@ import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.RunResultDTO;
 import com.ulticode.modules.submission.dto.RunSubmissionDTO;
+import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.service.CodeExecutionService;
@@ -46,7 +47,7 @@ public class ProblemSubmissionController {
      */
     @Operation(summary = "List problem submissions", description = "Get paginated submissions for a specific problem")
     @GetMapping
-    public Result<PageResult<SubmissionVO>> listProblemSubmissions(
+    public Result<PageResult<SubmissionListItemVO>> listProblemSubmissions(
             @Parameter(description = "Problem ID")
             @PathVariable Long problemId,
             @Parameter(description = "Page number (1-based)")
@@ -63,7 +64,7 @@ public class ProblemSubmissionController {
         query.setPage(page);
         query.setPageSize(pageSize);
 
-        PageResult<SubmissionVO> result = submissionService.findByProblemId(problemId, userId, query);
+        PageResult<SubmissionListItemVO> result = submissionService.findByProblemId(problemId, userId, query);
         return Result.success(result);
     }
 

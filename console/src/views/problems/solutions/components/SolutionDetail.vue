@@ -351,7 +351,7 @@ watch(
     <section class="space-y-4 text-sm leading-relaxed">
       <!-- Markdown 内容展示 -->
       <MarkdownView
-        :content="props.item.content"
+        :content="props.item.content ?? ''"
         :editor-id="`solution-${props.item.id}`"
       />
 

@@ -41,7 +41,7 @@ export interface SolutionFeedItem {
   };
   topicName?: string; // flattened
   topicTranslated?: string; // flattened
-  content: string;
+  content?: string;
   tags: string[];
   votes: number;
   views: number;

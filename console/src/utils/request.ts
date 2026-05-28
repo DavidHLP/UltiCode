@@ -385,6 +385,14 @@ export async function apiPatch<T = unknown>(
   return service.patch<T, T, unknown>(path, body, { ...init });
 }
 
+export async function apiPut<T = unknown>(
+  path: string,
+  body?: unknown,
+  init?: RequestConfig,
+): Promise<T> {
+  return service.put<T, T, unknown>(path, body, { ...init });
+}
+
 export async function apiDelete<T = unknown>(
   path: string,
   init?: RequestConfig,

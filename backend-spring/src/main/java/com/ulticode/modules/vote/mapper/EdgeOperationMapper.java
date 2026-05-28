@@ -81,4 +81,22 @@ public interface EdgeOperationMapper extends BaseMapper<EdgeOperation> {
                                    @Param("targetId") String targetId,
                                    @Param("targetType") String targetType,
                                    @Param("operationType") String operationType);
+
+    /**
+     * Find all vote operations by a specific operator for multiple targets.
+     *
+     * @param operatorId the operator ID
+     * @param targetIds  the target IDs
+     * @param targetType the target type
+     * @return list of maps with "target_id" and "operation_type" keys
+     */
+    @Select("<script>SELECT target_id, operation_type FROM edge_operations " +
+            "WHERE operator_id = #{operatorId} " +
+            "AND target_id IN " +
+            "<foreach collection='targetIds' item='id' open='(' separator=',' close=')'>#{id}</foreach> " +
+            "AND target_type = #{targetType}</script>")
+    List<Map<String, Object>> findByOperatorAndTargets(
+            @Param("operatorId") String operatorId,
+            @Param("targetIds") List<String> targetIds,
+            @Param("targetType") String targetType);
 }

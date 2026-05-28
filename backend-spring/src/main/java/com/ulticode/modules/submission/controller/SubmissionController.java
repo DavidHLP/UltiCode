@@ -10,6 +10,7 @@ import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
+import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.service.SubmissionService;
@@ -71,7 +72,7 @@ public class SubmissionController {
     @ApiResponse(responseCode = "403", description = "Not authorized to view this submission")
     @ApiResponse(responseCode = "404", description = "Submission not found")
     @GetMapping("/{id}")
-    public Result<SubmissionVO> getSubmission(
+    public Result<SubmissionDetailVO> getSubmission(
             @Parameter(description = "Submission ID")
             @PathVariable String id) {
         String userId = SecurityUtil.getCurrentUserId();
@@ -79,7 +80,7 @@ public class SubmissionController {
             throw new BusinessException(ErrorCode.UNAUTHORIZED);
         }
 
-        SubmissionVO submission = submissionService.findById(id, userId);
+        SubmissionDetailVO submission = submissionService.findById(id, userId);
         return Result.success(submission);
     }
 

@@ -17,6 +17,7 @@ import com.ulticode.modules.problem.mapper.ProblemTagRelationMapper;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
+import com.ulticode.modules.solution.dto.SolutionListItemVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
 import com.ulticode.modules.solution.dto.UpdateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
@@ -32,6 +33,7 @@ import com.ulticode.modules.vote.mapper.EdgeOperationMapper;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationTargetType;
 import com.ulticode.modules.vote.entity.enums.EdgeOperationType;
 import com.ulticode.common.annotation.CheckBan;
+import com.ulticode.common.util.SecurityUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,6 +46,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -199,7 +202,7 @@ public class SolutionServiceImpl implements SolutionService {
     }
 
     @Override
-    public PageResult<SolutionVO> findByProblemId(Long problemId, Integer page, Integer pageSize) {
+    public PageResult<SolutionListItemVO> findByProblemId(Long problemId, Integer page, Integer pageSize) {
         // Set default pagination values
         int currentPage = (page != null && page > 0) ? page : 1;
         int currentPageSize = (pageSize != null && pageSize > 0) ? pageSize : 20;
@@ -217,12 +220,74 @@ public class SolutionServiceImpl implements SolutionService {
         Page<Solution> solutionPage = new Page<>(currentPage, currentPageSize);
         Page<Solution> result = solutionMapper.selectPage(solutionPage, queryWrapper);
 
-        // Convert to VO
-        List<SolutionVO> solutionVOList = result.getRecords().stream()
-                .map(this::toVO)
+        List<Solution> records = result.getRecords();
+        if (records.isEmpty()) {
+            return PageResult.of(Collections.emptyList(), result.getTotal(), currentPage, currentPageSize);
+        }
+
+        // Batch-fetch all related data to eliminate N+1 queries
+        List<String> solutionIds = records.stream().map(Solution::getId).toList();
+        List<String> userIds = records.stream().map(Solution::getUserId).distinct().toList();
+
+        // Batch query users
+        Map<String, User> userMap = userIds.stream()
+                .map(userMapper::selectById)
+                .filter(u -> u != null)
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        // Batch query vote counts
+        String targetType = EdgeOperationTargetType.SOLUTION.getValue();
+        List<Map<String, Object>> likeCounts = edgeOperationMapper.countByTargetsAndOperation(
+                solutionIds, targetType, EdgeOperationType.VOTE_UP.getValue());
+        List<Map<String, Object>> dislikeCounts = edgeOperationMapper.countByTargetsAndOperation(
+                solutionIds, targetType, EdgeOperationType.VOTE_DOWN.getValue());
+
+        Map<String, Long> likesMap = likeCounts.stream()
+                .collect(Collectors.toMap(
+                        m -> (String) m.get("target_id"),
+                        m -> ((Number) m.get("cnt")).longValue(),
+                        (a, b) -> a));
+        Map<String, Long> dislikesMap = dislikeCounts.stream()
+                .collect(Collectors.toMap(
+                        m -> (String) m.get("target_id"),
+                        m -> ((Number) m.get("cnt")).longValue(),
+                        (a, b) -> a));
+
+        // Batch query comment counts
+        Map<String, Long> commentCounts = solutionIds.stream()
+                .collect(Collectors.toMap(
+                        id -> id,
+                        id -> (long) solutionCommentMapper.countBySolutionId(id)));
+
+        // Batch query viewer votes
+        String currentUserId = SecurityUtil.getCurrentUserId();
+        final Map<String, Integer> viewerVoteMap;
+        if (currentUserId != null) {
+            List<Map<String, Object>> viewerVotes = edgeOperationMapper.findByOperatorAndTargets(
+                    currentUserId, solutionIds, targetType);
+            viewerVoteMap = viewerVotes.stream()
+                    .collect(Collectors.toMap(
+                            m -> (String) m.get("target_id"),
+                            m -> {
+                                String opType = (String) m.get("operation_type");
+                                if (EdgeOperationType.VOTE_UP.getValue().equals(opType)) {
+                                    return 1;
+                                } else if (EdgeOperationType.VOTE_DOWN.getValue().equals(opType)) {
+                                    return -1;
+                                }
+                                return 0;
+                            },
+                            (a, b) -> a));
+        } else {
+            viewerVoteMap = Collections.emptyMap();
+        }
+
+        // Convert to lightweight VO
+        List<SolutionListItemVO> voList = records.stream()
+                .map(s -> toListItemVO(s, userMap, likesMap, dislikesMap, commentCounts, viewerVoteMap))
                 .collect(Collectors.toList());
 
-        return PageResult.of(solutionVOList, result.getTotal(), currentPage, currentPageSize);
+        return PageResult.of(voList, result.getTotal(), currentPage, currentPageSize);
     }
 
     @Override
@@ -373,6 +438,59 @@ public class SolutionServiceImpl implements SolutionService {
         return solutions.stream()
                 .map(this::toVO)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Convert a Solution entity to a lightweight SolutionListItemVO using pre-fetched batch data.
+     */
+    private SolutionListItemVO toListItemVO(
+            Solution solution,
+            Map<String, User> userMap,
+            Map<String, Long> likesMap,
+            Map<String, Long> dislikesMap,
+            Map<String, Long> commentCounts,
+            Map<String, Integer> viewerVoteMap) {
+        if (solution == null) {
+            return null;
+        }
+
+        SolutionListItemVO vo = new SolutionListItemVO();
+        vo.setId(solution.getId());
+        vo.setProblemId(solution.getProblemId());
+        vo.setTitle(solution.getTitle());
+        vo.setSummary(solution.getSummary());
+        vo.setLanguage(solution.getLanguage());
+        vo.setTags(parseTags(solution.getTags()));
+        vo.setPublishedAt(solution.getPublishedAt());
+        vo.setIsPinned(solution.getIsPinned());
+
+        // Author info from batch-fetched user map
+        User author = userMap.get(solution.getUserId());
+        if (author != null) {
+            SolutionListItemVO.AuthorInfo authorInfo = new SolutionListItemVO.AuthorInfo();
+            authorInfo.setId(author.getId());
+            authorInfo.setName(author.getName() != null ? author.getName() : author.getUsername());
+            authorInfo.setAvatar(author.getAvatar());
+            vo.setAuthor(authorInfo);
+        }
+
+        // Counts from batch-fetched maps
+        SolutionListItemVO.Counts counts = new SolutionListItemVO.Counts();
+        counts.setViews(solution.getViews());
+        counts.setLikes(likesMap.getOrDefault(solution.getId(), 0L));
+        counts.setDislikes(dislikesMap.getOrDefault(solution.getId(), 0L));
+        counts.setComments(commentCounts.getOrDefault(solution.getId(), 0L));
+        vo.setCounts(counts);
+
+        // Score
+        long likes = likesMap.getOrDefault(solution.getId(), 0L);
+        long dislikes = dislikesMap.getOrDefault(solution.getId(), 0L);
+        vo.setScore(likes - dislikes);
+
+        // Viewer vote from batch-fetched map
+        vo.setViewerVote(viewerVoteMap.getOrDefault(solution.getId(), 0));
+
+        return vo;
     }
 
     @Override

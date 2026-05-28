@@ -3,7 +3,9 @@ package com.ulticode.modules.submission.service;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
+import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
+import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
@@ -32,9 +34,9 @@ public interface SubmissionService {
      *
      * @param id     the submission ID
      * @param userId optional user ID for access control
-     * @return the submission view object
+     * @return the submission detail view object
      */
-    SubmissionVO findById(String id, String userId);
+    SubmissionDetailVO findById(String id, String userId);
 
     /**
      * Find submissions by user ID with pagination.
@@ -51,9 +53,9 @@ public interface SubmissionService {
      * @param problemId the problem ID
      * @param userId    optional user ID filter
      * @param query     the query parameters
-     * @return paginated result of submission view objects
+     * @return paginated result of lightweight submission list items
      */
-    PageResult<SubmissionVO> findByProblemId(Long problemId, String userId, SubmissionQueryDTO query);
+    PageResult<SubmissionListItemVO> findByProblemId(Long problemId, String userId, SubmissionQueryDTO query);
 
     /**
      * Find the best (fastest accepted) submission for a problem by user.

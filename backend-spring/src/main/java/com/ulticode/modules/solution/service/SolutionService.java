@@ -4,6 +4,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
+import com.ulticode.modules.solution.dto.SolutionListItemVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
 import com.ulticode.modules.solution.dto.UpdateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
@@ -62,9 +63,9 @@ public interface SolutionService {
      * @param problemId the problem ID
      * @param page      the page number (1-based)
      * @param pageSize  the number of items per page
-     * @return paginated list of solutions
+     * @return paginated list of solution list items (lightweight, no content)
      */
-    PageResult<SolutionVO> findByProblemId(Long problemId, Integer page, Integer pageSize);
+    PageResult<SolutionListItemVO> findByProblemId(Long problemId, Integer page, Integer pageSize);
 
     /**
      * Get a solution by ID as VO.

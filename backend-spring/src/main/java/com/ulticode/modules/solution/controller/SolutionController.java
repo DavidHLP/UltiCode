@@ -10,6 +10,7 @@ import com.ulticode.modules.solution.dto.CreateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.CreateSolutionDTO;
 import com.ulticode.modules.solution.dto.RecordViewRequest;
 import com.ulticode.modules.solution.dto.SolutionCommentVO;
+import com.ulticode.modules.solution.dto.SolutionListItemVO;
 import com.ulticode.modules.solution.dto.SolutionVO;
 import com.ulticode.modules.solution.dto.UpdateSolutionCommentDTO;
 import com.ulticode.modules.solution.dto.UpdateSolutionDTO;
@@ -45,7 +46,7 @@ public class SolutionController {
      */
     @Operation(summary = "List solutions for problem", description = "Get a paginated list of solutions for a specific problem")
     @GetMapping("/api/problems/{problemId}/solutions")
-    public Result<PageResult<SolutionVO>> findByProblemId(
+    public Result<PageResult<SolutionListItemVO>> findByProblemId(
             @Parameter(description = "Problem ID")
             @PathVariable Long problemId,
             @Parameter(description = "Page number (1-based)")
@@ -53,7 +54,7 @@ public class SolutionController {
             @Parameter(description = "Number of items per page")
             @RequestParam(required = false) Integer pageSize) {
 
-        PageResult<SolutionVO> result = solutionService.findByProblemId(problemId, page, pageSize);
+        PageResult<SolutionListItemVO> result = solutionService.findByProblemId(problemId, page, pageSize);
         return Result.success(result);
     }
 
@@ -112,6 +113,7 @@ public class SolutionController {
     @Operation(summary = "Update solution", description = "Update an existing solution (author only)")
     @RateLimit(key = "solution:update", limit = 20, period = 60)
     @PutMapping("/api/solutions/{id}")
+    @PatchMapping("/api/solutions/{id}")
     public Result<SolutionVO> update(
             @Parameter(description = "Solution ID")
             @PathVariable String id,

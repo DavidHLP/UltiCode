@@ -227,8 +227,8 @@ const loadSolution = async (id: string) => {
   try {
     const solution = await fetchSolution(id);
     title.value = solution.title;
-    editorContent.value = solution.content;
-    dynamicTemplate.value = solution.content; // Pre-fill editor
+    editorContent.value = solution.content ?? "";
+    dynamicTemplate.value = solution.content ?? ""; // Pre-fill editor
     language.value = solution.language;
     if (solution.tags) {
       selectedTopicIds.value = solution.tags;

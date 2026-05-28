@@ -5,7 +5,7 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
-import com.ulticode.modules.problem.dto.ProblemDetailResponse;
+import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
@@ -59,13 +59,13 @@ public class ProblemController {
      * @return the problem details
      */
     @Operation(summary = "Get problem by ID", description = "Get a problem's details by its ID")
-    @ApiResponse(responseCode = "200", description = "Problem retrieved", content = @Content(schema = @Schema(implementation = ProblemDetailResponse.class)))
+    @ApiResponse(responseCode = "200", description = "Problem retrieved", content = @Content(schema = @Schema(implementation = ProblemDetailPublicVO.class)))
     @ApiResponse(responseCode = "404", description = "Problem not found")
     @GetMapping("/{id}")
-    public Result<ProblemDetailResponse> getProblemById(
+    public Result<ProblemDetailPublicVO> getProblemById(
             @Parameter(description = "Problem ID")
             @PathVariable Long id) {
-        ProblemDetailResponse problem = problemService.getProblemDetailResponse(id);
+        ProblemDetailPublicVO problem = problemService.getProblemDetailResponse(id);
         return Result.success(problem);
     }
 
@@ -77,13 +77,13 @@ public class ProblemController {
      * @return the problem details
      */
     @Operation(summary = "Get problem by slug", description = "Get a problem's details by its slug")
-    @ApiResponse(responseCode = "200", description = "Problem retrieved", content = @Content(schema = @Schema(implementation = ProblemDetailResponse.class)))
+    @ApiResponse(responseCode = "200", description = "Problem retrieved", content = @Content(schema = @Schema(implementation = ProblemDetailPublicVO.class)))
     @ApiResponse(responseCode = "404", description = "Problem not found")
     @GetMapping("/slug/{slug}")
-    public Result<ProblemDetailResponse> getProblemBySlug(
+    public Result<ProblemDetailPublicVO> getProblemBySlug(
             @Parameter(description = "Problem slug")
             @PathVariable String slug) {
-        ProblemDetailResponse problem = problemService.getProblemDetailResponseBySlug(slug);
+        ProblemDetailPublicVO problem = problemService.getProblemDetailResponseBySlug(slug);
         return Result.success(problem);
     }
 

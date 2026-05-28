@@ -1,10 +1,10 @@
 import { useAuthStore } from "@/stores/auth";
-import { apiGet, apiPost, apiPatch, apiDelete } from "@/utils/request";
+import { apiGet, apiPost, apiPatch, apiPut, apiDelete } from "@/utils/request";
 import type { SolutionFeedResponse, SolutionFeedItem } from "@/types/solution";
 import type { SolutionComment } from "@/types/comment";
 export type { SolutionFeedResponse };
 
-/** Backend API response shape for a single solution. */
+/** Backend API response shape for a single solution (detail). */
 interface SolutionApiItem {
   id: string;
   problemId: number;
@@ -37,7 +37,21 @@ interface SolutionApiItem {
   userVote?: 0 | 1 | -1;
 }
 
-
+/** Backend API response shape for solution list items (lightweight, no content). */
+interface SolutionListApiItem {
+  id: string;
+  problemId: number;
+  title: string;
+  summary: string;
+  language: string;
+  tags: string[];
+  author?: { id: string; name: string; avatar?: string };
+  counts?: { views: number; comments: number; likes: number; dislikes: number };
+  score: number;
+  viewerVote?: 0 | 1 | -1;
+  publishedAt: string;
+  isPinned?: boolean;
+}
 
 /** Transform a raw API solution item into the frontend SolutionFeedItem shape. */
 function transformApiSolution(item: SolutionApiItem): SolutionFeedItem {
@@ -83,6 +97,45 @@ function transformApiSolution(item: SolutionApiItem): SolutionFeedItem {
   };
 }
 
+/** Transform a lightweight list API item into the frontend SolutionFeedItem shape. */
+function transformListApiSolution(item: SolutionListApiItem): SolutionFeedItem {
+  const author = item.author;
+  const counts = item.counts;
+  return {
+    id: item.id,
+    problem_id: item.problemId?.toString() ?? "",
+    title: item.title,
+    summary: item.summary,
+    authorId: author?.id ?? "",
+    author: {
+      id: author?.id ?? "",
+      username: author?.name ?? "",
+      name: author?.name ?? "",
+      role: "",
+      avatar: author?.avatar,
+    },
+    stats: {
+      views: counts?.views ?? 0,
+      comments: counts?.comments ?? 0,
+      likes: counts?.likes ?? 0,
+      dislikes: counts?.dislikes ?? 0,
+    },
+    score: item.score ?? 0,
+    is_pinned: item.isPinned,
+    created_at: item.publishedAt,
+    publishedAt: item.publishedAt,
+    language: item.language,
+    languageFilter: "all",
+    // content omitted — loaded on-demand via fetchSolution
+    tags: item.tags ?? [],
+    votes: 0,
+    views: counts?.views ?? 0,
+    likes: counts?.likes ?? 0,
+    dislikes: counts?.dislikes ?? 0,
+    userVote: item.viewerVote ?? 0,
+  };
+}
+
 export interface CreateSolutionDto {
   title: string;
   content: string;
@@ -101,7 +154,7 @@ export async function updateSolution(
   solutionId: string,
   data: CreateSolutionDto,
 ): Promise<void> {
-  return apiPatch<void>(`/api/solutions/${solutionId}`, data);
+  return apiPut<void>(`/api/solutions/${solutionId}`, data);
 }
 
 export async function deleteSolution(solutionId: string): Promise<void> {
@@ -121,21 +174,17 @@ export async function fetchSolution(
 
 export async function fetchSolutionFeed(
   problemId: number,
-  userId?: string,
 ): Promise<SolutionFeedResponse> {
-  const url = userId
-    ? `/api/problems/${problemId}/solutions?userId=${userId}`
-    : `/api/problems/${problemId}/solutions`;
   const pageResult = await apiGet<{
-    items: SolutionApiItem[];
+    items: SolutionListApiItem[];
     total: number;
     page: number;
     pageSize: number;
     totalPages: number;
-  }>(url);
+  }>(`/api/problems/${problemId}/solutions`);
 
   return {
-    items: pageResult.items.map(transformApiSolution),
+    items: pageResult.items.map(transformListApiSolution),
     total: pageResult.total,
   };
 }

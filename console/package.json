@@ -30,7 +30,7 @@
     "@tanstack/vue-virtual": "^3.13.18",
     "@unovis/ts": "^1.6.2",
     "@unovis/vue": "^1.6.2",
-    "@vue-dnd-kit/core": "1.7.0",
+    "@vue-dnd-kit/core": "2.4.6",
     "@vueuse/core": "^14.1.0",
     "axios": "^1.13.2",
     "class-variance-authority": "^0.7.1",

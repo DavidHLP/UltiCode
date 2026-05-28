@@ -16,7 +16,7 @@ public class ContestStatsVO {
     /**
      * Contest unique identifier
      */
-    private Long contestId;
+    private String contestId;
 
     /**
      * Contest title

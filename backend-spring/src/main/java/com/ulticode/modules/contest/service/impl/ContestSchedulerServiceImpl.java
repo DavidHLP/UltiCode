@@ -87,7 +87,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         if (contest == null) throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);
 
         ParticipationStatusDTO status = new ParticipationStatusDTO();
-        status.setContestId(Long.parseLong(contestId));
+        status.setContestId(contestId);
         status.setTitle(contest.getTitle());
         status.setStartTime(contest.getStartTime());
         status.setEndTime(contest.getEndTime());
@@ -178,7 +178,7 @@ public class ContestSchedulerServiceImpl implements ContestSchedulerService {
         Contest contest = contestMapper.selectById(contestId);
 
         ParticipationStatusDTO status = new ParticipationStatusDTO();
-        status.setContestId(Long.parseLong(contestId));
+        status.setContestId(contestId);
         status.setTitle(contest.getTitle());
         status.setStatus(participant.getStatus().toLowerCase());
         status.setRegisteredAt(participant.getRegisteredAt());

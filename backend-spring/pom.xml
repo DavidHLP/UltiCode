@@ -207,24 +207,6 @@
 			<scope>test</scope>
 		</dependency>
 
-		<!-- Dubbo3 (direct call to recommendation service) -->
-		<dependency>
-			<groupId>org.apache.dubbo</groupId>
-			<artifactId>dubbo</artifactId>
-			<version>${dubbo.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.dubbo</groupId>
-			<artifactId>dubbo-registry-nacos</artifactId>
-			<version>${dubbo.version}</version>
-		</dependency>
-
-		<!-- Recommendation API (Dubbo service interface) -->
-		<dependency>
-			<groupId>com.ulticode</groupId>
-			<artifactId>recommend-api</artifactId>
-			<version>1.0.0</version>
-		</dependency>
 	</dependencies>
 
 	<build>

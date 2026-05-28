@@ -49,10 +49,6 @@ const navItems = computed<NavItem[]>(() => [
     label: t("sidebar.contest.contestSection"),
     to: { name: "contest-list" },
   },
-  {
-    label: t("recommendation.title"),
-    to: { name: "recommendations-daily" },
-  },
 ]);
 
 const isActiveNav = (item: NavItem) => {
@@ -60,13 +56,6 @@ const isActiveNav = (item: NavItem) => {
   if (typeof item.to === "string") return route.path === item.to;
   if (typeof item.to === "object") {
     if ("name" in item.to && item.to.name) {
-      // For recommendations, highlight if on any recommendations page
-      if (
-        item.to.name === "recommendations-daily" &&
-        route.name?.toString().startsWith("recommendations")
-      ) {
-        return true;
-      }
       return route.name === item.to.name;
     }
     if ("path" in item.to && item.to.path) return route.path === item.to.path;

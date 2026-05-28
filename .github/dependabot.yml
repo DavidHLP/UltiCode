@@ -5,8 +5,6 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-    exclude-paths:
-      - ".github/workflows/ci-recommendation.yml"
     groups:
       all-actions:
         patterns:

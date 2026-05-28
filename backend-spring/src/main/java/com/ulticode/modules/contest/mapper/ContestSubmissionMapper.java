@@ -22,4 +22,7 @@ public interface ContestSubmissionMapper extends BaseMapper<ContestSubmission> {
 
     @Select("SELECT COUNT(*) FROM contest_submissions WHERE contest_id = #{contestId}")
     long countByContestId(@Param("contestId") String contestId);
+
+    @Select("SELECT COUNT(*) FROM contest_submissions")
+    long countTotal();
 }

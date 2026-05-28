@@ -12,10 +12,12 @@ import com.ulticode.modules.contest.entity.ContestParticipant;
 import com.ulticode.modules.contest.entity.ContestProblem;
 import com.ulticode.modules.contest.entity.ContestAnnouncement;
 import com.ulticode.modules.contest.entity.GlobalRanking;
+import com.ulticode.modules.contest.entity.enums.ContestParticipantStatus;
 import com.ulticode.modules.contest.entity.enums.ContestStatus;
 import com.ulticode.modules.contest.mapper.ContestMapper;
 import com.ulticode.modules.contest.mapper.ContestProblemMapper;
 import com.ulticode.modules.contest.mapper.ContestParticipantMapper;
+import com.ulticode.modules.contest.mapper.ContestSubmissionMapper;
 import com.ulticode.modules.contest.mapper.GlobalRankingMapper;
 import com.ulticode.modules.contest.mapper.ContestAnnouncementMapper;
 import com.ulticode.modules.contest.service.ContestSchedulerService;
@@ -54,6 +56,7 @@ public class ContestServiceImpl implements ContestService {
     private final RankingService rankingService;
     private final AchievementTriggerService achievementTriggerService;
     private final ContestAnnouncementMapper contestAnnouncementMapper;
+    private final ContestSubmissionMapper contestSubmissionMapper;
 
     // =========================================================================
     // CRUD Operations (Admin)
@@ -124,32 +127,6 @@ public class ContestServiceImpl implements ContestService {
     // =========================================================================
     // Query Operations
     // =========================================================================
-
-    @Override
-    public PageResult<ContestVO> findAll(ContestQueryDTO query, String userId) {
-        int currentPage = (query.getPage() != null && query.getPage() > 0) ? query.getPage() : 1;
-        int currentPageSize = Math.min(query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 20, 100);
-        LambdaQueryWrapper<Contest> qw = new LambdaQueryWrapper<>();
-        qw.eq(Contest::getIsDeleted, false).eq(Contest::getIsVisible, true);
-        if (query.getStatus() != null && !query.getStatus().isBlank()) qw.eq(Contest::getStatus, query.getStatus().toUpperCase());
-        if (query.getSearch() != null && !query.getSearch().isBlank())
-            qw.and(w -> w.like(Contest::getTitle, "%" + query.getSearch() + "%").or().like(Contest::getSlug, "%" + query.getSearch() + "%"));
-        String sortField = query.getSort() != null ? query.getSort() : "startTime";
-        String direction = query.getDirection() != null ? query.getDirection() : "asc";
-        boolean isAsc = "asc".equalsIgnoreCase(direction);
-        switch (sortField) {
-            case "endTime" -> { if (isAsc) qw.orderByAsc(Contest::getEndTime); else qw.orderByDesc(Contest::getEndTime); }
-            case "createdAt" -> { if (isAsc) qw.orderByAsc(Contest::getCreatedAt); else qw.orderByDesc(Contest::getCreatedAt); }
-            case "title" -> { if (isAsc) qw.orderByAsc(Contest::getTitle); else qw.orderByDesc(Contest::getTitle); }
-            default -> { if (isAsc) qw.orderByAsc(Contest::getStartTime); else qw.orderByDesc(Contest::getStartTime); }
-        }
-        Page<Contest> page = contestMapper.selectPage(new Page<>(currentPage, currentPageSize), qw);
-        var enrichment = batchEnrich(page.getRecords(), userId);
-        List<ContestVO> items = page.getRecords().stream()
-                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
-                .collect(Collectors.toList());
-        return PageResult.of(items, page.getTotal(), currentPage, currentPageSize);
-    }
 
     @Override
     public Optional<Contest> findById(String id) {
@@ -223,16 +200,17 @@ public class ContestServiceImpl implements ContestService {
     }
 
     @Override
-    public ContestStatsVO getStats() {
-        ContestStatsVO stats = new ContestStatsVO();
-        long upcoming = contestMapper.countByStatus(ContestStatus.UPCOMING.name());
-        long running = contestMapper.countByStatus(ContestStatus.RUNNING.name());
-        long finished = contestMapper.countByStatus(ContestStatus.FINISHED.name());
-        stats.setRegisteredParticipants((int) upcoming);
-        stats.setActiveParticipants((int) running);
-        stats.setCompletedParticipants((int) finished);
-        stats.setTotalSubmissions(upcoming + running + finished);
-        return stats;
+    public GlobalContestStatsVO getStats() {
+        long registered = participantMapper.countByStatus(ContestParticipantStatus.REGISTERED.name());
+        long active = participantMapper.countByStatus(ContestParticipantStatus.STARTED.name());
+        long completed = participantMapper.countByStatus(ContestParticipantStatus.FINISHED.name());
+        long totalSubmissions = contestSubmissionMapper.countTotal();
+        return new GlobalContestStatsVO(
+                (int) registered,
+                (int) active,
+                (int) completed,
+                totalSubmissions
+        );
     }
 
     @Override

@@ -111,6 +111,9 @@ public class SecurityConfig {
                                 "/problems/slug/**",
                                 "/problems/*/adjacent")
                         .permitAll()
+                        // Public solution list for problems (GET only)
+                        .requestMatchers(HttpMethod.GET, "/api/problems/*/solutions")
+                        .permitAll()
                         // Public edge-operations read endpoints (GET only)
                         .requestMatchers(HttpMethod.GET, "/edge-operations/**")
                         .permitAll()

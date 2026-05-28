@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, inject, type Component } from "vue";
+import { ref, computed, inject, watch, nextTick, type Component } from "vue";
+import { useRoute, useRouter } from "vue-router";
 import { useI18n } from "vue-i18n";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -20,6 +21,8 @@ import {
 } from "lucide-vue-next";
 
 const { t } = useI18n();
+const route = useRoute();
+const router = useRouter();
 
 // Get the panel component map from parent
 const panelComponentMap = inject<Record<number, Component>>(
@@ -62,7 +65,60 @@ const tabs = [
   },
 ];
 
+const tabIds = tabs.map((t) => t.id);
+
+// Guards to prevent infinite loop between URL and local state
+const isUpdatingFromRoute = ref(false);
+const isUpdatingFromState = ref(false);
+
 const activeTab = ref("description");
+
+// Initialize activeTab from route
+const tabParam = route.params.tab;
+const initialTab = Array.isArray(tabParam) ? tabParam[0] : tabParam;
+if (initialTab && tabIds.includes(initialTab)) {
+  activeTab.value = initialTab;
+}
+
+// Sync route -> activeTab
+watch(
+  () => route.params.tab,
+  (newTab) => {
+    if (isUpdatingFromState.value) return;
+    const tabName = Array.isArray(newTab) ? newTab[0] : newTab;
+    if (tabName && tabIds.includes(tabName) && activeTab.value !== tabName) {
+      isUpdatingFromRoute.value = true;
+      activeTab.value = tabName;
+      nextTick(() => {
+        isUpdatingFromRoute.value = false;
+      });
+    }
+  },
+);
+
+// Sync activeTab -> route
+watch(activeTab, (newTab) => {
+  if (isUpdatingFromRoute.value) return;
+  const currentTab = route.params.tab;
+  const currentTabName = Array.isArray(currentTab) ? currentTab[0] : currentTab;
+  if (newTab !== currentTabName) {
+    isUpdatingFromState.value = true;
+    router
+      .push({
+        name: route.name ?? undefined,
+        params: { ...route.params, tab: newTab },
+        query: route.query,
+      })
+      .then(() => {
+        nextTick(() => {
+          isUpdatingFromState.value = false;
+        });
+      })
+      .catch(() => {
+        isUpdatingFromState.value = false;
+      });
+  }
+});
 
 const currentComponent = computed(() => {
   const tab = tabs.find((t) => t.id === activeTab.value);

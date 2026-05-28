@@ -4,7 +4,7 @@ import { computed, ref, watch } from "vue";
 import type { SolutionFeedItem } from "@/types/solution";
 import SolutionListView from "./SolutionListView.vue";
 import SolutionDetail from "./components/SolutionDetail.vue";
-import { fetchSolutionFeed } from "@/api/solution";
+import { fetchSolution, fetchSolutionFeed } from "@/api/solution";
 import { problemHooks } from "@/hooks/problem-hooks";
 import { useI18n } from "vue-i18n";
 import { useErrorHandler } from "@/composables/useErrorHandler";
@@ -22,6 +22,7 @@ const { t } = useI18n();
 const { handleError } = useErrorHandler();
 const selectedSolution = ref<SolutionFeedItem | null>(null);
 const isLoading = ref(true);
+const isLoadingDetail = ref(false);
 const feed = ref<Awaited<ReturnType<typeof fetchSolutionFeed>> | null>(null);
 
 watch(
@@ -38,7 +39,7 @@ watch(
       userId,
     });
     try {
-      feed.value = await fetchSolutionFeed(id, userId || undefined);
+      feed.value = await fetchSolutionFeed(id);
       await problemHooks.emit("problem:solutions:load:after", {
         problemId: id,
         userId,
@@ -102,9 +103,23 @@ const fallbackSolution = computed<SolutionFeedItem>(() => ({
   content: props.followUp, // Markdown 内容
 }));
 
-const handleSelect = (item: SolutionFeedItem) => {
-  selectedSolution.value = item;
-  emit("select", item);
+const handleSelect = async (item: SolutionFeedItem) => {
+  isLoadingDetail.value = true;
+  try {
+    const detail = await fetchSolution(item.id);
+    selectedSolution.value = detail;
+    emit("select", detail);
+  } catch (error) {
+    handleError(error, {
+      fallbackMessage: "problem.solutions.error.loadDetailFailed",
+      logToConsole: true,
+    });
+    // Fallback to list item if detail fetch fails
+    selectedSolution.value = item;
+    emit("select", item);
+  } finally {
+    isLoadingDetail.value = false;
+  }
 };
 
 const resetSelectedSolution = () => {
@@ -124,7 +139,7 @@ const handleSolutionDeleted = (id: string) => {
 
 <template>
   <div v-if="feed?.items?.length" class="space-y-4">
-    <div v-if="selectedSolution" class="space-y-4 px-5 py-4">
+    <div v-if="selectedSolution || isLoadingDetail" class="space-y-4 px-5 py-4">
       <button
         type="button"
         class="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground transition hover:text-foreground"
@@ -132,7 +147,11 @@ const handleSolutionDeleted = (id: string) => {
       >
         &larr; {{ t("problem.solutions.returnToList") }}
       </button>
+      <div v-if="isLoadingDetail" class="text-sm text-muted-foreground">
+        {{ t("problem.solutions.loadingDetail") }}
+      </div>
       <SolutionDetail
+        v-else-if="selectedSolution"
         :item="selectedSolution"
         @deleted="handleSolutionDeleted"
       />

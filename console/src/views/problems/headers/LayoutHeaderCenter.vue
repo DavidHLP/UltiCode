@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { computed, onBeforeUnmount, onMounted, ref, inject } from "vue";
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
 import { Play, CloudUpload } from "lucide-vue-next";
 import {
   HoverCard,
@@ -36,6 +36,11 @@ const runPulseKey = ref(0);
 const showShortcutsModal = ref(false);
 
 const handleRun = () => {
+  const authStore = useAuthStore();
+  if (!authStore.isAuthenticated) {
+    toast.error(t("problem.messages.loginRequired"));
+    return;
+  }
   requestRun();
   headerStore.setActiveGroup("test-info");
   headerStore.setActiveHeader("test-info", 6);

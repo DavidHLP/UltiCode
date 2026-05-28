@@ -100,7 +100,7 @@ const showLoginPrompt = computed(
     <template v-else>
       <Table>
         <TableCaption>{{
-          decoratedSubmissions.length
+          decoratedSubmissions.length === 0
             ? t("problem.submissions.noSubmissionsDesc")
             : ""
         }}</TableCaption>

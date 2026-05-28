@@ -11,12 +11,8 @@ import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
 import com.ulticode.modules.problem.dto.AdjacentProblemsVO;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
-import com.ulticode.modules.problem.dto.ProblemDetailResponse;
-import com.ulticode.modules.problem.dto.ProblemDetailResponse.CompanyInfo;
-import com.ulticode.modules.problem.dto.ProblemDetailResponse.DetailData;
-import com.ulticode.modules.problem.dto.ProblemDetailResponse.ExampleData;
-import com.ulticode.modules.problem.dto.ProblemDetailResponse.InputData;
-import com.ulticode.modules.problem.dto.ProblemDetailResponse.LanguageData;
+import com.ulticode.modules.problem.dto.ProblemDetailAdminVO;
+import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import com.ulticode.modules.problem.dto.ProblemQueryDTO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.dto.UpdateProblemDTO;
@@ -277,31 +273,44 @@ public class ProblemServiceImpl implements ProblemService {
     }
 
     @Override
-    public ProblemDetailResponse getProblemDetailResponse(Long id) {
+    public ProblemDetailPublicVO getProblemDetailResponse(Long id) {
         Problem problem = findById(id)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
-        return buildDetailResponse(problem);
+        return buildPublicDetailResponse(problem);
     }
 
     @Override
-    public ProblemDetailResponse getProblemDetailResponseBySlug(String slug) {
+    public ProblemDetailPublicVO getProblemDetailResponseBySlug(String slug) {
         Problem problem = findBySlug(slug)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
-        return buildDetailResponse(problem);
+        return buildPublicDetailResponse(problem);
     }
 
-    private ProblemDetailResponse buildDetailResponse(Problem problem) {
-        ProblemDetailResponse response = new ProblemDetailResponse();
+    @Override
+    public ProblemDetailAdminVO getProblemDetailAdminResponse(Long id) {
+        Problem problem = findById(id)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
+        return buildAdminDetailResponse(problem);
+    }
 
-        // Copy basic properties from problem entity
-        response.setId(problem.getId());
-        response.setSlug(problem.getSlug());
-        response.setTitle(problem.getTitle());
-        response.setDifficulty(problem.getDifficulty() != null ? problem.getDifficulty().toUpperCase() : null);
-        response.setAcceptanceRate(problem.getAcceptanceRate());
-        response.setStatus(problem.getStatus());
-        response.setIsPremium(problem.getIsPremium());
-        response.setHasSolution(problem.getHasSolution());
+    @Override
+    public ProblemDetailAdminVO getProblemDetailAdminResponseBySlug(String slug) {
+        Problem problem = findBySlug(slug)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PROBLEM_NOT_FOUND));
+        return buildAdminDetailResponse(problem);
+    }
+
+    private ProblemDetailPublicVO buildPublicDetailResponse(Problem problem) {
+        ProblemDetailPublicVO response = new ProblemDetailPublicVO();
+        populatePublicFields(response, problem);
+        return response;
+    }
+
+    private ProblemDetailAdminVO buildAdminDetailResponse(Problem problem) {
+        ProblemDetailAdminVO response = new ProblemDetailAdminVO();
+        populatePublicFields(response, problem);
+
+        // Admin-only fields
         response.setIsPublished(problem.getIsPublished());
         response.setPublishedAt(problem.getPublishedAt());
         response.setPublishedBy(problem.getPublishedBy());
@@ -315,8 +324,22 @@ public class ProblemServiceImpl implements ProblemService {
         response.setFlagReviewedBy(problem.getFlagReviewedBy());
         response.setFlagReviewedAt(problem.getFlagReviewedAt());
         response.setFlagNotes(problem.getFlagNotes());
+
+        return response;
+    }
+
+    private void populatePublicFields(ProblemDetailPublicVO response, Problem problem) {
+        response.setId(problem.getId());
+        response.setSlug(problem.getSlug());
+        response.setTitle(problem.getTitle());
+        response.setDifficulty(problem.getDifficulty() != null ? problem.getDifficulty().toUpperCase() : null);
+        response.setAcceptanceRate(problem.getAcceptanceRate());
+        response.setStatus(problem.getStatus());
+        response.setIsPremium(problem.getIsPremium());
+        response.setHasSolution(problem.getHasSolution());
         response.setCreatedAt(problem.getCreatedAt());
         response.setUpdatedAt(problem.getUpdatedAt());
+
         // Real stats from database
         Long submissionCount = submissionMapper.selectCount(
                 new LambdaQueryWrapper<com.ulticode.modules.submission.entity.Submission>()
@@ -332,8 +355,8 @@ public class ProblemServiceImpl implements ProblemService {
         List<String> tagIds = problemTagRelationMapper.findTagIdsByProblemId(problem.getId());
         if (tagIds != null && !tagIds.isEmpty()) {
             List<ProblemTag> tags = problemTagMapper.selectBatchIds(tagIds);
-            List<ProblemDetailResponse.ProblemTagVO> tagVOs = tags.stream().map(tag -> {
-                ProblemDetailResponse.ProblemTagVO vo = new ProblemDetailResponse.ProblemTagVO();
+            List<ProblemDetailPublicVO.ProblemTagVO> tagVOs = tags.stream().map(tag -> {
+                ProblemDetailPublicVO.ProblemTagVO vo = new ProblemDetailPublicVO.ProblemTagVO();
                 vo.setId(tag.getId());
                 vo.setLabel(tag.getLabel());
                 return vo;
@@ -347,7 +370,7 @@ public class ProblemServiceImpl implements ProblemService {
         ProblemDetail problemDetail = fetchProblemDetailEntity(problem.getId());
 
         // Fetch and set detail data
-        DetailData detailData = buildDetailData(problemDetail);
+        ProblemDetailPublicVO.DetailData detailData = buildDetailData(problemDetail);
         if (detailData != null) {
             response.setDetail(detailData);
         }
@@ -358,18 +381,16 @@ public class ProblemServiceImpl implements ProblemService {
         }
 
         // Fetch and set examples
-        List<ExampleData> examples = buildExamples(problem.getId());
+        List<ProblemDetailPublicVO.ExampleData> examples = buildExamples(problem.getId());
         if (!examples.isEmpty()) {
             response.setExamples(examples);
         }
 
         // Fetch and set languages
-        List<LanguageData> languages = buildLanguages(problem.getId());
+        List<ProblemDetailPublicVO.LanguageData> languages = buildLanguages(problem.getId());
         if (!languages.isEmpty()) {
             response.setLanguages(languages);
         }
-
-        return response;
     }
 
     private ProblemDetail fetchProblemDetailEntity(Long problemId) {
@@ -378,12 +399,12 @@ public class ProblemServiceImpl implements ProblemService {
         return problemDetailMapper.selectOne(wrapper);
     }
 
-    private DetailData buildDetailData(ProblemDetail detail) {
+    private ProblemDetailPublicVO.DetailData buildDetailData(ProblemDetail detail) {
         if (detail == null) {
             return null;
         }
 
-        DetailData data = new DetailData();
+        ProblemDetailPublicVO.DetailData data = new ProblemDetailPublicVO.DetailData();
         data.setSummary(detail.getSummary());
         data.setContent(detail.getContent());
         data.setConstraintsJson(parseJsonArray(detail.getConstraintsJson()));
@@ -393,9 +414,9 @@ public class ProblemServiceImpl implements ProblemService {
         // Parse companies JSON
         if (detail.getCompanies() != null && !detail.getCompanies().isBlank()) {
             try {
-                List<CompanyInfo> companies = objectMapper.readValue(
+                List<ProblemDetailPublicVO.CompanyInfo> companies = objectMapper.readValue(
                         detail.getCompanies(),
-                        new TypeReference<List<CompanyInfo>>() {}
+                        new TypeReference<List<ProblemDetailPublicVO.CompanyInfo>>() {}
                 );
                 data.setCompanies(companies);
             } catch (JsonProcessingException e) {
@@ -406,8 +427,8 @@ public class ProblemServiceImpl implements ProblemService {
         return data;
     }
 
-    private ProblemDetailResponse.InteractionData buildInteractions(ProblemDetail detail, Long problemId) {
-        ProblemDetailResponse.InteractionData interactions = new ProblemDetailResponse.InteractionData();
+    private ProblemDetailPublicVO.InteractionData buildInteractions(ProblemDetail detail, Long problemId) {
+        ProblemDetailPublicVO.InteractionData interactions = new ProblemDetailPublicVO.InteractionData();
         interactions.setLikes(detail.getLikes() != null ? detail.getLikes() : 0);
         interactions.setDislikes(detail.getDislikes() != null ? detail.getDislikes() : 0);
 
@@ -440,14 +461,14 @@ public class ProblemServiceImpl implements ProblemService {
         return interactions;
     }
 
-    private List<ExampleData> buildExamples(Long problemId) {
+    private List<ProblemDetailPublicVO.ExampleData> buildExamples(Long problemId) {
         List<ProblemExample> examples = problemExampleMapper.findByProblemIdOrderByOrder(problemId);
         if (examples == null || examples.isEmpty()) {
             return Collections.emptyList();
         }
 
         return examples.stream().map(ex -> {
-            ExampleData data = new ExampleData();
+            ProblemDetailPublicVO.ExampleData data = new ProblemDetailPublicVO.ExampleData();
             data.setId(ex.getId());
             data.setInputText(ex.getInputText());
             data.setOutputText(ex.getOutputText());
@@ -456,9 +477,9 @@ public class ProblemServiceImpl implements ProblemService {
             // Parse structured inputs if present
             if (ex.getInputs() != null && !ex.getInputs().isBlank()) {
                 try {
-                    List<InputData> inputs = objectMapper.readValue(
+                    List<ProblemDetailPublicVO.InputData> inputs = objectMapper.readValue(
                             ex.getInputs(),
-                            new TypeReference<List<InputData>>() {}
+                            new TypeReference<List<ProblemDetailPublicVO.InputData>>() {}
                     );
                     data.setInputs(inputs);
                 } catch (JsonProcessingException e) {
@@ -470,7 +491,7 @@ public class ProblemServiceImpl implements ProblemService {
         }).collect(Collectors.toList());
     }
 
-    private List<LanguageData> buildLanguages(Long problemId) {
+    private List<ProblemDetailPublicVO.LanguageData> buildLanguages(Long problemId) {
         List<ProblemLanguage> languages = problemLanguageMapper.findByProblemId(problemId);
         if (languages == null || languages.isEmpty()) {
             return Collections.emptyList();
@@ -480,7 +501,7 @@ public class ProblemServiceImpl implements ProblemService {
         return languages.stream()
                 .filter(lang -> supported.contains(lang.getValue().toLowerCase().trim()))
                 .map(lang -> {
-                    LanguageData data = new LanguageData();
+                    ProblemDetailPublicVO.LanguageData data = new ProblemDetailPublicVO.LanguageData();
                     data.setId(lang.getId());
                     data.setLabel(lang.getLabel());
                     data.setValue(lang.getValue());
@@ -637,9 +658,9 @@ public class ProblemServiceImpl implements ProblemService {
 
         if (updateDTO.getExamples() != null && !updateDTO.getExamples().isBlank()) {
             try {
-                List<ExampleData> examples = objectMapper.readValue(
+                List<ProblemDetailPublicVO.ExampleData> examples = objectMapper.readValue(
                         updateDTO.getExamples(),
-                        new TypeReference<List<ExampleData>>() {}
+                        new TypeReference<List<ProblemDetailPublicVO.ExampleData>>() {}
                 );
 
                 LambdaQueryWrapper<ProblemExample> deleteWrapper = new LambdaQueryWrapper<>();
@@ -647,7 +668,7 @@ public class ProblemServiceImpl implements ProblemService {
                 problemExampleMapper.delete(deleteWrapper);
 
                 for (int i = 0; i < examples.size(); i++) {
-                    ExampleData ex = examples.get(i);
+                    ProblemDetailPublicVO.ExampleData ex = examples.get(i);
                     ProblemExample example = new ProblemExample();
                     example.setId(java.util.UUID.randomUUID().toString().replace("-", ""));
                     example.setProblemId(problemId);

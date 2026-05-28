@@ -12,7 +12,9 @@ import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
 import com.ulticode.modules.submission.dto.LanguageStatsDTO;
 import com.ulticode.modules.submission.dto.LearningProgressDTO;
 import com.ulticode.modules.submission.dto.MonthlySubmissionStatsDTO;
+import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionHistoryDTO;
+import com.ulticode.modules.submission.dto.SubmissionListItemVO;
 import com.ulticode.modules.submission.dto.SubmissionQueryDTO;
 import com.ulticode.modules.submission.dto.SubmissionStatusMeta;
 import com.ulticode.modules.submission.dto.SubmissionVO;
@@ -38,6 +40,7 @@ import com.ulticode.modules.achievement.service.AchievementTriggerService;
 import com.ulticode.modules.notification.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -153,7 +156,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public SubmissionVO findById(String id, String userId) {
+    public SubmissionDetailVO findById(String id, String userId) {
         Submission submission = submissionMapper.selectById(id);
 
         if (submission == null) {
@@ -165,7 +168,7 @@ public class SubmissionServiceImpl implements SubmissionService {
             throw new BusinessException(ErrorCode.SUBMISSION_NOT_FOUND);
         }
 
-        return toVO(submission);
+        return toDetailVO(submission);
     }
 
     @Override
@@ -189,7 +192,7 @@ public class SubmissionServiceImpl implements SubmissionService {
     }
 
     @Override
-    public PageResult<SubmissionVO> findByProblemId(Long problemId, String userId, SubmissionQueryDTO query) {
+    public PageResult<SubmissionListItemVO> findByProblemId(Long problemId, String userId, SubmissionQueryDTO query) {
         int page = query.getPage() != null ? query.getPage() : 1;
         int pageSize = query.getPageSize() != null ? query.getPageSize() : 10;
 
@@ -197,8 +200,8 @@ public class SubmissionServiceImpl implements SubmissionService {
         IPage<SubmissionMapper.SubmissionWithProblem> result =
                 submissionMapper.findByProblemIdWithProblem(problemId, userId, pageParam);
 
-        List<SubmissionVO> voList = result.getRecords().stream()
-                .map(this::toVO)
+        List<SubmissionListItemVO> voList = result.getRecords().stream()
+                .map(this::toListItemVO)
                 .toList();
 
         return PageResult.of(voList, result.getTotal(), page, pageSize);
@@ -276,6 +279,48 @@ public class SubmissionServiceImpl implements SubmissionService {
             log.warn("Failed to create submission notification for submission {}: {}",
                     submission.getId(), e.getMessage());
         }
+    }
+
+    /**
+     * Convert SubmissionWithProblem DTO to lightweight SubmissionListItemVO.
+     */
+    public SubmissionListItemVO toListItemVO(SubmissionMapper.SubmissionWithProblem submission) {
+        SubmissionListItemVO vo = new SubmissionListItemVO();
+        vo.setId(submission.id());
+        vo.setStatus(submission.status());
+        vo.setLanguage(submission.language());
+        vo.setRuntime(submission.runtime());
+        vo.setMemory(submission.memory());
+        vo.setCreatedAt(submission.createdAt());
+        vo.setNotes(submission.notes());
+
+        // Problem summary from pre-loaded DTO
+        if (submission.problemTitle() != null) {
+            SubmissionListItemVO.ProblemSummary problemSummary = new SubmissionListItemVO.ProblemSummary();
+            problemSummary.setId(submission.problemId());
+            problemSummary.setTitle(submission.problemTitle());
+            problemSummary.setSlug(submission.problemSlug());
+            vo.setProblem(problemSummary);
+        }
+
+        return vo;
+    }
+
+    /**
+     * Convert Submission entity to SubmissionDetailVO.
+     * Reuses {@link #toVO(Submission)} for base fields and adds detail-only fields.
+     */
+    public SubmissionDetailVO toDetailVO(Submission submission) {
+        // Reuse existing toVO for all shared fields (tests, errors, user, problem)
+        SubmissionVO baseVo = toVO(submission);
+
+        SubmissionDetailVO vo = new SubmissionDetailVO();
+        BeanUtils.copyProperties(baseVo, vo);
+
+        // Detail-only fields
+        vo.setRuntimeDistBinsMs(submission.getRuntimeDistBinsMs());
+
+        return vo;
     }
 
     /**

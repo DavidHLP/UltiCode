@@ -78,12 +78,6 @@ jobs:
       - name: Grant Maven wrapper execute permission
         run: chmod +x backend-spring/mvnw
 
-      - name: Build recommend-api
-        run: |
-          cd recommendation
-          ../backend-spring/mvnw -f pom.xml install -DskipTests -B
-          ../backend-spring/mvnw -f recommend-api/pom.xml install -DskipTests -B
-
       - name: Build with Maven
         run: cd backend-spring && ./mvnw compile -B
 
@@ -139,12 +133,6 @@ jobs:
 
       - name: Grant Maven wrapper execute permission
         run: chmod +x backend-spring/mvnw
-
-      - name: Build recommend-api
-        run: |
-          cd recommendation
-          ../backend-spring/mvnw -f pom.xml install -DskipTests -B
-          ../backend-spring/mvnw -f recommend-api/pom.xml install -DskipTests -B
 
       - name: Run tests with CI profile
         run: cd backend-spring && ./mvnw test -Dspring.profiles.active=ci -Dtest='!*IT' -B

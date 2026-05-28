@@ -63,7 +63,7 @@ java -jar arthas-boot.jar <pid>
 
 ## Project Overview
 
-UltiCode is an online programming platform (online judge) with a Spring Boot backend, two Vue 3 frontends, a recommendation system, and a Flyway-based database migration tool.
+UltiCode is an online programming platform (online judge) with a Spring Boot backend, two Vue 3 frontends, and a Flyway-based database migration tool.
 
 ## Architecture
 
@@ -72,13 +72,6 @@ UltiCode/
 ├── backend-spring/       # Spring Boot 3.2.5 (Java 17) — port 9001
 ├── console/              # Vue 3 user-facing frontend — port 9002
 ├── management/           # Vue 3 admin dashboard — port 9003
-├── recommendation/       # Dubbo3 + Spark recommendation system
-│   ├── recommend-api/     # Dubbo service interfaces
-│   ├── recommend-core/    # Core recommendation logic
-│   ├── recommend-feature/ # Feature engineering
-│   ├── recommend-provider/# Dubbo service provider (port 20881)
-│   ├── recommend-spark/   # Spark batch jobs (Scala 2.13)
-│   └── recommend-web/    # REST API gateway (port 9005)
 ├── shared/               # Shared auth-core (Vue composable)
 ├── db-manager/           # Flyway migration CLI (Python)
 │   └── migrations/       # 31+ Flyway SQL migrations (V1–V108)
@@ -86,11 +79,11 @@ UltiCode/
 ```
 
 **Backend module structure** (`backend-spring/src/main/java/com/ulticode/modules/`):
-achievement, admin, auth, backup, bookmark, contest, edgeoperations, email, follow, forum, i18n, moderation, monitoring, notification, permission, problem, problemlist, queue, recommendation, refreshtoken, search, solution, submission, subscription, user, vote, websocket
+achievement, admin, auth, backup, bookmark, contest, edgeoperations, email, follow, forum, i18n, moderation, monitoring, notification, permission, problem, problemlist, queue, refreshtoken, search, solution, submission, subscription, user, vote, websocket
 
 **Backend layering**: Each module follows `controller → service → mapper (MyBatis-Plus) → entity`. DTOs via MapStruct. Security under `security/` package. Common utilities under `common/`. Infrastructure under `infrastructure/`.
 
-**Frontend routing**: console has views for auth, problems, problem-list, problem-set, contest, forum, dashboard, profile, recommendations, achievements, post-editor. management has views for auth, dashboard, users, problems, submissions, contests, forum, moderation, analytics, billing, settings, system, tags, solutions, comments, notifications, audit, account.
+**Frontend routing**: console has views for auth, problems, problem-list, problem-set, contest, forum, dashboard, profile, achievements, post-editor. management has views for auth, dashboard, users, problems, submissions, contests, forum, moderation, analytics, billing, settings, system, tags, solutions, comments, notifications, audit, account.
 
 ## Commands
 
@@ -169,8 +162,7 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Product
 | Backend | Spring Boot 3.2.5, Java 17, MyBatis-Plus 3.5.16, MapStruct 1.6.3 |
 | Auth | JWT (jjwt 0.13.0), Redis session (Redisson 4.3.1) |
 | API Docs | SpringDoc OpenAPI 2.6.0 |
-| Service Discovery | Nacos 2.3.2, Dubbo 3.2.14 |
-| Database | MySQL 9.1 (port 23306), Redis 7 (port 26379), Nacos (port 28848) |
+| Database | MySQL 9.1 (port 23306), Redis 7 (port 26379) |
 | Frontend | Vue 3.5, TypeScript ~6, Vite 8, Pinia 3, Vue Router 5, Tailwind CSS v4 |
 | UI Components | shadcn-vue (reka-ui), Radix Vue, Lucide icons |
 | i18n | vue-i18n 11 |
@@ -179,7 +171,6 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Product
 | Testing (BE) | JUnit 5, Testcontainers (MySQL, Redis), JaCoCo |
 | Testing (FE) | Vitest 4, jsdom, Playwright (management) |
 | Linting | ESLint 9/10 (flat config), Prettier (semi: false, singleQuote, printWidth: 100) |
-| Recommendation | Spring Boot 3.2.5, Dubbo 3.2.14, Apache Spark 3.5.1 |
 
 ## Key Conventions
 
@@ -190,7 +181,7 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Product
 - **Integration tests**: Suffix `*IT.java`, excluded from `./mvnw test`, run with `./mvnw verify -Pci`
 - **Migration naming**: `V{N}__{description}.sql` in `db-manager/migrations/`
 - **Docker containers**: Non-root `appuser:appgroup`, multi-stage builds
-- **Backend ports**: App 9001, Dubbo 20881, Recommend-web 9005
+- **Backend ports**: App 9001
 - **Frontend ports**: Console 9002, Management 9003
 - **Management DataTable i18n**: `DataTable.vue` uses `t(\`table.columnNames.${column.id}\`)` for column headers, where `column.id` matches API field names (camelCase). Ensure `management/src/i18n/locales/*/modules/table.ts` defines both camelCase and snake_case keys under `columnNames`.
 - **Backend DTO enums**: Backend DTO fields use raw `String` for enum values (e.g., `PerformModerationActionDTO.action`). Frontend types use proper TS enums. When aligning types, note this mismatch and prefer backend enum adoption.
@@ -213,8 +204,6 @@ GitHub Actions on push/PR to main. Path-based change detection triggers only rel
 | 9001 | ulticode-9001 | Spring Boot Backend |
 | 9002 | ulticode-9002 | Console Frontend (Vite) |
 | 9003 | ulticode-9003 | Management Frontend (Vite) |
-| 9004 | ulticode-9004 | Recommendation Provider |
-| 9005 | ulticode-9005 | Recommendation Web |
 
 **Terminal Commands:**
 ```bash

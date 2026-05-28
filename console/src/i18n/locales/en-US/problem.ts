@@ -380,6 +380,7 @@ export default {
     loginToVote: "Please log in to vote.",
     returnToList: "Return solution list",
     loading: "Loading solutions...",
+    loadingDetail: "Loading solution details...",
     error: {
       viewRecordFailed: "Failed to record view",
       commentVoteFailed: "Failed to vote on comment",

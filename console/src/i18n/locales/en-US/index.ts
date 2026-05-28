@@ -12,7 +12,6 @@ import markdown from "./markdown";
 import solution from "./solution";
 import shortcuts from "./shortcuts";
 import achievement from "./achievement";
-import recommendation from "./recommendation";
 import notification from "./notification";
 
 export default {
@@ -30,6 +29,5 @@ export default {
   solution,
   shortcuts,
   achievement,
-  recommendation,
   notification,
 } as const;

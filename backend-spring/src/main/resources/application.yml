@@ -115,14 +115,6 @@ meilisearch:
   host: ${MEILISEARCH_HOST:}
   api-key: ${MEILISEARCH_API_KEY:}
 
-# Recommendation Service Configuration (optional - for personalized recommendations)
-recommendation:
-  enabled: ${RECOMMENDATION_ENABLED:false}
-  service-url: ${RECOMMENDATION_SERVICE_URL:}
-  timeout: ${RECOMMENDATION_TIMEOUT:5000}
-  nacos-enabled: ${RECOMMENDATION_NACOS_ENABLED:false}
-  fallback-url: ${RECOMMENDATION_FALLBACK_URL:}
-
 # Code Execution Sandbox Configuration
 code-execution:
   sandbox:
@@ -211,19 +203,3 @@ oauth:
     user-url: https://www.googleapis.com/oauth2/v2/userinfo
     scopes: email,profile
 
-# Dubbo Configuration (recommendation service consumer)
-dubbo:
-  application:
-    name: ulticode-backend
-    qos-enable: false
-  registry:
-    address: nacos://${NACOS_HOST:localhost}:${NACOS_PORT:28848}
-    parameters:
-      namespace: public
-      group: DEFAULT_GROUP
-      username: ${NACOS_USERNAME:nacos}
-      password: ${NACOS_PASSWORD:nacos}
-  consumer:
-    check: false
-    timeout: 5000
-    retries: 1

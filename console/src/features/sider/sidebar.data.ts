@@ -19,9 +19,6 @@ import {
   Bookmark,
   CheckCircle2,
   Bell,
-  Sparkles,
-  Target,
-  GitBranch,
 } from "lucide-vue-next";
 
 export interface SidebarItem {
@@ -215,31 +212,3 @@ export const personalSidebarData: SidebarSection[] = [
   },
 ];
 
-export const recommendationSidebarData: SidebarSection[] = [
-  {
-    name: "sidebar.recommendation.types",
-    requiresAuth: true,
-    items: [
-      {
-        title: "sidebar.recommendation.daily",
-        url: "/recommendations/daily",
-        icon: Sparkles,
-      },
-      {
-        title: "sidebar.recommendation.weakPoints",
-        url: "/recommendations/weak-points",
-        icon: Target,
-      },
-      {
-        title: "sidebar.recommendation.challenge",
-        url: "/recommendations/challenge",
-        icon: Flame,
-      },
-      {
-        title: "sidebar.recommendation.similar",
-        url: "/recommendations/similar",
-        icon: GitBranch,
-      },
-    ],
-  },
-];

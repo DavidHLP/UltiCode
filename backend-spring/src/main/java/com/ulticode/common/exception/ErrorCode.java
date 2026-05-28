@@ -122,13 +122,6 @@ public enum ErrorCode {
     SEARCH_QUERY_TOO_LONG(110002, "Search query is too long", HttpStatus.BAD_REQUEST),
     SEARCH_INVALID_INDEX(110003, "Invalid search index type", HttpStatus.BAD_REQUEST),
 
-    // Recommendation module (12xxxx)
-    RECOMMENDATION_SERVICE_UNAVAILABLE(120001, "Recommendation service is unavailable", HttpStatus.SERVICE_UNAVAILABLE),
-    RECOMMENDATION_DISABLED(120002, "Recommendation service is disabled", HttpStatus.SERVICE_UNAVAILABLE),
-    RECOMMENDATION_INVALID_SCENARIO(120003, "Invalid recommendation scenario", HttpStatus.BAD_REQUEST),
-    RECOMMENDATION_NOT_FOUND(120004, "Recommendation not found", HttpStatus.NOT_FOUND),
-    RECOMMENDATION_USER_REQUIRED(120005, "User ID is required", HttpStatus.BAD_REQUEST),
-
     // Backup module (13xxxx)
     BACKUP_NOT_FOUND(130001, "Backup not found", HttpStatus.NOT_FOUND),
     BACKUP_IN_PROGRESS(130002, "Backup is in progress", HttpStatus.CONFLICT),

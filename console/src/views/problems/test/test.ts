@@ -4,6 +4,7 @@ import type { ProblemTestCase } from "@/types/problem-detail";
 const activeCaseLabel = ref<string | null>(null);
 const testCases = ref<ProblemTestCase[]>([]);
 const lastRunToken = ref<number>(0);
+const isRunning = ref(false);
 
 const requestRun = () => {
   lastRunToken.value = Date.now();
@@ -18,6 +19,7 @@ export const useBottomPanelStore = () => {
     activeCaseLabel,
     testCases,
     lastRunToken,
+    isRunning,
     requestRun,
     updateTestCases,
   };

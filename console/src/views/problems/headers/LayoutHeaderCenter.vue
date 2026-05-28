@@ -17,11 +17,13 @@ import { submitContestProblem } from "@/api/contest";
 import { toast } from "vue-sonner";
 import { useProblemContext } from "../useProblemContext";
 import { useProblemEditorStore } from "@/stores/problemEditorStore";
+import { useAuthStore } from "@/stores/auth";
 import { useI18n } from "vue-i18n";
 import { registerGlobalShortcut } from "@/composables/useGlobalShortcuts";
 import KeyboardShortcutsModal from "@/components/editor/KeyboardShortcutsModal.vue";
 
-const { requestRun } = useBottomPanelStore();
+const bottomPanelStore = useBottomPanelStore();
+const { requestRun } = bottomPanelStore;
 const headerStore = useHeaderStore();
 const problemContext = useProblemContext();
 const contestId = computed(() => problemContext.contestId.value);
@@ -29,10 +31,8 @@ const editorStore = useProblemEditorStore();
 const { code, language } = storeToRefs(editorStore);
 const { t } = useI18n();
 
-const isRunning = ref(false);
 const isSubmitting = ref(false);
 const runPulseKey = ref(0);
-const runTimer = ref<ReturnType<typeof setTimeout> | null>(null);
 const showShortcutsModal = ref(false);
 
 const handleRun = () => {
@@ -40,13 +40,6 @@ const handleRun = () => {
   headerStore.setActiveGroup("test-info");
   headerStore.setActiveHeader("test-info", 6);
   runPulseKey.value = Date.now();
-  isRunning.value = true;
-  if (runTimer.value) {
-    clearTimeout(runTimer.value);
-  }
-  runTimer.value = setTimeout(() => {
-    isRunning.value = false;
-  }, 1200);
 };
 
 async function handleSubmit() {
@@ -54,9 +47,15 @@ async function handleSubmit() {
   if (!prob) return;
 
   const currentCode = code.value;
-  const currentLanguage = language.value || "typescript";
+  const currentLanguage = language.value || "javascript";
   if (!currentCode.trim()) {
-    toast.error(t("problem.messages.enterTitle")); // Or suitable key
+    toast.error(t("problem.messages.enterTitle"));
+    return;
+  }
+
+  const authStore = useAuthStore();
+  if (!authStore.isAuthenticated) {
+    toast.error(t("problem.messages.loginRequired"));
     return;
   }
 
@@ -72,7 +71,6 @@ async function handleSubmit() {
           code: currentCode,
         });
     toast.success(`${t("problem.editor.submit")} ${res.status}!`);
-    // Navigate to submissions tab (header ID 3 = Submissions in problem-info group)
     headerStore.setActiveGroup("problem-info");
     headerStore.setActiveHeader("problem-info", 3);
   } catch (e) {
@@ -117,9 +115,6 @@ onMounted(() => {
 });
 
 onBeforeUnmount(() => {
-  if (runTimer.value) {
-    clearTimeout(runTimer.value);
-  }
   // Unregister all shortcuts
   unregisterFns.forEach((fn) => fn());
   unregisterFns = [];
@@ -139,23 +134,23 @@ onBeforeUnmount(() => {
               variant="ghost"
               size="icon"
               :aria-label="t('problem.layout.runCode')"
-              :aria-busy="isRunning"
+              :aria-busy="bottomPanelStore.isRunning"
               class="group relative flex-none cursor-pointer flex items-center h-8 transition hover:bg-primary/10 text-gray-600 w-9 focus:outline-none focus:ring-0 focus:ring-offset-0 bg-gray-100 overflow-hidden rounded-none"
               @click="handleRun"
             >
               <span
-                v-if="isRunning"
+                v-if="bottomPanelStore.isRunning"
                 :key="runPulseKey"
                 class="pointer-events-none absolute inset-0 animate-[ping_1s_ease-out] rounded-none bg-primary/20"
               />
               <span
                 class="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-200 group-hover:opacity-50"
-                :class="isRunning ? 'bg-primary/15' : 'bg-primary/5'"
+                :class="bottomPanelStore.isRunning ? 'bg-primary/15' : 'bg-primary/5'"
               />
               <Play
                 class="h-4 w-4 transition-transform duration-200"
                 :class="
-                  isRunning
+                  bottomPanelStore.isRunning
                     ? 'text-primary animate-[spin_0.9s_linear]'
                     : 'text-gray-700'
                 "

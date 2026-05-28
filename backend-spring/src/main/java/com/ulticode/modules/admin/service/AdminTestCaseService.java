@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -147,5 +149,42 @@ public class AdminTestCaseService {
         TestCase existing = getTestCase(problemId, testCaseId);
         testCaseMapper.deleteById(existing.getId());
         log.info("Test case deleted: {} for problem {}", testCaseId, problemId);
+    }
+
+    @Transactional
+    public List<TestCase> bulkImportTestCases(Long problemId, List<CreateTestCaseDTO> dtos) {
+        if (problemMapper.selectById(problemId) == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+        }
+        List<TestCase> created = new ArrayList<>();
+        for (CreateTestCaseDTO dto : dtos) {
+            created.add(createTestCase(problemId, dto));
+        }
+        log.info("Bulk imported {} test cases for problem {}", created.size(), problemId);
+        return created;
+    }
+
+    @Transactional
+    public void reorderTestCases(Long problemId, List<String> testCaseIds) {
+        if (problemMapper.selectById(problemId) == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+        }
+        for (int i = 0; i < testCaseIds.size(); i++) {
+            TestCase existing = getTestCase(problemId, testCaseIds.get(i));
+            existing.setTestOrder(i);
+            existing.setUpdatedAt(LocalDateTime.now());
+            testCaseMapper.updateById(existing);
+        }
+        log.info("Reordered {} test cases for problem {}", testCaseIds.size(), problemId);
+    }
+
+    public List<TestCase> exportTestCases(Long problemId) {
+        if (problemMapper.selectById(problemId) == null) {
+            throw new BusinessException(ErrorCode.PROBLEM_NOT_FOUND);
+        }
+        LambdaQueryWrapper<TestCase> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(TestCase::getProblemId, problemId);
+        wrapper.orderByAsc(TestCase::getTestOrder);
+        return testCaseMapper.selectList(wrapper);
     }
 }

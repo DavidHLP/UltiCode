@@ -141,6 +141,7 @@ const addCase = () => {
     label: "",
     explanation: template?.explanation,
     inputs: createEmptyInputs(template),
+    output: template?.output ?? "",
   };
 
   localCases.value = [...localCases.value, newCase];

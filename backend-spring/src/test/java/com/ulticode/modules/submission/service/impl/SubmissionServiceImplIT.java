@@ -11,6 +11,7 @@ import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.queue.service.QueueService;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
+import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -377,7 +378,7 @@ class SubmissionServiceImplIT {
             submissionMapper.insert(submission);
 
             // Act
-            SubmissionVO result = submissionService.findById("sub-it-find-1", USER_ID);
+            SubmissionDetailVO result = submissionService.findById("sub-it-find-1", USER_ID);
 
             // Assert
             assertThat(result).isNotNull();

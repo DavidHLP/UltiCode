@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ulticode.common.config.CorsProperties;
 import com.ulticode.common.config.MapperConfig;
 import com.ulticode.common.response.PageResult;
-import com.ulticode.modules.problem.dto.ProblemDetailResponse;
+import com.ulticode.modules.problem.dto.ProblemDetailPublicVO;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.service.ProblemService;
 import com.ulticode.security.AuthenticationEntryPointImpl;
@@ -130,7 +130,7 @@ class ProblemControllerTest {
         @Test
         @DisplayName("should return 200 with problem detail")
         void getProblemById_success() throws Exception {
-            ProblemDetailResponse response = new ProblemDetailResponse();
+            ProblemDetailPublicVO response = new ProblemDetailPublicVO();
             response.setId(1L);
             response.setTitle("Two Sum");
             response.setSlug("two-sum");
@@ -154,7 +154,7 @@ class ProblemControllerTest {
         @Test
         @DisplayName("should return 200 with problem detail")
         void getProblemBySlug_success() throws Exception {
-            ProblemDetailResponse response = new ProblemDetailResponse();
+            ProblemDetailPublicVO response = new ProblemDetailPublicVO();
             response.setId(1L);
             response.setTitle("Two Sum");
             response.setSlug("two-sum");

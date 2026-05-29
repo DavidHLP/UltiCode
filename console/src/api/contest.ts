@@ -21,7 +21,6 @@ import type {
   ContestRankingEntry,
   VirtualContestSession,
   UserContestHistory,
-  RatingHistoryEntry,
   ParticipationStatus,
 } from "@/types/contest"
 import type { SubmissionRecord } from "@/types/submission"
@@ -264,14 +263,6 @@ export async function fetchUserContestHistory(): Promise<
   UserContestHistory[]
 > {
   return apiGet<UserContestHistory[]>("/contest/user/history")
-}
-
-export async function fetchUserRatingHistory(): Promise<
-  RatingHistoryEntry[]
-> {
-  return apiGet<RatingHistoryEntry[]>(
-    "/contest/user/rating-history",
-  )
 }
 
 // ============================================================================

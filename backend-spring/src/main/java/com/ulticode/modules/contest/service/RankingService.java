@@ -3,7 +3,6 @@ package com.ulticode.modules.contest.service;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
 import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
-import com.ulticode.modules.contest.dto.RatingHistoryVO;
 import com.ulticode.modules.contest.dto.UserContestHistoryVO;
 
 import java.util.List;
@@ -40,11 +39,4 @@ public interface RankingService {
      */
     List<UserContestHistoryVO> getUserContestHistory(String userId);
 
-    /**
-     * Get user rating history.
-     *
-     * @param userId the user ID
-     * @return list of rating changes over time
-     */
-    List<RatingHistoryVO> getUserRatingHistory(String userId);
 }

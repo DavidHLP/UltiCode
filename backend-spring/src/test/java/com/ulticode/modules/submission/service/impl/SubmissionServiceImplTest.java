@@ -5,6 +5,7 @@ import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.modules.problem.entity.Problem;
 import com.ulticode.modules.problem.mapper.ProblemMapper;
 import com.ulticode.modules.submission.dto.CreateSubmissionDTO;
+import com.ulticode.modules.submission.dto.SubmissionDetailVO;
 import com.ulticode.modules.submission.dto.SubmissionVO;
 import com.ulticode.modules.submission.entity.Submission;
 import com.ulticode.modules.submission.mapper.SubmissionMapper;
@@ -195,7 +196,7 @@ class SubmissionServiceImplTest {
             when(userMapper.selectById(USER_ID)).thenReturn(user);
             when(problemMapper.selectById(PROBLEM_ID)).thenReturn(problem);
 
-            SubmissionVO result = submissionService.findById("sub-123", USER_ID);
+            SubmissionDetailVO result = submissionService.findById("sub-123", USER_ID);
 
             assertThat(result).isNotNull();
             assertThat(result.getId()).isEqualTo("sub-123");

@@ -263,6 +263,32 @@ export interface GlobalRankingEntry {
 }
 
 // ============================================================================
+// LIVE RANKING — Matches backend LiveRankingEntryVO
+// ============================================================================
+
+export interface LiveRankingEntry {
+  rank: number | null;
+  userId: string;
+  username: string;
+  name: string | null;
+  avatar: string | null;
+  score: number | null;
+  penalty: number | null;
+  problemsSolved: number;
+  isCurrentUser: boolean | null;
+  country?: string | null;
+  ratingTitle?: string;
+  finishTime?: number | null;
+  progress?: number | null;
+  percentile?: number | null;
+  isParticipating?: boolean;
+  maxRating?: number;
+  maxRatingTitle?: string;
+  contestsAttended?: number;
+  badge?: string | null;
+}
+
+// ============================================================================
 // RANKING ENTRY (for contest detail ranking display)
 // ============================================================================
 
@@ -296,31 +322,36 @@ export interface ProblemResult {
 }
 
 // ============================================================================
-// USER CONTEST HISTORY
+// USER CONTEST HISTORY — Matches backend UserContestHistoryVO
 // ============================================================================
 
 export interface UserContestHistory {
   contestId: string;
-  contestTitle: string;
-  contestDate: string;
-  rank: number;
-  totalParticipants: number;
-  score: number;
+  title: string | null;
+  slug: string | null;
+  startTime: string | null;
+  finishTime: string | null;
+  rank: number | null;
+  score: number | null;
+  penalty: number | null;
   problemsSolved: number;
-  ratingBefore: number;
-  ratingAfter: number;
-  ratingChange: number;
-  isVirtual: boolean;
+  totalParticipants: number | null;
+  isRated: boolean | null;
 }
+
+// ============================================================================
+// RATING HISTORY — Matches backend RatingHistoryVO
+// ============================================================================
 
 export interface RatingHistoryEntry {
   contestId: string;
-  contestTitle: string;
-  date: string;
-  rank: number;
-  ratingBefore: number;
-  ratingAfter: number;
-  ratingChange: number;
+  title: string | null;
+  slug: string | null;
+  ratingChange: number | null;
+  newRating: number | null;
+  oldRating: number | null;
+  ratedAt: string | null;
+  performance: number | null;
 }
 
 // ============================================================================
@@ -441,14 +472,11 @@ export interface ContestFilters {
   status?: ContestStatus | ContestStatus[];
   contestType?: ContestType | ContestType[];
   isRated?: boolean;
-  isPublic?: boolean;
   search?: string;
   startDateFrom?: string;
   startDateTo?: string;
   page?: number;
   pageSize?: number;
-  limit?: number;
   sort?: "startTime" | "endTime" | "createdAt" | "title";
   direction?: "asc" | "desc";
-  sortBy?: string;
 }

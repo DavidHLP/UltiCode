@@ -141,10 +141,24 @@ class ContestDtoAlignmentTest {
         }
 
         @Test
-        @DisplayName("should have sortBy field (matching frontend)")
-        void contestQueryDTO_hasSortBy() {
+        @DisplayName("should NOT have sortBy field (alias removed)")
+        void contestQueryDTO_noSortBy() {
             Set<String> fields = getFieldNames(ContestQueryDTO.class);
-            assertThat(fields).contains("sortBy");
+            assertThat(fields).doesNotContain("sortBy");
+        }
+
+        @Test
+        @DisplayName("should NOT have limit field (alias removed)")
+        void contestQueryDTO_noLimit() {
+            Set<String> fields = getFieldNames(ContestQueryDTO.class);
+            assertThat(fields).doesNotContain("limit");
+        }
+
+        @Test
+        @DisplayName("should NOT have isPublic field (alias removed)")
+        void contestQueryDTO_noIsPublic() {
+            Set<String> fields = getFieldNames(ContestQueryDTO.class);
+            assertThat(fields).doesNotContain("isPublic");
         }
 
         @Test
@@ -258,6 +272,45 @@ class ContestDtoAlignmentTest {
         void contestProblemVO_hasFields() {
             Set<String> fields = getFieldNames(ContestProblemVO.class);
             assertThat(fields).contains("id", "contestId", "problemId", "problemIndex", "score");
+        }
+    }
+
+    @Nested
+    @DisplayName("UserContestHistoryVO alignment")
+    class UserContestHistoryVOAlignmentTests {
+
+        @Test
+        @DisplayName("should have required fields")
+        void userContestHistoryVO_hasRequiredFields() {
+            Set<String> fields = getFieldNames(UserContestHistoryVO.class);
+            assertThat(fields).contains("contestId", "title", "slug", "startTime", "finishTime",
+                    "rank", "score", "penalty", "problemsSolved", "totalParticipants", "isRated");
+        }
+    }
+
+    @Nested
+    @DisplayName("RatingHistoryVO alignment")
+    class RatingHistoryVOAlignmentTests {
+
+        @Test
+        @DisplayName("should have required fields")
+        void ratingHistoryVO_hasRequiredFields() {
+            Set<String> fields = getFieldNames(RatingHistoryVO.class);
+            assertThat(fields).contains("contestId", "title", "slug", "ratingChange",
+                    "newRating", "oldRating", "ratedAt", "performance");
+        }
+    }
+
+    @Nested
+    @DisplayName("LiveRankingEntryVO alignment")
+    class LiveRankingEntryVOAlignmentTests {
+
+        @Test
+        @DisplayName("should have required fields")
+        void liveRankingEntryVO_hasRequiredFields() {
+            Set<String> fields = getFieldNames(LiveRankingEntryVO.class);
+            assertThat(fields).contains("rank", "userId", "username", "name", "avatar",
+                    "score", "penalty", "problemsSolved", "isCurrentUser");
         }
     }
 

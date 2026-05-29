@@ -168,33 +168,53 @@ public class ContestServiceImpl implements ContestService {
     }
 
     @Override
-    public List<ContestVO> findUpcoming(String userId) {
+    public PageResult<ContestListVO> findUpcoming(String userId) {
+        return findUpcoming(userId, 1, 20);
+    }
+
+    public PageResult<ContestListVO> findUpcoming(String userId, int page, int pageSize) {
+        int p = Math.max(page, 1);
+        int ps = Math.min(Math.max(pageSize, 1), 50);
         List<Contest> contests = contestMapper.findByStatus(ContestStatus.UPCOMING.name());
         var enrichment = batchEnrich(contests, userId);
-        return contests.stream()
-                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+        List<ContestListVO> items = contests.stream()
+                .map(c -> toListVOInternal(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
                 .collect(Collectors.toList());
+        int total = items.size();
+        int skip = (p - 1) * ps;
+        List<ContestListVO> paginated = items.stream().skip(skip).limit(ps).collect(Collectors.toList());
+        return PageResult.of(paginated, (long) total, p, ps);
     }
 
     @Override
-    public List<ContestVO> findRunning(String userId) {
+    public PageResult<ContestListVO> findRunning(String userId) {
+        return findRunning(userId, 1, 20);
+    }
+
+    public PageResult<ContestListVO> findRunning(String userId, int page, int pageSize) {
+        int p = Math.max(page, 1);
+        int ps = Math.min(Math.max(pageSize, 1), 50);
         List<Contest> contests = contestMapper.findByStatus(ContestStatus.RUNNING.name());
         var enrichment = batchEnrich(contests, userId);
-        return contests.stream()
-                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+        List<ContestListVO> items = contests.stream()
+                .map(c -> toListVOInternal(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
                 .collect(Collectors.toList());
+        int total = items.size();
+        int skip = (p - 1) * ps;
+        List<ContestListVO> paginated = items.stream().skip(skip).limit(ps).collect(Collectors.toList());
+        return PageResult.of(paginated, (long) total, p, ps);
     }
 
     @Override
-    public PageResult<ContestVO> findPast(Integer page, Integer pageSize, String userId) {
+    public PageResult<ContestListVO> findPast(Integer page, Integer pageSize, String userId) {
         int p = Math.max(page != null ? page : 1, 1);
         int ps = Math.min(pageSize != null && pageSize > 0 ? pageSize : 10, 50);
         LambdaQueryWrapper<Contest> qw = new LambdaQueryWrapper<>();
         qw.eq(Contest::getIsDeleted, false).eq(Contest::getStatus, ContestStatus.FINISHED.name()).orderByDesc(Contest::getEndTime);
         Page<Contest> result = contestMapper.selectPage(new Page<>(p, ps), qw);
         var enrichment = batchEnrich(result.getRecords(), userId);
-        List<ContestVO> items = result.getRecords().stream()
-                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+        List<ContestListVO> items = result.getRecords().stream()
+                .map(c -> toListVOInternal(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
                 .collect(Collectors.toList());
         return PageResult.of(items, result.getTotal(), p, ps);
     }
@@ -226,16 +246,14 @@ public class ContestServiceImpl implements ContestService {
         int currentPage = (page != null && page > 0) ? page : 1;
         int currentLimit = (limit != null && limit > 0) ? Math.min(limit, 100) : 50;
 
-        List<ContestRankingVO> allRankings = getGlobalRanking(null);
-
-        int total = allRankings.size();
-        int skip = (currentPage - 1) * currentLimit;
-        List<ContestRankingVO> paginatedList = allRankings.stream()
-                .skip(skip)
-                .limit(currentLimit)
+        long total = globalRankingMapper.countTotal();
+        int offset = (currentPage - 1) * currentLimit;
+        List<GlobalRanking> rankings = globalRankingMapper.findRankingsPaginated(currentLimit, offset);
+        List<ContestRankingVO> paginatedList = rankings.stream()
+                .map(this::toRankingVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(paginatedList, (long) total, currentPage, currentLimit);
+        return PageResult.of(paginatedList, total, currentPage, currentLimit);
     }
 
     // =========================================================================
@@ -297,10 +315,10 @@ public class ContestServiceImpl implements ContestService {
         if (userId != null && !userId.isBlank()) {
             participant = participantMapper.findByContestIdAndUserId(contest.getId(), userId).orElse(null);
         }
-        return toVO(contest, userId, problemCount, participant);
+        return toVOInternal(contest, userId, problemCount, participant);
     }
 
-    private ContestVO toVO(Contest contest, String userId, long problemCount, ContestParticipant participant) {
+    private ContestVO toVOInternal(Contest contest, String userId, long problemCount, ContestParticipant participant) {
         if (contest == null) return null;
         ContestVO vo = new ContestVO();
         BeanUtils.copyProperties(contest, vo);
@@ -333,10 +351,10 @@ public class ContestServiceImpl implements ContestService {
         if (userId != null && !userId.isBlank()) {
             participant = participantMapper.findByContestIdAndUserId(contest.getId(), userId).orElse(null);
         }
-        return toListVO(contest, userId, problemCount, participant);
+        return toListVOInternal(contest, userId, problemCount, participant);
     }
 
-    private ContestListVO toListVO(Contest contest, String userId, long problemCount, ContestParticipant participant) {
+    private ContestListVO toListVOInternal(Contest contest, String userId, long problemCount, ContestParticipant participant) {
         if (contest == null) return null;
         Boolean isParticipating = null;
         Integer userRanking = null;
@@ -396,6 +414,7 @@ public class ContestServiceImpl implements ContestService {
         qw.eq(Contest::getIsDeleted, false).eq(Contest::getIsVisible, true);
         if (query.getStatus() != null && !query.getStatus().isBlank()) qw.eq(Contest::getStatus, query.getStatus().toUpperCase());
         if (query.getContestType() != null && !query.getContestType().isBlank()) qw.eq(Contest::getContestType, query.getContestType().toUpperCase());
+        if (query.getIsRated() != null) qw.eq(Contest::getIsRated, query.getIsRated());
         if (query.getSearch() != null && !query.getSearch().isBlank())
             qw.and(w -> w.like(Contest::getTitle, "%" + query.getSearch() + "%").or().like(Contest::getSlug, "%" + query.getSearch() + "%"));
         String sortField = query.getSort() != null ? query.getSort() : "startTime";
@@ -410,7 +429,7 @@ public class ContestServiceImpl implements ContestService {
         Page<Contest> page = contestMapper.selectPage(new Page<>(currentPage, currentPageSize), qw);
         var enrichment = batchEnrich(page.getRecords(), userId);
         List<ContestListVO> items = page.getRecords().stream()
-                .map(c -> toListVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+                .map(c -> toListVOInternal(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
                 .collect(Collectors.toList());
         return PageResult.of(items, page.getTotal(), currentPage, currentPageSize);
     }
@@ -420,7 +439,7 @@ public class ContestServiceImpl implements ContestService {
     // =========================================================================
 
     @Override
-    public PageResult<ContestVO> findAllAdmin(ContestQueryDTO query, String userId) {
+    public PageResult<ContestListVO> findAllAdmin(ContestQueryDTO query, String userId) {
         int currentPage = (query.getPage() != null && query.getPage() > 0) ? query.getPage() : 1;
         int currentPageSize = Math.min(query.getPageSize() != null && query.getPageSize() > 0 ? query.getPageSize() : 20, 100);
         LambdaQueryWrapper<Contest> qw = new LambdaQueryWrapper<>();
@@ -428,9 +447,10 @@ public class ContestServiceImpl implements ContestService {
         // Admin sees all contests including drafts and invisible ones
         if (query.getStatus() != null && !query.getStatus().isBlank()) qw.eq(Contest::getStatus, query.getStatus().toUpperCase());
         if (query.getContestType() != null && !query.getContestType().isBlank()) qw.eq(Contest::getContestType, query.getContestType().toUpperCase());
+        if (query.getIsRated() != null) qw.eq(Contest::getIsRated, query.getIsRated());
         if (query.getSearch() != null && !query.getSearch().isBlank())
             qw.and(w -> w.like(Contest::getTitle, "%" + query.getSearch() + "%").or().like(Contest::getSlug, "%" + query.getSearch() + "%"));
-        String sortField = query.getSortBy() != null ? query.getSortBy() : (query.getSort() != null ? query.getSort() : "startTime");
+        String sortField = query.getSort() != null ? query.getSort() : "startTime";
         String direction = query.getDirection() != null ? query.getDirection() : "asc";
         boolean isAsc = "asc".equalsIgnoreCase(direction);
         switch (sortField) {
@@ -441,8 +461,8 @@ public class ContestServiceImpl implements ContestService {
         }
         Page<Contest> page = contestMapper.selectPage(new Page<>(currentPage, currentPageSize), qw);
         var enrichment = batchEnrich(page.getRecords(), userId);
-        List<ContestVO> items = page.getRecords().stream()
-                .map(c -> toVO(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
+        List<ContestListVO> items = page.getRecords().stream()
+                .map(c -> toListVOInternal(c, userId, enrichment.problemCounts().getOrDefault(c.getId(), 0L), enrichment.participants().get(c.getId())))
                 .collect(Collectors.toList());
         return PageResult.of(items, page.getTotal(), currentPage, currentPageSize);
     }

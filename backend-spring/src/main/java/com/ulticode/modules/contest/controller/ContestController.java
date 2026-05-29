@@ -95,12 +95,12 @@ public class ContestController {
      *
      * @return list of upcoming contests
      */
-    @Operation(summary = "Get upcoming contests", description = "Get a list of upcoming contests")
-    @ApiResponse(responseCode = "200", description = "Upcoming contests retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @Operation(summary = "Get upcoming contests", description = "Get a paginated list of upcoming contests")
+    @ApiResponse(responseCode = "200", description = "Upcoming contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping("/upcoming")
-    public Result<List<ContestVO>> getUpcomingContests() {
+    public Result<PageResult<ContestListVO>> getUpcomingContests() {
         String userId = SecurityUtil.getCurrentUserId();
-        List<ContestVO> contests = contestService.findUpcoming(userId);
+        PageResult<ContestListVO> contests = contestService.findUpcoming(userId);
         return Result.success(contests);
     }
 
@@ -110,12 +110,12 @@ public class ContestController {
      *
      * @return list of running contests
      */
-    @Operation(summary = "Get running contests", description = "Get a list of currently running contests")
-    @ApiResponse(responseCode = "200", description = "Running contests retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
+    @Operation(summary = "Get running contests", description = "Get a paginated list of currently running contests")
+    @ApiResponse(responseCode = "200", description = "Running contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping("/running")
-    public Result<List<ContestVO>> getRunningContests() {
+    public Result<PageResult<ContestListVO>> getRunningContests() {
         String userId = SecurityUtil.getCurrentUserId();
-        List<ContestVO> contests = contestService.findRunning(userId);
+        PageResult<ContestListVO> contests = contestService.findRunning(userId);
         return Result.success(contests);
     }
 
@@ -130,14 +130,14 @@ public class ContestController {
     @Operation(summary = "Get past contests", description = "Get a paginated list of past contests")
     @ApiResponse(responseCode = "200", description = "Past contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @GetMapping("/past")
-    public Result<PageResult<ContestVO>> getPastContests(
+    public Result<PageResult<ContestListVO>> getPastContests(
             @Parameter(description = "Page number (1-based)")
             @RequestParam(required = false, defaultValue = "1") Integer page,
             @Parameter(description = "Number of items per page")
             @RequestParam(required = false, defaultValue = "10") Integer pageSize) {
 
         String userId = SecurityUtil.getCurrentUserId();
-        PageResult<ContestVO> result = contestService.findPast(page, pageSize, userId);
+        PageResult<ContestListVO> result = contestService.findPast(page, pageSize, userId);
         return Result.success(result);
     }
 
@@ -291,13 +291,13 @@ public class ContestController {
     @ApiResponse(responseCode = "403", description = "Contest is not currently running")
     @ApiResponse(responseCode = "404", description = "Contest not found")
     @GetMapping("/{id}/live-ranking")
-    public Result<List<ContestRankingVO>> getLiveRanking(
+    public Result<List<LiveRankingEntryVO>> getLiveRanking(
             @Parameter(description = "Contest ID")
             @PathVariable String id,
             @Parameter(description = "Maximum number of rankings to return")
             @RequestParam(required = false, defaultValue = "100") Integer limit) {
 
-        List<ContestRankingVO> rankings = rankingService.getLiveRanking(id, limit);
+        List<LiveRankingEntryVO> rankings = rankingService.getLiveRanking(id, limit);
         return Result.success(rankings);
     }
 
@@ -488,9 +488,9 @@ public class ContestController {
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @SecurityRequirement(name = "Bearer")
     @GetMapping("/user/history")
-    public Result<List<ContestRankingVO>> getContestHistory() {
+    public Result<List<UserContestHistoryVO>> getContestHistory() {
         String userId = getCurrentUserIdOrThrow();
-        List<ContestRankingVO> history = rankingService.getUserContestHistory(userId);
+        List<UserContestHistoryVO> history = rankingService.getUserContestHistory(userId);
         return Result.success(history);
     }
 
@@ -505,9 +505,9 @@ public class ContestController {
     @ApiResponse(responseCode = "401", description = "Not authenticated")
     @SecurityRequirement(name = "Bearer")
     @GetMapping("/user/rating-history")
-    public Result<List<ContestRankingVO>> getRatingHistory() {
+    public Result<List<RatingHistoryVO>> getRatingHistory() {
         String userId = getCurrentUserIdOrThrow();
-        List<ContestRankingVO> history = rankingService.getUserRatingHistory(userId);
+        List<RatingHistoryVO> history = rankingService.getUserRatingHistory(userId);
         return Result.success(history);
     }
 

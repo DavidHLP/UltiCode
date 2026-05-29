@@ -21,16 +21,21 @@ export interface Contest {
   problemCount: number
   maxParticipants?: number
   currentParticipants?: number
+  registeredCount?: number
   scoringRuleId?: string
   problemIds?: string[]
   tags?: string[]
-  createdAt: string
-  updatedAt: string
+  createdAt?: string
+  updatedAt?: string
   createdById?: number
   createdByUsername?: string
   isParticipating?: boolean
   userRanking?: number
   userScore?: number
+  isRated?: boolean
+  scoringMode?: string
+  penaltyPerWrong?: number
+  coverImage?: string
 }
 
 export interface ContestRanking {
@@ -61,7 +66,7 @@ export interface ContestQueryParams {
   status?: string
   page?: number
   pageSize?: number
-  sortBy?: string
+  sort?: string
   direction?: 'asc' | 'desc'
 }
 

@@ -118,7 +118,7 @@ public interface AdminContestService {
      * @param contestId the contest ID
      * @return list of contest rankings
      */
-    List<com.ulticode.modules.contest.dto.ContestRankingVO> getRankings(String contestId);
+    List<com.ulticode.modules.contest.dto.LiveRankingEntryVO> getRankings(String contestId);
 
     com.ulticode.modules.contest.entity.ContestProblem addProblemToContest(String contestId, Long problemId, Integer score);
 }

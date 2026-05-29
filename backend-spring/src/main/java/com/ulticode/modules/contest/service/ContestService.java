@@ -93,17 +93,17 @@ public interface ContestService {
      * Get upcoming contests.
      *
      * @param userId the current user ID (optional, for user-specific fields)
-     * @return list of upcoming contests
+     * @return paginated list of upcoming contests
      */
-    List<ContestVO> findUpcoming(String userId);
+    PageResult<ContestListVO> findUpcoming(String userId);
 
     /**
      * Get running contests.
      *
      * @param userId the current user ID (optional, for user-specific fields)
-     * @return list of running contests
+     * @return paginated list of running contests
      */
-    List<ContestVO> findRunning(String userId);
+    PageResult<ContestListVO> findRunning(String userId);
 
     /**
      * Get past contests with pagination.
@@ -113,7 +113,7 @@ public interface ContestService {
      * @param userId   the current user ID (optional, for user-specific fields)
      * @return paginated list of past contests
      */
-    PageResult<ContestVO> findPast(Integer page, Integer pageSize, String userId);
+    PageResult<ContestListVO> findPast(Integer page, Integer pageSize, String userId);
 
     /**
      * Get global contest statistics.
@@ -221,7 +221,7 @@ public interface ContestService {
      * @param userId the current user ID (optional)
      * @return paginated list of all contests
      */
-    PageResult<ContestVO> findAllAdmin(ContestQueryDTO query, String userId);
+    PageResult<ContestListVO> findAllAdmin(ContestQueryDTO query, String userId);
 
     /**
      * Start a contest (transition from DRAFT/UPCOMING to RUNNING).

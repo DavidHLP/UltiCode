@@ -302,7 +302,9 @@ Backend Entity (Contest)
 | 删除 `findAll()` 冗余方法 | P1 | `ContestService.java`, `ContestServiceImpl.java` |
 | 补全 `getContestList` 缺失的参数映射 (`contestType`, `isRated`) | P1 | `ContestController.java` |
 
-### Phase 2: API 颗粒度统一 (2-3 天)
+### Phase 2: API 颗粒度统一 (2-3 天) — **in-progress**
+
+> **Implementation Plan**: `.claude/PRPs/plans/contest-api-phase2-granularity.plan.md`
 
 | 任务 | 优先级 | 涉及文件 |
 |------|--------|---------|

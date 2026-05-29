@@ -33,13 +33,13 @@ public class AdminContestController {
     @ApiResponse(responseCode = "200", description = "Contests retrieved", content = @Content(schema = @Schema(implementation = PageResult.class)))
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     @GetMapping
-    public Result<PageResult<ContestVO>> listContests(
+    public Result<PageResult<ContestListVO>> listContests(
             @Parameter(description = "Page number (1-based)") @RequestParam(required = false) Integer page,
             @Parameter(description = "Number of items per page") @RequestParam(required = false) Integer pageSize,
             @Parameter(description = "Filter by status") @RequestParam(required = false) String status,
             @Parameter(description = "Filter by contest type") @RequestParam(required = false) String contestType,
             @Parameter(description = "Search by ID, title, or slug") @RequestParam(required = false) String search,
-            @Parameter(description = "Sort by field") @RequestParam(required = false) String sortBy,
+            @Parameter(description = "Sort by field") @RequestParam(required = false) String sort,
             @Parameter(description = "Sort direction") @RequestParam(required = false) String direction) {
 
         ContestQueryDTO query = new ContestQueryDTO();
@@ -48,7 +48,7 @@ public class AdminContestController {
         query.setStatus(status);
         query.setContestType(contestType);
         query.setSearch(search);
-        query.setSortBy(sortBy);
+        query.setSort(sort);
         query.setDirection(direction);
 
         String userId = SecurityUtil.getCurrentUserId();

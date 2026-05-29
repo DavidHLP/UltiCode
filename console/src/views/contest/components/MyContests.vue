@@ -145,13 +145,13 @@ function navigateToContest(slug: string) {
                 class="flex items-center justify-between rounded-none border p-4 hover:bg-muted/50"
               >
                 <div class="flex-1 space-y-1">
-                  <h3 class="font-semibold">{{ history.contestTitle }}</h3>
+                  <h3 class="font-semibold">{{ history.title }}</h3>
                   <div
                     class="flex items-center gap-3 text-sm text-muted-foreground"
                   >
                     <span class="flex items-center gap-1">
                       <Calendar class="h-3 w-3" />
-                      {{ formatDate(history.contestDate) }}
+                      {{ formatDate(history.startTime || "") }}
                     </span>
                     <span class="flex items-center gap-1">
                       <Trophy class="h-3 w-3" />
@@ -168,30 +168,13 @@ function navigateToContest(slug: string) {
                   </div>
                 </div>
                 <div class="flex items-center gap-2">
-                  <Badge v-if="history.isVirtual" variant="outline">{{
-                    t("contest.types.virtual")
-                  }}</Badge>
-                  <div
-                    class="flex items-center gap-1 rounded-none px-2 py-1 font-semibold"
-                    :class="{
-                      'bg-[oklch(0.6444_0.1508_118.6_/_0.12)] text-[var(--terminal-green)]':
-                        history.ratingChange > 0,
-                      'bg-[oklch(0.5863_0.2064_27.1_/_0.12)] text-[var(--terminal-red)]':
-                        history.ratingChange < 0,
-                      'text-muted-foreground': history.ratingChange === 0,
-                    }"
+                  <Badge
+                    v-if="history.isRated"
+                    variant="outline"
+                    class="font-data text-[10px]"
                   >
-                    <TrendingUp
-                      v-if="history.ratingChange > 0"
-                      class="h-4 w-4"
-                    />
-                    <TrendingDown
-                      v-else-if="history.ratingChange < 0"
-                      class="h-4 w-4"
-                    />
-                    {{ history.ratingChange > 0 ? "+" : ""
-                    }}{{ history.ratingChange }}
-                  </div>
+                    {{ t("contest.list.rated") }}
+                  </Badge>
                 </div>
               </div>
             </div>

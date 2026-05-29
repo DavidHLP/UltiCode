@@ -8,8 +8,6 @@ import type {
   GlobalRankingEntry,
   UserContestHistory,
   RatingHistoryEntry,
-  ContestFilters,
-  PaginatedResult,
 } from "@/types/contest";
 import {
   fetchUpcomingContests,
@@ -26,7 +24,6 @@ import {
   fetchUserContestHistory,
   fetchUserRatingHistory,
   fetchGlobalRankings,
-  getContests,
 } from "@/api/contest";
 
 export const useContestStore = defineStore("contest", () => {
@@ -92,8 +89,8 @@ export const useContestStore = defineStore("contest", () => {
         fetchUpcomingContests(),
         fetchRunningContests(),
       ]);
-      upcomingContests.value = upcoming;
-      runningContests.value = running;
+      upcomingContests.value = upcoming.items;
+      runningContests.value = running.items;
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Failed to load contests";
@@ -108,7 +105,7 @@ export const useContestStore = defineStore("contest", () => {
     error.value = null;
     try {
       const result = await fetchPastContests(page, pageSize);
-      pastContests.value = result.data;
+      pastContests.value = result.items;
       pastContestsTotal.value = result.total;
     } catch (err) {
       error.value =
@@ -159,13 +156,11 @@ export const useContestStore = defineStore("contest", () => {
       const status = await fetchParticipationStatus(contestId);
       userParticipation.value.set(contestId, status);
 
-      const updateCount = (list: ContestListItem[]) => {
-        const contest = list.find((c) => c.id === contestId);
-        if (contest) {
-          contest.registeredCount = (contest.registeredCount || 0) + 1;
-        }
-      };
-      updateCount(upcomingContests.value);
+      upcomingContests.value = upcomingContests.value.map((c) =>
+        c.id === contestId
+          ? { ...c, registeredCount: (c.registeredCount || 0) + 1 }
+          : c,
+      );
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Failed to register for contest";
@@ -180,16 +175,11 @@ export const useContestStore = defineStore("contest", () => {
       const status = await fetchParticipationStatus(contestId);
       userParticipation.value.set(contestId, status);
 
-      const updateCount = (list: ContestListItem[]) => {
-        const contest = list.find((c) => c.id === contestId);
-        if (contest) {
-          contest.registeredCount = Math.max(
-            0,
-            (contest.registeredCount || 0) - 1,
-          );
-        }
-      };
-      updateCount(upcomingContests.value);
+      upcomingContests.value = upcomingContests.value.map((c) =>
+        c.id === contestId
+          ? { ...c, registeredCount: Math.max(0, (c.registeredCount || 0) - 1) }
+          : c,
+      );
     } catch (err) {
       error.value =
         err instanceof Error

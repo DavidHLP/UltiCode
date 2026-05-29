@@ -1,9 +1,9 @@
 import { ref, watch, onUnmounted, type Ref } from "vue";
-import type { ContestDetail, ContestRankingEntry } from "@/types/contest";
+import type { ContestDetail, ContestRankingEntry, LiveRankingEntry } from "@/types/contest";
 import { fetchContestRanking, fetchLiveRanking } from "@/api/contest";
 
 export function useContestRankings(contestId: Ref<string>, contest: Ref<ContestDetail | null>) {
-  const rankings = ref<ContestRankingEntry[]>([]);
+  const rankings = ref<(ContestRankingEntry | LiveRankingEntry)[]>([]);
   let rankingIntervalId: number | null = null;
 
   async function loadRankings() {
@@ -15,8 +15,8 @@ export function useContestRankings(contestId: Ref<string>, contest: Ref<ContestD
       }
       const rankingRes = await fetchContestRanking(contestId.value);
       rankings.value = rankingRes.items;
-    } catch (error) {
-      console.error("Failed to load contest rankings:", error);
+    } catch {
+      // Silently ignore ranking load failures; UI shows empty state
     }
   }
 

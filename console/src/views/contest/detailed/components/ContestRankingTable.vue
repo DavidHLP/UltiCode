@@ -12,10 +12,10 @@ import {
 } from "@/components/ui/table";
 import { formatPenaltyTime } from "@/utils/date";
 import { useI18n } from "vue-i18n";
-import type { ContestRankingEntry } from "@/types/contest";
+import type { ContestRankingEntry, LiveRankingEntry } from "@/types/contest";
 
 defineProps<{
-  rankings: ContestRankingEntry[];
+  rankings: (ContestRankingEntry | LiveRankingEntry)[];
   getCountryFlag: (countryCode: string) => string;
 }>();
 
@@ -81,10 +81,10 @@ const { t } = useI18n();
                     entry.rank === 2,
                   'bg-[var(--terminal-amber)] text-white shadow-[var(--shadow-float)] shadow-[var(--terminal-amber)]/20':
                     entry.rank === 3,
-                  'bg-muted text-muted-foreground': entry.rank > 3,
+                  'bg-muted text-muted-foreground': (entry.rank ?? 0) > 3,
                 }"
               >
-                {{ entry.rank }}
+                {{ entry.rank ?? 0 }}
               </div>
             </TableCell>
             <TableCell>

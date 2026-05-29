@@ -1,9 +1,10 @@
 <script setup lang="ts">
 /**
- * ContestListView - Contest list page with tabbed navigation
+ * ContestBrowseView - Contest browse page with tabbed navigation
  *
  * Features:
  * - Tabbed navigation for ongoing, upcoming, and finished contests
+ * - Supports initialTab prop for direct tab selection
  * - Uses contestStore for state management
  * - Integrates ContestCard components
  * - Shows loading skeletons during data fetch
@@ -22,6 +23,10 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import ContestCard from "./components/ContestCard.vue";
 import type { ContestListItem } from "@/types/contest";
+
+const props = defineProps<{
+  initialTab?: string;
+}>();
 
 const route = useRoute();
 const router = useRouter();
@@ -74,10 +79,15 @@ watch(activeTab, (newTab) => {
 // Load data
 async function loadData() {
   try {
-    const tab = (route.query.tab as string) || "ongoing";
-    activeTab.value = ["ongoing", "upcoming", "finished"].includes(tab)
-      ? tab
-      : "ongoing";
+    // Resolve initial tab: prop > query > default
+    const allowedTabs = ["ongoing", "upcoming", "finished"];
+    const resolvedTab =
+      props.initialTab && allowedTabs.includes(props.initialTab)
+        ? props.initialTab
+        : allowedTabs.includes(route.query.tab as string)
+          ? (route.query.tab as string)
+          : "ongoing";
+    activeTab.value = resolvedTab;
 
     const page = Number(route.query.page) || 1;
     currentPage.value = page;

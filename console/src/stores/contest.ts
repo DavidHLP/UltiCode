@@ -7,7 +7,6 @@ import type {
   VirtualContestSession,
   GlobalRankingEntry,
   UserContestHistory,
-  RatingHistoryEntry,
 } from "@/types/contest";
 import {
   fetchUpcomingContests,
@@ -22,7 +21,6 @@ import {
   finishVirtualContest as apiFinishVirtual,
   fetchUserContests as apiFetchUserContests,
   fetchUserContestHistory,
-  fetchUserRatingHistory,
   fetchGlobalRankings,
 } from "@/api/contest";
 
@@ -45,7 +43,6 @@ export const useContestStore = defineStore("contest", () => {
   const participatedContests = ref<ContestListItem[]>([]);
   const virtualContests = ref<ContestListItem[]>([]);
   const contestHistory = ref<UserContestHistory[]>([]);
-  const ratingHistory = ref<RatingHistoryEntry[]>([]);
 
   const globalRankings = ref<GlobalRankingEntry[]>([]);
 
@@ -286,17 +283,6 @@ export const useContestStore = defineStore("contest", () => {
     }
   }
 
-  async function loadRatingHistory() {
-    error.value = null;
-    try {
-      ratingHistory.value = await fetchUserRatingHistory();
-    } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : "Failed to load rating history";
-      throw err;
-    }
-  }
-
   // =========================================================================
   // COUNTDOWN MANAGEMENT
   // =========================================================================
@@ -354,7 +340,6 @@ export const useContestStore = defineStore("contest", () => {
     participatedContests.value = [];
     virtualContests.value = [];
     contestHistory.value = [];
-    ratingHistory.value = [];
     globalRankings.value = [];
     loading.value = false;
     loadingContests.value = false;
@@ -376,7 +361,6 @@ export const useContestStore = defineStore("contest", () => {
     participatedContests,
     virtualContests,
     contestHistory,
-    ratingHistory,
     globalRankings,
     loading,
     loadingContests,
@@ -402,7 +386,6 @@ export const useContestStore = defineStore("contest", () => {
     finishVirtualContest,
     loadUserContests,
     loadContestHistory,
-    loadRatingHistory,
     startCountdownTimer,
     stopCountdownTimer,
     getCountdown,

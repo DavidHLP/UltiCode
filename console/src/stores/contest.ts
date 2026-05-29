@@ -127,11 +127,19 @@ export const useContestStore = defineStore("contest", () => {
     }
   }
 
-  async function loadGlobalRankings() {
+  async function loadGlobalRankings(options?: {
+    page?: number;
+    limit?: number;
+    country?: string;
+  }) {
     loadingRankings.value = true;
     error.value = null;
     try {
-      const result = await fetchGlobalRankings({ page: 1, limit: 10 });
+      const result = await fetchGlobalRankings({
+        page: options?.page ?? 1,
+        limit: options?.limit ?? 10,
+        country: options?.country,
+      });
       globalRankings.value = result.items;
     } catch (err) {
       error.value =
@@ -254,17 +262,26 @@ export const useContestStore = defineStore("contest", () => {
   // ACTIONS — USER CONTESTS
   // =========================================================================
 
-  async function loadUserContests() {
+  async function loadUserContests(
+    type?: "registered" | "participated" | "virtual",
+  ) {
     error.value = null;
     try {
-      const [registered, participated, virtual] = await Promise.all([
-        apiFetchUserContests("registered"),
-        apiFetchUserContests("participated"),
-        apiFetchUserContests("virtual"),
-      ]);
-      registeredContests.value = registered;
-      participatedContests.value = participated;
-      virtualContests.value = virtual;
+      if (type) {
+        const result = await apiFetchUserContests(type);
+        if (type === "registered") registeredContests.value = result;
+        if (type === "participated") participatedContests.value = result;
+        if (type === "virtual") virtualContests.value = result;
+      } else {
+        const [registered, participated, virtual] = await Promise.all([
+          apiFetchUserContests("registered"),
+          apiFetchUserContests("participated"),
+          apiFetchUserContests("virtual"),
+        ]);
+        registeredContests.value = registered;
+        participatedContests.value = participated;
+        virtualContests.value = virtual;
+      }
     } catch (err) {
       error.value =
         err instanceof Error ? err.message : "Failed to load user contests";

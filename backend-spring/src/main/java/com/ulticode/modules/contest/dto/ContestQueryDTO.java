@@ -34,21 +34,12 @@ public class ContestQueryDTO {
     @Schema(description = "Filter by contest type", example = "ICPC", allowableValues = {"ICPC", "IOI", "CUSTOM"})
     private String contestType;
 
-    @Schema(description = "Sort by field (alias for sort)", example = "startTime")
-    private String sortBy;
-
     @Schema(description = "Filter by rated status", example = "true")
     private Boolean isRated;
-
-    @Schema(description = "Filter by visibility (alias for isVisible)", example = "true")
-    private Boolean isPublic;
 
     @Schema(description = "Filter by start time from (ISO datetime)")
     private String startDateFrom;
 
     @Schema(description = "Filter by start time to (ISO datetime)")
     private String startDateTo;
-
-    @Schema(description = "Number of items per page (alias for pageSize)")
-    private Integer limit;
 }

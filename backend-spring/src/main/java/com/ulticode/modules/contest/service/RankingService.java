@@ -2,6 +2,9 @@ package com.ulticode.modules.contest.service;
 
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
+import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
+import com.ulticode.modules.contest.dto.RatingHistoryVO;
+import com.ulticode.modules.contest.dto.UserContestHistoryVO;
 
 import java.util.List;
 
@@ -27,7 +30,7 @@ public interface RankingService {
      * @param limit     the maximum number of rankings to return
      * @return list of live rankings
      */
-    List<ContestRankingVO> getLiveRanking(String contestId, Integer limit);
+    List<LiveRankingEntryVO> getLiveRanking(String contestId, Integer limit);
 
     /**
      * Get user contest history.
@@ -35,7 +38,7 @@ public interface RankingService {
      * @param userId the user ID
      * @return list of contest rankings for the user
      */
-    List<ContestRankingVO> getUserContestHistory(String userId);
+    List<UserContestHistoryVO> getUserContestHistory(String userId);
 
     /**
      * Get user rating history.
@@ -43,5 +46,5 @@ public interface RankingService {
      * @param userId the user ID
      * @return list of rating changes over time
      */
-    List<ContestRankingVO> getUserRatingHistory(String userId);
+    List<RatingHistoryVO> getUserRatingHistory(String userId);
 }

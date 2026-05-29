@@ -35,6 +35,15 @@ public interface GlobalRankingMapper extends BaseMapper<GlobalRanking> {
     List<GlobalRanking> findTopRankings(@Param("limit") int limit);
 
     /**
+     * Find rankings paginated by global rank (SQL-level pagination).
+     */
+    @Select("SELECT * FROM global_rankings ORDER BY global_rank ASC LIMIT #{limit} OFFSET #{offset}")
+    List<GlobalRanking> findRankingsPaginated(
+            @Param("limit") int limit,
+            @Param("offset") int offset
+    );
+
+    /**
      * Find rankings by rating range
      */
     @Select("SELECT * FROM global_rankings WHERE rating BETWEEN #{minRating} AND #{maxRating} ORDER BY rating DESC")

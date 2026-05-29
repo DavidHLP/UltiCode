@@ -390,7 +390,7 @@ public class AdminContestServiceImpl implements AdminContestService {
     }
 
     @Override
-    public List<com.ulticode.modules.contest.dto.ContestRankingVO> getRankings(String contestId) {
+    public List<com.ulticode.modules.contest.dto.LiveRankingEntryVO> getRankings(String contestId) {
         Contest contest = contestMapper.selectById(contestId);
         if (contest == null) {
             throw new BusinessException(ErrorCode.CONTEST_NOT_FOUND);

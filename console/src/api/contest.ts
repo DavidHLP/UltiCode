@@ -14,9 +14,9 @@ import type {
   ContestFilters,
   ContestAnnouncement,
   RankingEntry,
-  ContestProblem,
   ContestScoringMode,
   ContestTieBreaker,
+  LiveRankingEntry,
 } from "@/types/contest";
 import type { SubmissionRecord } from "@/types/submission";
 
@@ -128,36 +128,45 @@ function mapGlobalRankingEntry(
   };
 }
 
+function mapPaginatedContestList(
+  result: PaginatedResult<Record<string, unknown>>,
+): PaginatedResult<ContestListItem> {
+  return {
+    items: (result.items || []).map((r) => mapContestListItem(r)),
+    total: result.total ?? 0,
+    page: result.page ?? 1,
+    pageSize: result.pageSize ?? 20,
+    totalPages: result.totalPages ?? 0,
+  };
+}
+
 // ============================================================================
 // CONTEST QUERIES
 // ============================================================================
 
-export async function fetchUpcomingContests(): Promise<ContestListItem[]> {
-  const result = await apiGet<Record<string, unknown>[]>(
+export async function fetchUpcomingContests(): Promise<PaginatedResult<ContestListItem>> {
+  const result = await apiGet<PaginatedResult<Record<string, unknown>>>(
     "/contest/upcoming",
   );
-  return result.map((r) => mapContestListItem(r));
+  return mapPaginatedContestList(result);
 }
 
-export async function fetchRunningContests(): Promise<ContestListItem[]> {
-  const result = await apiGet<Record<string, unknown>[]>(
+export async function fetchRunningContests(): Promise<PaginatedResult<ContestListItem>> {
+  const result = await apiGet<PaginatedResult<Record<string, unknown>>>(
     "/contest/running",
   );
-  return result.map((r) => mapContestListItem(r));
+  return mapPaginatedContestList(result);
 }
 
 export async function fetchPastContests(
   page: number = 1,
   pageSize: number = 10,
-): Promise<{ data: ContestListItem[]; total: number }> {
-  const result = await apiGet<{
-    items: Record<string, unknown>[];
-    total: number;
-  }>("/contest/past", { params: { page, pageSize } });
-  return {
-    data: (result.items || []).map((r) => mapContestListItem(r)),
-    total: result.total ?? 0,
-  };
+): Promise<PaginatedResult<ContestListItem>> {
+  const result = await apiGet<PaginatedResult<Record<string, unknown>>>(
+    "/contest/past",
+    { params: { page, pageSize } },
+  );
+  return mapPaginatedContestList(result);
 }
 
 export async function fetchContestDetail(
@@ -194,9 +203,6 @@ export async function getContests(
     if (filters.isRated !== undefined) {
       params.append("isRated", String(filters.isRated));
     }
-    if (filters.isPublic !== undefined) {
-      params.append("isPublic", String(filters.isPublic));
-    }
     if (filters.search) {
       params.append("search", filters.search);
     }
@@ -212,14 +218,8 @@ export async function getContests(
     if (filters.pageSize !== undefined) {
       params.append("pageSize", String(filters.pageSize));
     }
-    if (filters.limit !== undefined) {
-      params.append("limit", String(filters.limit));
-    }
     if (filters.sort) {
       params.append("sort", filters.sort);
-    }
-    if (filters.sortBy) {
-      params.append("sortBy", filters.sortBy);
     }
     if (filters.direction) {
       params.append("direction", filters.direction);
@@ -232,15 +232,7 @@ export async function getContests(
   const result = await apiGet<PaginatedResult<Record<string, unknown>>>(
     url,
   );
-  return {
-    items: (result.items || []).map((r) =>
-      mapContestListItem(r as Record<string, unknown>),
-    ),
-    total: result.total ?? 0,
-    page: result.page ?? 1,
-    pageSize: result.pageSize ?? 20,
-    totalPages: result.totalPages ?? 0,
-  };
+  return mapPaginatedContestList(result);
 }
 
 export async function getContest(slug: string): Promise<ContestDetail> {
@@ -282,8 +274,8 @@ export async function fetchContestRanking(
 export async function fetchLiveRanking(
   contestId: string,
   limit: number = 100,
-): Promise<ContestRankingEntry[]> {
-  return apiGet<ContestRankingEntry[]>(
+): Promise<LiveRankingEntry[]> {
+  return apiGet<LiveRankingEntry[]>(
     `/contest/${contestId}/live-ranking`,
     { params: { limit } },
   );

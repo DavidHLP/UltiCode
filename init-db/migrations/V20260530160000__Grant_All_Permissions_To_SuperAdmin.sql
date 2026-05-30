@@ -1,3 +1,22 @@
+-- Migration:
+--   V20260530160000__Grant_All_Permissions_To_SuperAdmin.sql
+--
+-- Purpose:
+--   Grant all system permissions to SUPER_ADMIN role for full administrative access.
+--
+-- Risk:
+--   Low. INSERT ON DUPLICATE KEY UPDATE is idempotent. Only adds permission records.
+--
+-- Compatibility:
+--   Compatible. Permissions are additive and optional for existing users.
+--
+-- Rollback:
+--   DELETE FROM role_permissions WHERE role = 'SUPER_ADMIN';
+--
+-- Verify:
+--   SELECT COUNT(*) FROM role_permissions WHERE role = 'SUPER_ADMIN';
+--   Should return 139+ rows
+
 -- Grant all permissions to SUPER_ADMIN role
 -- This ensures the admin user automatically inherits all permissions through their role
 

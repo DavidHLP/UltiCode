@@ -172,4 +172,11 @@ export default {
   toast: {
     loadFailed: '加载审计日志失败',
   },
+
+  problemDrawer: {
+    title: '审计历史',
+    button: '审计日志',
+    problemId: '题目 #{id}',
+    noLogs: '此题目暂无审计记录。',
+  },
 } as const

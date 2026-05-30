@@ -20,6 +20,8 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
   const selectedProblemForFlagTitle = ref<string | null>(null)
   const flagInfoDialogOpen = ref(false)
   const selectedProblemForFlagInfo = ref<Problem | null>(null)
+  const auditDrawerOpen = ref(false)
+  const auditDrawerProblemId = ref<string | number | null>(null)
 
   // Import/Export state
   const importing = ref(false)
@@ -106,6 +108,13 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
     selectedProblemForFlagInfo.value = problem
     nextTick(() => {
       flagInfoDialogOpen.value = true
+    })
+  }
+
+  function openAuditDrawer(problem: Problem) {
+    auditDrawerProblemId.value = problem.id
+    nextTick(() => {
+      auditDrawerOpen.value = true
     })
   }
 
@@ -236,6 +245,8 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
     selectedProblemForFlagTitle,
     flagInfoDialogOpen,
     selectedProblemForFlagInfo,
+    auditDrawerOpen,
+    auditDrawerProblemId,
     importing,
     importDialogOpen,
     selectedRows,
@@ -256,6 +267,7 @@ export function useProblemActions(loadProblems: () => Promise<void>) {
     unpublishProblem,
     openFlagDialog,
     viewFlagInfo,
+    openAuditDrawer,
     handleFlagProblem,
     unflagProblem,
 

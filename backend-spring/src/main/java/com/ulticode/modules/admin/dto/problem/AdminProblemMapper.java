@@ -41,6 +41,8 @@ public interface AdminProblemMapper {
 
     List<CodeDataVO.LanguageInfo> toLanguageInfoList(List<ProblemLanguage> languages);
 
+    @Mapping(target = "input", source = "inputText")
+    @Mapping(target = "output", source = "outputText")
     @Mapping(target = "order", source = "exampleOrder")
     CasesDataVO.ExampleInfo toExampleInfo(ProblemExample example);
 

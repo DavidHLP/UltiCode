@@ -12,6 +12,7 @@ import java.util.stream.Collectors;
 import com.ulticode.common.annotation.RateLimit;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.response.Result;
+import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.admin.service.AdminProblemService;
 import com.ulticode.modules.problem.dto.CreateProblemDTO;
@@ -21,6 +22,7 @@ import com.ulticode.modules.problem.dto.UpdateProblemDTO;
 import com.ulticode.modules.problem.service.ProblemService;
 import com.ulticode.modules.submission.entity.Submission;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -262,5 +264,14 @@ public class AdminProblemController {
     @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public Result<CasesDataVO> getProblemCases(@PathVariable Long id) {
         return Result.success(adminProblemService.getCasesData(id));
+    }
+
+    @Operation(summary = "Get problem audit history", description = "Get audit history for a problem")
+    @GetMapping("/{id}/audit")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public Result<List<AuditLogVO>> getProblemAuditHistory(
+            @Parameter(description = "Problem ID")
+            @PathVariable Long id) {
+        return Result.success(adminProblemService.getProblemAuditHistory(id));
     }
 }

@@ -31,6 +31,8 @@ export default {
     createDescription: 'Create a new tag',
     name: 'Tag Name',
     namePlaceholder: 'Enter tag name',
+    nameRequired: 'Tag name is required',
+    nameTooLong: 'Tag name must be less than 50 characters',
     slug: 'Slug',
     slugPlaceholder: 'url-friendly-name',
     color: 'Color',

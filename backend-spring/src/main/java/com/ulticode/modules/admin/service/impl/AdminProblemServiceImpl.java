@@ -5,9 +5,13 @@ import com.ulticode.common.exception.BusinessException;
 import com.ulticode.common.exception.ErrorCode;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.common.util.SecurityUtil;
+import com.ulticode.common.util.AuditActionUtil;
+import com.ulticode.modules.admin.dto.AuditLogQueryDTO;
+import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.admin.service.AdminProblemService;
 import com.ulticode.modules.admin.dto.problem.AdminProblemMapper;
+import com.ulticode.modules.admin.service.AuditService;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.problem.entity.*;
 import com.ulticode.modules.problem.mapper.*;
@@ -40,6 +44,7 @@ public class AdminProblemServiceImpl implements AdminProblemService {
     private final AdminProblemMapper mapper;
     private final com.ulticode.modules.problem.service.ProblemService problemService;
     private final com.ulticode.modules.submission.mapper.SubmissionMapper submissionMapper;
+    private final AuditService auditService;
 
     @Override
     public HeaderDataVO getHeaderData(Long id) {
@@ -306,5 +311,15 @@ public class AdminProblemServiceImpl implements AdminProblemService {
 
     private HeaderDataVO toHeaderDataVO(Problem problem) {
         return mapper.toHeaderDataVO(problem);
+    }
+
+    @Override
+    public List<AuditLogVO> getProblemAuditHistory(Long id) {
+        AuditLogQueryDTO query = new AuditLogQueryDTO();
+        query.setEntityType(AuditActionUtil.ENTITY_PROBLEM);
+        query.setEntityId(String.valueOf(id));
+        query.setPage(1);
+        query.setLimit(100);
+        return auditService.getAuditLogs(query).getItems();
     }
 }

@@ -119,7 +119,7 @@ export function useProblemFilters() {
             : false,
       sortBy: sortBy.value === 'default' ? undefined : sortBy.value,
       sortOrder: sortOrder.value || undefined,
-      page: tablePagination.pageIndex + 1,
+      page: Math.max(1, tablePagination.pageIndex + 1),
       limit: tablePagination.pageSize,
     }
   }

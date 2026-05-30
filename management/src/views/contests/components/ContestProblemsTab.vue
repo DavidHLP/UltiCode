@@ -18,7 +18,7 @@ defineProps<{
 
 const emit = defineEmits<{
   addProblem: []
-  removeProblem: [problemId: string]
+  removeProblem: [problemId: number]
 }>()
 </script>
 

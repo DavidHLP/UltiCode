@@ -1,15 +1,25 @@
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
-export type ContestFormat = 'ICPC' | 'IOI' | 'CUSTOM'
+export enum ContestType {
+  ICPC = 'ICPC',
+  IOI = 'IOI',
+  CUSTOM = 'CUSTOM',
+}
 
-export type ContestStatus = 'DRAFT' | 'UPCOMING' | 'RUNNING' | 'FINISHED' | 'CANCELLED'
+export enum ContestStatus {
+  DRAFT = 'DRAFT',
+  UPCOMING = 'UPCOMING',
+  RUNNING = 'RUNNING',
+  FINISHED = 'FINISHED',
+  CANCELLED = 'CANCELLED',
+}
 
 export interface Contest {
   id: string
   slug: string
   title: string
   description?: string
-  contestType: ContestFormat
+  contestType: ContestType
   startTime: string
   endTime?: string
   duration: number
@@ -23,7 +33,7 @@ export interface Contest {
   currentParticipants?: number
   registeredCount?: number
   scoringRuleId?: string
-  problemIds?: string[]
+  problemIds?: number[]
   tags?: string[]
   createdAt?: string
   updatedAt?: string
@@ -62,7 +72,7 @@ export interface ContestProblem {
 
 export interface ContestQueryParams {
   search?: string
-  contestType?: ContestFormat
+  contestType?: ContestType
   status?: string
   page?: number
   pageSize?: number
@@ -82,13 +92,13 @@ export interface CreateContestDto {
   slug?: string
   title: string
   description?: string
-  contestType?: ContestFormat
+  contestType?: ContestType
   startTime: string
   duration: number
   maxParticipants?: number
   isPremium?: boolean
   isPublished?: boolean
-  problemIds?: string[]
+  problemIds?: number[]
   tags?: string[]
   scoringRuleId?: string
 }
@@ -97,13 +107,13 @@ export interface UpdateContestDto {
   slug?: string
   title?: string
   description?: string
-  contestType?: ContestFormat
+  contestType?: ContestType
   startTime?: string
   duration?: number
   maxParticipants?: number
   isPremium?: boolean
   isPublished?: boolean
-  problemIds?: string[]
+  problemIds?: number[]
   tags?: string[]
   scoringRuleId?: string
 }

@@ -14,7 +14,7 @@ import { Stepper, StepperItem, StepperTrigger, StepperSeparator } from '@/compon
 import { toast } from 'vue-sonner'
 import { IconLoader, IconArrowLeft, IconArrowRight, IconCheck } from '@tabler/icons-vue'
 import { useContestsStore } from '@/stores/admin/contests'
-import type { ContestFormat } from '@/api/admin/contests'
+import { ContestType } from '@/api/admin/contests'
 
 import StepBasicInfo from './StepBasicInfo.vue'
 import StepScoringRule from './StepScoringRule.vue'
@@ -48,7 +48,7 @@ const formData = ref({
   title: '',
   slug: '',
   description: '',
-  contestType: 'ICPC' as ContestFormat,
+  contestType: ContestType.ICPC,
   scoringRuleId: '',
   startTime: '',
   duration: 120,
@@ -128,7 +128,7 @@ async function handleSubmit() {
       startTime: startTimeISO,
       duration: formData.value.duration,
       isPublished: formData.value.isPublished,
-      problemIds: formData.value.selectedProblems.map((p) => p.id),
+      problemIds: formData.value.selectedProblems.map((p) => Number(p.id)),
       scoringRuleId: formData.value.scoringRuleId || undefined,
     })
 
@@ -141,7 +141,7 @@ async function handleSubmit() {
       title: '',
       slug: '',
       description: '',
-      contestType: 'ICPC' as ContestFormat,
+      contestType: ContestType.ICPC,
       scoringRuleId: '',
       startTime: '',
       duration: 120,

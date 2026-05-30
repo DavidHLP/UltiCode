@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { contestsApi, CreateContestDto, ContestFormat } from '@/api/admin/contests'
+import { contestsApi, CreateContestDto, ContestType } from '@/api/admin/contests'
 import { apiGet, apiPost, apiPatch, apiDelete } from '@/utils/request'
 
 vi.mock('@/utils/request', () => ({
@@ -21,7 +21,7 @@ describe('contestsApi', () => {
         slug: 'weekly-contest-123',
         title: 'Weekly Contest #123',
         description: 'Test contest',
-        contestType: 'ICPC' as ContestFormat,
+        contestType: ContestType.ICPC,
         startTime: '2024-12-31T10:00:00Z',
         duration: 120,
         status: 'UPCOMING' as const,
@@ -57,7 +57,7 @@ describe('contestsApi', () => {
         id: 'contest-456',
         slug: 'simple-contest',
         title: 'Simple Contest',
-        contestType: 'CUSTOM' as ContestFormat,
+        contestType: ContestType.CUSTOM,
         startTime: '2024-12-31T10:00:00Z',
         duration: 60,
         status: 'UPCOMING' as const,
@@ -88,7 +88,7 @@ describe('contestsApi', () => {
         id: 'contest-789',
         slug: 'contest-with-problems',
         title: 'Contest With Problems',
-        contestType: 'ICPC' as ContestFormat,
+        contestType: ContestType.ICPC,
         startTime: '2024-12-31T10:00:00Z',
         duration: 180,
         status: 'UPCOMING' as const,
@@ -157,7 +157,7 @@ describe('contestsApi', () => {
         id: 'contest-123',
         slug: 'test-contest',
         title: 'Test Contest',
-        contestType: 'ICPC' as ContestFormat,
+        contestType: ContestType.ICPC,
         startTime: '2024-12-31T10:00:00Z',
         duration: 120,
         status: 'UPCOMING' as const,
@@ -181,7 +181,7 @@ describe('contestsApi', () => {
         id: 'contest-123',
         slug: 'updated-contest',
         title: 'Updated Contest',
-        contestType: 'ICPC' as ContestFormat,
+        contestType: ContestType.ICPC,
         startTime: '2024-12-31T10:00:00Z',
         duration: 120,
         status: 'UPCOMING' as const,

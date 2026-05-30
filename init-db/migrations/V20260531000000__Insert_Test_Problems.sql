@@ -1,3 +1,30 @@
+-- Migration:
+--   V20260531000000__Insert_Test_Problems.sql
+--
+-- Purpose:
+--   Insert test problem data for management UI testing.
+--   Creates a complete PROBLEM entity with details, examples, languages, and tags.
+--
+-- Risk:
+--   Low. Test data only. Uses INSERT ON DUPLICATE KEY UPDATE for idempotency.
+--
+-- Compatibility:
+--   Compatible. Test data does not affect production functionality.
+--
+-- Rollback:
+--   DELETE FROM problem_versions WHERE problem_id = 1;
+--   DELETE FROM problem_tag_relations WHERE problem_id = 1;
+--   DELETE FROM problem_tags WHERE id IN ('tag-array', 'tag-hash');
+--   DELETE FROM problem_languages WHERE problem_id = 1;
+--   DELETE FROM problem_examples WHERE problem_id = 1;
+--   DELETE FROM problem_details WHERE problem_id = 1;
+--   DELETE FROM problems WHERE id = 1;
+--
+-- Verify:
+--   SELECT id, title, difficulty, status FROM problems WHERE id = 1;
+--   SELECT COUNT(*) FROM problem_details WHERE problem_id = 1;
+--   SELECT COUNT(*) FROM problem_examples WHERE problem_id = 1;
+
 -- Insert test problems for management UI testing
 -- Routes: /problems/1, /problems/1/code, /problems/1/cases, /problems/1/audit
 

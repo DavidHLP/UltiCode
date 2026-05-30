@@ -211,6 +211,7 @@ export default {
     finished: "Finished",
     started: "Started",
     ended: "Ended",
+    cancelled: "Cancelled",
     tbd: "Time TBD",
     calculating: "Calculating...",
     registrationOpen: "Registration Open",

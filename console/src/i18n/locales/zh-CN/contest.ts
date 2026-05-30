@@ -203,6 +203,7 @@ export default {
     finished: "已结束",
     started: "已开始",
     ended: "已结束",
+    cancelled: "已取消",
     tbd: "时间待定",
     calculating: "计算中...",
     registrationOpen: "报名中",

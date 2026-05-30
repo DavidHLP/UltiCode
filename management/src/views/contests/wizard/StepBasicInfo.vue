@@ -8,17 +8,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import type { ContestFormat } from '@/api/admin/contests'
+import { ContestType } from '@/api/admin/contests'
 import { useI18n } from 'vue-i18n'
 
-const CONTEST_FORMATS: ContestFormat[] = ['ICPC', 'IOI', 'CUSTOM']
+const CONTEST_FORMATS: ContestType[] = [ContestType.ICPC, ContestType.IOI, ContestType.CUSTOM]
 
 const props = defineProps<{
   formData: {
     title: string
     slug: string
     description: string
-    contestType: ContestFormat
+    contestType: ContestType
     [key: string]: unknown
   }
 }>()
@@ -29,7 +29,7 @@ const emit = defineEmits<{
 
 const { t } = useI18n()
 
-function updateField(field: string, value: string | number | bigint | ContestFormat | null) {
+function updateField(field: string, value: string | number | bigint | ContestType | null) {
   if (value === null) return
 
   emit('update:formData', {
@@ -75,7 +75,7 @@ function updateField(field: string, value: string | number | bigint | ContestFor
       <label class="terminal-label">{{ t('contests.basics.type') }}</label>
       <Select
         :model-value="formData.contestType"
-        @update:model-value="updateField('contestType', $event as ContestFormat)"
+        @update:model-value="updateField('contestType', $event as ContestType)"
       >
         <SelectTrigger
           class="border-[var(--silver-200)] dark:border-[var(--silver-700)] font-data text-sm"

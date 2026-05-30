@@ -24,7 +24,7 @@ import { useDebounceFn } from '@vueuse/core'
 
 const props = defineProps<{
   open: boolean
-  excludeIds?: string[]
+  excludeIds?: (string | number)[]
 }>()
 
 const emit = defineEmits<{
@@ -37,7 +37,7 @@ const { t } = useI18n()
 const searchQuery = ref('')
 
 const filteredProblems = computed(() => {
-  return problemsStore.problems.filter((p) => !props.excludeIds?.includes(p.id))
+  return problemsStore.problems.filter((p) => !props.excludeIds?.includes(Number(p.id)))
 })
 
 const debouncedSearch = useDebounceFn(async (query: string) => {

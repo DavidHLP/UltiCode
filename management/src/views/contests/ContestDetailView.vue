@@ -111,10 +111,10 @@ async function handleAddProblem(problem: { id: string }) {
   }
 }
 
-async function handleRemoveProblem(problemId: string) {
+async function handleRemoveProblem(problemId: number) {
   if (!confirm(t('contests.confirmation.removeProblem'))) return
   try {
-    await contestsStore.removeProblem(contestId.value, Number(problemId))
+    await contestsStore.removeProblem(contestId.value, problemId)
     toast.success(t('contests.toast.problemRemoved'))
   } catch {
     toast.error(t('contests.toast.failedToRemoveProblem'))

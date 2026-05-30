@@ -9,17 +9,12 @@ import UpcomingContests from "./components/UpcomingContests.vue";
 import RunningContests from "./components/RunningContests.vue";
 import GlobalRanking from "./components/GlobalRanking.vue";
 import PastContests from "./components/PastContests.vue";
-import MyContests from "./components/MyContests.vue";
 import { useI18n } from "vue-i18n";
 
 const router = useRouter();
 const route = useRoute();
 const contestStore = useContestStore();
 const { t } = useI18n();
-
-defineProps<{
-  tab?: string;
-}>();
 
 // Use store state
 const {
@@ -109,44 +104,21 @@ watch(currentPage, async (newPage) => {
     </div>
 
     <div v-else class="space-y-8">
-      <!-- Home View -->
-      <template v-if="!tab">
-        <RunningContests :contests="runningContests" />
-        <UpcomingContests :contests="upcomingContests" />
-        <div class="grid gap-8 lg:grid-cols-12">
-          <div class="lg:col-span-4">
-            <GlobalRanking :rankings="globalRankings" />
-          </div>
-          <div class="lg:col-span-8">
-            <PastContests
-              :contests="pastContests"
-              :loading="loadingContests"
-              v-model:currentPage="currentPage"
-              :totalPages="totalPages"
-            />
-          </div>
+      <RunningContests :contests="runningContests" />
+      <UpcomingContests :contests="upcomingContests" />
+      <div class="grid gap-8 lg:grid-cols-12">
+        <div class="lg:col-span-4">
+          <GlobalRanking :rankings="globalRankings" />
         </div>
-      </template>
-
-      <!-- Past Contests View -->
-      <template v-else-if="tab === 'past'">
-        <PastContests
-          :contests="pastContests"
-          :loading="loadingContests"
-          v-model:currentPage="currentPage"
-          :totalPages="totalPages"
-        />
-      </template>
-
-      <!-- Rankings View -->
-      <template v-else-if="tab === 'ranking'">
-        <GlobalRanking :rankings="globalRankings" />
-      </template>
-
-      <!-- My Contests View -->
-      <template v-else-if="tab === 'my'">
-        <MyContests />
-      </template>
+        <div class="lg:col-span-8">
+          <PastContests
+            :contests="pastContests"
+            :loading="loadingContests"
+            v-model:currentPage="currentPage"
+            :totalPages="totalPages"
+          />
+        </div>
+      </div>
     </div>
   </div>
 </template>

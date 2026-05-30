@@ -494,23 +494,6 @@ public class ContestController {
         return Result.success(history);
     }
 
-    /**
-     * Get current user's rating history.
-     * Requires authentication.
-     *
-     * @return list of rating history
-     */
-    @Operation(summary = "Get rating history", description = "Get the current user's rating change history")
-    @ApiResponse(responseCode = "200", description = "Rating history retrieved", content = @Content(schema = @Schema(implementation = java.util.List.class)))
-    @ApiResponse(responseCode = "401", description = "Not authenticated")
-    @SecurityRequirement(name = "Bearer")
-    @GetMapping("/user/rating-history")
-    public Result<List<RatingHistoryVO>> getRatingHistory() {
-        String userId = getCurrentUserIdOrThrow();
-        List<RatingHistoryVO> history = rankingService.getUserRatingHistory(userId);
-        return Result.success(history);
-    }
-
     // =========================================================================
     // HELPER METHODS
     // =========================================================================

@@ -61,36 +61,49 @@ const contestRoutes: RouteRecordRaw = {
   children: [
     {
       path: "",
-      name: "contest-list",
-      component: () => import("@/views/contest/ContestListView.vue"),
+      name: "contest-home",
+      component: () => import("@/views/contest/ContestHomeView.vue"),
     },
     {
-      path: "past",
-      name: "contest-past",
-      component: () => import("@/views/contest/ContestListView.vue"),
+      path: "browse",
+      name: "contest-browse",
+      component: () => import("@/views/contest/ContestBrowseView.vue"),
+    },
+    {
+      path: "browse/past",
+      name: "contest-browse-past",
+      component: () =>
+        import("@/views/contest/ContestBrowseView.vue"),
+      props: { initialTab: "finished" },
     },
     {
       path: "my",
       name: "contest-my",
-      component: () => import("@/views/contest/ContestView.vue"),
-      props: { tab: "my" },
+      component: () => import("@/views/contest/ContestMyView.vue"),
+      meta: { requiresAuth: true },
+    },
+    {
+      path: "rankings",
+      name: "contest-rankings",
+      component: () => import("@/views/contest/ContestRankingsView.vue"),
+    },
+    {
+      path: "past",
+      redirect: (to) => ({ name: "contest-browse-past", query: to.query }),
     },
     {
       path: "global-ranking",
-      name: "contest-global-ranking",
-      component: () => import("@/views/contest/ContestView.vue"),
-      props: { tab: "ranking" },
+      redirect: (to) => ({ name: "contest-rankings", query: to.query }),
     },
     {
       path: "local-ranking",
-      name: "contest-local-ranking",
-      component: () => import("@/views/contest/ContestView.vue"),
-      props: { tab: "ranking" },
+      redirect: (to) => ({ name: "contest-rankings", query: to.query }),
     },
     {
       path: ":slug",
       name: "contest-detail",
-      component: () => import("@/views/contest/detailed/ContestDetailView.vue"),
+      component: () =>
+        import("@/views/contest/detailed/ContestDetailView.vue"),
     },
   ],
 };

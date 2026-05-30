@@ -185,7 +185,7 @@ export const useContestsStore = defineStore('adminContests', () => {
       if (currentContest.value?.problemIds) {
         currentContest.value = {
           ...currentContest.value,
-          problemIds: currentContest.value.problemIds.filter((pid) => pid !== String(problemId)),
+          problemIds: currentContest.value.problemIds.filter((pid) => pid !== problemId),
         }
       }
     } catch (err: unknown) {

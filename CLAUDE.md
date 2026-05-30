@@ -133,8 +133,8 @@ Same commands as console. Also has Playwright for E2E.
 Flyway 迁移脚本统一管理在 `init-db/migrations/` 目录：
 
 ```bash
-# 迁移由 Spring Boot 应用启动时自动执行
-# 配置文件: init-db/flyway.conf
+# 独立运行迁移 (不依赖 backend-spring)
+mvn flyway:migrate
 
 # 迁移文件结构
 init-db/
@@ -154,6 +154,10 @@ DB config from `.env`: `DB_HOST`, `DB_PORT` (23306), `DB_USER`, `DB_PASSWORD`, `
 ```bash
 docker-compose up -d            # Start MySQL 9.1, Redis 7, Nacos 2.3.2
 docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Production
+
+# 直接操作 MySQL (容器内)
+docker exec ulticode-mysql mysql -u ulticode -p'CHANGE_ME_strong_password' -e "USE ulticode; SQL"
+docker exec ulticode-mysql mysql -u ulticode -p'CHANGE_ME_strong_password' -e "USE ulticode; SHOW TABLES;"
 ```
 
 ## Tech Stack

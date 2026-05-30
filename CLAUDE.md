@@ -15,7 +15,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 3. **运维能力**:
    - `pm2`: 项目进程的监控、管理、重启
    - `docker-compose`: Docker 容器编排与维护
-   - `db-manager` + `Flyway`: 数据库版本控制与自动化迁移
+   - `Flyway`: 数据库版本控制与自动化迁移 (位于 `init-db/`)
 4. **架构决策**: 根据最佳实践自主决定技术方案，确保向后兼容与系统稳定性
 
 ## Action Protocol
@@ -73,8 +73,7 @@ UltiCode/
 ├── console/              # Vue 3 user-facing frontend — port 9002
 ├── management/           # Vue 3 admin dashboard — port 9003
 ├── shared/               # Shared auth-core (Vue composable)
-├── db-manager/           # Flyway migration CLI (Python)
-│   └── migrations/       # 31+ Flyway SQL migrations (V1–V108)
+├── init-db/               # Flyway 迁移管理 (migrations/, sql/, flyway.conf)
 └── docker/               # Init scripts (nacos SQL, sandbox)
 ```
 
@@ -129,21 +128,23 @@ pnpm test:coverage    # vitest --coverage
 
 Same commands as console. Also has Playwright for E2E.
 
-### Database Migrations (db-manager/)
+### Database Migrations (init-db/)
+
+Flyway 迁移脚本统一管理在 `init-db/migrations/` 目录：
 
 ```bash
-# Setup
-python3 -m venv .venv && source .venv/bin/activate
-pip install -e .
+# 迁移由 Spring Boot 应用启动时自动执行
+# 配置文件: init-db/flyway.conf
 
-# Operations
-db-manager migrate              # Apply pending migrations
-db-manager migrate --dry-run    # Preview without applying
-db-manager info                 # Show migration status
-db-manager repair               # Fix metadata inconsistencies
-db-manager validate             # Validate migration state
-db-manager baseline             # Baseline existing database
-db-manager clean --force        # DANGER: Drop all objects
+# 迁移文件结构
+init-db/
+├── migrations/           # Flyway SQL 迁移脚本 (V*.sql)
+│   ├── V20260322__Create_Email_Tables.sql
+│   ├── V20260530130501__Baseline.sql
+│   └── V20260530140000__Insert_Admin_User.sql
+├── sql/                  # 原始 SQL dump 文件
+│   └── 20260530_ulticode_dump.sql
+└── flyway.conf           # Flyway CLI 配置
 ```
 
 DB config from `.env`: `DB_HOST`, `DB_PORT` (23306), `DB_USER`, `DB_PASSWORD`, `DB_NAME`.
@@ -179,7 +180,7 @@ docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d  # Product
 - **Frontend Prettier**: No semicolons, single quotes, 100 char print width
 - **ESLint**: Flat config, `vue/multi-word-component-names` off in console, whitelisted in management
 - **Integration tests**: Suffix `*IT.java`, excluded from `./mvnw test`, run with `./mvnw verify -Pci`
-- **Migration naming**: `V{N}__{description}.sql` in `db-manager/migrations/`
+- **Migration naming**: `V{N}__{description}.sql` in `init-db/migrations/`
 - **Docker containers**: Non-root `appuser:appgroup`, multi-stage builds
 - **Backend ports**: App 9001
 - **Frontend ports**: Console 9002, Management 9003

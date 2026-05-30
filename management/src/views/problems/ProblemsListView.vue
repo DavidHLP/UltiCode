@@ -30,6 +30,7 @@ import BulkActionDialog from '@/components/problems/BulkActionDialog.vue'
 import BulkEditDialog from '@/components/problems/BulkEditDialog.vue'
 import FlagInfoDialog from '@/components/problems/FlagInfoDialog.vue'
 import ProblemBulkActions from './components/ProblemBulkActions.vue'
+import ProblemAuditDrawer from './components/ProblemAuditDrawer.vue'
 import { useDataTable } from '@/composables/useDataTable'
 import { useProblemFilters } from './composables/useProblemFilters'
 import { useProblemActions } from './composables/useProblemActions'
@@ -77,7 +78,7 @@ const {
   }),
   transformParams: ({ search, page, limit }) => ({
     search,
-    ...buildFilterParams({ pageIndex: page, pageSize: limit }),
+    ...buildFilterParams({ pageIndex: page - 1, pageSize: limit }),
   }),
   autoLoad: false,
 })
@@ -97,6 +98,8 @@ const {
   selectedProblemForFlagTitle,
   flagInfoDialogOpen,
   selectedProblemForFlagInfo,
+  auditDrawerOpen,
+  auditDrawerProblemId,
   importDialogOpen,
   selectedRows,
   bulkActionDialogOpen,
@@ -112,6 +115,7 @@ const {
   unpublishProblem,
   openFlagDialog,
   viewFlagInfo,
+  openAuditDrawer,
   handleFlagProblem,
   unflagProblem,
   exportProblems,
@@ -182,6 +186,7 @@ const columns = useProblemColumns(canUpdateProblem, canDeleteProblem, {
   viewProblemCases,
   viewFlagInfo,
   openFlagDialog,
+  openAuditDrawer,
   unflagProblem,
   publishProblem,
   unpublishProblem,
@@ -461,4 +466,5 @@ watch(
     @edited="handleBulkEdited"
   />
   <FlagInfoDialog v-model:open="flagInfoDialogOpen" :problem="selectedProblemForFlagInfo" />
+  <ProblemAuditDrawer v-model:open="auditDrawerOpen" :problem-id="auditDrawerProblemId" />
 </template>

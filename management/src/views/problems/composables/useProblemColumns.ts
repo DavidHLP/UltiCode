@@ -13,6 +13,7 @@ import {
   IconFlagOff,
   IconFlask,
   IconBrackets,
+  IconInfoCircle,
   IconLoader,
   IconSparkles,
   IconTrophy,
@@ -55,6 +56,7 @@ export interface ProblemActions {
   viewProblemCases: (id: string) => void
   viewFlagInfo: (problem: Problem) => void
   openFlagDialog: (problem: Problem) => void
+  openAuditDrawer: (problem: Problem) => void
   unflagProblem: (id: string) => void
   publishProblem: (id: string) => void
   unpublishProblem: (id: string) => void
@@ -351,6 +353,17 @@ export function useProblemColumns(
                                       },
                                     )
                                   : null,
+                                h(
+                                  DropdownMenuItem,
+                                  { onClick: () => actions.openAuditDrawer(problem) },
+                                  {
+                                    default: () =>
+                                      h('div', { class: 'flex items-center gap-2' }, [
+                                        h(IconInfoCircle, { class: 'h-4 w-4 text-[var(--terminal-cyan)]' }),
+                                        t('audit.problemDrawer.button'),
+                                      ]),
+                                  },
+                                ),
                               ],
                             },
                           ),

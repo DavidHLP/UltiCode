@@ -342,7 +342,10 @@ Backend Entity (Contest)
 | `loadUserContests` 按需加载 | P2 | `console/src/stores/contest.ts` |
 | 区分 global/local ranking 路由 | P3 | `router/index.ts`, `ContestView.vue` |
 
-### Phase 6: 管理端对齐 (2-3 天)
+### Phase 6: 管理端对齐 (2-3 天) — **complete**
+
+> **Implementation Plan**: `.claude/PRPs/plans/contest-api-phase6-management-alignment.plan.md`
+> **Implementation Report**: `.claude/PRPs/reports/contest-api-phase6-management-alignment-report.md`
 
 | 任务 | 优先级 | 涉及文件 |
 |------|--------|---------|

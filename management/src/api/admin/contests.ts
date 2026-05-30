@@ -89,7 +89,6 @@ export interface PageResult<T> {
 }
 
 export interface CreateContestDto {
-  slug?: string
   title: string
   description?: string
   contestType?: ContestType
@@ -104,7 +103,6 @@ export interface CreateContestDto {
 }
 
 export interface UpdateContestDto {
-  slug?: string
   title?: string
   description?: string
   contestType?: ContestType

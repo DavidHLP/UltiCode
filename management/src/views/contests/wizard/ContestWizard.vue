@@ -65,7 +65,7 @@ const formData = ref({
 const isStepValid = computed(() => {
   switch (currentStep.value) {
     case 1:
-      return !!formData.value.title && !!formData.value.slug
+      return !!formData.value.title.trim()
     case 2:
       return true // Scoring rule selection is optional (will use default)
     case 3:
@@ -121,7 +121,6 @@ async function handleSubmit() {
     }
 
     await contestsStore.createContest({
-      slug: formData.value.slug,
       title: formData.value.title,
       description: formData.value.description,
       contestType: formData.value.contestType,

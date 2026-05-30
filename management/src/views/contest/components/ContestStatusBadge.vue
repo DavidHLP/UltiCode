@@ -9,7 +9,7 @@
 import { computed } from 'vue'
 import { cn } from '@/lib/utils'
 
-export type ContestStatus =
+export type ContestUiStatus =
   | 'draft'
   | 'published'
   | 'registering'
@@ -21,7 +21,7 @@ export type ContestStatus =
 
 const props = withDefaults(
   defineProps<{
-    status: ContestStatus
+    status: ContestUiStatus
     showIcon?: boolean
     size?: 'sm' | 'md' | 'lg'
   }>(),
@@ -32,7 +32,7 @@ const props = withDefaults(
 )
 
 const statusConfig: Record<
-  ContestStatus,
+  ContestUiStatus,
   { bg: string; border: string; text: string; label: string }
 > = {
   draft: {

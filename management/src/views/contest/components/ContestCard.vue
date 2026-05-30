@@ -12,7 +12,7 @@ import { IconUsers, IconTrophy, IconCalendar } from '@tabler/icons-vue'
 import { cn } from '@/lib/utils'
 import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import ContestStatusBadge, { type ContestStatus } from './ContestStatusBadge.vue'
+import ContestStatusBadge, { type ContestUiStatus } from './ContestStatusBadge.vue'
 import ContestTimer from './ContestTimer.vue'
 
 export interface ContestCardData {
@@ -23,7 +23,7 @@ export interface ContestCardData {
   type: 'PUBLIC' | 'PRIVATE' | 'VIRTUAL'
   startTime: string | Date
   endTime: string | Date
-  status: ContestStatus
+  status: ContestUiStatus
   participantCount: number
   isRegistered?: boolean
 }

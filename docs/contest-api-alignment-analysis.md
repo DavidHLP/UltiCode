@@ -331,7 +331,10 @@ Backend Entity (Contest)
 | 实现或移除 `getUserRatingHistory` | P2 | `RankingServiceImpl.java`, 前端 store |
 | Store 不可变更新重构 | P2 | `console/src/stores/contest.ts` |
 
-### Phase 5: 前端架构优化 (3-5 天)
+### Phase 5: 前端架构优化 (3-5 天) — **complete**
+
+> **Implementation Plan**: `.claude/PRPs/plans/contest-frontend-architecture-optimization.plan.md`
+> **Implementation Report**: `.claude/PRPs/reports/contest-frontend-architecture-optimization-report.md`
 
 | 任务 | 优先级 | 涉及文件 |
 |------|--------|---------|

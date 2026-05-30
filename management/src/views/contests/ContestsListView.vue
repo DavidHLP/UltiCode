@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button'
 
 import { useContestsStore } from '@/stores/admin/contests'
 import { useAuthStore } from '@/stores/auth'
-import type { Contest, ContestFormat } from '@/api/admin/contests'
+import type { Contest, ContestType } from '@/api/admin/contests'
 
 import DataTable from '@/components/table/DataTable.vue'
 import DataTableToolbar, { type Filter } from '@/components/table/DataTableToolbar.vue'
@@ -110,7 +110,7 @@ const {
     search,
     status: filters.statusFilter === 'all' ? undefined : filters.statusFilter,
     type:
-      filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestFormat | undefined),
+      filters.typeFilter === 'all' ? undefined : (filters.typeFilter as ContestType | undefined),
     page,
     limit,
   }),

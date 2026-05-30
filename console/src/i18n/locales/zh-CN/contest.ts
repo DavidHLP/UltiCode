@@ -121,6 +121,20 @@ export default {
     },
   },
 
+  // My Contests page
+  my: {
+    title: "我的比赛",
+    subtitle: "查看您已报名、已参加和虚拟的比赛",
+  },
+
+  // Rankings page
+  rankings: {
+    title: "排行榜",
+    subtitle: "全球和本地竞赛排名",
+    global: "全球",
+    local: "本地",
+  },
+
   // Ranking
   ranking: {
     title: "排行榜",

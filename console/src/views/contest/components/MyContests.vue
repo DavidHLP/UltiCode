@@ -1,27 +1,64 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { useContestStore } from "@/stores/contest";
 import { useRouter } from "vue-router";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Calendar, Trophy, TrendingUp, TrendingDown } from "lucide-vue-next";
+import { Calendar, Trophy } from "lucide-vue-next";
 import { useI18n } from "vue-i18n";
 
 const contestStore = useContestStore();
 const router = useRouter();
 const loading = ref(true);
+const activeTab = ref("registered");
 const { t, locale } = useI18n();
+
+let requestId = 0;
+
+async function loadDataForTab(tab: string) {
+  const currentId = ++requestId;
+  switch (tab) {
+    case "registered": {
+      if (contestStore.registeredContests.length === 0) {
+        await contestStore.loadUserContests("registered");
+      }
+      break;
+    }
+    case "participated": {
+      if (contestStore.contestHistory.length === 0) {
+        await contestStore.loadContestHistory();
+      }
+      break;
+    }
+    case "virtual": {
+      if (contestStore.virtualContests.length === 0) {
+        await contestStore.loadUserContests("virtual");
+      }
+      break;
+    }
+  }
+  // Only update loading if this is still the latest request
+  if (currentId === requestId) {
+    loading.value = false;
+  }
+}
 
 onMounted(async () => {
   try {
-    await Promise.all([
-      contestStore.loadUserContests(),
-      contestStore.loadContestHistory(),
-    ]);
+    await loadDataForTab(activeTab.value);
   } catch {
     // Error handled by UI state
-  } finally {
+    loading.value = false;
+  }
+});
+
+watch(activeTab, async (newTab) => {
+  loading.value = true;
+  try {
+    await loadDataForTab(newTab);
+  } catch {
+    // Error handled by UI state
     loading.value = false;
   }
 });
@@ -68,7 +105,7 @@ function navigateToContest(slug: string) {
       </p>
     </div>
 
-    <Tabs v-else default-value="registered" class="w-full">
+    <Tabs v-else v-model="activeTab" class="w-full">
       <TabsList class="grid w-full max-w-md grid-cols-3">
         <TabsTrigger value="registered">{{
           t("contest.myContests.tabs.registered")

@@ -127,6 +127,20 @@ export default {
     },
   },
 
+  // My Contests page
+  my: {
+    title: "My Contests",
+    subtitle: "View your registered, participated, and virtual contests",
+  },
+
+  // Rankings page
+  rankings: {
+    title: "Rankings",
+    subtitle: "Global and local contest rankings",
+    global: "Global",
+    local: "Local",
+  },
+
   // Ranking
   ranking: {
     title: "Ranking",

@@ -5,7 +5,6 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.ulticode.common.response.PageResult;
 import com.ulticode.modules.contest.dto.ContestRankingVO;
 import com.ulticode.modules.contest.dto.LiveRankingEntryVO;
-import com.ulticode.modules.contest.dto.RatingHistoryVO;
 import com.ulticode.modules.contest.dto.UserContestHistoryVO;
 import com.ulticode.modules.contest.entity.Contest;
 import com.ulticode.modules.contest.entity.ContestParticipant;
@@ -47,25 +46,15 @@ public class RankingServiceImpl implements RankingService {
         // Limit page size
         currentLimit = Math.min(currentLimit, 100);
 
-        // Fetch all participants with user data in single query (eliminates N+1)
-        List<ContestParticipantMapper.ContestParticipantWithUser> allParticipants =
-                participantMapper.selectParticipantsWithUserByContestId(contestId);
-
-        // Filter to only ranked participants and apply manual pagination
+        long total = participantMapper.countRankedParticipantsByContestId(contestId);
+        int offset = (int) ((long) (currentPage - 1) * currentLimit);
         List<ContestParticipantMapper.ContestParticipantWithUser> rankedParticipants =
-                allParticipants.stream()
-                        .filter(p -> p.finalRank() != null)
-                        .collect(Collectors.toList());
-
-        int total = rankedParticipants.size();
-        int skip = (currentPage - 1) * currentLimit;
+                participantMapper.selectParticipantsWithUserByContestIdPaginated(contestId, currentLimit, offset);
         List<ContestRankingVO> rankingList = rankedParticipants.stream()
-                .skip(skip)
-                .limit(currentLimit)
                 .map(this::toRankingVO)
                 .collect(Collectors.toList());
 
-        return PageResult.of(rankingList, (long) total, currentPage, currentLimit);
+        return PageResult.of(rankingList, total, currentPage, currentLimit);
     }
 
     @Override
@@ -115,12 +104,6 @@ public class RankingServiceImpl implements RankingService {
                 .collect(Collectors.toList());
     }
 
-    @Override
-    public List<RatingHistoryVO> getUserRatingHistory(String userId) {
-        // This would typically query a rating history table
-        // For now, return empty list as rating history is not implemented yet
-        return List.of();
-    }
 
     /**
      * Convert ContestParticipant entity to ContestRankingVO (no user data).

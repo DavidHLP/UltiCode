@@ -340,21 +340,6 @@ export interface UserContestHistory {
 }
 
 // ============================================================================
-// RATING HISTORY — Matches backend RatingHistoryVO
-// ============================================================================
-
-export interface RatingHistoryEntry {
-  contestId: string;
-  title: string | null;
-  slug: string | null;
-  ratingChange: number | null;
-  newRating: number | null;
-  oldRating: number | null;
-  ratedAt: string | null;
-  performance: number | null;
-}
-
-// ============================================================================
 // PAGINATED RESPONSE — Matches backend PageResult
 // ============================================================================
 

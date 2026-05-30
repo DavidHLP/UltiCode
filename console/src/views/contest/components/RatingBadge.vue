@@ -3,16 +3,18 @@ import { computed } from "vue";
 import { getRatingTitle, getRatingColor } from "@/types/contest";
 import { useI18n } from "vue-i18n";
 
-const props = defineProps<{
-  rating: number;
+const props = withDefaults(defineProps<{
+  rating: number | null;
   showTitle?: boolean;
   size?: "sm" | "md" | "lg";
-}>();
+}>(), {
+  rating: null,
+});
 
 const { t } = useI18n();
 
-const title = computed(() => getRatingTitle(props.rating));
-const color = computed(() => getRatingColor(props.rating));
+const title = computed(() => props.rating != null ? getRatingTitle(props.rating) : "NEWBIE");
+const color = computed(() => props.rating != null ? getRatingColor(props.rating) : "#6b7280");
 
 const displayName = computed(() => {
   const map: Record<string, string> = {
@@ -49,7 +51,7 @@ const sizeClasses = computed(() => {
       :class="sizeClasses"
       :style="{ color: color }"
     >
-      {{ rating }}
+      {{ rating ?? "—" }}
     </span>
     <span v-if="showTitle" class="text-xs text-muted-foreground font-medium">
       {{ displayName }}

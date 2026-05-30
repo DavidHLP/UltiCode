@@ -1,5 +1,6 @@
 package com.ulticode.modules.contest.dto;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import io.swagger.v3.oas.annotations.media.Schema;
 
@@ -16,8 +17,8 @@ public record ContestListVO(
         @Schema(description = "URL-friendly identifier for the contest") String slug,
         @Schema(description = "Contest title") String title,
         @Schema(description = "Contest status: DRAFT, UPCOMING, RUNNING, FINISHED, CANCELLED") String status,
-        @Schema(description = "Contest start time") LocalDateTime startTime,
-        @Schema(description = "Contest end time") LocalDateTime endTime,
+        @Schema(description = "Contest start time") @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime startTime,
+        @Schema(description = "Contest end time") @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss") LocalDateTime endTime,
         @Schema(description = "Contest duration in minutes") Integer duration,
         @Schema(description = "Contest type/format: ICPC, IOI, CUSTOM") String contestType,
         @Schema(description = "Number of participants") Integer participantCount,

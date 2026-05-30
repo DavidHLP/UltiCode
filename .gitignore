@@ -9,6 +9,9 @@
 node_modules/
 **/node_modules/
 /backend/
+/console/node_modules/
+/management/node_modules/
+/shared/node_modules/
 .gradle/
 *.class
 *.jar
@@ -42,6 +45,9 @@ db-manager/flyway/
 /db/
 # 忽略 Maven 生成的单元测试报告
 **/target/surefire-reports/
+# init-db 的构建产物 (Maven 本地仓库缓存)
+init-db/target/
+init-db/project-local-repo/
 
 # --- Vue 3 / Frontend ---
 dist-ssr/
@@ -106,7 +112,7 @@ report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 !.vscode/extensions.json
 
 # --- AI Tools ---
-# .claude
+.claude/
 # *CLAUDE.md
 
 # ====================================================================

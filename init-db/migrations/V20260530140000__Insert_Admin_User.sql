@@ -1,3 +1,22 @@
+-- Migration:
+--   V20260530140000__Insert_Admin_User.sql
+--
+-- Purpose:
+--   Insert default SUPER_ADMIN user for system administration.
+--
+-- Risk:
+--   Low. INSERT ON DUPLICATE KEY UPDATE is idempotent. Only affects admin user record.
+--
+-- Compatibility:
+--   Compatible. Admin user is required by all application versions.
+--
+-- Rollback:
+--   DELETE FROM users WHERE id = 'u-admin-001';
+--
+-- Verify:
+--   SELECT id, username, role FROM users WHERE id = 'u-admin-001';
+--   SELECT COUNT(*) FROM role_permissions WHERE role = 'SUPER_ADMIN';
+
 -- Insert default admin user with known password "admin123"
 -- Password hash: BCrypt encode of "admin123"
 -- The password meets the requirements: at least 8 chars, 1 uppercase, 1 lowercase, 1 digit

@@ -38,6 +38,15 @@ const getIconColor = (action: string) => {
     UPDATE_USER: 'var(--status-warning)',
     BAN_USER: 'var(--status-error)',
     UNBAN_USER: 'var(--status-success)',
+    CREATE_FORUM_POST: 'var(--status-success)',
+    UPDATE_FORUM_POST: 'var(--status-warning)',
+    DELETE_FORUM_POST: 'var(--status-error)',
+    PIN_POST: 'var(--accent-primary)',
+    UNPIN_POST: 'var(--silver-400)',
+    LOCK_POST: 'var(--status-warning)',
+    UNLOCK_POST: 'var(--status-success)',
+    FLAG_POST: 'var(--status-error)',
+    UNFLAG_POST: 'var(--status-success)',
   }
   return colorMap[action] || 'var(--silver-400)'
 }

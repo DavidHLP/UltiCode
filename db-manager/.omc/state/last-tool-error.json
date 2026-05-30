@@ -1,7 +1,0 @@
-{
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"rtk docker exec ulticode-mysql mysql -u ulticode -p'ulticode' -e \\\"SELECT * FROM ulticode.schema_migrations ORDER BY version DESC LIMIT 10;\\\" 2>&1\"}",
-  "error": "Exit code 1\nmysql: [Warning] Using a password on the command line interface can be insecure.\nERROR 1146 (42S02) at line 1: Table 'ulticode.schema_migrations' doesn't exist",
-  "timestamp": "2026-05-05T06:59:50.256Z",
-  "retry_count": 1
-}

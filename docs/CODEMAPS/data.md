@@ -1,4 +1,4 @@
-<!-- Generated: 2026-05-23 | Migrations: 41 | Token estimate: ~800 -->
+<!-- Generated: 2026-05-30 | Migrations: 42 (+init-db) | Token estimate: ~850 -->
 
 # Data Architecture
 
@@ -45,49 +45,36 @@ V107: contest_participants — added created_at, updated_at
 V108: contest_problems — added created_at, updated_at
 ```
 
-### Migration File List (41 files)
+## Migration Tools
+
+### 1. db-manager/ (Spring Boot integrated)
+- 41 migrations total (V1–V108, with gap V32–V98, plus V26.1 sub-version)
+- Latest: V108__add_audit_columns_to_contest_problems.sql
+- Commands: `migrate`, `info`, `validate`, `repair`, `baseline`, `clean --force`
+
+### 2. init-db/ (Standalone Flyway - NEW)
+- **Location**: `/home/david/project/UltiCode-Public-Next/init-db/`
+- **Version**: Timestamp-based `V{YYYYMMDDHHMMSS}` format
+- **Baseline**: `V20260530130501__Baseline.sql` — 67 tables from existing database
+- **Config**: `flyway.conf` (baselineOnMigrate=true, outOfOrder=false)
+- **Maven**: `pom.xml` with Flyway 10.10.0
+- **Git Hook**: `validate-migration.sh` for naming convention
 ```
-V1__core_schema.sql
-V2__problem_schema.sql
-V3__contest_schema.sql
-V4__forum_schema.sql
-V5__subscription_schema.sql
-V6__moderation_schema.sql
-V7__recommendation_schema.sql
-V8__collection_schema.sql
-V9__solution_schema.sql
-V10__daily_recommendations_feedback.sql
-V11__moderation_seed_data.sql
-V12__notification_seed_data.sql
-V13__solution_enrich_content.sql
-V14__solution_stats.sql
-V15__featured_problem_lists.sql
-V16__recommendation_seed_problems.sql
-V17__recommendation_seed_submissions.sql
-V18__add_submission_retry_count.sql
-V19__submission_memory_nullable.sql
-V20__add_password_reset_columns.sql
-V21__add_contest_actual_times.sql
-V22__achievement_schema.sql
-V23__solutions_seed.sql
-V24__submissions_seed.sql
-V25__collections_seed.sql
-V26__fix_problem_lists_encoding.sql
-V26.1__fix_moderation_encoding.sql
-V27__solution_add_is_pinned.sql
-V28__fix_two_sum_solutions.sql
-V29__fix_problem_details_encoding.sql
-V30__problem_lists_add_version.sql
-V31__add_problem_details_content.sql
-V99__edge_schema.sql
-V100__follow_schema.sql
-V101__follow_indexes.sql
-V103__add_problem_version_table.sql
-V104__add_appeal_rejected_to_moderation_enum.sql
-V105__moderation_constraints.sql
-V106__fix_problem_lists_banner_tag_encoding.sql
-V107__add_audit_columns_to_contest_participants.sql
-V108__add_audit_columns_to_contest_problems.sql
+init-db/
+├── README.md
+├── flyway.conf
+├── pom.xml
+├── migrations/
+│   └── V20260530130501__Baseline.sql  (67 tables, 1258 lines)
+└── sql/
+    └── 20260530_ulticode_dump.sql     (original backup)
+```
+
+### Migration Naming Convention
+```
+V{YYYYMMDDHHMMSS}__{Description}.sql
+Example: V20260530130501__Baseline.sql
+         V20260601120000__AddNewFeature.sql
 ```
 
 ## Key Relationships
@@ -118,10 +105,3 @@ solutions ─┬─< solution_comments (1:N)
 - Rate limiting
 - Recommendation cache (RedisRecommendationStore)
 - CSRF token store
-
-## Migration Tool
-
-`db-manager/` — Flyway-based Python CLI
-- 41 migrations total (V1–V108, with gap V32–V98, plus V26.1 sub-version)
-- Latest: V108__add_audit_columns_to_contest_problems.sql
-- Commands: `migrate`, `info`, `validate`, `repair`, `baseline`, `clean --force`

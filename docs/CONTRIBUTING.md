@@ -52,6 +52,7 @@ docker-compose ps
 
 ### 4. Run Database Migrations
 
+#### Option A: db-manager (Spring Boot integrated)
 ```bash
 # Setup db-manager
 cd db-manager
@@ -64,6 +65,21 @@ db-manager migrate
 
 # Verify migration status
 db-manager info
+```
+
+#### Option B: init-db (Standalone Flyway - NEW)
+```bash
+# Navigate to init-db
+cd init-db
+
+# View migration status
+mvn flyway:info
+
+# Apply migrations (creates 67 tables from baseline)
+mvn flyway:migrate
+
+# For existing database, create baseline first:
+mvn flyway:baseline -Dflyway.baselineVersion=20260530130501
 ```
 
 ### 5. Start Application Services
@@ -135,6 +151,16 @@ Same commands as console, plus:
 | `db-manager validate` | Validate migration state |
 | `db-manager baseline` | Baseline existing database |
 | `db-manager clean --force` | DANGER: Drop all objects |
+
+### init-db (Standalone Flyway - NEW)
+
+| Command | Description |
+|---------|-------------|
+| `cd init-db && mvn flyway:info` | View migration status |
+| `cd init-db && mvn flyway:migrate` | Apply migrations |
+| `cd init-db && mvn flyway:baseline` | Create baseline for existing DB |
+
+Migration naming: `V{YYYYMMDDHHMMSS}__{Description}.sql`
 
 ### Docker
 

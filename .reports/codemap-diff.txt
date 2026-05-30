@@ -1,33 +1,42 @@
-Codemap Diff Report
-Generated: 2026-05-19
-Previous scan: 2026-05-18
+Codemap Update Report - 2026-05-30
+==================================
 
-== Summary ==
-Files scanned: 1634 -> 2106 (+29%, expanded scan coverage)
-Structure change: ~8% (below 30% threshold, auto-approved)
+Files Scanned: 1964 (↑104 from last scan)
+Codemaps Updated: 2 (architecture.md, data.md)
 
-== Changes ==
+Change Summary
+-------------
+[MINOR] docs/CODEMAPS/architecture.md
+  - Added Migration Strategy section documenting dual Flyway setup
+  - Updated token/files counts
 
-[architecture.md]
-- Updated file counts: console 548, management 709
-- No structural changes
+[MINOR] docs/CODEMAPS/data.md
+  - Confirmed init-db section present (from last update)
+  - No material changes needed
 
-[backend.md]
-- Added missing modules: permission, queue, refreshtoken, websocket (4 modules)
-- Updated security stack: added JwtProperties, AuthenticationEntryPointImpl
-- Controller count unchanged (40)
+Files Unchanged
+--------------
+- backend.md — current (2 migrations since review)
+- frontend.md — current
+- dependencies.md — current
 
-[frontend.md]
-- No route changes detected
-- View counts stable
+New Artifacts (since last scan)
+------------------------------
+[NEW] init-db/ — Standalone Flyway migration tool
+  - README.md (156 lines)
+  - flyway.conf (26 lines)
+  - pom.xml (Maven, Flyway 10.10.0)
+  - migrations/V20260530130501__Baseline.sql (67 tables, 1258 lines)
+  - sql/20260530_ulticode_dump.sql (original backup)
+  - validate-migration.sh (39 lines, executable)
 
-[data.md]
-- No new migrations (still V1-V108)
-- No schema changes
+[NEW] db-manager/migrations/V108__add_audit_columns_to_contest_problems.sql
 
-[dependencies.md]
-- Recommendation system: added recommend-feature module (6 sub-modules total)
-- No version changes in dependencies
+Architecture Changes
+-------------------
+- Contest phase 6 management alignment (feat/contest-phase6-management-alignment branch)
+- init-db baseline completed successfully (67 tables in 3s)
 
-== Staleness Warnings ==
-None — all docs updated within 24h.
+Staleness Warnings
+-----------------
+None — all codemaps updated within 7 days

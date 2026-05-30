@@ -173,4 +173,11 @@ export default {
   toast: {
     loadFailed: 'Failed to load audit logs',
   },
+
+  problemDrawer: {
+    title: 'Audit History',
+    button: 'Audit Log',
+    problemId: 'Problem #{id}',
+    noLogs: 'No audit records for this problem.',
+  },
 } as const

@@ -31,6 +31,8 @@ export default {
     createDescription: '创建新的标签',
     name: '标签名称',
     namePlaceholder: '输入标签名称',
+    nameRequired: '标签名称为必填项',
+    nameTooLong: '标签名称不能超过50个字符',
     slug: '标签别名',
     slugPlaceholder: 'url-friendly-name',
     color: '颜色',

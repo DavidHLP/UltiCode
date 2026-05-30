@@ -55,6 +55,20 @@ spring:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: Asia/Shanghai
 
+  # Flyway Configuration - migrations managed in init-db/migrations/
+  flyway:
+    enabled: true
+    locations: filesystem:${FLYWAY_MIGRATIONS_DIR:../init-db/migrations}
+    baseline-on-migrate: true
+    baseline-version: 20260322
+    baseline-description: Initial baseline
+    sql-migration-prefix: V
+    sql-migration-separator: __
+    sql-migration-suffixes: .sql
+    encoding: UTF-8
+    validate-on-migrate: true
+    clean-disabled: true
+
 # JWT Configuration
 jwt:
   secret: ${JWT_SECRET:}

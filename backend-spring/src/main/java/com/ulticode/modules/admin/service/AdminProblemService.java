@@ -1,6 +1,7 @@
 package com.ulticode.modules.admin.service;
 
 import com.ulticode.common.response.PageResult;
+import com.ulticode.modules.admin.dto.AuditLogVO;
 import com.ulticode.modules.admin.dto.problem.*;
 import com.ulticode.modules.problem.dto.ProblemVO;
 import com.ulticode.modules.submission.entity.Submission;
@@ -33,4 +34,6 @@ public interface AdminProblemService {
     PageResult<Submission> getProblemSubmissions(Long id, int page, int limit);
 
     ImportProblemsResponseDTO importProblems(ImportProblemsRequestDTO request);
+
+    List<AuditLogVO> getProblemAuditHistory(Long id);
 }

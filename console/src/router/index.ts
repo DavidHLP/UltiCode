@@ -70,6 +70,11 @@ const contestRoutes: RouteRecordRaw = {
       component: () => import("@/views/contest/ContestBrowseView.vue"),
     },
     {
+      path: "list",
+      name: "contest-list",
+      redirect: (to) => ({ name: "contest-home", query: to.query }),
+    },
+    {
       path: "browse/past",
       name: "contest-browse-past",
       component: () =>
